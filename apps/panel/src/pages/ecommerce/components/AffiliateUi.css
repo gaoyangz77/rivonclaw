@@ -1,0 +1,1507 @@
+/* Affiliate is a high-density operational surface. These rules intentionally
+   favour crisp hierarchy, opaque layers and predictable scanning over large
+   decorative cards. */
+.affiliate-page-frame,
+.affiliate-page-shell {
+  --affiliate-shell-gap: 14px;
+  --affiliate-panel-radius: 13px;
+  --affiliate-modal-radius: 18px;
+  --affiliate-inspector-width: 340px;
+  --affiliate-line: color-mix(in srgb, var(--color-border-light) 88%, var(--color-text) 12%);
+  --affiliate-panel: var(--color-bg);
+  --affiliate-panel-muted: color-mix(in srgb, var(--color-bg-alt) 88%, var(--color-bg));
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  gap: var(--affiliate-shell-gap);
+}
+
+.affiliate-page-frame::before,
+.affiliate-page-shell::before {
+  display: none;
+}
+
+.affiliate-page-frame .affiliate-page-header,
+.affiliate-page-shell .affiliate-page-header,
+.affiliate-page-shell .affiliate-page-hero {
+  position: relative;
+  display: flex;
+  min-height: 88px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  overflow: visible;
+  margin: 0;
+  padding: 15px 18px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: var(--affiliate-panel-radius);
+  background: var(--affiliate-panel);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.affiliate-page-frame .affiliate-page-header::before,
+.affiliate-page-frame .affiliate-page-header::after,
+.affiliate-page-shell .affiliate-page-header::before,
+.affiliate-page-shell .affiliate-page-header::after {
+  display: none;
+}
+
+.affiliate-page-header-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.affiliate-page-header-eyebrow {
+  color: var(--color-primary);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.affiliate-page-frame .affiliate-page-header h1,
+.affiliate-page-shell .affiliate-page-header h1,
+.affiliate-page-shell .affiliate-page-hero h1 {
+  margin: 0;
+  font-size: clamp(24px, 2vw, 31px);
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.affiliate-page-frame .affiliate-page-header p,
+.affiliate-page-shell .affiliate-page-header p,
+.affiliate-page-shell .affiliate-page-hero p {
+  max-width: 820px;
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.affiliate-page-header-actions,
+.affiliate-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.affiliate-page-header-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.affiliate-toolbar {
+  padding: 10px 12px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 11px;
+  background: var(--affiliate-panel);
+  box-shadow: 0 5px 18px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.affiliate-detail-modal-backdrop {
+  isolation: isolate;
+}
+
+.affiliate-detail-modal {
+  min-width: 0;
+}
+
+.affiliate-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+}
+
+.affiliate-metric {
+  display: grid;
+  min-width: 0;
+  min-height: 68px;
+  align-content: center;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 10px;
+  background: var(--affiliate-panel-muted);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.affiliate-metric:hover,
+.affiliate-metric:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--affiliate-line));
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.affiliate-metric > span,
+.affiliate-metric > small {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-metric > strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-metric-grid-compact .affiliate-metric {
+  min-height: 54px;
+  padding: 8px 10px;
+}
+
+.affiliate-status-pill {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 9px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 999px;
+  background: var(--affiliate-panel-muted);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 730;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.affiliate-status-pill.is-primary,
+.affiliate-status-pill.is-info {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--affiliate-line));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  color: var(--color-primary);
+}
+
+.affiliate-status-pill.is-success {
+  border-color: color-mix(in srgb, var(--color-success) 32%, var(--affiliate-line));
+  background: color-mix(in srgb, var(--color-success) 9%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success) 78%, var(--color-text));
+}
+
+.affiliate-status-pill.is-warning {
+  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--affiliate-line));
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-warning) 72%, var(--color-text));
+}
+
+.affiliate-status-pill.is-danger {
+  border-color: color-mix(in srgb, var(--color-danger) 34%, var(--affiliate-line));
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg));
+  color: var(--color-danger);
+}
+
+.affiliate-entity-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 12px;
+  background: var(--affiliate-panel);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-text) 4%, transparent);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.affiliate-entity-card:hover,
+.affiliate-entity-card:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--affiliate-line));
+  box-shadow: 0 11px 26px color-mix(in srgb, var(--color-text) 7%, transparent);
+}
+
+.affiliate-entity-card.is-interactive,
+.affiliate-entity-card[role="button"] {
+  cursor: pointer;
+}
+
+.affiliate-entity-card.is-interactive:hover,
+.affiliate-entity-card[role="button"]:hover {
+  transform: translateY(-2px);
+}
+
+.affiliate-entity-card-compact {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.affiliate-product-summary.affiliate-entity-card-embedded {
+  box-shadow: none;
+}
+
+.affiliate-product-summary.affiliate-entity-card-compact {
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px;
+}
+
+.affiliate-product-summary.affiliate-entity-card-compact .affiliate-product-thumb,
+.affiliate-product-summary.affiliate-entity-card-compact .affiliate-product-thumb-button {
+  width: 56px;
+  height: 56px;
+}
+
+.affiliate-context-inspector {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 0 solid var(--affiliate-line);
+  background: var(--affiliate-panel-muted);
+  opacity: 0;
+  transition: width 180ms ease, opacity 150ms ease, border-width 180ms ease;
+}
+
+.affiliate-context-inspector.is-open {
+  width: var(--affiliate-inspector-width);
+  min-width: var(--affiliate-inspector-width);
+  border-left-width: 1px;
+  opacity: 1;
+}
+
+.affiliate-context-inspector-header {
+  display: flex;
+  min-width: var(--affiliate-inspector-width);
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--affiliate-line);
+  background: var(--affiliate-panel);
+}
+
+.affiliate-context-inspector-header strong {
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.affiliate-context-inspector-header button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.affiliate-context-inspector-header button:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+}
+
+.affiliate-context-inspector-body {
+  display: grid;
+  width: var(--affiliate-inspector-width);
+  align-content: start;
+  gap: 10px;
+  height: calc(100% - 48px);
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.affiliate-campaign-product-rate-table {
+  display: grid;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid var(--affiliate-line);
+}
+
+.affiliate-campaign-product-rate-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(120px, 0.35fr) minmax(120px, 0.35fr) auto;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 10px;
+  background: var(--affiliate-panel-muted);
+}
+
+.affiliate-campaign-product-rate-identity {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.affiliate-campaign-product-rate-identity img,
+.affiliate-campaign-product-rate-fallback {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 8px;
+  background: var(--affiliate-panel);
+  object-fit: cover;
+}
+
+.affiliate-campaign-product-rate-identity div,
+.affiliate-campaign-product-rate-row > div:not(:first-child) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.affiliate-campaign-product-rate-row span,
+.affiliate-campaign-product-rate-row small {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-product-rate-row strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-product-rate-row > button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 7px;
+  background: var(--affiliate-panel);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 680;
+}
+
+.affiliate-campaign-product-rate-row > button:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--affiliate-line));
+  color: var(--color-primary);
+}
+
+/* Cooperation creator register: two dense entity cards on wide screens, one
+   column when a card would become narrower than its operational content. */
+.affiliate-page-frame .affiliate-creator-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr));
+  gap: 12px;
+  padding: 12px;
+  background: var(--affiliate-panel-muted);
+}
+
+.affiliate-page-frame .affiliate-creator-row {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.46fr);
+  align-content: start;
+  gap: 10px 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--affiliate-line);
+}
+
+.affiliate-page-frame .affiliate-creator-row:last-child {
+  border-bottom: 1px solid var(--affiliate-line);
+}
+
+.affiliate-page-frame .affiliate-creator-row-main,
+.affiliate-page-frame .affiliate-creator-card-metrics {
+  grid-column: 1 / -1;
+}
+
+.affiliate-page-frame .affiliate-creator-row-main {
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+
+.affiliate-page-frame .affiliate-creator-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+}
+
+.affiliate-page-frame .affiliate-creator-row-copy {
+  align-content: start;
+  gap: 5px;
+}
+
+.affiliate-page-frame .affiliate-creator-row-title {
+  flex-wrap: nowrap;
+}
+
+.affiliate-page-frame .affiliate-creator-row-title > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-page-frame .affiliate-creator-row-meta {
+  max-height: 34px;
+  overflow: hidden;
+}
+
+.affiliate-page-frame .affiliate-creator-relationship-context {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 9px;
+  background: var(--affiliate-panel-muted);
+}
+
+.affiliate-page-frame .affiliate-creator-work-summary {
+  gap: 7px;
+}
+
+.affiliate-page-frame .affiliate-creator-work-summary-item {
+  min-height: 58px;
+}
+
+.affiliate-page-frame .affiliate-creator-work-facts {
+  gap: 4px 8px;
+}
+
+/* Creator workspace: primary work reads first; relationship controls live in
+   a contextual inspector on the right and become a drawer on narrower screens. */
+.affiliate-relationship-work-modal .affiliate-relationship-workspace-body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-work-pane {
+  order: 1;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.affiliate-relationship-work-modal
+  .affiliate-context-inspector.affiliate-collaboration-context-pane {
+  display: block;
+  order: 2;
+  padding: 0;
+  border-right: 0;
+  background: var(--affiliate-panel-muted);
+}
+
+.affiliate-relationship-work-modal
+  .affiliate-context-inspector
+  .affiliate-relationship-work-side-card {
+  padding: 11px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.affiliate-relationship-work-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.affiliate-creator-contact-panel {
+  gap: 9px;
+}
+
+.affiliate-creator-contact-panel small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.affiliate-creator-contact-field {
+  display: grid;
+  gap: 5px;
+}
+
+.affiliate-creator-contact-field > span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.affiliate-creator-contact-field > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.affiliate-creator-contact-field input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 7px;
+  background: var(--affiliate-panel);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 11px;
+}
+
+.affiliate-creator-contact-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.affiliate-creator-contact-health span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.affiliate-creator-contact-health span.is-ready {
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success) 78%, var(--color-text));
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-detail-tabs {
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-tab-panel {
+  background: var(--affiliate-panel);
+}
+
+.affiliate-relationship-work-modal .affiliate-proposal-empty {
+  max-width: 720px;
+  min-height: 180px;
+  margin-inline: auto;
+  border: 1px dashed var(--affiliate-line);
+  border-radius: 12px;
+}
+
+/* Platform collaboration detail is an operational brief: content-sized when
+   sparse, scrollable only when the underlying entities actually require it. */
+.affiliate-platform-collaboration-detail-modal {
+  position: fixed;
+  display: flex;
+  width: min(1180px, calc(100vw - 32px));
+  max-width: 1180px;
+  height: auto;
+  max-height: calc(100dvh - 32px);
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border-radius: var(--affiliate-modal-radius);
+}
+
+.affiliate-platform-collaboration-detail-modal .modal-header {
+  min-height: 56px;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 12px;
+  margin: 0;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--affiliate-line);
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .modal-header
+  .affiliate-collaboration-modal-title-block {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.affiliate-platform-collaboration-detail-modal .modal-header h2 {
+  flex: 0 1 auto;
+  margin: 0;
+  overflow: hidden;
+  font-size: 17px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-platform-collaboration-detail-modal .modal-header p {
+  min-width: 0;
+  margin: 0;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-header-actions {
+  gap: 6px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-header-actions
+  .btn {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.affiliate-platform-collaboration-detail-body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  max-height: calc(100dvh - 88px);
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--affiliate-panel-muted);
+  overscroll-behavior: contain;
+}
+
+.affiliate-platform-collaboration-hero {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  align-items: center;
+  gap: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-platform-collaboration-hero-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.affiliate-platform-collaboration-hero-copy {
+  min-width: 0;
+}
+
+.affiliate-platform-collaboration-detail-modal .affiliate-platform-collaboration-hero h3 {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+
+.affiliate-platform-collaboration-detail-modal .affiliate-platform-collaboration-hero p {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.affiliate-platform-collaboration-detail-modal .affiliate-platform-collaboration-status {
+  flex: 0 0 auto;
+  font-size: 9px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(70px, 0.65fr)) minmax(160px, 1.25fr);
+  min-width: 0;
+  gap: 0;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 1px solid var(--affiliate-line);
+}
+
+.affiliate-platform-collaboration-detail-summary > div {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 3px;
+  padding: 1px 12px;
+  border-left: 1px solid var(--affiliate-line);
+}
+
+.affiliate-platform-collaboration-detail-summary > div:first-child {
+  border-left: 0;
+}
+
+.affiliate-platform-collaboration-detail-summary dt {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-platform-collaboration-detail-summary dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 790;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-platform-collaboration-detail-summary .is-time dd {
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.affiliate-platform-collaboration-tabs {
+  position: sticky;
+  z-index: 2;
+  top: -14px;
+  display: flex;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 10px;
+  background: var(--affiliate-panel);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.affiliate-platform-collaboration-tabs button {
+  min-height: 34px;
+  flex: 1 1 0;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 710;
+}
+
+.affiliate-platform-collaboration-tabs button:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+}
+
+.affiliate-platform-collaboration-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--affiliate-line));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  color: var(--color-primary);
+}
+
+.affiliate-platform-collaboration-config-snapshot,
+.affiliate-platform-collaboration-linked-section,
+.affiliate-platform-collaboration-history {
+  min-height: 240px;
+  padding: 14px;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 11px;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-platform-collaboration-danger-zone {
+  margin-top: 0;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-platform-editor-drawer {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  width: min(420px, calc(100vw - 48px));
+  flex-direction: column;
+  border-left: 1px solid var(--affiliate-line);
+  background: var(--affiliate-panel);
+  box-shadow: -20px 0 48px color-mix(in srgb, var(--color-text) 16%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(102%);
+  transition: transform 180ms ease, opacity 150ms ease;
+}
+
+.affiliate-platform-editor-drawer.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.affiliate-platform-editor-drawer-head {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--affiliate-line);
+}
+
+.affiliate-platform-editor-drawer-head strong {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.affiliate-platform-editor-drawer-head button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.affiliate-platform-editor-drawer-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.affiliate-platform-editor-drawer-body > section {
+  border: 0;
+  box-shadow: none;
+}
+
+/* Platform collaborations are a compact inventory. Two columns preserve the
+   card's reading hierarchy; one and three columns are reserved for the actual
+   available width rather than forcing either extreme on normal desktops. */
+.affiliate-platform-collaboration-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  max-width: none;
+}
+
+.affiliate-collaboration-record-card {
+  gap: 0;
+}
+
+.affiliate-collaboration-record-card > .affiliate-work-item-head {
+  min-height: 0;
+  padding: 13px 14px 12px 17px;
+}
+
+.affiliate-collaboration-record-card .affiliate-collaboration-record-card-body {
+  gap: 11px;
+  padding: 13px 14px 15px 17px;
+}
+
+.affiliate-collaboration-record-card .affiliate-card-section-primary {
+  padding: 0 2px 2px;
+}
+
+.affiliate-collaboration-record-card .affiliate-card-section-title,
+.affiliate-collaboration-record-card .affiliate-product-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.affiliate-collaboration-record-card .affiliate-relationship-work-card-priority {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.affiliate-collaboration-record-card .affiliate-relationship-work-metric {
+  min-height: 54px;
+  padding: 7px 8px;
+}
+
+.affiliate-platform-auto-add-modal {
+  width: min(620px, calc(100vw - 32px));
+  max-width: 620px;
+}
+
+.affiliate-platform-settings-header {
+  min-height: 0;
+  align-items: center;
+  padding: 17px 20px 15px;
+}
+
+.affiliate-platform-settings-header h2 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.affiliate-platform-settings-header p {
+  max-width: 500px;
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.affiliate-platform-auto-add-modal .affiliate-platform-settings-body {
+  gap: 12px;
+  padding: 16px 18px 18px;
+  background: var(--affiliate-panel-muted);
+}
+
+.affiliate-platform-settings-scope,
+.affiliate-platform-settings-rule {
+  border: 1px solid var(--affiliate-line);
+  border-radius: 11px;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-platform-settings-scope {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.82fr);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+}
+
+.affiliate-platform-settings-step {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.affiliate-platform-settings-step > span {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 9%, var(--affiliate-panel));
+  color: var(--color-primary);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.affiliate-platform-settings-step > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.affiliate-platform-settings-step strong {
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.affiliate-platform-settings-step small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.affiliate-platform-settings-rule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px 18px;
+  padding: 14px;
+}
+
+.affiliate-platform-settings-switch {
+  display: inline-flex;
+  min-width: 92px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.affiliate-platform-settings-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.affiliate-platform-settings-switch > span {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--color-border-light);
+  transition: background 150ms ease;
+}
+
+.affiliate-platform-settings-switch > span::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--affiliate-panel);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-text) 18%, transparent);
+  content: "";
+  transition: transform 150ms ease;
+}
+
+.affiliate-platform-settings-switch input:checked + span {
+  background: var(--color-primary);
+}
+
+.affiliate-platform-settings-switch input:checked + span::after {
+  transform: translateX(14px);
+}
+
+.affiliate-platform-settings-switch input:focus-visible + span {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 48%, transparent);
+  outline-offset: 2px;
+}
+
+.affiliate-platform-settings-switch strong {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.affiliate-platform-settings-commission {
+  grid-column: 1 / -1;
+  padding-top: 12px;
+  border-top: 1px solid var(--affiliate-line);
+}
+
+.affiliate-platform-settings-percent-input {
+  position: relative;
+  max-width: 190px;
+}
+
+.affiliate-platform-settings-percent-input input {
+  padding-right: 34px;
+}
+
+.affiliate-platform-settings-percent-input > span {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  transform: translateY(-50%);
+}
+
+.affiliate-platform-auto-add-modal .affiliate-platform-collaboration-data-warning {
+  margin: 0;
+}
+
+.affiliate-platform-auto-add-modal .affiliate-platform-create-actions {
+  margin: 0;
+  padding: 12px 18px;
+}
+
+.affiliate-platform-collaboration-detail-modal .affiliate-platform-collaboration-hero {
+  border: 1px solid var(--affiliate-line);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.affiliate-platform-collaboration-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.affiliate-platform-collaboration-primary-panel,
+.affiliate-platform-collaboration-context-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--affiliate-line);
+  border-radius: 12px;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-platform-collaboration-primary-panel,
+.affiliate-platform-collaboration-context-panel {
+  display: grid;
+  align-content: start;
+}
+
+.affiliate-platform-collaboration-primary-panel > * + *,
+.affiliate-platform-collaboration-context-panel > * + * {
+  border-top: 1px solid var(--affiliate-line);
+}
+
+.affiliate-platform-collaboration-detail-modal
+  :is(
+    .affiliate-platform-collaboration-config-snapshot,
+    .affiliate-platform-collaboration-linked-section
+  ) {
+  margin: 0;
+  min-height: 0;
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 0;
+  background: var(--affiliate-panel);
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-context-panel
+  .affiliate-platform-collaboration-linked-section {
+  padding: 13px;
+}
+
+.affiliate-platform-collaboration-detail-modal .affiliate-platform-collaboration-danger-zone {
+  min-height: 0;
+  margin: 0;
+  padding: 10px 2px 0;
+  border: 0;
+  border-top: 1px solid var(--affiliate-line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-danger-zone
+  > div {
+  gap: 2px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-danger-zone
+  .btn {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-section-heading
+  h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-section-heading
+  > small {
+  min-width: 26px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-linked-section
+  :is(
+    .affiliate-platform-collaboration-detail-grid,
+    .affiliate-platform-collaboration-identity-list,
+    .affiliate-entity-card-list
+  ) {
+  margin-top: 8px;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-config-snapshot
+  .affiliate-platform-collaboration-fact-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 8px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.affiliate-platform-collaboration-detail-modal .affiliate-platform-collaboration-fact {
+  gap: 3px;
+  padding: 3px 12px 2px;
+  border-left: 1px solid var(--affiliate-line);
+  background: transparent;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-fact:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-guardrail {
+  margin-top: 8px;
+  padding: 8px 0 0;
+  border: 0;
+  border-top: 1px solid var(--affiliate-line);
+  border-radius: 0;
+  background: transparent;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.affiliate-platform-collaboration-empty-row {
+  display: flex;
+  min-height: 0;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--affiliate-line);
+  color: var(--color-text-muted);
+}
+
+.affiliate-platform-collaboration-empty-row > span {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--affiliate-panel-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.affiliate-platform-collaboration-empty-row p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-identity-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.affiliate-platform-collaboration-detail-modal
+  .affiliate-platform-collaboration-identity {
+  padding: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--affiliate-line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.affiliate-platform-collaboration-edit-drawer {
+  top: 0;
+  bottom: 0;
+  width: min(440px, 100%);
+  border-radius: 12px 0 0 12px;
+}
+
+.affiliate-platform-collaboration-edit-drawer
+  .affiliate-platform-collaboration-editor {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 1320px) {
+  .affiliate-page-frame .affiliate-creator-row {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-page-frame .affiliate-creator-relationship-context,
+  .affiliate-page-frame .affiliate-creator-work-summary {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 1080px) {
+  .affiliate-page-frame .affiliate-page-header,
+  .affiliate-page-shell .affiliate-page-header,
+  .affiliate-page-shell .affiliate-page-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .affiliate-page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .affiliate-context-inspector {
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(var(--affiliate-inspector-width), calc(100vw - 48px));
+    min-width: 0;
+    border-left-width: 1px;
+    box-shadow: -18px 0 42px color-mix(in srgb, var(--color-text) 14%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(100%);
+  }
+
+  .affiliate-context-inspector.is-open {
+    width: min(var(--affiliate-inspector-width), calc(100vw - 48px));
+    min-width: 0;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  .affiliate-relationship-work-modal
+    .affiliate-context-inspector.affiliate-collaboration-context-pane {
+    position: absolute;
+    display: block;
+    overflow: hidden;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .affiliate-campaign-product-rate-row {
+    grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(110px, 0.4fr));
+  }
+
+  .affiliate-campaign-product-rate-row > button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 900px) {
+  .affiliate-platform-collaboration-hero {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .affiliate-platform-collaboration-detail-modal
+    .affiliate-platform-collaboration-detail-summary {
+    padding: 9px 0 0;
+    border-top: 1px solid var(--affiliate-line);
+    border-left: 0;
+  }
+
+  .affiliate-platform-collaboration-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-platform-collaboration-context-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .affiliate-platform-collaboration-context-panel > * + * {
+    border-top: 0;
+    border-left: 1px solid var(--affiliate-line);
+  }
+}
+
+@media (max-width: 720px) {
+  .affiliate-page-frame,
+  .affiliate-page-shell {
+    --affiliate-shell-gap: 10px;
+  }
+
+  .affiliate-page-frame .affiliate-page-header,
+  .affiliate-page-shell .affiliate-page-header,
+  .affiliate-page-shell .affiliate-page-hero {
+    min-height: 0;
+    padding: 13px 14px;
+    border-radius: 11px;
+  }
+
+  .affiliate-page-frame .affiliate-page-header h1,
+  .affiliate-page-shell .affiliate-page-header h1,
+  .affiliate-page-shell .affiliate-page-hero h1 {
+    font-size: 23px;
+  }
+
+  .affiliate-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-platform-settings-scope,
+  .affiliate-platform-settings-rule {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-platform-settings-switch {
+    justify-content: flex-start;
+  }
+
+  .affiliate-platform-collaboration-detail-modal
+    .modal-header
+    .affiliate-collaboration-modal-title-block {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .affiliate-platform-collaboration-detail-modal
+    .affiliate-platform-collaboration-detail-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .affiliate-platform-collaboration-detail-summary > div:nth-child(3) {
+    border-left: 0;
+  }
+
+  .affiliate-platform-collaboration-detail-summary > div:nth-child(n + 3) {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--affiliate-line);
+  }
+
+  .affiliate-platform-collaboration-context-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-platform-collaboration-context-panel > * + * {
+    border-top: 1px solid var(--affiliate-line);
+    border-left: 0;
+  }
+
+  .affiliate-platform-collaboration-detail-modal
+    .affiliate-platform-collaboration-config-snapshot
+    .affiliate-platform-collaboration-fact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+
+  .affiliate-platform-collaboration-detail-modal
+    .affiliate-platform-collaboration-fact:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .affiliate-platform-collaboration-detail-modal
+    .affiliate-platform-collaboration-danger-zone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-platform-collaboration-header-actions {
+    justify-content: stretch;
+  }
+
+  .affiliate-platform-collaboration-header-actions .btn {
+    width: auto;
+  }
+
+  .affiliate-campaign-product-rate-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .affiliate-campaign-product-rate-identity,
+  .affiliate-campaign-product-rate-row > button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .affiliate-entity-card,
+  .affiliate-context-inspector,
+  .affiliate-metric {
+    transition: none;
+  }
+}

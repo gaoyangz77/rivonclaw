@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import {
   campaignDecisionReasonLabel,
+  affiliateCampaignCommissionRange,
   campaignDeliveryFailureBreakdown,
   campaignErrorMessage,
   campaignCreatorStatesViewState,
@@ -23,6 +24,13 @@ import {
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
+  it("summarizes commissions without leaking product ids into customer-facing labels", () => {
+    expect(affiliateCampaignCommissionRange([14])).toBe("14%");
+    expect(affiliateCampaignCommissionRange([14, 8, 14])).toBe("8%–14%");
+    expect(affiliateCampaignCommissionRange(["8.5", ""])).toBe("8.5%");
+    expect(affiliateCampaignCommissionRange([])).toBe("—");
+  });
+
   it("defaults the campaign directory to active, paused, and draft campaigns", () => {
     expect(DEFAULT_CAMPAIGN_STATUS_FILTERS).toEqual(["ACTIVE", "PAUSED", "DRAFT"]);
   });

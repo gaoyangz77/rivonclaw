@@ -26,6 +26,8 @@ import {
   UNLINK_PRODUCT_KNOWLEDGE_BINDING_MUTATION,
   UPDATE_PRODUCT_KNOWLEDGE_MUTATION,
 } from "../../api/product-knowledge-queries.js";
+import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
+import "./components/AffiliateUi.css";
 
 const ProductKnowledgeMarkdownEditor = lazy(async () => {
   const module = await import("./components/ProductKnowledgeMarkdownEditor.js");
@@ -452,17 +454,19 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   };
 
   return (
-    <div className="page-enter product-knowledge-page">
-      <header className="ecommerce-page-header product-knowledge-header" data-tutorial-id="product-knowledge-header">
-            <div className="product-knowledge-title-block">
-              <span className="product-knowledge-kicker"><EcommerceIcon size={14} />{t("ecommerce.productKnowledge.kicker")}</span>
-              <h1>{t("ecommerce.productKnowledge.pageTitle")}</h1>
-              <p className="ecommerce-page-subtitle">{t("ecommerce.productKnowledge.pageSubtitle")}</p>
-            </div>
+    <AffiliatePageFrame className="product-knowledge-page">
+      <AffiliatePageHeader
+        className="ecommerce-page-header product-knowledge-header"
+        data-tutorial-id="product-knowledge-header"
+        eyebrow={<><EcommerceIcon size={14} />{t("ecommerce.productKnowledge.kicker")}</>}
+        title={t("ecommerce.productKnowledge.pageTitle")}
+        subtitle={t("ecommerce.productKnowledge.pageSubtitle")}
+        actions={(
             <button className="btn btn-primary" data-tutorial-id="product-knowledge-create" onClick={() => setCreateOpen(true)}>
               + {t("ecommerce.productKnowledge.create")}
             </button>
-      </header>
+        )}
+      />
 
       <section className="product-knowledge-catalog" data-tutorial-id="product-knowledge-library">
             <div className="product-knowledge-catalog-toolbar">
@@ -798,6 +802,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
             : t("ecommerce.productKnowledge.discardChanges")}
         confirmVariant="danger"
       />
-    </div>
+    </AffiliatePageFrame>
   );
 });

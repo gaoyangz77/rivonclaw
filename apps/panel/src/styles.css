@@ -26537,17 +26537,6 @@ html[lang="zh"] .acct-tool-chips {
   cursor: pointer;
 }
 
-.affiliate-platform-collaboration-detail-modal {
-  height: min(760px, calc(100vh - 40px));
-}
-
-.affiliate-platform-collaboration-detail-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  padding: 18px 22px 24px;
-  overflow-y: auto;
-}
-
 .affiliate-platform-collaboration-detail-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -37206,4 +37195,794 @@ html[lang="zh"] .acct-tool-chips {
 .data-card-hover:focus-within {
   border-color: var(--card-hover-border);
   box-shadow: var(--surface-card-hover-shadow, var(--shadow-lg));
+}
+
+/* ===== Affiliate experience system =====
+   Affiliate is an operations workspace: solid surfaces keep dense data legible,
+   while the spectral edge and precise radii connect every page to the AI agent. */
+.affiliate-page-shell {
+  /* Legacy Affiliate modules used these surface names without defining them.
+     Keep the aliases scoped here so every descendant renders an opaque layer. */
+  --color-surface: var(--color-bg);
+  --color-surface-muted: var(--color-bg-alt);
+  --affiliate-page-line: color-mix(
+    in srgb,
+    var(--color-border-light) 86%,
+    var(--color-primary) 14%
+  );
+  --affiliate-page-panel: color-mix(in srgb, var(--color-bg) 96%, var(--color-primary) 4%);
+  --affiliate-page-soft: color-mix(in srgb, var(--color-bg-alt) 88%, var(--color-primary) 12%);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.affiliate-page-shell::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -24px;
+  right: -16px;
+  width: min(520px, 45vw);
+  height: 240px;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--color-primary) 8%, transparent),
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.affiliate-page-shell .affiliate-page-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 116px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  overflow: hidden;
+  margin: 0;
+  padding: 22px 24px;
+  border: 1px solid var(--affiliate-page-line);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--color-primary) 7%, transparent),
+      transparent 42%
+    ),
+    var(--color-bg);
+  box-shadow:
+    0 16px 42px color-mix(in srgb, var(--color-text) 6%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 34%, transparent);
+}
+
+.affiliate-page-shell .affiliate-page-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -92px;
+  right: -48px;
+  width: 340px;
+  height: 220px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 10%, transparent),
+    transparent 65%
+  );
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.affiliate-page-shell .affiliate-page-hero::after {
+  content: "";
+  position: absolute;
+  right: 24px;
+  bottom: 0;
+  left: 24px;
+  height: 2px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    color-mix(in srgb, var(--color-info) 72%, var(--color-primary)),
+    transparent 72%
+  );
+  opacity: 0.7;
+}
+
+.affiliate-page-shell .affiliate-page-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.affiliate-page-shell .affiliate-page-hero h1 {
+  margin-block: 4px 6px;
+  color: var(--color-text);
+  font-size: clamp(27px, 2.1vw, 35px);
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.affiliate-page-shell .affiliate-page-hero :is(.ecommerce-page-subtitle, p) {
+  max-width: 760px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.affiliate-page-shell .affiliate-page-hero :is(
+    .affiliate-intelligence-kicker,
+    .affiliate-team-eyebrow,
+    .affiliate-campaign-eyebrow,
+    .product-knowledge-kicker
+  ) {
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.affiliate-page-shell .affiliate-workbench-controls,
+.affiliate-page-shell .affiliate-team-header-actions,
+.affiliate-page-shell .affiliate-campaign-hero-actions,
+.affiliate-page-shell .affiliate-intelligence-controls {
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--affiliate-page-line) 72%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg) 84%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.affiliate-page-shell :is(
+    .affiliate-workbench-panel,
+    .product-knowledge-catalog,
+    .affiliate-team-page-tabs,
+    .affiliate-team-overview,
+    .affiliate-team-responsibility,
+    .affiliate-team-policy-section,
+    .affiliate-tag-catalog,
+    .affiliate-campaign-command-strip,
+    .affiliate-campaign-rail,
+    .affiliate-campaign-detail,
+    .affiliate-campaign-empty,
+    .affiliate-model-stage-card
+  ) {
+  border-color: var(--affiliate-page-line);
+  border-radius: 16px;
+  background-color: var(--color-bg);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.affiliate-page-shell .affiliate-workbench-panel {
+  overflow: clip;
+}
+
+.affiliate-page-shell .affiliate-workbench-panel-head,
+.affiliate-page-shell .product-knowledge-catalog-toolbar {
+  padding: 17px 18px;
+  background:
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--color-primary) 5%, transparent),
+      transparent 52%
+    ),
+    var(--color-bg-alt);
+}
+
+.affiliate-page-shell .affiliate-team-page-tabs,
+.affiliate-page-shell .affiliate-team-page-tab-panel > .affiliate-team-overview,
+.affiliate-page-shell .affiliate-team-overview,
+.affiliate-page-shell .affiliate-campaign-command-strip {
+  margin-block: 0;
+}
+
+.affiliate-page-shell :is(table thead th, .affiliate-agent-work-table th) {
+  background: color-mix(in srgb, var(--color-bg-alt) 88%, var(--color-primary) 12%);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.affiliate-page-shell tbody tr {
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.affiliate-page-shell tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-primary) 66%, transparent);
+}
+
+.affiliate-page-shell :is(
+    .affiliate-summary-tile,
+    .affiliate-team-overview > div,
+    .affiliate-model-stage-card,
+    .affiliate-campaign-command-metric,
+    .affiliate-creator-card,
+    .affiliate-relationship-card
+  ) {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.affiliate-page-shell :is(
+    .affiliate-summary-tile,
+    .affiliate-team-overview > div,
+    .affiliate-model-stage-card,
+    .affiliate-campaign-command-metric,
+    .affiliate-creator-card,
+    .affiliate-relationship-card
+  ):hover {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border-light));
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--color-primary) 9%, transparent);
+  transform: translateY(-2px);
+}
+
+.affiliate-page-shell .affiliate-intelligence-hero {
+  align-items: center;
+  padding: 22px 24px;
+  border-bottom-color: var(--affiliate-page-line);
+  background:
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--color-primary) 7%, transparent),
+      transparent 42%
+    ),
+    var(--color-bg);
+}
+
+.affiliate-page-shell .affiliate-ml-insights {
+  padding: 0;
+}
+
+.affiliate-page-shell .affiliate-campaign-hero h1 {
+  font-family: inherit;
+  font-size: clamp(29px, 2.5vw, 38px);
+}
+
+.affiliate-page-shell .affiliate-campaign-command-strip {
+  overflow: clip;
+}
+
+.affiliate-page-shell .product-knowledge-header {
+  align-items: center;
+}
+
+/* Creator relationship detail becomes a two-pane AI review workspace. */
+.affiliate-creator-detail-backdrop {
+  padding: 16px;
+  background: color-mix(in srgb, var(--color-text) 32%, transparent);
+  backdrop-filter: blur(10px) saturate(112%);
+}
+
+.affiliate-relationship-work-modal.affiliate-collaboration-modal {
+  width: min(1420px, calc(100vw - 32px));
+  max-width: 1420px;
+  height: min(880px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 78%, var(--color-primary) 22%);
+  border-radius: 22px;
+  background: var(--color-bg);
+  box-shadow:
+    0 32px 88px color-mix(in srgb, var(--color-text) 24%, transparent),
+    0 0 0 1px color-mix(in srgb, white 18%, transparent);
+}
+
+.affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header {
+  position: relative;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-border-light) 82%,
+    var(--color-primary) 18%
+  );
+  background:
+    linear-gradient(
+      112deg,
+      color-mix(in srgb, var(--color-primary) 8%, transparent),
+      transparent 44%
+    ),
+    var(--color-bg);
+}
+
+.affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: -1px;
+  left: 22px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), transparent 56%);
+  opacity: 0.58;
+}
+
+.affiliate-relationship-work-modal-heading {
+  align-items: center;
+  gap: 14px;
+}
+
+.affiliate-relationship-work-modal-avatar {
+  width: 50px;
+  height: 50px;
+  border: 2px solid var(--color-bg);
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 34%, var(--color-border-light)),
+    0 9px 22px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.affiliate-relationship-work-modal .affiliate-relationship-detail-title {
+  font-size: 22px;
+  letter-spacing: -0.025em;
+}
+
+.affiliate-relationship-work-modal-subtitle {
+  margin-top: 5px;
+}
+
+.affiliate-relationship-workspace-body {
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  background: var(--color-bg);
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-context-pane {
+  gap: 12px;
+  padding: 18px;
+  border-right: 1px solid var(--color-border-light);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-primary) 5%, transparent),
+      transparent 220px
+    ),
+    var(--color-bg-alt);
+}
+
+.affiliate-relationship-work-modal .affiliate-relationship-work-side-card {
+  padding: 13px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg) 94%, var(--color-primary) 6%);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-text) 3%, transparent);
+}
+
+.affiliate-relationship-work-modal .affiliate-relationship-work-side-card-primary {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary) 8%, transparent),
+      transparent 58%
+    ),
+    var(--color-bg);
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-work-pane {
+  border: 0;
+  border-radius: 0;
+  background: var(--color-bg);
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-detail-tabs {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg));
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-detail-tab {
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 8px;
+  border-radius: 10px;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-detail-tab:hover {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-detail-tab.active {
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border-light));
+  background: var(--color-bg);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
+
+.affiliate-relationship-work-modal .affiliate-collaboration-tab-panel {
+  padding: 20px;
+  scrollbar-gutter: stable;
+}
+
+.affiliate-creator-profile-panel {
+  gap: 14px;
+  padding: 0;
+}
+
+.affiliate-creator-profile-panel-hero.affiliate-creator-profile-toolbar {
+  min-height: 64px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg-alt) 80%, var(--color-primary) 20%);
+}
+
+.affiliate-creator-profile-toolbar-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-creator-profile-toolbar-copy span {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.affiliate-creator-profile-toolbar-copy strong {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.affiliate-creator-profile-fact-grid,
+.affiliate-creator-detail-performance-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-metric {
+  min-height: 76px;
+  border-radius: 11px;
+  background: var(--color-bg-alt);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-metric:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border-light));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary) 8%, transparent);
+  transform: translateY(-1px);
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-section {
+  margin-top: 0;
+  padding: 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+@media (max-width: 1080px) {
+  .affiliate-page-shell .affiliate-page-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .affiliate-page-shell .affiliate-workbench-controls,
+  .affiliate-page-shell .affiliate-team-header-actions,
+  .affiliate-page-shell .affiliate-campaign-hero-actions,
+  .affiliate-page-shell .affiliate-intelligence-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .affiliate-relationship-workspace-body {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .affiliate-creator-profile-fact-grid,
+  .affiliate-creator-detail-performance-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .affiliate-page-shell {
+    gap: 14px;
+  }
+
+  .affiliate-page-shell .affiliate-page-hero {
+    min-height: 0;
+    padding: 18px;
+    border-radius: 15px;
+  }
+
+  .affiliate-page-shell .affiliate-page-hero::after {
+    right: 18px;
+    left: 18px;
+  }
+
+  .affiliate-page-shell .affiliate-page-hero h1 {
+    font-size: 26px;
+  }
+
+  .affiliate-page-shell .affiliate-workbench-controls,
+  .affiliate-page-shell .affiliate-team-header-actions,
+  .affiliate-page-shell .affiliate-campaign-hero-actions,
+  .affiliate-page-shell .affiliate-intelligence-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-relationship-work-modal.affiliate-collaboration-modal {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 17px;
+  }
+
+  .affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header {
+    padding: 14px 16px;
+  }
+
+  .affiliate-relationship-workspace-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .affiliate-relationship-work-modal .affiliate-collaboration-context-pane {
+    display: grid;
+    grid-auto-columns: minmax(230px, 78vw);
+    grid-auto-flow: column;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .affiliate-relationship-work-modal .affiliate-collaboration-work-pane {
+    min-height: 560px;
+  }
+
+  .affiliate-relationship-work-modal .affiliate-collaboration-detail-tabs {
+    display: flex;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .affiliate-relationship-work-modal .affiliate-collaboration-detail-tab {
+    flex: 0 0 auto;
+    min-width: 118px;
+  }
+
+  .affiliate-relationship-work-modal .affiliate-collaboration-tab-panel {
+    padding: 14px;
+  }
+
+  .affiliate-creator-profile-panel-hero.affiliate-creator-profile-toolbar,
+  .affiliate-creator-profile-freshness {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-creator-profile-fact-grid,
+  .affiliate-creator-detail-performance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .affiliate-creator-profile-fact-grid,
+  .affiliate-creator-detail-performance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Affiliate entity cards are shared between entity listings and relationship detail. */
+.affiliate-entity-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.affiliate-entity-card {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 84%, var(--color-primary) 16%);
+  border-radius: 14px;
+  background: var(--color-bg);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 4%, transparent);
+  transition:
+    border-color 170ms ease,
+    box-shadow 170ms ease,
+    transform 170ms ease;
+}
+
+.affiliate-entity-card:hover,
+.affiliate-entity-card:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border-light));
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--color-primary) 9%, transparent);
+  transform: translateY(-1px);
+}
+
+.affiliate-entity-card > .affiliate-work-item-head,
+.affiliate-entity-card > .affiliate-collaboration-sample-card-head {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--color-border-light);
+  background:
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--color-primary) 5%, transparent),
+      transparent 54%
+    ),
+    var(--color-bg-alt);
+}
+
+.affiliate-entity-card .affiliate-collaboration-card-body,
+.affiliate-entity-card:not(.affiliate-collaboration-record-card) {
+  min-width: 0;
+}
+
+.affiliate-entity-card .affiliate-collaboration-card-body {
+  gap: 10px;
+  padding: 14px 15px;
+}
+
+.affiliate-entity-card-embedded .affiliate-collaboration-card-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.affiliate-entity-card-embedded .affiliate-card-section,
+.affiliate-entity-card-embedded .affiliate-relationship-work-card-priority {
+  grid-column: 1 / -1;
+}
+
+.affiliate-entity-card-identifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.affiliate-collaboration-sample-card.affiliate-entity-card {
+  gap: 0;
+  padding: 0;
+}
+
+.affiliate-collaboration-sample-card.affiliate-entity-card > .affiliate-product-summary {
+  margin: 12px 14px 0;
+}
+
+.affiliate-collaboration-sample-card.affiliate-entity-card
+  > .affiliate-collaboration-sample-grid {
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.affiliate-collaboration-sample-card.affiliate-entity-card
+  > .affiliate-collaboration-sample-details {
+  margin-inline: 14px;
+  padding-block: 12px;
+}
+
+.affiliate-collaboration-sample-card.affiliate-entity-card
+  > .affiliate-collaboration-sample-footer {
+  padding: 0 14px 12px;
+}
+
+/* Keep the relationship identity bar compact: identity, copy actions and close
+   belong on one scan line; operational explanation lives in the workspace. */
+.affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header {
+  min-height: 76px;
+  padding: 11px 18px;
+}
+
+.affiliate-relationship-work-modal-heading {
+  align-items: center;
+  gap: 12px;
+}
+
+.affiliate-relationship-work-modal-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+}
+
+.affiliate-relationship-work-modal .affiliate-relationship-detail-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.affiliate-relationship-work-modal-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.affiliate-relationship-work-modal-object {
+  padding: 3px 7px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.affiliate-relationship-work-modal-meta .affiliate-modal-id-actions,
+.affiliate-relationship-work-modal-meta .affiliate-id-copy-button {
+  margin: 0;
+}
+
+/* IDs are reference data, not three full-width call-to-action rows. */
+.affiliate-creator-profile-panel .affiliate-creator-detail-id-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border: 0;
+  background: transparent;
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-id-row {
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  min-height: 74px;
+  padding: 10px 11px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-bg-alt);
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-id-row:last-child {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-id-row > span {
+  font-size: 10px;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.affiliate-creator-profile-panel .affiliate-creator-detail-copy-button {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 980px) {
+  .affiliate-entity-card-embedded .affiliate-collaboration-card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-creator-profile-panel .affiliate-creator-detail-id-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .affiliate-creator-profile-panel .affiliate-creator-detail-id-list {
+    grid-template-columns: 1fr;
+  }
 }

@@ -36,6 +36,8 @@ import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPoli
 import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
 import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxyPanel.js";
+import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
+import "./components/AffiliateUi.css";
 import {
   buildAffiliateDeveloperProvisionBatches,
   buildAffiliateProtectionDeveloperResolutionSeeds,
@@ -1295,14 +1297,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   ];
 
   return (
-    <div className="page-enter affiliate-team-page">
-      <header className="affiliate-team-header" data-tutorial-id="affiliate-team-header">
-        <div className="affiliate-team-title-block">
-          <span className="affiliate-team-eyebrow">{t("ecommerce.affiliateTeam.eyebrow")}</span>
-          <h1>{t("ecommerce.affiliateTeam.title")}</h1>
-          <p>{t("ecommerce.affiliateTeam.subtitle")}</p>
-        </div>
-        <div className="affiliate-team-header-actions">
+    <AffiliatePageFrame className="affiliate-team-page">
+      <AffiliatePageHeader
+        className="affiliate-team-header"
+        data-tutorial-id="affiliate-team-header"
+        eyebrow={t("ecommerce.affiliateTeam.eyebrow")}
+        title={t("ecommerce.affiliateTeam.title")}
+        subtitle={t("ecommerce.affiliateTeam.subtitle")}
+        actions={(
+          <div className="affiliate-team-header-actions">
           <button className="btn btn-secondary" type="button" onClick={() => void Promise.all([
             developersQuery.refetch(), developerPageQuery.refetch(), settingsQuery.refetch(), whatsappQuery.refetch(), emailQuery.refetch(),
           ])} disabled={loading}>
@@ -1314,8 +1317,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           {pageTab === "TEAM" && <button className="btn btn-primary" type="button" onClick={beginCreateDeveloper}>
             <UserPlusIcon /> {t("ecommerce.affiliateTeam.addDeveloper")}
           </button>}
-        </div>
-      </header>
+          </div>
+        )}
+      />
 
       <div
         className="affiliate-team-page-tabs"
@@ -2544,7 +2548,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         cancelLabel={t("common.cancel")}
         confirmVariant={pendingConfirmation?.kind === "MOVE_ACCOUNT" ? "primary" : "danger"}
       />
-    </div>
+    </AffiliatePageFrame>
   );
 });
 
