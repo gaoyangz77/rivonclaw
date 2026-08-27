@@ -12,7 +12,9 @@ export function AffiliatePageFrame({
   className?: string;
 }) {
   return (
-    <div className={classes("page-enter", "affiliate-page-shell", "affiliate-page-frame", className)}>
+    <div
+      className={classes("page-enter", "affiliate-page-shell", "affiliate-page-frame", className)}
+    >
       {children}
     </div>
   );
@@ -171,27 +173,41 @@ export function AffiliateContextInspector({
   children,
   open,
   title,
+  headerContent,
   onClose,
   className,
 }: {
   children: ReactNode;
   open: boolean;
-  title: ReactNode;
+  title?: ReactNode;
+  headerContent?: ReactNode;
   onClose: () => void;
   className?: string;
 }) {
+  const hasTitle = title !== null && title !== undefined && title !== false;
+  const hasHeaderContent =
+    headerContent !== null && headerContent !== undefined && headerContent !== false;
   return (
     <aside
-      className={classes(
-        "affiliate-context-inspector",
-        open && "is-open",
-        className,
-      )}
+      className={classes("affiliate-context-inspector", open && "is-open", className)}
       aria-hidden={!open}
     >
-      <div className="affiliate-context-inspector-header">
-        <strong>{title}</strong>
-        <button type="button" onClick={onClose} aria-label="Close">
+      <div
+        className={classes(
+          "affiliate-context-inspector-header",
+          !hasTitle && hasHeaderContent && "is-navigation-only",
+        )}
+      >
+        <div className="affiliate-context-inspector-header-main">
+          {hasTitle ? <strong>{title}</strong> : null}
+          {headerContent}
+        </div>
+        <button
+          className="affiliate-context-inspector-close"
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+        >
           ×
         </button>
       </div>
