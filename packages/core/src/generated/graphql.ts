@@ -2160,6 +2160,8 @@ export interface AffiliateCreatorManagementPage {
   items: Array<AffiliateCreatorManagementItem>;
   limit: Scalars['Int']['output'];
   offset: Scalars['Int']['output'];
+  /** @deprecated Use hasMore; this compatibility value is only a confirmed lower bound. */
+  totalCount: Scalars['Int']['output'];
 }
 
 /** Direction of an observed affiliate IM message. */
