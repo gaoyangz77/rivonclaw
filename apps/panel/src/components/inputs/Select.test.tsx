@@ -111,4 +111,43 @@ describe("Select", () => {
     fireEvent.click(screen.getByRole("button", { name: /MXTK-05 · v1/i }));
     expect(onChange).toHaveBeenCalledWith("ended");
   });
+
+  it("closes on an outside press even when a modal stops event propagation", () => {
+    render(
+      <div onMouseDown={(event) => event.stopPropagation()}>
+        <Select
+          value=""
+          onChange={() => {}}
+          options={[{ value: "shop", label: "Shop" }]}
+          placeholder="Select"
+        />
+        <button type="button">Modal background</button>
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Select/i }));
+    expect(document.querySelector(".custom-select-dropdown")).not.toBeNull();
+
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Modal background" }));
+    expect(document.querySelector(".custom-select-dropdown")).toBeNull();
+  });
+
+  it("closes on Escape and returns focus to its trigger", () => {
+    render(
+      <Select
+        value=""
+        onChange={() => {}}
+        options={[{ value: "shop", label: "Shop" }]}
+        placeholder="Select"
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: /Select/i });
+    fireEvent.click(trigger);
+    expect(document.querySelector(".custom-select-dropdown")).not.toBeNull();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.querySelector(".custom-select-dropdown")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
 });
