@@ -30,6 +30,7 @@ import {
   replaceAffiliateProposalPageBuffer,
   selectAffiliateProposalItems,
   sortAffiliateProposalsNewestFirst,
+  sortAffiliateCreatorMessagesOldestFirst,
   proposalMessageWasDelivered,
   reconcileAgendaProcessingStatusWithPendingProposals,
   resolveProposalMessageDisplay,
@@ -37,6 +38,28 @@ import {
 } from "./AffiliateManagementPage.js";
 
 describe("AffiliateManagementPage proposal source", () => {
+  it("orders Creator communication from oldest to newest", () => {
+    const message = (
+      messageRef: string,
+      createdAt: string,
+    ): GQL.AffiliateCreatorMessageHistoryItem =>
+      ({
+        channel: GQL.AffiliateMessageChannel.PlatformChat,
+        direction: GQL.AffiliateCreatorMessageDirection.Creator,
+        messageRef,
+        createdAt,
+        parts: [],
+      }) as unknown as GQL.AffiliateCreatorMessageHistoryItem;
+
+    expect(
+      sortAffiliateCreatorMessagesOldestFirst([
+        message("newest", "2026-08-28T05:54:20.000Z"),
+        message("oldest", "2026-08-27T10:38:29.000Z"),
+        message("middle", "2026-08-28T01:30:02.000Z"),
+      ]).map((item) => item.messageRef),
+    ).toEqual(["oldest", "middle", "newest"]);
+  });
+
   const proposal = (
     id: string,
     status: string,
@@ -1023,7 +1046,11 @@ describe("Affiliate canonical UI contract", () => {
       queries.indexOf("export const AFFILIATE_PRODUCT_SUMMARIES_QUERY"),
     );
 
-    expect(creatorModal).toContain("onClick={() => setActiveTab(tab.id)}");
+    expect(creatorModal).toContain("setActiveTab(tab.id);");
+    expect(creatorModal).toContain('activeTab === "conversation" ? " affiliate-conversation-tab-panel"');
+    expect(styles).toContain(
+      ".affiliate-relationship-work-modal .affiliate-conversation-tab-panel",
+    );
     expect(creatorModal).not.toContain('setContextInspectorOpen(tab.id === "overview")');
     expect(creatorModal).not.toMatch(
       /setActiveTab\("profile"\);\s*setContextInspectorOpen\(false\)/,
@@ -1055,20 +1082,54 @@ describe("Affiliate canonical UI contract", () => {
       page.indexOf("export function CreatorRelationshipDetailModal"),
       page.indexOf("function CreatorProfilePanel"),
     );
+    const agendaCard = page.slice(
+      page.indexOf("function RelationshipAgendaCard"),
+      page.indexOf("function SampleApplicationFact"),
+    );
+    const agendaSurface = `${creatorModal}\n${agendaCard}`;
 
-    expect(creatorModal).toContain('affiliateWorkspaceEnumLabel(t, "agendaOwners", agenda.owner)');
-    expect(creatorModal).toMatch(
+    expect(agendaSurface).toContain('affiliateWorkspaceEnumLabel(t, "agendaOwners", agenda.owner)');
+    expect(agendaSurface).toMatch(
       /affiliateWorkspaceEnumLabel\(\s*t,\s*"requiredActions",\s*agenda\.requiredAction/,
     );
-    expect(creatorModal).toMatch(
+    expect(agendaSurface).toMatch(
       /affiliateWorkspaceEnumLabel\(\s*t,\s*"agendaSourceTypes",\s*agenda\.sourceType/,
     );
-    expect(creatorModal).toContain('affiliateWorkspaceEnumLabel(t, "processReasons", reason)');
-    expect(creatorModal).not.toContain("formatAffiliateEnumLabel(agenda.owner)");
-    expect(creatorModal).not.toContain("formatAffiliateEnumLabel(agenda.sourceType)");
+    expect(agendaSurface).toContain('affiliateWorkspaceEnumLabel(t, "processReasons", reason)');
+    expect(agendaSurface).not.toContain("formatAffiliateEnumLabel(agenda.owner)");
+    expect(agendaSurface).not.toContain("formatAffiliateEnumLabel(agenda.sourceType)");
     expect(chinese).toContain('EXTERNAL: "外部"');
     expect(chinese).toContain('WAIT_PLATFORM_UPDATE: "等待平台更新"');
     expect(chinese).toContain('SAMPLE_APPLICATION: "样品申请"');
+  });
+
+  it("hydrates an incomplete current Sample work card only after disclosure", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
+    const styles = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"),
+      "utf8",
+    );
+    const agendaCard = page.slice(
+      page.indexOf("function RelationshipAgendaCard"),
+      page.indexOf("function SampleApplicationFact"),
+    );
+
+    expect(agendaCard).toContain("useLazyQuery");
+    expect(agendaCard).toContain("!detailsOpen");
+    expect(agendaCard).toContain("hasSampleEntity");
+    expect(agendaCard).toContain("sampleState.called");
+    expect(agendaCard).toContain("AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY");
+    expect(agendaCard).toContain("<SampleApplicationSummaryCard");
+    expect(agendaCard).toContain("allowProductLoad");
+    expect(queries).toContain("query AffiliateSampleApplicationState");
+    expect(styles).toContain(
+      ".affiliate-relationship-work-modal .affiliate-relationship-work-side-facts",
+    );
+    expect(styles).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
   });
 
   it("uses dense shared entity layouts across Creator detail tabs", () => {
@@ -1823,7 +1884,7 @@ describe("creator tag catalog wiring", () => {
     expect(creatorCard).toContain("affiliate-creator-compact-relationship");
     expect(creatorCard).toContain("affiliate-creator-compact-status");
     expect(creatorCard).not.toContain("affiliate-creator-compact-next");
-    expect(creatorCard).not.toContain('affiliateWorkspace.labels.nextStep');
+    expect(creatorCard).not.toContain("affiliateWorkspace.labels.nextStep");
     expect(creatorCard).not.toContain("affiliate-creator-card-stat-strip");
     expect(creatorCard).toContain("highestCreatorSampleTier");
     expect(creatorCard).toContain("creatorSampleTierLabel(t, sampleTier)");
