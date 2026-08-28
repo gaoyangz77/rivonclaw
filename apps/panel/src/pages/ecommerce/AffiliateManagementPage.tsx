@@ -3182,9 +3182,6 @@ function CreatorRelationshipCompactCard({
     ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : item.creatorId;
   const handle = profile ? creatorTikTokHandle(profile) : null;
-  const platformId = profile
-    ? creatorPlatformIdentity(profile)
-    : (item.latestAffiliateCollaboration?.creatorOpenIds[0] ?? null);
   const manualTags = item.creatorRelation?.manualTags ?? [];
   const systemTags = item.creatorRelation?.systemTags ?? [];
   const visibleSystemTags = systemTags.slice(0, 2);
@@ -3192,26 +3189,12 @@ function CreatorRelationshipCompactCard({
   const visibleManualTags = manualTags.slice(0, CREATOR_MANUAL_TAG_CHIP_LIMIT);
   const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
   const latestRecord = item.latestAffiliateCollaboration;
-  const latestStatus = latestRecord?.status
-    ? t(`ecommerce.affiliateWorkspace.collaborationFilters.${latestRecord.status}`, {
-        defaultValue: latestRecord.status,
-      })
-    : t("ecommerce.affiliateWorkspace.creatorStable");
   const lifecycleStage = latestRecord?.type ?? null;
   const lifecycleLabel = lifecycleStage
     ? t(`ecommerce.affiliateWorkspace.collaborationTypes.${lifecycleStage}`, {
         defaultValue: lifecycleStage,
       })
     : t("ecommerce.affiliateWorkspace.creatorNotInCollaboration");
-  const pendingProposal = item.latestPendingProposal;
-  const nextAction = pendingProposal
-    ? renderProposalRecommendationTitle(pendingProposal, t)
-    : latestStatus;
-  const nextActionContext = pendingProposal
-    ? t("ecommerce.affiliateWorkspace.creatorPendingProposal")
-    : latestRecord?.productIds.length
-      ? t("ecommerce.affiliateWorkspace.productContextConfirmed")
-      : null;
   const sampleStatus = item.latestSampleApplicationRecord?.sampleWorkStatus ?? null;
   const sampleStatusLabel = sampleStatus
     ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleStatus}`, {
@@ -3278,7 +3261,7 @@ function CreatorRelationshipCompactCard({
               </span>
             </div>
             <div className="affiliate-creator-row-meta">
-              <CreatorPlatformId handle={handle} platformId={platformId} />
+              <CreatorPlatformHandle handle={handle} />
               {item.market ? (
                 <span className="affiliate-creator-market-pill">{item.market}</span>
               ) : null}
@@ -3394,12 +3377,7 @@ function CreatorRelationshipCompactCard({
         </div>
       </dl>
 
-      <section className="affiliate-creator-compact-work">
-        <div className="affiliate-creator-compact-next">
-          <span>{t("ecommerce.affiliateWorkspace.labels.nextStep")}</span>
-          <strong title={nextAction}>{nextAction}</strong>
-          {nextActionContext ? <small title={nextActionContext}>{nextActionContext}</small> : null}
-        </div>
+      <section className="affiliate-creator-compact-status">
         <dl className="affiliate-creator-compact-facts">
           <div>
             <dt>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</dt>
@@ -11510,6 +11488,16 @@ function CreatorPlatformId({
         value={platformId}
         labelKey="ecommerce.affiliateWorkspace.copyCreatorPlatformId"
       />
+    </span>
+  );
+}
+
+function CreatorPlatformHandle({ handle }: { handle: string | null }) {
+  if (!handle) return null;
+  return (
+    <span className="affiliate-creator-platform-row">
+      <span className="affiliate-creator-platform-label">TikTok</span>
+      <span className="affiliate-creator-handle">{handle}</span>
     </span>
   );
 }
