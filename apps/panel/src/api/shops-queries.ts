@@ -2945,6 +2945,62 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
+  query AffiliateSampleApplicationState(
+    $creatorRelationshipId: ID!
+    $sampleApplicationRecordId: ID!
+  ) {
+    affiliateSampleApplicationState(
+      creatorRelationshipId: $creatorRelationshipId
+      sampleApplicationRecordId: $sampleApplicationRecordId
+    ) {
+      found
+      sampleApplication {
+        id
+        userId
+        shopId
+        platformApplicationId
+        creatorRelationshipId
+        creatorId
+        creatorOpenId
+        productId
+        affiliateCollaborationId
+        collaborationLinkBasis
+        collaborationType
+        platformCollaborationId
+        platformTargetCollaborationId
+        platformOpenCollaborationId
+        commissionRate
+        sampleWorkStatus
+        platformStatus
+        platformFulfillmentStatus
+        approveExpirationAt
+        firstObservedAt
+        lastObservedAt
+        providerEventAt
+        projectionRevision
+        order {
+          platformOrderId
+          trackingNumber
+          carrier
+        }
+        trackingNumber
+        carrier
+        shippedAt
+        deliveredAt
+        observedContentCount
+        latestObservedContentAt
+        latestObservedContentId
+        latestObservedContentFormat
+        latestObservedContentUrl
+        latestObservedContentViewCount
+        latestObservedContentPaidOrderCount
+        updatedAt
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY = gql`
   query AffiliateRelationshipPlatformCollaborations($input: AffiliateRelationshipEntityPageInput!) {
     affiliateRelationshipPlatformCollaborations(input: $input) {

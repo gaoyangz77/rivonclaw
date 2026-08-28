@@ -703,6 +703,7 @@
   display: flex;
   min-height: 0;
   gap: 0;
+  overflow: hidden;
   padding: 0;
   background: var(--affiliate-panel);
 }
@@ -768,6 +769,92 @@
   padding: 11px;
   border-radius: 10px;
   box-shadow: none;
+}
+
+.affiliate-relationship-work-modal .affiliate-relationship-work-side-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.affiliate-relationship-work-modal .affiliate-relationship-work-side-facts .affiliate-entity-fact {
+  min-height: 68px;
+  padding: 9px 10px;
+}
+
+.affiliate-relationship-agenda-card {
+  align-items: start;
+  overflow: hidden;
+  padding-bottom: 12px;
+}
+
+.affiliate-relationship-agenda-card-controls {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.affiliate-relationship-agenda-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.affiliate-relationship-agenda-disclosure span {
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 150ms ease;
+}
+
+.affiliate-relationship-agenda-disclosure[aria-expanded="true"] span {
+  transform: rotate(180deg);
+}
+
+.affiliate-relationship-agenda-disclosure:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 42%, transparent);
+  outline-offset: 2px;
+}
+
+.affiliate-relationship-agenda-entity {
+  min-width: 0;
+  grid-column: 1 / -1;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--affiliate-line));
+}
+
+.affiliate-relationship-agenda-entity > .affiliate-collaboration-sample-card.affiliate-entity-card {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.affiliate-relationship-agenda-entity-state {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed var(--affiliate-line);
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.affiliate-relationship-agenda-entity-state.is-error {
+  justify-content: space-between;
+  border-color: color-mix(in srgb, var(--color-danger) 34%, var(--affiliate-line));
+  color: var(--color-danger);
 }
 
 .affiliate-relationship-work-modal-header-actions {
@@ -1967,13 +2054,25 @@
 
 /* Communication reads like an inbox: history owns the scroll surface while
    the compact route-aware composer stays available at the bottom. */
+.affiliate-relationship-work-modal .affiliate-conversation-tab-panel {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .affiliate-relationship-work-modal .affiliate-conversation-tab {
-  min-height: 100%;
+  display: grid;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 10px;
 }
 
 .affiliate-relationship-work-modal .affiliate-conversation-preview {
-  min-height: 300px;
+  min-height: 0;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
   padding: 14px 16px 22px;
   border-color: var(--affiliate-line);
   border-radius: 12px;
@@ -1987,15 +2086,16 @@
 }
 
 .affiliate-relationship-work-modal .affiliate-message-composer {
-  position: sticky;
+  position: relative;
   z-index: 3;
-  bottom: -20px;
+  bottom: auto;
   display: grid;
+  flex: 0 0 auto;
   gap: 6px;
-  margin: 0 -4px -20px;
+  margin: 0;
   padding: 8px 11px 9px;
   border-color: color-mix(in srgb, var(--color-primary) 20%, var(--affiliate-line));
-  border-radius: 12px 12px 0 0;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--affiliate-panel) 96%, var(--color-primary) 4%);
   box-shadow: 0 -12px 28px color-mix(in srgb, var(--color-text) 8%, transparent);
 }
