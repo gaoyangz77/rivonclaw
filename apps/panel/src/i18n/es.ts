@@ -72,8 +72,7 @@ export default {
     customerServiceExperiments: "Experimentos",
     affiliateManagement: "Gestión de afiliados",
     affiliateIntelligence: "Inteligencia de afiliados",
-    affiliateNeedsAttention: "Espacio de trabajo del agente",
-    affiliateStaffHandling: "Gestión manual",
+    affiliateNeedsAttention: "Área de trabajo",
     affiliateCreators: "Creadores colaboradores",
     affiliateInProgress: "En curso",
     affiliatePolicies: "Políticas de aprobación",
@@ -2937,6 +2936,8 @@ export default {
       },
     },
     affiliateWorkspace: {
+      workbench: { title: "Área de trabajo", subtitle: "Gestiona el trabajo del Agent, las solicitudes de muestras y los mensajes de creadores.", tabs: { pendingAgent: "Pendiente de revisión", allAgent: "Todo el trabajo del Agent", samples: "Solicitudes de muestras", messages: "Mensajes de creadores" }, sampleOpen: "Pendiente", sampleSoftRejected: "Rechazo suave", noSamples: "No hay solicitudes pendientes.", noMessages: "No hay mensajes pendientes.", expiresAt: "Caduca {{value}}", pendingSince: "Pendiente desde {{value}}", protected: "Protegido", humanOnly: "Solo humano", agentProposal: "Propuesta del Agent", viewFullBundle: "Ver el bundle completo del Agent", sampleSyncIssue: "Error de sincronización", reopen: "Reabrir", approveSample: "Aprobar", platformReject: "Rechazar en TikTok", softReject: "Rechazo suave", sampleSyncUnknown: "Debe sincronizarse el estado de la plataforma.", sampleReviewSaved: "Decisión guardada.", rejectReason: "Motivo", rejectExplanation: "Explica el motivo", reviewTitles: { APPROVE: "Aprobar solicitud", PLATFORM_REJECT: "Rechazar en TikTok", SOFT_REJECT: "Rechazo suave", REOPEN: "Reabrir solicitud" }, reviewDescriptions: { APPROVE: "TikTok recibirá la aprobación tras la validación.", PLATFORM_REJECT: "TikTok recibirá el rechazo tras la validación.", SOFT_REJECT: "La decisión queda local y la solicitud puede caducar naturalmente.", REOPEN: "Reabrir si TikTok aún permite revisarla." } },
+      rejectReasons: { CREATOR_BLACKLISTED: "Creador bloqueado", DUPLICATE_APPLICATION: "Solicitud duplicada", LOW_EXPECTED_SALES: "Ventas esperadas bajas", NOT_MATCH: "No coincide", OFFLINE: "Sin conexión", OTHER: "Otro", OUT_OF_STOCK: "Sin stock", PLATFORM_ERROR: "Error de plataforma" },
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Esperando el cumplimiento de FBT",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Seguimiento de muestra cerrada",
@@ -2962,6 +2963,7 @@ export default {
       sampleTierFilterLabel: "Progreso actual",
       sampleTierFilterHint:
         "Encuentra creadores que están actualmente en los niveles seleccionados.",
+      sampleTierEmpty: "Sin progreso de colaboración",
       manualTagFilterLabel: "Etiquetas manuales",
       systemTagFilterLabel: "Etiquetas del sistema",
       manualTagMatchModeLabel: "Coincidencia de etiquetas",
@@ -2976,6 +2978,7 @@ export default {
       systemTags: {
         editorTitle: "Etiquetas del creador",
         title: "Etiquetas del sistema",
+        empty: "Sin etiquetas del sistema",
         hint: "Controles de negocio fijos que puedes modificar para este creador. Son globales para el vendedor y están separados de las etiquetas manuales.",
         add: "Añadir",
         remove: "Quitar",
@@ -3470,7 +3473,15 @@ export default {
         CLOSED: "Cerrado",
         BLOCKED: "Bloqueado",
       },
+      agendaOwners: { AGENT: "Agente", EXTERNAL: "Externo", STAFF: "Personal" },
+      agendaSourceTypes: { CREATOR_CHANNEL_CONTACT: "Contacto de canal del creador", PLATFORM_COLLABORATION: "Colaboración de plataforma", PLATFORM_CONVERSATION_ROUTE: "Ruta de conversación de plataforma", PROPOSAL: "Propuesta de acción", RELATIONSHIP: "Relación con el creador", SAMPLE_APPLICATION: "Solicitud de muestra" },
       processReasons: {
+        CHANNEL_OWNERSHIP_CONFLICT: "Conflicto de propiedad del canal",
+        COLLABORATION_CONTEXT_AMBIGUOUS: "El contexto de colaboración es ambiguo",
+        IDENTITY_RESOLUTION: "Debe resolverse la identidad del creador",
+        MESSAGE_DELIVERY_FAILED: "Falló la entrega del mensaje",
+        PLATFORM_STATE_SYNC: "Esperando la sincronización de la plataforma",
+        PROPOSAL_REVISION_REQUESTED: "Se solicitó revisar la propuesta",
         CREATOR_MESSAGE_NEEDS_HANDLING: "El mensaje del creador requiere gestión",
         SAMPLE_PENDING_REVIEW: "Solicitud de muestra pendiente de revisión",
         SAMPLE_AWAITING_PLATFORM_SHIPMENT: "Esperando el envío automático de TikTok FBT",

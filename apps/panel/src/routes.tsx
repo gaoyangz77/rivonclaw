@@ -25,7 +25,7 @@ import {
   AffiliateIntelligencePage,
   AffiliateHistoryPage,
   AffiliateManagementPage,
-  AffiliateNeedsAttentionPage,
+  AffiliateWorkbenchPage,
 } from "./pages/ecommerce/AffiliateManagementPage.js";
 import { AffiliateTeamPage } from "./pages/ecommerce/AffiliateTeamPage.js";
 import { AffiliateCampaignPage } from "./pages/ecommerce/AffiliateCampaignPage.js";
@@ -93,7 +93,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/customer-service/experiments", pageKey: "ecommerce-customer-service-experiments", component: CustomerServiceExperimentsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceExperiments", authRequired: true, parentPath: "/commerce/customer-service", scope: GQL.PermissionScope.CustomerService },
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true, scope: GQL.PermissionScope.Affiliate },
   { path: "/commerce/affiliate/campaigns", pageKey: "ecommerce-affiliate-campaigns", component: AffiliateCampaignPage, icon: <AdsIcon />, navLabelKey: "nav.affiliateCampaigns", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
-  { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateWorkbenchPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
   { path: "/commerce/affiliate/team", pageKey: "ecommerce-affiliate-team", component: AffiliateTeamPage, icon: <ChannelsIcon />, navLabelKey: "nav.affiliateTeam", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
   { path: "/commerce/product-knowledge", pageKey: "ecommerce-product-knowledge", component: ProductKnowledgePage, icon: <EcommerceIcon />, navLabelKey: "nav.productKnowledge", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
   { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },

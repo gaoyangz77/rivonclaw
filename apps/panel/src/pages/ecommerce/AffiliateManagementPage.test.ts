@@ -883,15 +883,19 @@ describe("Affiliate canonical UI contract", () => {
     expect(queries).not.toContain("unassignAffiliateBusinessDeveloper");
   });
 
-  it("separates the pending-only scope switch from workspace filters", () => {
+  it("uses four workbench tabs while keeping Agent-only filters scoped to Agent work", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
     );
 
     expect(page).toContain("affiliate-agent-workspace-controls");
-    expect(page).toContain('aria-pressed={agentWorkspaceView === "PENDING"}');
-    expect(page).toContain("affiliate-agent-workspace-scope-check");
+    expect(page).toContain('["PENDING_AGENT", "pendingAgent"]');
+    expect(page).toContain('["ALL_AGENT", "allAgent"]');
+    expect(page).toContain('["SAMPLES", "samples"]');
+    expect(page).toContain('["MESSAGES", "messages"]');
+    expect(page).toContain('aria-selected={workbenchTab === value}');
+    expect(page).toContain('workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT"');
     expect(page).not.toContain('role="switch"');
     expect(page).not.toContain("AGENT_WORKSPACE_VIEWS.map");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
@@ -968,7 +972,8 @@ describe("Affiliate canonical UI contract", () => {
     expect(creatorModal).toContain("onReject={(item) =>");
     expect(creatorModal).toContain("onRequestRevision={(item, revisionNote) =>");
     expect(creatorModal).toContain("decideRelationshipActionProposal");
-    expect(page).toContain("onDecideProposal={decideProposal}");
+    expect(page).toContain("onDecideProposal={async (proposal, status, note) =>");
+    expect(page).toContain("setWorkbenchEntityRefreshRevision((revision) => revision + 1)");
   });
 
   it("opens Creator details from the work-detail avatar without a redundant workspace button", () => {

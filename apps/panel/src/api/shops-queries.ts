@@ -2133,6 +2133,13 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
         creatorId
         productId
         sampleWorkStatus
+        reviewDisposition
+        reviewDispositionRevision
+        merchantReviewDecision
+        merchantReviewExecutionMode
+        merchantReviewRejectReason
+        merchantReviewRejectReasonExplanation
+        merchantReviewDecidedAt
         platformStatus
         platformFulfillmentStatus
         updatedAt
@@ -3831,6 +3838,125 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
           text
         }
       }
+    }
+  }
+`;
+
+const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
+  fragment AffiliateWorkbenchSampleRowFields on AffiliateWorkbenchSampleRow {
+    id
+    creatorRelationshipId
+    creatorName
+    creatorUsername
+    creatorAvatarUrl
+    shopName
+    productTitle
+    businessDeveloperName
+    protected
+    humanOnly
+    sampleApplication {
+      id
+      userId
+      shopId
+      platformApplicationId
+      creatorRelationshipId
+      creatorId
+      creatorOpenId
+      productId
+      sampleWorkStatus
+      reviewDisposition
+      reviewDispositionRevision
+      merchantReviewDecision
+      merchantReviewExecutionMode
+      merchantReviewRejectReason
+      merchantReviewRejectReasonExplanation
+      merchantReviewDecidedAt
+      platformStatus
+      approveExpirationAt
+      firstObservedAt
+      lastObservedAt
+      projectionRevision
+    }
+    proposal {
+      id
+      status
+      type
+      operatorSummary
+      reviewSource
+      creatorRelationshipId
+      sampleApplicationRecordId
+      revisionNumber
+      updatedAt
+    }
+  }
+`;
+
+export const AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY = gql`
+  query AffiliateWorkbenchSamplePage($input: AffiliateWorkbenchSamplePageInput!) {
+    affiliateWorkbenchSamplePage(input: $input) {
+      items {
+        ...AffiliateWorkbenchSampleRowFields
+      }
+      hasMore
+      nextCursor
+    }
+  }
+  ${AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT}
+`;
+
+export const REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION = gql`
+  mutation ReviewAffiliateSampleApplication($input: ReviewAffiliateSampleApplicationInput!) {
+    reviewAffiliateSampleApplication(input: $input) {
+      ...AffiliateWorkbenchSampleRowFields
+    }
+  }
+  ${AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT}
+`;
+
+export const REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION = gql`
+  mutation ReopenSoftRejectedAffiliateSampleApplication(
+    $input: ReopenSoftRejectedAffiliateSampleApplicationInput!
+  ) {
+    reopenSoftRejectedAffiliateSampleApplication(input: $input) {
+      ...AffiliateWorkbenchSampleRowFields
+    }
+  }
+  ${AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT}
+`;
+
+export const AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY = gql`
+  query AffiliateWorkbenchPendingConversationPage(
+    $input: AffiliateWorkbenchPendingConversationPageInput!
+  ) {
+    affiliateWorkbenchPendingConversationPage(input: $input) {
+      items {
+        id
+        creatorRelationshipId
+        channel
+        lastPendingAt
+        sourceLabel
+        sourceShopId
+        replyToLifecycleEventId
+        creatorName
+        creatorUsername
+        creatorAvatarUrl
+        shopName
+        businessDeveloperName
+        protected
+        humanOnly
+        proposal {
+          id
+          status
+          type
+          operatorSummary
+          reviewSource
+          creatorRelationshipId
+          revisionNumber
+          updatedAt
+        }
+      }
+      hasMore
+      nextCursor
     }
   }
 `;

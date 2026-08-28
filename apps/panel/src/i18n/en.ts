@@ -74,8 +74,7 @@ export default {
     customerServiceExperiments: "Experiments",
     affiliateManagement: "Affiliate Management",
     affiliateIntelligence: "Affiliate Intelligence",
-    affiliateNeedsAttention: "Agent workspace",
-    affiliateStaffHandling: "Staff handling",
+    affiliateNeedsAttention: "Workbench",
     affiliateCreators: "Cooperation creators",
     affiliateInProgress: "In progress",
     affiliatePolicies: "Approval Policies",
@@ -3334,6 +3333,13 @@ export default {
       },
     },
     affiliateWorkspace: {
+      workbench: {
+        title: "Workbench",
+        subtitle: "Review Agent work, Sample Applications, and Creator messages in one place.",
+        tabs: { pendingAgent: "Pending review", allAgent: "All Agent work", samples: "Sample Applications", messages: "Creator messages" },
+        sampleOpen: "Pending", sampleSoftRejected: "Soft rejected", noSamples: "No Sample Applications need attention.", noMessages: "No Creator messages need attention.", expiresAt: "Expires {{value}}", pendingSince: "Pending since {{value}}", protected: "Protected", humanOnly: "Human only", agentProposal: "Agent proposal", viewFullBundle: "View full Agent bundle", sampleSyncIssue: "Sync issue", reopen: "Reopen", approveSample: "Approve", platformReject: "Reject on TikTok", softReject: "Soft reject", sampleSyncUnknown: "Platform status needs synchronization before review.", sampleReviewSaved: "Sample review saved.", rejectReason: "Reason", rejectExplanation: "Explain the reason", reviewTitles: { APPROVE: "Approve Sample Application", PLATFORM_REJECT: "Reject on TikTok", SOFT_REJECT: "Soft reject", REOPEN: "Reopen Sample Application" }, reviewDescriptions: { APPROVE: "TikTok will receive an approval after live revalidation.", PLATFORM_REJECT: "TikTok will receive a rejection after live revalidation.", SOFT_REJECT: "The seller decision is recorded locally. TikTok is not called and the application may expire naturally.", REOPEN: "Reopen this local decision if TikTok still allows review." },
+      },
+      rejectReasons: { CREATOR_BLACKLISTED: "Creator blocked", DUPLICATE_APPLICATION: "Duplicate application", LOW_EXPECTED_SALES: "Low expected sales", NOT_MATCH: "Not a match", OFFLINE: "Offline", OTHER: "Other", OUT_OF_STOCK: "Out of stock", PLATFORM_ERROR: "Platform error" },
       title: "Affiliate Management",
       subtitle: "Review pending agent actions for creator lifecycle work.",
       creatorsTitle: "Cooperation creators",
@@ -3786,7 +3792,7 @@ export default {
       searchFilter: "Search",
       itemCount: "{{count}} item(s)",
       pageTitles: {
-        NEEDS_ATTENTION: "Agent workspace",
+        NEEDS_ATTENTION: "Workbench",
         IN_PROGRESS: "Affiliate work in progress",
         HISTORY: "Affiliate history",
       },
@@ -4376,7 +4382,7 @@ export default {
         FOLLOW_UP_CREATOR:
           "The creator-side next step is overdue. Follow up with the creator based on the current collaboration context.",
         REVIEW_ACTION_PROPOSAL:
-          "The agent has created a platform-action proposal. Approve or reject it in the Agent workspace.",
+          "The agent has created a platform-action proposal. Approve or reject it in the Workbench.",
         REVIEW_AGENT_FAILURE:
           "The agent did not complete this work item. Review the record and decide the next step manually.",
         RESOLVE_CREATOR_IDENTITY:

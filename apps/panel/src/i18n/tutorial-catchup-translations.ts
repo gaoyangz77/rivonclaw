@@ -8,7 +8,7 @@
 export const TUTORIAL_NEW_KEYS_EN = {
   tutorial: {
     ecommerceAffiliateAttention: {
-      welcomeTitle: "Agent workspace",
+      welcomeTitle: "Workbench",
       welcomeBody: "Review Agent work bundles that need a human decision, then audit completed decisions from the same operating workspace.",
       controlsTitle: "Shop scope and refresh",
       controlsBody: "Choose one affiliate-enabled shop or keep the account-wide view, then refresh to load the latest Agent proposals.",
@@ -235,7 +235,7 @@ export const TUTORIAL_CATCHUP_EN = {
 export const TUTORIAL_CATCHUP_ZH = {
   tutorial: {
     ecommerceAffiliateAttention: {
-      welcomeTitle: "Agent 工作区",
+      welcomeTitle: "工作台",
       welcomeBody: "集中审核需要人工决策的 Agent 工作包，也可在同一工作区复核已经完成的决策。",
       controlsTitle: "店铺范围与刷新",
       controlsBody: "可选择一家已启用达人联盟的店铺，或保留账号全局视图；刷新后会加载最新的 Agent 提案。",
