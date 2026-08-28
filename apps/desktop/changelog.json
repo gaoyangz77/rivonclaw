@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.118",
+    "date": "2026-08-27",
+    "en": [
+      "Modernize the Affiliate creator workspace with clearer relationship details and system tags",
+      "Improve creator pagination, campaign history performance, localized date formatting, and select interactions"
+    ],
+    "zh": [
+      "重构达人联盟工作台，以更清晰的关系详情和系统标签呈现达人信息",
+      "优化达人分页、活动历史性能、本地化日期格式与下拉选择交互"
+    ]
+  },
+  {
     "version": "1.8.117",
     "date": "2026-08-26",
     "en": [
