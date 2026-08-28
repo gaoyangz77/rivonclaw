@@ -1821,12 +1821,17 @@ describe("creator tag catalog wiring", () => {
     expect(creatorCard).toContain("affiliate-creator-compact-card");
     expect(creatorCard).toContain("affiliate-creator-compact-metrics");
     expect(creatorCard).toContain("affiliate-creator-compact-relationship");
-    expect(creatorCard).toContain("affiliate-creator-compact-work");
+    expect(creatorCard).toContain("affiliate-creator-compact-status");
+    expect(creatorCard).not.toContain("affiliate-creator-compact-next");
+    expect(creatorCard).not.toContain('affiliateWorkspace.labels.nextStep');
     expect(creatorCard).not.toContain("affiliate-creator-card-stat-strip");
     expect(creatorCard).toContain("highestCreatorSampleTier");
     expect(creatorCard).toContain("creatorSampleTierLabel(t, sampleTier)");
     expect(creatorCard).toContain("creatorSystemTagLabel(t, tag)");
     expect(creatorCard).toContain("visibleManualTags.map");
+    expect(creatorCard).toContain("<CreatorPlatformHandle handle={handle} />");
+    expect(creatorCard).not.toContain("<CreatorPlatformId");
+    expect(creatorCard).not.toContain("creatorPlatformIdentity(profile)");
     expect(creatorDetail).toContain("affiliate-relationship-header-progress");
     expect(creatorDetail).toContain("affiliate-relationship-detail-title-row");
     expect(creatorDetail).toContain("creatorSampleTierDisplay(t, cooperationProgressTier)");
