@@ -23,6 +23,7 @@ import type { AffiliateLifecycleEvent } from "@rivonclaw/core/models";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import {
   CheckIcon,
@@ -64,6 +65,8 @@ import {
   EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION,
   REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+  REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
+  REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
   SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
   SET_AFFILIATE_CREATOR_EMAIL_MUTATION,
   SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION,
@@ -84,6 +87,10 @@ import {
   type CreatorSystemTagChange,
 } from "./components/AffiliateCreatorManualTagEditor.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
+import {
+  AffiliateWorkbenchEntityTabs,
+  type AffiliateWorkbenchEntityOpenTarget,
+} from "./components/AffiliateWorkbenchEntityTabs.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 import {
   AffiliateContextInspector,
@@ -416,6 +423,7 @@ const PROPOSAL_TYPE_FILTERS = [
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
 
 type AgentWorkspaceView = "PENDING" | "ALL";
+type AffiliateWorkbenchTab = "PENDING_AGENT" | "ALL_AGENT" | "SAMPLES" | "MESSAGES";
 
 type AffiliateActionProposalPageData = {
   affiliateActionProposalPage: {
@@ -811,7 +819,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
   );
 });
 
-export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAttentionPage() {
+export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
@@ -820,7 +828,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
   const [selectedBusinessDeveloperId, setSelectedBusinessDeveloperId] = useState("");
-  const [agentWorkspaceView, setAgentWorkspaceView] = useState<AgentWorkspaceView>("PENDING");
+  const [workbenchTab, setWorkbenchTab] = useState<AffiliateWorkbenchTab>("PENDING_AGENT");
+  const agentWorkspaceView: AgentWorkspaceView = workbenchTab === "ALL_AGENT" ? "ALL" : "PENDING";
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
@@ -829,6 +838,9 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   );
   const [selectedRelationship, setSelectedRelationship] =
     useState<CreatorRelationshipDetailItem | null>(null);
+  const [selectedEntityTarget, setSelectedEntityTarget] =
+    useState<AffiliateWorkbenchEntityOpenTarget | null>(null);
+  const [workbenchEntityRefreshRevision, setWorkbenchEntityRefreshRevision] = useState(0);
   const [loadingMoreProposalQueryKey, setLoadingMoreProposalQueryKey] = useState<string | null>(
     null,
   );
@@ -858,9 +870,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
   const shopOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-    ...shops
-      .filter((shop) => shop.services?.affiliateService?.enabled)
-      .map((shop) => ({
+    ...shops.filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized).map((shop) => ({
         value: shop.id,
         label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
       })),
@@ -945,7 +955,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       },
       fetchPolicy: "cache-and-network",
       notifyOnNetworkStatusChange: true,
-      skip: !user,
+      skip: !user || workbenchTab === "SAMPLES" || workbenchTab === "MESSAGES",
     },
   );
 
@@ -1048,6 +1058,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
         const proposal = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
         if (!proposal?.id) return;
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
+        setWorkbenchEntityRefreshRevision((revision) => revision + 1);
         setProposalPageBuffer((current) =>
           current.queryKey !== proposalQueryKey
             ? current
@@ -1250,58 +1261,63 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       <AffiliatePageHeader
         className="ecommerce-page-header affiliate-workbench-header"
         data-tutorial-id="affiliate-attention-header"
-        title={t("ecommerce.affiliateWorkspace.pageTitles.NEEDS_ATTENTION")}
-        subtitle={t("ecommerce.affiliateWorkspace.pageSubtitles.NEEDS_ATTENTION")}
+        title={t("ecommerce.affiliateWorkspace.workbench.title")}
+        subtitle={t("ecommerce.affiliateWorkspace.workbench.subtitle")}
         actions={
           <AffiliateToolbar
             className="affiliate-workbench-controls"
             data-tutorial-id="affiliate-attention-controls"
           >
-            <Select
-              value={selectedShopId}
-              onChange={setSelectedShopId}
-              options={shopOptions}
-              className="affiliate-workspace-shop-select"
-            />
-            <button
-              className="btn btn-secondary"
-              type="button"
-              onClick={() => void refetchActive()}
-              disabled={proposalsLoading}
-            >
-              {proposalsLoading
-                ? t("common.loading")
-                : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
-            </button>
+            {workbenchTab !== "MESSAGES" ? (
+              <Select
+                value={selectedShopId}
+                onChange={setSelectedShopId}
+                options={shopOptions}
+                className="affiliate-workspace-shop-select"
+              />
+            ) : null}
+            {workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT" ? (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => void refetchActive()}
+                disabled={proposalsLoading}
+              >
+                {proposalsLoading
+                  ? t("common.loading")
+                  : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
+              </button>
+            ) : null}
           </AffiliateToolbar>
         }
       />
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head affiliate-attention-panel-head affiliate-agent-workspace-controls">
-          <div
-            className="affiliate-agent-workspace-view-control"
-            data-tutorial-id="affiliate-attention-scope"
-          >
-            <span className="affiliate-agent-workspace-view-label">
-              {t("ecommerce.affiliateWorkspace.agentWorkspaceViews.label")}
-            </span>
-            <button
-              type="button"
-              aria-pressed={agentWorkspaceView === "PENDING"}
-              className={`affiliate-agent-workspace-scope-toggle${agentWorkspaceView === "PENDING" ? " affiliate-agent-workspace-scope-toggle-active" : ""}`}
-              onClick={() =>
-                setAgentWorkspaceView((view) => (view === "PENDING" ? "ALL" : "PENDING"))
-              }
-            >
-              <span className="affiliate-agent-workspace-scope-check" aria-hidden="true" />
-              <span>{t("ecommerce.affiliateWorkspace.agentWorkspaceViews.PENDING")}</span>
-            </button>
+          <div className="affiliate-workbench-tabs" data-tutorial-id="affiliate-attention-scope">
+            {([
+              ["PENDING_AGENT", "pendingAgent"],
+              ["ALL_AGENT", "allAgent"],
+              ["SAMPLES", "samples"],
+              ["MESSAGES", "messages"],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`affiliate-workbench-tab${workbenchTab === value ? " affiliate-workbench-tab-active" : ""}`}
+                aria-selected={workbenchTab === value}
+                role="tab"
+                onClick={() => setWorkbenchTab(value)}
+              >
+                {t(`ecommerce.affiliateWorkspace.workbench.tabs.${label}`)}
+              </button>
+            ))}
           </div>
-          <div
-            className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
-            data-tutorial-id="affiliate-attention-filters"
-          >
+          {workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT" ? (
+            <div
+              className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
+              data-tutorial-id="affiliate-attention-filters"
+            >
             <label className="affiliate-filter-field">
               <span>{t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}</span>
               <Select
@@ -1349,11 +1365,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                 aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
               />
             </label>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="affiliate-attention-active-list">
-          {proposalsLoading && visibleAgentWorkBundles.length === 0 ? (
+          {workbenchTab === "SAMPLES" || workbenchTab === "MESSAGES" ? (
+            <AffiliateWorkbenchEntityTabs
+              tab={workbenchTab}
+              selectedShopId={selectedShopId}
+              refreshRevision={workbenchEntityRefreshRevision}
+              onOpen={setSelectedEntityTarget}
+            />
+          ) : proposalsLoading && visibleAgentWorkBundles.length === 0 ? (
             <div data-tutorial-id="affiliate-attention-queue">
               <AffiliateLoadingState />
             </div>
@@ -1371,7 +1395,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
               onOpenCreator={(bundle) => openCreatorDetail(bundle.proposal)}
             />
           )}
-          {hasMoreProposals || loadingMoreProposals ? (
+          {(workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT") &&
+          (hasMoreProposals || loadingMoreProposals) ? (
             <div className="affiliate-proposal-stream-footer" ref={proposalLoadMoreRef}>
               <button
                 className="btn btn-secondary affiliate-proposal-load-more"
@@ -1389,7 +1414,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                 })}
               </span>
             </div>
-          ) : loadedProposals.length > 0 ? (
+          ) : (workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT") &&
+            loadedProposals.length > 0 ? (
             <div className="affiliate-proposal-stream-footer affiliate-proposal-stream-complete">
               {t("ecommerce.affiliateWorkspace.allProposalsLoaded", {
                 count: loadedProposals.length,
@@ -1420,184 +1446,37 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
           selectedShopId={selectedShopId}
-          onDecideProposal={decideProposal}
+          onDecideProposal={async (proposal, status, note) => {
+            const handled = await decideProposal(proposal, status, note);
+            if (handled) {
+              setWorkbenchEntityRefreshRevision((revision) => revision + 1);
+            }
+            return handled;
+          }}
           onClose={() => setSelectedRelationship(null)}
+        />
+      ) : null}
+
+      {selectedEntityTarget ? (
+        <CreatorRelationshipDetailModal
+          relationshipId={selectedEntityTarget.creatorRelationshipId}
+          selectedShopId={selectedEntityTarget.selectedShopId ?? selectedShopId}
+          initialTab={selectedEntityTarget.initialTab}
+          replyToLifecycleEventId={selectedEntityTarget.replyToLifecycleEventId}
+          onWorkbenchEntityChanged={() => {
+            setWorkbenchEntityRefreshRevision((revision) => revision + 1);
+          }}
+          onDecideProposal={async (proposal, status, note) => {
+            const handled = await decideProposal(proposal, status, note);
+            if (handled) {
+              setWorkbenchEntityRefreshRevision((revision) => revision + 1);
+            }
+            return handled;
+          }}
+          onClose={() => setSelectedEntityTarget(null)}
         />
       ) : null}
     </AffiliatePageFrame>
-  );
-});
-
-export const AffiliateStaffHandlingPage = observer(function AffiliateStaffHandlingPage() {
-  const { t } = useTranslation();
-  const entityStore = useEntityStore();
-  const user = entityStore.currentUser;
-  const authChecking = (entityStore as any).authBootstrap?.status === "loading";
-  const shops = entityStore.shops;
-  const [selectedShopId, setSelectedShopId] = useState("");
-  const [staffSearch, setStaffSearch] = useState("");
-  const [selectedRelationship, setSelectedRelationship] =
-    useState<CreatorRelationshipDetailItem | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      entityStore.fetchShops().catch(() => {});
-    }
-  }, [entityStore, user]);
-
-  const shopOptions = [
-    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-    ...shops
-      .filter((shop) => shop.services?.affiliateService?.enabled)
-      .map((shop) => ({
-        value: shop.id,
-        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-      })),
-  ];
-
-  const { data, loading, refetch } = useQuery<
-    { affiliateWorkItems: GQL.AffiliateWorkItem[] },
-    { input: GQL.ReadAffiliateWorkItemsInput }
-  >(AFFILIATE_WORK_ITEMS_QUERY, {
-    variables: {
-      input: {
-        shopId: selectedShopId || null,
-        processingStatus: GQL.AffiliateRelationshipProcessingStatus.StaffRequired,
-        limit: 200,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !user,
-  });
-
-  useEffect(() => {
-    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
-      void refetch();
-    });
-    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
-      void refetch();
-    });
-    return () => {
-      unsubscribeProposal();
-      unsubscribeWorkItem();
-    };
-  }, [refetch]);
-
-  useEffect(() => {
-    ingestAffiliateWorkItemsIntoWorkspace(entityStore.affiliateWorkspace, data?.affiliateWorkItems);
-  }, [entityStore.affiliateWorkspace, data?.affiliateWorkItems]);
-
-  const staffItems = (data?.affiliateWorkItems ?? [])
-    .filter(isAffiliateStaffHandlingWorkItem)
-    .map((workItem) => relationshipWorkItemFromWorkItem(workItem, entityStore.affiliateWorkspace));
-  const visibleStaffItems = filterRelationshipWorkItems(staffItems, staffSearch, shopLabel).sort(
-    compareStaffHandlingItems,
-  );
-
-  function shopLabel(shopId: string): string {
-    const shop = shops.find((candidate) => candidate.id === shopId);
-    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
-  }
-
-  if (authChecking) {
-    return (
-      <div className="page-enter">
-        <AffiliateLoadingState />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="page-enter">
-        <div className="section-card">
-          <h2>{t("auth.loginRequired")}</h2>
-          <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="page-enter affiliate-page-shell affiliate-workbench">
-      <div className="ecommerce-page-header affiliate-page-hero affiliate-workbench-header">
-        <div>
-          <h1>{t("ecommerce.affiliateWorkspace.collaborationWorkQueueTitle")}</h1>
-          <p className="ecommerce-page-subtitle">
-            {t("ecommerce.affiliateWorkspace.collaborationWorkQueueHint")}
-          </p>
-        </div>
-        <div className="affiliate-workbench-controls">
-          <Select
-            value={selectedShopId}
-            onChange={setSelectedShopId}
-            options={shopOptions}
-            className="affiliate-workspace-shop-select"
-          />
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={() => void refetch()}
-            disabled={loading}
-          >
-            {loading ? t("common.loading") : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
-          </button>
-        </div>
-      </div>
-
-      <div className="affiliate-workbench-panel">
-        <div className="affiliate-workbench-panel-head affiliate-attention-panel-head">
-          <div>
-            <div className="affiliate-workbench-panel-title">
-              {t("ecommerce.affiliateWorkspace.collaborationWorkQueueTitle")}
-            </div>
-            <div className="form-hint">
-              {t("ecommerce.affiliateWorkspace.collaborationWorkQueueHint")}
-            </div>
-          </div>
-          <div className="affiliate-attention-toolbar">
-            <label className="affiliate-filter-field affiliate-filter-field-search">
-              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
-              <input
-                className="affiliate-attention-search"
-                value={staffSearch}
-                onChange={(event) => setStaffSearch(event.target.value)}
-                placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
-                aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
-              />
-            </label>
-          </div>
-        </div>
-
-        {loading && visibleStaffItems.length === 0 ? (
-          <AffiliateLoadingState />
-        ) : visibleStaffItems.length === 0 ? (
-          <div className="affiliate-proposal-empty">
-            {t("ecommerce.affiliateWorkspace.emptyCollaborationWork")}
-          </div>
-        ) : (
-          <div className="affiliate-collaboration-list">
-            {visibleStaffItems.map((item) => (
-              <CreatorRelationshipWorkCard
-                key={item.relationshipId}
-                item={item}
-                shopLabel={shopLabel(item.shopId)}
-                onOpen={() => setSelectedRelationship(relationshipDetailFromWorkItem(item))}
-                onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {selectedRelationship ? (
-        <CreatorRelationshipDetailModal
-          item={selectedRelationship}
-          selectedShopId={selectedShopId}
-          onClose={() => setSelectedRelationship(null)}
-        />
-      ) : null}
-    </div>
   );
 });
 
@@ -2744,32 +2623,6 @@ function affiliateCollaborationMatchesHistoryStatusFilter(
 ): boolean {
   if (filter === "ALL") return true;
   return record.status === filter;
-}
-
-function isAffiliateStaffHandlingWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
-  if (workItem.staffReviewRequired) return true;
-  if (workItem.processingStatus === GQL.AffiliateRelationshipProcessingStatus.StaffRequired)
-    return true;
-  switch (workItem.requiredAction) {
-    case GQL.AffiliateRelationshipRequiredAction.ResolveCreatorIdentity:
-    case GQL.AffiliateRelationshipRequiredAction.ReviewAgentFailure:
-    case GQL.AffiliateRelationshipRequiredAction.ReviewAmbiguousContext:
-    case GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask:
-      return true;
-    default:
-      return false;
-  }
-}
-
-function compareStaffHandlingItems(
-  left: CreatorRelationshipWorkItem,
-  right: CreatorRelationshipWorkItem,
-): number {
-  const leftTime = Date.parse(left.nextSellerActionAt ?? left.stateUpdatedAt ?? "");
-  const rightTime = Date.parse(right.nextSellerActionAt ?? right.stateUpdatedAt ?? "");
-  const normalizedLeft = Number.isFinite(leftTime) ? leftTime : 0;
-  const normalizedRight = Number.isFinite(rightTime) ? rightTime : 0;
-  return normalizedRight - normalizedLeft;
 }
 
 function AffiliateLoadingState() {
@@ -9638,12 +9491,20 @@ function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
 
 export function CreatorRelationshipDetailModal({
   item,
+  relationshipId: relationshipIdOverride,
   selectedShopId,
+  initialTab = "overview",
+  replyToLifecycleEventId,
+  onWorkbenchEntityChanged,
   onDecideProposal,
   onClose,
 }: {
-  item: CreatorRelationshipDetailItem;
+  item?: CreatorRelationshipDetailItem;
+  relationshipId?: string;
   selectedShopId: string;
+  initialTab?: "profile" | "overview" | "samples" | "platform" | "conversation" | "activity";
+  replyToLifecycleEventId?: string;
+  onWorkbenchEntityChanged?: () => void;
   onDecideProposal?: (
     proposal: GQL.ActionProposal,
     status: GQL.ActionProposalStatus,
@@ -9657,7 +9518,7 @@ export function CreatorRelationshipDetailModal({
   const affiliateWorkspace = entityStore.affiliateWorkspace;
   const [activeTab, setActiveTab] = useState<
     "profile" | "overview" | "samples" | "platform" | "conversation" | "activity"
-  >("overview");
+  >(initialTab);
   const [contextInspectorOpen, setContextInspectorOpen] = useState(() =>
     typeof window === "undefined" || typeof window.matchMedia !== "function"
       ? true
@@ -9681,20 +9542,33 @@ export function CreatorRelationshipDetailModal({
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [sampleReviewCommand, setSampleReviewCommand] = useState<{
+    sampleApplicationRecordId: string;
+    creatorRelationshipId: string;
+    projectionRevision: number;
+    reviewDispositionRevision: number;
+    kind: "APPROVE" | "PLATFORM_REJECT" | "SOFT_REJECT" | "REOPEN";
+  } | null>(null);
+  const [sampleRejectReason, setSampleRejectReason] = useState<GQL.AffiliateSampleRejectReason>(
+    GQL.AffiliateSampleRejectReason.NotMatch,
+  );
+  const [sampleRejectExplanation, setSampleRejectExplanation] = useState("");
   const conversationViewportRef = useRef<HTMLDivElement | null>(null);
   const conversationAutoScrollPendingRef = useRef(true);
   const conversationScrollRelationshipRef = useRef<string | null>(null);
   const activityBottomRef = useRef<HTMLDivElement | null>(null);
   const activityLoadedOlderRef = useRef(false);
-  const fallbackProfile = item.creatorProfile ?? null;
-  const management = item.managementItem ?? null;
-  const relationshipId = item.creatorRelation?.id ?? item.workItems?.[0]?.relationshipId ?? null;
+  const fallbackProfile = item?.creatorProfile ?? null;
+  const management = item?.managementItem ?? null;
+  const relationshipId = relationshipIdOverride ?? item?.creatorRelation?.id ??
+    item?.workItems?.[0]?.relationshipId ?? null;
   useEffect(() => {
+    setActiveTab(initialTab);
     setContextInspectorSection("overview");
     setProposalHistoryOpen(false);
     setDecidingProposalId(null);
     setOptimisticallyDecidedProposalIds(new Set());
-  }, [relationshipId]);
+  }, [initialTab, relationshipId]);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const desktopInspector = window.matchMedia("(min-width: 1081px)");
@@ -9732,11 +9606,11 @@ export function CreatorRelationshipDetailModal({
     };
   }, [refetchRelationshipDetail]);
   const relationshipDetail = relationshipDetailData?.affiliateCreatorRelationshipDetail ?? null;
-  const relationship = relationshipDetail?.creatorRelationship ?? item.creatorRelation ?? null;
+  const relationship = relationshipDetail?.creatorRelationship ?? item?.creatorRelation ?? null;
   const cooperationProgressTier =
     relationship?.highestSampleTier ??
     highestCreatorSampleTier(
-      (relationship?.shopStates ?? (item.shopState ? [item.shopState] : [])).map(
+    (relationship?.shopStates ?? (item?.shopState ? [item.shopState] : [])).map(
         (state) => state.sampleTier,
       ),
     );
@@ -9761,7 +9635,7 @@ export function CreatorRelationshipDetailModal({
   const profile = authoritativeProfile?.creator ?? relationshipDetail?.creator ?? fallbackProfile;
   const name = profile
     ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
-    : item.creatorId;
+      : item?.creatorId ?? "";
   const handle = profile ? creatorTikTokHandle(profile) : null;
   const platformId = profile ? creatorPlatformIdentity(profile) : null;
   const performance =
@@ -9771,7 +9645,7 @@ export function CreatorRelationshipDetailModal({
     (profile ? latestCreatorPerformance(profile) : null);
   const marketplaceBio = profile?.bioDescription?.trim() || null;
   const blocked = Boolean(relationship?.blocked);
-  const rawShopStates = relationship?.shopStates ?? (item.shopState ? [item.shopState] : []);
+  const rawShopStates = relationship?.shopStates ?? (item?.shopState ? [item.shopState] : []);
   const relationshipShopName = (shopId: string) => {
     const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
     return (
@@ -9853,6 +9727,14 @@ export function CreatorRelationshipDetailModal({
     { sendAffiliateCreatorMessage: GQL.SendAffiliateCreatorMessagePayload },
     { input: GQL.SendAffiliateCreatorMessageInput }
   >(SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION);
+  const [reviewAffiliateSampleApplication, reviewSampleState] = useMutation<
+    { reviewAffiliateSampleApplication: GQL.AffiliateWorkbenchSampleRow },
+    { input: GQL.ReviewAffiliateSampleApplicationInput }
+  >(REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION);
+  const [reopenSoftRejectedAffiliateSampleApplication, reopenSampleState] = useMutation<
+    { reopenSoftRejectedAffiliateSampleApplication: GQL.AffiliateWorkbenchSampleRow },
+    { input: GQL.ReopenSoftRejectedAffiliateSampleApplicationInput }
+  >(REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION);
   const sampleQuery = useQuery<
     { affiliateRelationshipSampleApplications: GQL.AffiliateRelationshipSampleApplicationPage },
     { input: GQL.AffiliateRelationshipEntityPageInput }
@@ -9887,7 +9769,7 @@ export function CreatorRelationshipDetailModal({
   const platformPage = platformQuery.data?.affiliateRelationshipPlatformCollaborations;
   const proposalPage = proposalQuery.data?.affiliateActionProposalPage;
   const relationshipSampleApplications = mergeById([
-    ...(item.workItems ?? []).flatMap((workItem) => [
+    ...(item?.workItems ?? []).flatMap((workItem) => [
       ...(workItem.primarySampleApplication ? [workItem.primarySampleApplication] : []),
       ...(workItem.relatedSampleApplications ?? []),
       ...(workItem.workItem?.sampleApplicationRecord
@@ -9901,7 +9783,7 @@ export function CreatorRelationshipDetailModal({
   // produced the queue row. Use it as an immediate entity snapshot while the
   // detail query catches up; the query result wins when both contain the same ID.
   const relationshipProposals = mergeById([
-    ...(item.workItems ?? []).flatMap((workItem) => [
+    ...(item?.workItems ?? []).flatMap((workItem) => [
       ...workItem.pendingProposals,
       ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
     ]),
@@ -9917,7 +9799,7 @@ export function CreatorRelationshipDetailModal({
   );
   const productSummaries = mergeById(
     [
-      ...(item.workItems ?? []).flatMap((workItem) => {
+    ...(item?.workItems ?? []).flatMap((workItem) => {
         const product = productSummaryFromWorkContext(workItem.productContext);
         return product ? [{ shopId: workItem.shopId, product }] : [];
       }),
@@ -10084,6 +9966,7 @@ export function CreatorRelationshipDetailModal({
             parts,
             preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
             emailSubject: composerSubject.trim() || undefined,
+            replyToLifecycleEventId,
           },
         },
       });
@@ -10099,11 +9982,64 @@ export function CreatorRelationshipDetailModal({
       setStagedAttachments([]);
       conversationAutoScrollPendingRef.current = true;
       await refetchConversationMessages();
+      onWorkbenchEntityChanged?.();
       showToast(t("ecommerce.affiliateWorkspace.messageSubmitted"), "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       setSendingMessage(false);
+    }
+  }
+
+  async function executeSampleReviewCommand(): Promise<void> {
+    if (!sampleReviewCommand) return;
+    try {
+      if (sampleReviewCommand.kind === "REOPEN") {
+        await reopenSoftRejectedAffiliateSampleApplication({
+          variables: {
+            input: {
+              sampleApplicationRecordId: sampleReviewCommand.sampleApplicationRecordId,
+              creatorRelationshipId: sampleReviewCommand.creatorRelationshipId,
+              projectionRevision: sampleReviewCommand.projectionRevision,
+              reviewDispositionRevision: sampleReviewCommand.reviewDispositionRevision,
+            },
+          },
+        });
+      } else {
+        const rejecting = sampleReviewCommand.kind !== "APPROVE";
+        await reviewAffiliateSampleApplication({
+          variables: {
+            input: {
+              sampleApplicationRecordId: sampleReviewCommand.sampleApplicationRecordId,
+              creatorRelationshipId: sampleReviewCommand.creatorRelationshipId,
+              projectionRevision: sampleReviewCommand.projectionRevision,
+              reviewDispositionRevision: sampleReviewCommand.reviewDispositionRevision,
+              decision: rejecting
+                ? GQL.AffiliateSampleReviewDecision.Reject
+                : GQL.AffiliateSampleReviewDecision.Approve,
+              executionMode: sampleReviewCommand.kind === "SOFT_REJECT"
+                ? GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
+                : GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
+              rejectReason: rejecting ? sampleRejectReason : null,
+              rejectReasonExplanation:
+                rejecting && sampleRejectReason === GQL.AffiliateSampleRejectReason.Other
+                  ? sampleRejectExplanation.trim()
+                  : null,
+            },
+          },
+        });
+      }
+      setSampleReviewCommand(null);
+      setSampleRejectExplanation("");
+      await Promise.all([
+        sampleQuery.refetch(),
+        proposalQuery.refetch(),
+        refetchRelationshipDetail(),
+      ]);
+      onWorkbenchEntityChanged?.();
+      showToast(t("ecommerce.affiliateWorkspace.workbench.sampleReviewSaved"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
   const {
@@ -10993,15 +10929,76 @@ export function CreatorRelationshipDetailModal({
                   {sampleQuery.loading && relationshipSampleApplications.length === 0 ? (
                     <AffiliateLoadingState />
                   ) : null}
-                  {relationshipSampleApplications.map((sample) => (
-                    <SampleApplicationSummaryCard
-                      key={sample.id}
-                      sampleApplication={sample}
-                      productSummary={productSummaryFor(sample.shopId, sample.productId)}
-                      shopId={sample.shopId}
-                      variant="compact"
-                    />
-                  ))}
+                  {relationshipSampleApplications.map((sample) => {
+                    const canPlatformReview =
+                      sample.sampleWorkStatus === GQL.SampleWorkStatus.RequestPendingReview;
+                    const commandBase = {
+                      sampleApplicationRecordId: sample.id,
+                      creatorRelationshipId: sample.creatorRelationshipId,
+                      projectionRevision: sample.projectionRevision,
+                      reviewDispositionRevision: sample.reviewDispositionRevision,
+                    };
+                    return (
+                      <div className="affiliate-workbench-sample-review-card" key={sample.id}>
+                        <SampleApplicationSummaryCard
+                          sampleApplication={sample}
+                          productSummary={productSummaryFor(sample.shopId, sample.productId)}
+                          shopId={sample.shopId}
+                          variant="compact"
+                        />
+                        <div className="affiliate-workbench-sample-review-actions">
+                          {sample.reviewDisposition ===
+                          GQL.AffiliateSampleReviewDisposition.SoftRejected ? (
+                            canPlatformReview ? (
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={() =>
+                                  setSampleReviewCommand({ ...commandBase, kind: "REOPEN" })
+                                }
+                              >
+                                {t("ecommerce.affiliateWorkspace.workbench.reopen")}
+                              </button>
+                            ) : null
+                          ) : (
+                            <>
+                              <button
+                                className="btn btn-primary"
+                                type="button"
+                                disabled={!canPlatformReview}
+                                onClick={() => setSampleReviewCommand({ ...commandBase, kind: "APPROVE" })}
+                              >
+                                {t("ecommerce.affiliateWorkspace.workbench.approveSample")}
+                              </button>
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                disabled={!canPlatformReview}
+                                onClick={() => setSampleReviewCommand({ ...commandBase, kind: "PLATFORM_REJECT" })}
+                              >
+                                {t("ecommerce.affiliateWorkspace.workbench.platformReject")}
+                              </button>
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                disabled={!canPlatformReview}
+                                onClick={() => setSampleReviewCommand({ ...commandBase, kind: "SOFT_REJECT" })}
+                              >
+                                {t("ecommerce.affiliateWorkspace.workbench.softReject")}
+                              </button>
+                            </>
+                          )}
+                          {sample.sampleWorkStatus ===
+                            GQL.SampleWorkStatus.PlatformStatusUnknown &&
+                          sample.reviewDisposition === GQL.AffiliateSampleReviewDisposition.Open ? (
+                            <span className="affiliate-workbench-sample-sync-warning">
+                              {t("ecommerce.affiliateWorkspace.workbench.sampleSyncUnknown")}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                   {!sampleQuery.loading &&
                   !sampleQuery.error &&
                   relationshipSampleApplications.length === 0 ? (
@@ -11288,6 +11285,70 @@ export function CreatorRelationshipDetailModal({
           </section>
         </div>
       </AffiliateDetailModal>
+      <Modal
+        isOpen={Boolean(sampleReviewCommand)}
+        onClose={() => setSampleReviewCommand(null)}
+        title={t(`ecommerce.affiliateWorkspace.workbench.reviewTitles.${sampleReviewCommand?.kind ?? "APPROVE"}`)}
+        maxWidth={520}
+        portal
+      >
+        <div className="affiliate-workbench-review-dialog">
+          <p>
+            {t(`ecommerce.affiliateWorkspace.workbench.reviewDescriptions.${sampleReviewCommand?.kind ?? "APPROVE"}`)}
+          </p>
+          {sampleReviewCommand?.kind === "PLATFORM_REJECT" ||
+          sampleReviewCommand?.kind === "SOFT_REJECT" ? (
+            <>
+              <label className="affiliate-filter-field">
+                <span>{t("ecommerce.affiliateWorkspace.workbench.rejectReason")}</span>
+                <Select
+                  value={sampleRejectReason}
+                  onChange={(value) =>
+                    setSampleRejectReason(value as GQL.AffiliateSampleRejectReason)
+                  }
+                  options={Object.values(GQL.AffiliateSampleRejectReason).map((reason) => ({
+                    value: reason,
+                    label: t(`ecommerce.affiliateWorkspace.rejectReasons.${reason}`),
+                  }))}
+                />
+              </label>
+              {sampleRejectReason === GQL.AffiliateSampleRejectReason.Other ? (
+                <textarea
+                  className="form-input"
+                  value={sampleRejectExplanation}
+                  onChange={(event) => setSampleRejectExplanation(event.target.value)}
+                  placeholder={t("ecommerce.affiliateWorkspace.workbench.rejectExplanation")}
+                  rows={3}
+                />
+              ) : null}
+            </>
+          ) : null}
+          <div className="modal-actions">
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => setSampleReviewCommand(null)}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              className={`btn ${sampleReviewCommand?.kind === "PLATFORM_REJECT" ? "btn-danger" : "btn-primary"}`}
+              type="button"
+              disabled={
+                reviewSampleState.loading ||
+                reopenSampleState.loading ||
+                (sampleRejectReason === GQL.AffiliateSampleRejectReason.Other &&
+                  !sampleRejectExplanation.trim())
+              }
+              onClick={() => void executeSampleReviewCommand()}
+            >
+              {reviewSampleState.loading || reopenSampleState.loading
+                ? t("common.loading")
+                : t("common.confirm")}
+            </button>
+          </div>
+        </div>
+      </Modal>
       <ConfirmDialog
         isOpen={Boolean(pendingOwnershipConfirmation)}
         onCancel={() => setPendingOwnershipConfirmation(null)}

@@ -3067,6 +3067,8 @@ export const AffiliateLifecycleEventType = {
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
   SampleApplicationFirstObserved: 'SAMPLE_APPLICATION_FIRST_OBSERVED',
   SampleApplicationRejected: 'SAMPLE_APPLICATION_REJECTED',
+  SampleApplicationReviewReopened: 'SAMPLE_APPLICATION_REVIEW_REOPENED',
+  SampleApplicationSoftRejected: 'SAMPLE_APPLICATION_SOFT_REJECTED',
   SampleApplicationStateObserved: 'SAMPLE_APPLICATION_STATE_OBSERVED',
   SampleApplicationSubmitted: 'SAMPLE_APPLICATION_SUBMITTED',
   SampleApplicationTerminalStateFirstObserved: 'SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED',
@@ -3201,6 +3203,7 @@ export interface AffiliateMessageDeliveryPart {
   providerSubmittedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   sequence: Scalars['Int']['output'];
   sha256?: Maybe<Scalars['String']['output']>;
+  shopId?: Maybe<Scalars['ID']['output']>;
   sizeBytes?: Maybe<Scalars['Int']['output']>;
   status: AffiliateDeliveryPartStatus;
   targetCollaborationId?: Maybe<Scalars['String']['output']>;
@@ -3220,6 +3223,8 @@ export interface AffiliateMessagePart {
   productId?: Maybe<Scalars['String']['output']>;
   sampleApplicationId?: Maybe<Scalars['ID']['output']>;
   sha256?: Maybe<Scalars['String']['output']>;
+  /** Backend-resolved shop provenance for a platform-native card. */
+  shopId?: Maybe<Scalars['ID']['output']>;
   sizeBytes?: Maybe<Scalars['Int']['output']>;
   targetCollaborationId?: Maybe<Scalars['ID']['output']>;
   text?: Maybe<Scalars['String']['output']>;
@@ -4165,6 +4170,18 @@ export const AffiliateSampleReviewDecision = {
 } as const;
 
 export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision[keyof typeof AffiliateSampleReviewDecision];
+export const AffiliateSampleReviewDisposition = {
+  Open: 'OPEN',
+  SoftRejected: 'SOFT_REJECTED'
+} as const;
+
+export type AffiliateSampleReviewDisposition = typeof AffiliateSampleReviewDisposition[keyof typeof AffiliateSampleReviewDisposition];
+export const AffiliateSampleReviewExecutionMode = {
+  AllowPlatformExpiry: 'ALLOW_PLATFORM_EXPIRY',
+  PlatformAction: 'PLATFORM_ACTION'
+} as const;
+
+export type AffiliateSampleReviewExecutionMode = typeof AffiliateSampleReviewExecutionMode[keyof typeof AffiliateSampleReviewExecutionMode];
 /** Why a Sample Application reached the terminal state that opened seller follow-up work. Frozen by the Backend from the transition event; consumers read it verbatim and never re-derive it. UNDETERMINED means the platform did not say, and no cause may be presented to the Creator. */
 export const AffiliateSampleTerminalCause = {
   ApprovalWindowExpired: 'APPROVAL_WINDOW_EXPIRED',
@@ -4491,6 +4508,63 @@ export interface AffiliateWorkProductContext {
   /** Where this product context was resolved from, e.g. collaboration, sample application, or offer. */
   source?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateWorkbenchPendingConversationPage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<AffiliateWorkbenchPendingConversationRow>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateWorkbenchPendingConversationPageInput {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface AffiliateWorkbenchPendingConversationRow {
+  businessDeveloperName?: Maybe<Scalars['String']['output']>;
+  channel: AffiliateMessageChannel;
+  creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
+  creatorName?: Maybe<Scalars['String']['output']>;
+  creatorRelationshipId: Scalars['ID']['output'];
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  humanOnly: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  lastPendingAt: Scalars['DateTimeISO']['output'];
+  proposal?: Maybe<ActionProposal>;
+  protected: Scalars['Boolean']['output'];
+  replyToLifecycleEventId: Scalars['ID']['output'];
+  shopName?: Maybe<Scalars['String']['output']>;
+  sourceLabel: Scalars['String']['output'];
+  sourceShopId?: Maybe<Scalars['ID']['output']>;
+}
+
+export interface AffiliateWorkbenchSamplePage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<AffiliateWorkbenchSampleRow>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateWorkbenchSamplePageInput {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface AffiliateWorkbenchSampleRow {
+  businessDeveloperName?: Maybe<Scalars['String']['output']>;
+  creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
+  creatorName?: Maybe<Scalars['String']['output']>;
+  creatorRelationshipId: Scalars['ID']['output'];
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  humanOnly: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  productTitle?: Maybe<Scalars['String']['output']>;
+  proposal?: Maybe<ActionProposal>;
+  protected: Scalars['Boolean']['output'];
+  sampleApplication: SampleApplicationRecord;
+  shopName?: Maybe<Scalars['String']['output']>;
 }
 
 export interface AffiliateWorkspaceInput {
@@ -9700,6 +9774,8 @@ export interface Mutation {
   /** Rename a seller-scoped manual tag, or change whether it is sensitive. */
   renameCreatorManualTag: CreatorManualTag;
   renameExpertConversation: ExpertConversation;
+  /** Reopen a locally Soft Rejected Sample Application if TikTok still allows review. */
+  reopenSoftRejectedAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
   reportAffiliateCampaignSearchPlanGenerationFailure: Scalars['Boolean']['output'];
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars['Boolean']['output'];
@@ -9715,6 +9791,8 @@ export interface Mutation {
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
   retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
   retryAffiliateCampaignSearchPlanGeneration: Scalars['Boolean']['output'];
+  /** Review one Affiliate Sample Application using platform Approve/Reject or local Soft Reject. */
+  reviewAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
   /** Revoke an Outlook/Microsoft Graph email account binding. */
@@ -10489,6 +10567,11 @@ export interface MutationRenameExpertConversationArgs {
 }
 
 
+export interface MutationReopenSoftRejectedAffiliateSampleApplicationArgs {
+  input: ReopenSoftRejectedAffiliateSampleApplicationInput;
+}
+
+
 export interface MutationReportAffiliateCampaignSearchPlanGenerationFailureArgs {
   input: ReportAffiliateCampaignSearchPlanGenerationFailureInput;
 }
@@ -10535,6 +10618,11 @@ export interface MutationRetryAffiliateAgentFailureArgs {
 
 export interface MutationRetryAffiliateCampaignSearchPlanGenerationArgs {
   campaignId: Scalars['ID']['input'];
+}
+
+
+export interface MutationReviewAffiliateSampleApplicationArgs {
+  input: ReviewAffiliateSampleApplicationInput;
 }
 
 
@@ -11482,6 +11570,10 @@ export interface Query {
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
+  /** Read pending Affiliate channel facts as one merged TikTok, WhatsApp, and Email page. */
+  affiliateWorkbenchPendingConversationPage: AffiliateWorkbenchPendingConversationPage;
+  /** Read one stable page of seller-reviewable Affiliate Sample Applications across authorized shops. */
+  affiliateWorkbenchSamplePage: AffiliateWorkbenchSamplePage;
   /** Legacy Panel query for aggregated Affiliate management state. It is not exposed as an Agent tool. */
   affiliateWorkspace: AffiliateWorkspacePayload;
   /** Read account- and shop-scoped billing entitlement decisions for the current user. */
@@ -11993,6 +12085,16 @@ export interface QueryAffiliateWhatsAppAccountsArgs {
 
 export interface QueryAffiliateWorkItemsArgs {
   input?: InputMaybe<ReadAffiliateWorkItemsInput>;
+}
+
+
+export interface QueryAffiliateWorkbenchPendingConversationPageArgs {
+  input: AffiliateWorkbenchPendingConversationPageInput;
+}
+
+
+export interface QueryAffiliateWorkbenchSamplePageArgs {
+  input: AffiliateWorkbenchSamplePageInput;
 }
 
 
@@ -12860,6 +12962,13 @@ export interface RenameCreatorManualTagInput {
   tagId: Scalars['ID']['input'];
 }
 
+export interface ReopenSoftRejectedAffiliateSampleApplicationInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  projectionRevision: Scalars['Int']['input'];
+  reviewDispositionRevision: Scalars['Int']['input'];
+  sampleApplicationRecordId: Scalars['ID']['input'];
+}
+
 export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
   errorCode: Scalars['String']['input'];
   generation: Scalars['Int']['input'];
@@ -12931,9 +13040,9 @@ export interface ResolveAffiliateWorkItemMessageIntentInput {
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   /** Required when starting a new email thread. Ignored for an exact reply to an existing email message. */
   emailSubject?: InputMaybe<Scalars['String']['input']>;
-  /** One to ten ordered creator-facing message parts. Use only text, staged draftAssetId attachments, or typed platform-native cards. Tag every part that references a concrete entity: sampleApplicationId for a Sample, productId for a product, targetCollaborationId for a Target Collaboration. */
+  /** One to ten ordered creator-facing message parts. Use only text, staged draftAssetId attachments, or typed platform-native cards. For PLATFORM_CHAT, tag each platform-native card with exactly its local entity id: sampleApplicationId for a Sample, productId for a product, or targetCollaborationId for a Target Collaboration. Cards are not supported on WHATSAPP or EMAIL. */
   parts: Array<AffiliateOutboundMessagePartInput>;
-  /** Destination shop for PLATFORM_CHAT: the shop whose seat sends this message. Omit when the working agenda involves exactly one shop; required when it involves several — pick one of the involved shops. Must be omitted for WHATSAPP and EMAIL: a direct message carries no sending shop. */
+  /** Destination shop for PLATFORM_CHAT: the shop whose seat sends this message. Omit when the working agenda involves exactly one shop; required when it involves several — pick one of the involved shops. Every platform-native card in this action must resolve to this same shop. Must be omitted for WHATSAPP and EMAIL: a direct message carries no sending shop. */
   shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
@@ -12944,6 +13053,17 @@ export interface ResolveAffiliateWorkItemPayload {
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
   proposal?: Maybe<ActionProposal>;
   stale: Scalars['Boolean']['output'];
+}
+
+export interface ReviewAffiliateSampleApplicationInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
+  projectionRevision: Scalars['Int']['input'];
+  rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
+  rejectReasonExplanation?: InputMaybe<Scalars['String']['input']>;
+  reviewDispositionRevision: Scalars['Int']['input'];
+  sampleApplicationRecordId: Scalars['ID']['input'];
 }
 
 /** Review optimization settings per shop */
@@ -13012,6 +13132,12 @@ export interface SampleApplicationRecord {
   latestObservedContentViewCount?: Maybe<Scalars['Int']['output']>;
   /** Provider publication time of the latest known affiliate work; a non-null value means the work is already published, not merely planned or detected locally. */
   latestPublishedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  merchantReviewActorType?: Maybe<AffiliateLifecycleActorType>;
+  merchantReviewDecidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  merchantReviewDecision?: Maybe<AffiliateSampleReviewDecision>;
+  merchantReviewExecutionMode?: Maybe<AffiliateSampleReviewExecutionMode>;
+  merchantReviewRejectReason?: Maybe<AffiliateSampleRejectReason>;
+  merchantReviewRejectReasonExplanation?: Maybe<Scalars['String']['output']>;
   /** Legacy storage name for the number of Provider-confirmed published affiliate works. Prefer publishedContentCount in Agent-facing reads. */
   observedContentCount: Scalars['Int']['output'];
   order?: Maybe<SampleApplicationOrderRecord>;
@@ -13026,6 +13152,8 @@ export interface SampleApplicationRecord {
   providerEventAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Number of TikTok Shop-confirmed affiliate works already published for this Sample Application. */
   publishedContentCount: Scalars['Int']['output'];
+  reviewDisposition: AffiliateSampleReviewDisposition;
+  reviewDispositionRevision: Scalars['Int']['output'];
   /** RivonClaw-owned sample lifecycle state optimized for agent and operator understanding. */
   sampleWorkStatus: SampleWorkStatus;
   shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -13089,6 +13217,8 @@ export interface SendAffiliateCreatorMessageInput {
   idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   parts: Array<AffiliateOutboundMessagePartInput>;
   preferredChannel?: InputMaybe<AffiliateMessageChannel>;
+  /** Exact pending inbound lifecycle event acknowledged by this human reply. */
+  replyToLifecycleEventId?: InputMaybe<Scalars['ID']['input']>;
   shopId: Scalars['ID']['input'];
 }
 

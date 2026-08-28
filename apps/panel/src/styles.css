@@ -23701,6 +23701,191 @@ html[lang="zh"] .acct-tool-chips {
   min-height: 180px;
 }
 
+.affiliate-workbench-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--surface-secondary);
+}
+
+.affiliate-workbench-tab {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.affiliate-workbench-tab:hover,
+.affiliate-workbench-tab-active {
+  color: var(--text-primary);
+  background: var(--surface-primary);
+  box-shadow: 0 1px 5px color-mix(in srgb, var(--text-primary) 9%, transparent);
+}
+
+.affiliate-workbench-entity-section {
+  display: grid;
+  gap: 14px;
+}
+
+.affiliate-workbench-entity-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.affiliate-workbench-entity-toolbar-end {
+  justify-content: flex-end;
+}
+
+.affiliate-workbench-entity-list {
+  display: grid;
+  gap: 8px;
+}
+
+.affiliate-workbench-entity-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.9fr) minmax(220px, 1.25fr) minmax(170px, auto) 20px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 15px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.affiliate-workbench-entity-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-color);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.affiliate-workbench-entity-identity,
+.affiliate-workbench-entity-identity > span:last-child,
+.affiliate-workbench-entity-main,
+.affiliate-workbench-entity-badges {
+  min-width: 0;
+}
+
+.affiliate-workbench-entity-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.affiliate-workbench-entity-identity > span:last-child,
+.affiliate-workbench-entity-main {
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-workbench-entity-identity strong,
+.affiliate-workbench-entity-main strong,
+.affiliate-workbench-entity-identity small,
+.affiliate-workbench-entity-main span,
+.affiliate-workbench-entity-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-workbench-entity-identity small,
+.affiliate-workbench-entity-main span,
+.affiliate-workbench-entity-main small {
+  color: var(--text-secondary);
+}
+
+.affiliate-workbench-entity-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.affiliate-workbench-entity-avatar-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 13%, var(--surface-secondary));
+  font-weight: 750;
+}
+
+.affiliate-workbench-entity-badges {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.affiliate-workbench-badge {
+  max-width: 160px;
+  padding: 4px 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-workbench-badge-protected { color: var(--warning-color); }
+.affiliate-workbench-badge-human { color: var(--danger-color); }
+.affiliate-workbench-badge-proposal { color: var(--accent-color); }
+.affiliate-workbench-badge-soft-rejected { color: var(--text-tertiary); }
+.affiliate-workbench-badge-sync { color: var(--warning-color); }
+.affiliate-workbench-row-chevron { color: var(--text-tertiary); font-size: 24px; }
+.affiliate-workbench-load-more { justify-self: center; }
+
+.affiliate-workbench-sample-review-card {
+  display: grid;
+  gap: 8px;
+}
+
+.affiliate-workbench-sample-review-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.affiliate-workbench-sample-sync-warning {
+  color: var(--warning-color);
+  font-size: 13px;
+}
+
+.affiliate-workbench-review-dialog {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .affiliate-workbench-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .affiliate-workbench-entity-row { grid-template-columns: 1fr 20px; }
+  .affiliate-workbench-entity-main,
+  .affiliate-workbench-entity-badges { grid-column: 1; }
+  .affiliate-workbench-entity-badges { justify-content: flex-start; }
+  .affiliate-workbench-row-chevron { grid-column: 2; grid-row: 1 / span 3; }
+}
+
 .affiliate-agent-work-table-shell {
   width: 100%;
   overflow-x: auto;
