@@ -9,6 +9,7 @@ import {
   START_MICROSOFT_EMAIL_OAUTH_MUTATION,
 } from "../../../api/shops-queries.js";
 import { Select } from "../../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { useToast } from "../../../components/Toast.js";
 import { panelEventBus } from "../../../lib/event-bus.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
@@ -278,11 +279,11 @@ export function AffiliateEmailAccountPanel({
 
       {showAccountList && <div className="affiliate-email-list">
         {visibleAccounts.length === 0 ? (
-          <div className="affiliate-email-empty">
-            {loading
-              ? t("common.loading", { defaultValue: "Loading..." })
-              : t("ecommerce.affiliateWorkspace.email.empty", { defaultValue: "No Outlook mailbox connected yet." })}
-          </div>
+          loading
+            ? <LoadingSpinner variant="inline" />
+            : <div className="affiliate-email-empty">
+                {t("ecommerce.affiliateWorkspace.email.empty", { defaultValue: "No Outlook mailbox connected yet." })}
+              </div>
         ) : (
           visibleAccounts.map((account) => (
             <div className="affiliate-whatsapp-account" key={account.id}>

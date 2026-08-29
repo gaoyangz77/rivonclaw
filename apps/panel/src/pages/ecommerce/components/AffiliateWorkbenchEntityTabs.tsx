@@ -8,6 +8,7 @@ import {
   REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
 } from "../../../api/shops-queries.js";
 import { Select } from "../../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { useToast } from "../../../components/Toast.js";
 import {
   formatLocalizedMonthDay,
@@ -45,6 +46,54 @@ interface Props {
   onSelectBusinessDeveloper: (businessDeveloperId: string) => void;
   refreshRevision: number;
   onOpen: (target: AffiliateWorkbenchEntityOpenTarget) => void;
+}
+
+/**
+ * Rows accumulated for ONE exact filter set.
+ *
+ * The buffer carries the filter key it was fetched for so a filter change never
+ * needs a reset effect: a buffer whose key no longer matches the active filters
+ * is simply not used for render. Clearing rows from an effect instead raced the
+ * ingest effect on mount (Apollo can serve the cache synchronously, and the
+ * reset then wiped those rows while `page` kept its identity, so the ingest
+ * effect never re-ran and the list stayed permanently empty).
+ * Mirrors `affiliateProposalPageQueryKey` / `proposalPageBuffer` in
+ * `AffiliateManagementPage.tsx`.
+ */
+interface WorkbenchPageBuffer<Row> {
+  filterKey: string;
+  /** `true` once a request for `filterKey` completed and wrote this buffer. */
+  loaded: boolean;
+  items: Row[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+interface WorkbenchPageResult<Row> {
+  items: Row[];
+  nextCursor?: string | null;
+  hasMore: boolean;
+}
+
+function workbenchFilterKey(parts: Array<string | null | undefined>): string {
+  return JSON.stringify(parts.map((part) => part ?? ""));
+}
+
+function emptyWorkbenchPageBuffer<Row>(filterKey: string): WorkbenchPageBuffer<Row> {
+  return { filterKey, loaded: false, items: [], nextCursor: null, hasMore: false };
+}
+
+function replaceWorkbenchPageBuffer<Row>(
+  filterKey: string,
+  page: WorkbenchPageResult<Row>,
+): WorkbenchPageBuffer<Row> {
+  return {
+    filterKey,
+    loaded: true,
+    items: page.items,
+    nextCursor: page.nextCursor ?? null,
+    hasMore: page.hasMore,
+  };
 }
 
 interface SamplePageData {
@@ -104,9 +153,17 @@ function AffiliateWorkbenchSampleList({
   const [disposition, setDisposition] = useState<GQL.AffiliateSampleReviewDisposition>(
     GQL.AffiliateSampleReviewDisposition.Open,
   );
-  const [items, setItems] = useState<GQL.AffiliateWorkbenchSampleRow[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const filterKey = workbenchFilterKey([disposition, selectedShopId, selectedBusinessDeveloperId]);
+  const [buffer, setBuffer] = useState<WorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>>(() =>
+    emptyWorkbenchPageBuffer(filterKey),
+  );
+  const activeBuffer =
+    buffer.filterKey === filterKey
+      ? buffer
+      : emptyWorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>(filterKey);
+  const items = activeBuffer.items;
+  const nextCursor = activeBuffer.nextCursor;
+  const hasMore = activeBuffer.hasMore;
   const [reopeningRowId, setReopeningRowId] = useState<string | null>(null);
   const { data, loading, error, fetchMore, refetch } = useQuery<
     SamplePageData,
@@ -133,16 +190,8 @@ function AffiliateWorkbenchSampleList({
 
   useEffect(() => {
     if (!page) return;
-    setItems(page.items);
-    setNextCursor(page.nextCursor ?? null);
-    setHasMore(page.hasMore);
-  }, [page]);
-
-  useEffect(() => {
-    setItems([]);
-    setNextCursor(null);
-    setHasMore(false);
-  }, [disposition, selectedShopId, selectedBusinessDeveloperId]);
+    setBuffer(replaceWorkbenchPageBuffer(filterKey, page));
+  }, [filterKey, page]);
 
   useEffect(() => {
     if (refreshRevision > 0) void refetch();
@@ -150,6 +199,7 @@ function AffiliateWorkbenchSampleList({
 
   const loadMore = useCallback(async () => {
     if (!hasMore || !nextCursor) return;
+    const requestFilterKey = filterKey;
     const result = await fetchMore({
       variables: {
         input: {
@@ -163,12 +213,26 @@ function AffiliateWorkbenchSampleList({
       updateQuery: (current) => current,
     });
     const next = result.data?.affiliateWorkbenchSamplePage;
-    if (next) {
-      setItems((current) => appendUniqueRows(current, next.items));
-      setNextCursor(next.nextCursor ?? null);
-      setHasMore(next.hasMore);
-    }
-  }, [disposition, fetchMore, hasMore, nextCursor, selectedBusinessDeveloperId, selectedShopId]);
+    if (!next) return;
+    setBuffer((current) => {
+      if (current.filterKey !== requestFilterKey) return current;
+      return {
+        filterKey: requestFilterKey,
+        loaded: true,
+        items: appendUniqueRows(current.items, next.items),
+        nextCursor: next.nextCursor ?? null,
+        hasMore: next.hasMore,
+      };
+    });
+  }, [
+    disposition,
+    fetchMore,
+    filterKey,
+    hasMore,
+    nextCursor,
+    selectedBusinessDeveloperId,
+    selectedShopId,
+  ]);
 
   async function reopenRow(row: GQL.AffiliateWorkbenchSampleRow): Promise<void> {
     setReopeningRowId(row.id);
@@ -201,6 +265,12 @@ function AffiliateWorkbenchSampleList({
   }
 
   const nowMs = Date.now();
+  const viewState = workbenchListViewState({
+    loading,
+    hasError: Boolean(error),
+    rowCount: items.length,
+    completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
+  });
   const tableVariant = softRejectedView
     ? "affiliate-workbench-table-samples-rejected"
     : "affiliate-workbench-table-samples-open";
@@ -267,12 +337,18 @@ function AffiliateWorkbenchSampleList({
           {t("common.refresh")}
         </button>
       </div>
-      {loading && items.length === 0 ? (
-        <WorkbenchLoading />
-      ) : error && items.length === 0 ? (
-        <WorkbenchError message={error.message} onRetry={() => void refetch()} />
-      ) : items.length === 0 ? (
-        <WorkbenchEmpty>{t("ecommerce.affiliateWorkspace.workbench.noSamples")}</WorkbenchEmpty>
+      {viewState === "loading" ? (
+        <LoadingSpinner variant="page" />
+      ) : viewState === "error" ? (
+        <WorkbenchError message={error?.message ?? ""} onRetry={() => void refetch()} />
+      ) : viewState === "empty" ? (
+        <WorkbenchEmpty>
+          {t(
+            softRejectedView
+              ? "ecommerce.affiliateWorkspace.workbench.noSoftRejectedSamples"
+              : "ecommerce.affiliateWorkspace.workbench.noSamples",
+          )}
+        </WorkbenchEmpty>
       ) : (
         <div className="affiliate-workbench-table-shell">
           <div className={`affiliate-workbench-table ${tableVariant}`}>
@@ -422,11 +498,19 @@ function AffiliateWorkbenchMessageList({
   const { t } = useTranslation();
   const [channel, setChannel] = useState<GQL.AffiliateMessageChannel | "">("");
   const [messageShopId, setMessageShopId] = useState("");
-  const [items, setItems] = useState<GQL.AffiliateWorkbenchPendingConversationRow[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
   const queryShopId = platformChannelActive && messageShopId ? messageShopId : null;
+  const filterKey = workbenchFilterKey([channel, queryShopId, selectedBusinessDeveloperId]);
+  const [buffer, setBuffer] = useState<
+    WorkbenchPageBuffer<GQL.AffiliateWorkbenchPendingConversationRow>
+  >(() => emptyWorkbenchPageBuffer(filterKey));
+  const activeBuffer =
+    buffer.filterKey === filterKey
+      ? buffer
+      : emptyWorkbenchPageBuffer<GQL.AffiliateWorkbenchPendingConversationRow>(filterKey);
+  const items = activeBuffer.items;
+  const nextCursor = activeBuffer.nextCursor;
+  const hasMore = activeBuffer.hasMore;
   const { data, loading, error, fetchMore, refetch } = useQuery<
     ConversationPageData,
     { input: GQL.AffiliateWorkbenchPendingConversationPageInput }
@@ -447,16 +531,8 @@ function AffiliateWorkbenchMessageList({
 
   useEffect(() => {
     if (!page) return;
-    setItems(page.items);
-    setNextCursor(page.nextCursor ?? null);
-    setHasMore(page.hasMore);
-  }, [page]);
-
-  useEffect(() => {
-    setItems([]);
-    setNextCursor(null);
-    setHasMore(false);
-  }, [channel, queryShopId, selectedBusinessDeveloperId]);
+    setBuffer(replaceWorkbenchPageBuffer(filterKey, page));
+  }, [filterKey, page]);
 
   useEffect(() => {
     if (refreshRevision > 0) void refetch();
@@ -469,6 +545,7 @@ function AffiliateWorkbenchMessageList({
 
   const loadMore = useCallback(async () => {
     if (!hasMore || !nextCursor) return;
+    const requestFilterKey = filterKey;
     const result = await fetchMore({
       variables: {
         input: {
@@ -482,14 +559,34 @@ function AffiliateWorkbenchMessageList({
       updateQuery: (current) => current,
     });
     const next = result.data?.affiliateWorkbenchPendingConversationPage;
-    if (next) {
-      setItems((current) => appendUniqueRows(current, next.items));
-      setNextCursor(next.nextCursor ?? null);
-      setHasMore(next.hasMore);
-    }
-  }, [channel, fetchMore, hasMore, nextCursor, queryShopId, selectedBusinessDeveloperId]);
+    if (!next) return;
+    setBuffer((current) => {
+      if (current.filterKey !== requestFilterKey) return current;
+      return {
+        filterKey: requestFilterKey,
+        loaded: true,
+        items: appendUniqueRows(current.items, next.items),
+        nextCursor: next.nextCursor ?? null,
+        hasMore: next.hasMore,
+      };
+    });
+  }, [
+    channel,
+    fetchMore,
+    filterKey,
+    hasMore,
+    nextCursor,
+    queryShopId,
+    selectedBusinessDeveloperId,
+  ]);
 
   const nowMs = Date.now();
+  const viewState = workbenchListViewState({
+    loading,
+    hasError: Boolean(error),
+    rowCount: items.length,
+    completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
+  });
   const channelChips: Array<{
     value: GQL.AffiliateMessageChannel | "";
     label: string;
@@ -569,11 +666,11 @@ function AffiliateWorkbenchMessageList({
           {t("common.refresh")}
         </button>
       </div>
-      {loading && items.length === 0 ? (
-        <WorkbenchLoading />
-      ) : error && items.length === 0 ? (
-        <WorkbenchError message={error.message} onRetry={() => void refetch()} />
-      ) : items.length === 0 ? (
+      {viewState === "loading" ? (
+        <LoadingSpinner variant="page" />
+      ) : viewState === "error" ? (
+        <WorkbenchError message={error?.message ?? ""} onRetry={() => void refetch()} />
+      ) : viewState === "empty" ? (
         <WorkbenchEmpty>{t("ecommerce.affiliateWorkspace.workbench.noMessages")}</WorkbenchEmpty>
       ) : (
         <div className="affiliate-workbench-table-shell">
@@ -906,9 +1003,27 @@ function StatusBadges(props: {
   );
 }
 
-function WorkbenchLoading() {
-  const { t } = useTranslation();
-  return <div className="affiliate-proposal-empty">{t("common.loading")}</div>;
+type WorkbenchListViewState = "loading" | "error" | "empty" | "ready";
+
+/**
+ * Branch order is load-bearing:
+ * - rows already on screen stay visible while a refetch is in flight;
+ * - an in-flight (or never-completed) request with no rows always shows the
+ *   spinner, so a pending request never reads as "no data";
+ * - the empty state renders only once a request actually completed with zero rows.
+ */
+function workbenchListViewState(input: {
+  loading: boolean;
+  hasError: boolean;
+  rowCount: number;
+  /** Row count of the latest completed request, or `null` when none completed yet. */
+  completedRowCount: number | null;
+}): WorkbenchListViewState {
+  if (input.rowCount > 0) return "ready";
+  if (input.loading) return "loading";
+  if (input.hasError) return "error";
+  if (input.completedRowCount === 0) return "empty";
+  return "loading";
 }
 
 function WorkbenchEmpty({ children }: { children: string }) {

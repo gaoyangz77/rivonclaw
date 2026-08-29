@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
+import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { Modal } from "../../../components/modals/Modal.js";
 import { useToast } from "../../../components/Toast.js";
 import {
@@ -379,7 +380,7 @@ export function AffiliateCreatorTagCatalogPanel() {
           {t("ecommerce.affiliateTeam.tagCatalog.deleteLead", { name: deleteTarget?.name ?? "" })}
         </p>
         {usageLoading || usage === null ? (
-          <p className="affiliate-tag-catalog-delete-loading">{t("common.loading")}</p>
+          <LoadingSpinner variant="inline" />
         ) : (
           <ul className="affiliate-tag-catalog-delete-consequences">
             {manualTagDeleteConsequences(usage).map((line) => (

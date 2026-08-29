@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../../components/modals/Modal.js";
 import { useToast } from "../../../components/Toast.js";
@@ -377,7 +378,7 @@ export function AffiliateApprovalPolicyPanel() {
 
       {policiesLoading && policies.length === 0 ? (
         <div className="shop-info-card">
-          <p className="form-hint">{t("common.loading")}</p>
+          <LoadingSpinner variant="inline" />
         </div>
       ) : (
         <div className="affiliate-policy-control-surface">

@@ -15,6 +15,7 @@ import {
   UserPlusIcon,
 } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
@@ -1169,7 +1170,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         />
       </section>
 
-      {campaignPortfolio.length === 0 && !campaignPortfolioQuery.loading ? (
+      {campaignPortfolio.length === 0 && campaignPortfolioQuery.loading ? (
+        <section
+          className="affiliate-campaign-directory"
+          data-tutorial-id="affiliate-campaign-directory"
+        >
+          <LoadingSpinner variant="page" />
+        </section>
+      ) : campaignPortfolio.length === 0 ? (
         <section
           className="affiliate-campaign-empty"
           data-tutorial-id="affiliate-campaign-directory"
@@ -2008,9 +2016,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </tbody>
                       </table>
                       {creatorStatesViewState === "loading" && (
-                        <div className="affiliate-campaign-table-empty">
-                          {t("ecommerce.affiliateCampaign.loadingCreatorStates")}
-                        </div>
+                        <LoadingSpinner
+                          variant="inline"
+                          label={t("ecommerce.affiliateCampaign.loadingCreatorStates")}
+                        />
                       )}
                       {creatorStatesViewState === "error" && (
                         <div
