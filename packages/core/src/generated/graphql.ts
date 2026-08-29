@@ -701,13 +701,6 @@ export interface AffiliateActionProposalPredictionSnapshot {
   subject: AffiliateExpectedSalesSubjectRef;
 }
 
-/** Result mode for an affiliate action request after backend policy evaluation. */
-export const AffiliateActionRequestMode = {
-  Executed: 'EXECUTED',
-  ProposalCreated: 'PROPOSAL_CREATED'
-} as const;
-
-export type AffiliateActionRequestMode = typeof AffiliateActionRequestMode[keyof typeof AffiliateActionRequestMode];
 /** Who is responsible for handling an agenda item. Uniform per Relationship: BUSINESS_DEVELOPER when the Relationship has an assigned business developer, SHOP otherwise (the shop owner is the fallback handler). Orthogonal to the item's shopId anchor, which names WHICH shop's business the item concerns. */
 export const AffiliateAgendaScopeType = {
   BusinessDeveloper: 'BUSINESS_DEVELOPER',
@@ -4281,6 +4274,7 @@ export interface AffiliateSampleShipmentDecisionOriginDailyPoint {
   ds: Scalars['String']['output'];
   samplesShipped: Scalars['Int']['output'];
 }
+
 /** Why a Sample Application reached the terminal state that opened seller follow-up work. Frozen by the Backend from the transition event; consumers read it verbatim and never re-derive it. UNDETERMINED means the platform did not say, and no cause may be presented to the Creator. */
 export const AffiliateSampleTerminalCause = {
   ApprovalWindowExpired: 'APPROVAL_WINDOW_EXPIRED',
@@ -9933,7 +9927,7 @@ export interface Mutation {
   requestClientLogUpload: ClientLogUploadRequestPayload;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
-  /** Resolve one affiliate work item. Every completed REQUEST_ACTION or NO_ACTION_NEEDED result is persisted as an ActionProposal work bundle; policy and evidence review decide whether it waits for staff or executes automatically. */
+  /** Resolve one affiliate work item and return only whether the exact work boundary was accepted. Every completed REQUEST_ACTION or NO_ACTION_NEEDED result is persisted as an ActionProposal work bundle; proposal details and model evidence remain available only through staff review APIs. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   restoreProductKnowledge: ProductKnowledge;
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
@@ -13202,12 +13196,8 @@ export interface ResolveAffiliateWorkItemMessageIntentInput {
 }
 
 export interface ResolveAffiliateWorkItemPayload {
-  actionMode?: Maybe<AffiliateActionRequestMode>;
-  affiliateCollaboration?: Maybe<AffiliateCollaboration>;
-  decision: AffiliateWorkItemResolutionDecision;
-  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
-  proposal?: Maybe<ActionProposal>;
-  stale: Scalars['Boolean']['output'];
+  /** Whether the Backend accepted this exact work-boundary resolution. False means the submitted boundary was stale; validation or execution failures are returned as GraphQL errors. */
+  success: Scalars['Boolean']['output'];
 }
 
 export interface ReviewAffiliateSampleApplicationInput {
