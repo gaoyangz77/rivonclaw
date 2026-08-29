@@ -101,6 +101,26 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
       dailyRows.flatMap((row) => [row.samplesShipped, row.affiliateUnits]),
     );
     const ratioDomain = rateAxisDomain(dailyRows.map((row) => row.trailingUnitsPerSample));
+    const activityByDay = new Map<string, {
+      ds: string; aiOrders: number; notAiOrders: number; aiUnits: number; notAiUnits: number;
+    }>();
+    for (const point of section.sampleActivityDailyByDecisionOrigin) {
+      const row = activityByDay.get(point.ds) ?? {
+        ds: point.ds, aiOrders: 0, notAiOrders: 0, aiUnits: 0, notAiUnits: 0,
+      };
+      if (point.decidedBy === "AI") {
+        row.aiOrders += point.orders;
+        row.aiUnits += point.units;
+      } else {
+        row.notAiOrders += point.orders;
+        row.notAiUnits += point.units;
+      }
+      activityByDay.set(point.ds, row);
+    }
+    const activityRows = [...activityByDay.values()].sort((left, right) => left.ds.localeCompare(right.ds));
+    const activityDomain = countAxisDomain(activityRows.flatMap((row) => [
+      row.aiOrders, row.notAiOrders, row.aiUnits, row.notAiUnits,
+    ]));
 
     const basis = coverageBasis(coverage);
     const shipmentBasis = coverageBasis(shipmentCoverage);
@@ -153,6 +173,51 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
             />
           </div>
         </div>
+
+        <div className="affiliate-origin-disclosure">
+          <strong>{t("ecommerce.affiliateAnalytics.decisionOrigin.postApprovalTitle")}</strong>
+          <span>{t("ecommerce.affiliateAnalytics.decisionOrigin.activityDisclosure")}</span>
+        </div>
+
+        <div className="affiliate-origin-matrix affiliate-origin-post-matrix" role="table" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.postApprovalTitle")}>
+          <div className="affiliate-origin-matrix-head" role="row">
+            <span role="columnheader">{t("ecommerce.affiliateAnalytics.decisionOrigin.metric")}</span>
+            {section.byDecisionOrigin.map((row) => <strong key={row.decidedBy} role="columnheader">{t(`ecommerce.affiliateAnalytics.decisionOrigin.${row.decidedBy}`)}</strong>)}
+          </div>
+          {[
+            ["approvedApplications", "approvedApplications", "number"],
+            ["applicationsWithOrder", "applicationsWithOrder", "number"],
+            ["orderRate", "orderRate", "percent"],
+            ["actualUnits", "actualUnits", "number"],
+          ].map(([key, label, format]) => <div key={key} role="row">
+            <span role="rowheader">{t(`ecommerce.affiliateAnalytics.postApproval.${label}`)}</span>
+            {section.byDecisionOrigin.map((row) => <b key={row.decidedBy} role="cell">
+              {format === "percent"
+                ? formatPercent(row[key as keyof typeof row] as number | null, locale)
+                : formatNumber(row[key as keyof typeof row] as number, locale)}
+            </b>)}
+          </div>)}
+        </div>
+
+        <AffiliateChartCard
+          title={t("ecommerce.affiliateAnalytics.postApproval.originActivityTitle")}
+          note={t("ecommerce.affiliateAnalytics.postApproval.originActivityNote")}
+          height="tall"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={activityRows}>
+              <CartesianGrid strokeDasharray="3 6" vertical={false} />
+              <XAxis dataKey="ds" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
+              <YAxis domain={activityDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
+              <Tooltip labelFormatter={(value) => formatCohortDay(String(value), locale)} formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]} />
+              <Legend />
+              <Bar dataKey="aiOrders" name={t("ecommerce.affiliateAnalytics.postApproval.aiOrdersSeries")} fill="var(--affiliate-sample)" />
+              <Bar dataKey="notAiOrders" name={t("ecommerce.affiliateAnalytics.postApproval.notAiOrdersSeries")} fill="var(--affiliate-not-ai)" />
+              <Line type="monotone" dataKey="aiUnits" name={t("ecommerce.affiliateAnalytics.postApproval.aiUnitsSeries")} stroke="var(--affiliate-sample-dark)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="notAiUnits" name={t("ecommerce.affiliateAnalytics.postApproval.notAiUnitsSeries")} stroke="var(--affiliate-not-ai-dark)" strokeWidth={2} dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </AffiliateChartCard>
 
         <div className="affiliate-metric-group">
           <h3>{t("ecommerce.affiliateAnalytics.postApproval.shipmentBasisTitle")}</h3>

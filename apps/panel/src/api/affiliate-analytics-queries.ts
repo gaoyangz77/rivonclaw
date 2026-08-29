@@ -90,6 +90,18 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         inFlight
         approvalRate
       }
+      byDecisionOrigin {
+        decidedBy applications approved merchantRejected overdueByUs inFlight
+        approvalRate merchantRejectRate overdueRate
+      }
+      dailyByDecisionOrigin {
+        cohortDs decidedBy applications approved merchantRejected overdueByUs inFlight
+        approvalRate merchantRejectRate overdueRate
+      }
+      byAgeAndDecisionOrigin {
+        ageBucket decidedBy applications approved merchantRejected overdueByUs inFlight
+        approvalRate merchantRejectRate overdueRate
+      }
       coverage {
         fullCoverageFrom
         shopsSelected
@@ -120,6 +132,16 @@ export const AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY = gql`
         ds
         samplesShipped
         affiliateUnits
+      }
+      byDecisionOrigin {
+        decidedBy approvedApplications applicationsWithOrder orderRate
+        actualUnits unitsPerApprovedActual
+      }
+      sampleActivityDailyByDecisionOrigin {
+        ds decidedBy contents orders units
+      }
+      sampleShipmentDailyByDecisionOrigin {
+        ds decidedBy samplesShipped
       }
       coverage {
         fullCoverageFrom

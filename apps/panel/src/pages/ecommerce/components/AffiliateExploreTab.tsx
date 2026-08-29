@@ -73,6 +73,7 @@ const GROUP_PRESETS = [
   { key: "COLLABORATION", dimensions: ["AFFILIATE_COLLABORATION_ID", "AFFILIATE_COLLABORATION_NAME", "AFFILIATE_COLLABORATION_TYPE"] },
   { key: "CREATOR", dimensions: ["CREATOR_OPEN_ID", "CREATOR_USERNAME"] },
   { key: "PRODUCT", dimensions: ["PRODUCT_ID", "PRODUCT_NAME"] },
+  { key: "DECISION_ORIGIN", dimensions: ["AFFILIATE_DECIDED_BY"] },
 ] as const;
 
 function numberValue(value: unknown): number {
@@ -317,7 +318,9 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
           <div className="affiliate-composer-block">
             <h3>{t("ecommerce.affiliateAnalytics.explore.groupBy")}</h3>
             <div className="affiliate-chip-list">
-              {GROUP_PRESETS.map((preset) => {
+              {GROUP_PRESETS.filter((preset) => preset.dimensions.every(
+                (dimension) => catalog?.dimensions.some((candidate) => candidate.id === dimension),
+              )).map((preset) => {
                 const active = preset.dimensions.every((dimension) => draft.dimensions.includes(dimension));
                 const prospective = active
                   ? draft.dimensions.filter((dimension) => !preset.dimensions.includes(dimension as never))

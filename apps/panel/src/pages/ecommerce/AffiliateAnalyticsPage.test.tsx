@@ -43,7 +43,10 @@ vi.mock("@apollo/client/react", () => ({
           {
             id: "AFFILIATE_SAMPLE_CONVERSION_DAILY",
             label: "Sample Conversion",
-            dimensions: [{ id: "DATE", label: "Date", filterable: true }],
+            dimensions: [
+              { id: "DATE", label: "Date", filterable: true },
+              { id: "AFFILIATE_DECIDED_BY", label: "Decision origin", filterable: true },
+            ],
             metrics: [
               { id: "AFFILIATE_APPLICATIONS_CREATED", label: "Applications" },
               { id: "AFFILIATE_CURRENTLY_APPROVED", label: "Approved" },
@@ -129,6 +132,10 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.explore.operators.IN": "Is one of",
   "ecommerce.affiliateAnalytics.explore.directions.DESC": "Descending",
   "ecommerce.affiliateAnalytics.catalog.dimensions.DATE": "Date",
+  "ecommerce.affiliateAnalytics.catalog.dimensions.AFFILIATE_DECIDED_BY": "Decision origin",
+  "ecommerce.affiliateAnalytics.groupPresets.DECISION_ORIGIN": "Decision origin",
+  "ecommerce.affiliateAnalytics.decisionOrigin.AI": "AI",
+  "ecommerce.affiliateAnalytics.decisionOrigin.NOT_AI": "Non-AI",
   "ecommerce.affiliateAnalytics.catalog.metrics.AFFILIATE_APPLICATIONS_CREATED": "Applications",
   "ecommerce.affiliateAnalytics.coverage.boundary": "Series start on {{date}} · {{shops}} shops with data",
   "ecommerce.affiliateAnalytics.coverage.partialDays": "{{count}} earlier partial days",
@@ -210,6 +217,14 @@ function reachoutFixture() {
 }
 
 function approvalFixture() {
+  const byDecisionOrigin = [
+    { decidedBy: "AI", applications: 120, approved: 100, merchantRejected: 10,
+      overdueByUs: 2, inFlight: 8, approvalRate: 100 / 120,
+      merchantRejectRate: 10 / 120, overdueRate: 2 / 120 },
+    { decidedBy: "NOT_AI", applications: 300, approved: 200, merchantRejected: 50,
+      overdueByUs: 18, inFlight: 32, approvalRate: 2 / 3,
+      merchantRejectRate: 1 / 6, overdueRate: 0.06 },
+  ];
   return {
     applications: 420,
     approved: 300,
@@ -221,6 +236,9 @@ function approvalFixture() {
     overdueRate: 0.048,
     daily: [{ cohortDs: "2026-08-01", applications: 40, approved: 30, merchantRejected: 5, overdueByUs: 2, inFlight: 3 }],
     byAge: [{ ageBucket: "0–1d", applications: 40, approved: 20, merchantRejected: 4, overdueByUs: 1, inFlight: 15 }],
+    byDecisionOrigin,
+    dailyByDecisionOrigin: byDecisionOrigin.map((row) => ({ ...row, cohortDs: "2026-08-01" })),
+    byAgeAndDecisionOrigin: byDecisionOrigin.map((row) => ({ ...row, ageBucket: "0–1d" })),
     coverage: coverageFixture(["2026-08-01"]),
   };
 }
@@ -240,6 +258,20 @@ function postApprovalFixture() {
     daily: [
       { ds: "2026-06-01", samplesShipped: 0, affiliateUnits: 5_177 },
       { ds: "2026-08-18", samplesShipped: 1_940, affiliateUnits: 9_408 },
+    ],
+    byDecisionOrigin: [
+      { decidedBy: "AI", approvedApplications: 100, applicationsWithOrder: 40,
+        orderRate: 0.4, actualUnits: 300, unitsPerApprovedActual: 3 },
+      { decidedBy: "NOT_AI", approvedApplications: 200, applicationsWithOrder: 56,
+        orderRate: 0.28, actualUnits: 512, unitsPerApprovedActual: 2.56 },
+    ],
+    sampleActivityDailyByDecisionOrigin: [
+      { ds: "2026-08-18", decidedBy: "AI", contents: 8, orders: 4, units: 30 },
+      { ds: "2026-08-18", decidedBy: "NOT_AI", contents: 10, orders: 5, units: 40 },
+    ],
+    sampleShipmentDailyByDecisionOrigin: [
+      { ds: "2026-08-18", decidedBy: "AI", samplesShipped: 20 },
+      { ds: "2026-08-18", decidedBy: "NOT_AI", samplesShipped: 30 },
     ],
     coverage: coverageFixture(["2026-06-01", "2026-08-18"]),
     shipmentCoverage: coverageFixture(["2026-06-01", "2026-08-18"]),
@@ -482,10 +514,20 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
     // The approval cohort day 2026-08-01 precedes the boundary. It used to be
     // truncated away, leaving an empty daily chart beside a populated age
     // chart; now both keep their rows.
-    expect(chartRows(section(container, "approval"), "bar")).toEqual([1, 1]);
+    expect(chartRows(section(container, "approval"), "bar")).toEqual([1, 1, 1, 1]);
     // Post-approval is one composed chart: the 2026-06-01 day sits before the
     // shipment boundary and carries real units with no samples. It is drawn.
-    expect(chartRows(section(container, "post-approval"), "composed")).toEqual([2]);
+    expect(chartRows(section(container, "post-approval"), "composed")).toEqual([1, 2]);
+  });
+
+  it("shows AI and non-AI without relabeling non-AI as human", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const approval = section(container, "approval");
+    expect(within(approval).getAllByText("AI").length)
+      .toBeGreaterThan(0);
+    expect(within(approval).getAllByText("Non-AI").length)
+      .toBeGreaterThan(0);
+    expect(approval.textContent).not.toContain("Human");
   });
 
   it("discloses the shop basis next to the rate it was computed over", () => {
@@ -568,5 +610,16 @@ describe("AffiliateAnalyticsPage Explore", () => {
     expect(within(explore as HTMLElement).getByText("Descending")).toBeTruthy();
     expect(within(explore as HTMLElement).queryByText("NOT IN")).toBeNull();
     expect(explore.querySelectorAll("select")).toHaveLength(0);
+  });
+
+  it("offers decision origin only for Sample and clears it on contract switch", () => {
+    render(<AffiliateAnalyticsPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
+    expect(screen.queryByRole("button", { name: "Decision origin" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Sample conversion" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decision origin" }));
+    expect(screen.getByRole("button", { name: "Decision origin" }).className).toContain("active");
+    fireEvent.click(screen.getByRole("button", { name: "Platform performance" }));
+    expect(screen.queryByRole("button", { name: "Decision origin" })).toBeNull();
   });
 });

@@ -6,7 +6,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -36,6 +35,8 @@ const OUTCOME_SERIES = [
   { key: "inFlight", labelKey: "inFlight", fill: "var(--affiliate-inflight)" },
 ] as const;
 
+const DECISION_ORIGINS = ["AI", "NOT_AI"] as const;
+
 /**
  * Section 2 — Approval. Cohort axis: the application submission date, so an
  * outcome is always counted back against the day the Creator applied.
@@ -52,16 +53,6 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
   // the fully-covered range is the reader's explicit choice.
   const [restrictToCovered, setRestrictToCovered] = useState(false);
 
-  const outcomeBars = OUTCOME_SERIES.map((series) => (
-    <Bar
-      key={series.key}
-      dataKey={series.key}
-      stackId="outcome"
-      name={t(`ecommerce.affiliateAnalytics.approval.${series.labelKey}`)}
-      fill={series.fill}
-    />
-  ));
-
   const body = (() => {
     if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
 
@@ -69,6 +60,12 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
     const boundary = coverage.fullCoverageFrom ?? null;
     const partialDays = countPartialDays(section.daily.map((point) => point.cohortDs), boundary);
     const dailyRows = applyCoverageWindow(section.daily, (point) => point.cohortDs, boundary, restrictToCovered);
+    const originDailyRows = applyCoverageWindow(
+      section.dailyByDecisionOrigin,
+      (point) => point.cohortDs,
+      boundary,
+      restrictToCovered,
+    );
     const boundaryOnChart = coverageBoundaryMark(dailyRows.map((point) => point.cohortDs), boundary);
     const basis = coverageBasis(coverage);
     const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
@@ -79,28 +76,8 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
         : t("ecommerce.affiliateAnalytics.coverage.noDate"),
     });
 
-    const dailyDomain = countAxisDomain(dailyRows.map((point) => point.applications));
-    const ageDomain = countAxisDomain(section.byAge.map((point) => point.applications));
-
-    // The bar analogue of a dashed line: a partial-range day keeps its real
-    // height, but is drawn faint so its stack is never read as comparable with
-    // a fully-covered one.
-    const dailyOutcomeBars = OUTCOME_SERIES.map((series) => (
-      <Bar
-        key={series.key}
-        dataKey={series.key}
-        stackId="outcome"
-        name={t(`ecommerce.affiliateAnalytics.approval.${series.labelKey}`)}
-        fill={series.fill}
-      >
-        {dailyRows.map((point) => (
-          <Cell
-            key={point.cohortDs}
-            fillOpacity={isFullyCoveredDay(point.cohortDs, boundary) ? 1 : PARTIAL_BAR_OPACITY}
-          />
-        ))}
-      </Bar>
-    ));
+    const dailyDomain = countAxisDomain(originDailyRows.map((point) => point.applications));
+    const ageDomain = countAxisDomain(section.byAgeAndDecisionOrigin.map((point) => point.applications));
 
     return (
       <>
@@ -126,6 +103,42 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
           />
         </div>
 
+        <div className="affiliate-origin-disclosure">
+          <strong>{t("ecommerce.affiliateAnalytics.decisionOrigin.title")}</strong>
+          <span>{t("ecommerce.affiliateAnalytics.decisionOrigin.notAiDisclosure")}</span>
+        </div>
+
+        <div className="affiliate-origin-matrix" role="table" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.title")}>
+          <div className="affiliate-origin-matrix-head" role="row">
+            <span role="columnheader">{t("ecommerce.affiliateAnalytics.decisionOrigin.metric")}</span>
+            {section.byDecisionOrigin.map((row) => (
+              <strong key={row.decidedBy} role="columnheader">
+                {t(`ecommerce.affiliateAnalytics.decisionOrigin.${row.decidedBy}`)}
+              </strong>
+            ))}
+          </div>
+          {[
+            ["applications", "applications"],
+            ["approved", "approved"],
+            ["merchantRejected", "merchantRejected"],
+            ["overdueByUs", "overdueByUs"],
+            ["inFlight", "inFlight"],
+          ].map(([key, label]) => (
+            <div key={key} role="row">
+              <span role="rowheader">{t(`ecommerce.affiliateAnalytics.approval.${label}`)}</span>
+              {section.byDecisionOrigin.map((row) => (
+                <b key={row.decidedBy} role="cell">{formatNumber(row[key as keyof typeof row] as number, locale)}</b>
+              ))}
+            </div>
+          ))}
+          <div role="row">
+            <span role="rowheader">{t("ecommerce.affiliateAnalytics.approval.approvalRate")}</span>
+            {section.byDecisionOrigin.map((row) => (
+              <b key={row.decidedBy} role="cell">{formatPercent(row.approvalRate, locale)}</b>
+            ))}
+          </div>
+        </div>
+
         <AffiliateCoverageNotice
           coverage={coverage}
           partialDays={partialDays}
@@ -137,51 +150,52 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
         <div className="affiliate-chart-grid">
           <AffiliateChartCard
             title={t("ecommerce.affiliateAnalytics.approval.dailyTitle")}
-            note={t("ecommerce.affiliateAnalytics.approval.dailyNote")}
+            note={t("ecommerce.affiliateAnalytics.approval.originDailyNote")}
             band={<AffiliateCoverageBand coverage={coverage} />}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyRows}>
-                <CartesianGrid strokeDasharray="3 6" vertical={false} />
-                <XAxis dataKey="cohortDs" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
-                <YAxis domain={dailyDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
-                <Tooltip
-                  labelFormatter={(value) => formatCohortDay(String(value), locale)}
-                  formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]}
-                />
-                <Legend />
-                {/* The boundary is marked, never used to drop days. */}
-                {boundaryOnChart && (
-                  <ReferenceLine
-                    x={boundaryOnChart}
-                    stroke="var(--affiliate-coverage)"
-                    strokeDasharray="4 4"
-                    label={{
-                      value: t("ecommerce.affiliateAnalytics.coverage.boundaryMark"),
-                      position: "insideTopLeft",
-                      fontSize: 11,
-                    }}
-                  />
-                )}
-                {dailyOutcomeBars}
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="affiliate-origin-small-multiples">
+              {DECISION_ORIGINS.map((origin) => {
+                const rows = originDailyRows.filter((point) => point.decidedBy === origin);
+                return <div key={origin} className={`affiliate-origin-chart is-${origin.toLowerCase().replace("_", "-")}`}>
+                  <h4>{t(`ecommerce.affiliateAnalytics.decisionOrigin.${origin}`)}</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={rows}>
+                      <CartesianGrid strokeDasharray="3 6" vertical={false} />
+                      <XAxis dataKey="cohortDs" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
+                      <YAxis domain={dailyDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
+                      <Tooltip labelFormatter={(value) => formatCohortDay(String(value), locale)} formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]} />
+                      {boundaryOnChart && <ReferenceLine x={boundaryOnChart} stroke="var(--affiliate-coverage)" strokeDasharray="4 4" />}
+                      {OUTCOME_SERIES.map((series) => <Bar key={series.key} dataKey={series.key} stackId="outcome" name={t(`ecommerce.affiliateAnalytics.approval.${series.labelKey}`)} fill={series.fill}>
+                        {rows.map((point) => <Cell key={point.cohortDs} fillOpacity={isFullyCoveredDay(point.cohortDs, boundary) ? 1 : PARTIAL_BAR_OPACITY} />)}
+                      </Bar>)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>;
+              })}
+            </div>
           </AffiliateChartCard>
 
           <AffiliateChartCard
             title={t("ecommerce.affiliateAnalytics.approval.byAgeTitle")}
-            note={t("ecommerce.affiliateAnalytics.approval.byAgeNote")}
+            note={t("ecommerce.affiliateAnalytics.approval.originAgeNote")}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={section.byAge}>
-                <CartesianGrid strokeDasharray="3 6" vertical={false} />
-                <XAxis dataKey="ageBucket" />
-                <YAxis domain={ageDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
-                <Tooltip formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]} />
-                <Legend />
-                {outcomeBars}
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="affiliate-origin-small-multiples">
+              {DECISION_ORIGINS.map((origin) => {
+                const rows = section.byAgeAndDecisionOrigin.filter((point) => point.decidedBy === origin);
+                return <div key={origin} className={`affiliate-origin-chart is-${origin.toLowerCase().replace("_", "-")}`}>
+                  <h4>{t(`ecommerce.affiliateAnalytics.decisionOrigin.${origin}`)}</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={rows}>
+                      <CartesianGrid strokeDasharray="3 6" vertical={false} />
+                      <XAxis dataKey="ageBucket" />
+                      <YAxis domain={ageDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
+                      <Tooltip formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]} />
+                      {OUTCOME_SERIES.map((series) => <Bar key={series.key} dataKey={series.key} stackId="outcome" name={t(`ecommerce.affiliateAnalytics.approval.${series.labelKey}`)} fill={series.fill} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>;
+              })}
+            </div>
           </AffiliateChartCard>
         </div>
 
