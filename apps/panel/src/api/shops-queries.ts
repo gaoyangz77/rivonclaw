@@ -3918,6 +3918,8 @@ export const AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY = gql`
       }
       hasMore
       nextCursor
+      openCount
+      expiringSoonCount
     }
   }
   ${AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT}
@@ -3976,6 +3978,11 @@ export const AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY = gql`
       }
       hasMore
       nextCursor
+      totalCount
+      platformCount
+      whatsappCount
+      emailCount
+      waitingOver24hCount
     }
   }
 `;
