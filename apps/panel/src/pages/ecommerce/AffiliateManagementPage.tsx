@@ -267,6 +267,7 @@ export type AffiliateSampleProposalReviewRow = {
   productTitle: string | null;
   productSellerSku: string | null;
   decision: GQL.AffiliateSampleReviewDecision;
+  executionMode: GQL.AffiliateSampleReviewExecutionMode;
   rejectReason: string | null;
   rejectReasonExplanation: string | null;
   predictionSnapshot: AffiliatePredictionSnapshotView | null;
@@ -7951,6 +7952,9 @@ export function proposalSampleDecisionOverrideTarget(
     return null;
   }
   const agentDecision = sources[0]!.sampleReviewIntent?.decision;
+  const executionMode = sources[0]!.sampleReviewIntent?.executionMode
+    ?? GQL.AffiliateSampleReviewExecutionMode.PlatformAction;
+  if (executionMode === GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry) return null;
   if (agentDecision === GQL.AffiliateSampleReviewDecision.Approve) {
     return GQL.AffiliateSampleReviewDecision.Reject;
   }
@@ -8096,6 +8100,8 @@ export function proposalSampleReviewRows(
         (sources.length === 1 ? (proposal.productSummary?.title ?? null) : null),
       productSellerSku,
       decision: source.sampleReviewIntent.decision,
+      executionMode: source.sampleReviewIntent.executionMode
+        ?? GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
       rejectReason: source.sampleReviewIntent.rejectReason ?? null,
       rejectReasonExplanation: source.sampleReviewIntent.rejectReasonExplanation?.trim() || null,
       predictionSnapshot: snapshot,
@@ -8287,6 +8293,14 @@ function ProposalSampleDecisionBundle({
                 >
                   {decisionLabel}
                 </strong>
+                <small>
+                  {t(
+                    row.executionMode ===
+                      GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
+                      ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.softRejectExecution"
+                      : "ecommerce.affiliateWorkspace.sampleDecisionBundle.platformExecution",
+                  )}
+                </small>
               </div>
               <div
                 className={
@@ -9542,6 +9556,9 @@ export function CreatorRelationshipDetailModal({
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] = useState(
+    replyToLifecycleEventId,
+  );
   const [sampleReviewCommand, setSampleReviewCommand] = useState<{
     sampleApplicationRecordId: string;
     creatorRelationshipId: string;
@@ -9569,6 +9586,9 @@ export function CreatorRelationshipDetailModal({
     setDecidingProposalId(null);
     setOptimisticallyDecidedProposalIds(new Set());
   }, [initialTab, relationshipId]);
+  useEffect(() => {
+    setPendingReplyToLifecycleEventId(replyToLifecycleEventId);
+  }, [relationshipId, replyToLifecycleEventId]);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const desktopInspector = window.matchMedia("(min-width: 1081px)");
@@ -9966,7 +9986,7 @@ export function CreatorRelationshipDetailModal({
             parts,
             preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
             emailSubject: composerSubject.trim() || undefined,
-            replyToLifecycleEventId,
+            replyToLifecycleEventId: pendingReplyToLifecycleEventId,
           },
         },
       });
@@ -9980,6 +10000,7 @@ export function CreatorRelationshipDetailModal({
       setComposerText("");
       setComposerSubject("");
       setStagedAttachments([]);
+      setPendingReplyToLifecycleEventId(undefined);
       conversationAutoScrollPendingRef.current = true;
       await refetchConversationMessages();
       onWorkbenchEntityChanged?.();
@@ -10946,6 +10967,22 @@ export function CreatorRelationshipDetailModal({
                           shopId={sample.shopId}
                           variant="compact"
                         />
+                        {sample.merchantReviewDecidedAt ? (
+                          <div className="affiliate-workbench-review-attribution">
+                            {t("ecommerce.affiliateWorkspace.workbench.reviewedBy", {
+                              actor: t(
+                                sample.merchantReviewActorType ===
+                                  GQL.AffiliateLifecycleActorType.Agent
+                                  ? "ecommerce.affiliateWorkspace.workbench.reviewActorAgent"
+                                  : "ecommerce.affiliateWorkspace.workbench.reviewActorHuman",
+                              ),
+                              value: formatLocalizedDateTime(
+                                sample.merchantReviewDecidedAt,
+                                panelI18n.language,
+                              ),
+                            })}
+                          </div>
+                        ) : null}
                         <div className="affiliate-workbench-sample-review-actions">
                           {sample.reviewDisposition ===
                           GQL.AffiliateSampleReviewDisposition.SoftRejected ? (

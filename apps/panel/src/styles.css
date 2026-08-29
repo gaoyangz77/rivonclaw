@@ -19427,6 +19427,12 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-danger, #ef4444) !important;
 }
 
+.affiliate-workbench-review-attribution {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .affiliate-sample-decision-history {
   background: color-mix(in srgb, var(--color-bg-alt) 58%, var(--color-bg));
 }

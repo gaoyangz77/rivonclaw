@@ -291,6 +291,8 @@ export interface ActionProposalRevisionSummary {
 
 export interface ActionProposalSampleReviewIntent {
   decision: AffiliateSampleReviewDecision;
+  /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
+  executionMode?: Maybe<AffiliateSampleReviewExecutionMode>;
   lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Frozen provider audit id resolved by Backend; callers must not supply it. */
   platformApplicationId?: Maybe<Scalars['String']['output']>;
@@ -298,12 +300,15 @@ export interface ActionProposalSampleReviewIntent {
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
   /** Agent-authored explanation for the structured rejection reason. Required for new OTHER rejections. */
   rejectReasonExplanation?: Maybe<Scalars['String']['output']>;
+  reviewDispositionRevision?: Maybe<Scalars['Int']['output']>;
   /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
 export interface ActionProposalSampleReviewIntentInput {
   decision: AffiliateSampleReviewDecision;
+  /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
+  executionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   lastObservedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Frozen provider audit id resolved by Backend; callers must not supply it. */
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
@@ -311,6 +316,7 @@ export interface ActionProposalSampleReviewIntentInput {
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
   /** Agent-authored explanation for the structured rejection reason. Required for new OTHER rejections. */
   rejectReasonExplanation?: InputMaybe<Scalars['String']['input']>;
+  reviewDispositionRevision?: InputMaybe<Scalars['Int']['input']>;
   /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
 }
@@ -3746,6 +3752,8 @@ export interface AffiliateRelationshipAgendaItem {
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateWorkProcessReason>;
   requiredAction: AffiliateRelationshipRequiredAction;
+  /** Seller-local Sample review disposition frozen into this agenda item. Missing means the Sample has not been explicitly Soft Rejected. */
+  reviewDisposition?: Maybe<AffiliateSampleReviewDisposition>;
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
@@ -12997,6 +13005,8 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Omit for PLATFORM_ACTION; use ALLOW_PLATFORM_EXPIRY for a local Soft Reject. */
+  sampleReviewExecutionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION and MANAGE_CREATOR_TAG. Do not invent unsupported seller operations. */

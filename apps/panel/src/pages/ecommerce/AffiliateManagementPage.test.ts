@@ -700,6 +700,39 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(proposalSampleDecisionOverrideTarget(singleReject)).toBe("APPROVE");
   });
 
+  it("surfaces Soft Reject execution and does not offer an opposite-decision shortcut", () => {
+    const softReject = {
+      ...proposal("proposal-soft-reject", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      sampleReviewIntent: {
+        sampleApplicationRecordId: "sample-1",
+        platformApplicationId: "platform-1",
+        decision: GQL.AffiliateSampleReviewDecision.Reject,
+        executionMode: GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry,
+        rejectReason: GQL.AffiliateSampleRejectReason.Other,
+        rejectReasonExplanation: "Prefer a polite local decline.",
+      },
+      steps: [
+        {
+          stepId: "step-1",
+          type: GQL.ActionProposalType.ReviewSampleApplication,
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-1",
+            decision: GQL.AffiliateSampleReviewDecision.Reject,
+            executionMode: GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry,
+            rejectReason: GQL.AffiliateSampleRejectReason.Other,
+            rejectReasonExplanation: "Prefer a polite local decline.",
+          },
+        },
+      ],
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalSampleReviewRows(softReject)[0]?.executionMode).toBe(
+      GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry,
+    );
+    expect(proposalSampleDecisionOverrideTarget(softReject)).toBeNull();
+  });
+
   it("hides rejection for multi-Sample and mixed-action proposals", () => {
     const single = {
       ...proposal("proposal-single", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
