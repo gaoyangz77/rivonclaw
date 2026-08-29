@@ -539,38 +539,13 @@ export interface AffiliateWorkItemsQueryResult {
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
   mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
     resolveAffiliateWorkItem(input: $input) {
-      decision
-      stale
-      actionMode
-      proposal {
-        id
-        status
-        operatorSummary
-        baseCheckpointId
-        candidateCheckpointId
-      }
-      affiliateCollaboration {
-        id
-        status
-        lastObservedAt
-        projectionRevision
-      }
+      success
     }
   }
 `;
 
 export interface ResolveAffiliateWorkItemMutationResult {
   resolveAffiliateWorkItem: {
-    decision: string;
-    stale: boolean;
-    actionMode?: string | null;
-    proposal?: Pick<
-      GQL.ActionProposal,
-      "id" | "status" | "operatorSummary" | "baseCheckpointId" | "candidateCheckpointId"
-    > | null;
-    affiliateCollaboration?: Pick<
-      GQL.AffiliateCollaboration,
-      "id" | "status" | "lastObservedAt" | "projectionRevision"
-    > | null;
+    success: boolean;
   };
 }
