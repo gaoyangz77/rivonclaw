@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { useToast } from "../../../components/Toast.js";
 import { RefreshIcon } from "../../../components/icons.js";
 import { panelEventBus } from "../../../lib/event-bus.js";
@@ -591,11 +592,11 @@ export function AffiliateWhatsAppAccountPanel({
 
       {showAccountList && view === "CONNECT" && stage === "IDLE" && <div className="affiliate-whatsapp-list">
         {visibleAccounts.length === 0 && (
-          <div className="affiliate-policy-option-empty">
-            {accountsLoading
-              ? t("common.loading")
-              : t("ecommerce.affiliateWorkspace.whatsapp.empty", { defaultValue: "No WhatsApp account connected yet." })}
-          </div>
+          accountsLoading
+            ? <LoadingSpinner variant="inline" />
+            : <div className="affiliate-policy-option-empty">
+                {t("ecommerce.affiliateWorkspace.whatsapp.empty", { defaultValue: "No WhatsApp account connected yet." })}
+              </div>
         )}
         {visibleAccounts.map((account) => (
           <div className="affiliate-whatsapp-account" key={account.id}>

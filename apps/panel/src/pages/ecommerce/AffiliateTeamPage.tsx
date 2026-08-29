@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ChannelsIcon, CheckIcon, ChevronRightIcon, CloseIcon, DownloadIcon, GlobeIcon, InfoIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
@@ -1520,7 +1521,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>
             </>
           ) : developerPageQuery.loading ? (
-            <div className="affiliate-bd-table-message">{t("common.loading")}</div>
+            <LoadingSpinner variant="page" />
           ) : (
             <div className="affiliate-team-empty-developers">
               <span className="affiliate-team-empty-developers-icon"><UserPlusIcon /></span>
@@ -2336,7 +2337,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   <span>{detailChannelContacts.length}</span>
                 </div>
                 {channelContactsQuery.loading && !channelContactsQuery.data
-                  ? <div className="affiliate-bd-channel-card-empty">{t("common.loading")}</div>
+                  ? <LoadingSpinner variant="inline" />
                   : detailChannelContacts.length > 0
                     ? <div className="affiliate-bd-contact-list">{detailChannelContacts.map((contact) => {
                         const account = contact.channel === GQL.AffiliateMessageChannel.Whatsapp

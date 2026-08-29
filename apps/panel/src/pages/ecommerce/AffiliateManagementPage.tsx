@@ -22,6 +22,7 @@ import { GQL } from "@rivonclaw/core";
 import type { AffiliateLifecycleEvent } from "@rivonclaw/core/models";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
+import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
@@ -2604,12 +2605,7 @@ function affiliateCollaborationMatchesHistoryStatusFilter(
 
 function AffiliateLoadingState() {
   const { t } = useTranslation();
-  return (
-    <div className="affiliate-loading-state" role="status" aria-live="polite">
-      <div className="affiliate-loading-spinner" aria-hidden="true" />
-      <span>{t("ecommerce.affiliateWorkspace.loadingEntities")}</span>
-    </div>
-  );
+  return <LoadingSpinner variant="page" label={t("ecommerce.affiliateWorkspace.loadingEntities")} />;
 }
 
 function AffiliateQueryErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
