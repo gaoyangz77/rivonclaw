@@ -4514,6 +4514,30 @@ export const IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION = gql`
   }
 `;
 
+export const IMPORT_AFFILIATE_CREATOR_UPDATES_MUTATION = gql`
+  mutation ImportAffiliateCreatorUpdates($input: ImportAffiliateCreatorUpdatesInput!) {
+    importAffiliateCreatorUpdates(input: $input) {
+      appliedCount
+      noOpCount
+      rejectedCount
+      failedCount
+      protectionsChanged
+      businessDevelopersChanged
+      manualTagsCreated
+      manualTagAssignmentsAdded
+      results {
+        index
+        status
+        reason
+        protectionChanged
+        businessDeveloperChanged
+        createdManualTagNames
+        addedManualTagNames
+      }
+    }
+  }
+`;
+
 export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
   mutation CompleteAffiliateOperationalOnboarding {
     completeAffiliateOperationalOnboarding {

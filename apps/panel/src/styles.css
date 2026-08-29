@@ -29925,6 +29925,46 @@ html[lang="zh"] .acct-tool-chips {
   box-shadow: 0 10px 30px color-mix(in srgb, var(--color-text) 3%, transparent);
 }
 
+.affiliate-creator-management-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 22%, var(--border-color));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent-color) 5%, var(--surface-primary));
+}
+
+.affiliate-creator-management-toolbar > div {
+  display: grid;
+  gap: 4px;
+}
+
+.affiliate-creator-management-toolbar > div > strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.affiliate-creator-management-toolbar > div > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.affiliate-creator-management-toolbar .btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.affiliate-creator-management-toolbar svg {
+  width: 16px;
+  height: 16px;
+}
+
 .affiliate-protection-boundary-head {
   display: flex;
   align-items: center;
@@ -30766,7 +30806,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-protection-preview-table-head,
 .affiliate-protection-preview-table-row {
   display: grid;
-  grid-template-columns: 60px minmax(190px, 1.1fr) minmax(150px, 0.8fr) minmax(220px, 1fr) 34px;
+  grid-template-columns: 60px minmax(170px, 1fr) minmax(140px, 0.75fr) minmax(190px, 1.1fr) minmax(180px, 0.9fr) 34px;
   gap: 12px;
   align-items: center;
 }
@@ -30803,6 +30843,14 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-protection-preview-table-row strong {
   min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-creator-update-actions {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -32950,6 +32998,13 @@ html[lang="zh"] .acct-tool-chips {
     width: 100%;
     flex-wrap: wrap;
   }
+  .affiliate-creator-management-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .affiliate-creator-management-toolbar .btn {
+    justify-content: center;
+  }
   .affiliate-protection-import-modal {
     width: calc(100vw - 20px);
     max-height: calc(100dvh - 20px);
@@ -32964,7 +33019,7 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-protection-preview-table-head,
   .affiliate-protection-preview-table-row {
-    grid-template-columns: 54px minmax(150px, 1fr) minmax(190px, 1fr) 32px;
+    grid-template-columns: 54px minmax(150px, 1fr) minmax(190px, 1fr) minmax(170px, 1fr) 32px;
   }
   .affiliate-protection-preview-table-head > :nth-child(3),
   .affiliate-protection-preview-table-row > :nth-child(3) {

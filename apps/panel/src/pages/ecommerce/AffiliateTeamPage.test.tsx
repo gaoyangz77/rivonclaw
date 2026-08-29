@@ -5,7 +5,7 @@ import { GQL } from "@rivonclaw/core";
 import { describe, expect, it, vi } from "vitest";
 import {
   DeveloperEditor,
-  PROTECTED_CREATOR_TEMPLATE_HEADERS,
+  CREATOR_BULK_UPDATE_TEMPLATE_HEADERS,
   SHOP_REGIONS,
   developerFormFrom,
   isDeveloperFormDirty,
@@ -93,13 +93,20 @@ describe("Affiliate business developer region editor", () => {
   });
 });
 
-describe("Affiliate protected creator import template", () => {
-  it("only exposes creator username and optional BD display name", () => {
-    expect(PROTECTED_CREATOR_TEMPLATE_HEADERS).toEqual([
+describe("Affiliate Creator bulk update template", () => {
+  it("exposes additive BD, protection, and manual-tag actions", () => {
+    expect(CREATOR_BULK_UPDATE_TEMPLATE_HEADERS).toEqual([
       "creator_username",
       "bd_name",
+      "protection_action",
+      "protection_note",
+      "add_manual_tag_1",
+      "add_manual_tag_2",
+      "add_manual_tag_3",
+      "add_manual_tag_4",
+      "add_manual_tag_5",
     ]);
-    expect(PROTECTED_CREATOR_TEMPLATE_HEADERS).not.toContain("platform");
-    expect(PROTECTED_CREATOR_TEMPLATE_HEADERS).not.toContain("creator_open_id");
+    expect(CREATOR_BULK_UPDATE_TEMPLATE_HEADERS).not.toContain("platform");
+    expect(CREATOR_BULK_UPDATE_TEMPLATE_HEADERS).not.toContain("creator_open_id");
   });
 });
