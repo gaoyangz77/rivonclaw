@@ -16,8 +16,11 @@ function isDocumentNode(value: unknown): value is DocumentNode {
 
 describe("Affiliate Analytics GraphQL documents", () => {
   it("validate against the current Backend schema", () => {
+    const backendSchemaPath =
+      process.env.EASYCLAW_BACKEND_SCHEMA_PATH ??
+      resolve(process.cwd(), "../../server/backend/schema.graphql");
     const schema = buildSchema(
-      readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"),
+      readFileSync(backendSchemaPath, "utf8"),
     );
     const failures: string[] = [];
     for (const [name, document] of Object.entries(documents)) {

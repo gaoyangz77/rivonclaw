@@ -1005,6 +1005,44 @@ export interface AffiliateApprovalDailyPoint {
   overdueByUs: Scalars['Int']['output'];
 }
 
+export interface AffiliateApprovalDecisionOriginAgePoint {
+  ageBucket: Scalars['String']['output'];
+  applications: Scalars['Int']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Int']['output'];
+  decidedBy: AffiliateSampleDecisionOrigin;
+  inFlight: Scalars['Int']['output'];
+  merchantRejectRate?: Maybe<Scalars['Float']['output']>;
+  merchantRejected: Scalars['Int']['output'];
+  overdueByUs: Scalars['Int']['output'];
+  overdueRate?: Maybe<Scalars['Float']['output']>;
+}
+
+export interface AffiliateApprovalDecisionOriginDailyPoint {
+  applications: Scalars['Int']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Int']['output'];
+  cohortDs: Scalars['String']['output'];
+  decidedBy: AffiliateSampleDecisionOrigin;
+  inFlight: Scalars['Int']['output'];
+  merchantRejectRate?: Maybe<Scalars['Float']['output']>;
+  merchantRejected: Scalars['Int']['output'];
+  overdueByUs: Scalars['Int']['output'];
+  overdueRate?: Maybe<Scalars['Float']['output']>;
+}
+
+export interface AffiliateApprovalDecisionOriginMetrics {
+  applications: Scalars['Int']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Int']['output'];
+  decidedBy: AffiliateSampleDecisionOrigin;
+  inFlight: Scalars['Int']['output'];
+  merchantRejectRate?: Maybe<Scalars['Float']['output']>;
+  merchantRejected: Scalars['Int']['output'];
+  overdueByUs: Scalars['Int']['output'];
+  overdueRate?: Maybe<Scalars['Float']['output']>;
+}
+
 /** Approval interception policy for affiliate actions. If all non-empty condition arrays match, the backend creates an ActionProposal instead of executing automatically. */
 export interface AffiliateApprovalPolicy {
   action: ActionProposalType;
@@ -1043,8 +1081,11 @@ export interface AffiliateApprovalSection {
   approvalRate?: Maybe<Scalars['Float']['output']>;
   approved: Scalars['Int']['output'];
   byAge: Array<AffiliateApprovalAgePoint>;
+  byAgeAndDecisionOrigin: Array<AffiliateApprovalDecisionOriginAgePoint>;
+  byDecisionOrigin: Array<AffiliateApprovalDecisionOriginMetrics>;
   coverage: AffiliateCoverage;
   daily: Array<AffiliateApprovalDailyPoint>;
+  dailyByDecisionOrigin: Array<AffiliateApprovalDecisionOriginDailyPoint>;
   inFlight: Scalars['Int']['output'];
   merchantRejectRate?: Maybe<Scalars['Float']['output']>;
   merchantRejected: Scalars['Int']['output'];
@@ -2031,6 +2072,24 @@ export interface AffiliateCoverageDailyPoint {
   shopsWithData: Scalars['Int']['output'];
 }
 
+export interface AffiliateCreatorBulkUpdateItemResult {
+  addedManualTagNames: Array<Scalars['String']['output']>;
+  businessDeveloperChanged: Scalars['Boolean']['output'];
+  createdManualTagNames: Array<Scalars['String']['output']>;
+  index: Scalars['Int']['output'];
+  protectionChanged: Scalars['Boolean']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  status: AffiliateCreatorBulkUpdateStatus;
+}
+
+export const AffiliateCreatorBulkUpdateStatus = {
+  Applied: 'APPLIED',
+  Failed: 'FAILED',
+  NoOp: 'NO_OP',
+  Rejected: 'REJECTED'
+} as const;
+
+export type AffiliateCreatorBulkUpdateStatus = typeof AffiliateCreatorBulkUpdateStatus[keyof typeof AffiliateCreatorBulkUpdateStatus];
 export interface AffiliateCreatorChannelContact {
   accountBindingId: Scalars['ID']['output'];
   businessDeveloperId?: Maybe<Scalars['ID']['output']>;
@@ -3619,14 +3678,26 @@ export interface AffiliateOverviewInput {
   windowDays: Scalars['Int']['input'];
 }
 
+export interface AffiliatePostApprovalDecisionOriginMetrics {
+  actualUnits: Scalars['Int']['output'];
+  applicationsWithOrder: Scalars['Int']['output'];
+  approvedApplications: Scalars['Int']['output'];
+  decidedBy: AffiliateSampleDecisionOrigin;
+  orderRate?: Maybe<Scalars['Float']['output']>;
+  unitsPerApprovedActual?: Maybe<Scalars['Float']['output']>;
+}
+
 export interface AffiliatePostApprovalSection {
   actualUnits: Scalars['Int']['output'];
   affiliateUnits: Scalars['Int']['output'];
   applicationsWithOrder: Scalars['Int']['output'];
   approvedApplications: Scalars['Int']['output'];
+  byDecisionOrigin: Array<AffiliatePostApprovalDecisionOriginMetrics>;
   coverage: AffiliateCoverage;
   daily: Array<AffiliateShipmentDailyPoint>;
   orderRate?: Maybe<Scalars['Float']['output']>;
+  sampleActivityDailyByDecisionOrigin: Array<AffiliateSampleActivityDecisionOriginDailyPoint>;
+  sampleShipmentDailyByDecisionOrigin: Array<AffiliateSampleShipmentDecisionOriginDailyPoint>;
   samplesShipped: Scalars['Int']['output'];
   shipmentCoverage: AffiliateCoverage;
   unitsPerApprovedActual?: Maybe<Scalars['Float']['output']>;
@@ -4110,6 +4181,14 @@ export interface AffiliateRevisionRequestedProposalContext {
   type: ActionProposalType;
 }
 
+export interface AffiliateSampleActivityDecisionOriginDailyPoint {
+  contents: Scalars['Int']['output'];
+  decidedBy: AffiliateSampleDecisionOrigin;
+  ds: Scalars['String']['output'];
+  orders: Scalars['Int']['output'];
+  units: Scalars['Int']['output'];
+}
+
 /** Authority state of the current sample-application lookup. UNVERIFIED means neither presence nor absence has been established by Provider/workspace facts. */
 export interface AffiliateSampleApplicationLookupContext {
   productIds: Array<Scalars['String']['output']>;
@@ -4160,6 +4239,13 @@ export const AffiliateSampleCommissionRateSource = {
 } as const;
 
 export type AffiliateSampleCommissionRateSource = typeof AffiliateSampleCommissionRateSource[keyof typeof AffiliateSampleCommissionRateSource];
+/** Effective Sample Review decision origin. NOT_AI includes direct human, platform/system, and still-in-flight applications. */
+export const AffiliateSampleDecisionOrigin = {
+  Ai: 'AI',
+  NotAi: 'NOT_AI'
+} as const;
+
+export type AffiliateSampleDecisionOrigin = typeof AffiliateSampleDecisionOrigin[keyof typeof AffiliateSampleDecisionOrigin];
 export const AffiliateSampleRejectReason = {
   CreatorBlacklisted: 'CREATOR_BLACKLISTED',
   DuplicateApplication: 'DUPLICATE_APPLICATION',
@@ -4190,6 +4276,11 @@ export const AffiliateSampleReviewExecutionMode = {
 } as const;
 
 export type AffiliateSampleReviewExecutionMode = typeof AffiliateSampleReviewExecutionMode[keyof typeof AffiliateSampleReviewExecutionMode];
+export interface AffiliateSampleShipmentDecisionOriginDailyPoint {
+  decidedBy: AffiliateSampleDecisionOrigin;
+  ds: Scalars['String']['output'];
+  samplesShipped: Scalars['Int']['output'];
+}
 /** Why a Sample Application reached the terminal state that opened seller follow-up work. Frozen by the Backend from the transition event; consumers read it verbatim and never re-derive it. UNDETERMINED means the platform did not say, and no cause may be presented to the Creator. */
 export const AffiliateSampleTerminalCause = {
   ApprovalWindowExpired: 'APPROVAL_WINDOW_EXPIRED',
@@ -6934,6 +7025,7 @@ export const EcomBiDimension = {
   AffiliateCollaborationId: 'AFFILIATE_COLLABORATION_ID',
   AffiliateCollaborationName: 'AFFILIATE_COLLABORATION_NAME',
   AffiliateCollaborationType: 'AFFILIATE_COLLABORATION_TYPE',
+  AffiliateDecidedBy: 'AFFILIATE_DECIDED_BY',
   AffiliateOrderAttributionKey: 'AFFILIATE_ORDER_ATTRIBUTION_KEY',
   BankAccountMasked: 'BANK_ACCOUNT_MASKED',
   BuyerMessage: 'BUYER_MESSAGE',
@@ -7096,6 +7188,7 @@ export type EcomBiDimensionCardinality = typeof EcomBiDimensionCardinality[keyof
 export const EcomBiDimensionEntity = {
   Advertiser: 'ADVERTISER',
   AffiliateCollaboration: 'AFFILIATE_COLLABORATION',
+  AffiliateDecisionOrigin: 'AFFILIATE_DECISION_ORIGIN',
   AffiliateOrder: 'AFFILIATE_ORDER',
   Campaign: 'CAMPAIGN',
   Creative: 'CREATIVE',
@@ -9020,6 +9113,33 @@ export interface ImportAffiliateCreatorProtectionsPayload {
   updatedCount: Scalars['Int']['output'];
 }
 
+export interface ImportAffiliateCreatorUpdateEntryInput {
+  businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  manualTagNames?: InputMaybe<Array<Scalars['String']['input']>>;
+  platform: ShopPlatform;
+  protect?: InputMaybe<Scalars['Boolean']['input']>;
+  protectionNote?: InputMaybe<Scalars['String']['input']>;
+  username?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ImportAffiliateCreatorUpdatesInput {
+  entries: Array<ImportAffiliateCreatorUpdateEntryInput>;
+  importBatchId?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface ImportAffiliateCreatorUpdatesPayload {
+  appliedCount: Scalars['Int']['output'];
+  businessDevelopersChanged: Scalars['Int']['output'];
+  failedCount: Scalars['Int']['output'];
+  manualTagAssignmentsAdded: Scalars['Int']['output'];
+  manualTagsCreated: Scalars['Int']['output'];
+  noOpCount: Scalars['Int']['output'];
+  protectionsChanged: Scalars['Int']['output'];
+  rejectedCount: Scalars['Int']['output'];
+  results: Array<AffiliateCreatorBulkUpdateItemResult>;
+}
+
 /** Ads OAuth initiation response with authorization URL */
 export interface InitiateAdsOAuthResponse {
   authUrl: Scalars['String']['output'];
@@ -9753,6 +9873,7 @@ export interface Mutation {
   /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
   grantBillingPromotion: BillingSubscription;
   importAffiliateCreatorProtections: ImportAffiliateCreatorProtectionsPayload;
+  importAffiliateCreatorUpdates: ImportAffiliateCreatorUpdatesPayload;
   /** Generate a TikTok Ads OAuth authorization URL for the authenticated user. */
   initiateTikTokAdsOAuth: InitiateAdsOAuthResponse;
   /** Generate TikTok OAuth authorization URL */
@@ -10459,6 +10580,11 @@ export interface MutationGrantBillingPromotionArgs {
 
 export interface MutationImportAffiliateCreatorProtectionsArgs {
   input: ImportAffiliateCreatorProtectionsInput;
+}
+
+
+export interface MutationImportAffiliateCreatorUpdatesArgs {
+  input: ImportAffiliateCreatorUpdatesInput;
 }
 
 
