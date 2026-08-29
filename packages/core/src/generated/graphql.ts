@@ -4519,14 +4519,27 @@ export interface AffiliateWorkProductContext {
 }
 
 export interface AffiliateWorkbenchPendingConversationPage {
+  emailCount: Scalars['Int']['output'];
   hasMore: Scalars['Boolean']['output'];
   items: Array<AffiliateWorkbenchPendingConversationRow>;
   nextCursor?: Maybe<Scalars['String']['output']>;
+  platformCount: Scalars['Int']['output'];
+  /** All pending conversations after the shop/Business Developer filters; the channel filter never changes counts. */
+  totalCount: Scalars['Int']['output'];
+  /** Pending conversations whose Creator has been waiting for over 24 hours. */
+  waitingOver24hCount: Scalars['Int']['output'];
+  whatsappCount: Scalars['Int']['output'];
 }
 
 export interface AffiliateWorkbenchPendingConversationPageInput {
+  /** Restrict the page and its counts to conversations whose Relationship is owned by this Business Developer. */
+  businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts always describe the full unfiltered breakdown. */
+  channel?: InputMaybe<AffiliateMessageChannel>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Restrict PLATFORM_CHAT conversations to one owned shop. Only accepted together with the PLATFORM_CHAT channel filter. */
+  shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface AffiliateWorkbenchPendingConversationRow {
@@ -4548,12 +4561,18 @@ export interface AffiliateWorkbenchPendingConversationRow {
 }
 
 export interface AffiliateWorkbenchSamplePage {
+  /** The subset of openCount whose platform approval deadline falls within the next 24 hours. */
+  expiringSoonCount: Scalars['Int']['output'];
   hasMore: Scalars['Boolean']['output'];
   items: Array<AffiliateWorkbenchSampleRow>;
   nextCursor?: Maybe<Scalars['String']['output']>;
+  /** OPEN-disposition Sample Applications matching the shop/Business Developer filters, regardless of the requested disposition. */
+  openCount: Scalars['Int']['output'];
 }
 
 export interface AffiliateWorkbenchSamplePageInput {
+  /** Restrict the page and its counts to Sample Applications whose Relationship is owned by this Business Developer. */
+  businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;

@@ -845,7 +845,6 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   const [loadingMoreProposalQueryKey, setLoadingMoreProposalQueryKey] = useState<string | null>(
     null,
   );
-  const proposalLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -917,7 +916,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   }, [proposalTypeFilter]);
   const proposalQueryKey = affiliateProposalPageQueryKey({
     userId: user?.userId,
-    shopId: selectedShopId,
+    shopId: "",
     businessDeveloperId: selectedBusinessDeveloperId,
     status: proposalStatus,
     type: proposalType,
@@ -946,7 +945,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     {
       variables: {
         input: {
-          shopId: selectedShopId || null,
+          shopId: null,
           businessDeveloperId: selectedBusinessDeveloperId || null,
           status: proposalStatus,
           type: proposalType,
@@ -997,7 +996,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
       const result = await fetchMoreProposals({
         variables: {
           input: {
-            shopId: selectedShopId || null,
+            shopId: null,
             businessDeveloperId: selectedBusinessDeveloperId || null,
             status: proposalStatus,
             type: proposalType,
@@ -1032,25 +1031,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     proposalStatus,
     proposalType,
     selectedBusinessDeveloperId,
-    selectedShopId,
     showToast,
     t,
   ]);
-
-  useEffect(() => {
-    const target = proposalLoadMoreRef.current;
-    if (!target || !hasMoreProposals || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          void loadMoreProposals();
-        }
-      },
-      { rootMargin: "320px 0px" },
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [hasMoreProposals, loadMoreProposals]);
 
   useEffect(() => {
     const unsubscribeProposal = panelEventBus.subscribe(
@@ -1066,7 +1049,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
             : {
                 ...current,
                 items: applyAffiliateProposalChange(current.items, proposal, {
-                  shopId: selectedShopId || undefined,
+                  shopId: undefined,
                   businessDeveloperId: selectedBusinessDeveloperId || undefined,
                   status: proposalStatus,
                   type: proposalType,
@@ -1082,7 +1065,6 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     proposalStatus,
     proposalType,
     selectedBusinessDeveloperId,
-    selectedShopId,
   ]);
 
   const proposalItemsFromQuery = loadedProposals.map((proposal) =>
@@ -1107,7 +1089,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   ): Promise<boolean> {
     let optimisticApplied = false;
     const decisionFilters = {
-      shopId: selectedShopId || undefined,
+      shopId: undefined,
       businessDeveloperId: selectedBusinessDeveloperId || undefined,
       status: proposalStatus,
       type: proposalType,
@@ -1201,7 +1183,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     try {
       const result = await refetchProposals({
         input: {
-          shopId: selectedShopId || null,
+          shopId: null,
           businessDeveloperId: selectedBusinessDeveloperId || null,
           status: proposalStatus,
           type: proposalType,
@@ -1265,37 +1247,11 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
         title={t("ecommerce.affiliateWorkspace.workbench.title")}
         subtitle={t("ecommerce.affiliateWorkspace.workbench.subtitle")}
         actions={
-          <AffiliateToolbar
-            className="affiliate-workbench-controls"
-            data-tutorial-id="affiliate-attention-controls"
+          <div
+            className="affiliate-workbench-tabs"
+            data-tutorial-id="affiliate-attention-scope"
+            role="tablist"
           >
-            {workbenchTab !== "MESSAGES" ? (
-              <Select
-                value={selectedShopId}
-                onChange={setSelectedShopId}
-                options={shopOptions}
-                className="affiliate-workspace-shop-select"
-              />
-            ) : null}
-            {workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT" ? (
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={() => void refetchActive()}
-                disabled={proposalsLoading}
-              >
-                {proposalsLoading
-                  ? t("common.loading")
-                  : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
-              </button>
-            ) : null}
-          </AffiliateToolbar>
-        }
-      />
-
-      <div className="affiliate-workbench-panel">
-        <div className="affiliate-workbench-panel-head affiliate-attention-panel-head affiliate-agent-workspace-controls">
-          <div className="affiliate-workbench-tabs" data-tutorial-id="affiliate-attention-scope">
             {([
               ["PENDING_AGENT", "pendingAgent"],
               ["ALL_AGENT", "allAgent"],
@@ -1314,7 +1270,12 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
               </button>
             ))}
           </div>
-          {workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT" ? (
+        }
+      />
+
+      <div className="affiliate-workbench-panel">
+        {workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT" ? (
+          <div className="affiliate-workbench-panel-head affiliate-agent-workspace-controls">
             <div
               className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
               data-tutorial-id="affiliate-attention-filters"
@@ -1367,14 +1328,29 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
               />
             </label>
             </div>
-          ) : null}
-        </div>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => void refetchActive()}
+              disabled={proposalsLoading}
+            >
+              {proposalsLoading
+                ? t("common.loading")
+                : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
+            </button>
+          </div>
+        ) : null}
 
         <div className="affiliate-attention-active-list">
           {workbenchTab === "SAMPLES" || workbenchTab === "MESSAGES" ? (
             <AffiliateWorkbenchEntityTabs
               tab={workbenchTab}
               selectedShopId={selectedShopId}
+              shopOptions={shopOptions}
+              onSelectShop={setSelectedShopId}
+              businessDeveloperOptions={businessDeveloperOptions}
+              selectedBusinessDeveloperId={selectedBusinessDeveloperId}
+              onSelectBusinessDeveloper={setSelectedBusinessDeveloperId}
               refreshRevision={workbenchEntityRefreshRevision}
               onOpen={setSelectedEntityTarget}
             />
@@ -1398,7 +1374,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
           )}
           {(workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT") &&
           (hasMoreProposals || loadingMoreProposals) ? (
-            <div className="affiliate-proposal-stream-footer" ref={proposalLoadMoreRef}>
+            <div className="affiliate-proposal-stream-footer">
               <button
                 className="btn btn-secondary affiliate-proposal-load-more"
                 type="button"

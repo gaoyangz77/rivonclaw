@@ -32,7 +32,6 @@ function step(
 
 export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
   step("affiliate-attention-welcome", "affiliate-attention-header", "welcome", "bottom"),
-  step("affiliate-attention-controls", "affiliate-attention-controls", "controls", "bottom"),
   step("affiliate-attention-scope", "affiliate-attention-scope", "scope", "bottom"),
   step("affiliate-attention-filters", "affiliate-attention-filters", "filters", "top"),
   step("affiliate-attention-queue", "affiliate-attention-queue", "queue", "top", 5000),
