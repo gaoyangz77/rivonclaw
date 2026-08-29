@@ -1,7 +1,8 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
-import { useMutation, useQuery } from "@apollo/client/react";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { GQL } from "@rivonclaw/core";
 import { ChannelsIcon, CheckIcon, ChevronRightIcon, CloseIcon, DownloadIcon, GlobeIcon, InfoIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
@@ -22,9 +23,10 @@ import {
   ASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION,
   ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
   COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION,
+  CREATOR_MANUAL_TAGS_QUERY,
   EMAIL_ACCOUNT_BINDINGS_QUERY,
   ENSURE_AFFILIATE_BUSINESS_DEVELOPERS_MUTATION,
-  IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION,
+  IMPORT_AFFILIATE_CREATOR_UPDATES_MUTATION,
   REMOVE_AFFILIATE_CREATOR_PROTECTION_MUTATION,
   SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
   UNASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION,
@@ -41,12 +43,15 @@ import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxy
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
 import "./components/AffiliateUi.css";
 import {
+  AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
   buildAffiliateDeveloperProvisionBatches,
   buildAffiliateProtectionDeveloperResolutionSeeds,
-  buildAffiliateProtectionImportBatches,
+  buildAffiliateCreatorUpdateImportBatches,
   classifyAffiliateProtectionPreviewRow,
   normalizeAffiliateBusinessDeveloperName,
+  parseAffiliateCreatorUpdateRow,
   summarizeAffiliateProtectionAssignments,
+  validateAffiliateCreatorUpdateTemplate,
 } from "./affiliate-protection-import.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
@@ -57,10 +62,7 @@ const PROTECTION_PREVIEW_PAGE_SIZE = 50;
 const PROTECTION_MANUAL_TAG_CHIP_LIMIT = 3;
 const PROTECTION_IMPORT_BATCH_TIMEOUT_MS = 90_000;
 export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
-export const PROTECTED_CREATOR_TEMPLATE_HEADERS = [
-  "creator_username",
-  "bd_name",
-] as const;
+export const CREATOR_BULK_UPDATE_TEMPLATE_HEADERS = AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS;
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
@@ -109,7 +111,9 @@ type ProtectionPreviewRow = {
   username: string | null;
   businessDeveloperId: string | null;
   businessDeveloperName: string | null;
-  note: string | null;
+  protect: boolean;
+  protectionNote: string | null;
+  manualTagNames: string[];
   error: string | null;
   excluded?: boolean;
 };
@@ -216,6 +220,7 @@ function readTeamPageTab(): TeamPageTab {
 export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const apolloClient = useApolloClient();
   const entityStore = useEntityStore();
   const workspace = entityStore.affiliateWorkspace;
   const myDeviceId = useMyDeviceId();
@@ -298,6 +303,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     },
     fetchPolicy: "cache-and-network",
   });
+  const creatorTagsQuery = useQuery<
+    { creatorManualTags: GQL.CreatorManualTag[] },
+    { input: GQL.ReadCreatorManualTagsInput }
+  >(CREATOR_MANUAL_TAGS_QUERY, {
+    variables: { input: {} },
+    fetchPolicy: "cache-and-network",
+  });
   const whatsappQuery = useQuery<{ whatsAppAccountBindings: GQL.WhatsAppAccountBinding[] }>(
     WHATSAPP_ACCOUNT_BINDINGS_QUERY,
     { fetchPolicy: "cache-and-network" },
@@ -364,10 +376,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     { setAffiliateBusinessDeveloperPreferredAccount: GQL.AffiliateBusinessDeveloper },
     { input: GQL.SetAffiliateBusinessDeveloperPreferredAccountInput }
   >(SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION);
-  const [importProtections, importState] = useMutation<
-    { importAffiliateCreatorProtections: GQL.ImportAffiliateCreatorProtectionsPayload },
-    { input: GQL.ImportAffiliateCreatorProtectionsInput }
-  >(IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION);
+  const [importCreatorUpdates, importState] = useMutation<
+    { importAffiliateCreatorUpdates: GQL.ImportAffiliateCreatorUpdatesPayload },
+    { input: GQL.ImportAffiliateCreatorUpdatesInput }
+  >(IMPORT_AFFILIATE_CREATOR_UPDATES_MUTATION);
   const [removeProtection, removeProtectionState] = useMutation<
     { removeAffiliateCreatorProtection: GQL.AffiliateCreatorProtectionRemovalPayload },
     { id: string }
@@ -458,6 +470,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     () => summarizeAffiliateProtectionAssignments(protectionRows),
     [protectionRows],
   );
+  const existingManualTagNames = useMemo(() => new Set(
+    (creatorTagsQuery.data?.creatorManualTags ?? []).map((tag) => (
+      tag.name.trim().toLowerCase()
+    )),
+  ), [creatorTagsQuery.data?.creatorManualTags]);
+  const manualTagCatalogLoaded = creatorTagsQuery.data != null;
   const archiveBlocked = Boolean(detailSummary && (
     detailSummary.creatorRelationshipCount
     + detailSummary.whatsappAccountCount
@@ -722,6 +740,18 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0] ?? ""];
       if (!sheet) throw new Error(t("ecommerce.affiliateTeam.emptySpreadsheet"));
+      const sheetRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        defval: "",
+        blankrows: false,
+      });
+      const templateValidation = validateAffiliateCreatorUpdateTemplate(sheetRows[0] ?? []);
+      if (!templateValidation.valid) {
+        throw new Error(t("ecommerce.affiliateTeam.creatorUpdateTemplateUnsupported", {
+          missing: templateValidation.missingHeaders.join(", ") || "—",
+          unsupported: templateValidation.unsupportedHeaders.join(", ") || "—",
+        }));
+      }
       const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
       const activeDevelopersByName = new Map(
         authoritativeDevelopers
@@ -730,12 +760,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       );
       const seen = new Set<string>();
       const parsed = rawRows.map((raw, index): ProtectionPreviewRow => {
-        const row = normalizeSpreadsheetRow(raw);
+        const row = parseAffiliateCreatorUpdateRow(raw);
         const creatorOpenId = null;
-        const username = cleanCell(row.creator_username ?? row.username);
-        const developerName = cleanCell(
-          row.bd_name ?? row.business_developer_name ?? row.business_developer ?? row.bd,
-        );
+        const username = row.username;
+        const developerName = row.businessDeveloperName;
         const normalizedDeveloperName = developerName
           ? normalizeAffiliateBusinessDeveloperName(developerName)
           : "";
@@ -743,9 +771,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           ? activeDevelopersByName.get(normalizedDeveloperName)
           : null;
         const key = username ? `username:${username.toLowerCase()}` : "";
-        let error: string | null = null;
-        if (!key) error = t("ecommerce.affiliateTeam.missingCreatorIdentity");
-        else if (seen.has(key)) error = t("ecommerce.affiliateTeam.duplicateCreator");
+        let error = creatorUpdateIssueMessage(row.issue, t);
+        if (!error && seen.has(key)) error = t("ecommerce.affiliateTeam.duplicateCreator");
         if (key) seen.add(key);
         return {
           rowNumber: index + 2,
@@ -754,7 +781,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           username,
           businessDeveloperId: developer?.id ?? null,
           businessDeveloperName: developerName,
-          note: null,
+          protect: row.protect,
+          protectionNote: row.protectionNote,
+          manualTagNames: row.manualTagNames,
           error,
         };
       });
@@ -817,7 +846,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       username: identity,
       businessDeveloperId: developer?.id ?? null,
       businessDeveloperName: developer?.displayName ?? null,
-      note: manualNote.trim() || null,
+      protect: true,
+      protectionNote: manualNote.trim() || null,
+      manualTagNames: [],
       error: null,
     }]);
     setManualCreator("");
@@ -960,6 +991,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             ...row,
             businessDeveloperId: null,
             businessDeveloperName: null,
+            error: row.protect || row.manualTagNames.length > 0
+              ? null
+              : t("ecommerce.affiliateTeam.creatorUpdateNoOperations"),
           };
         }
         if (group.resolution === "MAP") {
@@ -1000,16 +1034,18 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   async function submitResolvedProtectionRows(rows: ProtectionPreviewRow[], importBatchId: string) {
     const validRows = rows.filter((row) => !row.error && !row.excluded);
     if (!validRows.length) return;
-    const entries: GQL.ImportAffiliateCreatorProtectionEntryInput[] = validRows.map((row) => ({
+    const entries: GQL.ImportAffiliateCreatorUpdateEntryInput[] = validRows.map((row) => ({
       platform: row.platform,
       creatorOpenId: row.creatorOpenId,
       username: row.username,
       businessDeveloperId: row.businessDeveloperId,
-      note: row.note,
+      protect: row.protect,
+      protectionNote: row.protectionNote,
+      manualTagNames: row.manualTagNames,
     }));
-    let batches: ReturnType<typeof buildAffiliateProtectionImportBatches>;
+    let batches: ReturnType<typeof buildAffiliateCreatorUpdateImportBatches>;
     try {
-      batches = buildAffiliateProtectionImportBatches(entries, importBatchId);
+      batches = buildAffiliateCreatorUpdateImportBatches(entries, importBatchId);
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
       return;
@@ -1018,7 +1054,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     const completedRowNumbers = new Set<number>();
     const rejectedRows = new Map<number, string>();
     const invalidRowCount = rows.length - validRows.length;
-    let importedCount = 0;
+    let appliedCount = 0;
+    let noOpCount = 0;
+    let manualTagsCreated = 0;
+    let manualTagAssignmentsAdded = 0;
     let completedCount = 0;
     setProtectionImportPhase("IMPORTING_PROTECTIONS");
     setProtectionImportProgress({
@@ -1034,9 +1073,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           () => controller.abort(),
           PROTECTION_IMPORT_BATCH_TIMEOUT_MS,
         );
-        let result: Awaited<ReturnType<typeof importProtections>>;
+        let result: Awaited<ReturnType<typeof importCreatorUpdates>>;
         try {
-          result = await importProtections({
+          result = await importCreatorUpdates({
             variables: {
               input: {
                 importBatchId,
@@ -1060,17 +1099,30 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         } finally {
           window.clearTimeout(timeout);
         }
-        const payload = result.data?.importAffiliateCreatorProtections;
+        const payload = result.data?.importAffiliateCreatorUpdates;
         if (!payload) throw new Error(t("ecommerce.updateFailed"));
-        importedCount += payload.createdCount + payload.updatedCount;
-        for (const rejected of payload.rejectedRows) {
-          const sourceRow = validRows[batch.startIndex + rejected.index];
-          if (sourceRow) rejectedRows.set(sourceRow.rowNumber, rejected.reason);
+        const resultByIndex = new Map(payload.results.map((item) => [item.index, item]));
+        if (payload.results.length !== batch.entries.length ||
+            resultByIndex.size !== batch.entries.length ||
+            batch.entries.some((_, index) => !resultByIndex.has(index))) {
+          throw new Error("Affiliate Creator update response did not contain exactly one result per row");
         }
+        appliedCount += payload.appliedCount;
+        noOpCount += payload.noOpCount;
+        manualTagsCreated += payload.manualTagsCreated;
+        manualTagAssignmentsAdded += payload.manualTagAssignmentsAdded;
         for (let index = 0; index < batch.entries.length; index += 1) {
+          const item = resultByIndex.get(index)!;
           const sourceRow = validRows[batch.startIndex + index];
-          if (sourceRow && !rejectedRows.has(sourceRow.rowNumber)) {
+          if (!sourceRow) throw new Error(`Affiliate Creator update row ${index} is missing`);
+          if (item.status === GQL.AffiliateCreatorBulkUpdateStatus.Applied ||
+              item.status === GQL.AffiliateCreatorBulkUpdateStatus.NoOp) {
             completedRowNumbers.add(sourceRow.rowNumber);
+          } else if (item.status === GQL.AffiliateCreatorBulkUpdateStatus.Rejected ||
+              item.status === GQL.AffiliateCreatorBulkUpdateStatus.Failed) {
+            rejectedRows.set(sourceRow.rowNumber, item.reason || item.status);
+          } else {
+            throw new Error(`Unknown Affiliate Creator update status: ${String(item.status)}`);
           }
         }
         completedCount += batch.entries.length;
@@ -1086,9 +1138,19 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         const rejection = rejectedRows.get(row.rowNumber);
         return rejection ? [{ ...row, error: rejection }] : [];
       }));
-      await protectionQuery.refetch();
+      await Promise.all([
+        protectionQuery.refetch(),
+        developersQuery.refetch(),
+        developerPageQuery.refetch(),
+        apolloClient.refetchQueries({ include: [CREATOR_MANUAL_TAGS_QUERY] }),
+      ]);
       showToast(
-        t("ecommerce.affiliateTeam.protectionsImported", { count: importedCount }),
+        t("ecommerce.affiliateTeam.creatorUpdatesImported", {
+          applied: appliedCount,
+          noOp: noOpCount,
+          tagsCreated: manualTagsCreated,
+          tagAssignments: manualTagAssignmentsAdded,
+        }),
         rejectedRows.size > 0 || invalidRowCount > 0 ? "warning" : "success",
       );
       setProtectionImportPhase("COMPLETED");
@@ -1218,12 +1280,19 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
   async function downloadTemplate() {
     const XLSX = await import("xlsx");
-    const worksheet = XLSX.utils.aoa_to_sheet([[...PROTECTED_CREATOR_TEMPLATE_HEADERS]]);
+    const worksheet = XLSX.utils.aoa_to_sheet([[...CREATOR_BULK_UPDATE_TEMPLATE_HEADERS]]);
     worksheet["!cols"] = [
       { wch: 28 },
       { wch: 32 },
+      { wch: 22 },
+      { wch: 42 },
+      { wch: 26 },
+      { wch: 26 },
+      { wch: 26 },
+      { wch: 26 },
+      { wch: 26 },
     ];
-    worksheet["!autofilter"] = { ref: "A1:B1" };
+    worksheet["!autofilter"] = { ref: "A1:I1" };
     const instructions = XLSX.utils.aoa_to_sheet([
       [
         t("ecommerce.affiliateTeam.templateField"),
@@ -1232,12 +1301,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       ],
       ["creator_username", t("ecommerce.affiliateTeam.templateRequired"), t("ecommerce.affiliateTeam.templateIdentityHint")],
       ["bd_name", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateDeveloperHint")],
+      ["protection_action", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateProtectionActionHint")],
+      ["protection_note", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateProtectionNoteHint")],
+      ["add_manual_tag_1 … add_manual_tag_5", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateManualTagHint")],
     ]);
     instructions["!cols"] = [{ wch: 34 }, { wch: 24 }, { wch: 76 }];
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Protected creators");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Creator updates");
     XLSX.utils.book_append_sheet(workbook, instructions, "Instructions");
-    XLSX.writeFile(workbook, "affiliate-protected-creators.xlsx");
+    XLSX.writeFile(workbook, "affiliate-creator-bulk-update.xlsx");
   }
 
   function removeProtectionRow(rowNumber: number) {
@@ -1546,8 +1618,17 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         aria-labelledby="affiliate-team-tab-assignments"
         hidden={pageTab !== "ASSIGNMENTS"}
       >
+      <div className="affiliate-creator-management-toolbar" data-tutorial-id="affiliate-team-assignments">
+        <div>
+          <strong>{t("ecommerce.affiliateTeam.creatorBulkUpdateTitle")}</strong>
+          <span>{t("ecommerce.affiliateTeam.creatorBulkUpdateHint")}</span>
+        </div>
+        <button className="btn btn-primary" type="button" onClick={openProtectionImport} disabled={protectionImportBusy}>
+          <UserPlusIcon /> {t("ecommerce.affiliateTeam.importCreatorUpdates")}
+        </button>
+      </div>
       <section className="affiliate-protection-boundary">
-        <div className="affiliate-protection-boundary-head" data-tutorial-id="affiliate-team-assignments">
+        <div className="affiliate-protection-boundary-head">
           <div className="affiliate-protection-boundary-title">
             <span className="affiliate-protection-boundary-icon"><InfoIcon /></span>
             <div>
@@ -1555,11 +1636,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               <h2>{t("ecommerce.affiliateTeam.onboardingTitle")}</h2>
               <p>{t(onboardingComplete ? "ecommerce.affiliateTeam.protectionBoundaryReady" : "ecommerce.affiliateTeam.onboardingHint")}</p>
             </div>
-          </div>
-          <div className="affiliate-protection-boundary-actions">
-            <button className="btn btn-primary btn-sm" type="button" onClick={openProtectionImport} disabled={protectionImportBusy}>
-              <UserPlusIcon /> {t("ecommerce.affiliateTeam.importProtected")}
-            </button>
           </div>
         </div>
 
@@ -2106,6 +2182,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 <span>{t("ecommerce.affiliateTeam.protectionPreviewRow")}</span>
                 <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
                 <span>{t("ecommerce.affiliateTeam.assignDeveloper")}</span>
+                <span>{t("ecommerce.affiliateTeam.creatorUpdatePlannedChanges")}</span>
                 <span>{t("ecommerce.affiliateTeam.protectionPreviewOutcome")}</span>
                 <span />
               </div>
@@ -2128,6 +2205,17 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                       <span>#{row.rowNumber}</span>
                       <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
                       <span>{row.businessDeveloperName || "—"}</span>
+                      <span className="affiliate-creator-update-actions">
+                        {[
+                          row.protect ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction") : null,
+                          ...row.manualTagNames.map((name) => {
+                            const normalizedName = name.trim().toLowerCase();
+                            return !manualTagCatalogLoaded || existingManualTagNames.has(normalizedName)
+                              ? `#${name}`
+                              : t("ecommerce.affiliateTeam.creatorUpdateNewTag", { name });
+                          }),
+                        ].filter(Boolean).join(" · ") || t("ecommerce.affiliateTeam.creatorUpdateBdOnly")}
+                      </span>
                       <em className={`is-${disposition.toLowerCase().replaceAll("_", "-")}`}>{statusLabel}</em>
                       <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")} disabled={protectionImportBusy}><CloseIcon /></button>
                     </div>
@@ -2747,11 +2835,20 @@ function ChannelWorkspaceCard({ channel, accounts, onTransfer, canConnect, conne
   </section>;
 }
 
-function normalizeSpreadsheetRow(row: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(row).map(([key, value]) => [key.trim().toLowerCase().replace(/[\s-]+/g, "_"), value]));
-}
-
-function cleanCell(value: unknown): string | null {
-  const text = String(value ?? "").trim();
-  return text || null;
+function creatorUpdateIssueMessage(
+  issue: ReturnType<typeof parseAffiliateCreatorUpdateRow>["issue"],
+  t: TFunction,
+): string | null {
+  switch (issue) {
+    case "MISSING_CREATOR":
+      return t("ecommerce.affiliateTeam.missingCreatorIdentity");
+    case "INVALID_PROTECTION_ACTION":
+      return t("ecommerce.affiliateTeam.creatorUpdateInvalidProtectionAction");
+    case "NOTE_WITHOUT_PROTECTION":
+      return t("ecommerce.affiliateTeam.creatorUpdateNoteWithoutProtection");
+    case "NO_UPDATES":
+      return t("ecommerce.affiliateTeam.creatorUpdateNoOperations");
+    default:
+      return null;
+  }
 }
