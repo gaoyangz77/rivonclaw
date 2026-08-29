@@ -178,6 +178,22 @@ function AffiliateWorkbenchSampleList({
                       })}`
                     : ""}
                 </small>
+                {row.sampleApplication.merchantReviewDecidedAt ? (
+                  <small className="affiliate-workbench-review-attribution">
+                    {t("ecommerce.affiliateWorkspace.workbench.reviewedBy", {
+                      actor: t(
+                        row.sampleApplication.merchantReviewActorType ===
+                          GQL.AffiliateLifecycleActorType.Agent
+                          ? "ecommerce.affiliateWorkspace.workbench.reviewActorAgent"
+                          : "ecommerce.affiliateWorkspace.workbench.reviewActorHuman",
+                      ),
+                      value: formatLocalizedDateTime(
+                        row.sampleApplication.merchantReviewDecidedAt,
+                        panelI18n.language,
+                      ),
+                    })}
+                  </small>
+                ) : null}
               </div>
               <EntityBadges
                 protectedCreator={row.protected}

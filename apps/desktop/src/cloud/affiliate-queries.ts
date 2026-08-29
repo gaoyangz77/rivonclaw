@@ -214,6 +214,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         campaignId
         affiliateCollaborationId
         sampleApplicationRecordId
+        reviewDisposition
         proposalId
         reasons
         nextActionAt
@@ -303,7 +304,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
             emailSubject
             parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
-          sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+          sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision reviewDispositionRevision lastObservedAt decision executionMode rejectReason rejectReasonExplanation }
           creatorTagIntent { operation manualTagId systemTag contextShopId }
           steps {
             stepId
@@ -315,7 +316,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision reviewDispositionRevision lastObservedAt decision executionMode rejectReason rejectReasonExplanation }
             creatorTagIntent { operation manualTagId systemTag contextShopId }
           }
         }

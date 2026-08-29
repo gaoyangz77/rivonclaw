@@ -1653,6 +1653,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
+            reviewDispositionRevision
+            executionMode
             decision
             rejectReason
             rejectReasonExplanation
@@ -1720,6 +1722,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         sampleReviewIntent {
           sampleApplicationRecordId
           platformApplicationId
+          reviewDispositionRevision
+          executionMode
           decision
           rejectReason
           rejectReasonExplanation
@@ -2698,6 +2702,8 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
+            reviewDispositionRevision
+            executionMode
             decision
             rejectReason
             rejectReasonExplanation
@@ -2930,6 +2936,14 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         lastObservedAt
         providerEventAt
         projectionRevision
+        reviewDisposition
+        reviewDispositionRevision
+        merchantReviewDecision
+        merchantReviewExecutionMode
+        merchantReviewRejectReason
+        merchantReviewRejectReasonExplanation
+        merchantReviewDecidedAt
+        merchantReviewActorType
         order {
           platformOrderId
           trackingNumber
@@ -3693,6 +3707,8 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         sampleReviewIntent {
           sampleApplicationRecordId
           platformApplicationId
+          reviewDispositionRevision
+          executionMode
           decision
           rejectReason
           rejectReasonExplanation
@@ -3760,6 +3776,8 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       sampleReviewIntent {
         sampleApplicationRecordId
         platformApplicationId
+        reviewDispositionRevision
+        executionMode
         decision
         rejectReason
         rejectReasonExplanation
@@ -3871,6 +3889,7 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       merchantReviewRejectReason
       merchantReviewRejectReasonExplanation
       merchantReviewDecidedAt
+      merchantReviewActorType
       platformStatus
       approveExpirationAt
       firstObservedAt

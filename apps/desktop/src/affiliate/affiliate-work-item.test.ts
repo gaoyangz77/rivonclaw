@@ -448,6 +448,8 @@ function createSampleReviewWorkItem(
     creatorRelationshipId: "relationship-001",
     productId: "product-001",
     sampleWorkStatus: GQL.SampleWorkStatus.RequestPendingReview,
+    reviewDisposition: GQL.AffiliateSampleReviewDisposition.Open,
+    reviewDispositionRevision: 1,
     firstObservedAt: "2026-05-11T00:00:00.000Z",
     lastObservedAt: "2026-05-11T00:01:00.000Z",
     lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile,
@@ -2692,6 +2694,33 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
     expect(request?.message).toContain("Required Action: COMPLETE_COLLABORATION_TASK");
     expect(request?.message).not.toContain("workspace");
+  });
+
+  it("shows a Soft Rejected Sample as annotated context beside actionable work", () => {
+    const base = createSampleReviewWorkItem();
+    const softRejected = {
+      ...base.agentWorkingAgendaItems[0]!,
+      key: "sample:soft-rejected:WAIT_PLATFORM_UPDATE",
+      owner: GQL.AffiliateRelationshipAgendaOwner.External,
+      workKind: GQL.AffiliateWorkKind.SamplePlatformFulfillmentWait,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.WaitPlatformUpdate,
+      sampleApplicationRecordId: "sample-record-soft-rejected",
+      reviewDisposition: GQL.AffiliateSampleReviewDisposition.SoftRejected,
+      reasons: [],
+      predictionEvidence: null,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: {
+        ...base,
+        agentWorkingAgendaItems: [...base.agentWorkingAgendaItems, softRejected],
+      },
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain(
+      "Sample Application Record ID: sample-record-soft-rejected",
+    );
+    expect(request?.message).toContain("Sample Review Disposition: SOFT_REJECTED");
   });
 
   it("does not build a sample review agent run when backend has already handled that work boundary", () => {

@@ -339,6 +339,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           campaignId
           affiliateCollaborationId
           sampleApplicationRecordId
+          reviewDisposition
           proposalId
           reasons
           nextActionAt
@@ -428,7 +429,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision reviewDispositionRevision lastObservedAt decision executionMode rejectReason rejectReasonExplanation }
             creatorTagIntent { operation manualTagId systemTag contextShopId }
             steps {
               stepId
@@ -440,7 +441,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
                 emailSubject
                 parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
               }
-              sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+              sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision reviewDispositionRevision lastObservedAt decision executionMode rejectReason rejectReasonExplanation }
               creatorTagIntent { operation manualTagId systemTag contextShopId }
             }
           }
@@ -854,7 +855,9 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
+            reviewDispositionRevision
             decision
+            executionMode
             rejectReason
             rejectReasonExplanation
           }
@@ -900,7 +903,9 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         sampleReviewIntent {
           sampleApplicationRecordId
           platformApplicationId
+          reviewDispositionRevision
           decision
+          executionMode
           rejectReason
           rejectReasonExplanation
         }

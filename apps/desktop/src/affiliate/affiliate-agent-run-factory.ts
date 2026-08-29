@@ -63,9 +63,12 @@ export function buildAffiliateAgentRunRequest(
 function assertFormalSampleAgendaHasPredictionEvidence(
   workItem: GQL.AffiliateWorkItem,
 ): void {
-  const missingEvidence = resolveOpenAgentAgenda(workItem).find(
-    (item) => item.sampleApplicationRecordId && !item.predictionEvidence,
-  );
+  const missingEvidence = resolveOpenAgentAgenda(workItem).find((item) => {
+    if (item.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected) {
+      return false;
+    }
+    return item.sampleApplicationRecordId && !item.predictionEvidence;
+  });
   if (missingEvidence) {
     throw new Error(
       `Affiliate Sample Application agenda ${missingEvidence.key} is missing Backend prediction evidence; refuse to start an Agent run until the work item is redispatched.`,
@@ -152,6 +155,9 @@ export function renderAgentWorkingAgenda(
     }
     if (item.sampleApplicationRecordId) {
       lines.push(`   Sample Application Record ID: ${item.sampleApplicationRecordId}`);
+    }
+    if (item.reviewDisposition) {
+      lines.push(`   Sample Review Disposition: ${item.reviewDisposition}`);
     }
     if (item.sampleTerminalState) {
       lines.push(...renderSampleTerminalState(item.sampleTerminalState));
