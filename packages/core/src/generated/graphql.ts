@@ -1886,6 +1886,12 @@ export const AffiliateCampaignType = {
 } as const;
 
 export type AffiliateCampaignType = typeof AffiliateCampaignType[keyof typeof AffiliateCampaignType];
+export const AffiliateChannelConversationSource = {
+  CreatorChannelContact: 'CREATOR_CHANNEL_CONTACT',
+  PlatformConversationRoute: 'PLATFORM_CONVERSATION_ROUTE'
+} as const;
+
+export type AffiliateChannelConversationSource = typeof AffiliateChannelConversationSource[keyof typeof AffiliateChannelConversationSource];
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars['ID']['output']>;
@@ -3245,6 +3251,7 @@ export const AffiliateLifecycleEventType = {
   TagAdded: 'TAG_ADDED',
   TagRemoved: 'TAG_REMOVED',
   TargetInviteCreated: 'TARGET_INVITE_CREATED',
+  WorkItemReplayRequested: 'WORK_ITEM_REPLAY_REQUESTED',
   WorkItemRequeued: 'WORK_ITEM_REQUEUED',
   WorkItemResolved: 'WORK_ITEM_RESOLVED',
   WorkItemRetryRequested: 'WORK_ITEM_RETRY_REQUESTED'
@@ -10045,6 +10052,8 @@ export interface Mutation {
   renameExpertConversation: ExpertConversation;
   /** Reopen a locally Soft Rejected Sample Application if TikTok still allows review. */
   reopenSoftRejectedAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
+  /** Validate or apply a strict CAS rewind of one executed NO_ACTION_NEEDED Creator-message boundary for an explicitly declared Affiliate live-test remediation replay. This never sends a message or creates a proposal. */
+  replayAffiliateAgentMessageBoundaryForLiveTest: ReplayAffiliateAgentMessageBoundaryPayload;
   reportAffiliateCampaignSearchPlanGenerationFailure: Scalars['Boolean']['output'];
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars['Boolean']['output'];
@@ -10864,6 +10873,11 @@ export interface MutationRenameExpertConversationArgs {
 
 export interface MutationReopenSoftRejectedAffiliateSampleApplicationArgs {
   input: ReopenSoftRejectedAffiliateSampleApplicationInput;
+}
+
+
+export interface MutationReplayAffiliateAgentMessageBoundaryForLiveTestArgs {
+  input: ReplayAffiliateAgentMessageBoundaryInput;
 }
 
 
@@ -13281,6 +13295,34 @@ export interface ReopenSoftRejectedAffiliateSampleApplicationInput {
   projectionRevision: Scalars['Int']['input'];
   reviewDispositionRevision: Scalars['Int']['input'];
   sampleApplicationRecordId: Scalars['ID']['input'];
+}
+
+/** Strict CAS input for an explicitly declared Affiliate live-test replay of one executed NO_ACTION_NEEDED Creator-message boundary. */
+export interface ReplayAffiliateAgentMessageBoundaryInput {
+  /** False performs validation only; true applies the exact CAS rewind. */
+  apply: Scalars['Boolean']['input'];
+  creatorRelationshipId: Scalars['ID']['input'];
+  expectedCommittedCheckpointId: Scalars['String']['input'];
+  expectedCommittedEventCursor: Scalars['Int']['input'];
+  replayRunId: Scalars['String']['input'];
+  sourceLifecycleEventId: Scalars['ID']['input'];
+}
+
+/** Validation and application result for an exact Affiliate live-test message-boundary replay. */
+export interface ReplayAffiliateAgentMessageBoundaryPayload {
+  applied: Scalars['Boolean']['output'];
+  creatorRelationshipId: Scalars['ID']['output'];
+  eligible: Scalars['Boolean']['output'];
+  executedNoActionProposalId?: Maybe<Scalars['ID']['output']>;
+  previousCheckpointId?: Maybe<Scalars['String']['output']>;
+  previousEventCursor?: Maybe<Scalars['Int']['output']>;
+  reason?: Maybe<Scalars['String']['output']>;
+  restoredCheckpointId?: Maybe<Scalars['String']['output']>;
+  restoredEventCursor?: Maybe<Scalars['Int']['output']>;
+  sourceId?: Maybe<Scalars['ID']['output']>;
+  sourceLifecycleEventId: Scalars['ID']['output'];
+  sourceType?: Maybe<AffiliateChannelConversationSource>;
+  workVisible: Scalars['Boolean']['output'];
 }
 
 export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
