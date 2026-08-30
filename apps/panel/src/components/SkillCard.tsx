@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
+import { TkPanel } from "./design-system/index.js";
 
 const LABEL_BADGE_MAP: Record<string, string> = {
     [GQL.SkillLabel.Recommended]: "badge badge-info",
@@ -54,7 +55,7 @@ export function SkillCard({
     const showStats = variant === "market";
 
     return (
-        <div className="section-card skill-market-card">
+        <TkPanel as="article" className="section-card skill-market-card">
             <div className="skill-card-header">
                 <div className="skill-card-name">{name}</div>
                 {version && <span className="skill-card-version">v{version}</span>}
@@ -122,6 +123,6 @@ export function SkillCard({
                     </button>
                 )}
             </div>
-        </div>
+        </TkPanel>
     );
 }

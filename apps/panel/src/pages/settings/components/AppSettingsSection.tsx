@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ToggleSwitch } from "./ToggleSwitch.js";
+import { TkSection, TkSwitch } from "../../../components/design-system/index.js";
 
 interface AppSettingsSectionProps {
   accentColor: string;
@@ -21,71 +21,112 @@ export function AppSettingsSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-app" data-tutorial-id="settings-app">
-      <h3>{t("settings.app.title")}</h3>
-
-      <div>
-        <label className="form-label-block">{t("settings.app.accentColor")}</label>
-        <div className="accent-color-picker">
+    <TkSection
+      className="tk-settings-section settings-section-app"
+      data-tutorial-id="settings-app"
+      headingLevel={2}
+      title={t("settings.app.title")}
+      variant="framed"
+    >
+      <div className="tk-settings-field">
+        <span className="tk-v1-label">{t("settings.app.accentColor")}</span>
+        <div
+          className="tk-settings-accent-picker"
+          role="radiogroup"
+          aria-label={t("settings.app.accentColor")}
+        >
           <button
-            className={`accent-color-swatch accent-color-swatch-blue${accentColor === "blue" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "blue"}
+            aria-label={t("settings.app.accentBlue")}
+            className="tk-settings-accent tk-settings-accent-blue"
             onClick={() => handleAccentColorChange("blue")}
             title={t("settings.app.accentBlue")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-orange${accentColor === "orange" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "orange"}
+            aria-label={t("settings.app.accentOrange")}
+            className="tk-settings-accent tk-settings-accent-orange"
             onClick={() => handleAccentColorChange("orange")}
             title={t("settings.app.accentOrange")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-emerald${accentColor === "emerald" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "emerald"}
+            aria-label={t("settings.app.accentEmerald")}
+            className="tk-settings-accent tk-settings-accent-emerald"
             onClick={() => handleAccentColorChange("emerald")}
             title={t("settings.app.accentEmerald")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-rose${accentColor === "rose" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "rose"}
+            aria-label={t("settings.app.accentRose")}
+            className="tk-settings-accent tk-settings-accent-rose"
             onClick={() => handleAccentColorChange("rose")}
             title={t("settings.app.accentRose")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-violet${accentColor === "violet" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "violet"}
+            aria-label={t("settings.app.accentViolet")}
+            className="tk-settings-accent tk-settings-accent-violet"
             onClick={() => handleAccentColorChange("violet")}
             title={t("settings.app.accentViolet")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-gold${accentColor === "gold" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "gold"}
+            aria-label={t("settings.app.accentGold")}
+            className="tk-settings-accent tk-settings-accent-gold"
             onClick={() => handleAccentColorChange("gold")}
             title={t("settings.app.accentGold")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-crimson${accentColor === "crimson" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "crimson"}
+            aria-label={t("settings.app.accentCrimson")}
+            className="tk-settings-accent tk-settings-accent-crimson"
             onClick={() => handleAccentColorChange("crimson")}
             title={t("settings.app.accentCrimson")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-tiffany${accentColor === "tiffany" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "tiffany"}
+            aria-label={t("settings.app.accentTiffany")}
+            className="tk-settings-accent tk-settings-accent-tiffany"
             onClick={() => handleAccentColorChange("tiffany")}
             title={t("settings.app.accentTiffany")}
           />
           <button
-            className={`accent-color-swatch accent-color-swatch-gray${accentColor === "gray" ? " accent-color-swatch-active" : ""}`}
+            type="button"
+            role="radio"
+            aria-checked={accentColor === "gray"}
+            aria-label={t("settings.app.accentGray")}
+            className="tk-settings-accent tk-settings-accent-gray"
             onClick={() => handleAccentColorChange("gray")}
             title={t("settings.app.accentGray")}
           />
         </div>
       </div>
 
-      <div className="settings-toggle-card">
-        <div className="settings-toggle-label">
-          <span>{t("settings.app.privacyMode")}</span>
-          <ToggleSwitch
-            checked={privacyMode}
-            onChange={handleTogglePrivacyMode}
-            disabled={saving || !settingsReady}
-          />
-        </div>
-        <div className="form-hint">{t("settings.app.privacyModeHint")}</div>
-      </div>
-    </div>
+      <TkSwitch
+        className="tk-settings-separated-row"
+        label={t("settings.app.privacyMode")}
+        description={t("settings.app.privacyModeHint")}
+        checked={privacyMode}
+        onChange={handleTogglePrivacyMode}
+        disabled={saving || !settingsReady}
+      />
+    </TkSection>
   );
 }

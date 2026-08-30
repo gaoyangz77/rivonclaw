@@ -1,0 +1,244 @@
+/* CSS ownership: Design System status, alert, metric, empty, and loading states. Imported in original cascade order. */
+
+.tk-v1-status {
+  --_tk-status-color: var(--tk-v1-fg-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--_tk-status-color) 18%, var(--tk-v1-border-subtle));
+  border-radius: var(--tk-v1-radius-3);
+  background: color-mix(in srgb, var(--_tk-status-color) 5%, var(--tk-v1-bg-surface));
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-status-accent {
+  --_tk-status-color: var(--tk-v1-accent-text);
+}
+
+.tk-v1-status-info {
+  --_tk-status-color: var(--tk-v1-info);
+}
+
+.tk-v1-status-success {
+  --_tk-status-color: var(--tk-v1-success);
+}
+
+.tk-v1-status-warning {
+  --_tk-status-color: var(--tk-v1-warning);
+}
+
+.tk-v1-status-danger {
+  --_tk-status-color: var(--tk-v1-danger);
+}
+
+.tk-v1-status-signal {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--_tk-status-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--_tk-status-color) 12%, transparent);
+}
+
+.tk-v1-status-live .tk-v1-status-signal::after {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid var(--_tk-status-color);
+  border-radius: 50%;
+  content: "";
+  animation: tk-v1-pulse 1.8s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
+.tk-v1-status-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.tk-v1-status-copy strong {
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tk-v1-status-copy span {
+  overflow: hidden;
+  margin-top: 1px;
+  color: var(--tk-v1-fg-muted);
+  font: 400 10px/1.45 var(--tk-v1-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-alert {
+  --_tk-alert-color: var(--tk-v1-info);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-3);
+  border: 1px solid color-mix(in srgb, var(--_tk-alert-color) 28%, var(--tk-v1-border-default));
+  border-radius: var(--tk-v1-radius-3);
+  background: color-mix(in srgb, var(--_tk-alert-color) 6%, var(--tk-v1-bg-surface));
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-alert-success {
+  --_tk-alert-color: var(--tk-v1-success);
+}
+
+.tk-v1-alert-warning {
+  --_tk-alert-color: var(--tk-v1-warning);
+}
+
+.tk-v1-alert-danger {
+  --_tk-alert-color: var(--tk-v1-danger);
+}
+
+.tk-v1-alert-signal {
+  width: 3px;
+  height: 100%;
+  min-height: 20px;
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--_tk-alert-color);
+}
+
+.tk-v1-alert-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--tk-v1-type-body);
+  line-height: var(--tk-v1-line-body);
+}
+
+.tk-v1-alert-copy strong {
+  font-weight: 600;
+}
+
+.tk-v1-alert-copy > div {
+  color: var(--tk-v1-fg-secondary);
+}
+
+.tk-v1-alert .error-details {
+  margin-top: var(--tk-v1-space-2);
+}
+
+.tk-v1-alert .error-details summary {
+  cursor: pointer;
+  font-size: var(--tk-v1-type-support);
+  opacity: 0.8;
+}
+
+.tk-v1-alert .error-details code {
+  display: block;
+  margin-top: var(--tk-v1-space-1);
+  padding: var(--tk-v1-space-2);
+  border-radius: var(--tk-v1-radius-1);
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 6%, transparent);
+  font-size: var(--tk-v1-type-micro);
+  word-break: break-all;
+  user-select: text;
+}
+
+.tk-v1-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.tk-v1-metric {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-metric > span {
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+}
+
+.tk-v1-metric > strong {
+  color: var(--tk-v1-fg-default);
+  font: 500 22px/1.1 var(--tk-v1-font-mono);
+  letter-spacing: -0.035em;
+}
+
+.tk-v1-metric > small {
+  color: var(--tk-v1-success);
+  font: 500 10px/1.3 var(--tk-v1-font-mono);
+}
+
+.tk-v1-empty-state {
+  display: grid;
+  justify-items: start;
+  max-width: 430px;
+  padding: 28px 0 8px;
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-empty-mark {
+  width: 34px;
+  height: 4px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+  background: var(--tk-v1-signal-optical);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--tk-v1-signal) 24%, transparent);
+}
+
+.tk-v1-micro-label {
+  color: var(--tk-v1-fg-muted);
+  font: 500 10px/1.4 var(--tk-v1-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tk-v1-empty-state h4 {
+  margin: 8px 0 0;
+  color: var(--tk-v1-fg-default);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+}
+
+.tk-v1-empty-state p {
+  margin: 6px 0 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tk-v1-empty-action {
+  margin-top: 16px;
+}
+
+.tk-v1-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tk-v1-space-2);
+  min-height: 88px;
+  padding: var(--tk-v1-space-4);
+  color: var(--tk-v1-fg-muted);
+  font: 500 var(--tk-v1-type-control) / var(--tk-v1-line-control) var(--tk-v1-font-sans);
+}
+
+.tk-v1-loading-state-page {
+  flex-direction: column;
+  min-height: 180px;
+  gap: var(--tk-v1-space-3);
+}
+
+.tk-v1-loading-state-page .tk-v1-spinner {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.tk-v1-loading-state-inline {
+  min-height: 72px;
+  padding: var(--tk-v1-space-3);
+}

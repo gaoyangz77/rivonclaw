@@ -28,9 +28,10 @@ import {
 } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
-import { Modal } from "../../components/modals/Modal.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
+import { TkSegmented, TkSwitchControl, TkTableFrame, TkTabs } from "../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 import { formatLocalizedDate } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -1694,46 +1695,31 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         }
       />
 
-      <div
+      <TkTabs
+        variant="rail"
         className="affiliate-team-page-tabs"
-        role="tablist"
-        aria-label={t("ecommerce.affiliateTeam.pageTabsLabel")}
+        label={t("ecommerce.affiliateTeam.pageTabsLabel")}
+        items={pageTabs.map((tab) => ({
+          id: tab.id,
+          label: tab.label,
+          description: tab.summary,
+          icon: tab.icon,
+          tone:
+            tab.id === "SAFETY"
+              ? onboardingComplete
+                ? ("success" as const)
+                : ("warning" as const)
+              : ("default" as const),
+          buttonProps: {
+            "aria-controls": `affiliate-team-panel-${tab.id.toLowerCase()}`,
+            "data-tutorial-id": `affiliate-team-tab-${tab.id.toLowerCase()}`,
+          },
+        }))}
+        value={pageTab}
+        onChange={(value) => selectPageTab(value as TeamPageTab)}
+        idPrefix="affiliate-team-tab"
         data-tutorial-id="affiliate-team-tabs"
-      >
-        {pageTabs.map((tab, index) => (
-          <button
-            key={tab.id}
-            id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
-            data-tutorial-id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
-            className={`affiliate-team-page-tab ${pageTab === tab.id ? "is-active" : ""}`}
-            type="button"
-            role="tab"
-            aria-selected={pageTab === tab.id}
-            aria-controls={`affiliate-team-panel-${tab.id.toLowerCase()}`}
-            tabIndex={pageTab === tab.id ? 0 : -1}
-            onClick={() => selectPageTab(tab.id)}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-                event.preventDefault();
-                const direction = event.key === "ArrowRight" ? 1 : -1;
-                const nextIndex = (index + direction + pageTabs.length) % pageTabs.length;
-                selectPageTab(pageTabs[nextIndex]!.id, true);
-              } else if (event.key === "Home" || event.key === "End") {
-                event.preventDefault();
-                selectPageTab(pageTabs[event.key === "Home" ? 0 : pageTabs.length - 1]!.id, true);
-              }
-            }}
-          >
-            <span className={`affiliate-team-page-tab-icon ${tab.iconClassName ?? ""}`}>
-              {tab.icon}
-            </span>
-            <span className="affiliate-team-page-tab-copy">
-              <strong>{tab.label}</strong>
-              <small>{tab.summary}</small>
-            </span>
-          </button>
-        ))}
-      </div>
+      />
 
       <div
         id="affiliate-team-panel-team"
@@ -1843,7 +1829,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
             {developerSummaries.length > 0 ? (
               <>
-                <div className="affiliate-bd-table-scroll">
+                <TkTableFrame variant="embedded" className="affiliate-bd-table-scroll">
                   <table className="affiliate-bd-table">
                     <thead>
                       <tr>
@@ -1954,7 +1940,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                       })}
                     </tbody>
                   </table>
-                </div>
+                </TkTableFrame>
                 <div className="affiliate-bd-pagination">
                   <span>
                     {t("ecommerce.affiliateTeam.paginationSummary", {
@@ -2366,32 +2352,31 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
         {protectionImportView === "ADD" && (
           <div className="affiliate-protection-import-body is-add">
-            <div
-              className="affiliate-protection-import-mode"
-              role="tablist"
-              aria-label={t("ecommerce.affiliateTeam.protectionImportMethod")}
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={protectionComposerMode === "FILE"}
-                className={protectionComposerMode === "FILE" ? "is-active" : ""}
-                onClick={() => setProtectionComposerMode("FILE")}
-              >
-                <DownloadIcon />
-                {t("ecommerce.affiliateTeam.protectionImportExcelTab")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={protectionComposerMode === "MANUAL"}
-                className={protectionComposerMode === "MANUAL" ? "is-active" : ""}
-                onClick={() => setProtectionComposerMode("MANUAL")}
-              >
-                <UserPlusIcon />
-                {t("ecommerce.affiliateTeam.protectionImportManualTab")}
-              </button>
-            </div>
+            <TkSegmented
+              items={[
+                {
+                  id: "FILE",
+                  label: (
+                    <>
+                      <DownloadIcon />
+                      {t("ecommerce.affiliateTeam.protectionImportExcelTab")}
+                    </>
+                  ),
+                },
+                {
+                  id: "MANUAL",
+                  label: (
+                    <>
+                      <UserPlusIcon />
+                      {t("ecommerce.affiliateTeam.protectionImportManualTab")}
+                    </>
+                  ),
+                },
+              ]}
+              value={protectionComposerMode}
+              onChange={(value) => setProtectionComposerMode(value as "FILE" | "MANUAL")}
+              label={t("ecommerce.affiliateTeam.protectionImportMethod")}
+            />
 
             {protectionComposerMode === "FILE" ? (
               <>
@@ -3064,43 +3049,32 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>
             )}
 
-            <div
-              className="affiliate-bd-detail-tabs"
-              role="tablist"
-              aria-label={t("ecommerce.affiliateTeam.detailTabsLabel")}
-            >
-              <button
-                id="affiliate-bd-tab-channels"
-                type="button"
-                role="tab"
-                aria-selected={detailTab === "CHANNELS"}
-                aria-controls="affiliate-bd-panel-channels"
-                className={`affiliate-bd-detail-tab ${detailTab === "CHANNELS" ? "is-active" : ""}`}
-                onClick={() => setDetailTab("CHANNELS")}
-              >
-                <ChannelsIcon />
-                <span>{t("ecommerce.affiliateTeam.channelsTab")}</span>
-                <small>{detailChannelCount}</small>
-              </button>
-              <button
-                id="affiliate-bd-tab-settings"
-                type="button"
-                role="tab"
-                aria-selected={detailTab === "SETTINGS"}
-                aria-controls="affiliate-bd-panel-settings"
-                className={`affiliate-bd-detail-tab ${detailTab === "SETTINGS" ? "is-active" : ""}`}
-                onClick={() => setDetailTab("SETTINGS")}
-              >
-                <UserIcon />
-                <span>{t("ecommerce.affiliateTeam.settingsTab")}</span>
-                {detailFormDirty && (
-                  <i
-                    title={t("ecommerce.affiliateTeam.unsavedChanges")}
-                    aria-label={t("ecommerce.affiliateTeam.unsavedChanges")}
-                  />
-                )}
-              </button>
-            </div>
+            <TkTabs
+              items={[
+                {
+                  id: "CHANNELS",
+                  label: t("ecommerce.affiliateTeam.channelsTab"),
+                  icon: <ChannelsIcon />,
+                  count: detailChannelCount,
+                  buttonProps: { "aria-controls": "affiliate-bd-panel-channels" },
+                },
+                {
+                  id: "SETTINGS",
+                  label: (
+                    <>
+                      {t("ecommerce.affiliateTeam.settingsTab")}
+                      {detailFormDirty ? ` · ${t("ecommerce.affiliateTeam.unsavedChanges")}` : ""}
+                    </>
+                  ),
+                  icon: <UserIcon />,
+                  buttonProps: { "aria-controls": "affiliate-bd-panel-settings" },
+                },
+              ]}
+              value={detailTab}
+              onChange={(value) => setDetailTab(value as "CHANNELS" | "SETTINGS")}
+              label={t("ecommerce.affiliateTeam.detailTabsLabel")}
+              idPrefix="affiliate-bd-tab"
+            />
 
             <div className={`affiliate-bd-detail-scroll is-${detailTab.toLowerCase()}`}>
               {detailTab === "CHANNELS" && (
@@ -3841,23 +3815,14 @@ function DeveloperDeviceBinding({
     <div className="affiliate-bd-device-field">
       <span>{t("ecommerce.affiliateTeam.outreachDevice")}</span>
       <div className="affiliate-bd-device-control">
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
+        <TkSwitchControl
+            label={t("ecommerce.affiliateTeam.outreachDevice")}
             checked={boundToThisDevice}
             onChange={() =>
               setForm({ ...form, deviceId: boundToThisDevice ? "" : (myDeviceId ?? "") })
             }
             disabled={!myDeviceId}
           />
-          <span
-            className={`toggle-track ${boundToThisDevice ? "toggle-track-on" : "toggle-track-off"}`}
-          >
-            <span
-              className={`toggle-thumb ${boundToThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-            />
-          </span>
-        </label>
         <span className={`badge ${boundToThisDevice ? "badge-success" : "badge-warning"}`}>
           {statusLabel}
         </span>

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Select } from "../../../components/inputs/Select.js";
+import { TkChoiceSelect, TkSection } from "../../../components/design-system/index.js";
 
 interface AgentSettingsSectionProps {
   saving: boolean;
@@ -17,26 +17,32 @@ export function AgentSettingsSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-agent" data-tutorial-id="settings-agent">
-      <h3>{t("settings.agent.title")}</h3>
-
-      <div>
-        <label className="form-label-block">
-          {t("settings.browser.mode")}
-        </label>
-        <Select
-          value={browserMode}
-          onChange={handleBrowserModeChange}
-          options={[
-            { value: "standalone", label: t("settings.browser.modeStandalone"), description: t("settings.browser.modeStandaloneDesc") },
-            { value: "cdp", label: t("settings.browser.modeCdp"), description: t("settings.browser.modeCdpDesc") },
-          ]}
-          disabled={saving || !settingsReady}
-        />
-        <div className="form-hint">
-          {t("settings.browser.modeHint")}
-        </div>
-      </div>
-    </div>
+    <TkSection
+      className="tk-settings-section settings-section-agent"
+      data-tutorial-id="settings-agent"
+      headingLevel={2}
+      title={t("settings.agent.title")}
+      variant="framed"
+    >
+      <TkChoiceSelect
+        label={t("settings.browser.mode")}
+        value={browserMode}
+        onChange={handleBrowserModeChange}
+        options={[
+          {
+            value: "standalone",
+            label: t("settings.browser.modeStandalone"),
+            description: t("settings.browser.modeStandaloneDesc"),
+          },
+          {
+            value: "cdp",
+            label: t("settings.browser.modeCdp"),
+            description: t("settings.browser.modeCdpDesc"),
+          },
+        ]}
+        hint={t("settings.browser.modeHint")}
+        disabled={saving || !settingsReady}
+      />
+    </TkSection>
   );
 }

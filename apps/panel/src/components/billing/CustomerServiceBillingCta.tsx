@@ -5,7 +5,7 @@ import { GQL } from "@rivonclaw/core";
 import type { BillingEntitlementStatus, BillingPlanDefinition } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { BillingIcon, CloseIcon } from "../icons.js";
-import { ConfirmDialog } from "../modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../design-system/index.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
 import {
   billingEnumLabel,
@@ -17,6 +17,7 @@ import {
 } from "./billing-labels.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
+import { TkAlert } from "../design-system/index.js";
 
 interface CustomerServiceBillingCtaProps {
   shopId: string;
@@ -216,7 +217,9 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
             </div>
           )}
           {portalError && (
-            <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: portalError })}</div>
+            <TkAlert tone="danger">
+              {t("billing.errors.checkoutFailed", { message: portalError })}
+            </TkAlert>
           )}
           <ShopServiceCheckoutModal
             isOpen={checkoutModalOpen}
@@ -273,7 +276,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
             })}
           </p>
           {!plan && (
-            <div className="modal-error-box">{t("billing.planDefinitionsUnavailable")}</div>
+            <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>
           )}
           <div className="cs-billing-payment-actions cs-billing-payment-actions-inline">
             <button
@@ -306,7 +309,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
           })}
         </p>
         {!plan && (
-          <div className="modal-error-box">{t("billing.planDefinitionsUnavailable")}</div>
+          <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>
         )}
         <div className="cs-billing-payment-actions">
           <button

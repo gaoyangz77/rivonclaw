@@ -3,6 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import { CHART_COLORS, formatTokens } from "./usage-utils.js";
+import { TkPanel } from "../../components/design-system/index.js";
 
 export function UsageChart({
   chartData,
@@ -29,7 +30,7 @@ export function UsageChart({
   }
 
   return (
-    <div className="section-card">
+    <TkPanel as="section" className="section-card">
       <h3 className="usage-section-title">{t("keyUsage.historyChart")}</h3>
       <div className="usage-chart-wrap" data-tutorial-id="usage-chart">
         <ResponsiveContainer width="100%" height="100%">
@@ -66,6 +67,6 @@ export function UsageChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </TkPanel>
   );
 }

@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { Modal } from "../modals/Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { billingEnumLabel } from "./billing-labels.js";
+import { TkAlert } from "../design-system/index.js";
 
 interface PaymentPendingModalProps {
   paymentId: string | null;
@@ -187,14 +188,16 @@ export const PaymentPendingModal = observer(function PaymentPendingModal({
                 <div className="payment-qr-placeholder">{t("billing.paymentPending.qrUnavailable")}</div>
               )}
               {!qrSource && (
-                <div className="modal-error-box">{t("billing.errors.missingQrCode")}</div>
+                <TkAlert tone="danger">{t("billing.errors.missingQrCode")}</TkAlert>
               )}
               <div className="payment-pending-copy">{t("billing.paymentPending.lakalaHelp")}</div>
             </div>
           )}
 
           {checkoutError && (
-            <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: checkoutError })}</div>
+            <TkAlert tone="danger">
+              {t("billing.errors.checkoutFailed", { message: checkoutError })}
+            </TkAlert>
           )}
 
           {succeeded && (

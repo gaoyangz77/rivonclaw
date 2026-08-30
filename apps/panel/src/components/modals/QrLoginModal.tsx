@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
 import { startQrLogin, waitQrLogin, type QrLoginResult } from "../../api/channels.js";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
+import { TkAlert, TkLoadingState } from "../design-system/index.js";
 
 type QrLoginPhase = "loading" | "scanning" | "refreshing" | "success" | "error";
 
@@ -218,11 +219,11 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
       maxWidth={420}
     >
       <div className="modal-form-col">
-        {errorMessage && <div className="modal-error-box">{errorMessage}</div>}
+        {errorMessage && <TkAlert tone="danger">{errorMessage}</TkAlert>}
 
         <div className="qr-login-body">
           {phase === "loading" && (
-            <p className="centered-muted">{t("qrLogin.generating")}</p>
+            <TkLoadingState label={t("qrLogin.generating")} />
           )}
 
           {(phase === "scanning" || phase === "refreshing") && qrImageUrl && (

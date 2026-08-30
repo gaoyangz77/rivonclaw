@@ -21,7 +21,12 @@ export interface ModalProps {
   /** When true, clicking the backdrop overlay will not trigger onClose. */
   preventBackdropClose?: boolean;
   className?: string;
+  backdropClassName?: string;
   closeLabel?: string;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  "data-tutorial-id"?: string;
+  padding?: "default" | "none";
   /** Render against document.body so the modal is independent of transformed or clipped parents. */
   portal?: boolean;
 }
@@ -34,13 +39,18 @@ export function Modal({
   headerContent,
   bodyLeadContent,
   children,
-  maxWidth = 600,
+  maxWidth,
   hideHeader = false,
   hideCloseButton,
   preventBackdropClose,
   className,
+  backdropClassName,
   closeLabel = "Close",
-  portal = false,
+  ariaLabel,
+  ariaLabelledBy,
+  "data-tutorial-id": dataTutorialId,
+  padding = "default",
+  portal = true,
 }: ModalProps) {
   const mouseDownOnBackdrop = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -105,7 +115,8 @@ export function Modal({
 
   const modal = (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop${backdropClassName ? ` ${backdropClassName}` : ""}`}
+      role="presentation"
       onMouseDown={(e) => {
         mouseDownOnBackdrop.current = e.target === e.currentTarget;
       }}
@@ -118,12 +129,13 @@ export function Modal({
     >
       <div
         ref={contentRef}
-        className={`modal-content${className ? ` ${className}` : ""}`}
-        style={{ maxWidth: `${maxWidth}px` }}
+        className={`modal-content tk-v1-modal tk-v1-modal-padding-${padding}${className ? ` ${className}` : ""}`}
+        style={maxWidth ? { maxWidth: `${maxWidth}px` } : undefined}
         role="dialog"
         aria-modal="true"
-        aria-label={hideHeader ? title : undefined}
-        aria-labelledby={hideHeader ? undefined : titleId}
+        aria-label={ariaLabel ?? (hideHeader ? title : undefined)}
+        aria-labelledby={ariaLabelledBy ?? (hideHeader ? undefined : titleId)}
+        data-tutorial-id={dataTutorialId}
         tabIndex={-1}
       >
         {!hideHeader && (

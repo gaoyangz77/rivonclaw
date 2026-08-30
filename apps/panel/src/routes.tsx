@@ -40,6 +40,7 @@ import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
 import { InventoryManagementPage } from "./pages/ecommerce/InventoryManagementPage.js";
 import { ShopAnalyticsPage } from "./pages/ecommerce/ShopAnalyticsPage.js";
 import { ProductKnowledgePage } from "./pages/ecommerce/ProductKnowledgePage.js";
+import { DesignSystemPage } from "./pages/design-system/DesignSystemPage.js";
 
 export interface RouteEntry {
   /** URL path */
@@ -111,6 +112,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/account/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", navGroupKey: "nav.group.accountSystem", authRequired: true, navAuthOnly: true, scope: GQL.PermissionScope.Billing },
   { path: "/account/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings", navGroupKey: "nav.group.accountSystem" },
   { path: "/account/profile", pageKey: "account", component: AccountPage, icon: <AccountIcon />, navLabelKey: "nav.account", navGroupKey: "nav.group.accountSystem", authRequired: true },
+  { path: "/design-system", pageKey: "design-system", component: DesignSystemPage, navHidden: true },
   { path: "/welcome", pageKey: "welcome", component: WelcomePage, internal: true },
 ];
 

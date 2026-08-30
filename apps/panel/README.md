@@ -2,11 +2,20 @@
 
 React SPA management UI served by the Desktop Electron app on a dynamic port.
 
+The binding development rules are in [`AGENTS.md`](./AGENTS.md). The visual language, tokens,
+component contracts, and migration ledger are in
+[`src/components/design-system/README.md`](./src/components/design-system/README.md).
+The CSS ownership layers, cascade manifests, and legacy migration policy are in
+[`src/styles/README.md`](./src/styles/README.md).
+
 ## Development
 
 ```bash
 pnpm dev    # Start Vite dev server with HMR
 pnpm build  # Production build to dist/
+pnpm lint   # Code, architecture, and CSS usage guards
+pnpm css:check
+pnpm test
 ```
 
 ## Manual Testing (Dev Mode)

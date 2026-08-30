@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { InventoryGood } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
 import { ImageAssetPreview } from "../../../components/images/ImageAssetPreview.js";
-import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
+import { TkPanel, TkTableFrame } from "../../../components/design-system/index.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { inventoryGoodImageUrl } from "../../../store/models/InventoryGoodModel.js";
 
@@ -40,7 +41,8 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [pageInput, setPageInput] = useState(String(inventory.inventoryGoodsPage));
   const deleteOne = deleteOneId ? goods.find((good) => good.id === deleteOneId) : null;
-  const allSelected = goods.length > 0 && goods.every((good) => inventory.isInventoryGoodSelected(good.id));
+  const allSelected =
+    goods.length > 0 && goods.every((good) => inventory.isInventoryGoodSelected(good.id));
   const hasInventoryGoodsFilters = inventory.inventoryGoodsSearch.trim() !== "";
   const columnOptions = [
     { key: "image", label: t("ecommerce.inventory.image") },
@@ -58,13 +60,21 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
 
   return (
     <>
-      <div className="section-card ecommerce-inventory-section inventory-goods-section" data-tutorial-id="inventory-goods">
+      <TkPanel
+        className="section-card ecommerce-inventory-section inventory-goods-section"
+        data-tutorial-id="inventory-goods"
+      >
         <div className="ecommerce-section-header">
           <div>
             <h3>{t("ecommerce.inventory.inventoryGoods")}</h3>
-            <p className="ecommerce-section-subtitle">{t("ecommerce.inventory.inventoryGoodsSubtitle")}</p>
+            <p className="ecommerce-section-subtitle">
+              {t("ecommerce.inventory.inventoryGoodsSubtitle")}
+            </p>
           </div>
-          <div className="ecommerce-section-actions inventory-goods-header-actions" data-tutorial-id="inventory-goods-actions">
+          <div
+            className="ecommerce-section-actions inventory-goods-header-actions"
+            data-tutorial-id="inventory-goods-actions"
+          >
             <button
               className="btn-icon-inline"
               onClick={() => inventory.fetchInventoryGoods().catch(() => {})}
@@ -80,10 +90,15 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                 onClick={() => setConfirmBulkDelete(true)}
                 disabled={inventory.deletingInventoryGoodIds.length > 0}
               >
-                {t("ecommerce.inventory.deleteSelectedInventoryGoods", { count: inventory.selectedInventoryGoodIds.length })}
+                {t("ecommerce.inventory.deleteSelectedInventoryGoods", {
+                  count: inventory.selectedInventoryGoodIds.length,
+                })}
               </button>
             )}
-            <button className="btn btn-primary btn-sm" onClick={() => inventory.openAddInventoryGoodModal()}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => inventory.openAddInventoryGoodModal()}
+            >
               {t("ecommerce.inventory.addInventoryGood")}
             </button>
           </div>
@@ -108,7 +123,11 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
             />
           </label>
           <div className="inventory-goods-filter-actions">
-            <button className="btn btn-secondary btn-sm" type="submit" disabled={inventory.inventoryGoodsLoading}>
+            <button
+              className="btn btn-secondary btn-sm"
+              type="submit"
+              disabled={inventory.inventoryGoodsLoading}
+            >
               {t("ecommerce.inventory.applyInventoryGoodsFilters")}
             </button>
             <button
@@ -147,27 +166,59 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
           <div className="empty-cell">{t("common.loading")}</div>
         ) : goods.length === 0 ? (
           <div className="empty-cell">
-            {t(hasInventoryGoodsFilters ? "ecommerce.inventory.noInventoryGoodsForFilters" : "ecommerce.inventory.noInventoryGoods")}
+            {t(
+              hasInventoryGoodsFilters
+                ? "ecommerce.inventory.noInventoryGoodsForFilters"
+                : "ecommerce.inventory.noInventoryGoods",
+            )}
           </div>
         ) : (
-          <div className="table-scroll-wrap inventory-goods-table-wrap">
-            <table className="shop-table inventory-goods-table" data-tutorial-id="inventory-goods-table">
+          <TkTableFrame className="table-scroll-wrap inventory-goods-table-wrap">
+            <table
+              className="shop-table inventory-goods-table"
+              data-tutorial-id="inventory-goods-table"
+            >
               <thead>
                 <tr>
                   <th className="inventory-goods-select-cell">
                     <input
                       type="checkbox"
                       checked={allSelected}
-                      onChange={(e) => inventory.setAllInventoryGoodsSelected(goods.map((good) => good.id), e.target.checked)}
+                      onChange={(e) =>
+                        inventory.setAllInventoryGoodsSelected(
+                          goods.map((good) => good.id),
+                          e.target.checked,
+                        )
+                      }
                       aria-label={t("ecommerce.inventory.selectAllInventoryGoods")}
                     />
                   </th>
-                  {showColumn("image") && <th className="inventory-goods-image-cell">{t("ecommerce.inventory.image")}</th>}
-                  {showColumn("good") && <th className="inventory-goods-good-cell">{t("ecommerce.inventory.inventoryGoodColumn")}</th>}
-                  {showColumn("barcodeGtin") && <th className="inventory-goods-barcode-cell">{t("ecommerce.inventory.barcodeGtin")}</th>}
-                  {showColumn("measurements") && <th className="inventory-goods-measurements-cell">{t("ecommerce.inventory.measurements")}</th>}
-                  {showColumn("declaredValue") && <th className="inventory-goods-value-cell">{t("ecommerce.inventory.declaredValueShort")}</th>}
-                  {showColumn("flags") && <th className="inventory-goods-flags-cell">{t("ecommerce.inventory.flags")}</th>}
+                  {showColumn("image") && (
+                    <th className="inventory-goods-image-cell">{t("ecommerce.inventory.image")}</th>
+                  )}
+                  {showColumn("good") && (
+                    <th className="inventory-goods-good-cell">
+                      {t("ecommerce.inventory.inventoryGoodColumn")}
+                    </th>
+                  )}
+                  {showColumn("barcodeGtin") && (
+                    <th className="inventory-goods-barcode-cell">
+                      {t("ecommerce.inventory.barcodeGtin")}
+                    </th>
+                  )}
+                  {showColumn("measurements") && (
+                    <th className="inventory-goods-measurements-cell">
+                      {t("ecommerce.inventory.measurements")}
+                    </th>
+                  )}
+                  {showColumn("declaredValue") && (
+                    <th className="inventory-goods-value-cell">
+                      {t("ecommerce.inventory.declaredValueShort")}
+                    </th>
+                  )}
+                  {showColumn("flags") && (
+                    <th className="inventory-goods-flags-cell">{t("ecommerce.inventory.flags")}</th>
+                  )}
                   <th className="text-right">{t("ecommerce.table.headers.actions")}</th>
                 </tr>
               </thead>
@@ -181,7 +232,9 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                           type="checkbox"
                           checked={inventory.isInventoryGoodSelected(good.id)}
                           onChange={() => inventory.toggleInventoryGoodSelected(good.id)}
-                          aria-label={t("ecommerce.inventory.selectInventoryGood", { sku: good.sku })}
+                          aria-label={t("ecommerce.inventory.selectInventoryGood", {
+                            sku: good.sku,
+                          })}
                         />
                       </td>
                       {showColumn("image") && (
@@ -199,15 +252,21 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                       {showColumn("good") && (
                         <td className="inventory-goods-good-cell">
                           <div className="inventory-good-main">
-                            <div className="shop-table-name" title={good.name}>{good.name}</div>
-                            <div className="td-meta input-mono" title={good.sku}>{good.sku}</div>
+                            <div className="shop-table-name" title={good.name}>
+                              {good.name}
+                            </div>
+                            <div className="td-meta input-mono" title={good.sku}>
+                              {good.sku}
+                            </div>
                           </div>
                         </td>
                       )}
                       {showColumn("barcodeGtin") && (
                         <td className="inventory-goods-barcode-cell">
                           <div className="inventory-good-identifiers">
-                            <span title={good.barcode ?? undefined}>{good.barcode || "\u2014"}</span>
+                            <span title={good.barcode ?? undefined}>
+                              {good.barcode || "\u2014"}
+                            </span>
                             {good.gtin && <span title={good.gtin}>GTIN {good.gtin}</span>}
                             {good.hsCode && <span title={good.hsCode}>HS {good.hsCode}</span>}
                           </div>
@@ -215,7 +274,11 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                       )}
                       {showColumn("measurements") && (
                         <td className="inventory-goods-measurements-cell">
-                          <div>{good.weightValue == null ? "\u2014" : `${good.weightValue} ${good.weightUnit ?? ""}`}</div>
+                          <div>
+                            {good.weightValue == null
+                              ? "\u2014"
+                              : `${good.weightValue} ${good.weightUnit ?? ""}`}
+                          </div>
                           <div className="td-meta">{formatDimensions(good)}</div>
                         </td>
                       )}
@@ -225,9 +288,19 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                       {showColumn("flags") && (
                         <td className="inventory-goods-flags-cell">
                           <div className="inventory-good-flag-list">
-                            {good.isBattery && <span className="inventory-chip inventory-chip-blue">{t("ecommerce.inventory.isBattery")}</span>}
-                            {good.isHazmat && <span className="inventory-chip inventory-chip-warning">{t("ecommerce.inventory.isHazmat")}</span>}
-                            {!good.isBattery && !good.isHazmat && <span className="td-meta">{"\u2014"}</span>}
+                            {good.isBattery && (
+                              <span className="inventory-chip inventory-chip-blue">
+                                {t("ecommerce.inventory.isBattery")}
+                              </span>
+                            )}
+                            {good.isHazmat && (
+                              <span className="inventory-chip inventory-chip-warning">
+                                {t("ecommerce.inventory.isHazmat")}
+                              </span>
+                            )}
+                            {!good.isBattery && !good.isHazmat && (
+                              <span className="td-meta">{"\u2014"}</span>
+                            )}
                           </div>
                         </td>
                       )}
@@ -245,7 +318,9 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                             onClick={() => setDeleteOneId(good.id)}
                             disabled={inventory.isInventoryGoodDeleting(good.id)}
                           >
-                            {inventory.isInventoryGoodDeleting(good.id) ? t("common.loading") : t("common.delete")}
+                            {inventory.isInventoryGoodDeleting(good.id)
+                              ? t("common.loading")
+                              : t("common.delete")}
                           </button>
                         </div>
                       </td>
@@ -254,7 +329,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                 })}
               </tbody>
             </table>
-          </div>
+          </TkTableFrame>
         )}
 
         <div className="inventory-goods-pagination" data-tutorial-id="inventory-pagination">
@@ -295,7 +370,11 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
               onChange={(e) => setPageInput(e.target.value)}
               disabled={inventory.inventoryGoodsLoading}
             />
-            <button className="btn btn-secondary btn-sm" type="submit" disabled={inventory.inventoryGoodsLoading}>
+            <button
+              className="btn btn-secondary btn-sm"
+              type="submit"
+              disabled={inventory.inventoryGoodsLoading}
+            >
               {t("ecommerce.inventory.inventoryGoodsGo")}
             </button>
           </form>
@@ -308,7 +387,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
             {t("ecommerce.inventory.nextInventoryGoodsPage")}
           </button>
         </div>
-      </div>
+      </TkPanel>
 
       <ConfirmDialog
         isOpen={Boolean(deleteOne)}
@@ -320,7 +399,8 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
         onCancel={() => setDeleteOneId(null)}
         onConfirm={() => {
           if (!deleteOne) return;
-          inventory.archiveInventoryGood(deleteOne.id)
+          inventory
+            .archiveInventoryGood(deleteOne.id)
             .then(() => setDeleteOneId(null))
             .catch(() => {});
         }}
@@ -328,13 +408,16 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
       <ConfirmDialog
         isOpen={confirmBulkDelete}
         title={t("ecommerce.inventory.deleteSelectedInventoryGoodsTitle")}
-        message={t("ecommerce.inventory.confirmDeleteSelectedInventoryGoods", { count: inventory.selectedInventoryGoodIds.length })}
+        message={t("ecommerce.inventory.confirmDeleteSelectedInventoryGoods", {
+          count: inventory.selectedInventoryGoodIds.length,
+        })}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         confirmVariant="danger"
         onCancel={() => setConfirmBulkDelete(false)}
         onConfirm={() => {
-          inventory.archiveSelectedInventoryGoods()
+          inventory
+            .archiveSelectedInventoryGoods()
             .then(() => setConfirmBulkDelete(false))
             .catch(() => {});
         }}

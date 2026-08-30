@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
 import type { Shop } from "@rivonclaw/core/models";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import {
@@ -17,6 +17,7 @@ import {
   UPDATE_UNPAID_REACHOUT_SETTINGS,
 } from "../../../api/unpaid-experiment-queries.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
+import { TkSwitchControl } from "../../../components/design-system/index.js";
 
 const TOKENS = ["{{order_id}}", "{{product_count}}", "{{shop_name}}"] as const;
 const MAX_VARIANTS = 20;
@@ -608,19 +609,14 @@ export function UnpaidOrderReachoutSettings({
           <strong>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled")}</strong>
           <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutHint")}</p>
         </div>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
+        <TkSwitchControl
+            label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled")}
             checked={enabled}
-            onChange={(event) => {
-              onEnabledChange(event.target.checked);
-              if (!event.target.checked) onEvaluationEnabledChange(false);
+            onChange={(checked) => {
+              onEnabledChange(checked);
+              if (!checked) onEvaluationEnabledChange(false);
             }}
           />
-          <span className={`toggle-track ${enabled ? "toggle-track-on" : "toggle-track-off"}`}>
-            <span className={`toggle-thumb ${enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
-          </span>
-        </label>
       </div>
 
       <section className="unpaid-console-section">
@@ -669,23 +665,14 @@ export function UnpaidOrderReachoutSettings({
                       <span>{humanDelay(delay, i18n.language)}</span>
                     </div>
                     <div className="unpaid-stage-actions">
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
+                      <TkSwitchControl
+                          label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutStage", { index: index + 1 })}
                           checked={stage.enabled}
                           disabled={!!running}
-                          onChange={(event) =>
-                            updateStage(index, { enabled: event.target.checked })
+                          onChange={(checked) =>
+                            updateStage(index, { enabled: checked })
                           }
                         />
-                        <span
-                          className={`toggle-track ${stage.enabled ? "toggle-track-on" : "toggle-track-off"}`}
-                        >
-                          <span
-                            className={`toggle-thumb ${stage.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                          />
-                        </span>
-                      </label>
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -783,21 +770,12 @@ export function UnpaidOrderReachoutSettings({
               <strong>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlGroup")}</strong>
               <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlHint")}</p>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
+            <TkSwitchControl
+                label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlGroup")}
                 checked={evaluationEnabled}
                 disabled={!enabled}
-                onChange={(event) => onEvaluationEnabledChange(event.target.checked)}
+                onChange={onEvaluationEnabledChange}
               />
-              <span
-                className={`toggle-track ${evaluationEnabled ? "toggle-track-on" : "toggle-track-off"}`}
-              >
-                <span
-                  className={`toggle-thumb ${evaluationEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                />
-              </span>
-            </label>
           </div>
           {evaluationEnabled && (
             <>

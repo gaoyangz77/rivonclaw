@@ -5,14 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "css:check": "node ../../scripts/check-panel-css-usage.mjs && node ../../scripts/check-panel-css-graph.mjs",
+    "css:prune": "node ../../scripts/check-panel-css-usage.mjs --fix",
     "dev": "vite",
     "help-labels": "node scripts/update-rivonclaw-help-labels.mjs",
     "help-labels:check": "node scripts/update-rivonclaw-help-labels.mjs --check",
-    "lint": "oxlint && node ../../scripts/check-panel-architecture.mjs",
+    "lint": "oxlint && node ../../scripts/check-panel-architecture.mjs && node ../../scripts/check-panel-css-usage.mjs && node ../../scripts/check-panel-css-graph.mjs",
     "test": "vitest run"
   },
   "dependencies": {
     "@apollo/client": "^4.1.6",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@mdxeditor/editor": "^4.2.0",

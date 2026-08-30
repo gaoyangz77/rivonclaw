@@ -7,6 +7,7 @@ import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
+import { TkSwitchControl } from "../../../components/design-system/index.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SHOW_REVIEW_MANAGEMENT_SETTINGS = false;
@@ -157,9 +158,8 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </span>
             )}
           </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
+          <TkSwitchControl
+              label={t("ecommerce.shopDrawer.aiCS.csThisDevice")}
               checked={shop.handlesCustomerServiceOnDevice(myDeviceId)}
               onChange={() => {
                 if (shop.handlesCustomerServiceOnDevice(myDeviceId)) {
@@ -170,14 +170,6 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               }}
               disabled={togglingBindShopId === shop.id || !myDeviceId}
             />
-            <span
-              className={`toggle-track ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
-            >
-              <span
-                className={`toggle-thumb ${shop.handlesCustomerServiceOnDevice(myDeviceId) ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-              />
-            </span>
-          </label>
         </div>
       </section>
 
@@ -289,21 +281,12 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                   {t("ecommerce.shopDrawer.aiCS.reviewOptimizationHint")}
                 </span>
               </div>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
+              <TkSwitchControl
+                  label={t("ecommerce.shopDrawer.aiCS.reviewOptimizationEnabled")}
                   checked={draftReviewOptimizationEnabled}
-                  onChange={(event) => onToggleReviewOptimizationEnabled(event.target.checked)}
+                  onChange={onToggleReviewOptimizationEnabled}
                   disabled={savingReviewOptimizationSettings}
                 />
-                <span
-                  className={`toggle-track ${draftReviewOptimizationEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingReviewOptimizationSettings ? "toggle-track-disabled" : ""}`}
-                >
-                  <span
-                    className={`toggle-thumb ${draftReviewOptimizationEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                  />
-                </span>
-              </label>
             </div>
 
             <div
@@ -319,21 +302,12 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                     {t("ecommerce.shopDrawer.aiCS.badReviewReachoutHint")}
                   </span>
                 </div>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
+                <TkSwitchControl
+                    label={t("ecommerce.shopDrawer.aiCS.badReviewReachoutTitle")}
                     checked={draftBadReviewReachoutEnabled}
-                    onChange={(event) => onToggleBadReviewReachoutEnabled(event.target.checked)}
+                    onChange={onToggleBadReviewReachoutEnabled}
                     disabled={!draftReviewOptimizationEnabled || savingReviewOptimizationSettings}
                   />
-                  <span
-                    className={`toggle-track ${draftBadReviewReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${!draftReviewOptimizationEnabled || savingReviewOptimizationSettings ? "toggle-track-disabled" : ""}`}
-                  >
-                    <span
-                      className={`toggle-thumb ${draftBadReviewReachoutEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                    />
-                  </span>
-                </label>
               </div>
 
               <div className="shop-review-feature-settings">

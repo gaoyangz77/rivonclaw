@@ -69,10 +69,6 @@ function normalizedMessageText(message: Record<string, any>): string {
     .toLowerCase();
 }
 
-function isBuyerMessage(message: Record<string, any>): boolean {
-  return String(message.sender?.role ?? "").toUpperCase() === "BUYER";
-}
-
 function isCustomerServiceMessage(message: Record<string, any>): boolean {
   return String(message.sender?.role ?? "").toUpperCase() === "CUSTOMER_SERVICE";
 }

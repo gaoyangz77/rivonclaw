@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useTikTokShopData } from "./hooks/useTikTokShopData.js";
 import { useTikTokOAuthFlow } from "./hooks/useTikTokOAuthFlow.js";
@@ -9,6 +9,7 @@ import { useTikTokShopDetail } from "./hooks/useTikTokShopDetail.js";
 import { TikTokShopsList } from "./components/TikTokShopsList.js";
 import { TikTokShopDetailModal } from "./components/TikTokShopDetailModal.js";
 import { ConnectShopModal } from "../../components/ecommerce/ConnectShopModal.js";
+import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 
 export const TikTokShopsPage = observer(function TikTokShopsPage() {
   const { t } = useTranslation();
@@ -52,34 +53,31 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
 
   if (authChecking) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel>
           <p>{t("common.loading")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel>
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   return (
-    <div className="page-enter">
-      <h1>{t("tiktokShops.title")}</h1>
-      <p>{t("tiktokShops.description")}</p>
+    <TkPageFrame>
+      <TkPageHeader title={t("tiktokShops.title")} description={t("tiktokShops.description")} />
 
       {upgradePrompt && (
-        <div className="info-box info-box-blue">
-          {t("tiktokShops.upgradeRequired")}
-        </div>
+        <div className="info-box info-box-blue">{t("tiktokShops.upgradeRequired")}</div>
       )}
 
       {/* OAuth Waiting State */}
@@ -101,7 +99,9 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
         shops={shops}
         oauthLoading={oauthLoading}
         oauthWaiting={oauthWaiting}
-        onConnectClick={() => { setConnectModalOpen(true); }}
+        onConnectClick={() => {
+          setConnectModalOpen(true);
+        }}
         onView={openDetailModal}
         onReauthorize={handleReauthorize}
         onDelete={setConfirmDeleteShopId}
@@ -143,6 +143,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
         onConfirm={() => confirmDeleteShopId && handleDeleteShop(confirmDeleteShopId)}
         onCancel={() => setConfirmDeleteShopId(null)}
       />
-    </div>
+    </TkPageFrame>
   );
 });

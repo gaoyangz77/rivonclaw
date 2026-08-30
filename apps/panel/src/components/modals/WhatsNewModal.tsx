@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import type { ChangelogEntry } from "../../api/index.js";
 

@@ -1,0 +1,74 @@
+/* CSS ownership: toast notifications. Imported in original cascade order. */
+
+/* ── Toast notifications ── */
+
+@keyframes toast-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.toast-container {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast {
+  padding: 8px 20px;
+  border-radius: var(--tk-v1-radius-4);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  pointer-events: auto;
+  animation: toast-slide-up 150ms ease-out both;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  max-width: 480px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-success {
+  background-color: var(--color-primary);
+}
+
+.toast-error {
+  background-color: var(--color-danger);
+}
+
+.toast-warning {
+  background-color: var(--color-warning);
+  white-space: normal;
+  max-width: 520px;
+  line-height: 1.4;
+}
+
+.toast-exit {
+  animation: toast-fade-out 150ms ease-in both;
+}

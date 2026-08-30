@@ -1,0 +1,208 @@
+/* CSS ownership: channels feature. Imported in original cascade order. */
+
+/* ===== 29. Channels Page ===== */
+
+.channel-header {
+  margin-bottom: 20px;
+}
+
+.channel-add-section {
+  margin-bottom: 20px;
+}
+
+.channel-selector-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.channel-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.channel-selector-row .custom-select-trigger {
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.channel-selector-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.channel-info-box {
+  padding: 12px 16px;
+  background-color: var(--brand-tint-04);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 420px;
+  text-align: left;
+}
+
+.feishu-channel-onboarding {
+  max-width: 500px;
+}
+
+.channel-info-copy {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+}
+
+.feishu-setup-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.feishu-setup-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feishu-setup-intro span {
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.feishu-setup-intro h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.feishu-setup-intro p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.feishu-setup-qr {
+  margin-top: 8px;
+}
+
+.feishu-setup-status {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.feishu-setup-advanced {
+  display: flex;
+  justify-content: center;
+}
+
+/* Mobile QR two-column layout (selector left, QR right) */
+.channel-selector-col--mobile {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.channel-selector-col--mobile .channel-selector-right {
+  flex: 0 1 auto;
+}
+
+.channel-selector-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-qr-container.mobile-qr-inline-img {
+  margin: 0;
+  padding: 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mobile-qr-inline-placeholder {
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-alt);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.mobile-qr-inline-error {
+  padding: 8px 12px;
+  background-color: var(--color-danger-bg, rgba(220, 38, 38, 0.08));
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.channel-info-title {
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.channel-last-updated {
+  margin-top: 16px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ===== 31. Permissions Page ===== */
+
+.perm-switcher {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.perm-switcher-btn {
+  padding: 6px 14px;
+  min-width: 72px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.perm-switcher-btn:hover {
+  transform: none;
+}
+
+.perm-switcher-btn-active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 500;
+  border-color: var(--color-primary);
+}
+
+.perm-switcher-btn-inactive {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.perm-switcher-btn-left {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border-right: none;
+}
+
+.perm-switcher-btn-right {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}

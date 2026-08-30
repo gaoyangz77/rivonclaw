@@ -18,7 +18,18 @@ import {
 } from "../../api/cs-experiment-queries.js";
 import { RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
-import { Modal } from "../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
+import {
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+  TkPanelBody,
+  TkPanelHeader,
+  TkSegmented,
+  TkTableFrame,
+  TkTabs,
+  TkToolbar,
+} from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart.js";
 import { formatLocalizedDate, formatLocalizedDateTime } from "../../lib/format-datetime.js";
@@ -382,46 +393,38 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
 
   if (!entityStore.currentUser)
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel>
           <h2>{t("auth.loginRequired")}</h2>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
 
   return (
-    <div className="page-enter cs-experiments-page">
-      <header className="page-header cs-experiments-header" data-tutorial-id="cs-experiments-header">
-        <div>
-          <div className="cs-experiments-eyebrow">
-            {t("ecommerce.customerServiceExperiments.eyebrow")}
-          </div>
-          <h1>{t("ecommerce.customerServiceExperiments.title")}</h1>
-          <p>{t("ecommerce.customerServiceExperiments.subtitle")}</p>
-        </div>
-        <div
-          className="cs-experiments-tabs"
-          data-tutorial-id="cs-experiments-tabs"
-          role="tablist"
-          aria-label={t("ecommerce.customerServiceExperiments.tabs.label")}
-        >
-          {(["REALTIME", "HISTORY"] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              role="tab"
-              aria-selected={view === item}
-              className={view === item ? "active" : ""}
-              onClick={() => switchView(item)}
-            >
-              <span className="cs-experiments-tab-dot" />
-              {t(`ecommerce.customerServiceExperiments.tabs.${item.toLowerCase()}`)}
-            </button>
-          ))}
-        </div>
-      </header>
+    <TkPageFrame className="cs-experiments-page">
+      <TkPageHeader
+        className="cs-experiments-header"
+        data-tutorial-id="cs-experiments-header"
+        eyebrow={t("ecommerce.customerServiceExperiments.eyebrow")}
+        title={t("ecommerce.customerServiceExperiments.title")}
+        description={t("ecommerce.customerServiceExperiments.subtitle")}
+      />
+      <TkTabs
+        label={t("ecommerce.customerServiceExperiments.tabs.label")}
+        value={view}
+        onChange={(value) => switchView(value as View)}
+        items={(["REALTIME", "HISTORY"] as const).map((item) => ({
+          id: item,
+          label: t(`ecommerce.customerServiceExperiments.tabs.${item.toLowerCase()}`),
+        }))}
+        data-tutorial-id="cs-experiments-tabs"
+      />
 
-      <div className="section-card cs-performance-toolbar cs-experiments-toolbar" data-tutorial-id="cs-experiments-filters">
+      <TkToolbar
+        variant="framed"
+        className="cs-performance-toolbar cs-experiments-toolbar"
+        data-tutorial-id="cs-experiments-filters"
+      >
         <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServiceExperiments.filters.shop")}</span>
           <Select
@@ -460,24 +463,28 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             time: formatDate(pageQuery.data?.ecommerceGetCSExperimentPage.asOf, true, locale),
           })}
         </div>
-      </div>
+      </TkToolbar>
 
       {pageQuery.error ? (
-        <div className="section-card cs-experiments-error">
+        <TkPanel className="section-card cs-experiments-error">
           {t("ecommerce.customerServiceExperiments.loadFailed")}: {pageQuery.error.message}
-        </div>
+        </TkPanel>
       ) : null}
       {!pageQuery.loading && !items.length ? (
-        <div className="section-card cs-experiments-empty">
+        <TkPanel className="section-card cs-experiments-empty">
           <div className="cs-experiments-empty-mark">∅</div>
           <h3>{t("ecommerce.customerServiceExperiments.emptyTitle")}</h3>
           <p>{t("ecommerce.customerServiceExperiments.emptyBody")}</p>
-        </div>
+        </TkPanel>
       ) : null}
 
       {items.length ? (
         <>
-          <section className="section-card cs-experiment-picker" data-tutorial-id="cs-experiment-picker">
+          <TkPanel
+            as="section"
+            className="section-card cs-experiment-picker"
+            data-tutorial-id="cs-experiment-picker"
+          >
             <div className="cs-experiment-picker-control">
               <div className="cs-experiment-picker-label">
                 <span>
@@ -554,19 +561,25 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                   : t("ecommerce.customerServiceExperiments.kpis.healthy")}
               </small>
             </div>
-          </section>
+          </TkPanel>
           <main className="cs-experiment-detail">
             {workspaceQuery.error && !detail ? (
-              <div className="section-card cs-experiments-error">
+              <TkPanel className="section-card cs-experiments-error">
                 {workspaceQuery.error.message}
-              </div>
+              </TkPanel>
             ) : null}
             {!detail && workspaceQuery.loading ? (
-              <div className="section-card cs-experiments-loading">{t("common.loading")}</div>
+              <TkPanel className="section-card cs-experiments-loading">
+                {t("common.loading")}
+              </TkPanel>
             ) : null}
             {detail ? (
               <>
-                <section className="section-card cs-experiment-variants" data-tutorial-id="cs-experiment-variants">
+                <TkPanel
+                  as="section"
+                  className="section-card cs-experiment-variants"
+                  data-tutorial-id="cs-experiment-variants"
+                >
                   <div className="cs-experiment-section-heading">
                     <div>
                       <span>01</span>
@@ -600,7 +613,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       >
                         <header>
                           <i style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
-                          <strong>{variantDisplayLabel(item.variantKey, item.variant?.label)}</strong>
+                          <strong>
+                            {variantDisplayLabel(item.variantKey, item.variant?.label)}
+                          </strong>
                           <b>{(item.weightBps / 100).toFixed(2)}%</b>
                         </header>
                         <small>
@@ -612,7 +627,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           {item.variant ? (
                             <>
                               {" · "}
-                              {t(`ecommerce.customerServiceExperiments.actions.${item.variant.action}`)}
+                              {t(
+                                `ecommerce.customerServiceExperiments.actions.${item.variant.action}`,
+                              )}
                             </>
                           ) : null}
                         </small>
@@ -632,11 +649,13 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                             {!item.includedInPrimaryAnalysis
                               ? t("ecommerce.customerServiceExperiments.excludedFromIncrementality")
                               : item.variant?.action === "CONTINUE"
-                              ? t("ecommerce.customerServiceExperiments.usesBaseConfiguration")
-                              : t("ecommerce.customerServiceExperiments.noReachout")}
+                                ? t("ecommerce.customerServiceExperiments.usesBaseConfiguration")
+                                : t("ecommerce.customerServiceExperiments.noReachout")}
                           </div>
                         )}
-                        {item.variant && item.variant.action !== "NO_REACHOUT" && item.includedInPrimaryAnalysis ? (
+                        {item.variant &&
+                        item.variant.action !== "NO_REACHOUT" &&
+                        item.includedInPrimaryAnalysis ? (
                           <button
                             type="button"
                             className="cs-experiment-config-quick-view"
@@ -649,9 +668,13 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       </article>
                     ))}
                   </div>
-                </section>
+                </TkPanel>
 
-                <section className="section-card cs-experiment-analysis" data-tutorial-id="cs-experiment-analysis">
+                <TkPanel
+                  as="section"
+                  className="section-card cs-experiment-analysis"
+                  data-tutorial-id="cs-experiment-analysis"
+                >
                   <div className="cs-experiment-section-heading">
                     <div>
                       <span>02</span>
@@ -663,80 +686,60 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       {t(`ecommerce.customerServiceExperiments.dataStatus.${detail.dataStatus}`)}
                     </span>
                   </div>
-                  <div className="cs-experiment-signal-tabs" role="tablist">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={signalView === "PAYMENT_PROGRESS"}
-                      className={signalView === "PAYMENT_PROGRESS" ? "active" : ""}
-                      onClick={() => setSignalView("PAYMENT_PROGRESS")}
-                    >
-                      {t("ecommerce.customerServiceExperiments.curve.paymentProgress")}
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={signalView === "METRIC_TREND"}
-                      className={signalView === "METRIC_TREND" ? "active" : ""}
-                      onClick={() => setSignalView("METRIC_TREND")}
-                    >
-                      {t("ecommerce.customerServiceExperiments.curve.metricTrend")}
-                    </button>
-                  </div>
+                  <TkTabs
+                    items={[
+                      {
+                        id: "PAYMENT_PROGRESS",
+                        label: t("ecommerce.customerServiceExperiments.curve.paymentProgress"),
+                      },
+                      {
+                        id: "METRIC_TREND",
+                        label: t("ecommerce.customerServiceExperiments.curve.metricTrend"),
+                      },
+                    ]}
+                    value={signalView}
+                    onChange={(value) => setSignalView(value as SignalView)}
+                    label={t("ecommerce.customerServiceExperiments.analysis")}
+                  />
                   {signalView === "PAYMENT_PROGRESS" ? (
                     <>
-                      <div
-                        className="cs-experiment-curve-estimator-switch"
-                        role="group"
-                        aria-label={t("ecommerce.customerServiceExperiments.curve.estimatorLabel")}
-                      >
-                        <button
-                          type="button"
-                          className={
-                            curveEstimator ===
-                            GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard
-                              ? "active"
-                              : ""
-                          }
-                          aria-pressed={
-                            curveEstimator ===
-                            GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard
-                          }
-                          onClick={() =>
-                            setCurveEstimator(
-                              GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
-                            )
-                          }
-                        >
-                          <strong>
-                            {t("ecommerce.customerServiceExperiments.curve.modelEstimator")}
-                          </strong>
-                          <small>
-                            {t("ecommerce.customerServiceExperiments.curve.modelEstimatorHint")}
-                          </small>
-                        </button>
-                        <button
-                          type="button"
-                          className={
-                            curveEstimator === GQL.CsExperimentCurveEstimator.AalenJohansen
-                              ? "active"
-                              : ""
-                          }
-                          aria-pressed={
-                            curveEstimator === GQL.CsExperimentCurveEstimator.AalenJohansen
-                          }
-                          onClick={() =>
-                            setCurveEstimator(GQL.CsExperimentCurveEstimator.AalenJohansen)
-                          }
-                        >
-                          <strong>
-                            {t("ecommerce.customerServiceExperiments.curve.rawEstimator")}
-                          </strong>
-                          <small>
-                            {t("ecommerce.customerServiceExperiments.curve.rawEstimatorHint")}
-                          </small>
-                        </button>
-                      </div>
+                      <TkSegmented
+                        items={[
+                          {
+                            id: GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
+                            label: (
+                              <span>
+                                <strong>
+                                  {t("ecommerce.customerServiceExperiments.curve.modelEstimator")}
+                                </strong>
+                                <small>
+                                  {t(
+                                    "ecommerce.customerServiceExperiments.curve.modelEstimatorHint",
+                                  )}
+                                </small>
+                              </span>
+                            ),
+                          },
+                          {
+                            id: GQL.CsExperimentCurveEstimator.AalenJohansen,
+                            label: (
+                              <span>
+                                <strong>
+                                  {t("ecommerce.customerServiceExperiments.curve.rawEstimator")}
+                                </strong>
+                                <small>
+                                  {t("ecommerce.customerServiceExperiments.curve.rawEstimatorHint")}
+                                </small>
+                              </span>
+                            ),
+                          },
+                        ]}
+                        value={curveEstimator}
+                        onChange={(value) =>
+                          setCurveEstimator(value as GQL.CsExperimentCurveEstimator)
+                        }
+                        label={t("ecommerce.customerServiceExperiments.curve.estimatorLabel")}
+                      />
                       <ExperimentPaymentProgressChart
                         experimentId={detail.id}
                         curve={curve}
@@ -841,18 +844,24 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       </div>
                     </>
                   )}
-                </section>
+                </TkPanel>
 
-                <section className="section-card cs-experiment-comparisons" data-tutorial-id="cs-experiment-comparisons">
-                  <div className="cs-experiment-section-heading">
-                    <div>
-                      <span>03</span>
-                      <h3>{t("ecommerce.customerServiceExperiments.comparisons")}</h3>
-                    </div>
-                    <small>{t("ecommerce.customerServiceExperiments.comparisonHint")}</small>
-                  </div>
+                <TkPanel
+                  as="section"
+                  padding="none"
+                  clip
+                  className="section-card cs-experiment-comparisons"
+                  data-tutorial-id="cs-experiment-comparisons"
+                >
+                  <TkPanelHeader
+                    eyebrow="03"
+                    title={t("ecommerce.customerServiceExperiments.comparisons")}
+                    actions={
+                      <small>{t("ecommerce.customerServiceExperiments.comparisonHint")}</small>
+                    }
+                  />
                   {comparisons.length ? (
-                    <div className="cs-experiment-comparison-table">
+                    <TkTableFrame variant="embedded" className="cs-experiment-comparison-table">
                       <table>
                         <thead>
                           <tr>
@@ -908,24 +917,28 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </TkTableFrame>
                   ) : detail.quality?.maturedUnits === 0 ? (
-                    <div className="cs-experiment-maturity-empty compact">
-                      <strong>
-                        {t("ecommerce.customerServiceExperiments.comparisonAwaitingTitle")}
-                      </strong>
-                      <p>
-                        {t("ecommerce.customerServiceExperiments.comparisonAwaitingBody", {
-                          time: formatDate(detail.quality.nextMaturityAt, true, locale),
-                        })}
-                      </p>
-                    </div>
+                    <TkPanelBody>
+                      <div className="cs-experiment-maturity-empty compact">
+                        <strong>
+                          {t("ecommerce.customerServiceExperiments.comparisonAwaitingTitle")}
+                        </strong>
+                        <p>
+                          {t("ecommerce.customerServiceExperiments.comparisonAwaitingBody", {
+                            time: formatDate(detail.quality.nextMaturityAt, true, locale),
+                          })}
+                        </p>
+                      </div>
+                    </TkPanelBody>
                   ) : (
-                    <div className="cs-experiments-chart-empty">
-                      {t("ecommerce.customerServiceExperiments.noComparison")}
-                    </div>
+                    <TkPanelBody>
+                      <div className="cs-experiments-chart-empty">
+                        {t("ecommerce.customerServiceExperiments.noComparison")}
+                      </div>
+                    </TkPanelBody>
                   )}
-                </section>
+                </TkPanel>
               </>
             ) : null}
           </main>
@@ -1010,6 +1023,6 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
           </div>
         ) : null}
       </Modal>
-    </div>
+    </TkPageFrame>
   );
 });

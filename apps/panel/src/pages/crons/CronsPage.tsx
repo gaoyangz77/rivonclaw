@@ -3,7 +3,13 @@ import { useTranslation } from "react-i18next";
 import { trackEvent } from "../../api/index.js";
 import { setRunProfileForScope } from "../../api/tool-registry.js";
 import { Select } from "../../components/inputs/Select.js";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
+import {
+  TkAlert,
+  TkPageFrame,
+  TkPageHeader,
+  TkToolbar,
+} from "../../components/design-system/index.js";
 import { useCronManager } from "./useCronManager.js";
 import { CronJobForm } from "./CronJobForm.js";
 import { SUBMIT_RUN_PROFILE_ID_KEY } from "./hooks/useCronForm.js";
@@ -43,45 +49,60 @@ export function CronsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    const params: CronListParams = { query: query || undefined };
-    cron.fetchJobs(params);
-  }, [cron]);
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      const params: CronListParams = { query: query || undefined };
+      cron.fetchJobs(params);
+    },
+    [cron],
+  );
 
-  const handleFilterChange = useCallback((value: string) => {
-    setEnabledFilter(value);
-    cron.fetchJobs({ enabled: value as "all" | "enabled" | "disabled" });
-  }, [cron]);
+  const handleFilterChange = useCallback(
+    (value: string) => {
+      setEnabledFilter(value);
+      cron.fetchJobs({ enabled: value as "all" | "enabled" | "disabled" });
+    },
+    [cron],
+  );
 
-  const handleSortChange = useCallback((value: string) => {
-    setSortBy(value);
-    cron.fetchJobs({ sortBy: value as CronListParams["sortBy"] });
-  }, [cron]);
+  const handleSortChange = useCallback(
+    (value: string) => {
+      setSortBy(value);
+      cron.fetchJobs({ sortBy: value as CronListParams["sortBy"] });
+    },
+    [cron],
+  );
 
-  const handleToggle = useCallback(async (job: CronJob) => {
-    try {
-      setActionError(null);
-      await cron.toggleEnabled(job.id, !job.enabled);
-      trackEvent("cron.toggled", { enabled: !job.enabled });
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    }
-  }, [cron]);
+  const handleToggle = useCallback(
+    async (job: CronJob) => {
+      try {
+        setActionError(null);
+        await cron.toggleEnabled(job.id, !job.enabled);
+        trackEvent("cron.toggled", { enabled: !job.enabled });
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [cron],
+  );
 
-  const handleRun = useCallback(async (id: string) => {
-    try {
-      setActionError(null);
-      setRunningJobId(id);
-      // Tool context is now pushed automatically by Desktop when gateway fires session_start
-      await cron.runJob(id);
-      trackEvent("cron.run_now");
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setRunningJobId(null);
-    }
-  }, [cron]);
+  const handleRun = useCallback(
+    async (id: string) => {
+      try {
+        setActionError(null);
+        setRunningJobId(id);
+        // Tool context is now pushed automatically by Desktop when gateway fires session_start
+        await cron.runJob(id);
+        trackEvent("cron.run_now");
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setRunningJobId(null);
+      }
+    },
+    [cron],
+  );
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -95,24 +116,27 @@ export function CronsPage() {
     }
   }, [cron, deleteTarget]);
 
-  const handleFormSubmit = useCallback(async (params: Record<string, unknown>) => {
-    const runProfileIdRaw = params[SUBMIT_RUN_PROFILE_ID_KEY];
-    const runProfileId = typeof runProfileIdRaw === "string" ? runProfileIdRaw : null;
-    const cronParams = { ...params };
-    delete cronParams[SUBMIT_RUN_PROFILE_ID_KEY];
+  const handleFormSubmit = useCallback(
+    async (params: Record<string, unknown>) => {
+      const runProfileIdRaw = params[SUBMIT_RUN_PROFILE_ID_KEY];
+      const runProfileId = typeof runProfileIdRaw === "string" ? runProfileIdRaw : null;
+      const cronParams = { ...params };
+      delete cronParams[SUBMIT_RUN_PROFILE_ID_KEY];
 
-    const isCreate = !editingJob;
-    if (editingJob) {
-      await cron.updateJob(editingJob.id, cronParams);
-      await setRunProfileForScope(editingJob.id, runProfileId);
-    } else {
-      const newJob = await cron.addJob(cronParams);
-      await setRunProfileForScope(newJob.id, runProfileId);
-    }
-    if (isCreate) trackEvent("cron.created");
-    setFormOpen(false);
-    setEditingJob(null);
-  }, [cron, editingJob]);
+      const isCreate = !editingJob;
+      if (editingJob) {
+        await cron.updateJob(editingJob.id, cronParams);
+        await setRunProfileForScope(editingJob.id, runProfileId);
+      } else {
+        const newJob = await cron.addJob(cronParams);
+        await setRunProfileForScope(newJob.id, runProfileId);
+      }
+      if (isCreate) trackEvent("cron.created");
+      setFormOpen(false);
+      setEditingJob(null);
+    },
+    [cron, editingJob],
+  );
 
   const openCreate = useCallback(() => {
     setEditingJob(null);
@@ -130,58 +154,67 @@ export function CronsPage() {
   }, []);
 
   return (
-    <div className="page-enter" data-tutorial-id="crons-page">
-      <h1>{t("crons.title")}</h1>
-      <p className="page-description">{t("crons.description")}</p>
+    <TkPageFrame data-tutorial-id="crons-page">
+      <TkPageHeader title={t("crons.title")} description={t("crons.description")} />
 
       <div className="crons-status-bar" data-tutorial-id="crons-status">
         <span className={`crons-status-dot crons-status-dot-${cron.connectionState}`} />
         <span>{t(`crons.${cron.connectionState}`)}</span>
-        {cron.total > 0 && <span className="text-muted">({cron.total} {t("crons.jobCount")})</span>}
+        {cron.total > 0 && (
+          <span className="text-muted">
+            ({cron.total} {t("crons.jobCount")})
+          </span>
+        )}
       </div>
 
       {(cron.error || actionError) && (
-        <div className="error-alert">
-          {cron.error || actionError}
-          <div className="error-alert-actions">
-            <button className="btn btn-secondary btn-sm" onClick={() => { setActionError(null); cron.fetchJobs(); }}>
+        <TkAlert
+          tone="danger"
+          actions={
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setActionError(null);
+                cron.fetchJobs();
+              }}
+            >
               {t("crons.retry")}
             </button>
-          </div>
-        </div>
+          }
+        >
+          {cron.error || actionError}
+        </TkAlert>
       )}
 
       {/* Toolbar */}
-      <div className="section-card">
-        <div className="crons-toolbar" data-tutorial-id="crons-toolbar">
-          <input
-            className="input-full crons-search-input"
-            placeholder={t("crons.searchPlaceholder")}
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          <Select
-            className="crons-filter-select"
-            value={enabledFilter}
-            onChange={handleFilterChange}
-            options={ENABLED_OPTIONS.map(o => ({ ...o, label: t(`crons.filter${o.label}`) }))}
-          />
-          <Select
-            className="crons-filter-select"
-            value={sortBy}
-            onChange={handleSortChange}
-            options={SORT_OPTIONS.map(o => ({ ...o, label: t(`crons.sort${o.label}`) }))}
-          />
-          <button
-            className="btn btn-primary"
-            data-tutorial-id="crons-add"
-            onClick={openCreate}
-            disabled={cron.connectionState !== "connected"}
-          >
-            {t("crons.addJob")}
-          </button>
-        </div>
-      </div>
+      <TkToolbar variant="framed" className="crons-toolbar" data-tutorial-id="crons-toolbar">
+        <input
+          className="input-full crons-search-input"
+          placeholder={t("crons.searchPlaceholder")}
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+        <Select
+          className="crons-filter-select"
+          value={enabledFilter}
+          onChange={handleFilterChange}
+          options={ENABLED_OPTIONS.map((o) => ({ ...o, label: t(`crons.filter${o.label}`) }))}
+        />
+        <Select
+          className="crons-filter-select"
+          value={sortBy}
+          onChange={handleSortChange}
+          options={SORT_OPTIONS.map((o) => ({ ...o, label: t(`crons.sort${o.label}`) }))}
+        />
+        <button
+          className="btn btn-primary"
+          data-tutorial-id="crons-add"
+          onClick={openCreate}
+          disabled={cron.connectionState !== "connected"}
+        >
+          {t("crons.addJob")}
+        </button>
+      </TkToolbar>
 
       {/* Job list */}
       <CronJobTable
@@ -202,7 +235,10 @@ export function CronsPage() {
           mode={editingJob ? "edit" : "create"}
           initialData={editingJob ?? undefined}
           onSubmit={handleFormSubmit}
-          onCancel={() => { setFormOpen(false); setEditingJob(null); }}
+          onCancel={() => {
+            setFormOpen(false);
+            setEditingJob(null);
+          }}
         />
       )}
 
@@ -227,6 +263,6 @@ export function CronsPage() {
         cancelLabel={t("common.cancel")}
         confirmVariant="danger"
       />
-    </div>
+    </TkPageFrame>
   );
 }

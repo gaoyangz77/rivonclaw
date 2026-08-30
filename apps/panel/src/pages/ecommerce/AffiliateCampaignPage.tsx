@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -17,9 +16,10 @@ import {
 import { Select } from "../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
-import { Modal } from "../../components/modals/Modal.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
+import { TkPanel, TkTableFrame } from "../../components/design-system/index.js";
 import {
   CreatorRelationshipDetailModal,
   type CreatorRelationshipDetailItem,
@@ -404,7 +404,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
-    itemCount: creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.items.length ?? 0,
+    itemCount:
+      creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates?.items.length ?? 0,
   });
 
   const [writeCampaign, writeCampaignState] = useMutation<
@@ -475,7 +476,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
   const searchPlanSummaries =
-    searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.items ?? [];
+    searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries?.items ?? [];
   const selectedSearchPlanSummary =
     searchPlanSummaries.find((summaryItem) => summaryItem.plan.id === selectedSearchPlanId) ?? null;
   const currentSearchPlan = selectedSearchPlanSummary?.plan ?? null;
@@ -957,7 +958,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
 
   const loadMoreCreatorStates = async () => {
-    const nextCursor = creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.nextCursor;
+    const nextCursor =
+      creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates?.nextCursor;
     if (!nextCursor) return;
     await creatorStatesQuery.fetchMore({
       variables: {
@@ -984,7 +986,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const loadMoreSearchPlans = async () => {
-    const nextCursor = searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.nextCursor;
+    const nextCursor = searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries?.nextCursor;
     if (!nextCursor || !selectedCampaignId) return;
     await searchPlansQuery.fetchMore({
       variables: {
@@ -1110,27 +1112,27 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         eyebrow={t("ecommerce.affiliateCampaign.eyebrow")}
         title={t("ecommerce.affiliateCampaign.title")}
         subtitle={t("ecommerce.affiliateCampaign.subtitle")}
-        actions={(
+        actions={
           <div className="affiliate-campaign-hero-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() =>
-              void Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()])
-            }
-          >
-            <RefreshIcon /> {t("common.refresh")}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={openCreate}
-            data-tutorial-id="affiliate-campaign-create"
-          >
-            <UserPlusIcon /> {t("ecommerce.affiliateCampaign.create")}
-          </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() =>
+                void Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()])
+              }
+            >
+              <RefreshIcon /> {t("common.refresh")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={openCreate}
+              data-tutorial-id="affiliate-campaign-create"
+            >
+              <UserPlusIcon /> {t("ecommerce.affiliateCampaign.create")}
+            </button>
           </div>
-        )}
+        }
       />
 
       <section
@@ -1171,12 +1173,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       </section>
 
       {campaignPortfolio.length === 0 && campaignPortfolioQuery.loading ? (
-        <section
+        <TkPanel
+          as="section"
+          padding="none"
+          clip
           className="affiliate-campaign-directory"
           data-tutorial-id="affiliate-campaign-directory"
         >
           <LoadingSpinner variant="page" />
-        </section>
+        </TkPanel>
       ) : campaignPortfolio.length === 0 ? (
         <section
           className="affiliate-campaign-empty"
@@ -1197,7 +1202,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
         </section>
       ) : (
-        <section
+        <TkPanel
+          as="section"
+          padding="none"
+          clip
           className="affiliate-campaign-directory"
           data-tutorial-id="affiliate-campaign-directory"
         >
@@ -1238,7 +1246,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </div>
             </div>
           </header>
-          <div className="affiliate-campaign-directory-table-wrap">
+          <TkTableFrame variant="embedded" className="affiliate-campaign-directory-table-wrap">
             <table className="affiliate-campaign-directory-table">
               <colgroup>
                 <col className="affiliate-campaign-col-name" />
@@ -1339,7 +1347,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 })}
               </tbody>
             </table>
-          </div>
+          </TkTableFrame>
           <footer className="affiliate-campaign-directory-pagination">
             <span>
               {t("ecommerce.affiliateCampaign.paginationSummary", {
@@ -1375,7 +1383,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </button>
             </div>
           </footer>
-        </section>
+        </TkPanel>
       )}
 
       <Modal
@@ -1519,10 +1527,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           entry.product.productId === product.productId,
                       )?.product;
                       return (
-                        <div className="affiliate-campaign-product-rate-row" key={product.productId}>
+                        <div
+                          className="affiliate-campaign-product-rate-row"
+                          key={product.productId}
+                        >
                           <div className="affiliate-campaign-product-rate-identity">
                             {summary?.coverImage ? (
-                              <RemoteMediaImage sourceUrl={summary.coverImage} alt="" loading="lazy" />
+                              <RemoteMediaImage
+                                sourceUrl={summary.coverImage}
+                                alt=""
+                                loading="lazy"
+                              />
                             ) : (
                               <span className="affiliate-campaign-product-rate-fallback">
                                 <ShopIcon />
@@ -1538,13 +1553,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           </div>
                           <div>
                             <span>{t("ecommerce.affiliateCampaign.ordinaryCommissionRate")}</span>
-                            <strong>{affiliateCampaignCommissionRange([product.commissionRatePercent])}</strong>
+                            <strong>
+                              {affiliateCampaignCommissionRange([product.commissionRatePercent])}
+                            </strong>
                           </div>
                           <div>
                             <span>{t("ecommerce.affiliateCampaign.shopAdsCommissionRate")}</span>
                             <strong>
                               {affiliateCampaignCommissionRange([
-                                product.shopAdsCommissionRatePercent ?? product.commissionRatePercent,
+                                product.shopAdsCommissionRatePercent ??
+                                  product.commissionRatePercent,
                               ])}
                             </strong>
                           </div>
@@ -1608,18 +1626,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 />
                 <CampaignKpiCard
                   label={t("ecommerce.affiliateCampaign.shopTodayReachout")}
-                  value={summary?.shopDailyCapacity.countedOutreachCount ?? 0}
-                  denominator={summary?.shopDailyCapacity.effectiveDailyLimit ?? null}
+                  value={summary?.shopDailyCapacity?.countedOutreachCount ?? 0}
+                  denominator={summary?.shopDailyCapacity?.effectiveDailyLimit ?? null}
                   denominatorLabel={t("ecommerce.affiliateCampaign.shopCapacityUnit")}
                   supportingText={
-                    summary?.shopDailyCapacity.effectiveDailyLimit == null
+                    summary?.shopDailyCapacity?.effectiveDailyLimit == null
                       ? t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired")
-                      : summary.shopDailyCapacity.circuitOpenUntil
+                      : summary.shopDailyCapacity?.circuitOpenUntil
                         ? t("ecommerce.affiliateCampaign.shopCircuitUntil", {
                             time: formatDateTime(summary.shopDailyCapacity.circuitOpenUntil),
                           })
                         : t("ecommerce.affiliateCampaign.shopCapacityRemaining", {
-                            count: summary.shopDailyCapacity.remainingOutreachCapacity,
+                            count: summary.shopDailyCapacity?.remainingOutreachCapacity ?? 0,
                           })
                   }
                   progress
@@ -1731,7 +1749,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               t={t}
             />
 
-            <section
+            <TkPanel
+              as="section"
+              padding="none"
+              clip
               className="affiliate-campaign-search-plan-panel data-card-hover"
               data-tutorial-id="affiliate-campaign-detail-operations"
             >
@@ -1752,7 +1773,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </div>
                     </div>
                     {searchPlanSummaries.length ? (
-                      <div className="affiliate-campaign-search-plan-table-wrap">
+                      <TkTableFrame className="affiliate-campaign-search-plan-table-wrap">
                         <table className="affiliate-campaign-search-plan-table">
                           <thead>
                             <tr>
@@ -1857,7 +1878,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                             })}
                           </tbody>
                         </table>
-                      </div>
+                      </TkTableFrame>
                     ) : (
                       <div className="affiliate-campaign-plan-waiting">
                         <strong>
@@ -1888,7 +1909,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </button>
                       </div>
                     )}
-                    {searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.nextCursor && (
+                    {searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries?.nextCursor && (
                       <button
                         type="button"
                         className="btn btn-secondary affiliate-campaign-load-more"
@@ -1984,7 +2005,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </button>
                       )}
                     </div>
-                    <div className="affiliate-campaign-state-table-wrap">
+                    <TkTableFrame className="affiliate-campaign-state-table-wrap">
                       <table className="affiliate-campaign-state-table">
                         <thead>
                           <tr>
@@ -1999,7 +2020,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <tbody>
                           {(
                             creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates
-                              .items ?? []
+                              ?.items ?? []
                           ).map((state) => (
                             <CampaignCreatorStateRow
                               key={state.id}
@@ -2041,9 +2062,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           {t("ecommerce.affiliateCampaign.noCreatorStates")}
                         </div>
                       )}
-                    </div>
+                    </TkTableFrame>
                     {creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates
-                      .nextCursor && (
+                      ?.nextCursor && (
                       <button
                         type="button"
                         className="btn btn-secondary affiliate-campaign-load-more"
@@ -2056,20 +2077,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </div>
                 </div>
               </div>
-            </section>
+            </TkPanel>
           </div>
         )}
       </Modal>
 
-      {selectedCreatorDetail &&
-        createPortal(
-          <CreatorRelationshipDetailModal
-            item={selectedCreatorDetail}
-            selectedShopId={selectedCampaign?.shopId ?? ""}
-            onClose={() => setSelectedCreatorDetail(null)}
-          />,
-          document.body,
-        )}
+      {selectedCreatorDetail && (
+        <CreatorRelationshipDetailModal
+          item={selectedCreatorDetail}
+          selectedShopId={selectedCampaign?.shopId ?? ""}
+          onClose={() => setSelectedCreatorDetail(null)}
+        />
+      )}
 
       <Modal
         isOpen={wizardOpen}
@@ -3165,391 +3184,6 @@ function RuleTextInput({
   );
 }
 
-function SearchGroupRulesEditor({
-  rules,
-  capabilities,
-  t,
-  onChange,
-}: {
-  rules: GQL.AffiliateCampaignDiscoveryRulesInput;
-  capabilities?: GQL.AffiliateMarketplaceCreatorRuleCapabilities;
-  t: (key: string, options?: Record<string, unknown>) => string;
-  onChange: (rules: GQL.AffiliateCampaignDiscoveryRulesInput) => void;
-}) {
-  const normalized = normalizeDiscoveryRules(rules);
-  const ageRanges = normalized.audience?.ageRanges ?? [];
-  const gender = normalized.audience?.genderDistribution?.gender ?? "";
-  const gmvRanges = normalized.salesPerformance30d?.gmvRanges ?? [];
-  const unitsSoldRanges = normalized.salesPerformance30d?.unitsSoldRanges ?? [];
-  const languages = normalized.marketSpecific?.languages ?? [];
-  const creatorLevels = normalized.marketSpecific?.creatorLevels ?? [];
-  const categoryPros = normalized.marketSpecific?.categoryPros ?? [];
-  const categoryIds = (normalized.categories ?? [])
-    .map((category) => category.parentCategoryId)
-    .join(", ");
-  const content = normalized.contentPerformance30d ?? {};
-  const affiliate = normalized.affiliatePerformance30d ?? {};
-  const summary = campaignSearchGroupRuleSummary(normalized, t);
-  return (
-    <details className="affiliate-campaign-search-group-rules">
-      <summary>
-        <span>
-          {t("ecommerce.affiliateCampaign.searchGroupRules")}
-          <span className="affiliate-campaign-search-group-rule-summary">
-            {summary.length
-              ? summary.map((item) => <small key={item}>{item}</small>)
-              : t("ecommerce.affiliateCampaign.searchGroupRulesEmpty")}
-          </span>
-        </span>
-        <i>{t("ecommerce.affiliateCampaign.editRules")}</i>
-      </summary>
-      <div className="affiliate-campaign-search-group-rules-body">
-        <div className="affiliate-campaign-field-pair">
-          <label>
-            <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
-            <input
-              type="number"
-              min={0}
-              value={normalized.followerCount?.minimum ?? ""}
-              onChange={(event) =>
-                onChange({
-                  ...normalized,
-                  followerCount: {
-                    ...normalized.followerCount,
-                    minimum: optionalNumber(event.target.value),
-                  },
-                })
-              }
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateCampaign.maximumFollowers")}</span>
-            <input
-              type="number"
-              min={0}
-              value={normalized.followerCount?.maximum ?? ""}
-              onChange={(event) =>
-                onChange({
-                  ...normalized,
-                  followerCount: {
-                    ...normalized.followerCount,
-                    maximum: optionalNumber(event.target.value),
-                  },
-                })
-              }
-            />
-          </label>
-        </div>
-        <RuleChipSection
-          title={t("ecommerce.affiliateCampaign.audienceRules")}
-          values={capabilities?.ageRanges ?? []}
-          selected={ageRanges}
-          onToggle={(value) =>
-            onChange({
-              ...normalized,
-              audience: {
-                ...normalized.audience,
-                ageRanges: toggleValue(ageRanges, value),
-              },
-            })
-          }
-        />
-        <div className="affiliate-campaign-field-pair">
-          <label>
-            <span>{t("ecommerce.affiliateCampaign.audienceGender")}</span>
-            <Select
-              value={gender}
-              onChange={(value) =>
-                onChange({
-                  ...normalized,
-                  audience: {
-                    ...normalized.audience,
-                    genderDistribution: value
-                      ? {
-                          gender: value as GQL.CreatorSearchFollowerGender,
-                          minimumPercentage:
-                            normalized.audience?.genderDistribution?.minimumPercentage ?? 0,
-                        }
-                      : null,
-                  },
-                })
-              }
-              options={[
-                {
-                  value: "",
-                  label: t("ecommerce.affiliateCampaign.noMinimum"),
-                },
-                ...(capabilities?.genders ?? []).map((value) => ({
-                  value,
-                  label: marketplaceEnumLabel(value),
-                })),
-              ]}
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateCampaign.minimumAudienceShare")}</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              disabled={!gender}
-              value={normalized.audience?.genderDistribution?.minimumPercentage ?? ""}
-              onChange={(event) =>
-                onChange({
-                  ...normalized,
-                  audience: {
-                    ...normalized.audience,
-                    genderDistribution: gender
-                      ? {
-                          gender,
-                          minimumPercentage: optionalNumber(event.target.value) ?? 0,
-                        }
-                      : null,
-                  },
-                })
-              }
-            />
-          </label>
-        </div>
-        <RuleChipSection
-          title={t("ecommerce.affiliateCampaign.gmv30d")}
-          values={capabilities?.gmvRanges ?? []}
-          selected={gmvRanges}
-          onToggle={(value) =>
-            onChange({
-              ...normalized,
-              salesPerformance30d: {
-                ...normalized.salesPerformance30d,
-                gmvRanges: toggleValue(gmvRanges, value),
-              },
-            })
-          }
-        />
-        <RuleChipSection
-          title={t("ecommerce.affiliateCampaign.units30d")}
-          values={capabilities?.unitsSoldRanges ?? []}
-          selected={unitsSoldRanges}
-          onToggle={(value) =>
-            onChange({
-              ...normalized,
-              salesPerformance30d: {
-                ...normalized.salesPerformance30d,
-                unitsSoldRanges: toggleValue(unitsSoldRanges, value),
-              },
-            })
-          }
-        />
-        <RuleChipSection
-          title={t("ecommerce.affiliateCampaign.languages")}
-          values={capabilities?.languages ?? []}
-          selected={languages}
-          onToggle={(value) =>
-            onChange({
-              ...normalized,
-              marketSpecific: {
-                ...normalized.marketSpecific,
-                languages: toggleValue(languages, value),
-              },
-            })
-          }
-        />
-        <RuleChipSection
-          title={t("ecommerce.affiliateCampaign.creatorLevels")}
-          values={capabilities?.creatorLevels ?? []}
-          selected={creatorLevels}
-          onToggle={(value) =>
-            onChange({
-              ...normalized,
-              marketSpecific: {
-                ...normalized.marketSpecific,
-                creatorLevels: toggleValue(creatorLevels, value),
-              },
-            })
-          }
-        />
-        <RuleChipSection
-          title={t("ecommerce.affiliateCampaign.categoryPros")}
-          values={capabilities?.categoryPros ?? []}
-          selected={categoryPros}
-          onToggle={(value) =>
-            onChange({
-              ...normalized,
-              marketSpecific: {
-                ...normalized.marketSpecific,
-                categoryPros: toggleValue(categoryPros, value),
-              },
-            })
-          }
-        />
-        <div className="affiliate-campaign-rule-block">
-          <label>
-            <span>{t("ecommerce.affiliateCampaign.categoryIds")}</span>
-            <input
-              value={categoryIds}
-              placeholder={t("ecommerce.affiliateCampaign.categoryIdsHint")}
-              onChange={(event) =>
-                onChange({
-                  ...normalized,
-                  categories: event.target.value
-                    .split(",")
-                    .map((value) => value.trim())
-                    .filter(Boolean)
-                    .map((parentCategoryId) => ({ parentCategoryId, childCategoryIds: [] })),
-                })
-              }
-            />
-          </label>
-        </div>
-        <div className="affiliate-campaign-rule-block">
-          <strong>{t("ecommerce.affiliateCampaign.contentPerformanceConditions")}</strong>
-          <div className="affiliate-campaign-field-pair">
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageVideoViews")}
-              value={content.averageVideoViews ?? ""}
-              onChange={(averageVideoViews) =>
-                onChange({
-                  ...normalized,
-                  contentPerformance30d: { ...content, averageVideoViews },
-                })
-              }
-            />
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageEngagementRate")}
-              value={content.averageEngagementRate ?? ""}
-              onChange={(averageEngagementRate) =>
-                onChange({
-                  ...normalized,
-                  contentPerformance30d: { ...content, averageEngagementRate },
-                })
-              }
-            />
-          </div>
-          <div className="affiliate-campaign-field-pair">
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageShoppableVideoViews")}
-              value={content.averageShoppableVideoViews ?? ""}
-              onChange={(averageShoppableVideoViews) =>
-                onChange({
-                  ...normalized,
-                  contentPerformance30d: { ...content, averageShoppableVideoViews },
-                })
-              }
-            />
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageShoppableEngagementRate")}
-              value={content.averageShoppableEngagementRate ?? ""}
-              onChange={(averageShoppableEngagementRate) =>
-                onChange({
-                  ...normalized,
-                  contentPerformance30d: {
-                    ...content,
-                    averageShoppableEngagementRate,
-                  },
-                })
-              }
-            />
-          </div>
-          <div className="affiliate-campaign-field-pair">
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageLiveViewers")}
-              value={content.averageLiveViewers ?? ""}
-              onChange={(averageLiveViewers) =>
-                onChange({
-                  ...normalized,
-                  contentPerformance30d: { ...content, averageLiveViewers },
-                })
-              }
-            />
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageShoppableLiveViewers")}
-              value={content.averageShoppableLiveViewers ?? ""}
-              onChange={(averageShoppableLiveViewers) =>
-                onChange({
-                  ...normalized,
-                  contentPerformance30d: {
-                    ...content,
-                    averageShoppableLiveViewers,
-                  },
-                })
-              }
-            />
-          </div>
-        </div>
-        <div className="affiliate-campaign-rule-block">
-          <strong>{t("ecommerce.affiliateCampaign.affiliatePerformanceConditions")}</strong>
-          <div className="affiliate-campaign-field-pair">
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.averageCommissionRate")}
-              value={affiliate.averageCommissionRate ?? ""}
-              onChange={(averageCommissionRate) =>
-                onChange({
-                  ...normalized,
-                  affiliatePerformance30d: { ...affiliate, averageCommissionRate },
-                })
-              }
-            />
-            <RuleTextInput
-              label={t("ecommerce.affiliateCampaign.postRate")}
-              value={affiliate.postRate ?? ""}
-              onChange={(postRate) =>
-                onChange({
-                  ...normalized,
-                  affiliatePerformance30d: { ...affiliate, postRate },
-                })
-              }
-            />
-          </div>
-          <RuleTextInput
-            label={t("ecommerce.affiliateCampaign.creatorAgencyStatus")}
-            value={affiliate.creatorAgencyStatus ?? ""}
-            onChange={(creatorAgencyStatus) =>
-              onChange({
-                ...normalized,
-                affiliatePerformance30d: { ...affiliate, creatorAgencyStatus },
-              })
-            }
-          />
-          <label className="affiliate-campaign-check-rule">
-            <input
-              type="checkbox"
-              checked={affiliate.fastGrowingOnly ?? false}
-              onChange={(event) =>
-                onChange({
-                  ...normalized,
-                  affiliatePerformance30d: {
-                    ...affiliate,
-                    fastGrowingOnly: event.target.checked,
-                  },
-                })
-              }
-            />
-            <span>{t("ecommerce.affiliateCampaign.fastGrowingOnly")}</span>
-          </label>
-          <label className="affiliate-campaign-check-rule">
-            <input
-              type="checkbox"
-              checked={affiliate.notInvitedLast90Days ?? false}
-              onChange={(event) =>
-                onChange({
-                  ...normalized,
-                  affiliatePerformance30d: {
-                    ...affiliate,
-                    notInvitedLast90Days: event.target.checked,
-                  },
-                })
-              }
-            />
-            <span>{t("ecommerce.affiliateCampaign.notInvitedLast90Days")}</span>
-          </label>
-          <p className="affiliate-campaign-cross-product-warning">
-            {t("ecommerce.affiliateCampaign.notInvitedCrossProductWarning")}
-          </p>
-        </div>
-      </div>
-    </details>
-  );
-}
-
 export function campaignSearchGroupRuleSummary(
   rules: GQL.AffiliateCampaignDiscoveryRulesInput,
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -3691,12 +3325,6 @@ function normalizeDiscoveryRules(
       categoryPros: [...(value?.marketSpecific?.categoryPros ?? [])],
     },
   };
-}
-
-function optionalNumber(value: string): number | null {
-  if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function CampaignMetric({
@@ -4188,22 +3816,6 @@ export function campaignCreatorDetailItem(
   };
 }
 
-function executionStatusLabel(
-  status: GQL.AffiliateCampaignDailyExecutionStatus,
-  t: (key: string) => string,
-) {
-  return t(`ecommerce.affiliateCampaign.executionStatus.${status.toLowerCase()}`);
-}
-
-/**
- * Commission for a Campaign's lead product. Other products carry their own
- * rates, which the detail view lists separately.
- */
-function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
-  const value = Number(campaign.products?.[0]?.commissionRatePercent);
-  return Number.isFinite(value) ? value : 10;
-}
-
 export function isAffiliateCampaignCommissionRateValid(value: string | number): boolean {
   const rate = Number(value);
   return Number.isFinite(rate) && rate >= 1 && rate <= 80;
@@ -4310,12 +3922,6 @@ function campaignExecutionReasonLabel(reason: string, t: (key: string) => string
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat().format(value);
-}
-
-function formatOptionalNumber(value?: number | null) {
-  return value == null
-    ? "—"
-    : new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 }
 
 function formatProbability(value?: number | null) {

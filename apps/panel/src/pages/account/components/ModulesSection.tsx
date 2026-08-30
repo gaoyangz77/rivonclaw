@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ModuleIcon } from "../../../components/icons.js";
+import { TkPanel, TkSwitchControl } from "../../../components/design-system/index.js";
 
 interface ModulesSectionProps {
   isEnrolled: boolean;
@@ -15,7 +16,7 @@ export function ModulesSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <TkPanel as="section" className="section-card">
       <div className="acct-section-header">
         <div>
           <h3>{t("modules.title")}</h3>
@@ -33,24 +34,15 @@ export function ModulesSection({
             <span className="module-card-desc">{t("modules.globalEcommerceSeller.description")}</span>
           </div>
           <div className="module-card-toggle">
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={isEnrolled}
-                disabled={moduleToggling}
-                onChange={onToggle}
-              />
-              <span
-                className={`toggle-track ${isEnrolled ? "toggle-track-on" : "toggle-track-off"} ${moduleToggling ? "toggle-track-disabled" : ""}`}
-              >
-                <span
-                  className={`toggle-thumb ${isEnrolled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                />
-              </span>
-            </label>
+            <TkSwitchControl
+              label={t("modules.globalEcommerceSeller.name")}
+              checked={isEnrolled}
+              disabled={moduleToggling}
+              onChange={onToggle}
+            />
           </div>
         </div>
       </div>
-    </div>
+    </TkPanel>
   );
 }

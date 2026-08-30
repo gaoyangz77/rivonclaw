@@ -1,0 +1,116 @@
+/* CSS ownership: tool selector. Imported in original cascade order. */
+
+/* ===== Tool Selector ===== */
+
+/* Dropdown mode for tool selector */
+
+/* ── ToolMultiSelect (per-tool checkboxes grouped by category) ── */
+
+.tool-ms {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.tool-ms-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 12px 0;
+}
+
+.tool-ms-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tool-ms-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-ms-group-header:hover {
+  background: var(--brand-tint-06);
+}
+
+.tool-ms-group-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex: 1;
+}
+
+.tool-ms-chevron {
+  display: inline-block;
+  font-size: 10px;
+  margin-right: 4px;
+  transition: transform var(--transition-fast);
+}
+
+.tool-ms-chevron-open {
+  transform: rotate(90deg);
+}
+
+.tool-ms-group-count {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-ms-items {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
+
+.tool-ms-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+}
+
+.tool-ms-item:hover {
+  background: var(--brand-tint-04);
+}
+
+.tool-ms-item-unavailable {
+  opacity: 0.78;
+}
+
+.tool-ms-item-name {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.tool-ms-item-name-unavailable {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.tool-ms-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* (Removed: old .chat-tools-toggle / .chat-tools-popover — replaced by RunProfileSelector) */
+
+/* Responsive styles for tutorial links */

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 
 export type AnnouncementActionRole = "PRIMARY" | "SECONDARY";
 export type AnnouncementActionType = "DISMISS" | "NAVIGATE" | "EXTERNAL_URL";

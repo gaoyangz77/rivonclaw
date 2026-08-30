@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { useEntityStore } from "../../../store/index.js";
 import { useToast } from "../../../components/Toast.js";
 

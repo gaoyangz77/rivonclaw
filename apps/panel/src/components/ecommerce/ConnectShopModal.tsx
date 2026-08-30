@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "../modals/Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import { Select } from "../inputs/Select.js";
 import { CopyIcon, CheckIcon, InfoIcon } from "../icons.js";
 import { GQL } from "@rivonclaw/core";

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 function formatCount(value: number | undefined) {

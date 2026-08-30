@@ -14,6 +14,12 @@ import {
 } from "recharts";
 import { ECOMMERCE_GET_SPS_ANALYTICS_QUERY } from "../../api/sps-analytics-query.js";
 import { RefreshIcon } from "../../components/icons.js";
+import {
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+  TkSegmented,
+} from "../../components/design-system/index.js";
 import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
@@ -125,7 +131,9 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
           <h3>{displayShopName(shop)}</h3>
           {shop.shopAlias && <p>{shop.shopName}</p>}
         </div>
-        <span className={`sps-availability sps-availability-${available ? "available" : "unavailable"}`}>
+        <span
+          className={`sps-availability sps-availability-${available ? "available" : "unavailable"}`}
+        >
           {t(`shopAnalytics.availability.${shop.availability}`)}
         </span>
       </div>
@@ -140,7 +148,9 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
               <strong>{formatSpsValue(shop.spsScore, undefined, i18n.language)}</strong>
             </div>
             <div className="sps-score-copy">
-              <strong>{shop.spsTierText || shop.spsTier || t("shopAnalytics.shop.currentTier")}</strong>
+              <strong>
+                {shop.spsTierText || shop.spsTier || t("shopAnalytics.shop.currentTier")}
+              </strong>
               <span>
                 {shop.peerPercentile == null
                   ? shop.primaryCategoryName || t("shopAnalytics.shop.defaultCategory")
@@ -161,7 +171,9 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
           <div className="sps-metric-strip">
             <div>
               <span>{t("shopAnalytics.shop.metricValue")}</span>
-              <strong>{formatSpsValue(shop.metricValue, shop.metricValueUnit, i18n.language)}</strong>
+              <strong>
+                {formatSpsValue(shop.metricValue, shop.metricValueUnit, i18n.language)}
+              </strong>
             </div>
             <div>
               <span>{t("shopAnalytics.shop.metricScore")}</span>
@@ -182,8 +194,12 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
           {(shop.diagnosisSummaries.length > 0 || shop.diagnosisDetails.length > 0) && (
             <div className="sps-diagnosis-block">
               <span>{t("shopAnalytics.shop.diagnosis")}</span>
-              {shop.diagnosisSummaries.map((summary) => <strong key={summary}>{summary}</strong>)}
-              {shop.diagnosisDetails.map((detail) => <p key={detail}>{detail}</p>)}
+              {shop.diagnosisSummaries.map((summary) => (
+                <strong key={summary}>{summary}</strong>
+              ))}
+              {shop.diagnosisDetails.map((detail) => (
+                <p key={detail}>{detail}</p>
+              ))}
             </div>
           )}
 
@@ -192,19 +208,29 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
             <div className="sps-method-grid">
               <div>
                 <span>{shop.calculationNumeratorLabel || t("shopAnalytics.shop.numerator")}</span>
-                <strong>{formatSpsValue(shop.calculationNumeratorValue, undefined, i18n.language)}</strong>
+                <strong>
+                  {formatSpsValue(shop.calculationNumeratorValue, undefined, i18n.language)}
+                </strong>
               </div>
               <div>
-                <span>{shop.calculationDenominatorLabel || t("shopAnalytics.shop.denominator")}</span>
-                <strong>{formatSpsValue(shop.calculationDenominatorValue, undefined, i18n.language)}</strong>
+                <span>
+                  {shop.calculationDenominatorLabel || t("shopAnalytics.shop.denominator")}
+                </span>
+                <strong>
+                  {formatSpsValue(shop.calculationDenominatorValue, undefined, i18n.language)}
+                </strong>
               </div>
               <div>
                 <span>{t("shopAnalytics.shop.excellentThreshold")}</span>
-                <strong>{formatSpsValue(shop.excellentThreshold, shop.metricValueUnit, i18n.language)}</strong>
+                <strong>
+                  {formatSpsValue(shop.excellentThreshold, shop.metricValueUnit, i18n.language)}
+                </strong>
               </div>
               <div>
                 <span>{t("shopAnalytics.shop.poorThreshold")}</span>
-                <strong>{formatSpsValue(shop.poorThreshold, shop.metricValueUnit, i18n.language)}</strong>
+                <strong>
+                  {formatSpsValue(shop.poorThreshold, shop.metricValueUnit, i18n.language)}
+                </strong>
               </div>
             </div>
             {shop.distributionDetails.length > 0 && (
@@ -231,16 +257,10 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
   );
 }
 
-function MarketSection({
-  market,
-}: {
-  market: GQL.SpsAnalyticsMarketView;
-}) {
+function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
   const { t, i18n } = useTranslation();
   const chart = buildSpsMarketChart(market.shops);
-  const unit = market.shops.find(
-    (shop) => shop.availability === "AVAILABLE",
-  )?.metricValueUnit;
+  const unit = market.shops.find((shop) => shop.availability === "AVAILABLE")?.metricValueUnit;
   const yAxisValues = chart.rows.flatMap((row) =>
     chart.series
       .map((series) => row[series.shopId])
@@ -262,14 +282,16 @@ function MarketSection({
             </p>
           </div>
         </div>
-        <span className={`sps-market-support sps-market-support-${market.apiSupported ? "live" : "unsupported"}`}>
+        <span
+          className={`sps-market-support sps-market-support-${market.apiSupported ? "live" : "unsupported"}`}
+        >
           {market.apiSupported
             ? t("shopAnalytics.market.live")
             : t("shopAnalytics.market.unavailable")}
         </span>
       </div>
 
-      <div className="section-card sps-chart-card">
+      <TkPanel as="section" className="section-card sps-chart-card">
         <div className="sps-chart-header">
           <div>
             <span>{t("shopAnalytics.chart.trendByShop")}</span>
@@ -283,7 +305,10 @@ function MarketSection({
           {chart.series.length > 0 && (
             <div className="sps-chart-legend" aria-label={t("shopAnalytics.chart.seriesAria")}>
               {chart.series.map((series, index) => (
-                <span key={series.shopId} className={`sps-series-key sps-series-key-${index % SERIES_COLORS.length}`}>
+                <span
+                  key={series.shopId}
+                  className={`sps-series-key sps-series-key-${index % SERIES_COLORS.length}`}
+                >
                   {series.shopName}
                 </span>
               ))}
@@ -344,10 +369,12 @@ function MarketSection({
             </p>
           </div>
         )}
-      </div>
+      </TkPanel>
 
       <div className="sps-shop-grid" data-tutorial-id="analytics-shops">
-        {market.shops.map((shop) => <ShopDiagnosisCard key={shop.shopId} shop={shop} />)}
+        {market.shops.map((shop) => (
+          <ShopDiagnosisCard key={shop.shopId} shop={shop} />
+        ))}
       </div>
     </section>
   );
@@ -357,11 +384,10 @@ export function ShopAnalyticsPage() {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
-  const authChecking = (entityStore as unknown as { authBootstrap?: { status?: string } })
-    .authBootstrap?.status === "loading";
-  const [metricCode, setMetricCode] = useState<GQL.SpsAnalyticsMetricCode>(
-    "OTDR",
-  );
+  const authChecking =
+    (entityStore as unknown as { authBootstrap?: { status?: string } }).authBootstrap?.status ===
+    "loading";
+  const [metricCode, setMetricCode] = useState<GQL.SpsAnalyticsMetricCode>("OTDR");
 
   const query = useQuery<
     { ecommerceGetSpsAnalytics: GQL.SpsAnalyticsView },
@@ -381,9 +407,7 @@ export function ShopAnalyticsPage() {
       )
     : [];
   const shops = report?.markets.flatMap((market) => market.shops) ?? [];
-  const availableShops = shops.filter(
-    (shop) => shop.availability === "AVAILABLE",
-  );
+  const availableShops = shops.filter((shop) => shop.availability === "AVAILABLE");
   const currentScores = availableShops
     .map((shop) => shop.spsScore)
     .filter((value): value is number => value != null);
@@ -402,81 +426,87 @@ export function ShopAnalyticsPage() {
   }, [availableShops]);
 
   if (authChecking) {
-    return <div className="page-enter"><div className="section-card">{t("shopAnalytics.loadingPage")}</div></div>;
+    return (
+      <TkPageFrame>
+        <TkPanel className="section-card">{t("shopAnalytics.loadingPage")}</TkPanel>
+      </TkPageFrame>
+    );
   }
 
   if (!user) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel className="section-card">
           <h2>{t("shopAnalytics.signInTitle")}</h2>
           <p>{t("shopAnalytics.signInBody")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   return (
-    <div className="page-enter sps-analytics-page">
-      <header className="sps-hero" data-tutorial-id="analytics-header">
-        <div className="sps-hero-copy">
-          <span className="sps-eyebrow">{t("shopAnalytics.eyebrow")}</span>
-          <h1>{t("shopAnalytics.title")}</h1>
-          <p>{t("shopAnalytics.subtitle")}</p>
-        </div>
-        <div className="sps-hero-actions">
-          <span className="sps-live-pill"><i /> {t("shopAnalytics.liveApi")}</span>
-          <button
-            className="btn btn-secondary sps-refresh-button"
-            type="button"
-            onClick={() => void query.refetch()}
-            disabled={refreshing}
-          >
-            <RefreshIcon aria-hidden="true" />
-            {refreshing ? t("shopAnalytics.refreshing") : t("shopAnalytics.refresh")}
-          </button>
-        </div>
-      </header>
+    <TkPageFrame className="sps-analytics-page">
+      <TkPageHeader
+        eyebrow={t("shopAnalytics.eyebrow")}
+        title={t("shopAnalytics.title")}
+        description={t("shopAnalytics.subtitle")}
+        data-tutorial-id="analytics-header"
+        actionsClassName="sps-hero-actions"
+        actions={
+          <>
+            <span className="sps-live-pill">
+              <i /> {t("shopAnalytics.liveApi")}
+            </span>
+            <button
+              className="btn btn-secondary sps-refresh-button"
+              type="button"
+              onClick={() => void query.refetch()}
+              disabled={refreshing}
+            >
+              <RefreshIcon aria-hidden="true" />
+              {refreshing ? t("shopAnalytics.refreshing") : t("shopAnalytics.refresh")}
+            </button>
+          </>
+        }
+      />
 
-      <div className="sps-metric-selector" role="radiogroup" aria-label={t("shopAnalytics.metricSelectorAria")} data-tutorial-id="analytics-metrics">
+      <div
+        className="sps-metric-selector"
+        data-tutorial-id="analytics-metrics"
+      >
         <div className="sps-metric-selector-copy">
           <span>{t("shopAnalytics.diagnosisLens")}</span>
           <strong>{t(`shopAnalytics.metrics.${selectedMetric.code}`)}</strong>
         </div>
-        <div className="sps-metric-options">
-          {METRICS.map((metric) => (
-            <button
-              key={metric.code}
-              type="button"
-              role="radio"
-              aria-checked={metric.code === metricCode}
-              className={`sps-metric-option${metric.code === metricCode ? " active" : ""}`}
-              onClick={() => setMetricCode(metric.code)}
-              title={t(`shopAnalytics.metrics.${metric.code}`)}
-            >
-              {metric.shortLabel}
-            </button>
-          ))}
-        </div>
+        <TkSegmented
+          size="sm"
+          items={METRICS.map((metric) => ({ id: metric.code, label: metric.shortLabel }))}
+          value={metricCode}
+          onChange={(value) => setMetricCode(value as GQL.SpsAnalyticsMetricCode)}
+          label={t("shopAnalytics.metricSelectorAria")}
+        />
       </div>
 
       <div className="sps-summary-grid" data-tutorial-id="analytics-summary">
-        <div className="sps-summary-card data-card-hover">
+        <TkPanel padding="sm" className="sps-summary-card data-card-hover">
           <span>{t("shopAnalytics.summary.markets")}</span>
           <strong>{report?.markets.length ?? "—"}</strong>
           <small>{t("shopAnalytics.summary.marketsHint")}</small>
-        </div>
-        <div className="sps-summary-card data-card-hover">
+        </TkPanel>
+        <TkPanel padding="sm" className="sps-summary-card data-card-hover">
           <span>{t("shopAnalytics.summary.liveShops")}</span>
           <strong>{report ? availableShops.length : "—"}</strong>
           <small>{t("shopAnalytics.summary.liveShopsHint")}</small>
-        </div>
-        <div className="sps-summary-card data-card-hover sps-summary-card-featured">
+        </TkPanel>
+        <TkPanel
+          padding="sm"
+          className="sps-summary-card data-card-hover sps-summary-card-featured"
+        >
           <span>{t("shopAnalytics.summary.averageSps")}</span>
           <strong>{formatSpsValue(averageScore, undefined, i18n.language)}</strong>
           <small>{t("shopAnalytics.summary.averageSpsHint")}</small>
-        </div>
-        <div className="sps-summary-card data-card-hover">
+        </TkPanel>
+        <TkPanel padding="sm" className="sps-summary-card data-card-hover">
           <span>{t("shopAnalytics.summary.lastObserved")}</span>
           <strong className="sps-summary-time">
             {formatTimestamp(latestObservation, i18n.language)}
@@ -486,7 +516,7 @@ export function ShopAnalyticsPage() {
               days: report?.trendDurationDays ?? 90,
             })}
           </small>
-        </div>
+        </TkPanel>
       </div>
 
       <div className="sps-data-note" data-tutorial-id="analytics-timeline">
@@ -495,31 +525,30 @@ export function ShopAnalyticsPage() {
       </div>
 
       {loading && (
-        <div className="section-card sps-state-card">
+        <TkPanel className="section-card sps-state-card">
           {t("shopAnalytics.states.loading")}
-        </div>
+        </TkPanel>
       )}
 
       {query.error && (
-        <div className="section-card sps-state-card sps-state-card-error">
+        <TkPanel className="section-card sps-state-card sps-state-card-error">
           <strong>{t("shopAnalytics.states.errorTitle")}</strong>
           <p>{query.error.message}</p>
           <button className="btn btn-secondary" type="button" onClick={() => void query.refetch()}>
             {t("shopAnalytics.states.retry")}
           </button>
-        </div>
+        </TkPanel>
       )}
 
       {!loading && !query.error && report?.markets.length === 0 && (
-        <div className="section-card sps-state-card">
+        <TkPanel className="section-card sps-state-card">
           <strong>{t("shopAnalytics.states.noShopsTitle")}</strong>
           <p>{t("shopAnalytics.states.noShopsBody")}</p>
-        </div>
+        </TkPanel>
       )}
 
-      {!query.error && orderedMarkets.map((market) => (
-        <MarketSection key={market.market} market={market} />
-      ))}
-    </div>
+      {!query.error &&
+        orderedMarkets.map((market) => <MarketSection key={market.market} market={market} />)}
+    </TkPageFrame>
   );
 }

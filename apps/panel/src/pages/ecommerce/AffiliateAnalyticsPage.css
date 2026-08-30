@@ -111,17 +111,6 @@
   color: var(--color-text-muted);
 }
 
-.affiliate-tabs,
-.affiliate-segmented {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-bg-alt);
-}
-
 .affiliate-analytics-page .affiliate-tabs {
   flex-wrap: nowrap;
   border-color: color-mix(in srgb, var(--color-border) 82%, var(--color-primary) 18%);
@@ -165,7 +154,7 @@
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg-alt);
 }
 
@@ -242,7 +231,7 @@
   padding: 10px;
   overflow: auto;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg);
   box-shadow: 0 18px 48px rgb(0 0 0 / 16%);
 }
@@ -283,7 +272,7 @@
   margin-left: auto;
   padding: 7px 12px;
   border: 1px dashed var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg);
 }
 
@@ -305,7 +294,7 @@
   gap: 14px;
   padding: 18px;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg);
 }
 
@@ -351,7 +340,7 @@
   height: 28px;
   flex: none;
   place-content: center;
-  border-radius: 9px;
+  border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg-alt);
   color: var(--color-text-muted);
   font-size: 13px;
@@ -409,7 +398,7 @@
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-border);
 }
 
@@ -451,7 +440,7 @@
   display: grid;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-border);
 }
 
@@ -499,7 +488,7 @@
   min-width: 0;
   padding: 14px 14px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 13px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg-alt);
 }
 
@@ -527,7 +516,7 @@
   padding: 11px 13px;
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--affiliate-coverage);
-  border-radius: 10px;
+  border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg-alt);
 }
 
@@ -595,7 +584,7 @@
   justify-items: center;
   padding: 22px;
   border: 1px dashed var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--tk-v1-radius-4);
   text-align: center;
 }
 
@@ -608,7 +597,7 @@
 .affiliate-section-loading i {
   display: block;
   height: 78px;
-  border-radius: 12px;
+  border-radius: var(--tk-v1-radius-4);
   background: linear-gradient(100deg, var(--color-bg-alt), color-mix(in srgb, var(--color-bg-alt) 65%, white), var(--color-bg-alt));
   background-size: 200% 100%;
   animation: affiliate-shimmer 1.3s linear infinite;
@@ -625,7 +614,7 @@
   min-height: 34px;
   padding: 5px 9px;
   border: 1px solid var(--color-border);
-  border-radius: 9px;
+  border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg);
   color: var(--color-text-muted);
   font-size: 10px;
@@ -642,7 +631,7 @@
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 13px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-border);
 }
 
@@ -663,7 +652,7 @@
 .affiliate-contract-selector,
 .affiliate-query-composer {
   border: 1px solid var(--color-border);
-  border-radius: 15px;
+  border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg);
 }
 
@@ -703,7 +692,7 @@
 .affiliate-composer-row,
 .affiliate-run-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .affiliate-composer-grid { display: grid; grid-template-columns: 1.1fr .9fr 1.4fr; gap: 12px; }
-.affiliate-composer-block { min-width: 0; padding: 12px; border: 1px solid var(--color-border); border-radius: 11px; background: var(--color-bg-alt); }
+.affiliate-composer-block { min-width: 0; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--tk-v1-radius-3); background: var(--color-bg-alt); }
 .affiliate-composer-block h3 { margin: 0 0 9px; color: var(--color-text); font-size: 12px; }
 .affiliate-check-list { display: grid; max-height: 220px; gap: 4px; overflow: auto; }
 .affiliate-check-list label { display: flex; gap: 7px; align-items: center; padding: 5px; color: var(--color-text-muted); font-size: 11px; }
@@ -732,7 +721,7 @@
 .affiliate-result-status > div { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-right: auto; }
 .affiliate-result-status span,
 .affiliate-result-status small { color: var(--color-text-muted); font-size: 10px; }
-.affiliate-currency-warning { padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); border-radius: 9px; background: color-mix(in srgb, var(--color-warning) 7%, transparent); }
+.affiliate-currency-warning { padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); border-radius: var(--tk-v1-radius-3); background: color-mix(in srgb, var(--color-warning) 7%, transparent); }
 .affiliate-table-scroll { max-height: 520px; overflow: auto; }
 .affiliate-result-table th { position: sticky; z-index: 1; top: 0; background: var(--color-bg-alt); }
 .affiliate-result-table th button,

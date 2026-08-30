@@ -7,6 +7,7 @@ import { LocalModelForm } from "./provider-setup/LocalModelForm.js";
 import { ApiKeyForm } from "./provider-setup/ApiKeyForm.js";
 import { OAuthProviderForm } from "./provider-setup/OAuthProviderForm.js";
 import { CustomProviderForm } from "./provider-setup/CustomProviderForm.js";
+import { TkAlert, TkPanel, TkTabs } from "./design-system/index.js";
 
 
 export interface ProviderSetupFormProps {
@@ -43,43 +44,33 @@ export function ProviderSetupForm({
 
   return (
     <div className="page-two-col" data-tutorial-id="providers-setup">
-      <div ref={leftCardRef} className={variant === "card" ? "section-card page-col-main" : "flex-1"}>
+      <TkPanel
+        innerRef={leftCardRef}
+        variant={variant === "card" ? "framed" : "open"}
+        className={variant === "card" ? "section-card page-col-main" : "flex-1"}
+      >
         {title && (variant === "card" ? <h3>{title}</h3> : <h1>{title}</h1>)}
         {description && <p>{description}</p>}
 
         {error && (
-          <div className="error-alert">
-            {t(error.key)}{error.detail}
+          <TkAlert tone="danger" title={t(error.key)}>
+            {error.detail}
             {error.hover && <details className="error-details"><summary>{t("providers.errorDetails")}</summary><code>{error.hover}</code></details>}
-          </div>
+          </TkAlert>
         )}
 
-        <div className="tab-bar" data-tutorial-id="providers-tabs">
-          <button
-            className={`tab-btn${tab === "subscription" ? " tab-btn-active" : ""}`}
-            onClick={() => handleTabChange("subscription")}
-          >
-            {t("providers.tabSubscription")}
-          </button>
-          <button
-            className={`tab-btn${tab === "api" ? " tab-btn-active" : ""}`}
-            onClick={() => handleTabChange("api")}
-          >
-            {t("providers.tabApi")}
-          </button>
-          <button
-            className={`tab-btn${tab === "local" ? " tab-btn-active" : ""}`}
-            onClick={() => handleTabChange("local")}
-          >
-            {t("providers.tabLocal")}
-          </button>
-          <button
-            className={`tab-btn${tab === "custom" ? " tab-btn-active" : ""}`}
-            onClick={() => handleTabChange("custom")}
-          >
-            {t("providers.tabCustom")}
-          </button>
-        </div>
+        <TkTabs
+          items={[
+            { id: "subscription", label: t("providers.tabSubscription") },
+            { id: "api", label: t("providers.tabApi") },
+            { id: "local", label: t("providers.tabLocal") },
+            { id: "custom", label: t("providers.tabCustom") },
+          ]}
+          value={tab}
+          onChange={(value) => handleTabChange(value as typeof tab)}
+          label={t("providers.title")}
+          data-tutorial-id="providers-tabs"
+        />
 
         {tab === "custom" ? (
           <CustomProviderForm form={form} saveButtonLabel={saveButtonLabel} validatingLabel={validatingLabel} savingLabel={savingLabel} />
@@ -99,24 +90,24 @@ export function ProviderSetupForm({
             )}
           </>
         )}
-      </div>
+      </TkPanel>
 
       {/* Right: Pricing table / Local info / Custom info */}
       <div className="page-col-side" style={{ height: leftHeight }} data-tutorial-id="providers-info">
         {tab === "custom" ? (
-          <div className="section-card pricing-card provider-info-card">
+          <TkPanel className="section-card pricing-card provider-info-card">
             <h4 className="pricing-heading">{t("providers.customInfoTitle")}</h4>
             <div className="provider-info-body">
               {t("providers.customInfoBody")}
             </div>
-          </div>
+          </TkPanel>
         ) : tab === "local" ? (
-          <div className="section-card pricing-card provider-info-card">
+          <TkPanel className="section-card pricing-card provider-info-card">
             <h4 className="pricing-heading">{t("providers.localInfoTitle")}</h4>
             <div className="provider-info-body">
               {t("providers.localInfoBody")}
             </div>
-          </div>
+          </TkPanel>
         ) : tab === "subscription" ? (
           <SubscriptionPricingTable provider={provider} pricingList={pricingList} loading={pricingLoading} />
         ) : (

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { getProviderMeta } from "@rivonclaw/core";
 import type { LLMProvider, GQL } from "@rivonclaw/core";
+import { TkPanel, TkTableFrame } from "./design-system/index.js";
 
 /** Find a subscription by ID across all provider documents. */
 function findSubscription(
@@ -34,12 +35,10 @@ export function PricingTable({
   const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
 
   return (
-    <div className="section-card pricing-card">
+    <TkPanel className="section-card pricing-card">
       <h4 className="pricing-heading">
         {providerLabel} — {t("providers.pricingTitle")}
-        <span className="pricing-subtitle">
-          {t("providers.pricingPerMillion")}
-        </span>
+        <span className="pricing-subtitle">{t("providers.pricingPerMillion")}</span>
       </h4>
 
       {loading && (
@@ -70,49 +69,46 @@ export function PricingTable({
               {t("providers.pricingCurrency")}: {data.currency}
             </div>
           )}
-          <div className="pricing-scroll">
+          <TkTableFrame compact variant="embedded" className="pricing-scroll">
             <table className="pricing-inner-table">
               <thead>
                 <tr>
-                  <th>
-                    {t("providers.pricingModel")}
-                  </th>
-                  <th>
-                    {t("providers.pricingInput")}
-                  </th>
-                  <th>
-                    {t("providers.pricingOutput")}
-                  </th>
+                  <th>{t("providers.pricingModel")}</th>
+                  <th>{t("providers.pricingInput")}</th>
+                  <th>{t("providers.pricingOutput")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.models.map((m) => {
-                  const modelFree = isFree(m.inputPricePerMillion) && isFree(m.outputPricePerMillion);
+                  const modelFree =
+                    isFree(m.inputPricePerMillion) && isFree(m.outputPricePerMillion);
                   return (
                     <tr key={m.modelId}>
                       <td>
-                        <div className="pricing-model-name">
-                          {m.displayName}
-                        </div>
-                        {m.note && (
-                          <div className="pricing-model-note">{m.note}</div>
-                        )}
+                        <div className="pricing-model-name">{m.displayName}</div>
+                        {m.note && <div className="pricing-model-note">{m.note}</div>}
                       </td>
                       <td className="pricing-price">
-                        {modelFree ? t("providers.pricingFree") : m.inputPricePerMillion === "—" ? "—" : `${currencySymbol}${m.inputPricePerMillion}`}
+                        {modelFree
+                          ? t("providers.pricingFree")
+                          : m.inputPricePerMillion === "—"
+                            ? "—"
+                            : `${currencySymbol}${m.inputPricePerMillion}`}
                       </td>
                       <td className="pricing-price">
-                        {modelFree ? t("providers.pricingFree") : m.outputPricePerMillion === "—" ? "—" : `${currencySymbol}${m.outputPricePerMillion}`}
+                        {modelFree
+                          ? t("providers.pricingFree")
+                          : m.outputPricePerMillion === "—"
+                            ? "—"
+                            : `${currencySymbol}${m.outputPricePerMillion}`}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
-          <div className="pricing-disclaimer">
-            {t("providers.pricingDisclaimer")}
-          </div>
+          </TkTableFrame>
+          <div className="pricing-disclaimer">{t("providers.pricingDisclaimer")}</div>
           <div className="pricing-footer-link">
             <a
               href={data.pricingUrl}
@@ -125,7 +121,7 @@ export function PricingTable({
           </div>
         </>
       )}
-    </div>
+    </TkPanel>
   );
 }
 
@@ -145,7 +141,7 @@ export function SubscriptionPricingTable({
   const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
 
   return (
-    <div className="section-card pricing-card">
+    <TkPanel className="section-card pricing-card">
       <h4 className="pricing-heading">
         {providerLabel} — {t("providers.pricingPlansTitle")}
       </h4>
@@ -182,31 +178,36 @@ export function SubscriptionPricingTable({
                 <div key={plan.planName} className="pricing-plan-block">
                   <div className="pricing-plan-header">
                     <span className="pricing-plan-name">{plan.planName}</span>
-                    <span className="pricing-plan-price">{symbol}{plan.price}</span>
+                    <span className="pricing-plan-price">
+                      {symbol}
+                      {plan.price}
+                    </span>
                   </div>
                   {plan.planDetail.length > 0 && (
-                    <table className="pricing-inner-table">
-                      <tbody>
-                        {plan.planDetail.map((d) => (
-                          <tr key={d.modelName}>
-                            <td>{d.modelName}</td>
-                            <td className="pricing-plan-volume">{d.volume}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <TkTableFrame compact variant="embedded">
+                      <table className="pricing-inner-table">
+                        <tbody>
+                          {plan.planDetail.map((d) => (
+                            <tr key={d.modelName}>
+                              <td>{d.modelName}</td>
+                              <td className="pricing-plan-volume">{d.volume}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TkTableFrame>
                   )}
                 </div>
               );
             })}
           </div>
-          <div className="pricing-disclaimer">
-            {t("providers.pricingDisclaimer")}
-          </div>
+          <div className="pricing-disclaimer">{t("providers.pricingDisclaimer")}</div>
           {(getProviderMeta(provider as LLMProvider)?.subscriptionUrl || result?.pricingUrl) && (
             <div className="pricing-footer-link">
               <a
-                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl || result?.pricingUrl}
+                href={
+                  getProviderMeta(provider as LLMProvider)?.subscriptionUrl || result?.pricingUrl
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="pricing-link"
@@ -217,6 +218,6 @@ export function SubscriptionPricingTable({
           )}
         </>
       )}
-    </div>
+    </TkPanel>
   );
 }

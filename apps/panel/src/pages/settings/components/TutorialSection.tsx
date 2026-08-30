@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ToggleSwitch } from "./ToggleSwitch.js";
+import { TkSection, TkSwitch } from "../../../components/design-system/index.js";
 
 interface TutorialSectionProps {
   tutorialEnabled: boolean;
@@ -10,18 +10,19 @@ export function TutorialSection({ tutorialEnabled, handleToggleTutorial }: Tutor
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-tutorial" data-tutorial-id="settings-tutorial">
-      <h3>{t("tutorial.settings.toggle")}</h3>
-
-      <div className="settings-toggle-card">
-        <div className="settings-toggle-label">
-          <span>{t("tutorial.settings.toggle")}</span>
-          <ToggleSwitch checked={tutorialEnabled} onChange={handleToggleTutorial} />
-        </div>
-        <div className="form-hint">
-          {t("tutorial.settings.hint")}
-        </div>
-      </div>
-    </div>
+    <TkSection
+      className="tk-settings-section settings-section-tutorial"
+      data-tutorial-id="settings-tutorial"
+      headingLevel={2}
+      title={t("tutorial.settings.toggle")}
+      variant="framed"
+    >
+      <TkSwitch
+        label={t("tutorial.settings.toggle")}
+        description={t("tutorial.settings.hint")}
+        checked={tutorialEnabled}
+        onChange={handleToggleTutorial}
+      />
+    </TkSection>
   );
 }

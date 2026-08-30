@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
+import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToast } from "../../components/Toast.js";
@@ -613,33 +614,32 @@ export const EcommercePage = observer(function EcommercePage() {
 
   if (authChecking) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel className="section-card">
           <p>{t("common.loading")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel className="section-card">
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   return (
-    <div className="page-enter">
-      <div className="ecommerce-page-header" data-tutorial-id="shops-header">
-        <div>
-          <h1>{t("ecommerce.title")}</h1>
-          <p className="ecommerce-page-subtitle">{t("ecommerce.subtitle")}</p>
-        </div>
-      </div>
+    <TkPageFrame className="ecommerce-shops-page">
+      <TkPageHeader
+        title={t("ecommerce.title")}
+        description={t("ecommerce.subtitle")}
+        data-tutorial-id="shops-header"
+      />
 
       {upgradePrompt && (
         <div className="info-box info-box-blue">{t("ecommerce.upgradeRequired")}</div>
@@ -763,9 +763,7 @@ export const EcommercePage = observer(function EcommercePage() {
         onCommitAffiliateMinExpectedSalesUnits={() => handleSaveAffiliateDecisionThresholds()}
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
-        onSaveAffiliateDailyCreatorOutreachLimit={
-          handleSaveAffiliateDailyCreatorOutreachLimit
-        }
+        onSaveAffiliateDailyCreatorOutreachLimit={handleSaveAffiliateDailyCreatorOutreachLimit}
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}
@@ -802,6 +800,6 @@ export const EcommercePage = observer(function EcommercePage() {
         onConfirm={handleForceBindAffiliateConfirmed}
         onCancel={() => setAffiliateBindConflictShopId(null)}
       />
-    </div>
+    </TkPageFrame>
   );
 });

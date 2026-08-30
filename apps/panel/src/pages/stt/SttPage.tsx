@@ -6,6 +6,13 @@ import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
 import { observer } from "mobx-react-lite";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
+import {
+  TkAlert,
+  TkButton,
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+} from "../../components/design-system/index.js";
 
 export const SttPage = observer(function SttPage() {
   const { t, i18n } = useTranslation();
@@ -110,15 +117,14 @@ export const SttPage = observer(function SttPage() {
   }
 
   return (
-    <div className="page-enter">
-      <h1>{t("stt.title")}</h1>
-      <p>{t("stt.description")}</p>
+    <TkPageFrame>
+      <TkPageHeader title={t("stt.title")} description={t("stt.description")} />
 
       {loadError && (
-        <div className="error-alert">{loadError}</div>
+        <TkAlert tone="danger">{loadError}</TkAlert>
       )}
 
-      <div className="section-card stt-section">
+      <TkPanel as="section" className="section-card stt-section">
         {/* Enable toggle */}
         <div className="form-group">
           <label className="stt-checkbox-label">
@@ -255,7 +261,8 @@ export const SttPage = observer(function SttPage() {
 
         {/* Save button */}
         <div className="form-actions">
-          <button
+          <TkButton
+            variant="primary"
             className="btn btn-primary"
             onClick={handleSave}
             disabled={saving}
@@ -265,12 +272,12 @@ export const SttPage = observer(function SttPage() {
                 ? t("stt.update")
                 : t("common.save")
             )}
-          </button>
+          </TkButton>
         </div>
-      </div>
+      </TkPanel>
 
       {/* Info section */}
-      <div className="section-card stt-section">
+      <TkPanel as="section" className="section-card stt-section">
         <h3>{t("stt.whatIsStt")}</h3>
         <p className="text-secondary stt-explanation">{t("stt.sttExplanation")}</p>
         <ul className="text-secondary stt-feature-list">
@@ -278,7 +285,7 @@ export const SttPage = observer(function SttPage() {
           <li>{t("stt.feature2")}</li>
           <li>{t("stt.feature3")}</li>
         </ul>
-      </div>
-    </div>
+      </TkPanel>
+    </TkPageFrame>
   );
 });

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { OpenClawStateDirInfo } from "../../../api/index.js";
+import { TkBadge, TkButton, TkSection } from "../../../components/design-system/index.js";
 
 interface StateDirectorySectionProps {
   dataDirInfo: OpenClawStateDirInfo;
@@ -12,61 +13,63 @@ interface StateDirectorySectionProps {
   handleUpload: () => void;
 }
 
-export function StateDirectorySection({ dataDirInfo, dataDirRestartNeeded, saving, isLoggedIn, uploading, handleChangeDataDir, handleResetDataDir, handleUpload }: StateDirectorySectionProps) {
+export function StateDirectorySection({
+  dataDirInfo,
+  dataDirRestartNeeded,
+  saving,
+  isLoggedIn,
+  uploading,
+  handleChangeDataDir,
+  handleResetDataDir,
+  handleUpload,
+}: StateDirectorySectionProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-data-dir" data-tutorial-id="settings-data">
-      <h3>{t("settings.dataDir.title")}</h3>
-
-      <div>
-        <div className="settings-toggle-label settings-toggle-label-static">
-          <span>{t("settings.dataDir.label")}</span>
+    <TkSection
+      className="tk-settings-section settings-section-data-dir"
+      data-tutorial-id="settings-data"
+      headingLevel={2}
+      title={t("settings.dataDir.title")}
+      variant="framed"
+    >
+      <div className="tk-settings-field">
+        <span className="tk-v1-label">{t("settings.dataDir.label")}</span>
+        <div className="tk-settings-data-dir-display">
+          <code>{dataDirInfo.override ?? dataDirInfo.effective}</code>
+          <TkBadge tone={dataDirInfo.override ? "accent" : "neutral"}>
+            {dataDirInfo.override ? t("settings.dataDir.custom") : t("settings.dataDir.default")}
+          </TkBadge>
         </div>
-        <div className="data-dir-display">
-          <code className="data-dir-path">{dataDirInfo.override ?? dataDirInfo.effective}</code>
-          {dataDirInfo.override && <span className="badge">{t("settings.dataDir.custom")}</span>}
-          {!dataDirInfo.override && <span className="badge badge-muted">{t("settings.dataDir.default")}</span>}
-        </div>
-        <div className="form-hint">
-          {t("settings.dataDir.hint")}
-        </div>
+        <div className="tk-v1-field-support">{t("settings.dataDir.hint")}</div>
       </div>
 
-      <div className="data-dir-actions">
-        <button className="btn btn-secondary" onClick={handleChangeDataDir} disabled={saving}>
+      <div className="tk-settings-actions">
+        <TkButton variant="secondary" onClick={handleChangeDataDir} disabled={saving}>
           {t("settings.dataDir.change")}
-        </button>
+        </TkButton>
         {dataDirInfo.override && (
-          <button className="btn btn-secondary" onClick={handleResetDataDir} disabled={saving}>
+          <TkButton variant="secondary" onClick={handleResetDataDir} disabled={saving}>
             {t("settings.dataDir.reset")}
-          </button>
+          </TkButton>
         )}
       </div>
 
       {dataDirRestartNeeded && (
-        <div className="data-dir-restart-notice">
-          {t("settings.dataDir.restartNotice")}
-        </div>
+        <div className="tk-settings-notice">{t("settings.dataDir.restartNotice")}</div>
       )}
 
       {isLoggedIn && (
-        <div>
-          <div className="settings-toggle-label settings-toggle-label-static">
+        <div className="tk-settings-separated-row">
+          <div className="tk-settings-inline-heading">
             <span>{t("settings.logUpload.title")}</span>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={handleUpload}
-              disabled={uploading}
-            >
+            <TkButton variant="secondary" size="sm" onClick={handleUpload} loading={uploading}>
               {uploading ? t("settings.logUpload.uploading") : t("settings.logUpload.button")}
-            </button>
+            </TkButton>
           </div>
-          <div className="form-hint">
-            {t("settings.logUpload.description")}
-          </div>
+          <div className="tk-v1-field-support">{t("settings.logUpload.description")}</div>
         </div>
       )}
-    </div>
+    </TkSection>
   );
 }

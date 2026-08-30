@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ImageAssetPreview } from "../../../components/images/ImageAssetPreview.js";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { inventoryGoodImageUrl } from "../../../store/models/InventoryGoodModel.js";

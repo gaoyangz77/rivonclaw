@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import { Select } from "../inputs/Select.js";
 import { trackEvent } from "../../api/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { CHANNEL_SCHEMAS } from "../../lib/channel-schemas.js";
 import { TagInput } from "../inputs/TagInput.js";
+import { TkAlert } from "../design-system/index.js";
 
 export interface AddChannelAccountModalProps {
   isOpen: boolean;
@@ -232,7 +233,7 @@ export function AddChannelAccountModal({
           <div>
             <p>{t("channels.errorChannelNotSupported", { channelId })}</p>
             <button
-              className="btn btn-primary error-alert-actions"
+              className="btn btn-primary"
               onClick={handleCancel}
             >
               {t("channels.buttonCancel")}
@@ -266,7 +267,7 @@ export function AddChannelAccountModal({
               onChange={e => setName(e.target.value)}
             />
           </div>
-          {error && <div className="modal-error-box">{error}</div>}
+          {error && <TkAlert tone="danger">{error}</TkAlert>}
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={handleCancel}>{t("channels.buttonCancel")}</button>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
@@ -391,9 +392,9 @@ export function AddChannelAccountModal({
 
         {/* Error Display */}
         {error && (
-          <div className="modal-error-box">
+          <TkAlert tone="danger">
             <strong>{t("channels.errorLabel")}</strong> {error}
-          </div>
+          </TkAlert>
         )}
 
         {/* Action Buttons */}

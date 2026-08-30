@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
 import type { CronJobFormData, CronDeliveryMode, FormErrors } from "../cron-utils.js";
-import { InfoTip } from "./InfoTip.js";
+import { TkInfoTip } from "../../../components/design-system/index.js";
 
 const DELIVERY_MODES: CronDeliveryMode[] = ["none", "announce", "webhook"];
 
@@ -22,7 +22,7 @@ export function CronDeliveryFields({ form, errors, channelOptions, recipientOpti
     <div className="form-group">
       <label className="form-label-block">
         {t("crons.fieldDeliveryMode")}
-        <InfoTip tooltipKey="tooltipDeliveryMode" />
+        <TkInfoTip label={t("crons.tooltipDeliveryMode")} />
       </label>
       {form.payloadKind === "systemEvent" ? (
         <>

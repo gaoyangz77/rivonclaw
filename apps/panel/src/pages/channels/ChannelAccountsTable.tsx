@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
-import { createPortal } from "react-dom";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { retryFeishuCallbackSetup, type ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
+import {
+  TkAlert,
+  TkPanel,
+  TkPanelHeader,
+  TkTableFrame,
+  TkTooltip,
+} from "../../components/design-system/index.js";
 import { StatusBadge, resolveDisplayedRunningStatus, type AccountEntry } from "./channel-defs.jsx";
 
 /** Show last 3 chars of an ID with a copy-to-clipboard button. */
@@ -38,81 +44,25 @@ function TruncatedId({ value, t }: { value: string; t: (key: string) => string }
 }
 
 function AccountWarning({ tooltip, actionUrl }: { tooltip: string; actionUrl?: string | null }) {
-  const triggerRef = useRef<HTMLElement | null>(null);
-  const [bubble, setBubble] = useState<{
-    top: number;
-    left: number;
-    placement: "top" | "bottom";
-  } | null>(null);
-
-  const show = useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const tooltipMaxWidth = Math.min(320, window.innerWidth - 32);
-    const halfWidth = tooltipMaxWidth / 2;
-    const left = Math.min(
-      Math.max(rect.left + rect.width / 2, halfWidth + 16),
-      window.innerWidth - halfWidth - 16,
-    );
-    const placement = rect.top > 72 ? "top" : "bottom";
-    setBubble({
-      top: placement === "top" ? rect.top : rect.bottom,
-      left,
-      placement,
-    });
-  }, []);
-
-  const hide = useCallback(() => setBubble(null), []);
-  const setTriggerRef = useCallback((node: HTMLElement | null) => {
-    triggerRef.current = node;
-  }, []);
-
   return (
-    <>
-      {actionUrl ? (
+    <TkTooltip
+      label={tooltip}
+      trigger={(props) => (
         <button
-          ref={setTriggerRef}
+          {...props}
           type="button"
-          className="wechat-activation-warning wechat-activation-warning-action"
+          className={`wechat-activation-warning${actionUrl ? " wechat-activation-warning-action" : ""}`}
           aria-label={tooltip}
           onClick={(event) => {
+            props.onClick?.(event);
             event.stopPropagation();
-            window.open(actionUrl, "_blank", "noopener,noreferrer");
+            if (actionUrl) window.open(actionUrl, "_blank", "noopener,noreferrer");
           }}
-          onMouseEnter={show}
-          onMouseLeave={hide}
-          onFocus={show}
-          onBlur={hide}
         >
           !
         </button>
-      ) : (
-        <span
-          ref={setTriggerRef}
-          className="wechat-activation-warning"
-          aria-label={tooltip}
-          tabIndex={0}
-          onMouseEnter={show}
-          onMouseLeave={hide}
-          onFocus={show}
-          onBlur={hide}
-        >
-          !
-        </span>
       )}
-      {bubble &&
-        createPortal(
-          <div
-            className={`wechat-activation-tooltip wechat-activation-tooltip-${bubble.placement}`}
-            style={{ top: bubble.top, left: bubble.left }}
-            role="tooltip"
-          >
-            {tooltip}
-          </div>,
-          document.body,
-        )}
-    </>
+    />
   );
 }
 
@@ -522,9 +472,9 @@ export function ChannelAccountsTable({
         <tr className="channel-recipients-row">
           <td className="channel-expand-col"></td>
           <td colSpan={6}>
-            <div className="modal-error-box">
+            <TkAlert tone="danger">
               <strong>{t("channels.errorLabel")}</strong> {state.error}
-            </div>
+            </TkAlert>
           </td>
         </tr>
       );
@@ -541,40 +491,42 @@ export function ChannelAccountsTable({
                 <h4>
                   {t("pairing.pendingRequests")} ({data.pairingRequests.length})
                 </h4>
-                <table className="recipients-table">
-                  <thead>
-                    <tr>
-                      <th>{t("pairing.code")}</th>
-                      <th>{t("pairing.userId")}</th>
-                      <th>{t("pairing.requestedAt")}</th>
-                      <th className="text-right">{t("pairing.action")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.pairingRequests.map((request) => (
-                      <tr key={request.code}>
-                        <td>
-                          <code className="td-code">{request.code}</code>
-                        </td>
-                        <td>{request.id}</td>
-                        <td className="td-muted">{formatTimeAgo(request.createdAt)}</td>
-                        <td className="text-right">
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() =>
-                              handleApprove(compositeKey, channelId, accountId, request.code)
-                            }
-                            disabled={processing === request.code}
-                          >
-                            {processing === request.code
-                              ? t("pairing.approving")
-                              : t("pairing.approve")}
-                          </button>
-                        </td>
+                <TkTableFrame variant="embedded">
+                  <table className="recipients-table">
+                    <thead>
+                      <tr>
+                        <th>{t("pairing.code")}</th>
+                        <th>{t("pairing.userId")}</th>
+                        <th>{t("pairing.requestedAt")}</th>
+                        <th className="text-right">{t("pairing.action")}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {data.pairingRequests.map((request) => (
+                        <tr key={request.code}>
+                          <td>
+                            <code className="td-code">{request.code}</code>
+                          </td>
+                          <td>{request.id}</td>
+                          <td className="td-muted">{formatTimeAgo(request.createdAt)}</td>
+                          <td className="text-right">
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() =>
+                                handleApprove(compositeKey, channelId, accountId, request.code)
+                              }
+                              disabled={processing === request.code}
+                            >
+                              {processing === request.code
+                                ? t("pairing.approving")
+                                : t("pairing.approve")}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TkTableFrame>
               </div>
             )}
 
@@ -586,122 +538,130 @@ export function ChannelAccountsTable({
               {data.allowlist.length === 0 ? (
                 <div className="recipients-empty">{t("pairing.noRecipients")}</div>
               ) : (
-                <table className="recipients-table">
-                  <thead>
-                    <tr>
-                      {channelId === "mobile" && <th className="presence-col"></th>}
-                      <th>{t("pairing.userId")}</th>
-                      {channelId === "mobile" && <th>{t("pairing.pairingIdColumn")}</th>}
-                      <th>{t("pairing.aliasColumn")}</th>
-                      <th>{t("pairing.roleColumn")}</th>
-                      <th className="text-right">{t("pairing.action")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.allowlist.map((entry) => {
-                      const isOwner = data.owners[entry] ?? false;
-                      const deviceStatus =
-                        channelId === "mobile" ? mobileDeviceStatus[entry] : undefined;
-                      const pairingInfo =
-                        channelId === "mobile"
-                          ? mobilePairings.find((p) => p.pairingId === entry || p.id === entry)
-                          : undefined;
-                      return (
-                        <tr key={entry}>
-                          {channelId === "mobile" && (
-                            <td className="presence-col">
-                              <span
-                                className={`presence-dot ${deviceStatus?.stale ? "presence-stale" : deviceStatus?.mobileOnline ? "presence-online" : "presence-offline"}`}
-                                title={
-                                  deviceStatus?.stale
-                                    ? t("pairing.staleTooltip")
-                                    : deviceStatus?.mobileOnline
-                                      ? "Online"
-                                      : "Offline"
-                                }
-                              />
-                            </td>
-                          )}
-                          <td>
-                            <TruncatedId
-                              value={
-                                channelId === "mobile"
-                                  ? pairingInfo?.mobileDeviceId || entry
-                                  : entry
-                              }
-                              t={t}
-                            />
-                            {deviceStatus?.stale && (
-                              <span className="stale-hint">{t("pairing.staleHint")}</span>
+                <TkTableFrame variant="embedded">
+                  <table className="recipients-table">
+                    <thead>
+                      <tr>
+                        {channelId === "mobile" && <th className="presence-col"></th>}
+                        <th>{t("pairing.userId")}</th>
+                        {channelId === "mobile" && <th>{t("pairing.pairingIdColumn")}</th>}
+                        <th>{t("pairing.aliasColumn")}</th>
+                        <th>{t("pairing.roleColumn")}</th>
+                        <th className="text-right">{t("pairing.action")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.allowlist.map((entry) => {
+                        const isOwner = data.owners[entry] ?? false;
+                        const deviceStatus =
+                          channelId === "mobile" ? mobileDeviceStatus[entry] : undefined;
+                        const pairingInfo =
+                          channelId === "mobile"
+                            ? mobilePairings.find((p) => p.pairingId === entry || p.id === entry)
+                            : undefined;
+                        return (
+                          <tr key={entry}>
+                            {channelId === "mobile" && (
+                              <td className="presence-col">
+                                <span
+                                  className={`presence-dot ${deviceStatus?.stale ? "presence-stale" : deviceStatus?.mobileOnline ? "presence-online" : "presence-offline"}`}
+                                  title={
+                                    deviceStatus?.stale
+                                      ? t("pairing.staleTooltip")
+                                      : deviceStatus?.mobileOnline
+                                        ? "Online"
+                                        : "Offline"
+                                  }
+                                />
+                              </td>
                             )}
-                          </td>
-                          {channelId === "mobile" && (
                             <td>
-                              <TruncatedId value={entry} t={t} />
-                            </td>
-                          )}
-                          <td>
-                            <input
-                              key={`${entry}:${data.labels[entry] || ""}`}
-                              className="recipient-label-input"
-                              defaultValue={data.labels[entry] || ""}
-                              placeholder={t("pairing.labelPlaceholder")}
-                              onBlur={(e) =>
-                                handleLabelBlur(
-                                  compositeKey,
-                                  channelId,
-                                  accountId,
-                                  entry,
-                                  data.labels[entry] || "",
-                                  e.target.value.trim(),
-                                )
-                              }
-                            />
-                          </td>
-                          <td>
-                            <div className="perm-switcher">
-                              <button
-                                className={`perm-switcher-btn perm-switcher-btn-left ${isOwner ? "perm-switcher-btn-active" : "perm-switcher-btn-inactive"}`}
-                                onClick={() =>
-                                  !isOwner &&
-                                  handleOwnerToggle(compositeKey, channelId, accountId, entry, true)
+                              <TruncatedId
+                                value={
+                                  channelId === "mobile"
+                                    ? pairingInfo?.mobileDeviceId || entry
+                                    : entry
                                 }
-                              >
-                                {t("pairing.ownerBadge")}
-                              </button>
-                              <button
-                                className={`perm-switcher-btn perm-switcher-btn-right ${!isOwner ? "perm-switcher-btn-active" : "perm-switcher-btn-inactive"}`}
-                                onClick={() =>
-                                  isOwner &&
-                                  handleOwnerToggle(
+                                t={t}
+                              />
+                              {deviceStatus?.stale && (
+                                <span className="stale-hint">{t("pairing.staleHint")}</span>
+                              )}
+                            </td>
+                            {channelId === "mobile" && (
+                              <td>
+                                <TruncatedId value={entry} t={t} />
+                              </td>
+                            )}
+                            <td>
+                              <input
+                                key={`${entry}:${data.labels[entry] || ""}`}
+                                className="recipient-label-input"
+                                defaultValue={data.labels[entry] || ""}
+                                placeholder={t("pairing.labelPlaceholder")}
+                                onBlur={(e) =>
+                                  handleLabelBlur(
                                     compositeKey,
                                     channelId,
                                     accountId,
                                     entry,
-                                    false,
+                                    data.labels[entry] || "",
+                                    e.target.value.trim(),
                                   )
                                 }
+                              />
+                            </td>
+                            <td>
+                              <div className="perm-switcher">
+                                <button
+                                  className={`perm-switcher-btn perm-switcher-btn-left ${isOwner ? "perm-switcher-btn-active" : "perm-switcher-btn-inactive"}`}
+                                  onClick={() =>
+                                    !isOwner &&
+                                    handleOwnerToggle(
+                                      compositeKey,
+                                      channelId,
+                                      accountId,
+                                      entry,
+                                      true,
+                                    )
+                                  }
+                                >
+                                  {t("pairing.ownerBadge")}
+                                </button>
+                                <button
+                                  className={`perm-switcher-btn perm-switcher-btn-right ${!isOwner ? "perm-switcher-btn-active" : "perm-switcher-btn-inactive"}`}
+                                  onClick={() =>
+                                    isOwner &&
+                                    handleOwnerToggle(
+                                      compositeKey,
+                                      channelId,
+                                      accountId,
+                                      entry,
+                                      false,
+                                    )
+                                  }
+                                >
+                                  {t("pairing.nonOwnerBadge")}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="text-right">
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() =>
+                                  requestRemove(compositeKey, channelId, accountId, entry)
+                                }
+                                disabled={processing === entry}
                               >
-                                {t("pairing.nonOwnerBadge")}
+                                {processing === entry ? t("pairing.removing") : t("common.remove")}
                               </button>
-                            </div>
-                          </td>
-                          <td className="text-right">
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() =>
-                                requestRemove(compositeKey, channelId, accountId, entry)
-                              }
-                              disabled={processing === entry}
-                            >
-                              {processing === entry ? t("pairing.removing") : t("common.remove")}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </TkTableFrame>
               )}
             </div>
           </div>
@@ -711,9 +671,9 @@ export function ChannelAccountsTable({
   }
 
   return (
-    <div className="section-card">
-      <h3>{t("channels.allAccounts")}</h3>
-      <div className="table-scroll-wrap">
+    <TkPanel as="section" padding="none" clip className="section-card">
+      <TkPanelHeader title={t("channels.allAccounts")} />
+      <TkTableFrame variant="embedded" className="table-scroll-wrap">
         <table className="channel-table" data-tutorial-id="channels-accounts">
           <thead>
             <tr>
@@ -909,7 +869,7 @@ export function ChannelAccountsTable({
             )}
           </tbody>
         </table>
-      </div>
+      </TkTableFrame>
 
       {/* Remove Confirm Dialog */}
       <ConfirmDialog
@@ -921,6 +881,6 @@ export function ChannelAccountsTable({
         confirmLabel={t("common.remove")}
         cancelLabel={t("common.cancel")}
       />
-    </div>
+    </TkPanel>
   );
 }

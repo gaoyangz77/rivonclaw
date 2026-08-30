@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { AccountBillingSection } from "../../components/billing/AccountBillingSection.js";
+import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 
 export const BillingPage = observer(function BillingPage() {
   const { t } = useTranslation();
@@ -27,28 +28,29 @@ export const BillingPage = observer(function BillingPage() {
 
   if (authChecking) {
     return (
-      <div className="billing-page page-enter">
-        <div className="section-card">
+      <TkPageFrame className="billing-page">
+        <TkPanel>
           <p>{t("common.loading")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="billing-page page-enter">
-        <div className="section-card">
+      <TkPageFrame className="billing-page">
+        <TkPanel>
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   return (
-    <div className="billing-page page-enter" data-tutorial-id="billing-page">
+    <TkPageFrame className="billing-page" data-tutorial-id="billing-page">
+      <TkPageHeader title={t("nav.billing")} />
       <AccountBillingSection />
-    </div>
+    </TkPageFrame>
   );
 });

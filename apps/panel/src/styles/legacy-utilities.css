@@ -1,0 +1,220 @@
+/* CSS ownership: legacy utilities and transitions. Imported in original cascade order. */
+
+/* ===== 36. Utility ===== */
+
+.btn-sm {
+  height: auto;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+/* Standard action button — skill-install-btn sizing, pairs with any color variant */
+.btn-action {
+  height: 32px;
+  padding: 6px 18px;
+  font-size: 13px;
+  border-radius: 7px;
+}
+
+.btn-ghost {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover {
+  color: var(--color-text);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-sm {
+  font-size: 12px;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.mb-sm {
+  margin-bottom: 8px;
+}
+
+/* Page header layout */
+
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* Layout utilities */
+
+.flex-row-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+}
+
+.inline-flex-center {
+  display: inline-flex;
+  align-items: center;
+}
+
+.contents-toggle {
+  display: contents;
+}
+
+.hidden-toggle {
+  display: none;
+}
+
+/* Spacing utilities */
+.mt-sm {
+  margin-top: 6px;
+}
+
+.mt-lg {
+  margin-top: 20px;
+}
+
+/* Display/hide utilities */
+.sr-input {
+  display: none;
+}
+
+/* Section disabled */
+
+/* Text utilities */
+.text-right {
+  text-align: right;
+}
+
+/* Numeric table cell */
+
+/* Table rounded wrapper */
+
+/* Advanced toggle chevron */
+.advanced-chevron {
+  display: inline-flex;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.advanced-chevron-open {
+  transform: rotate(90deg);
+}
+
+@media (max-width: 720px) {
+  .welcome-page {
+    justify-content: flex-start;
+    padding: 84px 16px 24px;
+  }
+
+  .welcome-top-controls {
+    top: 16px;
+    right: 16px;
+  }
+
+  .welcome-page > .sidebar-bottom-actions {
+    left: 16px;
+    bottom: 16px;
+  }
+
+  .welcome-card {
+    padding: 32px 22px;
+    gap: 24px;
+  }
+
+  .welcome-copy h1 {
+    font-size: 30px;
+    line-height: 1.12;
+  }
+
+  .welcome-copy p {
+    font-size: 15px;
+  }
+
+  .welcome-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-choice-button {
+    min-height: 144px;
+  }
+}
+
+/* Provider key section border */
+.key-section-border {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* App loading screen */
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+/* Spinner inline (inside buttons) */
+.spinner-inline {
+  margin-right: 6px;
+}
+
+/* Card entry animation — opacity only to avoid creating a containing block
+   that breaks position:fixed dropdowns inside cards */
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Page entry animation — opacity only (transform in animation-fill-mode:both
+   creates a containing block in Chromium, breaking position:fixed children) */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.page-enter {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin-inline: 0;
+  animation: pageEnter 250ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Button active press feedback */
+.btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}

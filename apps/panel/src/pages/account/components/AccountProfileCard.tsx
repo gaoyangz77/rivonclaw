@@ -12,6 +12,7 @@ import { CheckIcon, CopyIcon, InfoIcon } from "../../../components/icons.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { getUserInitial } from "../../../lib/user-manager.js";
 import { formatLocalizedDate, formatShortDateTime } from "../../../lib/format-datetime.js";
+import { TkPanel } from "../../../components/design-system/index.js";
 
 interface AccountProfileCardProps {
   onLogout: () => void;
@@ -67,7 +68,7 @@ export function AccountProfileCard({
   }
 
   return (
-    <div className="section-card account-profile-card" data-tutorial-id="account-profile">
+    <TkPanel as="section" className="section-card account-profile-card" data-tutorial-id="account-profile">
       <div className="account-profile-header">
         <div className="account-profile-identity">
           <div className="account-avatar">{initial}</div>
@@ -162,6 +163,6 @@ export function AccountProfileCard({
           </div>
         )}
       </div>
-    </div>
+    </TkPanel>
   );
 }

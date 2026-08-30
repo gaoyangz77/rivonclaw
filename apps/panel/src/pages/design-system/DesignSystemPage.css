@@ -1,0 +1,857 @@
+.main-content:has(.tk-design-lab) {
+  background: var(--tk-v1-bg-canvas);
+}
+
+.main-content > main:has(.tk-design-lab) {
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+}
+
+.tk-design-lab {
+  position: relative;
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  padding: 32px 36px 72px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--tk-v1-bg-canvas);
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+  font-size: 13px;
+}
+
+.tk-design-lab-hero {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 4px 0 24px;
+  border-bottom: 1px solid var(--tk-v1-border-default);
+}
+
+.tk-design-lab-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tk-v1-fg-muted);
+  font: 500 10px/1.4 var(--tk-v1-font-mono);
+  letter-spacing: 0.085em;
+}
+
+.tk-design-lab-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tk-v1-signal);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tk-v1-signal) 10%, transparent);
+}
+
+.tk-design-lab-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.7fr);
+  gap: 32px;
+  align-items: end;
+  margin-top: 22px;
+}
+
+.tk-design-lab-hero h1 {
+  max-width: 760px;
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font: 600 32px/1.08 var(--tk-v1-font-sans);
+  letter-spacing: -0.045em;
+}
+
+.tk-design-lab-hero p {
+  max-width: 710px;
+  margin: 13px 0 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.tk-design-lab-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-meta div {
+  min-width: 0;
+  padding: 12px;
+  background: color-mix(in srgb, var(--tk-v1-bg-surface) 88%, transparent);
+}
+
+.tk-design-lab-meta dt {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1.3 var(--tk-v1-font-mono);
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tk-design-lab-meta dd {
+  margin: 5px 0 0;
+  color: var(--tk-v1-fg-default);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.tk-design-lab-signal {
+  position: relative;
+  height: 3px;
+  margin-top: 20px;
+  overflow: visible;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--tk-v1-fg-muted) 16%, transparent);
+}
+
+.tk-design-lab-signal::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 42%;
+  border-radius: inherit;
+  background: var(--tk-v1-signal-optical);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tk-v1-signal) 32%, transparent);
+  content: "";
+}
+
+.tk-design-lab-signal span {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--tk-v1-bg-raised);
+  border-radius: 50%;
+  background: var(--tk-v1-accent);
+  box-shadow: 0 0 0 1px var(--tk-v1-accent);
+  transform: translate(-50%, -50%);
+}
+
+.tk-design-lab-signal span:nth-child(1) {
+  left: 13%;
+}
+
+.tk-design-lab-signal span:nth-child(2) {
+  left: 28%;
+  background: color-mix(in srgb, var(--tk-v1-accent) 45%, var(--tk-v1-signal));
+}
+
+.tk-design-lab-signal span:nth-child(3) {
+  left: 42%;
+  background: var(--tk-v1-signal);
+  box-shadow: 0 0 0 1px var(--tk-v1-signal);
+}
+
+.tk-design-lab-section-nav {
+  display: flex;
+  max-width: 1180px;
+  align-items: center;
+  gap: 4px;
+  margin: 14px auto 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-section-nav > span {
+  flex: 0 0 auto;
+  margin-right: 10px;
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1.3 var(--tk-v1-font-mono);
+  letter-spacing: 0.09em;
+}
+
+.tk-design-lab-section-nav a {
+  flex: 0 0 auto;
+  padding: 9px 10px 10px;
+  border-bottom: 1px solid transparent;
+  color: var(--tk-v1-fg-muted);
+  font: 400 10px/1.3 var(--tk-v1-font-mono);
+  text-decoration: none;
+  transition:
+    border-color var(--tk-v1-fast),
+    color var(--tk-v1-fast);
+}
+
+.tk-design-lab-section-nav a:hover,
+.tk-design-lab-section-nav a:focus-visible {
+  border-bottom-color: var(--tk-v1-accent);
+  color: var(--tk-v1-fg-default);
+  outline: none;
+}
+
+.tk-design-lab-layout {
+  max-width: 1180px;
+  margin: 34px auto 0;
+}
+
+.tk-design-lab-content {
+  display: grid;
+  min-width: 0;
+  gap: 62px;
+}
+
+.tk-design-lab-block {
+  min-width: 0;
+  scroll-margin-top: 20px;
+}
+
+.tk-design-lab-block-heading {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.tk-design-lab-block-heading > span {
+  padding-top: 4px;
+  color: var(--tk-v1-accent-text);
+  font: 500 10px/1.4 var(--tk-v1-font-mono);
+}
+
+.tk-design-lab-block-heading h2 {
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font: 600 21px/1.25 var(--tk-v1-font-sans);
+  letter-spacing: -0.025em;
+}
+
+.tk-design-lab-block-heading p {
+  margin: 5px 0 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tk-design-lab-layer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tk-design-lab-reference-plane {
+  padding: 12px;
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-4);
+  background:
+    linear-gradient(var(--tk-v1-border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--tk-v1-border-subtle) 1px, transparent 1px),
+    color-mix(in srgb, var(--tk-v1-bg-subtle) 38%, var(--tk-v1-bg-canvas));
+  background-position: -1px -1px;
+  background-size: 24px 24px;
+}
+
+.tk-design-lab-reference-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 1px 3px 11px;
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1.3 var(--tk-v1-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tk-design-lab-reference-label > :last-child {
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.tk-design-lab-layer {
+  position: relative;
+  min-height: 152px;
+  padding: 16px;
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-canvas);
+}
+
+.tk-design-lab-layer > span {
+  display: block;
+  color: var(--tk-v1-fg-muted);
+  font: 500 10px/1 var(--tk-v1-font-mono);
+}
+
+.tk-design-lab-layer > strong {
+  display: block;
+  margin-top: 36px;
+  color: var(--tk-v1-fg-default);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tk-design-lab-layer > p {
+  margin: 6px 0 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.tk-design-lab-layer-surface {
+  border-color: var(--tk-v1-border-default);
+  background: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-highlight);
+}
+
+.tk-design-lab-layer-raised {
+  z-index: 2;
+  border-color: var(--tk-v1-border-default);
+  background: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-2);
+}
+
+.tk-design-lab-layer-signal {
+  border-color: color-mix(in srgb, var(--tk-v1-accent) 30%, var(--tk-v1-border-default));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tk-v1-accent) 6%, transparent),
+      transparent 48%
+    ),
+    var(--tk-v1-surface-optical);
+  box-shadow:
+    inset 3px 0 0 var(--tk-v1-accent),
+    var(--tk-v1-highlight),
+    var(--tk-v1-elevation-1);
+}
+
+.tk-design-lab-foundation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.tk-design-lab-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tk-design-lab-swatch {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.tk-design-lab-swatch > span {
+  display: block;
+  height: 42px;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+}
+
+.tk-design-lab-swatch > strong {
+  margin-top: 3px;
+  color: var(--tk-v1-fg-default);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.tk-design-lab-swatch > code {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font: 400 9px/1.3 var(--tk-v1-font-mono);
+  text-overflow: ellipsis;
+}
+
+.tk-design-lab-swatch-canvas > span {
+  background: var(--tk-v1-bg-canvas);
+}
+
+.tk-design-lab-swatch-surface > span {
+  background: var(--tk-v1-bg-surface);
+}
+
+.tk-design-lab-swatch-raised > span {
+  background: var(--tk-v1-bg-raised);
+  box-shadow: var(--tk-v1-elevation-1);
+}
+
+.tk-design-lab-swatch-accent > span {
+  border-color: transparent;
+  background: var(--tk-v1-signal-optical);
+}
+
+.tk-design-lab-type-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.tk-design-lab-type-title {
+  color: var(--tk-v1-fg-default);
+  font: 600 23px/1.15 var(--tk-v1-font-sans);
+  letter-spacing: -0.035em;
+}
+
+.tk-design-lab-type-body {
+  max-width: 52ch;
+  color: var(--tk-v1-fg-secondary);
+  font: 400 13px/1.6 var(--tk-v1-font-sans);
+}
+
+.tk-design-lab-type-mono {
+  color: var(--tk-v1-fg-muted);
+  font: 500 10px/1.4 var(--tk-v1-font-mono);
+  letter-spacing: 0.04em;
+}
+
+.tk-design-lab-geometry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+.tk-design-lab-radius {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--tk-v1-border-default);
+  background: var(--tk-v1-bg-raised);
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1 var(--tk-v1-font-mono);
+}
+
+.tk-design-lab-radius-2 {
+  border-radius: 2px;
+}
+
+.tk-design-lab-radius-4 {
+  border-radius: 4px;
+}
+
+.tk-design-lab-radius-6 {
+  border-radius: 6px;
+}
+
+.tk-design-lab-radius-8 {
+  border-radius: 8px;
+}
+
+.tk-design-lab-radius-12 {
+  border-radius: var(--tk-v1-radius-5);
+}
+
+.tk-design-lab-spacing-track {
+  display: flex;
+  flex: 1 1 220px;
+  align-items: end;
+  gap: 5px;
+  min-height: 42px;
+  padding-left: 8px;
+  border-left: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-spacing-track span {
+  display: grid;
+  min-width: 24px;
+  place-items: center;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--tk-v1-accent) 10%, var(--tk-v1-bg-subtle));
+  color: var(--tk-v1-accent-text);
+  font: 500 8px/1 var(--tk-v1-font-mono);
+}
+
+.tk-design-lab-spacing-track span:nth-child(1) {
+  height: 10px;
+}
+
+.tk-design-lab-spacing-track span:nth-child(2) {
+  height: 16px;
+}
+
+.tk-design-lab-spacing-track span:nth-child(3) {
+  height: 22px;
+}
+
+.tk-design-lab-spacing-track span:nth-child(4) {
+  height: 28px;
+}
+
+.tk-design-lab-spacing-track span:nth-child(5) {
+  height: 40px;
+}
+
+.tk-design-lab-badge-row,
+.tk-design-lab-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tk-design-lab-showcase {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.tk-design-lab-showcase > :first-child {
+  grid-column: 1 / -1;
+}
+
+.tk-design-lab-contract-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--tk-v1-bg-surface);
+}
+
+.tk-design-lab-contract-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 11px;
+  text-align: left;
+}
+
+.tk-design-lab-contract-table caption {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  color: var(--tk-v1-fg-default);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tk-design-lab-contract-table th {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1.3 var(--tk-v1-font-mono);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.tk-design-lab-contract-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  line-height: 1.45;
+}
+
+.tk-design-lab-contract-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tk-design-lab-contract-table td strong {
+  color: var(--tk-v1-fg-default);
+  font-weight: 500;
+}
+
+.tk-design-lab-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tk-design-lab-form-grid > :last-child {
+  grid-column: 1 / -1;
+}
+
+.tk-design-lab-switches {
+  display: grid;
+  margin-top: 14px;
+}
+
+.tk-design-lab-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.tk-design-lab-overlay-note {
+  max-width: 62ch;
+  margin: var(--tk-v1-space-4) 0 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.tk-design-lab-modal-copy {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+}
+
+.tk-design-lab-modal-copy p {
+  margin: 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tk-design-lab-workbench {
+  overflow: hidden;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+}
+
+.tk-design-lab-workbench-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-workbench-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.tk-design-lab-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-metrics > * {
+  padding: 0 18px;
+  border-left: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-metrics > :first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tk-design-lab-table-wrap {
+  overflow-x: auto;
+}
+
+.tk-design-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 12px;
+  text-align: left;
+}
+
+.tk-design-lab-table th {
+  height: 34px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  background: color-mix(in srgb, var(--tk-v1-bg-subtle) 72%, transparent);
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1 var(--tk-v1-font-mono);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.tk-design-lab-table td {
+  height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  white-space: nowrap;
+  transition: background var(--tk-v1-fast);
+}
+
+.tk-design-lab-table.is-compact td {
+  height: 36px;
+}
+
+.tk-design-lab-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tk-design-lab-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--tk-v1-accent) 4%, transparent);
+}
+
+.tk-design-lab-table td strong {
+  color: var(--tk-v1-fg-default);
+  font-weight: 500;
+}
+
+.tk-design-lab-table th:nth-child(3),
+.tk-design-lab-table td:nth-child(3) {
+  text-align: right;
+}
+
+.tk-design-lab-table th:last-child,
+.tk-design-lab-table td:last-child {
+  width: 1%;
+  text-align: right;
+}
+
+.tk-design-lab-mono {
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-design-lab-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tk-design-lab-rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-highlight);
+}
+
+.tk-design-lab-rule > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.tk-design-lab-rule.is-do > svg {
+  color: var(--tk-v1-success);
+}
+
+.tk-design-lab-rule.is-dont > svg {
+  color: var(--tk-v1-warning);
+}
+
+.tk-design-lab-rule strong {
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tk-design-lab-rule p {
+  margin: 5px 0 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.tk-design-lab .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1120px) {
+  .tk-design-lab-layer-grid,
+  .tk-design-lab-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tk-design-lab-layer-raised {
+    z-index: auto;
+  }
+
+  .tk-design-lab-metrics > :nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .tk-design-lab-metrics > :nth-child(n + 3) {
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .tk-design-lab {
+    padding: 24px 24px 56px;
+  }
+
+  .tk-design-lab-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .tk-design-lab-section-nav > span {
+    display: none;
+  }
+
+  .tk-design-lab-foundation-grid,
+  .tk-design-lab-showcase,
+  .tk-design-lab-rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tk-design-lab-showcase > :first-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .tk-design-lab {
+    padding: 16px 14px 44px;
+  }
+
+  .tk-design-lab-hero {
+    padding-top: 2px;
+  }
+
+  .tk-design-lab-hero h1 {
+    font-size: 31px;
+  }
+
+  .tk-design-lab-meta,
+  .tk-design-lab-layer-grid,
+  .tk-design-lab-form-grid,
+  .tk-design-lab-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .tk-design-lab-meta div + div,
+  .tk-design-lab-metrics > * {
+    border-left: 0;
+  }
+
+  .tk-design-lab-form-grid > :last-child {
+    grid-column: auto;
+  }
+
+  .tk-design-lab-metrics > * {
+    padding: 12px 0;
+    border-top: 1px solid var(--tk-v1-border-subtle);
+  }
+
+  .tk-design-lab-metrics > :first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .tk-design-lab-metrics > :nth-child(n + 3) {
+    margin-top: 0;
+  }
+
+  .tk-design-lab-workbench-topline {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tk-design-lab-reference-label {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+}

@@ -1,0 +1,234 @@
+/* CSS ownership: TikTok shops feature. Imported in original cascade order. */
+
+/* ===== TikTok Shops Page ===== */
+
+.shop-services-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.shop-service-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shop-service-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.shop-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.shop-table th {
+  white-space: nowrap;
+}
+
+.shop-table-col-alias {
+  width: 128px;
+}
+
+.shop-table-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.shop-table td:last-child,
+.shop-table th:last-child {
+  min-width: max-content;
+}
+
+.shop-table-actions {
+  justify-content: flex-end;
+  width: max-content;
+  min-width: 0;
+}
+
+.shop-table-name {
+  font-weight: 500;
+  color: var(--color-text);
+  display: inline-block;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-table-sort-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.shop-table-sort-indicator {
+  color: color-mix(in srgb, var(--color-primary) 72%, var(--color-text-secondary));
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.shop-table .shop-collection-row,
+.shop-table .shop-group-spacer {
+  background: transparent;
+}
+
+.shop-group-spacer td {
+  height: 8px;
+  padding: 0;
+  border: 0;
+  background: var(--color-bg);
+}
+
+.shop-collection-row td:first-child {
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 64%, var(--color-border-light));
+}
+
+.shop-collection-row .shop-table-name {
+  font-weight: 650;
+}
+
+.shop-collection-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shop-collection-identity .shop-table-name {
+  min-width: 0;
+}
+
+.shop-collection-identity .shop-collection-count {
+  flex: 0 0 auto;
+  margin-left: 0;
+  padding: 0 7px;
+  white-space: nowrap;
+}
+
+.shop-collection-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-left: -6px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.shop-collection-toggle:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  color: var(--color-primary);
+}
+
+.shop-collection-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 62%, transparent);
+  outline-offset: 1px;
+}
+
+.shop-collection-toggle svg {
+  transition: transform 160ms ease;
+}
+
+.shop-collection-toggle-open svg {
+  transform: rotate(90deg);
+}
+
+.shop-collection-summary-badge {
+  white-space: nowrap;
+}
+
+.shop-collection-row td {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 12%, var(--color-border-light));
+}
+
+.shop-collection-child-row td {
+  background: color-mix(in srgb, var(--color-bg-alt) 52%, var(--color-bg) 48%);
+}
+
+.shop-collection-child-row td:first-child {
+  position: relative;
+  padding-left: 56px;
+}
+
+.shop-collection-child-row td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 36px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 35%, var(--color-border-light));
+  transform: translateY(-50%);
+}
+
+.shop-collection-child-row .shop-table-name {
+  max-width: 22ch;
+  font-weight: 650;
+}
+
+.shop-alias-input {
+  width: 100%;
+  min-width: 96px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--color-text);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.shop-alias-input:hover {
+  border-color: var(--color-border-light);
+}
+
+.shop-alias-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-bg-alt);
+}
+
+.shop-alias-input:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.shop-balance-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.shop-badge-inline {
+  margin-left: 6px;
+}
+
+.shop-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Remove extra top spacing for first section label in drawer */
+.shop-detail-section > .drawer-section-label:first-child {
+  margin-top: -2px;
+}

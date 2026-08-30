@@ -61,6 +61,8 @@ describe("Modal", () => {
     );
 
     const dialog = screen.getByRole("dialog", { name: "Campaign detail" });
+    expect(dialog.className).toContain("tk-v1-modal");
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
     const scrollRegion = dialog.querySelector(".modal-scroll-region");
     expect(scrollRegion?.textContent).toContain("Campaign summary");
     expect(scrollRegion?.textContent).toContain("Campaign funnel");

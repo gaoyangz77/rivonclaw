@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToolDisplayLabel } from "../../lib/tool-display.js";
 import { useSurfaceForm } from "./hooks/useSurfaceForm.js";
@@ -15,6 +15,7 @@ import { RunProfilesSection } from "./components/RunProfilesSection.js";
 import { RunProfileFormModal } from "./components/RunProfileFormModal.js";
 import { RunProfilePresetModal } from "./components/RunProfilePresetModal.js";
 import { SubAccountsSection } from "./components/SubAccountsSection.js";
+import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
@@ -90,22 +91,22 @@ export const AccountPage = observer(function AccountPage({
 
   if (authChecking) {
     return (
-      <div className="account-page page-enter">
-        <div className="section-card">
+      <TkPageFrame className="account-page">
+        <TkPanel>
           <p>{t("common.loading")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="account-page page-enter">
-        <div className="section-card">
+      <TkPageFrame className="account-page">
+        <TkPanel>
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
@@ -115,11 +116,10 @@ export const AccountPage = observer(function AccountPage({
   }
 
   return (
-    <div className="account-page page-enter" data-tutorial-id="account-page">
+    <TkPageFrame className="account-page" data-tutorial-id="account-page">
+      <TkPageHeader title={t("nav.account")} />
       {/* ── Profile & Subscription ── */}
-      <AccountProfileCard
-        onLogout={handleLogout}
-      />
+      <AccountProfileCard onLogout={handleLogout} />
 
       {/* ── Sub-accounts (owner only) ── */}
       {user.isOwner && <SubAccountsSection />}
@@ -246,6 +246,6 @@ export const AccountPage = observer(function AccountPage({
         onSave={profileForm.handleSaveProfile}
         onClose={profileForm.closeProfileModal}
       />
-    </div>
+    </TkPageFrame>
   );
 });
