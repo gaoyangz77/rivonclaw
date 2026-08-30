@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ToggleSwitch } from "./ToggleSwitch.js";
+import { TkSection, TkSwitch } from "../../../components/design-system/index.js";
 
 interface TelemetrySectionProps {
   telemetryEnabled: boolean;
@@ -8,28 +8,33 @@ interface TelemetrySectionProps {
   handleToggleTelemetry: (enabled: boolean) => void;
 }
 
-export function TelemetrySection({ telemetryEnabled, saving, settingsReady, handleToggleTelemetry }: TelemetrySectionProps) {
+export function TelemetrySection({
+  telemetryEnabled,
+  saving,
+  settingsReady,
+  handleToggleTelemetry,
+}: TelemetrySectionProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-telemetry" data-tutorial-id="settings-telemetry">
-      <h3>{t("settings.telemetry.title")}</h3>
-      <p className="text-secondary">
-        {t("settings.telemetry.description")}
-      </p>
+    <TkSection
+      className="tk-settings-section settings-section-telemetry"
+      data-tutorial-id="settings-telemetry"
+      description={t("settings.telemetry.description")}
+      headingLevel={2}
+      title={t("settings.telemetry.title")}
+      variant="framed"
+    >
+      <TkSwitch
+        label={t("settings.telemetry.toggle")}
+        checked={telemetryEnabled}
+        onChange={handleToggleTelemetry}
+        disabled={saving || !settingsReady}
+      />
 
-      <div className="settings-toggle-card">
-        <div className="settings-toggle-label">
-          <span>{t("settings.telemetry.toggle")}</span>
-          <ToggleSwitch checked={telemetryEnabled} onChange={handleToggleTelemetry} disabled={saving || !settingsReady} />
-        </div>
-      </div>
-
-      <hr className="section-divider" />
-
-      <div className="telemetry-details">
+      <div className="tk-settings-details">
         <h4>{t("settings.telemetry.whatWeCollect")}</h4>
-        <ul className="settings-list">
+        <ul>
           <li>{t("settings.telemetry.collect.appLifecycle")}</li>
           <li>{t("settings.telemetry.collect.featureUsage")}</li>
           <li>{t("settings.telemetry.collect.errors")}</li>
@@ -37,13 +42,13 @@ export function TelemetrySection({ telemetryEnabled, saving, settingsReady, hand
         </ul>
 
         <h4>{t("settings.telemetry.whatWeDontCollect")}</h4>
-        <ul className="settings-list">
+        <ul>
           <li>{t("settings.telemetry.dontCollect.conversations")}</li>
           <li>{t("settings.telemetry.dontCollect.apiKeys")}</li>
           <li>{t("settings.telemetry.dontCollect.customPrompts")}</li>
           <li>{t("settings.telemetry.dontCollect.personalInfo")}</li>
         </ul>
       </div>
-    </div>
+    </TkSection>
   );
 }

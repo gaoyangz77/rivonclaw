@@ -4,7 +4,8 @@ import QRCode from "qrcode";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import { observer } from "mobx-react-lite";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
+import { TkAlert } from "../design-system/index.js";
 
 const DEFAULT_TTL_MS = 60_000;
 
@@ -178,7 +179,7 @@ export const MobileBindingModal = observer(function MobileBindingModal({ isOpen,
             maxWidth={420}
         >
             <div className="modal-form-col">
-                {error && <div className="modal-error-box">{error}</div>}
+                {error && <TkAlert tone="danger">{error}</TkAlert>}
 
                 <div className="mobile-pairing-modal-body">
                     <div className="mobile-pairing-view">

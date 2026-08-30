@@ -5,6 +5,7 @@ import type { AffiliateAnalyticsShop } from "./affiliate-analytics-scope.js";
 import { AffiliateExploreTab } from "./components/AffiliateExploreTab.js";
 import { AffiliateOverviewTab } from "./components/AffiliateOverviewTab.js";
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
+import { TkPanel, TkTabs } from "../../components/design-system/index.js";
 import "./AffiliateAnalyticsPage.css";
 import "./components/AffiliateUi.css";
 
@@ -25,12 +26,12 @@ export function AffiliateAnalyticsPage() {
 
   if (!user) {
     return (
-      <div className="page-enter">
-        <section className="affiliate-state">
+      <AffiliatePageFrame>
+        <TkPanel as="section" className="affiliate-state">
           <strong>{t("ecommerce.affiliateAnalytics.signInTitle")}</strong>
           <p>{t("ecommerce.affiliateAnalytics.signInBody")}</p>
-        </section>
-      </div>
+        </TkPanel>
+      </AffiliatePageFrame>
     );
   }
 
@@ -42,36 +43,30 @@ export function AffiliateAnalyticsPage() {
         eyebrow={t("ecommerce.affiliateAnalytics.eyebrow")}
         title={t("ecommerce.affiliateAnalytics.title")}
         subtitle={t("ecommerce.affiliateAnalytics.subtitle")}
-        actions={(
-          <div className="affiliate-tabs" role="tablist" data-tutorial-id="affiliate-analytics-tabs">
-          <button
-            data-tutorial-id="affiliate-analytics-overview-tab"
-            role="tab"
-            type="button"
-            aria-selected={tab === "OVERVIEW"}
-            className={tab === "OVERVIEW" ? "active" : ""}
-            onClick={() => setTab("OVERVIEW")}
-          >
-            {t("ecommerce.affiliateAnalytics.overview")}
-          </button>
-          <button
-            data-tutorial-id="affiliate-analytics-explore-tab"
-            role="tab"
-            type="button"
-            aria-selected={tab === "EXPLORE"}
-            className={tab === "EXPLORE" ? "active" : ""}
-            onClick={() => setTab("EXPLORE")}
-          >
-            {t("ecommerce.affiliateAnalytics.explore.title")}
-          </button>
-          </div>
-        )}
+      />
+      <TkTabs
+        items={[
+          {
+            id: "OVERVIEW",
+            label: t("ecommerce.affiliateAnalytics.overview"),
+            buttonProps: { "data-tutorial-id": "affiliate-analytics-overview-tab" },
+          },
+          {
+            id: "EXPLORE",
+            label: t("ecommerce.affiliateAnalytics.explore.title"),
+            buttonProps: { "data-tutorial-id": "affiliate-analytics-explore-tab" },
+          },
+        ]}
+        value={tab}
+        onChange={(value) => setTab(value as "OVERVIEW" | "EXPLORE")}
+        label={t("ecommerce.affiliateAnalytics.title")}
+        data-tutorial-id="affiliate-analytics-tabs"
       />
       {shops.length === 0 ? (
-        <section className="affiliate-state is-upgrade">
+        <TkPanel as="section" className="affiliate-state is-upgrade">
           <strong>{t("ecommerce.affiliateAnalytics.noEntitlementTitle")}</strong>
           <p>{t("ecommerce.affiliateAnalytics.noEntitlementBody")}</p>
-        </section>
+        </TkPanel>
       ) : tab === "OVERVIEW" ? (
         <AffiliateOverviewTab shops={shops} />
       ) : (

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Modal } from "../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
 import { Select } from "../../components/inputs/Select.js";
 import { observer } from "mobx-react-lite";
 import type { CronJob, PayloadKind } from "./cron-utils.js";
@@ -7,7 +7,7 @@ import { useCronForm } from "./hooks/useCronForm.js";
 import { CronScheduleFields } from "./components/CronScheduleFields.js";
 import { CronDeliveryFields } from "./components/CronDeliveryFields.js";
 import { CronAdvancedFields } from "./components/CronAdvancedFields.js";
-import { InfoTip } from "./components/InfoTip.js";
+import { TkAlert, TkInfoTip } from "../../components/design-system/index.js";
 
 interface CronJobFormProps {
   mode: "create" | "edit";
@@ -33,7 +33,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
       maxWidth={1040}
     >
       <div className="crons-form-shell" data-tutorial-id="crons-form">
-        {cronForm.submitError && <div className="error-alert">{cronForm.submitError}</div>}
+        {cronForm.submitError && <TkAlert tone="danger">{cronForm.submitError}</TkAlert>}
 
         <div className="crons-form-grid">
           <section className="crons-form-card" data-tutorial-id="crons-form-basics">
@@ -53,7 +53,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
               <div className="form-group">
                 <label className="form-label-block">
                   {t("crons.fieldPayloadKind")} <span className="required">*</span>
-                  <InfoTip tooltipKey="tooltipPayloadKind" />
+                  <TkInfoTip label={t("crons.tooltipPayloadKind")} />
                 </label>
                 <Select
                   value={cronForm.form.payloadKind}
@@ -102,7 +102,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
               <div className="form-group">
                 <label className="form-label-block">
                   {payloadLabel} <span className="required">*</span>
-                  <InfoTip tooltipKey="tooltipMessage" />
+                  <TkInfoTip label={t("crons.tooltipMessage")} />
                 </label>
                 <textarea
                   className="input-full textarea-resize-vertical crons-prompt-textarea"
@@ -117,7 +117,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
               <div className="form-group">
                 <label className="form-label-block">
                   {payloadLabel} <span className="required">*</span>
-                  <InfoTip tooltipKey="tooltipText" />
+                  <TkInfoTip label={t("crons.tooltipText")} />
                 </label>
                 <textarea
                   className="input-full textarea-resize-vertical crons-prompt-textarea"
@@ -162,7 +162,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
                     onChange={(e) => cronForm.update("deleteAfterRun", e.target.checked)}
                   />
                   {t("crons.fieldDeleteAfterRun")}
-                  <InfoTip tooltipKey="tooltipDeleteAfterRun" />
+                  <TkInfoTip label={t("crons.tooltipDeleteAfterRun")} />
                 </label>
               </div>
             </div>

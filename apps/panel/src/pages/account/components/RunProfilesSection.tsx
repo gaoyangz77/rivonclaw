@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
 import type { Surface, RunProfile } from "../account-types.js";
+import { TkAlert, TkPanel } from "../../../components/design-system/index.js";
 
 interface RunProfilesSectionProps {
   profiles: RunProfile[];
@@ -38,7 +39,7 @@ export function RunProfilesSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card" data-tutorial-id="account-profiles">
+    <TkPanel as="section" className="section-card" data-tutorial-id="account-profiles">
       <div className="acct-section-header">
         <div>
           <h3>{t("surfaces.runProfilesTitle")}</h3>
@@ -62,13 +63,13 @@ export function RunProfilesSection({
         </div>
       </div>
 
-      {profileError && <div className="error-alert">{profileError}</div>}
+      {profileError && <TkAlert tone="danger">{profileError}</TkAlert>}
 
       {profiles.length > 0 && (
         <div className="acct-default-profile" data-tutorial-id="account-default-profile">
           <label className="form-label-block">{t("account.defaultRunProfile")}</label>
           <div className="form-hint">{t("account.defaultRunProfileHint")}</div>
-          {defaultProfileError && <div className="error-alert">{defaultProfileError}</div>}
+          {defaultProfileError && <TkAlert tone="danger">{defaultProfileError}</TkAlert>}
           <Select
             value={defaultRunProfileId ?? ""}
             onChange={onDefaultProfileChange}
@@ -140,6 +141,6 @@ export function RunProfilesSection({
           })}
         </div>
       )}
-    </div>
+    </TkPanel>
   );
 }

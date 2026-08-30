@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { TkPanel } from "./design-system/index.js";
 
 interface AuthGateProps {
   children: ReactNode;
@@ -34,15 +35,15 @@ export const AuthGate = observer(function AuthGate({
   if (authLoading) {
     if (loadingElement) return <>{loadingElement}</>;
     return (
-      <div className="section-card auth-gate-card">
+      <TkPanel className="section-card auth-gate-card">
         <p className="form-hint">{t("common.loading")}</p>
-      </div>
+      </TkPanel>
     );
   }
 
   if (!user) {
     return (
-      <div className="section-card auth-gate-card" data-testid="auth-gate-login">
+      <TkPanel className="section-card auth-gate-card" data-testid="auth-gate-login">
         <h3>{t("authGate.loginRequired")}</h3>
         <p className="form-hint">{t("authGate.loginRequiredDesc")}</p>
         <button
@@ -52,13 +53,13 @@ export const AuthGate = observer(function AuthGate({
         >
           {t("auth.login")}
         </button>
-      </div>
+      </TkPanel>
     );
   }
 
   if (!skipSubscriptionCheck && accountLlm?.entitlement.allowed !== true) {
     return (
-      <div className="section-card auth-gate-card" data-testid="auth-gate-upgrade">
+      <TkPanel className="section-card auth-gate-card" data-testid="auth-gate-upgrade">
         <h3>{t("authGate.subscriptionRequired")}</h3>
         <p className="form-hint">{t("authGate.subscriptionRequiredDesc")}</p>
         <button
@@ -68,7 +69,7 @@ export const AuthGate = observer(function AuthGate({
         >
           {t("authGate.upgradeAction")}
         </button>
-      </div>
+      </TkPanel>
     );
   }
 

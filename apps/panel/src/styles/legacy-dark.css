@@ -1,0 +1,645 @@
+/* CSS ownership: legacy dark-theme compatibility bridge. Imported in original cascade order. */
+
+/* ==========================================================================
+   DARK THEME
+   Applied via <html data-theme="dark">
+   ========================================================================== */
+
+/* ===== D1. CSS Variable Overrides ===== */
+/* Brand-specific dark overrides are in theme-default.css */
+[data-theme="dark"] {
+  /* Background — base dark */
+  --color-bg: #161a23;
+  /* Text */
+  --color-text: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.65);
+  --color-text-muted: rgba(255, 255, 255, 0.4);
+  --color-text-disabled: rgba(255, 255, 255, 0.28);
+  /* State */
+  --color-danger: #ff4d6d;
+  --color-danger-light: rgba(255, 77, 109, 0.14);
+  --color-success: #00c896;
+  --color-warning: #ffb020;
+  --color-info: #3b82f6;
+  --color-info-light: rgba(59, 130, 246, 0.14);
+  --color-info-border: rgba(59, 130, 246, 0.18);
+  /* Sidebar — neutral tokens */
+  --color-sidebar-text: rgba(255, 255, 255, 0.7);
+  --color-sidebar-muted: rgba(255, 255, 255, 0.55);
+  --color-sidebar-hover: rgba(255, 255, 255, 0.04);
+}
+
+/* ===== D2. Body & Globals ===== */
+[data-theme="dark"] body {
+  background-color: var(--color-bg-page);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] ::selection {
+  background: var(--brand-tint-35);
+  color: #ffffff;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] ::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--brand-tint-55) !important;
+  caret-color: var(--color-primary);
+}
+
+[data-theme="dark"] code {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+/* ===== D3. Sidebar ===== */
+[data-theme="dark"] .sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: var(--sidebar-shadow, 1px 0 0 var(--brand-tint-06));
+}
+
+[data-theme="dark"] .sidebar-brand {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .nav-active {
+  background: var(--nav-active-bg) !important;
+  color: #ffffff !important;
+  box-shadow: var(--nav-active-shadow);
+  position: relative;
+}
+
+/* Active nav left glow bar (dark theme only) */
+[data-theme="dark"] .nav-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(
+    --nav-active-bar,
+    linear-gradient(180deg, var(--color-primary), var(--color-accent-secondary))
+  );
+}
+
+[data-theme="dark"] .sidebar-resize-handle:hover,
+[data-theme="dark"] .sidebar-resize-handle:active {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Dark theme menu */
+[data-theme="dark"] .theme-menu-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .theme-menu-popup {
+  background: var(--surface-dropdown, #1e2333);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .theme-menu-option:hover {
+  background-color: var(--brand-tint-10);
+}
+
+[data-theme="dark"] .theme-menu-option-active {
+  color: var(--color-primary);
+}
+
+/* Dark user popover */
+[data-theme="dark"] .upop {
+  background: var(--surface-dropdown, #1e2333);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .upop-menu-item:hover {
+  background-color: var(--brand-tint-10);
+}
+
+[data-theme="dark"] .upop-menu-item-danger:hover {
+  background-color: var(--brand-tint-10);
+  color: var(--color-danger);
+}
+
+[data-theme="dark"] .upop-plan-card {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ===== D4. Main Content ===== */
+[data-theme="dark"] .main-content {
+  background: var(--main-content-bg, var(--color-bg-page));
+}
+
+/* ===== D5b. Language menu ===== */
+[data-theme="dark"] .lang-menu-trigger {
+  color: var(--color-sidebar-muted);
+}
+
+[data-theme="dark"] .lang-menu-trigger:hover {
+  color: var(--color-sidebar-text);
+  background-color: var(--color-sidebar-hover);
+}
+
+[data-theme="dark"] .lang-menu-popup {
+  background: var(--surface-dropdown, #1e2333);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .lang-menu-option:hover {
+  background-color: var(--brand-tint-10);
+}
+
+[data-theme="dark"] .lang-menu-option-active {
+  color: var(--color-primary);
+}
+
+/* ===== D6. Section Card — gradient surface + glow border ===== */
+[data-theme="dark"] .section-card {
+  background: var(--surface-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--surface-card-shadow, var(--shadow-md));
+}
+
+[data-theme="dark"] .section-card::before {
+  background: linear-gradient(90deg, transparent 0%, var(--brand-tint-30) 50%, transparent 100%);
+}
+
+[data-theme="dark"] .section-card:hover {
+  background: var(--surface-card-hover, var(--surface-card));
+  border-color: var(--card-hover-border);
+  box-shadow: var(--surface-card-hover-shadow, var(--shadow-lg));
+}
+
+[data-theme="dark"] .section-card h3 {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* ===== D7. Card — gradient surface + glow ===== */
+[data-theme="dark"] .card {
+  background: var(--surface-card);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--surface-card-shadow, var(--shadow-md));
+}
+
+[data-theme="dark"] .card:hover {
+  border-color: var(--card-hover-border);
+  box-shadow: var(--surface-card-hover-shadow, var(--shadow-lg));
+}
+
+/* ===== D8. Table ===== */
+[data-theme="dark"] thead th {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] tbody td {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.015);
+}
+
+[data-theme="dark"] .table-hover-row:hover {
+  background-color: var(--brand-tint-06);
+}
+
+.usage-chart-wrap {
+  height: 320px;
+  padding: 16px 8px 8px;
+}
+
+.usage-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--color-text);
+}
+
+/* ===== D9. Buttons ===== */
+[data-theme="dark"] .btn-primary {
+  background: var(--btn-primary-bg);
+  background-origin: border-box;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-bg-hover);
+  background-origin: border-box;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  filter: brightness(1.05);
+}
+
+[data-theme="dark"] .btn-primary:active:not(:disabled) {
+  filter: brightness(0.98);
+}
+
+[data-theme="dark"] .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background-color: var(--btn-secondary-hover-bg, rgba(255, 255, 255, 0.07));
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .btn-outline {
+  border-color: var(--brand-tint-50);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .btn-outline:hover:not(:disabled) {
+  background-color: var(--brand-tint-12);
+}
+
+[data-theme="dark"] .btn-danger {
+  color: #ff4d6d;
+  border-color: rgba(255, 77, 109, 0.35);
+}
+
+[data-theme="dark"] .btn-danger:hover:not(:disabled) {
+  background-color: rgba(255, 77, 109, 0.14);
+}
+
+[data-theme="dark"] .btn:disabled {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .btn-ghost {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+/* ===== D10. Custom Select ===== */
+[data-theme="dark"] .custom-select-trigger {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .custom-select-trigger:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .custom-select-dropdown {
+  background: var(--surface-dropdown, #1e2333);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .custom-select-option {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .custom-select-option:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* ===== D11. Stat Cards ===== */
+
+/* ===== D12. Info Boxes ===== */
+[data-theme="dark"] .info-box-blue {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #a8a29e;
+}
+
+[data-theme="dark"] .info-box-green {
+  background-color: rgba(0, 200, 150, 0.1);
+  border-color: rgba(0, 200, 150, 0.18);
+  color: #00c896;
+}
+
+[data-theme="dark"] .info-box-yellow {
+  background-color: rgba(255, 176, 32, 0.1);
+  border-color: rgba(255, 176, 32, 0.18);
+  color: #ffb020;
+}
+
+/* ===== D13. Badge Variants ===== */
+[data-theme="dark"] .badge-success {
+  background-color: rgba(0, 200, 150, 0.12);
+  color: #00c896;
+}
+
+[data-theme="dark"] .badge-active {
+  background-color: var(--brand-tint-16);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .badge-warning {
+  background-color: rgba(255, 176, 32, 0.12);
+  color: #ffb020;
+}
+
+[data-theme="dark"] .wechat-activation-warning {
+  border-color: rgba(255, 176, 32, 0.46);
+  background: rgba(255, 176, 32, 0.14);
+  color: #ffb020;
+}
+
+[data-theme="dark"] .badge-danger {
+  background-color: rgba(255, 77, 109, 0.14);
+  color: #ff4d6d;
+}
+
+[data-theme="dark"] .badge-info {
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+}
+
+[data-theme="dark"] .badge-saved {
+  color: #00c896;
+  background-color: rgba(0, 200, 150, 0.1);
+}
+
+/* ===== D14. Key Cards ===== */
+/* Dark-theme tile surface. Low-alpha white elevation so tiles read as
+   lifted chips against the page canvas — plain `--color-bg` would collapse
+   them into one flat plane in dark mode. */
+[data-theme="dark"] .key-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .key-card:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .key-card-active {
+  border-color: var(--color-primary);
+  background: linear-gradient(
+    135deg,
+    var(--brand-tint-22) 0%,
+    var(--brand-tint-08) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+[data-theme="dark"] .key-card-active:hover {
+  background: linear-gradient(
+    135deg,
+    var(--brand-tint-35) 0%,
+    var(--brand-tint-12) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+}
+
+[data-theme="dark"] .key-expanded {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ===== D15. Toggle Switch ===== */
+
+/* ===== D16. Permissions Page ===== */
+[data-theme="dark"] .perm-switcher-btn {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .perm-switcher-btn-active {
+  background-color: var(--brand-tint-16);
+  color: var(--color-primary);
+  border-color: var(--brand-tint-40);
+}
+
+[data-theme="dark"] .perm-switcher-btn-inactive {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ===== D16b. Provider Select ===== */
+[data-theme="dark"] .provider-select-trigger {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .provider-select-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .provider-select-dropdown {
+  background: var(--surface-dropdown, #1e2333);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .provider-select-option:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .provider-select-option-active {
+  background-color: var(--brand-tint-16);
+}
+
+/* ===== D17. Channels Page ===== */
+[data-theme="dark"] .channel-info-box {
+  background-color: var(--brand-tint-04);
+  border-left-color: var(--color-primary);
+}
+
+[data-theme="dark"] .channel-recipients-row {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .channel-recipients-row:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+[data-theme="dark"] .recipient-label-input:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== D19. Settings Page ===== */
+
+/* ===== D20. STT Page ===== */
+[data-theme="dark"] .stt-help-icon {
+  background-color: var(--brand-tint-16);
+  color: var(--color-primary);
+}
+
+/* ===== D21. Welcome ===== */
+[data-theme="dark"] .welcome-page {
+  background-color: var(--color-bg-page);
+}
+
+[data-theme="dark"] .welcome-card {
+  background: var(--surface-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--surface-card-shadow, var(--shadow-lg));
+}
+
+[data-theme="dark"] .welcome-kicker {
+  background: rgba(20, 184, 166, 0.14);
+}
+
+[data-theme="dark"] .welcome-choice-button {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .welcome-choice-button:hover {
+  border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .welcome-choice-button-primary {
+  background: linear-gradient(135deg, var(--color-primary), #2563eb);
+  border-color: transparent;
+}
+
+[data-theme="dark"] .welcome-choice-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== D23b. Skeleton Loader (Dark) ===== */
+
+/* ===== D23c. Welcome Step Dots (Dark) ===== */
+
+[data-theme="dark"] .key-section-border {
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+/* ===== D24. Update Banner ===== */
+[data-theme="dark"] .update-banner {
+  background-color: var(--color-primary-light);
+  border-bottom-color: var(--color-border);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .update-banner a,
+[data-theme="dark"] .update-banner-action {
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .update-progress-bar {
+  background: var(--color-bg-alt);
+}
+
+/* ===== D24b. Warning Banner ===== */
+[data-theme="dark"] .warning-banner {
+  background-color: rgba(255, 176, 32, 0.1);
+  border-bottom-color: rgba(255, 176, 32, 0.2);
+  color: var(--color-warning, #ffb020);
+}
+
+[data-theme="dark"] .quota-banner-warning {
+  background-color: rgba(255, 176, 32, 0.1);
+  border-bottom-color: rgba(255, 176, 32, 0.2);
+  color: var(--color-warning, #ffb020);
+}
+
+[data-theme="dark"] .quota-banner-error {
+  background-color: rgba(248, 113, 113, 0.12);
+  border-bottom-color: rgba(248, 113, 113, 0.24);
+  color: var(--color-danger, #f87171);
+}
+
+[data-theme="dark"] .quota-banner-action {
+  background: rgba(0, 0, 0, 0.26);
+}
+
+[data-theme="dark"] .update-banner-action-primary {
+  color: var(--color-bg);
+}
+
+/* ===== D25. Scrollbar ===== */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== D26. Modal ===== */
+[data-theme="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .modal-content {
+  background-color: #161a23;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ===== D27. Tooltip ===== */
+[data-theme="dark"] .has-tooltip::after,
+[data-theme="dark"] .sidebar-action-tooltip::after {
+  background: #1c2130;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ===== D28. Volcengine Tooltip ===== */
+[data-theme="dark"] .volcengine-help-tooltip {
+  background: #1c2130;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .volcengine-help-tooltip::after {
+  border-top-color: #1c2130;
+}
+
+/* ===== D29. Input readonly & form ===== */
+[data-theme="dark"] .input-readonly {
+  background-color: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ===== D30. Advanced section ===== */
+[data-theme="dark"] .advanced-content {
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== D32. Tabs ===== */
+
+[data-theme="dark"] .skill-card-version {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(232, 238, 250, 0.88);
+}
+
+[data-theme="dark"] .skill-market-card {
+  background: linear-gradient(180deg, rgba(30, 30, 30, 0.96) 0%, rgba(24, 24, 24, 0.98) 100%);
+  border-color: var(--brand-tint-12);
+}
+
+[data-theme="dark"] .skill-market-card:hover {
+  border-color: var(--skill-card-hover-border);
+}
+
+[data-theme="dark"] .skills-search-input {
+  background: rgba(30, 30, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .skill-install-btn {
+  background: var(--brand-tint-08);
+}

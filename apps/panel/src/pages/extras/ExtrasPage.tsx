@@ -6,6 +6,13 @@ import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
 import { observer } from "mobx-react-lite";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
+import {
+  TkAlert,
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+  TkSwitchControl,
+} from "../../components/design-system/index.js";
 
 type WebSearchProvider = "brave" | "perplexity" | "grok" | "gemini" | "kimi";
 type EmbeddingProvider = "openai" | "gemini" | "voyage" | "mistral" | "ollama";
@@ -233,17 +240,19 @@ export const ExtrasPage = observer(function ExtrasPage() {
   }
 
   return (
-    <div className="page-enter extras-page">
-      <div className="extras-header" data-tutorial-id="extras-header">
-        <h1>{t("extras.title")}</h1>
-        <p className="extras-subtitle">{t("extras.description")}</p>
-      </div>
+    <TkPageFrame className="extras-page">
+      <TkPageHeader
+        className="extras-header"
+        data-tutorial-id="extras-header"
+        title={t("extras.title")}
+        description={t("extras.description")}
+      />
 
-      {loadError && <div className="error-alert">{loadError}</div>}
+      {loadError && <TkAlert tone="danger">{loadError}</TkAlert>}
 
       <div className="extras-list">
         {/* ── Card 1: Speech-to-Text ── */}
-        <div className="section-card extras-card" data-tutorial-id="extras-stt">
+        <TkPanel as="section" className="section-card extras-card" data-tutorial-id="extras-stt">
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--stt">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
@@ -252,10 +261,11 @@ export const ExtrasPage = observer(function ExtrasPage() {
               <h3>{t("extras.sttSection")}</h3>
               <p className="extras-card-desc">{t("stt.enableHelp")}</p>
             </div>
-            <label className="extras-toggle">
-              <input type="checkbox" checked={sttEnabled} onChange={(e) => { setSttEnabled(e.target.checked); setSttDirty(true); }} />
-              <span className="extras-toggle-track" />
-            </label>
+            <TkSwitchControl
+              label={t("extras.sttSection")}
+              checked={sttEnabled}
+              onChange={(checked) => { setSttEnabled(checked); setSttDirty(true); }}
+            />
           </div>
 
           {sttEnabled && (
@@ -342,10 +352,14 @@ export const ExtrasPage = observer(function ExtrasPage() {
               {sttSaving ? t("common.loading") : t("common.save")}
             </button>
           </div>
-        </div>
+        </TkPanel>
 
         {/* ── Card 2: Web Search ── */}
-        <div className="section-card extras-card" data-tutorial-id="extras-search">
+        <TkPanel
+          as="section"
+          className="section-card extras-card"
+          data-tutorial-id="extras-search"
+        >
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--search">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
@@ -354,10 +368,11 @@ export const ExtrasPage = observer(function ExtrasPage() {
               <h3>{t("extras.webSearchSection")}</h3>
               <p className="extras-card-desc">{t("extras.webSearchDescription")}</p>
             </div>
-            <label className="extras-toggle">
-              <input type="checkbox" checked={webSearchEnabled} onChange={(e) => { setWebSearchEnabled(e.target.checked); setWebSearchDirty(true); }} />
-              <span className="extras-toggle-track" />
-            </label>
+            <TkSwitchControl
+              label={t("extras.webSearchSection")}
+              checked={webSearchEnabled}
+              onChange={(checked) => { setWebSearchEnabled(checked); setWebSearchDirty(true); }}
+            />
           </div>
 
           {webSearchEnabled && (
@@ -408,10 +423,14 @@ export const ExtrasPage = observer(function ExtrasPage() {
               {webSearchSaving ? t("common.loading") : t("common.save")}
             </button>
           </div>
-        </div>
+        </TkPanel>
 
         {/* ── Card 3: Embedding / Memory ── */}
-        <div className="section-card extras-card" data-tutorial-id="extras-embedding">
+        <TkPanel
+          as="section"
+          className="section-card extras-card"
+          data-tutorial-id="extras-embedding"
+        >
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--memory">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>
@@ -420,10 +439,11 @@ export const ExtrasPage = observer(function ExtrasPage() {
               <h3>{t("extras.embeddingSection")}</h3>
               <p className="extras-card-desc">{t("extras.embeddingDescription")}</p>
             </div>
-            <label className="extras-toggle">
-              <input type="checkbox" checked={embeddingEnabled} onChange={(e) => { setEmbeddingEnabled(e.target.checked); setEmbeddingDirty(true); }} />
-              <span className="extras-toggle-track" />
-            </label>
+            <TkSwitchControl
+              label={t("extras.embeddingSection")}
+              checked={embeddingEnabled}
+              onChange={(checked) => { setEmbeddingEnabled(checked); setEmbeddingDirty(true); }}
+            />
           </div>
 
           {embeddingEnabled && (
@@ -474,8 +494,8 @@ export const ExtrasPage = observer(function ExtrasPage() {
               {embeddingSaving ? t("common.loading") : t("common.save")}
             </button>
           </div>
-        </div>
+        </TkPanel>
       </div>
-    </div>
+    </TkPageFrame>
   );
 });

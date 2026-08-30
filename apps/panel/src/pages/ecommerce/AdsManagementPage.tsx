@@ -2,9 +2,24 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { AdsAdvertiser, AdsStoreBinding, Shop } from "@rivonclaw/core/models";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
-import { Modal } from "../../components/modals/Modal.js";
-import { AdsIcon, CheckIcon, ChevronRightIcon, CopyIcon, InfoIcon, RefreshIcon, ShopIcon } from "../../components/icons.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
+import {
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+  TkSegmented,
+  TkTableFrame,
+} from "../../components/design-system/index.js";
+import {
+  AdsIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  InfoIcon,
+  RefreshIcon,
+  ShopIcon,
+} from "../../components/icons.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToast } from "../../components/Toast.js";
 import { panelEventBus } from "../../lib/event-bus.js";
@@ -31,7 +46,8 @@ function statusClass(status?: string | null): string {
 }
 
 function syncHealthClass(status?: string | null, issueCode?: string | null): string {
-  if (status === "FAILED" && issueCode === "PERMISSION_DENIED") return "status-badge status-warning";
+  if (status === "FAILED" && issueCode === "PERMISSION_DENIED")
+    return "status-badge status-warning";
   if (status === "FAILED") return "status-badge status-error";
   return "status-badge status-authorized";
 }
@@ -101,9 +117,11 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const [advertiserFilter, setAdvertiserFilter] = useState<AdvertiserFilter>("all");
   const [advertiserQuery, setAdvertiserQuery] = useState("");
   const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>("all");
-  const [expandedAdvertiserGroups, setExpandedAdvertiserGroups] = useState<Record<string, boolean>>({
-    attention: true,
-  });
+  const [expandedAdvertiserGroups, setExpandedAdvertiserGroups] = useState<Record<string, boolean>>(
+    {
+      attention: true,
+    },
+  );
   const [expandedCoverageGroups, setExpandedCoverageGroups] = useState<Record<string, boolean>>({});
 
   const baselineAdvertiserIdsRef = useRef<Set<string>>(new Set());
@@ -112,43 +130,55 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const unsubscribeAdsOAuthRef = useRef<(() => void) | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const authorizedAdvertisers = advertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED");
+  const authorizedAdvertisers = advertisers.filter(
+    (advertiser) => advertiser.auth.status === "AUTHORIZED",
+  );
   const attentionAdvertisers = advertisers.filter(advertiserNeedsAttention);
   const shopCoverageGroups = useMemo<ShopCoverageGroup[]>(() => {
-    return groupShopsByCollection(shops).map((group) => {
-      const rows = group.shops.map((shop) => {
-        const readiness = resolveShopAdsReadiness(shop, advertisers, storeAccesses);
-        const accounts = readiness.bindings.map((access) => ({
-          access,
-          advertiser: advertisers.find(
-            (item) => item.id === access.adsAdvertiserId || item.advertiserId === access.advertiserId,
-          ) ?? null,
-        })).sort((a, b) => {
-          const aName = a.advertiser?.advertiserName || a.access.advertiserId;
-          const bName = b.advertiser?.advertiserName || b.access.advertiserId;
-          return aName.localeCompare(bName, undefined, { numeric: true });
+    return groupShopsByCollection(shops)
+      .map((group) => {
+        const rows = group.shops.map((shop) => {
+          const readiness = resolveShopAdsReadiness(shop, advertisers, storeAccesses);
+          const accounts = readiness.bindings
+            .map((access) => ({
+              access,
+              advertiser:
+                advertisers.find(
+                  (item) =>
+                    item.id === access.adsAdvertiserId || item.advertiserId === access.advertiserId,
+                ) ?? null,
+            }))
+            .sort((a, b) => {
+              const aName = a.advertiser?.advertiserName || a.access.advertiserId;
+              const bName = b.advertiser?.advertiserName || b.access.advertiserId;
+              return aName.localeCompare(bName, undefined, { numeric: true });
+            });
+          return { shop, readiness, accounts };
         });
-        return { shop, readiness, accounts };
-      });
-      const advertiserMap = new Map<string, AdsAdvertiser>();
-      for (const row of rows) {
-        for (const account of row.accounts) {
-          if (account.advertiser) advertiserMap.set(account.advertiser.id, account.advertiser);
+        const advertiserMap = new Map<string, AdsAdvertiser>();
+        for (const row of rows) {
+          for (const account of row.accounts) {
+            if (account.advertiser) advertiserMap.set(account.advertiser.id, account.advertiser);
+          }
         }
-      }
-      return {
-        key: group.key,
-        shops: group.shops,
-        rows,
-        status: coverageGroupStatus(rows),
-        connectedCount: rows.filter((row) => row.readiness.status === "connected").length,
-        advertisers: [...advertiserMap.values()],
-      };
-    }).sort((a, b) => {
-      const rankDelta = coverageRank(a.status) - coverageRank(b.status);
-      if (rankDelta !== 0) return rankDelta;
-      return shopCollectionDisplayName(a.shops).localeCompare(shopCollectionDisplayName(b.shops), undefined, { numeric: true });
-    });
+        return {
+          key: group.key,
+          shops: group.shops,
+          rows,
+          status: coverageGroupStatus(rows),
+          connectedCount: rows.filter((row) => row.readiness.status === "connected").length,
+          advertisers: [...advertiserMap.values()],
+        };
+      })
+      .sort((a, b) => {
+        const rankDelta = coverageRank(a.status) - coverageRank(b.status);
+        if (rankDelta !== 0) return rankDelta;
+        return shopCollectionDisplayName(a.shops).localeCompare(
+          shopCollectionDisplayName(b.shops),
+          undefined,
+          { numeric: true },
+        );
+      });
   }, [advertisers, shops, storeAccesses]);
 
   const coveredShopCount = shopCoverageGroups.reduce((sum, group) => sum + group.connectedCount, 0);
@@ -156,7 +186,8 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
     const query = advertiserQuery.trim().toLowerCase();
     return advertisers.filter((advertiser) => {
       if (advertiserFilter === "attention" && !advertiserNeedsAttention(advertiser)) return false;
-      if (advertiserFilter === "authorized" && advertiser.auth.status !== "AUTHORIZED") return false;
+      if (advertiserFilter === "authorized" && advertiser.auth.status !== "AUTHORIZED")
+        return false;
       if (!query) return true;
       return [
         advertiser.advertiserName,
@@ -169,12 +200,33 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   const advertiserGroups = useMemo<AdvertiserViewGroup[]>(() => {
     const attention = filteredAdvertisers.filter(advertiserNeedsAttention);
-    const authorized = filteredAdvertisers.filter((advertiser) => advertiser.auth.status === "AUTHORIZED" && advertiser.syncHealthStatus !== "FAILED");
-    const disconnected = filteredAdvertisers.filter((advertiser) => advertiser.auth.status !== "AUTHORIZED" && advertiser.syncHealthStatus !== "FAILED");
+    const authorized = filteredAdvertisers.filter(
+      (advertiser) =>
+        advertiser.auth.status === "AUTHORIZED" && advertiser.syncHealthStatus !== "FAILED",
+    );
+    const disconnected = filteredAdvertisers.filter(
+      (advertiser) =>
+        advertiser.auth.status !== "AUTHORIZED" && advertiser.syncHealthStatus !== "FAILED",
+    );
     const groups: AdvertiserViewGroup[] = [
-      { id: "attention", label: t("adsManagement.needsAttention"), tone: "warning", advertisers: attention },
-      { id: "authorized", label: t("adsManagement.authorizedAdvertisers"), tone: "healthy", advertisers: authorized },
-      { id: "disconnected", label: t("adsManagement.authStatus.DISCONNECTED", { defaultValue: "Disconnected" }), tone: "neutral", advertisers: disconnected },
+      {
+        id: "attention",
+        label: t("adsManagement.needsAttention"),
+        tone: "warning",
+        advertisers: attention,
+      },
+      {
+        id: "authorized",
+        label: t("adsManagement.authorizedAdvertisers"),
+        tone: "healthy",
+        advertisers: authorized,
+      },
+      {
+        id: "disconnected",
+        label: t("adsManagement.authStatus.DISCONNECTED", { defaultValue: "Disconnected" }),
+        tone: "neutral",
+        advertisers: disconnected,
+      },
     ];
     return groups.filter((group) => group.advertisers.length > 0);
   }, [filteredAdvertisers, t]);
@@ -182,7 +234,8 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   const filteredCoverageGroups = useMemo(() => {
     return shopCoverageGroups.filter((group) => {
       if (coverageFilter === "partial") return group.status === "partial";
-      if (coverageFilter === "needs_link") return group.status === "needs_link" || group.status === "needs_advertiser";
+      if (coverageFilter === "needs_link")
+        return group.status === "needs_link" || group.status === "needs_advertiser";
       if (coverageFilter === "connected") return group.status === "connected";
       return true;
     });
@@ -218,13 +271,14 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   useEffect(() => {
     if (!oauthWaiting) return;
     if (oauthCompletionHandledRef.current) return;
-    const hasNewAdvertiser = advertisers.some((advertiser) =>
-      !baselineAdvertiserIdsRef.current.has(advertiser.id)
+    const hasNewAdvertiser = advertisers.some(
+      (advertiser) => !baselineAdvertiserIdsRef.current.has(advertiser.id),
     );
-    const hasReauthorizedAdvertiser = advertisers.some((advertiser) => (
-      baselineAdvertiserStatusRef.current.get(advertiser.id) !== "AUTHORIZED" &&
-      advertiser.auth.status === "AUTHORIZED"
-    ));
+    const hasReauthorizedAdvertiser = advertisers.some(
+      (advertiser) =>
+        baselineAdvertiserStatusRef.current.get(advertiser.id) !== "AUTHORIZED" &&
+        advertiser.auth.status === "AUTHORIZED",
+    );
     if (hasNewAdvertiser || hasReauthorizedAdvertiser) {
       oauthCompletionHandledRef.current = true;
       cleanupOAuthWait();
@@ -313,10 +367,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
       const advertiser = advertisers.find((item) => item.id === id);
       if (!advertiser) throw new Error(`Ads advertiser ${id} not found`);
       await advertiser.disconnect();
-      await Promise.all([
-        entityStore.fetchAdsAdvertisers(),
-        entityStore.fetchAdsStoreAccesses(),
-      ]);
+      await Promise.all([entityStore.fetchAdsAdvertisers(), entityStore.fetchAdsStoreAccesses()]);
       showToast(t("adsManagement.disconnectSuccess"), "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("adsManagement.disconnectFailed"), "error");
@@ -324,72 +375,90 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   }
 
   return (
-    <div className="page-enter">
-      <div className="ecommerce-page-header" data-tutorial-id="ads-header">
-        <div>
-          <h1>{t("adsManagement.title")}</h1>
-          <p className="ecommerce-page-subtitle">{t("adsManagement.subtitle")}</p>
-        </div>
-        <div className="ecommerce-header-actions" data-tutorial-id="ads-actions">
-          <button className="btn btn-secondary" onClick={handleRefresh} disabled={loading || oauthWaiting}>
-            <RefreshIcon />
-            {loading ? t("common.loading") : t("common.refresh")}
-          </button>
-          <button className="btn btn-primary" onClick={handleConnectBusiness} disabled={oauthLoading || oauthWaiting}>
-            <AdsIcon />
-            {oauthLoading ? t("common.loading") : t("adsManagement.connectBusiness")}
-          </button>
-        </div>
-      </div>
+    <TkPageFrame className="ads-management-page">
+      <TkPageHeader
+        title={t("adsManagement.title")}
+        description={t("adsManagement.subtitle")}
+        data-tutorial-id="ads-header"
+        actionsClassName="ecommerce-header-actions"
+        actions={
+          <div className="tk-v1-page-action-group" data-tutorial-id="ads-actions">
+            <button
+              className="btn btn-secondary"
+              onClick={handleRefresh}
+              disabled={loading || oauthWaiting}
+            >
+              <RefreshIcon />
+              {loading ? t("common.loading") : t("common.refresh")}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleConnectBusiness}
+              disabled={oauthLoading || oauthWaiting}
+            >
+              <AdsIcon />
+              {oauthLoading ? t("common.loading") : t("adsManagement.connectBusiness")}
+            </button>
+          </div>
+        }
+      />
 
       <div className="ads-summary-strip ads-summary-strip-five" data-tutorial-id="ads-summary">
-        <div className="ads-summary-item">
+        <TkPanel padding="sm" className="ads-summary-item">
           <span>{t("adsManagement.totalAdvertisers")}</span>
           <strong>{advertisers.length}</strong>
-        </div>
-        <div className="ads-summary-item">
+        </TkPanel>
+        <TkPanel padding="sm" className="ads-summary-item">
           <span>{t("adsManagement.authorizedAdvertisers")}</span>
           <strong>{authorizedAdvertisers.length}</strong>
-        </div>
-        <div className="ads-summary-item">
+        </TkPanel>
+        <TkPanel padding="sm" className="ads-summary-item">
           <span>{t("adsManagement.needsAttention")}</span>
           <strong>{attentionAdvertisers.length}</strong>
-        </div>
-        <div className="ads-summary-item">
+        </TkPanel>
+        <TkPanel padding="sm" className="ads-summary-item">
           <span>{t("adsManagement.adsReadyShops")}</span>
-          <strong>{coveredShopCount}/{shops.length}</strong>
-        </div>
+          <strong>
+            {coveredShopCount}/{shops.length}
+          </strong>
+        </TkPanel>
       </div>
 
-      <section className="panel-card ads-advertiser-section" data-tutorial-id="ads-accounts">
+      <TkPanel
+        as="section"
+        padding="none"
+        clip
+        className="panel-card ads-advertiser-section"
+        data-tutorial-id="ads-accounts"
+      >
         <div className="ecommerce-section-header">
           <div>
             <h3>{t("adsManagement.advertiserTableTitle")}</h3>
-            <p className="ecommerce-section-subtitle">{t("adsManagement.advertiserTableSubtitle")}</p>
+            <p className="ecommerce-section-subtitle">
+              {t("adsManagement.advertiserTableSubtitle")}
+            </p>
           </div>
           {advertisers.length > 0 ? (
             <div className="ads-section-tools" data-tutorial-id="ads-account-filters">
               <input
                 className="ads-search-input"
                 value={advertiserQuery}
-                placeholder={t("adsManagement.searchPlaceholder", { defaultValue: "Search ad accounts" })}
+                placeholder={t("adsManagement.searchPlaceholder", {
+                  defaultValue: "Search ad accounts",
+                })}
                 onChange={(event) => setAdvertiserQuery(event.target.value)}
               />
-              <div className="ads-segmented-control">
-                {([
-                  ["all", t("adsManagement.filters.all", { defaultValue: "All" })],
-                  ["attention", t("adsManagement.needsAttention")],
-                  ["authorized", t("adsManagement.authorizedAdvertisers")],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    className={advertiserFilter === value ? "active" : undefined}
-                    onClick={() => setAdvertiserFilter(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <TkSegmented
+                size="sm"
+                items={[
+                  { id: "all", label: t("adsManagement.filters.all", { defaultValue: "All" }) },
+                  { id: "attention", label: t("adsManagement.needsAttention") },
+                  { id: "authorized", label: t("adsManagement.authorizedAdvertisers") },
+                ]}
+                value={advertiserFilter}
+                onChange={(value) => setAdvertiserFilter(value as AdvertiserFilter)}
+                label={t("adsManagement.advertiserTableTitle")}
+              />
             </div>
           ) : null}
         </div>
@@ -399,14 +468,24 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
             <AdsIcon />
             <strong>{t("adsManagement.emptyAdvertisersTitle")}</strong>
             <span>{t("adsManagement.emptyAdvertisersBody")}</span>
-            <button className="btn btn-primary" onClick={handleConnectBusiness} disabled={oauthLoading || oauthWaiting}>
+            <button
+              className="btn btn-primary"
+              onClick={handleConnectBusiness}
+              disabled={oauthLoading || oauthWaiting}
+            >
               {oauthLoading ? t("common.loading") : t("adsManagement.connectBusiness")}
             </button>
           </div>
         ) : advertiserGroups.length === 0 ? (
-          <div className="empty-cell">{t("adsManagement.noMatchingResults", { defaultValue: "No matching results." })}</div>
+          <div className="empty-cell">
+            {t("adsManagement.noMatchingResults", { defaultValue: "No matching results." })}
+          </div>
         ) : (
-          <div className="table-scroll-wrap shop-table-wrap ads-compact-table-wrap">
+          <TkTableFrame
+            variant="embedded"
+            compact
+            className="table-scroll-wrap shop-table-wrap ads-compact-table-wrap"
+          >
             <table className="shop-table ads-advertiser-table ads-compact-table">
               <thead>
                 <tr>
@@ -423,105 +502,138 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                     <Fragment key={group.id}>
                       <tr className={`ads-group-row ads-group-row-${group.tone}`}>
                         <td colSpan={4}>
-                          <button className="ads-group-toggle" onClick={() => toggleAdvertiserGroup(group.id)}>
-                            <ChevronRightIcon className={expanded ? "ads-chevron-open" : undefined} />
+                          <button
+                            className="ads-group-toggle"
+                            onClick={() => toggleAdvertiserGroup(group.id)}
+                          >
+                            <ChevronRightIcon
+                              className={expanded ? "ads-chevron-open" : undefined}
+                            />
                             <span className="ads-group-title">{group.label}</span>
                             <span className="ads-group-count">{group.advertisers.length}</span>
                           </button>
                         </td>
                       </tr>
-                      {expanded && group.advertisers.map((advertiser) => (
-                        <tr className="table-hover-row" key={advertiser.id}>
-                          <td title={advertiser.syncIssueMessage || advertiser.lastBiSyncError || undefined}>
-                            <div className="shop-table-name">
-                              {advertiser.advertiserName || advertiser.advertiserId}
-                            </div>
-                            <div className="td-muted ads-inline-meta">
-                              <span className="td-code">{advertiser.advertiserId}</span>
-                              <span>{advertiser.advertiserRole || "-"}</span>
-                              <span>{advertiser.currency || "-"}</span>
-                              <span>{advertiser.platform}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={statusClass(advertiser.auth.status)}>
-                              {t(`adsManagement.authStatus.${advertiser.auth.status}`, {
-                                defaultValue: advertiser.auth.status,
-                              })}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="ads-sync-health-cell">
-                              <span className={syncHealthClass(advertiser.syncHealthStatus, advertiser.syncIssueCode)}>
-                                {t(`adsManagement.syncHealth.${advertiser.syncHealthStatus || "HEALTHY"}`, {
-                                  defaultValue: advertiser.syncHealthStatus || "HEALTHY",
+                      {expanded &&
+                        group.advertisers.map((advertiser) => (
+                          <tr className="table-hover-row" key={advertiser.id}>
+                            <td
+                              title={
+                                advertiser.syncIssueMessage ||
+                                advertiser.lastBiSyncError ||
+                                undefined
+                              }
+                            >
+                              <div className="shop-table-name">
+                                {advertiser.advertiserName || advertiser.advertiserId}
+                              </div>
+                              <div className="td-muted ads-inline-meta">
+                                <span className="td-code">{advertiser.advertiserId}</span>
+                                <span>{advertiser.advertiserRole || "-"}</span>
+                                <span>{advertiser.currency || "-"}</span>
+                                <span>{advertiser.platform}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={statusClass(advertiser.auth.status)}>
+                                {t(`adsManagement.authStatus.${advertiser.auth.status}`, {
+                                  defaultValue: advertiser.auth.status,
                                 })}
                               </span>
-                              {advertiser.syncIssueCode ? (
-                                <div className="td-muted">
-                                  {t(`adsManagement.syncIssue.${advertiser.syncIssueCode}`, {
-                                    defaultValue: advertiser.syncIssueCode,
-                                  })}
+                            </td>
+                            <td>
+                              <div className="ads-sync-health-cell">
+                                <span
+                                  className={syncHealthClass(
+                                    advertiser.syncHealthStatus,
+                                    advertiser.syncIssueCode,
+                                  )}
+                                >
+                                  {t(
+                                    `adsManagement.syncHealth.${advertiser.syncHealthStatus || "HEALTHY"}`,
+                                    {
+                                      defaultValue: advertiser.syncHealthStatus || "HEALTHY",
+                                    },
+                                  )}
+                                </span>
+                                {advertiser.syncIssueCode ? (
+                                  <div className="td-muted">
+                                    {t(`adsManagement.syncIssue.${advertiser.syncIssueCode}`, {
+                                      defaultValue: advertiser.syncIssueCode,
+                                    })}
+                                  </div>
+                                ) : null}
+                                <div className="td-muted td-date">
+                                  {t("adsManagement.columns.tokenExpiry")}:{" "}
+                                  {formatDate(advertiser.auth.accessTokenExpiresAt)}
                                 </div>
-                              ) : null}
-                              <div className="td-muted td-date">
-                                {t("adsManagement.columns.tokenExpiry")}: {formatDate(advertiser.auth.accessTokenExpiresAt)}
                               </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="shop-table-actions">
-                              <button
-                                className="btn btn-danger btn-small"
-                                onClick={() => setConfirmDisconnectId(advertiser.id)}
-                              >
-                                {t("adsManagement.disconnect")}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td>
+                              <div className="shop-table-actions">
+                                <button
+                                  className="btn btn-danger btn-small"
+                                  onClick={() => setConfirmDisconnectId(advertiser.id)}
+                                >
+                                  {t("adsManagement.disconnect")}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                     </Fragment>
                   );
                 })}
               </tbody>
             </table>
-          </div>
+          </TkTableFrame>
         )}
-      </section>
+      </TkPanel>
 
-      <section className="panel-card ads-advertiser-section ads-shop-readiness-section" data-tutorial-id="ads-coverage">
+      <TkPanel
+        as="section"
+        padding="none"
+        clip
+        className="panel-card ads-advertiser-section ads-shop-readiness-section"
+        data-tutorial-id="ads-coverage"
+      >
         <div className="ecommerce-section-header">
           <div>
             <h3>{t("adsManagement.shopCoverageTitle")}</h3>
             <p className="ecommerce-section-subtitle">{t("adsManagement.shopCoverageSubtitle")}</p>
           </div>
           <div className="ads-section-tools" data-tutorial-id="ads-coverage-filters">
-            <div className="ads-segmented-control">
-              {([
-                ["all", t("adsManagement.filters.all", { defaultValue: "All" })],
-                ["partial", t("adsManagement.shopAdsStatus.partial", { defaultValue: "Partially covered" })],
-                ["needs_link", t("adsManagement.shopAdsStatus.needs_link")],
-                ["connected", t("adsManagement.shopAdsStatus.connected")],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  className={coverageFilter === value ? "active" : undefined}
-                  onClick={() => setCoverageFilter(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <TkSegmented
+              size="sm"
+              items={[
+                { id: "all", label: t("adsManagement.filters.all", { defaultValue: "All" }) },
+                {
+                  id: "partial",
+                  label: t("adsManagement.shopAdsStatus.partial", {
+                    defaultValue: "Partially covered",
+                  }),
+                },
+                { id: "needs_link", label: t("adsManagement.shopAdsStatus.needs_link") },
+                { id: "connected", label: t("adsManagement.shopAdsStatus.connected") },
+              ]}
+              value={coverageFilter}
+              onChange={(value) => setCoverageFilter(value as CoverageFilter)}
+              label={t("adsManagement.shopCoverageTitle")}
+            />
           </div>
         </div>
 
         {shops.length === 0 ? (
           <div className="empty-cell">{t("adsManagement.noShops")}</div>
         ) : filteredCoverageGroups.length === 0 ? (
-          <div className="empty-cell">{t("adsManagement.noMatchingResults", { defaultValue: "No matching results." })}</div>
+          <div className="empty-cell">
+            {t("adsManagement.noMatchingResults", { defaultValue: "No matching results." })}
+          </div>
         ) : (
-          <div className="table-scroll-wrap shop-table-wrap ads-coverage-table-wrap">
+          <TkTableFrame
+            variant="embedded"
+            className="table-scroll-wrap shop-table-wrap ads-coverage-table-wrap"
+          >
             <table className="shop-table ads-advertiser-table ads-coverage-table">
               <thead>
                 <tr>
@@ -538,25 +650,35 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                   const regions = shopCollectionRegions(group.shops)
                     .map((region) => formatShopRegionLabel(region, t))
                     .join(", ");
-                  const advertiserLabel = group.advertisers.length === 0
-                    ? "-"
-                    : group.advertisers.length === 1
-                      ? (group.advertisers[0].advertiserName || group.advertisers[0].advertiserId)
-                      : t("adsManagement.totalAdvertisers", { defaultValue: "Advertisers" }) + `: ${group.advertisers.length}`;
-                  const currentGmvMaxCount = group.rows.filter(
-                    (row) => Boolean(row.readiness.exclusiveAuthorizedAdvertiserId),
+                  const advertiserLabel =
+                    group.advertisers.length === 0
+                      ? "-"
+                      : group.advertisers.length === 1
+                        ? group.advertisers[0].advertiserName || group.advertisers[0].advertiserId
+                        : t("adsManagement.totalAdvertisers", { defaultValue: "Advertisers" }) +
+                          `: ${group.advertisers.length}`;
+                  const currentGmvMaxCount = group.rows.filter((row) =>
+                    Boolean(row.readiness.exclusiveAuthorizedAdvertiserId),
                   ).length;
                   return (
                     <Fragment key={group.key}>
                       <tr className="table-hover-row ads-coverage-group-row">
                         <td>
-                          <button className="ads-coverage-toggle" onClick={() => toggleCoverageGroup(group.key)}>
-                            <ChevronRightIcon className={expanded ? "ads-chevron-open" : undefined} />
+                          <button
+                            className="ads-coverage-toggle"
+                            onClick={() => toggleCoverageGroup(group.key)}
+                          >
+                            <ChevronRightIcon
+                              className={expanded ? "ads-chevron-open" : undefined}
+                            />
                             <ShopIcon />
                             <span>
-                              <span className="shop-table-name">{shopCollectionDisplayName(group.shops)}</span>
+                              <span className="shop-table-name">
+                                {shopCollectionDisplayName(group.shops)}
+                              </span>
                               <span className="td-muted">
-                                {group.shops.length} {t("ecommerce.shops", { defaultValue: "shops" })}
+                                {group.shops.length}{" "}
+                                {t("ecommerce.shops", { defaultValue: "shops" })}
                               </span>
                             </span>
                           </button>
@@ -565,89 +687,105 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                         <td>
                           <span className={getReadinessBadgeClass(group.status)}>
                             {t(`adsManagement.shopAdsStatus.${group.status}`, {
-                              defaultValue: group.status === "partial" ? "Partially covered" : group.status,
+                              defaultValue:
+                                group.status === "partial" ? "Partially covered" : group.status,
                             })}
                           </span>
-                          <div className="td-muted">{group.connectedCount}/{group.shops.length}</div>
+                          <div className="td-muted">
+                            {group.connectedCount}/{group.shops.length}
+                          </div>
                         </td>
                         <td>{advertiserLabel}</td>
-                        <td>{currentGmvMaxCount > 0 ? `${currentGmvMaxCount}/${group.shops.length}` : "-"}</td>
+                        <td>
+                          {currentGmvMaxCount > 0
+                            ? `${currentGmvMaxCount}/${group.shops.length}`
+                            : "-"}
+                        </td>
                       </tr>
-                      {expanded && group.rows.map(({ shop, readiness, accounts }) => {
-                        const currentGmvMaxAccount = accounts.find(
-                          ({ access }) => access.advertiserId === readiness.exclusiveAuthorizedAdvertiserId,
-                        );
-                        const hasGmvMaxAvailableAccount = accounts.some(
-                          ({ access }) => access.isGmvMaxAvailable,
-                        );
-                        return (
-                          <tr className="ads-coverage-child-row" key={shop.id}>
-                            <td>
-                              <div className="shop-table-name">{shop.alias || shop.shopName}</div>
-                              <div className="td-muted td-code">{shop.platformShopId}</div>
-                            </td>
-                            <td>{formatShopRegionLabel(shop.region, t)}</td>
-                            <td>
-                              <span className={getReadinessBadgeClass(readiness.status)}>
-                                {t(`adsManagement.shopAdsStatus.${readiness.status}`)}
-                              </span>
-                            </td>
-                            <td>
-                              {accounts.length > 0 ? (
-                                <div className="ads-coverage-account-list">
-                                  {accounts.map(({ access, advertiser }) => {
-                                    const isCurrentGmvMax =
-                                      access.advertiserId === readiness.exclusiveAuthorizedAdvertiserId;
-                                    return (
-                                      <div className="ads-coverage-account" key={access.id}>
-                                        <div className="shop-table-name">
-                                          {advertiser?.advertiserName || access.advertiserId}
-                                          {isCurrentGmvMax ? (
-                                            <span className="status-badge status-authorized">
-                                              {t("adsManagement.currentGmvMaxAccount")}
-                                            </span>
-                                          ) : null}
+                      {expanded &&
+                        group.rows.map(({ shop, readiness, accounts }) => {
+                          const currentGmvMaxAccount = accounts.find(
+                            ({ access }) =>
+                              access.advertiserId === readiness.exclusiveAuthorizedAdvertiserId,
+                          );
+                          const hasGmvMaxAvailableAccount = accounts.some(
+                            ({ access }) => access.isGmvMaxAvailable,
+                          );
+                          return (
+                            <tr className="ads-coverage-child-row" key={shop.id}>
+                              <td>
+                                <div className="shop-table-name">{shop.alias || shop.shopName}</div>
+                                <div className="td-muted td-code">{shop.platformShopId}</div>
+                              </td>
+                              <td>{formatShopRegionLabel(shop.region, t)}</td>
+                              <td>
+                                <span className={getReadinessBadgeClass(readiness.status)}>
+                                  {t(`adsManagement.shopAdsStatus.${readiness.status}`)}
+                                </span>
+                              </td>
+                              <td>
+                                {accounts.length > 0 ? (
+                                  <div className="ads-coverage-account-list">
+                                    {accounts.map(({ access, advertiser }) => {
+                                      const isCurrentGmvMax =
+                                        access.advertiserId ===
+                                        readiness.exclusiveAuthorizedAdvertiserId;
+                                      return (
+                                        <div className="ads-coverage-account" key={access.id}>
+                                          <div className="shop-table-name">
+                                            {advertiser?.advertiserName || access.advertiserId}
+                                            {isCurrentGmvMax ? (
+                                              <span className="status-badge status-authorized">
+                                                {t("adsManagement.currentGmvMaxAccount")}
+                                              </span>
+                                            ) : null}
+                                          </div>
+                                          <div className="td-muted td-code">
+                                            {access.advertiserId}
+                                          </div>
                                         </div>
-                                        <div className="td-muted td-code">{access.advertiserId}</div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : "-"}
-                            </td>
-                            <td>
-                              {currentGmvMaxAccount ? (
-                                <>
-                                  <div className="shop-table-name">
-                                    {currentGmvMaxAccount.advertiser?.advertiserName ||
-                                      currentGmvMaxAccount.access.advertiserId}
+                                      );
+                                    })}
                                   </div>
-                                  <div className="td-muted td-code">
-                                    {currentGmvMaxAccount.access.advertiserId}
-                                  </div>
-                                </>
-                              ) : hasGmvMaxAvailableAccount ? (
-                                <>
-                                  <span className="status-badge status-warning">
-                                    {t("adsManagement.gmvMaxAvailable")}
-                                  </span>
-                                  <div className="td-muted">
-                                    {t("adsManagement.currentGmvMaxUnknown")}
-                                  </div>
-                                </>
-                              ) : "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td>
+                                {currentGmvMaxAccount ? (
+                                  <>
+                                    <div className="shop-table-name">
+                                      {currentGmvMaxAccount.advertiser?.advertiserName ||
+                                        currentGmvMaxAccount.access.advertiserId}
+                                    </div>
+                                    <div className="td-muted td-code">
+                                      {currentGmvMaxAccount.access.advertiserId}
+                                    </div>
+                                  </>
+                                ) : hasGmvMaxAvailableAccount ? (
+                                  <>
+                                    <span className="status-badge status-warning">
+                                      {t("adsManagement.gmvMaxAvailable")}
+                                    </span>
+                                    <div className="td-muted">
+                                      {t("adsManagement.currentGmvMaxUnknown")}
+                                    </div>
+                                  </>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </Fragment>
                   );
                 })}
               </tbody>
             </table>
-          </div>
+          </TkTableFrame>
         )}
-      </section>
+      </TkPanel>
 
       <Modal
         isOpen={oauthWaiting}
@@ -701,6 +839,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         onConfirm={() => confirmDisconnectId && handleDisconnect(confirmDisconnectId)}
         onCancel={() => setConfirmDisconnectId(null)}
       />
-    </div>
+    </TkPageFrame>
   );
 });

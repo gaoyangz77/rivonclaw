@@ -1,11 +1,11 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { useLazyQuery } from "@apollo/client/react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ECOMMERCE_GET_PRODUCT_QUERY } from "../../../api/shops-queries.js";
 import { CopyIcon } from "../../../components/icons.js";
 import { RemoteMediaImage } from "../../../components/images/RemoteMediaImage.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import {
   affiliateEntityCardClassName,
   type AffiliateEntityCardVariant,
@@ -176,8 +176,8 @@ export function ProductSummaryCard({
           </div>
         </div>
       </article>
-      {renderProductOverlay(detailModal)}
-      {renderProductOverlay(imagePreview)}
+      {detailModal}
+      {imagePreview}
     </>
   );
 }
@@ -222,12 +222,6 @@ function ProductDetailModal({
   const shortDescription = description ? truncateProductDescription(description) : null;
   const skuRows = buildSkuRows(product, fallbackProduct, t);
 
-  function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    onClose();
-  }
-
   function closeFromButton(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
@@ -235,21 +229,16 @@ function ProductDetailModal({
   }
 
   return (
-    <div
-      className="modal-backdrop product-detail-backdrop"
-      role="presentation"
-      onClick={closeFromBackdrop}
-      onMouseDown={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={t("ecommerce.productCard.productDetailTitle")}
+      hideHeader
+      padding="none"
+      className="product-detail-modal"
+      backdropClassName="product-detail-backdrop"
+      ariaLabel={t("ecommerce.productCard.productDetailTitle")}
     >
-      <div
-        className="modal-content product-detail-modal"
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-      >
         <div className="modal-header product-detail-header">
           <div>
             <h2>{t("ecommerce.productCard.productDetailTitle")}</h2>
@@ -327,19 +316,12 @@ function ProductDetailModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
 function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
   const { t } = useTranslation();
-  function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    onClose();
-  }
-
   function closeFromButton(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
@@ -347,35 +329,26 @@ function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose:
   }
 
   return (
-    <div
-      className="modal-backdrop product-image-preview-backdrop"
-      role="presentation"
-      onClick={closeFromBackdrop}
-      onMouseDown={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={t("ecommerce.productCard.imagePreview")}
+      hideHeader
+      className="product-image-preview"
+      backdropClassName="product-image-preview-backdrop"
+      ariaLabel={t("ecommerce.productCard.imagePreview")}
     >
-      <div
-        className="product-image-preview"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("ecommerce.productCard.imagePreview")}
-        onMouseDown={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button className="modal-close-btn" type="button" onClick={closeFromButton} aria-label={t("common.close")}>
+        <button
+          className="modal-close-btn"
+          type="button"
+          onClick={closeFromButton}
+          aria-label={t("common.close")}
+        >
           ×
         </button>
         <RemoteMediaImage alt="" loading="eager" sourceUrl={imageUrl} />
-      </div>
-    </div>
+    </Modal>
   );
-}
-
-function renderProductOverlay(node: ReactNode): ReactNode {
-  if (!node) return null;
-  if (typeof document === "undefined") return node;
-  return createPortal(node, document.body);
 }
 
 function ProductMetric({

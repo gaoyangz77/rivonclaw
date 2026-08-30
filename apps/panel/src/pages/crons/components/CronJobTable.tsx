@@ -2,6 +2,14 @@ import { useTranslation } from "react-i18next";
 import type { CronJob } from "../cron-utils.js";
 import { formatSchedule, formatRelativeTime, getTzI18nKey } from "../cron-utils.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
+import {
+  TkBadge,
+  TkEmptyState,
+  TkLoadingState,
+  TkPanel,
+  TkSwitchControl,
+  TkTableFrame,
+} from "../../../components/design-system/index.js";
 
 interface CronJobTableProps {
   jobs: CronJob[];
@@ -17,41 +25,55 @@ interface CronJobTableProps {
 
 function getStatusBadge(job: CronJob, t: (key: string) => string) {
   if (job.state?.runningAtMs) {
-    return <span className="badge badge-info"><span className="crons-running-indicator" />{t("crons.statusRunning")}</span>;
+    return (
+      <TkBadge tone="info">
+        <span className="crons-running-indicator" />
+        {t("crons.statusRunning")}
+      </TkBadge>
+    );
   }
   const status = job.state?.lastRunStatus ?? job.state?.lastStatus;
-  if (!status) return <span className="badge badge-default">{t("crons.neverRun")}</span>;
-  const cls = status === "ok" ? "badge-success" : status === "error" ? "badge-danger" : "badge-warning";
-  return <span className={`badge ${cls}`}>{t(`crons.status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}</span>;
+  if (!status) return <TkBadge>{t("crons.neverRun")}</TkBadge>;
+  const tone = status === "ok" ? "success" : status === "error" ? "danger" : "warning";
+  return (
+    <TkBadge tone={tone}>
+      {t(`crons.status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
+    </TkBadge>
+  );
 }
 
-export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggle, onRun, onHistory, onDelete }: CronJobTableProps) {
+export function CronJobTable({
+  jobs,
+  loading,
+  now,
+  runningJobId,
+  onEdit,
+  onToggle,
+  onRun,
+  onHistory,
+  onDelete,
+}: CronJobTableProps) {
   const { t, i18n } = useTranslation();
 
   if (loading && jobs.length === 0) {
     return (
-      <div className="section-card">
-        <div className="loading-state">
-          <span className="spinner" />
-          <span>{t("common.loading")}</span>
-        </div>
-      </div>
+      <TkPanel as="section" className="section-card">
+        <TkLoadingState label={t("common.loading")} />
+      </TkPanel>
     );
   }
 
   if (jobs.length === 0) {
     return (
-      <div className="section-card">
-        <div className="empty-cell">
-          {t("crons.emptyState")}
-        </div>
-      </div>
+      <TkPanel as="section" className="section-card">
+        <TkEmptyState title={t("crons.emptyState")} />
+      </TkPanel>
     );
   }
 
   return (
-    <div className="section-card">
-      <div className="table-scroll-wrap">
+    <TkPanel as="section" padding="none" clip className="section-card">
+      <TkTableFrame variant="embedded" className="table-scroll-wrap">
         <table className="crons-table" data-tutorial-id="crons-table">
           <thead>
             <tr>
@@ -68,7 +90,11 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
               <tr key={job.id} className="table-hover-row">
                 <td>
                   <div className="crons-job-name">{job.name}</div>
-                  {job.description && <div className="crons-job-desc" title={job.description}>{job.description}</div>}
+                  {job.description && (
+                    <div className="crons-job-desc" title={job.description}>
+                      {job.description}
+                    </div>
+                  )}
                 </td>
                 <td>
                   {!job.schedule ? (
@@ -86,26 +112,26 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
                       )}
                     </>
                   ) : (
-                    <span className="crons-schedule-text">{formatSchedule(job.schedule, i18n.language)}</span>
+                    <span className="crons-schedule-text">
+                      {formatSchedule(job.schedule, i18n.language)}
+                    </span>
                   )}
                 </td>
                 <td>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={job.enabled}
-                      onChange={() => onToggle(job)}
-                    />
-                    <span className={`toggle-track ${job.enabled ? "toggle-track-on" : "toggle-track-off"}`}>
-                      <span className={`toggle-thumb ${job.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
-                    </span>
-                  </label>
+                  <TkSwitchControl
+                    label={t("crons.fieldEnabled")}
+                    checked={job.enabled}
+                    onChange={() => onToggle(job)}
+                  />
                 </td>
                 <td>
                   <div className="crons-time-cell">
                     {getStatusBadge(job, t)}
                     {job.state?.lastRunAtMs && (
-                      <div className="text-muted" title={formatLocalizedDateTime(job.state.lastRunAtMs, i18n.language)}>
+                      <div
+                        className="text-muted"
+                        title={formatLocalizedDateTime(job.state.lastRunAtMs, i18n.language)}
+                      >
                         {formatRelativeTime(job.state.lastRunAtMs, now, i18n.language)}
                       </div>
                     )}
@@ -113,10 +139,13 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
                 </td>
                 <td>
                   <div className="crons-time-cell">
-                    {job.state?.nextRunAtMs
-                      ? <span title={formatLocalizedDateTime(job.state.nextRunAtMs, i18n.language)}>{formatRelativeTime(job.state.nextRunAtMs, now, i18n.language)}</span>
-                      : <span className="text-muted">—</span>
-                    }
+                    {job.state?.nextRunAtMs ? (
+                      <span title={formatLocalizedDateTime(job.state.nextRunAtMs, i18n.language)}>
+                        {formatRelativeTime(job.state.nextRunAtMs, now, i18n.language)}
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
                   </div>
                 </td>
                 <td className="td-actions">
@@ -133,7 +162,10 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
                   <button className="btn btn-secondary btn-sm" onClick={() => onHistory(job)}>
                     {t("crons.viewHistory")}
                   </button>
-                  <button className="btn btn-danger btn-sm" onClick={() => onDelete({ id: job.id, name: job.name })}>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => onDelete({ id: job.id, name: job.name })}
+                  >
                     {t("common.delete")}
                   </button>
                 </td>
@@ -141,7 +173,7 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
             ))}
           </tbody>
         </table>
-      </div>
-    </div>
+      </TkTableFrame>
+    </TkPanel>
   );
 }

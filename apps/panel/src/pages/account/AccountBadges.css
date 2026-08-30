@@ -1,0 +1,27 @@
+/* CSS ownership: account badges. Imported in original cascade order. */
+
+/* ===== 32. Settings Page ===== */
+
+/* ===== Data Directory Settings ===== */
+
+.badge-muted {
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+}
+
+/* ===== Doctor Diagnostics ===== */
+
+/* ===== 32b. Account Page ===== */
+
+.acct-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--tk-v1-radius-3);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.acct-badge-plan {
+  background: var(--color-primary-light, #eef2ff);
+  color: var(--color-primary);
+}

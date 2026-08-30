@@ -1,0 +1,184 @@
+/* CSS ownership: welcome page. Imported in original cascade order. */
+
+/* ===== 28. Welcome ===== */
+
+.welcome-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-page);
+  padding: 24px;
+  position: relative;
+}
+
+.welcome-page > .sidebar-bottom-actions {
+  position: fixed;
+  z-index: 10;
+  bottom: 20px;
+  left: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.welcome-top-controls {
+  position: fixed;
+  top: 20px;
+  z-index: 10;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.welcome-card {
+  background-color: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+  min-height: 480px;
+  transition: max-width 0.3s ease;
+}
+
+.welcome-page {
+  overflow: hidden;
+}
+
+.welcome-page::before {
+  content: "";
+  position: absolute;
+  inset: auto -12% -28% auto;
+  width: min(54vw, 640px);
+  height: min(54vw, 640px);
+  background:
+    radial-gradient(circle at 40% 40%, rgba(20, 184, 166, 0.24), transparent 55%),
+    radial-gradient(circle at 62% 62%, rgba(37, 99, 235, 0.18), transparent 58%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.welcome-skip-guest {
+  min-width: 148px;
+}
+
+.welcome-card {
+  max-width: 980px;
+  min-height: 0;
+  display: grid;
+  gap: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-top: 3px solid var(--color-primary);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.welcome-copy {
+  max-width: 680px;
+}
+
+.welcome-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.welcome-copy h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.08;
+  letter-spacing: 0;
+  color: var(--color-text);
+}
+
+.welcome-copy p {
+  margin: 16px 0 0;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+}
+
+.welcome-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.welcome-choice-button {
+  min-height: 168px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  padding: 22px;
+  text-align: left;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 10px;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.welcome-choice-button:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.welcome-choice-button strong {
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.welcome-choice-button span:not(.welcome-choice-icon) {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.welcome-choice-button-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  border-color: transparent;
+  color: #fff;
+}
+
+.welcome-choice-button-primary span:not(.welcome-choice-icon) {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.welcome-choice-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  background: var(--color-bg);
+}
+
+.welcome-choice-button-primary .welcome-choice-icon {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}

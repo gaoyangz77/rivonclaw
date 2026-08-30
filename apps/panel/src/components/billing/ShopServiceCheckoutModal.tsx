@@ -4,9 +4,10 @@ import { observer } from "mobx-react-lite";
 import { GQL } from "@rivonclaw/core";
 import type { BillingPlanDefinition } from "@rivonclaw/core/models";
 import { Select } from "../inputs/Select.js";
-import { Modal } from "../modals/Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { PaymentPendingModal } from "./PaymentPendingModal.js";
+import { TkAlert } from "../design-system/index.js";
 import {
   billingPlanDisplayName,
   checkoutProviderLabelKey,
@@ -232,10 +233,12 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
           )}
 
           {!plans.length && (
-            <div className="modal-error-box">{t("billing.planDefinitionsUnavailable")}</div>
+            <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>
           )}
           {checkoutError && (
-            <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: checkoutError })}</div>
+            <TkAlert tone="danger">
+              {t("billing.errors.checkoutFailed", { message: checkoutError })}
+            </TkAlert>
           )}
           {checkoutNotice && (
             <div className="info-box info-box-blue">{t(`billing.subscriptionStartAction.${checkoutNotice}`)}</div>

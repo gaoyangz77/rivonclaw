@@ -14,6 +14,7 @@ import { useToast } from "../../components/Toast.js";
 import { formatShortDate } from "../../lib/format-datetime.js";
 import { KeyUsageModal } from "./components/KeyUsageModal.js";
 import { ReauthModal } from "./components/ReauthModal.js";
+import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 
 /** Threshold below which we switch "Expires {date}" → red "Expires in N days". */
 const EXPIRY_WARNING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
@@ -229,9 +230,8 @@ export const ProvidersPage = observer(function ProvidersPage() {
   }
 
   return (
-    <div className="page-enter" data-tutorial-id="providers-page">
-      <h1>{t("providers.title")}</h1>
-      <p>{t("providers.description")}</p>
+    <TkPageFrame data-tutorial-id="providers-page">
+      <TkPageHeader title={t("providers.title")} description={t("providers.description")} />
 
       {/* Section A: Add Key */}
       <ProviderSetupForm
@@ -240,7 +240,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
       />
 
       {/* Section B: Configured Keys */}
-      <div className="section-card" data-tutorial-id="providers-configured">
+      <TkPanel as="section" className="section-card" data-tutorial-id="providers-configured">
         <h3>{t("providers.configuredKeysTitle")}</h3>
         {keys.length === 0 ? (
           <div className="empty-cell">
@@ -556,10 +556,10 @@ export const ProvidersPage = observer(function ProvidersPage() {
             })}
           </div>
         )}
-      </div>
+      </TkPanel>
 
       <KeyUsageModal keyId={usageKeyId} onClose={() => setUsageKeyId(null)} />
       <ReauthModal keyId={reauthKeyId} onClose={() => setReauthKeyId(null)} />
-    </div>
+    </TkPageFrame>
   );
 });

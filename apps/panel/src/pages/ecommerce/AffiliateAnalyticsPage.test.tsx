@@ -351,7 +351,7 @@ describe("AffiliateAnalyticsPage Overview", () => {
 
     expect(overviewInputs().at(0)).toEqual({ shopIds: ["shop-1"], windowDays: 30 });
 
-    fireEvent.click(screen.getByRole("button", { name: "Last 90d" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Last 90d" }));
 
     expect(overviewInputs().some((input) => input.windowDays === 90)).toBe(true);
   });
@@ -365,7 +365,7 @@ describe("AffiliateAnalyticsPage Overview", () => {
     expect(overviewInputs().at(0)?.windowDays).toBe(30);
     expect(postApprovalInputs().every((input) => input.windowDays === 90)).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Last 60d" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Last 60d" }));
 
     expect(overviewInputs().some((input) => input.windowDays === 60)).toBe(true);
     expect(postApprovalInputs().every((input) => input.windowDays === 90)).toBe(true);
@@ -394,7 +394,7 @@ describe("AffiliateAnalyticsPage Overview", () => {
     render(<AffiliateAnalyticsPage />);
     const before = portfolioInputs().at(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Last 60d" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Last 60d" }));
 
     expect(before).toBeDefined();
     for (const input of portfolioInputs()) expect(input).toEqual(before);

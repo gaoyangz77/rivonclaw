@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
-import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
 import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import type { AccountRole } from "../hooks/useSubAccounts.js";
 

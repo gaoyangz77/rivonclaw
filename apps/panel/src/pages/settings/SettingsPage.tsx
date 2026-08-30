@@ -1,5 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import {
+  TkConfirmDialog,
+  TkPageFrame,
+  TkPageHeader,
+} from "../../components/design-system/index.js";
 import { observer } from "mobx-react-lite";
 import { useAppSettingsToggles } from "./hooks/useAppSettingsToggles.js";
 import { useAppearanceSettings } from "./hooks/useAppearanceSettings.js";
@@ -16,6 +20,7 @@ import { StateDirectorySection } from "./components/StateDirectorySection.js";
 import { TelemetrySection } from "./components/TelemetrySection.js";
 import { DependenciesSection } from "./components/DependenciesSection.js";
 import { DiagnosticsSection } from "./components/DiagnosticsSection.js";
+import "./SettingsPage.css";
 
 export const SettingsPage = observer(function SettingsPage() {
   const { t } = useTranslation();
@@ -27,83 +32,88 @@ export const SettingsPage = observer(function SettingsPage() {
   const entityStore = useEntityStore();
 
   return (
-    <div className="page-enter" data-tutorial-id="settings-page">
-      <h1>{t("settings.title")}</h1>
-      <p className="page-description">{t("settings.description")}</p>
-
-      <AgentSettingsSection
-        saving={toggles.saving}
-        settingsReady={toggles.settingsReady}
-        browserMode={toggles.browserMode}
-        handleBrowserModeChange={toggles.handleBrowserModeChange}
+    <TkPageFrame className="tk-v1-settings-page" data-tutorial-id="settings-page">
+      <TkPageHeader
+        className="tk-settings-page-header"
+        title={t("settings.title")}
+        description={t("settings.description")}
       />
 
-      <ChatSettingsSection
-        showAgentEvents={toggles.showAgentEvents}
-        preserveToolEvents={toggles.preserveToolEvents}
-        collapseMessages={toggles.collapseMessages}
-        saving={toggles.saving}
-        settingsReady={toggles.settingsReady}
-        handleToggleShowAgentEvents={toggles.handleToggleShowAgentEvents}
-        handleTogglePreserveToolEvents={toggles.handleTogglePreserveToolEvents}
-        handleToggleCollapseMessages={toggles.handleToggleCollapseMessages}
-      />
-
-      <AppSettingsSection
-        accentColor={appearance.accentColor}
-        privacyMode={toggles.privacyMode}
-        saving={toggles.saving}
-        settingsReady={toggles.settingsReady}
-        handleAccentColorChange={appearance.handleAccentColorChange}
-        handleTogglePrivacyMode={toggles.handleTogglePrivacyMode}
-      />
-
-      <TutorialSection
-        tutorialEnabled={appearance.tutorialEnabled}
-        handleToggleTutorial={appearance.handleToggleTutorial}
-      />
-
-      <AutoLaunchSection
-        autoLaunchEnabled={toggles.autoLaunchEnabled}
-        saving={toggles.saving}
-        settingsReady={toggles.settingsReady}
-        handleToggleAutoLaunch={toggles.handleToggleAutoLaunch}
-      />
-
-      {stateDir.dataDirInfo && (
-        <StateDirectorySection
-          dataDirInfo={stateDir.dataDirInfo}
-          dataDirRestartNeeded={stateDir.dataDirRestartNeeded}
-          saving={stateDir.saving}
-          isLoggedIn={entityStore.currentUser !== null}
-          uploading={logUpload.uploading}
-          handleChangeDataDir={stateDir.handleChangeDataDir}
-          handleResetDataDir={stateDir.handleResetDataDir}
-          handleUpload={logUpload.handleUpload}
+      <div className="tk-settings-stack">
+        <AgentSettingsSection
+          saving={toggles.saving}
+          settingsReady={toggles.settingsReady}
+          browserMode={toggles.browserMode}
+          handleBrowserModeChange={toggles.handleBrowserModeChange}
         />
-      )}
 
-      <TelemetrySection
-        telemetryEnabled={toggles.telemetryEnabled}
-        saving={toggles.saving}
-        settingsReady={toggles.settingsReady}
-        handleToggleTelemetry={toggles.handleToggleTelemetry}
-      />
+        <ChatSettingsSection
+          showAgentEvents={toggles.showAgentEvents}
+          preserveToolEvents={toggles.preserveToolEvents}
+          collapseMessages={toggles.collapseMessages}
+          saving={toggles.saving}
+          settingsReady={toggles.settingsReady}
+          handleToggleShowAgentEvents={toggles.handleToggleShowAgentEvents}
+          handleTogglePreserveToolEvents={toggles.handleTogglePreserveToolEvents}
+          handleToggleCollapseMessages={toggles.handleToggleCollapseMessages}
+        />
 
-      <DependenciesSection
-        depsInstalling={doctor.depsInstalling}
-        handleInstallDeps={doctor.handleInstallDeps}
-      />
+        <AppSettingsSection
+          accentColor={appearance.accentColor}
+          privacyMode={toggles.privacyMode}
+          saving={toggles.saving}
+          settingsReady={toggles.settingsReady}
+          handleAccentColorChange={appearance.handleAccentColorChange}
+          handleTogglePrivacyMode={toggles.handleTogglePrivacyMode}
+        />
 
-      <DiagnosticsSection
-        doctorStatus={doctor.doctorStatus}
-        doctorOutput={doctor.doctorOutput}
-        doctorExitCode={doctor.doctorExitCode}
-        doctorOutputRef={doctor.doctorOutputRef}
-        runDoctor={doctor.runDoctor}
-      />
+        <TutorialSection
+          tutorialEnabled={appearance.tutorialEnabled}
+          handleToggleTutorial={appearance.handleToggleTutorial}
+        />
 
-      <ConfirmDialog
+        <AutoLaunchSection
+          autoLaunchEnabled={toggles.autoLaunchEnabled}
+          saving={toggles.saving}
+          settingsReady={toggles.settingsReady}
+          handleToggleAutoLaunch={toggles.handleToggleAutoLaunch}
+        />
+
+        {stateDir.dataDirInfo && (
+          <StateDirectorySection
+            dataDirInfo={stateDir.dataDirInfo}
+            dataDirRestartNeeded={stateDir.dataDirRestartNeeded}
+            saving={stateDir.saving}
+            isLoggedIn={entityStore.currentUser !== null}
+            uploading={logUpload.uploading}
+            handleChangeDataDir={stateDir.handleChangeDataDir}
+            handleResetDataDir={stateDir.handleResetDataDir}
+            handleUpload={logUpload.handleUpload}
+          />
+        )}
+
+        <TelemetrySection
+          telemetryEnabled={toggles.telemetryEnabled}
+          saving={toggles.saving}
+          settingsReady={toggles.settingsReady}
+          handleToggleTelemetry={toggles.handleToggleTelemetry}
+        />
+
+        <DependenciesSection
+          depsInstalling={doctor.depsInstalling}
+          handleInstallDeps={doctor.handleInstallDeps}
+        />
+
+        <DiagnosticsSection
+          doctorStatus={doctor.doctorStatus}
+          doctorOutput={doctor.doctorOutput}
+          doctorExitCode={doctor.doctorExitCode}
+          doctorOutputRef={doctor.doctorOutputRef}
+          runDoctor={doctor.runDoctor}
+        />
+      </div>
+
+      <TkConfirmDialog
         isOpen={toggles.cdpConfirmOpen}
         onConfirm={() => {
           toggles.setCdpConfirmOpen(false);
@@ -116,6 +126,6 @@ export const SettingsPage = observer(function SettingsPage() {
         cancelLabel={t("common.cancel")}
         confirmVariant="primary"
       />
-    </div>
+    </TkPageFrame>
   );
 });

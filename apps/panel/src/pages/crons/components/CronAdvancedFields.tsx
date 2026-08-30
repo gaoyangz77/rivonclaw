@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
 import { RunProfileSelector } from "../../../components/inputs/RunProfileSelector.js";
 import type { CronJobFormData, CronWakeMode } from "../cron-utils.js";
-import { InfoTip } from "./InfoTip.js";
+import { TkInfoTip } from "../../../components/design-system/index.js";
 
 const WAKE_MODES: CronWakeMode[] = ["now", "next-heartbeat"];
 
@@ -26,7 +26,7 @@ export function CronAdvancedFields({ form, onUpdate, selectedRunProfileId, onRun
             <div className="form-group">
               <label className="form-label-block">
                 {t("crons.fieldModel")}
-                <InfoTip tooltipKey="tooltipModel" />
+                <TkInfoTip label={t("crons.tooltipModel")} />
               </label>
               <input
                 className="input-full"
@@ -39,7 +39,7 @@ export function CronAdvancedFields({ form, onUpdate, selectedRunProfileId, onRun
             <div className="form-group">
               <label className="form-label-block">
                 {t("crons.fieldThinking")}
-                <InfoTip tooltipKey="tooltipThinking" />
+                <TkInfoTip label={t("crons.tooltipThinking")} />
               </label>
               <Select
                 value={form.thinking}
@@ -55,7 +55,7 @@ export function CronAdvancedFields({ form, onUpdate, selectedRunProfileId, onRun
             <div className="form-group">
               <label className="form-label-block">
                 {t("crons.fieldTimeout")}
-                <InfoTip tooltipKey="tooltipTimeout" />
+                <TkInfoTip label={t("crons.tooltipTimeout")} />
               </label>
               <input
                 type="number"
@@ -71,7 +71,7 @@ export function CronAdvancedFields({ form, onUpdate, selectedRunProfileId, onRun
         <div className="form-group">
           <label className="form-label-block">
             {t("crons.fieldWakeMode")}
-            <InfoTip tooltipKey="tooltipWakeMode" />
+            <TkInfoTip label={t("crons.tooltipWakeMode")} />
           </label>
           <Select
             value={form.wakeMode}

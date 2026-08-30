@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { Modal } from "../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
 import { ChatStoreProvider, useChatStore, useChatController } from "./ChatStoreProvider.js";
 import { ChatPreferenceStoreProvider } from "./ChatPreferenceStoreProvider.js";
 import { SessionTabBar } from "./SessionTabBar.js";

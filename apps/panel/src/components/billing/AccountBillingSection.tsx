@@ -12,8 +12,8 @@ import type {
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ChevronRightIcon } from "../icons.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
-import { ConfirmDialog } from "../modals/ConfirmDialog.js";
-import { Modal } from "../modals/Modal.js";
+import { TkConfirmDialog as ConfirmDialog } from "../design-system/index.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
@@ -27,9 +27,7 @@ import {
   type CheckoutProvider,
   usagePercentLabel,
 } from "./billing-labels.js";
-import {
-  shopCollectionDisplayName,
-} from "../../lib/shop-collections.js";
+import { shopCollectionDisplayName } from "../../lib/shop-collections.js";
 import {
   buildShopServiceBillingGroups,
   type ShopServiceBillingGroup,
@@ -37,6 +35,7 @@ import {
 } from "../../lib/shop-billing-groups.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
+import { TkAlert, TkPanel, TkTableFrame } from "../design-system/index.js";
 
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
 const SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["customerService", "inventory", "affiliate"];
@@ -58,7 +57,18 @@ function billingCancelTarget(entitlement: BillingEntitlementStatus): BillingCanc
   };
 }
 
-function shopDisplayName(shop: { alias?: string | null; shopName?: string | null; platformShopId?: string | null; id?: string | null } | null | undefined, fallback: string): string {
+function shopDisplayName(
+  shop:
+    | {
+        alias?: string | null;
+        shopName?: string | null;
+        platformShopId?: string | null;
+        id?: string | null;
+      }
+    | null
+    | undefined,
+  fallback: string,
+): string {
   return shop?.alias || shop?.shopName || shop?.platformShopId || shop?.id || fallback;
 }
 
@@ -78,18 +88,6 @@ function formatDateTime(value?: string | null): string {
   return formatLocalizedDateTime(value, panelI18n.language, undefined, "-");
 }
 
-function formatMoneyFromMajor(value: string | null | undefined, currency: string): string {
-  if (!value) return "-";
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return `${currency} ${value}`;
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    currencyDisplay: "narrowSymbol",
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 function formatMoneyFromMinor(amountMinor: number, currency: string): string {
   const amount = amountMinor / 100;
   return new Intl.NumberFormat(undefined, {
@@ -101,7 +99,9 @@ function formatMoneyFromMinor(amountMinor: number, currency: string): string {
 }
 
 function subscriptionAmount(subscription: BillingEntitlementStatus["subscription"]): string | null {
-  return subscription ? formatMoneyFromMinor(subscription.amountMinor, subscription.currency) : null;
+  return subscription
+    ? formatMoneyFromMinor(subscription.amountMinor, subscription.currency)
+    : null;
 }
 
 function entitlementBadgeClass(entitlement: BillingEntitlementStatus | null): string {
@@ -128,8 +128,12 @@ function UsageList({ entitlement }: { entitlement: BillingEntitlementStatus | nu
       {sortUsageWindows(entitlement.usage).map((usage) => (
         <div key={`${usage.metric}:${usage.window}`} className="billing-usage-card">
           <div className="billing-usage-card-head">
-            <span className="billing-usage-name">{billingEnumLabel(t, "usageMetric", usage.metric)}</span>
-            <span className="badge badge-muted">{billingEnumLabel(t, "usageWindow", usage.window)}</span>
+            <span className="billing-usage-name">
+              {billingEnumLabel(t, "usageMetric", usage.metric)}
+            </span>
+            <span className="badge badge-muted">
+              {billingEnumLabel(t, "usageWindow", usage.window)}
+            </span>
           </div>
           <div className="billing-usage-progress-row">
             <progress
@@ -138,7 +142,9 @@ function UsageList({ entitlement }: { entitlement: BillingEntitlementStatus | nu
               max={100}
             />
             <span className="billing-usage-percent">
-              {t("billing.usageRemainingPercent", { percent: usagePercentLabel(usage.remainingPercent) })}
+              {t("billing.usageRemainingPercent", {
+                percent: usagePercentLabel(usage.remainingPercent),
+              })}
             </span>
           </div>
           <div className="billing-muted">
@@ -198,36 +204,56 @@ function AccountSubscriptionDetailModal({
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth={560}>
       <div className="service-detail-body">
         <div className="billing-meta-grid">
-          <BillingMetaItem label={t("billing.subscriptionStatus")} value={entitlementStatusLabel(t, entitlement)} />
-          <BillingMetaItem label={t("billing.source")} value={billingEnumLabel(t, "entitlementSource", entitlement?.source)} />
-          <BillingMetaItem label={t("billing.validUntil")} value={formatDateTime(entitlement?.validUntil)} />
+          <BillingMetaItem
+            label={t("billing.subscriptionStatus")}
+            value={entitlementStatusLabel(t, entitlement)}
+          />
+          <BillingMetaItem
+            label={t("billing.source")}
+            value={billingEnumLabel(t, "entitlementSource", entitlement?.source)}
+          />
+          <BillingMetaItem
+            label={t("billing.validUntil")}
+            value={formatDateTime(entitlement?.validUntil)}
+          />
           {subscription && (
             <>
-              <BillingMetaItem label={t("billing.renewalMode")} value={billingEnumLabel(t, "renewalMode", subscription.renewalMode)} />
-              <BillingMetaItem label={t("billing.subscriptionAmount")} value={subscriptionAmount(subscription)} />
-              <BillingMetaItem label={t("billing.startsAt")} value={formatDateTime(subscription.currentPeriodStart)} />
+              <BillingMetaItem
+                label={t("billing.renewalMode")}
+                value={billingEnumLabel(t, "renewalMode", subscription.renewalMode)}
+              />
+              <BillingMetaItem
+                label={t("billing.subscriptionAmount")}
+                value={subscriptionAmount(subscription)}
+              />
+              <BillingMetaItem
+                label={t("billing.startsAt")}
+                value={formatDateTime(subscription.currentPeriodStart)}
+              />
               {subscription.graceUntil && (
-                <BillingMetaItem label={t("billing.graceUntil")} value={formatDateTime(subscription.graceUntil)} />
+                <BillingMetaItem
+                  label={t("billing.graceUntil")}
+                  value={formatDateTime(subscription.graceUntil)}
+                />
               )}
             </>
           )}
         </div>
-        {(subscription?.cancelAtPeriodEnd || subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
+        {(subscription?.cancelAtPeriodEnd ||
+          subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
           <div className="billing-renewal-warning">{t("billing.cancelAtPeriodEnd")}</div>
         )}
         {onExtendPrepaid && (
           <div className="billing-action-zone">
             <div>
               <strong>{t("billing.extendPrepaidTitle")}</strong>
-              <span>{t("billing.renewSubscriptionMessage", {
-                date: formatDateTime(subscription?.currentPeriodEnd),
-              })}</span>
+              <span>
+                {t("billing.renewSubscriptionMessage", {
+                  date: formatDateTime(subscription?.currentPeriodEnd),
+                })}
+              </span>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={onExtendPrepaid}
-            >
+            <button type="button" className="btn btn-primary" onClick={onExtendPrepaid}>
               {t("billing.extendPrepaid")}
             </button>
           </div>
@@ -249,21 +275,21 @@ function AccountSubscriptionDetailModal({
           </div>
         )}
         {portalError && (
-          <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: portalError })}</div>
+          <TkAlert tone="danger">
+            {t("billing.errors.checkoutFailed", { message: portalError })}
+          </TkAlert>
         )}
         {onCancelSubscription && (
           <div className="billing-danger-zone">
             <div>
               <strong>{t("billing.cancelSubscriptionTitle")}</strong>
-              <span>{t("billing.cancelSubscriptionMessage", {
-                date: formatDateTime(subscription?.currentPeriodEnd),
-              })}</span>
+              <span>
+                {t("billing.cancelSubscriptionMessage", {
+                  date: formatDateTime(subscription?.currentPeriodEnd),
+                })}
+              </span>
             </div>
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={onCancelSubscription}
-            >
+            <button type="button" className="btn btn-danger" onClick={onCancelSubscription}>
               {t("billing.cancelSubscription")}
             </button>
           </div>
@@ -290,32 +316,45 @@ function EntitlementSummary({
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<CheckoutProvider | undefined>(undefined);
+  const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<
+    CheckoutProvider | undefined
+  >(undefined);
   const [checkoutIsRenewal, setCheckoutIsRenewal] = useState(false);
   const accountScopeId = entitlement?.scopeId || entityStore.currentUser?.userId || null;
   const hasAccountSubscription = !!subscription;
   const showRenewalReminder = shouldShowRenewalReminder(entitlement);
-  const currentAccountPlan = findPlanDefinition(planDefinitions ?? [], accountLlm?.planId, entitlement?.product);
-  const canResumeAccountSubscription = !!subscription
-    && subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid
-    && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
-  const canRenewOrResumeAccountPlan = !!subscription
-    && (canResumeAccountSubscription || showRenewalReminder);
+  const currentAccountPlan = findPlanDefinition(
+    planDefinitions ?? [],
+    accountLlm?.planId,
+    entitlement?.product,
+  );
+  const canResumeAccountSubscription =
+    !!subscription &&
+    subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid &&
+    (subscription.cancelAtPeriodEnd ||
+      subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
+  const canRenewOrResumeAccountPlan =
+    !!subscription && (canResumeAccountSubscription || showRenewalReminder);
   const upgradeAccountPlans = upgradeableAccountPlans(planDefinitions ?? [], accountLlm?.planId);
   const accountPlans = [
     ...(canRenewOrResumeAccountPlan && currentAccountPlan ? [currentAccountPlan] : []),
     ...upgradeAccountPlans,
-  ].filter((plan, index, plans) => plans.findIndex((item) => item.planId === plan.planId) === index);
+  ].filter(
+    (plan, index, plans) => plans.findIndex((item) => item.planId === plan.planId) === index,
+  );
   const isHighestPlan = isHighestAccountPlan(accountLlm?.planId);
-  const canCancelSubscription = !!subscription
-    && subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews
-    && !subscription.cancelAtPeriodEnd;
+  const canCancelSubscription =
+    !!subscription &&
+    subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews &&
+    !subscription.cancelAtPeriodEnd;
   const canManagePaymentMethod = canCancelSubscription;
-  const canExtendPrepaid = !!subscription
-    && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid
-    && !!currentAccountPlan
-    && !!accountScopeId;
-  const canOpenAccountPlanPicker = !isHighestPlan || canRenewOrResumeAccountPlan || canExtendPrepaid || !hasAccountSubscription;
+  const canExtendPrepaid =
+    !!subscription &&
+    subscription.renewalMode === GQL.BillingRenewalMode.Prepaid &&
+    !!currentAccountPlan &&
+    !!accountScopeId;
+  const canOpenAccountPlanPicker =
+    !isHighestPlan || canRenewOrResumeAccountPlan || canExtendPrepaid || !hasAccountSubscription;
 
   async function confirmCancelSubscription() {
     if (!entitlement) return;
@@ -339,14 +378,19 @@ function EntitlementSummary({
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  function openAccountCheckout(options?: { renewal?: boolean; preferredProvider?: CheckoutProvider }) {
+  function openAccountCheckout(options?: {
+    renewal?: boolean;
+    preferredProvider?: CheckoutProvider;
+  }) {
     setCheckoutIsRenewal(!!options?.renewal);
     setCheckoutInitialProvider(options?.preferredProvider);
     setCheckoutModalOpen(true);
   }
 
   return (
-    <div className={`billing-entitlement-tile${hasAccountSubscription ? "" : " billing-entitlement-tile-compact"}`}>
+    <div
+      className={`billing-entitlement-tile${hasAccountSubscription ? "" : " billing-entitlement-tile-compact"}`}
+    >
       <div className="billing-tile-head">
         <div className="billing-tile-copy">
           <span className="billing-tile-title">{title}</span>
@@ -357,21 +401,45 @@ function EntitlementSummary({
           </div>
         </div>
         <div className="billing-tile-status">
-          <span className={hasAccountSubscription ? entitlementBadgeClass(entitlement) : "badge badge-muted"}>
-            {hasAccountSubscription ? entitlementStatusLabel(t, entitlement) : t("billing.notSubscribed")}
+          <span
+            className={
+              hasAccountSubscription ? entitlementBadgeClass(entitlement) : "badge badge-muted"
+            }
+          >
+            {hasAccountSubscription
+              ? entitlementStatusLabel(t, entitlement)
+              : t("billing.notSubscribed")}
           </span>
         </div>
       </div>
       {hasAccountSubscription && (
         <div className="billing-meta-grid">
-          <BillingMetaItem label={t("billing.source")} value={billingEnumLabel(t, "entitlementSource", entitlement?.source)} />
-          <BillingMetaItem label={t("billing.renewalMode")} value={billingEnumLabel(t, "renewalMode", subscription.renewalMode)} />
-          <BillingMetaItem label={t("billing.subscriptionAmount")} value={subscriptionAmount(subscription)} />
+          <BillingMetaItem
+            label={t("billing.source")}
+            value={billingEnumLabel(t, "entitlementSource", entitlement?.source)}
+          />
+          <BillingMetaItem
+            label={t("billing.renewalMode")}
+            value={billingEnumLabel(t, "renewalMode", subscription.renewalMode)}
+          />
+          <BillingMetaItem
+            label={t("billing.subscriptionAmount")}
+            value={subscriptionAmount(subscription)}
+          />
           {subscription.graceUntil && (
-            <BillingMetaItem label={t("billing.graceUntil")} value={formatDateTime(subscription.graceUntil)} />
+            <BillingMetaItem
+              label={t("billing.graceUntil")}
+              value={formatDateTime(subscription.graceUntil)}
+            />
           )}
-          <BillingMetaItem label={t("billing.startsAt")} value={formatDateTime(subscription.currentPeriodStart)} />
-          <BillingMetaItem label={t("billing.validUntil")} value={formatDateTime(entitlement?.validUntil)} />
+          <BillingMetaItem
+            label={t("billing.startsAt")}
+            value={formatDateTime(subscription.currentPeriodStart)}
+          />
+          <BillingMetaItem
+            label={t("billing.validUntil")}
+            value={formatDateTime(entitlement?.validUntil)}
+          />
         </div>
       )}
       {showRenewalReminder && (
@@ -384,14 +452,12 @@ function EntitlementSummary({
       {hasAccountSubscription && <UsageList entitlement={entitlement} />}
       {accountLlm && (
         <div className="billing-account-actions">
-          {(subscription?.cancelAtPeriodEnd || subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
+          {(subscription?.cancelAtPeriodEnd ||
+            subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
             <span className="billing-warning-text">{t("billing.cancelAtPeriodEnd")}</span>
           )}
           {hasAccountSubscription && !canExtendPrepaid && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => setDetailModalOpen(true)}
-            >
+            <button className="btn btn-secondary" onClick={() => setDetailModalOpen(true)}>
               {t("billing.manageSubscription")}
             </button>
           )}
@@ -425,9 +491,9 @@ function EntitlementSummary({
                   ? t("billing.renewSubscription")
                   : canExtendPrepaid
                     ? t("billing.extendPrepaid")
-                  : canRenewOrResumeAccountPlan && isHighestPlan
-                    ? t("billing.renewSubscription")
-                    : t("billing.upgradeAccountPlan")}
+                    : canRenewOrResumeAccountPlan && isHighestPlan
+                      ? t("billing.renewSubscription")
+                      : t("billing.upgradeAccountPlan")}
             </button>
           )}
         </div>
@@ -437,16 +503,22 @@ function EntitlementSummary({
           <ShopServiceCheckoutModal
             isOpen={checkoutModalOpen}
             onClose={() => setCheckoutModalOpen(false)}
-            title={checkoutIsRenewal ? t("billing.extendPrepaidTitle") : hasAccountSubscription ? t("billing.changeAccountPlan") : t("billing.subscribeAccountPlan")}
-            plans={checkoutIsRenewal && currentAccountPlan
-              ? [currentAccountPlan]
-              : accountPlans}
+            title={
+              checkoutIsRenewal
+                ? t("billing.extendPrepaidTitle")
+                : hasAccountSubscription
+                  ? t("billing.changeAccountPlan")
+                  : t("billing.subscribeAccountPlan")
+            }
+            plans={checkoutIsRenewal && currentAccountPlan ? [currentAccountPlan] : accountPlans}
             shops={[]}
             scopeType={GQL.BillingScopeType.Account}
             scopeId={accountScopeId}
-            initialPlanId={checkoutIsRenewal && currentAccountPlan
-              ? currentAccountPlan.planId
-              : accountPlans[0]?.planId}
+            initialPlanId={
+              checkoutIsRenewal && currentAccountPlan
+                ? currentAccountPlan.planId
+                : accountPlans[0]?.planId
+            }
             initialProvider={checkoutInitialProvider}
             planLabel={t("billing.chooseAccountPlan")}
             priceNotice={t("billing.upgradeProrationHint")}
@@ -458,14 +530,22 @@ function EntitlementSummary({
             entitlement={entitlement}
             onClose={() => setDetailModalOpen(false)}
             onManagePaymentMethod={canManagePaymentMethod ? manageAccountPaymentMethod : undefined}
-            onCancelSubscription={canCancelSubscription ? () => setCancelConfirmOpen(true) : undefined}
-            onExtendPrepaid={canExtendPrepaid || canResumeAccountSubscription ? () => {
-              setDetailModalOpen(false);
-              openAccountCheckout({
-                renewal: true,
-                preferredProvider: checkoutProviderFromBillingProvider(subscription?.provider),
-              });
-            } : undefined}
+            onCancelSubscription={
+              canCancelSubscription ? () => setCancelConfirmOpen(true) : undefined
+            }
+            onExtendPrepaid={
+              canExtendPrepaid || canResumeAccountSubscription
+                ? () => {
+                    setDetailModalOpen(false);
+                    openAccountCheckout({
+                      renewal: true,
+                      preferredProvider: checkoutProviderFromBillingProvider(
+                        subscription?.provider,
+                      ),
+                    });
+                  }
+                : undefined
+            }
           />
           <ConfirmDialog
             isOpen={cancelConfirmOpen}
@@ -502,20 +582,22 @@ function ShopServiceDetailModal({
   onCancelSubscription?: (entitlement: BillingEntitlementStatus) => void;
 }) {
   const { t } = useTranslation();
-  const entitlement = serviceKey ? row.billing?.[serviceKey] ?? null : null;
+  const entitlement = serviceKey ? (row.billing?.[serviceKey] ?? null) : null;
   const subscription = entitlement?.subscription ?? null;
-  const canCancelSubscription = !!entitlement
-    && !!subscription
-    && subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews
-    && !subscription.cancelAtPeriodEnd;
+  const canCancelSubscription =
+    !!entitlement &&
+    !!subscription &&
+    subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews &&
+    !subscription.cancelAtPeriodEnd;
   const canManagePaymentMethod = canCancelSubscription;
-  const canExtendPrepaid = !!entitlement
-    && !!subscription
-    && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid;
-  const canResumeSubscription = !!entitlement
-    && !!subscription
-    && subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid
-    && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
+  const canExtendPrepaid =
+    !!entitlement && !!subscription && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid;
+  const canResumeSubscription =
+    !!entitlement &&
+    !!subscription &&
+    subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid &&
+    (subscription.cancelAtPeriodEnd ||
+      subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
   const title = serviceKey
@@ -539,41 +621,71 @@ function ShopServiceDetailModal({
     <Modal isOpen={serviceKey !== null} onClose={onClose} title={title} maxWidth={560}>
       <div className="service-detail-body">
         <div className="billing-meta-grid">
-          <BillingMetaItem label={t("billing.subscriptionStatus")} value={entitlementStatusLabel(t, entitlement)} />
-          <BillingMetaItem label={t("billing.source")} value={billingEnumLabel(t, "entitlementSource", entitlement?.source)} />
-          <BillingMetaItem label={t("billing.validUntil")} value={formatDateTime(entitlement?.validUntil)} />
+          <BillingMetaItem
+            label={t("billing.subscriptionStatus")}
+            value={entitlementStatusLabel(t, entitlement)}
+          />
+          <BillingMetaItem
+            label={t("billing.source")}
+            value={billingEnumLabel(t, "entitlementSource", entitlement?.source)}
+          />
+          <BillingMetaItem
+            label={t("billing.validUntil")}
+            value={formatDateTime(entitlement?.validUntil)}
+          />
           {subscription && (
             <>
-              <BillingMetaItem label={t("billing.renewalMode")} value={billingEnumLabel(t, "renewalMode", subscription.renewalMode)} />
-              <BillingMetaItem label={t("billing.subscriptionAmount")} value={subscriptionAmount(subscription)} />
-              <BillingMetaItem label={t("billing.startsAt")} value={formatDateTime(subscription.currentPeriodStart)} />
-              <BillingMetaItem label={t("billing.subscriptionStatus")} value={billingEnumLabel(t, "subscriptionStatus", subscription.status)} />
+              <BillingMetaItem
+                label={t("billing.renewalMode")}
+                value={billingEnumLabel(t, "renewalMode", subscription.renewalMode)}
+              />
+              <BillingMetaItem
+                label={t("billing.subscriptionAmount")}
+                value={subscriptionAmount(subscription)}
+              />
+              <BillingMetaItem
+                label={t("billing.startsAt")}
+                value={formatDateTime(subscription.currentPeriodStart)}
+              />
+              <BillingMetaItem
+                label={t("billing.subscriptionStatus")}
+                value={billingEnumLabel(t, "subscriptionStatus", subscription.status)}
+              />
               {subscription.graceUntil && (
-                <BillingMetaItem label={t("billing.graceUntil")} value={formatDateTime(subscription.graceUntil)} />
+                <BillingMetaItem
+                  label={t("billing.graceUntil")}
+                  value={formatDateTime(subscription.graceUntil)}
+                />
               )}
             </>
           )}
         </div>
-        {(subscription?.cancelAtPeriodEnd || subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
+        {(subscription?.cancelAtPeriodEnd ||
+          subscription?.renewalMode === GQL.BillingRenewalMode.NonRenewing) && (
           <div className="billing-renewal-warning">{t("billing.cancelAtPeriodEnd")}</div>
         )}
-        {(canExtendPrepaid || canResumeSubscription) && serviceKey && entitlement && onExtendPrepaid && (
-          <div className="billing-action-zone">
-            <div>
-              <strong>{t("billing.extendPrepaidTitle")}</strong>
-              <span>{t("billing.renewSubscriptionMessage", {
-                date: formatDateTime(subscription.currentPeriodEnd),
-              })}</span>
+        {(canExtendPrepaid || canResumeSubscription) &&
+          serviceKey &&
+          entitlement &&
+          onExtendPrepaid && (
+            <div className="billing-action-zone">
+              <div>
+                <strong>{t("billing.extendPrepaidTitle")}</strong>
+                <span>
+                  {t("billing.renewSubscriptionMessage", {
+                    date: formatDateTime(subscription.currentPeriodEnd),
+                  })}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => onExtendPrepaid(serviceKey, entitlement)}
+              >
+                {t("billing.extendPrepaid")}
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => onExtendPrepaid(serviceKey, entitlement)}
-            >
-              {t("billing.extendPrepaid")}
-            </button>
-          </div>
-        )}
+          )}
         {canManagePaymentMethod && onManagePaymentMethod && (
           <div className="billing-action-zone">
             <div>
@@ -591,15 +703,19 @@ function ShopServiceDetailModal({
           </div>
         )}
         {portalError && (
-          <div className="modal-error-box">{t("billing.errors.checkoutFailed", { message: portalError })}</div>
+          <TkAlert tone="danger">
+            {t("billing.errors.checkoutFailed", { message: portalError })}
+          </TkAlert>
         )}
         {canCancelSubscription && onCancelSubscription && (
           <div className="billing-danger-zone">
             <div>
               <strong>{t("billing.cancelSubscriptionTitle")}</strong>
-              <span>{t("billing.cancelSubscriptionMessage", {
-                date: formatDateTime(subscription.currentPeriodEnd),
-              })}</span>
+              <span>
+                {t("billing.cancelSubscriptionMessage", {
+                  date: formatDateTime(subscription.currentPeriodEnd),
+                })}
+              </span>
             </div>
             <button
               type="button"
@@ -635,8 +751,12 @@ function ShopServiceRow({
   const [cancelTarget, setCancelTarget] = useState<BillingCancelTarget | null>(null);
   const [detailServiceKey, setDetailServiceKey] = useState<ShopServiceKey | null>(null);
   const [checkoutServiceKey, setCheckoutServiceKey] = useState<ShopServiceKey | null>(null);
-  const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<readonly CheckoutProvider[] | undefined>(undefined);
-  const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<CheckoutProvider | undefined>(undefined);
+  const [checkoutProviderOptions, setCheckoutProviderOptions] = useState<
+    readonly CheckoutProvider[] | undefined
+  >(undefined);
+  const [checkoutInitialProvider, setCheckoutInitialProvider] = useState<
+    CheckoutProvider | undefined
+  >(undefined);
   const [checkoutIsRenewal, setCheckoutIsRenewal] = useState(false);
   const serviceKeys = serviceKeysProp ?? SHOP_SERVICE_KEYS;
 
@@ -684,13 +804,15 @@ function ShopServiceRow({
     setDetailServiceKey(null);
     setCheckoutIsRenewal(true);
     setCheckoutProviderOptions(undefined);
-    setCheckoutInitialProvider(checkoutProviderFromBillingProvider(row.billing?.[key]?.subscription?.provider));
+    setCheckoutInitialProvider(
+      checkoutProviderFromBillingProvider(row.billing?.[key]?.subscription?.provider),
+    );
     setCheckoutServiceKey(key);
   }
 
   const checkoutPlans = checkoutServiceKey ? servicePlans(checkoutServiceKey) : [];
   const checkoutInitialPlanId = checkoutServiceKey
-    ? row.billing?.[checkoutServiceKey]?.subscription?.planId ?? checkoutPlans[0]?.planId
+    ? (row.billing?.[checkoutServiceKey]?.subscription?.planId ?? checkoutPlans[0]?.planId)
     : checkoutPlans[0]?.planId;
 
   return (
@@ -704,57 +826,68 @@ function ShopServiceRow({
           {nameAccessory}
         </div>
         <div className="billing-shop-services">
-          {serviceKeys.length ? serviceKeys.map((key) => {
-            const entitlement = row.billing?.[key] ?? null;
-            const subscription = entitlement?.subscription ?? null;
-            const serviceValidUntil = entitlement?.validUntil ?? subscription?.currentPeriodEnd ?? null;
-            const showLimitedTimeFree = !!entitlement?.allowed && !serviceValidUntil;
-            const showRenewalReminder = shouldShowRenewalReminder(entitlement);
-	            return (
-	              <div
-	                key={key}
-	                className={`billing-shop-service billing-shop-service-clickable ${entitlement?.allowed ? "billing-shop-service-active" : "billing-shop-service-action"}`}
-	                role="button"
-	                tabIndex={0}
-	                onClick={() => handleServiceClick(key, entitlement)}
-	                onKeyDown={(event) => {
-	                  if (event.key === "Enter" || event.key === " ") {
-	                    event.preventDefault();
-	                    handleServiceClick(key, entitlement);
-	                  }
-	                }}
-	              >
-                <div className="billing-shop-service-main">
-                  <span className="billing-shop-service-label">{t(`billing.services.${key}`)}</span>
-                  <span className={entitlementBadgeClass(entitlement)}>
-                    {entitlementStatusLabel(t, entitlement)}
-                  </span>
-                </div>
-                {(serviceValidUntil || showLimitedTimeFree || subscription) && (
-                  <div className="billing-shop-service-foot">
-                    {serviceValidUntil && (
-                      <span className="billing-shop-service-date">
-                        {t("billing.validUntil")}: {formatDateTime(serviceValidUntil)}
-                      </span>
-                    )}
-                    {showLimitedTimeFree && (
-                      <span className="billing-shop-service-promo">
-                        {t("billing.limitedTimeFree")}
-                      </span>
-                    )}
-                    {subscription && showRenewalReminder && (
-                      <span className="billing-warning-text">
-                        {t("billing.renewBefore", { date: formatDateTime(subscription.currentPeriodEnd) })}
-                      </span>
-                    )}
-                    {subscription && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing) ? (
-                      <span className="billing-warning-text">{t("billing.cancelAtPeriodEnd")}</span>
-                    ) : null}
+          {serviceKeys.length ? (
+            serviceKeys.map((key) => {
+              const entitlement = row.billing?.[key] ?? null;
+              const subscription = entitlement?.subscription ?? null;
+              const serviceValidUntil =
+                entitlement?.validUntil ?? subscription?.currentPeriodEnd ?? null;
+              const showLimitedTimeFree = !!entitlement?.allowed && !serviceValidUntil;
+              const showRenewalReminder = shouldShowRenewalReminder(entitlement);
+              return (
+                <div
+                  key={key}
+                  className={`billing-shop-service billing-shop-service-clickable ${entitlement?.allowed ? "billing-shop-service-active" : "billing-shop-service-action"}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleServiceClick(key, entitlement)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleServiceClick(key, entitlement);
+                    }
+                  }}
+                >
+                  <div className="billing-shop-service-main">
+                    <span className="billing-shop-service-label">
+                      {t(`billing.services.${key}`)}
+                    </span>
+                    <span className={entitlementBadgeClass(entitlement)}>
+                      {entitlementStatusLabel(t, entitlement)}
+                    </span>
                   </div>
-                )}
-              </div>
-            );
-          }) : (
+                  {(serviceValidUntil || showLimitedTimeFree || subscription) && (
+                    <div className="billing-shop-service-foot">
+                      {serviceValidUntil && (
+                        <span className="billing-shop-service-date">
+                          {t("billing.validUntil")}: {formatDateTime(serviceValidUntil)}
+                        </span>
+                      )}
+                      {showLimitedTimeFree && (
+                        <span className="billing-shop-service-promo">
+                          {t("billing.limitedTimeFree")}
+                        </span>
+                      )}
+                      {subscription && showRenewalReminder && (
+                        <span className="billing-warning-text">
+                          {t("billing.renewBefore", {
+                            date: formatDateTime(subscription.currentPeriodEnd),
+                          })}
+                        </span>
+                      )}
+                      {subscription &&
+                      (subscription.cancelAtPeriodEnd ||
+                        subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing) ? (
+                        <span className="billing-warning-text">
+                          {t("billing.cancelAtPeriodEnd")}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
             <span className="billing-muted">{t(emptyServicesMessageKey)}</span>
           )}
         </div>
@@ -770,12 +903,20 @@ function ShopServiceRow({
       <ShopServiceCheckoutModal
         isOpen={checkoutServiceKey !== null}
         onClose={() => setCheckoutServiceKey(null)}
-        title={checkoutIsRenewal ? t("billing.extendPrepaidTitle") : checkoutServiceKey ? t(`billing.subscribeService.${checkoutServiceKey}`) : t("billing.subscribeShopServices")}
+        title={
+          checkoutIsRenewal
+            ? t("billing.extendPrepaidTitle")
+            : checkoutServiceKey
+              ? t(`billing.subscribeService.${checkoutServiceKey}`)
+              : t("billing.subscribeShopServices")
+        }
         plans={checkoutPlans}
-        shops={[{
-          shopId: row.shop.id,
-          shopName: shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName),
-        }]}
+        shops={[
+          {
+            shopId: row.shop.id,
+            shopName: shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName),
+          },
+        ]}
         initialShopId={row.shop.id}
         initialPlanId={checkoutInitialPlanId}
         providerOptions={checkoutProviderOptions}
@@ -813,25 +954,23 @@ function BillingShopServiceGroup({
     return (
       <div className="billing-shop-collection">
         {group.rows.map((row) => (
-          <ShopServiceRow
-            key={row.shop.id}
-            row={row}
-            planDefinitions={planDefinitions}
-          />
+          <ShopServiceRow key={row.shop.id} row={row} planDefinitions={planDefinitions} />
         ))}
       </div>
     );
   }
 
   return (
-    <div className={`billing-shop-collection${childrenVisible ? " billing-shop-collection-open" : ""}`}>
+    <div
+      className={`billing-shop-collection${childrenVisible ? " billing-shop-collection-open" : ""}`}
+    >
       {group.customerServiceRow && (
         <ShopServiceRow
           row={group.customerServiceRow}
           planDefinitions={planDefinitions}
           serviceKeys={["customerService"]}
           className="billing-shop-collection-header"
-          nameAccessory={(
+          nameAccessory={
             <button
               type="button"
               className={`billing-shop-collection-toggle${childrenVisible ? " billing-shop-collection-toggle-open" : ""}`}
@@ -841,7 +980,7 @@ function BillingShopServiceGroup({
             >
               <ChevronRightIcon />
             </button>
-          )}
+          }
         />
       )}
       {childrenVisible && (
@@ -870,22 +1009,24 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
   planDefinitions: readonly BillingPlanDefinition[];
 }) {
   const { t } = useTranslation();
-  const servicePlans = planDefinitions.filter((plan) => plan.product === GQL.BillableProduct.EcomCustomerService);
+  const servicePlans = planDefinitions.filter(
+    (plan) => plan.product === GQL.BillableProduct.EcomCustomerService,
+  );
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const candidateShops = groups
     .map((group) => group.customerServiceRow)
-    .filter((row): row is NonNullable<ShopServiceBillingGroup["customerServiceRow"]> => (
-      !!row
-      && (
-        !row.billing?.customerService.allowed
-        || shouldShowRenewalReminder(row.billing.customerService)
-      )
-    ))
+    .filter(
+      (row): row is NonNullable<ShopServiceBillingGroup["customerServiceRow"]> =>
+        !!row &&
+        (!row.billing?.customerService.allowed ||
+          shouldShowRenewalReminder(row.billing.customerService)),
+    )
     .map(({ billing, shop, shops }) => ({
       shopId: shop.id,
-      shopName: shops.length > 1
-        ? shopCollectionDisplayName(shops)
-        : shopDisplayName(shop, billing?.shopName ?? shop.shopName),
+      shopName:
+        shops.length > 1
+          ? shopCollectionDisplayName(shops)
+          : shopDisplayName(shop, billing?.shopName ?? shop.shopName),
     }));
 
   return (
@@ -898,7 +1039,7 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
       </div>
 
       {!servicePlans.length ? (
-        <div className="modal-error-box">{t("billing.planDefinitionsUnavailable")}</div>
+        <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>
       ) : !candidateShops.length ? (
         <div className="billing-empty">{t("billing.noShopsNeedService")}</div>
       ) : (
@@ -924,19 +1065,16 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
   );
 });
 
-function PaymentRecords({
-  payments,
-}: {
-  payments: readonly Payment[];
-}) {
+function PaymentRecords({ payments }: { payments: readonly Payment[] }) {
   const { t } = useTranslation();
 
   const displayPayments = payments
-    .filter((payment) => (
-      payment.status === GQL.PaymentStatus.Succeeded
-      || payment.status === GQL.PaymentStatus.Failed
-      || payment.status === GQL.PaymentStatus.Canceled
-    ))
+    .filter(
+      (payment) =>
+        payment.status === GQL.PaymentStatus.Succeeded ||
+        payment.status === GQL.PaymentStatus.Failed ||
+        payment.status === GQL.PaymentStatus.Canceled,
+    )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (!displayPayments.length) {
@@ -944,7 +1082,7 @@ function PaymentRecords({
   }
 
   return (
-    <div className="billing-table-wrap">
+    <TkTableFrame className="billing-table-wrap">
       <table className="billing-table">
         <thead>
           <tr>
@@ -963,7 +1101,11 @@ function PaymentRecords({
             <tr key={payment.id}>
               <td>{billingEnumLabel(t, "provider", payment.provider)}</td>
               <td>{billingEnumLabel(t, "paymentMethod", payment.method)}</td>
-              <td><span className={paymentBadgeClass(payment.status)}>{billingEnumLabel(t, "paymentStatus", payment.status)}</span></td>
+              <td>
+                <span className={paymentBadgeClass(payment.status)}>
+                  {billingEnumLabel(t, "paymentStatus", payment.status)}
+                </span>
+              </td>
               <td>{payment.currency}</td>
               <td>{formatMoneyFromMinor(payment.amountMinor, payment.currency)}</td>
               <td>{payment.subject}</td>
@@ -976,7 +1118,7 @@ function PaymentRecords({
           ))}
         </tbody>
       </table>
-    </div>
+    </TkTableFrame>
   );
 }
 
@@ -998,7 +1140,11 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
   );
 
   return (
-    <div className="section-card account-billing-section" data-tutorial-id="billing-overview">
+    <TkPanel
+      as="section"
+      className="section-card account-billing-section"
+      data-tutorial-id="billing-overview"
+    >
       <div className="account-section-header">
         <div>
           <h3>{t("billing.title")}</h3>
@@ -1017,20 +1163,19 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
 
       <div className="billing-subsection" data-tutorial-id="billing-shop-services">
         <h4>{t("billing.shopServices")}</h4>
-        <ShopServiceSubscriptionFlow
-          groups={shopBillingGroups}
-          planDefinitions={planDefinitions}
-        />
+        <ShopServiceSubscriptionFlow groups={shopBillingGroups} planDefinitions={planDefinitions} />
         <div className="billing-shop-list" data-tutorial-id="billing-shop-list">
-          {shopBillingGroups.length
-            ? shopBillingGroups.map((group) => (
-                <BillingShopServiceGroup
-                  key={group.key}
-                  group={group}
-                  planDefinitions={planDefinitions}
-                />
-              ))
-            : <div className="billing-empty">{t("billing.noShopBilling")}</div>}
+          {shopBillingGroups.length ? (
+            shopBillingGroups.map((group) => (
+              <BillingShopServiceGroup
+                key={group.key}
+                group={group}
+                planDefinitions={planDefinitions}
+              />
+            ))
+          ) : (
+            <div className="billing-empty">{t("billing.noShopBilling")}</div>
+          )}
         </div>
       </div>
 
@@ -1038,6 +1183,6 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
         <h4>{t("billing.paymentRecords")}</h4>
         <PaymentRecords payments={payments} />
       </div>
-    </div>
+    </TkPanel>
   );
 });

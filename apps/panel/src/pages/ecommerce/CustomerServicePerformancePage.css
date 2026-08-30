@@ -1,0 +1,573 @@
+/* CSS ownership: customer service performance. Imported in original cascade order. */
+
+/* Affiliate proposal review */
+
+.cs-workspace-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+}
+
+.cs-workspace-page .ecommerce-page-header {
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.cs-workspace-page .ecommerce-page-header h1 {
+  font-size: 26px;
+  line-height: 1.05;
+}
+
+.cs-workspace-page .ecommerce-page-subtitle {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.cs-workspace-tabs {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 7px;
+  background: var(--color-bg-alt);
+}
+
+.cs-workspace-tab.active {
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.cs-workspace-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: 0 10px 30px rgb(15 23 42 / 4%);
+  overflow: hidden;
+}
+
+.cs-workspace-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg) 22%);
+}
+
+.cs-workspace-toolbar .btn {
+  flex: 0 0 auto;
+}
+
+.cs-workspace-count {
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.cs-workspace-filter-grid {
+  --cs-filter-control-height: 44px;
+  --cs-filter-label-height: 14px;
+
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(170px, 230px) minmax(138px, 170px) minmax(138px, 170px) minmax(
+      280px,
+      1fr
+    );
+  align-items: end;
+  column-gap: 12px;
+  row-gap: 10px;
+  padding: 12px 24px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg);
+}
+
+.cs-conversation-filter-grid {
+  grid-template-columns: 1fr;
+  align-items: end;
+}
+
+.cs-conversation-filter-primary {
+  display: grid;
+  grid-template-columns: minmax(170px, 240px) minmax(150px, 210px) minmax(320px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cs-conversation-filter-secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 220px));
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.cs-conversation-filter-buttons {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cs-filter-field {
+  display: grid;
+  grid-template-rows: var(--cs-filter-label-height) var(--cs-filter-control-height);
+  gap: 6px;
+  min-width: 0;
+}
+
+.cs-filter-field-label {
+  display: flex;
+  align-items: flex-end;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: var(--cs-filter-label-height);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-filter-field .custom-select,
+.cs-filter-field .cs-workspace-search,
+.cs-filter-field .input-full {
+  min-width: 0;
+  width: 100%;
+}
+
+.cs-workspace-filter-grid .custom-select-trigger,
+.cs-workspace-filter-grid .input-full,
+.cs-workspace-filter-grid .btn {
+  height: var(--cs-filter-control-height);
+  min-height: var(--cs-filter-control-height);
+}
+
+.cs-workspace-filter-grid .custom-select-trigger {
+  padding-block: 0;
+}
+
+.cs-workspace-filter-grid .input-full {
+  padding-block: 0;
+}
+
+.cs-workspace-filter-grid .btn {
+  justify-content: center;
+  padding-block: 0;
+}
+
+.cs-workspace-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cs-workspace-search .btn {
+  flex: 0 0 auto;
+  min-width: 76px;
+}
+
+.cs-refresh-button {
+  align-self: end;
+  width: var(--cs-filter-control-height);
+  min-width: var(--cs-filter-control-height);
+  padding-inline: 0;
+}
+
+.cs-refresh-button svg {
+  flex: 0 0 auto;
+}
+
+.cs-advanced-filter-toggle {
+  gap: 6px;
+  min-width: 112px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+
+.cs-advanced-filter-toggle svg {
+  flex: 0 0 auto;
+  transition: transform var(--transition-fast);
+}
+
+.cs-advanced-filter-toggle.active svg {
+  transform: rotate(90deg);
+}
+
+@media (max-width: 1180px) {
+  .cs-conversation-filter-primary {
+    grid-template-columns: minmax(160px, 1fr) minmax(150px, 1fr) minmax(280px, 1.4fr);
+  }
+
+  .cs-conversation-filter-buttons {
+    grid-column: 1 / -1;
+  }
+}
+
+.cs-performance-page {
+  --cs-performance-ink: var(--tk-v1-accent);
+  --cs-performance-accent: var(--tk-v1-signal);
+  --cs-performance-good: var(--tk-v1-success);
+  --cs-performance-gmv: var(--tk-v1-success);
+  --cs-performance-warn: var(--tk-v1-warning);
+  --cs-performance-danger: var(--tk-v1-danger);
+  --cs-performance-muted: var(--tk-v1-fg-muted);
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cs-performance-header {
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.cs-performance-header > :first-child {
+  min-width: 0;
+}
+
+.cs-performance-tabs {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg));
+}
+
+.cs-performance-tab {
+  min-width: 112px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.cs-performance-tab:hover {
+  color: var(--color-text);
+}
+
+.cs-performance-tab.active {
+  border-color: color-mix(in srgb, var(--cs-performance-ink) 24%, var(--color-border-light));
+  background: var(--color-bg);
+  color: var(--cs-performance-ink);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 6%);
+}
+
+.cs-performance-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px;
+}
+
+.cs-performance-filter {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.cs-performance-filter:first-child {
+  min-width: min(320px, 48vw);
+}
+
+.cs-performance-filter > span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.cs-performance-toolbar .custom-select-trigger {
+  height: 38px;
+  min-height: 38px;
+}
+
+.cs-performance-toolbar .icon-button {
+  width: 38px;
+  height: 38px;
+  align-self: end;
+}
+
+.cs-performance-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(132px, 1fr));
+  gap: 12px;
+}
+
+.cs-performance-kpi {
+  display: grid;
+  min-height: 112px;
+  align-content: space-between;
+  gap: 8px;
+  padding: 15px 16px;
+  border: 1px solid var(--color-border-light);
+  border-left: 4px solid var(--cs-performance-ink);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: 0 10px 26px rgb(15 23 42 / 5%);
+}
+
+.cs-performance-kpi span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.cs-performance-kpi strong {
+  color: var(--color-text);
+  font-size: 28px;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+.cs-performance-kpi small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cs-performance-kpi.gmv {
+  border-left-color: var(--cs-performance-gmv);
+}
+
+.cs-performance-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cs-performance-chart-card {
+  min-width: 0;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.cs-performance-chart-title {
+  display: flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cs-performance-chart-title h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cs-performance-chart-card .recharts-default-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  line-height: 1.25;
+}
+
+.cs-performance-chart-card .recharts-legend-item {
+  margin-right: 0 !important;
+}
+
+.cs-performance-chart-card .recharts-legend-item-text {
+  color: var(--color-text-secondary) !important;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cs-performance-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
+.cs-performance-info:hover,
+.cs-performance-info:focus-visible {
+  color: var(--cs-performance-ink);
+}
+
+.cs-performance-info-bubble {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: min(310px, 74vw);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: 0 14px 34px rgb(15 23 42 / 14%);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.cs-performance-info:hover .cs-performance-info-bubble,
+.cs-performance-info:focus-visible .cs-performance-info-bubble {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cs-performance-empty {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cs-performance-error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border-light));
+  color: var(--color-danger);
+}
+
+.cs-performance-table-card {
+  padding: 16px;
+}
+
+.cs-performance-table-header {
+  gap: 14px;
+}
+
+.cs-performance-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.cs-performance-table-wrap {
+  width: 100%;
+  max-height: min(520px, 58vh);
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.cs-performance-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.cs-performance-table th,
+.cs-performance-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-light);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cs-performance-table th:first-child,
+.cs-performance-table td:first-child {
+  text-align: left;
+}
+
+.cs-performance-table th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.cs-performance-table td {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-performance-table tbody tr:hover {
+  background: color-mix(in srgb, var(--cs-performance-ink) 5%, transparent);
+}
+
+@media (max-width: 1180px) {
+  .cs-performance-kpis {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .cs-performance-header {
+    align-items: stretch;
+  }
+
+  .cs-performance-toolbar {
+    justify-content: flex-start;
+  }
+
+  .cs-performance-tabs {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .cs-performance-tab {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .cs-performance-kpis,
+  .cs-performance-chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-performance-filter,
+  .cs-performance-filter:first-child {
+    min-width: min(100%, 320px);
+  }
+
+  .cs-performance-table-header {
+    align-items: stretch;
+  }
+
+  .cs-performance-download {
+    justify-content: center;
+    width: 100%;
+  }
+}

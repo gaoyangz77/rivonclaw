@@ -10,6 +10,7 @@ import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 import { resolveDailyCreatorOutreachLimit } from "../ecommerce-utils.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
+import { TkSwitchControl } from "../../../components/design-system/index.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 
@@ -146,9 +147,8 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
               </span>
             )}
           </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
+          <TkSwitchControl
+              label={t("ecommerce.shopDrawer.affiliate.thisDevice")}
               checked={handledByThisDevice}
               onChange={() => {
                 if (handledByThisDevice) {
@@ -159,12 +159,6 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
               }}
               disabled={togglingBindShopId === shop.id || !myDeviceId}
             />
-            <span
-              className={`toggle-track ${handledByThisDevice ? "toggle-track-on" : "toggle-track-off"} ${togglingBindShopId === shop.id ? "toggle-track-disabled" : ""}`}
-            >
-              <span className={`toggle-thumb ${handledByThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
-            </span>
-          </label>
         </div>
         <AffiliateOutreachOpsPanel shopId={shop.id} />
       </section>

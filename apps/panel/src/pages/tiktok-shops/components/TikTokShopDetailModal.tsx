@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkTabs } from "../../../components/design-system/index.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { ModalTab } from "../tiktok-shops-types.js";
 import { TikTokShopOverviewTab } from "./TikTokShopOverviewTab.js";
@@ -55,27 +56,17 @@ export function TikTokShopDetailModal({
             </div>
           )}
 
-          {/* Tab Bar */}
-          <div className="tab-bar tab-bar--spread">
-            <button
-              className={`tab-btn ${activeTab === "overview" ? "tab-btn-active" : ""}`}
-              onClick={() => onTabChange("overview")}
-            >
-              {t("tiktokShops.modal.tabs.overview")}
-            </button>
-            <button
-              className={`tab-btn ${activeTab === "billing" ? "tab-btn-active" : ""}`}
-              onClick={() => onTabChange("billing")}
-            >
-              {t("tiktokShops.modal.tabs.billing")}
-            </button>
-            <button
-              className={`tab-btn ${activeTab === "sessions" ? "tab-btn-active" : ""}`}
-              onClick={() => onTabChange("sessions")}
-            >
-              {t("tiktokShops.modal.tabs.sessions")}
-            </button>
-          </div>
+          <TkTabs
+            idPrefix="tiktok-shop-detail"
+            label={t("tiktokShops.modal.title", { defaultValue: shop.shopName })}
+            items={[
+              { id: "overview", label: t("tiktokShops.modal.tabs.overview") },
+              { id: "billing", label: t("tiktokShops.modal.tabs.billing") },
+              { id: "sessions", label: t("tiktokShops.modal.tabs.sessions") },
+            ]}
+            value={activeTab}
+            onChange={(value) => onTabChange(value as ModalTab)}
+          />
 
           {activeTab === "overview" && (
             <TikTokShopOverviewTab

@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import { TkBadge, TkButton, TkSection } from "../../../components/design-system/index.js";
 import type { DoctorStatus } from "../settings-types.js";
 
 interface DiagnosticsSectionProps {
@@ -10,53 +11,65 @@ interface DiagnosticsSectionProps {
   runDoctor: (fix: boolean) => void;
 }
 
-export function DiagnosticsSection({ doctorStatus, doctorOutput, doctorExitCode, doctorOutputRef, runDoctor }: DiagnosticsSectionProps) {
+export function DiagnosticsSection({
+  doctorStatus,
+  doctorOutput,
+  doctorExitCode,
+  doctorOutputRef,
+  runDoctor,
+}: DiagnosticsSectionProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-diagnostics" data-tutorial-id="settings-diagnostics">
-      <h3>{t("settings.diagnostics.title")}</h3>
-      <p className="text-secondary">
-        {t("settings.diagnostics.description")}
-      </p>
-
+    <TkSection
+      className="tk-settings-section settings-section-diagnostics"
+      data-tutorial-id="settings-diagnostics"
+      description={t("settings.diagnostics.description")}
+      headingLevel={2}
+      title={t("settings.diagnostics.title")}
+      variant="framed"
+    >
       {doctorOutput.length > 0 && (
-        <pre ref={doctorOutputRef} className="doctor-output">
+        <pre ref={doctorOutputRef} className="tk-settings-doctor-output">
           {doctorOutput.join("\n")}
         </pre>
       )}
 
-      <div className="doctor-actions">
-        <button
-          className="btn btn-primary"
+      <div className="tk-settings-actions">
+        <TkButton
+          variant="primary"
           onClick={() => runDoctor(false)}
-          disabled={doctorStatus === "running"}
+          loading={doctorStatus === "running"}
         >
           {t("settings.diagnostics.runButton")}
-        </button>
-        <button
-          className="btn btn-secondary"
+        </TkButton>
+        <TkButton
+          variant="secondary"
           onClick={() => runDoctor(true)}
           disabled={doctorStatus === "running"}
         >
           {t("settings.diagnostics.fixButton")}
-        </button>
+        </TkButton>
         {doctorStatus === "running" && (
-          <span className="doctor-status">{t("settings.diagnostics.statusRunning")}</span>
+          <TkBadge tone="accent" dot>
+            {t("settings.diagnostics.statusRunning")}
+          </TkBadge>
         )}
         {doctorStatus === "done" && (
-          <span className="doctor-status doctor-status-success">
+          <TkBadge tone="success" dot>
             {t("settings.diagnostics.statusDone")}
-            {doctorExitCode !== null && ` (${t("settings.diagnostics.statusExitCode", { code: doctorExitCode })})`}
-          </span>
+            {doctorExitCode !== null &&
+              ` (${t("settings.diagnostics.statusExitCode", { code: doctorExitCode })})`}
+          </TkBadge>
         )}
         {doctorStatus === "error" && (
-          <span className="doctor-status doctor-status-error">
+          <TkBadge tone="danger" dot>
             {t("settings.diagnostics.statusError")}
-            {doctorExitCode !== null && ` (${t("settings.diagnostics.statusExitCode", { code: doctorExitCode })})`}
-          </span>
+            {doctorExitCode !== null &&
+              ` (${t("settings.diagnostics.statusExitCode", { code: doctorExitCode })})`}
+          </TkBadge>
         )}
       </div>
-    </div>
+    </TkSection>
   );
 }

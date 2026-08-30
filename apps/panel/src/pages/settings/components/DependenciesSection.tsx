@@ -1,31 +1,36 @@
 import { useTranslation } from "react-i18next";
+import { TkBadge, TkButton, TkSection } from "../../../components/design-system/index.js";
 
 interface DependenciesSectionProps {
   depsInstalling: boolean;
   handleInstallDeps: () => void;
 }
 
-export function DependenciesSection({ depsInstalling, handleInstallDeps }: DependenciesSectionProps) {
+export function DependenciesSection({
+  depsInstalling,
+  handleInstallDeps,
+}: DependenciesSectionProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-deps" data-tutorial-id="settings-dependencies">
-      <h3>{t("settings.deps.title")}</h3>
-      <p className="text-secondary">
-        {t("settings.deps.description")}
-      </p>
-      <div className="doctor-actions">
-        <button
-          className="btn btn-primary"
-          onClick={handleInstallDeps}
-          disabled={depsInstalling}
-        >
+    <TkSection
+      className="tk-settings-section settings-section-deps"
+      data-tutorial-id="settings-dependencies"
+      description={t("settings.deps.description")}
+      headingLevel={2}
+      title={t("settings.deps.title")}
+      variant="framed"
+    >
+      <div className="tk-settings-actions">
+        <TkButton variant="primary" onClick={handleInstallDeps} loading={depsInstalling}>
           {t("settings.deps.installButton")}
-        </button>
+        </TkButton>
         {depsInstalling && (
-          <span className="doctor-status">{t("settings.deps.statusRunning")}</span>
+          <TkBadge tone="accent" dot>
+            {t("settings.deps.statusRunning")}
+          </TkBadge>
         )}
       </div>
-    </div>
+    </TkSection>
   );
 }

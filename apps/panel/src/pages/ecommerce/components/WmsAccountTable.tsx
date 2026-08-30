@@ -3,7 +3,8 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { Warehouse, WmsAccount } from "@rivonclaw/core/models";
 import { ChevronRightIcon, HelpCircleIcon, RefreshIcon } from "../../../components/icons.js";
-import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
+import { TkPanel, TkTableFrame } from "../../../components/design-system/index.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
@@ -18,7 +19,9 @@ function warehouseCode(warehouse: Warehouse) {
 }
 
 function currencyLabel(t: (key: string, options?: any) => string, currency?: string | null) {
-  return currency ? t(`ecommerce.inventory.currencies.${currency}`, { defaultValue: currency }) : "\u2014";
+  return currency
+    ? t(`ecommerce.inventory.currencies.${currency}`, { defaultValue: currency })
+    : "\u2014";
 }
 
 export const WmsAccountTable = observer(function WmsAccountTable({
@@ -30,14 +33,18 @@ export const WmsAccountTable = observer(function WmsAccountTable({
   const entityStore = useEntityStore();
   const inventory = entityStore.ecommerceInventory;
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
-  const deleteAccount = deleteAccountId ? accounts.find((account) => account.id === deleteAccountId) : null;
+  const deleteAccount = deleteAccountId
+    ? accounts.find((account) => account.id === deleteAccountId)
+    : null;
 
   return (
-    <div className="section-card ecommerce-inventory-section" data-tutorial-id="shops-wms">
+    <TkPanel className="section-card ecommerce-inventory-section" data-tutorial-id="shops-wms">
       <div className="ecommerce-section-header">
         <div>
           <h3>{t("ecommerce.inventory.wmsAccounts")}</h3>
-          <p className="ecommerce-section-subtitle">{t("ecommerce.inventory.wmsAccountsSubtitle")}</p>
+          <p className="ecommerce-section-subtitle">
+            {t("ecommerce.inventory.wmsAccountsSubtitle")}
+          </p>
         </div>
         <div className="ecommerce-section-actions">
           <button
@@ -70,7 +77,7 @@ export const WmsAccountTable = observer(function WmsAccountTable({
       {accounts.length === 0 ? (
         <div className="empty-cell">{t("ecommerce.inventory.noWmsAccounts")}</div>
       ) : (
-        <div className="table-scroll-wrap wms-table-wrap">
+        <TkTableFrame className="table-scroll-wrap wms-table-wrap">
           <table className="shop-table wms-account-table">
             <thead>
               <tr>
@@ -86,7 +93,9 @@ export const WmsAccountTable = observer(function WmsAccountTable({
             </thead>
             <tbody>
               {accounts.map((account) => {
-                const accountWarehouses = warehouses.filter((warehouse) => warehouse.sourceId === account.id);
+                const accountWarehouses = warehouses.filter(
+                  (warehouse) => warehouse.sourceId === account.id,
+                );
                 const expanded = inventory.isWmsAccountExpanded(account.id);
                 const syncing = inventory.isWmsAccountSyncing(account.id);
                 const syncingGoods = inventory.isWmsInventoryGoodsWorkflowBusy(account.id);
@@ -99,7 +108,11 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                         <button
                           className={`wms-expand-btn${expanded ? " wms-expand-btn-open" : ""}`}
                           onClick={() => inventory.toggleWmsAccountExpanded(account.id)}
-                          aria-label={expanded ? t("ecommerce.inventory.collapse") : t("ecommerce.inventory.expand")}
+                          aria-label={
+                            expanded
+                              ? t("ecommerce.inventory.collapse")
+                              : t("ecommerce.inventory.expand")
+                          }
                         >
                           <ChevronRightIcon />
                         </button>
@@ -107,14 +120,24 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                       <td>
                         <div className="wms-account-label">
                           <span className="shop-table-name">{account.label}</span>
-                          {account.lastSyncError && <span className="badge badge-danger">{t("ecommerce.inventory.syncError")}</span>}
+                          {account.lastSyncError && (
+                            <span className="badge badge-danger">
+                              {t("ecommerce.inventory.syncError")}
+                            </span>
+                          )}
                         </div>
                       </td>
-                      <td>{t(`ecommerce.inventory.providers.${account.provider}`, { defaultValue: account.provider })}</td>
+                      <td>
+                        {t(`ecommerce.inventory.providers.${account.provider}`, {
+                          defaultValue: account.provider,
+                        })}
+                      </td>
                       <td>{currencyLabel(t, account.declaredValueCurrency)}</td>
                       <td className="td-meta wms-endpoint-cell">{account.endpoint}</td>
                       <td>{accountWarehouses.length}</td>
-                      <td className="td-date">{formatLocalizedDateTime(account.lastSyncedAt, i18n.language)}</td>
+                      <td className="td-date">
+                        {formatLocalizedDateTime(account.lastSyncedAt, i18n.language)}
+                      </td>
                       <td className="text-right">
                         <div className="td-actions shop-table-actions wms-account-actions">
                           <button
@@ -122,7 +145,9 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                             onClick={() => inventory.syncWmsWarehouses(account.id).catch(() => {})}
                             disabled={syncing || syncingGoods || deleting}
                           >
-                            {syncing ? t("common.loading") : t("ecommerce.inventory.syncWarehouses")}
+                            {syncing
+                              ? t("common.loading")
+                              : t("ecommerce.inventory.syncWarehouses")}
                           </button>
                           <button
                             className="btn btn-secondary btn-sm"
@@ -133,10 +158,16 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                           </button>
                           <button
                             className="btn btn-secondary btn-sm"
-                            onClick={() => inventory.startWmsInventoryGoodsSyncWorkflow(account.id).catch(() => {})}
+                            onClick={() =>
+                              inventory
+                                .startWmsInventoryGoodsSyncWorkflow(account.id)
+                                .catch(() => {})
+                            }
                             disabled={syncing || syncingGoods || deleting}
                           >
-                            {syncingGoods ? t("common.loading") : t("ecommerce.inventory.syncInventoryGoods")}
+                            {syncingGoods
+                              ? t("common.loading")
+                              : t("ecommerce.inventory.syncInventoryGoods")}
                           </button>
                           <button
                             className="btn btn-danger btn-sm"
@@ -156,7 +187,9 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                             <div className="form-hint form-hint-error">{account.lastSyncError}</div>
                           )}
                           {accountWarehouses.length === 0 ? (
-                            <div className="empty-cell">{t("ecommerce.inventory.noSyncedWarehouses")}</div>
+                            <div className="empty-cell">
+                              {t("ecommerce.inventory.noSyncedWarehouses")}
+                            </div>
                           ) : (
                             <div className="wms-warehouse-list">
                               <div className="wms-warehouse-list-header">
@@ -170,7 +203,10 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                                   <div className="shop-table-name">{warehouse.name}</div>
                                   <div className="td-meta">{warehouseCode(warehouse)}</div>
                                   <div>
-                                    {t(`ecommerce.inventory.warehouseTypes.${warehouse.warehouseType}`, { defaultValue: warehouse.warehouseType })}
+                                    {t(
+                                      `ecommerce.inventory.warehouseTypes.${warehouse.warehouseType}`,
+                                      { defaultValue: warehouse.warehouseType },
+                                    )}
                                   </div>
                                   <div>{warehouse.regionCode || "\u2014"}</div>
                                 </div>
@@ -185,24 +221,27 @@ export const WmsAccountTable = observer(function WmsAccountTable({
               })}
             </tbody>
           </table>
-        </div>
+        </TkTableFrame>
       )}
 
       <ConfirmDialog
         isOpen={Boolean(deleteAccount)}
         title={t("ecommerce.inventory.deleteWmsAccount")}
-        message={t("ecommerce.inventory.confirmDeleteWmsAccount", { label: deleteAccount?.label ?? "" })}
+        message={t("ecommerce.inventory.confirmDeleteWmsAccount", {
+          label: deleteAccount?.label ?? "",
+        })}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         confirmVariant="danger"
         onCancel={() => setDeleteAccountId(null)}
         onConfirm={() => {
           if (!deleteAccount) return;
-          inventory.archiveWmsAccount(deleteAccount.id)
+          inventory
+            .archiveWmsAccount(deleteAccount.id)
             .then(() => setDeleteAccountId(null))
             .catch(() => {});
         }}
       />
-    </div>
+    </TkPanel>
   );
 });

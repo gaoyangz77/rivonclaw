@@ -22,6 +22,18 @@ describe("commerce navigation", () => {
   });
 });
 
+describe("design-system review route", () => {
+  it("resolves directly without entering product navigation", () => {
+    const route = ROUTES.find((entry) => entry.path === "/design-system");
+
+    expect(route).toMatchObject({
+      pageKey: "design-system",
+      navHidden: true,
+    });
+    expect(route?.navLabelKey).toBeUndefined();
+  });
+});
+
 describe("permission-scope navigation", () => {
   it("gives an AFFILIATE-only member the Affiliate group plus the base pages", () => {
     const bd = { isOwner: false, permissionScopes: [GQL.PermissionScope.Affiliate] };

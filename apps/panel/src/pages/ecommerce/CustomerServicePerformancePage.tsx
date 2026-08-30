@@ -23,6 +23,15 @@ import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedTime } from "../../lib/format-datetime.js";
+import {
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+  TkPanelHeader,
+  TkTableFrame,
+  TkTabs,
+  TkToolbar,
+} from "../../components/design-system/index.js";
 
 type PerformanceTab = "history" | "realtime" | "unpaid";
 type TimeRange = "7d" | "30d" | "90d";
@@ -147,10 +156,13 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     if (user) entityStore.fetchShops().catch(() => {});
   }, [entityStore, user]);
 
-  const range = useMemo(() => ({
-    startTime: isoDateDaysAgo(RANGE_DAYS[timeRange]),
-    endTime: todayIsoDate(),
-  }), [timeRange]);
+  const range = useMemo(
+    () => ({
+      startTime: isoDateDaysAgo(RANGE_DAYS[timeRange]),
+      endTime: todayIsoDate(),
+    }),
+    [timeRange],
+  );
 
   const historyQuery = useQuery<{
     ecommerceGetCSPerformance: GQL.CustomerServicePerformanceReport;
@@ -185,8 +197,18 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     },
   );
 
-  const loading = activeTab === "realtime" ? realtimeQuery.loading : activeTab === "unpaid" ? unpaidQuery.loading : historyQuery.loading;
-  const error = activeTab === "realtime" ? realtimeQuery.error : activeTab === "unpaid" ? unpaidQuery.error : historyQuery.error;
+  const loading =
+    activeTab === "realtime"
+      ? realtimeQuery.loading
+      : activeTab === "unpaid"
+        ? unpaidQuery.loading
+        : historyQuery.loading;
+  const error =
+    activeTab === "realtime"
+      ? realtimeQuery.error
+      : activeTab === "unpaid"
+        ? unpaidQuery.error
+        : historyQuery.error;
   const report = historyQuery.data?.ecommerceGetCSPerformance ?? null;
   const realtimeReport = realtimeQuery.data?.ecommerceGetCSRealtimePerformance ?? null;
   const unpaidReport = unpaidQuery.data?.ecommerceGetCSUnpaidOrderReachoutPerformance ?? null;
@@ -195,16 +217,22 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     const rows = (report?.byDate ?? []).map((row) => ({
       ...row,
       dateLabel: row.dateKey.slice(5),
-      guidedGmv7dAverageValue: row.csGuidedGmv7dAverage == null
-        || Number.isNaN(Number(row.csGuidedGmv7dAverage))
-        ? null
-        : Number(row.csGuidedGmv7dAverage),
+      guidedGmv7dAverageValue:
+        row.csGuidedGmv7dAverage == null || Number.isNaN(Number(row.csGuidedGmv7dAverage))
+          ? null
+          : Number(row.csGuidedGmv7dAverage),
     }));
 
     return rows.map((row, index) => {
       const windowRows = rows.slice(Math.max(0, index - 6), index + 1);
-      const ratedSessions = windowRows.reduce((sum, item) => sum + metricNumber(item.ratedSessions), 0);
-      const satisfiedSessions = windowRows.reduce((sum, item) => sum + metricNumber(item.satisfiedSessions), 0);
+      const ratedSessions = windowRows.reduce(
+        (sum, item) => sum + metricNumber(item.ratedSessions),
+        0,
+      );
+      const satisfiedSessions = windowRows.reduce(
+        (sum, item) => sum + metricNumber(item.satisfiedSessions),
+        0,
+      );
       return {
         ...row,
         satisfaction7dWeighted: ratedSessions > 0 ? satisfiedSessions / ratedSessions : null,
@@ -218,37 +246,48 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
   const guidedGmvCurrency = latestGuidedGmvAverageRow?.csGuidedGmv7dAverageCurrency ?? null;
   const hasGuidedGmvAverage = latestGuidedGmvAverageRow != null;
 
-  const realtimeRows: RealtimeChartRow[] = useMemo(() => (
-    (realtimeReport?.points ?? []).map((point) => ({
-      ...point,
-      timeLabel: formatRealtimeLabel(point.sampledAt),
-    }))
-  ), [realtimeReport]);
+  const realtimeRows: RealtimeChartRow[] = useMemo(
+    () =>
+      (realtimeReport?.points ?? []).map((point) => ({
+        ...point,
+        timeLabel: formatRealtimeLabel(point.sampledAt),
+      })),
+    [realtimeReport],
+  );
 
   const tableRows = useMemo(() => [...chartRows].reverse(), [chartRows]);
 
-  const shopOptions = useMemo(() => [
-    { value: "", label: t("ecommerce.customerServicePerformance.allShops") },
-    ...shops
-      .filter((shop) => shop.services?.customerService?.enabled)
-      .map((shop) => ({
-        value: shop.id,
-        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-      })),
-  ], [shops, t]);
+  const shopOptions = useMemo(
+    () => [
+      { value: "", label: t("ecommerce.customerServicePerformance.allShops") },
+      ...shops
+        .filter((shop) => shop.services?.customerService?.enabled)
+        .map((shop) => ({
+          value: shop.id,
+          label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+        })),
+    ],
+    [shops, t],
+  );
 
-  const rangeOptions = useMemo(() => ([
-    { value: "7d", label: t("ecommerce.customerServicePerformance.ranges.7d") },
-    { value: "30d", label: t("ecommerce.customerServicePerformance.ranges.30d") },
-    { value: "90d", label: t("ecommerce.customerServicePerformance.ranges.90d") },
-  ]), [t]);
+  const rangeOptions = useMemo(
+    () => [
+      { value: "7d", label: t("ecommerce.customerServicePerformance.ranges.7d") },
+      { value: "30d", label: t("ecommerce.customerServicePerformance.ranges.30d") },
+      { value: "90d", label: t("ecommerce.customerServicePerformance.ranges.90d") },
+    ],
+    [t],
+  );
 
-  const realtimeRangeOptions = useMemo(() => ([
-    { value: "1", label: t("ecommerce.customerServicePerformance.realtimeRanges.1h") },
-    { value: "6", label: t("ecommerce.customerServicePerformance.realtimeRanges.6h") },
-    { value: "12", label: t("ecommerce.customerServicePerformance.realtimeRanges.12h") },
-    { value: "24", label: t("ecommerce.customerServicePerformance.realtimeRanges.24h") },
-  ]), [t]);
+  const realtimeRangeOptions = useMemo(
+    () => [
+      { value: "1", label: t("ecommerce.customerServicePerformance.realtimeRanges.1h") },
+      { value: "6", label: t("ecommerce.customerServicePerformance.realtimeRanges.6h") },
+      { value: "12", label: t("ecommerce.customerServicePerformance.realtimeRanges.12h") },
+      { value: "24", label: t("ecommerce.customerServicePerformance.realtimeRanges.24h") },
+    ],
+    [t],
+  );
 
   const downloadCsv = () => {
     const headers = [
@@ -289,64 +328,56 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
 
   if (authChecking) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel>
           <p>{t("common.loading")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel>
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   return (
-    <div className="page-enter cs-performance-page">
-      <div className="ecommerce-page-header cs-performance-header" data-tutorial-id="cs-performance-header">
-        <div>
-          <h1>{t("ecommerce.customerServicePerformance.title")}</h1>
-          <p className="ecommerce-page-subtitle">{t("ecommerce.customerServicePerformance.subtitle")}</p>
-        </div>
-        <div className="cs-performance-tabs" role="tablist" aria-label={t("ecommerce.customerServicePerformance.tabs.label")} data-tutorial-id="cs-performance-tabs">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "realtime"}
-            className={`cs-performance-tab ${activeTab === "realtime" ? "active" : ""}`}
-            onClick={() => setActiveTab("realtime")}
-          >
-            {t("ecommerce.customerServicePerformance.tabs.realtime")}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "history"}
-            className={`cs-performance-tab ${activeTab === "history" ? "active" : ""}`}
-            onClick={() => setActiveTab("history")}
-          >
-            {t("ecommerce.customerServicePerformance.tabs.history")}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "unpaid"}
-            className={`cs-performance-tab ${activeTab === "unpaid" ? "active" : ""}`}
-            onClick={() => setActiveTab("unpaid")}
-          >
-            Unpaid reachout
-          </button>
-        </div>
-      </div>
+    <TkPageFrame className="cs-performance-page">
+      <TkPageHeader
+        className="cs-performance-header"
+        data-tutorial-id="cs-performance-header"
+        title={t("ecommerce.customerServicePerformance.title")}
+        description={t("ecommerce.customerServicePerformance.subtitle")}
+      />
+      <TkTabs
+        label={t("ecommerce.customerServicePerformance.tabs.label")}
+        value={activeTab}
+        onChange={(value) => setActiveTab(value as PerformanceTab)}
+        items={[
+          {
+            id: "realtime",
+            label: t("ecommerce.customerServicePerformance.tabs.realtime"),
+          },
+          {
+            id: "history",
+            label: t("ecommerce.customerServicePerformance.tabs.history"),
+          },
+          { id: "unpaid", label: "Unpaid reachout" },
+        ]}
+        data-tutorial-id="cs-performance-tabs"
+      />
 
-      <div className="section-card cs-performance-toolbar" data-tutorial-id="cs-performance-filters">
+      <TkToolbar
+        variant="framed"
+        className="cs-performance-toolbar"
+        data-tutorial-id="cs-performance-filters"
+      >
         <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServicePerformance.shopFilter")}</span>
           <Select
@@ -381,57 +412,206 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         <button
           className="icon-button"
           type="button"
-          onClick={() => (activeTab === "realtime" ? realtimeQuery.refetch() : activeTab === "unpaid" ? unpaidQuery.refetch() : historyQuery.refetch())}
+          onClick={() =>
+            activeTab === "realtime"
+              ? realtimeQuery.refetch()
+              : activeTab === "unpaid"
+                ? unpaidQuery.refetch()
+                : historyQuery.refetch()
+          }
           title={t("common.refresh")}
         >
           <RefreshIcon aria-hidden="true" />
         </button>
-      </div>
+      </TkToolbar>
 
       {error && (
-        <div className="section-card cs-performance-error">
+        <TkPanel className="section-card cs-performance-error">
           <strong>{t("ecommerce.customerServicePerformance.loadFailed")}</strong>
           <span>{error.message}</span>
-        </div>
+        </TkPanel>
       )}
 
       {activeTab === "unpaid" ? (
         <>
           <div className="cs-performance-kpis" data-tutorial-id="cs-performance-kpis">
-            <MetricTile label="Eligible orders" value={formatCount(unpaidReport?.summary.eligible)} detail="Reached opportunity cohort" />
-            <MetricTile label="Reached orders" value={formatCount(unpaidReport?.summary.reached)} detail={`${formatCount(unpaidReport?.summary.sentMessages)} messages sent`} />
-            <MetricTile label="Associated paid orders" value={formatCount(unpaidReport?.summary.associatedPaidOrders)} detail={`${formatRate(unpaidReport?.summary.associatedConversionRate)} associated conversion`} />
-            <MetricTile label="Associated units" value={formatCount(unpaidReport?.summary.associatedSalesUnits)} detail={(unpaidReport?.summary.associatedGmv ?? []).map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "No associated GMV"} />
+            <MetricTile
+              label="Eligible orders"
+              value={formatCount(unpaidReport?.summary.eligible)}
+              detail="Reached opportunity cohort"
+            />
+            <MetricTile
+              label="Reached orders"
+              value={formatCount(unpaidReport?.summary.reached)}
+              detail={`${formatCount(unpaidReport?.summary.sentMessages)} messages sent`}
+            />
+            <MetricTile
+              label="Associated paid orders"
+              value={formatCount(unpaidReport?.summary.associatedPaidOrders)}
+              detail={`${formatRate(unpaidReport?.summary.associatedConversionRate)} associated conversion`}
+            />
+            <MetricTile
+              label="Associated units"
+              value={formatCount(unpaidReport?.summary.associatedSalesUnits)}
+              detail={
+                (unpaidReport?.summary.associatedGmv ?? [])
+                  .map((item: any) => formatMoney(item.amount, item.currency, i18n.language))
+                  .join(" · ") || "No associated GMV"
+              }
+            />
           </div>
-          <div className="section-card cs-unpaid-funnel" data-tutorial-id="cs-performance-unpaid-funnel">
+          <TkPanel
+            className="section-card cs-unpaid-funnel"
+            data-tutorial-id="cs-performance-unpaid-funnel"
+          >
             <h3>Eligible → Reached → Paid</h3>
             <div className="cs-unpaid-funnel-steps">
-              {[["Eligible", unpaidReport?.summary.eligible], ["Reached", unpaidReport?.summary.reached], ["Paid", unpaidReport?.summary.associatedPaidOrders]].map(([label, value]) => <div key={String(label)}><strong>{formatCount(value as number)}</strong><span>{label}</span></div>)}
+              {[
+                ["Eligible", unpaidReport?.summary.eligible],
+                ["Reached", unpaidReport?.summary.reached],
+                ["Paid", unpaidReport?.summary.associatedPaidOrders],
+              ].map(([label, value]) => (
+                <div key={String(label)}>
+                  <strong>{formatCount(value as number)}</strong>
+                  <span>{label}</span>
+                </div>
+              ))}
             </div>
-            <p className="form-hint">{unpaidReport?.semanticsNotice ?? "Associated results do not represent incremental sales."}</p>
-          </div>
-          <ChartPanel title="Cohort trend" loading={loading} empty={!unpaidReport?.byDate?.length} loadingLabel={t("common.loading")} emptyLabel="No data">
+            <p className="form-hint">
+              {unpaidReport?.semanticsNotice ??
+                "Associated results do not represent incremental sales."}
+            </p>
+          </TkPanel>
+          <ChartPanel
+            title="Cohort trend"
+            loading={loading}
+            empty={!unpaidReport?.byDate?.length}
+            loadingLabel={t("common.loading")}
+            emptyLabel="No data"
+          >
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={unpaidReport?.byDate ?? []} margin={{ top: 12, right: 18, bottom: 4, left: 4 }}>
+              <LineChart
+                data={unpaidReport?.byDate ?? []}
+                margin={{ top: 12, right: 18, bottom: 4, left: 4 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="cohortDate" tickFormatter={(value) => String(value).slice(5)} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="eligible" name="Eligible" stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} />
-                <Line type="monotone" dataKey="reached" name="Reached" stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} />
-                <Line type="monotone" dataKey="associatedPaidOrders" name="Associated paid" stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="eligible"
+                  name="Eligible"
+                  stroke="var(--cs-performance-ink)"
+                  strokeWidth={2.4}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="reached"
+                  name="Reached"
+                  stroke="var(--cs-performance-accent)"
+                  strokeWidth={2.4}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="associatedPaidOrders"
+                  name="Associated paid"
+                  stroke="var(--cs-performance-good)"
+                  strokeWidth={2.4}
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
-          <div className="section-card cs-performance-table-card">
-            <div className="cs-performance-table-heading"><h3>Stage comparison</h3></div>
-            <div className="table-scroll"><table><thead><tr><th>Stage</th><th>Delay</th><th>Eligible</th><th>Sent</th><th>Associated payments</th><th>Units</th><th>GMV</th></tr></thead><tbody>
-              {(unpaidReport?.byStage ?? []).map((row: any) => <tr key={row.stageId}><td>Stage {row.stageIndex + 1}</td><td>{row.delayMinutes}m</td><td>{formatCount(row.eligible)}</td><td>{formatCount(row.sent)}</td><td>{formatCount(row.associatedPayments)}</td><td>{formatCount(row.associatedSalesUnits)}</td><td>{row.associatedGmv.map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "--"}</td></tr>)}
-              {!loading && !(unpaidReport?.byStage?.length) && <tr><td colSpan={7}>No data</td></tr>}
-            </tbody></table></div>
-          </div>
-          {unpaidReport?.experiment?.experimentId && <div className="section-card cs-performance-table-card"><div className="cs-performance-table-heading"><h3>A/B experiment</h3><span>{unpaidReport.experiment.insufficientSample ? "Sample is still too small for a reliable conclusion" : `95% CI ${formatRate(unpaidReport.experiment.confidenceIntervalLow)} to ${formatRate(unpaidReport.experiment.confidenceIntervalHigh)}`}</span></div><div className="table-scroll"><table><thead><tr><th>Arm</th><th>Eligible</th><th>Paid</th><th>Payment rate</th><th>GMV / eligible</th><th>Units / eligible</th></tr></thead><tbody>{unpaidReport.experiment.arms.map((arm: any) => <tr key={arm.assignment}><td>{arm.assignment}</td><td>{formatCount(arm.eligible)}</td><td>{formatCount(arm.paidOrders)}</td><td>{formatRate(arm.paymentRate)}</td><td>{arm.gmvPerEligible.map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "--"}</td><td>{formatDecimal(arm.unitsPerEligible)}</td></tr>)}</tbody></table></div></div>}
+          <TkPanel as="section" padding="none" clip className="cs-performance-table-card">
+            <TkPanelHeader title="Stage comparison" />
+            <TkTableFrame variant="embedded" className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Stage</th>
+                    <th>Delay</th>
+                    <th>Eligible</th>
+                    <th>Sent</th>
+                    <th>Associated payments</th>
+                    <th>Units</th>
+                    <th>GMV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(unpaidReport?.byStage ?? []).map((row: any) => (
+                    <tr key={row.stageId}>
+                      <td>Stage {row.stageIndex + 1}</td>
+                      <td>{row.delayMinutes}m</td>
+                      <td>{formatCount(row.eligible)}</td>
+                      <td>{formatCount(row.sent)}</td>
+                      <td>{formatCount(row.associatedPayments)}</td>
+                      <td>{formatCount(row.associatedSalesUnits)}</td>
+                      <td>
+                        {row.associatedGmv
+                          .map((item: any) =>
+                            formatMoney(item.amount, item.currency, i18n.language),
+                          )
+                          .join(" · ") || "--"}
+                      </td>
+                    </tr>
+                  ))}
+                  {!loading && !unpaidReport?.byStage?.length && (
+                    <tr>
+                      <td colSpan={7}>No data</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </TkTableFrame>
+          </TkPanel>
+          {unpaidReport?.experiment?.experimentId && (
+            <TkPanel as="section" padding="none" clip className="cs-performance-table-card">
+              <TkPanelHeader
+                title="A/B experiment"
+                description={
+                  unpaidReport.experiment.insufficientSample
+                    ? "Sample is still too small for a reliable conclusion"
+                    : `95% CI ${formatRate(unpaidReport.experiment.confidenceIntervalLow)} to ${formatRate(unpaidReport.experiment.confidenceIntervalHigh)}`
+                }
+              />
+              <TkTableFrame variant="embedded" className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Arm</th>
+                      <th>Eligible</th>
+                      <th>Paid</th>
+                      <th>Payment rate</th>
+                      <th>GMV / eligible</th>
+                      <th>Units / eligible</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unpaidReport.experiment.arms.map((arm: any) => (
+                      <tr key={arm.assignment}>
+                        <td>{arm.assignment}</td>
+                        <td>{formatCount(arm.eligible)}</td>
+                        <td>{formatCount(arm.paidOrders)}</td>
+                        <td>{formatRate(arm.paymentRate)}</td>
+                        <td>
+                          {arm.gmvPerEligible
+                            .map((item: any) =>
+                              formatMoney(item.amount, item.currency, i18n.language),
+                            )
+                            .join(" · ") || "--"}
+                        </td>
+                        <td>{formatDecimal(arm.unitsPerEligible)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TkTableFrame>
+            </TkPanel>
+          )}
         </>
       ) : activeTab === "history" ? (
         <>
@@ -496,8 +676,24 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                   <YAxis tickLine={false} width={44} />
                   <Tooltip formatter={(value) => formatCount(Number(value))} />
                   <Legend verticalAlign="bottom" height={36} iconType="line" />
-                  <Line type="monotone" dataKey="newSessionCount" name={t("ecommerce.customerServicePerformance.series.newSessions")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
-                  <Line type="monotone" dataKey="supportSessionCount" name={t("ecommerce.customerServicePerformance.series.endedSessions")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line
+                    type="monotone"
+                    dataKey="newSessionCount"
+                    name={t("ecommerce.customerServicePerformance.series.newSessions")}
+                    stroke="var(--cs-performance-accent)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="supportSessionCount"
+                    name={t("ecommerce.customerServicePerformance.series.endedSessions")}
+                    stroke="var(--cs-performance-ink)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </ChartPanel>
@@ -517,8 +713,24 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                   <YAxis tickLine={false} width={44} />
                   <Tooltip formatter={(value) => formatCount(Number(value))} />
                   <Legend verticalAlign="bottom" height={36} iconType="line" />
-                  <Line type="monotone" dataKey="escalateConversations" name={t("ecommerce.customerServicePerformance.series.escalated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
-                  <Line type="monotone" dataKey="escalationResolved" name={t("ecommerce.customerServicePerformance.series.resolved")} stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line
+                    type="monotone"
+                    dataKey="escalateConversations"
+                    name={t("ecommerce.customerServicePerformance.series.escalated")}
+                    stroke="var(--cs-performance-danger)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="escalationResolved"
+                    name={t("ecommerce.customerServicePerformance.series.resolved")}
+                    stroke="var(--cs-performance-good)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </ChartPanel>
@@ -534,11 +746,31 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <LineChart data={chartRows}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="dateLabel" tickLine={false} />
-                  <YAxis tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tickLine={false} width={44} />
+                  <YAxis
+                    tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`}
+                    tickLine={false}
+                    width={44}
+                  />
                   <Tooltip formatter={(value) => formatRate(Number(value))} />
                   <Legend verticalAlign="bottom" height={36} iconType="line" />
-                  <Line type="monotone" dataKey="satisfactionRate" name={t("ecommerce.customerServicePerformance.series.satisfaction")} stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} connectNulls />
-                  <Line type="monotone" dataKey="satisfaction7dWeighted" name={t("ecommerce.customerServicePerformance.series.satisfaction7dWeighted")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line
+                    type="monotone"
+                    dataKey="satisfactionRate"
+                    name={t("ecommerce.customerServicePerformance.series.satisfaction")}
+                    stroke="var(--cs-performance-good)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="satisfaction7dWeighted"
+                    name={t("ecommerce.customerServicePerformance.series.satisfaction7dWeighted")}
+                    stroke="var(--cs-performance-accent)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </ChartPanel>
@@ -554,10 +786,22 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <LineChart data={chartRows}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="dateLabel" tickLine={false} />
-                  <YAxis tickFormatter={(value) => formatSeconds(Number(value))} tickLine={false} width={44} />
+                  <YAxis
+                    tickFormatter={(value) => formatSeconds(Number(value))}
+                    tickLine={false}
+                    width={44}
+                  />
                   <Tooltip formatter={(value) => formatSeconds(Number(value))} />
                   <Legend verticalAlign="bottom" height={36} iconType="line" />
-                  <Line type="monotone" dataKey="firstResponseP50Secs" name={t("ecommerce.customerServicePerformance.series.firstResponseP50")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                  <Line
+                    type="monotone"
+                    dataKey="firstResponseP50Secs"
+                    name={t("ecommerce.customerServicePerformance.series.firstResponseP50")}
+                    stroke="var(--cs-performance-ink)"
+                    strokeWidth={2.4}
+                    dot={false}
+                    connectNulls
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </ChartPanel>
@@ -579,16 +823,42 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <YAxis tickLine={false} width={44} />
                 <Tooltip formatter={(value) => formatCount(Number(value))} />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
-                <Line type="monotone" dataKey="activeConversations" name={t("ecommerce.customerServicePerformance.series.active")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
-                <Line type="monotone" dataKey="pendingConversations" name={t("ecommerce.customerServicePerformance.series.pending")} stroke="var(--cs-performance-warn)" strokeWidth={2.4} dot={false} connectNulls />
-                <Line type="monotone" dataKey="escalatedConversations" name={t("ecommerce.customerServicePerformance.series.escalated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line
+                  type="monotone"
+                  dataKey="activeConversations"
+                  name={t("ecommerce.customerServicePerformance.series.active")}
+                  stroke="var(--cs-performance-ink)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pendingConversations"
+                  name={t("ecommerce.customerServicePerformance.series.pending")}
+                  stroke="var(--cs-performance-warn)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="escalatedConversations"
+                  name={t("ecommerce.customerServicePerformance.series.escalated")}
+                  stroke="var(--cs-performance-danger)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
 
           <ChartPanel
             title={t("ecommerce.customerServicePerformance.realtimeCharts.escalationActivity")}
-            tooltip={t("ecommerce.customerServicePerformance.realtimeCharts.escalationActivityTooltip")}
+            tooltip={t(
+              "ecommerce.customerServicePerformance.realtimeCharts.escalationActivityTooltip",
+            )}
             loading={loading}
             empty={!realtimeRows.length}
             loadingLabel={t("common.loading")}
@@ -601,8 +871,24 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <YAxis tickLine={false} width={44} />
                 <Tooltip formatter={(value) => formatCount(Number(value))} />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
-                <Line type="monotone" dataKey="escalationCreatedCount" name={t("ecommerce.customerServicePerformance.series.escalationCreated")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
-                <Line type="monotone" dataKey="escalationResolvedCount" name={t("ecommerce.customerServicePerformance.series.escalationResolved")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line
+                  type="monotone"
+                  dataKey="escalationCreatedCount"
+                  name={t("ecommerce.customerServicePerformance.series.escalationCreated")}
+                  stroke="var(--cs-performance-danger)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="escalationResolvedCount"
+                  name={t("ecommerce.customerServicePerformance.series.escalationResolved")}
+                  stroke="var(--cs-performance-accent)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
@@ -621,9 +907,33 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <YAxis tickLine={false} width={44} />
                 <Tooltip formatter={(value) => formatCount(Number(value))} />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
-                <Line type="monotone" dataKey="pendingOver5m" name={t("ecommerce.customerServicePerformance.series.pendingOver5m")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
-                <Line type="monotone" dataKey="pendingOver15m" name={t("ecommerce.customerServicePerformance.series.pendingOver15m")} stroke="var(--cs-performance-warn)" strokeWidth={2.4} dot={false} connectNulls />
-                <Line type="monotone" dataKey="pendingOver30m" name={t("ecommerce.customerServicePerformance.series.pendingOver30m")} stroke="var(--cs-performance-danger)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line
+                  type="monotone"
+                  dataKey="pendingOver5m"
+                  name={t("ecommerce.customerServicePerformance.series.pendingOver5m")}
+                  stroke="var(--cs-performance-accent)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pendingOver15m"
+                  name={t("ecommerce.customerServicePerformance.series.pendingOver15m")}
+                  stroke="var(--cs-performance-warn)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pendingOver30m"
+                  name={t("ecommerce.customerServicePerformance.series.pendingOver30m")}
+                  stroke="var(--cs-performance-danger)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
@@ -643,8 +953,24 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <YAxis tickLine={false} width={44} />
                 <Tooltip formatter={(value) => formatCount(Number(value))} />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
-                <Line type="monotone" dataKey="agentRoundCount" name={t("ecommerce.customerServicePerformance.series.agentRounds")} stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} connectNulls />
-                <Line type="monotone" dataKey="endedSessionCount" name={t("ecommerce.customerServicePerformance.series.endedSessions")} stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} connectNulls />
+                <Line
+                  type="monotone"
+                  dataKey="agentRoundCount"
+                  name={t("ecommerce.customerServicePerformance.series.agentRounds")}
+                  stroke="var(--cs-performance-accent)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="endedSessionCount"
+                  name={t("ecommerce.customerServicePerformance.series.endedSessions")}
+                  stroke="var(--cs-performance-ink)"
+                  strokeWidth={2.4}
+                  dot={false}
+                  connectNulls
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
@@ -666,12 +992,16 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="dateLabel" tickLine={false} />
                 <YAxis
-                  tickFormatter={(value) => formatCompactMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
+                  tickFormatter={(value) =>
+                    formatCompactMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)
+                  }
                   tickLine={false}
                   width={72}
                 />
                 <Tooltip
-                  formatter={(value) => formatMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
+                  formatter={(value) =>
+                    formatMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)
+                  }
                 />
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
                 <Line
@@ -687,73 +1017,90 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             </ResponsiveContainer>
           </ChartPanel>
 
-          <div className="section-card cs-performance-table-card" data-tutorial-id="cs-performance-daily-table">
-            <div className="ecommerce-section-header cs-performance-table-header">
-              <div>
-                <h3>{t("ecommerce.customerServicePerformance.dailyTable")}</h3>
-                <p className="ecommerce-section-subtitle">
-                  {t("ecommerce.customerServicePerformance.scopeSummary", {
-                    start: report?.scope.startDate ?? range.startTime,
-                    end: report?.scope.endDate ?? range.endTime,
-                    shops: formatCount(report?.scope.shopCount),
-                  })}
-                </p>
-              </div>
-              <button
-                className="button-secondary cs-performance-download"
-                type="button"
-                onClick={downloadCsv}
-                disabled={!tableRows.length}
-              >
-                <DownloadIcon aria-hidden="true" />
-                <span>{t("ecommerce.customerServicePerformance.downloadCsv")}</span>
-              </button>
-            </div>
-            <div className="cs-performance-table-wrap">
+          <TkPanel
+            as="section"
+            padding="none"
+            clip
+            className="cs-performance-table-card"
+            data-tutorial-id="cs-performance-daily-table"
+          >
+            <TkPanelHeader
+              className="cs-performance-table-header"
+              title={t("ecommerce.customerServicePerformance.dailyTable")}
+              description={t("ecommerce.customerServicePerformance.scopeSummary", {
+                start: report?.scope.startDate ?? range.startTime,
+                end: report?.scope.endDate ?? range.endTime,
+                shops: formatCount(report?.scope.shopCount),
+              })}
+              actions={
+                <button
+                  className="button-secondary cs-performance-download"
+                  type="button"
+                  onClick={downloadCsv}
+                  disabled={!tableRows.length}
+                >
+                  <DownloadIcon aria-hidden="true" />
+                  <span>{t("ecommerce.customerServicePerformance.downloadCsv")}</span>
+                </button>
+              }
+            />
+            <TkTableFrame variant="embedded" className="cs-performance-table-wrap">
               <table className="cs-performance-table">
-            <thead>
-              <tr>
-                <th>{t("ecommerce.customerServicePerformance.table.date")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.newSessions")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.endedSessions")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.escalated")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.resolved")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.resolveRate")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.satisfaction")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.satisfaction7dWeighted")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.firstResponse")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.errors")}</th>
-                <th>{t("ecommerce.customerServicePerformance.table.guidedGmv")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.length === 0 && (
-                <tr>
-                  <td colSpan={11}>{loading ? t("common.loading") : t("ecommerce.customerServicePerformance.noData")}</td>
-                </tr>
-              )}
-              {tableRows.map((row) => (
-                <tr key={row.dateKey}>
-                  <td>{row.dateKey}</td>
-                  <td>{formatCount(row.newSessionCount)}</td>
-                  <td>{formatCount(row.supportSessionCount)}</td>
-                  <td>{formatCount(row.escalateConversations)}</td>
-                  <td>{formatCount(row.escalationResolved)}</td>
-                  <td>{formatRate(row.escalationResolveRate)}</td>
-                  <td>{formatRate(row.satisfactionRate)}</td>
-                  <td>{formatRate(row.satisfaction7dWeighted)}</td>
-                  <td>{formatSeconds(row.firstResponseP50Secs)}</td>
-                  <td>{formatDecimal(row.errorsPerConversation)}</td>
-                  <td>{formatMoney(row.csGuidedGmv, row.csGuidedGmvCurrency, i18n.resolvedLanguage)}</td>
-                </tr>
-              ))}
-            </tbody>
+                <thead>
+                  <tr>
+                    <th>{t("ecommerce.customerServicePerformance.table.date")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.newSessions")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.endedSessions")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.escalated")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.resolved")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.resolveRate")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.satisfaction")}</th>
+                    <th>
+                      {t("ecommerce.customerServicePerformance.table.satisfaction7dWeighted")}
+                    </th>
+                    <th>{t("ecommerce.customerServicePerformance.table.firstResponse")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.errors")}</th>
+                    <th>{t("ecommerce.customerServicePerformance.table.guidedGmv")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.length === 0 && (
+                    <tr>
+                      <td colSpan={11}>
+                        {loading
+                          ? t("common.loading")
+                          : t("ecommerce.customerServicePerformance.noData")}
+                      </td>
+                    </tr>
+                  )}
+                  {tableRows.map((row) => (
+                    <tr key={row.dateKey}>
+                      <td>{row.dateKey}</td>
+                      <td>{formatCount(row.newSessionCount)}</td>
+                      <td>{formatCount(row.supportSessionCount)}</td>
+                      <td>{formatCount(row.escalateConversations)}</td>
+                      <td>{formatCount(row.escalationResolved)}</td>
+                      <td>{formatRate(row.escalationResolveRate)}</td>
+                      <td>{formatRate(row.satisfactionRate)}</td>
+                      <td>{formatRate(row.satisfaction7dWeighted)}</td>
+                      <td>{formatSeconds(row.firstResponseP50Secs)}</td>
+                      <td>{formatDecimal(row.errorsPerConversation)}</td>
+                      <td>
+                        {formatMoney(
+                          row.csGuidedGmv,
+                          row.csGuidedGmvCurrency,
+                          i18n.resolvedLanguage,
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
-            </div>
-          </div>
+            </TkTableFrame>
+          </TkPanel>
         </>
       )}
-    </div>
+    </TkPageFrame>
   );
 });
 
@@ -795,19 +1142,23 @@ function ChartPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="section-card cs-performance-chart-card">
+    <TkPanel className="section-card cs-performance-chart-card">
       <div className="cs-performance-chart-title">
         <h3>{title}</h3>
         {tooltip && (
           <span className="cs-performance-info" tabIndex={0}>
             <InfoIcon aria-hidden="true" />
-            <span className="cs-performance-info-bubble" role="tooltip">{tooltip}</span>
+            <span className="cs-performance-info-bubble" role="tooltip">
+              {tooltip}
+            </span>
           </span>
         )}
       </div>
       {empty ? (
         <div className="cs-performance-empty">{loading ? loadingLabel : emptyLabel}</div>
-      ) : children}
-    </div>
+      ) : (
+        children
+      )}
+    </TkPanel>
   );
 }

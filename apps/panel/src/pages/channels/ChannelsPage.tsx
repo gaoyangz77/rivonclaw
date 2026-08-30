@@ -11,7 +11,7 @@ import { pollGatewayReady } from "./poll-gateway.js";
 import { AddChannelAccountModal } from "../../components/modals/AddChannelAccountModal.js";
 import { MobileBindingModal } from "../../components/modals/MobileBindingModal.js";
 import { MobileQrInlineFlow } from "../../components/MobileQrInlineFlow.js";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { Select } from "../../components/inputs/Select.js";
 import { KNOWN_CHANNELS, QR_LOGIN_CHANNELS } from "../../lib/channel-defs.js";
 import { getVisibleChannels, buildAccountsList } from "./channel-defs.jsx";
@@ -21,6 +21,14 @@ import { QrLoginModal } from "../../components/modals/QrLoginModal.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { FeishuSetupModal } from "../../components/modals/FeishuSetupModal.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
+import {
+  TkAlert,
+  TkEmptyState,
+  TkLoadingState,
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+} from "../../components/design-system/index.js";
 
 export const ChannelsPage = observer(function ChannelsPage() {
   const { t, i18n } = useTranslation();
@@ -213,10 +221,10 @@ export const ChannelsPage = observer(function ChannelsPage() {
 
   if (loading) {
     return (
-      <div>
-        <h1>{t("channels.title")}</h1>
-        <div className="centered-muted">{t("channels.loading")}</div>
-      </div>
+      <TkPageFrame>
+        <TkPageHeader title={t("channels.title")} />
+        <TkLoadingState label={t("channels.loading")} />
+      </TkPageFrame>
     );
   }
 
@@ -225,63 +233,75 @@ export const ChannelsPage = observer(function ChannelsPage() {
     // instead of a red error banner. The hook retries every 2s automatically.
     if (!snapshot) {
       return (
-        <div>
-          <h1>{t("channels.title")}</h1>
-          <div className="centered-muted">{t("channels.connectingToGateway")}</div>
-        </div>
+        <TkPageFrame>
+          <TkPageHeader title={t("channels.title")} />
+          <TkLoadingState label={t("channels.connectingToGateway")} />
+        </TkPageFrame>
       );
     }
 
     // Lost connection after being connected — show the real error
     return (
-      <div>
-        <h1>{t("channels.title")}</h1>
-        <div className="error-alert">
-          <strong>{t("channels.errorLoadingChannels")}</strong> {error}
-          <div className="error-alert-actions">
+      <TkPageFrame>
+        <TkPageHeader title={t("channels.title")} />
+        <TkAlert
+          tone="danger"
+          title={t("channels.errorLoadingChannels")}
+          actions={
             <button className="btn btn-danger" onClick={() => loadChannelStatus()}>
               {t("channels.retry")}
             </button>
-          </div>
-        </div>
-      </div>
+          }
+        >
+          {error}
+        </TkAlert>
+      </TkPageFrame>
     );
   }
 
   if (!snapshot) {
     return (
-      <div>
-        <h1>{t("channels.title")}</h1>
-        <div className="centered-muted">{t("channels.gatewayNotConnected")}</div>
-      </div>
+      <TkPageFrame>
+        <TkPageHeader title={t("channels.title")} />
+        <TkEmptyState title={t("channels.gatewayNotConnected")} />
+      </TkPageFrame>
     );
   }
 
   return (
-    <div>
-      {/* Delete error banner */}
-      {deleteError && (
-        <div className="error-alert">
-          {deleteError}
-          <button className="btn btn-secondary btn-sm" onClick={() => setDeleteError(null)}>
-            {t("common.close")}
-          </button>
-        </div>
-      )}
-
+    <TkPageFrame>
       {/* Header */}
-      <div className="channel-header" data-tutorial-id="channels-header">
-        <div className="channel-title-row">
-          <h1 className="channel-title">{t("channels.title")}</h1>
+      <TkPageHeader
+        className="channel-header"
+        data-tutorial-id="channels-header"
+        title={t("channels.title")}
+        description={t("channels.statusSubtitle")}
+        actions={
           <button className="btn btn-secondary" onClick={handleRefresh} disabled={refreshing}>
             {refreshing ? t("channels.refreshing") : `\u21bb ${t("channels.refreshButton")}`}
           </button>
-        </div>
-        <p className="channel-subtitle">{t("channels.statusSubtitle")}</p>
-      </div>
+        }
+      />
+
+      {deleteError && (
+        <TkAlert
+          tone="danger"
+          actions={
+            <button className="btn btn-secondary btn-sm" onClick={() => setDeleteError(null)}>
+              {t("common.close")}
+            </button>
+          }
+        >
+          {deleteError}
+        </TkAlert>
+      )}
 
       {/* Add Account Section */}
-      <div className="section-card channel-add-section" data-tutorial-id="channels-add-account">
+      <TkPanel
+        as="section"
+        className="section-card channel-add-section"
+        data-tutorial-id="channels-add-account"
+      >
         <h3>{t("channels.addAccount")}</h3>
         <div
           className={`channel-selector-col${selectedDropdownChannel === "mobile" ? " channel-selector-col--mobile" : ""}`}
@@ -323,7 +343,10 @@ export const ChannelsPage = observer(function ChannelsPage() {
                 if (selected.id === "feishu") {
                   const zh = i18n.language.toLowerCase().startsWith("zh");
                   return (
-                    <div className="channel-info-box feishu-channel-onboarding" data-tutorial-id="channels-guidance">
+                    <div
+                      className="channel-info-box feishu-channel-onboarding"
+                      data-tutorial-id="channels-guidance"
+                    >
                       <div className="channel-info-title">
                         {zh
                           ? "推荐扫码自动创建飞书机器人"
@@ -361,7 +384,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
           {/* QR code (right side, only when mobile is selected) */}
           {selectedDropdownChannel === "mobile" && <MobileQrInlineFlow />}
         </div>
-      </div>
+      </TkPanel>
 
       {/* Accounts Table */}
       <ChannelAccountsTable
@@ -431,6 +454,6 @@ export const ChannelsPage = observer(function ChannelsPage() {
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
       />
-    </div>
+    </TkPageFrame>
   );
 });

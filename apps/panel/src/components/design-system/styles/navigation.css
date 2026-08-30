@@ -1,0 +1,247 @@
+/* CSS ownership: Design System tabs and segmented navigation. Imported in original cascade order. */
+
+.tk-v1-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-height: 38px;
+  border-bottom: 1px solid var(--tk-v1-border-default);
+}
+
+.tk-v1-tabs-rail {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  align-items: stretch;
+  gap: var(--tk-v1-space-1);
+  min-height: 0;
+  padding: var(--tk-v1-space-1);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-subtle);
+  box-shadow: var(--tk-v1-highlight);
+}
+
+.tk-v1-tabs-rail .tk-v1-tab {
+  align-items: center;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 56px;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--tk-v1-radius-2);
+  text-align: left;
+}
+
+.tk-v1-tabs-rail .tk-v1-tab::after {
+  display: none;
+}
+
+.tk-v1-tabs-rail .tk-v1-tab:hover {
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 4%, transparent);
+}
+
+.tk-v1-tabs-rail .tk-v1-tab-active {
+  border-color: var(--tk-v1-surface-edge);
+  background: var(--tk-v1-control-optical);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+}
+
+.tk-v1-tab-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: var(--tk-v1-control-compact);
+  height: var(--tk-v1-control-compact);
+  place-items: center;
+  border-radius: var(--tk-v1-radius-2);
+  background: color-mix(in srgb, var(--tk-v1-accent) 8%, transparent);
+  color: var(--tk-v1-accent-text);
+}
+
+.tk-v1-tab-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tk-v1-tab-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.tk-v1-tab-copy strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: var(--tk-v1-type-control);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-control);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-tab-copy small {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 400;
+  line-height: var(--tk-v1-line-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-tabs-description-lines-2 .tk-v1-tab-copy small,
+.tk-v1-tabs-description-lines-3 .tk-v1-tab-copy small {
+  display: -webkit-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+}
+
+.tk-v1-tabs-description-lines-2 .tk-v1-tab-copy small {
+  -webkit-line-clamp: 2;
+}
+
+.tk-v1-tabs-description-lines-3 .tk-v1-tab-copy small {
+  -webkit-line-clamp: 3;
+}
+
+.tk-v1-tab-success .tk-v1-tab-icon {
+  background: color-mix(in srgb, var(--tk-v1-success) 9%, transparent);
+  color: var(--tk-v1-success);
+}
+
+.tk-v1-tab-warning .tk-v1-tab-icon {
+  background: color-mix(in srgb, var(--tk-v1-warning) 9%, transparent);
+  color: var(--tk-v1-warning);
+}
+
+.tk-v1-segmented {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-subtle);
+  box-shadow: var(--tk-v1-highlight);
+}
+
+.tk-v1-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--tk-v1-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--tk-v1-radius-2);
+  outline: 0;
+  background: transparent;
+  color: var(--tk-v1-fg-muted);
+  font: 500 var(--tk-v1-type-supporting) / 1 var(--tk-v1-font-sans);
+  cursor: pointer;
+  transition:
+    background var(--tk-v1-fast),
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast),
+    color var(--tk-v1-fast);
+}
+
+.tk-v1-segmented-md .tk-v1-segmented-item {
+  height: var(--tk-v1-control-default);
+  padding-inline: var(--tk-v1-space-3);
+}
+
+.tk-v1-segmented-item:hover:not(:disabled) {
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-segmented-item-active {
+  border-color: var(--tk-v1-surface-edge);
+  background: var(--tk-v1-control-optical);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-segmented-item:focus-visible {
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-segmented-item:disabled {
+  color: var(--tk-v1-fg-disabled);
+  cursor: not-allowed;
+}
+
+.tk-v1-segmented-item > span {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.tk-v1-segmented-item > span strong {
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.tk-v1-segmented-item > span small {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 400;
+  line-height: var(--tk-v1-line-micro);
+}
+
+.tk-v1-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 37px;
+  padding: 0 11px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--tk-v1-fg-muted);
+  font: 500 12px/1 var(--tk-v1-font-sans);
+  cursor: pointer;
+}
+
+.tk-v1-tab::after {
+  position: absolute;
+  right: 9px;
+  bottom: -1px;
+  left: 9px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--tk-v1-signal-optical);
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.5);
+  transition:
+    opacity var(--tk-v1-base),
+    transform var(--tk-v1-base);
+}
+
+.tk-v1-tab:hover,
+.tk-v1-tab-active {
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-tab-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.tk-v1-tab:focus-visible {
+  border-radius: var(--tk-v1-radius-2);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-tab-count {
+  min-width: 18px;
+  padding: 2px 5px;
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-secondary);
+  font: 500 10px/1 var(--tk-v1-font-mono);
+}

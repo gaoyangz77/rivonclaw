@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { Surface, RunProfile } from "../account-types.js";
+import { TkAlert, TkPanel } from "../../../components/design-system/index.js";
 
 interface SurfacesSectionProps {
   surfaces: Surface[];
@@ -31,7 +32,7 @@ export function SurfacesSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card" data-tutorial-id="account-surfaces">
+    <TkPanel as="section" className="section-card" data-tutorial-id="account-surfaces">
       <div className="acct-section-header">
         <div>
           <h3>{t("surfaces.surfacesTitle")}</h3>
@@ -59,7 +60,7 @@ export function SurfacesSection({
         </div>
       </div>
 
-      {surfaceError && <div className="error-alert">{surfaceError}</div>}
+      {surfaceError && <TkAlert tone="danger">{surfaceError}</TkAlert>}
 
       {surfaces.length === 0 ? (
         <div className="empty-cell">{t("surfaces.noSurfaces")}</div>
@@ -110,6 +111,6 @@ export function SurfacesSection({
           })}
         </div>
       )}
-    </div>
+    </TkPanel>
   );
 }

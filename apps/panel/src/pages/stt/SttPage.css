@@ -1,0 +1,76 @@
+/* CSS ownership: speech-to-text feature. Imported in original cascade order. */
+
+/* ===== 33. STT Page ===== */
+
+.stt-section {
+  max-width: 680px;
+}
+
+.stt-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.stt-enable-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stt-enable-help {
+  margin: 6px 0 0 24px;
+}
+
+.stt-label-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stt-free-tier-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stt-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.stt-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.stt-volcengine-help {
+  margin: 0 0 16px;
+}
+
+.stt-explanation {
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.stt-feature-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.stt-help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--brand-tint-12);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: help;
+}

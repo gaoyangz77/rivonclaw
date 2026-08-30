@@ -1,0 +1,201 @@
+/* CSS ownership: Design System sections, switch, and info tip. Imported in original cascade order. */
+
+.tk-v1-section {
+  min-width: 0;
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-section-framed,
+.tk-v1-section-raised {
+  overflow: hidden;
+  border: 1px solid var(--tk-v1-surface-edge);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-surface);
+}
+
+.tk-v1-section-raised {
+  border-color: var(--tk-v1-border-default);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+}
+
+.tk-v1-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-v1-section-framed .tk-v1-section-header,
+.tk-v1-section-raised .tk-v1-section-header {
+  padding: 16px 18px 14px;
+  background: var(--tk-v1-surface-header-optical);
+}
+
+.tk-v1-section-header h3 {
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font: 600 15px/1.4 var(--tk-v1-font-sans);
+  letter-spacing: -0.012em;
+}
+
+.tk-v1-section-header h2 {
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font: 600 15px/1.4 var(--tk-v1-font-sans);
+  letter-spacing: -0.012em;
+}
+
+.tk-v1-section-header p {
+  max-width: 68ch;
+  margin: 4px 0 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tk-v1-section-action {
+  flex: 0 0 auto;
+}
+
+.tk-v1-section-body {
+  padding-top: 16px;
+}
+
+.tk-v1-section-framed .tk-v1-section-body,
+.tk-v1-section-raised .tk-v1-section-body {
+  padding: 16px 18px 18px;
+}
+
+.tk-v1-switch-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 42px;
+  cursor: pointer;
+}
+
+.tk-v1-switch-control {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  cursor: pointer;
+}
+
+.tk-v1-switch-control.is-disabled {
+  cursor: not-allowed;
+}
+
+.tk-v1-switch-row + .tk-v1-switch-row {
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-v1-switch-row.is-disabled {
+  cursor: not-allowed;
+}
+
+.tk-v1-switch-input:disabled + .tk-v1-switch-track {
+  opacity: 0.52;
+}
+
+.tk-v1-switch-row.is-disabled .tk-v1-switch-label {
+  color: var(--tk-v1-fg-secondary);
+}
+
+.tk-v1-switch-label,
+.tk-v1-switch-description {
+  display: block;
+}
+
+.tk-v1-switch-label {
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tk-v1-switch-description {
+  margin-top: 2px;
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tk-v1-switch-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tk-v1-switch-track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 20px;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--tk-v1-bg-subtle);
+  background-color: var(--tk-v1-bg-subtle);
+  background-image: none;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 10%, transparent);
+  transition:
+    background var(--tk-v1-fast),
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast);
+}
+
+.tk-v1-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--tk-v1-bg-raised);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--tk-v1-fg-default) 24%, transparent);
+  transition: transform var(--tk-v1-fast);
+}
+
+.tk-v1-switch-input:checked + .tk-v1-switch-track {
+  border-color: var(--tk-v1-accent);
+  background: var(--tk-v1-primary-optical);
+}
+
+.tk-v1-switch-input:checked + .tk-v1-switch-track .tk-v1-switch-thumb {
+  transform: translateX(14px);
+}
+
+.tk-v1-switch-input:focus-visible + .tk-v1-switch-track {
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-info-tip {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-muted);
+  font: 600 11px/1 var(--tk-v1-font-mono);
+  cursor: help;
+}
+
+.tk-v1-info-tip:hover,
+.tk-v1-info-tip:focus-visible {
+  border-color: color-mix(in srgb, var(--tk-v1-accent) 45%, var(--tk-v1-border-default));
+  color: var(--tk-v1-accent-text);
+}
+
+.tk-v1-info-tip:focus-visible {
+  outline: none;
+  box-shadow: var(--tk-v1-focus);
+}

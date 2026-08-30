@@ -1,0 +1,11 @@
+/* Design System v1 CSS manifest.
+ * Component contracts are split by responsibility and imported in cascade order.
+ */
+
+@import "./styles/tokens.css";
+@import "./styles/layout.css";
+@import "./styles/controls.css";
+@import "./styles/navigation.css";
+@import "./styles/sections.css";
+@import "./styles/feedback.css";
+@import "./styles/overlays.css";

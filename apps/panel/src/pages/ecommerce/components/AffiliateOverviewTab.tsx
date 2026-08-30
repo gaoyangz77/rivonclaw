@@ -8,6 +8,7 @@ import { AffiliateApprovalSectionView } from "./AffiliateApprovalSectionView.js"
 import { AffiliatePostApprovalSectionView } from "./AffiliatePostApprovalSectionView.js";
 import { AffiliateReachoutSectionView } from "./AffiliateReachoutSectionView.js";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
+import { TkSegmented } from "../../../components/design-system/index.js";
 
 /**
  * Portfolio counts. These are current values read without any date predicate,
@@ -45,19 +46,16 @@ export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[
         <AffiliateShopScopeControl shops={shops} selected={state.shopIds} onChange={state.setShopIds} />
         <div className="affiliate-window-control">
           <span>{t("ecommerce.affiliateAnalytics.window")}</span>
-          <div className="affiliate-segmented" role="group" aria-label={t("ecommerce.affiliateAnalytics.window")}>
-            {AFFILIATE_WINDOW_DAYS.map((days) => (
-              <button
-                key={days}
-                type="button"
-                aria-pressed={state.windowDays === days}
-                className={state.windowDays === days ? "active" : ""}
-                onClick={() => state.setWindowDays(days)}
-              >
-                {t("ecommerce.affiliateAnalytics.windowDays", { count: days })}
-              </button>
-            ))}
-          </div>
+          <TkSegmented
+            size="sm"
+            items={AFFILIATE_WINDOW_DAYS.map((days) => ({
+              id: String(days),
+              label: t("ecommerce.affiliateAnalytics.windowDays", { count: days }),
+            }))}
+            value={String(state.windowDays)}
+            onChange={(value) => state.setWindowDays(Number(value) as (typeof AFFILIATE_WINDOW_DAYS)[number])}
+            label={t("ecommerce.affiliateAnalytics.window")}
+          />
         </div>
         <button
           className="btn btn-secondary affiliate-refresh"

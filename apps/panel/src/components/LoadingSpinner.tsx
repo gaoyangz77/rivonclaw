@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { TkLoadingState } from "./design-system/index.js";
 
 export type LoadingSpinnerVariant = "page" | "inline";
 
@@ -21,10 +22,5 @@ interface LoadingSpinnerProps {
 export function LoadingSpinner({ variant = "page", label }: LoadingSpinnerProps) {
   const { t } = useTranslation();
   const text = label ?? t("common.loading");
-  return (
-    <div className={`loading-spinner loading-spinner-${variant}`} role="status" aria-live="polite">
-      <span className="loading-spinner-ring" aria-hidden="true" />
-      <span className="loading-spinner-label">{text}</span>
-    </div>
-  );
+  return <TkLoadingState label={text} size={variant} />;
 }

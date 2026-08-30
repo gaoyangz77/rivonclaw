@@ -3,6 +3,7 @@ import type { Shop } from "@rivonclaw/core/models";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
+import { TkSwitchControl } from "../../../components/design-system/index.js";
 
 interface TikTokShopOverviewTabProps {
   shop: Shop;
@@ -67,10 +68,9 @@ export function TikTokShopOverviewTab({
           <span className="shop-service-label">
             {t("tiktokShops.customerServiceLabel")}
           </span>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={shop.services?.customerService?.enabled}
+          <TkSwitchControl
+              label={t("tiktokShops.customerServiceLabel")}
+              checked={shop.services?.customerService?.enabled ?? false}
               onChange={() =>
                 onToggleCustomerService(
                   shop.id,
@@ -79,14 +79,6 @@ export function TikTokShopOverviewTab({
               }
               disabled={togglingServiceId === shop.id}
             />
-            <span
-              className={`toggle-track ${shop.services?.customerService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-            >
-              <span
-                className={`toggle-thumb ${shop.services?.customerService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-              />
-            </span>
-          </label>
           <span className={shop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"}>
             {shop.services?.customerService?.enabled
               ? t("common.enabled")

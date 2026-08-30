@@ -12,10 +12,18 @@ import {
   trackEvent,
 } from "../../api/index.js";
 import type { InstalledSkill } from "../../api/index.js";
-import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { SkillCard } from "../../components/SkillCard.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { useToast } from "../../components/Toast.js";
+import {
+  TkAlert,
+  TkEmptyState,
+  TkLoadingState,
+  TkPageFrame,
+  TkPageHeader,
+  TkTabs,
+} from "../../components/design-system/index.js";
 
 const PAGE_SIZE = DEFAULTS.pagination.skills;
 
@@ -173,39 +181,30 @@ export function SkillsPage() {
   }, [confirmDelete, installedSkills]);
 
   return (
-    <div className="page-enter skills-page">
-      <div className="skills-page-header" data-tutorial-id="skills-header">
-        <h1>{t("skills.title")}</h1>
-        <p className="skills-page-subtitle">{t("skills.description")}</p>
-      </div>
+    <TkPageFrame className="skills-page">
+      <TkPageHeader
+        className="skills-page-header"
+        data-tutorial-id="skills-header"
+        title={t("skills.title")}
+        description={t("skills.description")}
+      />
 
       {loadError && (
-        <div className="error-alert">
+        <TkAlert tone="danger">
           {t(loadError.key, { error: loadError.detail ?? "" })}
-        </div>
+        </TkAlert>
       )}
 
-      {/* Tab bar */}
-      <div className="tab-bar" role="tablist" aria-label={t("skills.title")} data-tutorial-id="skills-tabs">
-        <button
-          className={`tab-btn${activeTab === "market" ? " tab-btn-active" : ""}`}
-          data-tutorial-id="skills-market-tab"
-          onClick={() => setActiveTab("market")}
-          role="tab"
-          aria-selected={activeTab === "market"}
-        >
-          {t("skills.tabMarket")}
-        </button>
-        <button
-          className={`tab-btn${activeTab === "installed" ? " tab-btn-active" : ""}`}
-          data-tutorial-id="skills-installed-tab"
-          onClick={() => setActiveTab("installed")}
-          role="tab"
-          aria-selected={activeTab === "installed"}
-        >
-          {t("skills.tabInstalled")}
-        </button>
-      </div>
+      <TkTabs
+        label={t("skills.title")}
+        value={activeTab}
+        onChange={(value) => setActiveTab(value as "market" | "installed")}
+        items={[
+          { id: "market", label: t("skills.tabMarket") },
+          { id: "installed", label: t("skills.tabInstalled") },
+        ]}
+        data-tutorial-id="skills-tabs"
+      />
 
       {/* Market tab */}
       {activeTab === "market" && (
@@ -278,9 +277,7 @@ export function SkillsPage() {
 
           {/* Empty market */}
           {!loading && marketSkills.length === 0 && (
-            <div className="empty-state">
-              <p>{t("skills.emptyMarket")}</p>
-            </div>
+            <TkEmptyState title={t("skills.emptyMarket")} />
           )}
 
           {/* Pagination */}
@@ -349,13 +346,11 @@ export function SkillsPage() {
           </div>
 
           {installedLoading && (
-            <p className="text-muted">{t("common.loading")}</p>
+            <TkLoadingState label={t("common.loading")} />
           )}
 
           {!installedLoading && installedSkills.length === 0 && (
-            <div className="empty-state">
-              <p>{t("skills.emptyInstalled")}</p>
-            </div>
+            <TkEmptyState title={t("skills.emptyInstalled")} />
           )}
 
           {!installedLoading && installedSkills.length > 0 && (
@@ -399,6 +394,6 @@ export function SkillsPage() {
         }}
         onCancel={() => setConfirmDelete(null)}
       />
-    </div>
+    </TkPageFrame>
   );
 }

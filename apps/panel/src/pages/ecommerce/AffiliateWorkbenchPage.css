@@ -1,0 +1,294 @@
+/* Design System v1 — high-density operations page pilot.
+   The page keeps optical depth through edge light and compact elevation, while
+   removing the decorative hero treatment and oversized soft geometry. */
+.tk-v1-workbench {
+  --affiliate-shell-gap: var(--tk-v1-space-3);
+  --affiliate-panel-radius: var(--tk-v1-radius-4);
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+}
+
+.affiliate-page-shell.tk-v1-workbench::before {
+  display: none;
+}
+
+.affiliate-page-shell.tk-v1-workbench .affiliate-page-hero {
+  min-height: 78px;
+  gap: var(--tk-v1-space-5);
+  overflow: visible;
+  padding: 15px 18px;
+  border: 1px solid var(--tk-v1-surface-edge);
+  border-radius: var(--tk-v1-radius-4);
+  background-color: var(--tk-v1-bg-surface);
+  background-image: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-surface);
+}
+
+.affiliate-page-shell.tk-v1-workbench .affiliate-page-hero::before,
+.affiliate-page-shell.tk-v1-workbench .affiliate-page-hero::after {
+  display: none;
+}
+
+.tk-v1-workbench .affiliate-page-header-copy {
+  flex: 0 1 380px;
+  gap: 2px;
+}
+
+.affiliate-page-shell.tk-v1-workbench .affiliate-page-hero h1 {
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font: 600 24px/1.08 var(--tk-v1-font-sans);
+  letter-spacing: -0.035em;
+}
+
+.affiliate-page-shell.tk-v1-workbench .affiliate-page-hero .ecommerce-page-subtitle {
+  margin: 2px 0 0;
+  color: var(--tk-v1-fg-muted);
+  font: 400 12px/1.4 var(--tk-v1-font-sans);
+}
+
+.tk-v1-workbench .affiliate-page-header-actions {
+  flex: 1 1 auto;
+}
+
+.tk-v1-workbench .affiliate-workbench-tabs {
+  width: min(100%, 670px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.tk-v1-workbench .affiliate-workbench-tabs .tk-v1-tabs {
+  width: 100%;
+  justify-content: flex-end;
+  border-bottom-color: var(--tk-v1-border-subtle);
+}
+
+.tk-v1-workbench .affiliate-workbench-tabs .tk-v1-tab {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.affiliate-page-shell.tk-v1-workbench .affiliate-workbench-panel {
+  overflow: hidden;
+  border: 1px solid var(--tk-v1-surface-edge);
+  border-radius: var(--tk-v1-radius-4);
+  background-color: var(--tk-v1-bg-surface);
+  background-image: var(--tk-v1-surface-optical);
+  box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-surface);
+}
+
+.affiliate-page-shell.tk-v1-workbench .affiliate-workbench-panel-head {
+  align-items: flex-end;
+  gap: var(--tk-v1-space-4);
+  padding: 12px 14px 13px;
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  background: var(--tk-v1-surface-header-optical);
+}
+
+.tk-v1-workbench .affiliate-agent-workspace-controls .affiliate-attention-toolbar {
+  max-width: none;
+}
+
+.tk-v1-workbench .affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
+  grid-template-columns: minmax(168px, 210px) minmax(168px, 210px) minmax(280px, 1fr);
+}
+
+.tk-v1-workbench .affiliate-attention-toolbar {
+  gap: var(--tk-v1-space-2);
+}
+
+.tk-v1-workbench .tk-v1-field {
+  gap: 5px;
+}
+
+.tk-v1-workbench .tk-v1-label {
+  color: var(--tk-v1-fg-muted);
+  font: 600 var(--tk-v1-type-micro) / var(--tk-v1-line-micro) var(--tk-v1-font-mono);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.tk-v1-workbench .affiliate-attention-search-field .tk-v1-input-shell,
+.tk-v1-workbench .custom-select.tk-v1-choice-select-control .custom-select-trigger {
+  height: var(--tk-v1-control-default);
+  min-height: var(--tk-v1-control-default);
+}
+
+.tk-v1-workbench .affiliate-agent-workspace-controls > .tk-v1-button {
+  flex: 0 0 auto;
+}
+
+.tk-v1-workbench .affiliate-agent-workspace-controls > .tk-v1-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tk-v1-workbench .affiliate-attention-active-list {
+  min-height: 180px;
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-shell {
+  background: transparent;
+}
+
+.tk-v1-workbench .affiliate-agent-work-table {
+  min-width: 1080px;
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table th {
+  height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--tk-v1-border-default);
+  background: color-mix(in srgb, var(--tk-v1-bg-subtle) 78%, transparent);
+  color: var(--tk-v1-fg-muted);
+  font: 600 var(--tk-v1-type-micro) / 1 var(--tk-v1-font-mono);
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-row {
+  height: 60px;
+  transition:
+    background var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-row + .affiliate-agent-work-table-row td {
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-row:hover {
+  background: color-mix(in srgb, var(--tk-v1-accent) 4.5%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--tk-v1-accent) 64%, transparent);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-row:focus-visible {
+  background: color-mix(in srgb, var(--tk-v1-accent) 6%, transparent);
+  box-shadow: inset 3px 0 0 var(--tk-v1-accent);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table td {
+  padding: 7px 12px;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 12px;
+}
+
+.tk-v1-workbench
+  .affiliate-agent-work-table
+  :is(
+    .affiliate-agent-work-table-time time strong,
+    .affiliate-agent-work-table-shop strong,
+    .affiliate-agent-work-table-creator-copy strong,
+    .affiliate-agent-work-creator-metric-grid strong
+  ) {
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-workbench
+  .affiliate-agent-work-table
+  :is(
+    .affiliate-agent-work-table-time time span,
+    .affiliate-agent-work-table-shop span,
+    .affiliate-agent-work-table-creator-copy small,
+    .affiliate-agent-work-creator-metric-grid small
+  ) {
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-time time,
+.tk-v1-workbench .affiliate-agent-work-creator-metric-grid strong {
+  font-family: var(--tk-v1-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-time time strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-avatar {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--tk-v1-border-default);
+  box-shadow: var(--tk-v1-highlight);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-creator-button:focus-visible {
+  border-radius: var(--tk-v1-radius-2);
+  outline: none;
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-workbench .affiliate-agent-work-creator-metric-grid > span {
+  border-left-color: var(--tk-v1-border-subtle);
+}
+
+.tk-v1-workbench .affiliate-agent-work-table-type > span,
+.tk-v1-workbench .affiliate-agent-work-table-action {
+  min-height: 22px;
+  padding: 3px 7px;
+  border-radius: var(--tk-v1-radius-2);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 600;
+}
+
+.tk-v1-workbench .affiliate-kind-badge {
+  border-radius: var(--tk-v1-radius-full);
+  font-family: var(--tk-v1-font-mono);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tk-v1-workbench .affiliate-workbench-table-footer {
+  padding: 10px 14px;
+  border-top-color: var(--tk-v1-border-subtle);
+  color: var(--tk-v1-fg-muted);
+  font: 400 var(--tk-v1-type-micro) / var(--tk-v1-line-micro) var(--tk-v1-font-mono);
+}
+
+@media (max-width: 1120px) {
+  .affiliate-page-shell.tk-v1-workbench .affiliate-page-hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--tk-v1-space-3);
+  }
+
+  .tk-v1-workbench .affiliate-page-header-copy {
+    flex-basis: auto;
+  }
+
+  .tk-v1-workbench .affiliate-page-header-actions,
+  .tk-v1-workbench .affiliate-workbench-tabs {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .tk-v1-workbench .affiliate-workbench-tabs .tk-v1-tabs {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .affiliate-page-shell.tk-v1-workbench .affiliate-workbench-panel-head {
+    align-items: stretch;
+  }
+
+  .tk-v1-workbench .affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .affiliate-page-shell.tk-v1-workbench .affiliate-page-hero {
+    padding: 14px;
+  }
+
+  .tk-v1-workbench .affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
+    grid-template-columns: 1fr;
+  }
+}

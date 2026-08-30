@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import {
   CREATE_CREATOR_MANUAL_TAG_MUTATION,

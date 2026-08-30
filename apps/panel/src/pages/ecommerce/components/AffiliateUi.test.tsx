@@ -23,6 +23,7 @@ describe("Affiliate UI primitives", () => {
 
     expect(container.firstElementChild?.classList.contains("affiliate-page-shell")).toBe(true);
     expect(container.firstElementChild?.classList.contains("affiliate-page-frame")).toBe(true);
+    expect(container.firstElementChild?.classList.contains("tk-v1-business-page")).toBe(true);
     expect(container.firstElementChild?.classList.contains("test-page")).toBe(true);
     expect(screen.getByRole("heading", { name: "Creators" })).not.toBeNull();
   });
@@ -89,15 +90,17 @@ describe("Affiliate UI primitives", () => {
 
   it("isolates shared detail-modal content clicks from the backdrop", () => {
     const onClose = vi.fn();
-    const { container } = render(
+    render(
       <AffiliateDetailModal ariaLabel="Creator detail" onClose={onClose}>
         <button type="button">Inspect</button>
       </AffiliateDetailModal>,
     );
 
-    fireEvent.click(container.querySelector("[role='dialog']") as HTMLElement);
+    fireEvent.click(screen.getByRole("dialog", { name: "Creator detail" }));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(container.querySelector("[role='presentation']") as HTMLElement);
+    const backdrop = document.querySelector("[role='presentation']") as HTMLElement;
+    fireEvent.mouseDown(backdrop);
+    fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

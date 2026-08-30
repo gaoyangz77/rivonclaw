@@ -1,5 +1,6 @@
 import { KNOWN_CHANNELS } from "../../lib/channel-defs.js";
 import type { ChannelAccountSnapshot } from "../../api/index.js";
+import { TkBadge, type TkBadgeTone } from "../../components/design-system/index.js";
 
 export {
   buildAccountsList,
@@ -10,11 +11,11 @@ export {
 type DisplayStatus = boolean | null | undefined | "activation-required" | "reauth-required" | "send-unavailable";
 
 export function StatusBadge({ status, t }: { status: DisplayStatus; t: (key: string) => string }) {
-  const variant = status === true
-    ? "badge-success"
+  const tone: TkBadgeTone = status === true
+    ? "success"
     : status === false || status === "activation-required" || status === "reauth-required"
-      ? "badge-danger"
-      : "badge-warning";
+      ? "danger"
+      : "warning";
   const text = status === true
     ? t("channels.statusYes")
     : status === false
@@ -27,11 +28,7 @@ export function StatusBadge({ status, t }: { status: DisplayStatus; t: (key: str
             ? t("channels.statusWeChatSendUnavailable")
             : t("channels.statusUnknown");
 
-  return (
-    <span className={`badge ${variant}`}>
-      {text}
-    </span>
-  );
+  return <TkBadge tone={tone}>{text}</TkBadge>;
 }
 
 export function resolveDisplayedRunningStatus(

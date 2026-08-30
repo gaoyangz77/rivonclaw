@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
 import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import { useSubAccounts } from "../hooks/useSubAccounts.js";
 import { formatLocalizedDate } from "../../../lib/format-datetime.js";
 import { AccountRolesPanel } from "./AccountRolesPanel.js";
 import { SubAccountFormModal } from "./SubAccountFormModal.js";
+import { TkAlert, TkPanel } from "../../../components/design-system/index.js";
 
 /**
  * Sub-account management, shown only to the owner of an account.
@@ -45,7 +46,7 @@ export function SubAccountsSection() {
   }
 
   return (
-    <div className="section-card">
+    <TkPanel as="section" className="section-card">
       <div className="acct-section-header">
         <div>
           <h3>{t("subAccounts.title")}</h3>
@@ -64,9 +65,9 @@ export function SubAccountsSection() {
       </div>
 
       {subAccounts.loadError && (
-        <div className="error-alert">
+        <TkAlert tone="danger">
           {t("common.operationFailed", { message: subAccounts.loadError.message })}
-        </div>
+        </TkAlert>
       )}
 
       {subAccounts.loading && members.length === 0 ? (
@@ -168,6 +169,6 @@ export function SubAccountsSection() {
         }}
         onCancel={() => setConfirmDeleteMemberId(null)}
       />
-    </div>
+    </TkPanel>
   );
 }

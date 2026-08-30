@@ -26,7 +26,7 @@
   margin-bottom: 20px;
   padding: 6px 14px;
   background: var(--color-bg-alt);
-  border-radius: 20px;
+  border-radius: var(--tk-v1-radius-full);
   border: 1px solid var(--color-border-light);
 }
 
@@ -407,9 +407,6 @@
 }
 
 /* Legacy class kept for e2e test compatibility */
-.crons-preset-description {
-  display: none;
-}
 
 /* Form row (interval input + unit select) */
 .crons-form-row {
@@ -472,43 +469,8 @@
 }
 
 /* Tooltip — trigger icon */
-.crons-tip-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: var(--brand-tint-10);
-  color: var(--color-primary);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: help;
-  margin-left: 6px;
-  vertical-align: middle;
-  transition: background-color var(--transition-fast);
-}
-
-.crons-tip-trigger:hover {
-  background-color: var(--brand-tint-20);
-}
 
 /* Tooltip — fixed-position bubble (rendered via portal) */
-.crons-tip-bubble {
-  position: fixed;
-  z-index: 9999;
-  transform: translateX(-50%);
-  background: var(--color-text);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  line-height: 1.6;
-  max-width: 360px;
-  width: max-content;
-  box-shadow: var(--shadow-md);
-  pointer-events: none;
-}
 
 @media (max-width: 960px) {
   .crons-form-grid {
@@ -612,15 +574,4 @@
 [data-theme="dark"] .crons-form-card {
   background: rgba(255, 255, 255, 0.025);
   border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .crons-tip-trigger {
-  background-color: var(--brand-tint-16);
-  color: var(--color-primary);
-}
-
-[data-theme="dark"] .crons-tip-bubble {
-  background: #1e2333;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: var(--shadow-lg);
 }

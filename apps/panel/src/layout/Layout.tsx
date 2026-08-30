@@ -11,6 +11,8 @@ import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 import { getUserInitial } from "../lib/user-manager.js";
 import { canSeeRoute } from "../lib/permission-scope.js";
+import { TkTooltip } from "../components/design-system/index.js";
+import { PageErrorBoundary } from "../components/PageErrorBoundary.js";
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -144,13 +146,13 @@ export const Layout = observer(function Layout({
     return <UserPlusIcon />;
   }
 
-  function getNavTitle(route: RouteEntry) {
+  function getNavTooltip(route: RouteEntry) {
     if (route.pageKey === "account") {
       if (user) return user.email ?? t(route.navLabelKey!);
       if (authChecking) return t("common.loading");
       return t("auth.login");
     }
-    return collapsed ? t(route.navLabelKey!) : undefined;
+    return t(route.navLabelKey!);
   }
 
   let currentNavGroupKey: string | undefined;
@@ -224,36 +226,50 @@ export const Layout = observer(function Layout({
                     <li>
                       {route.navGroupOnly ? (
                         collapsed ? null : (
-                          <button
-                            className={`nav-section-toggle${active ? " nav-section-active" : ""}`}
-                            type="button"
-                            onClick={() => toggleNavParent(route.path)}
-                            aria-expanded={!collapsedNavParents.has(route.path)}
-                            title={getNavTitle(route)}
-                          >
-                            <span className="nav-section-label">{t(route.navLabelKey!)}</span>
-                            <ChevronRightIcon
-                              className={`nav-section-chevron${collapsedNavParents.has(route.path) ? "" : " nav-section-chevron-open"}`}
-                            />
-                          </button>
+                          <TkTooltip
+                            label={getNavTooltip(route)}
+                            placement="right"
+                            trigger={(tooltipProps) => (
+                              <button
+                                {...tooltipProps}
+                                className={`nav-section-toggle${active ? " nav-section-active" : ""}`}
+                                type="button"
+                                onClick={() => toggleNavParent(route.path)}
+                                aria-expanded={!collapsedNavParents.has(route.path)}
+                              >
+                                <span className="nav-section-label">{t(route.navLabelKey!)}</span>
+                                <ChevronRightIcon
+                                  className={`nav-section-chevron${collapsedNavParents.has(route.path) ? "" : " nav-section-chevron-open"}`}
+                                />
+                              </button>
+                            )}
+                          />
                         )
                       ) : (
-                        <button
-                          className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
-                          onClick={() => {
-                            if (route.authRequired && authChecking) return;
-                            if (route.authRequired && !user) {
-                              setPendingAuthPath(route.path);
-                              setAuthModalOpen(true);
-                            } else {
-                              onNavigate(route.path);
-                            }
-                          }}
-                          title={getNavTitle(route)}
-                        >
-                          <span className="nav-icon">{renderNavIcon(route)}</span>
-                          {!collapsed && <span className="nav-label">{t(route.navLabelKey!)}</span>}
-                        </button>
+                        <TkTooltip
+                          label={getNavTooltip(route)}
+                          placement="right"
+                          trigger={(tooltipProps) => (
+                            <button
+                              {...tooltipProps}
+                              className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
+                              onClick={() => {
+                                if (route.authRequired && authChecking) return;
+                                if (route.authRequired && !user) {
+                                  setPendingAuthPath(route.path);
+                                  setAuthModalOpen(true);
+                                } else {
+                                  onNavigate(route.path);
+                                }
+                              }}
+                            >
+                              <span className="nav-icon">{renderNavIcon(route)}</span>
+                              {!collapsed && (
+                                <span className="nav-label">{t(route.navLabelKey!)}</span>
+                              )}
+                            </button>
+                          )}
+                        />
                       )}
                     </li>
                   )}
@@ -265,7 +281,19 @@ export const Layout = observer(function Layout({
           {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
         </nav>
         <div className="main-content">
-          <main>{children}</main>
+          <main>
+            <PageErrorBoundary
+              resetKey={currentPath}
+              title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
+              message={t("common.pageErrorMessage", {
+                defaultValue:
+                  "The navigation is still available. Reload this page, or open another section and come back.",
+              })}
+              retryLabel={t("common.reload", { defaultValue: "Reload page" })}
+            >
+              {children}
+            </PageErrorBoundary>
+          </main>
         </div>
       </div>
       <AuthModal

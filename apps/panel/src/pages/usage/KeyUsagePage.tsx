@@ -3,18 +3,36 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@apollo/client/react";
 import type { GQL } from "@rivonclaw/core";
 import {
-  fetchKeyUsage, fetchActiveKeyUsage, fetchKeyUsageTimeseries,
-  type KeyModelUsageSummary, type ActiveKeyInfo, type KeyUsageDailyBucket,
+  fetchKeyUsage,
+  fetchActiveKeyUsage,
+  fetchKeyUsageTimeseries,
+  type KeyModelUsageSummary,
+  type ActiveKeyInfo,
+  type KeyUsageDailyBucket,
 } from "../../api/index.js";
 import { fetchJson } from "../../api/client.js";
 import { PRICING_QUERY } from "../../api/pricing-queries.js";
 import {
-  type TimeRange, type PricingMap,
-  buildPricingMap, buildGroups, ensureActiveKey, buildChartData,
+  type TimeRange,
+  type PricingMap,
+  buildPricingMap,
+  buildGroups,
+  ensureActiveKey,
+  buildChartData,
 } from "./usage-utils.js";
 import { UsageTable } from "./UsageTable.js";
 import { UsageChart } from "./UsageChart.js";
 import { formatLocalizedTime } from "../../lib/format-datetime.js";
+import {
+  TkAlert,
+  TkEmptyState,
+  TkLoadingState,
+  TkPageFrame,
+  TkPageHeader,
+  TkPanel,
+  TkPanelHeader,
+  TkTabs,
+} from "../../components/design-system/index.js";
 
 export function KeyUsagePage() {
   const { t, i18n } = useTranslation();
@@ -39,12 +57,20 @@ export function KeyUsagePage() {
   }, []);
 
   const pricingLang = navigator.language?.slice(0, 2) || "en";
-  const pricingPlatform = navigator.userAgent.includes("Mac") ? "darwin"
-    : navigator.userAgent.includes("Win") ? "win32" : "linux";
+  const pricingPlatform = navigator.userAgent.includes("Mac")
+    ? "darwin"
+    : navigator.userAgent.includes("Win")
+      ? "win32"
+      : "linux";
 
   // Fetch pricing via Apollo (skipped until deviceId is known)
   const { data: pricingData } = useQuery<{ pricing: GQL.ProviderPricing[] }>(PRICING_QUERY, {
-    variables: { deviceId: deviceId ?? "", platform: pricingPlatform, appVersion: "0.8.0", language: pricingLang },
+    variables: {
+      deviceId: deviceId ?? "",
+      platform: pricingPlatform,
+      appVersion: "0.8.0",
+      language: pricingLang,
+    },
     skip: !deviceId,
     fetchPolicy: "cache-first",
   });
@@ -77,7 +103,9 @@ export function KeyUsagePage() {
 
     const [activeData, todayData] = await Promise.all([
       fetchActiveKeyUsage(),
-      fetchKeyUsage({ windowStart: todayStart.getTime(), windowEnd: now }).catch(() => [] as KeyModelUsageSummary[]),
+      fetchKeyUsage({ windowStart: todayStart.getTime(), windowEnd: now }).catch(
+        () => [] as KeyModelUsageSummary[],
+      ),
     ]);
 
     setActiveKey(activeData);
@@ -120,7 +148,6 @@ export function KeyUsagePage() {
     }
   }, [loadTodayAndActive, loadHistorical]);
 
-
   // Initial load
   useEffect(() => {
     loadAll();
@@ -136,10 +163,16 @@ export function KeyUsagePage() {
     let cancelled = false;
     setHistoryLoading(true);
     loadHistorical()
-      .then(() => { if (!cancelled) setLastRefresh(new Date()); })
+      .then(() => {
+        if (!cancelled) setLastRefresh(new Date());
+      })
       .catch(() => {})
-      .finally(() => { if (!cancelled) setHistoryLoading(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refresh every 60 seconds
@@ -179,56 +212,55 @@ export function KeyUsagePage() {
   const hasTodayData = todayRows.length > 0 || activeKey;
 
   return (
-    <div className="page-enter">
-      <div className="page-header" data-tutorial-id="usage-header">
-        <h1>{t("keyUsage.title")}</h1>
-        <div className="page-header-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={loadAll}
-            disabled={loading}
-          >
+    <TkPageFrame>
+      <TkPageHeader
+        data-tutorial-id="usage-header"
+        title={t("keyUsage.title")}
+        actions={
+          <button className="btn btn-secondary" onClick={loadAll} disabled={loading}>
             {t("keyUsage.refresh")}
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {error && (
-        <div className="error-alert">{t(error.key)}{error.detail ?? ""}</div>
+        <TkAlert tone="danger" title={t(error.key)}>
+          {error.detail ?? ""}
+        </TkAlert>
       )}
 
-      {loading && <div className="loading-state"><span className="spinner" /> {t("keyUsage.loadingData")}</div>}
+      {loading && (
+        <TkLoadingState label={t("keyUsage.loadingData")} />
+      )}
 
       {/* Today's Usage Table */}
       {!loading && !error && hasTodayData && (
-        <div className="section-card" data-tutorial-id="usage-today">
-          <h3 className="usage-section-title">{t("keyUsage.todayTitle")}</h3>
+        <TkPanel as="section" padding="none" clip data-tutorial-id="usage-today">
+          <TkPanelHeader title={t("keyUsage.todayTitle")} />
           <UsageTable grouped={todayGrouped} isCN={isCN} t={t} />
-        </div>
+        </TkPanel>
       )}
 
       {/* Time range selector — controls historical table + chart */}
       {!loading && !error && (
-        <div className="usage-time-range-bar" data-tutorial-id="usage-range">
-          {(["7d", "30d", "all"] as TimeRange[]).map((range) => (
-            <button
-              key={range}
-              className={timeRange === range ? "btn btn-outline" : "btn btn-secondary"}
-              onClick={() => setTimeRange(range)}
-              disabled={historyLoading}
-            >
-              {rangeLabels[range]}
-            </button>
-          ))}
-        </div>
+        <TkTabs
+          label={t("keyUsage.historyTitle")}
+          value={timeRange}
+          onChange={(value) => !historyLoading && setTimeRange(value as TimeRange)}
+          items={(["7d", "30d", "all"] as TimeRange[]).map((range) => ({
+            id: range,
+            label: rangeLabels[range],
+          }))}
+          data-tutorial-id="usage-range"
+        />
       )}
 
       {/* Historical Usage Table */}
       {!loading && !error && hasData && (
-        <div className="section-card" data-tutorial-id="usage-history">
-          <h3 className="usage-section-title">{t("keyUsage.historyTitle")}</h3>
+        <TkPanel as="section" padding="none" clip data-tutorial-id="usage-history">
+          <TkPanelHeader title={t("keyUsage.historyTitle")} />
           <UsageTable grouped={grouped} isCN={isCN} t={t} />
-        </div>
+        </TkPanel>
       )}
 
       {/* Historical Usage Line Chart */}
@@ -237,15 +269,12 @@ export function KeyUsagePage() {
       )}
 
       {!loading && !error && !hasData && !hasTodayData && (
-        <div className="empty-state">
-          <div className="empty-state-icon">📊</div>
-          <div className="empty-state-title">{t("keyUsage.noData")}</div>
-        </div>
+        <TkEmptyState title={t("keyUsage.noData")} />
       )}
 
       <p className="td-meta" data-tutorial-id="usage-updated">
         {t("keyUsage.lastUpdated")}: {formatLocalizedTime(lastRefresh, i18n.language)}
       </p>
-    </div>
+    </TkPageFrame>
   );
 }

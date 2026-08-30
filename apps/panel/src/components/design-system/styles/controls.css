@@ -1,0 +1,577 @@
+/* CSS ownership: Design System controls, fields, select, badge, and migration bridge. Imported in original cascade order. */
+
+/* Legacy control adoption bridge --------------------------------------------
+   Controls are migrated independently from the surface contract. */
+:is(.tk-v1-page, .tk-v1-modal) .btn {
+  height: var(--tk-v1-control-default);
+  padding: 0 var(--tk-v1-space-3);
+  border-radius: var(--tk-v1-radius-2);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+  font-family: var(--tk-v1-font-sans);
+  font-size: var(--tk-v1-type-control);
+  font-weight: 500;
+  line-height: var(--tk-v1-line-control);
+  transition:
+    background var(--tk-v1-fast),
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast),
+    color var(--tk-v1-fast),
+    opacity var(--tk-v1-fast);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn-sm {
+  height: var(--tk-v1-control-compact);
+  padding-inline: 10px;
+  font-size: var(--tk-v1-type-supporting);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn-primary {
+  border-color: color-mix(in srgb, var(--tk-v1-accent-active) 76%, transparent);
+  background-color: var(--tk-v1-accent);
+  background-image: var(--tk-v1-primary-optical);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent),
+    0 2px 7px color-mix(in srgb, var(--tk-v1-accent) 24%, transparent);
+  color: var(--tk-v1-on-accent);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn-primary:hover:not(:disabled) {
+  border-color: var(--tk-v1-accent-active);
+  background-image: var(--tk-v1-primary-optical);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent),
+    0 5px 15px color-mix(in srgb, var(--tk-v1-accent) 28%, transparent);
+  transform: none;
+}
+
+:is(.tk-v1-page, .tk-v1-modal) :is(.btn-secondary, .btn-outline) {
+  border-color: var(--tk-v1-border-default);
+  background-color: var(--tk-v1-bg-raised);
+  background-image: var(--tk-v1-control-optical);
+  color: var(--tk-v1-fg-default);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) :is(.btn-secondary, .btn-outline):hover:not(:disabled) {
+  border-color: var(--tk-v1-border-strong);
+  background-image: var(--tk-v1-control-optical);
+  box-shadow:
+    var(--tk-v1-highlight),
+    0 3px 9px color-mix(in srgb, var(--tk-v1-fg-default) 10%, transparent);
+  transform: none;
+}
+
+:is(.tk-v1-page, .tk-v1-modal) :is(.btn-ghost, .btn-invisible) {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--tk-v1-fg-secondary);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) :is(.btn-ghost, .btn-invisible):hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 6%, transparent);
+  box-shadow: none;
+  color: var(--tk-v1-fg-default);
+  transform: none;
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn-danger {
+  border-color: color-mix(in srgb, var(--tk-v1-danger) 30%, var(--tk-v1-border-default));
+  background: color-mix(in srgb, var(--tk-v1-danger) 8%, var(--tk-v1-bg-surface));
+  box-shadow: var(--tk-v1-highlight);
+  color: var(--tk-v1-danger);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn:focus-visible {
+  outline: none;
+  box-shadow: var(--tk-v1-focus);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn:active:not(:disabled) {
+  transform: none;
+}
+
+:is(.tk-v1-page, .tk-v1-modal) .btn:disabled {
+  border-color: var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-subtle);
+  background-image: none;
+  box-shadow: none;
+  color: var(--tk-v1-fg-disabled);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) :is(.form-input, .input-full, .ads-search-input) {
+  min-height: var(--tk-v1-control-default);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--tk-v1-control-optical);
+  box-shadow:
+    var(--tk-v1-highlight),
+    inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 4%, transparent);
+  color: var(--tk-v1-fg-default);
+  font: 400 var(--tk-v1-type-control) / 1 var(--tk-v1-font-sans);
+}
+
+:is(.tk-v1-page, .tk-v1-modal) :is(.form-input, .input-full, .ads-search-input):focus {
+  border-color: var(--tk-v1-accent);
+  outline: none;
+  box-shadow: var(--tk-v1-focus);
+}
+
+:is(.tk-v1-page, .tk-v1-modal)
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not(
+        [type="color"]
+      ):not([type="hidden"]),
+    textarea,
+    select
+  ):not(.tk-v1-input):not(.custom-select-search) {
+  border-color: var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  background-color: var(--tk-v1-bg-raised);
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+  transition:
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast);
+}
+
+:is(.tk-v1-page, .tk-v1-modal)
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not(
+        [type="color"]
+      ):not([type="hidden"]),
+    textarea,
+    select
+  ):not(.tk-v1-input):not(.custom-select-search):focus-visible {
+  border-color: var(--tk-v1-accent);
+  outline: none;
+  box-shadow: var(--tk-v1-focus);
+}
+
+@media (max-width: 900px) {
+  :root {
+    --tk-v1-shell-content-top: 24px;
+    --tk-v1-shell-content-inline: 24px;
+    --tk-v1-shell-content-bottom: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --tk-v1-shell-content-top: 16px;
+    --tk-v1-shell-content-inline: 16px;
+    --tk-v1-shell-content-bottom: 24px;
+  }
+
+  .tk-v1-page > header.tk-v1-page-header {
+    align-items: flex-start;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .tk-v1-page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tk-v1-tabs-rail {
+    grid-auto-columns: minmax(220px, 1fr);
+    overflow-x: auto;
+  }
+}
+
+.tk-v1-button {
+  --_tk-button-bg: var(--tk-v1-surface-optical);
+  --_tk-button-border: var(--tk-v1-border-default);
+  --_tk-button-fg: var(--tk-v1-fg-default);
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid var(--_tk-button-border);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--_tk-button-bg);
+  background-color: var(--tk-v1-bg-raised);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+  color: var(--_tk-button-fg);
+  font-family: var(--tk-v1-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--tk-v1-fast),
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast),
+    color var(--tk-v1-fast),
+    opacity var(--tk-v1-fast);
+}
+
+.tk-v1-button-secondary {
+  background-color: var(--tk-v1-bg-raised);
+  background-image: var(--tk-v1-surface-optical);
+}
+
+.tk-v1-button:hover:not(:disabled) {
+  border-color: var(--tk-v1-border-strong);
+  box-shadow:
+    var(--tk-v1-highlight),
+    0 3px 9px color-mix(in srgb, var(--tk-v1-fg-default) 10%, transparent);
+  transform: none;
+}
+
+.tk-v1-button:active:not(:disabled) {
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 13%, transparent);
+  transform: none;
+}
+
+.tk-v1-button:focus-visible {
+  outline: none;
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-button:disabled {
+  border-color: var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-subtle);
+  background-image: none;
+  box-shadow: none;
+  color: var(--tk-v1-fg-disabled);
+  cursor: not-allowed;
+}
+
+.tk-v1-button-sm {
+  height: var(--tk-v1-control-compact);
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.tk-v1-button-md {
+  height: var(--tk-v1-control-default);
+  padding: 0 13px;
+}
+
+.tk-v1-button-lg {
+  height: var(--tk-v1-control-prominent);
+  padding: 0 17px;
+  font-size: 14px;
+}
+
+.tk-v1-button-primary {
+  --_tk-button-bg: var(--tk-v1-primary-optical);
+  --_tk-button-border: color-mix(in srgb, var(--tk-v1-accent-active) 76%, transparent);
+  --_tk-button-fg: var(--tk-v1-on-accent);
+  background-color: var(--tk-v1-accent);
+  background-image: var(--tk-v1-primary-optical);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent),
+    0 2px 7px color-mix(in srgb, var(--tk-v1-accent) 24%, transparent);
+}
+
+.tk-v1-button-primary:hover:not(:disabled) {
+  border-color: var(--tk-v1-accent-active);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent),
+    0 5px 15px color-mix(in srgb, var(--tk-v1-accent) 28%, transparent);
+}
+
+.tk-v1-button-ghost {
+  --_tk-button-bg: transparent;
+  --_tk-button-border: transparent;
+  --_tk-button-fg: var(--tk-v1-fg-secondary);
+  box-shadow: none;
+  background-color: transparent;
+  background-image: none;
+}
+
+.tk-v1-button-ghost:hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 6%, transparent);
+  box-shadow: none;
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-button-danger {
+  --_tk-button-bg: color-mix(in srgb, var(--tk-v1-danger) 8%, var(--tk-v1-bg-surface));
+  --_tk-button-border: color-mix(in srgb, var(--tk-v1-danger) 30%, var(--tk-v1-border-default));
+  --_tk-button-fg: var(--tk-v1-danger);
+  box-shadow: var(--tk-v1-highlight);
+  background-image: none;
+}
+
+.tk-v1-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: tk-v1-spin 700ms linear infinite;
+}
+
+.tk-v1-badge {
+  --_tk-badge-color: var(--tk-v1-fg-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--_tk-badge-color) 20%, transparent);
+  border-radius: var(--tk-v1-radius-full);
+  background: color-mix(in srgb, var(--_tk-badge-color) 8%, transparent);
+  color: var(--_tk-badge-color);
+  font-family: var(--tk-v1-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tk-v1-badge-accent {
+  --_tk-badge-color: var(--tk-v1-accent-text);
+}
+
+.tk-v1-badge-info {
+  --_tk-badge-color: var(--tk-v1-info);
+}
+
+.tk-v1-badge-success {
+  --_tk-badge-color: var(--tk-v1-success);
+}
+
+.tk-v1-badge-warning {
+  --_tk-badge-color: var(--tk-v1-warning);
+}
+
+.tk-v1-badge-danger {
+  --_tk-badge-color: var(--tk-v1-danger);
+}
+
+.tk-v1-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tk-v1-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-label {
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.tk-v1-input-shell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: var(--tk-v1-control-default);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--tk-v1-control-optical);
+  box-shadow:
+    var(--tk-v1-highlight),
+    inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 5%, transparent);
+  transition:
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast);
+}
+
+.tk-v1-input-shell:focus-within {
+  border-color: var(--tk-v1-accent);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-input-prefix {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding-left: 10px;
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-input {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--tk-v1-fg-default);
+  font: 400 13px/1 var(--tk-v1-font-sans);
+}
+
+.tk-v1-input::placeholder {
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-field-error .tk-v1-input-shell {
+  border-color: var(--tk-v1-danger);
+}
+
+.tk-v1-field-error .tk-v1-field-support {
+  color: var(--tk-v1-danger);
+}
+
+.tk-v1-field-support {
+  min-height: 16px;
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tk-v1-select {
+  width: 100%;
+  height: var(--tk-v1-control-default);
+  padding: 0 34px 0 10px;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  outline: 0;
+  background: var(--tk-v1-control-optical);
+  box-shadow:
+    var(--tk-v1-highlight),
+    inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 4%, transparent);
+  color: var(--tk-v1-fg-default);
+  font: 400 13px/1 var(--tk-v1-font-sans);
+}
+
+.tk-v1-select:focus-visible {
+  border-color: var(--tk-v1-accent);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-select:disabled,
+.tk-v1-input:disabled {
+  color: var(--tk-v1-fg-disabled);
+  cursor: not-allowed;
+}
+
+.tk-v1-input-shell:has(.tk-v1-input:disabled),
+.tk-v1-select:disabled {
+  border-color: var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-subtle);
+  box-shadow: none;
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-trigger {
+  min-height: var(--tk-v1-control-default);
+  padding: 7px 10px;
+  border-color: var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--tk-v1-control-optical);
+  box-shadow:
+    var(--tk-v1-highlight),
+    inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 4%, transparent);
+  color: var(--tk-v1-fg-default);
+  font: 400 13px/1.2 var(--tk-v1-font-sans);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control)
+  .custom-select-trigger:hover:not(:disabled) {
+  border-color: var(--tk-v1-border-strong);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control)
+  .custom-select-trigger:focus-visible {
+  border-color: var(--tk-v1-accent);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-trigger:disabled {
+  border-color: var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-disabled);
+  opacity: 1;
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-chevron {
+  color: var(--tk-v1-fg-muted);
+  font-size: 9px;
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control) {
+  z-index: var(--tk-v1-z-popover);
+  border-color: var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-raised);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-2);
+  font-family: var(--tk-v1-font-sans);
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-option {
+  border-bottom-color: var(--tk-v1-border-subtle);
+  color: var(--tk-v1-fg-default);
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-option:hover {
+  background: color-mix(in srgb, var(--tk-v1-accent) 7%, var(--tk-v1-bg-raised));
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-option[data-selected] {
+  background: color-mix(in srgb, var(--tk-v1-accent) 11%, var(--tk-v1-bg-raised));
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-option-desc {
+  color: var(--tk-v1-fg-muted);
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-search-wrap {
+  border-bottom-color: var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-raised);
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-search {
+  height: var(--tk-v1-control-default);
+  border-color: var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--tk-v1-control-optical);
+  color: var(--tk-v1-fg-default);
+  font: 400 var(--tk-v1-type-control) / 1 var(--tk-v1-font-sans);
+}
+
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-search:focus {
+  border-color: var(--tk-v1-accent);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-badge,
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-badge {
+  border-color: color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-badge.success,
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-badge.success {
+  color: var(--tk-v1-success);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-badge.warning,
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-badge.warning {
+  color: var(--tk-v1-warning);
+}
+
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-badge.info,
+.custom-select-dropdown:is(.tk-v1-select-dropdown, .tk-v1-choice-select-control)
+  .custom-select-badge.info {
+  color: var(--tk-v1-info);
+}

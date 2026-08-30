@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { ChevronRightIcon, RefreshIcon } from "../../../components/icons.js";
+import { TkPanel, TkTableFrame } from "../../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
@@ -88,7 +89,7 @@ export function ShopTable({
   }
 
   return (
-    <div className="section-card" data-tutorial-id="shops-list">
+    <TkPanel className="section-card" data-tutorial-id="shops-list">
       <div className="ecommerce-section-header">
         <div>
           <h3>{t("ecommerce.shops")}</h3>
@@ -104,7 +105,12 @@ export function ShopTable({
           >
             <RefreshIcon className={refreshing ? "spin" : ""} />
           </button>
-          <button className="btn btn-primary btn-sm" data-tutorial-id="shops-add" onClick={onAddShop} disabled={oauthLoading}>
+          <button
+            className="btn btn-primary btn-sm"
+            data-tutorial-id="shops-add"
+            onClick={onAddShop}
+            disabled={oauthLoading}
+          >
             {t("ecommerce.addShop")}
           </button>
         </div>
@@ -113,7 +119,7 @@ export function ShopTable({
       {shops.length === 0 ? (
         <div className="empty-cell">{t("ecommerce.noShops")}</div>
       ) : (
-        <div className="table-scroll-wrap shop-table-wrap">
+        <TkTableFrame className="table-scroll-wrap shop-table-wrap">
           <table className="shop-table" data-tutorial-id="shops-table">
             <thead>
               <tr>
@@ -296,8 +302,8 @@ export function ShopTable({
               })}
             </tbody>
           </table>
-        </div>
+        </TkTableFrame>
       )}
-    </div>
+    </TkPanel>
   );
 }

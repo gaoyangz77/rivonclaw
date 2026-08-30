@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
+import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { AddWmsAccountModal } from "./components/AddWmsAccountModal.js";
 import { InventoryGoodModal } from "./components/InventoryGoodModal.js";
@@ -17,41 +18,37 @@ export const InventoryManagementPage = observer(function InventoryManagementPage
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      inventory.fetchWmsInventory(),
-      inventory.fetchInventoryGoods(),
-    ]).catch(() => {});
+    Promise.all([inventory.fetchWmsInventory(), inventory.fetchInventoryGoods()]).catch(() => {});
   }, [inventory, user]);
 
   if (authChecking) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel className="section-card">
           <p>{t("common.loading")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="page-enter">
-        <div className="section-card">
+      <TkPageFrame>
+        <TkPanel className="section-card">
           <h2>{t("auth.loginRequired")}</h2>
           <p>{t("auth.loginFromSidebar")}</p>
-        </div>
-      </div>
+        </TkPanel>
+      </TkPageFrame>
     );
   }
 
   return (
-    <div className="page-enter inventory-page">
-      <div className="ecommerce-page-header" data-tutorial-id="inventory-header">
-        <div>
-          <h1>{t("ecommerce.inventory.pageTitle")}</h1>
-          <p className="ecommerce-page-subtitle">{t("ecommerce.inventory.pageSubtitle")}</p>
-        </div>
-      </div>
+    <TkPageFrame className="inventory-page">
+      <TkPageHeader
+        title={t("ecommerce.inventory.pageTitle")}
+        description={t("ecommerce.inventory.pageSubtitle")}
+        data-tutorial-id="inventory-header"
+      />
 
       <WmsAccountTable
         accounts={entityStore.wmsAccounts}
@@ -64,6 +61,6 @@ export const InventoryManagementPage = observer(function InventoryManagementPage
       <AddWmsAccountModal />
       <WmsInventoryGoodsSyncModal />
       <InventoryGoodModal />
-    </div>
+    </TkPageFrame>
   );
 });

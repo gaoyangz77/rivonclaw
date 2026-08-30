@@ -1,0 +1,1074 @@
+/* CSS ownership: shared legacy compatibility bridge. Imported in original cascade order. */
+
+/* ===== 6. Section Cards ===== */
+.section-card {
+  position: relative;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-card-border, rgba(15, 23, 42, 0.06));
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--surface-card-shadow, var(--shadow-md));
+  transition:
+    border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.section-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--brand-tint-20) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.section-card:hover {
+  border-color: var(--card-hover-border);
+  box-shadow: var(--surface-card-hover-shadow, var(--shadow-lg));
+}
+
+.section-card > * + * {
+  margin-top: 16px;
+}
+
+.section-card h3 {
+  margin: 0 0 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ===== 7. Cards ===== */
+.card {
+  transition:
+    box-shadow var(--transition-normal),
+    border-color var(--transition-normal);
+  box-shadow: var(--surface-card-shadow, var(--shadow-md));
+  border: 1px solid var(--surface-card-border, rgba(15, 23, 42, 0.06));
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface-card);
+}
+
+.card:hover {
+  box-shadow: var(--surface-card-hover-shadow, var(--shadow-lg));
+  border-color: var(--card-hover-border);
+}
+
+/* ===== 8. Table row hover ===== */
+.table-hover-row {
+  transition: background-color var(--transition-fast);
+  position: relative;
+}
+
+.table-hover-row:hover {
+  background-color: var(--brand-tint-06);
+}
+
+.table-hover-row:hover > td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-primary);
+}
+
+/* ===== Key Usage Block Table ===== */
+.usage-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.usage-key-block {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.usage-key-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  background-color: var(--color-bg-alt);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.usage-key-provider {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.usage-key-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.usage-key-cost {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+}
+
+.usage-inner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.usage-inner-table thead tr {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.usage-inner-table th {
+  padding: 6px 14px 6px 28px;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.usage-inner-table th:first-child {
+  text-align: left;
+}
+
+.usage-inner-table th:not(:first-child) {
+  text-align: right;
+  padding-left: 14px;
+}
+
+.usage-inner-table tbody tr {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.usage-inner-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.usage-inner-table td {
+  padding: 6px 14px 6px 28px;
+}
+
+.usage-inner-table td:not(:first-child) {
+  padding-left: 14px;
+}
+
+.usage-model-name {
+  font-weight: 500;
+}
+
+.usage-token-cell {
+  text-align: right;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.row-deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ===== 9. Status Badges ===== */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--tk-v1-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ===== 10. Modal Animation ===== */
+.modal-backdrop {
+  animation: fadeIn 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.modal-content {
+  animation: slideUp 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ===== 12. Loading Spinner ===== */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== 13. Scrollbar Polish ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ===== 14. Page description ===== */
+
+/* ===== 15. Button Variants ===== */
+
+/* Shared base for all action buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  line-height: 1.4;
+}
+
+.btn:disabled {
+  background: var(--btn-disabled-bg, #f0f2f7);
+  color: var(--color-text-disabled);
+  border: 1px solid var(--color-border-light);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* Solid primary — "Add Rule", "Save", main CTA */
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: #fff;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  box-shadow: 0 2px 8px var(--brand-tint-25);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-bg-hover);
+  box-shadow: 0 4px 14px var(--brand-tint-35);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--btn-primary-bg-active);
+  box-shadow: 0 2px 6px var(--brand-tint-20);
+}
+
+/* Outlined primary — "Activate", "Browse Path", "Add Account" */
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+}
+
+/* Outlined secondary — "Update Key", "Edit", "Recompile", "Cancel" */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--btn-secondary-hover-bg, var(--brand-tint-08));
+}
+
+/* Outlined danger — "Remove", "Delete" */
+.btn-danger {
+  background-color: transparent;
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-danger-light);
+}
+
+/* ===== 16. Tooltip ===== */
+.has-tooltip,
+.sidebar-action-tooltip {
+  position: relative;
+}
+
+.has-tooltip {
+  cursor: help;
+}
+
+.has-tooltip::after,
+.sidebar-action-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #333;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.has-tooltip:hover::after,
+.has-tooltip:focus-visible::after,
+.sidebar-action-tooltip:hover::after,
+.sidebar-action-tooltip:focus-visible::after {
+  opacity: 1;
+}
+
+.sidebar-bottom-actions-collapsed .sidebar-action-tooltip::after {
+  bottom: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(50%);
+}
+
+/* ===== 17. Custom Select ===== */
+.custom-select {
+  position: relative;
+}
+
+.custom-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.custom-select-trigger:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  filter: none;
+  transform: none;
+}
+
+.custom-select-trigger:focus-visible {
+  border-color: var(--brand-tint-55);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.custom-select-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.custom-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-select-placeholder {
+  color: var(--color-text-muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-select-badge {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 9px;
+  font-weight: 780;
+  line-height: 1;
+  white-space: nowrap;
+}
+.custom-select-badge.success {
+  border-color: rgb(35 134 95 / 28%);
+  background: rgb(35 134 95 / 8%);
+  color: #23865f;
+}
+.custom-select-badge.warning {
+  border-color: rgb(213 139 56 / 30%);
+  background: rgb(213 139 56 / 9%);
+  color: #a9671f;
+}
+.custom-select-badge.info {
+  border-color: rgb(94 117 184 / 28%);
+  background: rgb(94 117 184 / 8%);
+  color: #536aa9;
+}
+
+.custom-select-chevron {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.custom-select-dropdown {
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--surface-dropdown, #ffffff);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 1001;
+}
+
+.custom-select-search-wrap {
+  position: sticky;
+  top: 0;
+  padding: 6px;
+  background: inherit;
+  border-bottom: 1px solid var(--color-border-light);
+  z-index: 1;
+}
+
+.custom-select-search {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.custom-select-search:focus {
+  border-color: var(--color-primary);
+}
+
+.custom-select-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--color-border-light);
+  background-color: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 0;
+  transition: background-color var(--transition-fast);
+}
+
+.custom-select-option:last-child {
+  border-bottom: none;
+}
+
+.custom-select-option:hover {
+  background-color: var(--color-bg-alt);
+  filter: none;
+  transform: none !important;
+}
+
+.custom-select-option[data-selected] {
+  background-color: var(--color-primary-light);
+}
+
+.custom-select-option[data-selected]:hover {
+  background-color: var(--color-primary-light);
+}
+
+.custom-select-option-create .custom-select-option-label {
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.custom-select-option-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.custom-select-option-label {
+  min-width: 0;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-option-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Volcengine help tooltip ===== */
+.volcengine-help-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+
+.volcengine-help-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-text);
+}
+
+.volcengine-help-trigger:hover + .volcengine-help-tooltip {
+  display: block;
+}
+
+/* ===== 18. Form Components ===== */
+
+.form-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.form-row-vcenter {
+  align-items: center;
+}
+
+.form-col-4 {
+  flex: 4;
+  min-width: 0;
+}
+
+.form-col-6 {
+  flex: 6;
+  min-width: 0;
+}
+
+.provider-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.form-help {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+}
+
+.form-help-sm {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.form-error-sm {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
+.input-full {
+  width: 100%;
+}
+
+.input-mono {
+  font-family: var(--font-mono);
+}
+
+.input-readonly {
+  background-color: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.required {
+  color: var(--color-danger);
+}
+
+/* ===== 19. Info Boxes ===== */
+
+.info-box {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.info-box-blue {
+  background-color: #f5f5f4;
+  border: 1px solid #e7e5e4;
+  color: #57534e;
+}
+
+.info-box-blue a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.info-box-blue a:hover {
+  text-decoration: underline;
+}
+
+.info-box-green {
+  background-color: rgba(0, 184, 132, 0.07);
+  border: 1px solid rgba(0, 184, 132, 0.12);
+  color: #1a7a5a;
+}
+
+.info-box-yellow {
+  background-color: rgba(245, 158, 11, 0.07);
+  border: 1px solid rgba(245, 158, 11, 0.12);
+  color: #92650a;
+}
+
+/* ===== 20. Advanced / Collapsible ===== */
+
+.advanced-toggle {
+  padding: 6px 0;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--transition-fast);
+}
+
+.advanced-toggle:hover {
+  color: var(--color-primary);
+}
+
+.advanced-content {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--color-border-light);
+}
+
+/* ===== 21. Empty / Loading States ===== */
+
+.empty-cell {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 24px 14px;
+}
+
+/* Skeleton loader */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ===== 21b. Table Scroll Wrapper ===== */
+.table-scroll-wrap {
+  overflow-x: auto;
+}
+
+/* ===== 22. Table Cells ===== */
+
+.td-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.td-actions .btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.btn-invisible {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.td-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.td-meta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* ===== 23. Two-Column Layout ===== */
+
+.page-two-col {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.page-col-main {
+  flex: 1;
+  min-width: 320px;
+}
+
+.page-col-side {
+  width: 380px;
+  flex-shrink: 0;
+}
+
+/* ===== 24. Stat Cards ===== */
+
+/* ===== 25. Badge Variants ===== */
+
+.badge-success {
+  background-color: rgba(0, 184, 132, 0.1);
+  color: var(--color-success);
+}
+
+.badge-active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.badge-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #92650a;
+}
+
+.badge-danger {
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.badge-muted {
+  background-color: var(--color-bg-alt);
+  color: var(--color-text-muted);
+}
+
+.badge-info {
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.shop-service-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.badge-saved {
+  font-size: 11px;
+  color: var(--color-success);
+  background-color: rgba(0, 184, 132, 0.08);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+/* ===== 26. Provider Key Cards ===== */
+
+/* Provider-key tile grid. `auto-fill` with a 300px min: 3 columns on wide
+   panels, 2 on mid, 1 on narrow. Cards are self-contained tiles so per-
+   provider variance in action count stops looking like a misaligned table
+   row — each tile owns its own surface. */
+.pk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+/* Each configured-key tile. Vertical layout with a consistent rhythm:
+   meta row (name + badge + ancillary icons) → label+model → actions footer.
+   `min-width: 0` lets descendants (especially long labels and baseUrl text)
+   truncate instead of overflowing the tile. */
+.key-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  min-width: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.key-card:hover {
+  border-color: var(--color-border);
+  background-color: var(--brand-tint-03);
+}
+
+/* Active tile: inset 3px left accent + diagonal gradient from brand tint
+   into the base bg. Inset shadow rather than border-left so active and
+   inactive tiles stay the same geometric size — avoids visual jitter when
+   the grid re-layouts on activation. */
+.key-card-active {
+  border-color: var(--color-primary);
+  background: linear-gradient(
+    135deg,
+    var(--brand-tint-10) 0%,
+    var(--brand-tint-03) 45%,
+    var(--color-bg) 100%
+  );
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.key-card-active:hover {
+  background: linear-gradient(
+    135deg,
+    var(--brand-tint-16) 0%,
+    var(--brand-tint-06) 45%,
+    var(--color-bg) 100%
+  );
+}
+
+.key-card-inactive {
+  /* plain tile — hover/active rules above cover the other states */
+}
+
+/* Tile header: meta info on the left, Activate CTA on the right. Only
+   one action lives here — activation is a state change, distinct from the
+   administrative actions in the footer. `align-items: flex-start` keeps
+   Activate pinned to the top-right even when the meta row wraps to a
+   second line (long provider names, proxy + baseUrl, etc.). */
+.key-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.key-header .key-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.key-header .key-activate-btn {
+  flex-shrink: 0;
+}
+
+.provider-crown {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 2px;
+  opacity: 0.85;
+}
+
+.key-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Label above, model select below — stretched full-width so the dropdown
+   fills the tile. `align-items: stretch` instead of `center`, no horizontal
+   gap (vertical rhythm only). */
+.key-details {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cloud-model-name {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Label in tile context: takes available width, truncates with ellipsis
+   when longer than the tile. The 240px fixed width from the previous row
+   layout is gone — that was for horizontal alignment across list rows,
+   which doesn't apply to tiles. */
+.key-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.key-label-edit-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.key-label:hover .key-label-edit-btn {
+  opacity: 1;
+}
+
+.key-label-edit-btn:hover {
+  color: var(--color-primary);
+}
+
+.key-label-input {
+  font-size: 12px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.key-expanded {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* In tile context, form rows stack vertically so the input gets full tile
+   width (readable pasted tokens / URLs) and the Save button sits below
+   right-aligned rather than squeezed to 60px. */
+.key-card .key-expanded .form-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.key-card .key-expanded .form-row .btn {
+  align-self: flex-end;
+}
+
+/* Sub-section divider inside the expanded panel — tighten it up for the
+   narrower tile width. */
+.key-card .key-expanded .key-section-border {
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+/* ===== 27. Toggle Switch ===== */

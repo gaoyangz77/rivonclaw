@@ -15,10 +15,7 @@ function getDropdownVerticalLayout(
   rect: Pick<DOMRect, "top" | "bottom">,
   viewportHeight: number,
 ): DropdownVerticalLayout {
-  const availableBelow = Math.max(
-    0,
-    viewportHeight - rect.bottom - DROPDOWN_GAP - VIEWPORT_GUTTER,
-  );
+  const availableBelow = Math.max(0, viewportHeight - rect.bottom - DROPDOWN_GAP - VIEWPORT_GUTTER);
   const availableAbove = Math.max(0, rect.top - DROPDOWN_GAP - VIEWPORT_GUTTER);
   const openAbove = availableBelow < DROPDOWN_MAX_HEIGHT && availableAbove > availableBelow;
 
@@ -47,6 +44,7 @@ export interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   ariaLabel?: string;
+  ariaDescribedBy?: string;
   disabled?: boolean;
   className?: string;
   /** Show a search input at the top of the dropdown to filter options. */
@@ -57,7 +55,19 @@ export interface SelectProps {
   creatable?: boolean;
 }
 
-export function Select({ value, onChange, options, placeholder, ariaLabel, disabled, className, searchable, searchPlaceholder, creatable }: SelectProps) {
+export function Select({
+  value,
+  onChange,
+  options,
+  placeholder,
+  ariaLabel,
+  ariaDescribedBy,
+  disabled,
+  className,
+  searchable,
+  searchPlaceholder,
+  creatable,
+}: SelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -161,32 +171,43 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
     };
   }, [open, updatePosition, searchable]);
 
-  const selected = options.find((o) => o.value === value)
-    ?? (creatable && value ? { value, label: value } : undefined);
+  const selected =
+    options.find((o) => o.value === value) ??
+    (creatable && value ? { value, label: value } : undefined);
 
-  const filteredOptions = searchable && search
-    ? options.filter((option) =>
-        option.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
-        option.value.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
-    : options;
+  const filteredOptions =
+    searchable && search
+      ? options.filter(
+          (option) =>
+            option.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+            option.value.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+        )
+      : options;
 
-  const showCreatable = creatable && searchable && search.trim()
-    && !filteredOptions.some((o) => o.value === search.trim());
+  const showCreatable =
+    creatable &&
+    searchable &&
+    search.trim() &&
+    !filteredOptions.some((o) => o.value === search.trim());
 
   return (
-    <div ref={ref} className={`custom-select${className ? ` ${className}` : ""}`}>
+    <div
+      ref={ref}
+      className={`custom-select tk-v1-select-root${className ? ` ${className}` : ""}`}
+    >
       <button
         ref={triggerRef}
         type="button"
-        className="custom-select-trigger"
+        className="custom-select-trigger tk-v1-select-trigger"
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
       >
         <span className={selected ? "custom-select-label" : "custom-select-placeholder"}>
-          {selected ? selected.label : placeholder ?? ""}
+          {selected ? selected.label : (placeholder ?? "")}
         </span>
         {selected?.badge ? (
           <span className={`custom-select-badge ${selected.badgeTone ?? "neutral"}`}>
@@ -195,61 +216,66 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
         ) : null}
         <span className="custom-select-chevron">{open ? "\u25B2" : "\u25BC"}</span>
       </button>
-      {open && createPortal(
-        <div ref={dropdownRef} className={`custom-select-dropdown${className ? ` ${className}` : ""}`} style={dropdownStyle}>
-          {searchable && (
-            <div className="custom-select-search-wrap">
-              <input
-                ref={searchRef}
-                type="text"
-                className="custom-select-search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={searchPlaceholder ?? "Search..."}
-                aria-label={searchPlaceholder ?? "Search..."}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          )}
-          {filteredOptions.map((opt) => (
-            <button
-              type="button"
-              key={opt.value}
-              className="custom-select-option"
-              data-selected={opt.value === value || undefined}
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-            >
-              <div className="custom-select-option-main">
-                <div className="custom-select-option-label">{opt.label}</div>
-                {opt.badge ? (
-                  <span className={`custom-select-badge ${opt.badgeTone ?? "neutral"}`}>
-                    {opt.badge}
-                  </span>
-                ) : null}
+      {open &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className={`custom-select-dropdown tk-v1-select-dropdown${className ? ` ${className}` : ""}`}
+            style={dropdownStyle}
+          >
+            {searchable && (
+              <div className="custom-select-search-wrap">
+                <input
+                  ref={searchRef}
+                  type="text"
+                  className="custom-select-search tk-v1-select-search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={searchPlaceholder ?? "Search..."}
+                  aria-label={searchPlaceholder ?? "Search..."}
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
-              {opt.description && (
-                <div className="custom-select-option-desc">{opt.description}</div>
-              )}
-            </button>
-          ))}
-          {showCreatable && (
-            <button
-              type="button"
-              className="custom-select-option custom-select-option-create"
-              onClick={() => {
-                onChange(search.trim());
-                setOpen(false);
-              }}
-            >
-              <div className="custom-select-option-label">{search.trim()}</div>
-            </button>
-          )}
-        </div>,
-        document.body,
-      )}
+            )}
+            {filteredOptions.map((opt) => (
+              <button
+                type="button"
+                key={opt.value}
+                className="custom-select-option tk-v1-select-option"
+                data-selected={opt.value === value || undefined}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+              >
+                <div className="custom-select-option-main">
+                  <div className="custom-select-option-label">{opt.label}</div>
+                  {opt.badge ? (
+                    <span className={`custom-select-badge ${opt.badgeTone ?? "neutral"}`}>
+                      {opt.badge}
+                    </span>
+                  ) : null}
+                </div>
+                {opt.description && (
+                  <div className="custom-select-option-desc">{opt.description}</div>
+                )}
+              </button>
+            ))}
+            {showCreatable && (
+              <button
+                type="button"
+                className="custom-select-option custom-select-option-create tk-v1-select-option"
+                onClick={() => {
+                  onChange(search.trim());
+                  setOpen(false);
+                }}
+              >
+                <div className="custom-select-option-label">{search.trim()}</div>
+              </button>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

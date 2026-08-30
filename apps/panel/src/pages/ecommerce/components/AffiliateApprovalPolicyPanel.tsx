@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
-import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import { CheckIcon, CopyIcon, InfoIcon, RefreshIcon } from "../../../components/icons.js";
 import {
@@ -19,6 +19,7 @@ import { CREATOR_SAMPLE_TIER_ORDER, creatorSampleTierLabel } from "../affiliate-
 import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
 import panelI18n from "../../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
+import { TkTabs } from "../../../components/design-system/index.js";
 
 type AffiliateApprovalPolicy = GQL.AffiliateApprovalPolicy;
 type AffiliatePolicyAction = GQL.ActionProposalType;
@@ -145,7 +146,7 @@ export function AffiliateApprovalPolicyPanel() {
 
   const policies = policiesData?.affiliateApprovalPolicies ?? [];
   const contextShops = useMemo(
-    () => contextData?.affiliateApprovalPolicyContext.shops ?? [],
+    () => contextData?.affiliateApprovalPolicyContext?.shops ?? [],
     [contextData],
   );
   const manualTags = useMemo(
@@ -388,47 +389,24 @@ export function AffiliateApprovalPolicyPanel() {
             </div>
           ) : null}
 
-          <div
-            className="affiliate-policy-action-switcher"
-            role="tablist"
-            aria-label={t("ecommerce.affiliateWorkspace.policies.actionLabel")}
-          >
-            {actionPolicySummaries.map((summary) => {
-              const isSelected = summary.action === selectedActionSummary.action;
-              const requiresApproval = summary.enabledCount > 0;
-              return (
-                <button
-                  key={summary.action}
-                  className={`affiliate-policy-action-tab${isSelected ? " affiliate-policy-action-tab-active" : ""}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => setSelectedAction(summary.action)}
-                >
-                  <span className="affiliate-policy-action-tab-copy">
-                    <strong>{summary.label}</strong>
-                    <span>{summary.description}</span>
-                  </span>
-                  <span className="affiliate-policy-action-tab-meta">
-                    <span
-                      className={`affiliate-policy-mode-chip ${
-                        requiresApproval ? "affiliate-policy-mode-chip-approval" : "affiliate-policy-mode-chip-auto"
-                      }`}
-                    >
-                      {requiresApproval
-                        ? t("ecommerce.affiliateWorkspace.policies.approvalRequired")
-                        : t("ecommerce.affiliateWorkspace.policies.autoExecute")}
-                    </span>
-                    <span className="affiliate-policy-action-count">
-                      {t("ecommerce.affiliateWorkspace.policies.policyCount", {
-                        count: summary.policies.length,
-                      })}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <TkTabs
+            variant="rail"
+            descriptionLines={3}
+            items={actionPolicySummaries.map((summary) => ({
+              id: summary.action,
+              label: summary.label,
+              description: `${summary.description} · ${
+                summary.enabledCount > 0
+                  ? t("ecommerce.affiliateWorkspace.policies.approvalRequired")
+                  : t("ecommerce.affiliateWorkspace.policies.autoExecute")
+              }`,
+              count: summary.policies.length,
+              tone: summary.enabledCount > 0 ? ("warning" as const) : ("success" as const),
+            }))}
+            value={selectedActionSummary.action}
+            onChange={(value) => setSelectedAction(value as AffiliatePolicyAction)}
+            label={t("ecommerce.affiliateWorkspace.policies.actionLabel")}
+          />
 
           <section className="affiliate-policy-action-detail" aria-label={selectedActionSummary.label}>
             <div className="affiliate-policy-action-detail-head">

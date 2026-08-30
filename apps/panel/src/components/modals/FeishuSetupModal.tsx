@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
 import { pollFeishuSetup, retryFeishuCallbackSetup, startFeishuSetup } from "../../api/channels.js";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
+import { TkAlert, TkLoadingState } from "../design-system/index.js";
 
 type Phase = "starting" | "scanning" | "refreshing" | "permission" | "verifying" | "error";
 type SetupToken = { aborted: boolean; controller: AbortController };
@@ -224,15 +225,13 @@ export function FeishuSetupModal({
           <p>{text.body}</p>
         </div>
 
-        {errorMessage && <div className="modal-error-box">{errorMessage}</div>}
+        {errorMessage && <TkAlert tone="danger">{errorMessage}</TkAlert>}
 
         {(phase === "starting" || phase === "refreshing") && !qrImageUrl && (
-          <div className="centered-muted">
-            {phase === "refreshing" ? text.refreshing : text.starting}
-          </div>
+          <TkLoadingState label={phase === "refreshing" ? text.refreshing : text.starting} />
         )}
 
-        {phase === "verifying" && <div className="centered-muted">{text.verifying}</div>}
+        {phase === "verifying" && <TkLoadingState label={text.verifying} />}
 
         {phase === "permission" && permissionUrl && (
           <div className="feishu-setup-permission">

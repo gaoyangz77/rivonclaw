@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { TkSwitchControl, TkTabs } from "../../../components/design-system/index.js";
 import { ChevronRightIcon, CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
@@ -340,38 +341,41 @@ export const ShopDrawer = observer(function ShopDrawer({
             </div>
           </div>
           {shop && (
-            <div className="drawer-tab-bar drawer-tab-bar-header" data-tutorial-id="shops-drawer-tabs">
-              <button
-                className={`drawer-tab-btn ${activeTab === "overview" ? "drawer-tab-btn-active" : ""}`}
-                onClick={() => onTabChange("overview")}
-              >
-                {t("ecommerce.shopDrawer.tabs.overview")}
-              </button>
-              {shop.services?.customerService?.enabled && (
-                <button
-                  className={`drawer-tab-btn ${activeTab === "aiCustomerService" ? "drawer-tab-btn-active" : ""}`}
-                  onClick={() => onTabChange("aiCustomerService")}
-                >
-                  {t("ecommerce.shopDrawer.tabs.aiCustomerService")}
-                </button>
-              )}
-              {shop.services?.wms?.enabled && (
-                <button
-                  className={`drawer-tab-btn ${activeTab === "warehouseMapping" ? "drawer-tab-btn-active" : ""}`}
-                  onClick={() => onTabChange("warehouseMapping")}
-                >
-                  {t("ecommerce.inventory.shopMappings")}
-                </button>
-              )}
-              {shop.services?.affiliateService?.enabled && (
-                <button
-                  className={`drawer-tab-btn ${activeTab === "affiliateManagement" ? "drawer-tab-btn-active" : ""}`}
-                  onClick={() => onTabChange("affiliateManagement")}
-                >
-                  {t("ecommerce.shopDrawer.tabs.affiliateManagement")}
-                </button>
-              )}
-            </div>
+            <TkTabs
+              className="drawer-tab-bar-header"
+              data-tutorial-id="shops-drawer-tabs"
+              idPrefix="shop-drawer"
+              label={t("ecommerce.shopDrawer.title", { defaultValue: shop.shopName })}
+              items={[
+                { id: "overview", label: t("ecommerce.shopDrawer.tabs.overview") },
+                ...(shop.services?.customerService?.enabled
+                  ? [
+                      {
+                        id: "aiCustomerService",
+                        label: t("ecommerce.shopDrawer.tabs.aiCustomerService"),
+                      },
+                    ]
+                  : []),
+                ...(shop.services?.wms?.enabled
+                  ? [
+                      {
+                        id: "warehouseMapping",
+                        label: t("ecommerce.inventory.shopMappings"),
+                      },
+                    ]
+                  : []),
+                ...(shop.services?.affiliateService?.enabled
+                  ? [
+                      {
+                        id: "affiliateManagement",
+                        label: t("ecommerce.shopDrawer.tabs.affiliateManagement"),
+                      },
+                    ]
+                  : []),
+              ]}
+              value={activeTab}
+              onChange={(value) => onTabChange(value as DrawerTab)}
+            />
           )}
           <button className="drawer-close-btn" data-tutorial-id="shops-drawer-close" onClick={onClose}>
             <CloseIcon size={18} />
@@ -610,10 +614,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                             />
                           )}
                         </div>
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
-                            checked={shop.services?.customerService?.enabled}
+                        <TkSwitchControl
+                            label={t("ecommerce.shopDrawer.overview.customerServiceToggle")}
+                            checked={shop.services?.customerService?.enabled ?? false}
                             onChange={() =>
                               onToggleCustomerService(
                                 shop.id,
@@ -622,14 +625,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                             }
                             disabled={togglingServiceId === shop.id}
                           />
-                          <span
-                            className={`toggle-track ${shop.services?.customerService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-                          >
-                            <span
-                              className={`toggle-thumb ${shop.services?.customerService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                            />
-                          </span>
-                        </label>
                       </div>
 
                       <div className="shop-toggle-card">
@@ -652,9 +647,8 @@ export const ShopDrawer = observer(function ShopDrawer({
                             {t("ecommerce.inventory.enableShopHint")}
                           </span>
                         </div>
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
+                        <TkSwitchControl
+                            label={t("ecommerce.shopDrawer.overview.inventoryToggle")}
                             checked={shop.services?.wms?.enabled ?? false}
                             onChange={() =>
                               onToggleInventoryManagement(
@@ -664,14 +658,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                             }
                             disabled={togglingInventoryServiceId === shop.id}
                           />
-                          <span
-                            className={`toggle-track ${shop.services?.wms?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingInventoryServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-                          >
-                            <span
-                              className={`toggle-thumb ${shop.services?.wms?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                            />
-                          </span>
-                        </label>
                       </div>
 
                       <div className="shop-toggle-card">
@@ -694,9 +680,8 @@ export const ShopDrawer = observer(function ShopDrawer({
                             {t("ecommerce.shopDrawer.overview.affiliateToggleHint")}
                           </span>
                         </div>
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
+                        <TkSwitchControl
+                            label={t("ecommerce.shopDrawer.overview.affiliateToggle")}
                             checked={shop.services?.affiliateService?.enabled ?? false}
                             onChange={() =>
                               onToggleAffiliateService(
@@ -706,14 +691,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                             }
                             disabled={togglingAffiliateServiceId === shop.id}
                           />
-                          <span
-                            className={`toggle-track ${shop.services?.affiliateService?.enabled ? "toggle-track-on" : "toggle-track-off"} ${togglingAffiliateServiceId === shop.id ? "toggle-track-disabled" : ""}`}
-                          >
-                            <span
-                              className={`toggle-thumb ${shop.services?.affiliateService?.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
-                            />
-                          </span>
-                        </label>
                       </div>
                     </section>
                   </div>

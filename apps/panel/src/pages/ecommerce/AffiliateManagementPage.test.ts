@@ -928,7 +928,8 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain('["ALL_AGENT", "allAgent"]');
     expect(page).toContain('["SAMPLES", "samples"]');
     expect(page).toContain('["MESSAGES", "messages"]');
-    expect(page).toContain("aria-selected={workbenchTab === value}");
+    expect(page).toContain("<TkTabs");
+    expect(page).toContain("onChange={(value) => setWorkbenchTab(value as AffiliateWorkbenchTab)}");
     expect(page.indexOf('["PENDING_AGENT", "pendingAgent"]')).toBeLessThan(
       page.indexOf('["ESCALATIONS", "pendingEscalations"]'),
     );
@@ -1096,7 +1097,8 @@ describe("Affiliate canonical UI contract", () => {
       queries.indexOf("export const AFFILIATE_PRODUCT_SUMMARIES_QUERY"),
     );
 
-    expect(creatorModal).toContain("setActiveTab(tab.id);");
+    expect(creatorModal).toContain("<TkTabs");
+    expect(creatorModal).toContain("setActiveTab(nextTab);");
     expect(creatorModal).toContain(
       'activeTab === "conversation" ? " affiliate-conversation-tab-panel"',
     );
@@ -1920,7 +1922,7 @@ describe("creator tag catalog wiring", () => {
   it("shows collaboration progress and both tag groups on compact creator cards and detail headers", () => {
     const creatorCard = page.slice(
       page.indexOf("function CreatorRelationshipCompactCard"),
-      page.indexOf("function CreatorRelationshipWorkCard"),
+      page.indexOf("function AffiliateCollaborationDetailModal"),
     );
     const creatorDetail = page.slice(
       page.indexOf("export function CreatorRelationshipDetailModal"),

@@ -1,4 +1,10 @@
 import type { ReactNode } from "react";
+import {
+  TkModal,
+  TkPageFrame,
+  TkPageHeader,
+  TkToolbar,
+} from "../../../components/design-system/index.js";
 
 function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
@@ -12,11 +18,16 @@ export function AffiliatePageFrame({
   className?: string;
 }) {
   return (
-    <div
-      className={classes("page-enter", "affiliate-page-shell", "affiliate-page-frame", className)}
+    <TkPageFrame
+      className={classes(
+        "affiliate-page-shell",
+        "affiliate-page-frame",
+        "tk-v1-business-page",
+        className,
+      )}
     >
       {children}
-    </div>
+    </TkPageFrame>
   );
 }
 
@@ -38,17 +49,18 @@ export function AffiliatePageHeader({
   "data-tutorial-id"?: string;
 }) {
   return (
-    <header
+    <TkPageHeader
       className={classes("affiliate-page-hero", "affiliate-page-header", className)}
       data-tutorial-id={dataTutorialId ?? tutorialId}
-    >
-      <div className="affiliate-page-header-copy">
-        {eyebrow ? <span className="affiliate-page-header-eyebrow">{eyebrow}</span> : null}
-        <h1>{title}</h1>
-        {subtitle ? <p className="ecommerce-page-subtitle">{subtitle}</p> : null}
-      </div>
-      {actions ? <div className="affiliate-page-header-actions">{actions}</div> : null}
-    </header>
+      title={title}
+      description={subtitle}
+      eyebrow={eyebrow}
+      actions={actions}
+      copyClassName="affiliate-page-header-copy"
+      eyebrowClassName="affiliate-page-header-eyebrow"
+      descriptionClassName="ecommerce-page-subtitle"
+      actionsClassName="affiliate-page-header-actions"
+    />
   );
 }
 
@@ -64,12 +76,13 @@ export function AffiliateToolbar({
   "data-tutorial-id"?: string;
 }) {
   return (
-    <div
+    <TkToolbar
+      variant="open"
       className={classes("affiliate-toolbar", className)}
       data-tutorial-id={dataTutorialId ?? tutorialId}
     >
       {children}
-    </div>
+    </TkToolbar>
   );
 }
 
@@ -91,25 +104,20 @@ export function AffiliateDetailModal({
   tutorialId?: string;
 }) {
   return (
-    <div
-      className={classes("modal-backdrop", "affiliate-detail-modal-backdrop", backdropClassName)}
-      role="presentation"
-      onClick={onClose}
+    <TkModal
+      isOpen
+      onClose={onClose}
+      title={ariaLabel ?? "Affiliate detail"}
+      hideHeader
+      padding="none"
+      className={classes("affiliate-detail-modal", className)}
+      backdropClassName={classes("affiliate-detail-modal-backdrop", backdropClassName)}
+      ariaLabel={ariaLabel}
+      ariaLabelledBy={ariaLabelledBy}
+      data-tutorial-id={tutorialId}
     >
-      <div
-        className={classes("modal-content", "affiliate-detail-modal", className)}
-        role="dialog"
-        aria-modal="true"
-        aria-label={ariaLabel}
-        aria-labelledby={ariaLabelledBy}
-        data-tutorial-id={tutorialId}
-        onMouseDown={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
+      {children}
+    </TkModal>
   );
 }
 

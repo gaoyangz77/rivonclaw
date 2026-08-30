@@ -1,0 +1,277 @@
+/* CSS ownership: application foundation. Imported in original cascade order. */
+
+/* ===== 0. Font Imports (bundled locally via @fontsource) ===== */
+
+/* ===== 1. Custom Properties ===== */
+/* Brand-specific colors (primary, shadows, etc.) are in theme-default.css */
+:root {
+  /* Background — base white (page/alt tints are in theme file) */
+  --color-bg: #ffffff;
+  /* Text */
+  --color-text: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9ca3af;
+  --color-text-disabled: #c1c7d2;
+  /* State */
+  --color-danger: #ef4444;
+  --color-danger-light: rgba(239, 68, 68, 0.14);
+  --color-success: #00b884;
+  --color-warning: #f59e0b;
+  --color-info: #2563eb;
+  --color-info-light: rgba(37, 99, 235, 0.1);
+  --color-info-border: rgba(37, 99, 235, 0.12);
+  /* Vendor brand — owned by WhatsApp, identical in both themes. Deliberately absent from the
+     [data-theme="dark"] block: a brand mark that shifts with the theme is no longer the brand. */
+  --color-whatsapp-brand: #25d366;
+  --color-whatsapp-brand-shade: #0b3d22;
+  --color-whatsapp-brand-contrast: #ffffff;
+  /* A QR quiet zone must stay light in dark mode or the code stops scanning reliably,
+     so this is its own token rather than --color-bg. */
+  --color-qr-quiet-zone: #ffffff;
+  /* Sidebar — neutral tokens (brand tints are in theme file) */
+  --color-sidebar-text: #4b5563;
+  --color-sidebar-muted: #6b7280;
+  --color-sidebar-hover: rgba(17, 24, 39, 0.03);
+  /* Shape */
+  /* Legacy aliases resolve into Design System v1. New product code uses the
+     --tk-v1-* tokens directly; these aliases keep unmigrated internals on the
+     same geometry contract during rollout. */
+  --radius-sm: var(--tk-v1-radius-2);
+  --radius-md: var(--tk-v1-radius-3);
+  --radius-lg: var(--tk-v1-radius-4);
+  --radius-panel: var(--tk-v1-radius-4);
+  /* Motion */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 260ms cubic-bezier(0.2, 0, 0, 1);
+  /* Typography */
+  --font-sans:
+    "Inter", "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 3. Typography ===== */
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
+
+p {
+  color: var(--color-text-secondary);
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+/* ===== 4. Base Element Styles ===== */
+
+/* Buttons */
+button {
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Inputs & textareas */
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  padding: 9px 12px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  accent-color: var(--color-primary);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--brand-tint-55) !important;
+  box-shadow: var(--focus-ring);
+  outline: none;
+  caret-color: var(--color-primary);
+}
+
+::placeholder {
+  color: var(--color-text-muted);
+}
+
+::selection {
+  background: var(--brand-tint-22);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Links */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  text-decoration: underline;
+  color: var(--color-primary-hover);
+}
+
+/* Code */
+code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background-color: var(--color-bg-alt);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.01em;
+}
+
+/* Recording-only tutorial highlights, controlled by Playwright during video takes. */
+.recording-highlight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+.recording-highlight-box {
+  position: fixed;
+  top: var(--recording-highlight-top);
+  left: var(--recording-highlight-left);
+  width: var(--recording-highlight-width);
+  height: var(--recording-highlight-height);
+  border-radius: var(--tk-v1-radius-4);
+  border: 3px solid rgba(37, 99, 235, 0.95);
+  box-shadow:
+    0 0 0 9999px rgba(15, 23, 42, 0.18),
+    0 0 0 6px rgba(37, 99, 235, 0.16),
+    0 18px 42px rgba(37, 99, 235, 0.22);
+  transition:
+    top 180ms cubic-bezier(0.2, 0, 0, 1),
+    left 180ms cubic-bezier(0.2, 0, 0, 1),
+    width 180ms cubic-bezier(0.2, 0, 0, 1),
+    height 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.recording-highlight-ring {
+  box-shadow:
+    0 0 0 6px rgba(37, 99, 235, 0.16),
+    0 18px 42px rgba(37, 99, 235, 0.22);
+}
+
+.recording-highlight-layer:not(.recording-highlight-layer-dim) .recording-highlight-box {
+  box-shadow:
+    0 0 0 6px rgba(37, 99, 235, 0.16),
+    0 18px 42px rgba(37, 99, 235, 0.22);
+}
+
+/* Tables */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+thead th {
+  background-color: rgba(0, 0, 0, 0.02);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  text-align: left;
+  white-space: nowrap;
+}
+
+tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 14px;
+  vertical-align: middle;
+}

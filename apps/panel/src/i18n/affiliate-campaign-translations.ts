@@ -2305,31 +2305,31 @@ function locale(
       ...en.decisionReason,
       ...decisionReason,
     },
-    ...(operational ?? {}),
+    ...operational,
     ...(operationalLocale ? commissionCopy[operationalLocale] : {}),
     errors: {
       ...en.errors,
-      ...(operational?.errors ?? {}),
+      ...operational?.errors,
     },
     funnel: {
       ...en.funnel,
-      ...(operational?.funnel ?? {}),
+      ...operational?.funnel,
     },
     funnelTooltip: {
       ...en.funnelTooltip,
-      ...(operational?.funnelTooltip ?? {}),
+      ...operational?.funnelTooltip,
     },
     deliveryFailure: {
       ...en.deliveryFailure,
-      ...(operational?.deliveryFailure ?? {}),
+      ...operational?.deliveryFailure,
     },
     deliveryFailureTooltip: {
       ...en.deliveryFailureTooltip,
-      ...(operational?.deliveryFailureTooltip ?? {}),
+      ...operational?.deliveryFailureTooltip,
     },
     eligibilityReason: {
       ...en.eligibilityReason,
-      ...(operational?.eligibilityReason ?? {}),
+      ...operational?.eligibilityReason,
     },
   };
 }

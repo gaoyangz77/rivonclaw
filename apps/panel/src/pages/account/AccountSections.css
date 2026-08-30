@@ -1,0 +1,192 @@
+/* CSS ownership: account sections. Imported in original cascade order. */
+
+/* ── Account: Section headers ── */
+
+.acct-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.acct-section-header h3 {
+  margin-bottom: 4px;
+}
+
+.acct-section-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Account: Default RunProfile selector ── */
+
+.acct-default-profile {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ── Account: Item lists ── */
+
+.acct-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acct-item {
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: var(--color-bg);
+  transition: border-color var(--transition-fast);
+}
+
+.acct-item:hover {
+  border-color: var(--color-border);
+}
+
+.acct-item-system {
+  background: var(--color-bg-alt);
+  border-color: transparent;
+}
+
+/* ── Account: Sub-account roles ── */
+
+.acct-role-panel {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.acct-role-panel h4 {
+  margin-bottom: 4px;
+}
+
+.acct-role-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-bg-alt);
+}
+
+.acct-role-scope-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.acct-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.acct-item-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.acct-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.acct-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.acct-item-meta span::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-text-disabled);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.acct-item-meta span:first-child::before {
+  display: none;
+}
+
+/* ── Account: Badges ── */
+
+.acct-badge-system {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--brand-tint-08);
+  color: var(--color-primary);
+}
+
+.acct-badge-subtle {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-bg-alt);
+}
+
+/* ── Account: Tool chips ── */
+
+.acct-tool-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+
+html[lang="zh"] .acct-tool-chips {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.acct-tool-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.acct-tool-chip-warn {
+  color: var(--color-warning, #b45309);
+  background: var(--color-warning-bg, rgba(180, 83, 9, 0.08));
+  border-color: var(--color-warning-border, rgba(180, 83, 9, 0.2));
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.acct-tool-chip-icon {
+  font-size: 10px;
+  line-height: 1;
+}

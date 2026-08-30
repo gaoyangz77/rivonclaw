@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Modal } from "../../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { Select } from "../../../components/inputs/Select.js";
 import type { RunProfile } from "../account-types.js";
 

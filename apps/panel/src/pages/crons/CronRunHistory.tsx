@@ -1,15 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "../../components/modals/Modal.js";
+import { TkModal as Modal } from "../../components/design-system/index.js";
 import type { CronRunLogEntry, CronRunsResult } from "./cron-utils.js";
 import { formatDuration } from "./cron-utils.js";
 import { DEFAULTS } from "@rivonclaw/core";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
+import {
+  TkAlert,
+  TkBadge,
+  TkEmptyState,
+  TkLoadingState,
+  TkTableFrame,
+} from "../../components/design-system/index.js";
 
 interface CronRunHistoryProps {
   jobId: string;
   jobName: string;
-  fetchRuns: (params: { id: string; scope: "job"; limit: number; offset: number; sortDir: "desc" }) => Promise<CronRunsResult>;
+  fetchRuns: (params: {
+    id: string;
+    scope: "job";
+    limit: number;
+    offset: number;
+    sortDir: "desc";
+  }) => Promise<CronRunsResult>;
   onClose: () => void;
 }
 
@@ -23,24 +36,33 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (offset: number) => {
-    try {
-      setLoading(true);
-      const result = await fetchRuns({ id: jobId, scope: "job", limit: PAGE_SIZE, offset, sortDir: "desc" });
-      if (offset === 0) {
-        setEntries(result.entries);
-      } else {
-        setEntries((prev) => [...prev, ...result.entries]);
+  const load = useCallback(
+    async (offset: number) => {
+      try {
+        setLoading(true);
+        const result = await fetchRuns({
+          id: jobId,
+          scope: "job",
+          limit: PAGE_SIZE,
+          offset,
+          sortDir: "desc",
+        });
+        if (offset === 0) {
+          setEntries(result.entries);
+        } else {
+          setEntries((prev) => [...prev, ...result.entries]);
+        }
+        setTotal(result.total);
+        setHasMore(result.hasMore);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(false);
       }
-      setTotal(result.total);
-      setHasMore(result.hasMore);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchRuns, jobId]);
+    },
+    [fetchRuns, jobId],
+  );
 
   useEffect(() => {
     load(0);
@@ -52,32 +74,37 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
 
   function statusBadge(status?: string) {
     if (!status) return null;
-    const cls = status === "ok" ? "badge-success" : status === "error" ? "badge-danger" : "badge-warning";
-    return <span className={`badge ${cls}`}>{status}</span>;
+    const tone = status === "ok" ? "success" : status === "error" ? "danger" : "warning";
+    return <TkBadge tone={tone}>{status}</TkBadge>;
   }
 
   function deliveryBadge(status?: string) {
     if (!status || status === "not-requested") return null;
-    const cls = status === "delivered" ? "badge-success" : status === "not-delivered" ? "badge-danger" : "badge-default";
-    return <span className={`badge ${cls}`}>{status}</span>;
+    const tone =
+      status === "delivered"
+        ? "success"
+        : status === "not-delivered"
+          ? "danger"
+          : "neutral";
+    return <TkBadge tone={tone}>{status}</TkBadge>;
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={`${t("crons.historyTitle")} — ${jobName}`} maxWidth={720}>
-      {error && <div className="error-alert">{error}</div>}
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`${t("crons.historyTitle")} — ${jobName}`}
+      maxWidth={720}
+    >
+      {error && <TkAlert tone="danger">{error}</TkAlert>}
 
       {loading && entries.length === 0 ? (
-        <div className="loading-state">
-          <span className="spinner" />
-          <span>{t("common.loading")}</span>
-        </div>
+        <TkLoadingState label={t("common.loading")} />
       ) : entries.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-title">{t("crons.emptyRuns")}</div>
-        </div>
+        <TkEmptyState title={t("crons.emptyRuns")} />
       ) : (
         <>
-          <div className="table-scroll-wrap" data-tutorial-id="crons-history">
+          <TkTableFrame className="table-scroll-wrap" data-tutorial-id="crons-history">
             <table className="crons-runs-table">
               <thead>
                 <tr>
@@ -106,7 +133,9 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
                         </span>
                       ) : entry.summary ? (
                         <span className="text-muted" title={entry.summary}>
-                          {entry.summary.length > 80 ? entry.summary.slice(0, 80) + "…" : entry.summary}
+                          {entry.summary.length > 80
+                            ? entry.summary.slice(0, 80) + "…"
+                            : entry.summary}
                         </span>
                       ) : (
                         <span className="text-muted">—</span>
@@ -116,12 +145,14 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
                 ))}
               </tbody>
             </table>
-          </div>
+          </TkTableFrame>
 
           {hasMore && (
             <div className="form-actions">
               <button className="btn btn-secondary" onClick={loadMore} disabled={loading}>
-                {loading ? t("common.loading") : `${t("crons.loadMore")} (${entries.length}/${total})`}
+                {loading
+                  ? t("common.loading")
+                  : `${t("crons.loadMore")} (${entries.length}/${total})`}
               </button>
             </div>
           )}

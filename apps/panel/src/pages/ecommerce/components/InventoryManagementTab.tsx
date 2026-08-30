@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
+import {
+  TkAlert,
+  TkEmptyState,
+  TkLoadingState,
+  TkTabs,
+} from "../../../components/design-system/index.js";
 import type { Shop, ShopWarehouse, Warehouse } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { RefreshIcon } from "../../../components/icons.js";
@@ -96,15 +102,15 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
       </div>
 
       {inventory.shopInventoryError && (
-        <div className="form-hint form-hint-error">{inventory.shopInventoryError}</div>
+        <TkAlert tone="danger">{inventory.shopInventoryError}</TkAlert>
       )}
 
       {inventory.isShopInventoryLoading(shop.id) && shopWarehouses.length === 0 ? (
-        <div className="loading-state">{t("common.loading")}</div>
+        <TkLoadingState label={t("common.loading")} />
       ) : shopWarehouses.length === 0 ? (
-        <div className="shop-info-card">
-          <div className="shop-info-card-hint">{t("ecommerce.inventory.noShopWarehouses")}</div>
-          <div className="modal-actions inventory-empty-actions">
+        <TkEmptyState
+          title={t("ecommerce.inventory.noShopWarehouses")}
+          action={
             <button
               className="btn btn-primary btn-sm"
               onClick={() => inventory.syncShopWarehouses(shop.id).catch(() => {})}
@@ -112,28 +118,29 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
             >
               {inventory.isShopSyncing(shop.id) ? t("common.loading") : t("ecommerce.inventory.syncShopWarehouses")}
             </button>
-          </div>
-        </div>
+          }
+        />
       ) : (
         <div className="shop-info-card inventory-mapping-list">
-          <div className="inventory-shop-warehouse-tabs">
-            <button
-              type="button"
-              className={`inventory-shop-warehouse-tab${activeShopWarehouseTab === "thirdParty" ? " inventory-shop-warehouse-tab-active" : ""}`}
-              onClick={() => inventory.setShopWarehouseTab(shop.id, "thirdParty")}
-            >
-              <span>{t("ecommerce.inventory.thirdPartyWarehouseTab")}</span>
-              <span className="badge badge-muted">{editableWarehouseRows.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`inventory-shop-warehouse-tab${activeShopWarehouseTab === "official" ? " inventory-shop-warehouse-tab-active" : ""}`}
-              onClick={() => inventory.setShopWarehouseTab(shop.id, "official")}
-            >
-              <span>{t("ecommerce.inventory.officialWarehouseTab")}</span>
-              <span className="badge badge-muted">{readOnlyWarehouseRows.length}</span>
-            </button>
-          </div>
+          <TkTabs
+            items={[
+              {
+                id: "thirdParty",
+                label: t("ecommerce.inventory.thirdPartyWarehouseTab"),
+                count: editableWarehouseRows.length,
+              },
+              {
+                id: "official",
+                label: t("ecommerce.inventory.officialWarehouseTab"),
+                count: readOnlyWarehouseRows.length,
+              },
+            ]}
+            value={activeShopWarehouseTab}
+            onChange={(value) =>
+              inventory.setShopWarehouseTab(shop.id, value as "thirdParty" | "official")
+            }
+            label={t("ecommerce.inventory.shopWarehouseMapping")}
+          />
 
           {activeWarehouseRows.length === 0 ? (
             <div className="shop-info-card-hint inventory-tab-empty">

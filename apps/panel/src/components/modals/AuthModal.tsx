@@ -4,11 +4,12 @@ import type { TFunction } from "i18next";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { formatError } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
-import { Modal } from "./Modal.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
 import { useToast } from "../Toast.js";
 import { EyeIcon, EyeOffIcon, RefreshIcon } from "../icons.js";
 import { EXTERNAL_LINKS } from "../../lib/external-links.js";
 import { fetchJson } from "../../api/client.js";
+import { TkAlert, TkTabs } from "../design-system/index.js";
 
 /** Map known backend error messages to i18n keys. */
 const AUTH_ERROR_MAP: Record<string, string> = {
@@ -478,29 +479,18 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
             </button>
           </p>
         ) : (
-          <div className="auth-tab-pill" role="tablist">
-            <button
-              className={`auth-tab-pill-btn${activeTab === "login" ? " auth-tab-pill-btn--active" : ""}`}
-              onClick={() => switchTab("login")}
-              role="tab"
-              aria-selected={activeTab === "login"}
-              type="button"
-            >
-              {t("auth.login")}
-            </button>
-            <button
-              className={`auth-tab-pill-btn${activeTab === "register" ? " auth-tab-pill-btn--active" : ""}`}
-              onClick={() => switchTab("register")}
-              role="tab"
-              aria-selected={activeTab === "register"}
-              type="button"
-            >
-              {t("auth.register")}
-            </button>
-          </div>
+          <TkTabs
+            items={[
+              { id: "login", label: t("auth.login") },
+              { id: "register", label: t("auth.register") },
+            ]}
+            value={activeTab}
+            onChange={(value) => switchTab(value as "login" | "register")}
+            label={modalTitle}
+          />
         ))}
 
-        {error && <div className="error-alert">{error}</div>}
+        {error && <TkAlert tone="danger">{error}</TkAlert>}
 
         {browserPending ? (
           <div className="google-auth-waiting" role="status" aria-live="polite">

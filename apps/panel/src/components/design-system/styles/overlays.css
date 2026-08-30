@@ -1,0 +1,263 @@
+/* CSS ownership: Design System popover, menu, modal, and motion. Imported in original cascade order. */
+
+.tk-v1-popover {
+  position: fixed;
+  z-index: var(--tk-v1-z-popover);
+  width: max-content;
+  min-width: 220px;
+  max-width: min(360px, calc(100vw - 16px));
+  overflow: hidden;
+  border: 1px solid var(--tk-v1-surface-edge);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-overlay-optical);
+  box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-2);
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  animation: tk-v1-overlay-in var(--tk-v1-slow);
+  transform-origin: top left;
+}
+
+.tk-v1-popover-body {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  width: min(320px, calc(100vw - 34px));
+  padding: var(--tk-v1-space-4);
+}
+
+.tk-v1-popover-body > strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tk-v1-popover-body > p {
+  margin: 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.tk-v1-menu {
+  min-width: 236px;
+  padding: 6px;
+}
+
+.tk-v1-menu-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--tk-v1-radius-2);
+  outline: 0;
+  background: transparent;
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--tk-v1-fast),
+    color var(--tk-v1-fast);
+}
+
+.tk-v1-menu-item:hover:not(:disabled),
+.tk-v1-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--tk-v1-accent) 9%, transparent);
+}
+
+.tk-v1-menu-item:focus-visible {
+  box-shadow: inset 2px 0 0 var(--tk-v1-accent);
+}
+
+.tk-v1-menu-item:disabled {
+  color: var(--tk-v1-fg-disabled);
+  cursor: not-allowed;
+}
+
+.tk-v1-menu-item.is-danger {
+  color: var(--tk-v1-danger);
+}
+
+.tk-v1-menu-item.is-danger:hover:not(:disabled),
+.tk-v1-menu-item.is-danger:focus-visible {
+  background: color-mix(in srgb, var(--tk-v1-danger) 9%, transparent);
+  box-shadow: inset 2px 0 0 var(--tk-v1-danger);
+}
+
+.tk-v1-menu-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-menu-item.is-danger .tk-v1-menu-icon {
+  color: currentColor;
+}
+
+.tk-v1-menu-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tk-v1-menu-copy strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-menu-copy small {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-menu-item kbd {
+  padding: 2px 4px;
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-1);
+  background: color-mix(in srgb, var(--tk-v1-bg-canvas) 68%, transparent);
+  color: var(--tk-v1-fg-muted);
+  font: 500 9px/1 var(--tk-v1-font-mono);
+}
+
+.tk-v1-menu-separator {
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--tk-v1-border-subtle);
+}
+
+.modal-backdrop:has(.tk-v1-modal) {
+  z-index: var(--tk-v1-z-modal);
+  background: var(--tk-v1-overlay-backdrop);
+  backdrop-filter: blur(9px) saturate(0.88);
+  -webkit-backdrop-filter: blur(9px) saturate(0.88);
+}
+
+.tk-v1-modal.modal-content {
+  padding: var(--tk-v1-space-5);
+  border: 1px solid var(--tk-v1-surface-edge);
+  border-radius: var(--tk-v1-radius-5);
+  background: var(--tk-v1-overlay-optical);
+  box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-3);
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-sans);
+  animation: tk-v1-modal-in var(--tk-v1-slow);
+}
+
+.tk-v1-modal.modal-content.tk-v1-modal-padding-none {
+  padding: 0;
+}
+
+.tk-v1-modal .modal-header {
+  align-items: flex-start;
+  margin: calc(0px - var(--tk-v1-space-5)) calc(0px - var(--tk-v1-space-5)) var(--tk-v1-space-5);
+  padding: var(--tk-v1-space-5);
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+  background: var(--tk-v1-surface-header-optical);
+}
+
+.tk-v1-modal-padding-none .modal-header {
+  margin: 0;
+}
+
+.tk-v1-modal .modal-title {
+  color: var(--tk-v1-fg-default);
+  font: 600 17px/1.35 var(--tk-v1-font-sans);
+  letter-spacing: -0.018em;
+}
+
+.tk-v1-modal .modal-close-btn {
+  width: var(--tk-v1-control-compact);
+  height: var(--tk-v1-control-compact);
+  padding: 0;
+  border-radius: var(--tk-v1-radius-2);
+  color: var(--tk-v1-fg-muted);
+  font-size: 20px;
+}
+
+.tk-v1-modal .modal-close-btn:hover {
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 7%, transparent);
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-confirm-message {
+  margin: 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tk-v1-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--tk-v1-space-2);
+  margin-top: var(--tk-v1-space-6);
+}
+
+.tk-v1-modal-form-shell {
+  display: contents;
+}
+
+@keyframes tk-v1-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes tk-v1-pulse {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.7);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes tk-v1-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.985);
+  }
+}
+
+@keyframes tk-v1-modal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 8px)) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-v1-button,
+  .tk-v1-tab::after,
+  .tk-v1-segmented-item,
+  .tk-v1-switch-track,
+  .tk-v1-switch-thumb {
+    transition: none;
+  }
+
+  .tk-v1-status-live .tk-v1-status-signal::after {
+    animation: none;
+  }
+
+  .tk-v1-popover,
+  .tk-v1-modal.modal-content {
+    animation: none;
+  }
+}

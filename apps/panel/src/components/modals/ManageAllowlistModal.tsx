@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "./Modal.js";
-import { ConfirmDialog } from "./ConfirmDialog.js";
-import { fetchPairingRequests, fetchAllowlist, approvePairing, removeFromAllowlist, type PairingRequest } from "../../api/index.js";
+import { TkModal as Modal } from "../design-system/Overlays.js";
+import { TkConfirmDialog as ConfirmDialog } from "../design-system/index.js";
+import { TkAlert, TkEmptyState, TkLoadingState, TkTableFrame } from "../design-system/index.js";
+import {
+  fetchPairingRequests,
+  fetchAllowlist,
+  approvePairing,
+  removeFromAllowlist,
+  type PairingRequest,
+} from "../../api/index.js";
 
 export interface ManageAllowlistModalProps {
   isOpen: boolean;
@@ -61,10 +68,10 @@ export function ManageAllowlistModal({
       const result = await approvePairing(channelId, code, i18n.language);
 
       // Remove from pending requests
-      setPairingRequests(prev => prev.filter(r => r.code !== code));
+      setPairingRequests((prev) => prev.filter((r) => r.code !== code));
 
       // Add to allowlist
-      setAllowlist(prev => [...prev, result.id]);
+      setAllowlist((prev) => [...prev, result.id]);
     } catch (err) {
       setError(`${t("pairing.failedToApprove")} ${String(err)}`);
     } finally {
@@ -84,7 +91,7 @@ export function ManageAllowlistModal({
       await removeFromAllowlist(channelId, entry);
 
       // Remove from allowlist
-      setAllowlist(prev => prev.filter(e => e !== entry));
+      setAllowlist((prev) => prev.filter((e) => e !== entry));
     } catch (err) {
       setError(`${t("pairing.failedToRemove")} ${String(err)}`);
     } finally {
@@ -117,17 +124,13 @@ export function ManageAllowlistModal({
     >
       <div className="modal-content-col">
         {/* Loading State */}
-        {loading && (
-          <div className="modal-loading">
-            {t("common.loading")}...
-          </div>
-        )}
+        {loading && <TkLoadingState label={`${t("common.loading")}...`} />}
 
         {/* Error Display */}
         {error && (
-          <div className="modal-error-box">
+          <TkAlert tone="danger">
             <strong>{t("channels.errorLabel")}</strong> {error}
-          </div>
+          </TkAlert>
         )}
 
         {/* Pending Pairing Requests */}
@@ -138,56 +141,42 @@ export function ManageAllowlistModal({
             </h3>
 
             {pairingRequests.length === 0 ? (
-              <div className="modal-empty-state">
-                {t("pairing.noPendingRequests")}
-              </div>
+              <TkEmptyState title={t("pairing.noPendingRequests")} />
             ) : (
-              <div className="modal-table-wrap">
+              <TkTableFrame className="modal-table-wrap">
                 <table className="modal-table">
                   <thead>
                     <tr>
-                      <th>
-                        {t("pairing.code")}
-                      </th>
-                      <th>
-                        {t("pairing.userId")}
-                      </th>
-                      <th>
-                        {t("pairing.requestedAt")}
-                      </th>
-                      <th className="text-right">
-                        {t("pairing.action")}
-                      </th>
+                      <th>{t("pairing.code")}</th>
+                      <th>{t("pairing.userId")}</th>
+                      <th>{t("pairing.requestedAt")}</th>
+                      <th className="text-right">{t("pairing.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pairingRequests.map((request) => (
                       <tr key={request.code}>
                         <td>
-                          <code className="td-code">
-                            {request.code}
-                          </code>
+                          <code className="td-code">{request.code}</code>
                         </td>
-                        <td>
-                          {request.id}
-                        </td>
-                        <td className="td-muted">
-                          {formatTimeAgo(request.createdAt)}
-                        </td>
+                        <td>{request.id}</td>
+                        <td className="td-muted">{formatTimeAgo(request.createdAt)}</td>
                         <td className="text-right">
                           <button
                             className="btn btn-primary btn-sm"
                             onClick={() => handleApprove(request.code)}
                             disabled={processing === request.code}
                           >
-                            {processing === request.code ? t("pairing.approving") : t("pairing.approve")}
+                            {processing === request.code
+                              ? t("pairing.approving")
+                              : t("pairing.approve")}
                           </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TkTableFrame>
             )}
           </div>
         )}
@@ -200,28 +189,20 @@ export function ManageAllowlistModal({
             </h3>
 
             {allowlist.length === 0 ? (
-              <div className="modal-empty-state">
-                {t("pairing.noAllowedUsers")}
-              </div>
+              <TkEmptyState title={t("pairing.noAllowedUsers")} />
             ) : (
-              <div className="modal-table-wrap">
+              <TkTableFrame className="modal-table-wrap">
                 <table className="modal-table">
                   <thead>
                     <tr>
-                      <th>
-                        {t("pairing.userId")}
-                      </th>
-                      <th className="text-right">
-                        {t("pairing.action")}
-                      </th>
+                      <th>{t("pairing.userId")}</th>
+                      <th className="text-right">{t("pairing.action")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allowlist.map((entry) => (
                       <tr key={entry}>
-                        <td>
-                          {entry}
-                        </td>
+                        <td>{entry}</td>
                         <td className="text-right">
                           <button
                             className="btn btn-danger btn-sm"
@@ -235,17 +216,14 @@ export function ManageAllowlistModal({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TkTableFrame>
             )}
           </div>
         )}
 
         {/* Close Button */}
         <div className="modal-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={onClose}
-          >
+          <button className="btn btn-secondary" onClick={onClose}>
             {t("common.close")}
           </button>
         </div>
