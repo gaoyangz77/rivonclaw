@@ -13298,7 +13298,7 @@ export interface ResolveAffiliateCampaignProductInput {
 /** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, MANAGE_CREATOR_TAG -> creatorTagIntent.operation + creatorTagIntent.manualTagId. */
 export interface ResolveAffiliateWorkItemActionInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  /** Required only when type is MANAGE_CREATOR_TAG. Set operation to ADD or REMOVE and exactly one target: manualTagId from affiliate_search_manual_tags, or systemTag from affiliate_list_system_tags. Never name a tag by text, guess an enum, or provide both. The tag lands on this work item's Relationship and is seller-wide, so contextShopId is optional and never narrows it. */
+  /** Required only when type is MANAGE_CREATOR_TAG. Set operation to ADD or REMOVE and exactly one target: manualTagId from affiliate_search_manual_tags, or systemTag using the fixed Agent-writable enum NO_CAMPAIGN_DISTURB. Never name a tag by text or provide both. Backend validates every enum and operation against its system-tag registry. The tag lands on this work item's Relationship and is seller-wide, so contextShopId is optional and never narrows it. */
   creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
@@ -14669,7 +14669,6 @@ export const ToolId = {
   AffiliateListShops: 'AFFILIATE_LIST_SHOPS',
   AffiliateListShopOpenCollaborations: 'AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS',
   AffiliateListShopTargetCollaborations: 'AFFILIATE_LIST_SHOP_TARGET_COLLABORATIONS',
-  AffiliateListSystemTags: 'AFFILIATE_LIST_SYSTEM_TAGS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliateManageOpenCollaboration: 'AFFILIATE_MANAGE_OPEN_COLLABORATION',
   AffiliateManageTargetCollaboration: 'AFFILIATE_MANAGE_TARGET_COLLABORATION',

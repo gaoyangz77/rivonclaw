@@ -630,9 +630,12 @@ describe("affiliate system-tag run context", () => {
       "affiliate_resolve_work_item supports three action types",
     );
     expect(session.extraSystemPrompt).toContain("MANAGE_CREATOR_TAG");
-    expect(session.extraSystemPrompt).toContain("affiliate_list_system_tags");
+    expect(session.extraSystemPrompt).not.toContain("affiliate_list_system_tags");
     expect(session.extraSystemPrompt).toContain(
-      "NO_CAMPAIGN_DISTURB blocks only future mechanical Campaign outreach",
+      "fixed Agent-writable system-tag enum is NO_CAMPAIGN_DISTURB",
+    );
+    expect(session.extraSystemPrompt).toContain(
+      "explicit, unwithdrawn Campaign opt-out is durable Relationship state",
     );
   });
 });
