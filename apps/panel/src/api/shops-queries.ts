@@ -4305,6 +4305,8 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     preferredWhatsAppAccountBindingId
     preferredEmailAccountBindingId
     deviceId
+    escalationChannelId
+    escalationRecipientId
     configRevision
     archivedAt
     createdAt
@@ -4317,6 +4319,37 @@ export const AFFILIATE_BUSINESS_DEVELOPERS_QUERY = gql`
   query AffiliateBusinessDevelopers($includeArchived: Boolean) {
     affiliateBusinessDevelopers(includeArchived: $includeArchived) {
       ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const AFFILIATE_ESCALATION_PAGE_QUERY = gql`
+  query AffiliateEscalationPage($input: AffiliateEscalationPageInput!) {
+    affiliateEscalationPage(input: $input) {
+      totalCount
+      offset
+      limit
+      items {
+        id
+        creatorRelationshipId
+        businessDeveloperId
+        sourceAgendaItemsSnapshotId
+        reason
+        question
+        context
+        status
+        version
+        notificationStatus
+        notificationAttemptCount
+        notificationLastError
+        createdAt
+        updatedAt
+        creatorName
+        creatorUsername
+        creatorAvatarUrl
+        businessDeveloperName
+        sourceAgendaItemsSnapshotJson
+      }
     }
   }
 `;

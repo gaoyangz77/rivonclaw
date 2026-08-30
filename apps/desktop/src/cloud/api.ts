@@ -6,13 +6,12 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { CloudRestError } from "./cloud-client.js";
+import { invalidateToolSpecsCache, syncDesktopToolSpecs } from "./tool-specs-sync.js";
 import {
-  invalidateToolSpecsCache,
-  syncDesktopToolSpecs,
-} from "./tool-specs-sync.js";
-import {
+  assertAffiliateRunTerminalOutcomeAvailable,
   getActiveAffiliateRunCheckpoint,
   recordActiveAffiliateRunPredictionCacheIds,
+  recordActiveAffiliateRunTerminalOutcome,
 } from "../affiliate/affiliate-run-checkpoints.js";
 import { openClawConnector } from "../openclaw/index.js";
 
@@ -31,6 +30,7 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
 
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
 const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
+const AFFILIATE_ESCALATE_OP_NAME = "AffiliateEscalate";
 const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
 const AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME = "AffiliateRelationshipTimeline";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
@@ -74,8 +74,10 @@ function isModuleEnrollmentOperation(opName: string | null): boolean {
 }
 
 function isAffiliateGraphqlOperation(opName: string | null, query: string): boolean {
-  return opName?.toLowerCase().includes("affiliate") === true
-    || /\b(?:affiliate[A-Z]|resolveAffiliate)/.test(query);
+  return (
+    opName?.toLowerCase().includes("affiliate") === true ||
+    /\b(?:affiliate[A-Z]|resolveAffiliate)/.test(query)
+  );
 }
 
 function redactAffiliateStaffDecisionEvidence(value: unknown): unknown {
@@ -110,14 +112,18 @@ function hasAllowedAccountLlmEntitlement(data: unknown): boolean {
   const accountLlm = (overview as { accountLlm?: unknown }).accountLlm;
   if (!accountLlm || typeof accountLlm !== "object") return false;
   const entitlement = (accountLlm as { entitlement?: unknown }).entitlement;
-  return !!entitlement
-    && typeof entitlement === "object"
-    && (entitlement as { allowed?: unknown }).allowed === true;
+  return (
+    !!entitlement &&
+    typeof entitlement === "object" &&
+    (entitlement as { allowed?: unknown }).allowed === true
+  );
 }
 
 function runCloudLlmEntitlementSyncInBackground(ctx: ApiContext): void {
   if (!ctx.authSession?.getAccessToken() || !ctx.onCloudLlmEntitlementAvailable) return;
-  const hasLocalCloudProvider = rootStore.providerKeys.some((key: { provider?: string }) => key.provider === "rivonclaw-pro");
+  const hasLocalCloudProvider = rootStore.providerKeys.some(
+    (key: { provider?: string }) => key.provider === "rivonclaw-pro",
+  );
   if (hasLocalCloudProvider) return;
   try {
     void Promise.resolve(ctx.onCloudLlmEntitlementAvailable()).catch((err: unknown) => {
@@ -135,7 +141,8 @@ function sanitizeCloudGraphqlVariables(
 ): Record<string, unknown> | undefined {
   if (
     variables &&
-    (opName === AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME || query.includes("affiliateRelationshipTimeline"))
+    (opName === AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME ||
+      query.includes("affiliateRelationshipTimeline"))
   ) {
     const input = asRecord(variables.input);
     if (input) {
@@ -154,7 +161,9 @@ function sanitizeCloudGraphqlVariables(
         }
       }
       if (changed) {
-        log.info("Normalized affiliate relationship timeline date range before proxying to backend");
+        log.info(
+          "Normalized affiliate relationship timeline date range before proxying to backend",
+        );
         return {
           ...variables,
           input: normalizedInput,
@@ -166,13 +175,42 @@ function sanitizeCloudGraphqlVariables(
   if (variables && looksLikeAffiliatePredictCreatorProductFitVariables(opName, variables)) {
     const normalized = sanitizeAffiliatePredictCreatorProductFitVariables(variables);
     if (normalized !== variables) {
-      log.info("Normalized affiliate creator-product prediction payload before proxying to backend");
+      log.info(
+        "Normalized affiliate creator-product prediction payload before proxying to backend",
+      );
     }
     return normalized;
   }
 
   if (!variables) {
     return variables;
+  }
+
+  const isAffiliateEscalate =
+    opName === AFFILIATE_ESCALATE_OP_NAME || query.includes("affiliateEscalate");
+  if (isAffiliateEscalate) {
+    const input = asRecord(variables.input);
+    if (!input || !hasNonEmptyString(input.creatorRelationshipId)) {
+      throw new Error("creatorRelationshipId is required for affiliate_escalate");
+    }
+    const creatorRelationshipId = String(input.creatorRelationshipId);
+    assertAffiliateRunTerminalOutcomeAvailable(creatorRelationshipId);
+    const checkpoint = getActiveAffiliateRunCheckpoint(creatorRelationshipId);
+    if (!checkpoint?.agendaItemsSnapshotId) {
+      throw new Error(
+        "affiliate_escalate requires a trusted agenda snapshot from the active Desktop run",
+      );
+    }
+    return {
+      ...variables,
+      input: {
+        ...input,
+        sourceAgendaItemsSnapshotId: checkpoint.agendaItemsSnapshotId,
+        baseCheckpointId: checkpoint.baseCheckpointId,
+        baseEventCursor: checkpoint.baseEventCursor,
+        targetEventCursor: checkpoint.targetEventCursor,
+      },
+    };
   }
 
   const isAffiliateResolveWorkItem =
@@ -191,8 +229,11 @@ function sanitizeCloudGraphqlVariables(
   if (input.decision === "FAILED_OR_INCOMPLETE") {
     throw new Error(
       "FAILED_OR_INCOMPLETE is reserved for trusted system preflight failures and cannot be selected by the Affiliate Agent. " +
-      "Retry the failed read or action tool. If the run cannot complete because the tool or runtime is unavailable, leave the work item unresolved so it remains retryable; do not transfer it to staff.",
+        "Retry the failed read or action tool. If the run cannot complete because the tool or runtime is unavailable, leave the work item unresolved so it remains retryable; do not transfer it to staff.",
     );
+  }
+  if (getActiveAffiliateRunCheckpoint(String(input.creatorRelationshipId))) {
+    assertAffiliateRunTerminalOutcomeAvailable(String(input.creatorRelationshipId));
   }
   const inputWithCheckpoint = injectAffiliateResolveCheckpoint(input);
   // Action types and their typed payloads belong exclusively to the dynamic
@@ -294,6 +335,40 @@ async function ensureAffiliateResolveCheckpointSnapshot(
   });
 }
 
+function recordAffiliateTerminalToolSuccess(
+  opName: string | null,
+  query: string,
+  variables: Record<string, unknown> | undefined,
+  data: unknown,
+): void {
+  const input = asRecord(variables?.input);
+  const creatorRelationshipId = firstNonEmptyString(input?.creatorRelationshipId);
+  if (!creatorRelationshipId) return;
+  const response = asRecord(data);
+  const escalateResult = asRecord(response?.affiliateEscalate);
+  if (
+    (opName === AFFILIATE_ESCALATE_OP_NAME || query.includes("affiliateEscalate")) &&
+    escalateResult?.ok === true
+  ) {
+    recordActiveAffiliateRunTerminalOutcome({
+      creatorRelationshipId,
+      outcome: "ESCALATED",
+    });
+    return;
+  }
+  const resolveResult = asRecord(response?.resolveAffiliateWorkItem);
+  if (
+    (opName === AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME ||
+      query.includes("resolveAffiliateWorkItem")) &&
+    resolveResult?.success === true
+  ) {
+    recordActiveAffiliateRunTerminalOutcome({
+      creatorRelationshipId,
+      outcome: "RESOLVED",
+    });
+  }
+}
+
 function looksLikeAffiliatePredictCreatorProductFitVariables(
   opName: string | null,
   variables: Record<string, unknown>,
@@ -334,9 +409,7 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
   return (
     typeof input.decision === "string" &&
     hasNonEmptyString(input.creatorRelationshipId) &&
-    (hasNonEmptyString(input.shopId) ||
-      input.action != null ||
-      Array.isArray(input.actions))
+    (hasNonEmptyString(input.shopId) || input.action != null || Array.isArray(input.actions))
   );
 }
 
@@ -373,9 +446,9 @@ function omitEmptyAffiliateStrings<T extends Record<string, unknown>>(record: T)
       continue;
     }
     if (Array.isArray(value)) {
-      const normalizedArray = value.map((item) => (
-        asRecord(item) ? omitEmptyAffiliateStrings(item as Record<string, unknown>) : item
-      ));
+      const normalizedArray = value.map((item) =>
+        asRecord(item) ? omitEmptyAffiliateStrings(item as Record<string, unknown>) : item,
+      );
       if (normalizedArray.some((item, index) => item !== value[index])) changed = true;
       next[key] = normalizedArray;
       continue;
@@ -432,7 +505,12 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     const isExtension = req.headers["x-request-source"] === "extension";
     if (isExtension) {
       sendJson(res, 200, {
-        errors: [{ message: "ToolSpecsSync is desktop-owned; extensions receive ToolSpecs from Desktop via gateway RPC" }],
+        errors: [
+          {
+            message:
+              "ToolSpecsSync is desktop-owned; extensions receive ToolSpecs from Desktop via gateway RPC",
+          },
+        ],
       });
       return;
     }
@@ -445,9 +523,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       sendJson(res, 200, { data: snapshot.data });
     } catch (err) {
       sendJson(res, 200, {
-        errors: [
-          { message: err instanceof Error ? err.message : "Cloud GraphQL request failed" },
-        ],
+        errors: [{ message: err instanceof Error ? err.message : "Cloud GraphQL request failed" }],
       });
     }
     return;
@@ -472,7 +548,10 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     const envelope = isExtension
       ? await ctx.authSession.graphqlFetchEnvelope(body.query, variables, requestExtensions)
       : null;
-    const data = envelope ? envelope.data : await ctx.authSession.graphqlFetch(body.query, variables);
+    const data = envelope
+      ? envelope.data
+      : await ctx.authSession.graphqlFetch(body.query, variables);
+    recordAffiliateTerminalToolSuccess(opName, body.query, variables, data);
     captureAffiliatePredictionEvidence(opName, variables, data);
 
     // Only ingest Panel responses into MST. Extension (agent tool) responses
@@ -497,9 +576,10 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       runCloudLlmEntitlementSyncInBackground(ctx);
     }
 
-    const responseData = isExtension && isAffiliateGraphqlOperation(opName, body.query)
-      ? redactAffiliateStaffDecisionEvidence(data)
-      : data;
+    const responseData =
+      isExtension && isAffiliateGraphqlOperation(opName, body.query)
+        ? redactAffiliateStaffDecisionEvidence(data)
+        : data;
     const responseEnvelope = envelope
       ? { ...envelope, data: responseData }
       : { data: responseData };

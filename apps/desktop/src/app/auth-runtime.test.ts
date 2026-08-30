@@ -32,19 +32,24 @@ vi.mock("@rivonclaw/logger", () => ({
 }));
 
 vi.mock("../affiliate/affiliate-campaign-search-plan-actuator.js", () => ({
-  AffiliateCampaignSearchPlanActuator: vi.fn().mockImplementation(
-    function AffiliateCampaignSearchPlanActuator() {
+  AffiliateCampaignSearchPlanActuator: vi
+    .fn()
+    .mockImplementation(function AffiliateCampaignSearchPlanActuator() {
       return { enqueue: vi.fn() };
-    },
-  ),
+    }),
+}));
+
+vi.mock("../affiliate/affiliate-escalation-notification-actuator.js", () => ({
+  catchUpAffiliateEscalationNotifications: vi.fn().mockResolvedValue(undefined),
+  handleAffiliateEscalationNotification: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../auth/session.js", () => ({
   AuthSessionManager: vi.fn().mockImplementation(function AuthSessionManager() {
     return {
-    loadFromKeychain: mocks.authSessionLoadFromKeychain,
-    graphqlFetch: vi.fn(),
-    getAccessToken: vi.fn(() => null),
+      loadFromKeychain: mocks.authSessionLoadFromKeychain,
+      graphqlFetch: vi.fn(),
+      getAccessToken: vi.fn(() => null),
     };
   }),
 }));
@@ -87,6 +92,9 @@ vi.mock("../cloud/backend-subscription-client.js", () => ({
       }),
       subscribeToAffiliateActionProposalChanges: vi.fn((callback) => {
         mocks.callbacks.affiliateActionProposalChanged = callback;
+      }),
+      subscribeToAffiliateEscalationChanges: vi.fn((callback) => {
+        mocks.callbacks.affiliateEscalationChanged = callback;
       }),
       subscribeToAffiliateCampaignSearchPlanRequests: vi.fn((_: string, callback) => {
         mocks.callbacks.affiliateCampaignSearchPlanRequested = callback;

@@ -1097,6 +1097,8 @@ export interface AffiliateBusinessDeveloper {
   /** Outreach device that executes this developer's WhatsApp/email work, in the same id space as a shop's affiliate device. Null until a device is bound; absence is a real state, never substituted. */
   deviceId?: Maybe<Scalars['String']['output']>;
   displayName: Scalars['String']['output'];
+  escalationChannelId?: Maybe<Scalars['String']['output']>;
+  escalationRecipientId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   normalizedDisplayName: Scalars['String']['output'];
   preferredEmailAccountBindingId?: Maybe<Scalars['ID']['output']>;
@@ -2621,6 +2623,110 @@ export const AffiliateEmailAttachmentDisposition = {
 } as const;
 
 export type AffiliateEmailAttachmentDisposition = typeof AffiliateEmailAttachmentDisposition[keyof typeof AffiliateEmailAttachmentDisposition];
+export interface AffiliateEscalateInput {
+  baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
+  baseEventCursor?: InputMaybe<Scalars['Int']['input']>;
+  context?: InputMaybe<Scalars['String']['input']>;
+  creatorRelationshipId: Scalars['ID']['input'];
+  question: Scalars['String']['input'];
+  reason: Scalars['String']['input'];
+  /** Trusted immutable agenda snapshot id; Desktop overwrites model input. */
+  sourceAgendaItemsSnapshotId?: InputMaybe<Scalars['ID']['input']>;
+  targetEventCursor?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface AffiliateEscalationChangedEvent {
+  escalationId: Scalars['ID']['output'];
+  status: AffiliateEscalationStatus;
+  version: Scalars['Int']['output'];
+}
+
+export interface AffiliateEscalationNotificationAckInput {
+  claimToken: Scalars['String']['input'];
+  deviceId: Scalars['String']['input'];
+  error?: InputMaybe<Scalars['String']['input']>;
+  escalationId: Scalars['ID']['input'];
+  success: Scalars['Boolean']['input'];
+}
+
+export interface AffiliateEscalationNotificationClaim {
+  claimToken: Scalars['String']['output'];
+  escalation: AffiliateEscalationView;
+}
+
+/** Durable delivery state for the staff notification embedded in an Affiliate escalation. */
+export const AffiliateEscalationNotificationStatus = {
+  Claimed: 'CLAIMED',
+  Failed: 'FAILED',
+  Pending: 'PENDING',
+  Sent: 'SENT',
+  Skipped: 'SKIPPED',
+  Unroutable: 'UNROUTABLE'
+} as const;
+
+export type AffiliateEscalationNotificationStatus = typeof AffiliateEscalationNotificationStatus[keyof typeof AffiliateEscalationNotificationStatus];
+export interface AffiliateEscalationPage {
+  items: Array<AffiliateEscalationView>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateEscalationPageInput {
+  businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<AffiliateEscalationStatus>;
+}
+
+/** Lifecycle state of an Affiliate Agent handoff to staff. */
+export const AffiliateEscalationStatus = {
+  Closed: 'CLOSED',
+  Open: 'OPEN',
+  Resolved: 'RESOLVED'
+} as const;
+
+export type AffiliateEscalationStatus = typeof AffiliateEscalationStatus[keyof typeof AffiliateEscalationStatus];
+export interface AffiliateEscalationToolResult {
+  changed: Scalars['Boolean']['output'];
+  escalationId: Scalars['ID']['output'];
+  ok: Scalars['Boolean']['output'];
+  status: AffiliateEscalationStatus;
+  version: Scalars['Int']['output'];
+}
+
+export interface AffiliateEscalationView {
+  baseCheckpointId?: Maybe<Scalars['String']['output']>;
+  baseEventCursor: Scalars['Int']['output'];
+  businessDeveloperId?: Maybe<Scalars['ID']['output']>;
+  businessDeveloperName?: Maybe<Scalars['String']['output']>;
+  context?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
+  creatorName?: Maybe<Scalars['String']['output']>;
+  creatorRelationshipId: Scalars['ID']['output'];
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  decision?: Maybe<Scalars['String']['output']>;
+  escalationChannelId?: Maybe<Scalars['String']['output']>;
+  escalationRecipientId?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  instructions?: Maybe<Scalars['String']['output']>;
+  notificationAttemptCount: Scalars['Int']['output'];
+  notificationLastError?: Maybe<Scalars['String']['output']>;
+  notificationStatus: AffiliateEscalationNotificationStatus;
+  question: Scalars['String']['output'];
+  reason: Scalars['String']['output'];
+  resolutionSequence?: Maybe<Scalars['Int']['output']>;
+  resolvedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  sourceAgendaItemsSnapshotId: Scalars['ID']['output'];
+  sourceAgendaItemsSnapshotJson: Scalars['String']['output'];
+  status: AffiliateEscalationStatus;
+  targetEventCursor: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  version: Scalars['Int']['output'];
+}
+
 export interface AffiliateExpectedSalesAutomaticSelection {
   dataFoundationLevel?: Maybe<Scalars['String']['output']>;
   effectiveTenantScope?: Maybe<Scalars['String']['output']>;
@@ -3795,9 +3901,16 @@ export interface AffiliateReachoutSection {
 
 export interface AffiliateRelationshipAgendaItem {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  affiliateEscalationId?: Maybe<Scalars['ID']['output']>;
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   conversationWindow?: Maybe<AffiliateConversationWindow>;
+  escalationContext?: Maybe<Scalars['String']['output']>;
+  escalationDecision?: Maybe<Scalars['String']['output']>;
+  escalationInstructions?: Maybe<Scalars['String']['output']>;
+  escalationQuestion?: Maybe<Scalars['String']['output']>;
+  escalationReason?: Maybe<Scalars['String']['output']>;
+  escalationResolvedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Whether an active Target Collaboration covers this item's exact shop, Creator and product — the seller commitment a Sample decision turns on. Null means the question is unanswerable from this item (it names no product, or its shop lies outside the Relationship), NOT that no commitment exists; never read null as false. */
   hasTargetCollaboration?: Maybe<Scalars['Boolean']['output']>;
   key: Scalars['String']['output'];
@@ -3843,6 +3956,7 @@ export const AffiliateRelationshipAgendaOwner = {
 
 export type AffiliateRelationshipAgendaOwner = typeof AffiliateRelationshipAgendaOwner[keyof typeof AffiliateRelationshipAgendaOwner];
 export const AffiliateRelationshipAgendaSourceType = {
+  AffiliateEscalation: 'AFFILIATE_ESCALATION',
   CreatorChannelContact: 'CREATOR_CHANNEL_CONTACT',
   PlatformCollaboration: 'PLATFORM_COLLABORATION',
   PlatformConversationRoute: 'PLATFORM_CONVERSATION_ROUTE',
@@ -3897,6 +4011,7 @@ export const AffiliateRelationshipRequiredAction = {
   CompleteCollaborationTask: 'COMPLETE_COLLABORATION_TASK',
   FollowUpCreator: 'FOLLOW_UP_CREATOR',
   HandleCreatorMessage: 'HANDLE_CREATOR_MESSAGE',
+  HandleEscalationResolution: 'HANDLE_ESCALATION_RESOLUTION',
   HandleSampleTerminalState: 'HANDLE_SAMPLE_TERMINAL_STATE',
   NoAction: 'NO_ACTION',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
@@ -4152,6 +4267,12 @@ export interface AffiliateRelationshipWorkSummary {
   externalWaitingCount: Scalars['Int']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   staffRequiredCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateResolveEscalationInput {
+  decision: Scalars['String']['input'];
+  escalationId: Scalars['ID']['input'];
+  instructions: Scalars['String']['input'];
 }
 
 export interface AffiliateResponseHorizon {
@@ -4536,6 +4657,7 @@ export type AffiliateWorkItemSubjectType = typeof AffiliateWorkItemSubjectType[k
 export const AffiliateWorkKind = {
   ContentFollowUp: 'CONTENT_FOLLOW_UP',
   CreatorFollowUp: 'CREATOR_FOLLOW_UP',
+  EscalationResolution: 'ESCALATION_RESOLUTION',
   IdentityResolution: 'IDENTITY_RESOLUTION',
   InboundMessageTriage: 'INBOUND_MESSAGE_TRIAGE',
   ManualReview: 'MANUAL_REVIEW',
@@ -4579,6 +4701,7 @@ export const AffiliateWorkProcessReason = {
   ContentPublished: 'CONTENT_PUBLISHED',
   CreatorActionFollowUpDue: 'CREATOR_ACTION_FOLLOW_UP_DUE',
   CreatorMessageNeedsHandling: 'CREATOR_MESSAGE_NEEDS_HANDLING',
+  EscalationResolved: 'ESCALATION_RESOLVED',
   IdentityResolution: 'IDENTITY_RESOLUTION',
   MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
@@ -9697,6 +9820,7 @@ export const ModuleId = {
 
 export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
+  ackAffiliateEscalationNotification: Scalars['Boolean']['output'];
   activateExpertKnowledgeRelease: ExpertKnowledgeRelease;
   /** Admin-only: probe the target user's currently online desktop clients. The backend publishes a short-lived request over GraphQL subscriptions and returns devices that respond before timeoutMs. */
   adminProbeUserDevices: AdminUserDevicesProbeResult;
@@ -9704,8 +9828,10 @@ export interface Mutation {
   adminRequestClientLogUpload: ClientLogUploadRequestPayload;
   /** Admin-only: point the relay debugging channel at one desktop device, or clear that relay target. Desktop clients configure their debug proxy account automatically after login; this mutation only changes the relay target. */
   adminSetDebugChannel: AdminDebugChannelResult;
+  affiliateEscalate: AffiliateEscalationToolResult;
   /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
   affiliatePublishRelationshipSignal: AffiliateRelationshipSignal;
+  affiliateResolve: AffiliateEscalationToolResult;
   approveBrowserToDesktopLogin: BrowserToDesktopLoginApproval;
   archiveAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
   archiveProductKnowledge: ProductKnowledge;
@@ -9726,6 +9852,7 @@ export interface Mutation {
   /** Check a creator phone number through Evolution API and optionally persist the result. */
   checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
   claimAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlanGenerationContext;
+  claimAffiliateEscalationNotification?: Maybe<AffiliateEscalationNotificationClaim>;
   claimPendingTikTokShops: TikTokShopClaimResult;
   completeAffiliateOperationalOnboarding: AffiliateOperationalSettings;
   /** Complete Outlook/Microsoft Graph OAuth onboarding for a seller mailbox. */
@@ -10034,6 +10161,11 @@ export interface Mutation {
 }
 
 
+export interface MutationAckAffiliateEscalationNotificationArgs {
+  input: AffiliateEscalationNotificationAckInput;
+}
+
+
 export interface MutationActivateExpertKnowledgeReleaseArgs {
   releaseId: Scalars['ID']['input'];
 }
@@ -10059,8 +10191,18 @@ export interface MutationAdminSetDebugChannelArgs {
 }
 
 
+export interface MutationAffiliateEscalateArgs {
+  input: AffiliateEscalateInput;
+}
+
+
 export interface MutationAffiliatePublishRelationshipSignalArgs {
   input: PublishAffiliateRelationshipSignalInput;
+}
+
+
+export interface MutationAffiliateResolveArgs {
+  input: AffiliateResolveEscalationInput;
 }
 
 
@@ -10138,6 +10280,12 @@ export interface MutationCheckAffiliateCreatorWhatsAppArgs {
 
 export interface MutationClaimAffiliateCampaignSearchPlanGenerationArgs {
   input: ClaimAffiliateCampaignSearchPlanGenerationInput;
+}
+
+
+export interface MutationClaimAffiliateEscalationNotificationArgs {
+  deviceId: Scalars['String']['input'];
+  escalationId: Scalars['ID']['input'];
 }
 
 
@@ -11680,6 +11828,8 @@ export interface Query {
   affiliateCreators: AffiliateCreatorManagementPage;
   /** List seller-level Outlook/Microsoft Graph email account bindings available to affiliate workflows. */
   affiliateEmailAccounts: Array<EmailAccountBinding>;
+  affiliateEscalation: AffiliateEscalationView;
+  affiliateEscalationPage: AffiliateEscalationPage;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
   affiliateExpectedSalesPredictions: AffiliateExpectedSalesPredictionPayload;
   /** Get product details with current aggregate inventory */
@@ -11849,6 +11999,7 @@ export interface Query {
   microsoftGraphConnectorStatus: MicrosoftGraphConnectorStatus;
   /** Get PWA install URL (base URL without pairing code) */
   mobileInstallUrl: Scalars['String']['output'];
+  pendingAffiliateEscalationNotifications: Array<AffiliateEscalationView>;
   pendingTikTokShopClaim?: Maybe<PendingTikTokShopClaimView>;
   /** Poll an authenticated user's remote persistent-result preparation job. */
   persistentResultJob: PersistentResultJobPayload;
@@ -12118,6 +12269,16 @@ export interface QueryAffiliateCreatorsArgs {
 
 export interface QueryAffiliateEmailAccountsArgs {
   input: ListAffiliateEmailAccountsInput;
+}
+
+
+export interface QueryAffiliateEscalationArgs {
+  escalationId: Scalars['ID']['input'];
+}
+
+
+export interface QueryAffiliateEscalationPageArgs {
+  input: AffiliateEscalationPageInput;
 }
 
 
@@ -12641,6 +12802,12 @@ export interface QueryGetEcommerceBiDataArgs {
 
 export interface QueryGetEcommerceBiDimensionValuesArgs {
   input: EcomBiDimensionValuesInput;
+}
+
+
+export interface QueryPendingAffiliateEscalationNotificationsArgs {
+  deviceId: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
 }
 
 
@@ -13793,6 +13960,7 @@ export interface Subscription {
   /** Streams affiliate action proposal changes so desktop review tables can update without polling. */
   affiliateActionProposalChanged: AffiliateActionProposalChanged;
   affiliateCampaignSearchPlanRequested: AffiliateCampaignSearchPlanRequest;
+  affiliateEscalationChanged: AffiliateEscalationChangedEvent;
   /** Fires when a seller-level affiliate outreach account finishes direct-channel onboarding. */
   affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
   /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
@@ -14487,6 +14655,7 @@ export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
+  AffiliateEscalate: 'AFFILIATE_ESCALATE',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetCreatorProfile: 'AFFILIATE_GET_CREATOR_PROFILE',
   AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
@@ -14506,6 +14675,7 @@ export const ToolId = {
   AffiliateManageTargetCollaboration: 'AFFILIATE_MANAGE_TARGET_COLLABORATION',
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateReadMessageAttachment: 'AFFILIATE_READ_MESSAGE_ATTACHMENT',
+  AffiliateResolve: 'AFFILIATE_RESOLVE',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
   AffiliateSearchManualTags: 'AFFILIATE_SEARCH_MANUAL_TAGS',
   AffiliateSearchProducts: 'AFFILIATE_SEARCH_PRODUCTS',
@@ -15167,6 +15337,9 @@ export interface WriteAffiliateBusinessDeveloperInput {
   /** Outreach device that executes this developer's WhatsApp/email work, in the same id space as a shop's affiliate device. Omit to keep the current binding; null or blank stores the developer as unbound. */
   deviceId?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Operational Affiliate escalation route encoded as channelId:accountId. Set or clear together with escalationRecipientId. */
+  escalationChannelId?: InputMaybe<Scalars['String']['input']>;
+  escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   regions?: InputMaybe<Array<ShopRegion>>;
 }

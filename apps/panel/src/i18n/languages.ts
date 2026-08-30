@@ -25,6 +25,7 @@ import { CUSTOMER_SERVICE_DEVICE_TRANSLATIONS } from "./customer-service-device-
 import { PRODUCT_KNOWLEDGE_TRANSLATIONS } from "./product-knowledge-translations.js";
 import { AFFILIATE_TUTORIAL_TRANSLATIONS } from "./affiliate-tutorial-translations.js";
 import { AFFILIATE_ANALYTICS_TRANSLATIONS } from "./affiliate-analytics-translations.js";
+import { AFFILIATE_ESCALATION_TRANSLATIONS } from "./affiliate-escalation-translations.js";
 import { SUB_ACCOUNT_TRANSLATIONS } from "./sub-account-translations.js";
 import {
   TUTORIAL_CATCHUP_EN,
@@ -54,9 +55,8 @@ function mergeTranslationResource<T extends TranslationResourceRecord>(
   const merged: TranslationResourceRecord = { ...resource };
   for (const [key, value] of Object.entries(backfill)) {
     const existing = merged[key];
-    merged[key] = isRecord(existing) && isRecord(value)
-      ? mergeTranslationResource(existing, value)
-      : value;
+    merged[key] =
+      isRecord(existing) && isRecord(value) ? mergeTranslationResource(existing, value) : value;
   }
   return merged as T;
 }
@@ -92,8 +92,7 @@ const AFFILIATE_TIMELINE_EVENT_BACKFILL = {
   RELATIONSHIP_BD_ASSIGNED: "Creator relationship owner assigned",
   SAMPLE_APPLICATION_FIRST_OBSERVED: "Sample request first observed",
   SAMPLE_APPLICATION_STATE_OBSERVED: "Sample request status updated",
-  SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED:
-    "Sample request terminal state first observed",
+  SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED: "Sample request terminal state first observed",
   SAMPLE_COLLABORATION_LINK_CONFLICT_OBSERVED: "Sample collaboration link conflict observed",
   SAMPLE_COMMISSION_RATE_CONFLICT_OBSERVED: "Sample commission rate conflict observed",
   STAGE_CHANGED: "Creator relationship stage updated",
@@ -103,51 +102,402 @@ const AFFILIATE_TIMELINE_EVENT_BACKFILL = {
 
 const AFFILIATE_TIMELINE_TRANSLATIONS = {
   de: {
-    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Bewertung unbezahlter Bestellungen abrufen", AFFILIATE_LIST_SHOPS: "Affiliate-Shops auflisten" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Verstrichene Zeit", timePassedDuration: "{{duration}} vergangen", timePassedDaysHours: "{{days}} T {{hours}} Std.", timePassedDays: "{{days}} T", timePassedHours: "{{hours}} Std.", timePassedHint: "Verstrichene Zeit zwischen Zeitleisteneinträgen; ausgefilterte Ereignisse können dazwischen liegen.", messageComposerTitle: "Creator antworten", messageComposerAttachmentCount: "{{count}} Anhang/Anhänge hinzugefügt", creatorDetail: { profileFacts: "Profilübersicht" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
+    tools: {
+      selector: {
+        name: {
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Bewertung unbezahlter Bestellungen abrufen",
+          AFFILIATE_LIST_SHOPS: "Affiliate-Shops auflisten",
+        },
+      },
+    },
+    ecommerce: {
+      affiliateWorkspace: {
+        timePassed: "Verstrichene Zeit",
+        timePassedDuration: "{{duration}} vergangen",
+        timePassedDaysHours: "{{days}} T {{hours}} Std.",
+        timePassedDays: "{{days}} T",
+        timePassedHours: "{{hours}} Std.",
+        timePassedHint:
+          "Verstrichene Zeit zwischen Zeitleisteneinträgen; ausgefilterte Ereignisse können dazwischen liegen.",
+        messageComposerTitle: "Creator antworten",
+        messageComposerAttachmentCount: "{{count}} Anhang/Anhänge hinzugefügt",
+        creatorDetail: { profileFacts: "Profilübersicht" },
+        lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
+      },
+    },
   },
   es: {
-    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtener evaluación de pedidos impagados", AFFILIATE_LIST_SHOPS: "Listar tiendas de afiliados" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Tiempo transcurrido", timePassedDuration: "Han pasado {{duration}}", timePassedDaysHours: "{{days}} d {{hours}} h", timePassedDays: "{{days}} d", timePassedHours: "{{hours}} h", timePassedHint: "Tiempo transcurrido entre elementos de la cronología; puede haber eventos filtrados.", messageComposerTitle: "Responder al creador", messageComposerAttachmentCount: "{{count}} archivo(s) adjunto(s) añadido(s)", creatorDetail: { profileFacts: "Resumen del perfil" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
+    tools: {
+      selector: {
+        name: {
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtener evaluación de pedidos impagados",
+          AFFILIATE_LIST_SHOPS: "Listar tiendas de afiliados",
+        },
+      },
+    },
+    ecommerce: {
+      affiliateWorkspace: {
+        timePassed: "Tiempo transcurrido",
+        timePassedDuration: "Han pasado {{duration}}",
+        timePassedDaysHours: "{{days}} d {{hours}} h",
+        timePassedDays: "{{days}} d",
+        timePassedHours: "{{hours}} h",
+        timePassedHint:
+          "Tiempo transcurrido entre elementos de la cronología; puede haber eventos filtrados.",
+        messageComposerTitle: "Responder al creador",
+        messageComposerAttachmentCount: "{{count}} archivo(s) adjunto(s) añadido(s)",
+        creatorDetail: { profileFacts: "Resumen del perfil" },
+        lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
+      },
+    },
   },
   fr: {
-    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtenir l’évaluation des commandes impayées", AFFILIATE_LIST_SHOPS: "Lister les boutiques Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Temps écoulé", timePassedDuration: "{{duration}} écoulé", timePassedDaysHours: "{{days}} j {{hours}} h", timePassedDays: "{{days}} j", timePassedHours: "{{hours}} h", timePassedHint: "Temps écoulé entre les éléments de la chronologie ; des événements filtrés peuvent exister.", messageComposerTitle: "Répondre au créateur", messageComposerAttachmentCount: "{{count}} pièce(s) jointe(s) ajoutée(s)", creatorDetail: { profileFacts: "Aperçu du profil" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
+    tools: {
+      selector: {
+        name: {
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtenir l’évaluation des commandes impayées",
+          AFFILIATE_LIST_SHOPS: "Lister les boutiques Affiliate",
+        },
+      },
+    },
+    ecommerce: {
+      affiliateWorkspace: {
+        timePassed: "Temps écoulé",
+        timePassedDuration: "{{duration}} écoulé",
+        timePassedDaysHours: "{{days}} j {{hours}} h",
+        timePassedDays: "{{days}} j",
+        timePassedHours: "{{hours}} h",
+        timePassedHint:
+          "Temps écoulé entre les éléments de la chronologie ; des événements filtrés peuvent exister.",
+        messageComposerTitle: "Répondre au créateur",
+        messageComposerAttachmentCount: "{{count}} pièce(s) jointe(s) ajoutée(s)",
+        creatorDetail: { profileFacts: "Aperçu du profil" },
+        lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
+      },
+    },
   },
   id: {
-    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Dapatkan evaluasi pesanan belum dibayar", AFFILIATE_LIST_SHOPS: "Daftar toko Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Waktu berlalu", timePassedDuration: "{{duration}} berlalu", timePassedDaysHours: "{{days}} h {{hours}} j", timePassedDays: "{{days}} h", timePassedHours: "{{hours}} j", timePassedHint: "Waktu antara item linimasa; peristiwa yang difilter mungkin ada di antaranya.", messageComposerTitle: "Balas kreator", messageComposerAttachmentCount: "{{count}} lampiran ditambahkan", creatorDetail: { profileFacts: "Ringkasan profil" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
+    tools: {
+      selector: {
+        name: {
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Dapatkan evaluasi pesanan belum dibayar",
+          AFFILIATE_LIST_SHOPS: "Daftar toko Affiliate",
+        },
+      },
+    },
+    ecommerce: {
+      affiliateWorkspace: {
+        timePassed: "Waktu berlalu",
+        timePassedDuration: "{{duration}} berlalu",
+        timePassedDaysHours: "{{days}} h {{hours}} j",
+        timePassedDays: "{{days}} h",
+        timePassedHours: "{{hours}} j",
+        timePassedHint:
+          "Waktu antara item linimasa; peristiwa yang difilter mungkin ada di antaranya.",
+        messageComposerTitle: "Balas kreator",
+        messageComposerAttachmentCount: "{{count}} lampiran ditambahkan",
+        creatorDetail: { profileFacts: "Ringkasan profil" },
+        lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
+      },
+    },
   },
   it: {
-    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Ottieni valutazione ordini non pagati", AFFILIATE_LIST_SHOPS: "Elenca negozi Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Tempo trascorso", timePassedDuration: "Trascorsi {{duration}}", timePassedDaysHours: "{{days}} g {{hours}} h", timePassedDays: "{{days}} g", timePassedHours: "{{hours}} h", timePassedHint: "Tempo trascorso tra gli elementi della cronologia; potrebbero esserci eventi filtrati.", messageComposerTitle: "Rispondi al creator", messageComposerAttachmentCount: "{{count}} allegato/i aggiunto/i", creatorDetail: { profileFacts: "Panoramica del profilo" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
+    tools: {
+      selector: {
+        name: {
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Ottieni valutazione ordini non pagati",
+          AFFILIATE_LIST_SHOPS: "Elenca negozi Affiliate",
+        },
+      },
+    },
+    ecommerce: {
+      affiliateWorkspace: {
+        timePassed: "Tempo trascorso",
+        timePassedDuration: "Trascorsi {{duration}}",
+        timePassedDaysHours: "{{days}} g {{hours}} h",
+        timePassedDays: "{{days}} g",
+        timePassedHours: "{{hours}} h",
+        timePassedHint:
+          "Tempo trascorso tra gli elementi della cronologia; potrebbero esserci eventi filtrati.",
+        messageComposerTitle: "Rispondi al creator",
+        messageComposerAttachmentCount: "{{count}} allegato/i aggiunto/i",
+        creatorDetail: { profileFacts: "Panoramica del profilo" },
+        lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
+      },
+    },
   },
   th: {
-    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "ดูการประเมินคำสั่งซื้อที่ยังไม่ชำระ", AFFILIATE_LIST_SHOPS: "แสดงร้านค้า Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "เวลาที่ผ่านไป", timePassedDuration: "ผ่านไป {{duration}}", timePassedDaysHours: "{{days}} วัน {{hours}} ชม.", timePassedDays: "{{days}} วัน", timePassedHours: "{{hours}} ชม.", timePassedHint: "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น", messageComposerTitle: "ตอบกลับครีเอเตอร์", messageComposerAttachmentCount: "เพิ่มไฟล์แนบแล้ว {{count}} ไฟล์", creatorDetail: { profileFacts: "ภาพรวมโปรไฟล์" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
+    tools: {
+      selector: {
+        name: {
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "ดูการประเมินคำสั่งซื้อที่ยังไม่ชำระ",
+          AFFILIATE_LIST_SHOPS: "แสดงร้านค้า Affiliate",
+        },
+      },
+    },
+    ecommerce: {
+      affiliateWorkspace: {
+        timePassed: "เวลาที่ผ่านไป",
+        timePassedDuration: "ผ่านไป {{duration}}",
+        timePassedDaysHours: "{{days}} วัน {{hours}} ชม.",
+        timePassedDays: "{{days}} วัน",
+        timePassedHours: "{{hours}} ชม.",
+        timePassedHint: "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น",
+        messageComposerTitle: "ตอบกลับครีเอเตอร์",
+        messageComposerAttachmentCount: "เพิ่มไฟล์แนบแล้ว {{count}} ไฟล์",
+        creatorDetail: { profileFacts: "ภาพรวมโปรไฟล์" },
+        lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
+      },
+    },
   },
 } as const;
 
 export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
-  { code: "en", label: "English", resource: mergeTranslationResources(en, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.en, GOOGLE_AUTH_TRANSLATIONS.en, BROWSER_AUTH_TRANSLATIONS.en, AFFILIATE_TEAM_TRANSLATIONS.en, AFFILIATE_CHANNEL_TRANSLATIONS.en, AFFILIATE_PROJECTION_TRANSLATIONS.en, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.en, AFFILIATE_CAMPAIGN_TRANSLATIONS.en, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.en, AFFILIATE_PROPOSAL_TRANSLATIONS.en, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.en, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.en, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.en, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.en, PRODUCT_KNOWLEDGE_TRANSLATIONS.en, AFFILIATE_ANALYTICS_TRANSLATIONS.en, SUB_ACCOUNT_TRANSLATIONS.en, TUTORIAL_CATCHUP_EN) },
-  { code: "zh", label: "中文", resource: mergeTranslationResources(zh, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.zh, GOOGLE_AUTH_TRANSLATIONS.zh, BROWSER_AUTH_TRANSLATIONS.zh, AFFILIATE_TEAM_TRANSLATIONS.zh, AFFILIATE_CHANNEL_TRANSLATIONS.zh, AFFILIATE_PROJECTION_TRANSLATIONS.zh, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.zh, AFFILIATE_CAMPAIGN_TRANSLATIONS.zh, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.zh, AFFILIATE_PROPOSAL_TRANSLATIONS.zh, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.zh, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.zh, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.zh, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.zh, PRODUCT_KNOWLEDGE_TRANSLATIONS.zh, AFFILIATE_ANALYTICS_TRANSLATIONS.zh, SUB_ACCOUNT_TRANSLATIONS.zh, TUTORIAL_CATCHUP_ZH) },
-  { code: "de", label: "Deutsch", resource: mergeTranslationResources(de, LEGACY_I18N_BACKFILL.de, RECENT_TRANSLATIONS.de, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.de, GOOGLE_AUTH_TRANSLATIONS.de, BROWSER_AUTH_TRANSLATIONS.de, AFFILIATE_TIMELINE_TRANSLATIONS.de, AFFILIATE_TEAM_TRANSLATIONS.de, AFFILIATE_CHANNEL_TRANSLATIONS.de, AFFILIATE_PROJECTION_TRANSLATIONS.de, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.de, AFFILIATE_CAMPAIGN_TRANSLATIONS.de, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.de, AFFILIATE_PROPOSAL_TRANSLATIONS.de, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.de, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.de, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.de, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.de, PRODUCT_KNOWLEDGE_TRANSLATIONS.de, AFFILIATE_ANALYTICS_TRANSLATIONS.de, SUB_ACCOUNT_TRANSLATIONS.de, TUTORIAL_NEW_KEYS_EN, AFFILIATE_TUTORIAL_TRANSLATIONS.de) },
-  { code: "es", label: "Español", resource: mergeTranslationResources(es, LEGACY_I18N_BACKFILL.es, RECENT_TRANSLATIONS.es, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.es, GOOGLE_AUTH_TRANSLATIONS.es, BROWSER_AUTH_TRANSLATIONS.es, AFFILIATE_TIMELINE_TRANSLATIONS.es, AFFILIATE_TEAM_TRANSLATIONS.es, AFFILIATE_CHANNEL_TRANSLATIONS.es, AFFILIATE_PROJECTION_TRANSLATIONS.es, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.es, AFFILIATE_CAMPAIGN_TRANSLATIONS.es, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.es, AFFILIATE_PROPOSAL_TRANSLATIONS.es, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.es, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.es, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.es, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.es, PRODUCT_KNOWLEDGE_TRANSLATIONS.es, AFFILIATE_ANALYTICS_TRANSLATIONS.es, SUB_ACCOUNT_TRANSLATIONS.es, TUTORIAL_NEW_KEYS_EN, AFFILIATE_TUTORIAL_TRANSLATIONS.es) },
-  { code: "fr", label: "Français", resource: mergeTranslationResources(fr, LEGACY_I18N_BACKFILL.fr, RECENT_TRANSLATIONS.fr, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.fr, GOOGLE_AUTH_TRANSLATIONS.fr, BROWSER_AUTH_TRANSLATIONS.fr, AFFILIATE_TIMELINE_TRANSLATIONS.fr, AFFILIATE_TEAM_TRANSLATIONS.fr, AFFILIATE_CHANNEL_TRANSLATIONS.fr, AFFILIATE_PROJECTION_TRANSLATIONS.fr, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.fr, AFFILIATE_CAMPAIGN_TRANSLATIONS.fr, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.fr, AFFILIATE_PROPOSAL_TRANSLATIONS.fr, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.fr, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.fr, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.fr, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.fr, PRODUCT_KNOWLEDGE_TRANSLATIONS.fr, AFFILIATE_ANALYTICS_TRANSLATIONS.fr, SUB_ACCOUNT_TRANSLATIONS.fr, TUTORIAL_NEW_KEYS_EN, AFFILIATE_TUTORIAL_TRANSLATIONS.fr) },
-  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResources(id, LEGACY_I18N_BACKFILL.id, RECENT_TRANSLATIONS.id, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.id, GOOGLE_AUTH_TRANSLATIONS.id, BROWSER_AUTH_TRANSLATIONS.id, AFFILIATE_TIMELINE_TRANSLATIONS.id, AFFILIATE_TEAM_TRANSLATIONS.id, AFFILIATE_CHANNEL_TRANSLATIONS.id, AFFILIATE_PROJECTION_TRANSLATIONS.id, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.id, AFFILIATE_CAMPAIGN_TRANSLATIONS.id, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.id, AFFILIATE_PROPOSAL_TRANSLATIONS.id, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.id, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.id, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.id, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.id, PRODUCT_KNOWLEDGE_TRANSLATIONS.id, AFFILIATE_ANALYTICS_TRANSLATIONS.id, SUB_ACCOUNT_TRANSLATIONS.id, TUTORIAL_NEW_KEYS_EN, AFFILIATE_TUTORIAL_TRANSLATIONS.id) },
-  { code: "it", label: "Italiano", resource: mergeTranslationResources(it, LEGACY_I18N_BACKFILL.it, RECENT_TRANSLATIONS.it, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.it, GOOGLE_AUTH_TRANSLATIONS.it, BROWSER_AUTH_TRANSLATIONS.it, AFFILIATE_TIMELINE_TRANSLATIONS.it, AFFILIATE_TEAM_TRANSLATIONS.it, AFFILIATE_CHANNEL_TRANSLATIONS.it, AFFILIATE_PROJECTION_TRANSLATIONS.it, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.it, AFFILIATE_CAMPAIGN_TRANSLATIONS.it, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.it, AFFILIATE_PROPOSAL_TRANSLATIONS.it, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.it, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.it, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.it, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.it, PRODUCT_KNOWLEDGE_TRANSLATIONS.it, AFFILIATE_ANALYTICS_TRANSLATIONS.it, SUB_ACCOUNT_TRANSLATIONS.it, TUTORIAL_NEW_KEYS_EN, AFFILIATE_TUTORIAL_TRANSLATIONS.it) },
-  { code: "th", label: "ไทย", resource: mergeTranslationResources(th, LEGACY_I18N_BACKFILL.th, RECENT_TRANSLATIONS.th, CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.th, GOOGLE_AUTH_TRANSLATIONS.th, BROWSER_AUTH_TRANSLATIONS.th, AFFILIATE_TIMELINE_TRANSLATIONS.th, AFFILIATE_TEAM_TRANSLATIONS.th, AFFILIATE_CHANNEL_TRANSLATIONS.th, AFFILIATE_PROJECTION_TRANSLATIONS.th, AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.th, AFFILIATE_CAMPAIGN_TRANSLATIONS.th, AFFILIATE_EXPECTED_SALES_TRANSLATIONS.th, AFFILIATE_PROPOSAL_TRANSLATIONS.th, AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.th, AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.th, AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.th, AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.th, PRODUCT_KNOWLEDGE_TRANSLATIONS.th, AFFILIATE_ANALYTICS_TRANSLATIONS.th, SUB_ACCOUNT_TRANSLATIONS.th, TUTORIAL_NEW_KEYS_EN, AFFILIATE_TUTORIAL_TRANSLATIONS.th) },
+  {
+    code: "en",
+    label: "English",
+    resource: mergeTranslationResources(
+      en,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.en,
+      GOOGLE_AUTH_TRANSLATIONS.en,
+      BROWSER_AUTH_TRANSLATIONS.en,
+      AFFILIATE_TEAM_TRANSLATIONS.en,
+      AFFILIATE_CHANNEL_TRANSLATIONS.en,
+      AFFILIATE_PROJECTION_TRANSLATIONS.en,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.en,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.en,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.en,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.en,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.en,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.en,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.en,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.en,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.en,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.en,
+      SUB_ACCOUNT_TRANSLATIONS.en,
+      TUTORIAL_CATCHUP_EN,
+    ),
+  },
+  {
+    code: "zh",
+    label: "中文",
+    resource: mergeTranslationResources(
+      zh,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.zh,
+      GOOGLE_AUTH_TRANSLATIONS.zh,
+      BROWSER_AUTH_TRANSLATIONS.zh,
+      AFFILIATE_TEAM_TRANSLATIONS.zh,
+      AFFILIATE_CHANNEL_TRANSLATIONS.zh,
+      AFFILIATE_PROJECTION_TRANSLATIONS.zh,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.zh,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.zh,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.zh,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.zh,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.zh,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.zh,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.zh,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.zh,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.zh,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.zh,
+      SUB_ACCOUNT_TRANSLATIONS.zh,
+      TUTORIAL_CATCHUP_ZH,
+    ),
+  },
+  {
+    code: "de",
+    label: "Deutsch",
+    resource: mergeTranslationResources(
+      de,
+      LEGACY_I18N_BACKFILL.de,
+      RECENT_TRANSLATIONS.de,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.de,
+      GOOGLE_AUTH_TRANSLATIONS.de,
+      BROWSER_AUTH_TRANSLATIONS.de,
+      AFFILIATE_TIMELINE_TRANSLATIONS.de,
+      AFFILIATE_TEAM_TRANSLATIONS.de,
+      AFFILIATE_CHANNEL_TRANSLATIONS.de,
+      AFFILIATE_PROJECTION_TRANSLATIONS.de,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.de,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.de,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.de,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.de,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.de,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.de,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.de,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.de,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.de,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.de,
+      SUB_ACCOUNT_TRANSLATIONS.de,
+      TUTORIAL_NEW_KEYS_EN,
+      AFFILIATE_TUTORIAL_TRANSLATIONS.de,
+    ),
+  },
+  {
+    code: "es",
+    label: "Español",
+    resource: mergeTranslationResources(
+      es,
+      LEGACY_I18N_BACKFILL.es,
+      RECENT_TRANSLATIONS.es,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.es,
+      GOOGLE_AUTH_TRANSLATIONS.es,
+      BROWSER_AUTH_TRANSLATIONS.es,
+      AFFILIATE_TIMELINE_TRANSLATIONS.es,
+      AFFILIATE_TEAM_TRANSLATIONS.es,
+      AFFILIATE_CHANNEL_TRANSLATIONS.es,
+      AFFILIATE_PROJECTION_TRANSLATIONS.es,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.es,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.es,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.es,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.es,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.es,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.es,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.es,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.es,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.es,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.es,
+      SUB_ACCOUNT_TRANSLATIONS.es,
+      TUTORIAL_NEW_KEYS_EN,
+      AFFILIATE_TUTORIAL_TRANSLATIONS.es,
+    ),
+  },
+  {
+    code: "fr",
+    label: "Français",
+    resource: mergeTranslationResources(
+      fr,
+      LEGACY_I18N_BACKFILL.fr,
+      RECENT_TRANSLATIONS.fr,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.fr,
+      GOOGLE_AUTH_TRANSLATIONS.fr,
+      BROWSER_AUTH_TRANSLATIONS.fr,
+      AFFILIATE_TIMELINE_TRANSLATIONS.fr,
+      AFFILIATE_TEAM_TRANSLATIONS.fr,
+      AFFILIATE_CHANNEL_TRANSLATIONS.fr,
+      AFFILIATE_PROJECTION_TRANSLATIONS.fr,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.fr,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.fr,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.fr,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.fr,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.fr,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.fr,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.fr,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.fr,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.fr,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.fr,
+      SUB_ACCOUNT_TRANSLATIONS.fr,
+      TUTORIAL_NEW_KEYS_EN,
+      AFFILIATE_TUTORIAL_TRANSLATIONS.fr,
+    ),
+  },
+  {
+    code: "id",
+    label: "Bahasa Indonesia",
+    resource: mergeTranslationResources(
+      id,
+      LEGACY_I18N_BACKFILL.id,
+      RECENT_TRANSLATIONS.id,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.id,
+      GOOGLE_AUTH_TRANSLATIONS.id,
+      BROWSER_AUTH_TRANSLATIONS.id,
+      AFFILIATE_TIMELINE_TRANSLATIONS.id,
+      AFFILIATE_TEAM_TRANSLATIONS.id,
+      AFFILIATE_CHANNEL_TRANSLATIONS.id,
+      AFFILIATE_PROJECTION_TRANSLATIONS.id,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.id,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.id,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.id,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.id,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.id,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.id,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.id,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.id,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.id,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.id,
+      SUB_ACCOUNT_TRANSLATIONS.id,
+      TUTORIAL_NEW_KEYS_EN,
+      AFFILIATE_TUTORIAL_TRANSLATIONS.id,
+    ),
+  },
+  {
+    code: "it",
+    label: "Italiano",
+    resource: mergeTranslationResources(
+      it,
+      LEGACY_I18N_BACKFILL.it,
+      RECENT_TRANSLATIONS.it,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.it,
+      GOOGLE_AUTH_TRANSLATIONS.it,
+      BROWSER_AUTH_TRANSLATIONS.it,
+      AFFILIATE_TIMELINE_TRANSLATIONS.it,
+      AFFILIATE_TEAM_TRANSLATIONS.it,
+      AFFILIATE_CHANNEL_TRANSLATIONS.it,
+      AFFILIATE_PROJECTION_TRANSLATIONS.it,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.it,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.it,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.it,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.it,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.it,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.it,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.it,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.it,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.it,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.it,
+      SUB_ACCOUNT_TRANSLATIONS.it,
+      TUTORIAL_NEW_KEYS_EN,
+      AFFILIATE_TUTORIAL_TRANSLATIONS.it,
+    ),
+  },
+  {
+    code: "th",
+    label: "ไทย",
+    resource: mergeTranslationResources(
+      th,
+      LEGACY_I18N_BACKFILL.th,
+      RECENT_TRANSLATIONS.th,
+      CUSTOMER_SERVICE_DEVICE_TRANSLATIONS.th,
+      GOOGLE_AUTH_TRANSLATIONS.th,
+      BROWSER_AUTH_TRANSLATIONS.th,
+      AFFILIATE_TIMELINE_TRANSLATIONS.th,
+      AFFILIATE_TEAM_TRANSLATIONS.th,
+      AFFILIATE_CHANNEL_TRANSLATIONS.th,
+      AFFILIATE_PROJECTION_TRANSLATIONS.th,
+      AFFILIATE_CREATOR_PROFILE_TRANSLATIONS.th,
+      AFFILIATE_CAMPAIGN_TRANSLATIONS.th,
+      AFFILIATE_EXPECTED_SALES_TRANSLATIONS.th,
+      AFFILIATE_PROPOSAL_TRANSLATIONS.th,
+      AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS.th,
+      AFFILIATE_NO_ACTION_GATE_TRANSLATIONS.th,
+      AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS.th,
+      AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS.th,
+      PRODUCT_KNOWLEDGE_TRANSLATIONS.th,
+      AFFILIATE_ANALYTICS_TRANSLATIONS.th,
+      SUB_ACCOUNT_TRANSLATIONS.th,
+      TUTORIAL_NEW_KEYS_EN,
+      AFFILIATE_TUTORIAL_TRANSLATIONS.th,
+    ),
+  },
 ] as const;
 
-export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] = LANGUAGE_OPTIONS.map((language) => language.code);
+export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] = LANGUAGE_OPTIONS.map(
+  (language) => language.code,
+);
 
 export function normalizeLanguageCode(locale: string | undefined | null): SupportedLanguageCode {
   const language = locale?.trim().toLowerCase().split(/[-_]/)[0];
   return SUPPORTED_LANGUAGE_CODES.includes(language as SupportedLanguageCode)
-    ? language as SupportedLanguageCode
+    ? (language as SupportedLanguageCode)
     : "en";
 }
 
 export const LANGUAGE_RESOURCES = Object.fromEntries(
-  LANGUAGE_OPTIONS.map((language) => [language.code, { translation: language.resource }]),
+  LANGUAGE_OPTIONS.map((language) => [
+    language.code,
+    {
+      translation: mergeTranslationResources(
+        language.resource as TranslationResourceRecord,
+        AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
+      ),
+    },
+  ]),
 ) as Record<SupportedLanguageCode, { translation: TranslationResource }>;

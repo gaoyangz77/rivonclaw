@@ -41,6 +41,7 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
+  AFFILIATE_ESCALATION_PAGE_QUERY,
   AFFILIATE_COLLABORATION_DETAIL_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
@@ -425,7 +426,37 @@ const PROPOSAL_TYPE_FILTERS = [
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
 
 type AgentWorkspaceView = "PENDING" | "ALL";
-type AffiliateWorkbenchTab = "PENDING_AGENT" | "ALL_AGENT" | "SAMPLES" | "MESSAGES";
+type AffiliateWorkbenchTab = "PENDING_AGENT" | "ESCALATIONS" | "ALL_AGENT" | "SAMPLES" | "MESSAGES";
+const AFFILIATE_ESCALATION_PAGE_SIZE = 25;
+
+interface AffiliateEscalationPanelRow {
+  id: string;
+  creatorRelationshipId: string;
+  businessDeveloperId?: string | null;
+  reason: string;
+  question: string;
+  context?: string | null;
+  status: "OPEN" | "RESOLVED" | "CLOSED";
+  notificationStatus: string;
+  notificationAttemptCount: number;
+  notificationLastError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creatorName?: string | null;
+  creatorUsername?: string | null;
+  creatorAvatarUrl?: string | null;
+  businessDeveloperName?: string | null;
+  sourceAgendaItemsSnapshotJson: string;
+}
+
+interface AffiliateEscalationPageData {
+  affiliateEscalationPage: {
+    items: AffiliateEscalationPanelRow[];
+    totalCount: number;
+    offset: number;
+    limit: number;
+  };
+}
 
 type AffiliateActionProposalPageData = {
   affiliateActionProposalPage: {
@@ -835,6 +866,10 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
+  const [escalationOffset, setEscalationOffset] = useState(0);
+  const [selectedEscalation, setSelectedEscalation] = useState<AffiliateEscalationPanelRow | null>(
+    null,
+  );
   const [selectedAgentWorkBundle, setSelectedAgentWorkBundle] = useState<AgentWorkBundle | null>(
     null,
   );
@@ -871,7 +906,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
 
   const shopOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-    ...shops.filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized).map((shop) => ({
+    ...shops
+      .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
+      .map((shop) => ({
         value: shop.id,
         label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
       })),
@@ -956,9 +993,46 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
       },
       fetchPolicy: "cache-and-network",
       notifyOnNetworkStatusChange: true,
-      skip: !user || workbenchTab === "SAMPLES" || workbenchTab === "MESSAGES",
+      skip: !user || !["PENDING_AGENT", "ALL_AGENT"].includes(workbenchTab),
     },
   );
+
+  const {
+    data: escalationData,
+    loading: escalationsLoading,
+    refetch: refetchEscalations,
+  } = useQuery<AffiliateEscalationPageData>(AFFILIATE_ESCALATION_PAGE_QUERY, {
+    variables: {
+      input: {
+        status: "OPEN",
+        businessDeveloperId: selectedBusinessDeveloperId || null,
+        search: attentionSearch.trim() || null,
+        offset: escalationOffset,
+        limit: AFFILIATE_ESCALATION_PAGE_SIZE,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    notifyOnNetworkStatusChange: true,
+    skip: !user || workbenchTab !== "ESCALATIONS",
+  });
+
+  useEffect(() => {
+    setEscalationOffset(0);
+  }, [attentionSearch, selectedBusinessDeveloperId]);
+
+  useEffect(() => {
+    const totalCount = escalationData?.affiliateEscalationPage.totalCount;
+    if (totalCount == null || escalationOffset === 0 || escalationOffset < totalCount) return;
+    setEscalationOffset(
+      Math.max(0, Math.floor(Math.max(0, totalCount - 1) / AFFILIATE_ESCALATION_PAGE_SIZE) * AFFILIATE_ESCALATION_PAGE_SIZE),
+    );
+  }, [escalationData?.affiliateEscalationPage.totalCount, escalationOffset]);
+
+  useEffect(() => {
+    return panelEventBus.subscribe("affiliate-escalation-changed", () => {
+      if (workbenchTab === "ESCALATIONS") void refetchEscalations();
+    });
+  }, [refetchEscalations, workbenchTab]);
 
   const [decideActionProposal, { loading: decidingProposal }] = useMutation<
     { decideActionProposal: GQL.ActionProposal },
@@ -1253,12 +1327,15 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
             data-tutorial-id="affiliate-attention-scope"
             role="tablist"
           >
-            {([
-              ["PENDING_AGENT", "pendingAgent"],
-              ["ALL_AGENT", "allAgent"],
-              ["SAMPLES", "samples"],
-              ["MESSAGES", "messages"],
-            ] as const).map(([value, label]) => (
+            {(
+              [
+                ["PENDING_AGENT", "pendingAgent"],
+                ["ESCALATIONS", "pendingEscalations"],
+                ["ALL_AGENT", "allAgent"],
+                ["SAMPLES", "samples"],
+                ["MESSAGES", "messages"],
+              ] as const
+            ).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
@@ -1275,67 +1352,73 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
       />
 
       <div className="affiliate-workbench-panel">
-        {workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT" ? (
+        {workbenchTab === "PENDING_AGENT" ||
+        workbenchTab === "ALL_AGENT" ||
+        workbenchTab === "ESCALATIONS" ? (
           <div className="affiliate-workbench-panel-head affiliate-agent-workspace-controls">
             <div
               className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
               data-tutorial-id="affiliate-attention-filters"
             >
-            <label className="affiliate-filter-field">
-              <span>{t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}</span>
-              <Select
-                value={selectedBusinessDeveloperId}
-                onChange={setSelectedBusinessDeveloperId}
-                options={businessDeveloperOptions}
-                className="affiliate-status-select"
-                ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
-                searchable
-                searchPlaceholder={t(
-                  "ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder",
-                )}
-                disabled={businessDevelopersLoading && businessDeveloperOptions.length === 1}
-              />
-            </label>
-            {agentWorkspaceView === "ALL" ? (
               <label className="affiliate-filter-field">
-                <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>
+                <span>{t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}</span>
                 <Select
-                  value={proposalFilter}
-                  onChange={(value) => setProposalFilter(value as ProposalFilter)}
-                  options={proposalFilterOptions}
+                  value={selectedBusinessDeveloperId}
+                  onChange={setSelectedBusinessDeveloperId}
+                  options={businessDeveloperOptions}
                   className="affiliate-status-select"
-                  ariaLabel={t("ecommerce.affiliateWorkspace.statusFilter")}
+                  ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+                  searchable
+                  searchPlaceholder={t(
+                    "ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder",
+                  )}
+                  disabled={businessDevelopersLoading && businessDeveloperOptions.length === 1}
                 />
               </label>
-            ) : null}
-            <label className="affiliate-filter-field">
-              <span>{t("ecommerce.affiliateWorkspace.typeFilter")}</span>
-              <Select
-                value={proposalTypeFilter}
-                onChange={(value) => setProposalTypeFilter(value as ProposalTypeFilter)}
-                options={proposalTypeFilterOptions}
-                className="affiliate-status-select affiliate-type-select"
-                ariaLabel={t("ecommerce.affiliateWorkspace.typeFilter")}
-              />
-            </label>
-            <label className="affiliate-filter-field affiliate-filter-field-search">
-              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
-              <input
-                className="affiliate-attention-search"
-                value={attentionSearch}
-                onChange={(event) => setAttentionSearch(event.target.value)}
-                placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
-                aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
-              />
-            </label>
+              {workbenchTab === "ESCALATIONS" ? null : agentWorkspaceView === "ALL" ? (
+                <label className="affiliate-filter-field">
+                  <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>
+                  <Select
+                    value={proposalFilter}
+                    onChange={(value) => setProposalFilter(value as ProposalFilter)}
+                    options={proposalFilterOptions}
+                    className="affiliate-status-select"
+                    ariaLabel={t("ecommerce.affiliateWorkspace.statusFilter")}
+                  />
+                </label>
+              ) : null}
+              {workbenchTab === "ESCALATIONS" ? null : (
+                <label className="affiliate-filter-field">
+                  <span>{t("ecommerce.affiliateWorkspace.typeFilter")}</span>
+                  <Select
+                    value={proposalTypeFilter}
+                    onChange={(value) => setProposalTypeFilter(value as ProposalTypeFilter)}
+                    options={proposalTypeFilterOptions}
+                    className="affiliate-status-select affiliate-type-select"
+                    ariaLabel={t("ecommerce.affiliateWorkspace.typeFilter")}
+                  />
+                </label>
+              )}
+              <label className="affiliate-filter-field affiliate-filter-field-search">
+                <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
+                <input
+                  className="affiliate-attention-search"
+                  value={attentionSearch}
+                  onChange={(event) => setAttentionSearch(event.target.value)}
+                  placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+                  aria-label={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+                />
+              </label>
             </div>
             <button
               className="btn btn-secondary"
               type="button"
-              onClick={() => void refetchActive()}
-              disabled={proposalsLoading}
+              onClick={() =>
+                workbenchTab === "ESCALATIONS" ? void refetchEscalations() : void refetchActive()
+              }
+              disabled={workbenchTab === "ESCALATIONS" ? escalationsLoading : proposalsLoading}
             >
-              {proposalsLoading
+              {(workbenchTab === "ESCALATIONS" ? escalationsLoading : proposalsLoading)
                 ? t("common.loading")
                 : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
             </button>
@@ -1354,6 +1437,16 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
               onSelectBusinessDeveloper={setSelectedBusinessDeveloperId}
               refreshRevision={workbenchEntityRefreshRevision}
               onOpen={setSelectedEntityTarget}
+            />
+          ) : workbenchTab === "ESCALATIONS" ? (
+            <AffiliateEscalationQueue
+              items={escalationData?.affiliateEscalationPage.items ?? []}
+              totalCount={escalationData?.affiliateEscalationPage.totalCount ?? 0}
+              offset={escalationOffset}
+              pageSize={AFFILIATE_ESCALATION_PAGE_SIZE}
+              loading={escalationsLoading}
+              onOpen={setSelectedEscalation}
+              onPageChange={setEscalationOffset}
             />
           ) : proposalsLoading && visibleAgentWorkBundles.length === 0 ? (
             <div data-tutorial-id="affiliate-attention-queue">
@@ -1420,6 +1513,13 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
         />
       ) : null}
 
+      {selectedEscalation ? (
+        <AffiliateEscalationDetailModal
+          escalation={selectedEscalation}
+          onClose={() => setSelectedEscalation(null)}
+        />
+      ) : null}
+
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
@@ -1457,6 +1557,227 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     </AffiliatePageFrame>
   );
 });
+
+function parseAffiliateEscalationSnapshot(value: string): {
+  agendaItems: Array<Record<string, unknown>>;
+  latestAgendaLabel: string;
+} {
+  try {
+    const parsed = JSON.parse(value) as { agendaItems?: Array<Record<string, unknown>> };
+    const agendaItems = Array.isArray(parsed.agendaItems) ? parsed.agendaItems : [];
+    const latest = [...agendaItems].sort(
+      (left, right) =>
+        String(right.updatedAt ?? "").localeCompare(String(left.updatedAt ?? "")) ||
+        String(right.key ?? "").localeCompare(String(left.key ?? "")),
+    )[0];
+    return {
+      agendaItems,
+      latestAgendaLabel: String(latest?.requiredAction ?? latest?.key ?? ""),
+    };
+  } catch {
+    return { agendaItems: [], latestAgendaLabel: "" };
+  }
+}
+
+function AffiliateEscalationQueue({
+  items,
+  totalCount,
+  offset,
+  pageSize,
+  loading,
+  onOpen,
+  onPageChange,
+}: {
+  items: AffiliateEscalationPanelRow[];
+  totalCount: number;
+  offset: number;
+  pageSize: number;
+  loading: boolean;
+  onOpen: (item: AffiliateEscalationPanelRow) => void;
+  onPageChange: (offset: number) => void;
+}) {
+  const { t } = useTranslation();
+  if (loading && items.length === 0) return <AffiliateLoadingState />;
+  if (items.length === 0) {
+    return (
+      <div className="affiliate-proposal-empty">
+        {t("ecommerce.affiliateWorkspace.escalations.empty")}
+      </div>
+    );
+  }
+  return (
+    <div className="affiliate-workbench-entity-section affiliate-escalation-queue">
+      <div className="affiliate-workbench-entity-summary">
+        {t("ecommerce.affiliateWorkspace.escalations.openCount", { count: totalCount })}
+      </div>
+      <div className="affiliate-workbench-entity-list" role="table">
+        {items.map((item) => {
+          const snapshot = parseAffiliateEscalationSnapshot(item.sourceAgendaItemsSnapshotJson);
+          return (
+            <button
+              className="affiliate-workbench-entity-row affiliate-escalation-row"
+              type="button"
+              key={item.id}
+              onClick={() => onOpen(item)}
+            >
+              <span className="affiliate-workbench-entity-identity">
+                <span className="affiliate-workbench-entity-avatar-fallback">
+                  <UserIcon />
+                </span>
+                <span>
+                  <strong>
+                    {item.creatorName || item.creatorUsername || item.creatorRelationshipId}
+                  </strong>
+                  <small>
+                    {item.businessDeveloperName ||
+                      t("ecommerce.affiliateWorkspace.escalations.unassignedBd")}
+                  </small>
+                </span>
+              </span>
+              <span className="affiliate-workbench-entity-main">
+                <strong>{item.question}</strong>
+                <span>{item.reason}</span>
+                <small>
+                  {snapshot.latestAgendaLabel ||
+                    t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}
+                </small>
+              </span>
+              <span className="affiliate-workbench-entity-badges">
+                <span className="affiliate-workbench-badge affiliate-workbench-badge-human">
+                  {t("ecommerce.affiliateWorkspace.escalations.waitingSince", {
+                    value: formatLocalizedDateTime(item.createdAt, panelI18n.language),
+                  })}
+                </span>
+                <span className="affiliate-workbench-badge">
+                  {t(
+                    `ecommerce.affiliateWorkspace.escalations.notification.${item.notificationStatus}`,
+                  )}
+                </span>
+              </span>
+              <span className="affiliate-workbench-row-chevron">›</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="affiliate-escalation-pagination">
+        <span>
+          {t("ecommerce.affiliateWorkspace.escalations.pageRange", {
+            start: offset + 1,
+            end: Math.min(totalCount, offset + items.length),
+            total: totalCount,
+          })}
+        </span>
+        <div>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            disabled={loading || offset === 0}
+            onClick={() => onPageChange(Math.max(0, offset - pageSize))}
+          >
+            {t("ecommerce.affiliateWorkspace.escalations.previousPage")}
+          </button>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            disabled={loading || offset + items.length >= totalCount}
+            onClick={() => onPageChange(offset + pageSize)}
+          >
+            {t("ecommerce.affiliateWorkspace.escalations.nextPage")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AffiliateEscalationDetailModal({
+  escalation,
+  onClose,
+}: {
+  escalation: AffiliateEscalationPanelRow;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const snapshot = parseAffiliateEscalationSnapshot(escalation.sourceAgendaItemsSnapshotJson);
+  return (
+    <AffiliateDetailModal
+      onClose={onClose}
+      ariaLabel={t("ecommerce.affiliateWorkspace.escalations.detailTitle")}
+      className="affiliate-escalation-detail-modal"
+    >
+      <header className="affiliate-escalation-detail-header">
+        <div>
+          <span>{t("ecommerce.affiliateWorkspace.escalations.detailTitle")}</span>
+          <h2>
+            {escalation.creatorName ||
+              escalation.creatorUsername ||
+              escalation.creatorRelationshipId}
+          </h2>
+        </div>
+        <button className="btn btn-secondary" type="button" onClick={onClose}>
+          {t("common.close")}
+        </button>
+      </header>
+      <div className="affiliate-escalation-detail-body">
+        <dl className="affiliate-escalation-facts">
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.escalations.id")}</dt>
+            <dd className="input-mono">{escalation.id}</dd>
+          </div>
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.escalations.bd")}</dt>
+            <dd>
+              {escalation.businessDeveloperName ||
+                t("ecommerce.affiliateWorkspace.escalations.unassignedBd")}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.escalations.reason")}</dt>
+            <dd>{escalation.reason}</dd>
+          </div>
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.escalations.question")}</dt>
+            <dd>{escalation.question}</dd>
+          </div>
+          {escalation.context ? (
+            <div>
+              <dt>{t("ecommerce.affiliateWorkspace.escalations.context")}</dt>
+              <dd>{escalation.context}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.escalations.notificationStatus")}</dt>
+            <dd>
+              {t(
+                `ecommerce.affiliateWorkspace.escalations.notification.${escalation.notificationStatus}`,
+              )}
+            </dd>
+          </div>
+          {escalation.notificationLastError ? (
+            <div>
+              <dt>{t("ecommerce.affiliateWorkspace.escalations.notificationError")}</dt>
+              <dd>{escalation.notificationLastError}</dd>
+            </div>
+          ) : null}
+        </dl>
+        <section className="affiliate-escalation-agenda">
+          <h3>{t("ecommerce.affiliateWorkspace.escalations.frozenAgenda")}</h3>
+          {snapshot.agendaItems.length ? (
+            snapshot.agendaItems.map((item, index) => (
+              <article key={String(item.key ?? index)}>
+                <strong>{String(item.requiredAction ?? item.key ?? "—")}</strong>
+                <span>{String(item.workKind ?? item.sourceType ?? "—")}</span>
+                <pre>{JSON.stringify(item, null, 2)}</pre>
+              </article>
+            ))
+          ) : (
+            <p>{t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}</p>
+          )}
+        </section>
+      </div>
+    </AffiliateDetailModal>
+  );
+}
 
 function AffiliateMlInsightsPanel({
   loading,
@@ -2605,7 +2926,9 @@ function affiliateCollaborationMatchesHistoryStatusFilter(
 
 function AffiliateLoadingState() {
   const { t } = useTranslation();
-  return <LoadingSpinner variant="page" label={t("ecommerce.affiliateWorkspace.loadingEntities")} />;
+  return (
+    <LoadingSpinner variant="page" label={t("ecommerce.affiliateWorkspace.loadingEntities")} />
+  );
 }
 
 function AffiliateQueryErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
@@ -7924,8 +8247,9 @@ export function proposalSampleDecisionOverrideTarget(
     return null;
   }
   const agentDecision = sources[0]!.sampleReviewIntent?.decision;
-  const executionMode = sources[0]!.sampleReviewIntent?.executionMode
-    ?? GQL.AffiliateSampleReviewExecutionMode.PlatformAction;
+  const executionMode =
+    sources[0]!.sampleReviewIntent?.executionMode ??
+    GQL.AffiliateSampleReviewExecutionMode.PlatformAction;
   if (executionMode === GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry) return null;
   if (agentDecision === GQL.AffiliateSampleReviewDecision.Approve) {
     return GQL.AffiliateSampleReviewDecision.Reject;
@@ -8072,8 +8396,9 @@ export function proposalSampleReviewRows(
         (sources.length === 1 ? (proposal.productSummary?.title ?? null) : null),
       productSellerSku,
       decision: source.sampleReviewIntent.decision,
-      executionMode: source.sampleReviewIntent.executionMode
-        ?? GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
+      executionMode:
+        source.sampleReviewIntent.executionMode ??
+        GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
       rejectReason: source.sampleReviewIntent.rejectReason ?? null,
       rejectReasonExplanation: source.sampleReviewIntent.rejectReasonExplanation?.trim() || null,
       predictionSnapshot: snapshot,
@@ -8267,8 +8592,7 @@ function ProposalSampleDecisionBundle({
                 </strong>
                 <small>
                   {t(
-                    row.executionMode ===
-                      GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
+                    row.executionMode === GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
                       ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.softRejectExecution"
                       : "ecommerce.affiliateWorkspace.sampleDecisionBundle.platformExecution",
                   )}
@@ -9528,9 +9852,8 @@ export function CreatorRelationshipDetailModal({
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] = useState(
-    replyToLifecycleEventId,
-  );
+  const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] =
+    useState(replyToLifecycleEventId);
   const [sampleReviewCommand, setSampleReviewCommand] = useState<{
     sampleApplicationRecordId: string;
     creatorRelationshipId: string;
@@ -9549,8 +9872,11 @@ export function CreatorRelationshipDetailModal({
   const activityLoadedOlderRef = useRef(false);
   const fallbackProfile = item?.creatorProfile ?? null;
   const management = item?.managementItem ?? null;
-  const relationshipId = relationshipIdOverride ?? item?.creatorRelation?.id ??
-    item?.workItems?.[0]?.relationshipId ?? null;
+  const relationshipId =
+    relationshipIdOverride ??
+    item?.creatorRelation?.id ??
+    item?.workItems?.[0]?.relationshipId ??
+    null;
   useEffect(() => {
     setActiveTab(initialTab);
     setContextInspectorSection("overview");
@@ -9602,7 +9928,7 @@ export function CreatorRelationshipDetailModal({
   const cooperationProgressTier =
     relationship?.highestSampleTier ??
     highestCreatorSampleTier(
-    (relationship?.shopStates ?? (item?.shopState ? [item.shopState] : [])).map(
+      (relationship?.shopStates ?? (item?.shopState ? [item.shopState] : [])).map(
         (state) => state.sampleTier,
       ),
     );
@@ -9627,7 +9953,7 @@ export function CreatorRelationshipDetailModal({
   const profile = authoritativeProfile?.creator ?? relationshipDetail?.creator ?? fallbackProfile;
   const name = profile
     ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
-      : item?.creatorId ?? "";
+    : (item?.creatorId ?? "");
   const handle = profile ? creatorTikTokHandle(profile) : null;
   const platformId = profile ? creatorPlatformIdentity(profile) : null;
   const performance =
@@ -9791,7 +10117,7 @@ export function CreatorRelationshipDetailModal({
   );
   const productSummaries = mergeById(
     [
-    ...(item?.workItems ?? []).flatMap((workItem) => {
+      ...(item?.workItems ?? []).flatMap((workItem) => {
         const product = productSummaryFromWorkContext(workItem.productContext);
         return product ? [{ shopId: workItem.shopId, product }] : [];
       }),
@@ -10010,9 +10336,10 @@ export function CreatorRelationshipDetailModal({
               decision: rejecting
                 ? GQL.AffiliateSampleReviewDecision.Reject
                 : GQL.AffiliateSampleReviewDecision.Approve,
-              executionMode: sampleReviewCommand.kind === "SOFT_REJECT"
-                ? GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
-                : GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
+              executionMode:
+                sampleReviewCommand.kind === "SOFT_REJECT"
+                  ? GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
+                  : GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
               rejectReason: rejecting ? sampleRejectReason : null,
               rejectReasonExplanation:
                 rejecting && sampleRejectReason === GQL.AffiliateSampleRejectReason.Other
@@ -10975,7 +11302,9 @@ export function CreatorRelationshipDetailModal({
                                 className="btn btn-primary"
                                 type="button"
                                 disabled={!canPlatformReview}
-                                onClick={() => setSampleReviewCommand({ ...commandBase, kind: "APPROVE" })}
+                                onClick={() =>
+                                  setSampleReviewCommand({ ...commandBase, kind: "APPROVE" })
+                                }
                               >
                                 {t("ecommerce.affiliateWorkspace.workbench.approveSample")}
                               </button>
@@ -10983,7 +11312,12 @@ export function CreatorRelationshipDetailModal({
                                 className="btn btn-secondary"
                                 type="button"
                                 disabled={!canPlatformReview}
-                                onClick={() => setSampleReviewCommand({ ...commandBase, kind: "PLATFORM_REJECT" })}
+                                onClick={() =>
+                                  setSampleReviewCommand({
+                                    ...commandBase,
+                                    kind: "PLATFORM_REJECT",
+                                  })
+                                }
                               >
                                 {t("ecommerce.affiliateWorkspace.workbench.platformReject")}
                               </button>
@@ -10991,14 +11325,15 @@ export function CreatorRelationshipDetailModal({
                                 className="btn btn-secondary"
                                 type="button"
                                 disabled={!canPlatformReview}
-                                onClick={() => setSampleReviewCommand({ ...commandBase, kind: "SOFT_REJECT" })}
+                                onClick={() =>
+                                  setSampleReviewCommand({ ...commandBase, kind: "SOFT_REJECT" })
+                                }
                               >
                                 {t("ecommerce.affiliateWorkspace.workbench.softReject")}
                               </button>
                             </>
                           )}
-                          {sample.sampleWorkStatus ===
-                            GQL.SampleWorkStatus.PlatformStatusUnknown &&
+                          {sample.sampleWorkStatus === GQL.SampleWorkStatus.PlatformStatusUnknown &&
                           sample.reviewDisposition === GQL.AffiliateSampleReviewDisposition.Open ? (
                             <span className="affiliate-workbench-sample-sync-warning">
                               {t("ecommerce.affiliateWorkspace.workbench.sampleSyncUnknown")}
@@ -11297,13 +11632,17 @@ export function CreatorRelationshipDetailModal({
       <Modal
         isOpen={Boolean(sampleReviewCommand)}
         onClose={() => setSampleReviewCommand(null)}
-        title={t(`ecommerce.affiliateWorkspace.workbench.reviewTitles.${sampleReviewCommand?.kind ?? "APPROVE"}`)}
+        title={t(
+          `ecommerce.affiliateWorkspace.workbench.reviewTitles.${sampleReviewCommand?.kind ?? "APPROVE"}`,
+        )}
         maxWidth={520}
         portal
       >
         <div className="affiliate-workbench-review-dialog">
           <p>
-            {t(`ecommerce.affiliateWorkspace.workbench.reviewDescriptions.${sampleReviewCommand?.kind ?? "APPROVE"}`)}
+            {t(
+              `ecommerce.affiliateWorkspace.workbench.reviewDescriptions.${sampleReviewCommand?.kind ?? "APPROVE"}`,
+            )}
           </p>
           {sampleReviewCommand?.kind === "PLATFORM_REJECT" ||
           sampleReviewCommand?.kind === "SOFT_REJECT" ? (

@@ -11,6 +11,10 @@ import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item
 import { AffiliateCampaignSearchPlanActuator } from "../affiliate/affiliate-campaign-search-plan-actuator.js";
 import { uploadCurrentLog } from "../logs/upload-current-log.js";
 import { INIT_ADS_ADVERTISERS_QUERY } from "../cloud/init-queries.js";
+import {
+  catchUpAffiliateEscalationNotifications,
+  handleAffiliateEscalationNotification,
+} from "../affiliate/affiliate-escalation-notification-actuator.js";
 
 const log = createLogger("auth-runtime");
 
@@ -48,7 +52,8 @@ function adminDesktopPlatform(): "DARWIN" | "LINUX" | "WINDOWS" | "UNKNOWN" {
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { secretStore, locale, getUiLocale, deviceId, appVersion, proxyFetch, broadcastEvent } = deps;
+  const { secretStore, locale, getUiLocale, deviceId, appVersion, proxyFetch, broadcastEvent } =
+    deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
@@ -81,7 +86,8 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   });
 
   backendSubscription.subscribeToAdsOAuthComplete((payload) => {
-    void cloudClient.graphql<Record<string, unknown>>(INIT_ADS_ADVERTISERS_QUERY)
+    void cloudClient
+      .graphql<Record<string, unknown>>(INIT_ADS_ADVERTISERS_QUERY)
       .then((data) => {
         rootStore.ingestGraphQLResponse(data);
         broadcastEvent("ads-oauth-complete", payload);
@@ -122,19 +128,21 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   });
 
   backendSubscription.subscribeToDevicePresenceProbeRequests((request) => {
-    void cloudClient.graphql(REPORT_DEVICE_PRESENCE_PROBE_MUTATION, {
-      input: {
-        requestId: request.requestId,
-        deviceId,
-        platform: adminDesktopPlatform(),
-        appVersion,
-      },
-    }).catch((err) => {
-      log.warn("Failed to report admin device presence probe", {
-        requestId: request.requestId,
-        error: err instanceof Error ? err.message : String(err),
+    void cloudClient
+      .graphql(REPORT_DEVICE_PRESENCE_PROBE_MUTATION, {
+        input: {
+          requestId: request.requestId,
+          deviceId,
+          platform: adminDesktopPlatform(),
+          appVersion,
+        },
+      })
+      .catch((err) => {
+        log.warn("Failed to report admin device presence probe", {
+          requestId: request.requestId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
-    });
   });
 
   const getActiveCustomerServiceShopIds = (): string[] =>
@@ -160,6 +168,16 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
 
   backendSubscription.subscribeToAffiliateActionProposalChanges((proposal) => {
     broadcastEvent("affiliate-action-proposal-changed", { proposal });
+  });
+
+  backendSubscription.subscribeToAffiliateEscalationChanges((change) => {
+    broadcastEvent("affiliate-escalation-changed", { change });
+    if (change.status === "OPEN") {
+      void handleAffiliateEscalationNotification(authSession, deviceId, change.escalationId);
+    }
+  });
+  void catchUpAffiliateEscalationNotifications(authSession, deviceId).catch((error) => {
+    log.warn("Failed to catch up Affiliate escalation notifications", error);
   });
 
   const campaignSearchPlanActuator = new AffiliateCampaignSearchPlanActuator(

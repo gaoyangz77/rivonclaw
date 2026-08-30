@@ -229,6 +229,16 @@ const CS_ESCALATION_EVENT_SUBSCRIPTION = `
   }
 `;
 
+const AFFILIATE_ESCALATION_CHANGED_SUBSCRIPTION = `
+  subscription AffiliateEscalationChanged {
+    affiliateEscalationChanged {
+      escalationId
+      status
+      version
+    }
+  }
+`;
+
 const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
   subscription CsConversationSignal($shopIds: [ID!]) {
     csConversationSignal(shopIds: $shopIds) {
@@ -1029,6 +1039,12 @@ export interface AffiliateCampaignSearchPlanRequestPayload {
 }
 export type AffiliateActionProposalPayload = GQL.ActionProposal;
 
+export interface AffiliateEscalationChangedPayload {
+  escalationId: string;
+  status: "OPEN" | "RESOLVED" | "CLOSED";
+  version: number;
+}
+
 export interface ClientLogUploadRequestPayload {
   requestId: string;
   requestedAt: string;
@@ -1120,11 +1136,13 @@ export interface OAuthCompletePayload {
   shopId: string;
   shopName: string;
   platform: string;
-  shops?: Array<Record<string, unknown> & {
-    id: string;
-    shopName: string;
-    platform: string;
-  }>;
+  shops?: Array<
+    Record<string, unknown> & {
+      id: string;
+      shopName: string;
+      platform: string;
+    }
+  >;
 }
 
 export interface AdsOAuthCompletePayload {
@@ -1300,10 +1318,7 @@ class LongLivedSubscriptionOperation {
       return this.block(fingerprint, "unknown_error_retry_limit");
     }
 
-    const delayMs = Math.min(
-      1000 * 2 ** Math.min(this.consecutiveFailures - 1, 5),
-      30_000,
-    );
+    const delayMs = Math.min(1000 * 2 ** Math.min(this.consecutiveFailures - 1, 5), 30_000);
     const generation = this.generation;
     this.state = "retry_wait";
 
@@ -1510,8 +1525,8 @@ export class BackendSubscriptionClient {
 
   disableAuthenticatedSubscriptions(): void {
     if (
-      this.authenticatedSubscriptionState === "disabled"
-      && !this.authenticatedSubscriptionToken
+      this.authenticatedSubscriptionState === "disabled" &&
+      !this.authenticatedSubscriptionToken
     ) {
       return;
     }
@@ -1674,9 +1689,11 @@ export class BackendSubscriptionClient {
 
   private isAuthError(err: unknown): boolean {
     if (this.collectErrorCodes(err).includes("UNAUTHENTICATED")) return true;
-    return this.collectErrorMessages(err).some((message) =>
-      /^(?:Not authenticated|Authentication required|Invalid token|Token expired|Unauthorized)$/i.test(message.trim())
-      || /(?:invalid signature|jwt malformed|jwt expired|\b4401\b)/i.test(message),
+    return this.collectErrorMessages(err).some(
+      (message) =>
+        /^(?:Not authenticated|Authentication required|Invalid token|Token expired|Unauthorized)$/i.test(
+          message.trim(),
+        ) || /(?:invalid signature|jwt malformed|jwt expired|\b4401\b)/i.test(message),
     );
   }
 
@@ -1692,25 +1709,34 @@ export class BackendSubscriptionClient {
       messages: [...new Set(messages.map((message) => message.toLowerCase()))].sort(),
     });
 
-    const contractError = codes.some((code) =>
-      code === "GRAPHQL_VALIDATION_FAILED"
-      || code === "GRAPHQL_PARSE_FAILED"
-      || code === "BAD_USER_INPUT"
-      || code === "FORBIDDEN"
-    ) || messages.some((message) =>
-      /Cannot query field|Unknown argument|Unknown type|Variable .* is never used|Variable .* was not provided|Field .* argument .* is required|^Forbidden$|^Access denied$/i.test(message),
-    );
+    const contractError =
+      codes.some(
+        (code) =>
+          code === "GRAPHQL_VALIDATION_FAILED" ||
+          code === "GRAPHQL_PARSE_FAILED" ||
+          code === "BAD_USER_INPUT" ||
+          code === "FORBIDDEN",
+      ) ||
+      messages.some((message) =>
+        /Cannot query field|Unknown argument|Unknown type|Variable .* is never used|Variable .* was not provided|Field .* argument .* is required|^Forbidden$|^Access denied$/i.test(
+          message,
+        ),
+      );
     if (contractError) return { kind: "permanent", fingerprint };
 
-    const recoverableError = codes.some((code) =>
-      code === "SUBSCRIPTION_SCOPE_STALE"
-      || code === "INTERNAL_SERVER_ERROR"
-      || code === "SERVICE_UNAVAILABLE"
-      || code === "TIMEOUT"
-    ) || messages.some((message) =>
-      /^Not found$/i.test(message)
-      || /(?:502|503|504|ECONNRESET|ETIMEDOUT|network|socket|connection closed)/i.test(message),
-    );
+    const recoverableError =
+      codes.some(
+        (code) =>
+          code === "SUBSCRIPTION_SCOPE_STALE" ||
+          code === "INTERNAL_SERVER_ERROR" ||
+          code === "SERVICE_UNAVAILABLE" ||
+          code === "TIMEOUT",
+      ) ||
+      messages.some(
+        (message) =>
+          /^Not found$/i.test(message) ||
+          /(?:502|503|504|ECONNRESET|ETIMEDOUT|network|socket|connection closed)/i.test(message),
+      );
     if (recoverableError) return { kind: "recoverable", fingerprint };
 
     return { kind: "unknown", fingerprint };
@@ -1788,7 +1814,8 @@ export class BackendSubscriptionClient {
         const reason = messages.find((message) => message.trim()) ?? "unknown";
 
         if (!this.getToken?.()) {
-          const invalidJwt = /invalid signature|jwt malformed|jwt expired|Invalid token|Token expired/i.test(reason);
+          const invalidJwt =
+            /invalid signature|jwt malformed|jwt expired|Invalid token|Token expired/i.test(reason);
           log.warn(
             invalidJwt
               ? "JWT invalid for backend subscription; disabling authenticated subscriptions"
@@ -1803,11 +1830,14 @@ export class BackendSubscriptionClient {
           return;
         }
 
-        log.warn("Backend subscription auth refresh failed; suspending authenticated subscriptions", {
-          source,
-          failureCount: this.authRecoveryFailures,
-          reason,
-        });
+        log.warn(
+          "Backend subscription auth refresh failed; suspending authenticated subscriptions",
+          {
+            source,
+            failureCount: this.authRecoveryFailures,
+            reason,
+          },
+        );
         this.suspendAuthenticatedSubscriptions(reason);
       } finally {
         this.authRecoveryPromise = null;
@@ -1816,9 +1846,10 @@ export class BackendSubscriptionClient {
   }
 
   private shouldRetryConnection(errOrCloseEvent: unknown): boolean {
-    const code = typeof errOrCloseEvent === "object" && errOrCloseEvent !== null
-      ? (errOrCloseEvent as { code?: unknown }).code
-      : undefined;
+    const code =
+      typeof errOrCloseEvent === "object" && errOrCloseEvent !== null
+        ? (errOrCloseEvent as { code?: unknown }).code
+        : undefined;
 
     if (typeof code === "number" && AUTH_WS_CLOSE_CODES.has(code)) {
       return false;
@@ -1839,7 +1870,11 @@ export class BackendSubscriptionClient {
     key: string,
     attempt: number,
     fieldName: string,
-    result: { data?: Record<string, unknown> | null; errors?: Array<{ message?: string }>; extensions?: unknown },
+    result: {
+      data?: Record<string, unknown> | null;
+      errors?: Array<{ message?: string }>;
+      extensions?: unknown;
+    },
   ): void {
     const dataKeys = result.data ? Object.keys(result.data) : [];
     const errorMessages = result.errors?.map((err) => err.message ?? "(no message)") ?? [];
@@ -2014,7 +2049,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Update subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Update subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             if (result.errors?.length) {
@@ -2050,9 +2092,7 @@ export class BackendSubscriptionClient {
   /**
    * Subscribe to OAuth-complete events. Returns an unsubscribe function.
    */
-  subscribeToOAuthComplete(
-    onComplete: (payload: OAuthCompletePayload) => void,
-  ): () => void {
+  subscribeToOAuthComplete(onComplete: (payload: OAuthCompletePayload) => void): () => void {
     const key = "oauth-complete";
 
     const subscribe = (attempt: number): (() => void) => {
@@ -2065,7 +2105,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "OAuth subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "OAuth subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             if (result.errors?.length) {
@@ -2094,9 +2141,7 @@ export class BackendSubscriptionClient {
     return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 
-  subscribeToAdsOAuthComplete(
-    onComplete: (payload: AdsOAuthCompletePayload) => void,
-  ): () => void {
+  subscribeToAdsOAuthComplete(onComplete: (payload: AdsOAuthCompletePayload) => void): () => void {
     const key = "ads-oauth-complete";
 
     const subscribe = (attempt: number): (() => void) => {
@@ -2109,7 +2154,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Ads OAuth subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Ads OAuth subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.adsOAuthComplete;
@@ -2160,7 +2212,12 @@ export class BackendSubscriptionClient {
             }
             const payload = result.data?.affiliateOutreachAccountConnected;
             if (!payload) {
-              this.logUnexpectedResult(key, attempt, "affiliateOutreachAccountConnected", result as any);
+              this.logUnexpectedResult(
+                key,
+                attempt,
+                "affiliateOutreachAccountConnected",
+                result as any,
+              );
               return;
             }
             onConnected(payload);
@@ -2186,9 +2243,7 @@ export class BackendSubscriptionClient {
    * Subscribe to shop-updated events. Returns an unsubscribe function.
    * Payload includes __typename so callers can feed it directly into ingestGraphQLResponse.
    */
-  subscribeToShopUpdated(
-    onShopUpdated: (data: Record<string, unknown>) => void,
-  ): () => void {
+  subscribeToShopUpdated(onShopUpdated: (data: Record<string, unknown>) => void): () => void {
     const key = "shop-updated";
 
     const subscribe = (attempt: number): (() => void) => {
@@ -2201,7 +2256,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Shop updated subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Shop updated subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.shopUpdated;
@@ -2223,9 +2285,7 @@ export class BackendSubscriptionClient {
     return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 
-  subscribeToToolSpecsChanged(
-    onChanged: (payload: ToolSpecsChangedPayload) => void,
-  ): () => void {
+  subscribeToToolSpecsChanged(onChanged: (payload: ToolSpecsChangedPayload) => void): () => void {
     const key = "tool-specs-changed";
 
     const subscribe = (attempt: number): (() => void) => {
@@ -2238,7 +2298,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "ToolSpecs changed subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "ToolSpecs changed subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.toolSpecsChanged;
@@ -2268,14 +2335,23 @@ export class BackendSubscriptionClient {
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
 
-      const unsubscribe = this.client.subscribe<{ presetSkillsChanged: PresetSkillsChangedPayload }>(
+      const unsubscribe = this.client.subscribe<{
+        presetSkillsChanged: PresetSkillsChangedPayload;
+      }>(
         {
           query: PRESET_SKILLS_CHANGED_SUBSCRIPTION,
         },
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Preset skills changed subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Preset skills changed subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.presetSkillsChanged;
@@ -2286,7 +2362,12 @@ export class BackendSubscriptionClient {
             onChanged(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Preset skills changed subscription error", err);
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Preset skills changed subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -2306,7 +2387,9 @@ export class BackendSubscriptionClient {
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
 
-      const unsubscribe = this.client.subscribe<{ clientLogUploadRequested: ClientLogUploadRequestPayload }>(
+      const unsubscribe = this.client.subscribe<{
+        clientLogUploadRequested: ClientLogUploadRequestPayload;
+      }>(
         {
           query: CLIENT_LOG_UPLOAD_REQUESTED_SUBSCRIPTION,
           variables: { deviceId },
@@ -2314,7 +2397,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Client log upload subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Client log upload subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.clientLogUploadRequested;
@@ -2344,14 +2434,23 @@ export class BackendSubscriptionClient {
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
 
-      const unsubscribe = this.client.subscribe<{ devicePresenceProbeRequested: DevicePresenceProbeRequestPayload }>(
+      const unsubscribe = this.client.subscribe<{
+        devicePresenceProbeRequested: DevicePresenceProbeRequestPayload;
+      }>(
         {
           query: DEVICE_PRESENCE_PROBE_REQUESTED_SUBSCRIPTION,
         },
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Device presence probe subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Device presence probe subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.devicePresenceProbeRequested;
@@ -2362,7 +2461,12 @@ export class BackendSubscriptionClient {
             onRequest(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Device presence probe subscription error", err);
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Device presence probe subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -2388,14 +2492,23 @@ export class BackendSubscriptionClient {
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
 
-      const unsubscribe = this.client.subscribe<{ csEscalationEvent: CsEscalationEventDeliveryPayload }>(
+      const unsubscribe = this.client.subscribe<{
+        csEscalationEvent: CsEscalationEventDeliveryPayload;
+      }>(
         {
           query: CS_ESCALATION_EVENT_SUBSCRIPTION,
         },
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "CS escalation subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "CS escalation subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.csEscalationEvent;
@@ -2425,10 +2538,13 @@ export class BackendSubscriptionClient {
 
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
-      const shopIds = Array.from(new Set(options?.getShopIds?.() ?? []))
-        .filter((shopId) => typeof shopId === "string" && shopId.length > 0);
+      const shopIds = Array.from(new Set(options?.getShopIds?.() ?? [])).filter(
+        (shopId) => typeof shopId === "string" && shopId.length > 0,
+      );
 
-      const unsubscribe = this.client.subscribe<{ csConversationSignal: CsConversationSignalPayload }>(
+      const unsubscribe = this.client.subscribe<{
+        csConversationSignal: CsConversationSignalPayload;
+      }>(
         {
           query: CS_CONVERSATION_SIGNAL_SUBSCRIPTION,
           variables: { shopIds },
@@ -2436,7 +2552,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "CS conversation signal subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "CS conversation signal subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.csConversationSignal;
@@ -2447,7 +2570,12 @@ export class BackendSubscriptionClient {
             onSignal(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "CS conversation signal subscription error", err);
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "CS conversation signal subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -2466,10 +2594,13 @@ export class BackendSubscriptionClient {
 
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
-      const shopIds = Array.from(new Set(options?.getShopIds?.() ?? []))
-        .filter((shopId) => typeof shopId === "string" && shopId.length > 0);
+      const shopIds = Array.from(new Set(options?.getShopIds?.() ?? [])).filter(
+        (shopId) => typeof shopId === "string" && shopId.length > 0,
+      );
 
-      const unsubscribe = this.client.subscribe<{ csConversationChanged: CsConversationChangedPayload }>(
+      const unsubscribe = this.client.subscribe<{
+        csConversationChanged: CsConversationChangedPayload;
+      }>(
         {
           query: CS_CONVERSATION_CHANGED_SUBSCRIPTION,
           variables: { shopIds },
@@ -2477,7 +2608,14 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "CS conversation changed subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "CS conversation changed subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             const payload = result.data?.csConversationChanged;
@@ -2488,7 +2626,12 @@ export class BackendSubscriptionClient {
             onConversation(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "CS conversation changed subscription error", err);
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "CS conversation changed subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -2507,12 +2650,21 @@ export class BackendSubscriptionClient {
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
 
-      const unsubscribe = this.client.subscribe<{ affiliateWorkItemChanged: { workItem: AffiliateWorkItemPayload } }>(
+      const unsubscribe = this.client.subscribe<{
+        affiliateWorkItemChanged: { workItem: AffiliateWorkItemPayload };
+      }>(
         { query: AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION },
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Affiliate work item subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate work item subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             if (result.errors?.length) {
@@ -2524,13 +2676,23 @@ export class BackendSubscriptionClient {
             }
             const payload = result.data?.affiliateWorkItemChanged?.workItem;
             if (!payload) {
-              this.logUnexpectedResult(key, attempt, "affiliateWorkItemChanged.workItem", result as any);
+              this.logUnexpectedResult(
+                key,
+                attempt,
+                "affiliateWorkItemChanged.workItem",
+                result as any,
+              );
               return;
             }
             onWorkItem(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Affiliate work item subscription error", err);
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate work item subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -2538,6 +2700,49 @@ export class BackendSubscriptionClient {
       return unsubscribe;
     };
 
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
+  }
+
+  subscribeToAffiliateEscalationChanges(
+    onChange: (change: AffiliateEscalationChangedPayload) => void,
+  ): () => void {
+    const key = "affiliate-escalation-changed";
+    const subscribe = (attempt: number): (() => void) => {
+      if (!this.client) return () => {};
+      return this.client.subscribe<{
+        affiliateEscalationChanged: AffiliateEscalationChangedPayload;
+      }>(
+        { query: AFFILIATE_ESCALATION_CHANGED_SUBSCRIPTION },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key, attempt);
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate escalation subscription contained GraphQL errors",
+                result.errors,
+              )
+            )
+              return;
+            const payload = result.data?.affiliateEscalationChanged;
+            if (!payload) {
+              this.logUnexpectedResult(key, attempt, "affiliateEscalationChanged", result as any);
+              return;
+            }
+            onChange(payload);
+          },
+          error: (error) =>
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate escalation subscription error",
+              error,
+            ),
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+    };
     return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 
@@ -2558,25 +2763,34 @@ export class BackendSubscriptionClient {
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(
-              key,
-              attempt,
-              "Affiliate Campaign SearchPlan subscription contained GraphQL errors",
-              result.errors,
-            )) return;
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate Campaign SearchPlan subscription contained GraphQL errors",
+                result.errors,
+              )
+            )
+              return;
             const payload = result.data?.affiliateCampaignSearchPlanRequested;
             if (!payload) {
-              this.logUnexpectedResult(key, attempt, "affiliateCampaignSearchPlanRequested", result as any);
+              this.logUnexpectedResult(
+                key,
+                attempt,
+                "affiliateCampaignSearchPlanRequested",
+                result as any,
+              );
               return;
             }
             onRequest(payload);
           },
-          error: (error) => this.handleSubscriptionError(
-            key,
-            attempt,
-            "Affiliate Campaign SearchPlan subscription error",
-            error,
-          ),
+          error: (error) =>
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate Campaign SearchPlan subscription error",
+              error,
+            ),
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
       );
@@ -2592,12 +2806,21 @@ export class BackendSubscriptionClient {
     const subscribe = (attempt: number): (() => void) => {
       if (!this.client) return () => {};
 
-      const unsubscribe = this.client.subscribe<{ affiliateActionProposalChanged: { proposal: AffiliateActionProposalPayload } }>(
+      const unsubscribe = this.client.subscribe<{
+        affiliateActionProposalChanged: { proposal: AffiliateActionProposalPayload };
+      }>(
         { query: AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION },
         {
           next: (result) => {
             this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Affiliate action proposal subscription next contained GraphQL errors", result.errors)) {
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate action proposal subscription next contained GraphQL errors",
+                result.errors,
+              )
+            ) {
               return;
             }
             if (result.errors?.length) {
@@ -2609,13 +2832,23 @@ export class BackendSubscriptionClient {
             }
             const payload = result.data?.affiliateActionProposalChanged?.proposal;
             if (!payload) {
-              this.logUnexpectedResult(key, attempt, "affiliateActionProposalChanged.proposal", result as any);
+              this.logUnexpectedResult(
+                key,
+                attempt,
+                "affiliateActionProposalChanged.proposal",
+                result as any,
+              );
               return;
             }
             onProposal(payload);
           },
           error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Affiliate action proposal subscription error", err);
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate action proposal subscription error",
+              err,
+            );
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },
@@ -2683,7 +2916,10 @@ export class BackendSubscriptionClient {
               }
               this.reconcileSubscriptions("transport_reconnected", { retryBlocked: true });
             })().catch((err) => {
-              log.warn("Backend subscription reconnect recovery hook failed", this.formatUnknownError(err));
+              log.warn(
+                "Backend subscription reconnect recovery hook failed",
+                this.formatUnknownError(err),
+              );
               this.reconcileSubscriptions("transport_reconnected_after_hook_error", {
                 retryBlocked: true,
               });
@@ -2699,16 +2935,20 @@ export class BackendSubscriptionClient {
             ...this.formatUnknownError(event),
             engagedLongLivedOperations: this.countEngagedLongLivedOperations(),
           });
-          const code = typeof event === "object" && event !== null
-            ? (event as { code?: unknown }).code
-            : undefined;
+          const code =
+            typeof event === "object" && event !== null
+              ? (event as { code?: unknown }).code
+              : undefined;
           if (typeof code === "number" && AUTH_WS_CLOSE_CODES.has(code)) {
             this.handleConnectionAuthFailure(`connection_close_${code}`, event);
           }
           this.armTransportStallWatchdog();
         },
         error: (err) => {
-          log.warn("Backend subscription WebSocket error (will auto-retry)", this.formatUnknownError(err));
+          log.warn(
+            "Backend subscription WebSocket error (will auto-retry)",
+            this.formatUnknownError(err),
+          );
           if (this.isAuthError(err)) {
             this.handleConnectionAuthFailure("connection_error", err);
           }

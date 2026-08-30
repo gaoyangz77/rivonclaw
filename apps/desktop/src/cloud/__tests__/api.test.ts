@@ -462,14 +462,18 @@ describe("cloud-graphql handler", () => {
     // The deprecated resolve inputs are stripped at the proxy boundary and
     // never reach the backend, whatever the tool payload carried.
     const proxiedResolveInput = (
-      graphqlFetch.mock.calls.find(([query]) => String(query).includes("resolveAffiliateWorkItem"))?.[1] as {
+      graphqlFetch.mock.calls.find(([query]) =>
+        String(query).includes("resolveAffiliateWorkItem"),
+      )?.[1] as {
         input: Record<string, unknown>;
       }
     ).input;
     // The proxy rebuilds messageIntent from an allowlist, so a field missing
     // from that list silently never reaches the backend however plainly the
     // tool schema requires it. Pin the explicit-channel contract's fields.
-    const proxiedMessageIntent = (proxiedResolveInput.action as { messageIntent: Record<string, unknown> }).messageIntent;
+    const proxiedMessageIntent = (
+      proxiedResolveInput.action as { messageIntent: Record<string, unknown> }
+    ).messageIntent;
     expect(proxiedMessageIntent.channelType).toBe("PLATFORM_CHAT");
     expect(proxiedMessageIntent.shopId).toBe("66f000000000000000000s01");
     expect(proxiedResolveInput.triggerShopId).toBeUndefined();
@@ -486,6 +490,130 @@ describe("cloud-graphql handler", () => {
     expect(mockOpenClawRequest.mock.invocationCallOrder[0]).toBeLessThan(
       graphqlFetch.mock.invocationCallOrder[0],
     );
+  });
+
+  it("injects trusted escalation context, creates no checkpoint, and rejects a second terminal tool", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      affiliateEscalate: {
+        ok: true,
+        escalationId: "escalation-1",
+        status: "OPEN",
+        version: 1,
+        changed: true,
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: "relationship-1",
+      sessionKey: "agent:affiliate:affiliate:user-1:relationship-1",
+      runId: "run-checkpoint-1",
+      baseCheckpointId: "checkpoint-k",
+      baseEventCursor: 7,
+      handledSignalAt: "2026-08-30T00:00:00.000Z",
+      candidateCheckpointId: "candidate-checkpoint-1",
+      targetEventCursor: 9,
+      relationshipOperationalConfigRevision: 4,
+      agendaItemsSnapshotId: "66f000000000000000000abc",
+    });
+    const mutation = `
+      mutation AffiliateEscalate($input: AffiliateEscalateInput!) {
+        affiliateEscalate(input: $input) { ok escalationId status version changed }
+      }
+    `;
+
+    const { res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          reason: "Staff authority is required",
+          question: "Should a replacement sample be approved?",
+          sourceAgendaItemsSnapshotId: "agent-supplied-snapshot",
+          baseCheckpointId: "agent-supplied-checkpoint",
+          baseEventCursor: 1,
+          targetEventCursor: 2,
+        },
+      },
+    });
+
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          creatorRelationshipId: "relationship-1",
+          sourceAgendaItemsSnapshotId: "66f000000000000000000abc",
+          baseCheckpointId: "checkpoint-k",
+          baseEventCursor: 7,
+          targetEventCursor: 9,
+        }),
+      }),
+    );
+    expect(mockOpenClawRequest).not.toHaveBeenCalledWith(
+      "sessions.checkpoint.create",
+      expect.anything(),
+    );
+
+    const resolveMutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) { success }
+      }
+    `;
+    const second = await dispatch("POST", pathname, ctx, {
+      query: resolveMutation,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          decision: "NO_ACTION_NEEDED",
+          operatorSummary: "No further action.",
+        },
+      },
+    });
+    expect(second.res._body).toEqual({
+      errors: [{ message: expect.stringContaining("terminal outcome ESCALATED") }],
+    });
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails affiliate_escalate closed when the active run has no trusted snapshot", async () => {
+    const graphqlFetch = vi.fn();
+    const ctx = {
+      authSession: { getAccessToken: () => "valid-token", graphqlFetch },
+    } as unknown as ApiContext;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: "relationship-1",
+      sessionKey: "agent:affiliate:affiliate:user-1:relationship-1",
+      runId: "run-checkpoint-1",
+      baseCheckpointId: null,
+      baseEventCursor: 7,
+      handledSignalAt: null,
+      candidateCheckpointId: "candidate-checkpoint-1",
+      targetEventCursor: 9,
+      relationshipOperationalConfigRevision: 4,
+      agendaItemsSnapshotId: null,
+    });
+
+    const result = await dispatch("POST", pathname, ctx, {
+      query: `mutation AffiliateEscalate($input: AffiliateEscalateInput!) {
+        affiliateEscalate(input: $input) { ok }
+      }`,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          reason: "Need staff",
+          question: "What is the decision?",
+        },
+      },
+    });
+    expect(result.res._body).toEqual({
+      errors: [{ message: expect.stringContaining("trusted agenda snapshot") }],
+    });
+    expect(graphqlFetch).not.toHaveBeenCalled();
   });
 
   it("does not proxy affiliate work resolution when the candidate checkpoint cannot be captured", async () => {
@@ -886,10 +1014,12 @@ describe("cloud-graphql handler", () => {
             {
               type: "SEND_MESSAGE",
               messageIntent: {
-                parts: [{
-                  kind: "TEXT",
-                  text: "Thanks for applying. We are not moving forward with this sample collaboration.",
-                }],
+                parts: [
+                  {
+                    kind: "TEXT",
+                    text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+                  },
+                ],
               },
             },
           ],
@@ -899,7 +1029,9 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    const sentInput = (
+      graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined
+    )?.input;
     expect(sentInput?.action).toEqual({
       type: "REVIEW_SAMPLE_APPLICATION",
       messageIntent: {},
@@ -919,10 +1051,12 @@ describe("cloud-graphql handler", () => {
       {
         type: "SEND_MESSAGE",
         messageIntent: {
-          parts: [{
-            kind: "TEXT",
-            text: "Thanks for applying. We are not moving forward with this sample collaboration.",
-          }],
+          parts: [
+            {
+              kind: "TEXT",
+              text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+            },
+          ],
         },
       },
     ]);
@@ -966,10 +1100,12 @@ describe("cloud-graphql handler", () => {
             {
               type: "SEND_MESSAGE",
               messageIntent: {
-                parts: [{
-                  kind: "TEXT",
-                  text: "Thanks for the update. We will review and get back to you soon.",
-                }],
+                parts: [
+                  {
+                    kind: "TEXT",
+                    text: "Thanks for the update. We will review and get back to you soon.",
+                  },
+                ],
               },
             },
           ],
@@ -979,7 +1115,9 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    const sentInput = (
+      graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined
+    )?.input;
     expect(sentInput?.action).toEqual({
       type: "SEND_MESSAGE",
       messageIntent: {},
@@ -988,10 +1126,12 @@ describe("cloud-graphql handler", () => {
       {
         type: "SEND_MESSAGE",
         messageIntent: {
-          parts: [{
-            kind: "TEXT",
-            text: "Thanks for the update. We will review and get back to you soon.",
-          }],
+          parts: [
+            {
+              kind: "TEXT",
+              text: "Thanks for the update. We will review and get back to you soon.",
+            },
+          ],
         },
       },
     ]);
@@ -1085,7 +1225,9 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    const sentInput = (
+      graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined
+    )?.input;
     expect(sentInput).toEqual({
       creatorRelationshipId: "relationship-1",
       decision: "NO_ACTION_NEEDED",
@@ -1141,7 +1283,8 @@ describe("cloud-graphql handler", () => {
             },
             {
               type: "SEND_MESSAGE",
-              messageText: "Thanks for your interest. After reviewing the request, we are not moving forward with this sample.",
+              messageText:
+                "Thanks for your interest. After reviewing the request, we are not moving forward with this sample.",
             },
           ],
         },
@@ -1198,7 +1341,8 @@ describe("cloud-graphql handler", () => {
             },
             {
               type: "SEND_MESSAGE",
-              messageText: "Thank you for applying. After review, we are not moving forward with this sample collaboration.",
+              messageText:
+                "Thank you for applying. After review, we are not moving forward with this sample collaboration.",
             },
           ],
         },
@@ -1256,7 +1400,8 @@ describe("cloud-graphql handler", () => {
             },
             {
               type: "SEND_MESSAGE",
-              messageText: "Thank you for applying. After review, we are not moving forward with this sample collaboration.",
+              messageText:
+                "Thank you for applying. After review, we are not moving forward with this sample collaboration.",
             },
           ],
         },
@@ -1312,7 +1457,8 @@ describe("cloud-graphql handler", () => {
             },
             {
               type: "SEND_MESSAGE",
-              messageText: "Thank you for applying. After review, we're not moving forward with this sample collaboration.",
+              messageText:
+                "Thank you for applying. After review, we're not moving forward with this sample collaboration.",
             },
           ],
         },
@@ -1363,11 +1509,13 @@ describe("cloud-graphql handler", () => {
             type: "SEND_MESSAGE",
             predictionCacheIds: ["backend-validates-this-field"],
             messageIntent: {
-              parts: [{
-                kind: "text",
-                text: "Thanks for the update.",
-                providerMessageId: "backend-validates-this-field",
-              }],
+              parts: [
+                {
+                  kind: "text",
+                  text: "Thanks for the update.",
+                  providerMessageId: "backend-validates-this-field",
+                },
+              ],
               providerConversationId: "backend-validates-this-field",
             },
             sampleReviewIntent: {
@@ -1391,11 +1539,13 @@ describe("cloud-graphql handler", () => {
             type: "SEND_MESSAGE",
             predictionCacheIds: ["backend-validates-this-field"],
             messageIntent: {
-              parts: [{
-                kind: "text",
-                text: "Thanks for the update.",
-                providerMessageId: "backend-validates-this-field",
-              }],
+              parts: [
+                {
+                  kind: "text",
+                  text: "Thanks for the update.",
+                  providerMessageId: "backend-validates-this-field",
+                },
+              ],
               providerConversationId: "backend-validates-this-field",
             },
             sampleReviewIntent: {
@@ -1453,7 +1603,9 @@ describe("cloud-graphql handler", () => {
             {
               type: "SEND_MESSAGE",
               messageIntent: {
-                parts: [{ kind: "TEXT", text: "Understood — we won't send more campaign invitations." }],
+                parts: [
+                  { kind: "TEXT", text: "Understood — we won't send more campaign invitations." },
+                ],
               },
             },
           ],
@@ -1481,10 +1633,12 @@ describe("cloud-graphql handler", () => {
             {
               type: "SEND_MESSAGE",
               messageIntent: {
-                parts: [{
-                  kind: "TEXT",
-                  text: "Understood — we won't send more campaign invitations.",
-                }],
+                parts: [
+                  {
+                    kind: "TEXT",
+                    text: "Understood — we won't send more campaign invitations.",
+                  },
+                ],
               },
             },
           ],
@@ -1607,10 +1761,12 @@ describe("cloud-graphql handler", () => {
             affiliateCollaborationId: "collab-follow-up-1",
             productId: "product-follow-up-1",
             messageIntent: {
-              parts: [{
-                kind: "text",
-                text: "Thanks for the update.",
-              }],
+              parts: [
+                {
+                  kind: "text",
+                  text: "Thanks for the update.",
+                },
+              ],
             },
           },
         }),
@@ -1744,7 +1900,9 @@ describe("cloud-graphql handler", () => {
         }),
       }),
     );
-    const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
+    const sentInput = (
+      graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined
+    )?.input;
     expect(sentInput?.action).toEqual({
       type: "SEND_MESSAGE",
       creatorId: "relationship-1",
@@ -1895,17 +2053,25 @@ describe("cloud-graphql handler", () => {
         }
       }
     `;
-    const { res } = await dispatch("POST", pathname, ctx, {
-      query,
-      variables: {
-        input: {
-          creatorRelationshipId: "relationship-1",
-          shopId: "shop-1",
-          productId: "product-1",
+    const { res } = await dispatch(
+      "POST",
+      pathname,
+      ctx,
+      {
+        query,
+        variables: {
+          input: {
+            creatorRelationshipId: "relationship-1",
+            shopId: "shop-1",
+            productId: "product-1",
+          },
+        },
+        extensions: {
+          rivonclaw: { persistResult: true, toolId: "affiliate_predict_creator_product_fit" },
         },
       },
-      extensions: { rivonclaw: { persistResult: true, toolId: "affiliate_predict_creator_product_fit" } },
-    }, { "x-request-source": "extension" });
+      { "x-request-source": "extension" },
+    );
 
     expect(res._status).toBe(200);
     expect(res._body).toEqual({
@@ -2089,28 +2255,13 @@ describe("cloud-graphql handler", () => {
       onAuthChange,
     } as unknown as ApiContext;
 
-    const first = await dispatch(
-      "POST",
-      pathname,
-      ctx,
-      { query: toolSpecsQuery },
-    );
-    const cached = await dispatch(
-      "POST",
-      pathname,
-      ctx,
-      { query: toolSpecsQuery },
-    );
+    const first = await dispatch("POST", pathname, ctx, { query: toolSpecsQuery });
+    const cached = await dispatch("POST", pathname, ctx, { query: toolSpecsQuery });
     await dispatch("POST", pathname, ctx, {
       query: enrollMutation,
       variables: { moduleId: "GLOBAL_ECOMMERCE_SELLER" },
     });
-    const refreshed = await dispatch(
-      "POST",
-      pathname,
-      ctx,
-      { query: toolSpecsQuery },
-    );
+    const refreshed = await dispatch("POST", pathname, ctx, { query: toolSpecsQuery });
     const extensionAttempt = await dispatch(
       "POST",
       pathname,
@@ -2129,7 +2280,12 @@ describe("cloud-graphql handler", () => {
       data: { toolSpecs: [expect.objectContaining({ id: "new-tool" })] },
     });
     expect(extensionAttempt.res._body).toEqual({
-      errors: [{ message: "ToolSpecsSync is desktop-owned; extensions receive ToolSpecs from Desktop via gateway RPC" }],
+      errors: [
+        {
+          message:
+            "ToolSpecsSync is desktop-owned; extensions receive ToolSpecs from Desktop via gateway RPC",
+        },
+      ],
     });
     expect(graphqlFetch.mock.calls.filter(([query]) => query === toolSpecsQuery)).toHaveLength(2);
     expect(onAuthChange).toHaveBeenCalledTimes(1);

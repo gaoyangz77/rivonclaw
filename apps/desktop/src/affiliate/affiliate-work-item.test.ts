@@ -9,7 +9,11 @@ import { GQL } from "@rivonclaw/core";
 const loggerMocks = vi.hoisted(() => {
   const loggers = new Map<
     string,
-    { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> }
+    {
+      info: ReturnType<typeof vi.fn>;
+      warn: ReturnType<typeof vi.fn>;
+      error: ReturnType<typeof vi.fn>;
+    }
   >();
   return {
     get(name: string) {
@@ -90,6 +94,7 @@ import { AffiliateInbound, resolveMaxActiveAffiliateAgentRuns } from "./affiliat
 import {
   __clearActiveAffiliateRunCheckpointsForTests,
   getActiveAffiliateRunCheckpoint,
+  recordActiveAffiliateRunTerminalOutcome,
 } from "./affiliate-run-checkpoints.js";
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 
@@ -1466,6 +1471,95 @@ describe("affiliate work item dispatch", () => {
     );
   });
 
+  it("restores the committed session boundary after escalation without creating a candidate checkpoint", async () => {
+    const workItem = createSampleReviewWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        routingShopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationRecordId: "sample-record-001",
+        affiliateCollaborationId: "collab-001",
+        creatorId: "creator-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runId).toBe("run-affiliate-001");
+    recordActiveAffiliateRunTerminalOutcome({
+      creatorRelationshipId: "relationship-001",
+      outcome: "ESCALATED",
+    });
+    mockRpcRequest.mockClear();
+
+    session.onRunCompleted("run-affiliate-001");
+
+    await waitForCondition(() =>
+      mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.reset"),
+    );
+    await waitForCondition(() => getActiveAffiliateRunCheckpoint("relationship-001") == null);
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.reset", {
+      key: "agent:affiliate:affiliate:user-001:relationship-001",
+      reason: "new",
+    });
+    expect(mockRpcRequest).not.toHaveBeenCalledWith(
+      "sessions.checkpoint.create",
+      expect.anything(),
+    );
+  });
+
+  it("still restores the committed boundary when the gateway errors after escalation persisted", async () => {
+    const workItem = createSampleReviewWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        routingShopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+        sampleApplicationRecordId: "sample-record-001",
+        affiliateCollaborationId: "collab-001",
+        creatorId: "creator-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    recordActiveAffiliateRunTerminalOutcome({
+      creatorRelationshipId: "relationship-001",
+      outcome: "ESCALATED",
+    });
+    mockRpcRequest.mockClear();
+
+    session.onRunCompleted(result.runId!, { errored: true });
+
+    await waitForCondition(() =>
+      mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.reset"),
+    );
+    await waitForCondition(() => getActiveAffiliateRunCheckpoint("relationship-001") == null);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith(
+      "sessions.checkpoint.create",
+      expect.anything(),
+    );
+  });
+
   it("restores affiliate work runs from the committed relationship checkpoint", async () => {
     const workItem = createSampleReviewWorkItem({
       creatorRelationship: {
@@ -2388,9 +2482,7 @@ describe("affiliate work item dispatch", () => {
       );
       expect(request?.message).toContain("商家历史审批倾向");
       expect(request?.message).toContain("NOT a sales prediction");
-      expect(request?.message).toContain(
-        "shop minimum Expected Sales reference does not apply",
-      );
+      expect(request?.message).toContain("shop minimum Expected Sales reference does not apply");
       expect(request?.message).not.toContain('"units"');
       expect(request?.message).not.toContain('"percentile"');
       expect(request?.message).not.toContain(
@@ -2431,9 +2523,7 @@ describe("affiliate work item dispatch", () => {
         "No prediction model signal is available for this evidence",
       );
       expect(request?.message).toContain("This is normal operation");
-      expect(request?.message).toContain(
-        "not by itself a reason to request staff review",
-      );
+      expect(request?.message).toContain("not by itself a reason to request staff review");
       expect(request?.message).not.toContain('"units"');
       expect(request?.message).not.toContain("merchantApprovalTendency");
     });
@@ -2484,9 +2574,7 @@ describe("affiliate work item dispatch", () => {
       expect(request?.message).not.toContain('"units"');
       expect(request?.message).not.toContain("normal operation");
       expect(request?.message).not.toContain("not an error");
-      expect(request?.message).not.toContain(
-        "not by itself a reason to request staff review",
-      );
+      expect(request?.message).not.toContain("not by itself a reason to request staff review");
       expect(request?.message).not.toContain("merchantApprovalTendency");
     });
 
@@ -2559,9 +2647,7 @@ describe("affiliate work item dispatch", () => {
       expect(request?.message).toContain(
         "unavailable because of a data-path, context, or service error",
       );
-      expect(request?.message).toContain(
-        "shop minimum Expected Sales reference does not apply",
-      );
+      expect(request?.message).toContain("shop minimum Expected Sales reference does not apply");
       expect(request?.message).not.toContain('"units"');
       expect(request?.message).not.toContain("merchantApprovalTendency");
       expect(request?.message).not.toContain(
@@ -2717,9 +2803,7 @@ describe("affiliate work item dispatch", () => {
       platform: "tiktok",
     });
 
-    expect(request?.message).toContain(
-      "Sample Application Record ID: sample-record-soft-rejected",
-    );
+    expect(request?.message).toContain("Sample Application Record ID: sample-record-soft-rejected");
     expect(request?.message).toContain("Sample Review Disposition: SOFT_REJECTED");
   });
 
@@ -2942,9 +3026,7 @@ describe("affiliate work item dispatch", () => {
       platform: "tiktok",
     });
 
-    expect(request?.message).toContain(
-      "Consecutive Failed Attempts On This Boundary: at least 20",
-    );
+    expect(request?.message).toContain("Consecutive Failed Attempts On This Boundary: at least 20");
   });
 
   it("says plainly when a Backend older than the attempt count sent no number", () => {
@@ -3088,9 +3170,7 @@ describe("affiliate work item dispatch", () => {
     const forced = renderTerminalAgenda(
       PRODUCER_VERIFIED_TERMINAL_STATES.PLATFORM_FORCED_REJECTION,
     );
-    const expired = renderTerminalAgenda(
-      PRODUCER_VERIFIED_TERMINAL_STATES.APPROVAL_WINDOW_EXPIRED,
-    );
+    const expired = renderTerminalAgenda(PRODUCER_VERIFIED_TERMINAL_STATES.APPROVAL_WINDOW_EXPIRED);
 
     const forcedFact = terminalLine(forced, "Sample Terminal Fact");
     const expiredFact = terminalLine(expired, "Sample Terminal Fact");
@@ -3133,9 +3213,7 @@ describe("affiliate work item dispatch", () => {
   });
 
   it("tells an expiry apart from a rejection the platform forced", () => {
-    const expired = renderTerminalAgenda(
-      PRODUCER_VERIFIED_TERMINAL_STATES.APPROVAL_WINDOW_EXPIRED,
-    );
+    const expired = renderTerminalAgenda(PRODUCER_VERIFIED_TERMINAL_STATES.APPROVAL_WINDOW_EXPIRED);
 
     expect(expired).toContain("Sample Terminal Cause: APPROVAL_WINDOW_EXPIRED");
     expect(expired).toContain("Sample Terminal Work Status: EXPIRED");
@@ -3197,9 +3275,7 @@ describe("affiliate work item dispatch", () => {
     });
 
     expect(undetermined).toContain("Sample Terminal Cause: UNDETERMINED");
-    expect(undetermined).toContain(
-      "Never state or imply a reason to the Creator.",
-    );
+    expect(undetermined).toContain("Never state or imply a reason to the Creator.");
     // The disclosure belongs to UNDETERMINED alone; a known cause must not
     // carry an instruction telling the Agent to withhold it.
     expect(
@@ -4101,21 +4177,22 @@ describe("Target Collaboration coverage is absent from the Working Agenda", () =
     itemOverrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {},
   ): string {
     const base = createCreatorReplyWorkItem();
-    const agendaItem = (base.creatorRelationship?.agendaItems ?? [])[0] as
-      GQL.AffiliateRelationshipAgendaItem;
+    const agendaItem = (base.creatorRelationship?.agendaItems ??
+      [])[0] as GQL.AffiliateRelationshipAgendaItem;
     const request = buildAffiliateAgentRunRequest({
       workItem: createCreatorReplyWorkItem({
-        agentWorkingAgendaItems: [{
-          ...agendaItem,
-          workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
-          requiredAction:
-            GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
-          sampleApplicationRecordId: "sample-coverage-001",
-          productId: "product-under-review",
-          predictionEvidence: createWorkingAgendaPredictionEvidence(),
-          hasTargetCollaboration,
-          ...itemOverrides,
-        }],
+        agentWorkingAgendaItems: [
+          {
+            ...agendaItem,
+            workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+            requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+            sampleApplicationRecordId: "sample-coverage-001",
+            productId: "product-under-review",
+            predictionEvidence: createWorkingAgendaPredictionEvidence(),
+            hasTargetCollaboration,
+            ...itemOverrides,
+          },
+        ],
       }),
       platform: "tiktok",
     });
@@ -4163,21 +4240,22 @@ describe("Shop minimum expected sales reference in the Working Agenda", () => {
     itemOverrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {},
   ): string {
     const base = createCreatorReplyWorkItem();
-    const agendaItem = (base.creatorRelationship?.agendaItems ?? [])[0] as
-      GQL.AffiliateRelationshipAgendaItem;
+    const agendaItem = (base.creatorRelationship?.agendaItems ??
+      [])[0] as GQL.AffiliateRelationshipAgendaItem;
     const request = buildAffiliateAgentRunRequest({
       workItem: createCreatorReplyWorkItem({
-        agentWorkingAgendaItems: [{
-          ...agendaItem,
-          workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
-          requiredAction:
-            GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
-          sampleApplicationRecordId: "sample-reference-001",
-          productId: "product-under-review",
-          predictionEvidence: createWorkingAgendaPredictionEvidence(),
-          minExpectedSalesReference,
-          ...itemOverrides,
-        }],
+        agentWorkingAgendaItems: [
+          {
+            ...agendaItem,
+            workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+            requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+            sampleApplicationRecordId: "sample-reference-001",
+            productId: "product-under-review",
+            predictionEvidence: createWorkingAgendaPredictionEvidence(),
+            minExpectedSalesReference,
+            ...itemOverrides,
+          },
+        ],
       }),
       platform: "tiktok",
     });
@@ -4249,10 +4327,12 @@ describe("Shop minimum expected sales reference in the Working Agenda", () => {
   });
 
   it("refuses to render a configured reference that carries no units", () => {
-    expect(() => renderReference({
-      availability: GQL.AffiliateShopReferenceAvailability.Configured,
-      units: null,
-    })).toThrow(/CONFIGURED shop minimum expected sales reference with no units/);
+    expect(() =>
+      renderReference({
+        availability: GQL.AffiliateShopReferenceAvailability.Configured,
+        units: null,
+      }),
+    ).toThrow(/CONFIGURED shop minimum expected sales reference with no units/);
   });
 
   it("stays silent on work that is not a Sample review", () => {

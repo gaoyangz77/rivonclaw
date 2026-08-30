@@ -74,6 +74,8 @@ describe("Affiliate business developer region editor", () => {
           agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
           businessPrompt: "",
           deviceId: "",
+          escalationChannelId: "",
+          escalationRecipientId: "",
         }}
         setForm={vi.fn()}
         onCancel={vi.fn()}

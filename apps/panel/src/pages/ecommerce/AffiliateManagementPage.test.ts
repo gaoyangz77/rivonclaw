@@ -916,7 +916,7 @@ describe("Affiliate canonical UI contract", () => {
     expect(queries).not.toContain("unassignAffiliateBusinessDeveloper");
   });
 
-  it("uses four workbench tabs while keeping Agent-only filters scoped to Agent work", () => {
+  it("places pending escalations immediately after pending Agent review", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
@@ -924,11 +924,20 @@ describe("Affiliate canonical UI contract", () => {
 
     expect(page).toContain("affiliate-agent-workspace-controls");
     expect(page).toContain('["PENDING_AGENT", "pendingAgent"]');
+    expect(page).toContain('["ESCALATIONS", "pendingEscalations"]');
     expect(page).toContain('["ALL_AGENT", "allAgent"]');
     expect(page).toContain('["SAMPLES", "samples"]');
     expect(page).toContain('["MESSAGES", "messages"]');
-    expect(page).toContain('aria-selected={workbenchTab === value}');
-    expect(page).toContain('workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT"');
+    expect(page).toContain("aria-selected={workbenchTab === value}");
+    expect(page.indexOf('["PENDING_AGENT", "pendingAgent"]')).toBeLessThan(
+      page.indexOf('["ESCALATIONS", "pendingEscalations"]'),
+    );
+    expect(page.indexOf('["ESCALATIONS", "pendingEscalations"]')).toBeLessThan(
+      page.indexOf('["ALL_AGENT", "allAgent"]'),
+    );
+    expect(page).toMatch(
+      /workbenchTab === "PENDING_AGENT"\s*\|\|\s*workbenchTab === "ALL_AGENT"\s*\|\|\s*workbenchTab === "ESCALATIONS"/,
+    );
     expect(page).not.toContain('role="switch"');
     expect(page).not.toContain("AGENT_WORKSPACE_VIEWS.map");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
@@ -936,6 +945,9 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("selectedBusinessDeveloperId");
     expect(page).toContain("businessDeveloperSearchPlaceholder");
     expect(page).toContain("searchable");
+    expect(page).toContain("AFFILIATE_ESCALATION_PAGE_SIZE = 25");
+    expect(page).toContain("offset: escalationOffset");
+    expect(page).toContain("onPageChange={setEscalationOffset}");
   });
 
   it("uses a dense Agent work table as the workspace entry point", () => {
@@ -1085,7 +1097,9 @@ describe("Affiliate canonical UI contract", () => {
     );
 
     expect(creatorModal).toContain("setActiveTab(tab.id);");
-    expect(creatorModal).toContain('activeTab === "conversation" ? " affiliate-conversation-tab-panel"');
+    expect(creatorModal).toContain(
+      'activeTab === "conversation" ? " affiliate-conversation-tab-panel"',
+    );
     expect(styles).toContain(
       ".affiliate-relationship-work-modal .affiliate-conversation-tab-panel",
     );

@@ -1,5 +1,36 @@
 import type { GQL } from "@rivonclaw/core";
 
+export const PENDING_AFFILIATE_ESCALATION_NOTIFICATIONS_QUERY = `
+  query PendingAffiliateEscalationNotifications($deviceId: String!, $limit: Int) {
+    pendingAffiliateEscalationNotifications(deviceId: $deviceId, limit: $limit) {
+      id creatorRelationshipId businessDeveloperId sourceAgendaItemsSnapshotId
+      reason question context status version notificationStatus notificationAttemptCount
+      notificationLastError createdAt updatedAt creatorName creatorUsername
+      businessDeveloperName sourceAgendaItemsSnapshotJson escalationChannelId escalationRecipientId
+    }
+  }
+`;
+
+export const CLAIM_AFFILIATE_ESCALATION_NOTIFICATION_MUTATION = `
+  mutation ClaimAffiliateEscalationNotification($escalationId: ID!, $deviceId: String!) {
+    claimAffiliateEscalationNotification(escalationId: $escalationId, deviceId: $deviceId) {
+      claimToken
+      escalation {
+        id creatorRelationshipId businessDeveloperId sourceAgendaItemsSnapshotId
+        reason question context status version notificationStatus notificationAttemptCount
+        notificationLastError createdAt updatedAt creatorName creatorUsername
+        businessDeveloperName sourceAgendaItemsSnapshotJson escalationChannelId escalationRecipientId
+      }
+    }
+  }
+`;
+
+export const ACK_AFFILIATE_ESCALATION_NOTIFICATION_MUTATION = `
+  mutation AckAffiliateEscalationNotification($input: AffiliateEscalationNotificationAckInput!) {
+    ackAffiliateEscalationNotification(input: $input)
+  }
+`;
+
 export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
   query AffiliateContextBuilder($input: AffiliateContextBuilderInput!) {
     affiliateContextBuilder(input: $input) {

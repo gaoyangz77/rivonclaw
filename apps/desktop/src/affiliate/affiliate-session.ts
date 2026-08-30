@@ -16,6 +16,7 @@ import {
 import type { StaffLanguage } from "../i18n/locale.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 import {
+  getActiveAffiliateRunCheckpoint,
   registerActiveAffiliateRunCheckpoint,
   unregisterActiveAffiliateRunCheckpoint,
 } from "./affiliate-run-checkpoints.js";
@@ -272,7 +273,8 @@ export class AffiliateSession {
       "- A selected channel never falls back to another channel when unavailable or when sending fails.",
       "",
       "## Static Resolution Contract",
-      "- Every work-item run must end with exactly one affiliate_resolve_work_item call. A final text response alone never completes or sends a backend work item.",
+      "- Every work-item run must end with exactly one terminal tool call: affiliate_resolve_work_item OR affiliate_escalate. A final text response alone never completes or sends a backend work item.",
+      "- Use affiliate_escalate only when staff must own an unresolved question before any safe action/no-action decision is possible. After it succeeds, do not call affiliate_resolve_work_item and do not produce an action or proposal.",
       "- Reconcile the complete Agent Working Agenda as one Relationship plan; use input.actions when multiple compatible side effects are required.",
       "- affiliate_resolve_work_item supports three action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and MANAGE_CREATOR_TAG. Do not invent unsupported action types.",
       "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageIntent.channelType (PLATFORM_CHAT, WHATSAPP, or EMAIL) + messageIntent.parts, and messageIntent.shopId whenever this Relationship's agenda spans several shops; REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision; MANAGE_CREATOR_TAG -> creatorTagIntent.operation plus exactly one of creatorTagIntent.manualTagId or creatorTagIntent.systemTag.",
@@ -360,6 +362,17 @@ export class AffiliateSession {
     const workItem = this.pendingRunCompletions.get(runId);
     const runtimeFailed = this.runtimeFailedRuns.delete(runId);
     if (options.errored || runtimeFailed) {
+      const terminalOutcome = getActiveAffiliateRunCheckpoint(
+        this.affiliateContext.creatorRelationshipId,
+      )?.terminalOutcome;
+      if (terminalOutcome === "ESCALATED") {
+        log.warn(
+          `Affiliate agent run reported a gateway error after escalation persisted; ` +
+            `restoring the committed session boundary: runId=${runId}`,
+        );
+        void this.finalizeSuccessfulRun(runId, workItem);
+        return;
+      }
       this.runCheckpoints.delete(runId);
       if (workItem != null) this.pendingRunCompletions.delete(runId);
       log.warn(
@@ -667,6 +680,13 @@ export class AffiliateSession {
     workItem: GQL.AffiliateWorkItem | undefined,
   ): Promise<void> {
     try {
+      const terminalOutcome = getActiveAffiliateRunCheckpoint(
+        this.affiliateContext.creatorRelationshipId,
+      )?.terminalOutcome;
+      if (terminalOutcome === "ESCALATED") {
+        await this.restoreCommittedCheckpointAfterEscalation(runId);
+        return;
+      }
       await this.createCandidateCheckpoint(runId);
       if (workItem != null) {
         await this.completeWorkItemIfUnresolved(runId, workItem);
@@ -680,6 +700,34 @@ export class AffiliateSession {
       });
       this.pendingRunCompletions.delete(runId);
       this.runCheckpoints.delete(runId);
+    }
+  }
+
+  private async restoreCommittedCheckpointAfterEscalation(runId: string): Promise<void> {
+    const checkpoint = this.runCheckpoints.get(runId);
+    if (!checkpoint?.baseCheckpointId) {
+      await openClawConnector.request("sessions.reset", {
+        key: this.scopeKey,
+        reason: "new",
+      });
+      return;
+    }
+    try {
+      await openClawConnector.request("sessions.compaction.restore", {
+        key: this.scopeKey,
+        checkpointId: checkpoint.baseCheckpointId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!MISSING_SESSION_CHECKPOINT_PATTERN.test(message)) throw error;
+      log.warn(
+        `Affiliate escalation restored no transcript because the committed checkpoint is missing: ` +
+          `scope=${this.scopeKey} checkpointId=${checkpoint.baseCheckpointId}`,
+      );
+      await openClawConnector.request("sessions.reset", {
+        key: this.scopeKey,
+        reason: "new",
+      });
     }
   }
 

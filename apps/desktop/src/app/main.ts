@@ -118,6 +118,7 @@ import {
 } from "./lifecycle.js";
 import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
+import { catchUpAffiliateEscalationNotifications } from "../affiliate/affiliate-escalation-notification-actuator.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { configureFeishuCsCallbackRuntime } from "../channels/feishu-cs-callback-config.js";
@@ -539,6 +540,12 @@ app.whenReady().then(async () => {
             },
             "backend_subscription_reconnect",
           );
+          await catchUpAffiliateEscalationNotifications(authSession, deviceId).catch((error) => {
+            log.warn(
+              "Failed to catch up Affiliate escalation notifications after reconnect",
+              error,
+            );
+          });
         } finally {
           subscriptionReconnectShopRefresh = null;
         }
