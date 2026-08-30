@@ -48,6 +48,11 @@ vi.mock("../src/logs/upload-current-log.js", () => ({
   uploadCurrentLog: mockUploadCurrentLog,
 }));
 
+vi.mock("../src/affiliate/affiliate-escalation-notification-actuator.js", () => ({
+  catchUpAffiliateEscalationNotifications: vi.fn().mockResolvedValue(undefined),
+  handleAffiliateEscalationNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("../src/app/store/desktop-store.js", () => ({
   rootStore: mockRootStore,
 }));
@@ -125,6 +130,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
       return () => {};
     }
     subscribeToAffiliateActionProposalChanges() {
+      return () => {};
+    }
+    subscribeToAffiliateEscalationChanges() {
       return () => {};
     }
     subscribeToAffiliateCampaignSearchPlanRequests() {

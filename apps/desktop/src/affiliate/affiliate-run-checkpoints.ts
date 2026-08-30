@@ -15,6 +15,7 @@ export interface ActiveAffiliateRunCheckpoint {
    */
   agendaItemsSnapshotId?: string | null;
   predictionCacheIds?: string[];
+  terminalOutcome?: "RESOLVED" | "ESCALATED";
 }
 
 const activeAffiliateRunCheckpoints = new Map<string, ActiveAffiliateRunCheckpoint>();
@@ -51,6 +52,34 @@ export function recordActiveAffiliateRunPredictionCacheIds(input: {
     if (normalized) merged.add(normalized);
   }
   checkpoint.predictionCacheIds = [...merged];
+}
+
+export function recordActiveAffiliateRunTerminalOutcome(input: {
+  creatorRelationshipId: string;
+  outcome: "RESOLVED" | "ESCALATED";
+}): void {
+  const checkpoint = activeAffiliateRunCheckpoints.get(input.creatorRelationshipId);
+  if (!checkpoint) {
+    throw new Error("No active Affiliate run exists for this terminal tool call");
+  }
+  if (checkpoint.terminalOutcome && checkpoint.terminalOutcome !== input.outcome) {
+    throw new Error(
+      `Affiliate run already completed with terminal outcome ${checkpoint.terminalOutcome}`,
+    );
+  }
+  checkpoint.terminalOutcome = input.outcome;
+}
+
+export function assertAffiliateRunTerminalOutcomeAvailable(creatorRelationshipId: string): void {
+  const checkpoint = activeAffiliateRunCheckpoints.get(creatorRelationshipId);
+  if (!checkpoint) {
+    throw new Error("No active Affiliate run exists for this terminal tool call");
+  }
+  if (checkpoint.terminalOutcome) {
+    throw new Error(
+      `Affiliate run already completed with terminal outcome ${checkpoint.terminalOutcome}`,
+    );
+  }
 }
 
 export function __clearActiveAffiliateRunCheckpointsForTests(): void {
