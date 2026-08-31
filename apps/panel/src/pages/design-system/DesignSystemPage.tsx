@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   AccountIcon,
   AdsIcon,
+  BillingIcon,
   ChannelsIcon,
   ChatIcon,
   CheckIcon,
@@ -12,7 +13,9 @@ import {
   ModuleIcon,
   ProvidersIcon,
   RefreshIcon,
+  SettingsIcon,
   ShopIcon,
+  UsageIcon,
 } from "../../components/icons.js";
 import {
   TkAlert,
@@ -131,18 +134,10 @@ const HIERARCHICAL_NAV_ITEMS: readonly TkHierarchicalNavItem[] = [
       { id: "/connections/extensions", label: "插件" },
     ],
   },
-  {
-    id: "account",
-    label: "账户与系统",
-    icon: <AccountIcon />,
-    flyoutEyebrow: "SYSTEM",
-    children: [
-      { id: "/account/usage", label: "用量" },
-      { id: "/account/billing", label: "账单" },
-      { id: "/account/settings", label: "设置" },
-      { id: "/account/profile", label: "账户" },
-    ],
-  },
+  { id: "/account/usage", label: "用量", icon: <UsageIcon /> },
+  { id: "/account/billing", label: "账单", icon: <BillingIcon /> },
+  { id: "/account/settings", label: "设置", icon: <SettingsIcon /> },
+  { id: "/account/profile", label: "账户", icon: <AccountIcon /> },
 ];
 
 function findNavigationLabel(value: string) {
