@@ -94,6 +94,13 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
             decisionThresholds {
               minExpectedSalesUnits
             }
+            samplePerformanceFollowUp {
+              enabled
+              lowOrderThreshold
+              stages { id delayDays }
+              revision
+              updatedAt
+            }
           }
         }
       }
@@ -174,6 +181,13 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
           campaignDailyCreatorOutreachLimitUpdatedAt
           decisionThresholds {
             minExpectedSalesUnits
+          }
+          samplePerformanceFollowUp {
+            enabled
+            lowOrderThreshold
+            stages { id delayDays }
+            revision
+            updatedAt
           }
         }
       }
@@ -354,6 +368,15 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           reasons
           nextActionAt
           sampleContentFollowUpStage
+          samplePerformanceFollowUpStage
+          samplePerformanceFollowUpStageId
+          samplePerformanceConfigRevision
+          samplePerformanceFollowUpDelayDays
+          samplePerformanceFollowUpAnchorAt
+          samplePerformanceFollowUpExpiresAt
+          samplePerformanceLowOrderThreshold
+          samplePerformanceAttributedOrderCount
+          samplePerformanceSnapshotHash
           boundaryEventCursor
           updatedAt
           conversationWindow {
@@ -493,6 +516,15 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             reasons
             nextActionAt
             sampleContentFollowUpStage
+            samplePerformanceFollowUpStage
+            samplePerformanceFollowUpStageId
+            samplePerformanceConfigRevision
+            samplePerformanceFollowUpDelayDays
+            samplePerformanceFollowUpAnchorAt
+            samplePerformanceFollowUpExpiresAt
+            samplePerformanceLowOrderThreshold
+            samplePerformanceAttributedOrderCount
+            samplePerformanceSnapshotHash
             boundaryEventCursor
             updatedAt
           }

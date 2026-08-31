@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { Kind, parse, type SelectionNode, type SelectionSetNode } from "graphql";
 import {
   AffiliateDecisionThresholdsConfigModel,
+  AffiliateSamplePerformanceFollowUpConfigModel,
+  AffiliateSamplePerformanceFollowUpStageConfigModel,
   AffiliateServiceConfigModel,
   CustomerServiceConfigModel,
   ShopModel,
@@ -60,12 +62,20 @@ function requiredShopLeafPaths(): string[] {
   }
 
   for (const field of modelPropertyNames(AffiliateServiceConfigModel)) {
-    if (field !== "decisionThresholds") {
+    if (field !== "decisionThresholds" && field !== "samplePerformanceFollowUp") {
       paths.push(`services.affiliateService.${field}`);
     }
   }
   for (const field of modelPropertyNames(AffiliateDecisionThresholdsConfigModel)) {
     paths.push(`services.affiliateService.decisionThresholds.${field}`);
+  }
+  for (const field of modelPropertyNames(AffiliateSamplePerformanceFollowUpConfigModel)) {
+    if (field !== "stages") {
+      paths.push(`services.affiliateService.samplePerformanceFollowUp.${field}`);
+    }
+  }
+  for (const field of modelPropertyNames(AffiliateSamplePerformanceFollowUpStageConfigModel)) {
+    paths.push(`services.affiliateService.samplePerformanceFollowUp.stages.${field}`);
   }
 
   return paths.sort();
@@ -84,9 +94,9 @@ function selectionByName(
 
 function selectionSetAtPath(documentSource: string, path: string[]): SelectionSetNode {
   const document = parse(documentSource);
-  const operation = document.definitions.find((definition) => (
-    definition.kind === Kind.OPERATION_DEFINITION
-  ));
+  const operation = document.definitions.find(
+    (definition) => definition.kind === Kind.OPERATION_DEFINITION,
+  );
   if (!operation || operation.kind !== Kind.OPERATION_DEFINITION) {
     throw new Error("GraphQL document does not contain an operation");
   }

@@ -67,7 +67,11 @@ function assertFormalSampleAgendaHasPredictionEvidence(
     if (item.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected) {
       return false;
     }
-    return item.sampleApplicationRecordId && !item.predictionEvidence;
+    return (
+      item.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision &&
+      item.sampleApplicationRecordId &&
+      !item.predictionEvidence
+    );
   });
   if (missingEvidence) {
     throw new Error(
@@ -187,6 +191,21 @@ export function renderAgentWorkingAgenda(
     }
     if (item.sampleContentFollowUpStage) {
       lines.push(`   Sample Content Follow-up Stage: ${item.sampleContentFollowUpStage}`);
+    }
+    if (item.samplePerformanceFollowUpStage) {
+      lines.push(
+        `   Sample Performance Follow-up Stage: ${item.samplePerformanceFollowUpStage}`,
+        `   Shop-configured Checkpoint ID: ${item.samplePerformanceFollowUpStageId ?? "(unavailable)"}`,
+        `   Shop Policy Revision: ${item.samplePerformanceConfigRevision ?? "(unavailable)"}`,
+        `   Days After Latest Published Content: ${item.samplePerformanceFollowUpDelayDays ?? "(unavailable)"}`,
+        `   Latest Published Content Anchor At: ${item.samplePerformanceFollowUpAnchorAt ?? "(unavailable)"}`,
+        `   Checkpoint Expires At: ${item.samplePerformanceFollowUpExpiresAt ?? "(unavailable)"}`,
+        `   Attributed Order Count: ${item.samplePerformanceAttributedOrderCount ?? "(unavailable)"}`,
+        `   Shop Low-order Threshold (strictly below): ${item.samplePerformanceLowOrderThreshold ?? "(unavailable)"}`,
+        `   Performance Snapshot Hash: ${item.samplePerformanceSnapshotHash ?? "(unavailable)"}`,
+        "   Performance Follow-up Rule: this checkpoint wakes your judgment; it is not an instruction to send automatically. Read the exact Sample timeline and the complete relevant conversation. If that Sample/product is already an ongoing topic, resolve this checkpoint with NO_ACTION_NEEDED instead of sending a redundant message.",
+        "   Creator-facing Safety: never quote the internal threshold, snapshot hash, or attribution machinery to the Creator.",
+      );
     }
   });
   return lines.join("\n");

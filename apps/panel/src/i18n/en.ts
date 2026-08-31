@@ -4983,6 +4983,27 @@ export default {
           "Minimum expected sales units is required. Enter a number greater than or equal to 0.",
         invalidDecisionThreshold:
           "Minimum expected sales units must be a number greater than or equal to 0.",
+        performanceFollowUp: "Post-fulfillment sales follow-up",
+        performanceFollowUpEnabled: "Enable low-sales Sample follow-up",
+        performanceFollowUpHint:
+          "At each configured checkpoint, the Agent reviews the exact Sample, its attributed sales snapshot, and the current conversation. An ongoing discussion about that Sample can be resolved without sending another message.",
+        performanceFollowUpThreshold: "Low attributed-order threshold",
+        performanceFollowUpThresholdHint:
+          "A Sample is eligible only while its attributed order count is strictly below this whole number. Attribution is not a causal estimate of sales created by the Sample.",
+        performanceFollowUpStages: "Follow-up checkpoints",
+        performanceFollowUpStagesHint:
+          "Configure 1–3 whole-day offsets from the latest published content. Checkpoints must increase by at least 3 days; each is valid for 48 hours and the sequence ends within 90 days.",
+        performanceFollowUpStageLabel: "Checkpoint {{index}} (days after latest content)",
+        performanceFollowUpAddStage: "Add checkpoint",
+        performanceFollowUpRemoveStage: "Remove checkpoint {{index}}",
+        performanceFollowUpThresholdInvalid:
+          "The low attributed-order threshold must be a whole number of at least 1.",
+        performanceFollowUpStagesRequired: "Enable follow-up with 1–3 checkpoints.",
+        performanceFollowUpDelayInvalid:
+          "Checkpoint days must be whole numbers from 1 to 88, in increasing order with at least 3 days between them.",
+        performanceFollowUpSaved: "Post-fulfillment sales follow-up saved.",
+        performanceFollowUpSaveFailed:
+          "Post-fulfillment sales follow-up could not be saved.",
         businessPrompt: "Business Prompt",
         businessPromptHint:
           "Configure this shop's affiliate collaboration rules, communication style, commission/sample boundaries, and human-review requirements. This prompt is injected into affiliate agent runs.",

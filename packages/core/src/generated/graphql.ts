@@ -3943,6 +3943,16 @@ export interface AffiliateRelationshipAgendaItem {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   /** Exact D+3, D+7, or D+12 Sample content follow-up checkpoint. It asks the Agent to review recent Sample-specific conversation and decide whether contact is needed. */
   sampleContentFollowUpStage?: Maybe<Scalars['String']['output']>;
+  samplePerformanceAttributedOrderCount?: Maybe<Scalars['Int']['output']>;
+  samplePerformanceConfigRevision?: Maybe<Scalars['Int']['output']>;
+  samplePerformanceFollowUpAnchorAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  samplePerformanceFollowUpDelayDays?: Maybe<Scalars['Int']['output']>;
+  samplePerformanceFollowUpExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Exact Shop-configured post-fulfillment Sample performance follow-up checkpoint. */
+  samplePerformanceFollowUpStage?: Maybe<Scalars['String']['output']>;
+  samplePerformanceFollowUpStageId?: Maybe<Scalars['String']['output']>;
+  samplePerformanceLowOrderThreshold?: Maybe<Scalars['Int']['output']>;
+  samplePerformanceSnapshotHash?: Maybe<Scalars['String']['output']>;
   /** Why the Sample Application ended, on HANDLE_SAMPLE_TERMINAL_STATE work. Absent on every other agenda item, and on a terminal item whose transition event carried no work status at all. */
   sampleTerminalState?: Maybe<AffiliateSampleTerminalStateContext>;
   /** Who is responsible for handling this item. Uniform per Relationship — BUSINESS_DEVELOPER when the Relationship has an assigned business developer, SHOP otherwise (the shop owner is the fallback handler) — and stamped per item so each projected item is self-describing. Orthogonal to shopId, which names WHICH shop's business the item concerns. Request-scoped; null only on surfaces that predate this field or bypass the work-item projection. */
@@ -4367,6 +4377,36 @@ export const AffiliateSampleDecisionOrigin = {
 } as const;
 
 export type AffiliateSampleDecisionOrigin = typeof AffiliateSampleDecisionOrigin[keyof typeof AffiliateSampleDecisionOrigin];
+/** Shop-authored post-fulfillment Sample performance follow-up policy. */
+export interface AffiliateSamplePerformanceFollowUpSettings {
+  enabled: Scalars['Boolean']['output'];
+  /** Follow up while attributedOrderCount is strictly below this value. */
+  lowOrderThreshold?: Maybe<Scalars['Int']['output']>;
+  revision: Scalars['Int']['output'];
+  stages: Array<AffiliateSamplePerformanceFollowUpStageSettings>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+/** Post-fulfillment Sample performance follow-up policy patch. No threshold or checkpoint timing is defaulted by the Backend. */
+export interface AffiliateSamplePerformanceFollowUpSettingsInput {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  lowOrderThreshold?: InputMaybe<Scalars['Int']['input']>;
+  stages?: InputMaybe<Array<AffiliateSamplePerformanceFollowUpStageSettingsInput>>;
+}
+
+/** One explicitly configured post-fulfillment Sample performance follow-up checkpoint. */
+export interface AffiliateSamplePerformanceFollowUpStageSettings {
+  /** Whole days after the latest Provider-confirmed published content timestamp. */
+  delayDays: Scalars['Int']['output'];
+  id: Scalars['String']['output'];
+}
+
+/** One user-authored post-fulfillment Sample performance follow-up checkpoint. */
+export interface AffiliateSamplePerformanceFollowUpStageSettingsInput {
+  delayDays: Scalars['Int']['input'];
+  id: Scalars['String']['input'];
+}
+
 export const AffiliateSampleRejectReason = {
   CreatorBlacklisted: 'CREATOR_BLACKLISTED',
   DuplicateApplication: 'DUPLICATE_APPLICATION',
@@ -4452,6 +4492,8 @@ export interface AffiliateServiceSettings {
   enabled: Scalars['Boolean']['output'];
   /** RunProfile ID for affiliate creator-management agent sessions. */
   runProfileId?: Maybe<Scalars['String']['output']>;
+  /** Explicit per-shop policy for following up after Sample content is fulfilled but attributed order volume remains low. Absent means unconfigured and disabled. */
+  samplePerformanceFollowUp?: Maybe<AffiliateSamplePerformanceFollowUpSettings>;
 }
 
 /** Affiliate creator-management settings patch. Omit a field or pass null to keep it; pass empty string to clear string fields; pass a value to set it. */
@@ -4468,6 +4510,8 @@ export interface AffiliateServiceSettingsInput {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   /** RunProfile ID for affiliate sessions. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  /** Explicit post-fulfillment Sample performance follow-up policy. Omit or null to keep the current value. */
+  samplePerformanceFollowUp?: InputMaybe<AffiliateSamplePerformanceFollowUpSettingsInput>;
 }
 
 export interface AffiliateShipmentDailyPoint {
@@ -4670,6 +4714,7 @@ export const AffiliateWorkKind = {
   ManualReview: 'MANUAL_REVIEW',
   ObservationReview: 'OBSERVATION_REVIEW',
   SampleApplicationDecision: 'SAMPLE_APPLICATION_DECISION',
+  SamplePerformanceFollowUp: 'SAMPLE_PERFORMANCE_FOLLOW_UP',
   SamplePlatformFulfillmentWait: 'SAMPLE_PLATFORM_FULFILLMENT_WAIT',
   SamplePlatformTerminalFollowUp: 'SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP',
   SampleShipment: 'SAMPLE_SHIPMENT'
@@ -4718,6 +4763,7 @@ export const AffiliateWorkProcessReason = {
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SampleContentFollowUpDue: 'SAMPLE_CONTENT_FOLLOW_UP_DUE',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
+  SamplePerformanceFollowUpDue: 'SAMPLE_PERFORMANCE_FOLLOW_UP_DUE',
   SamplePlatformTerminalState: 'SAMPLE_PLATFORM_TERMINAL_STATE',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
   UserLevelBlocked: 'USER_LEVEL_BLOCKED'
@@ -13454,6 +13500,23 @@ export interface SampleApplicationOrderRecord {
   trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
+/** Warehouse snapshot of cumulative sales attributed to content associated with this Sample Application. It is attribution, not a causal estimate of Sample impact. */
+export interface SampleApplicationPerformanceSnapshot {
+  associatedContentCount: Scalars['Int']['output'];
+  attributedOrderCount: Scalars['Int']['output'];
+  attributedOrderLineCount: Scalars['Int']['output'];
+  attributedUnits: Scalars['Int']['output'];
+  firstAttributedOrderDate?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastAttributedOrderDate?: Maybe<Scalars['DateTimeISO']['output']>;
+  metricContractVersion: Scalars['String']['output'];
+  sourceLogicVersion: Scalars['Int']['output'];
+  sourcePayloadHash: Scalars['String']['output'];
+  sourceRefreshedAt: Scalars['DateTimeISO']['output'];
+  sourceRunId: Scalars['String']['output'];
+  sourceSystem: Scalars['String']['output'];
+  syncedAt: Scalars['DateTimeISO']['output'];
+}
+
 /** Sample application state from TikTok Shop affiliate workflows. */
 export interface SampleApplicationRecord {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
@@ -13495,6 +13558,8 @@ export interface SampleApplicationRecord {
   /** Legacy storage name for the number of Provider-confirmed published affiliate works. Prefer publishedContentCount in Agent-facing reads. */
   observedContentCount: Scalars['Int']['output'];
   order?: Maybe<SampleApplicationOrderRecord>;
+  /** Cumulative attributed-sales snapshot used by Shop-configured post-fulfillment follow-up. Null means no warehouse snapshot is available. */
+  performanceSnapshot?: Maybe<SampleApplicationPerformanceSnapshot>;
   platformApplicationId: Scalars['String']['output'];
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   platformFulfillmentStatus?: Maybe<Scalars['String']['output']>;

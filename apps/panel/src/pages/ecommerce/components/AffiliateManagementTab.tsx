@@ -10,9 +10,26 @@ import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 import { resolveDailyCreatorOutreachLimit } from "../ecommerce-utils.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
-import { TkSwitchControl } from "../../../components/design-system/index.js";
+import {
+  TkButton,
+  TkField,
+  TkSwitch,
+  TkSwitchControl,
+} from "../../../components/design-system/index.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
+const SAMPLE_PERFORMANCE_FOLLOW_UP_MAX_STAGES = 3;
+
+export interface AffiliateSamplePerformanceFollowUpInput {
+  enabled: boolean;
+  lowOrderThreshold?: number;
+  stages?: Array<{ id: string; delayDays: number }>;
+}
+
+interface SamplePerformanceStageDraft {
+  id: string;
+  delayDays: string;
+}
 
 interface AffiliateManagementTabProps {
   shop: Shop;
@@ -29,6 +46,9 @@ interface AffiliateManagementTabProps {
   savingSettings: boolean;
   onSaveBusinessPrompt: () => void;
   onSaveDailyCreatorOutreachLimit: (limit: number) => Promise<void>;
+  onSaveSamplePerformanceFollowUp: (
+    input: AffiliateSamplePerformanceFollowUpInput,
+  ) => Promise<void>;
   myDeviceId: string | null;
   togglingBindShopId: string | null;
   onBindDevice: (shopId: string) => void;
@@ -50,6 +70,7 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   savingSettings,
   onSaveBusinessPrompt,
   onSaveDailyCreatorOutreachLimit,
+  onSaveSamplePerformanceFollowUp,
   myDeviceId,
   togglingBindShopId,
   onBindDevice,
@@ -75,10 +96,43 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     String(resolveDailyCreatorOutreachLimit(persistedDailyLimit)),
   );
   const [savingDailyLimit, setSavingDailyLimit] = useState(false);
+  const persistedPerformanceFollowUp =
+    shop.services?.affiliateService?.samplePerformanceFollowUp;
+  const [performanceFollowUpEnabled, setPerformanceFollowUpEnabled] = useState(
+    persistedPerformanceFollowUp?.enabled ?? false,
+  );
+  const [performanceLowOrderThreshold, setPerformanceLowOrderThreshold] = useState(
+    persistedPerformanceFollowUp?.lowOrderThreshold == null
+      ? ""
+      : String(persistedPerformanceFollowUp.lowOrderThreshold),
+  );
+  const [performanceStages, setPerformanceStages] = useState<SamplePerformanceStageDraft[]>(
+    () =>
+      (persistedPerformanceFollowUp?.stages ?? []).map((stage) => ({
+        id: stage.id,
+        delayDays: String(stage.delayDays),
+      })),
+  );
+  const [savingPerformanceFollowUp, setSavingPerformanceFollowUp] = useState(false);
 
   useEffect(() => {
     setDailyLimit(String(resolveDailyCreatorOutreachLimit(persistedDailyLimit)));
   }, [persistedDailyLimit, shop.id]);
+
+  useEffect(() => {
+    setPerformanceFollowUpEnabled(persistedPerformanceFollowUp?.enabled ?? false);
+    setPerformanceLowOrderThreshold(
+      persistedPerformanceFollowUp?.lowOrderThreshold == null
+        ? ""
+        : String(persistedPerformanceFollowUp.lowOrderThreshold),
+    );
+    setPerformanceStages(
+      (persistedPerformanceFollowUp?.stages ?? []).map((stage) => ({
+        id: stage.id,
+        delayDays: String(stage.delayDays),
+      })),
+    );
+  }, [persistedPerformanceFollowUp?.revision, shop.id]);
 
   async function saveDailyLimit() {
     const value = Number(dailyLimit);
@@ -95,6 +149,83 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       showToast(t("ecommerce.shopDrawer.affiliate.dailyCreatorOutreachLimitSaveFailed"), "error");
     } finally {
       setSavingDailyLimit(false);
+    }
+  }
+
+  const persistedPerformanceComparable = JSON.stringify({
+    enabled: persistedPerformanceFollowUp?.enabled ?? false,
+    lowOrderThreshold:
+      persistedPerformanceFollowUp?.lowOrderThreshold == null
+        ? ""
+        : String(persistedPerformanceFollowUp.lowOrderThreshold),
+    stages: (persistedPerformanceFollowUp?.stages ?? []).map((stage) => ({
+      id: stage.id,
+      delayDays: String(stage.delayDays),
+    })),
+  });
+  const draftPerformanceComparable = JSON.stringify({
+    enabled: performanceFollowUpEnabled,
+    lowOrderThreshold: performanceLowOrderThreshold.trim(),
+    stages: performanceStages.map((stage) => ({
+      id: stage.id,
+      delayDays: stage.delayDays.trim(),
+    })),
+  });
+  const performanceFollowUpDirty =
+    persistedPerformanceComparable !== draftPerformanceComparable;
+
+  async function savePerformanceFollowUp() {
+    const threshold = Number(performanceLowOrderThreshold);
+    const delays = performanceStages.map((stage) => Number(stage.delayDays));
+    if (
+      performanceFollowUpEnabled &&
+      (!Number.isInteger(threshold) || threshold < 1)
+    ) {
+      showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpThresholdInvalid"), "error");
+      return;
+    }
+    if (
+      performanceFollowUpEnabled &&
+      (performanceStages.length < 1 ||
+        performanceStages.length > SAMPLE_PERFORMANCE_FOLLOW_UP_MAX_STAGES)
+    ) {
+      showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpStagesRequired"), "error");
+      return;
+    }
+    if (
+      performanceFollowUpEnabled &&
+      performanceStages.some((_, index) =>
+        !Number.isInteger(delays[index]) ||
+        delays[index]! < 1 ||
+        delays[index]! > 88 ||
+        (index > 0 && delays[index]! - delays[index - 1]! < 3)
+      )
+    ) {
+      showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpDelayInvalid"), "error");
+      return;
+    }
+
+    setSavingPerformanceFollowUp(true);
+    try {
+      await onSaveSamplePerformanceFollowUp({
+        enabled: performanceFollowUpEnabled,
+        ...(performanceFollowUpEnabled && performanceLowOrderThreshold.trim()
+          ? { lowOrderThreshold: threshold }
+          : {}),
+        ...(performanceFollowUpEnabled
+          ? {
+              stages: performanceStages.map((stage, index) => ({
+                id: stage.id,
+                delayDays: delays[index]!,
+              })),
+            }
+          : {}),
+      });
+      showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpSaved"), "success");
+    } catch {
+      showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpSaveFailed"), "error");
+    } finally {
+      setSavingPerformanceFollowUp(false);
     }
   }
 
@@ -280,6 +411,110 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
                 disabled={savingSettings}
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="shop-workspace-affiliateManagement-performance-follow-up"
+        className="shop-workspace-section"
+      >
+        <div className="drawer-section-label">
+          {t("ecommerce.shopDrawer.affiliate.performanceFollowUp")}
+        </div>
+        <div className="shop-info-card">
+          <TkSwitch
+            label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpEnabled")}
+            description={t("ecommerce.shopDrawer.affiliate.performanceFollowUpHint")}
+            checked={performanceFollowUpEnabled}
+            onChange={setPerformanceFollowUpEnabled}
+            disabled={savingPerformanceFollowUp}
+          />
+
+          <TkField
+            label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpThreshold")}
+            hint={t("ecommerce.shopDrawer.affiliate.performanceFollowUpThresholdHint")}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            value={performanceLowOrderThreshold}
+            onChange={(event) => setPerformanceLowOrderThreshold(event.target.value)}
+            disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
+          />
+
+          <div className="form-label-block">
+            {t("ecommerce.shopDrawer.affiliate.performanceFollowUpStages")}
+          </div>
+          <div className="shop-info-card-hint">
+            {t("ecommerce.shopDrawer.affiliate.performanceFollowUpStagesHint")}
+          </div>
+          {performanceStages.map((stage, index) => (
+            <div className="affiliate-threshold-row" key={stage.id}>
+              <TkField
+                label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpStageLabel", {
+                  index: index + 1,
+                })}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={88}
+                step={1}
+                value={stage.delayDays}
+                onChange={(event) => {
+                  const next = [...performanceStages];
+                  next[index] = { ...stage, delayDays: event.target.value };
+                  setPerformanceStages(next);
+                }}
+                disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
+              />
+              <TkButton
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setPerformanceStages((current) =>
+                    current.filter((candidate) => candidate.id !== stage.id),
+                  )
+                }
+                disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
+                aria-label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpRemoveStage", {
+                  index: index + 1,
+                })}
+              >
+                {t("common.remove")}
+              </TkButton>
+            </div>
+          ))}
+          <div className="modal-actions">
+            <TkButton
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setPerformanceStages((current) => [
+                  ...current,
+                  {
+                    id: `performance-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                    delayDays: "",
+                  },
+                ])
+              }
+              disabled={
+                savingPerformanceFollowUp ||
+                !performanceFollowUpEnabled ||
+                performanceStages.length >= SAMPLE_PERFORMANCE_FOLLOW_UP_MAX_STAGES
+              }
+            >
+              {t("ecommerce.shopDrawer.affiliate.performanceFollowUpAddStage")}
+            </TkButton>
+            <TkButton
+              variant="primary"
+              size="sm"
+              onClick={() => void savePerformanceFollowUp()}
+              loading={savingPerformanceFollowUp}
+              disabled={!performanceFollowUpDirty}
+            >
+              {t("ecommerce.shopDrawer.overview.save")}
+            </TkButton>
           </div>
         </div>
       </section>

@@ -14,6 +14,7 @@ import {
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
 import { InventoryManagementTab } from "./InventoryManagementTab.js";
 import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
+import type { AffiliateSamplePerformanceFollowUpInput } from "./AffiliateManagementTab.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { DrawerTab } from "../ecommerce-types.js";
@@ -92,6 +93,9 @@ interface ShopDrawerProps {
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
   onSaveAffiliateDailyCreatorOutreachLimit: (limit: number) => Promise<void>;
+  onSaveAffiliateSamplePerformanceFollowUp: (
+    input: AffiliateSamplePerformanceFollowUpInput,
+  ) => Promise<void>;
   togglingAffiliateBindShopId: string | null;
   onBindAffiliateDevice: (shopId: string) => void;
   onUnbindAffiliateDevice: (shopId: string) => void;
@@ -164,6 +168,7 @@ export const ShopDrawer = observer(function ShopDrawer({
   savingAffiliateSettings,
   onSaveAffiliateBusinessPrompt,
   onSaveAffiliateDailyCreatorOutreachLimit,
+  onSaveAffiliateSamplePerformanceFollowUp,
   togglingAffiliateBindShopId,
   onBindAffiliateDevice,
   onUnbindAffiliateDevice,
@@ -284,6 +289,10 @@ export const ShopDrawer = observer(function ShopDrawer({
                 {
                   id: workspaceSectionId(activeTab, "thresholds"),
                   label: t("ecommerce.shopDrawer.affiliate.decisionThresholds"),
+                },
+                {
+                  id: workspaceSectionId(activeTab, "performance-follow-up"),
+                  label: t("ecommerce.shopDrawer.affiliate.performanceFollowUp"),
                 },
                 {
                   id: workspaceSectionId(activeTab, "policies"),
@@ -768,6 +777,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                       savingSettings={savingAffiliateSettings}
                       onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
                       onSaveDailyCreatorOutreachLimit={onSaveAffiliateDailyCreatorOutreachLimit}
+                      onSaveSamplePerformanceFollowUp={
+                        onSaveAffiliateSamplePerformanceFollowUp
+                      }
                       myDeviceId={myDeviceId}
                       togglingBindShopId={togglingAffiliateBindShopId}
                       onBindDevice={onBindAffiliateDevice}

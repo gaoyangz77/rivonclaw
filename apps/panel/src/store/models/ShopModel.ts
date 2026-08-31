@@ -65,6 +65,11 @@ interface ShopUpdateInput {
       decisionThresholds?: {
         minExpectedSalesUnits?: number | null;
       } | null;
+      samplePerformanceFollowUp?: {
+        enabled?: boolean;
+        lowOrderThreshold?: number | null;
+        stages?: Array<{ id: string; delayDays: number }>;
+      } | null;
     };
   };
 }

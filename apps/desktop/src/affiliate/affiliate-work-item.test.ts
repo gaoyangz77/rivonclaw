@@ -3956,6 +3956,54 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).not.toContain("2026-05-14T00:01:00.000Z");
   });
 
+  it("renders Sample performance follow-up evidence without requiring review prediction evidence", () => {
+    const workItem = createCreatorReplyWorkItem({
+      workKind: GQL.AffiliateWorkKind.SamplePerformanceFollowUp,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+      processReasons: [GQL.AffiliateWorkProcessReason.SamplePerformanceFollowUpDue],
+      versionAt: "2026-08-08T01:00:00.000Z",
+      recommendedActionTypes: [
+        GQL.ActionProposalType.SendMessage,
+        GQL.ActionProposalType.NoActionNeeded,
+      ],
+      agentWorkingAgendaItems: createCreatorReplyWorkItem().agentWorkingAgendaItems.map(
+        (item) => ({
+          ...item,
+          workKind: GQL.AffiliateWorkKind.SamplePerformanceFollowUp,
+          requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+          reasons: [GQL.AffiliateWorkProcessReason.SamplePerformanceFollowUpDue],
+          sampleApplicationRecordId: "sample-performance-record-1",
+          predictionEvidence: null,
+          samplePerformanceFollowUpStage: "SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1",
+          samplePerformanceFollowUpStageId: "stage-7d",
+          samplePerformanceConfigRevision: 4,
+          samplePerformanceFollowUpDelayDays: 7,
+          samplePerformanceFollowUpAnchorAt: "2026-08-01T00:00:00.000Z",
+          samplePerformanceFollowUpExpiresAt: "2026-08-10T00:00:00.000Z",
+          samplePerformanceLowOrderThreshold: 3,
+          samplePerformanceAttributedOrderCount: 1,
+          samplePerformanceSnapshotHash: "a".repeat(64),
+        }),
+      ),
+      creatorRelationship: {
+        ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        agendaItems: [],
+      },
+    });
+
+    const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+    expect(request?.message).toContain("Work Kind: SAMPLE_PERFORMANCE_FOLLOW_UP");
+    expect(request?.message).toContain(
+      "Sample Performance Follow-up Stage: SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1",
+    );
+    expect(request?.message).toContain("Shop Policy Revision: 4");
+    expect(request?.message).toContain("Attributed Order Count: 1");
+    expect(request?.message).toContain("Shop Low-order Threshold (strictly below): 3");
+    expect(request?.message).toContain("resolve this checkpoint with NO_ACTION_NEEDED");
+    expect(request?.message).toContain("never quote the internal threshold");
+  });
+
   it("renders combined sample review and reply templates for bundled creator reply work", () => {
     const workItem = createCreatorReplyWorkItem({
       workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview,
