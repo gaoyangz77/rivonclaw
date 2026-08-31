@@ -10,6 +10,7 @@ describe("wmsApiTokenIssue", () => {
   it("accepts a well-formed credential object", () => {
     expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key","appSecret":"secret"}')).toBeNull();
     expect(wmsApiTokenIssue("LINGXING", '{"appId":"id","appSecret":"secret"}')).toBeNull();
+    expect(wmsApiTokenIssue("SELLFOX", '{"clientId":"id","clientSecret":"secret"}')).toBeNull();
   });
 
   it("rejects the plain string that broke the nightly inventory sync", () => {
@@ -25,6 +26,9 @@ describe("wmsApiTokenIssue", () => {
     expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key"}')).toBe("missingFields");
     expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key","appSecret":"  "}')).toBe("missingFields");
     expect(wmsApiTokenIssue("LINGXING", '{"appKey":"key","appSecret":"secret"}')).toBe(
+      "missingFields",
+    );
+    expect(wmsApiTokenIssue("SELLFOX", '{"appId":"id","appSecret":"secret"}')).toBe(
       "missingFields",
     );
   });
