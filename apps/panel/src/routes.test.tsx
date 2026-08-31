@@ -38,6 +38,19 @@ describe("runtime navigation", () => {
       navGroupKey: "nav.extras",
     });
   });
+
+  it("promotes account and system destinations to first-level items", () => {
+    const routeByPath = new Map(ROUTES.map((route) => [route.path, route]));
+
+    for (const path of [
+      "/account/usage",
+      "/account/billing",
+      "/account/settings",
+      "/account/profile",
+    ]) {
+      expect(routeByPath.get(path)?.navGroupKey).toBeUndefined();
+    }
+  });
 });
 
 describe("design-system review route", () => {
