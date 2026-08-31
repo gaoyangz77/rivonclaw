@@ -20,7 +20,13 @@
 }
 
 .tk-v1-overlay-modal-child {
-  z-index: var(--tk-v1-z-modal-popover);
+  /*
+   * This utility is the layer contract for body-portaled controls whose trigger
+   * lives inside a modal. Component styles also declare their normal popover
+   * layer, often with greater selector specificity, so this intentional
+   * override must always win or the open dropdown sits behind the backdrop.
+   */
+  z-index: var(--tk-v1-z-modal-popover) !important;
 }
 
 .tk-v1-popover-body {

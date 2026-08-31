@@ -413,6 +413,16 @@ describe("Panel architecture guardrails", () => {
     expect(layoutSource).toContain("<PageErrorBoundary");
   });
 
+  it("keeps body-portaled modal controls above the modal backdrop", () => {
+    const designSystemCss = readCssGraph(
+      join(SRC_ROOT, "components", "design-system", "tk-v1.css"),
+    );
+
+    expect(designSystemCss).toMatch(
+      /\.tk-v1-overlay-modal-child\s*\{[^}]*z-index:\s*var\(--tk-v1-z-modal-popover\)\s*!important;/s,
+    );
+  });
+
   it("keeps CSS manifests import-only and prevents new monoliths", () => {
     const appManifest = readFileSync(join(SRC_ROOT, "styles.css"), "utf-8");
     const designSystemManifest = readFileSync(
