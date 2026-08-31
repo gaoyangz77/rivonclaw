@@ -1,15 +1,24 @@
 import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js"
+import { clickTutorialTarget, tutorialTarget } from "../targets.js"
 
-function openFirstAgentWorkBundle() {
-  if (!findTutorialTarget("affiliate-attention-detail")) {
-    clickTutorialTarget("affiliate-attention-bundle")
-  }
+type WorkbenchTab = "pending-agent" | "escalations" | "samples" | "messages"
+
+async function selectWorkbenchTab(tab: WorkbenchTab) {
+  clickTutorialTarget(`affiliate-workbench-tab-${tab}`)
+  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
 }
 
-function closeAgentWorkBundle() {
-  if (findTutorialTarget("affiliate-attention-detail")) {
-    clickTutorialTarget("affiliate-attention-detail-close")
+function workbenchStep(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+  tab: Exclude<WorkbenchTab, "pending-agent">,
+): TutorialStep {
+  return {
+    ...step(id, targetId, key, placement, 5000),
+    prepare: () => selectWorkbenchTab(tab),
+    cleanup: () => selectWorkbenchTab("pending-agent"),
   }
 }
 
@@ -35,26 +44,25 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
   step("affiliate-attention-scope", "affiliate-attention-scope", "scope", "bottom"),
   step("affiliate-attention-filters", "affiliate-attention-filters", "filters", "top"),
   step("affiliate-attention-queue", "affiliate-attention-queue", "queue", "top", 5000),
-  {
-    ...step(
-      "affiliate-attention-detail-context",
-      "affiliate-attention-detail-context",
-      "detailContext",
-      "right",
-      1200,
-    ),
-    prepare: openFirstAgentWorkBundle,
-    cleanup: closeAgentWorkBundle,
-    lifecycleGroup: "affiliate-attention-detail",
-  },
-  {
-    ...step(
-      "affiliate-attention-detail-decision",
-      "affiliate-attention-detail-decision",
-      "detailDecision",
-      "left",
-      1200,
-    ),
-    lifecycleGroup: "affiliate-attention-detail",
-  },
+  workbenchStep(
+    "affiliate-workbench-escalations",
+    "affiliate-workbench-escalations",
+    "escalations",
+    "top",
+    "escalations",
+  ),
+  workbenchStep(
+    "affiliate-workbench-samples",
+    "affiliate-workbench-samples",
+    "samples",
+    "top",
+    "samples",
+  ),
+  workbenchStep(
+    "affiliate-workbench-messages",
+    "affiliate-workbench-messages",
+    "messages",
+    "top",
+    "messages",
+  ),
 ]

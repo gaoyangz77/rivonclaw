@@ -48,7 +48,7 @@ const renderedSource = ["pages", "components"]
 describe("tutorial step registry", () => {
   it("keeps the audited Affiliate tutorials at their intended coverage", () => {
     const expectedStepCounts: Record<string, number> = {
-      "/commerce/affiliate/attention": 6,
+      "/commerce/affiliate/attention": 7,
       "/commerce/affiliate/team": 5,
       "/commerce/product-knowledge": 3,
       "/commerce/affiliate/campaigns": 8,
