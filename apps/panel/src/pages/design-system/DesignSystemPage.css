@@ -162,6 +162,7 @@
   gap: 4px;
   margin: 14px auto 0;
   overflow-x: auto;
+  overflow-y: hidden;
   border-bottom: 1px solid var(--tk-v1-border-subtle);
 }
 
@@ -503,6 +504,10 @@
   grid-column: 1 / -1;
 }
 
+.tk-design-lab-composer {
+  margin-top: 12px;
+}
+
 .tk-design-lab-contract-wrap {
   margin-top: 14px;
   overflow-x: auto;
@@ -582,6 +587,243 @@
   color: var(--tk-v1-fg-muted);
   font-size: 11px;
   line-height: 1.55;
+}
+
+.tk-design-lab-navigation-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
+  border: 1px solid var(--tk-v1-border-default);
+  border-bottom: 0;
+  border-radius: var(--tk-v1-radius-4) var(--tk-v1-radius-4) 0 0;
+  background: var(--tk-v1-surface-header-optical);
+  box-shadow: var(--tk-v1-highlight);
+}
+
+.tk-design-lab-navigation-toolbar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.tk-design-lab-navigation-toolbar strong {
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tk-design-lab-navigation-shell {
+  display: grid;
+  grid-template-columns: 214px minmax(0, 1fr);
+  min-height: 548px;
+  overflow: hidden;
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: 0 0 var(--tk-v1-radius-4) var(--tk-v1-radius-4);
+  background: var(--tk-v1-bg-canvas);
+  box-shadow: var(--tk-v1-elevation-1);
+  transition: grid-template-columns var(--tk-v1-base);
+}
+
+.tk-design-lab-navigation-shell.is-collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.tk-design-lab-navigation-sidebar {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--tk-v1-space-3);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-2);
+  border-right: 1px solid var(--tk-v1-border-default);
+  background: var(--tk-v1-surface-optical);
+}
+
+.tk-design-lab-navigation-brand {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  min-height: 38px;
+  padding: 0 var(--tk-v1-space-1);
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-design-lab-navigation-brand > span {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--tk-v1-accent) 30%, var(--tk-v1-border-default));
+  border-radius: var(--tk-v1-radius-2);
+  background: color-mix(in srgb, var(--tk-v1-accent) 9%, transparent);
+  color: var(--tk-v1-accent-text);
+  font: 650 9px/1 var(--tk-v1-font-mono);
+}
+
+.tk-design-lab-navigation-brand > strong {
+  overflow: hidden;
+  color: var(--tk-v1-fg-default);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-design-lab-navigation-brand > small {
+  color: var(--tk-v1-fg-muted);
+  font: 500 8px/1 var(--tk-v1-font-mono);
+  letter-spacing: 0.07em;
+}
+
+.tk-design-lab-navigation-sidebar.is-collapsed {
+  padding-inline: var(--tk-v1-space-1);
+}
+
+.tk-design-lab-navigation-sidebar.is-collapsed .tk-design-lab-navigation-brand {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding-inline: 0;
+}
+
+.tk-design-lab-navigation-sidebar.is-collapsed .tk-design-lab-navigation-brand > strong,
+.tk-design-lab-navigation-sidebar.is-collapsed .tk-design-lab-navigation-brand > small {
+  display: none;
+}
+
+.tk-design-lab-navigation-sidebar-note {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  margin-top: auto;
+  padding: var(--tk-v1-space-2);
+  border-top: 1px solid var(--tk-v1-border-subtle);
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-design-lab-navigation-sidebar-note > span {
+  color: var(--tk-v1-accent-text);
+  font: 650 10px/1 var(--tk-v1-font-mono);
+}
+
+.tk-design-lab-navigation-sidebar-note > small {
+  overflow: hidden;
+  font: 500 8px/1 var(--tk-v1-font-mono);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-design-lab-navigation-sidebar.is-collapsed .tk-design-lab-navigation-sidebar-note {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.tk-design-lab-navigation-sidebar.is-collapsed .tk-design-lab-navigation-sidebar-note > small {
+  display: none;
+}
+
+.tk-design-lab-navigation-canvas {
+  min-width: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tk-v1-accent) 3%, transparent), transparent 28%),
+    var(--tk-v1-bg-canvas);
+}
+
+.tk-design-lab-navigation-canvas > header {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-5);
+  border-bottom: 1px solid var(--tk-v1-border-default);
+  background: color-mix(in srgb, var(--tk-v1-bg-surface) 88%, transparent);
+}
+
+.tk-design-lab-navigation-canvas > header > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.tk-design-lab-navigation-canvas code {
+  overflow: hidden;
+  color: var(--tk-v1-fg-secondary);
+  font: 500 10px/1.4 var(--tk-v1-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-design-lab-navigation-canvas > main {
+  display: grid;
+  align-content: space-between;
+  min-height: 484px;
+  gap: var(--tk-v1-space-6);
+  padding: var(--tk-v1-space-7);
+}
+
+.tk-design-lab-navigation-page-title {
+  max-width: 560px;
+}
+
+.tk-design-lab-navigation-page-title > span,
+.tk-design-lab-navigation-principles article > span {
+  color: var(--tk-v1-accent-text);
+  font: 600 9px/1.4 var(--tk-v1-font-mono);
+  letter-spacing: 0.07em;
+}
+
+.tk-design-lab-navigation-page-title h3 {
+  margin: var(--tk-v1-space-3) 0 0;
+  color: var(--tk-v1-fg-default);
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.tk-design-lab-navigation-page-title p {
+  margin: var(--tk-v1-space-3) 0 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.tk-design-lab-navigation-principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--tk-v1-border-default);
+}
+
+.tk-design-lab-navigation-principles article {
+  display: grid;
+  min-width: 0;
+  gap: var(--tk-v1-space-1);
+  padding: var(--tk-v1-space-4);
+  border-left: 1px solid var(--tk-v1-border-default);
+}
+
+.tk-design-lab-navigation-principles article:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tk-design-lab-navigation-principles strong {
+  color: var(--tk-v1-fg-default);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tk-design-lab-navigation-principles p {
+  margin: 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.tk-design-lab-navigation-shell + .tk-v1-alert {
+  margin-top: var(--tk-v1-space-3);
 }
 
 .tk-design-lab-modal-copy {

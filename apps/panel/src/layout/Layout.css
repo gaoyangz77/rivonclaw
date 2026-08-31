@@ -34,7 +34,7 @@
   overflow: visible;
   /* Sidebar overlays (tooltips and menus) must paint above the sibling content
      pane instead of being visually cut off at the sidebar edge. */
-  z-index: calc(var(--tk-v1-z-popover, 50) - 1);
+  z-index: var(--tk-v1-z-shell, 10);
   isolation: isolate;
   transition:
     width 0.2s ease,
@@ -96,142 +96,32 @@
   margin-bottom: 3px;
 }
 
-.nav-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.sidebar-hierarchical-nav {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-right: 2px;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
 }
 
-.nav-list::-webkit-scrollbar {
+.sidebar-hierarchical-nav::-webkit-scrollbar {
   width: 6px;
 }
 
-.nav-list::-webkit-scrollbar-track {
+.sidebar-hierarchical-nav::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.nav-list::-webkit-scrollbar-thumb {
+.sidebar-hierarchical-nav::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.38);
   border-radius: var(--tk-v1-radius-full);
 }
 
-.nav-list::-webkit-scrollbar-thumb:hover {
+.sidebar-hierarchical-nav::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.58);
-}
-
-.nav-list li {
-  margin-bottom: 2px;
-}
-
-.nav-group-heading {
-  padding: 16px 12px 5px;
-  color: var(--color-sidebar-muted);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0;
-}
-
-.nav-group-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-}
-
-.nav-group-toggle:hover {
-  color: var(--color-sidebar-text);
-}
-
-.nav-group-chevron {
-  flex: 0 0 auto;
-  opacity: 0.62;
-  transition: transform 0.16s ease;
-}
-
-.nav-group-chevron-open {
-  transform: rotate(90deg);
-}
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 12px;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.nav-icon {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nav-parent-label .nav-icon {
-  opacity: 0.72;
-}
-
-.nav-section-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  padding: 11px 12px 5px;
-  border: 0;
-  background: transparent;
-  color: var(--color-sidebar-muted);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: left;
-}
-
-.nav-section-toggle:hover,
-.nav-section-active {
-  color: var(--color-sidebar-text);
-}
-
-.nav-section-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nav-section-chevron {
-  flex: 0 0 auto;
-  opacity: 0.62;
-  transition: transform 0.16s ease;
-}
-
-.nav-section-chevron-open {
-  transform: rotate(90deg);
 }
 
 .nav-account-avatar {
@@ -254,58 +144,8 @@
   font-size: 9px;
 }
 
-.nav-subitem {
-  padding-left: 32px;
-  font-size: 13px;
-}
-
-.nav-subitem .nav-icon {
-  width: 8px;
-  height: 8px;
-  margin-left: -2px;
-  border-radius: var(--tk-v1-radius-full);
-  background: currentColor;
-  opacity: 0.55;
-}
-
-.nav-subitem .nav-icon svg {
-  display: none;
-}
-
-.sidebar-collapsed .nav-btn {
-  justify-content: center;
-  padding: 9px;
-}
-
-.sidebar-collapsed .nav-subitem .nav-icon {
-  width: 20px;
-  height: 20px;
-  margin-left: 0;
-  background: transparent;
-  opacity: 1;
-}
-
-.sidebar-collapsed .nav-subitem .nav-icon svg {
-  display: block;
-}
-
-/* Nav items */
-.nav-item {
-  color: var(--color-sidebar-text);
-  background-color: transparent;
-  transition: all var(--transition-fast) !important;
-  border-radius: var(--radius-sm) !important;
-}
-
-.nav-item:hover {
-  background-color: var(--color-sidebar-hover) !important;
-}
-
-.nav-active {
-  background: var(--nav-active-bg) !important;
-  color: var(--color-primary) !important;
-  font-weight: 500 !important;
-  box-shadow: var(--nav-active-shadow);
+.sidebar-collapsed .sidebar-hierarchical-nav {
+  padding-right: 0;
 }
 
 /* Sidebar collapse toggle */

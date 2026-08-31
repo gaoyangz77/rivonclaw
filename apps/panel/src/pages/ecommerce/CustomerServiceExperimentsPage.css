@@ -87,20 +87,10 @@
   width: 100%;
   min-width: 0;
 }
-.cs-experiments-toolbar .custom-select-trigger {
-  height: 38px;
-  min-height: 38px;
-}
-.cs-experiments-toolbar .icon-button {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  align-self: end;
-}
 .cs-experiments-freshness {
   display: flex;
   min-width: max-content;
-  height: 38px;
+  height: var(--tk-v1-control-default);
   align-items: center;
   gap: 7px;
   margin-left: auto !important;

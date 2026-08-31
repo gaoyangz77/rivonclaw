@@ -76,6 +76,9 @@ export const ChatStatusBar = observer(function ChatStatusBar({
       {connectionState === "connected" && (
         <Select
           className="chat-thinking-select"
+          size="compact"
+          variant="ghost"
+          ariaLabel={t("chat.thinkingNone")}
           value={thinkingLevel}
           onChange={onThinkingLevelChange}
           options={[

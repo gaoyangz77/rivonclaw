@@ -108,9 +108,12 @@
   --tk-v1-page-gap: var(--tk-v1-space-4);
   --tk-v1-page-header-block: var(--tk-v1-space-3);
   --tk-v1-page-header-inline: var(--tk-v1-space-4);
-  --tk-v1-z-sticky: 10;
+  --tk-v1-z-shell: 10;
+  --tk-v1-z-sticky: 20;
   --tk-v1-z-popover: 50;
   --tk-v1-z-modal: 100;
+  --tk-v1-z-modal-popover: 110;
+  --tk-v1-z-toast: 120;
   --tk-v1-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
   --tk-v1-base: 180ms cubic-bezier(0.2, 0, 0, 1);
   --tk-v1-slow: 240ms cubic-bezier(0.2, 0, 0, 1);

@@ -29,6 +29,66 @@
   overflow: hidden;
 }
 
+/* Shared shop-card content rhythm. Feature components must not own these rules. */
+.shop-info-card-hint {
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-4) var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-subtle);
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-body);
+  line-height: var(--tk-v1-line-body);
+}
+
+.shop-info-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
+  border-top: 1px solid var(--tk-v1-border-subtle);
+  background: var(--tk-v1-bg-subtle);
+}
+
+.shop-runprofile-row,
+.shop-runprofile-tools {
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
+}
+
+.shop-runprofile-tools {
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+.shop-tool-list {
+  max-height: 200px;
+  margin: var(--tk-v1-space-2) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--tk-v1-bg-subtle);
+  list-style: none;
+}
+
+.shop-tool-list-item {
+  padding: 6px var(--tk-v1-space-3);
+  color: var(--tk-v1-fg-secondary);
+  font-family: var(--tk-v1-font-mono);
+  font-size: var(--tk-v1-type-supporting);
+  transition: color var(--tk-v1-fast);
+}
+
+.shop-tool-list-item:hover {
+  color: var(--tk-v1-fg-default);
+}
+
+.shop-tool-list-item + .shop-tool-list-item {
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+.shop-tool-count {
+  margin-top: var(--tk-v1-space-2);
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
 .select-strikethrough .custom-select-label {
   text-decoration: line-through;
   color: var(--color-text-muted);

@@ -59,6 +59,8 @@ export default {
     settings: "Settings",
     billing: "Billing",
     account: "Account",
+    mainNavigation: "Primary navigation",
+    secondaryNavigation: "{{label}} submenu",
     collapse: "Collapse sidebar",
     expand: "Expand sidebar",
     tiktokShops: "TikTok Shops",

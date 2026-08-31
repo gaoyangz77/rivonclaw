@@ -66,6 +66,24 @@ describe("design-system overlays", () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it("supports side-anchored disclosure navigation without menu semantics", () => {
+    render(
+      <TkPopover
+        label="Affiliate navigation"
+        placement="right-start"
+        role="navigation"
+        defaultOpen
+        trigger={(props) => <button {...props}>Affiliate</button>}
+      >
+        <button type="button">Campaigns</button>
+      </TkPopover>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Affiliate" });
+    expect(trigger.getAttribute("aria-haspopup")).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Affiliate navigation" })).toBeTruthy();
+  });
+
   it("supports arrow navigation and selection in menus", () => {
     const onAssign = vi.fn();
     render(

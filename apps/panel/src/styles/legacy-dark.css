@@ -75,28 +75,6 @@
   color: #ffffff;
 }
 
-[data-theme="dark"] .nav-active {
-  background: var(--nav-active-bg) !important;
-  color: #ffffff !important;
-  box-shadow: var(--nav-active-shadow);
-  position: relative;
-}
-
-/* Active nav left glow bar (dark theme only) */
-[data-theme="dark"] .nav-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: var(
-    --nav-active-bar,
-    linear-gradient(180deg, var(--color-primary), var(--color-accent-secondary))
-  );
-}
-
 [data-theme="dark"] .sidebar-resize-handle:hover,
 [data-theme="dark"] .sidebar-resize-handle:active {
   background-color: rgba(255, 255, 255, 0.12);

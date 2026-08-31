@@ -184,6 +184,7 @@ export function KeyModelSelector({
     : "";
   const modelEntry = hasDisplayValues ? catalog[selectedProvider]?.find((m) => m.id === selectedModel) : undefined;
   const modelLabel = hasDisplayValues ? (modelEntry?.name ?? selectedModel) : t("chat.globalDefault", { defaultValue: "Global default" });
+  const dropdownIsModalChild = Boolean(triggerRef.current?.closest('[aria-modal="true"]'));
 
   function handleSelectModel(provider: string, modelId: string) {
     onChange(provider, modelId);
@@ -222,7 +223,7 @@ export function KeyModelSelector({
       {open && createPortal(
         <div
           ref={dropdownRef}
-          className="key-model-selector-dropdown"
+          className={`key-model-selector-dropdown${dropdownIsModalChild ? " tk-v1-overlay-modal-child" : ""}`}
           style={dropdownStyle}
         >
           {/* Search bar */}

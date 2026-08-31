@@ -47,6 +47,8 @@ export interface SelectProps {
   ariaDescribedBy?: string;
   disabled?: boolean;
   className?: string;
+  size?: "compact" | "default";
+  variant?: "default" | "ghost";
   /** Show a search input at the top of the dropdown to filter options. */
   searchable?: boolean;
   /** Localized placeholder for the dropdown search input. */
@@ -64,6 +66,8 @@ export function Select({
   ariaDescribedBy,
   disabled,
   className,
+  size = "default",
+  variant = "default",
   searchable,
   searchPlaceholder,
   creatable,
@@ -189,11 +193,13 @@ export function Select({
     searchable &&
     search.trim() &&
     !filteredOptions.some((o) => o.value === search.trim());
+  const selectClasses = `tk-v1-select-${size} tk-v1-select-${variant}`;
+  const modalChild = Boolean(triggerRef.current?.closest('[aria-modal="true"]'));
 
   return (
     <div
       ref={ref}
-      className={`custom-select tk-v1-select-root${className ? ` ${className}` : ""}`}
+      className={`custom-select tk-v1-select-root ${selectClasses}${className ? ` ${className}` : ""}`}
     >
       <button
         ref={triggerRef}
@@ -220,7 +226,7 @@ export function Select({
         createPortal(
           <div
             ref={dropdownRef}
-            className={`custom-select-dropdown tk-v1-select-dropdown${className ? ` ${className}` : ""}`}
+            className={`custom-select-dropdown tk-v1-select-dropdown ${selectClasses}${modalChild ? " tk-v1-overlay-modal-child" : ""}${className ? ` ${className}` : ""}`}
             style={dropdownStyle}
           >
             {searchable && (

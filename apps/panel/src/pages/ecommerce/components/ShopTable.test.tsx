@@ -105,4 +105,36 @@ describe("ShopTable collection hierarchy", () => {
     fireEvent.click(expandButton);
     expect(screen.getByText("Group France")).toBeTruthy();
   });
+
+  it("opens details from the row while keeping inline controls independent", () => {
+    const onOpenDrawer = vi.fn();
+    const onRequestDelete = vi.fn();
+    render(
+      <ShopTable
+        shops={[createShop({ id: "solo", shopName: "Solo" })]}
+        oauthLoading={false}
+        oauthWaiting={false}
+        refreshing={false}
+        onRefresh={vi.fn()}
+        onAddShop={vi.fn()}
+        onUpdateAlias={vi.fn().mockResolvedValue(undefined)}
+        onOpenDrawer={onOpenDrawer}
+        onReauthorize={vi.fn()}
+        onRequestDelete={onRequestDelete}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "View" })).toBeNull();
+    const row = screen.getByRole("row", { name: "View Solo" });
+    fireEvent.click(row);
+    fireEvent.keyDown(row, { key: "Enter" });
+    fireEvent.keyDown(row, { key: " " });
+    expect(onOpenDrawer).toHaveBeenCalledTimes(3);
+    expect(onOpenDrawer).toHaveBeenLastCalledWith("solo");
+
+    fireEvent.click(screen.getByRole("textbox", { name: "Alias Solo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+    expect(onOpenDrawer).toHaveBeenCalledTimes(3);
+    expect(onRequestDelete).toHaveBeenCalledWith("solo");
+  });
 });

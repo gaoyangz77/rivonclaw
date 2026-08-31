@@ -65,9 +65,9 @@ export interface RouteEntry {
   navAuthOnly?: boolean;
   /** Internal route — not user-navigable via URL, falls back to "/" */
   internal?: boolean;
-  /** Optional parent route for sidebar subitems */
+  /** Optional first-level route whose flyout contains this route. */
   parentPath?: string;
-  /** Render in sidebar as a non-clickable parent label for child routes. */
+  /** Render as a first-level disclosure instead of a direct navigation leaf. */
   navGroupOnly?: boolean;
   /**
    * Permission scope the signed-in user must hold for this route to appear in

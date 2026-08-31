@@ -9,9 +9,14 @@ Design System v1, not optional visual guidance.
 - Standard pages use `TkPageFrame` and `TkPageHeader`. The application shell alone owns viewport
   and sidebar offsets; pages must not add their own outer canvas padding.
 - Use `TkPanel`, `TkPanelHeader`, `TkPanelBody`, and `TkPanelFooter` for surfaces; `TkTableFrame`
-  for every product table; `TkToolbar` for filter/action rows.
-- Use `TkButton`, `TkField`, `TkChoiceSelect`, `TkSwitch`/`TkSwitchControl`, `TkBadge`, `TkTabs`,
-  `TkSegmented`, `TkAlert`, `TkLoadingState`, and `TkEmptyState` instead of page-local clones.
+  for every product table; `TkInteractiveTableRow` when the row's primary action opens its record;
+  `TkToolbar` for filter/action rows.
+- Use `TkButton`, `TkIconButton`, `TkComposer`, `TkField`, `TkChoiceSelect`,
+  `TkSwitch`/`TkSwitchControl`, `TkBadge`, `TkTabs`, `TkSegmented`, `TkAlert`, `TkLoadingState`,
+  and `TkEmptyState` instead of page-local clones.
+- Product-shell destinations use `TkHierarchicalNav`. Route metadata owns the information
+  architecture; product pages never append sidebar items or implement their own navigation
+  flyout.
 - All dialogs, confirmation flows, tooltips, menus, and popovers go through `TkModal`,
   `TkConfirmDialog`, `TkTooltip`, `TkInfoTip`, `TkMenu`, or `TkPopover`. Product pages never call
   `createPortal` and never import the low-level `components/modals/Modal` implementation.
@@ -55,11 +60,18 @@ Design Lab. Do not patch its internal class from a page stylesheet.
   measured sizes, progress widths, transforms, chart colors). Static visual decisions belong in
   CSS and tokens.
 - No page-local `!important`, shared-component descendant overrides, or decorative canvas grids.
+- Broad legacy selectors for inputs or buttons must exclude `[class*="tk-v1-"]`; a Design System
+  component owns its own focus and interaction states.
+- Any horizontally scrollable tab, navigation rail, or preview strip must declare `overflow-y`.
+  Modal headers never scroll vertically; a single modal body owns vertical overflow.
 
 ## 4. Interaction and accessibility
 
 - Every control has a programmatic label, visible focus state, keyboard path, and disabled/loading
   behavior where applicable.
+- Shell navigation has at most two interactive levels. A first-level parent discloses but does not
+  also navigate; optional second-level group headings are noninteractive. Hover must be paired
+  with focus, click-to-pin, arrow-key traversal, Escape, and active-route semantics.
 - Status is never communicated by color alone. Text contrast must meet WCAG 2.2 AA.
 - Validate Light and Dark, long translated labels, 1280px width, 200% zoom, and reduced motion.
 - Overlays close on Escape and restore focus. Tables scroll inside `TkTableFrame`, never through

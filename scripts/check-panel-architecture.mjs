@@ -25,6 +25,8 @@
  *  16. overlay-boundary      — Product pages use shared overlay primitives
  *  17. switch-contract       — Product code uses the shared switch implementation
  *  18. css-ownership-contract — CSS manifests stay import-only and no monolith can regrow
+ *  19. control-boundary       — Legacy focus bridges cannot override Design System controls
+ *  20. scroll-axis-contract   — Horizontal navigation declares and suppresses vertical overflow
  *
  * Exit 0 = PASS
  * Exit 1 = FAIL
@@ -399,9 +401,9 @@ if (existsSync(appStylesPath)) {
       "FAIL [css-ownership-contract] styles.css must remain import-only; put declarations in their owning component or feature.",
     );
   }
-  if (!/\.sidebar\s*\{[^}]*z-index:\s*calc\(var\(--tk-v1-z-popover/s.test(css)) {
+  if (!/\.sidebar\s*\{[^}]*z-index:\s*var\(--tk-v1-z-shell/s.test(css)) {
     violations.push(
-      "FAIL [shell-layout-contract] Sidebar tooltips can paint beneath the main content pane.",
+      "FAIL [shell-layout-contract] Sidebar must use the semantic shell layer below portal overlays.",
     );
   }
 }
@@ -409,9 +411,9 @@ if (existsSync(appStylesPath)) {
 const layoutSourcePath = join(SRC_ROOT, "layout", "Layout.tsx");
 if (existsSync(layoutSourcePath)) {
   const layoutSource = readFileSync(layoutSourcePath, "utf-8");
-  if (!layoutSource.includes("<TkTooltip")) {
+  if (!layoutSource.includes("<TkHierarchicalNav")) {
     violations.push(
-      "FAIL [shell-layout-contract] Sidebar navigation must use the shared layered tooltip.",
+      "FAIL [shell-layout-contract] Sidebar navigation must use the shared two-level navigation.",
     );
   }
   if (!layoutSource.includes("<PageErrorBoundary")) {
@@ -423,16 +425,34 @@ if (existsSync(layoutSourcePath)) {
 
 for (const filePath of walkFilesByExtension(SRC_ROOT, ".css")) {
   const content = readFileSync(filePath, "utf-8");
+  const relPath = relative(SRC_ROOT, filePath).replace(/\\/g, "/");
   const lineCount = content.split("\n").length;
   if (lineCount > 4500) {
-    const relPath = relative(SRC_ROOT, filePath).replace(/\\/g, "/");
     violations.push(
       `FAIL [css-ownership-contract] ${relPath} has ${lineCount} lines. Split it by component or domain responsibility.`,
     );
   }
+  const broadFocusBridge =
+    /:is\(\s*input\s*,\s*select\s*,\s*textarea\s*,\s*summary\s*,\s*button\s*\)(?!:not\(\[class\*=["']tk-v1-["']\]\)):focus-visible/;
+  if (broadFocusBridge.test(content)) {
+    violations.push(
+      `FAIL [control-boundary] ${relPath} has a broad focus bridge that can override tk-v1 controls. Exclude [class*="tk-v1-"].`,
+    );
+  }
+  const navigationSelectorPattern =
+    /(?:^|[-_.])(?:tabs?|nav|rail|strip)(?:[-_.\s:#]|$)/i;
+  for (const match of content.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = match[1].trim();
+    const declarations = match[2];
+    if (!navigationSelectorPattern.test(selector)) continue;
+    if (!/overflow-x:\s*(?:auto|scroll)\s*;/.test(declarations)) continue;
+    if (/overflow-y:\s*(?:hidden|clip|auto|scroll)\s*;/.test(declarations)) continue;
+    violations.push(
+      `FAIL [scroll-axis-contract] ${relPath} lets horizontal navigation implicitly become a vertical scroller: ${selector}`,
+    );
+  }
   for (const match of content.matchAll(/border-radius:\s*(\d+)px/g)) {
     if (Number(match[1]) <= 8) continue;
-    const relPath = relative(SRC_ROOT, filePath).replace(/\\/g, "/");
     const line = content.slice(0, match.index).split("\n").length;
     violations.push(
       `FAIL [radius-contract] ${relPath}:${line} hard-codes a radius larger than 8px.`,

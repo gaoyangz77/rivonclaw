@@ -1407,9 +1407,6 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 104px 124px auto auto;
   gap: 9px;
-  /* The buttons have no label above them, so they align to the inputs' bottom
-     edge rather than stretching to the label's height. */
-  align-items: end;
 }
 .affiliate-campaign-offer-field {
   display: block;
@@ -1432,26 +1429,8 @@
   margin-top: 8px;
   margin-left: 12px;
 }
-.affiliate-campaign-fetch-button,
-.affiliate-campaign-keyword-input-row button {
+.affiliate-campaign-fetch-button {
   min-width: 116px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
-  border-radius: var(--tk-v1-radius-4);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.affiliate-campaign-fetch-button:hover:not(:disabled),
-.affiliate-campaign-keyword-input-row button:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary-light) 78%, var(--color-primary));
-}
-.affiliate-campaign-fetch-button:disabled,
-.affiliate-campaign-keyword-input-row button:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
 }
 .affiliate-campaign-product-preview {
   display: grid;

@@ -56,6 +56,8 @@ export default {
     settings: "设置",
     billing: "账单",
     account: "账户",
+    mainNavigation: "主导航",
+    secondaryNavigation: "{{label}}二级导航",
     collapse: "收起侧栏",
     expand: "展开侧栏",
     tiktokShops: "TikTok 店铺",

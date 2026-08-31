@@ -23,7 +23,19 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
   else if (ref) ref.current = value;
 }
 
-export type TkOverlayPlacement = "bottom-start" | "bottom-end" | "top-start" | "top-end";
+function isModalChild(anchor: HTMLElement | null): boolean {
+  return Boolean(anchor?.closest('[aria-modal="true"]'));
+}
+
+export type TkOverlayPlacement =
+  | "bottom-start"
+  | "bottom-end"
+  | "top-start"
+  | "top-end"
+  | "right-start"
+  | "right-end"
+  | "left-start"
+  | "left-end";
 export type TkTooltipPlacement = "top" | "right" | "bottom" | "left";
 
 export interface TkOverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -39,7 +51,7 @@ export interface TkPopoverProps {
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
-  role?: "dialog" | "menu";
+  role?: "dialog" | "menu" | "navigation";
   contentRef?: Ref<HTMLDivElement>;
 }
 
@@ -50,6 +62,28 @@ function getOverlayPosition(
 ): Pick<CSSProperties, "top" | "left"> {
   const viewportPadding = 8;
   const gap = 8;
+  const placeBeside = placement.startsWith("right") || placement.startsWith("left");
+  if (placeBeside) {
+    const placeRight = placement.startsWith("right");
+    const alignEnd = placement.endsWith("end");
+    const preferredLeft = placeRight ? anchor.right + gap : anchor.left - panel.width - gap;
+    const alternateLeft = placeRight ? anchor.left - panel.width - gap : anchor.right + gap;
+    const fitsPreferred = placeRight
+      ? preferredLeft + panel.width <= window.innerWidth - viewportPadding
+      : preferredLeft >= viewportPadding;
+    const unclampedLeft = fitsPreferred ? preferredLeft : alternateLeft;
+    const unclampedTop = alignEnd ? anchor.bottom - panel.height : anchor.top;
+    return {
+      top: Math.max(
+        viewportPadding,
+        Math.min(unclampedTop, window.innerHeight - panel.height - viewportPadding),
+      ),
+      left: Math.max(
+        viewportPadding,
+        Math.min(unclampedLeft, window.innerWidth - panel.width - viewportPadding),
+      ),
+    };
+  }
   const placeAbove = placement.startsWith("top");
   const alignEnd = placement.endsWith("end");
   const preferredTop = placeAbove ? anchor.top - panel.height - gap : anchor.bottom + gap;
@@ -195,7 +229,11 @@ export function TkTooltip({
           <div
             ref={tooltipRef}
             id={tooltipId}
-            className={cx("tk-v1-tooltip", className)}
+            className={cx(
+              "tk-v1-tooltip",
+              isModalChild(anchorRef.current) && "tk-v1-overlay-modal-child",
+              className,
+            )}
             style={position}
             role="tooltip"
           >
@@ -314,7 +352,7 @@ export function TkPopover({
       anchorRef.current = node;
     },
     type: "button",
-    "aria-haspopup": role === "menu" ? "menu" : "dialog",
+    "aria-haspopup": role === "menu" ? "menu" : role === "dialog" ? "dialog" : undefined,
     "aria-expanded": isOpen,
     "aria-controls": isOpen ? panelId : undefined,
     onClick: () => setOpen(!isOpen),
@@ -331,7 +369,11 @@ export function TkPopover({
               assignRef(contentRef, node);
             }}
             id={panelId}
-            className={cx("tk-v1-popover", className)}
+            className={cx(
+              "tk-v1-popover",
+              isModalChild(anchorRef.current) && "tk-v1-overlay-modal-child",
+              className,
+            )}
             style={position}
             role={role}
             aria-label={label}

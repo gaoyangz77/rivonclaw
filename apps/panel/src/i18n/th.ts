@@ -56,6 +56,8 @@ export default {
     crons: "งานครอน",
     settings: "การตั้งค่า",
     billing: "การเรียกเก็บเงิน",
+    mainNavigation: "การนำทางหลัก",
+    secondaryNavigation: "เมนูย่อย {{label}}",
     collapse: "ยุบแถบด้านข้าง",
     expand: "ขยายแถบด้านข้าง",
     tiktokShops: "ร้าน TikTok",

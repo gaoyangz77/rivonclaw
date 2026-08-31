@@ -1,9 +1,9 @@
-import { Fragment, useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomActions } from "../components/BottomActions.js";
 import { GlobalBannerStack } from "../components/banners/GlobalBannerStack.js";
-import { ChevronRightIcon, MenuIcon, UserPlusIcon } from "../components/icons.js";
+import { MenuIcon, UserPlusIcon } from "../components/icons.js";
 import { ROUTES, type RouteEntry } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
@@ -11,13 +11,13 @@ import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 import { getUserInitial } from "../lib/user-manager.js";
 import { canSeeRoute } from "../lib/permission-scope.js";
-import { TkTooltip } from "../components/design-system/index.js";
+import { TkHierarchicalNav } from "../components/design-system/index.js";
 import { PageErrorBoundary } from "../components/PageErrorBoundary.js";
+import { buildSidebarNavigationItems } from "./sidebar-navigation.js";
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
 const SIDEBAR_DEFAULT = 200;
-const COLLAPSIBLE_NAV_GROUP_KEYS = new Set(["nav.group.automation", "nav.group.connections"]);
 
 export const Layout = observer(function Layout({
   children,
@@ -36,10 +36,6 @@ export const Layout = observer(function Layout({
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAuthPath, setPendingAuthPath] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
-  const [collapsedNavGroups, setCollapsedNavGroups] = useState<Set<string>>(
-    () => new Set(COLLAPSIBLE_NAV_GROUP_KEYS),
-  );
-  const [collapsedNavParents, setCollapsedNavParents] = useState<Set<string>>(() => new Set());
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   // Sidebar collapse is MST-backed (SSE-synced); observer() handles re-renders.
   const collapsed = runtimeStatus.appSettings.sidebarCollapsed;
@@ -82,59 +78,6 @@ export const Layout = observer(function Layout({
     (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
   );
 
-  useEffect(() => {
-    const exactRoute = navRoutes.find((route) => currentPath === route.path);
-    const activeRoute = exactRoute ?? navRoutes.find(
-      (route) => route.navGroupOnly && currentPath.startsWith(`${route.path}/`),
-    );
-    const activeGroupKey = activeRoute?.navGroupKey;
-    if (!activeGroupKey || !COLLAPSIBLE_NAV_GROUP_KEYS.has(activeGroupKey)) return;
-    setCollapsedNavGroups((current) => {
-      if (!current.has(activeGroupKey)) return current;
-      const next = new Set(current);
-      next.delete(activeGroupKey);
-      return next;
-    });
-  }, [currentPath, navRoutes]);
-
-  useEffect(() => {
-    const exactRoute = navRoutes.find((route) => currentPath === route.path);
-    const activeParentPath = exactRoute?.parentPath ?? navRoutes.find(
-      (route) => route.navGroupOnly && (currentPath === route.path || currentPath.startsWith(`${route.path}/`)),
-    )?.path;
-    if (!activeParentPath) return;
-    setCollapsedNavParents((current) => {
-      if (!current.has(activeParentPath)) return current;
-      const next = new Set(current);
-      next.delete(activeParentPath);
-      return next;
-    });
-  }, [currentPath, navRoutes]);
-
-  function toggleNavGroup(groupKey: string) {
-    setCollapsedNavGroups((current) => {
-      const next = new Set(current);
-      if (next.has(groupKey)) {
-        next.delete(groupKey);
-      } else {
-        next.add(groupKey);
-      }
-      return next;
-    });
-  }
-
-  function toggleNavParent(parentPath: string) {
-    setCollapsedNavParents((current) => {
-      const next = new Set(current);
-      if (next.has(parentPath)) {
-        next.delete(parentPath);
-      } else {
-        next.add(parentPath);
-      }
-      return next;
-    });
-  }
-
   function renderNavIcon(route: RouteEntry) {
     if (route.pageKey !== "account") return route.icon;
     if (user) {
@@ -146,23 +89,31 @@ export const Layout = observer(function Layout({
     return <UserPlusIcon />;
   }
 
-  function getNavTooltip(route: RouteEntry) {
-    if (route.pageKey === "account") {
-      if (user) return user.email ?? t(route.navLabelKey!);
-      if (authChecking) return t("common.loading");
-      return t("auth.login");
-    }
-    return t(route.navLabelKey!);
-  }
+  const navigationItems = buildSidebarNavigationItems(navRoutes, {
+    translate: (key) => t(key),
+    getIcon: renderNavIcon,
+    getGroupIcon: (_groupKey, groupRoutes) =>
+      renderNavIcon(groupRoutes.find((route) => route.pageKey === "account") ?? groupRoutes[0]!),
+    getFlyoutLabel: (label) => t("nav.secondaryNavigation", { label }),
+  });
 
-  let currentNavGroupKey: string | undefined;
-  const currentParentPath = navRoutes.find((route) => route.path === currentPath)?.parentPath;
+  function handleNavigationSelect(path: string) {
+    const route = navRoutes.find((candidate) => candidate.path === path);
+    if (!route) return;
+    if (route.authRequired && authChecking) return;
+    if (route.authRequired && !user) {
+      setPendingAuthPath(route.path);
+      setAuthModalOpen(true);
+      return;
+    }
+    onNavigate(route.path);
+  }
 
   return (
     <div className="layout-root">
       <GlobalBannerStack onNavigate={onNavigate} onCurrentVersionChange={setCurrentVersion} />
       <div className="layout-body">
-        <nav
+        <aside
           className={`sidebar${collapsed ? " sidebar-collapsed" : ""}`}
           style={collapsed ? undefined : { width: sidebarWidth, minWidth: sidebarWidth }}
         >
@@ -182,104 +133,17 @@ export const Layout = observer(function Layout({
               </>
             )}
           </h2>
-          <ul className="nav-list">
-            {navRoutes.map((route) => {
-              const isGroupCollapsed =
-                !collapsed &&
-                Boolean(route.navGroupKey && collapsedNavGroups.has(route.navGroupKey));
-              const isParentCollapsed =
-                !collapsed &&
-                Boolean(route.parentPath && collapsedNavParents.has(route.parentPath));
-              if (isParentCollapsed) return null;
-              if (collapsed && route.navGroupOnly) return null;
-              const active =
-                currentPath === route.path ||
-                (route.navGroupOnly
-                  ? currentPath.startsWith(`${route.path}/`) || currentParentPath === route.path
-                  : false);
-              const isSubItem = Boolean(route.parentPath);
-              const startsGroup =
-                !collapsed && route.navGroupKey && route.navGroupKey !== currentNavGroupKey;
-              currentNavGroupKey = route.navGroupKey;
-              return (
-                <Fragment key={route.path}>
-                  {startsGroup && (
-                    <li>
-                      {route.navGroupKey && COLLAPSIBLE_NAV_GROUP_KEYS.has(route.navGroupKey) ? (
-                        <button
-                          className="nav-group-heading nav-group-toggle"
-                          type="button"
-                          onClick={() => toggleNavGroup(route.navGroupKey!)}
-                          aria-expanded={!collapsedNavGroups.has(route.navGroupKey)}
-                        >
-                          <span>{t(route.navGroupKey!)}</span>
-                          <ChevronRightIcon
-                            className={`nav-group-chevron${collapsedNavGroups.has(route.navGroupKey) ? "" : " nav-group-chevron-open"}`}
-                          />
-                        </button>
-                      ) : (
-                        <div className="nav-group-heading">{t(route.navGroupKey!)}</div>
-                      )}
-                    </li>
-                  )}
-                  {isGroupCollapsed ? null : (
-                    <li>
-                      {route.navGroupOnly ? (
-                        collapsed ? null : (
-                          <TkTooltip
-                            label={getNavTooltip(route)}
-                            placement="right"
-                            trigger={(tooltipProps) => (
-                              <button
-                                {...tooltipProps}
-                                className={`nav-section-toggle${active ? " nav-section-active" : ""}`}
-                                type="button"
-                                onClick={() => toggleNavParent(route.path)}
-                                aria-expanded={!collapsedNavParents.has(route.path)}
-                              >
-                                <span className="nav-section-label">{t(route.navLabelKey!)}</span>
-                                <ChevronRightIcon
-                                  className={`nav-section-chevron${collapsedNavParents.has(route.path) ? "" : " nav-section-chevron-open"}`}
-                                />
-                              </button>
-                            )}
-                          />
-                        )
-                      ) : (
-                        <TkTooltip
-                          label={getNavTooltip(route)}
-                          placement="right"
-                          trigger={(tooltipProps) => (
-                            <button
-                              {...tooltipProps}
-                              className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
-                              onClick={() => {
-                                if (route.authRequired && authChecking) return;
-                                if (route.authRequired && !user) {
-                                  setPendingAuthPath(route.path);
-                                  setAuthModalOpen(true);
-                                } else {
-                                  onNavigate(route.path);
-                                }
-                              }}
-                            >
-                              <span className="nav-icon">{renderNavIcon(route)}</span>
-                              {!collapsed && (
-                                <span className="nav-label">{t(route.navLabelKey!)}</span>
-                              )}
-                            </button>
-                          )}
-                        />
-                      )}
-                    </li>
-                  )}
-                </Fragment>
-              );
-            })}
-          </ul>
+          <TkHierarchicalNav
+            items={navigationItems}
+            value={currentPath}
+            onChange={handleNavigationSelect}
+            label={t("nav.mainNavigation")}
+            collapsed={collapsed}
+            className="sidebar-hierarchical-nav"
+          />
           <BottomActions collapsed={collapsed} />
           {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
-        </nav>
+        </aside>
         <div className="main-content">
           <main>
             <PageErrorBoundary

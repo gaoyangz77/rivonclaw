@@ -3846,24 +3846,8 @@
   .affiliate-proposal-toolbar,
   .affiliate-proposal-card-head,
   .affiliate-proposal-actions,
-  .affiliate-workspace-actions,
-  .affiliate-threshold-row,
-  .affiliate-threshold-control {
+  .affiliate-workspace-actions {
     align-items: stretch;
-    flex-direction: column;
-  }
-
-  .affiliate-threshold-input {
-    width: 100%;
-  }
-
-  .affiliate-model-recommendation-head,
-  .affiliate-model-recommendation-metrics {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-
-  .affiliate-model-recommendation-head {
     flex-direction: column;
   }
 
@@ -3931,45 +3915,6 @@
     align-items: stretch;
     flex-direction: column;
   }
-}
-
-.shop-runprofile-tools {
-  padding: 12px 14px;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.shop-tool-list {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  border: 1px solid var(--color-border-light);
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: var(--color-bg-alt);
-}
-
-.shop-tool-list-item {
-  padding: 6px 12px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono, monospace);
-  transition: color var(--transition-fast);
-}
-
-.shop-tool-list-item:hover {
-  color: var(--color-text);
-}
-
-.shop-tool-list-item + .shop-tool-list-item {
-  border-top: 1px solid var(--color-border-light);
-}
-
-.shop-tool-count {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--color-text-muted);
 }
 
 /* Billing Balance Hero */

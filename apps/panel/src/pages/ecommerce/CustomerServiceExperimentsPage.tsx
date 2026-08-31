@@ -22,6 +22,7 @@ import { TkModal as Modal } from "../../components/design-system/index.js";
 import {
   TkPageFrame,
   TkPageHeader,
+  TkIconButton,
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
@@ -449,14 +450,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             ]}
           />
         </label>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={t("common.refresh")}
-          onClick={refreshActiveView}
-        >
+        <TkIconButton label={t("common.refresh")} onClick={refreshActiveView}>
           <RefreshIcon />
-        </button>
+        </TkIconButton>
         <div className="cs-experiments-freshness">
           <span />
           {t("ecommerce.customerServiceExperiments.asOf", {

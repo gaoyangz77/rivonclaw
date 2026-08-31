@@ -2107,6 +2107,7 @@
   flex-wrap: nowrap;
   gap: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 2px 2px 6px;
   overscroll-behavior-x: contain;
   scroll-padding-inline: 2px;

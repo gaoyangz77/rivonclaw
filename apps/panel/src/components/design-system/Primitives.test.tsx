@@ -5,11 +5,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
   TkButton,
+  TkComposer,
   TkAlert,
   TkChoiceSelect,
   TkField,
+  TkFormGroup,
+  TkFormStack,
   TkEmptyState,
   TkLoadingState,
+  TkIconButton,
+  TkInteractiveTableRow,
   TkPageFrame,
   TkPageHeader,
   TkPanel,
@@ -63,7 +68,7 @@ describe("design-system primitives", () => {
             </tbody>
           </table>
         </TkTableFrame>
-        <TkPanelFooter>12 campaigns</TkPanelFooter>
+        <TkPanelFooter align="end">12 campaigns</TkPanelFooter>
       </TkPanel>,
     );
 
@@ -76,6 +81,56 @@ describe("design-system primitives", () => {
     expect(document.querySelector(".tk-v1-table-frame-embedded")).toBeTruthy();
     expect(document.querySelector(".tk-v1-table-compact")).toBeTruthy();
     expect(document.querySelector(".tk-v1-panel-footer")?.textContent).toContain("12 campaigns");
+    expect(document.querySelector(".tk-v1-panel-footer-end")).toBeTruthy();
+  });
+
+  it("activates interactive table rows without hijacking nested controls", () => {
+    const onActivate = vi.fn();
+    const onNestedAction = vi.fn();
+    render(
+      <TkTableFrame>
+        <table>
+          <tbody>
+            <TkInteractiveTableRow aria-label="Open Acme" onActivate={onActivate}>
+              <td>Acme</td>
+              <td>
+                <input aria-label="Alias" />
+                <button type="button" onClick={onNestedAction}>
+                  Disconnect
+                </button>
+              </td>
+            </TkInteractiveTableRow>
+          </tbody>
+        </table>
+      </TkTableFrame>,
+    );
+
+    const row = screen.getByRole("row", { name: "Open Acme" });
+    fireEvent.click(row);
+    fireEvent.keyDown(row, { key: "Enter" });
+    fireEvent.keyDown(row, { key: " " });
+    expect(onActivate).toHaveBeenCalledTimes(3);
+
+    fireEvent.click(screen.getByRole("textbox", { name: "Alias" }));
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Alias" }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+    expect(onNestedAction).toHaveBeenCalledOnce();
+    expect(onActivate).toHaveBeenCalledTimes(3);
+  });
+
+  it("provides semantic form rhythm without page-owned spacing", () => {
+    render(
+      <TkFormStack gap="lg">
+        <TkField label="Daily quota" />
+        <TkFormGroup title="Follow-up checkpoints" description="Add up to three checkpoints.">
+          <TkField label="Checkpoint 1" />
+        </TkFormGroup>
+      </TkFormStack>,
+    );
+
+    expect(document.querySelector(".tk-v1-form-stack-lg")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 4, name: "Follow-up checkpoints" })).toBeTruthy();
+    expect(document.querySelector(".tk-v1-form-group-body")?.textContent).toContain("Checkpoint 1");
   });
 
   it("announces and locks a loading action", () => {
@@ -85,6 +140,40 @@ describe("design-system primitives", () => {
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(button.getAttribute("aria-busy")).toBe("true");
     expect((button as HTMLButtonElement).type).toBe("button");
+  });
+
+  it("gives icon-only actions a stable accessible control contract", () => {
+    render(
+      <TkIconButton label="Refresh data">
+        <span aria-hidden="true">R</span>
+      </TkIconButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Refresh data" });
+    expect(button.className).toContain("tk-v1-icon-button");
+    expect((button as HTMLButtonElement).type).toBe("button");
+    expect(button.getAttribute("title")).toBe("Refresh data");
+  });
+
+  it("submits the shared composer from its action and command-enter", () => {
+    const onSubmit = vi.fn();
+    const onValueChange = vi.fn();
+    render(
+      <TkComposer
+        value="Ready to send"
+        onValueChange={onValueChange}
+        onSubmit={onSubmit}
+        submitLabel="Send"
+        placeholder="Write a reply"
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Write a reply" });
+    fireEvent.change(input, { target: { value: "Updated reply" } });
+    expect(onValueChange).toHaveBeenCalledWith("Updated reply");
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
   });
 
   it("announces dangerous notices without relying on color", () => {
@@ -138,6 +227,7 @@ describe("design-system primitives", () => {
     render(
       <TkTabs
         variant="rail"
+        scrollable
         label="Team views"
         idPrefix="team-tab"
         items={[
@@ -151,6 +241,9 @@ describe("design-system primitives", () => {
 
     expect(screen.getByRole("tablist", { name: "Team views" }).className).toContain(
       "tk-v1-tabs-rail",
+    );
+    expect(screen.getByRole("tablist", { name: "Team views" }).className).toContain(
+      "tk-v1-tabs-scrollable",
     );
     expect(screen.getByRole("tab", { name: /Team/ }).id).toBe("team-tab-team");
     expect(screen.getByRole("tab", { name: /Safety/ }).className).toContain("tk-v1-tab-success");

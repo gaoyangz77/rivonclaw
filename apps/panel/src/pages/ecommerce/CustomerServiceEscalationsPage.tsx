@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type FormEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
@@ -31,6 +30,8 @@ import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import {
   TkPageFrame,
   TkPageHeader,
+  TkComposer,
+  TkIconButton,
   TkPanel,
   TkTabs,
 } from "../../components/design-system/index.js";
@@ -469,8 +470,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     }
   }
 
-  async function sendManualReply(event?: FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
+  async function sendManualReply() {
     if (!workspace.manualReplyDraft.trim() || workspace.sendingManualReply) return;
     try {
       const result = await workspace.sendManualReply(i18n.language);
@@ -1062,18 +1062,16 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                                 <span>{t("ecommerce.customerServiceWorkspace.orderContext")}</span>
                                 <code>{shortId(selectedConversation.orderId)}</code>
                               </div>
-                              <button
-                                className="icon-button"
-                                type="button"
-                                title={t("common.refresh")}
-                                aria-label={t("common.refresh")}
+                              <TkIconButton
+                                size="sm"
+                                label={t("common.refresh")}
                                 onClick={() =>
                                   void workspace.fetchSelectedConversationOrderContext(true)
                                 }
                                 disabled={workspace.selectedConversationOrderContextLoading}
                               >
                                 <RefreshIcon size={14} />
-                              </button>
+                              </TkIconButton>
                             </div>
                             {workspace.selectedConversationOrderContextLoading &&
                             !selectedConversationOrderContext ? (
@@ -1320,35 +1318,19 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         ))}
                       </div>
                     )}
-                    <form
+                    <TkComposer
                       className="cs-manual-reply-form"
                       data-tutorial-id="cs-manual-reply"
-                      onSubmit={(event) => void sendManualReply(event)}
-                    >
-                      <textarea
-                        value={workspace.manualReplyDraft}
-                        onChange={(event) => workspace.setManualReplyDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-                            void sendManualReply();
-                          }
-                        }}
-                        placeholder={t("ecommerce.customerServiceWorkspace.manualReplyPlaceholder")}
-                        disabled={workspace.sendingManualReply}
-                        rows={2}
-                      />
-                      <button
-                        className="btn btn-primary btn-sm"
-                        type="submit"
-                        disabled={
-                          !workspace.manualReplyDraft.trim() || workspace.sendingManualReply
-                        }
-                      >
-                        {workspace.sendingManualReply
-                          ? t("common.loading")
-                          : t("ecommerce.customerServiceWorkspace.manualReplySend")}
-                      </button>
-                    </form>
+                      value={workspace.manualReplyDraft}
+                      onValueChange={(value) => workspace.setManualReplyDraft(value)}
+                      onSubmit={() => void sendManualReply()}
+                      submitLabel={t("ecommerce.customerServiceWorkspace.manualReplySend")}
+                      submittingLabel={t("common.loading")}
+                      placeholder={t("ecommerce.customerServiceWorkspace.manualReplyPlaceholder")}
+                      submitDisabled={!workspace.manualReplyDraft.trim()}
+                      submitting={workspace.sendingManualReply}
+                      textareaProps={{ rows: 2 }}
+                    />
                   </div>
                 </>
               ) : (

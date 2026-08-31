@@ -2,7 +2,11 @@ import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { ChevronRightIcon, RefreshIcon } from "../../../components/icons.js";
-import { TkPanel, TkTableFrame } from "../../../components/design-system/index.js";
+import {
+  TkInteractiveTableRow,
+  TkPanel,
+  TkTableFrame,
+} from "../../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
@@ -225,9 +229,11 @@ export function ShopTable({
                         const shopId = shop.id;
                         const currentAlias = shop.alias ?? "";
                         return (
-                          <tr
+                          <TkInteractiveTableRow
                             key={shopId}
                             className={isCollection ? "shop-collection-child-row" : undefined}
+                            aria-label={`${t("ecommerce.view")} ${shop.shopName}`}
+                            onActivate={() => onOpenDrawer(shopId)}
                           >
                             <td>
                               <span className="shop-table-name">{shop.shopName}</span>
@@ -235,6 +241,7 @@ export function ShopTable({
                             <td className="shop-table-col-alias">
                               <input
                                 className="shop-alias-input"
+                                aria-label={`${t("ecommerce.table.headers.alias")} ${shop.shopName}`}
                                 value={draftAliases[shopId] ?? currentAlias}
                                 placeholder={t("ecommerce.table.aliasPlaceholder")}
                                 disabled={savingAliasShopId === shopId}
@@ -271,12 +278,6 @@ export function ShopTable({
                             </td>
                             <td className="text-right">
                               <div className="td-actions shop-table-actions">
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => onOpenDrawer(shopId)}
-                                >
-                                  {t("ecommerce.view")}
-                                </button>
                                 {shop.authStatus === "TOKEN_EXPIRED" && (
                                   <button
                                     className="btn btn-primary btn-sm"
@@ -294,7 +295,7 @@ export function ShopTable({
                                 </button>
                               </div>
                             </td>
-                          </tr>
+                          </TkInteractiveTableRow>
                         );
                       })}
                   </Fragment>

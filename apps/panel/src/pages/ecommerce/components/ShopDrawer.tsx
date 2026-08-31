@@ -1,7 +1,12 @@
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TkSwitchControl, TkTabs } from "../../../components/design-system/index.js";
+import {
+  TkIconButton,
+  TkModal,
+  TkSwitchControl,
+  TkTabs,
+} from "../../../components/design-system/index.js";
 import { ChevronRightIcon, CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
@@ -322,12 +327,21 @@ export const ShopDrawer = observer(function ShopDrawer({
   };
 
   return (
-    <>
-      <div
-        className={`drawer-overlay${isOpen ? " drawer-overlay-visible" : ""}`}
-        onClick={onClose}
-      />
-      <div className={`drawer-panel${isOpen ? " drawer-panel-open" : ""}`} data-tutorial-id="shops-drawer">
+    <TkModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("ecommerce.shopDrawer.title", {
+        defaultValue: shopAlias || shop?.shopName || "Shop",
+      })}
+      ariaLabel={t("ecommerce.shopDrawer.title", {
+        defaultValue: shopAlias || shop?.shopName || "Shop",
+      })}
+      hideHeader
+      padding="none"
+      maxWidth={1680}
+      className="drawer-panel"
+      data-tutorial-id="shops-drawer"
+    >
         <div className="drawer-header">
           <div className="drawer-header-left">
             <span className="drawer-header-icon">
@@ -352,6 +366,7 @@ export const ShopDrawer = observer(function ShopDrawer({
           {shop && (
             <TkTabs
               className="drawer-tab-bar-header"
+              scrollable
               data-tutorial-id="shops-drawer-tabs"
               idPrefix="shop-drawer"
               label={t("ecommerce.shopDrawer.title", { defaultValue: shop.shopName })}
@@ -386,9 +401,14 @@ export const ShopDrawer = observer(function ShopDrawer({
               onChange={(value) => onTabChange(value as DrawerTab)}
             />
           )}
-          <button className="drawer-close-btn" data-tutorial-id="shops-drawer-close" onClick={onClose}>
+          <TkIconButton
+            label={t("common.close")}
+            variant="ghost"
+            data-tutorial-id="shops-drawer-close"
+            onClick={onClose}
+          >
             <CloseIcon size={18} />
-          </button>
+          </TkIconButton>
         </div>
 
         {shop && (
@@ -790,7 +810,6 @@ export const ShopDrawer = observer(function ShopDrawer({
             </div>
           </div>
         )}
-      </div>
-    </>
+    </TkModal>
   );
 });
