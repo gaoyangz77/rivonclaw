@@ -211,6 +211,13 @@ export const INIT_SHOPS_QUERY = `
           decisionThresholds {
             minExpectedSalesUnits
           }
+          samplePerformanceFollowUp {
+            enabled
+            lowOrderThreshold
+            stages { id delayDays }
+            revision
+            updatedAt
+          }
         }
       }
     }

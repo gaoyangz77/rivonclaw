@@ -13,6 +13,7 @@ import { useDeviceBinding } from "./hooks/useDeviceBinding.js";
 import { ShopTable } from "./components/ShopTable.js";
 import { ConnectShopModal } from "../../components/ecommerce/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
+import type { AffiliateSamplePerformanceFollowUpInput } from "./components/AffiliateManagementTab.js";
 
 export interface UnpaidReachoutStageDraft {
   id?: string;
@@ -428,6 +429,17 @@ export const EcommercePage = observer(function EcommercePage() {
     });
   }
 
+  async function handleSaveAffiliateSamplePerformanceFollowUp(
+    input: AffiliateSamplePerformanceFollowUpInput,
+  ) {
+    if (!selectedShopId) throw new Error("Shop is not selected");
+    const shop = shops.find((candidate) => candidate.id === selectedShopId);
+    if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+    await shop.update({
+      services: { affiliateService: { samplePerformanceFollowUp: input } },
+    });
+  }
+
   async function handleSaveAffiliateDecisionThresholds(
     value = editAffiliateMinExpectedSalesUnits,
     shopId = selectedShopId,
@@ -764,6 +776,9 @@ export const EcommercePage = observer(function EcommercePage() {
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
         onSaveAffiliateDailyCreatorOutreachLimit={handleSaveAffiliateDailyCreatorOutreachLimit}
+        onSaveAffiliateSamplePerformanceFollowUp={
+          handleSaveAffiliateSamplePerformanceFollowUp
+        }
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}

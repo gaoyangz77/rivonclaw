@@ -88,6 +88,25 @@ export const AffiliateDecisionThresholdsConfigModel = types.model("AffiliateDeci
   minExpectedSalesUnits: types.maybeNull(types.number),
 });
 
+export const AffiliateSamplePerformanceFollowUpStageConfigModel = types.model(
+  "AffiliateSamplePerformanceFollowUpStageConfig",
+  {
+    id: types.identifier,
+    delayDays: types.number,
+  },
+);
+
+export const AffiliateSamplePerformanceFollowUpConfigModel = types.model(
+  "AffiliateSamplePerformanceFollowUpConfig",
+  {
+    enabled: types.boolean,
+    lowOrderThreshold: types.maybeNull(types.number),
+    stages: types.array(AffiliateSamplePerformanceFollowUpStageConfigModel),
+    revision: types.number,
+    updatedAt: types.string,
+  },
+);
+
 export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig", {
   enabled: types.optional(types.boolean, false),
   deviceId: types.maybeNull(types.string),
@@ -97,6 +116,7 @@ export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig",
   campaignDailyCreatorOutreachLimitRevision: types.optional(types.number, 0),
   campaignDailyCreatorOutreachLimitUpdatedAt: types.maybeNull(types.string),
   decisionThresholds: types.maybeNull(AffiliateDecisionThresholdsConfigModel),
+  samplePerformanceFollowUp: types.maybeNull(AffiliateSamplePerformanceFollowUpConfigModel),
 });
 
 export const ShopServiceConfigModel = types.model("ShopServiceConfig", {
@@ -142,5 +162,7 @@ export interface Shop extends Instance<typeof ShopModel> {}
 export interface CustomerServiceConfig extends Instance<typeof CustomerServiceConfigModel> {}
 export interface WmsSettings extends Instance<typeof WmsSettingsModel> {}
 export interface AffiliateDecisionThresholdsConfig extends Instance<typeof AffiliateDecisionThresholdsConfigModel> {}
+export interface AffiliateSamplePerformanceFollowUpStageConfig extends Instance<typeof AffiliateSamplePerformanceFollowUpStageConfigModel> {}
+export interface AffiliateSamplePerformanceFollowUpConfig extends Instance<typeof AffiliateSamplePerformanceFollowUpConfigModel> {}
 export interface AffiliateServiceConfig extends Instance<typeof AffiliateServiceConfigModel> {}
 export interface ShopServiceConfig extends Instance<typeof ShopServiceConfigModel> {}

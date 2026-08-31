@@ -62,6 +62,16 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         decisionThresholds {
           minExpectedSalesUnits
         }
+        samplePerformanceFollowUp {
+          enabled
+          lowOrderThreshold
+          stages {
+            id
+            delayDays
+          }
+          revision
+          updatedAt
+        }
       }
     }
   }

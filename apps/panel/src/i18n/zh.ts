@@ -4724,6 +4724,25 @@ export default {
           "仅作为有可用预期销量预测时的店铺级 Agent 判断参考，不会自动批准或拒绝样品。Campaign 自动筛选只使用 Campaign 自身明确配置的阈值。",
         minExpectedSalesUnitsRequired: "最低预期销量为必填项，请输入 0 或更大的数字。",
         invalidDecisionThreshold: "最低预期销量必须是 0 或更大的数字。",
+        performanceFollowUp: "履约后销量跟进",
+        performanceFollowUpEnabled: "启用低出单 Sample 跟进",
+        performanceFollowUpHint:
+          "每个检查点到期时，Agent 会结合这个 Sample、归因销量 snapshot 和当前完整对话判断；如果正在讨论同一个 Sample，可以不再重复发消息，并正常消耗本次检查点。",
+        performanceFollowUpThreshold: "低出单阈值",
+        performanceFollowUpThresholdHint:
+          "仅当 Sample 的归因订单数严格小于该整数时才进入跟进。归因销量不代表寄送样品带来的因果增量。",
+        performanceFollowUpStages: "跟进检查点",
+        performanceFollowUpStagesHint:
+          "设置最近一次发布作品后的 1–3 个整数天数。相邻检查点至少间隔 3 天；每次有效 48 小时，整个序列不超过 90 天。",
+        performanceFollowUpStageLabel: "第 {{index}} 次（最近作品发布后天数）",
+        performanceFollowUpAddStage: "添加检查点",
+        performanceFollowUpRemoveStage: "移除第 {{index}} 个检查点",
+        performanceFollowUpThresholdInvalid: "低出单阈值必须是大于等于 1 的整数。",
+        performanceFollowUpStagesRequired: "启用后必须配置 1–3 个检查点。",
+        performanceFollowUpDelayInvalid:
+          "检查点必须是 1–88 的整数，并按递增顺序配置，且相邻至少间隔 3 天。",
+        performanceFollowUpSaved: "已保存履约后销量跟进配置。",
+        performanceFollowUpSaveFailed: "保存履约后销量跟进配置失败。",
         businessPrompt: "达人业务提示词",
         businessPromptHint:
           "配置本店铺面向达人的合作规则、沟通风格、佣金/样品边界和人工确认要求。该提示词会注入达人管理 Agent run。",

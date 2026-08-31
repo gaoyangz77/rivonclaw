@@ -250,6 +250,15 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         reasons
         nextActionAt
         sampleContentFollowUpStage
+        samplePerformanceFollowUpStage
+        samplePerformanceFollowUpStageId
+        samplePerformanceConfigRevision
+        samplePerformanceFollowUpDelayDays
+        samplePerformanceFollowUpAnchorAt
+        samplePerformanceFollowUpExpiresAt
+        samplePerformanceLowOrderThreshold
+        samplePerformanceAttributedOrderCount
+        samplePerformanceSnapshotHash
         boundaryEventCursor
         updatedAt
         conversationWindow {
