@@ -61,7 +61,10 @@ export function buildSidebarNavigationItems(
       items.push({
         id: `${NAV_GROUP_ID_PREFIX}${route.navGroupKey}`,
         label,
-        icon: getGroupIcon?.(route.navGroupKey, groupRoutes) ?? getIcon(route),
+        icon:
+          groupRoutes.find((child) => child.navGroupIcon)?.navGroupIcon ??
+          getGroupIcon?.(route.navGroupKey, groupRoutes) ??
+          getIcon(route),
         flyoutLabel: getFlyoutLabel?.(label),
         children: groupRoutes.map((child) => ({
           id: child.path,

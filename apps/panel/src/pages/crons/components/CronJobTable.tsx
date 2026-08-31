@@ -4,8 +4,11 @@ import { formatSchedule, formatRelativeTime, getTzI18nKey } from "../cron-utils.
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import {
   TkBadge,
+  TkButton,
   TkEmptyState,
+  TkInteractiveTableRow,
   TkLoadingState,
+  TkMenu,
   TkPanel,
   TkSwitchControl,
   TkTableFrame,
@@ -73,7 +76,7 @@ export function CronJobTable({
 
   return (
     <TkPanel as="section" padding="none" clip className="section-card">
-      <TkTableFrame variant="embedded" className="table-scroll-wrap">
+      <TkTableFrame compact variant="embedded" className="table-scroll-wrap">
         <table className="crons-table" data-tutorial-id="crons-table">
           <thead>
             <tr>
@@ -87,7 +90,11 @@ export function CronJobTable({
           </thead>
           <tbody>
             {jobs.map((job) => (
-              <tr key={job.id} className="table-hover-row">
+              <TkInteractiveTableRow
+                key={job.id}
+                aria-label={`${t("common.edit")}: ${job.name}`}
+                onActivate={() => onEdit(job)}
+              >
                 <td>
                   <div className="crons-job-name">{job.name}</div>
                   {job.description && (
@@ -125,15 +132,15 @@ export function CronJobTable({
                   />
                 </td>
                 <td>
-                  <div className="crons-time-cell">
+                  <div className="crons-run-summary">
                     {getStatusBadge(job, t)}
                     {job.state?.lastRunAtMs && (
-                      <div
+                      <span
                         className="text-muted"
                         title={formatLocalizedDateTime(job.state.lastRunAtMs, i18n.language)}
                       >
                         {formatRelativeTime(job.state.lastRunAtMs, now, i18n.language)}
-                      </div>
+                      </span>
                     )}
                   </div>
                 </td>
@@ -148,28 +155,45 @@ export function CronJobTable({
                     )}
                   </div>
                 </td>
-                <td className="td-actions">
-                  <button className="btn btn-secondary btn-sm" onClick={() => onEdit(job)}>
-                    {t("common.edit")}
-                  </button>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => onRun(job.id)}
-                    disabled={runningJobId === job.id}
-                  >
-                    {runningJobId === job.id ? "..." : t("crons.runNow")}
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => onHistory(job)}>
-                    {t("crons.viewHistory")}
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => onDelete({ id: job.id, name: job.name })}
-                  >
-                    {t("common.delete")}
-                  </button>
+                <td>
+                  <div className="crons-row-actions">
+                    <TkButton
+                      variant="ghost"
+                      size="sm"
+                      loading={runningJobId === job.id}
+                      onClick={() => onRun(job.id)}
+                    >
+                      {t("crons.runNow")}
+                    </TkButton>
+                    <TkMenu
+                      label={`${t("crons.colActions")}: ${job.name}`}
+                      triggerLabel={t("crons.moreActions")}
+                      triggerVariant="ghost"
+                      triggerSize="sm"
+                      placement="bottom-end"
+                      items={[
+                        {
+                          id: "edit",
+                          label: t("common.edit"),
+                          onSelect: () => onEdit(job),
+                        },
+                        {
+                          id: "history",
+                          label: t("crons.viewHistory"),
+                          onSelect: () => onHistory(job),
+                        },
+                        { id: "separator", type: "separator" },
+                        {
+                          id: "delete",
+                          label: t("common.delete"),
+                          tone: "danger",
+                          onSelect: () => onDelete({ id: job.id, name: job.name }),
+                        },
+                      ]}
+                    />
+                  </div>
                 </td>
-              </tr>
+              </TkInteractiveTableRow>
             ))}
           </tbody>
         </table>

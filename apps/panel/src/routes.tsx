@@ -55,6 +55,8 @@ export interface RouteEntry {
   navLabelKey?: string;
   /** Optional sidebar group heading. Routes with no group render as primary items. */
   navGroupKey?: string;
+  /** Optional icon promoted from this route to its generated first-level group. */
+  navGroupIcon?: ReactNode;
   /** Navigation requires authentication */
   authRequired?: boolean;
   /** Always mounted, shown/hidden via CSS toggle (preserves component state) */
@@ -103,11 +105,11 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
   { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true, scope: GQL.PermissionScope.Ads },
   { path: "/commerce/inventory", pageKey: "ecommerce-inventory", component: InventoryManagementPage, icon: <ModuleIcon />, navLabelKey: "nav.inventoryManagement", authRequired: true, scope: GQL.PermissionScope.Inventory },
-  { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.group.automation" },
-  { path: "/automation/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons", navGroupKey: "nav.group.automation" },
-  { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", navGroupKey: "nav.group.connections" },
-  { path: "/connections/models", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers", navGroupKey: "nav.group.connections" },
-  { path: "/connections/extensions", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras", navGroupKey: "nav.group.connections" },
+  { path: "/automation/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons" },
+  { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels" },
+  { path: "/connections/models", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers" },
+  { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.extras", navGroupIcon: <ExtrasIcon /> },
+  { path: "/connections/extensions", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.plugins", navGroupKey: "nav.extras" },
   { path: "/account/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage", navGroupKey: "nav.group.accountSystem" },
   { path: "/account/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", navGroupKey: "nav.group.accountSystem", authRequired: true, navAuthOnly: true, scope: GQL.PermissionScope.Billing },
   { path: "/account/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings", navGroupKey: "nav.group.accountSystem" },

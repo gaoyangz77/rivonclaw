@@ -51,6 +51,7 @@ export default {
     usage: "用量",
     mobile: "爪聊",
     extras: "扩展",
+    plugins: "插件",
     skills: "技能",
     crons: "定时任务",
     settings: "设置",
@@ -878,7 +879,7 @@ export default {
     feature3: "安全的凭证存储在操作系统密钥链中（macOS Keychain / Windows DPAPI）",
   },
   extras: {
-    title: "扩展功能",
+    title: "插件",
     description: "配置 AI 代理的附加能力：语音转文字、网页搜索和记忆功能。",
     sttSection: "语音转文字",
     webSearchSection: "网页搜索",
@@ -1214,10 +1215,13 @@ export default {
     retry: "重试",
     // Toolbar
     addJob: "添加任务",
+    searchLabel: "搜索",
     searchPlaceholder: "搜索任务...",
+    filterLabel: "状态",
     filterAll: "全部",
     filterEnabled: "已启用",
     filterDisabled: "已停用",
+    sortLabel: "排序",
     sortNextRun: "下次执行",
     sortUpdated: "更新时间",
     sortName: "名称",
@@ -1236,6 +1240,7 @@ export default {
     neverRun: "从未执行",
     // Actions
     runNow: "执行",
+    moreActions: "更多",
     viewHistory: "历史",
     // Empty
     emptyState: "暂无定时任务，点击添加创建第一个。",
