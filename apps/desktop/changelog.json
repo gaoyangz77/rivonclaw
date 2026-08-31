@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.120",
+    "date": "2026-08-31",
+    "en": [
+      "Streamline panel navigation and scheduled task management with clearer controls and table interactions",
+      "Limit retained OpenClaw sessions to control local storage growth and add Sellfox WMS provider support"
+    ],
+    "zh": [
+      "优化面板导航与定时任务管理，提供更清晰的控件和表格交互",
+      "限制 OpenClaw 会话保留数量以控制本地存储增长，并新增 Sellfox WMS 服务商支持"
+    ]
+  },
+  {
     "version": "1.8.119",
     "date": "2026-08-30",
     "en": [
