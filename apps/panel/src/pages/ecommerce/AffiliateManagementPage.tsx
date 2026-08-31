@@ -1319,6 +1319,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
         ).map(([id, label]) => ({
           id,
           label: t(`ecommerce.affiliateWorkspace.workbench.tabs.${label}`),
+          buttonProps: {
+            "data-tutorial-id": `affiliate-workbench-tab-${id.toLowerCase().replaceAll("_", "-")}`,
+          },
         }))}
         value={workbenchTab}
         onChange={(value) => setWorkbenchTab(value as AffiliateWorkbenchTab)}
@@ -1403,15 +1406,17 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
               onOpen={setSelectedEntityTarget}
             />
           ) : workbenchTab === "ESCALATIONS" ? (
-            <AffiliateEscalationQueue
-              items={escalationData?.affiliateEscalationPage.items ?? []}
-              totalCount={escalationData?.affiliateEscalationPage.totalCount ?? 0}
-              offset={escalationOffset}
-              pageSize={AFFILIATE_ESCALATION_PAGE_SIZE}
-              loading={escalationsLoading}
-              onOpen={setSelectedEscalation}
-              onPageChange={setEscalationOffset}
-            />
+            <div data-tutorial-id="affiliate-workbench-escalations">
+              <AffiliateEscalationQueue
+                items={escalationData?.affiliateEscalationPage.items ?? []}
+                totalCount={escalationData?.affiliateEscalationPage.totalCount ?? 0}
+                offset={escalationOffset}
+                pageSize={AFFILIATE_ESCALATION_PAGE_SIZE}
+                loading={escalationsLoading}
+                onOpen={setSelectedEscalation}
+                onPageChange={setEscalationOffset}
+              />
+            </div>
           ) : proposalsLoading && visibleAgentWorkBundles.length === 0 ? (
             <div data-tutorial-id="affiliate-attention-queue">
               <AffiliateLoadingState />

@@ -276,7 +276,10 @@ function AffiliateWorkbenchSampleList({
     : "affiliate-workbench-table-samples-open";
 
   return (
-    <section className="affiliate-workbench-entity-section">
+    <section
+      className="affiliate-workbench-entity-section"
+      data-tutorial-id="affiliate-workbench-samples"
+    >
       <div className="affiliate-workbench-entity-toolbar">
         <div className="affiliate-workbench-entity-filters">
           <Select
@@ -615,7 +618,10 @@ function AffiliateWorkbenchMessageList({
   ];
 
   return (
-    <section className="affiliate-workbench-entity-section">
+    <section
+      className="affiliate-workbench-entity-section"
+      data-tutorial-id="affiliate-workbench-messages"
+    >
       <div className="affiliate-workbench-entity-toolbar">
         <div className="affiliate-workbench-entity-filters">
           <div className="affiliate-workbench-channel-chips" role="group">
