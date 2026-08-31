@@ -78,7 +78,7 @@ export const DEFAULTS = {
     sessionResetIdleMinutes: 1_576_800, // 3 years
     sessionMaintenanceMode: "enforce" as const,
     sessionMaintenancePruneAfter: "1095d",
-    sessionMaintenanceMaxEntries: 1_000_000,
+    sessionMaintenanceMaxEntries: 10_000,
     sessionMaintenanceRotateBytes: undefined as string | undefined,
     sessionMaintenanceMaxDiskBytes: undefined as string | undefined,
     toolsProfile: "full" as const,

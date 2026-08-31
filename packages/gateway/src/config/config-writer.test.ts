@@ -2489,7 +2489,7 @@ describe("config-writer", () => {
       expect(config.session.maintenance).toEqual({
         mode: "enforce",
         pruneAfter: "1095d",
-        maxEntries: 1000000,
+        maxEntries: 10000,
       });
     });
 
