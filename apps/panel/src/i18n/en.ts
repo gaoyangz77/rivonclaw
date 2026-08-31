@@ -54,6 +54,7 @@ export default {
     usage: "Usage",
     mobile: "ChatClaw",
     extras: "Extensions",
+    plugins: "Plugins",
     skills: "Skills",
     crons: "Cron Jobs",
     settings: "Settings",
@@ -922,7 +923,7 @@ export default {
     feature3: "Secure credential storage in your OS keychain (macOS Keychain / Windows DPAPI)",
   },
   extras: {
-    title: "Extra Features",
+    title: "Plugins",
     description:
       "Configure additional capabilities for your AI agent: speech-to-text, web search, and memory.",
     sttSection: "Speech-to-Text",
@@ -1270,10 +1271,13 @@ export default {
     retry: "Retry",
     // Toolbar
     addJob: "Add Job",
+    searchLabel: "Search",
     searchPlaceholder: "Search jobs...",
+    filterLabel: "Status",
     filterAll: "All",
     filterEnabled: "Enabled",
     filterDisabled: "Disabled",
+    sortLabel: "Sort",
     sortNextRun: "Next Run",
     sortUpdated: "Updated",
     sortName: "Name",
@@ -1292,6 +1296,7 @@ export default {
     neverRun: "Never",
     // Actions
     runNow: "Run",
+    moreActions: "More",
     viewHistory: "History",
     // Empty
     emptyState: "No cron jobs yet. Create one to get started.",

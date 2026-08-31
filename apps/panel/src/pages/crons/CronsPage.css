@@ -1,56 +1,31 @@
 /* ===== Crons Page — List & Toolbar ===== */
 
 .crons-toolbar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: end;
 }
 
-.crons-search-input {
+.crons-search-field {
   flex: 1;
-  min-width: 180px;
+  min-width: 240px;
 }
 
-.crons-filter-select {
-  min-width: 120px;
+.crons-filter-field {
+  flex: 0 1 168px;
+  min-width: 144px;
 }
 
-/* Status bar — inline badge style */
-.crons-status-bar {
+/* Header operational state */
+.crons-header-status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-bottom: 20px;
-  padding: 6px 14px;
-  background: var(--color-bg-alt);
-  border-radius: var(--tk-v1-radius-full);
-  border: 1px solid var(--color-border-light);
+  gap: var(--tk-v1-space-2);
+  padding-right: var(--tk-v1-space-1);
 }
 
-.crons-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.crons-status-dot-connected {
-  background-color: var(--color-success);
-  box-shadow: 0 0 6px rgba(0, 184, 132, 0.4);
-}
-
-.crons-status-dot-disconnected {
-  background-color: var(--color-danger);
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
-}
-
-.crons-status-dot-connecting {
-  background-color: var(--color-warning);
-  animation: cron-pulse 1.5s ease-in-out infinite;
+.crons-job-count {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+  white-space: nowrap;
 }
 
 /* Table */
@@ -62,13 +37,6 @@
 
 .crons-table th {
   white-space: nowrap;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border-light);
   text-align: left;
 }
 
@@ -78,8 +46,7 @@
 }
 
 .crons-table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--color-border-light);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -88,54 +55,64 @@
   border-bottom: none;
 }
 
-/* Actions — 2×2 grid */
-.crons-table .td-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  white-space: normal;
-}
-
-.crons-table .td-actions .btn {
-  text-align: center;
-  justify-content: center;
+/* One primary row action; secondary actions live in the shared menu. */
+.crons-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--tk-v1-space-1);
 }
 
 /* Job name */
 .crons-job-name {
   font-weight: 600;
-  font-size: 14px;
-  color: var(--color-text);
+  font-size: var(--tk-v1-type-body);
+  line-height: var(--tk-v1-line-body);
+  color: var(--tk-v1-fg-default);
 }
 
 .crons-job-desc {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: 3px;
+  max-width: 280px;
+  margin-top: var(--tk-v1-space-1);
   overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 200px;
 }
 
 /* Schedule — monospace plain text */
 .crons-schedule-text {
-  font-family: var(--font-mono, monospace);
-  font-size: 13px;
-  color: var(--color-text);
+  font-family: var(--tk-v1-font-mono);
+  font-size: var(--tk-v1-type-supporting);
+  color: var(--tk-v1-fg-default);
 }
 
 .crons-schedule-tz {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: 2px;
+  max-width: 180px;
+  margin-top: var(--tk-v1-space-1);
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Time cell */
 .crons-time-cell {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-supporting);
+  color: var(--tk-v1-fg-secondary);
   white-space: nowrap;
+}
+
+.crons-run-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
 }
 
 /* Running indicator */
@@ -159,12 +136,6 @@
   50% {
     opacity: 0.4;
   }
-}
-
-/* Dark theme — page level */
-[data-theme="dark"] .crons-status-bar {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.06);
 }
 
 /* ===== Cron Form — Dialog ===== */

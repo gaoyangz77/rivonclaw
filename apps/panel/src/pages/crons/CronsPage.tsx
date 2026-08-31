@@ -2,10 +2,13 @@ import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../../api/index.js";
 import { setRunProfileForScope } from "../../api/tool-registry.js";
-import { Select } from "../../components/inputs/Select.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import {
   TkAlert,
+  TkBadge,
+  TkButton,
+  TkChoiceSelect,
+  TkField,
   TkPageFrame,
   TkPageHeader,
   TkToolbar,
@@ -153,33 +156,59 @@ export function CronsPage() {
     setHistoryJobName(job.name);
   }, []);
 
+  const connectionTone =
+    cron.connectionState === "connected"
+      ? "success"
+      : cron.connectionState === "connecting"
+        ? "warning"
+        : "danger";
+
   return (
     <TkPageFrame data-tutorial-id="crons-page">
-      <TkPageHeader title={t("crons.title")} description={t("crons.description")} />
-
-      <div className="crons-status-bar" data-tutorial-id="crons-status">
-        <span className={`crons-status-dot crons-status-dot-${cron.connectionState}`} />
-        <span>{t(`crons.${cron.connectionState}`)}</span>
-        {cron.total > 0 && (
-          <span className="text-muted">
-            ({cron.total} {t("crons.jobCount")})
-          </span>
-        )}
-      </div>
+      <TkPageHeader
+        title={t("crons.title")}
+        description={t("crons.description")}
+        actions={
+          <>
+            <div
+              className="crons-header-status"
+              data-tutorial-id="crons-status"
+              role="status"
+              aria-live="polite"
+            >
+              <TkBadge tone={connectionTone} dot>
+                {t(`crons.${cron.connectionState}`)}
+              </TkBadge>
+              <span className="crons-job-count">
+                {cron.total} {t("crons.jobCount")}
+              </span>
+            </div>
+            <TkButton
+              variant="primary"
+              data-tutorial-id="crons-add"
+              onClick={openCreate}
+              disabled={cron.connectionState !== "connected"}
+            >
+              {t("crons.addJob")}
+            </TkButton>
+          </>
+        }
+      />
 
       {(cron.error || actionError) && (
         <TkAlert
           tone="danger"
           actions={
-            <button
-              className="btn btn-secondary btn-sm"
+            <TkButton
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 setActionError(null);
                 cron.fetchJobs();
               }}
             >
               {t("crons.retry")}
-            </button>
+            </TkButton>
           }
         >
           {cron.error || actionError}
@@ -188,32 +217,27 @@ export function CronsPage() {
 
       {/* Toolbar */}
       <TkToolbar variant="framed" className="crons-toolbar" data-tutorial-id="crons-toolbar">
-        <input
-          className="input-full crons-search-input"
+        <TkField
+          className="crons-search-field"
+          label={t("crons.searchLabel")}
           placeholder={t("crons.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
         />
-        <Select
-          className="crons-filter-select"
+        <TkChoiceSelect
+          className="crons-filter-field"
+          label={t("crons.filterLabel")}
           value={enabledFilter}
           onChange={handleFilterChange}
           options={ENABLED_OPTIONS.map((o) => ({ ...o, label: t(`crons.filter${o.label}`) }))}
         />
-        <Select
-          className="crons-filter-select"
+        <TkChoiceSelect
+          className="crons-filter-field"
+          label={t("crons.sortLabel")}
           value={sortBy}
           onChange={handleSortChange}
           options={SORT_OPTIONS.map((o) => ({ ...o, label: t(`crons.sort${o.label}`) }))}
         />
-        <button
-          className="btn btn-primary"
-          data-tutorial-id="crons-add"
-          onClick={openCreate}
-          disabled={cron.connectionState !== "connected"}
-        >
-          {t("crons.addJob")}
-        </button>
       </TkToolbar>
 
       {/* Job list */}

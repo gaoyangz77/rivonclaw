@@ -53,12 +53,14 @@ describe("buildSidebarNavigationItems", () => {
   });
 
   it("turns each navGroupKey into one first-level disclosure in registry order", () => {
+    const extensionIcon = "extension-icon";
     const items = buildSidebarNavigationItems(
       [
         route({
           path: "/automation/skills",
           pageKey: "skills",
           navGroupKey: "nav.group.automation",
+          navGroupIcon: extensionIcon,
         }),
         route({
           path: "/automation/crons",
@@ -78,5 +80,6 @@ describe("buildSidebarNavigationItems", () => {
       "/automation/skills",
       "/automation/crons",
     ]);
+    expect(items[0]?.icon).toBe(extensionIcon);
   });
 });

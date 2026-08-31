@@ -22,6 +22,24 @@ describe("commerce navigation", () => {
   });
 });
 
+describe("runtime navigation", () => {
+  it("promotes frequent tools and groups skills with plugins", () => {
+    const routeByPath = new Map(ROUTES.map((route) => [route.path, route]));
+
+    expect(routeByPath.get("/automation/crons")?.navGroupKey).toBeUndefined();
+    expect(routeByPath.get("/connections/channels")?.navGroupKey).toBeUndefined();
+    expect(routeByPath.get("/connections/models")?.navGroupKey).toBeUndefined();
+    expect(routeByPath.get("/automation/skills")).toMatchObject({
+      navLabelKey: "nav.skills",
+      navGroupKey: "nav.extras",
+    });
+    expect(routeByPath.get("/connections/extensions")).toMatchObject({
+      navLabelKey: "nav.plugins",
+      navGroupKey: "nav.extras",
+    });
+  });
+});
+
 describe("design-system review route", () => {
   it("resolves directly without entering product navigation", () => {
     const route = ROUTES.find((entry) => entry.path === "/design-system");
@@ -51,10 +69,10 @@ describe("permission-scope navigation", () => {
       "/commerce/affiliate/history",
       "/commerce/affiliate/analytics",
       "/commerce/affiliate/intelligence",
-      "/automation/skills",
       "/automation/crons",
       "/connections/channels",
       "/connections/models",
+      "/automation/skills",
       "/connections/extensions",
       "/account/usage",
       "/account/settings",
