@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.119",
+    "date": "2026-08-30",
+    "en": [
+      "Unify the panel design system for more consistent navigation, controls, tables, dialogs, and responsive layouts",
+      "Rebuild the Affiliate agent workspace as a filterable workbench with escalation, Soft Reject, performance follow-ups, and spreadsheet imports"
+    ],
+    "zh": [
+      "统一面板设计系统，改善导航、控件、表格、弹窗与响应式布局的一致性",
+      "将达人联盟 Agent 工作区重构为可筛选工作台，并新增升级处理、Soft Reject、绩效跟进与表格导入"
+    ]
+  },
+  {
     "version": "1.8.118",
     "date": "2026-08-27",
     "en": [
