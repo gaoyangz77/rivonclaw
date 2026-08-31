@@ -408,8 +408,8 @@ describe("Panel architecture guardrails", () => {
     expect(designSystemCss).toMatch(
       /\[data-theme="dark"\]\s+\.main-content\s*\{[^}]*background-image:\s*var\(--tk-v1-canvas-optical\);/s,
     );
-    expect(appCss).toMatch(/\.sidebar\s*\{[^}]*z-index:\s*calc\(var\(--tk-v1-z-popover/s);
-    expect(layoutSource).toContain("<TkTooltip");
+    expect(appCss).toMatch(/\.sidebar\s*\{[^}]*z-index:\s*var\(--tk-v1-z-shell/s);
+    expect(layoutSource).toContain("<TkHierarchicalNav");
     expect(layoutSource).toContain("<PageErrorBoundary");
   });
 
@@ -431,6 +431,42 @@ describe("Panel architecture guardrails", () => {
       }))
       .filter(({ lines }) => lines > 4500);
     expect(oversized).toEqual([]);
+  });
+
+  it("prevents legacy focus bridges from overriding Design System controls", () => {
+    const broadFocusBridge =
+      /:is\(\s*input\s*,\s*select\s*,\s*textarea\s*,\s*summary\s*,\s*button\s*\)(?!:not\(\[class\*=["']tk-v1-["']\]\)):focus-visible/;
+    const violations = allCssFiles
+      .filter((filePath) => broadFocusBridge.test(readFileSync(filePath, "utf-8")))
+      .map((filePath) => relative(SRC_ROOT, filePath).replace(/\\/g, "/"));
+
+    expect(
+      violations,
+      `Legacy focus bridges can override tk-v1 controls:\n${violations.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("keeps horizontal navigation from becoming an implicit vertical scroller", () => {
+    const navigationSelectorPattern =
+      /(?:^|[-_.])(?:tabs?|nav|rail|strip)(?:[-_.\s:#]|$)/i;
+    const violations: string[] = [];
+
+    for (const filePath of allCssFiles) {
+      const content = readFileSync(filePath, "utf-8");
+      for (const match of content.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const selector = match[1]!.trim();
+        const declarations = match[2]!;
+        if (!navigationSelectorPattern.test(selector)) continue;
+        if (!/overflow-x:\s*(?:auto|scroll)\s*;/.test(declarations)) continue;
+        if (/overflow-y:\s*(?:hidden|clip|auto|scroll)\s*;/.test(declarations)) continue;
+        violations.push(`${relative(SRC_ROOT, filePath).replace(/\\/g, "/")}: ${selector}`);
+      }
+    }
+
+    expect(
+      violations,
+      `Horizontal navigation can gain a vertical scrollbar:\n${violations.join("\n")}`,
+    ).toEqual([]);
   });
 
   it("keeps shared muted text above the WCAG AA contrast floor", () => {

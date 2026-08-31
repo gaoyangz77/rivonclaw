@@ -57,6 +57,8 @@ export default {
     crons: "Cron-Jobs",
     settings: "Einstellungen",
     billing: "Abrechnung",
+    mainNavigation: "Hauptnavigation",
+    secondaryNavigation: "Untermenü {{label}}",
     collapse: "Seitenleiste einklappen",
     expand: "Seitenleiste erweitern",
     tiktokShops: "TikTok Geschäfte",

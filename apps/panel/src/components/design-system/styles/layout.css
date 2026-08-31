@@ -283,13 +283,20 @@
 .tk-v1-panel-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--tk-v1-space-3);
   padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
   border-top: 1px solid var(--tk-v1-border-default);
   background: var(--tk-v1-bg-subtle);
   color: var(--tk-v1-fg-secondary);
   font-size: var(--tk-v1-type-caption);
+}
+
+.tk-v1-panel-footer-between {
+  justify-content: space-between;
+}
+
+.tk-v1-panel-footer-end {
+  justify-content: flex-end;
 }
 
 .tk-v1-panel:is(.section-card, .panel-card)::before {
@@ -374,6 +381,24 @@
 
 .tk-v1-table-frame tbody tr:hover {
   background: color-mix(in srgb, var(--tk-v1-accent) 4%, transparent);
+}
+
+.tk-v1-table-row-action {
+  outline: 0;
+  cursor: pointer;
+}
+
+.tk-v1-table-frame .tk-v1-table-row-action:hover td,
+.tk-v1-table-frame .tk-v1-table-row-action:focus-visible td {
+  background: color-mix(in srgb, var(--tk-v1-accent) 5%, var(--tk-v1-bg-surface));
+}
+
+.tk-v1-table-frame .tk-v1-table-row-action:focus-visible td:first-child {
+  box-shadow: inset 2px 0 0 var(--tk-v1-accent);
+}
+
+.tk-v1-table-frame .tk-v1-table-row-action:active td {
+  background: color-mix(in srgb, var(--tk-v1-accent) 8%, var(--tk-v1-bg-surface));
 }
 
 .tk-v1-table-compact td {

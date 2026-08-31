@@ -1,4 +1,335 @@
-/* CSS ownership: Design System tabs and segmented navigation. Imported in original cascade order. */
+/* CSS ownership: Design System hierarchical navigation, tabs, and segmented navigation. */
+
+.tk-v1-hierarchical-nav {
+  width: 100%;
+  min-width: 0;
+}
+
+.tk-v1-hierarchical-nav-list {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tk-v1-hierarchical-nav-item {
+  min-width: 0;
+}
+
+.tk-v1-hierarchical-nav-trigger {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 14px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 var(--tk-v1-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--tk-v1-radius-2);
+  outline: 0;
+  background: transparent;
+  color: var(--tk-v1-fg-secondary);
+  font: 540 var(--tk-v1-type-control) / 1 var(--tk-v1-font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--tk-v1-fast),
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast),
+    color var(--tk-v1-fast);
+}
+
+.tk-v1-hierarchical-nav-trigger::before {
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: -1px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--tk-v1-signal-optical);
+  content: "";
+  opacity: 0;
+  transform: scaleY(0.5);
+  transition:
+    opacity var(--tk-v1-fast),
+    transform var(--tk-v1-fast);
+}
+
+.tk-v1-hierarchical-nav-trigger:hover,
+.tk-v1-hierarchical-nav-trigger.is-open {
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 5%, transparent);
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-hierarchical-nav-trigger.is-active-path,
+.tk-v1-hierarchical-nav-trigger.is-current {
+  border-color: color-mix(in srgb, var(--tk-v1-accent) 16%, transparent);
+  background: color-mix(in srgb, var(--tk-v1-accent) 8%, transparent);
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-hierarchical-nav-trigger.is-active-path::before,
+.tk-v1-hierarchical-nav-trigger.is-current::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.tk-v1-hierarchical-nav-trigger:focus-visible {
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-hierarchical-nav-icon,
+.tk-v1-hierarchical-nav-chevron,
+.tk-v1-nav-flyout-icon {
+  display: grid;
+  place-items: center;
+}
+
+.tk-v1-hierarchical-nav-icon {
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-hierarchical-nav-trigger:hover .tk-v1-hierarchical-nav-icon,
+.tk-v1-hierarchical-nav-trigger.is-open .tk-v1-hierarchical-nav-icon,
+.tk-v1-hierarchical-nav-trigger.is-active-path .tk-v1-hierarchical-nav-icon,
+.tk-v1-hierarchical-nav-trigger.is-current .tk-v1-hierarchical-nav-icon {
+  color: var(--tk-v1-accent-text);
+}
+
+.tk-v1-hierarchical-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-hierarchical-nav-chevron {
+  color: var(--tk-v1-fg-muted);
+  transition: transform var(--tk-v1-fast);
+}
+
+.tk-v1-hierarchical-nav-trigger.is-open .tk-v1-hierarchical-nav-chevron {
+  transform: translateX(2px);
+}
+
+.tk-v1-hierarchical-nav-collapsed .tk-v1-hierarchical-nav-trigger {
+  grid-template-columns: 1fr;
+  width: 40px;
+  padding: 0;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.tk-v1-hierarchical-nav-collapsed .tk-v1-hierarchical-nav-label,
+.tk-v1-hierarchical-nav-collapsed .tk-v1-hierarchical-nav-chevron {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.tk-v1-popover.tk-v1-nav-flyout {
+  width: min(284px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  padding: var(--tk-v1-space-2);
+  overflow-y: auto;
+  border-color: color-mix(
+    in srgb,
+    var(--tk-v1-accent) 14%,
+    var(--tk-v1-border-strong)
+  );
+  background-color: var(--tk-v1-bg-raised);
+  background-image:
+    radial-gradient(
+      ellipse 70% 52% at 0% 0%,
+      color-mix(in srgb, var(--tk-v1-accent) 5%, transparent) 0%,
+      transparent 72%
+    ),
+    var(--tk-v1-surface-optical);
+  box-shadow:
+    var(--tk-v1-surface-highlight),
+    0 2px 0 color-mix(in srgb, var(--tk-v1-fg-default) 9%, transparent),
+    var(--tk-v1-elevation-3);
+  overscroll-behavior: contain;
+}
+
+.tk-v1-popover.tk-v1-nav-flyout-grid {
+  width: min(356px, calc(100vw - 16px));
+}
+
+.tk-v1-nav-flyout::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9px;
+  width: 9px;
+  content: "";
+}
+
+.tk-v1-nav-flyout::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--tk-v1-bg-raised) 88%, white),
+    inset 0 -1px 0 color-mix(in srgb, var(--tk-v1-fg-default) 6%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.tk-v1-nav-flyout-header {
+  display: grid;
+  gap: 3px;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.tk-v1-nav-flyout-header > span,
+.tk-v1-nav-flyout-group {
+  color: var(--tk-v1-accent-text);
+  font: 600 var(--tk-v1-type-micro) / var(--tk-v1-line-micro) var(--tk-v1-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tk-v1-nav-flyout-header > strong {
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-control);
+  font-weight: 650;
+  line-height: var(--tk-v1-line-control);
+}
+
+.tk-v1-nav-flyout-header > p {
+  margin: 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
+}
+
+.tk-v1-nav-flyout-list {
+  display: grid;
+  gap: 2px;
+  padding-top: var(--tk-v1-space-2);
+}
+
+.tk-v1-nav-flyout > div > .tk-v1-nav-flyout-list:first-child {
+  padding-top: 0;
+}
+
+.tk-v1-nav-flyout-grid .tk-v1-nav-flyout-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px var(--tk-v1-space-1);
+}
+
+.tk-v1-nav-flyout-grid .tk-v1-nav-flyout-link {
+  min-height: 36px;
+  padding-block: var(--tk-v1-space-1);
+}
+
+.tk-v1-nav-flyout-group {
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-2) var(--tk-v1-space-1);
+  color: var(--tk-v1-fg-muted);
+  letter-spacing: 0.06em;
+}
+
+.tk-v1-nav-flyout-link {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: var(--tk-v1-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--tk-v1-radius-2);
+  outline: 0;
+  background: transparent;
+  color: var(--tk-v1-fg-secondary);
+  font-family: var(--tk-v1-font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--tk-v1-fast),
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast),
+    color var(--tk-v1-fast),
+    transform var(--tk-v1-fast);
+}
+
+.tk-v1-nav-flyout-link:has(.tk-v1-nav-flyout-icon) {
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+
+.tk-v1-nav-flyout-link::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -1px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--tk-v1-signal-optical);
+  content: "";
+  opacity: 0;
+}
+
+.tk-v1-nav-flyout-link:hover {
+  border-color: var(--tk-v1-surface-edge);
+  background-color: var(--tk-v1-bg-raised);
+  background-image: var(--tk-v1-control-optical);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+  color: var(--tk-v1-fg-default);
+  transform: translateY(-1px);
+}
+
+.tk-v1-nav-flyout-link.is-current {
+  border-color: color-mix(in srgb, var(--tk-v1-accent) 15%, transparent);
+  background-color: color-mix(in srgb, var(--tk-v1-accent) 8%, var(--tk-v1-bg-raised));
+  background-image: var(--tk-v1-control-optical);
+  box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
+  color: var(--tk-v1-fg-default);
+}
+
+.tk-v1-nav-flyout-link:active {
+  box-shadow: var(--tk-v1-highlight);
+  transform: translateY(0);
+}
+
+.tk-v1-nav-flyout-link.is-current::before {
+  opacity: 1;
+}
+
+.tk-v1-nav-flyout-link:focus-visible {
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-nav-flyout-link > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.tk-v1-nav-flyout-link strong {
+  overflow: hidden;
+  font-size: var(--tk-v1-type-supporting);
+  font-weight: 570;
+  line-height: var(--tk-v1-line-supporting);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-nav-flyout-link small {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 400;
+  line-height: var(--tk-v1-line-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .tk-v1-tabs {
   display: flex;
@@ -6,6 +337,18 @@
   gap: 2px;
   min-height: 38px;
   border-bottom: 1px solid var(--tk-v1-border-default);
+}
+
+.tk-v1-tabs-scrollable {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.tk-v1-tabs-scrollable::-webkit-scrollbar {
+  display: none;
 }
 
 .tk-v1-tabs-rail {
@@ -233,8 +576,10 @@
 }
 
 .tk-v1-tab:focus-visible {
+  outline: none;
   border-radius: var(--tk-v1-radius-2);
-  box-shadow: var(--tk-v1-focus);
+  background: color-mix(in srgb, var(--tk-v1-accent) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tk-v1-accent) 44%, transparent);
 }
 
 .tk-v1-tab-count {
@@ -244,4 +589,12 @@
   background: var(--tk-v1-bg-subtle);
   color: var(--tk-v1-fg-secondary);
   font: 500 10px/1 var(--tk-v1-font-mono);
+}
+
+@media (max-width: 640px) {
+  .tk-v1-tabs-rail {
+    grid-auto-columns: minmax(220px, 1fr);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
 }

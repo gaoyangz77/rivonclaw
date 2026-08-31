@@ -124,7 +124,7 @@
       ):not([type="hidden"]),
     textarea,
     select
-  ):not(.tk-v1-input):not(.custom-select-search) {
+  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.custom-select-search) {
   border-color: var(--tk-v1-border-default);
   border-radius: var(--tk-v1-radius-2);
   background-color: var(--tk-v1-bg-raised);
@@ -142,7 +142,7 @@
       ):not([type="hidden"]),
     textarea,
     select
-  ):not(.tk-v1-input):not(.custom-select-search):focus-visible {
+  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.custom-select-search):focus-visible {
   border-color: var(--tk-v1-accent);
   outline: none;
   box-shadow: var(--tk-v1-focus);
@@ -174,10 +174,6 @@
     justify-content: flex-start;
   }
 
-  .tk-v1-tabs-rail {
-    grid-auto-columns: minmax(220px, 1fr);
-    overflow-x: auto;
-  }
 }
 
 .tk-v1-button {
@@ -260,6 +256,25 @@
   font-size: 14px;
 }
 
+.tk-v1-icon-button {
+  flex: 0 0 auto;
+  width: var(--tk-v1-control-default);
+  padding: 0;
+}
+
+.tk-v1-icon-button.tk-v1-button-sm {
+  width: var(--tk-v1-control-compact);
+}
+
+.tk-v1-icon-button.tk-v1-button-lg {
+  width: var(--tk-v1-control-prominent);
+}
+
+.tk-v1-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 .tk-v1-button-primary {
   --_tk-button-bg: var(--tk-v1-primary-optical);
   --_tk-button-border: color-mix(in srgb, var(--tk-v1-accent-active) 76%, transparent);
@@ -309,6 +324,73 @@
   border-right-color: transparent;
   border-radius: 50%;
   animation: tk-v1-spin 700ms linear infinite;
+}
+
+.tk-v1-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+  padding: var(--tk-v1-space-2);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-raised);
+  box-shadow: var(--tk-v1-highlight);
+  transition:
+    border-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast);
+}
+
+.tk-v1-composer:focus-within {
+  border-color: var(--tk-v1-accent);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-composer-input {
+  width: 100%;
+  min-height: 48px;
+  max-height: 144px;
+  padding: 7px 8px;
+  resize: vertical;
+  border: 0;
+  border-radius: var(--tk-v1-radius-2);
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--tk-v1-fg-default);
+  font: 400 var(--tk-v1-type-body) / var(--tk-v1-line-body) var(--tk-v1-font-sans);
+}
+
+.tk-v1-composer-input::placeholder {
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-composer-input:disabled {
+  color: var(--tk-v1-fg-disabled);
+  cursor: not-allowed;
+}
+
+.tk-v1-composer-action {
+  display: flex;
+  align-items: flex-end;
+}
+
+.tk-v1-composer-action .tk-v1-button {
+  min-width: 72px;
+}
+
+.tk-v1-form-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: end;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.tk-v1-form-action-row > :is(.tk-v1-button, .btn) {
+  align-self: end;
+  min-height: var(--tk-v1-control-default);
 }
 
 .tk-v1-badge {
@@ -430,6 +512,55 @@
   line-height: 1.45;
 }
 
+.tk-v1-form-stack {
+  display: grid;
+  min-width: 0;
+}
+
+.tk-v1-form-stack-sm {
+  gap: var(--tk-v1-space-3);
+}
+
+.tk-v1-form-stack-md {
+  gap: var(--tk-v1-space-4);
+}
+
+.tk-v1-form-stack-lg {
+  gap: var(--tk-v1-space-5);
+}
+
+.tk-v1-form-group {
+  display: grid;
+  min-width: 0;
+  gap: var(--tk-v1-space-3);
+  padding-top: var(--tk-v1-space-4);
+  border-top: 1px solid var(--tk-v1-border-subtle);
+  font-family: var(--tk-v1-font-sans);
+}
+
+.tk-v1-form-group-header h3,
+.tk-v1-form-group-header h4 {
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-body);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-body);
+}
+
+.tk-v1-form-group-header p {
+  max-width: 76ch;
+  margin: var(--tk-v1-space-1) 0 0;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: var(--tk-v1-line-supporting);
+}
+
+.tk-v1-form-group-body {
+  display: grid;
+  min-width: 0;
+  gap: var(--tk-v1-space-3);
+}
+
 .tk-v1-select {
   width: 100%;
   height: var(--tk-v1-control-default);
@@ -474,6 +605,33 @@
     inset 0 1px 2px color-mix(in srgb, var(--tk-v1-fg-default) 4%, transparent);
   color: var(--tk-v1-fg-default);
   font: 400 13px/1.2 var(--tk-v1-font-sans);
+}
+
+.custom-select.tk-v1-select-compact .custom-select-trigger {
+  min-height: var(--tk-v1-control-compact);
+  padding: 4px 7px;
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.custom-select.tk-v1-select-ghost .custom-select-trigger {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--tk-v1-fg-secondary);
+}
+
+.custom-select.tk-v1-select-ghost .custom-select-trigger:hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 5%, transparent);
+  box-shadow: none;
+  color: var(--tk-v1-fg-default);
+}
+
+.custom-select.tk-v1-select-ghost .custom-select-trigger:focus-visible {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--tk-v1-accent) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tk-v1-accent) 48%, transparent);
+  color: var(--tk-v1-fg-default);
 }
 
 .custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control)

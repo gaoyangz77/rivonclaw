@@ -26,6 +26,7 @@ import { formatLocalizedTime } from "../../lib/format-datetime.js";
 import {
   TkPageFrame,
   TkPageHeader,
+  TkIconButton,
   TkPanel,
   TkPanelHeader,
   TkTableFrame,
@@ -409,9 +410,8 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             />
           </label>
         )}
-        <button
-          className="icon-button"
-          type="button"
+        <TkIconButton
+          label={t("common.refresh")}
           onClick={() =>
             activeTab === "realtime"
               ? realtimeQuery.refetch()
@@ -419,10 +419,9 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 ? unpaidQuery.refetch()
                 : historyQuery.refetch()
           }
-          title={t("common.refresh")}
         >
           <RefreshIcon aria-hidden="true" />
-        </button>
+        </TkIconButton>
       </TkToolbar>
 
       {error && (

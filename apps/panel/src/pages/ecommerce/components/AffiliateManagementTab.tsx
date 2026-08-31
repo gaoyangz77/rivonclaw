@@ -13,9 +13,15 @@ import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import {
   TkButton,
   TkField,
+  TkFormGroup,
+  TkFormStack,
+  TkPanel,
+  TkPanelBody,
+  TkPanelFooter,
   TkSwitch,
   TkSwitchControl,
 } from "../../../components/design-system/index.js";
+import "./AffiliateManagementTab.css";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SAMPLE_PERFORMANCE_FOLLOW_UP_MAX_STAGES = 3;
@@ -422,70 +428,77 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
         <div className="drawer-section-label">
           {t("ecommerce.shopDrawer.affiliate.performanceFollowUp")}
         </div>
-        <div className="shop-info-card">
-          <TkSwitch
-            label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpEnabled")}
-            description={t("ecommerce.shopDrawer.affiliate.performanceFollowUpHint")}
-            checked={performanceFollowUpEnabled}
-            onChange={setPerformanceFollowUpEnabled}
-            disabled={savingPerformanceFollowUp}
-          />
+        <TkPanel variant="subtle" padding="none" clip>
+          <TkPanelBody>
+            <TkFormStack gap="lg">
+              <TkSwitch
+                label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpEnabled")}
+                description={t("ecommerce.shopDrawer.affiliate.performanceFollowUpHint")}
+                checked={performanceFollowUpEnabled}
+                onChange={setPerformanceFollowUpEnabled}
+                disabled={savingPerformanceFollowUp}
+              />
 
-          <TkField
-            label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpThreshold")}
-            hint={t("ecommerce.shopDrawer.affiliate.performanceFollowUpThresholdHint")}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
-            value={performanceLowOrderThreshold}
-            onChange={(event) => setPerformanceLowOrderThreshold(event.target.value)}
-            disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
-          />
-
-          <div className="form-label-block">
-            {t("ecommerce.shopDrawer.affiliate.performanceFollowUpStages")}
-          </div>
-          <div className="shop-info-card-hint">
-            {t("ecommerce.shopDrawer.affiliate.performanceFollowUpStagesHint")}
-          </div>
-          {performanceStages.map((stage, index) => (
-            <div className="affiliate-threshold-row" key={stage.id}>
               <TkField
-                label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpStageLabel", {
-                  index: index + 1,
-                })}
+                className="affiliate-performance-follow-up-threshold"
+                label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpThreshold")}
+                hint={t("ecommerce.shopDrawer.affiliate.performanceFollowUpThresholdHint")}
                 type="number"
                 inputMode="numeric"
                 min={1}
-                max={88}
                 step={1}
-                value={stage.delayDays}
-                onChange={(event) => {
-                  const next = [...performanceStages];
-                  next[index] = { ...stage, delayDays: event.target.value };
-                  setPerformanceStages(next);
-                }}
+                value={performanceLowOrderThreshold}
+                onChange={(event) => setPerformanceLowOrderThreshold(event.target.value)}
                 disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
               />
-              <TkButton
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  setPerformanceStages((current) =>
-                    current.filter((candidate) => candidate.id !== stage.id),
-                  )
-                }
-                disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
-                aria-label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpRemoveStage", {
-                  index: index + 1,
-                })}
+
+              <TkFormGroup
+                title={t("ecommerce.shopDrawer.affiliate.performanceFollowUpStages")}
+                description={t("ecommerce.shopDrawer.affiliate.performanceFollowUpStagesHint")}
               >
-                {t("common.remove")}
-              </TkButton>
-            </div>
-          ))}
-          <div className="modal-actions">
+                {performanceStages.map((stage, index) => (
+                  <div
+                    className="affiliate-performance-follow-up-stage tk-v1-form-action-row"
+                    key={stage.id}
+                  >
+                    <TkField
+                      label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpStageLabel", {
+                        index: index + 1,
+                      })}
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={88}
+                      step={1}
+                      value={stage.delayDays}
+                      onChange={(event) => {
+                        const next = [...performanceStages];
+                        next[index] = { ...stage, delayDays: event.target.value };
+                        setPerformanceStages(next);
+                      }}
+                      disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
+                    />
+                    <TkButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setPerformanceStages((current) =>
+                          current.filter((candidate) => candidate.id !== stage.id),
+                        )
+                      }
+                      disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
+                      aria-label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpRemoveStage", {
+                        index: index + 1,
+                      })}
+                    >
+                      {t("common.remove")}
+                    </TkButton>
+                  </div>
+                ))}
+              </TkFormGroup>
+            </TkFormStack>
+          </TkPanelBody>
+          <TkPanelFooter align="end">
             <TkButton
               variant="secondary"
               size="sm"
@@ -515,8 +528,8 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
             >
               {t("ecommerce.shopDrawer.overview.save")}
             </TkButton>
-          </div>
-        </div>
+          </TkPanelFooter>
+        </TkPanel>
       </section>
 
       <section id="shop-workspace-affiliateManagement-prompt" className="shop-workspace-section">

@@ -56,6 +56,8 @@ export default {
     crons: "Pekerjaan Cron",
     settings: "Pengaturan",
     billing: "Penagihan",
+    mainNavigation: "Navigasi utama",
+    secondaryNavigation: "Submenu {{label}}",
     collapse: "Ciutkan bilah sisi",
     expand: "Luaskan bilah sisi",
     tiktokShops: "Toko TikTok",

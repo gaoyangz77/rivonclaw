@@ -19,7 +19,7 @@ import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
-import { TkPanel, TkTableFrame } from "../../components/design-system/index.js";
+import { TkButton, TkPanel, TkTableFrame } from "../../components/design-system/index.js";
 import {
   CreatorRelationshipDetailModal,
   type CreatorRelationshipDetailItem,
@@ -2166,7 +2166,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       // so a resolved product sits under the id it belongs to
                       // instead of in a pile below the list.
                       <div className="affiliate-campaign-offer-item" key={`offer-${index}`}>
-                        <div className="affiliate-campaign-offer-row">
+                        <div className="affiliate-campaign-offer-row tk-v1-form-action-row">
                           <label className="affiliate-campaign-offer-field">
                             <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
                             <input
@@ -2211,24 +2211,26 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                               }
                             />
                           </label>
-                          <button
-                            type="button"
+                          <TkButton
                             className="affiliate-campaign-fetch-button"
+                            variant="secondary"
+                            loading={
+                              fetchingProductId === rowProductId && resolveProductState.loading
+                            }
                             disabled={!form.shopId || !rowProductId || resolveProductState.loading}
                             onClick={() => fetchProduct(index)}
                           >
                             {fetchingProductId === rowProductId && resolveProductState.loading
                               ? t("ecommerce.affiliateCampaign.fetchingProduct")
                               : t("ecommerce.affiliateCampaign.fetchProduct")}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
+                          </TkButton>
+                          <TkButton
+                            variant="danger"
                             disabled={form.products.length < 2}
                             onClick={() => removeProduct(index)}
                           >
                             {t("ecommerce.affiliateCampaign.removeProduct")}
-                          </button>
+                          </TkButton>
                         </div>
                         {rowPreview && (
                           <article className="affiliate-campaign-product-preview">

@@ -1,0 +1,157 @@
+/* CSS ownership: Affiliate management settings and diagnostics. */
+
+.affiliate-threshold-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
+}
+
+.affiliate-threshold-row + .affiliate-threshold-row {
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+.affiliate-threshold-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.affiliate-threshold-copy .shop-info-card-hint {
+  padding: var(--tk-v1-space-1) 0 0;
+  border-top: 0;
+}
+
+.affiliate-threshold-control {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-threshold-input {
+  width: 150px;
+}
+
+.affiliate-performance-follow-up-threshold {
+  width: min(100%, 320px);
+}
+
+.affiliate-performance-follow-up-stage {
+  width: min(100%, 420px);
+}
+
+.affiliate-model-recommendation {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  margin: 0 var(--tk-v1-space-4) var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-3);
+  border: 1px solid color-mix(in srgb, var(--tk-v1-success) 24%, var(--tk-v1-border-subtle));
+  border-radius: var(--tk-v1-radius-4);
+  background: color-mix(in srgb, var(--tk-v1-success) 7%, var(--tk-v1-bg-surface));
+}
+
+.affiliate-model-recommendation-muted {
+  border-color: var(--tk-v1-border-subtle);
+  background: color-mix(in srgb, var(--tk-v1-bg-subtle) 64%, var(--tk-v1-bg-surface));
+}
+
+.affiliate-model-recommendation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-3);
+}
+
+.affiliate-model-recommendation-head strong {
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-body);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-body);
+}
+
+.affiliate-model-recommendation-head span {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: var(--tk-v1-radius-full);
+  background: color-mix(in srgb, var(--tk-v1-success) 14%, var(--tk-v1-bg-surface));
+  color: color-mix(in srgb, var(--tk-v1-success) 72%, var(--tk-v1-fg-default));
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-micro);
+}
+
+.affiliate-model-recommendation-actionable .affiliate-model-recommendation-head span {
+  background: color-mix(in srgb, var(--tk-v1-accent) 12%, var(--tk-v1-bg-surface));
+  color: var(--tk-v1-accent-text);
+}
+
+.affiliate-model-recommendation p,
+.affiliate-model-recommendation > span {
+  margin: 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: var(--tk-v1-line-supporting);
+}
+
+.affiliate-model-recommendation-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-model-recommendation-metric {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--tk-v1-space-2) 9px;
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-surface);
+}
+
+.affiliate-model-recommendation-metric span,
+.affiliate-model-recommendation-metric small {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-micro);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.affiliate-model-recommendation-metric strong {
+  color: var(--tk-v1-fg-default);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+@media (max-width: 760px) {
+  .affiliate-threshold-row,
+  .affiliate-threshold-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-threshold-input,
+  .affiliate-performance-follow-up-threshold {
+    width: 100%;
+  }
+
+  .affiliate-performance-follow-up-stage,
+  .affiliate-model-recommendation-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-performance-follow-up-stage .tk-v1-button {
+    justify-self: start;
+  }
+
+  .affiliate-model-recommendation-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

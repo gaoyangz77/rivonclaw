@@ -57,6 +57,8 @@ export default {
     crons: "Emplois Cron",
     settings: "Paramètres",
     billing: "Facturation",
+    mainNavigation: "Navigation principale",
+    secondaryNavigation: "Sous-menu {{label}}",
     collapse: "Réduire la barre latérale",
     expand: "Développer la barre latérale",
     tiktokShops: "Boutiques TikTok",

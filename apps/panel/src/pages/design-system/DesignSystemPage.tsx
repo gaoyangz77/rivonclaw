@@ -1,14 +1,30 @@
 import { useState } from "react";
-import { CheckIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
+import {
+  AccountIcon,
+  AdsIcon,
+  ChannelsIcon,
+  ChatIcon,
+  CheckIcon,
+  EcommerceIcon,
+  InfoIcon,
+  ModuleIcon,
+  ProvidersIcon,
+  RefreshIcon,
+  ShopIcon,
+  SkillsIcon,
+} from "../../components/icons.js";
 import {
   TkAlert,
   TkBadge,
   TkButton,
   TkChoiceSelect,
+  TkComposer,
   TkEmptyState,
   TkField,
   TkMetric,
   TkLoadingState,
+  TkIconButton,
+  TkHierarchicalNav,
   TkMenu,
   TkModal,
   TkPopover,
@@ -18,6 +34,7 @@ import {
   TkSwitch,
   TkTableFrame,
   TkTabs,
+  type TkHierarchicalNavItem,
 } from "../../components/design-system/index.js";
 import "./DesignSystemPage.css";
 
@@ -51,6 +68,99 @@ const WORK_ITEMS = [
   },
 ];
 
+const HIERARCHICAL_NAV_ITEMS: readonly TkHierarchicalNavItem[] = [
+  { id: "/", label: "对话", icon: <ChatIcon /> },
+  {
+    id: "shop",
+    label: "店铺",
+    icon: <ShopIcon />,
+    flyoutEyebrow: "COMMERCE",
+    description: "授权店铺、经营概览与渠道健康度。",
+    children: [
+      { id: "/commerce/shops", label: "店铺管理", description: "授权、状态与店铺配置" },
+      {
+        id: "/commerce/shop-analytics",
+        label: "店铺分析",
+        description: "经营指标与增长变化",
+      },
+    ],
+  },
+  {
+    id: "customer-service",
+    label: "客服",
+    icon: <ChannelsIcon />,
+    flyoutEyebrow: "SERVICE",
+    description: "会话处理、升级协同与服务质量。",
+    children: [
+      { id: "/commerce/customer-service/conversations", label: "客服对话" },
+      { id: "/commerce/customer-service/escalations", label: "客服升级" },
+      { id: "/commerce/customer-service/performance", label: "客服绩效" },
+      { id: "/commerce/customer-service/experiments", label: "实验分析" },
+    ],
+  },
+  {
+    id: "affiliate",
+    label: "达人联盟",
+    icon: <EcommerceIcon />,
+    flyoutEyebrow: "AFFILIATE",
+    description: "推广执行、关系资产与增长洞察。",
+    children: [
+      { id: "/commerce/affiliate/campaigns", label: "推广计划", group: "执行" },
+      { id: "/commerce/affiliate/attention", label: "工作台", group: "执行" },
+      { id: "/commerce/affiliate/team", label: "团队与渠道", group: "执行" },
+      { id: "/commerce/product-knowledge", label: "产品知识", group: "资产" },
+      { id: "/commerce/affiliate/creators", label: "合作达人", group: "资产" },
+      { id: "/commerce/affiliate/history", label: "平台合作", group: "资产" },
+      { id: "/commerce/affiliate/analytics", label: "数据分析", group: "洞察" },
+      { id: "/commerce/affiliate/intelligence", label: "智能分析", group: "洞察" },
+    ],
+  },
+  { id: "/commerce/ads", label: "广告", icon: <AdsIcon /> },
+  { id: "/commerce/inventory", label: "库存", icon: <ModuleIcon /> },
+  {
+    id: "automation",
+    label: "自动化",
+    icon: <SkillsIcon />,
+    flyoutEyebrow: "AUTOMATION",
+    children: [
+      { id: "/automation/skills", label: "技能" },
+      { id: "/automation/crons", label: "定时任务" },
+    ],
+  },
+  {
+    id: "connections",
+    label: "连接与模型",
+    icon: <ProvidersIcon />,
+    flyoutEyebrow: "RUNTIME",
+    children: [
+      { id: "/connections/channels", label: "渠道" },
+      { id: "/connections/models", label: "模型" },
+      { id: "/connections/extensions", label: "扩展" },
+    ],
+  },
+  {
+    id: "account",
+    label: "账户与系统",
+    icon: <AccountIcon />,
+    flyoutEyebrow: "SYSTEM",
+    children: [
+      { id: "/account/usage", label: "用量" },
+      { id: "/account/billing", label: "账单" },
+      { id: "/account/settings", label: "设置" },
+      { id: "/account/profile", label: "账户" },
+    ],
+  },
+];
+
+function findNavigationLabel(value: string) {
+  for (const item of HIERARCHICAL_NAV_ITEMS) {
+    if (item.id === value) return item.label;
+    const child = item.children?.find((candidate) => candidate.id === value);
+    if (child) return child.label;
+  }
+  return "工作台";
+}
+
 const COMPONENT_CONTRACTS = [
   {
     component: "Button",
@@ -64,8 +174,13 @@ const COMPONENT_CONTRACTS = [
   },
   {
     component: "Choice select",
-    states: "Rest · hover · focus · disabled · open",
-    contract: "Portal menu uses the popover layer",
+    states: "Default · compact · ghost · focus · open",
+    contract: "Portal menu follows its owning overlay layer",
+  },
+  {
+    component: "Composer",
+    states: "Rest · focus · disabled · submitting",
+    contract: "Input and send action share one focus boundary",
   },
   {
     component: "Switch",
@@ -76,6 +191,16 @@ const COMPONENT_CONTRACTS = [
     component: "Tabs",
     states: "Rest · hover · selected · focus · keyboard",
     contract: "Line/rail tabs navigate; segmented controls select a mode",
+  },
+  {
+    component: "Hierarchical navigation",
+    states: "Rest · hover intent · focus · pinned · current · collapsed",
+    contract: "Two levels only; hover, click and keyboard expose the same routes",
+  },
+  {
+    component: "Interactive table row",
+    states: "Rest · hover · focus · pressed · nested control",
+    contract: "Click, Enter and Space activate; nested controls never activate the row",
   },
   {
     component: "Feedback state",
@@ -109,7 +234,10 @@ export function DesignSystemPage() {
   const [assignment, setAssignment] = useState("agent");
   const [agentEvents, setAgentEvents] = useState(true);
   const [compactRows, setCompactRows] = useState(false);
+  const [composerDraft, setComposerDraft] = useState("A concise customer reply.");
   const [modalOpen, setModalOpen] = useState(false);
+  const [navMode, setNavMode] = useState("expanded");
+  const [navValue, setNavValue] = useState("/commerce/affiliate/attention");
 
   return (
     <div className="tk-design-lab">
@@ -153,8 +281,9 @@ export function DesignSystemPage() {
         <a href="#direction">01 Direction</a>
         <a href="#foundation">02 Foundation</a>
         <a href="#components">03 Components</a>
-        <a href="#pattern">04 Pattern</a>
-        <a href="#rules">05 Rules</a>
+        <a href="#navigation">04 Navigation</a>
+        <a href="#pattern">05 Pattern</a>
+        <a href="#rules">06 Rules</a>
       </nav>
 
       <div className="tk-design-lab-layout">
@@ -329,6 +458,9 @@ export function DesignSystemPage() {
                   <TkButton variant="primary" disabled>
                     Unavailable
                   </TkButton>
+                  <TkIconButton label="Refresh data">
+                    <RefreshIcon size={14} />
+                  </TkIconButton>
                 </div>
               </TkSection>
 
@@ -361,6 +493,16 @@ export function DesignSystemPage() {
                     error="Quota must be 300 or lower for this channel."
                   />
                 </div>
+                <TkComposer
+                  className="tk-design-lab-composer"
+                  value={composerDraft}
+                  onValueChange={setComposerDraft}
+                  onSubmit={() => {}}
+                  submitLabel="Send reply"
+                  placeholder="Write a customer reply"
+                  submitDisabled={!composerDraft.trim()}
+                  textareaProps={{ rows: 2 }}
+                />
               </TkSection>
 
               <TkSection
@@ -541,9 +683,108 @@ export function DesignSystemPage() {
             </TkTableFrame>
           </section>
 
-          <section id="pattern" className="tk-design-lab-block">
+          <section id="navigation" className="tk-design-lab-block">
             <div className="tk-design-lab-block-heading">
               <span>04</span>
+              <div>
+                <h2>Two-level product navigation</h2>
+                <p>一级保持稳定方位，二级按意图展开；hover、点击与键盘共享同一套路径。</p>
+              </div>
+            </div>
+
+            <div className="tk-design-lab-navigation-toolbar">
+              <div>
+                <span className="tk-v1-micro-label">INTERACTIVE PROTOTYPE</span>
+                <strong>真实 Panel 菜单映射 · 9 个一级入口</strong>
+              </div>
+              <TkSegmented
+                items={[
+                  { id: "expanded", label: "展开侧栏" },
+                  { id: "collapsed", label: "图标 Rail" },
+                ]}
+                value={navMode}
+                onChange={setNavMode}
+                label="侧栏显示模式"
+              />
+            </div>
+
+            <div
+              className={
+                navMode === "collapsed"
+                  ? "tk-design-lab-navigation-shell is-collapsed"
+                  : "tk-design-lab-navigation-shell"
+              }
+            >
+              <aside
+                className={
+                  navMode === "collapsed"
+                    ? "tk-design-lab-navigation-sidebar is-collapsed"
+                    : "tk-design-lab-navigation-sidebar"
+                }
+              >
+                <div className="tk-design-lab-navigation-brand">
+                  <span>TK</span>
+                  <strong>TK匠</strong>
+                  <small>DESKTOP</small>
+                </div>
+                <TkHierarchicalNav
+                  items={HIERARCHICAL_NAV_ITEMS}
+                  value={navValue}
+                  onChange={setNavValue}
+                  label="Panel 原型导航"
+                  collapsed={navMode === "collapsed"}
+                />
+                <div className="tk-design-lab-navigation-sidebar-note">
+                  <span>2L</span>
+                  <small>MAX DEPTH</small>
+                </div>
+              </aside>
+
+              <div className="tk-design-lab-navigation-canvas">
+                <header>
+                  <div>
+                    <span className="tk-v1-micro-label">CURRENT ROUTE</span>
+                    <code>{navValue}</code>
+                  </div>
+                  <TkBadge tone="success" dot>
+                    Contract active
+                  </TkBadge>
+                </header>
+                <main>
+                  <div className="tk-design-lab-navigation-page-title">
+                    <span>04 / NAVIGATION SPECIMEN</span>
+                    <h3>{findNavigationLabel(navValue)}</h3>
+                    <p>一级入口给出稳定空间记忆；二级入口承载任务名称，不再把全部路由平铺。</p>
+                  </div>
+                  <div className="tk-design-lab-navigation-principles">
+                    <article>
+                      <span>OPEN</span>
+                      <strong>Hover intent / focus</strong>
+                      <p>短暂查看，不改变当前页面。</p>
+                    </article>
+                    <article>
+                      <span>PIN</span>
+                      <strong>Click parent</strong>
+                      <p>固定面板，支持连续选择。</p>
+                    </article>
+                    <article>
+                      <span>MOVE</span>
+                      <strong>Arrow keys / Escape</strong>
+                      <p>完整键盘路径并返回触发项。</p>
+                    </article>
+                  </div>
+                </main>
+              </div>
+            </div>
+
+            <TkAlert tone="info" title="Navigation contract">
+              一级父项只负责展开，不同时承担跳转；最多两层可交互导航。二级分组标题只帮助扫描，不制造第三层。
+            </TkAlert>
+          </section>
+
+          <section id="pattern" className="tk-design-lab-block">
+            <div className="tk-design-lab-block-heading">
+              <span>05</span>
               <div>
                 <h2>Operational pattern</h2>
                 <p>用真实工作台组合检查设计系统，而不是只看孤立按钮。</p>
@@ -618,7 +859,7 @@ export function DesignSystemPage() {
 
           <section id="rules" className="tk-design-lab-block">
             <div className="tk-design-lab-block-heading">
-              <span>05</span>
+              <span>06</span>
               <div>
                 <h2>Usage rules</h2>
                 <p>“有立体感”不等于“所有东西都浮起来”。</p>

@@ -150,4 +150,40 @@ describe("Select", () => {
     expect(document.querySelector(".custom-select-dropdown")).toBeNull();
     expect(document.activeElement).toBe(trigger);
   });
+
+  it("exposes compact ghost styling as a shared variant", () => {
+    render(
+      <Select
+        value="default"
+        onChange={() => {}}
+        options={[{ value: "default", label: "Thinking: Default" }]}
+        size="compact"
+        variant="ghost"
+      />,
+    );
+
+    const root = document.querySelector(".custom-select");
+    expect(root?.classList.contains("tk-v1-select-compact")).toBe(true);
+    expect(root?.classList.contains("tk-v1-select-ghost")).toBe(true);
+  });
+
+  it("raises portal options above the modal that owns their trigger", () => {
+    render(
+      <div role="dialog" aria-modal="true" aria-label="Settings">
+        <Select
+          value=""
+          onChange={() => {}}
+          options={[{ value: "shop", label: "Shop" }]}
+          placeholder="Select"
+        />
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Select/i }));
+    expect(
+      document
+        .querySelector(".custom-select-dropdown")
+        ?.classList.contains("tk-v1-overlay-modal-child"),
+    ).toBe(true);
+  });
 });

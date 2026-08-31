@@ -302,17 +302,6 @@
   line-height: 1.2;
 }
 
-.cs-performance-toolbar .custom-select-trigger {
-  height: 38px;
-  min-height: 38px;
-}
-
-.cs-performance-toolbar .icon-button {
-  width: 38px;
-  height: 38px;
-  align-self: end;
-}
-
 .cs-performance-kpis {
   display: grid;
   grid-template-columns: repeat(5, minmax(132px, 1fr));

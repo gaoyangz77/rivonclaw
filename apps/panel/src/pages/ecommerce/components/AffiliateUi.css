@@ -1002,6 +1002,7 @@
 .affiliate-relationship-work-modal .affiliate-collaboration-detail-tabs {
   grid-template-columns: repeat(6, minmax(110px, 1fr));
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: thin;
 }
 
@@ -2638,7 +2639,7 @@
 
 .affiliate-page-shell.tk-v1-business-page .btn:focus-visible,
 .affiliate-page-shell.tk-v1-business-page
-  :is(input, select, textarea, summary, button):focus-visible {
+  :is(input, select, textarea, summary, button):not([class*="tk-v1-"]):focus-visible {
   outline: none;
   box-shadow: var(--tk-v1-focus);
 }

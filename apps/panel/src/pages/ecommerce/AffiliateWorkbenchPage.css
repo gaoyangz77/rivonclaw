@@ -51,25 +51,6 @@
   flex: 1 1 auto;
 }
 
-.tk-v1-workbench .affiliate-workbench-tabs {
-  width: min(100%, 670px);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.tk-v1-workbench .affiliate-workbench-tabs .tk-v1-tabs {
-  width: 100%;
-  justify-content: flex-end;
-  border-bottom-color: var(--tk-v1-border-subtle);
-}
-
-.tk-v1-workbench .affiliate-workbench-tabs .tk-v1-tab {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
 .affiliate-page-shell.tk-v1-workbench .affiliate-workbench-panel {
   overflow: hidden;
   border: 1px solid var(--tk-v1-surface-edge);
@@ -261,15 +242,9 @@
     flex-basis: auto;
   }
 
-  .tk-v1-workbench .affiliate-page-header-actions,
-  .tk-v1-workbench .affiliate-workbench-tabs {
+  .tk-v1-workbench .affiliate-page-header-actions {
     width: 100%;
     justify-content: stretch;
-  }
-
-  .tk-v1-workbench .affiliate-workbench-tabs .tk-v1-tabs {
-    justify-content: flex-start;
-    overflow-x: auto;
   }
 }
 

@@ -110,7 +110,7 @@ component.button.primary.background
 - CSS primitive: `--tk-v1-neutral-900`
 - CSS semantic: `--tk-v1-bg-canvas`
 - CSS component-private: `--_tk-button-bg`
-- React primitive: `TkButton`, `TkField`, `TkSection`
+- React primitive: `TkButton`, `TkIconButton`, `TkComposer`, `TkField`, `TkSection`
 - CSS class: `.tk-v1-button`, `.tk-v1-field`, `.tk-v1-section`
 
 ## 5. Foundations
@@ -272,23 +272,58 @@ Variants are Primary, Secondary, Ghost, and Danger.
 - Ghost is for low-priority toolbar actions.
 - Danger never becomes the default action through position alone.
 - Loading preserves button width, sets `aria-busy`, and prevents duplicate submission.
+- Icon-only actions use `TkIconButton`; the accessible label and square control geometry are part of
+  the component contract, never reconstructed with an unstyled page button.
 
 ### 6.2 Field
 
 Every field has a programmatic label. Hint, error, and unit occupy a stable support row. Focus uses
 both border and focus ring. Error uses icon or text in addition to color.
 
-### 6.3 Tabs
+`Select` owns `default` / `ghost` appearance and `default` / `compact` density. A page chooses a
+variant through props; it never restyles `.custom-select-trigger`. `TkComposer` owns the combined
+textarea, focus boundary, keyboard submit, disabled state, and send action. Mixed field/action rows
+use `.tk-v1-form-action-row` so every action shares the default control baseline.
+
+Vertical settings and edit forms use `TkFormStack`; a titled subset of related fields uses
+`TkFormGroup`. Framed composites use `TkPanelBody` for content padding and `TkPanelFooter` for
+actions. Product code must not rely on an unrelated feature stylesheet to provide these spaces.
+
+Legacy page-level control bridges must exclude elements whose class contains `tk-v1-`. Once a
+shared primitive is present, that primitive alone owns hover, focus, disabled, and loading states.
+
+### 6.3 Hierarchical navigation
+
+`TkHierarchicalNav` owns the product's two-level destination model. The first level is a stable
+orientation rail; a parent discloses its second-level destinations in a portal flyout. A parent
+never both navigates and discloses. Direct first-level destinations remain ordinary navigation
+actions.
+
+- Hover intent and focus open a temporary flyout; clicking a parent pins or unpins it.
+- Arrow Right, Arrow Down, Enter, and Space open a parent and move focus into its first child.
+  Arrow keys, Home, and End traverse children; Arrow Left and Escape close and restore focus.
+- `aria-current="page"` belongs to the selected destination. A parent receives only a visual
+  active-path signal when one of its children is current.
+- Section labels inside a flyout are noninteractive scan aids. They never create a third
+  interactive navigation level.
+- The collapsed icon rail preserves accessible names and the same flyout behavior. Hover is never
+  the only path to a destination.
+- Route metadata is the information-architecture source of truth. Pages may not insert their own
+  shell navigation markup or override flyout geometry.
+
+### 6.4 Tabs
 
 `TkTabs` has two intentional variants: `line` for compact content switching and `rail` for richer
 in-page navigation with optional icon, description, count, and semantic tone. Both are navigation
-or content-section controls, use `tablist` semantics, and implement roving arrow-key focus.
+or content-section controls, use `tablist` semantics, and implement roving arrow-key focus. Use the
+`scrollable` contract for constrained headers: it scrolls only on the inline axis, never creates a
+vertical scrollbar, and keeps its scrollbar visually hidden while keyboard focus remains usable.
 
 `TkSegmented` is reserved for mutually exclusive view, metric, time-window, and filter modes. It
 uses radio semantics. Neither tabs nor segmented controls may be recreated as pill-button rows in
 page code.
 
-### 6.4 Section and Card
+### 6.5 Section and Card
 
 `TkSection` is the default titled grouping primitive. `TkPanel` is the unopinionated content
 surface for existing headings or custom composition. `TkCard` is reserved for independently
@@ -297,7 +332,7 @@ actionable, selectable, draggable, or summarized content.
 Static cards do not react on hover. Interactive cards must expose the same selected and focus state
 to keyboard users.
 
-### 6.5 Table
+### 6.6 Table
 
 Tables are the default for comparable operational records. `TkTableFrame` owns the boundary,
 overflow, header density, and row rhythm. The `standalone` variant has a 6px frame. The `embedded`
@@ -306,18 +341,26 @@ variant is square and flush with its parent `TkPanel`; the parent alone owns out
 numbers align on the decimal or right edge, IDs and metrics use mono type, row actions appear
 consistently, and status never relies on color alone.
 
-### 6.6 Badge and status
+When opening a record is the row's primary action, use `TkInteractiveTableRow` instead of adding a
+redundant View button. Click, Enter, and Space activate the row; hover and focus share the standard
+table signal. Inputs, links, buttons, selects, and other nested controls remain independent and do
+not trigger the row. Destructive or state-changing actions stay explicit in the actions column.
+
+### 6.7 Badge and status
 
 Badges communicate categorical state. A live status may add a dot or pulse. Pills are not used as
 general decoration. Labels use explicit language such as `Running`, `Needs review`, and `Failed`.
 
-### 6.7 Overlay
+### 6.8 Overlay
 
 Popovers and menus use elevation 2. Modals use elevation 3 and an opaque-enough backdrop. Frosted
 material is allowed only when underlying content remains legible and does not become visual noise.
 
 - All overlays render through a document-level portal and reposition on resize, nested scroll, and
   viewport collision.
+- The layer scale is semantic: shell, sticky content, ordinary popover, modal, modal-child popover,
+  and toast. A portal opened from inside a modal is promoted automatically; an ordinary shell menu
+  can never paint above a modal.
 - Escape closes the top overlay and returns focus to its trigger. Pointer-down outside closes a
   nonmodal overlay without changing the active workflow.
 - Menus use `menu` / `menuitem` semantics. Arrow keys, Home, and End move focus; Tab exits.
@@ -325,8 +368,10 @@ material is allowed only when underlying content remains legible and does not be
   workflow.
 - Modals trap focus, lock background scroll, and interrupt both shell and content only for a
   genuine decision or bounded task.
+- Modal headers and navigation rails never own vertical scrolling. One explicit modal body region
+  owns the workflow's vertical scroll.
 
-### 6.8 Feedback state
+### 6.9 Feedback state
 
 `TkAlert`, `TkLoadingState`, and `TkEmptyState` own generic feedback geometry and semantics.
 Feature-specific states may add domain content, but pages must not recreate the generic

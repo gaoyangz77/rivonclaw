@@ -19,6 +19,10 @@
   transform-origin: top left;
 }
 
+.tk-v1-overlay-modal-child {
+  z-index: var(--tk-v1-z-modal-popover);
+}
+
 .tk-v1-popover-body {
   display: grid;
   gap: var(--tk-v1-space-3);

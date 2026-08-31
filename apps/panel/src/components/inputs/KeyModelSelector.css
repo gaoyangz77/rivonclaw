@@ -127,7 +127,7 @@
 
 /* ---- Dropdown Panel ---- */
 .key-model-selector-dropdown {
-  z-index: 10000;
+  z-index: var(--tk-v1-z-popover);
   width: 420px;
   background: var(--surface-dropdown, var(--color-bg));
   border: 1px solid var(--color-border);

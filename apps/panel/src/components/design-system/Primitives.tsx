@@ -3,12 +3,14 @@ import {
   useId,
   useRef,
   type ButtonHTMLAttributes,
+  type FormHTMLAttributes,
   type HTMLAttributes,
   type InputHTMLAttributes,
   type KeyboardEvent,
   type ReactNode,
   type Ref,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 import { Select, type SelectOption } from "../inputs/Select.js";
 import "./tk-v1.css";
@@ -163,11 +165,69 @@ export function TkPanelBody({ padding = "md", className, children, ...props }: T
   );
 }
 
-export function TkPanelFooter({ className, children, ...props }: HTMLAttributes<HTMLElement>) {
+export interface TkPanelFooterProps extends HTMLAttributes<HTMLElement> {
+  align?: "between" | "end";
+}
+
+export function TkPanelFooter({
+  align = "between",
+  className,
+  children,
+  ...props
+}: TkPanelFooterProps) {
   return (
-    <footer className={cx("tk-v1-panel-footer", className)} {...props}>
+    <footer
+      className={cx("tk-v1-panel-footer", `tk-v1-panel-footer-${align}`, className)}
+      {...props}
+    >
       {children}
     </footer>
+  );
+}
+
+export interface TkFormStackProps extends HTMLAttributes<HTMLDivElement> {
+  gap?: "sm" | "md" | "lg";
+}
+
+/** Shared vertical rhythm for fields, switches, and nested form groups. */
+export function TkFormStack({
+  gap = "md",
+  className,
+  children,
+  ...props
+}: TkFormStackProps) {
+  return (
+    <div className={cx("tk-v1-form-stack", `tk-v1-form-stack-${gap}`, className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export interface TkFormGroupProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
+  title: ReactNode;
+  description?: ReactNode;
+  headingLevel?: 3 | 4;
+}
+
+/** A semantic subgroup inside a form; owns its heading, description, and internal spacing. */
+export function TkFormGroup({
+  title,
+  description,
+  headingLevel = 4,
+  className,
+  children,
+  ...props
+}: TkFormGroupProps) {
+  const Heading = headingLevel === 3 ? "h3" : "h4";
+
+  return (
+    <section className={cx("tk-v1-form-group", className)} {...props}>
+      <header className="tk-v1-form-group-header">
+        <Heading>{title}</Heading>
+        {description ? <p>{description}</p> : null}
+      </header>
+      <div className="tk-v1-form-group-body">{children}</div>
+    </section>
   );
 }
 
@@ -215,6 +275,52 @@ export const TkTableFrame = forwardRef<HTMLDivElement, TkTableFrameProps>(functi
   );
 });
 
+const TABLE_ROW_INTERACTIVE_DESCENDANT =
+  "a, button, input, select, textarea, [role='button'], [role='link'], [contenteditable='true'], [data-tk-row-action-exempt]";
+
+function isInteractiveTableRowDescendant(
+  target: EventTarget | null,
+  row: HTMLTableRowElement,
+): boolean {
+  if (!(target instanceof Element) || target === row) return false;
+  return Boolean(target.closest(TABLE_ROW_INTERACTIVE_DESCENDANT));
+}
+
+export interface TkInteractiveTableRowProps
+  extends Omit<HTMLAttributes<HTMLTableRowElement>, "onClick" | "onKeyDown"> {
+  onActivate: () => void;
+}
+
+/** Clickable record row that preserves native table semantics and ignores nested controls. */
+export const TkInteractiveTableRow = forwardRef<
+  HTMLTableRowElement,
+  TkInteractiveTableRowProps
+>(function TkInteractiveTableRow({ onActivate, className, ...props }, ref) {
+  return (
+    <tr
+      ref={ref}
+      tabIndex={0}
+      className={cx("tk-v1-table-row-action", className)}
+      onClick={(event) => {
+        if (
+          event.defaultPrevented ||
+          isInteractiveTableRowDescendant(event.target, event.currentTarget)
+        ) {
+          return;
+        }
+        onActivate();
+      }}
+      onKeyDown={(event) => {
+        if (event.defaultPrevented || event.target !== event.currentTarget) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onActivate();
+      }}
+      {...props}
+    />
+  );
+});
+
 export type TkButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type TkButtonSize = "sm" | "md" | "lg";
 
@@ -253,6 +359,126 @@ export const TkButton = forwardRef<HTMLButtonElement, TkButtonProps>(function Tk
     </button>
   );
 });
+
+export interface TkIconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  label: string;
+  variant?: TkButtonVariant;
+  size?: TkButtonSize;
+  loading?: boolean;
+}
+
+export const TkIconButton = forwardRef<HTMLButtonElement, TkIconButtonProps>(
+  function TkIconButton(
+    {
+      label,
+      variant = "secondary",
+      size = "md",
+      loading = false,
+      className,
+      children,
+      disabled,
+      title,
+      type = "button",
+      ...props
+    },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        className={cx(
+          "tk-v1-button",
+          `tk-v1-button-${variant}`,
+          `tk-v1-button-${size}`,
+          "tk-v1-icon-button",
+          className,
+        )}
+        aria-label={label}
+        aria-busy={loading || undefined}
+        disabled={disabled || loading}
+        title={title ?? label}
+        type={type}
+        {...props}
+      >
+        {loading ? <span className="tk-v1-spinner" aria-hidden="true" /> : children}
+      </button>
+    );
+  },
+);
+
+export interface TkComposerProps
+  extends Omit<FormHTMLAttributes<HTMLFormElement>, "onChange" | "onSubmit"> {
+  value: string;
+  onValueChange: (value: string) => void;
+  onSubmit: () => void;
+  submitLabel: string;
+  submittingLabel?: string;
+  placeholder?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+  submitDisabled?: boolean;
+  submitting?: boolean;
+  textareaProps?: Omit<
+    TextareaHTMLAttributes<HTMLTextAreaElement>,
+    "aria-label" | "disabled" | "onChange" | "placeholder" | "value"
+  >;
+}
+
+export function TkComposer({
+  value,
+  onValueChange,
+  onSubmit,
+  submitLabel,
+  submittingLabel,
+  placeholder,
+  ariaLabel,
+  disabled = false,
+  submitDisabled = false,
+  submitting = false,
+  textareaProps,
+  className,
+  ...props
+}: TkComposerProps) {
+  return (
+    <form
+      className={cx("tk-v1-composer", className)}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (disabled || submitDisabled || submitting) return;
+        onSubmit();
+      }}
+      {...props}
+    >
+      <textarea
+        {...textareaProps}
+        className={cx("tk-v1-composer-input", textareaProps?.className)}
+        aria-label={ariaLabel ?? placeholder}
+        disabled={disabled || submitting}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onValueChange(event.target.value)}
+        onKeyDown={(event) => {
+          textareaProps?.onKeyDown?.(event);
+          if (event.defaultPrevented) return;
+          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            if (!disabled && !submitDisabled && !submitting) onSubmit();
+          }
+        }}
+      />
+      <div className="tk-v1-composer-action">
+        <TkButton
+          variant="primary"
+          type="submit"
+          disabled={disabled || submitDisabled}
+          loading={submitting}
+        >
+          {submitting ? (submittingLabel ?? submitLabel) : submitLabel}
+        </TkButton>
+      </div>
+    </form>
+  );
+}
 
 export type TkBadgeTone = "neutral" | "info" | "success" | "warning" | "danger" | "accent";
 
@@ -416,6 +642,7 @@ export interface TkTabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "onCha
   onChange: (value: string) => void;
   label: string;
   variant?: "line" | "rail";
+  scrollable?: boolean;
   descriptionLines?: 1 | 2 | 3;
   idPrefix?: string;
 }
@@ -426,6 +653,7 @@ export function TkTabs({
   onChange,
   label,
   variant = "line",
+  scrollable = false,
   descriptionLines = 1,
   idPrefix,
   className,
@@ -451,6 +679,7 @@ export function TkTabs({
       className={cx(
         "tk-v1-tabs",
         `tk-v1-tabs-${variant}`,
+        scrollable && "tk-v1-tabs-scrollable",
         `tk-v1-tabs-description-lines-${descriptionLines}`,
         className,
       )}
