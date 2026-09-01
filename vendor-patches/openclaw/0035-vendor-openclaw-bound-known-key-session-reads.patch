@@ -1,4 +1,4 @@
-From d935399c967767c42fdc6a7b293eeadec6db6232 Mon Sep 17 00:00:00 2001
+From 41313c3775edbf88c6b61fe191961b342ae6ee03 Mon Sep 17 00:00:00 2001
 From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
 Date: Thu, 20 Aug 2026 01:28:26 -0700
 Subject: [PATCH] vendor(openclaw): bound known-key session reads
@@ -103,7 +103,7 @@ index 00000000000..e7daa3760e4
 +  });
 +});
 diff --git a/src/gateway/server-methods/sessions-shared.ts b/src/gateway/server-methods/sessions-shared.ts
-index f370fe053c5..b1751f11a1f 100644
+index 7c18c1f9c8e..f0eb236e8fb 100644
 --- a/src/gateway/server-methods/sessions-shared.ts
 +++ b/src/gateway/server-methods/sessions-shared.ts
 @@ -1,4 +1,5 @@
@@ -112,7 +112,7 @@ index f370fe053c5..b1751f11a1f 100644
  import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
  import {
    ErrorCodes,
-@@ -151,12 +152,27 @@ export function loadAccessorSessionEntryForGatewayTarget(params: {
+@@ -126,12 +127,27 @@ export function loadAccessorSessionEntryForGatewayTarget(params: {
    cfg: OpenClawConfig;
    agentId?: string;
  }) {
@@ -141,7 +141,7 @@ index f370fe053c5..b1751f11a1f 100644
    let best:
      | {
          entry: SessionEntry;
-@@ -194,12 +210,23 @@ export function loadSessionEntriesForTarget(params: {
+@@ -169,12 +185,23 @@ export function loadSessionEntriesForTarget(params: {
    cfg: OpenClawConfig;
    agentId?: string;
  }) {

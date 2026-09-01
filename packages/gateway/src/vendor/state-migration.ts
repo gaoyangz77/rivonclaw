@@ -54,6 +54,11 @@ type VendorNodeHostRuntime = {
     env: NodeJS.ProcessEnv;
     log: { info: (message: string) => void; warn: (message: string) => void };
   }) => Promise<void>;
+  maybeMigrateAuthProfileJsonStoresToSqlite: VendorAuthProfileMigrationRuntime["maybeMigrateAuthProfileJsonStoresToSqlite"];
+  withAgentDatabaseMaintenanceLease: <T>(
+    options: { env: NodeJS.ProcessEnv },
+    run: () => Promise<T>,
+  ) => Promise<T>;
 };
 
 type VendorWorkspaceStateSource = {
@@ -422,31 +427,22 @@ function listRetiredAuthProfileFiles(stateDir: string): string[] {
   return paths;
 }
 
-async function loadVendorAuthProfileMigrationRuntime(
-  vendorDir: string,
-): Promise<VendorAuthProfileMigrationRuntime> {
-  const distDir = join(vendorDir, "dist");
-  const candidates = readdirSync(distDir)
-    .filter((name) => /^doctor-auth-flat-profiles-.*\.js$/u.test(name))
-    .filter((name) =>
-      readFileSync(join(distDir, name), "utf-8").includes(
-        "export { maybeMigrateAuthProfileJsonStoresToSqlite",
-      ),
-    );
-
-  for (const name of candidates) {
-    const runtime = (await import(
-      pathToFileURL(join(distDir, name)).href
-    )) as Partial<VendorAuthProfileMigrationRuntime>;
-    if (typeof runtime.maybeMigrateAuthProfileJsonStoresToSqlite === "function") {
-      return runtime as VendorAuthProfileMigrationRuntime;
+async function loadVendorNodeHostRuntime(vendorDir: string): Promise<VendorNodeHostRuntime> {
+  const runtimePath = join(vendorDir, "dist", "plugin-sdk", "node-host.js");
+  const runtime = (await import(pathToFileURL(runtimePath).href)) as Partial<VendorNodeHostRuntime>;
+  const requiredExports = [
+    "detectLegacyWorkspaceState",
+    "maybeMigrateAuthProfileJsonStoresToSqlite",
+    "migrateLegacyWorkspaceState",
+    "runStartupMigrations",
+    "withAgentDatabaseMaintenanceLease",
+  ] as const;
+  for (const name of requiredExports) {
+    if (typeof runtime[name] !== "function") {
+      throw new Error(`OpenClaw node-host runtime does not expose ${name}: ${runtimePath}`);
     }
   }
-
-  throw new Error(
-    `OpenClaw auth-profile migration entry point was not found in ${distDir}; ` +
-      "refresh the RivonClaw vendor migration adapter for this OpenClaw build",
-  );
+  return runtime as VendorNodeHostRuntime;
 }
 
 /** Run OpenClaw's narrow, verified auth-profile migration without invoking full Doctor. */
@@ -459,7 +455,7 @@ export async function migrateVendorAuthProfilesBeforeGateway(options: {
   if (detected.length === 0) return undefined;
 
   const cfg = JSON.parse(readFileSync(options.configPath, "utf-8")) as Record<string, unknown>;
-  const runtime = await loadVendorAuthProfileMigrationRuntime(options.vendorDir);
+  const runtime = await loadVendorNodeHostRuntime(options.vendorDir);
   const result = await runtime.maybeMigrateAuthProfileJsonStoresToSqlite({
     cfg,
     env: { ...process.env, OPENCLAW_STATE_DIR: options.stateDir },
@@ -545,13 +541,7 @@ export function relocateRecreatedGatewayRpcClientIdentity(stateDir: string): str
 async function migrateRetiredVendorStartupState(
   options: VendorStateMigrationOptions,
 ): Promise<VendorNodeHostRuntime> {
-  const runtimePath = join(options.vendorDir, "dist", "plugin-sdk", "node-host.js");
-  const runtime = (await import(pathToFileURL(runtimePath).href)) as VendorNodeHostRuntime;
-  if (typeof runtime.runStartupMigrations !== "function") {
-    throw new Error(
-      `OpenClaw node-host runtime does not expose startup migrations: ${runtimePath}`,
-    );
-  }
+  const runtime = await loadVendorNodeHostRuntime(options.vendorDir);
 
   const warnings: string[] = [];
   await runtime.runStartupMigrations({
@@ -770,19 +760,21 @@ export async function migrateVendorStateBeforeGateway(
     const runtime = (await import(pathToFileURL(runtimePath).href)) as VendorSqliteRuntime;
     const env = { ...process.env, OPENCLAW_STATE_DIR: options.stateDir };
 
-    for (const target of listAgentDatabaseTargets(options.stateDir)) {
-      if (!existsSync(target.databasePath)) continue;
-      const database = new DatabaseSync(target.databasePath);
-      try {
-        runtime.ensureOpenClawAgentDatabaseSchema(database, {
-          agentId: target.agentId,
-          path: target.databasePath,
-          env,
-        });
-      } finally {
-        database.close();
+    await nodeHostRuntime.withAgentDatabaseMaintenanceLease({ env }, async () => {
+      for (const target of listAgentDatabaseTargets(options.stateDir)) {
+        if (!existsSync(target.databasePath)) continue;
+        const database = new DatabaseSync(target.databasePath);
+        try {
+          runtime.ensureOpenClawAgentDatabaseSchema(database, {
+            agentId: target.agentId,
+            path: target.databasePath,
+            env,
+          });
+        } finally {
+          database.close();
+        }
       }
-    }
+    });
 
     const remaining = inspectVendorStateMigration(options.stateDir, options.vendorDir);
     if (remaining.required) {

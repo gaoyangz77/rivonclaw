@@ -4,7 +4,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 /**
- * Sentinel test for vendor patch 0004: promptMode "raw".
+ * Sentinel test for vendor patch 0003: promptMode "raw".
  *
  * Verifies that OpenClaw's system-prompt.ts supports promptMode "raw"
  * which returns ONLY the caller-supplied extraSystemPrompt with no
@@ -13,7 +13,7 @@ import { fileURLToPath } from "url";
  * is missing — causing the CS agent to see AI-identity content that
  * undermines its human persona.
  *
- * When this test fails after a vendor update, re-apply patch 0004 or
+ * When this test fails after a vendor update, re-apply patch 0003 or
  * verify that upstream added equivalent functionality.
  */
 
@@ -37,19 +37,7 @@ const EMBEDDED_SYSTEM_PROMPT_FILE = resolve(
   "src/agents/embedded-agent-runner/system-prompt.ts",
 );
 
-/** Check if the vendor source has the promptMode raw patch applied. */
-function isVendorPatched(): boolean {
-  try {
-    const src = readFileSync(VENDOR_TYPES_FILE, "utf-8");
-    return /export type PromptMode\b[^;]*"raw"/.test(src);
-  } catch {
-    return false;
-  }
-}
-
-const runOrSkip = isVendorPatched() ? describe : describe.skip;
-
-runOrSkip("vendor patch 0004: promptMode raw", () => {
+describe("vendor patch 0003: promptMode raw", () => {
   const source = readFileSync(VENDOR_FILE, "utf-8");
   const typesSource = readFileSync(VENDOR_TYPES_FILE, "utf-8");
 

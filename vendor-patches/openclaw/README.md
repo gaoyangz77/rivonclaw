@@ -158,14 +158,16 @@ RPC, or provides an equivalent per-run silent-completion option.
 
 ### 0032 - Expose embedded-host state migrations
 
-Exports OpenClaw's existing `runStartupMigrations`, workspace detector, and
-workspace migrator through the stable `plugin-sdk/node-host` boundary.
-RivonClaw Desktop starts an embedded Gateway without the OpenClaw node-host or
-Doctor flow, so it must invoke the same official device-auth, device-identity,
-exec-approval, and configured-workspace migrations before connecting.
+Exports OpenClaw's existing startup, workspace, auth-profile, and
+maintenance-authorized agent database migration APIs through the stable
+`plugin-sdk/node-host` boundary. RivonClaw Desktop starts an embedded Gateway
+without the OpenClaw node-host or Doctor flow, so it must invoke the same
+official migrations before connecting. The maintenance lease export is required
+by OpenClaw v2's stopped-writer fence for versioned agent schema rebuilds.
 
-Removal: OpenClaw exposes both migration surfaces from a stable public runtime,
-or RivonClaw starts Gateway through a host flow that invokes them itself.
+Removal: OpenClaw exposes all four migration surfaces from a stable public
+runtime, or RivonClaw starts Gateway through a host flow that invokes them
+itself.
 
 ### 0034 - Feishu websocket liveness timeout
 
@@ -220,20 +222,6 @@ Removal: drop this patch when `.openclaw-version` contains that commit or an
 equivalent lazy-loading implementation and the packaged Windows CLI sentinel
 passes on pristine vendor.
 
-### 0038 - Prepared model catalog generation recovery
-
-Backports OpenClaw PR `#126224` at head
-`059bea02f804144e33e169f90267d365b4d6a490`. When deferred full catalog
-discovery reconstructs plugin/runtime facts that no longer match the published
-configured owner, OpenClaw now retires the invalid worker, rebuilds that owner,
-and gates concurrent readers until the replacement is published. Unrelated
-worker failures retain their original error behavior.
-
-Removal: drop this patch when `.openclaw-version` contains merged OpenClaw PR
-`#126224` at `059bea02f804144e33e169f90267d365b4d6a490`, or an equivalent successor
-that replaces configured owners after catalog generation mismatch and gates
-concurrent recovery readers.
-
 ### 0039 - Windows process identity for the cron durable fence
 
 The cron durable fence introduced by OpenClaw `d3308e2cfd9` (`fix(cron): fence
@@ -259,27 +247,37 @@ start time for the cron fence, either in `getFileLockProcessStartTime` itself or
 through an equivalent cron-side reader. See `WINDOWS-CRON-001` in
 `UPSTREAM_WATCHLIST.md`.
 
-### 0040 - Precheck overflow compaction for replay-unsafe turns
+### 0041 - Atomic schema 17 additive session repair
 
-Upstream `b46181bfc0c` (#122516) fences replay-unsafe attempts out of all
-recovery so a post-tool timeout can never replay completed tools. The fence is
-wider than its intent: it also swallows overflow recovery for context
-overflows raised by the mid-turn precheck, which fires before the provider
-request is dispatched and whose recovery continues the current transcript
-without replaying any tool. Tool-heavy sessions (tool calls on nearly every
-turn) are always replay-unsafe at that point, so once such a session crosses
-the context budget it can never auto-compact: every turn surfaces "Agent
-couldn't generate a response", the failed turn writes no usage facts, and the
-session stays wedged until a manual `/reset`.
+Backports the final OpenClaw fixes from commits
+`592253ffd1039d877a9ce2cacbde5702176ea297` (PR `#134208`) and
+`c893a1f8453191951bce75a8769fc5db8e775d68` (PR `#134272`). OpenClaw
+`v2026.8.1` validates canonical indexes before repairing the additive session
+columns and trigger absent from real schema 17 databases. That ordering makes
+the Desktop's required 17-to-19 startup migration fail before Gateway launch.
 
-This patch narrows the fence: only `promptErrorSource === "precheck"` errors
-that classify as context overflow pass through to overflow recovery, and a
-second fence directly after overflow recovery keeps replay-unsafe attempts out
-of every replaying recovery branch below, preserving the #122516 intent.
+The backport performs the additive repair and canonical-index validation inside
+the migration transaction, preserving rollback if later participant identity
+validation rejects unrelated drift.
 
-Removal: drop this patch when the pin lets a replay-unsafe attempt with a
-precheck-sourced context overflow reach overflow-recovery compaction. See
-`MIDTURN-OVERFLOW-001` in `UPSTREAM_WATCHLIST.md`.
+Removal: drop this patch when `.openclaw-version` contains both upstream
+commits, or a later stable release whose pristine vendor passes the schema 17
+startup migration regression in
+`packages/gateway/src/vendor/state-migration.test.ts`.
+
+## Dropped In v2026.8.1
+
+- `0038`: upstream commit `3dd18ccc8cedbd1584847ca0e56e4c783243831c`
+  (PR `#130481`) takes the safer root-cause route: full-catalog workers inherit
+  the exact Gateway plugin metadata generation instead of reconstructing a
+  different one. The pristine v2026.8.1 metadata-scope matrix passes for
+  Gateway, activation, and workspace-free discovery. The old owner-replacement
+  backport no longer triggers and would duplicate the new ownership model.
+- `0040`: upstream commits `12e52a1c40e0` (PR `#128970`) and
+  `72450920f39d` (PR `#129792`) allow settled replay-unsafe mid-turn precheck
+  overflows to reach current-transcript compaction while keeping every
+  replaying recovery branch fenced. The pristine regression covers settled
+  ordinary tools and parked Code Mode work.
 
 ## Dropped In bcaec0cf145
 

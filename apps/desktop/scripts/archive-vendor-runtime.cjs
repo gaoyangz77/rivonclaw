@@ -79,7 +79,6 @@ const RUNTIME_INCLUDES = [
   "openclaw.mjs",
   "node-version.mjs",
   "package.json",
-  "src/agents/templates",
   "docs/reference/templates",
   "skills",
   "dist",
@@ -327,7 +326,6 @@ try {
 console.log("[archive-vendor-runtime] Archive verification passed (openclaw.mjs found).");
 
 for (const requiredPath of [
-  "src/agents/templates/HEARTBEAT.md",
   "docs/reference/templates/AGENTS.md",
   "docs/reference/templates/SOUL.md",
   "docs/reference/templates/TOOLS.md",

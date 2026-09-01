@@ -1,4 +1,4 @@
-From c2eab27c623476c462e65a399f89837d094572e3 Mon Sep 17 00:00:00 2001
+From 36f8a0f33d18292e60c5bf994117f8c4db0512ce Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:00:58 -0700
 Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
@@ -15,18 +15,18 @@ Tests:
 - vendor/openclaw/src/gateway/server-startup-post-attach.test.ts
 - apps/desktop/src/infra/proxy/proxy-manager.test.ts
 ---
- src/gateway/server-runtime-services.test.ts   | 17 +++++++++
- src/gateway/server-runtime-services.ts        | 36 +++++++++++++------
+ src/gateway/server-runtime-services.test.ts   | 17 ++++++++
+ src/gateway/server-runtime-services.ts        | 42 +++++++++++++------
  src/gateway/server-startup-finish.ts          |  1 +
- .../server-startup-post-attach.test.ts        |  9 +++++
- src/gateway/server-startup-post-attach.ts     | 35 ++++++++++++------
- 5 files changed, 78 insertions(+), 20 deletions(-)
+ .../server-startup-post-attach.test.ts        |  9 ++++
+ src/gateway/server-startup-post-attach.ts     | 37 +++++++++++-----
+ 5 files changed, 82 insertions(+), 24 deletions(-)
 
 diff --git a/src/gateway/server-runtime-services.test.ts b/src/gateway/server-runtime-services.test.ts
-index e97393d6a46..888b82cd173 100644
+index 98e06632265..f7aef2f8ac9 100644
 --- a/src/gateway/server-runtime-services.test.ts
 +++ b/src/gateway/server-runtime-services.test.ts
-@@ -492,6 +492,23 @@ describe("server-runtime-services", () => {
+@@ -563,6 +563,23 @@ describe("server-runtime-services", () => {
      );
    });
  
@@ -51,7 +51,7 @@ index e97393d6a46..888b82cd173 100644
      vi.useFakeTimers();
      const cron = { start: vi.fn(async () => undefined) };
 diff --git a/src/gateway/server-runtime-services.ts b/src/gateway/server-runtime-services.ts
-index 948c8bef0a9..e5c3625ff95 100644
+index 53625d32129..2a3c90d1810 100644
 --- a/src/gateway/server-runtime-services.ts
 +++ b/src/gateway/server-runtime-services.ts
 @@ -3,6 +3,7 @@
@@ -62,7 +62,7 @@ index 948c8bef0a9..e5c3625ff95 100644
  import {
    resolveHeartbeatAgents,
    startHeartbeatRunner,
-@@ -187,7 +188,12 @@ const RECOVERY_SHUTDOWN_STILL_PENDING_WARN_MS = 5_000;
+@@ -155,7 +156,12 @@ const RECOVERY_SHUTDOWN_STILL_PENDING_WARN_MS = 5_000;
  function startPendingOutboundDeliveryRecovery(params: {
    cfg: OpenClawConfig;
    log: GatewayRuntimeServiceLogger;
@@ -73,17 +73,17 @@ index 948c8bef0a9..e5c3625ff95 100644
 +    return async () => {};
 +  }
    let stopped = false;
-   let inFlight: Promise<void> | null = null;
-   let stopPromise: Promise<void> | null = null;
-@@ -270,6 +276,7 @@ function startPendingSessionDeliveryRuntime(params: {
-   deps: import("../cli/deps.types.js").CliDeps;
+   let migrationPending = true;
+   let initialPass = true;
+@@ -280,6 +286,7 @@ function startPendingSessionDeliveryRuntime(params: {
    log: GatewayRuntimeServiceLogger;
    maxEnqueuedAt: number;
+   resolveGatewayContext?: GatewayContextResolver;
 +  disableRestartRecovery: boolean;
  }): () => void {
    let stopped = false;
    let stopRuntime: (() => void) | undefined;
-@@ -296,16 +303,20 @@ function startPendingSessionDeliveryRuntime(params: {
+@@ -309,19 +316,23 @@ function startPendingSessionDeliveryRuntime(params: {
          log: logRecovery,
          onSettled: settleQueuedSessionDelivery,
        });
@@ -92,6 +92,9 @@ index 948c8bef0a9..e5c3625ff95 100644
 -          deps: params.deps,
 -          log: logRecovery,
 -          maxEnqueuedAt: params.maxEnqueuedAt,
+-          ...(params.resolveGatewayContext
+-            ? { resolveGatewayContext: params.resolveGatewayContext }
+-            : {}),
 -        });
 -      } finally {
 -        // Recovery and scheduling are independent safeguards. A transient
@@ -105,6 +108,9 @@ index 948c8bef0a9..e5c3625ff95 100644
 +            deps: params.deps,
 +            log: logRecovery,
 +            maxEnqueuedAt: params.maxEnqueuedAt,
++            ...(params.resolveGatewayContext
++              ? { resolveGatewayContext: params.resolveGatewayContext }
++              : {}),
 +          });
 +        } finally {
 +          // Recovery and scheduling are independent safeguards. A transient
@@ -114,25 +120,25 @@ index 948c8bef0a9..e5c3625ff95 100644
        }
      }).catch((err: unknown) =>
        params.log.error(`Session delivery recovery failed: ${String(err)}`),
-@@ -331,6 +342,7 @@ export function activateGatewayScheduledServices(params: {
-   startCron?: boolean;
+@@ -348,6 +359,7 @@ export function activateGatewayScheduledServices(params: {
    logCron: { error: (message: string) => void };
    log: GatewayRuntimeServiceLogger;
+   resolveGatewayContext?: GatewayContextResolver;
 +  env?: NodeJS.ProcessEnv;
  }): { heartbeatRunner: HeartbeatRunner; stopOutboundDeliveryRecovery: () => Promise<void> } {
    if (params.minimalTestGateway) {
      // Minimal gateways keep handles callable but inert so tests can share shutdown paths with
-@@ -361,6 +373,9 @@ export function activateGatewayScheduledServices(params: {
-     deps: params.deps,
-     log: params.log,
-     maxEnqueuedAt: params.sessionDeliveryRecoveryMaxEnqueuedAt,
+@@ -405,6 +417,9 @@ export function activateGatewayScheduledServices(params: {
+     ...(params.resolveGatewayContext
+       ? { resolveGatewayContext: params.resolveGatewayContext }
+       : {}),
 +    disableRestartRecovery: isTruthyEnvValue(
 +      (params.env ?? process.env).OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY,
 +    ),
    });
    if (params.startCron !== false) {
      startGatewayCronWithLogging({
-@@ -374,6 +389,7 @@ export function activateGatewayScheduledServices(params: {
+@@ -418,6 +433,7 @@ export function activateGatewayScheduledServices(params: {
    const stopOutboundDeliveryRecovery = startPendingOutboundDeliveryRecovery({
      cfg: params.cfgAtStart,
      log: params.log,
@@ -141,22 +147,22 @@ index 948c8bef0a9..e5c3625ff95 100644
    const heartbeatRunnerWithUpstreamMonitor: HeartbeatRunner = {
      updateConfig: heartbeatRunner.updateConfig,
 diff --git a/src/gateway/server-startup-finish.ts b/src/gateway/server-startup-finish.ts
-index 20a6c410a81..2afd44872d7 100644
+index 6134bb7d95d..60c83f84044 100644
 --- a/src/gateway/server-startup-finish.ts
 +++ b/src/gateway/server-startup-finish.ts
-@@ -226,6 +226,7 @@ export async function finishGatewayStartup(params: {
-           startCron: false,
-           logCron,
-           log,
-+          env: process.env,
-         });
-         kernel.setScheduledServiceHandles(activated);
+@@ -215,6 +215,7 @@ export async function finishGatewayStartup(params: {
+         logCron,
+         log,
+         resolveGatewayContext: resolvePluginGatewayContext,
++        env: process.env,
        });
+       kernel.setScheduledServiceHandles(activated);
+     });
 diff --git a/src/gateway/server-startup-post-attach.test.ts b/src/gateway/server-startup-post-attach.test.ts
-index 406669cb911..396e6f72071 100644
+index 3ff0d50258a..a03bbd0e797 100644
 --- a/src/gateway/server-startup-post-attach.test.ts
 +++ b/src/gateway/server-startup-post-attach.test.ts
-@@ -529,6 +529,15 @@ describe("startGatewayPostAttachRuntime", () => {
+@@ -535,6 +535,15 @@ describe("startGatewayPostAttachRuntime", () => {
      await cleanupGatewayTestState();
    });
  
@@ -173,10 +179,10 @@ index 406669cb911..396e6f72071 100644
      const firstError = new Error("first cleanup failure");
      const stopOrder: string[] = [];
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 5df2e9a6b6f..46b859e0629 100644
+index cbeddb33870..70ee1b2ae39 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -54,8 +54,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
+@@ -61,8 +61,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
  const PROVIDER_AUTH_REWARM_DELAY_MS = 1_000;
  const DEFERRED_SIDECAR_START_DELAY_MS = 100;
  const SKIP_STARTUP_MODEL_PREWARM_ENV = "OPENCLAW_SKIP_STARTUP_MODEL_PREWARM";
@@ -190,7 +196,7 @@ index 5df2e9a6b6f..46b859e0629 100644
  const loadMainSessionRestartRecoveryModule = createLazyRuntimeModule(
    () => import("../agents/main-session-recovery/main-session-restart-recovery.js"),
  );
-@@ -632,6 +637,9 @@ export async function startGatewaySidecars(params: {
+@@ -656,6 +661,9 @@ export async function startGatewaySidecars(params: {
    // These runs were orphaned by the previous Gateway lifecycle. Record that fact
    // even if this process later fails model preparation and never starts channels.
    await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
@@ -200,7 +206,7 @@ index 5df2e9a6b6f..46b859e0629 100644
      try {
        const { markStartupOrphanedMainSessionsForRecovery } = await measureStartup(
          params.startupTrace,
-@@ -1461,16 +1469,22 @@ export async function startGatewayPostAttachRuntime(
+@@ -1526,17 +1534,23 @@ export async function startGatewayPostAttachRuntime(
              return await stopStartupSidecars(mainSessionRecoverySidecar);
            }
            try {
@@ -211,6 +217,7 @@ index 5df2e9a6b6f..46b859e0629 100644
 -                delayMs: 0,
 -                getConfig: params.getConfig,
 -                shouldContinue: () => params.isClosing?.() !== true,
+-                startupCheckedStorePaths: mainSessionRecoveryStartupCheckedStorePaths,
 -                waitForStart: params.waitForPostReadyWork,
 -                gatewayRuntime: params.recoveryRuntime,
 -              });
@@ -226,6 +233,7 @@ index 5df2e9a6b6f..46b859e0629 100644
 +                  delayMs: 0,
 +                  getConfig: params.getConfig,
 +                  shouldContinue: () => params.isClosing?.() !== true,
++                  startupCheckedStorePaths: mainSessionRecoveryStartupCheckedStorePaths,
 +                  waitForStart: params.waitForPostReadyWork,
 +                  gatewayRuntime: params.recoveryRuntime,
 +                });
@@ -233,7 +241,7 @@ index 5df2e9a6b6f..46b859e0629 100644
              }
            } catch (err) {
              params.log.warn(`main-session restart recovery failed to schedule: ${String(err)}`);
-@@ -1638,6 +1652,7 @@ export const testing = {
+@@ -1691,6 +1705,7 @@ export const testing = {
    publishConfiguredModelRuntimeSnapshots,
    publishStartupModelRuntime,
    refreshLatestUpdateRestartSentinelIfPresent,

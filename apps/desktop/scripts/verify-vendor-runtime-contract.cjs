@@ -23,7 +23,6 @@ const REQUIRED_PATHS = [
   "openclaw.mjs",
   "node-version.mjs",
   "package.json",
-  "src/agents/templates/HEARTBEAT.md",
   "docs/reference/templates/AGENTS.md",
   "docs/reference/templates/BOOT.md",
   "docs/reference/templates/BOOTSTRAP.md",

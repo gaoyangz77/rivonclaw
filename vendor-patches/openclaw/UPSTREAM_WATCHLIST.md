@@ -5,11 +5,12 @@ temporary downstream mitigations, and upgrade regressions that must be checked
 before choosing a new OpenClaw pin. It is not a changelog and does not replace
 `vendor-patches/openclaw/README.md`.
 
-Snapshot when this ledger was initialized:
+Current verified snapshot:
 
-- RivonClaw pin: `fa62fccb867f315bf4282cfc67066d5d878c598a`
-- OpenClaw `origin/main`: `90c951aabf9531d51c89d8a822040e5699275c30`
-- Checked: 2026-08-22
+- RivonClaw candidate pin: `ea806575e6450e4d1efdfc72c19f04be982a1b9b`
+  (`v2026.8.1`)
+- OpenClaw `origin/main`: `c6a2bcead19e08f706f1b3c6b820f440817117fa`
+- Checked: 2026-09-01
 
 ## Contents
 
@@ -60,6 +61,25 @@ Priorities:
 
 ## Active Operational Gaps
 
+### AGENT-DB-MIGRATION-001 - Schema 17 additive session repair
+
+- Priority/status: `P0 backported`
+- Symptom: `v2026.8.1` tries to validate canonical schema 17 indexes before
+  restoring the additive `session_conversations.route_context_json` column and
+  its invalidation trigger. Real pre-v2 databases therefore fail the 17-to-19
+  migration before Gateway can start.
+- Current mitigation: patch `0041` backports upstream PRs `#134208` and
+  `#134272`, commits `592253ffd1039d877a9ce2cacbde5702176ea297` and
+  `c893a1f8453191951bce75a8769fc5db8e775d68`. The final fix performs additive
+  repair and canonical-index validation inside the same migration transaction.
+- Snapshot result: both commits are ancestors of current `origin/main` but of
+  no stable release up to `v2026.8.1`, so the backport stays required at this
+  pin.
+- Exit condition: upgrade to a stable pin containing both commits, then run the
+  schema 17 product-path regression on pristine vendor. The test must restore
+  the missing column, trigger, and transcript index and finish at the current
+  agent schema without leaving partial writes after rejected drift.
+
 ### SESSION-SCALE-001 - SQL-native session catalog queries
 
 - Priority/status: `P0 waiting-upstream`
@@ -75,10 +95,21 @@ Priorities:
   calls must be pushed into indexed SQLite queries. Patch `0035` intentionally
   does not claim to solve that surface.
 - Upstream lead: proposal `257b8e0` is related but was not in `origin/main` at
-  the snapshot. Newer incremental candidates include `870f936851f`,
+  the v2026.8.1 verification snapshot and is still not an ancestor of current
+  `origin/main`; it exists only on `origin/steipete/session-list-pushdown`.
+  v2026.8.1 takes several lower-risk incremental paths, and post-release commit
+  `f9472ce9ca4` reduces listing-cache memory, but both the release and current
+  `origin/main` still load the complete session store before Gateway-side
+  filtering, ordering, and limiting. Newer incremental candidates include `870f936851f`,
   `0961247d943`, `17d1204b760`, `877ab6b0b2e`, `9d33b0b7275`,
   `3ae680f7143`, and `5248c2fac7c`; none may be treated as a complete replacement
   without the large-store benchmark.
+- v2026.8.1 benchmark: a synthetic 13,000-row, 417.7 MiB agent database took
+  about 395 ms for a cold exact read, 349 ms for the first exact read on a held
+  Gateway handle, 0.35 ms for the next exact read on that validated handle, and
+  1.34 s for a full list. This confirms that SQLite and patch `0035` make steady-
+  state exact dispatch cheap, while broad catalog reads remain roughly 3,865x
+  slower than a warm exact read and still justify SQL-native pushdown.
 - Exit test: with at least 13,000 sessions and roughly 550 MB of state, inspect
   SQL/query plans and measure startup, one exact-key dispatch, `sessions.list`
   pagination, idle CPU, memory, and event-loop delay. No operation may scan or
@@ -109,16 +140,18 @@ Priorities:
 
 ### MODEL-CATALOG-001 - Prepared catalog generation recovery
 
-- Priority/status: `P0 backported`
+- Priority/status: `P0 verified`
 - Symptom: deferred model discovery can reconstruct a different plugin/runtime
   generation, leave the configured owner poisoned, and make later Feishu or
   Chat runs fail before dispatch.
-- Current mitigation: patch `0038` backports OpenClaw PR `#126224`, issue
-  `#126108`, head `059bea02f804144e33e169f90267d365b4d6a490`.
-- Snapshot result: that head was not an ancestor of `origin/main`.
-- Exit condition: the pin contains the merged PR or equivalent owner
-  replacement plus concurrent-reader gating. Run the prepared-model catalog
-  integration and Desktop sentinel tests on pristine vendor.
+- Resolution: v2026.8.1 includes `3dd18ccc8cedbd1584847ca0e56e4c783243831c`
+  (PR `#130481`). Rather than recovering after a mismatch, the worker receives
+  and restores the exact Gateway plugin metadata generation, preventing the
+  invalid reconstruction in the first place.
+- Verification: the pristine metadata-scope integration matrix passes for
+  Gateway, activation, and workspace-free discovery, with both catalog-first
+  and auth-refresh-first ordering. Patch `0038` is retired; its replacement
+  sentinel guards the transferred-metadata contract.
 
 ### SESSION-COMPACTION-001 - Poisoned lifecycle after failed compaction
 
@@ -187,11 +220,11 @@ Priorities:
 
 - Priority/status: `P0 waiting-upstream`
 - Symptom: every cron execution on Windows fails immediately with `cron run
-  cannot acquire a durable fence without process start identity`. Scheduled
+cannot acquire a durable fence without process start identity`. Scheduled
   runs and manual run-now both fail because both enter through the same
   admission claim. macOS and Linux are unaffected.
 - Cause: the durable fence added in `d3308e2cfd9` (`fix(cron): fence executions
-  with durable receipts`, #122948) requires a non-null process start time, but
+with durable receipts`, #122948) requires a non-null process start time, but
   `src/shared/pid-alive.ts#getFileLockProcessStartTime` implements Linux procfs
   and macOS `ps` only and returns null on Windows. Upstream already ships
   `src/infra/windows-port-pids.ts#readWindowsProcessStartTimeSync`, and both
@@ -216,7 +249,7 @@ Priorities:
 
 ### MIDTURN-OVERFLOW-001 - Replay-unsafe turns must still auto-compact
 
-- Priority/status: `P0 waiting-upstream`
+- Priority/status: `P0 verified`
 - Symptom: a long-lived session that crosses the context budget mid-turn never
   auto-compacts and wedges permanently. Every reply fails with "Agent couldn't
   generate a response. Note: some tool actions may have already been
@@ -237,26 +270,20 @@ Priorities:
   failed turns freeze the session's usage facts while its message-only
   estimator sits below threshold, and the overflow recovery that would have
   compacted is fenced off.
-- Current mitigation: patch `0040` narrows the fence — only
-  `promptErrorSource === "precheck"` errors classifying as context overflow
-  pass through to overflow recovery, and a second fence directly after
-  overflow recovery keeps replay-unsafe attempts out of every replaying
-  recovery branch below, preserving the #122516 intent.
+- Resolution: v2026.8.1 includes `12e52a1c40e0` (PR `#128970`) and
+  `72450920f39d` (PR `#129792`). Recovery now requires settled tool evidence,
+  admits the current-transcript precheck overflow path, and keeps the
+  unconditional replay-safety fence after overflow recovery.
 - Related, unpatched: the preflight estimator scope mismatch (messages-only
   vs provider-anchored totals including system prompt + tool schemas) leaves
   a dead zone roughly `(budget − overhead, threshold)` where preflight never
-  compacts; with patch `0040` the overflow recovery now self-heals inside it,
+  compacts; with the v2026.8.1 recovery path the overflow now self-heals inside it,
   so the mismatch is a latent inefficiency rather than an outage. Revisit if
   upstream reworks `runPreflightCompactionIfNeeded` token sourcing.
-- Snapshot result: at the `fa62fccb867` pin, no upstream fix existed;
-  stable releases (up to v2026.7.1) predate the fence entirely.
-- Exit condition: the pin lets a replay-unsafe attempt with a
-  precheck-sourced context overflow reach overflow-recovery compaction.
-  Verify on pristine vendor by running the mid-turn precheck retry suite
-  (`run.shared-integration.test.ts -t "replay-unsafe mid-turn precheck
-  overflow"`): it must compact and finish without a surfaced error. Then
-  retire patch `0040` and
-  `apps/desktop/src/gateway/vendor-midturn-overflow-compaction.sentinel.test.ts`.
+- Verification: pristine `run.shared-integration.test.ts` covers settled
+  replay-unsafe tools and parked Code Mode work, then finishes without a
+  surfaced overflow. Patch `0040` is retired; the Desktop sentinel now guards
+  the upstream implementation rather than a patch file.
 
 ### QR-ACCOUNT-001 - New QR login must not stop existing accounts
 
@@ -283,34 +310,34 @@ These are lower-value upgrade drivers. A candidate should not be selected only
 to remove one of them, but an upgrade that already resolves a higher-priority
 entry should test whether they can also be retired.
 
-| ID | Priority/status | Current mitigation | Upstream exit condition |
-| --- | --- | --- | --- |
-| `TOOL-VISIBILITY-001` | `P1 waiting-upstream` | `0002` adds complete-surface `before_tool_resolve`; enforcement remains `before_tool_call`. | Stable per-session model-visible tool filtering hook. |
-| `PROMPT-RAW-001` | `P1 waiting-upstream` | `0003` adds fully caller-owned `promptMode: raw` for CS personas. | Upstream raw/custom prompt mode suppresses every default section. |
-| `REMOTE-MEDIA-001` | `P1 waiting-upstream` | `0014` routes blocked remote media through Desktop's authenticated cache. | Host-provided remote-media resolver hook. |
-| `FEISHU-RAW-CARD-001` | `P1 waiting-upstream` | `0028` permits trusted `operator.admin` Schema 2.0 `params.card` sends. | Official trusted raw-card send with no payload rewrite. |
-| `MEDIA-MODEL-001` | `P2 waiting-upstream` | `0015` removes unsafe free-form image/video model overrides. | Supported policy switch or safe validation against configured media models. |
-| `SESSION-CONTEXT-001` | `P2 waiting-upstream` | `0016` exposes per-session `contextTokens`. | Stable session settings API owns the field. |
-| `SESSION-CHECKPOINT-001` | `P2 waiting-upstream` | `0017` adds caller-owned checkpoint creation RPC. | Business-neutral checkpoint create/restore API. |
-| `SILENT-RUN-001` | `P2 waiting-upstream` | `0030` forwards per-run intentional silent completion through Agent RPC. | Equivalent upstream Agent RPC option. |
-| `RUNTIME-GUIDANCE-001` | `P3 waiting-upstream` | `0009` replaces CLI-only guidance. | Host-specific prompt section override. |
-| `RUNTIME-BRANDING-001` | `P3 waiting-upstream` | `0010` applies RivonClaw agent-facing branding. | Host branding or post-build prompt transform. |
+| ID                       | Priority/status       | Current mitigation                                                                          | Upstream exit condition                                                     |
+| ------------------------ | --------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `TOOL-VISIBILITY-001`    | `P1 waiting-upstream` | `0002` adds complete-surface `before_tool_resolve`; enforcement remains `before_tool_call`. | Stable per-session model-visible tool filtering hook.                       |
+| `PROMPT-RAW-001`         | `P1 waiting-upstream` | `0003` adds fully caller-owned `promptMode: raw` for CS personas.                           | Upstream raw/custom prompt mode suppresses every default section.           |
+| `REMOTE-MEDIA-001`       | `P1 waiting-upstream` | `0014` routes blocked remote media through Desktop's authenticated cache.                   | Host-provided remote-media resolver hook.                                   |
+| `FEISHU-RAW-CARD-001`    | `P1 waiting-upstream` | `0028` permits trusted `operator.admin` Schema 2.0 `params.card` sends.                     | Official trusted raw-card send with no payload rewrite.                     |
+| `MEDIA-MODEL-001`        | `P2 waiting-upstream` | `0015` removes unsafe free-form image/video model overrides.                                | Supported policy switch or safe validation against configured media models. |
+| `SESSION-CONTEXT-001`    | `P2 waiting-upstream` | `0016` exposes per-session `contextTokens`.                                                 | Stable session settings API owns the field.                                 |
+| `SESSION-CHECKPOINT-001` | `P2 waiting-upstream` | `0017` adds caller-owned checkpoint creation RPC.                                           | Business-neutral checkpoint create/restore API.                             |
+| `SILENT-RUN-001`         | `P2 waiting-upstream` | `0030` forwards per-run intentional silent completion through Agent RPC.                    | Equivalent upstream Agent RPC option.                                       |
+| `RUNTIME-GUIDANCE-001`   | `P3 waiting-upstream` | `0009` replaces CLI-only guidance.                                                          | Host-specific prompt section override.                                      |
+| `RUNTIME-BRANDING-001`   | `P3 waiting-upstream` | `0010` applies RivonClaw agent-facing branding.                                             | Host branding or post-build prompt transform.                               |
 
 ## Upgrade Regression Guardrails
 
 These are permanent checks learned from prior upgrades. They remain
 `guardrail` even after one release passes.
 
-| ID | Regression previously observed | Required fail-fast check |
-| --- | --- | --- |
-| `GUARD-TOOLS-001` | Core tool IDs changed (`cron` to `automations`) while RunProfiles and static catalogs stayed stale. | Regenerate exact tool catalog and create/list/delete an automation from Chat and Feishu. |
-| `GUARD-PLUGINS-001` | Official functionality moved to external plugins; customer machines lacked npm or a resolvable package. | Packaged runtime with empty `PATH` loads every configured official plugin, including Groq and Weixin, without spawning a package manager. |
-| `GUARD-STATE-001` | JSON-to-SQLite, device identity, workspace, and main-agent path changes left legacy state behind or blocked startup. | Test fresh plus interrupted legacy migration, 10k+ sessions, configured workspaces, memory, auth, and idempotent restart. |
-| `GUARD-RECIPIENTS-001` | Feishu account-scoped recipients disappeared until a new inbound message recreated them. | Existing recipients are visible immediately after upgrade and remain isolated by account. |
-| `GUARD-FEISHU-CS-001` | CS card callback behavior regressed to Gateway/Desktop handling or textual fallback receipts. | Callback goes directly to Backend; resolved updates the same card green exactly once while Desktop/Gateway is stopped. |
-| `GUARD-MODELS-001` | New model IDs lost context-window metadata or prepared catalog ownership, breaking compaction and dispatch. | Audit every production model, near-limit compaction, configured subsets, and deferred catalog recovery. |
-| `GUARD-PACKAGING-001` | Vendor pruning/cache changes inflated artifacts or removed native/runtime dependencies. | Compare artifact size and run the final pruned packaged Gateway with empty `PATH`, target `sqlite-vec`, and clean/cache-hit CI builds. |
-| `GUARD-CHANNELS-001` | Feishu, Weixin, or Telegram account/routing contracts changed despite source builds passing. | Real loader plus one direct round trip per enabled channel; Feishu additionally covers group, streaming, quote, and attachment delivery. |
+| ID                     | Regression previously observed                                                                                       | Required fail-fast check                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `GUARD-TOOLS-001`      | Core tool IDs changed (`cron` to `automations`) while RunProfiles and static catalogs stayed stale.                  | Regenerate exact tool catalog and create/list/delete an automation from Chat and Feishu.                                                  |
+| `GUARD-PLUGINS-001`    | Official functionality moved to external plugins; customer machines lacked npm or a resolvable package.              | Packaged runtime with empty `PATH` loads every configured official plugin, including Groq and Weixin, without spawning a package manager. |
+| `GUARD-STATE-001`      | JSON-to-SQLite, device identity, workspace, and main-agent path changes left legacy state behind or blocked startup. | Test fresh plus interrupted legacy migration, 10k+ sessions, configured workspaces, memory, auth, and idempotent restart.                 |
+| `GUARD-RECIPIENTS-001` | Feishu account-scoped recipients disappeared until a new inbound message recreated them.                             | Existing recipients are visible immediately after upgrade and remain isolated by account.                                                 |
+| `GUARD-FEISHU-CS-001`  | CS card callback behavior regressed to Gateway/Desktop handling or textual fallback receipts.                        | Callback goes directly to Backend; resolved updates the same card green exactly once while Desktop/Gateway is stopped.                    |
+| `GUARD-MODELS-001`     | New model IDs lost context-window metadata or prepared catalog ownership, breaking compaction and dispatch.          | Audit every production model, near-limit compaction, configured subsets, and deferred catalog recovery.                                   |
+| `GUARD-PACKAGING-001`  | Vendor pruning/cache changes inflated artifacts or removed native/runtime dependencies.                              | Compare artifact size and run the final pruned packaged Gateway with empty `PATH`, target `sqlite-vec`, and clean/cache-hit CI builds.    |
+| `GUARD-CHANNELS-001`   | Feishu, Weixin, or Telegram account/routing contracts changed despite source builds passing.                         | Real loader plus one direct round trip per enabled channel; Feishu additionally covers group, streaming, quote, and attachment delivery.  |
 
 ## Scheduled Check Output
 

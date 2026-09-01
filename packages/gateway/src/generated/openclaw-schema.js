@@ -7,8 +7,19 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __require = /* @__PURE__ */ ((x) =>
+  typeof require !== "undefined"
+    ? require
+    : typeof Proxy !== "undefined"
+      ? new Proxy(x, {
+          get: (a, b) => (typeof require !== "undefined" ? require : a)[b],
+        })
+      : x)(function (x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __commonJS = (cb, mod) =>
-  function __require() {
+  function __require2() {
     return (
       mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports
     );
@@ -155,8 +166,1560 @@ var require_ms = __commonJS({
   },
 });
 
+// vendor/openclaw/node_modules/lru-cache/dist/commonjs/node/index.min.js
+var require_index_min = __commonJS({
+  "vendor/openclaw/node_modules/lru-cache/dist/commonjs/node/index.min.js"(exports) {
+    "use strict";
+    var j = (u, t) => () => (t || u((t = { exports: {} }).exports, t), t.exports);
+    var I = j((O) => {
+      "use strict";
+      Object.defineProperty(O, "__esModule", { value: true });
+      O.tracing = O.metrics = void 0;
+      var U = __require("node:diagnostics_channel");
+      O.metrics = (0, U.channel)("lru-cache:metrics");
+      O.tracing = (0, U.tracingChannel)("lru-cache");
+    });
+    var P = j((R) => {
+      "use strict";
+      Object.defineProperty(R, "__esModule", { value: true });
+      R.defaultPerf = void 0;
+      R.defaultPerf =
+        typeof performance == "object" && performance && typeof performance.now == "function"
+          ? performance
+          : Date;
+    });
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.LRUCache = void 0;
+    var g = I();
+    var N = P();
+    var C = () => g.metrics.hasSubscribers || g.tracing.hasSubscribers;
+    var k = /* @__PURE__ */ new Set();
+    var G = typeof process == "object" && process ? process : {};
+    var V = (u, t, e, i) => {
+      typeof G.emitWarning == "function"
+        ? G.emitWarning(u, t, e, i)
+        : console.error(`[${e}] ${t}: ${u}`);
+    };
+    var q = (u) => !k.has(u);
+    var T = (u) => !!u && u === Math.floor(u) && u > 0 && isFinite(u);
+    var H = (u) =>
+      T(u)
+        ? u <= Math.pow(2, 8)
+          ? Uint8Array
+          : u <= Math.pow(2, 16)
+            ? Uint16Array
+            : u <= Math.pow(2, 32)
+              ? Uint32Array
+              : u <= Number.MAX_SAFE_INTEGER
+                ? W
+                : null
+        : null;
+    var W = class extends Array {
+      constructor(t) {
+        (super(t), this.fill(0));
+      }
+    };
+    var L = class u {
+      heap;
+      length;
+      static #o = false;
+      static create(t) {
+        let e = H(t);
+        if (!e) return [];
+        u.#o = true;
+        let i = new u(t, e);
+        return ((u.#o = false), i);
+      }
+      constructor(t, e) {
+        if (!u.#o) throw new TypeError("instantiate Stack using Stack.create(n)");
+        ((this.heap = new e(t)), (this.length = 0));
+      }
+      push(t) {
+        this.heap[this.length++] = t;
+      }
+      pop() {
+        return this.heap[--this.length];
+      }
+    };
+    var M = class u {
+      #o;
+      #c;
+      #m;
+      #W;
+      #S;
+      #x;
+      #j;
+      #w;
+      get perf() {
+        return this.#w;
+      }
+      ttl;
+      ttlResolution;
+      ttlAutopurge;
+      updateAgeOnGet;
+      updateAgeOnHas;
+      allowStale;
+      noDisposeOnSet;
+      noUpdateTTL;
+      maxEntrySize;
+      sizeCalculation;
+      noDeleteOnFetchRejection;
+      noDeleteOnStaleGet;
+      allowStaleOnFetchAbort;
+      allowStaleOnFetchRejection;
+      ignoreFetchAbort;
+      backgroundFetchSize;
+      #n;
+      #b;
+      #s;
+      #i;
+      #t;
+      #l;
+      #u;
+      #a;
+      #h;
+      #_;
+      #r;
+      #y;
+      #F;
+      #d;
+      #g;
+      #T;
+      #U;
+      #f;
+      #R;
+      static unsafeExposeInternals(t) {
+        return {
+          starts: t.#F,
+          ttls: t.#d,
+          autopurgeTimers: t.#g,
+          sizes: t.#y,
+          keyMap: t.#s,
+          keyList: t.#i,
+          valList: t.#t,
+          next: t.#l,
+          prev: t.#u,
+          get head() {
+            return t.#a;
+          },
+          get tail() {
+            return t.#h;
+          },
+          free: t.#_,
+          isBackgroundFetch: (e) => t.#e(e),
+          backgroundFetch: (e, i, s, n) => t.#G(e, i, s, n),
+          moveToTail: (e) => t.#M(e),
+          indexes: (e) => t.#A(e),
+          rindexes: (e) => t.#z(e),
+          isStale: (e) => t.#p(e),
+        };
+      }
+      get max() {
+        return this.#o;
+      }
+      get maxSize() {
+        return this.#c;
+      }
+      get calculatedSize() {
+        return this.#b;
+      }
+      get size() {
+        return this.#n;
+      }
+      get fetchMethod() {
+        return this.#x;
+      }
+      get memoMethod() {
+        return this.#j;
+      }
+      get dispose() {
+        return this.#m;
+      }
+      get onInsert() {
+        return this.#W;
+      }
+      get disposeAfter() {
+        return this.#S;
+      }
+      constructor(t) {
+        let {
+          max: e = 0,
+          ttl: i,
+          ttlResolution: s = 1,
+          ttlAutopurge: n,
+          updateAgeOnGet: o,
+          updateAgeOnHas: l,
+          allowStale: h,
+          dispose: r,
+          onInsert: c,
+          disposeAfter: w,
+          noDisposeOnSet: y,
+          noUpdateTTL: d,
+          maxSize: p = 0,
+          maxEntrySize: f = 0,
+          sizeCalculation: _,
+          fetchMethod: a,
+          memoMethod: S,
+          noDeleteOnFetchRejection: F,
+          noDeleteOnStaleGet: b,
+          allowStaleOnFetchRejection: m,
+          allowStaleOnFetchAbort: A,
+          ignoreFetchAbort: z23,
+          backgroundFetchSize: x = 1,
+          perf: v,
+        } = t;
+        if (((this.backgroundFetchSize = x), v !== void 0 && typeof v?.now != "function"))
+          throw new TypeError("perf option must have a now() method if specified");
+        if (((this.#w = v ?? N.defaultPerf), e !== 0 && !T(e)))
+          throw new TypeError("max option must be a nonnegative integer");
+        let E = e ? H(e) : Array;
+        if (!E) throw new Error("invalid max value: " + e);
+        if (
+          ((this.#o = e),
+          (this.#c = p),
+          (this.maxEntrySize = f || this.#c),
+          (this.sizeCalculation = _),
+          this.sizeCalculation)
+        ) {
+          if (!this.#c && !this.maxEntrySize)
+            throw new TypeError(
+              "cannot set sizeCalculation without setting maxSize or maxEntrySize",
+            );
+          if (typeof this.sizeCalculation != "function")
+            throw new TypeError("sizeCalculation set to non-function");
+        }
+        if (S !== void 0 && typeof S != "function")
+          throw new TypeError("memoMethod must be a function if defined");
+        if (((this.#j = S), a !== void 0 && typeof a != "function"))
+          throw new TypeError("fetchMethod must be a function if specified");
+        if (
+          ((this.#x = a),
+          (this.#U = !!a),
+          (this.#s = /* @__PURE__ */ new Map()),
+          (this.#i = Array.from({ length: e }).fill(void 0)),
+          (this.#t = Array.from({ length: e }).fill(void 0)),
+          (this.#l = new E(e)),
+          (this.#u = new E(e)),
+          (this.#a = 0),
+          (this.#h = 0),
+          (this.#_ = L.create(e)),
+          (this.#n = 0),
+          (this.#b = 0),
+          typeof r == "function" && (this.#m = r),
+          typeof c == "function" && (this.#W = c),
+          typeof w == "function"
+            ? ((this.#S = w), (this.#r = []))
+            : ((this.#S = void 0), (this.#r = void 0)),
+          (this.#T = !!this.#m),
+          (this.#R = !!this.#W),
+          (this.#f = !!this.#S),
+          (this.noDisposeOnSet = !!y),
+          (this.noUpdateTTL = !!d),
+          (this.noDeleteOnFetchRejection = !!F),
+          (this.allowStaleOnFetchRejection = !!m),
+          (this.allowStaleOnFetchAbort = !!A),
+          (this.ignoreFetchAbort = !!z23),
+          this.maxEntrySize !== 0)
+        ) {
+          if (this.#c !== 0 && !T(this.#c))
+            throw new TypeError("maxSize must be a positive integer if specified");
+          if (!T(this.maxEntrySize))
+            throw new TypeError("maxEntrySize must be a positive integer if specified");
+          this.#X();
+        }
+        if (
+          ((this.allowStale = !!h),
+          (this.noDeleteOnStaleGet = !!b),
+          (this.updateAgeOnGet = !!o),
+          (this.updateAgeOnHas = !!l),
+          (this.ttlResolution = T(s) || s === 0 ? s : 1),
+          (this.ttlAutopurge = !!n),
+          (this.ttl = i || 0),
+          this.ttl)
+        ) {
+          if (!T(this.ttl)) throw new TypeError("ttl must be a positive integer if specified");
+          this.#k();
+        }
+        if (this.#o === 0 && this.ttl === 0 && this.#c === 0)
+          throw new TypeError("At least one of max, maxSize, or ttl is required");
+        if (!this.ttlAutopurge && !this.#o && !this.#c) {
+          let D = "LRU_CACHE_UNBOUNDED";
+          q(D) &&
+            (k.add(D),
+            V(
+              "TTL caching without ttlAutopurge, max, or maxSize can result in unbounded memory consumption.",
+              "UnboundedCacheWarning",
+              D,
+              u,
+            ));
+        }
+      }
+      getRemainingTTL(t) {
+        return this.#s.has(t) ? 1 / 0 : 0;
+      }
+      #k() {
+        let t = new W(this.#o),
+          e = new W(this.#o);
+        ((this.#d = t), (this.#F = e));
+        let i = this.ttlAutopurge ? Array.from({ length: this.#o }) : void 0;
+        ((this.#g = i),
+          (this.#H = (h, r, c = this.#w.now()) => {
+            ((e[h] = r !== 0 ? c : 0), (t[h] = r), s(h, r));
+          }),
+          (this.#D = (h) => {
+            ((e[h] = t[h] !== 0 ? this.#w.now() : 0), s(h, t[h]));
+          }));
+        let s = this.ttlAutopurge
+          ? (h, r) => {
+              if ((i?.[h] && (clearTimeout(i[h]), (i[h] = void 0)), r && r !== 0 && i)) {
+                let c = setTimeout(() => {
+                  this.#p(h) ? (this.#v(this.#i[h], "expire"), (i[h] = void 0)) : s(h, l(h));
+                }, r + 1);
+                (c.unref && c.unref(), (i[h] = c));
+              }
+            }
+          : () => {};
+        this.#E = (h, r) => {
+          if (t[r]) {
+            let c = t[r],
+              w = e[r];
+            if (!c || !w) return;
+            ((h.ttl = c), (h.start = w), (h.now = n || o()));
+            let y = h.now - w;
+            h.remainingTTL = c - y;
+          }
+        };
+        let n = 0,
+          o = () => {
+            let h = this.#w.now();
+            if (this.ttlResolution > 0) {
+              n = h;
+              let r = setTimeout(() => (n = 0), this.ttlResolution);
+              r.unref && r.unref();
+            }
+            return h;
+          };
+        this.getRemainingTTL = (h) => {
+          let r = this.#s.get(h);
+          return r === void 0 ? 0 : l(r);
+        };
+        let l = (h) => {
+          let r = t[h],
+            c = e[h];
+          if (!r || !c) return 1 / 0;
+          let w = (n || o()) - c;
+          return r - w;
+        };
+        this.#p = (h) => {
+          let r = e[h],
+            c = t[h];
+          return !!c && !!r && (n || o()) - r > c;
+        };
+      }
+      #D = () => {};
+      #E = () => {};
+      #H = () => {};
+      #p = () => false;
+      #X() {
+        let t = new W(this.#o);
+        ((this.#b = 0),
+          (this.#y = t),
+          (this.#C = (e) => {
+            ((this.#b -= t[e]), (t[e] = 0));
+          }),
+          (this.#N = (e, i, s, n) => {
+            if (!T(s)) {
+              if (this.#e(i)) return this.backgroundFetchSize;
+              if (n) {
+                if (typeof n != "function")
+                  throw new TypeError("sizeCalculation must be a function");
+                if (((s = n(i, e)), !T(s)))
+                  throw new TypeError("sizeCalculation return invalid (expect positive integer)");
+              } else
+                throw new TypeError(
+                  "invalid size value (must be positive integer). When maxSize or maxEntrySize is used, sizeCalculation or size must be set.",
+                );
+            }
+            return s;
+          }),
+          (this.#I = (e, i, s) => {
+            if (((t[e] = i), this.#c)) {
+              let n = this.#c - t[e];
+              for (; this.#b > n; ) this.#P(true);
+            }
+            ((this.#b += t[e]), s && ((s.entrySize = i), (s.totalCalculatedSize = this.#b)));
+          }));
+      }
+      #C = (t) => {};
+      #I = (t, e, i) => {};
+      #N = (t, e, i, s) => {
+        if (i || s)
+          throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
+        return 0;
+      };
+      *#A({ allowStale: t = this.allowStale } = {}) {
+        if (this.#n)
+          for (let e = this.#h; this.#V(e) && ((t || !this.#p(e)) && (yield e), e !== this.#a); )
+            e = this.#u[e];
+      }
+      *#z({ allowStale: t = this.allowStale } = {}) {
+        if (this.#n)
+          for (let e = this.#a; this.#V(e) && ((t || !this.#p(e)) && (yield e), e !== this.#h); )
+            e = this.#l[e];
+      }
+      #V(t) {
+        return t !== void 0 && this.#s.get(this.#i[t]) === t;
+      }
+      *entries() {
+        for (let t of this.#A())
+          this.#t[t] !== void 0 &&
+            this.#i[t] !== void 0 &&
+            !this.#e(this.#t[t]) &&
+            (yield [this.#i[t], this.#t[t]]);
+      }
+      *rentries() {
+        for (let t of this.#z())
+          this.#t[t] !== void 0 &&
+            this.#i[t] !== void 0 &&
+            !this.#e(this.#t[t]) &&
+            (yield [this.#i[t], this.#t[t]]);
+      }
+      *keys() {
+        for (let t of this.#A()) {
+          let e = this.#i[t];
+          e !== void 0 && !this.#e(this.#t[t]) && (yield e);
+        }
+      }
+      *rkeys() {
+        for (let t of this.#z()) {
+          let e = this.#i[t];
+          e !== void 0 && !this.#e(this.#t[t]) && (yield e);
+        }
+      }
+      *values() {
+        for (let t of this.#A())
+          this.#t[t] !== void 0 && !this.#e(this.#t[t]) && (yield this.#t[t]);
+      }
+      *rvalues() {
+        for (let t of this.#z())
+          this.#t[t] !== void 0 && !this.#e(this.#t[t]) && (yield this.#t[t]);
+      }
+      [Symbol.iterator]() {
+        return this.entries();
+      }
+      [Symbol.toStringTag] = "LRUCache";
+      find(t, e = {}) {
+        for (let i of this.#A()) {
+          let s = this.#t[i],
+            n = this.#e(s) ? s.__staleWhileFetching : s;
+          if (n !== void 0 && t(n, this.#i[i], this)) return this.#L(this.#i[i], e);
+        }
+      }
+      forEach(t, e = this) {
+        for (let i of this.#A()) {
+          let s = this.#t[i],
+            n = this.#e(s) ? s.__staleWhileFetching : s;
+          n !== void 0 && t.call(e, n, this.#i[i], this);
+        }
+      }
+      rforEach(t, e = this) {
+        for (let i of this.#z()) {
+          let s = this.#t[i],
+            n = this.#e(s) ? s.__staleWhileFetching : s;
+          n !== void 0 && t.call(e, n, this.#i[i], this);
+        }
+      }
+      purgeStale() {
+        let t = false;
+        for (let e of this.#z({ allowStale: true }))
+          this.#p(e) && (this.#v(this.#i[e], "expire"), (t = true));
+        return t;
+      }
+      info(t) {
+        let e = this.#s.get(t);
+        if (e === void 0) return;
+        let i = this.#t[e],
+          s = this.#e(i) ? i.__staleWhileFetching : i;
+        if (s === void 0) return;
+        let n = { value: s };
+        if (this.#d && this.#F) {
+          let o = this.#d[e],
+            l = this.#F[e];
+          if (o && l) {
+            let h = o - (this.#w.now() - l);
+            ((n.ttl = h), (n.start = Date.now()));
+          }
+        }
+        return (this.#y && (n.size = this.#y[e]), n);
+      }
+      dump() {
+        let t = [];
+        for (let e of this.#A({ allowStale: true })) {
+          let i = this.#i[e],
+            s = this.#t[e],
+            n = this.#e(s) ? s.__staleWhileFetching : s;
+          if (n === void 0 || i === void 0) continue;
+          let o = { value: n };
+          if (this.#d && this.#F) {
+            o.ttl = this.#d[e];
+            let l = this.#w.now() - this.#F[e];
+            o.start = Math.floor(Date.now() - l);
+          }
+          (this.#y && (o.size = this.#y[e]), t.unshift([i, o]));
+        }
+        return t;
+      }
+      load(t) {
+        this.clear();
+        for (let [e, i] of t) {
+          if (i.start) {
+            let s = Date.now() - i.start;
+            i.start = this.#w.now() - s;
+          }
+          this.#O(e, i.value, i);
+        }
+      }
+      set(t, e, i = {}) {
+        let { status: s = g.metrics.hasSubscribers ? {} : void 0 } = i;
+        ((i.status = s),
+          s && ((s.op = "set"), (s.key = t), e !== void 0 && (s.value = e), (s.cache = this)));
+        let n = this.#O(t, e, i);
+        return (s && g.metrics.hasSubscribers && g.metrics.publish(s), n);
+      }
+      #O(t, e, i, s) {
+        let {
+            ttl: n = this.ttl,
+            start: o,
+            noDisposeOnSet: l = this.noDisposeOnSet,
+            sizeCalculation: h = this.sizeCalculation,
+            status: r,
+          } = i,
+          c = this.#e(e);
+        if (e === void 0) return (r && (r.set = "deleted"), this.delete(t), this);
+        let { noUpdateTTL: w = this.noUpdateTTL } = i;
+        r && !c && (r.value = e);
+        let y = this.#N(t, e, i.size || 0, h, r);
+        if (this.maxEntrySize && y > this.maxEntrySize)
+          return (
+            this.#v(t, "set"), r && ((r.set = "miss"), (r.maxEntrySizeExceeded = true)), this
+          );
+        let d = this.#n === 0 ? void 0 : this.#s.get(t);
+        if (d === void 0)
+          ((d =
+            this.#n === 0
+              ? this.#h
+              : this.#_.length !== 0
+                ? this.#_.pop()
+                : this.#n === this.#o
+                  ? this.#P(false)
+                  : this.#n),
+            (this.#i[d] = t),
+            (this.#t[d] = e),
+            this.#s.set(t, d),
+            (this.#l[this.#h] = d),
+            (this.#u[d] = this.#h),
+            (this.#h = d),
+            this.#n++,
+            this.#I(d, y, r),
+            r && (r.set = "add"),
+            (w = false),
+            this.#R && !c && this.#W?.(e, t, "add"));
+        else {
+          this.#M(d);
+          let p = this.#t[d];
+          if (e !== p) {
+            if (!l)
+              if (this.#e(p)) {
+                p !== s && p.__abortController.abort(new Error("replaced"));
+                let { __staleWhileFetching: f } = p;
+                f !== void 0 &&
+                  f !== e &&
+                  (this.#T && this.#m?.(f, t, "set"), this.#f && this.#r?.push([f, t, "set"]));
+              } else (this.#T && this.#m?.(p, t, "set"), this.#f && this.#r?.push([p, t, "set"]));
+            if ((this.#C(d), this.#I(d, y, r), (this.#t[d] = e), !c)) {
+              let f = p && this.#e(p) ? p.__staleWhileFetching : p,
+                _ = f === void 0 ? "add" : e !== f ? "replace" : "update";
+              (r && ((r.set = _), f !== void 0 && (r.oldValue = f)),
+                this.#R && this.onInsert?.(e, t, _));
+            }
+          } else c || (r && (r.set = "update"), this.#R && this.onInsert?.(e, t, "update"));
+        }
+        if (
+          (n !== 0 && !this.#d && this.#k(),
+          this.#d && (w || this.#H(d, n, o), r && this.#E(r, d)),
+          !l && this.#f && this.#r)
+        ) {
+          let p = this.#r,
+            f;
+          for (; (f = p?.shift()); ) this.#S?.(...f);
+        }
+        return this;
+      }
+      pop() {
+        try {
+          for (; this.#n; ) {
+            let t = this.#t[this.#a];
+            if ((this.#P(true), this.#e(t))) {
+              if (t.__staleWhileFetching) return t.__staleWhileFetching;
+            } else if (t !== void 0) return t;
+          }
+        } finally {
+          if (this.#f && this.#r) {
+            let t = this.#r,
+              e;
+            for (; (e = t?.shift()); ) this.#S?.(...e);
+          }
+        }
+      }
+      #P(t) {
+        let e = this.#a,
+          i = this.#i[e],
+          s = this.#t[e],
+          n = this.#e(s);
+        n && s.__abortController.abort(new Error("evicted"));
+        let o = n ? s.__staleWhileFetching : s;
+        return (
+          (this.#T || this.#f) &&
+            o !== void 0 &&
+            (this.#T && this.#m?.(o, i, "evict"), this.#f && this.#r?.push([o, i, "evict"])),
+          this.#C(e),
+          this.#g?.[e] && (clearTimeout(this.#g[e]), (this.#g[e] = void 0)),
+          t && ((this.#i[e] = void 0), (this.#t[e] = void 0), this.#_.push(e)),
+          this.#n === 1 ? ((this.#a = this.#h = 0), (this.#_.length = 0)) : (this.#a = this.#l[e]),
+          this.#s.delete(i),
+          this.#n--,
+          e
+        );
+      }
+      has(t, e = {}) {
+        let { status: i = g.metrics.hasSubscribers ? {} : void 0 } = e;
+        ((e.status = i), i && ((i.op = "has"), (i.key = t), (i.cache = this)));
+        let s = this.#Y(t, e);
+        return (g.metrics.hasSubscribers && g.metrics.publish(i), s);
+      }
+      #Y(t, e = {}) {
+        let { updateAgeOnHas: i = this.updateAgeOnHas, status: s } = e,
+          n = this.#s.get(t);
+        if (n !== void 0) {
+          let o = this.#t[n];
+          if (this.#e(o) && o.__staleWhileFetching === void 0) return false;
+          if (this.#p(n)) s && ((s.has = "stale"), this.#E(s, n));
+          else return (i && this.#D(n), s && ((s.has = "hit"), this.#E(s, n)), true);
+        } else s && (s.has = "miss");
+        return false;
+      }
+      peek(t, e = {}) {
+        let { status: i = C() ? {} : void 0 } = e;
+        (i && ((i.op = "peek"), (i.key = t), (i.cache = this)), (e.status = i));
+        let s = this.#J(t, e);
+        return (g.metrics.hasSubscribers && g.metrics.publish(i), s);
+      }
+      #J(t, e) {
+        let { status: i, allowStale: s = this.allowStale } = e,
+          n = this.#s.get(t);
+        if (n === void 0 || (!s && this.#p(n))) {
+          i && (i.peek = n === void 0 ? "miss" : "stale");
+          return;
+        }
+        let o = this.#t[n],
+          l = this.#e(o) ? o.__staleWhileFetching : o;
+        return (i && (l !== void 0 ? ((i.peek = "hit"), (i.value = l)) : (i.peek = "miss")), l);
+      }
+      #G(t, e, i, s) {
+        let n = e === void 0 ? void 0 : this.#t[e];
+        if (this.#e(n)) return n;
+        let o = new AbortController(),
+          { signal: l } = i;
+        l?.addEventListener("abort", () => o.abort(l.reason), { signal: o.signal });
+        let h = { signal: o.signal, options: i, context: s },
+          r = (f, _ = false) => {
+            let { aborted: a } = o.signal,
+              S = i.ignoreFetchAbort && f !== void 0,
+              F = i.ignoreFetchAbort || !!(i.allowStaleOnFetchAbort && f !== void 0);
+            if (
+              (i.status &&
+                (a && !_
+                  ? ((i.status.fetchAborted = true),
+                    (i.status.fetchError = o.signal.reason),
+                    S && (i.status.fetchAbortIgnored = true))
+                  : (i.status.fetchResolved = true)),
+              a && !S && !_)
+            )
+              return w(o.signal.reason, F);
+            let b = d,
+              m = this.#t[e];
+            return (
+              (m === d || (m === void 0 && S && _)) &&
+                (f === void 0
+                  ? b.__staleWhileFetching !== void 0
+                    ? (this.#t[e] = b.__staleWhileFetching)
+                    : this.#v(t, "fetch")
+                  : (i.status && (i.status.fetchUpdated = true), this.#O(t, f, h.options, b))),
+              f
+            );
+          },
+          c = (f) => (
+            i.status && ((i.status.fetchRejected = true), (i.status.fetchError = f)), w(f, false)
+          ),
+          w = (f, _) => {
+            let { aborted: a } = o.signal,
+              S = a && i.allowStaleOnFetchAbort,
+              F = S || i.allowStaleOnFetchRejection,
+              b = F || i.noDeleteOnFetchRejection,
+              m = d;
+            if (
+              (this.#t[e] === d &&
+                (!b || (!_ && m.__staleWhileFetching === void 0)
+                  ? this.#v(t, "fetch")
+                  : S || (this.#t[e] = m.__staleWhileFetching)),
+              F)
+            )
+              return (
+                i.status && m.__staleWhileFetching !== void 0 && (i.status.returnedStale = true),
+                m.__staleWhileFetching
+              );
+            if (m.__returned === m) throw f;
+          },
+          y = (f, _) => {
+            let a = this.#x?.(t, n, h);
+            (o.signal.addEventListener("abort", () => {
+              (!i.ignoreFetchAbort || i.allowStaleOnFetchAbort) &&
+                (f(void 0), i.allowStaleOnFetchAbort && (f = (S) => r(S, true)));
+            }),
+              a && a instanceof Promise
+                ? a.then((S) => f(S === void 0 ? void 0 : S), _)
+                : a !== void 0 && f(a));
+          };
+        i.status && (i.status.fetchDispatched = true);
+        let d = new Promise(y).then(r, c),
+          p = Object.assign(d, {
+            __abortController: o,
+            __staleWhileFetching: n,
+            __returned: void 0,
+          });
+        return (
+          e === void 0
+            ? (this.#O(t, p, { ...h.options, status: void 0 }), (e = this.#s.get(t)))
+            : (this.#t[e] = p),
+          p
+        );
+      }
+      #e(t) {
+        if (!this.#U) return false;
+        let e = t;
+        return (
+          !!e &&
+          e instanceof Promise &&
+          e.hasOwnProperty("__staleWhileFetching") &&
+          e.__abortController instanceof AbortController
+        );
+      }
+      fetch(t, e = {}) {
+        let i = g.tracing.hasSubscribers,
+          { status: s = C() ? {} : void 0 } = e;
+        ((e.status = s), s && e.context && (s.context = e.context));
+        let n = this.#q(t, e);
+        return (
+          s && i && ((s.trace = true), g.tracing.tracePromise(() => n, s).catch(() => {})), n
+        );
+      }
+      async #q(t, e = {}) {
+        let {
+          allowStale: i = this.allowStale,
+          updateAgeOnGet: s = this.updateAgeOnGet,
+          noDeleteOnStaleGet: n = this.noDeleteOnStaleGet,
+          ttl: o = this.ttl,
+          noDisposeOnSet: l = this.noDisposeOnSet,
+          size: h = 0,
+          sizeCalculation: r = this.sizeCalculation,
+          noUpdateTTL: c = this.noUpdateTTL,
+          noDeleteOnFetchRejection: w = this.noDeleteOnFetchRejection,
+          allowStaleOnFetchRejection: y = this.allowStaleOnFetchRejection,
+          ignoreFetchAbort: d = this.ignoreFetchAbort,
+          allowStaleOnFetchAbort: p = this.allowStaleOnFetchAbort,
+          context: f,
+          forceRefresh: _ = false,
+          status: a,
+          signal: S,
+        } = e;
+        if (
+          (a && ((a.op = "fetch"), (a.key = t), _ && (a.forceRefresh = true), (a.cache = this)),
+          !this.#U)
+        )
+          return (
+            a && (a.fetch = "get"),
+            this.#L(t, { allowStale: i, updateAgeOnGet: s, noDeleteOnStaleGet: n, status: a })
+          );
+        let F = {
+            allowStale: i,
+            updateAgeOnGet: s,
+            noDeleteOnStaleGet: n,
+            ttl: o,
+            noDisposeOnSet: l,
+            size: h,
+            sizeCalculation: r,
+            noUpdateTTL: c,
+            noDeleteOnFetchRejection: w,
+            allowStaleOnFetchRejection: y,
+            allowStaleOnFetchAbort: p,
+            ignoreFetchAbort: d,
+            status: a,
+            signal: S,
+          },
+          b = this.#s.get(t);
+        if (b === void 0) {
+          a && (a.fetch = "miss");
+          let m = this.#G(t, b, F, f);
+          return (m.__returned = m);
+        } else {
+          let m = this.#t[b];
+          if (this.#e(m)) {
+            let E = i && m.__staleWhileFetching !== void 0;
+            return (
+              a && ((a.fetch = "inflight"), E && (a.returnedStale = true)),
+              E ? m.__staleWhileFetching : (m.__returned = m)
+            );
+          }
+          let A = this.#p(b);
+          if (!_ && !A)
+            return (a && (a.fetch = "hit"), this.#M(b), s && this.#D(b), a && this.#E(a, b), m);
+          let z23 = this.#G(t, b, F, f),
+            v = z23.__staleWhileFetching !== void 0 && i;
+          return (
+            a && ((a.fetch = A ? "stale" : "refresh"), v && A && (a.returnedStale = true)),
+            v ? z23.__staleWhileFetching : (z23.__returned = z23)
+          );
+        }
+      }
+      forceFetch(t, e = {}) {
+        let i = g.tracing.hasSubscribers,
+          { status: s = C() ? {} : void 0 } = e;
+        ((e.status = s), s && e.context && (s.context = e.context));
+        let n = this.#K(t, e);
+        return (
+          s && i && ((s.trace = true), g.tracing.tracePromise(() => n, s).catch(() => {})), n
+        );
+      }
+      async #K(t, e = {}) {
+        let i = await this.#q(t, e);
+        if (i === void 0) throw new Error("fetch() returned undefined");
+        return i;
+      }
+      memo(t, e = {}) {
+        let { status: i = g.metrics.hasSubscribers ? {} : void 0 } = e;
+        ((e.status = i),
+          i &&
+            ((i.op = "memo"), (i.key = t), e.context && (i.context = e.context), (i.cache = this)));
+        let s = this.#Q(t, e);
+        return (i && (i.value = s), g.metrics.hasSubscribers && g.metrics.publish(i), s);
+      }
+      #Q(t, e = {}) {
+        let i = this.#j;
+        if (!i) throw new Error("no memoMethod provided to constructor");
+        let { context: s, status: n, forceRefresh: o, ...l } = e;
+        n && o && (n.forceRefresh = true);
+        let h = this.#L(t, l),
+          r = o || h === void 0;
+        if ((n && ((n.memo = r ? "miss" : "hit"), r || (n.value = h)), !r)) return h;
+        let c = i(t, h, { options: l, context: s });
+        return (n && (n.value = c), this.#O(t, c, l), c);
+      }
+      get(t, e = {}) {
+        let { status: i = g.metrics.hasSubscribers ? {} : void 0 } = e;
+        ((e.status = i), i && ((i.op = "get"), (i.key = t), (i.cache = this)));
+        let s = this.#L(t, e);
+        return (
+          i && (s !== void 0 && (i.value = s), g.metrics.hasSubscribers && g.metrics.publish(i)), s
+        );
+      }
+      #L(t, e = {}) {
+        let {
+            allowStale: i = this.allowStale,
+            updateAgeOnGet: s = this.updateAgeOnGet,
+            noDeleteOnStaleGet: n = this.noDeleteOnStaleGet,
+            status: o,
+          } = e,
+          l = this.#s.get(t);
+        if (l === void 0) {
+          o && (o.get = "miss");
+          return;
+        }
+        let h = this.#t[l],
+          r = this.#e(h);
+        return (
+          o && this.#E(o, l),
+          this.#p(l)
+            ? r
+              ? (o && (o.get = "stale-fetching"),
+                i && h.__staleWhileFetching !== void 0
+                  ? (o && (o.returnedStale = true), h.__staleWhileFetching)
+                  : void 0)
+              : (n || this.#v(t, "expire"),
+                o && (o.get = "stale"),
+                i ? (o && (o.returnedStale = true), h) : void 0)
+            : (o && (o.get = r ? "fetching" : "hit"),
+              this.#M(l),
+              s && this.#D(l),
+              r ? h.__staleWhileFetching : h)
+        );
+      }
+      #B(t, e) {
+        ((this.#u[e] = t), (this.#l[t] = e));
+      }
+      #M(t) {
+        t !== this.#h &&
+          (t === this.#a ? (this.#a = this.#l[t]) : this.#B(this.#u[t], this.#l[t]),
+          this.#B(this.#h, t),
+          (this.#h = t));
+      }
+      delete(t) {
+        return this.#v(t, "delete");
+      }
+      #v(t, e) {
+        g.metrics.hasSubscribers &&
+          g.metrics.publish({ op: "delete", delete: e, key: t, cache: this });
+        let i = false;
+        if (this.#n !== 0) {
+          let s = this.#s.get(t);
+          if (s !== void 0)
+            if (
+              (this.#g?.[s] && (clearTimeout(this.#g[s]), (this.#g[s] = void 0)),
+              (i = true),
+              this.#n === 1)
+            )
+              this.#$(e);
+            else {
+              this.#C(s);
+              let n = this.#t[s];
+              if (
+                (this.#e(n)
+                  ? n.__abortController.abort(new Error("deleted"))
+                  : (this.#T || this.#f) &&
+                    (this.#T && this.#m?.(n, t, e), this.#f && this.#r?.push([n, t, e])),
+                this.#s.delete(t),
+                (this.#i[s] = void 0),
+                (this.#t[s] = void 0),
+                s === this.#h)
+              )
+                this.#h = this.#u[s];
+              else if (s === this.#a) this.#a = this.#l[s];
+              else {
+                let o = this.#u[s];
+                this.#l[o] = this.#l[s];
+                let l = this.#l[s];
+                this.#u[l] = this.#u[s];
+              }
+              (this.#n--, this.#_.push(s));
+            }
+        }
+        if (this.#f && this.#r?.length) {
+          let s = this.#r,
+            n;
+          for (; (n = s?.shift()); ) this.#S?.(...n);
+        }
+        return i;
+      }
+      clear() {
+        return this.#$("delete");
+      }
+      #$(t) {
+        for (let e of this.#z({ allowStale: true })) {
+          let i = this.#t[e];
+          if (this.#e(i)) i.__abortController.abort(new Error("deleted"));
+          else {
+            let s = this.#i[e];
+            (this.#T && this.#m?.(i, s, t), this.#f && this.#r?.push([i, s, t]));
+          }
+        }
+        if ((this.#s.clear(), this.#t.fill(void 0), this.#i.fill(void 0), this.#d && this.#F)) {
+          (this.#d.fill(0), this.#F.fill(0));
+          for (let e of this.#g ?? []) e !== void 0 && clearTimeout(e);
+          this.#g?.fill(void 0);
+        }
+        if (
+          (this.#y && this.#y.fill(0),
+          (this.#a = 0),
+          (this.#h = 0),
+          (this.#_.length = 0),
+          (this.#b = 0),
+          (this.#n = 0),
+          this.#f && this.#r)
+        ) {
+          let e = this.#r,
+            i;
+          for (; (i = e?.shift()); ) this.#S?.(...i);
+        }
+      }
+    };
+    exports.LRUCache = M;
+  },
+});
+
+// vendor/openclaw/node_modules/hosted-git-info/lib/hosts.js
+var require_hosts = __commonJS({
+  "vendor/openclaw/node_modules/hosted-git-info/lib/hosts.js"(exports, module) {
+    "use strict";
+    var maybeJoin = (...args) => (args.every((arg) => arg) ? args.join("") : "");
+    var maybeEncode = (arg) => (arg ? encodeURIComponent(arg) : "");
+    var formatHashFragment = (f) =>
+      f
+        .toLowerCase()
+        .replace(/^\W+/g, "")
+        .replace(/(?<!\W)\W+$/, "")
+        .replace(/\//g, "")
+        .replace(/\W+/g, "-");
+    var defaults = {
+      sshtemplate: ({ domain, user, project, committish }) =>
+        `git@${domain}:${user}/${project}.git${maybeJoin("#", committish)}`,
+      sshurltemplate: ({ domain, user, project, committish }) =>
+        `git+ssh://git@${domain}/${user}/${project}.git${maybeJoin("#", committish)}`,
+      edittemplate: ({ domain, user, project, committish, editpath, path: path9 }) =>
+        `https://${domain}/${user}/${project}${maybeJoin("/", editpath, "/", maybeEncode(committish || "HEAD"), "/", path9)}`,
+      browsetemplate: ({ domain, user, project, committish, treepath }) =>
+        `https://${domain}/${user}/${project}${maybeJoin("/", treepath, "/", maybeEncode(committish))}`,
+      browsetreetemplate: ({
+        domain,
+        user,
+        project,
+        committish,
+        treepath,
+        path: path9,
+        fragment,
+        hashformat,
+      }) =>
+        `https://${domain}/${user}/${project}/${treepath}/${maybeEncode(committish || "HEAD")}/${path9}${maybeJoin("#", hashformat(fragment || ""))}`,
+      browseblobtemplate: ({
+        domain,
+        user,
+        project,
+        committish,
+        blobpath,
+        path: path9,
+        fragment,
+        hashformat,
+      }) =>
+        `https://${domain}/${user}/${project}/${blobpath}/${maybeEncode(committish || "HEAD")}/${path9}${maybeJoin("#", hashformat(fragment || ""))}`,
+      docstemplate: ({ domain, user, project, treepath, committish }) =>
+        `https://${domain}/${user}/${project}${maybeJoin("/", treepath, "/", maybeEncode(committish))}#readme`,
+      httpstemplate: ({ auth, domain, user, project, committish }) =>
+        `git+https://${maybeJoin(auth, "@")}${domain}/${user}/${project}.git${maybeJoin("#", committish)}`,
+      filetemplate: ({ domain, user, project, committish, path: path9 }) =>
+        `https://${domain}/${user}/${project}/raw/${maybeEncode(committish || "HEAD")}/${path9}`,
+      shortcuttemplate: ({ type, user, project, committish }) =>
+        `${type}:${user}/${project}${maybeJoin("#", committish)}`,
+      pathtemplate: ({ user, project, committish }) =>
+        `${user}/${project}${maybeJoin("#", committish)}`,
+      bugstemplate: ({ domain, user, project }) => `https://${domain}/${user}/${project}/issues`,
+      hashformat: formatHashFragment,
+    };
+    var hosts = {};
+    hosts.github = {
+      // First two are insecure and generally shouldn't be used any more, but
+      // they are still supported.
+      protocols: ["git:", "http:", "git+ssh:", "git+https:", "ssh:", "https:"],
+      domain: "github.com",
+      treepath: "tree",
+      blobpath: "blob",
+      editpath: "edit",
+      filetemplate: ({ auth, user, project, committish, path: path9 }) =>
+        `https://${maybeJoin(auth, "@")}raw.githubusercontent.com/${user}/${project}/${maybeEncode(committish || "HEAD")}/${path9}`,
+      gittemplate: ({ auth, domain, user, project, committish }) =>
+        `git://${maybeJoin(auth, "@")}${domain}/${user}/${project}.git${maybeJoin("#", committish)}`,
+      tarballtemplate: ({ domain, user, project, committish }) =>
+        `https://codeload.${domain}/${user}/${project}/tar.gz/${maybeEncode(committish || "HEAD")}`,
+      extract: (url) => {
+        let [, user, project, type, committish] = url.pathname.split("/", 5);
+        if (type && type !== "tree") {
+          return;
+        }
+        if (!type) {
+          committish = url.hash.slice(1);
+        }
+        if (project && project.endsWith(".git")) {
+          project = project.slice(0, -4);
+        }
+        if (!user || !project) {
+          return;
+        }
+        return { user, project, committish };
+      },
+    };
+    hosts.bitbucket = {
+      protocols: ["git+ssh:", "git+https:", "ssh:", "https:"],
+      domain: "bitbucket.org",
+      treepath: "src",
+      blobpath: "src",
+      editpath: "?mode=edit",
+      edittemplate: ({ domain, user, project, committish, treepath, path: path9, editpath }) =>
+        `https://${domain}/${user}/${project}${maybeJoin("/", treepath, "/", maybeEncode(committish || "HEAD"), "/", path9, editpath)}`,
+      tarballtemplate: ({ domain, user, project, committish }) =>
+        `https://${domain}/${user}/${project}/get/${maybeEncode(committish || "HEAD")}.tar.gz`,
+      extract: (url) => {
+        let [, user, project, aux] = url.pathname.split("/", 4);
+        if (["get"].includes(aux)) {
+          return;
+        }
+        if (project && project.endsWith(".git")) {
+          project = project.slice(0, -4);
+        }
+        if (!user || !project) {
+          return;
+        }
+        return { user, project, committish: url.hash.slice(1) };
+      },
+    };
+    hosts.gitlab = {
+      protocols: ["git+ssh:", "git+https:", "ssh:", "https:"],
+      domain: "gitlab.com",
+      treepath: "tree",
+      blobpath: "tree",
+      editpath: "-/edit",
+      tarballtemplate: ({ domain, user, project, committish }) =>
+        `https://${domain}/api/v4/projects/${maybeEncode(user + "/" + project)}/repository/archive.tar.gz?sha=${maybeEncode(committish || "HEAD")}`,
+      extract: (url) => {
+        const path9 = url.pathname.slice(1);
+        if (path9.includes("/-/") || path9.includes("/archive.tar.gz")) {
+          return;
+        }
+        const segments = path9.split("/");
+        let project = segments.pop();
+        if (project.endsWith(".git")) {
+          project = project.slice(0, -4);
+        }
+        const user = segments.join("/");
+        if (!user || !project) {
+          return;
+        }
+        return { user, project, committish: url.hash.slice(1) };
+      },
+    };
+    hosts.gist = {
+      protocols: ["git:", "git+ssh:", "git+https:", "ssh:", "https:"],
+      domain: "gist.github.com",
+      editpath: "edit",
+      sshtemplate: ({ domain, project, committish }) =>
+        `git@${domain}:${project}.git${maybeJoin("#", committish)}`,
+      sshurltemplate: ({ domain, project, committish }) =>
+        `git+ssh://git@${domain}/${project}.git${maybeJoin("#", committish)}`,
+      edittemplate: ({ domain, user, project, committish, editpath }) =>
+        `https://${domain}/${user}/${project}${maybeJoin("/", maybeEncode(committish))}/${editpath}`,
+      browsetemplate: ({ domain, project, committish }) =>
+        `https://${domain}/${project}${maybeJoin("/", maybeEncode(committish))}`,
+      browsetreetemplate: ({ domain, project, committish, path: path9, hashformat }) =>
+        `https://${domain}/${project}${maybeJoin("/", maybeEncode(committish))}${maybeJoin("#", hashformat(path9))}`,
+      browseblobtemplate: ({ domain, project, committish, path: path9, hashformat }) =>
+        `https://${domain}/${project}${maybeJoin("/", maybeEncode(committish))}${maybeJoin("#", hashformat(path9))}`,
+      docstemplate: ({ domain, project, committish }) =>
+        `https://${domain}/${project}${maybeJoin("/", maybeEncode(committish))}`,
+      httpstemplate: ({ domain, project, committish }) =>
+        `git+https://${domain}/${project}.git${maybeJoin("#", committish)}`,
+      filetemplate: ({ user, project, committish, path: path9 }) =>
+        `https://gist.githubusercontent.com/${user}/${project}/raw${maybeJoin("/", maybeEncode(committish))}/${path9}`,
+      shortcuttemplate: ({ type, project, committish }) =>
+        `${type}:${project}${maybeJoin("#", committish)}`,
+      pathtemplate: ({ project, committish }) => `${project}${maybeJoin("#", committish)}`,
+      bugstemplate: ({ domain, project }) => `https://${domain}/${project}`,
+      gittemplate: ({ domain, project, committish }) =>
+        `git://${domain}/${project}.git${maybeJoin("#", committish)}`,
+      tarballtemplate: ({ project, committish }) =>
+        `https://codeload.github.com/gist/${project}/tar.gz/${maybeEncode(committish || "HEAD")}`,
+      extract: (url) => {
+        let [, user, project, aux] = url.pathname.split("/", 4);
+        if (aux === "raw") {
+          return;
+        }
+        if (!project) {
+          if (!user) {
+            return;
+          }
+          project = user;
+          user = null;
+        }
+        if (project.endsWith(".git")) {
+          project = project.slice(0, -4);
+        }
+        return { user, project, committish: url.hash.slice(1) };
+      },
+      hashformat: function (fragment) {
+        return fragment && "file-" + formatHashFragment(fragment);
+      },
+    };
+    hosts.sourcehut = {
+      protocols: ["git+ssh:", "https:"],
+      domain: "git.sr.ht",
+      treepath: "tree",
+      blobpath: "tree",
+      filetemplate: ({ domain, user, project, committish, path: path9 }) =>
+        `https://${domain}/${user}/${project}/blob/${maybeEncode(committish) || "HEAD"}/${path9}`,
+      httpstemplate: ({ domain, user, project, committish }) =>
+        `https://${domain}/${user}/${project}${maybeJoin("#", committish)}`,
+      tarballtemplate: ({ domain, user, project, committish }) =>
+        `https://${domain}/${user}/${project}/archive/${maybeEncode(committish) || "HEAD"}.tar.gz`,
+      bugstemplate: () => null,
+      extract: (url) => {
+        let [, user, project, aux] = url.pathname.split("/", 4);
+        if (["archive"].includes(aux)) {
+          return;
+        }
+        if (project && project.endsWith(".git")) {
+          project = project.slice(0, -4);
+        }
+        if (!user || !project) {
+          return;
+        }
+        return { user, project, committish: url.hash.slice(1) };
+      },
+    };
+    for (const [name, host] of Object.entries(hosts)) {
+      hosts[name] = Object.assign({}, defaults, host);
+    }
+    module.exports = hosts;
+  },
+});
+
+// vendor/openclaw/node_modules/hosted-git-info/lib/parse-url.js
+var require_parse_url = __commonJS({
+  "vendor/openclaw/node_modules/hosted-git-info/lib/parse-url.js"(exports, module) {
+    var lastIndexOfBefore = (str, char, beforeChar) => {
+      const startPosition = str.indexOf(beforeChar);
+      return str.lastIndexOf(char, startPosition > -1 ? startPosition : Infinity);
+    };
+    var safeUrl = (u) => {
+      try {
+        return new URL(u);
+      } catch {}
+    };
+    var correctProtocol = (arg, protocols) => {
+      const firstColon = arg.indexOf(":");
+      const proto = arg.slice(0, firstColon + 1);
+      if (Object.prototype.hasOwnProperty.call(protocols, proto)) {
+        return arg;
+      }
+      if (arg.substr(firstColon, 3) === "://") {
+        return arg;
+      }
+      const firstAt = arg.indexOf("@");
+      if (firstAt > -1) {
+        if (firstAt > firstColon) {
+          return `git+ssh://${arg}`;
+        } else {
+          return arg;
+        }
+      }
+      return `${arg.slice(0, firstColon + 1)}//${arg.slice(firstColon + 1)}`;
+    };
+    var correctUrl = (giturl) => {
+      const firstAt = lastIndexOfBefore(giturl, "@", "#");
+      const lastColonBeforeHash = lastIndexOfBefore(giturl, ":", "#");
+      if (lastColonBeforeHash > firstAt) {
+        giturl = giturl.slice(0, lastColonBeforeHash) + "/" + giturl.slice(lastColonBeforeHash + 1);
+      }
+      if (lastIndexOfBefore(giturl, ":", "#") === -1 && giturl.indexOf("//") === -1) {
+        giturl = `git+ssh://${giturl}`;
+      }
+      return giturl;
+    };
+    module.exports = (giturl, protocols) => {
+      const withProtocol = protocols ? correctProtocol(giturl, protocols) : giturl;
+      return safeUrl(withProtocol) || safeUrl(correctUrl(withProtocol));
+    };
+  },
+});
+
+// vendor/openclaw/node_modules/hosted-git-info/lib/from-url.js
+var require_from_url = __commonJS({
+  "vendor/openclaw/node_modules/hosted-git-info/lib/from-url.js"(exports, module) {
+    "use strict";
+    var parseUrl2 = require_parse_url();
+    var isGitHubShorthand = (arg) => {
+      const firstHash = arg.indexOf("#");
+      const firstSlash = arg.indexOf("/");
+      const secondSlash = arg.indexOf("/", firstSlash + 1);
+      const firstColon = arg.indexOf(":");
+      const firstSpace = /\s/.exec(arg);
+      const firstAt = arg.indexOf("@");
+      const spaceOnlyAfterHash = !firstSpace || (firstHash > -1 && firstSpace.index > firstHash);
+      const atOnlyAfterHash = firstAt === -1 || (firstHash > -1 && firstAt > firstHash);
+      const colonOnlyAfterHash = firstColon === -1 || (firstHash > -1 && firstColon > firstHash);
+      const secondSlashOnlyAfterHash =
+        secondSlash === -1 || (firstHash > -1 && secondSlash > firstHash);
+      const hasSlash = firstSlash > 0;
+      const doesNotEndWithSlash = firstHash > -1 ? arg[firstHash - 1] !== "/" : !arg.endsWith("/");
+      const doesNotStartWithDot = !arg.startsWith(".");
+      return (
+        spaceOnlyAfterHash &&
+        hasSlash &&
+        doesNotEndWithSlash &&
+        doesNotStartWithDot &&
+        atOnlyAfterHash &&
+        colonOnlyAfterHash &&
+        secondSlashOnlyAfterHash
+      );
+    };
+    module.exports = (giturl, opts, { gitHosts, protocols }) => {
+      if (!giturl) {
+        return;
+      }
+      const correctedUrl = isGitHubShorthand(giturl) ? `github:${giturl}` : giturl;
+      const parsed = parseUrl2(correctedUrl, protocols);
+      if (!parsed) {
+        return;
+      }
+      const gitHostShortcut = gitHosts.byShortcut[parsed.protocol];
+      const gitHostDomain =
+        gitHosts.byDomain[
+          parsed.hostname.startsWith("www.") ? parsed.hostname.slice(4) : parsed.hostname
+        ];
+      const gitHostName = gitHostShortcut || gitHostDomain;
+      if (!gitHostName) {
+        return;
+      }
+      const gitHostInfo = gitHosts[gitHostShortcut || gitHostDomain];
+      let auth = null;
+      if (protocols[parsed.protocol]?.auth && (parsed.username || parsed.password)) {
+        auth = `${parsed.username}${parsed.password ? ":" + parsed.password : ""}`;
+      }
+      let committish = null;
+      let user = null;
+      let project = null;
+      let defaultRepresentation = null;
+      try {
+        if (gitHostShortcut) {
+          let pathname = parsed.pathname.startsWith("/")
+            ? parsed.pathname.slice(1)
+            : parsed.pathname;
+          const firstAt = pathname.indexOf("@");
+          if (firstAt > -1) {
+            pathname = pathname.slice(firstAt + 1);
+          }
+          const lastSlash = pathname.lastIndexOf("/");
+          if (lastSlash > -1) {
+            user = decodeURIComponent(pathname.slice(0, lastSlash));
+            if (!user) {
+              user = null;
+            }
+            project = decodeURIComponent(pathname.slice(lastSlash + 1));
+          } else {
+            project = decodeURIComponent(pathname);
+          }
+          if (project.endsWith(".git")) {
+            project = project.slice(0, -4);
+          }
+          if (parsed.hash) {
+            committish = decodeURIComponent(parsed.hash.slice(1));
+          }
+          defaultRepresentation = "shortcut";
+        } else {
+          if (!gitHostInfo.protocols.includes(parsed.protocol)) {
+            return;
+          }
+          const segments = gitHostInfo.extract(parsed);
+          if (!segments) {
+            return;
+          }
+          user = segments.user && decodeURIComponent(segments.user);
+          project = decodeURIComponent(segments.project);
+          committish = decodeURIComponent(segments.committish);
+          defaultRepresentation = protocols[parsed.protocol]?.name || parsed.protocol.slice(0, -1);
+        }
+      } catch (err2) {
+        if (err2 instanceof URIError) {
+          return;
+        } else {
+          throw err2;
+        }
+      }
+      return [gitHostName, user, auth, project, committish, defaultRepresentation, opts];
+    };
+  },
+});
+
+// vendor/openclaw/node_modules/hosted-git-info/lib/index.js
+var require_lib = __commonJS({
+  "vendor/openclaw/node_modules/hosted-git-info/lib/index.js"(exports, module) {
+    "use strict";
+    var { LRUCache } = require_index_min();
+    var hosts = require_hosts();
+    var fromUrl = require_from_url();
+    var parseUrl2 = require_parse_url();
+    var cache = new LRUCache({ max: 1e3 });
+    function unknownHostedUrl(url) {
+      try {
+        const { protocol, hostname, pathname } = new URL(url);
+        if (!hostname) {
+          return null;
+        }
+        const proto = /(?:git\+)http:$/.test(protocol) ? "http:" : "https:";
+        const path9 = pathname.replace(/\.git$/, "");
+        return `${proto}//${hostname}${path9}`;
+      } catch {
+        return null;
+      }
+    }
+    var GitHost = class _GitHost {
+      constructor(type, user, auth, project, committish, defaultRepresentation, opts = {}) {
+        Object.assign(this, _GitHost.#gitHosts[type], {
+          type,
+          user,
+          auth,
+          project,
+          committish,
+          default: defaultRepresentation,
+          opts,
+        });
+      }
+      static #gitHosts = { byShortcut: {}, byDomain: {} };
+      static #protocols = {
+        "git+ssh:": { name: "sshurl" },
+        "ssh:": { name: "sshurl" },
+        "git+https:": { name: "https", auth: true },
+        "git:": { auth: true },
+        "http:": { auth: true },
+        "https:": { auth: true },
+        "git+http:": { auth: true },
+      };
+      static addHost(name, host) {
+        _GitHost.#gitHosts[name] = host;
+        _GitHost.#gitHosts.byDomain[host.domain] = name;
+        _GitHost.#gitHosts.byShortcut[`${name}:`] = name;
+        _GitHost.#protocols[`${name}:`] = { name };
+      }
+      static fromUrl(giturl, opts) {
+        if (typeof giturl !== "string") {
+          return;
+        }
+        const key = giturl + JSON.stringify(opts || {});
+        if (!cache.has(key)) {
+          const hostArgs = fromUrl(giturl, opts, {
+            gitHosts: _GitHost.#gitHosts,
+            protocols: _GitHost.#protocols,
+          });
+          cache.set(key, hostArgs ? new _GitHost(...hostArgs) : void 0);
+        }
+        return cache.get(key);
+      }
+      static fromManifest(manifest, opts = {}) {
+        if (!manifest || typeof manifest !== "object") {
+          return;
+        }
+        const r = manifest.repository;
+        const rurl =
+          r &&
+          (typeof r === "string"
+            ? r
+            : typeof r === "object" && typeof r.url === "string"
+              ? r.url
+              : null);
+        if (!rurl) {
+          throw new Error("no repository");
+        }
+        const info = (rurl && _GitHost.fromUrl(rurl.replace(/^git\+/, ""), opts)) || null;
+        if (info) {
+          return info;
+        }
+        const unk = unknownHostedUrl(rurl);
+        return _GitHost.fromUrl(unk, opts) || unk;
+      }
+      static parseUrl(url) {
+        return parseUrl2(url);
+      }
+      #fill(template, opts) {
+        if (typeof template !== "function") {
+          return null;
+        }
+        const options = { ...this, ...this.opts, ...opts };
+        if (!options.path) {
+          options.path = "";
+        }
+        if (options.path.startsWith("/")) {
+          options.path = options.path.slice(1);
+        }
+        if (options.noCommittish) {
+          options.committish = null;
+        }
+        const result = template(options);
+        return options.noGitPlus && result.startsWith("git+") ? result.slice(4) : result;
+      }
+      hash() {
+        return this.committish ? `#${this.committish}` : "";
+      }
+      ssh(opts) {
+        return this.#fill(this.sshtemplate, opts);
+      }
+      sshurl(opts) {
+        return this.#fill(this.sshurltemplate, opts);
+      }
+      browse(path9, ...args) {
+        if (typeof path9 !== "string") {
+          return this.#fill(this.browsetemplate, path9);
+        }
+        if (typeof args[0] !== "string") {
+          return this.#fill(this.browsetreetemplate, { ...args[0], path: path9 });
+        }
+        return this.#fill(this.browsetreetemplate, { ...args[1], fragment: args[0], path: path9 });
+      }
+      // If the path is known to be a file, then browseFile should be used. For some hosts
+      // the url is the same as browse, but for others like GitHub a file can use both `/tree/`
+      // and `/blob/` in the path. When using a default committish of `HEAD` then the `/tree/`
+      // path will redirect to a specific commit. Using the `/blob/` path avoids this and
+      // does not redirect to a different commit.
+      browseFile(path9, ...args) {
+        if (typeof args[0] !== "string") {
+          return this.#fill(this.browseblobtemplate, { ...args[0], path: path9 });
+        }
+        return this.#fill(this.browseblobtemplate, { ...args[1], fragment: args[0], path: path9 });
+      }
+      docs(opts) {
+        return this.#fill(this.docstemplate, opts);
+      }
+      bugs(opts) {
+        return this.#fill(this.bugstemplate, opts);
+      }
+      https(opts) {
+        return this.#fill(this.httpstemplate, opts);
+      }
+      git(opts) {
+        return this.#fill(this.gittemplate, opts);
+      }
+      shortcut(opts) {
+        return this.#fill(this.shortcuttemplate, opts);
+      }
+      path(opts) {
+        return this.#fill(this.pathtemplate, opts);
+      }
+      tarball(opts) {
+        return this.#fill(this.tarballtemplate, { ...opts, noCommittish: false });
+      }
+      file(path9, opts) {
+        return this.#fill(this.filetemplate, { ...opts, path: path9 });
+      }
+      edit(path9, opts) {
+        return this.#fill(this.edittemplate, { ...opts, path: path9 });
+      }
+      getDefaultRepresentation() {
+        return this.default;
+      }
+      toString(opts) {
+        if (this.default && typeof this[this.default] === "function") {
+          return this[this.default](opts);
+        }
+        return this.sshurl(opts);
+      }
+    };
+    for (const [name, host] of Object.entries(hosts)) {
+      GitHost.addHost(name, host);
+    }
+    module.exports = GitHost;
+  },
+});
+
 // vendor/openclaw/src/config/zod-schema.ts
-import { z as z21 } from "zod";
+import { z as z22 } from "zod";
+
+// vendor/openclaw/packages/normalization-core/src/record-coerce.ts
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
 // vendor/openclaw/packages/normalization-core/src/string-coerce.ts
 function normalizeNullableString(value) {
@@ -185,26 +1748,8 @@ function normalizeLowercaseStringOrEmpty(value) {
   return normalizeOptionalLowercaseString(value) ?? "";
 }
 
-// vendor/openclaw/src/utils.ts
-import fs from "node:fs";
-import os2 from "node:os";
+// vendor/openclaw/src/cli/profile-utils.ts
 import path2 from "node:path";
-
-// vendor/openclaw/node_modules/@openclaw/fs-safe/dist/native-config.js
-var overrideConfig = {};
-function configureFsSafeNative(config) {
-  overrideConfig = { ...overrideConfig, ...config };
-}
-
-// vendor/openclaw/src/infra/fs-safe-defaults.ts
-var hasModeOverride = Object.keys(process.env).some((key) =>
-  /^(?:OPENCLAW_)?FS_SAFE_(?:NATIVE|PYTHON)_MODE$/u.test(
-    process.platform === "win32" ? key.toUpperCase() : key,
-  ),
-);
-if (!hasModeOverride) {
-  configureFsSafeNative({ mode: "off" });
-}
 
 // vendor/openclaw/src/infra/home-dir.ts
 import os from "node:os";
@@ -259,7 +1804,7 @@ function resolveRawHomeDir(env, homedir) {
   }
   if (explicitHome === "~" || explicitHome.startsWith("~/") || explicitHome.startsWith("~\\")) {
     const fallbackHome = resolveRawOsHomeDir(env, homedir);
-    return fallbackHome ? explicitHome.replace(/^~(?=$|[\\/])/, fallbackHome) : void 0;
+    return fallbackHome ? explicitHome.replace(/^~(?=$|[\\/])/, () => fallbackHome) : void 0;
   }
   return explicitHome;
 }
@@ -286,7 +1831,7 @@ function expandHomePrefix(input, opts) {
   if (!home) {
     return input;
   }
-  return input.replace(/^~(?=$|[\\/])/, home);
+  return input.replace(/^~(?=$|[\\/])/, () => home);
 }
 function resolveHomeRelativePath(input, opts) {
   const trimmed = input.trim();
@@ -308,6 +1853,44 @@ function resolveUserPath(input, env = process.env, homedir = os.homedir) {
     return "";
   }
   return resolveHomeRelativePath(input, { env, homedir });
+}
+
+// vendor/openclaw/src/cli/profile-utils.ts
+var PROFILE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+function isValidProfileName(value) {
+  if (!value) {
+    return false;
+  }
+  return PROFILE_NAME_RE.test(value);
+}
+function resolveProfileStateDir(profile, env, homedir) {
+  const trimmed = profile.trim();
+  if (!isValidProfileName(trimmed)) {
+    throw new Error(`Invalid profile name: ${JSON.stringify(profile)}`);
+  }
+  const suffix = normalizeLowercaseStringOrEmpty(trimmed) === "default" ? "" : `-${trimmed}`;
+  return path2.join(resolveRequiredHomeDir(env, homedir), `.openclaw${suffix}`);
+}
+
+// vendor/openclaw/src/utils.ts
+import fs from "node:fs";
+import os2 from "node:os";
+import path3 from "node:path";
+
+// vendor/openclaw/node_modules/@openclaw/fs-safe/dist/native-config.js
+var overrideConfig = {};
+function configureFsSafeNative(config) {
+  overrideConfig = { ...overrideConfig, ...config };
+}
+
+// vendor/openclaw/src/infra/fs-safe-defaults.ts
+var hasModeOverride = Object.keys(process.env).some((key) =>
+  /^(?:OPENCLAW_)?FS_SAFE_(?:NATIVE|PYTHON)_MODE$/u.test(
+    process.platform === "win32" ? key.toUpperCase() : key,
+  ),
+);
+if (!hasModeOverride) {
+  configureFsSafeNative({ mode: "off" });
 }
 
 // vendor/openclaw/packages/normalization-core/src/number-coercion.ts
@@ -478,11 +2061,6 @@ function createRetryRunner(runtime = {}) {
 }
 var retryAsync = createRetryRunner();
 
-// vendor/openclaw/packages/normalization-core/src/record-coerce.ts
-function isRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 // vendor/openclaw/src/utils.ts
 function resolveConfigDir(env = process.env, homedir = os2.homedir) {
   const override = env.OPENCLAW_STATE_DIR?.trim();
@@ -491,9 +2069,9 @@ function resolveConfigDir(env = process.env, homedir = os2.homedir) {
   }
   const configPath = env.OPENCLAW_CONFIG_PATH?.trim();
   if (configPath) {
-    return path2.dirname(resolveUserPath(configPath, env, homedir));
+    return path3.dirname(resolveUserPath(configPath, env, homedir));
   }
-  const newDir = path2.join(resolveRequiredHomeDir(env, homedir), ".openclaw");
+  const newDir = path3.join(resolveRequiredHomeDir(env, homedir), ".openclaw");
   try {
     const hasNew = fs.existsSync(newDir);
     if (hasNew) {
@@ -504,28 +2082,27 @@ function resolveConfigDir(env = process.env, homedir = os2.homedir) {
 }
 var CONFIG_DIR = resolveConfigDir();
 
+// vendor/openclaw/packages/model-catalog-core/src/provider-id.ts
+function normalizeProviderId(provider) {
+  return normalizeLowercaseStringOrEmpty(provider);
+}
+
+// vendor/openclaw/packages/model-catalog-core/src/model-catalog-refs.ts
+function parseProviderModelRef(value) {
+  const trimmed = value.trim();
+  const slashIndex = trimmed.indexOf("/");
+  if (slashIndex <= 0 || slashIndex >= trimmed.length - 1) {
+    return null;
+  }
+  const provider = trimmed.slice(0, slashIndex).trim();
+  const model = trimmed.slice(slashIndex + 1).trim();
+  return provider && model ? { provider, model } : null;
+}
+
 // vendor/openclaw/src/config/paths.ts
 import fs2 from "node:fs";
 import os3 from "node:os";
 import path4 from "node:path";
-
-// vendor/openclaw/src/cli/profile-utils.ts
-import path3 from "node:path";
-var PROFILE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
-function isValidProfileName(value) {
-  if (!value) {
-    return false;
-  }
-  return PROFILE_NAME_RE.test(value);
-}
-function resolveProfileStateDir(profile, env, homedir) {
-  const trimmed = profile.trim();
-  if (!isValidProfileName(trimmed)) {
-    throw new Error(`Invalid profile name: ${JSON.stringify(profile)}`);
-  }
-  const suffix = normalizeLowercaseStringOrEmpty(trimmed) === "default" ? "" : `-${trimmed}`;
-  return path3.join(resolveRequiredHomeDir(env, homedir), `.openclaw${suffix}`);
-}
 
 // vendor/openclaw/src/infra/test-runtime-env.ts
 function isVitestRuntimeEnv(env = process.env) {
@@ -675,6 +2252,10 @@ function normalizeAgentIdStrict(value) {
     .slice(0, 64);
   return agentId ? ok(agentId) : err("unrepresentable");
 }
+function isValidAgentId(value) {
+  const trimmed = (value ?? "").trim();
+  return Boolean(trimmed) && VALID_ID_RE.test(trimmed);
+}
 
 // vendor/openclaw/src/infra/prototype-keys.ts
 var BLOCKED_OBJECT_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
@@ -709,14 +2290,9 @@ var DEFAULT_AGENT_WORKSPACE_DIR = resolveDefaultAgentWorkspaceDir();
 // vendor/openclaw/src/agents/agent-scope-config.ts
 function listAgentEntriesWithSource(cfg) {
   const roster = readAgentRosterProperty(cfg);
-  if (
-    roster?.kind === "entries" &&
-    roster.value &&
-    typeof roster.value === "object" &&
-    !Array.isArray(roster.value)
-  ) {
+  if (roster?.kind === "entries" && isRecord(roster.value)) {
     return Object.entries(roster.value).flatMap(([id, entry]) =>
-      entry !== null && typeof entry === "object" && !Array.isArray(entry)
+      isRecord(entry)
         ? [
             {
               entry: { ...entry, id },
@@ -756,7 +2332,7 @@ function readAgentRosterProperty(raw) {
 }
 
 // vendor/openclaw/src/config/zod-schema.root-shape.ts
-import { z as z20 } from "zod";
+import { z as z21 } from "zod";
 
 // vendor/openclaw/src/cli/parse-duration.ts
 var import_ms = __toESM(require_ms(), 1);
@@ -1009,13 +2585,6 @@ var AgentToolModelSchema = z.union([
 
 // vendor/openclaw/src/config/zod-schema.core.ts
 import path6 from "node:path";
-
-// vendor/openclaw/packages/model-catalog-core/src/provider-id.ts
-function normalizeProviderId(provider) {
-  return normalizeLowercaseStringOrEmpty(provider);
-}
-
-// vendor/openclaw/src/config/zod-schema.core.ts
 import { z as z4 } from "zod";
 
 // vendor/openclaw/src/infra/exec-safety.ts
@@ -1059,6 +2628,44 @@ function isSafeExecutableValue(value) {
     return false;
   }
   return BARE_NAME_PATTERN.test(trimmed);
+}
+
+// vendor/openclaw/src/secrets/exact-hostname.ts
+import net from "node:net";
+import { domainToASCII } from "node:url";
+function normalizeExactAllowedHost(raw) {
+  const trimmed = raw.trim().toLowerCase().replace(/\.+$/u, "");
+  if (trimmed.includes("*")) {
+    throw new Error(`Allowed host "${raw}" cannot contain a wildcard; use one exact hostname.`);
+  }
+  const unbracketed =
+    trimmed.startsWith("[") && trimmed.endsWith("]") ? trimmed.slice(1, -1) : trimmed;
+  if (net.isIP(unbracketed)) {
+    return unbracketed;
+  }
+  if (!unbracketed || unbracketed.includes(":") || /[\s/?#@]/u.test(unbracketed)) {
+    throw new Error(
+      `Allowed host "${raw}" must be a hostname without a scheme, path, wildcard, or port.`,
+    );
+  }
+  const ascii = domainToASCII(unbracketed);
+  if (
+    !ascii ||
+    ascii.length > 253 ||
+    ascii
+      .split(".")
+      .some(
+        (label) =>
+          !label ||
+          label.length > 63 ||
+          label.startsWith("-") ||
+          label.endsWith("-") ||
+          !/^[a-z0-9-]+$/u.test(label),
+      )
+  ) {
+    throw new Error(`Allowed host "${raw}" is not a valid hostname.`);
+  }
+  return ascii;
 }
 
 // vendor/openclaw/src/config/types.secrets.ts
@@ -1143,6 +2750,92 @@ function formatExecSecretRefIdValidationMessage() {
     'and must not include "." or ".." path segments',
     '(example: "vault/openai/api-key" or "aws/secret#json_key").',
   ].join(" ");
+}
+
+// vendor/openclaw/src/config/model-provider-config.ts
+var BUILT_IN_MODEL_PROVIDER_OVERLAY_IDS = /* @__PURE__ */ new Set([
+  "amazon-bedrock",
+  "amazon-bedrock-mantle",
+  "anthropic",
+  "anthropic-vertex",
+  "arcee",
+  "azure-openai-responses",
+  "byteplus",
+  "byteplus-plan",
+  "cerebras",
+  "chutes",
+  "claude-cli",
+  "clawrouter",
+  "cloudflare-ai-gateway",
+  "codex",
+  "comfy",
+  "copilot-proxy",
+  "dashscope",
+  "deepinfra",
+  "deepseek",
+  "fal",
+  "fireworks",
+  "github-copilot",
+  "gmi",
+  "gmi-cloud",
+  "gmicloud",
+  "google",
+  "google-antigravity",
+  "google-gemini-cli",
+  "google-vertex",
+  "groq",
+  "huggingface",
+  "kilocode",
+  "kimi",
+  "kimi-coding",
+  "litellm",
+  "lmstudio",
+  "meta",
+  "microsoft-foundry",
+  "minimax",
+  "minimax-portal",
+  "mistral",
+  "modelstudio",
+  "moonshot",
+  "moonshot-ai",
+  "moonshotai",
+  "nvidia",
+  "novita",
+  "novita-ai",
+  "novitaai",
+  "ollama",
+  "ollama-cloud",
+  "openai",
+  "opencode",
+  "opencode-go",
+  "openrouter",
+  "qianfan",
+  "qwen",
+  "qwen-token-plan",
+  "qwencloud",
+  "sglang",
+  "stepfun",
+  "stepfun-plan",
+  "synthetic",
+  "tencent-tokenhub",
+  "tencent-tokenplan",
+  "together",
+  "venice",
+  "vercel-ai-gateway",
+  "vllm",
+  "volcengine",
+  "volcengine-plan",
+  "vydra",
+  "x-ai",
+  "xai",
+  "xiaomi",
+  "xiaomi-token-plan",
+  "z.ai",
+  "z-ai",
+  "zai",
+]);
+function isBuiltInModelProviderOverlayId(providerId) {
+  return BUILT_IN_MODEL_PROVIDER_OVERLAY_IDS.has(normalizeProviderId(providerId));
 }
 
 // vendor/openclaw/src/config/types.models.ts
@@ -1364,6 +3057,20 @@ var SecretsExecProviderSchema = z4.union([
   SecretsPluginIntegrationExecProviderSchema,
 ]);
 var SecretsStoreProviderSchema = z4.object({ source: z4.literal("store") }).strict();
+var EgressProxyExactHostSchema = z4
+  .string()
+  .trim()
+  .min(1)
+  .superRefine((host, ctx) => {
+    try {
+      normalizeExactAllowedHost(host);
+    } catch (error) {
+      ctx.addIssue({
+        code: "custom",
+        message: error instanceof Error ? error.message : "Invalid allowed host",
+      });
+    }
+  });
 var SecretProviderSchema = z4.union([
   SecretsEnvProviderSchema,
   SecretsFileProviderSchema,
@@ -1375,7 +3082,8 @@ var SecretsConfigSchema = z4
     egressProxy: z4
       .object({
         enabled: z4.boolean().optional(),
-        bypassHosts: z4.array(z4.string().trim().min(1)).max(256).optional(),
+        allowedHosts: z4.array(EgressProxyExactHostSchema).max(256).optional(),
+        bypassHosts: z4.array(EgressProxyExactHostSchema).max(256).optional(),
       })
       .strict()
       .optional(),
@@ -1405,6 +3113,56 @@ var ModelApiSchema = z4.enum(MODEL_APIS, {
       ? `"${LEGACY_OPENAI_CODEX_RESPONSES_API}" is a removed api id; use "${OPENAI_CHATGPT_RESPONSES_API}"`
       : void 0,
 });
+var RoutingPercentileCutoffsSchema = z4
+  .object({
+    p50: z4.number().optional(),
+    p75: z4.number().optional(),
+    p90: z4.number().optional(),
+    p99: z4.number().optional(),
+  })
+  .strict();
+var OpenRouterRoutingSchema = z4
+  .object({
+    allow_fallbacks: z4.boolean().optional(),
+    require_parameters: z4.boolean().optional(),
+    data_collection: z4.enum(["deny", "allow"]).optional(),
+    zdr: z4.boolean().optional(),
+    enforce_distillable_text: z4.boolean().optional(),
+    order: z4.array(z4.string()).optional(),
+    only: z4.array(z4.string()).optional(),
+    ignore: z4.array(z4.string()).optional(),
+    quantizations: z4.array(z4.string()).optional(),
+    sort: z4
+      .union([
+        z4.string(),
+        z4
+          .object({
+            by: z4.string().optional(),
+            partition: z4.string().nullable().optional(),
+          })
+          .strict(),
+      ])
+      .optional(),
+    max_price: z4
+      .object({
+        prompt: z4.union([z4.number(), z4.string()]).optional(),
+        completion: z4.union([z4.number(), z4.string()]).optional(),
+        image: z4.union([z4.number(), z4.string()]).optional(),
+        audio: z4.union([z4.number(), z4.string()]).optional(),
+        request: z4.union([z4.number(), z4.string()]).optional(),
+      })
+      .strict()
+      .optional(),
+    preferred_min_throughput: z4.union([z4.number(), RoutingPercentileCutoffsSchema]).optional(),
+    preferred_max_latency: z4.union([z4.number(), RoutingPercentileCutoffsSchema]).optional(),
+  })
+  .strict();
+var VercelGatewayRoutingSchema = z4
+  .object({
+    only: z4.array(z4.string()).optional(),
+    order: z4.array(z4.string()).optional(),
+  })
+  .strict();
 var ModelCompatSchema = z4
   .object({
     supportsStore: z4.boolean().optional(),
@@ -1412,6 +3170,7 @@ var ModelCompatSchema = z4
     supportsDeveloperRole: z4.boolean().optional(),
     supportsReasoningEffort: z4.boolean().optional(),
     supportsTemperature: z4.boolean().optional(),
+    supportsInstructions: z4.boolean().optional(),
     supportsUsageInStreaming: z4.boolean().optional(),
     supportsTools: z4.boolean().optional(),
     codeMode: z4.enum(["preferred", "capable"]).optional(),
@@ -1434,6 +3193,14 @@ var ModelCompatSchema = z4
     unsupportedToolSchemaKeywords: z4.array(z4.string().min(1)).optional(),
     toolCallArgumentsEncoding: z4.string().optional(),
     requiresOpenAiAnthropicToolPayload: z4.boolean().optional(),
+    openRouterRouting: OpenRouterRoutingSchema.optional(),
+    vercelGatewayRouting: VercelGatewayRoutingSchema.optional(),
+    zaiToolStream: z4.boolean().optional(),
+    cacheControlFormat: z4.literal("anthropic").optional(),
+    sendSessionAffinityHeaders: z4.boolean().optional(),
+    sendSessionIdHeader: z4.boolean().optional(),
+    supportsEagerToolInputStreaming: z4.boolean().optional(),
+    supportsLongCacheRetention: z4.boolean().optional(),
   })
   .strict()
   .optional();
@@ -1602,90 +3369,6 @@ var ModelProviderLocalServiceSchema = z4
   })
   .strict()
   .optional();
-var BUILT_IN_MODEL_PROVIDER_OVERLAY_IDS = /* @__PURE__ */ new Set([
-  "amazon-bedrock",
-  "amazon-bedrock-mantle",
-  "anthropic",
-  "anthropic-vertex",
-  "arcee",
-  "azure-openai-responses",
-  "byteplus",
-  "byteplus-plan",
-  "cerebras",
-  "chutes",
-  "claude-cli",
-  "clawrouter",
-  "cloudflare-ai-gateway",
-  "codex",
-  "comfy",
-  "copilot-proxy",
-  "dashscope",
-  "deepinfra",
-  "deepseek",
-  "fal",
-  "fireworks",
-  "github-copilot",
-  "gmi",
-  "gmi-cloud",
-  "gmicloud",
-  "google",
-  "google-antigravity",
-  "google-gemini-cli",
-  "google-vertex",
-  "groq",
-  "huggingface",
-  "kilocode",
-  "kimi",
-  "kimi-coding",
-  "litellm",
-  "lmstudio",
-  "meta",
-  "microsoft-foundry",
-  "minimax",
-  "minimax-portal",
-  "mistral",
-  "modelstudio",
-  "moonshot",
-  "moonshot-ai",
-  "moonshotai",
-  "nvidia",
-  "novita",
-  "novita-ai",
-  "novitaai",
-  "ollama",
-  "ollama-cloud",
-  "openai",
-  "opencode",
-  "opencode-go",
-  "openrouter",
-  "qianfan",
-  "qwen",
-  "qwen-token-plan",
-  "qwencloud",
-  "sglang",
-  "stepfun",
-  "stepfun-plan",
-  "synthetic",
-  "tencent-tokenhub",
-  "tencent-tokenplan",
-  "together",
-  "venice",
-  "vercel-ai-gateway",
-  "vllm",
-  "volcengine",
-  "volcengine-plan",
-  "vydra",
-  "x-ai",
-  "xai",
-  "xiaomi",
-  "xiaomi-token-plan",
-  "z.ai",
-  "z-ai",
-  "zai",
-]);
-function isBuiltInModelProviderOverlayId(providerId) {
-  return BUILT_IN_MODEL_PROVIDER_OVERLAY_IDS.has(normalizeProviderId(providerId));
-}
 var ModelProviderSchema = z4
   .object({
     // Bundled provider overlays are materialized with an empty-string sentinel.
@@ -2540,6 +4223,7 @@ var ToolExecBaseShape = {
   safeBins: z5.array(z5.string()).optional(),
   strictInlineEval: z5.boolean().optional(),
   commandHighlighting: z5.boolean().optional(),
+  grantExpiryDays: z5.number().int().min(1).max(3650).optional(),
   safeBinTrustedDirs: z5.array(z5.string()).optional(),
   safeBinProfiles: z5.record(z5.string(), ToolExecSafeBinProfileSchema).optional(),
   reviewer: z5
@@ -2724,6 +4408,7 @@ var MessageToolConfigSchema = z5
 var GitHubToolIdentitySchema = z5
   .object({
     profileId: z5.string().regex(MANAGED_GITHUB_PROFILE_ID_PATTERN),
+    kind: z5.literal("oauth").optional(),
     gitAuthor: z5
       .object({
         name: z5.string().trim().min(1).optional(),
@@ -2887,9 +4572,24 @@ var AgentModelRuntimeEntrySchema = z5
     alias: z5.string().optional(),
     params: z5.record(z5.string(), z5.unknown()).optional(),
     agentRuntime: AgentRuntimePolicySchema,
+    codeMode: z5.boolean().optional(),
     streaming: z5.boolean().optional(),
   })
   .strict();
+var AgentModelMapSchema = z5
+  .record(z5.string(), AgentModelRuntimeEntrySchema)
+  .superRefine((models, ctx) => {
+    for (const [ref, entry] of Object.entries(models)) {
+      if (entry.codeMode !== void 0 && (ref.includes("*") || !parseProviderModelRef(ref))) {
+        ctx.addIssue({
+          code: z5.ZodIssueCode.custom,
+          path: [ref, "codeMode"],
+          message:
+            "Code Mode requires an exact provider/model entry; wildcard and bare model keys are not supported.",
+        });
+      }
+    }
+  });
 var AgentModelPolicySchema = z5
   .object({
     allow: z5.array(z5.string()).optional(),
@@ -2904,7 +4604,7 @@ var AgentEntrySchema = z5
     agentDir: z5.string().optional(),
     model: AgentModelSchema.optional(),
     utilityModel: z5.string().optional(),
-    models: z5.record(z5.string(), AgentModelRuntimeEntrySchema).optional(),
+    models: AgentModelMapSchema.optional(),
     modelPolicy: AgentModelPolicySchema.optional(),
     thinkingDefault: z5
       .enum(["off", "minimal", "low", "medium", "high", "xhigh", "adaptive", "max", "ultra"])
@@ -3071,6 +4771,7 @@ var AgentDefaultsSchema = z6
     /** Global default provider params applied to all models before per-model and per-agent overrides. */
     params: z6.record(z6.string(), z6.unknown()).optional(),
     model: AgentModelSchema.optional(),
+    modelSelectionScope: z6.enum(["session", "agent", "global"]).optional(),
     utilityModel: z6.string().optional(),
     imageModel: AgentToolModelSchema.optional(),
     mediaModels: z6
@@ -3085,7 +4786,7 @@ var AgentDefaultsSchema = z6
     pdfModel: AgentToolModelSchema.optional(),
     pdfMaxMb: z6.number().positive().optional(),
     pdfMaxPages: z6.number().int().positive().optional(),
-    models: z6.record(z6.string(), AgentModelRuntimeEntrySchema).optional(),
+    models: AgentModelMapSchema.optional(),
     modelPolicy: AgentModelPolicySchema.optional(),
     workspace: z6.string().optional(),
     skills: z6.array(z6.string()).optional(),
@@ -3148,7 +4849,7 @@ var AgentDefaultsSchema = z6
         enabled: z6.boolean().optional(),
         mode: z6.union([z6.literal("default"), z6.literal("safeguard")]).optional(),
         provider: z6.string().optional(),
-        thinkingLevel: AgentThinkingLevelSchema.optional(),
+        thinkingLevel: z6.union([AgentThinkingLevelSchema, z6.literal("inherit")]).optional(),
         keepRecentTokens: z6.number().int().positive().optional(),
         identifierPolicy: z6.union([z6.literal("strict"), z6.literal("off")]).optional(),
         recentTurnsPreserve: z6.number().int().min(0).max(12).optional(),
@@ -3305,6 +5006,20 @@ var AgentsSchema = z7
         code: z7.ZodIssueCode.custom,
         path: ["entries"],
         message: "agents.entries must contain at least one configured agent",
+      });
+    }
+    const firstKeyByAgentId = /* @__PURE__ */ new Map();
+    for (const [key] of entries) {
+      const agentId = normalizeAgentId(key);
+      const firstKey = firstKeyByAgentId.get(agentId);
+      if (!firstKey) {
+        firstKeyByAgentId.set(agentId, key);
+        continue;
+      }
+      ctx.addIssue({
+        code: z7.ZodIssueCode.custom,
+        path: ["entries", key],
+        message: `agents.entries keys "${firstKey}" and "${key}" resolve to the same agent id "${agentId}"; rename one key so each agent has a unique id`,
       });
     }
     const marked = entries.filter(([, entry]) => entry.default === true);
@@ -3583,6 +5298,138 @@ function isPluginJsonValue(value) {
   }
 }
 
+// vendor/openclaw/src/agents/utils/git.ts
+var import_hosted_git_info = __toESM(require_lib(), 1);
+function stripRef(url) {
+  const protocolIndex = url.indexOf("://");
+  const pathStart = url.startsWith("git@")
+    ? url.indexOf(":") + 1
+    : url.indexOf("/", protocolIndex < 0 ? 0 : protocolIndex + 3) + 1;
+  if (pathStart <= 0) {
+    return url;
+  }
+  const suffixOffset = url.slice(pathStart).search(/[?#]/);
+  const pathEnd = suffixOffset < 0 ? url.length : pathStart + suffixOffset;
+  let refSeparator = url.indexOf("@", pathStart);
+  if (refSeparator === pathStart) {
+    refSeparator = url.indexOf("@", pathStart + 1);
+  }
+  if (refSeparator <= pathStart || refSeparator === pathEnd - 1 || refSeparator >= pathEnd) {
+    return url;
+  }
+  return protocolIndex < 0
+    ? url.slice(0, refSeparator)
+    : url.slice(0, refSeparator) + url.slice(pathEnd);
+}
+function hasUnsafePathSegments(url) {
+  const path9 = url.split(/[?#]/, 1)[0] ?? "";
+  return path9.includes("\\") || /(?:^|\/)(?:\.|%2e){1,2}(?:\/|$)/i.test(path9);
+}
+function parseGenericGitUrl(url) {
+  let host;
+  let path9;
+  const scpLikeMatch = url.match(/^git@([^:]+):(.+)$/);
+  if (scpLikeMatch) {
+    host = scpLikeMatch[1] ?? "";
+    path9 = scpLikeMatch[2] ?? "";
+  } else if (/^(?:https?|ssh|git):\/\//.test(url)) {
+    try {
+      const parsed = new URL(url);
+      host = parsed.hostname;
+      path9 = parsed.pathname.replace(/^\/+/, "");
+    } catch {
+      return null;
+    }
+  } else {
+    const slashIndex = url.indexOf("/");
+    if (slashIndex < 0) {
+      return null;
+    }
+    host = url.slice(0, slashIndex);
+    path9 = url.slice(slashIndex + 1);
+    if (!host.includes(".") && host !== "localhost") {
+      return null;
+    }
+  }
+  const normalizedPath = normalizeGitPath(path9);
+  if (!isSafeGitHost(host) || !normalizedPath) {
+    return null;
+  }
+  return {
+    type: "git",
+    host,
+    path: normalizedPath,
+  };
+}
+function isSafeGitHost(host) {
+  return (
+    Boolean(host) && !host.includes("/") && !host.includes("\\") && host !== "." && host !== ".."
+  );
+}
+function normalizeGitPath(path9) {
+  const normalizedPath = path9.replace(/\.git$/, "").replace(/^\/+/, "");
+  const segments = normalizedPath.split("/");
+  if (segments.length < 2) {
+    return null;
+  }
+  if (
+    segments.some(
+      (segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"),
+    )
+  ) {
+    return null;
+  }
+  return segments.join("/");
+}
+function parseHostedGitUrl(url) {
+  const candidates = [url];
+  if (!url.includes("://") && !url.startsWith("git@")) {
+    candidates.push(`https://${url}`);
+  }
+  for (const candidate of candidates) {
+    const info = import_hosted_git_info.default.fromUrl(candidate);
+    if (!info) {
+      continue;
+    }
+    const host = info.domain || "";
+    const path9 = normalizeGitPath(`${info.user}/${info.project}`);
+    if (isSafeGitHost(host) && path9) {
+      return { type: "git", host, path: path9 };
+    }
+  }
+  return null;
+}
+function parseGitUrl(source) {
+  const trimmed = source.trim();
+  const hasGitPrefix = trimmed.startsWith("git:");
+  const url = hasGitPrefix ? trimmed.slice(4).trim() : trimmed;
+  if (!hasGitPrefix && !/^(https?|ssh|git):\/\//i.test(url)) {
+    return null;
+  }
+  const urlWithoutRef = stripRef(url);
+  if (hasUnsafePathSegments(urlWithoutRef)) {
+    return null;
+  }
+  return parseHostedGitUrl(urlWithoutRef) ?? parseGenericGitUrl(urlWithoutRef);
+}
+
+// vendor/openclaw/src/config/cloud-worker-project-profiles.ts
+function normalizeCloudRepo(originUrl) {
+  const value = originUrl.trim();
+  if (!value) {
+    return void 0;
+  }
+  const source = parseGitUrl(`git:${value}`);
+  if (!source) {
+    return void 0;
+  }
+  const segments = source.path.split("/").filter(Boolean);
+  if (!source.host || segments.length < 2) {
+    return void 0;
+  }
+  return `${source.host}/${segments.join("/")}`.toLowerCase();
+}
+
 // vendor/openclaw/src/config/sensitive-paths.ts
 var SENSITIVE_KEY_WHITELIST_SUFFIXES = [
   "maxtokens",
@@ -3682,6 +5529,20 @@ var CloudWorkerProfileShape = {
     label: "Cloud Worker Install Method",
     help: `Worker installation method: "bundle" (default) transfers the gateway's content-hashed installed build and supports released, development, and unreleased versions; "npm" installs the exact gateway version and is available only when that version is released.`,
   }),
+  suspendAfter: z12
+    .string()
+    .refine((value) => {
+      try {
+        return /(?:ms|s|m|h|d)$/i.test(value) && parseDurationMs(value) >= 6e4;
+      } catch {
+        return false;
+      }
+    }, "Worker profile suspendAfter must be a duration of at least 1m")
+    .optional()
+    .register(configUiMetadata, {
+      label: "Cloud Worker Idle Suspend Duration",
+      help: "Automatically reclaims an idle cloud worker after this duration, such as 45m or 2h; the next message provisions a replacement. Minimum: 1m. Leave unset to keep workers running.",
+    }),
   settings: CloudWorkerSettingsSchema.optional().register(configUiMetadata, {
     label: "Cloud Worker Provider Settings",
     help: "Provider-owned settings validated by the selected plugin. Use SecretRef objects for secret-bearing values; opaque settings do not gain automatic secret resolution.",
@@ -3701,11 +5562,29 @@ var CloudWorkerProfileIdSchema = z12
     (value) => value === value.trim(),
     "Worker profile ids must not contain outer whitespace",
   );
+var CloudWorkerProjectKeySchema = z12
+  .string()
+  .min(1)
+  .refine(
+    (value) => normalizeCloudRepo(`https://${value}`) === value,
+    "Project profile keys must use lowercase host/owner/repo identities without trailing .git",
+  );
+var CloudWorkerProjectProfileSchema = CloudWorkerProfileIdSchema.register(configUiMetadata, {
+  label: "Cloud Worker Project Profile",
+  help: "Cloud worker profile name used by default when a session worktree's origin matches this repository identity.",
+});
 var CloudWorkersConfigShape = {
   desktop: z12.boolean().optional().register(configUiMetadata, {
     label: "Cloud Worker Desktop (Labs)",
     help: "Enables the experimental worker.desktop.observe surface and Control UI Desktop panel for desktop-capable cloud worker environments.",
   }),
+  projectProfiles: z12
+    .record(CloudWorkerProjectKeySchema, CloudWorkerProjectProfileSchema)
+    .optional()
+    .register(configUiMetadata, {
+      label: "Cloud Worker Project Profiles",
+      help: "Default cloud worker profile names keyed by normalized lowercase repository identity (host/owner/repo). Explicit dispatch profile ids take precedence.",
+    }),
   profiles: z12
     .record(CloudWorkerProfileIdSchema, CloudWorkerProfileSchema)
     .optional()
@@ -3717,10 +5596,13 @@ var CloudWorkersConfigShape = {
 var CloudWorkersConfigSchema = z12.object(CloudWorkersConfigShape).strict().optional();
 var CLOUD_WORKER_FIELD_SCHEMAS = {
   "cloudWorkers.desktop": CloudWorkersConfigShape.desktop,
+  "cloudWorkers.projectProfiles": CloudWorkersConfigShape.projectProfiles,
+  "cloudWorkers.projectProfiles.*": CloudWorkerProjectProfileSchema,
   "cloudWorkers.profiles": CloudWorkersConfigShape.profiles,
   "cloudWorkers.profiles.*": CloudWorkerProfileSchema,
   "cloudWorkers.profiles.*.provider": CloudWorkerProfileShape.provider,
   "cloudWorkers.profiles.*.install": CloudWorkerProfileShape.install,
+  "cloudWorkers.profiles.*.suspendAfter": CloudWorkerProfileShape.suspendAfter,
   "cloudWorkers.profiles.*.settings": CloudWorkerProfileShape.settings,
 };
 function projectCloudWorkerFieldMetadata(field) {
@@ -3795,6 +5677,19 @@ var DESKTOP_FIELD_HELP = projectDesktopFieldMetadata("help");
 
 // vendor/openclaw/src/config/zod-schema.gateway.ts
 import { z as z16 } from "zod";
+
+// vendor/openclaw/src/gateway/control-ui-bootstrap-contract.ts
+var CONTROL_UI_ENVIRONMENT_COLORS = [
+  "teal",
+  "amber",
+  "purple",
+  "coral",
+  "pink",
+  "blue",
+  "green",
+  "red",
+  "gray",
+];
 
 // vendor/openclaw/src/gateway/operator-scopes.ts
 var ADMIN_SCOPE = "operator.admin";
@@ -3885,6 +5780,11 @@ function findEdgeAuthIssue(headers) {
 
 // vendor/openclaw/src/config/zod-schema.node-host.ts
 import { z as z14 } from "zod";
+
+// vendor/openclaw/src/infra/node-runner-inventory.ts
+var NODE_WORKER_CAPACITY_MAX = 1024;
+
+// vendor/openclaw/src/config/zod-schema.node-host.ts
 var BrowserSnapshotDefaultsSchema = z14
   .object({
     mode: z14.literal("efficient").optional(),
@@ -3905,6 +5805,9 @@ var NodeHostAgentRunsSchema = z14
 var NodeHostWorkerRunsSchema = z14
   .object({
     enabled: z14.boolean().optional(),
+    capacity: z14.number().int().min(1).max(NODE_WORKER_CAPACITY_MAX).optional(),
+    isolation: z14.enum(["none", "container"]).optional(),
+    containerImage: z14.string().trim().min(1).optional(),
   })
   .strict()
   .optional();
@@ -4374,6 +6277,18 @@ var OperatorScopeSchema = z16.enum([
   TALK_SCOPE,
   TALK_SECRETS_SCOPE,
 ]);
+var GatewayOperatorRoleDefinitionSchema = z16.strictObject({
+  sessions: z16.strictObject({ others: z16.enum(["none", "view", "suggest", "write"]) }),
+  sandbox: z16.enum(["inherit", "required"]).optional(),
+  agents: z16.union([
+    z16.literal("*"),
+    z16
+      .array(z16.string().trim().min(1).refine(isValidAgentId, "Invalid agent id"))
+      .transform((agents) => uniqueValues(agents.map(normalizeAgentId))),
+  ]),
+  scopes: z16.array(OperatorScopeSchema).transform((scopes) => uniqueValues(scopes)),
+});
+var GatewayOperatorRoleNameSchema = z16.string().trim().min(1).max(128);
 var GATEWAY_HTTP_LOOPBACK_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "[::1]"]);
 function validateGatewayPublicOrigin(value) {
   if (!validateHttpOrigin(value)) {
@@ -4411,6 +6326,12 @@ var GatewayConfigSchema = z16
         enabled: z16.boolean().optional(),
         basePath: z16.string().optional(),
         root: z16.string().optional(),
+        environment: z16
+          .strictObject({
+            label: z16.string().trim().min(1).max(24),
+            color: z16.enum(CONTROL_UI_ENVIRONMENT_COLORS),
+          })
+          .optional(),
         github: z16
           .strictObject({ token: SecretInputSchema.optional().register(sensitive) })
           .optional(),
@@ -4420,6 +6341,7 @@ var GatewayConfigSchema = z16
           .union([z16.literal("strict"), z16.literal("scripts"), z16.literal("trusted")])
           .optional(),
         allowExternalEmbedUrls: z16.boolean().optional(),
+        automaticallyFetchFavicons: z16.boolean().optional(),
         allowedOrigins: z16.array(z16.string()).optional(),
         dangerouslyAllowHostHeaderOriginFallback: z16.boolean().optional(),
       })
@@ -4472,6 +6394,26 @@ var GatewayConfigSchema = z16
               .optional(),
           })
           .optional(),
+      })
+      .optional(),
+    roles: z16
+      .strictObject({
+        default: GatewayOperatorRoleNameSchema,
+        definitions: z16
+          .record(GatewayOperatorRoleNameSchema, GatewayOperatorRoleDefinitionSchema)
+          .refine(
+            (definitions) => Object.keys(definitions).length > 0,
+            "gateway.roles.definitions must contain at least one role definition",
+          ),
+      })
+      .superRefine((roles, ctx) => {
+        if (!Object.hasOwn(roles.definitions, roles.default)) {
+          ctx.addIssue({
+            code: "custom",
+            message: "gateway.roles.default must name a configured role definition",
+            path: ["default"],
+          });
+        }
       })
       .optional(),
     trustedProxies: z16.array(z16.string()).optional(),
@@ -4663,6 +6605,10 @@ var HookMappingSchema = z17
     sessionMode: z17.union([z17.literal("isolated"), z17.literal("persistent")]).optional(),
     messageTemplate: z17.string().optional(),
     textTemplate: z17.string().optional(),
+    forEach: z17
+      .string()
+      .regex(/^[^.[\]]+$/, "forEach must be a top-level payload key")
+      .optional(),
     deliver: z17.boolean().optional(),
     allowUnsafeExternalContent: z17.boolean().optional(),
     // Keep this open-ended so runtime channel plugins (for example feishu) can be
@@ -4934,150 +6880,169 @@ var CommandsSchema = z19
     restart: true,
   }));
 
+// vendor/openclaw/src/config/zod-schema.telemetry.ts
+import { z as z20 } from "zod";
+var TelemetryConfigShape = {
+  enabled: z20.boolean().optional().register(configUiMetadata, {
+    label: "Anonymous Feature Statistics",
+    help: "Shares enabled channel and provider names, plugin count, and recent session count with the daily update check. Disabled by default and always disabled when DO_NOT_TRACK=1.",
+  }),
+  consentedAt: z20.string().datetime().optional().register(configUiMetadata, {
+    label: "Feature Statistics Consent Timestamp",
+    help: "ISO timestamp recording when the operator accepted or declined anonymous feature statistics. Prevents the setup wizard from asking again.",
+  }),
+};
+var TelemetryConfigSchema = z20.object(TelemetryConfigShape).strict().optional();
+var TELEMETRY_FIELD_SCHEMAS = {
+  "telemetry.enabled": TelemetryConfigShape.enabled,
+  "telemetry.consentedAt": TelemetryConfigShape.consentedAt,
+};
+
 // vendor/openclaw/src/config/zod-schema.root-shape.ts
-var MetricNamePrefixSchema = z20
+var MetricNamePrefixSchema = z21
   .string()
   .max(128)
   .regex(/^(?:[A-Za-z][A-Za-z0-9_./-]*)?$/);
 var OpenClawSchemaShape = {
-  $schema: z20.string().optional(),
-  meta: z20
+  $schema: z21.string().optional(),
+  meta: z21
     .strictObject({
-      lastTouchedVersion: z20.string().optional(),
-      migrations: z20
+      lastTouchedVersion: z21.string().optional(),
+      migrations: z21
         .strictObject({
-          modelPolicyAllowlist: z20.literal(true).optional(),
+          modelPolicyAllowlist: z21.literal(true).optional(),
         })
         .optional(),
     })
     .optional(),
-  env: z20
+  env: z21
     .object({
-      shellEnv: z20
+      shellEnv: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
-          timeoutMs: z20.number().int().nonnegative().optional(),
+          enabled: z21.boolean().optional(),
+          timeoutMs: z21.number().int().nonnegative().optional(),
         })
         .optional(),
-      vars: z20.record(z20.string(), z20.string()).optional(),
+      vars: z21.record(z21.string(), z21.string()).optional(),
     })
     .strict()
     .optional(),
-  wizard: z20
+  wizard: z21
     .strictObject({
-      accessMode: z20.union([z20.literal("full"), z20.literal("guarded")]).optional(),
-      appRecommendations: z20.boolean().optional(),
-      lastRunAt: z20.string().optional(),
-      lastRunVersion: z20.string().optional(),
-      lastRunCommit: z20.string().optional(),
-      lastRunCommand: z20.string().optional(),
-      lastRunMode: z20.union([z20.literal("local"), z20.literal("remote")]).optional(),
-      localModelLeanAutoModel: z20.string().optional(),
-      securityAcknowledgedAt: z20.string().optional(),
+      accessMode: z21.union([z21.literal("full"), z21.literal("guarded")]).optional(),
+      appRecommendations: z21.boolean().optional(),
+      lastRunAt: z21.string().optional(),
+      lastRunVersion: z21.string().optional(),
+      lastRunCommit: z21.string().optional(),
+      lastRunCommand: z21.string().optional(),
+      lastRunMode: z21.union([z21.literal("local"), z21.literal("remote")]).optional(),
+      localModelLeanAutoModel: z21.string().optional(),
+      securityAcknowledgedAt: z21.string().optional(),
     })
     .optional(),
-  diagnostics: z20
+  diagnostics: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      flags: z20.array(z20.string()).optional(),
-      otel: z20
+      enabled: z21.boolean().optional(),
+      flags: z21.array(z21.string()).optional(),
+      otel: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
-          endpoint: z20.string().optional(),
-          tracesEndpoint: z20.string().optional(),
-          metricsEndpoint: z20.string().optional(),
-          logsEndpoint: z20.string().optional(),
-          protocol: z20.literal("http/protobuf").optional(),
-          headers: z20.record(z20.string(), z20.string()).optional(),
-          serviceName: z20.string().optional(),
+          enabled: z21.boolean().optional(),
+          endpoint: z21.string().optional(),
+          tracesEndpoint: z21.string().optional(),
+          metricsEndpoint: z21.string().optional(),
+          logsEndpoint: z21.string().optional(),
+          protocol: z21.literal("http/protobuf").optional(),
+          headers: z21.record(z21.string(), z21.string()).optional(),
+          serviceName: z21.string().optional(),
           metricNamePrefix: MetricNamePrefixSchema.optional(),
-          traces: z20.boolean().optional(),
-          metrics: z20.boolean().optional(),
-          logs: z20.boolean().optional(),
-          logsExporter: z20
-            .union([z20.literal("otlp"), z20.literal("stdout"), z20.literal("both")])
+          traces: z21.boolean().optional(),
+          metrics: z21.boolean().optional(),
+          logs: z21.boolean().optional(),
+          logsExporter: z21
+            .union([z21.literal("otlp"), z21.literal("stdout"), z21.literal("both")])
             .optional(),
-          sampleRate: z20.number().min(0).max(1).optional(),
-          flushIntervalMs: z20.number().int().nonnegative().optional(),
-          captureContent: z20.boolean().optional(),
+          sampleRate: z21.number().min(0).max(1).optional(),
+          flushIntervalMs: z21.number().int().nonnegative().optional(),
+          captureContent: z21.boolean().optional(),
         })
         .optional(),
-      cacheTrace: z20.strictObject({ enabled: z20.boolean().optional() }).optional(),
+      cacheTrace: z21.strictObject({ enabled: z21.boolean().optional() }).optional(),
     })
     .optional(),
-  logging: z20
+  logging: z21
     .strictObject({
       level: LoggingLevelSchema.optional(),
-      file: z20.string().optional(),
-      maxFileBytes: z20.number().int().positive().optional(),
+      file: z21.string().optional(),
+      maxFileBytes: z21.number().int().positive().optional(),
       consoleLevel: LoggingLevelSchema.optional(),
-      consoleStyle: z20.union([z20.literal("pretty"), z20.literal("json")]).optional(),
-      redactPatterns: z20.array(z20.string()).optional(),
-      audit: z20
+      consoleStyle: z21.union([z21.literal("pretty"), z21.literal("json")]).optional(),
+      redactPatterns: z21.array(z21.string()).optional(),
+      audit: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
-          executionIdentity: z20.boolean().optional(),
-          messages: z20
-            .union([z20.literal("off"), z20.literal("direct"), z20.literal("all")])
+          enabled: z21.boolean().optional(),
+          executionIdentity: z21.boolean().optional(),
+          messages: z21
+            .union([z21.literal("off"), z21.literal("direct"), z21.literal("all")])
             .optional(),
         })
         .optional(),
     })
     .optional(),
-  update: z20
+  update: z21
     .strictObject({
-      channel: z20
+      channel: z21
         .union([
-          z20.literal("stable"),
-          z20.literal("extended-stable"),
-          z20.literal("beta"),
-          z20.literal("dev"),
+          z21.literal("stable"),
+          z21.literal("extended-stable"),
+          z21.literal("beta"),
+          z21.literal("dev"),
         ])
         .optional(),
-      checkOnStart: z20.boolean().optional(),
-      auto: z20
+      checkOnStart: z21.boolean().optional(),
+      auto: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
+          enabled: z21.boolean().optional(),
         })
         .optional(),
     })
     .optional(),
-  browser: z20
+  telemetry: TelemetryConfigSchema,
+  browser: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      allowSystemProfileImport: z20.boolean().optional(),
-      evaluateEnabled: z20.boolean().optional(),
-      cdpUrl: z20.string().optional(),
-      executablePath: z20.string().optional(),
-      headless: z20.boolean().optional(),
-      noSandbox: z20.boolean().optional(),
-      attachOnly: z20.boolean().optional(),
-      defaultProfile: z20.string().optional(),
+      enabled: z21.boolean().optional(),
+      allowSystemProfileImport: z21.boolean().optional(),
+      evaluateEnabled: z21.boolean().optional(),
+      cdpUrl: z21.string().optional(),
+      executablePath: z21.string().optional(),
+      headless: z21.boolean().optional(),
+      noSandbox: z21.boolean().optional(),
+      attachOnly: z21.boolean().optional(),
+      defaultProfile: z21.string().optional(),
       snapshotDefaults: BrowserSnapshotDefaultsSchema,
       ssrfPolicy: SsrFPolicyConfigSchema.optional(),
-      profiles: z20
+      profiles: z21
         .record(
-          z20
+          z21
             .string()
             .regex(/^[a-z0-9-]+$/, "Profile names must be alphanumeric with hyphens only"),
-          z20
+          z21
             .strictObject({
-              cdpPort: z20.number().int().min(1).max(65535).optional(),
-              cdpUrl: z20.string().optional(),
-              userDataDir: z20.string().optional(),
-              mcpCommand: z20.string().optional(),
-              mcpArgs: z20.array(z20.string()).optional(),
-              driver: z20
+              cdpPort: z21.number().int().min(1).max(65535).optional(),
+              cdpUrl: z21.string().optional(),
+              userDataDir: z21.string().optional(),
+              mcpCommand: z21.string().optional(),
+              mcpArgs: z21.array(z21.string()).optional(),
+              driver: z21
                 .union([
-                  z20.literal("openclaw"),
-                  z20.literal("clawd"),
-                  z20.literal("existing-session"),
-                  z20.literal("extension"),
+                  z21.literal("openclaw"),
+                  z21.literal("clawd"),
+                  z21.literal("existing-session"),
+                  z21.literal("extension"),
                 ])
                 .optional(),
-              headless: z20.boolean().optional(),
-              executablePath: z20.string().optional(),
-              attachOnly: z20.boolean().optional(),
+              headless: z21.boolean().optional(),
+              executablePath: z21.string().optional(),
+              attachOnly: z21.boolean().optional(),
             })
             .refine(
               (value) =>
@@ -5098,102 +7063,101 @@ var OpenClawSchemaShape = {
             }),
         )
         .optional(),
-      extraArgs: z20.array(z20.string()).optional(),
-      tabCleanup: z20
+      extraArgs: z21.array(z21.string()).optional(),
+      tabCleanup: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
+          enabled: z21.boolean().optional(),
         })
         .optional(),
-      extensionRelay: z20
+      extensionRelay: z21
         .strictObject({
-          allowLegacyAuth: z20.boolean().optional(),
+          allowLegacyAuth: z21.boolean().optional(),
         })
         .optional(),
     })
     .optional(),
-  ui: z20
+  ui: z21
     .strictObject({
       seamColor: HexColorSchema.optional(),
-      assistant: z20
-        .strictObject({
-          name: z20.string().max(50).optional(),
-          avatar: z20.string().max(2e6).optional(),
-        })
-        .optional(),
       // Operator display prefs. Canonical here (agent-writable via approval,
       // synced across devices); the Control UI mirrors them into local
       // storage for instant boot and offline fallback.
-      prefs: z20
+      prefs: z21
         .strictObject({
-          theme: z20
+          theme: z21
             .union([
-              z20.literal("claw"),
-              z20.literal("knot"),
-              z20.literal("dash"),
-              z20.literal("custom"),
+              z21.literal("claw"),
+              z21.literal("knot"),
+              z21.literal("dash"),
+              z21.literal("absolutely"),
+              z21.literal("tide"),
+              z21.literal("beacon"),
+              z21.literal("phosphor"),
+              z21.literal("custom"),
             ])
             .optional(),
-          themeMode: z20
-            .union([z20.literal("light"), z20.literal("dark"), z20.literal("system")])
+          themeMode: z21
+            .union([z21.literal("light"), z21.literal("dark"), z21.literal("system")])
             .optional(),
-          locale: z20.string().max(20).optional(),
-          chatShowThinking: z20.boolean().optional(),
-          chatShowToolCalls: z20.boolean().optional(),
-          chatPersistCommentary: z20.boolean().optional(),
-          chatSendShortcut: z20
-            .union([z20.literal("enter"), z20.literal("modifier-enter")])
+          accent: HexColorSchema.startsWith("#").optional(),
+          locale: z21.string().max(20).optional(),
+          chatShowThinking: z21.boolean().optional(),
+          chatShowToolCalls: z21.boolean().optional(),
+          chatPersistCommentary: z21.boolean().optional(),
+          chatSendShortcut: z21
+            .union([z21.literal("enter"), z21.literal("modifier-enter")])
             .optional(),
-          chatFollowUpMode: z20.union([z20.literal("steer"), z20.literal("queue")]).optional(),
-          sidebarEntries: z20.array(z20.string()).optional(),
+          chatFollowUpMode: z21.union([z21.literal("steer"), z21.literal("queue")]).optional(),
+          sidebarEntries: z21.array(z21.string()).optional(),
         })
         .optional(),
     })
     .optional(),
   secrets: SecretsConfigSchema,
-  auth: z20
+  auth: z21
     .strictObject({
-      profiles: z20
+      profiles: z21
         .record(
-          z20.string(),
-          z20.strictObject({
-            provider: z20.string(),
-            mode: z20.union([
-              z20.literal("api_key"),
-              z20.literal("aws-sdk"),
-              z20.literal("oauth"),
-              z20.literal("token"),
+          z21.string(),
+          z21.strictObject({
+            provider: z21.string(),
+            mode: z21.union([
+              z21.literal("api_key"),
+              z21.literal("aws-sdk"),
+              z21.literal("oauth"),
+              z21.literal("token"),
             ]),
-            email: z20.string().optional(),
-            displayName: z20.string().optional(),
+            email: z21.string().optional(),
+            displayName: z21.string().optional(),
           }),
         )
         .optional(),
-      order: z20.record(z20.string(), z20.array(z20.string())).optional(),
+      order: z21.record(z21.string(), z21.array(z21.string())).optional(),
     })
     .optional(),
   accessGroups: AccessGroupsSchema,
-  acp: z20
+  acp: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      dispatch: z20
+      enabled: z21.boolean().optional(),
+      dispatch: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
+          enabled: z21.boolean().optional(),
         })
         .optional(),
-      backend: z20.string().optional(),
-      fallbacks: z20.array(z20.string()).optional(),
-      defaultAgent: z20.string().optional(),
-      allowedAgents: z20.array(z20.string()).optional(),
-      stream: z20
+      backend: z21.string().optional(),
+      fallbacks: z21.array(z21.string()).optional(),
+      defaultAgent: z21.string().optional(),
+      allowedAgents: z21.array(z21.string()).optional(),
+      stream: z21
         .strictObject({
-          repeatSuppression: z20.boolean().optional(),
-          deliveryMode: z20.union([z20.literal("live"), z20.literal("final_only")]).optional(),
-          tagVisibility: z20.record(z20.string(), z20.boolean()).optional(),
+          repeatSuppression: z21.boolean().optional(),
+          deliveryMode: z21.union([z21.literal("live"), z21.literal("final_only")]).optional(),
+          tagVisibility: z21.record(z21.string(), z21.boolean()).optional(),
         })
         .optional(),
-      runtime: z20
+      runtime: z21
         .strictObject({
-          installCommand: z20.string().optional(),
+          installCommand: z21.string().optional(),
         })
         .optional(),
     })
@@ -5205,9 +7169,9 @@ var OpenClawSchemaShape = {
   security: SecuritySchema,
   bindings: BindingsSchema,
   broadcast: BroadcastSchema,
-  attachments: z20
+  attachments: z21
     .strictObject({
-      ttlHours: z20
+      ttlHours: z21
         .number()
         .int()
         .min(1)
@@ -5220,27 +7184,27 @@ var OpenClawSchemaShape = {
   commands: CommandsSchema,
   approvals: ApprovalsSchema,
   session: SessionSchema,
-  cron: z20
+  cron: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      triggers: z20
+      enabled: z21.boolean().optional(),
+      triggers: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
+          enabled: z21.boolean().optional(),
         })
         .optional(),
       webhookToken: SecretInputSchema.optional().register(sensitive),
       webhookSsrfPolicy: SsrFPolicyConfigSchema.optional(),
-      sessionRetention: z20.union([z20.string(), z20.literal(false)]).optional(),
-      failureAlert: z20
+      sessionRetention: z21.union([z21.string(), z21.literal(false)]).optional(),
+      failureAlert: z21
         .strictObject({
-          enabled: z20.boolean().optional(),
-          after: z20.number().int().min(1).optional(),
-          cooldownMs: z20.number().int().min(0).optional(),
-          includeSkipped: z20.boolean().optional(),
-          mode: z20.enum(["announce", "webhook"]).optional(),
-          accountId: z20.string().optional(),
-          channel: z20.string().optional(),
-          to: z20.string().optional(),
+          enabled: z21.boolean().optional(),
+          after: z21.number().int().min(1).optional(),
+          cooldownMs: z21.number().int().min(0).optional(),
+          includeSkipped: z21.boolean().optional(),
+          mode: z21.enum(["announce", "webhook"]).optional(),
+          accountId: z21.string().optional(),
+          channel: z21.string().optional(),
+          to: z21.string().optional(),
         })
         .optional(),
     })
@@ -5252,7 +7216,7 @@ var OpenClawSchemaShape = {
           });
         } catch {
           ctx.addIssue({
-            code: z20.ZodIssueCode.custom,
+            code: z21.ZodIssueCode.custom,
             path: ["sessionRetention"],
             message: "invalid duration (use ms, s, m, h, d)",
           });
@@ -5260,36 +7224,36 @@ var OpenClawSchemaShape = {
       }
     })
     .optional(),
-  transcripts: z20
+  transcripts: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      autoStart: z20
+      enabled: z21.boolean().optional(),
+      autoStart: z21
         .array(
-          z20.strictObject({
-            providerId: z20.string().min(1),
-            sessionId: z20.string().min(1).optional(),
-            title: z20.string().min(1).optional(),
-            accountId: z20.string().min(1).optional(),
-            guildId: z20.string().min(1).optional(),
-            channelId: z20.string().min(1).optional(),
-            meetingUrl: z20.string().min(1).optional(),
+          z21.strictObject({
+            providerId: z21.string().min(1),
+            sessionId: z21.string().min(1).optional(),
+            title: z21.string().min(1).optional(),
+            accountId: z21.string().min(1).optional(),
+            guildId: z21.string().min(1).optional(),
+            channelId: z21.string().min(1).optional(),
+            meetingUrl: z21.string().min(1).optional(),
           }),
         )
         .optional(),
     })
     .optional(),
-  hooks: z20
+  hooks: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      path: z20.string().optional(),
-      token: z20.string().optional().register(sensitive),
-      defaultSessionKey: z20.string().optional(),
-      allowRequestSessionKey: z20.boolean().optional(),
-      allowedSessionKeyPrefixes: z20.array(z20.string()).optional(),
-      allowedAgentIds: z20.array(z20.string()).optional(),
-      presets: z20.array(z20.string()).optional(),
-      transformsDir: z20.string().optional(),
-      mappings: z20.array(HookMappingSchema).optional(),
+      enabled: z21.boolean().optional(),
+      path: z21.string().optional(),
+      token: z21.string().optional().register(sensitive),
+      defaultSessionKey: z21.string().optional(),
+      allowRequestSessionKey: z21.boolean().optional(),
+      allowedSessionKeyPrefixes: z21.array(z21.string()).optional(),
+      allowedAgentIds: z21.array(z21.string()).optional(),
+      presets: z21.array(z21.string()).optional(),
+      transformsDir: z21.string().optional(),
+      mappings: z21.array(HookMappingSchema).optional(),
       gmail: HooksGmailSchema,
       internal: InternalHooksSchema,
     })
@@ -5307,7 +7271,7 @@ var OpenClawSchemaShape = {
           !mapping.transform
         ) {
           ctx.addIssue({
-            code: z20.ZodIssueCode.custom,
+            code: z21.ZodIssueCode.custom,
             path: ["mappings", index, "sessionKey"],
             message:
               "persistent hook mappings require sessionKey, hooks.defaultSessionKey, or a transform",
@@ -5317,16 +7281,16 @@ var OpenClawSchemaShape = {
     })
     .optional(),
   channels: ChannelsSchema,
-  discovery: z20
+  discovery: z21
     .strictObject({
-      wideArea: z20
+      wideArea: z21
         .strictObject({
-          domain: z20.string().optional(),
+          domain: z21.string().optional(),
         })
         .optional(),
-      mdns: z20
+      mdns: z21
         .strictObject({
-          mode: z20.enum(["off", "minimal", "full"]).optional(),
+          mode: z21.enum(["off", "minimal", "full"]).optional(),
         })
         .optional(),
     })
@@ -5337,80 +7301,80 @@ var OpenClawSchemaShape = {
   desktop: DesktopConfigSchema,
   memory: MemorySchema,
   mcp: McpConfigSchema,
-  skills: z20
+  skills: z21
     .strictObject({
-      allowBundled: z20.array(z20.string()).optional(),
-      load: z20
+      allowBundled: z21.array(z21.string()).optional(),
+      load: z21
         .strictObject({
-          extraDirs: z20.array(z20.string()).optional(),
-          allowSymlinkTargets: z20.array(z20.string()).optional(),
-          watch: z20.boolean().optional(),
+          extraDirs: z21.array(z21.string()).optional(),
+          allowSymlinkTargets: z21.array(z21.string()).optional(),
+          watch: z21.boolean().optional(),
         })
         .optional(),
-      install: z20
+      install: z21
         .strictObject({
-          preferBrew: z20.boolean().optional(),
-          nodeManager: z20
+          preferBrew: z21.boolean().optional(),
+          nodeManager: z21
             .union([
-              z20.literal("npm"),
-              z20.literal("pnpm"),
-              z20.literal("yarn"),
-              z20.literal("bun"),
+              z21.literal("npm"),
+              z21.literal("pnpm"),
+              z21.literal("yarn"),
+              z21.literal("bun"),
             ])
             .optional(),
-          allowUploadedArchives: z20.boolean().optional(),
+          allowUploadedArchives: z21.boolean().optional(),
         })
         .optional(),
-      limits: z20
+      limits: z21
         .strictObject({
-          maxCandidatesPerRoot: z20.number().int().min(1).optional(),
-          maxSkillsLoadedPerSource: z20.number().int().min(1).optional(),
-          maxSkillsInPrompt: z20.number().int().min(0).optional(),
-          maxSkillsPromptChars: z20.number().int().min(0).optional(),
-          maxSkillFileBytes: z20.number().int().min(0).optional(),
+          maxCandidatesPerRoot: z21.number().int().min(1).optional(),
+          maxSkillsLoadedPerSource: z21.number().int().min(1).optional(),
+          maxSkillsInPrompt: z21.number().int().min(0).optional(),
+          maxSkillsPromptChars: z21.number().int().min(0).optional(),
+          maxSkillFileBytes: z21.number().int().min(0).optional(),
         })
         .optional(),
-      workshop: z20
+      workshop: z21
         .strictObject({
-          autonomous: z20
+          autonomous: z21
             .strictObject({
-              mode: z20
-                .union([z20.literal("off"), z20.literal("propose"), z20.literal("auto")])
+              mode: z21
+                .union([z21.literal("off"), z21.literal("propose"), z21.literal("auto")])
                 .optional(),
             })
             .optional(),
-          approvalPolicy: z20.union([z20.literal("pending"), z20.literal("auto")]).optional(),
-          allowSymlinkTargetWrites: z20.boolean().optional(),
-          maxPending: z20.number().int().min(1).optional(),
-          maxSkillBytes: z20.number().int().min(1).optional(),
+          approvalPolicy: z21.union([z21.literal("pending"), z21.literal("auto")]).optional(),
+          allowSymlinkTargetWrites: z21.boolean().optional(),
+          maxPending: z21.number().int().min(1).optional(),
+          maxSkillBytes: z21.number().int().min(1).optional(),
         })
         .optional(),
-      entries: z20.record(z20.string(), SkillEntrySchema).optional(),
+      entries: z21.record(z21.string(), SkillEntrySchema).optional(),
     })
     .optional(),
-  plugins: z20
+  plugins: z21
     .strictObject({
-      enabled: z20.boolean().optional(),
-      allow: z20.array(z20.string()).optional(),
-      deny: z20.array(z20.string()).optional(),
-      load: z20
+      enabled: z21.boolean().optional(),
+      allow: z21.array(z21.string()).optional(),
+      deny: z21.array(z21.string()).optional(),
+      load: z21
         .strictObject({
-          paths: z20.array(z20.string()).optional(),
+          paths: z21.array(z21.string()).optional(),
         })
         .optional(),
-      slots: z20
+      slots: z21
         .strictObject({
-          memory: z20.string().optional(),
-          contextEngine: z20.string().optional(),
+          memory: z21.string().optional(),
+          contextEngine: z21.string().optional(),
         })
         .optional(),
-      entries: z20.record(z20.string(), PluginEntrySchema).optional(),
+      entries: z21.record(z21.string(), PluginEntrySchema).optional(),
     })
     .optional(),
-  surfaces: z20
+  surfaces: z21
     .record(
-      z20.string(),
-      z20.strictObject({
+      z21.string(),
+      z21.strictObject({
         silentReply: SilentReplyPolicyConfigSchema.optional(),
       }),
     )
@@ -5420,10 +7384,10 @@ var OpenClawSchemaShape = {
 
 // vendor/openclaw/src/config/zod-schema.ts
 function installZodDefaultLocale() {
-  z21.config(z21.locales.en());
+  z22.config(z22.locales.en());
 }
 installZodDefaultLocale();
-var OpenClawSchema = z21.strictObject(OpenClawSchemaShape).superRefine((cfg, ctx) => {
+var OpenClawSchema = z22.strictObject(OpenClawSchemaShape).superRefine((cfg, ctx) => {
   const agents = listAgentEntries(cfg);
   const agentIds = new Set(agents.map((agent) => agent.id));
   const effectiveAgentIds = new Set(agents.map((agent) => normalizeAgentId(agent.id)));
@@ -5447,7 +7411,7 @@ var OpenClawSchema = z21.strictObject(OpenClawSchemaShape).superRefine((cfg, ctx
       !effectiveAgentIds.has(normalizeAgentId(target.agentId))
     ) {
       ctx.addIssue({
-        code: z21.ZodIssueCode.custom,
+        code: z22.ZodIssueCode.custom,
         path: [...target.path],
         message: `Unknown agent id "${target.agentId}" (not in agents.entries).`,
       });
@@ -5470,7 +7434,7 @@ var OpenClawSchema = z21.strictObject(OpenClawSchemaShape).superRefine((cfg, ctx
         !effectiveAgentIds.has(normalizeAgentId(agentId))
       ) {
         ctx.addIssue({
-          code: z21.ZodIssueCode.custom,
+          code: z22.ZodIssueCode.custom,
           path: ["bindings", idx, "agentId"],
           message: `Unknown agent id "${agentId}" (not in agents.entries).`,
         });
@@ -5491,7 +7455,7 @@ var OpenClawSchema = z21.strictObject(OpenClawSchemaShape).superRefine((cfg, ctx
     for (const [idx, agentId] of ids.entries()) {
       if (!agentIds.has(agentId)) {
         ctx.addIssue({
-          code: z21.ZodIssueCode.custom,
+          code: z22.ZodIssueCode.custom,
           path: ["broadcast", peerId, idx],
           message: `Unknown agent id "${agentId}" (not in agents.entries).`,
         });

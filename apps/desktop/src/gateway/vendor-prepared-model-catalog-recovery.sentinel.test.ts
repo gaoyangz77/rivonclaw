@@ -1,32 +1,15 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const VENDOR_ROOT = resolve(__dirname, "../../../../vendor/openclaw");
 
-const PATCH_FILE = resolve(
-  __dirname,
-  "../../../../vendor-patches/openclaw/0038-vendor-openclaw-recover-invalid-prepared-model-catalog-generations.patch",
-);
-const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
-const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
-  ? PATCHED_VENDOR_ROOT
-  : resolve(__dirname, "../../../../vendor/openclaw");
-
-describe("vendor patch 0038: prepared model catalog generation recovery", () => {
-  const patch = readFileSync(PATCH_FILE, "utf8");
-  const workerBoundary = readFileSync(
-    resolve(VENDOR_ROOT, "src/agents/prepared-model-catalog-worker.ts"),
-    "utf8",
-  );
-  const catalogBoundary = readFileSync(
-    resolve(VENDOR_ROOT, "src/agents/prepared-model-catalog.ts"),
-    "utf8",
-  );
-  const runtime = readFileSync(
-    resolve(VENDOR_ROOT, "src/agents/prepared-model-runtime.ts"),
+describe("OpenClaw v2026.8.1: prepared model catalog metadata generation", () => {
+  const worker = readFileSync(
+    resolve(VENDOR_ROOT, "src/agents/prepared-model-catalog.worker.ts"),
     "utf8",
   );
   const regression = readFileSync(
@@ -34,37 +17,19 @@ describe("vendor patch 0038: prepared model catalog generation recovery", () => 
     "utf8",
   );
 
-  it("classifies only a reconstructed generation mismatch as recoverable", () => {
-    expect(workerBoundary).toContain('message.status === "generation-invalid"');
-    expect(workerBoundary).toContain("PreparedModelCatalogGenerationInvalidError");
-    expect(catalogBoundary).toContain(
-      "replacePreparedModelRuntimeSnapshotAfterCatalogGenerationMismatch(snapshot)",
+  it("restores the exact Gateway plugin metadata snapshot in the worker", () => {
+    expect(worker).toContain(
+      "restorePluginMetadataSnapshot(value.pluginMetadataSnapshot)",
     );
+    expect(worker).toContain("const prepared = await prepareWorkspaceBuildGroup(");
+    expect(worker).toContain("metadata,");
   });
 
-  it("rebuilds the configured owner behind a shared recovery gate", () => {
-    expect(runtime).toContain(
-      "replacePreparedModelRuntimeSnapshotAfterCatalogGenerationMismatch",
-    );
-    expect(runtime).toContain("catalogGenerationRecoveries");
-    expect(runtime).toContain("pendingModelRuntimeReplacement = replacement");
-  });
-
-  it("carries the failing-first models.list regression including a concurrent reader", () => {
-    expect(regression).toContain(
-      'it("rebuilds the published owner before models.list retries a generation mismatch"',
-    );
-    expect(regression).toContain("registerPreparedModelRuntimePublicationListener");
-    expect(regression).toContain("concurrentRecovered?.entries");
-  });
-
-  it("records the exact upstream source and removal condition", () => {
-    expect(patch).toContain("PR #126224");
-    expect(patch).toContain("issue #126108");
-    expect(patch).toContain("059bea02f804144e33e169f90267d365b4d6a490");
-    expect(patch).toContain("Removal:");
-    expect(patch).toContain(
-      "apps/desktop/src/gateway/vendor-prepared-model-catalog-recovery.sentinel.test.ts",
-    );
+  it("guards every metadata scope with both catalog-first orderings", () => {
+    expect(regression).toContain('"keeps %s metadata discovery scope with %s first"');
+    expect(regression).toContain('["gateway", "auth-refresh"]');
+    expect(regression).toContain('["none", "auth-refresh"]');
+    expect(regression).toContain('["activation", "auth-refresh"]');
+    expect(regression).toContain('if (first === "auth-refresh")');
   });
 });

@@ -22,8 +22,26 @@ if [ "$SKIP_CLONE" = false ]; then
 fi
 
 cd "$REPO_ROOT/vendor/openclaw"
-git checkout "$HASH"
-git checkout -B main
+# This checkout is generated from the pin and patch stack. Packaging may leave
+# tracked vendor files modified (for example after dependency pruning), so make
+# every setup run start from the exact pinned tree before replaying patches.
+git checkout -B main "$HASH"
+git reset --hard "$HASH"
+rm -f .pruned vendor-runtime.tar vendor-runtime.tar.gz vendor-runtime-manifest.json
+
+# OpenClaw may use a newer lockfile format than the RivonClaw workspace.
+# Always honor the exact pnpm version declared by the pinned vendor instead of
+# relying on whichever pnpm happens to be installed globally in CI. The pinned
+# release is installed outside this checkout — the vendor .npmrc dependency
+# cooldown must not veto the package manager the vendor itself pins. See
+# scripts/vendor-pnpm.cjs.
+VENDOR_PNPM="$(node "$REPO_ROOT/scripts/vendor-pnpm.cjs" "$REPO_ROOT/vendor/openclaw")"
+
+vendor_pnpm() {
+  "$VENDOR_PNPM" "$@"
+}
+
+echo "Using vendor pnpm $VENDOR_PNPM"
 
 # Apply patches before dependency installation or the first build. Some patches
 # fix platform-specific build failures, so a pristine build may never reach a
@@ -44,7 +62,7 @@ export npm_config_node_linker=hoisted
 if [ "${SKIP_VENDOR_INSTALL:-}" = "true" ]; then
   echo "Skipping pnpm install (cache hit)"
 else
-  pnpm install --frozen-lockfile
+  vendor_pnpm install --frozen-lockfile
 fi
 
 # Build (skip if CI cache hit)
@@ -76,7 +94,7 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ -n "$MISSING_VENDOR_BUILD_OUTPUT" 
   # prod-only. pnpm won't re-install dev deps if it thinks the lockfile is
   # already satisfied, so remove node_modules first to force a clean install.
   rm -rf node_modules
-  pnpm install --frozen-lockfile
+  vendor_pnpm install --frozen-lockfile
 fi
 
 if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
@@ -87,9 +105,9 @@ else
   # or may be prod-only. Force a clean install to guarantee @types/* and other
   # dev deps are resolvable in the flat hoisted layout that the build expects.
   rm -rf node_modules
-  pnpm install --frozen-lockfile
-  pnpm run build
-  pnpm ui:build
+  vendor_pnpm install --frozen-lockfile
+  vendor_pnpm run build
+  vendor_pnpm ui:build
   # Mark dist/ as complete so CI cache can verify integrity on restore.
   # Without this marker, a cached dist/ from an incomplete/failed build
   # would silently break the app (e.g. missing dist/plugins/runtime/).

@@ -1,4 +1,4 @@
-From b44eca38599502d3bd235e67ad134ad765e74bb1 Mon Sep 17 00:00:00 2001
+From d82bc677e468fbf58a0e6abee9b3847c65ef6b36 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
 Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
@@ -23,19 +23,28 @@ Tests:
  1 file changed, 18 insertions(+), 7 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 638fc24cce4..9a441259a7a 100644
+index b57bb4cdffe..fbc3fd62632 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -621,7 +621,7 @@ function buildMessagingSection(params: {
+@@ -613,7 +613,7 @@ function buildMessagingSection(params: {
        : []),
      subagentOrchestrationGuidance,
      completionEventGuidance,
 -    "- Provider messaging: never exec/curl; OpenClaw routes.",
 +    "- Never use exec/curl for provider messaging; RivonClaw handles all routing internally.",
-     params.availableTools.has("message")
+     messageToolAvailable
        ? [
            "",
-@@ -905,9 +905,9 @@ export function buildAgentSystemPrompt(params: {
+@@ -854,7 +854,7 @@ export function buildAgentSystemPrompt(params: {
+     return params.extraSystemPrompt ?? "";
+   }
+   if (promptMode === "none") {
+-    return ["You are a personal assistant running inside OpenClaw.", modelIdentityLine]
++    return ["You are a personal assistant running inside RivonClaw Desktop.", modelIdentityLine]
+       .filter(Boolean)
+       .join("\n");
+   }
+@@ -898,9 +898,9 @@ export function buildAgentSystemPrompt(params: {
      conversations_send: "Send directly to an external conversation",
      conversations_turn: "Send and wait for one correlated external reply",
      openclaw: "Gateway restart/system setup/config; changes need human approval",
@@ -47,25 +56,16 @@ index 638fc24cce4..9a441259a7a 100644
        : "List allowed subagent ids",
      sessions_list: "List visible sessions; filters/last",
      sessions_history: "Read visible session/subagent history",
-@@ -1161,7 +1161,7 @@ export function buildAgentSystemPrompt(params: {
- 
-   // For "none" mode, return just the basic identity line
-   if (promptMode === "none") {
--    return ["You are a personal assistant running inside OpenClaw.", modelIdentityLine]
-+    return ["You are a personal assistant running inside RivonClaw Desktop.", modelIdentityLine]
-       .filter(Boolean)
-       .join("\n");
-   }
-@@ -1222,7 +1222,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1210,7 +1210,7 @@ export function buildAgentSystemPrompt(params: {
    });
    const stablePrefix = cacheStablePromptPrefix(stablePrefixCacheKey, () => {
      const lines = [
 -      "You are a personal assistant running inside OpenClaw.",
 +      "You are a personal assistant running inside RivonClaw Desktop.",
        "",
-       "## Tooling",
-       "Tools policy-filtered. Names case-sensitive; call exact.",
-@@ -1314,7 +1314,7 @@ export function buildAgentSystemPrompt(params: {
+       ...(includeToolGuidance
+         ? [
+@@ -1322,7 +1322,7 @@ export function buildAgentSystemPrompt(params: {
        }),
        ...safetySection,
        "## RivonClaw Desktop Runtime",
@@ -74,7 +74,7 @@ index 638fc24cce4..9a441259a7a 100644
        "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
        "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools for gateway status, config, and restart instead of shell CLI commands.",
        "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
-@@ -1322,6 +1322,17 @@ export function buildAgentSystemPrompt(params: {
+@@ -1330,6 +1330,17 @@ export function buildAgentSystemPrompt(params: {
        ...skillsSection,
        ...skillWorkshopSection,
        ...memorySection,
@@ -92,15 +92,15 @@ index 638fc24cce4..9a441259a7a 100644
        params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
          ? "## Model Aliases"
          : "",
-@@ -1403,7 +1414,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1411,7 +1422,7 @@ export function buildAgentSystemPrompt(params: {
        params.sandboxInfo?.enabled ? "" : "",
        ...bootstrapSystemPromptSections,
        "## Workspace Files (injected)",
 -      "User-editable; OpenClaw loads below as Project Context.",
 +      "These user-editable files are loaded by RivonClaw and included below in Project Context.",
        "",
-       ...buildAssistantOutputDirectivesSection({ isMinimal, sourceMessageToolOnly }),
-     ];
+       ...buildAssistantOutputDirectivesSection({
+         isMinimal,
 -- 
 2.50.1 (Apple Git-155)
 

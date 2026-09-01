@@ -1,4 +1,4 @@
-From e74a23ac7afbf19060566b9e13bd61c496db3084 Mon Sep 17 00:00:00 2001
+From 7d7de432270d10688590949b02a8931679b62dab Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 00:52:01 -0700
 Subject: [PATCH] vendor(openclaw): expose silent completion for agent RPC
@@ -15,15 +15,15 @@ Tests:
  .../gateway-protocol/src/schema/agent.test.ts   | 17 +++++++++++++++++
  packages/gateway-protocol/src/schema/agent.ts   |  1 +
  .../command/attempt-execution.cli.test.ts       |  2 ++
- src/agents/command/attempt-execution.ts         |  3 ++-
+ src/agents/command/attempt-execution.ts         |  5 ++++-
  src/agents/command/types.ts                     |  2 ++
  .../agent-turn/agent-run-execution-phase.ts     |  1 +
  .../server-methods/agent-request-types.ts       |  1 +
  .../agent.events-and-subagents.test-utils.ts    |  3 +++
- 8 files changed, 29 insertions(+), 1 deletion(-)
+ 8 files changed, 31 insertions(+), 1 deletion(-)
 
 diff --git a/packages/gateway-protocol/src/schema/agent.test.ts b/packages/gateway-protocol/src/schema/agent.test.ts
-index ea46d48d118..825c6a08a9f 100644
+index 9e37c9f1013..e8c1402c936 100644
 --- a/packages/gateway-protocol/src/schema/agent.test.ts
 +++ b/packages/gateway-protocol/src/schema/agent.test.ts
 @@ -70,6 +70,23 @@ const musicCompletionEvent: AgentInternalEvent = {
@@ -51,10 +51,10 @@ index ea46d48d118..825c6a08a9f 100644
      expect(
        Value.Check(AgentParamsSchema, {
 diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
-index 8bcc4217059..74d2f473d36 100644
+index 9e3d6a37c6c..66bfe05c58f 100644
 --- a/packages/gateway-protocol/src/schema/agent.ts
 +++ b/packages/gateway-protocol/src/schema/agent.ts
-@@ -316,6 +316,7 @@ export const AgentParamsSchema = closedObject({
+@@ -326,6 +326,7 @@ export const AgentParamsSchema = closedObject({
        Type.Literal("raw"),
      ]),
    ),
@@ -63,10 +63,10 @@ index 8bcc4217059..74d2f473d36 100644
    bootstrapContextMode: Type.Optional(
      Type.Union([Type.Literal("full"), Type.Literal("lightweight")]),
 diff --git a/src/agents/command/attempt-execution.cli.test.ts b/src/agents/command/attempt-execution.cli.test.ts
-index d2b5685ce89..4ffa87bad39 100644
+index 86bbd8a2266..f5bdc431044 100644
 --- a/src/agents/command/attempt-execution.cli.test.ts
 +++ b/src/agents/command/attempt-execution.cli.test.ts
-@@ -3422,6 +3422,7 @@ describe("CLI attempt execution", () => {
+@@ -3694,6 +3694,7 @@ describe("CLI attempt execution", () => {
        opts: {
          modelRun: true,
          promptMode: "none",
@@ -74,7 +74,7 @@ index d2b5685ce89..4ffa87bad39 100644
          messageProvider: "discord-voice",
          inputProvenance: {
            kind: "inter_session",
-@@ -3444,6 +3445,7 @@ describe("CLI attempt execution", () => {
+@@ -3716,6 +3717,7 @@ describe("CLI attempt execution", () => {
        messageProvider: "discord-voice",
        modelRun: true,
        promptMode: "none",
@@ -83,24 +83,26 @@ index d2b5685ce89..4ffa87bad39 100644
      });
      expect(firstEmbeddedAgentArg().prompt).not.toContain("[Inter-session message]");
 diff --git a/src/agents/command/attempt-execution.ts b/src/agents/command/attempt-execution.ts
-index 3e411245c4a..48ecc16f062 100644
+index 1c76ed1602b..7d4c24894f6 100644
 --- a/src/agents/command/attempt-execution.ts
 +++ b/src/agents/command/attempt-execution.ts
-@@ -1227,7 +1227,8 @@ export function runAgentAttempt(params: {
+@@ -1325,7 +1325,10 @@ export function runAgentAttempt(params: {
      modelRun: params.opts.modelRun,
      promptMode: params.opts.promptMode,
      disableTools,
--    allowEmptyAssistantReplyAsSilent: isSubagentAnnounceHandoff,
+-    allowEmptyAssistantReplyAsSilent: isSubagentLane || isSubagentAnnounceHandoff,
 +    allowEmptyAssistantReplyAsSilent:
-+      params.opts.allowEmptyAssistantReplyAsSilent === true || isSubagentAnnounceHandoff,
++      params.opts.allowEmptyAssistantReplyAsSilent === true ||
++      isSubagentLane ||
++      isSubagentAnnounceHandoff,
      onAgentEvent: params.onAgentEvent,
+     onExecutionPhase: onRuntimeActivity,
      deferTerminalLifecycle: params.deferTerminalLifecycle,
-     suppressNextUserMessagePersistence: params.suppressPromptPersistenceOnRetry === true,
 diff --git a/src/agents/command/types.ts b/src/agents/command/types.ts
-index 282605b68ff..08652a9d2fa 100644
+index a1eacff6d4b..91779687758 100644
 --- a/src/agents/command/types.ts
 +++ b/src/agents/command/types.ts
-@@ -221,6 +221,8 @@ export type AgentCommandOpts = {
+@@ -227,6 +227,8 @@ export type AgentCommandOpts = {
    modelRun?: boolean;
    /** Internal prompt-mode override for trusted local/gateway callsites. */
    promptMode?: PromptMode;
@@ -110,10 +112,10 @@ index 282605b68ff..08652a9d2fa 100644
    acpTurnSource?: AcpTurnSource;
    /** Internal handoffs can feed the model without writing the synthetic prompt to transcript. */
 diff --git a/src/gateway/agent-turn/agent-run-execution-phase.ts b/src/gateway/agent-turn/agent-run-execution-phase.ts
-index 2a589c632f4..37eb369fac8 100644
+index fb85dfbb6c1..e29e6675dcc 100644
 --- a/src/gateway/agent-turn/agent-run-execution-phase.ts
 +++ b/src/gateway/agent-turn/agent-run-execution-phase.ts
-@@ -309,6 +309,7 @@ export function startAgentRunExecution(params: {
+@@ -356,6 +356,7 @@ export function startAgentRunExecution(params: {
                lane: params.request.lane,
                modelRun: params.request.modelRun === true,
                promptMode: params.request.promptMode,
@@ -134,7 +136,7 @@ index 7dbe6270614..dfbbd833ec0 100644
    bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
    acpTurnSource?: "manual_spawn";
 diff --git a/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts b/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
-index 2b35cfbba6d..603cbd08d47 100644
+index 3bb7597875a..f06aa5a81b7 100644
 --- a/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
 +++ b/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
 @@ -487,6 +487,7 @@ describe("gateway agent handler", () => {
