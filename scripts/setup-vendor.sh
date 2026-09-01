@@ -58,11 +58,24 @@ fi
 # so vendor git stays clean (pre-commit hook checks for dirty state).
 export npm_config_node_linker=hoisted
 
+# Remove every node_modules directory in the workspace, not only the root one.
+# With the hoisted linker pnpm also creates nested node_modules inside
+# workspace packages (for example extensions/*/node_modules/<dep>), some of
+# them as junctions on Windows. Reinstalling over those leftovers makes pnpm
+# 12 fail with "failed to clear non-directory dirent ... Access is denied",
+# so a forced clean install has to start from no node_modules at all.
+clean_vendor_node_modules() {
+  find . -path ./.git -prune -o -type d -name node_modules -prune -print0 \
+    | xargs -0 rm -rf --
+}
+
 # Install dependencies (skip if CI cache hit)
+INSTALLED_THIS_RUN=false
 if [ "${SKIP_VENDOR_INSTALL:-}" = "true" ]; then
   echo "Skipping pnpm install (cache hit)"
 else
   vendor_pnpm install --frozen-lockfile
+  INSTALLED_THIS_RUN=true
 fi
 
 # Build (skip if CI cache hit)
@@ -93,8 +106,9 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ -n "$MISSING_VENDOR_BUILD_OUTPUT" 
   # Dev dependencies are needed for build but cached node_modules may be
   # prod-only. pnpm won't re-install dev deps if it thinks the lockfile is
   # already satisfied, so remove node_modules first to force a clean install.
-  rm -rf node_modules
+  clean_vendor_node_modules
   vendor_pnpm install --frozen-lockfile
+  INSTALLED_THIS_RUN=true
 fi
 
 if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
@@ -104,8 +118,13 @@ else
   # The node_modules cache may have been created with a different linker mode
   # or may be prod-only. Force a clean install to guarantee @types/* and other
   # dev deps are resolvable in the flat hoisted layout that the build expects.
-  rm -rf node_modules
-  vendor_pnpm install --frozen-lockfile
+  # An install performed earlier in this same run already used exactly these
+  # flags, so repeating it would only cost time and reintroduce the leftover
+  # nested node_modules problem described above.
+  if [ "$INSTALLED_THIS_RUN" != "true" ]; then
+    clean_vendor_node_modules
+    vendor_pnpm install --frozen-lockfile
+  fi
   vendor_pnpm run build
   vendor_pnpm ui:build
   # Mark dist/ as complete so CI cache can verify integrity on restore.
