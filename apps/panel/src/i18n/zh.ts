@@ -35,13 +35,15 @@ export default {
     refresh: "刷新",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "云端工具库不可用",
-    cloudToolsUnavailableBody: "云端工具及相关 Agent 能力暂时不可用，请检查网络连接后稍后重试。",
+    cloudToolsUnavailableBody:
+      "云端工具及相关 Agent 能力暂时不可用，请检查网络连接后稍后重试。",
   },
   authGate: {
     loginRequired: "需要登录",
     loginRequiredDesc: "您需要登录才能访问此功能。请登录或创建账户。",
     subscriptionRequired: "需要订阅",
-    subscriptionRequiredDesc: "此功能仅面向 Pro 和 Enterprise 订阅用户开放。请升级您的套餐以继续。",
+    subscriptionRequiredDesc:
+      "此功能仅面向 Pro 和 Enterprise 订阅用户开放。请升级您的套餐以继续。",
     upgradeAction: "升级套餐",
   },
   nav: {
@@ -122,8 +124,10 @@ export default {
       "对话太长，超出了模型的上下文限制。请使用 /reset 开始新对话，或切换到支持更长上下文的模型。",
     errorAuth: "认证失败，请前往「模型」页面检查 API 密钥或重新登录。",
     disconnectedError: "连接中断，正在重连，稍后可重新发送消息。",
-    stalledError: "回复中断 — 未收到最终回复。任务可能已在服务端完成，请尝试上滑查看或重新发送。",
-    watchdogError: "5 分钟内无响应活动，连接可能已静默断开。请尝试重新发送消息。",
+    stalledError:
+      "回复中断 — 未收到最终回复。任务可能已在服务端完成，请尝试上滑查看或重新发送。",
+    watchdogError:
+      "5 分钟内无响应活动，连接可能已静默断开。请尝试重新发送消息。",
     contextWindowWarning:
       "当前对话已使用约 {{currentTokens}} tokens，超过新模型上下文窗口 ({{newContextWindow}}) 的 80%。建议开始新对话以避免错误。",
     contextOverflowTitle: "上下文窗口已超出",
@@ -215,7 +219,8 @@ export default {
   },
   providers: {
     title: "模型",
-    description: "配置你的 LLM 提供商和 API 密钥。支持同时配置多个提供商，按需切换。",
+    description:
+      "配置你的 LLM 提供商和 API 密钥。支持同时配置多个提供商，按需切换。",
     providerLabel: "提供商",
     apiKeyLabel: "API 密钥",
     apiKeyPlaceholder: "安全存储在系统钥匙串中，不会写入配置文件。",
@@ -261,7 +266,8 @@ export default {
     expired: "已过期",
     reauthModal: {
       title: "重新认证 {{label}}",
-      intro: "重新登录以更新此密钥的 OAuth 凭据。标签、模型和代理设置会保留，仅替换已存储的令牌。",
+      intro:
+        "重新登录以更新此密钥的 OAuth 凭据。标签、模型和代理设置会保留，仅替换已存储的令牌。",
       "signIn_openai-codex": "使用 ChatGPT 登录",
       waitingForBrowser: "等待浏览器登录中…",
       authUrlLabel: "授权链接",
@@ -276,7 +282,8 @@ export default {
       starting: "启动中…",
       rotating: "正在更换凭据…",
       cancel: "取消",
-      captureWarning: "凭据已更换，但令牌有效期未能读取。如下次请求失败，请再次重新认证。",
+      captureWarning:
+        "凭据已更换，但令牌有效期未能读取。如下次请求失败，请再次重新认证。",
     },
     modelLabel: "模型",
     labelPlaceholder: "标签（可选）",
@@ -284,7 +291,8 @@ export default {
     keyLabel: "标签",
     advancedSettings: "高级设置",
     proxyLabel: "代理 URL（可选）",
-    proxyPlaceholder: "http://user:pass@proxy.example.com:8080 或 socks5://user:pass@...",
+    proxyPlaceholder:
+      "http://user:pass@proxy.example.com:8080 或 socks5://user:pass@...",
     proxyHelp: "HTTP/HTTPS/SOCKS5 代理。凭据安全存储在系统钥匙串中。",
     proxyTooltip: "使用此密钥调用大语言模型时将通过代理转发",
     colLabel: "标签",
@@ -304,7 +312,8 @@ export default {
     pricingUnavailable: "暂无定价数据。",
     pricingViewFull: "查看完整定价",
     pricingCurrency: "货币",
-    pricingDisclaimer: "以上为厂商公示的标准价格，实际费用可能因账户类型、优惠活动等因素而不同。",
+    pricingDisclaimer:
+      "以上为厂商公示的标准价格，实际费用可能因账户类型、优惠活动等因素而不同。",
     pricingPlansTitle: "订阅方案",
     pricingPlansUnavailable: "暂无方案数据。",
     configuredKeysTitle: "已配置的密钥",
@@ -356,7 +365,8 @@ export default {
     "oauthInfo_openai-codex":
       "使用 ChatGPT 账号登录以使用 OpenAI Codex 模型。需要 ChatGPT Plus 或 Pro 订阅。OAuth 令牌安全存储在系统钥匙串中。",
     oauthTokenLabel: "OAuth 令牌",
-    "oauthTokenHelp_openai-codex": "通过 OpenAI OAuth 获取的令牌，安全存储在系统钥匙串中。",
+    "oauthTokenHelp_openai-codex":
+      "通过 OpenAI OAuth 获取的令牌，安全存储在系统钥匙串中。",
     "oauthManualInfo_openai-codex":
       "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
     oauthWaitingForBrowser: "等待浏览器登录中...",
@@ -368,15 +378,18 @@ export default {
     oauthManualSubmit: "完成登录",
     desc_openai: "GPT 和 ChatGPT 的创造者，通用 AI 行业领导者。",
     desc_anthropic: "Claude 的开发者，以安全可靠的高能力模型著称。",
-    desc_claude: "Claude Pro ($20/月)、Max ($100/月、$200/月)。订阅可获得更高用量。",
+    desc_claude:
+      "Claude Pro ($20/月)、Max ($100/月、$200/月)。订阅可获得更高用量。",
     desc_google: "Google Gemini 系列，强大的多模态和长上下文能力。",
     desc_deepseek: "国产 AI 实验室，高性价比开源模型。",
     desc_zhipu: "智谱 AI 国内服务 (open.bigmodel.cn)，人民币计费。",
-    "desc_zhipu-coding": "GLM 编程套餐订阅用户专用 (open.bigmodel.cn)，人民币计费。",
+    "desc_zhipu-coding":
+      "GLM 编程套餐订阅用户专用 (open.bigmodel.cn)，人民币计费。",
     desc_zai: "智谱 AI 国际服务 (z.ai)，美元计费。",
     desc_moonshot: "Moonshot AI 国际服务 (moonshot.ai)，美元计费。",
     desc_kimi: "Kimi 国内服务 (moonshot.cn)，人民币计费。",
-    "desc_moonshot-coding": "Kimi Code 编程套餐，适用于 Kimi CLI、Claude Code 等开发工具。",
+    "desc_moonshot-coding":
+      "Kimi Code 编程套餐，适用于 Kimi CLI、Claude Code 等开发工具。",
     desc_qwen: "阿里巴巴通义千问系列，多语言和编程能力突出。",
     "desc_qwen-coding": "阿里云百炼编程套餐，适用于 Claude Code 等开发工具。",
     desc_modelscope: "魔搭社区免费推理服务，免费额度使用通义千问模型。",
@@ -390,22 +403,26 @@ export default {
     desc_venice: "注重隐私的 AI 平台，无审查模型托管。",
     desc_xiaomi: "小米 AI 实验室，轻量高效模型。",
     desc_volcengine: "字节跳动旗下云平台，豆包大语言模型。",
-    "desc_volcengine-coding": "火山方舟 Coding Plan 订阅，适用于 Claude Code 等开发工具。",
+    "desc_volcengine-coding":
+      "火山方舟 Coding Plan 订阅，适用于 Claude Code 等开发工具。",
     desc_nvidia: "英伟达 AI 平台，访问 GPU 优化的开源模型。",
     "desc_nvidia-nim": "英伟达 NIM 微服务，访问 GPU 优化的模型。",
     "desc_amazon-bedrock": "AWS 托管服务，通过统一 API 访问多家供应商。",
     hint_openai: "在 platform.openai.com 获取 API 密钥。",
-    hint_anthropic: "在 console.anthropic.com 获取 API 密钥，或运行 {{cmd}} 获取 OAuth Token。",
+    hint_anthropic:
+      "在 console.anthropic.com 获取 API 密钥，或运行 {{cmd}} 获取 OAuth Token。",
     hint_claude:
       "在 claude.ai 订阅后，前往 console.anthropic.com 获取 API 密钥，或运行 {{cmd}} 获取 OAuth Token。",
     hint_google: "在 aistudio.google.com 获取 API 密钥。",
     hint_deepseek: "在 platform.deepseek.com 获取 API 密钥。",
     hint_zhipu: "在 open.bigmodel.cn 获取 API 密钥。",
-    "hint_zhipu-coding": "在 open.bigmodel.cn 获取 API 密钥，需先订阅 GLM 编程套餐。",
+    "hint_zhipu-coding":
+      "在 open.bigmodel.cn 获取 API 密钥，需先订阅 GLM 编程套餐。",
     hint_zai: "在 z.ai 获取 API 密钥。",
     hint_moonshot: "在 platform.moonshot.ai 获取 API 密钥。",
     hint_kimi: "在 platform.moonshot.cn 获取 API 密钥。",
-    "hint_moonshot-coding": "在 kimi.com/code 订阅后，前往控制台获取 API 密钥。",
+    "hint_moonshot-coding":
+      "在 kimi.com/code 订阅后，前往控制台获取 API 密钥。",
     hint_qwen: "在 dashscope.console.aliyun.com 获取 API 密钥。",
     "hint_qwen-coding": "在阿里云订阅编程套餐后，前往百炼控制台获取 API 密钥。",
     hint_modelscope: "在 modelscope.cn/my/myaccesstoken 获取访问令牌。",
@@ -419,7 +436,8 @@ export default {
     hint_venice: "在 venice.ai/settings 获取 API 密钥。",
     hint_xiaomi: "在 developers.xiaomi.com 获取 API 密钥。",
     hint_volcengine: "在 console.volcengine.com 获取 API 密钥。",
-    "hint_volcengine-coding": "在 volcengine.com 订阅 Coding Plan 后，前往控制台获取 API 密钥。",
+    "hint_volcengine-coding":
+      "在 volcengine.com 订阅 Coding Plan 后，前往控制台获取 API 密钥。",
     hint_nvidia: "在 build.nvidia.com/settings/api-keys 获取 API 密钥。",
     "hint_nvidia-nim": "在 build.nvidia.com/settings/api-keys 获取 API 密钥。",
     "hint_amazon-bedrock": "使用 {{cmd}} 配置 AWS 凭证。",
@@ -480,7 +498,8 @@ export default {
     deleting: "删除中...",
     failedToDelete: "删除账号失败：",
     deleteConfirmTitle: "确定要删除此 {{channel}} 账号吗？",
-    deleteConfirmMessage: "此操作将删除账号配置和所有存储的密钥。此操作无法撤销。",
+    deleteConfirmMessage:
+      "此操作将删除账号配置和所有存储的密钥。此操作无法撤销。",
     // Time formatters
     timeNever: "从未",
     timeJustNow: "刚刚",
@@ -558,7 +577,8 @@ export default {
     fieldBotTokenPlaceholder: "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
     fieldBotTokenPlaceholderEdit: "留空以保留现有 token",
     fieldBotTokenHintEdit: "安全存储在钥匙串中。仅在更改 token 时提供。",
-    fieldBotTokenHintCreate: "从 Telegram 的 @BotFather 获取。安全存储在钥匙串中。",
+    fieldBotTokenHintCreate:
+      "从 Telegram 的 @BotFather 获取。安全存储在钥匙串中。",
     fieldWebhookUrl: "Webhook URL（可选）",
     fieldWebhookUrlPlaceholder: "https://example.com/webhook",
     fieldWebhookUrlHint: "留空使用轮询模式",
@@ -584,9 +604,12 @@ export default {
       "输入飞书用户 ID（open_id 或 user_id）。可在飞书管理后台 → 成员管理中查找。",
     discordGroupAllowFromHint:
       "输入 Discord 用户 ID。右键用户 → 复制用户 ID（需在设置 → 高级中开启开发者模式）。",
-    slackGroupAllowFromHint: "输入 Slack 成员 ID。点击用户头像 → 更多 → 复制成员 ID。",
-    signalGroupAllowFromHint: "输入 Signal 用户手机号，使用 E.164 格式（如 +1234567890）。",
-    googlechatGroupAllowFromHint: "输入 Google Chat 用户 ID。可在 Google 管理控制台 → 用户中查找。",
+    slackGroupAllowFromHint:
+      "输入 Slack 成员 ID。点击用户头像 → 更多 → 复制成员 ID。",
+    signalGroupAllowFromHint:
+      "输入 Signal 用户手机号，使用 E.164 格式（如 +1234567890）。",
+    googlechatGroupAllowFromHint:
+      "输入 Google Chat 用户 ID。可在 Google 管理控制台 → 用户中查找。",
     imessageGroupAllowFromHint: "输入允许的发送者手机号或 Apple ID。",
     msteamsGroupAllowFromHint:
       "输入 Microsoft Teams 用户 ID（Azure AD 对象 ID）。可在 Azure AD 管理中心查找。",
@@ -600,8 +623,10 @@ export default {
       "输入 Slack 频道 ID（如 C0ABC12345）。右键频道 → 查看频道详情 → 滚动到底部查看频道 ID。",
     googlechatAllowedGroupsHint:
       "输入 Google Chat 空间 ID。可通过 Google Chat API 或空间 URL 查找。",
-    signalAllowedGroupsHint: "输入 Signal 群组 ID，即 Signal 群组信息里显示的内部群组标识。",
-    imessageAllowedGroupsHint: "输入 iMessage 群聊 ID，即 Messages 数据库中的聊天标识。",
+    signalAllowedGroupsHint:
+      "输入 Signal 群组 ID，即 Signal 群组信息里显示的内部群组标识。",
+    imessageAllowedGroupsHint:
+      "输入 iMessage 群聊 ID，即 Messages 数据库中的聊天标识。",
     msteamsAllowedGroupsHint:
       "输入 Microsoft Teams 频道 ID。可在 Teams → 频道设置 → 获取频道链接，或通过 Microsoft Graph API 查询。",
     groupPolicyOpen: "开放 - 在所有加入的群组中响应",
@@ -610,7 +635,8 @@ export default {
     fieldEnableAccount: "启用此账号",
     errorAccountIdRequired: "账号 ID 为必填项",
     errorBotTokenRequired: "Bot token 为必填项",
-    errorChannelNotSupported: "界面暂不支持通道类型 {{channelId}}。目前仅支持 Telegram。",
+    errorChannelNotSupported:
+      "界面暂不支持通道类型 {{channelId}}。目前仅支持 Telegram。",
     errorLabel: "错误：",
     buttonCancel: "取消",
     buttonSaving: "保存中...",
@@ -639,7 +665,8 @@ export default {
     label_mattermost: "Mattermost",
     label_msteams: "Microsoft Teams",
     label_imessage: "iMessage",
-    desc_telegram: "功能丰富的即时通讯应用，拥有强大的 Bot API，消息类型无限制。",
+    desc_telegram:
+      "功能丰富的即时通讯应用，拥有强大的 Bot API，消息类型无限制。",
     desc_discord: "社区交流平台，Bot 功能完善，适合开发者社区。",
     desc_slack: "企业即时通讯平台，支持 Slack App 或 Bot Token 接入。",
     desc_whatsapp: "全球最流行的聊天应用，触达用户日常沟通渠道。",
@@ -659,9 +686,12 @@ export default {
     // Tooltips for each channel
     tooltipTelegram: "找 @BotFather 创建 bot，拿到 token",
     tooltipWhatsApp: "需要一个真实手机号，openclaw channels login 扫码连接",
-    tooltipDiscord: "在 discord.com/developers 创建 Application + Bot，开启 Message Content Intent",
-    tooltipSlack: "在 api.slack.com/apps 创建 App，拿到 App Token (xapp-) 和 Bot Token (xoxb-)",
-    tooltipGoogleChat: "Google Cloud 创建 Service Account + 配置 Chat App，需要公网 HTTPS endpoint",
+    tooltipDiscord:
+      "在 discord.com/developers 创建 Application + Bot，开启 Message Content Intent",
+    tooltipSlack:
+      "在 api.slack.com/apps 创建 App，拿到 App Token (xapp-) 和 Bot Token (xoxb-)",
+    tooltipGoogleChat:
+      "Google Cloud 创建 Service Account + 配置 Chat App，需要公网 HTTPS endpoint",
     tooltipSignal: "安装 signal-cli (需要 Java)，signal-cli link 扫码绑定",
     tooltipIMessage: "仅限 macOS，安装 imsg CLI，需要 Full Disk Access 权限",
     // New channel tooltips
@@ -714,7 +744,8 @@ export default {
     // Mattermost fields
     mattermostBotToken: "Bot Token",
     mattermostBotTokenPlaceholder: "输入个人访问令牌",
-    mattermostBotTokenHint: "在 Mattermost → 账号设置 → 安全 → 个人访问令牌 中创建",
+    mattermostBotTokenHint:
+      "在 Mattermost → 账号设置 → 安全 → 个人访问令牌 中创建",
     mattermostBaseUrl: "服务器 URL",
     mattermostBaseUrlPlaceholder: "https://mattermost.example.com",
     mattermostBaseUrlHint: "你的 Mattermost 服务器地址",
@@ -724,7 +755,8 @@ export default {
     msteamsAppIdHint: "Azure Bot Framework App ID",
     msteamsAppPassword: "App Password",
     msteamsAppPasswordPlaceholder: "输入 app password",
-    msteamsAppPasswordHint: "Azure Bot Framework App Password，安全存储在钥匙串中",
+    msteamsAppPasswordHint:
+      "Azure Bot Framework App Password，安全存储在钥匙串中",
     msteamsTenantId: "Tenant ID（可选）",
     msteamsTenantIdPlaceholder: "12345678-1234-1234-1234-123456789012",
     msteamsTenantIdHint: "组织的 Azure AD Tenant ID",
@@ -735,10 +767,12 @@ export default {
     // Slack fields
     slackBotToken: "Bot Token",
     slackBotTokenPlaceholder: "xoxb-...",
-    slackBotTokenHint: "从 Slack 应用设置中获取的 Bot User OAuth Token。安全存储在钥匙串中。",
+    slackBotTokenHint:
+      "从 Slack 应用设置中获取的 Bot User OAuth Token。安全存储在钥匙串中。",
     slackAppToken: "App Token（可选）",
     slackAppTokenPlaceholder: "xapp-...",
-    slackAppTokenHint: "Socket 模式需要。从 Slack 应用设置中获取的应用级令牌。安全存储在钥匙串中。",
+    slackAppTokenHint:
+      "Socket 模式需要。从 Slack 应用设置中获取的应用级令牌。安全存储在钥匙串中。",
     slackMode: "连接模式",
     slackModeHint: "推荐使用 Socket 模式，设置更简单",
     // Google Chat fields
@@ -749,14 +783,16 @@ export default {
     googlechatWebhookUrlPlaceholder: "https://your-server.com/webhook",
     googlechatWebhookUrlHint: "Google Chat 可以发送事件的公共 URL",
     // WhatsApp fields
-    whatsappSetupHint: "WhatsApp 需要通过 CLI 进行二维码认证：openclaw channels login whatsapp",
+    whatsappSetupHint:
+      "WhatsApp 需要通过 CLI 进行二维码认证：openclaw channels login whatsapp",
     // Signal fields
     signalAccount: "电话号码",
     signalAccountPlaceholder: "+1234567890",
     signalAccountHint: "你的 Signal 电话号码（E.164 格式）",
     signalHttpUrl: "Signal API URL（可选）",
     signalHttpUrlPlaceholder: "http://localhost:8080",
-    signalHttpUrlHint: "signal-cli-rest-api 服务器 URL。留空使用本地 signal-cli。",
+    signalHttpUrlHint:
+      "signal-cli-rest-api 服务器 URL。留空使用本地 signal-cli。",
     // iMessage fields
     imessageService: "服务类型",
     imessageServiceHint: "选择 iMessage、SMS 或自动检测",
@@ -845,11 +881,13 @@ export default {
     title: "语音转文字",
     description: "配置语音消息的语音转文字服务。",
     enableStt: "启用语音转文字",
-    enableHelp: "启用后，来自通道的语音消息将自动转录为文字，然后再发送给 AI 代理处理。",
+    enableHelp:
+      "启用后，来自通道的语音消息将自动转录为文字，然后再发送给 AI 代理处理。",
     provider: "STT 服务商",
     providerGroq: "Groq (Whisper)",
     providerVolcengine: "火山引擎",
-    providerHelp: "选择语音转文字服务商。区域感知默认：全球使用 Groq，中国使用火山引擎。",
+    providerHelp:
+      "选择语音转文字服务商。区域感知默认：全球使用 Groq，中国使用火山引擎。",
     groqApiKey: "Groq API 密钥",
     groqApiKeyPlaceholder: "输入你的 Groq API 密钥",
     groqApiKeyRequired: "使用 Groq 服务商时需要提供 API 密钥。",
@@ -876,14 +914,16 @@ export default {
       "语音转文字（STT）会在语音消息发送给 AI 代理之前自动将其转录为文字。这使你的代理能够理解并回复来自 Telegram、WhatsApp 等通道的语音消息。",
     feature1: "自动转录所有已连接通道的语音消息",
     feature2: "区域感知的服务商选择，以获得最佳性能和合规性",
-    feature3: "安全的凭证存储在操作系统密钥链中（macOS Keychain / Windows DPAPI）",
+    feature3:
+      "安全的凭证存储在操作系统密钥链中（macOS Keychain / Windows DPAPI）",
   },
   extras: {
     title: "插件",
     description: "配置 AI 代理的附加能力：语音转文字、网页搜索和记忆功能。",
     sttSection: "语音转文字",
     webSearchSection: "网页搜索",
-    webSearchDescription: "启用网页搜索，让代理不打开浏览器也能从互联网获取实时信息。",
+    webSearchDescription:
+      "启用网页搜索，让代理不打开浏览器也能从互联网获取实时信息。",
     enableWebSearch: "启用网页搜索",
     webSearchProvider: "搜索服务商",
     webSearchProviderBrave: "Brave Search",
@@ -1010,11 +1050,14 @@ export default {
     chat: {
       title: "聊天设置",
       showAgentEvents: "显示代理处理状态",
-      showAgentEventsHint: "在等待回复时显示代理正在做什么（处理中、使用工具、生成回复）。",
+      showAgentEventsHint:
+        "在等待回复时显示代理正在做什么（处理中、使用工具、生成回复）。",
       preserveToolEvents: "保留工具调用记录",
-      preserveToolEventsHint: "在聊天记录中内联保存工具调用条目，使其在对话结束后仍然可见。",
+      preserveToolEventsHint:
+        "在聊天记录中内联保存工具调用条目，使其在对话结束后仍然可见。",
       collapseMessages: "折叠过长消息",
-      collapseMessagesHint: "自动折叠超过约 15 行的代理消息。仍可手动展开单条消息。",
+      collapseMessagesHint:
+        "自动折叠超过约 15 行的代理消息。仍可手动展开单条消息。",
       failedToSave: "保存聊天设置失败：",
     },
     browser: {
@@ -1040,7 +1083,8 @@ export default {
     },
     telemetry: {
       title: "遥测与隐私",
-      description: "通过分享匿名使用统计数据帮助我们改进TK匠。我们重视您的隐私。",
+      description:
+        "通过分享匿名使用统计数据帮助我们改进TK匠。我们重视您的隐私。",
       toggle: "发送匿名使用统计数据",
       whatWeCollect: "我们收集的数据",
       whatWeDontCollect: "我们不收集的数据",
@@ -1062,7 +1106,8 @@ export default {
       failedToSave: "保存遥测设置失败：",
       consent: {
         title: "帮助改进TK匠",
-        description: "我们收集匿名使用统计数据以改进产品。绝不收集个人信息、对话内容或 API 密钥。",
+        description:
+          "我们收集匿名使用统计数据以改进产品。绝不收集个人信息、对话内容或 API 密钥。",
         collectLabel: "收集内容：",
         items: "应用生命周期、功能使用情况、错误报告、运行统计",
         agree: "同意",
@@ -1137,7 +1182,8 @@ export default {
     accountDesc:
       "创建 TK匠 账号后即可连接店铺、领取符合条件的试用，并同步你的电商工作台。已有账号可以直接登录继续使用。",
     createAccountTitle: "新用户注册",
-    createAccountDesc: "创建账号，如有邀请码可填写，然后连接第一家符合条件的店铺。",
+    createAccountDesc:
+      "创建账号，如有邀请码可填写，然后连接第一家符合条件的店铺。",
     loginTitle: "老用户登录",
     loginDesc: "登录后恢复你的店铺、账单、预设和云端工作区。",
   },
@@ -1322,7 +1368,8 @@ export default {
     // Validation
     nameRequired: "请输入名称",
     scheduleRequired: "请设置调度规则",
-    cronInvalidFormat: "无效的 cron 表达式，必须包含 5 个字段：分 时 日 月 星期",
+    cronInvalidFormat:
+      "无效的 cron 表达式，必须包含 5 个字段：分 时 日 月 星期",
     payloadRequired: "请输入内容",
     webhookUrlRequired: "请输入 Webhook URL",
     // Confirm delete
@@ -1337,15 +1384,20 @@ export default {
     historySummary: "摘要 / 错误",
     loadMore: "加载更多",
     // Tooltips
-    tooltipWakeMode: '"立即"会马上启动 Gateway；"下次心跳"会等待下一个心跳周期再执行。',
-    tooltipThinking: "控制模型回答前的推理深度。越高质量越好，但速度更慢、费用更高。",
-    tooltipModel: "为此任务指定特定模型，覆盖默认模型（如 gpt-4o、claude-sonnet-4-20250514）。",
-    tooltipPayloadKind: "Agent 消息 = 向独立 Agent 会话发送提示词；系统事件 = 在主会话中触发事件。",
+    tooltipWakeMode:
+      '"立即"会马上启动 Gateway；"下次心跳"会等待下一个心跳周期再执行。',
+    tooltipThinking:
+      "控制模型回答前的推理深度。越高质量越好，但速度更慢、费用更高。",
+    tooltipModel:
+      "为此任务指定特定模型，覆盖默认模型（如 gpt-4o、claude-sonnet-4-20250514）。",
+    tooltipPayloadKind:
+      "Agent 消息 = 向独立 Agent 会话发送提示词；系统事件 = 在主会话中触发事件。",
     tooltipMessage: "任务执行时发送给 Agent 的提示消息。",
     tooltipText: "任务执行时在主会话中触发的事件文本。",
     tooltipDeliveryMode:
       "不投递 = 静默执行；频道通知 = 将结果发送到消息频道；Webhook = POST 结果到指定 URL。",
-    tooltipDeleteAfterRun: "任务执行一次后自动删除。对一次性调度类型会自动启用。",
+    tooltipDeleteAfterRun:
+      "任务执行一次后自动删除。对一次性调度类型会自动启用。",
     tooltipTimeout: "最长执行时间（秒）。超时后任务将被取消。",
     // Cron presets
     presetEveryMinute: "每分钟",
@@ -1447,7 +1499,8 @@ export default {
     browserLoginOpening: "正在打开浏览器…",
     browserLoginDivider: "或使用其他方式",
     browserLoginWaiting: "请在浏览器中完成登录",
-    browserLoginWaitingHint: "在 TK Copilot 安全页面允许此桌面端登录，本窗口会自动更新。",
+    browserLoginWaitingHint:
+      "在 TK Copilot 安全页面允许此桌面端登录，本窗口会自动更新。",
     browserLoginSuccess: "已通过浏览器登录桌面端",
     browserLoginTimeout: "浏览器登录请求已过期，请重试。",
     browserLoginError: "浏览器登录失败，请重试。",
@@ -1477,7 +1530,8 @@ export default {
     userAgreement: "用户协议",
     agreeUserAgreementSuffix: "。",
     errorUserAgreementRequired: "请先同意用户协议再创建账户。",
-    autoRegisterNotice: "该邮箱尚未注册，已为您切换到注册模式，请输入验证码后点击创建账户。",
+    autoRegisterNotice:
+      "该邮箱尚未注册，已为您切换到注册模式，请输入验证码后点击创建账户。",
     errorEmailNotRegistered: "该邮箱尚未注册",
   },
   account: {
@@ -1492,9 +1546,11 @@ export default {
     status: "状态",
     seats: "席位",
     validUntil: "有效期至",
-    runProfilesDesc: "Agent 运行的工具预设。启动聊天或定时任务时选择一个或多个。",
+    runProfilesDesc:
+      "Agent 运行的工具预设。启动聊天或定时任务时选择一个或多个。",
     defaultRunProfile: "默认运行配置",
-    defaultRunProfileHint: "未手动选择时应用于新会话（聊天、定时任务、渠道消息）",
+    defaultRunProfileHint:
+      "未手动选择时应用于新会话（聊天、定时任务、渠道消息）",
     noDefault: "无（仅基础工具）",
     llmKey: "LLM 密钥",
     llmKeySuspended: "已暂停",
@@ -1566,7 +1622,8 @@ export default {
     continueToPayment: "继续支付",
     manageSubscription: "管理",
     managePaymentMethod: "付款方式",
-    managePaymentMethodMessage: "打开 Stripe 安全计费页面，更新此订阅使用的信用卡。",
+    managePaymentMethodMessage:
+      "打开 Stripe 安全计费页面，更新此订阅使用的信用卡。",
     changePaymentMethod: "更换信用卡",
     cancelSubscription: "退订",
     cancelSubscriptionTitle: "确认退订？",
@@ -1577,7 +1634,8 @@ export default {
     renewSubscription: "续费",
     extendPrepaid: "续费",
     extendPrepaidTitle: "续费",
-    extendPrepaidMessage: "使用微信或支付宝付款，会在 {{date}} 之后延长服务访问时间。",
+    extendPrepaidMessage:
+      "使用微信或支付宝付款，会在 {{date}} 之后延长服务访问时间。",
     renewSubscriptionMessage:
       "选择付款方式续费。信用卡会恢复或开启自动续订，微信 / 支付宝会以预付费方式延长服务。",
     resumeSubscription: "恢复自动续费",
@@ -1694,7 +1752,8 @@ export default {
     paymentPending: {
       title: "等待支付",
       stripeHelp: "信用卡支付页已在浏览器中打开。完成支付后回到这里刷新状态。",
-      lakalaHelp: "请使用微信或支付宝扫描二维码完成支付。系统会自动刷新状态，最多轮询 5 分钟。",
+      lakalaHelp:
+        "请使用微信或支付宝扫描二维码完成支付。系统会自动刷新状态，最多轮询 5 分钟。",
       qrAlt: "支付二维码",
       qrUnavailable: "此支付记录未返回二维码。",
       success: "支付已成功。",
@@ -1729,7 +1788,8 @@ export default {
       title: "工具选择",
       noTools: "没有可用的工具",
       unavailableSelected: "已选但不可用",
-      unavailableSelectedHint: "该工具已不在当前工具列表中，但你仍然可以在这里取消选择。",
+      unavailableSelectedHint:
+        "该工具已不在当前工具列表中，但你仍然可以在这里取消选择。",
       sourceSystem: "系统",
       sourceExtension: "扩展",
       sourceCloud: "云端",
@@ -1922,7 +1982,8 @@ export default {
     signInBody: "SPS 数据仅对当前账户拥有的店铺开放。",
     eyebrow: "店铺表现",
     title: "一个页面掌握所有店铺的 SPS 健康度。",
-    subtitle: "按市场比较店铺，查看 TikTok 实时指标趋势，并从评分直接深入诊断。",
+    subtitle:
+      "按市场比较店铺，查看 TikTok 实时指标趋势，并从评分直接深入诊断。",
     liveApi: "实时 API · 5 分钟缓存",
     refresh: "刷新",
     refreshing: "正在刷新…",
@@ -1965,7 +2026,8 @@ export default {
       noTrendTitle: "TikTok 未返回趋势数据点",
       noTrendBody: "请查看下方店铺状态，并在 TikTok SPS 数据可用后刷新。",
       usOnlyTitle: "当前 API 仅支持美国市场",
-      unsupportedBody: "这些店铺仅用于展示覆盖情况；系统不会为不支持的地区推断评分或诊断。",
+      unsupportedBody:
+        "这些店铺仅用于展示覆盖情况；系统不会为不支持的地区推断评分或诊断。",
     },
     availability: {
       AVAILABLE: "实时",
@@ -2028,7 +2090,8 @@ export default {
     },
     adsManagement: {
       welcomeTitle: "TikTok Ads",
-      welcomeBody: "这个页面用于连接 TikTok Business 授权，并查看店铺的广告账户覆盖情况。",
+      welcomeBody:
+        "这个页面用于连接 TikTok Business 授权，并查看店铺的广告账户覆盖情况。",
       actionsTitle: "连接与刷新",
       actionsBody:
         "使用连接 TikTok Business 来授权广告账户访问。刷新会更新广告账户和店铺覆盖状态。",
@@ -2038,11 +2101,13 @@ export default {
       advertisersBody:
         "每一行都是通过 TikTok Business 授权获得的广告账户，包括授权状态、同步状态和操作入口。",
       shopCoverageTitle: "店铺广告覆盖",
-      shopCoverageBody: "这里按店铺组合展示广告覆盖状态，便于区分已覆盖、部分覆盖和未覆盖。",
+      shopCoverageBody:
+        "这里按店铺组合展示广告覆盖状态，便于区分已覆盖、部分覆盖和未覆盖。",
     },
     providers: {
       welcomeTitle: "欢迎来到模型页面",
-      welcomeBody: "在这里配置驱动 Agent 的 LLM 提供商。我们来逐步了解这个页面的每个部分。",
+      welcomeBody:
+        "在这里配置驱动 Agent 的 LLM 提供商。我们来逐步了解这个页面的每个部分。",
       tabBarTitle: "提供商类型",
       tabBarBody:
         "四个标签页可选：订阅（托管服务，按月计费）、API 密钥（自带密钥，如 OpenAI、Anthropic 等）、本地（通过 Ollama、LM Studio 等自托管模型）、自定义（任何 OpenAI/Anthropic 兼容端点）。",
@@ -2059,7 +2124,8 @@ export default {
       apiKeyFieldBody:
         "在此粘贴你的 API 密钥。密钥会被加密安全地存储在本地设备上。系统会向提供商发送测试请求来验证密钥的有效性。",
       providerLinksTitle: "获取密钥",
-      providerLinksBody: "还没有 API 密钥？点击此链接前往提供商官网，你可以在那里注册并生成密钥。",
+      providerLinksBody:
+        "还没有 API 密钥？点击此链接前往提供商官网，你可以在那里注册并生成密钥。",
       advancedTitle: "高级设置",
       advancedBody:
         "点击展开高级选项。在这里可以配置代理 URL，如果你的网络环境需要通过代理才能访问提供商的 API（如企业防火墙或区域限制）。",
@@ -2098,7 +2164,8 @@ export default {
       welcomeBody:
         "在这里你可以自定义 TK匠 的各项行为。每个部分控制应用的不同方面，让我们逐一了解每个选项。",
       agentSectionTitle: "Agent 设置",
-      agentSectionBody: "这些设置控制 AI Agent 如何处理对话以及如何与浏览器交互。更改会立即生效。",
+      agentSectionBody:
+        "这些设置控制 AI Agent 如何处理对话以及如何与浏览器交互。更改会立即生效。",
       dmScopeTitle: "私聊会话隔离范围",
       dmScopeBody:
         "控制 Agent 处理私聊消息时，对话上下文的隔离方式。共有四个选项：\n\n• 主上下文 — 所有私聊共享一个 Agent 上下文。Agent 能记住所有聊天中的信息，功能强大但意味着某个联系人的信息可能会泄露到与其他联系人的对话中。\n\n• 按联系人 — 每个联系人拥有独立的 Agent 上下文。更注重隐私，每个人有自己的对话历史，但 Agent 无法跨联系人交叉引用信息。\n\n• 按渠道+联系人 — 按渠道和联系人组合隔离。同一个人通过不同渠道（如企微和网页）发送消息时，会获得独立的 Agent 上下文。\n\n• 按账号+渠道+联系人 — 最细粒度的选项。按账号、渠道和联系人三重隔离。如果你运营多个账号，每个账号的对话完全独立。\n\n根据你的隐私需求选择：「主上下文」获得最强的 Agent 智能，「按联系人」或更高级别获得严格的对话隔离。",
@@ -2201,7 +2268,8 @@ export default {
       attachBtnBody:
         "两个附件按钮：回形针将文件路径插入消息中，图片图标附加一张 Agent 可以查看和分析的图片。支持格式：JPEG、PNG、GIF、WebP。",
       emojiBtnTitle: "表情选择器",
-      emojiBtnBody: "点击打开表情面板。选择一个表情即可将其插入到消息光标位置。",
+      emojiBtnBody:
+        "点击打开表情面板。选择一个表情即可将其插入到消息光标位置。",
       sendStopBtnTitle: "发送 / 停止",
       sendStopBtnBody:
         "蓝色「发送」按钮提交你的消息。Agent 工作时，它会变成红色「停止」按钮，可取消当前操作。",
@@ -2211,7 +2279,8 @@ export default {
       welcomeBody:
         "渠道将你的 Agent 连接到 Telegram、微信、Discord、Slack 等通讯平台。配置完成后，用户可以直接从这些平台与你的 Agent 聊天。",
       refreshBtnTitle: "刷新状态",
-      refreshBtnBody: "点击刷新所有渠道的连接状态。检查每个渠道的机器人是否正在运行且可达。",
+      refreshBtnBody:
+        "点击刷新所有渠道的连接状态。检查每个渠道的机器人是否正在运行且可达。",
       addSectionTitle: "添加渠道账号",
       addSectionBody:
         "在这里设置新的通讯渠道。选择平台，配置凭据（如 Bot Token），然后连接到你的 Agent。",
@@ -2222,9 +2291,11 @@ export default {
       connectBtnBody:
         "选择渠道类型后，点击连接打开配置对话框。对于手机聊天，会打开二维码配对流程。",
       infoBoxTitle: "渠道信息",
-      infoBoxBody: "选择渠道后，此区域会显示有用的设置说明，可能还包含该平台的分步教程链接。",
+      infoBoxBody:
+        "选择渠道后，此区域会显示有用的设置说明，可能还包含该平台的分步教程链接。",
       accountsTableTitle: "已连接的账号",
-      accountsTableBody: "此表格显示所有已配置的渠道账号。每行代表一个通讯平台上的机器人或连接。",
+      accountsTableBody:
+        "此表格显示所有已配置的渠道账号。每行代表一个通讯平台上的机器人或连接。",
       tableColumnsTitle: "表格列说明",
       tableColumnsBody:
         "渠道：平台名称。名称：你的自定义标签。已配置/运行中：绿色表示正常，红色表示有问题。私聊策略：机器人处理私信的方式（如仅白名单或开放）。",
@@ -2235,12 +2306,14 @@ export default {
       rowActionsBody:
         "编辑打开配置对话框修改凭据或设置。删除永久移除该渠道连接。手机聊天账号只能删除，不能编辑。",
       expandArrowTitle: "展开详情",
-      expandArrowBody: "每行左侧的箭头可切换展开视图，显示该渠道的配对请求和已授权的接收者。",
+      expandArrowBody:
+        "每行左侧的箭头可切换展开视图，显示该渠道的配对请求和已授权的接收者。",
       recipientsTitle: "接收者与配对",
       recipientsBody:
         "展开区域显示待处理的配对请求（正在尝试连接的用户）和当前白名单（已批准的用户）。你可以批准新用户、设置标签、切换管理员权限或移除访问权限。",
       editBtnTitle: "编辑渠道",
-      editBtnBody: "点击编辑可打开该渠道账号的配置对话框。让我们看看里面的内容。",
+      editBtnBody:
+        "点击编辑可打开该渠道账号的配置对话框。让我们看看里面的内容。",
       modalOverviewTitle: "渠道配置",
       modalOverviewBody:
         "此表单用于配置渠道连接。字段会根据渠道类型（Telegram、微信、Discord 等）有所不同，但结构相同：显示名称、凭据和选项。",
@@ -2277,19 +2350,23 @@ export default {
       tabBarBody:
         "两个标签页：「市场」展示社区中所有可安装的技能，「已安装」展示当前在你的 Agent 上已激活的技能。",
       searchTitle: "搜索技能",
-      searchBody: "输入关键词，按名称或描述筛选技能。结果会在你输入时自动更新。",
+      searchBody:
+        "输入关键词，按名称或描述筛选技能。结果会在你输入时自动更新。",
       categoriesTitle: "分类筛选",
       categoriesBody:
         "点击分类标签可以缩小搜索范围到特定类型（如效率工具、自动化、通信）。点击「全部」清除筛选。",
       gridTitle: "技能卡片",
-      gridBody: "每张卡片代表一个可安装的技能，展示技能名称、描述、作者和人气数据。",
+      gridBody:
+        "每张卡片代表一个可安装的技能，展示技能名称、描述、作者和人气数据。",
       cardHeaderTitle: "技能名称和版本",
-      cardHeaderBody: "技能的显示名称和当前版本号。当作者发布新版本时，版本会自动更新。",
+      cardHeaderBody:
+        "技能的显示名称和当前版本号。当作者发布新版本时，版本会自动更新。",
       cardSlugTitle: "技能标识符",
       cardSlugBody:
         "此技能的唯一标识 slug（如 'web-search'）。双击可复制到剪贴板——在规则或自动化中引用技能时很有用。",
       cardDescTitle: "描述",
-      cardDescBody: "简要说明此技能的功能和适用场景。阅读描述来判断此技能是否符合你的需求。",
+      cardDescBody:
+        "简要说明此技能的功能和适用场景。阅读描述来判断此技能是否符合你的需求。",
       cardMetaTitle: "作者与统计",
       cardMetaBody:
         "显示技能的开发者和社区统计数据：星标数（多少用户喜欢）和下载量（总安装次数）。数字越高通常意味着技能越可靠。",
@@ -2297,7 +2374,8 @@ export default {
       cardActionsBody:
         "点击「安装」将此技能添加到你的 Agent。如果已安装，会显示对勾。内置技能（随应用捆绑的）会标记为内置，无法移除。",
       paginationTitle: "翻页导航",
-      paginationBody: "当技能数量较多时，使用分页控件浏览不同页面。点击页码或上一页/下一页按钮。",
+      paginationBody:
+        "当技能数量较多时，使用分页控件浏览不同页面。点击页码或上一页/下一页按钮。",
       installedTabTitle: "已安装技能",
       installedTabBody:
         "切换到已安装标签页，查看当前 Agent 上已激活的技能。你可以在这里管理或移除它们。",
@@ -2325,7 +2403,8 @@ export default {
       enabledFilterBody:
         "按状态筛选任务：「全部」显示所有任务，「已启用」仅显示活跃的任务，「已禁用」显示暂停的任务。用它快速找到需要关注的任务。",
       sortTitle: "排序方式",
-      sortBody: "改变任务的排列顺序：按下次运行时间、最近更新时间或按名称字母排序。",
+      sortBody:
+        "改变任务的排列顺序：按下次运行时间、最近更新时间或按名称字母排序。",
       addBtnTitle: "创建新任务",
       addBtnBody:
         "点击这里打开创建新定时任务的表单。你需要设置名称、运行计划，以及任务运行时 Agent 应该做什么。",
@@ -2367,9 +2446,11 @@ export default {
       welcomeBody:
         "扩展功能是增强 Agent 基本对话能力之外的可选功能。启用语音转文字实现语音输入，启用网络搜索获取实时信息，启用向量嵌入让 Agent 拥有长期记忆。",
       sttHeadTitle: "语音转文字",
-      sttHeadBody: "此功能将语音转换为文字，让你可以通过移动聊天渠道用语音消息与 Agent 交流。",
+      sttHeadBody:
+        "此功能将语音转换为文字，让你可以通过移动聊天渠道用语音消息与 Agent 交流。",
       sttToggleTitle: "启用语音转文字",
-      sttToggleBody: "拨动此开关开启或关闭语音转文字。启用后需要在下方配置提供商和 API 密钥。",
+      sttToggleBody:
+        "拨动此开关开启或关闭语音转文字。启用后需要在下方配置提供商和 API 密钥。",
       sttProviderTitle: "语音转文字提供商",
       sttProviderBody:
         "选择语音转文字引擎：Groq 提供快速转录和广泛的语言支持，火山引擎针对中文优化并提供大方的免费额度。",
@@ -2377,12 +2458,14 @@ export default {
       sttApiKeyBody:
         "粘贴所选提供商的 API 密钥。密钥安全存储在你的设备上。如果已配置密钥会显示「已保存」标记——留空即保留现有密钥。",
       sttSaveTitle: "保存语音转文字设置",
-      sttSaveBody: "点击保存来验证和存储你的语音转文字配置。系统会在激活功能前验证你的凭证。",
+      sttSaveBody:
+        "点击保存来验证和存储你的语音转文字配置。系统会在激活功能前验证你的凭证。",
       webSearchHeadTitle: "网络搜索",
       webSearchHeadBody:
         "赋予 Agent 搜索互联网获取最新信息的能力。适用于关于时事、价格或任何频繁变化内容的问题。",
       webSearchToggleTitle: "启用网络搜索",
-      webSearchToggleBody: "开启或关闭网络搜索。启用后，Agent 可以在对话中查找实时信息。",
+      webSearchToggleBody:
+        "开启或关闭网络搜索。启用后，Agent 可以在对话中查找实时信息。",
       webSearchProviderTitle: "搜索提供商",
       webSearchProviderBody:
         "选择搜索引擎：Brave Search 提供注重隐私的结果，Perplexity 专注于 AI 驱动的回答，Grok、Gemini 和 Kimi 提供其他搜索能力。",
@@ -2390,7 +2473,8 @@ export default {
       webSearchApiKeyBody:
         "粘贴所选搜索提供商的 API 密钥。每个提供商有自己的密钥——查看下方的帮助链接了解获取方式。",
       webSearchSaveTitle: "保存网络搜索",
-      webSearchSaveBody: "点击保存存储网络搜索设置。你的 Agent 将在下次对话中开始使用网络搜索。",
+      webSearchSaveBody:
+        "点击保存存储网络搜索设置。你的 Agent 将在下次对话中开始使用网络搜索。",
       embeddingHeadTitle: "向量嵌入 / 记忆",
       embeddingHeadBody:
         "向量嵌入让 Agent 通过将对话转换为向量表示来构建长期记忆。这帮助 Agent 在不同会话间回忆过去的话题和上下文。",
@@ -2404,14 +2488,16 @@ export default {
       embeddingApiKeyBody:
         "粘贴所选提供商的 API 密钥。对于 Ollama（本地），无需密钥——只需确保 Ollama 正在你的机器上运行。",
       embeddingSaveTitle: "保存嵌入设置",
-      embeddingSaveBody: "点击保存存储嵌入配置。保存后，Agent 将开始从未来的对话中构建长期记忆。",
+      embeddingSaveBody:
+        "点击保存存储嵌入配置。保存后，Agent 将开始从未来的对话中构建长期记忆。",
     },
     usage: {
       welcomeTitle: "欢迎来到用量页面",
       welcomeBody:
         "此页面追踪 Agent 使用各 LLM 提供商的情况——Token 数量、费用和时间趋势。用它来监控支出并优化模型选择。",
       refreshTitle: "刷新数据",
-      refreshBody: "点击从服务器重新加载所有用量数据。数据也会每 60 秒自动刷新。",
+      refreshBody:
+        "点击从服务器重新加载所有用量数据。数据也会每 60 秒自动刷新。",
       todayTitle: "今日用量",
       todayBody: "此部分仅显示今天的 Token 消耗和费用，让你快速了解当前支出。",
       blocksTitle: "提供商区块",
@@ -2430,7 +2516,8 @@ export default {
       chartBody:
         "此折线图显示所选时间段内每日 Token 用量。每条线代表一个不同的模型。点击图例条目可单独显示该系列；再次点击显示全部。",
       lastUpdatedTitle: "最后更新时间",
-      lastUpdatedBody: "显示数据的最后刷新时间。如果时间看起来较旧，请点击页面顶部的刷新按钮。",
+      lastUpdatedBody:
+        "显示数据的最后刷新时间。如果时间看起来较旧，请点击页面顶部的刷新按钮。",
     },
     apps: {
       welcomeTitle: "欢迎来到应用页面",
@@ -2498,7 +2585,8 @@ export default {
       surfacesSectionBody:
         "场景定义了某个使用场景中可用的工具集（如「客户支持」、「内部运营」）。每个场景是一个工具访问边界——当某个场景被激活时，Agent 只能使用该场景中列出的工具。",
       surfacesHeaderTitle: "场景标题栏",
-      surfacesHeaderBody: "标题和描述说明了场景的用途。右侧有创建新场景或从现有预设开始的按钮。",
+      surfacesHeaderBody:
+        "标题和描述说明了场景的用途。右侧有创建新场景或从现有预设开始的按钮。",
       createSurfaceBtnTitle: "新建场景",
       createSurfaceBtnBody:
         "点击打开表单，你可以命名场景、添加可选描述，并选择允许的工具。如果工具列表留空，场景将是「不受限」的——所有工具均可使用。",
@@ -2546,14 +2634,17 @@ export default {
       welcomeTitle: "欢迎来到计费页面",
       welcomeBody: "此页面集中展示账号 AI 订阅、店铺服务订阅和支付记录。",
       overviewTitle: "计费概览",
-      overviewBody: "标题区域说明这里展示的计费数据。你可以在此查看当前权益并管理付费服务。",
+      overviewBody:
+        "标题区域说明这里展示的计费数据。你可以在此查看当前权益并管理付费服务。",
       accountPlanTitle: "账号 AI 套餐",
       accountPlanBody:
         "这张卡片展示账号级 AI 权益、套餐状态、有效期以及通用 Agent 运行的使用限制。",
       usageTitle: "用量与套餐详情",
-      usageBody: "用量卡片和元数据显示剩余额度、续期时间和订阅状态。这些是来自计费后端的只读快照。",
+      usageBody:
+        "用量卡片和元数据显示剩余额度、续期时间和订阅状态。这些是来自计费后端的只读快照。",
       accountActionsTitle: "账号计费操作",
-      accountActionsBody: "当当前套餐支持时，可通过这些按钮发起结账、管理支付方式或打开计费门户。",
+      accountActionsBody:
+        "当当前套餐支持时，可通过这些按钮发起结账、管理支付方式或打开计费门户。",
       shopServicesTitle: "店铺服务",
       shopServicesBody:
         "店铺服务计费独立于账号 AI 计费。每个已连接店铺可以拥有独立的服务权益，例如 AI 客服。",
@@ -2561,52 +2652,68 @@ export default {
       subscribeFlowBody:
         "此流程用于选择店铺和服务套餐后进入结账。只有存在可追加服务权益的店铺时才会显示。",
       shopListTitle: "店铺订阅列表",
-      shopListBody: "每一行汇总一个店铺已启用的付费服务、状态、续期信息和服务级操作。",
+      shopListBody:
+        "每一行汇总一个店铺已启用的付费服务、状态、续期信息和服务级操作。",
       paymentsTitle: "支付记录",
-      paymentsBody: "已完成的付款和账单会显示在这里，方便你直接在桌面端审计近期计费活动。",
+      paymentsBody:
+        "已完成的付款和账单会显示在这里，方便你直接在桌面端审计近期计费活动。",
     },
     ecommerce: {
       welcomeTitle: "欢迎来到跨境电商",
-      welcomeBody: "此页面用于管理已连接店铺、电商 AI 客服、联盟自动化和仓储集成。",
+      welcomeBody:
+        "此页面用于管理已连接店铺、电商 AI 客服、联盟自动化和仓储集成。",
       shopsTitle: "已连接店铺",
-      shopsBody: "店铺区域列出所有已连接的卖家账号，并提供每个店铺的主要运营入口。",
+      shopsBody:
+        "店铺区域列出所有已连接的卖家账号，并提供每个店铺的主要运营入口。",
       shopActionsTitle: "店铺操作",
       shopActionsBody:
         "刷新会拉取最新店铺状态。添加店铺会启动平台 OAuth 授权流程，用于连接新的卖家账号。",
       shopTableTitle: "店铺表格",
-      shopTableBody: "表格展示店铺身份、别名、平台、区域、授权状态、余额和行级操作。",
+      shopTableBody:
+        "表格展示店铺身份、别名、平台、区域、授权状态、余额和行级操作。",
       shopAliasTitle: "店铺别名",
-      shopAliasBody: "别名用于在本地重命名店铺，便于识别。按 Enter 或离开输入框即可保存。",
+      shopAliasBody:
+        "别名用于在本地重命名店铺，便于识别。按 Enter 或离开输入框即可保存。",
       shopRowActionsTitle: "行操作",
-      shopRowActionsBody: "打开抽屉配置服务，重新授权过期令牌，或断开店铺连接。",
+      shopRowActionsBody:
+        "打开抽屉配置服务，重新授权过期令牌，或断开店铺连接。",
       wmsTitle: "仓储账号",
       wmsBody: "仓储账号将你的店铺数据连接到库存和履约系统。",
       wmsActionsTitle: "仓储操作",
       wmsActionsBody: "刷新库存状态、查看支持的 WMS 服务商，或添加仓储账号。",
       wmsTableTitle: "仓储表格",
-      wmsTableBody: "仓储表格展示已同步仓库、端点、币种、同步时间和库存管理操作。",
+      wmsTableBody:
+        "仓储表格展示已同步仓库、端点、币种、同步时间和库存管理操作。",
       drawerTitle: "店铺抽屉",
-      drawerBody: "店铺级配置都在抽屉中完成：概览、AI 客服、库存、联盟管理、计费和设备绑定。",
+      drawerBody:
+        "店铺级配置都在抽屉中完成：概览、AI 客服、库存、联盟管理、计费和设备绑定。",
     },
     ecommerceCustomerService: {
       welcomeTitle: "欢迎来到客服工作台",
       welcomeBody: "此工作台用于监控买家会话，并处理跨店铺的 AI 升级事件。",
       tabsTitle: "工作台标签",
-      tabsBody: "可在实时会话收件箱和升级队列之间切换。计数帮助你快速了解当前工作量。",
+      tabsBody:
+        "可在实时会话收件箱和升级队列之间切换。计数帮助你快速了解当前工作量。",
       filtersTitle: "筛选器",
-      filtersBody: "按店铺、会话状态、AI 状态、升级状态和分页大小筛选，聚焦当前队列。",
+      filtersBody:
+        "按店铺、会话状态、AI 状态、升级状态和分页大小筛选，聚焦当前队列。",
       searchTitle: "搜索",
-      searchBody: "搜索可按买家、订单或会话标识缩小队列范围。应用搜索后会刷新当前视图。",
+      searchBody:
+        "搜索可按买家、订单或会话标识缩小队列范围。应用搜索后会刷新当前视图。",
       conversationShellTitle: "会话工作区",
       conversationShellBody: "分栏视图左侧保留队列，右侧显示所选会话详情。",
       conversationListTitle: "会话列表",
-      conversationListBody: "每一行汇总一条买家会话，包括店铺、时间、状态、升级标记和预览文本。",
+      conversationListBody:
+        "每一行汇总一条买家会话，包括店铺、时间、状态、升级标记和预览文本。",
       conversationDetailTitle: "会话详情",
-      conversationDetailBody: "详情区展示消息、摘要工具、AI 开关、人工回复控件和当前会话的元数据。",
+      conversationDetailBody:
+        "详情区展示消息、摘要工具、AI 开关、人工回复控件和当前会话的元数据。",
       manualReplyTitle: "人工回复",
-      manualReplyBody: "需要人工直接回复时使用这里。它可以与该会话的 AI 控制一起配合使用。",
+      manualReplyBody:
+        "需要人工直接回复时使用这里。它可以与该会话的 AI 控制一起配合使用。",
       escalationQueueTitle: "升级队列",
-      escalationQueueBody: "升级标签页列出需要审核、响应或忽略的开放/待处理事件。",
+      escalationQueueBody:
+        "升级标签页列出需要审核、响应或忽略的开放/待处理事件。",
     },
     ecommerceAffiliate: {
       welcomeTitle: "欢迎来到联盟管理",
@@ -2614,20 +2721,24 @@ export default {
       panelTitle: "提案面板",
       panelBody: "面板包含待处理的达人或合作提案，并按店铺和达人上下文分组。",
       toolbarTitle: "工具栏",
-      toolbarBody: "工具栏显示待处理数量、店铺筛选器和刷新按钮，用于拉取最新提案。",
+      toolbarBody:
+        "工具栏显示待处理数量、店铺筛选器和刷新按钮，用于拉取最新提案。",
       shopFilterTitle: "店铺筛选",
       shopFilterBody: "使用店铺筛选器聚焦某个卖家账号，或查看全部店铺的提案。",
       queueTitle: "提案队列",
-      queueBody: "提案分组显示在这里。当没有等待人工审批的 AI 操作时，空状态是正常的。",
+      queueBody:
+        "提案分组显示在这里。当没有等待人工审批的 AI 操作时，空状态是正常的。",
       proposalCardTitle: "提案卡片",
-      proposalCardBody: "每张卡片说明操作类型、原因、目标 ID 和该联盟操作的策略上下文。",
+      proposalCardBody:
+        "每张卡片说明操作类型、原因、目标 ID 和该联盟操作的策略上下文。",
       actionsTitle: "批准或拒绝",
       actionsBody: "批准会应用该提案。拒绝会记录决策并阻止自动化执行该操作。",
     },
   },
   surfaces: {
     title: "场景与运行配置",
-    description: "场景定义了某个使用场景中可用的工具集。运行配置在场景内为具体运行选择特定工具。",
+    description:
+      "场景定义了某个使用场景中可用的工具集。运行配置在场景内为具体运行选择特定工具。",
     surfacesTitle: "场景",
     refreshTools: "刷新工具",
     createSurface: "新建场景",
@@ -2641,7 +2752,8 @@ export default {
     descriptionPlaceholder: "这个场景的用途是什么？",
     allowedToolIds: "允许的工具 ID",
     allowedToolIdsPlaceholder: "工具 ID（逗号分隔）",
-    allowedToolIdsHint: "输入以逗号分隔的工具 ID。这些定义了此场景中暴露的工具。",
+    allowedToolIdsHint:
+      "输入以逗号分隔的工具 ID。这些定义了此场景中暴露的工具。",
     noSurfaces: "尚未配置场景。请创建一个或从预设开始。",
     presetLabel: "预设",
     selectPreset: "选择一个预设...",
@@ -2658,7 +2770,8 @@ export default {
     profileNamePlaceholder: "例如：最小工具集",
     selectedToolIds: "已选工具 ID",
     selectedToolIdsPlaceholder: "工具 ID（逗号分隔）",
-    selectedToolIdsHint: "输入以逗号分隔的工具 ID。这些是此运行配置中选择的工具。",
+    selectedToolIdsHint:
+      "输入以逗号分隔的工具 ID。这些是此运行配置中选择的工具。",
     noRunProfiles: "此场景暂无运行配置。",
     failedToLoadProfiles: "加载运行配置失败。",
     failedToSaveProfile: "保存运行配置失败。",
@@ -2687,11 +2800,13 @@ export default {
   },
   tiktokShops: {
     title: "TikTok 店铺",
-    description: "连接并管理你的 TikTok Shop 账户。为每个店铺启用 AI 智能客服。",
+    description:
+      "连接并管理你的 TikTok Shop 账户。为每个店铺启用 AI 智能客服。",
     connectedShops: "已连接店铺",
     connectShop: "连接店铺",
     connectShopTitle: "连接 TikTok Shop",
-    connectShopDesc: "将在浏览器中打开 TikTok 授权页面。授权完成后，你的店铺将自动显示在此处。",
+    connectShopDesc:
+      "将在浏览器中打开 TikTok 授权页面。授权完成后，你的店铺将自动显示在此处。",
     noShops: "尚未连接任何 TikTok Shop。点击「连接店铺」开始。",
     view: "查看",
     // Platform app selection
@@ -2730,11 +2845,13 @@ export default {
     // Actions
     reauthorize: "重新授权",
     disconnect: "断开连接",
-    confirmDisconnect: "断开此店铺的连接？您的服务余额将被保留，重新连接后可恢复。",
+    confirmDisconnect:
+      "断开此店铺的连接？您的服务余额将被保留，重新连接后可恢复。",
     disconnectSuccess: "店铺已断开连接。余额已保留。",
     // Service toggles
     customerServiceLabel: "AI 智能客服",
-    customerServiceActiveHint: "此店铺的 AI 客服已激活。可在技能页面配置客服技能。",
+    customerServiceActiveHint:
+      "此店铺的 AI 客服已激活。可在技能页面配置客服技能。",
     // Detail modal
     detail: {
       platform: "平台",
@@ -2792,7 +2909,8 @@ export default {
   },
   adsManagement: {
     title: "TikTok Ads 管理",
-    subtitle: "连接 TikTok Business 授权，并确认哪些已授权店铺能被这些广告账户覆盖。",
+    subtitle:
+      "连接 TikTok Business 授权，并确认哪些已授权店铺能被这些广告账户覆盖。",
     connect: "连接 TikTok Ads",
     connectAdvertiser: "连接广告账户",
     connectBusiness: "连接 TikTok Business",
@@ -2802,7 +2920,8 @@ export default {
     adsReadyShops: "广告就绪店铺",
     authSeparationHint:
       "TikTok Ads 能力通过 Business/Ads Manager 授权。TK匠 只管理同时已授权为 TikTok Shop 的店铺。",
-    businessAccountHint: "连接广告账户后，可以查看哪些已授权店铺已被广告账户覆盖。",
+    businessAccountHint:
+      "连接广告账户后，可以查看哪些已授权店铺已被广告账户覆盖。",
     advertiserTableTitle: "广告账户",
     advertiserTableSubtitle:
       "连接 TikTok Business 或 Ads Manager 后，Airflow 会通过这些广告账户同步 campaign、ad group、ad 以及 GMV Max 报表数据。",
@@ -2812,9 +2931,11 @@ export default {
       all: "全部",
     },
     emptyAdvertisersTitle: "尚未连接广告账户",
-    emptyAdvertisersBody: "连接 TikTok Business 或 Ads Manager 后，这里会显示可访问的广告账户。",
+    emptyAdvertisersBody:
+      "连接 TikTok Business 或 Ads Manager 后，这里会显示可访问的广告账户。",
     shopReadinessTitle: "店铺 Ads 状态",
-    shopReadinessSubtitle: "查看每个已连接店铺的广告账户覆盖和 GMV Max 就绪状态。",
+    shopReadinessSubtitle:
+      "查看每个已连接店铺的广告账户覆盖和 GMV Max 就绪状态。",
     shopCoverageTitle: "店铺广告覆盖",
     shopCoverageSubtitle:
       "展示每个店铺当前有效的全部广告账户，并单独标出当前 GMV MAX 授权账户。此处不是按日期展示的实际投放账户。",
@@ -2826,7 +2947,8 @@ export default {
     loadFailed: "加载 Ads 管理数据失败。",
     oauthModalTitle: "连接 TikTok Ads",
     openAuthLink: "打开 TikTok Ads 授权链接",
-    oauthHint: "请在已登录 TikTok Business Center 或 Ads Manager 账号的浏览器中打开此链接。",
+    oauthHint:
+      "请在已登录 TikTok Business Center 或 Ads Manager 账号的浏览器中打开此链接。",
     waitingAuth: "正在等待 TikTok Ads 授权...",
     oauthSuccess: "TikTok Business 连接成功。",
     oauthFailed: "启动 TikTok Ads 授权失败。",
@@ -2924,7 +3046,8 @@ export default {
     },
     customerServicePerformance: {
       title: "客服绩效",
-      subtitle: "查看响应速度、升级压力、满意度和客服工作量，判断客服团队是否跟得上业务节奏。",
+      subtitle:
+        "查看响应速度、升级压力、满意度和客服工作量，判断客服团队是否跟得上业务节奏。",
       allShops: "全部店铺",
       shopFilter: "店铺",
       timeRange: "时间范围",
@@ -2933,7 +3056,8 @@ export default {
       guidedGmvNoMatureData: "该范围内暂无完整的 7 天引导成交额平均值。",
       downloadCsv: "下载 CSV",
       dailyTable: "每日绩效",
-      scopeSummary: "{{start}} 至 {{end}}，覆盖 {{shops}} 个店铺。表格显示该时间范围内全部日期。",
+      scopeSummary:
+        "{{start}} 至 {{end}}，覆盖 {{shops}} 个店铺。表格显示该时间范围内全部日期。",
       tabs: {
         label: "绩效视图",
         history: "历史数据",
@@ -3048,11 +3172,23 @@ export default {
         productionConfig: "当前生产配置",
         configExploration: "配置优化流量",
       },
-      duration: { minute: "{{count}} 分钟", hour: "{{count}} 小时", day: "{{count}} 天" },
+      duration: {
+        minute: "{{count}} 分钟",
+        hour: "{{count}} 小时",
+        day: "{{count}} 天",
+      },
       types: { holdout: "增量效果评估", config: "配置 A/B 测试" },
-      status: { RUNNING: "运行中", STOPPED_MATURING: "已结束", FINAL: "已完成" },
+      status: {
+        RUNNING: "运行中",
+        STOPPED_MATURING: "已结束",
+        FINAL: "已完成",
+      },
       dataStatus: { PROVISIONAL: "实时预估", FINAL: "最终结果" },
-      actions: { NO_REACHOUT: "不触达", CONTINUE: "正常触达", APPLY_CONFIG: "应用配置" },
+      actions: {
+        NO_REACHOUT: "不触达",
+        CONTINUE: "正常触达",
+        APPLY_CONFIG: "应用配置",
+      },
       metrics: {
         PAYMENT_WITHIN_WINDOW: "成熟窗口内支付率",
         GMV_PER_ASSIGNED_ORDER: "每个分组订单 GMV",
@@ -3089,14 +3225,16 @@ export default {
       emptyBody: "可以更换店铺、实验类型，或切换实时与历史视图。",
       allocation: "流量与方案",
       allocationHint: "方案百分比按实验触达组流量内部计算。",
-      actualAllocationHint: "展示已分组订单的实际占比；增量评估只比较对照组与当前生产配置 A。",
+      actualAllocationHint:
+        "展示已分组订单的实际占比；增量评估只比较对照组与当前生产配置 A。",
       actualAssignedOrders: "实际分组 {{count}} 单",
       excludedFromIncrementality: "仅用于配置 A/B 测试，不进入增量评估",
       noReachout: "不发送消息",
       usesBaseConfiguration: "使用店铺基础配置正常触达",
       viewConfiguration: "查看配置",
       configurationTitle: "{{variant}} 触达配置",
-      configurationSubtitle: "该实验方案分组时固定使用的触达计划，不受店铺后续配置修改影响。",
+      configurationSubtitle:
+        "该实验方案分组时固定使用的触达计划，不受店铺后续配置修改影响。",
       stageLabel: "第 {{index}} 阶段",
       enabledStage: "已启用",
       disabledStage: "未启用",
@@ -3135,10 +3273,12 @@ export default {
         pointEstimate: "估计值 {{value}}%",
         directionalOnly: "方向性信号，暂不用于结论",
         noExposureTitle: "尚无订单到达消息触发时间",
-        noExposureBody: "当前曲线仅反映触达前的自然支付与取消，暂时不能用于评价触达效果。",
+        noExposureBody:
+          "当前曲线仅反映触达前的自然支付与取消，暂时不能用于评价触达效果。",
         tooltipCounts:
           "总分组 {{assigned}} · 支付 {{paid}} · 取消 {{cancelled}} · 截尾 {{censored}} · 风险集 {{risk}} · 覆盖 {{coverage}}%",
-        modelAxisNote: "共享风险率模型从下单后第1分钟开始：各组在实际触达前共享自然付款基线。",
+        modelAxisNote:
+          "共享风险率模型从下单后第1分钟开始：各组在实际触达前共享自然付款基线。",
         rawAxisNote:
           "原始竞争风险阶梯（Aalen–Johansen）从下单后第1分钟开始：未经模型约束的未支付比例。",
         modelIntervalLabel: "95% 不确定性区间",
@@ -3148,8 +3288,10 @@ export default {
         glossaryTitle: "观察口径说明",
         censoredDefinition:
           "截尾：截至本次计算尚未观察到支付或取消、且观察时间已在该点结束的订单。",
-        atRiskDefinition: "风险集：到该时间点仍未支付且未取消、之后仍可能进入任一结果的订单。",
-        coverageDefinition: "覆盖：已观察到该时间点，或此前已产生支付/取消结果的分组订单占比。",
+        atRiskDefinition:
+          "风险集：到该时间点仍未支付且未取消、之后仍可能进入任一结果的订单。",
+        coverageDefinition:
+          "覆盖：已观察到该时间点，或此前已产生支付/取消结果的分组订单占比。",
         endpointCancelled: "终点已取消 {{value}}%",
         endpointStillUnpaid: "终点仍未支付 {{value}}%",
         endpointDirectional: "终点样本仍不足，仅显示方向性趋势",
@@ -3227,9 +3369,11 @@ export default {
       title: "达人管理",
       subtitle: "集中审核 Agent 为达人生命周期生成的待执行动作。",
       creatorsTitle: "合作达人",
-      creatorsSubtitle: "查看所有已启用 Affiliate 店铺的达人关系，维护标签并处理当前事项。",
+      creatorsSubtitle:
+        "查看所有已启用 Affiliate 店铺的达人关系，维护标签并处理当前事项。",
       creatorsPanelTitle: "店铺关系池",
-      creatorsPanelHint: "默认显示所有已启用 Affiliate 店铺中的达人关系；可按单店缩小范围。",
+      creatorsPanelHint:
+        "默认显示所有已启用 Affiliate 店铺中的达人关系；可按单店缩小范围。",
       creatorAttentionOnly: "仅看需处理",
       sampleTiers: {
         SAMPLE_SHIPPED: "已发样",
@@ -3270,7 +3414,8 @@ export default {
         values: {
           NO_CAMPAIGN_DISTURB: {
             label: "勿扰",
-            description: "停止新的自动 Campaign 触达；正常 Affiliate 工作流和直接回复不受影响。",
+            description:
+              "停止新的自动 Campaign 触达；正常 Affiliate 工作流和直接回复不受影响。",
           },
         },
       },
@@ -3289,7 +3434,8 @@ export default {
         rename: "重命名标签 {{name}}",
         renameLabel: "重命名“{{name}}”",
         renamePlaceholder: "新的标签名称",
-        renameScopeWarning: "该标签在整个账号内共享，重命名后所有带此标签的达人都会同步更新。",
+        renameScopeWarning:
+          "该标签在整个账号内共享，重命名后所有带此标签的达人都会同步更新。",
         renameConfirm: "重命名标签",
         renameSuccess: "标签已重命名",
         renameFailed: "重命名标签失败",
@@ -3334,7 +3480,8 @@ export default {
       relationshipWorkActiveCollaborations: "活跃合作",
       relationshipWorkPendingProposals: "待审批提案",
       focusedProposal: "当前提案",
-      relationshipWorkbenchSubtitle: "用于查看达人资料、沟通记录、合作推进和操作历史的工作面板。",
+      relationshipWorkbenchSubtitle:
+        "用于查看达人资料、沟通记录、合作推进和操作历史的工作面板。",
       relationshipInformation: "达人关系信息",
       relationshipContacts: "达人联系方式",
       relationshipInspectorOverview: "概览",
@@ -3358,7 +3505,8 @@ export default {
       messageComposerEmailSubject: "主题（新邮件线程必填）",
       messageComposerAddFiles: "添加文件",
       messageComposerInline: "内嵌",
-      messageComposerPartsHint: "支持 1–10 个有序文本/文件部分；不会跨渠道降级发送",
+      messageComposerPartsHint:
+        "支持 1–10 个有序文本/文件部分；不会跨渠道降级发送",
       messageComposerAttachmentCount: "已添加 {{count}} 个附件",
       creatorActiveSamples: "{{count}} 个活跃样品",
       creatorActivePlatformCollaborations: "{{count}} 个活跃平台合作",
@@ -3372,10 +3520,13 @@ export default {
       timePassedHours: "{{hours}} 小时",
       timePassedHint: "时间线项目之间经过的时间；筛选范围外可能仍有事件。",
       relationshipNoCurrentWork: "暂无待办",
-      relationshipNoCurrentWorkHint: "这个达人关系当前没有待审批提案或人工处理任务。",
-      relationshipNeedsManualReview: "这个达人关系需要员工先复核，再决定下一步。",
+      relationshipNoCurrentWorkHint:
+        "这个达人关系当前没有待审批提案或人工处理任务。",
+      relationshipNeedsManualReview:
+        "这个达人关系需要员工先复核，再决定下一步。",
       relationshipAcrossShops: "跨店铺",
-      relationshipCommunicationHint: "汇总可用的店铺后台、平台私信、WhatsApp 和 Email 记录。",
+      relationshipCommunicationHint:
+        "汇总可用的店铺后台、平台私信、WhatsApp 和 Email 记录。",
       noRecentContact: "暂无最近联系",
       relationshipMoreShopStates: "另有 {{count}} 个店铺状态",
       relationshipWorkUnread: "未读",
@@ -3428,7 +3579,8 @@ export default {
       viewDetails: "查看详情",
       emptyCreators: "这个店铺还没有合作达人。",
       historyTitle: "平台合作",
-      historySubtitle: "查看 TikTok Open 与 Target Collaboration 平台对象、状态和关联商品。",
+      historySubtitle:
+        "查看 TikTok Open 与 Target Collaboration 平台对象、状态和关联商品。",
       approvalQueueTitle: "Agent 工作",
       approvalQueueHint:
         "每张卡片对应一次 Agent dispatch，统一展示待审批提案、已执行动作、无需动作结果与重写历史。",
@@ -3467,7 +3619,8 @@ export default {
         openRelationship: "达人工作区",
         contextEyebrow: "决策依据",
         contextTitle: "审核上下文",
-        contextSubtitle: "还原 Agent 生成这项工作时可见的关系信息，帮助判断当前动作是否合理。",
+        contextSubtitle:
+          "还原 Agent 生成这项工作时可见的关系信息，帮助判断当前动作是否合理。",
         contextAsOf: "Agent 上下文截至 {{time}}",
         triggerContext: "本次工作的触发来源",
         triggerWorkKind: "工作场景",
@@ -3478,7 +3631,8 @@ export default {
         currentBusinessContextHint: "当前数据",
         activeSampleApplications: "进行中样品申请",
         bundledMessage: "同时发送给达人的回复",
-        bundledMessageUnavailable: "这项工作包含消息回复，但当前记录中没有可展示的文字内容。",
+        bundledMessageUnavailable:
+          "这项工作包含消息回复，但当前记录中没有可展示的文字内容。",
         previousAgentWork: "过往 Agent 判断",
         recentContext: "Agent 当时可见的最近记录",
         contextLoadFailed: "暂时无法加载关系上下文。",
@@ -3490,7 +3644,8 @@ export default {
         versionCount: "V{{version}} · 共 {{count}} 版",
       },
       collaborationWorkQueueTitle: "待人工处理的合作",
-      collaborationWorkQueueHint: "没有待审批提案的合作事项。员工需要自行判断下一步如何处理。",
+      collaborationWorkQueueHint:
+        "没有待审批提案的合作事项。员工需要自行判断下一步如何处理。",
       collaborationWorkQueueShortTitle: "合作处理",
       pagination: "合作记录分页",
       pageSummary: "显示 {{start}}-{{end}} / 共 {{total}} 条",
@@ -3503,7 +3658,8 @@ export default {
       staffActionHandled: "已标记为处理完成",
       staffActionHandledNote: "员工已在外部完成该达人合作事项。",
       mlInsightsTitle: "智能分析",
-      mlInsightsHint: "查看模型如何发现更高潜力达人，并与历史人工放样选择进行对比。",
+      mlInsightsHint:
+        "查看模型如何发现更高潜力达人，并与历史人工放样选择进行对比。",
       mlInsightsShortTitle: "智能分析",
       intelligenceKicker: "达人机会模型",
       intelligenceAllShops: "全部达人联盟店铺",
@@ -3514,7 +3670,8 @@ export default {
       intelligenceModelsReady: "{{count}} 个模型已就绪",
       intelligenceNoModel: "暂无模型",
       intelligenceModelUnavailable: "数据未加载",
-      intelligenceModelUnavailableHint: "模型数据暂时没有加载成功。请稍后刷新分析。",
+      intelligenceModelUnavailableHint:
+        "模型数据暂时没有加载成功。请稍后刷新分析。",
       intelligenceModelSourceSelector: "该店铺使用的模型",
       intelligenceAccountModel: "账号模型",
       intelligenceAccountModelHint: "使用该账号下跨店铺的达人历史。",
@@ -3524,16 +3681,19 @@ export default {
       intelligenceStoreModelHint: "只使用该店铺自己的达人历史。",
       intelligenceRecommendedModel: "推荐",
       intelligenceConfidenceHigh: "高置信度",
-      intelligenceConfidenceHighHint: "这个提升在当前留出测试窗口中较稳定，可以作为主要参考。",
+      intelligenceConfidenceHighHint:
+        "这个提升在当前留出测试窗口中较稳定，可以作为主要参考。",
       intelligenceConfidenceLow: "置信度较低",
       intelligenceConfidenceLowHint:
         "这个提升的不确定性较高，建议只作为方向性参考，并结合账号模型和人工判断。",
       intelligenceConfidenceMedium: "中等置信度",
-      intelligenceConfidenceMediumHint: "这个提升方向较明确，但稳定性还没有达到高置信度。",
+      intelligenceConfidenceMediumHint:
+        "这个提升方向较明确，但稳定性还没有达到高置信度。",
       intelligenceBusinessVerdict: "模型选择更高效",
       intelligenceBusinessVerdictLift:
         "在同样样本预算下，模型排序预计比历史人工选择多卖 {{lift}}。",
-      intelligenceBusinessVerdictNeutral: "这个范围暂时还没有显示出相对历史人工选择的明确提升。",
+      intelligenceBusinessVerdictNeutral:
+        "这个范围暂时还没有显示出相对历史人工选择的明确提升。",
       intelligenceClaimPrecisionTitle: "同样发样预算，模型更会挑人",
       intelligenceClaimPrecisionBody:
         "在最近留出测试窗口里，如果同样放出 {{count}} 个样品，模型选择的达人预计比历史人工选择多卖 {{lift}}。",
@@ -3548,7 +3708,8 @@ export default {
       intelligenceChartSameSalesBar: "相同预期销量门槛",
       intelligenceChartCreatorSwap: "模型会替换哪些选择",
       intelligenceSameBudgetStory: "对比同样 {{count}} 个发样机会下的预测销量",
-      intelligenceSameSalesBarStory: "{{window}} · 达到或超过同一个 {{bar}} 件预测销量门槛的达人",
+      intelligenceSameSalesBarStory:
+        "{{window}} · 达到或超过同一个 {{bar}} 件预测销量门槛的达人",
       intelligenceCreatorSwapStory:
         "在相同通过数量下，模型会过滤 {{filtered}} 个低优先级批准，并换入被人工漏掉的达人。",
       intelligenceModelSelector: "模型选择",
@@ -3594,14 +3755,16 @@ export default {
       intelligenceDistributionIncomplete:
         "本次模型评估缺少必要的分布摘要。请重新训练模型刷新该视图。",
       intelligenceBudgetStatsTitle: "提升来自哪里",
-      intelligenceBudgetStatsHeadline: "同样发样数量，模型选择的人更多落在高预测销量区间",
+      intelligenceBudgetStatsHeadline:
+        "同样发样数量，模型选择的人更多落在高预测销量区间",
       intelligenceBudgetStatsHint: "留出测试样本中的预测销量分布。",
       intelligenceHistoricalExpectedUnits: "人工选择预测销量",
       intelligenceModelExpectedUnits: "模型选择预测销量",
       intelligenceHistoricalApprovedExpected: "历史人工选择 · 预测销量",
       intelligenceReachStatsTitle: "还有哪些达人值得看",
       intelligenceReachStatsHeadline: "销量门槛相同，模型标记出更大的机会池",
-      intelligenceReachStatsHint: "{{window}} · 预测销量达到或超过 {{bar}} 件的达人。",
+      intelligenceReachStatsHint:
+        "{{window}} · 预测销量达到或超过 {{bar}} 件的达人。",
       intelligenceOverlookedQualifiedCreators: "历史未通过但模型标记",
       intelligenceReachOpportunityTitle: "额外发现 {{count}} 个达人",
       intelligenceReachOpportunityBody:
@@ -3625,15 +3788,19 @@ export default {
       mlSameBudgetLift: "同等样本预算提升",
       mlEstimatedUnits: "预估销量",
       mlModelExpected: "模型排序预期销量",
-      mlModelExpectedHint: "如果模型选择与历史员工相同数量的样品，预计可获得的总销量。",
+      mlModelExpectedHint:
+        "如果模型选择与历史员工相同数量的样品，预计可获得的总销量。",
       mlHumanExpected: "人工选择预期销量",
       mlHumanExpectedHint: "历史员工批准的申请在当前模型下预计可获得的总销量。",
       mlDiscoveredCreators: "额外发现的高潜力达人",
-      mlDiscoveredCreatorsHint: "模型会选择、但历史员工拒绝的申请；这是反事实估计。",
+      mlDiscoveredCreatorsHint:
+        "模型会选择、但历史员工拒绝的申请；这是反事实估计。",
       mlFilteredApproved: "模型会过滤的人工通过",
-      mlFilteredApprovedHint: "同等放样数量下，模型不会优先选择的历史人工批准申请。",
+      mlFilteredApprovedHint:
+        "同等放样数量下，模型不会优先选择的历史人工批准申请。",
       mlBudgetThreshold: "校准阈值",
-      mlBudgetThresholdBody: "按照历史通过量校准，隐含的最低预期销量约为 {{value}} 件。",
+      mlBudgetThresholdBody:
+        "按照历史通过量校准，隐含的最低预期销量约为 {{value}} 件。",
       mlFalseNegativeRisk: "错过的历史有效样本",
       mlFalseNegativeRiskBody:
         "模型会过滤 {{rate}} 的历史人工通过样本；这些有结果的样本实际卖出 {{units}} 件。",
@@ -3673,7 +3840,8 @@ export default {
       productContextMissing: "尚无确定合作商品",
       productContextMissingHint: "请让达人申请样品，或先确认本次合作商品。",
       productIdShort: "商品 {{productId}}",
-      actionProductNotConfirmed: "动作引用了商品 {{productId}}，但该合作尚未绑定这个商品。",
+      actionProductNotConfirmed:
+        "动作引用了商品 {{productId}}，但该合作尚未绑定这个商品。",
       copyFailed: "复制 ID 失败。",
       copyCreatorHandle: "复制 TikTok 账号",
       creatorHandleCopied: "已复制账号",
@@ -3868,7 +4036,8 @@ export default {
         HISTORY: "历史记录",
       },
       sectionHints: {
-        NEEDS_ATTENTION: "需要员工审批、人工跟进，或正在等待 Agent 处理的达人事项。",
+        NEEDS_ATTENTION:
+          "需要员工审批、人工跟进，或正在等待 Agent 处理的达人事项。",
         IN_PROGRESS: "已经进入合作流程，但当前不需要员工立刻操作的达人合作。",
         HISTORY: "已执行、已拒绝、平台事件和 Agent 直接完成的动作记录。",
       },
@@ -4076,7 +4245,8 @@ export default {
       },
       proposalExecutionDescriptions: {
         MANAGE_CREATOR_TAG: "系统将对该达人关系应用 {{count}} 项手动标签变更。",
-        NO_ACTION_NEEDED: "Agent 已完成这次 dispatch，没有请求或执行任何平台动作。",
+        NO_ACTION_NEEDED:
+          "Agent 已完成这次 dispatch，没有请求或执行任何平台动作。",
         APPROVE_SAMPLE_REQUEST: "系统会在 TikTok Shop 中同意该达人的样品申请。",
         REJECT_SAMPLE_REQUEST: "系统会在 TikTok Shop 中拒绝该达人的样品申请。",
         REVIEW_SAMPLE_REQUEST: "系统会把这个样品审核决定提交到 TikTok Shop。",
@@ -4113,7 +4283,8 @@ export default {
         refresh: "刷新策略",
         noAffiliateShops: "当前没有已启用达人联盟的店铺。",
         currentPolicies: "{{shop}} 的策略",
-        recommendedHint: "推荐基线：该卖家账号下的消息、样品审核和定向合作都需要审批。",
+        recommendedHint:
+          "推荐基线：该卖家账号下的消息、样品审核和定向合作都需要审批。",
         recommendedReady: "已启用推荐的卖家账号全局审批策略。",
         applyRecommended: "应用推荐策略",
         empty: "该卖家账号还没有配置全局审批策略。",
@@ -4128,7 +4299,8 @@ export default {
         copyPolicySystemId: "复制策略系统 ID",
         createTitle: "创建策略",
         editTitle: "编辑策略",
-        editorHint: "只有所有已配置的条件维度都命中时，策略才会生效。条件为空表示适用于所有。",
+        editorHint:
+          "只有所有已配置的条件维度都命中时，策略才会生效。条件为空表示适用于所有。",
         actionLabel: "动作",
         enabledLabel: "启用",
         enabledHint: "启用后，后端命中的动作会先生成审批提案，而不是直接执行。",
@@ -4143,8 +4315,10 @@ export default {
         appliesToAll: "适用于所有",
         appliesToAllDescription: "该动作下所有达人、活动和商品都会命中。",
         allMatchPreview: "{{action}} 将对所有达人、活动和商品要求审批。",
-        filteredMatchPreview: "只有所有已配置的过滤维度同时命中时，才会要求审批。",
-        filteredMatchDescription: "不同维度之间是同时满足；同一维度内任意一个值命中即可。",
+        filteredMatchPreview:
+          "只有所有已配置的过滤维度同时命中时，才会要求审批。",
+        filteredMatchDescription:
+          "不同维度之间是同时满足；同一维度内任意一个值命中即可。",
         campaignSummary: "活动：{{value}}",
         productSummary: "{{count}} 个商品",
         productIdsCount: "已选择 {{count}} 个商品 ID。",
@@ -4183,7 +4357,8 @@ export default {
         sameDecision: "一致",
         differentDecision: "不同",
         sameDecisionHint: "AI 建议和历史人工习惯一致。",
-        differentDecisionHint: "AI 建议和历史人工习惯不同，建议重点核对这条申请。",
+        differentDecisionHint:
+          "AI 建议和历史人工习惯不同，建议重点核对这条申请。",
         modelDecisions: {
           APPROVE: "同意样品",
           REJECT: "拒绝样品",
@@ -4215,19 +4390,28 @@ export default {
           "Agent 会根据最近对话、商品和合作上下文生成回复；如果需要审批，会先形成提案。",
         REVIEW_SAMPLE_APPLICATION:
           "达人已提交样品申请。Agent 会结合店铺规则和预测结果建议同意或拒绝。",
-        SHIP_SAMPLE: "样品申请已经同意，将由 TikTok FBT 自动履约，无需员工安排发货。",
-        FOLLOW_UP_CREATOR: "达人侧下一步动作已超时，需要根据当前合作上下文跟进达人。",
-        REVIEW_ACTION_PROPOSAL: "Agent 已经生成平台动作提案，请在工作台同意或拒绝。",
-        REVIEW_AGENT_FAILURE: "Agent 没有成功完成处理，请查看记录并人工决定下一步。",
-        RESOLVE_CREATOR_IDENTITY: "系统还不能稳定识别该达人，需要人工确认身份或等待更多平台信息。",
-        REVIEW_COLLABORATION: "这条合作需要人工判断。可以打开详情查看历史，再决定是否去平台处理。",
+        SHIP_SAMPLE:
+          "样品申请已经同意，将由 TikTok FBT 自动履约，无需员工安排发货。",
+        FOLLOW_UP_CREATOR:
+          "达人侧下一步动作已超时，需要根据当前合作上下文跟进达人。",
+        REVIEW_ACTION_PROPOSAL:
+          "Agent 已经生成平台动作提案，请在工作台同意或拒绝。",
+        REVIEW_AGENT_FAILURE:
+          "Agent 没有成功完成处理，请查看记录并人工决定下一步。",
+        RESOLVE_CREATOR_IDENTITY:
+          "系统还不能稳定识别该达人，需要人工确认身份或等待更多平台信息。",
+        REVIEW_COLLABORATION:
+          "这条合作需要人工判断。可以打开详情查看历史，再决定是否去平台处理。",
         PROPOSAL_REJECTED:
           "员工已拒绝 Agent 的建议。系统不会执行该提案，后续需要人工处理或等待新的达人/平台事件。",
         PROPOSAL_REVISION_REQUESTED:
           "员工已要求 Agent 根据备注重新生成提案。备注会进入下一次 Agent 运行上下文。",
-        WAITING_CREATOR: "当前不需要员工操作，等待达人回复、寄样状态变化或内容发布。",
-        WAITING_PLATFORM: "当前不需要员工操作，等待 TikTok Shop 同步新的样品、内容或合作状态。",
-        WAITING_FBT_SHIPMENT: "样品申请已同意，TikTok FBT 正在自动履约，无需员工安排发货。",
+        WAITING_CREATOR:
+          "当前不需要员工操作，等待达人回复、寄样状态变化或内容发布。",
+        WAITING_PLATFORM:
+          "当前不需要员工操作，等待 TikTok Shop 同步新的样品、内容或合作状态。",
+        WAITING_FBT_SHIPMENT:
+          "样品申请已同意，TikTok FBT 正在自动履约，无需员工安排发货。",
         DONE: "这条合作当前没有待处理事项。可以打开详情查看历史记录。",
         BLOCKED: "该合作已阻止，不会继续自动推进。",
         DEFAULT: "打开详情查看该合作的历史、提案和平台事件。",
@@ -4244,13 +4428,15 @@ export default {
       },
       sampleWorkStatusDescriptions: {
         REQUEST_PENDING_REVIEW: "达人已提交样品申请，正在等待你审核。",
-        APPROVED_AWAITING_SHIPMENT: "样品申请已同意，正在等待 TikTok FBT 自动履约。",
+        APPROVED_AWAITING_SHIPMENT:
+          "样品申请已同意，正在等待 TikTok FBT 自动履约。",
         SHIPPED_IN_TRANSIT: "样品已经发出，正在运输途中。",
         DELIVERED_AWAITING_CONTENT: "达人已收到样品，下一步应发布内容。",
         CONTENT_OBSERVED_REVIEWING: "系统已检测到内容，正在等待进一步确认。",
         FULFILLED: "这次样品合作已完成。",
         FULFILLMENT_FAILED: "这次样品合作未能完成。",
-        PLATFORM_STATUS_UNKNOWN: "TikTok Shop 没有返回可审核的样品状态，系统不会执行样品审核动作。",
+        PLATFORM_STATUS_UNKNOWN:
+          "TikTok Shop 没有返回可审核的样品状态，系统不会执行样品审核动作。",
         CANCELLED: "样品申请已取消。",
         EXPIRED: "样品申请已过期。",
         DEFAULT: "样品申请状态有更新。",
@@ -4267,14 +4453,18 @@ export default {
         CANCELLED: "已取消",
         EXPIRED: "已过期",
       },
-      sampleSituationPreview: "{{statusDescription}} 已观察到 {{contentCount}} 个内容。",
-      manualFollowUpNote: "员工已拒绝 Agent 提案。该事项仍需要人工在平台或后续沟通中处理。",
-      sampleStatusPreview: "样品状态：{{status}}；已观察到 {{contentCount}} 个内容。",
+      sampleSituationPreview:
+        "{{statusDescription}} 已观察到 {{contentCount}} 个内容。",
+      manualFollowUpNote:
+        "员工已拒绝 Agent 提案。该事项仍需要人工在平台或后续沟通中处理。",
+      sampleStatusPreview:
+        "样品状态：{{status}}；已观察到 {{contentCount}} 个内容。",
       lifecycleEventPreview: "平台/系统事件：{{eventType}}",
     },
     customerServiceWorkspace: {
       title: "客服管理",
-      subtitle: "集中查看跨店铺客服会话，控制 AI 接管状态，并处理需要人工判断的升级请求。",
+      subtitle:
+        "集中查看跨店铺客服会话，控制 AI 接管状态，并处理需要人工判断的升级请求。",
       conversationsPageTitle: "客服对话",
       conversationsPageSubtitle: "查看跨店铺买家会话、AI 接管状态和最近消息。",
       escalationsPageTitle: "客服升级",
@@ -4364,14 +4554,16 @@ export default {
       confirmClearConversationEscalations:
         "确定关闭该会话下所有未完成升级请求吗？这不会唤醒 AI Agent。",
       dismissConversationEscalationsSuccess: "升级请求已关闭。",
-      dismissConversationEscalationsConfirm: "确定关闭该会话下 {{count}} 个未完成升级请求吗？",
+      dismissConversationEscalationsConfirm:
+        "确定关闭该会话下 {{count}} 个未完成升级请求吗？",
       details: "详情",
       conversationDetails: "会话详情",
       search: "搜索",
       conversationSearchPlaceholder: "搜索买家、订单、会话、消息……",
       searchPlaceholder: "搜索 ID、订单、买家、会话、原因……",
       pageSize: "每页 {{count}} 条",
-      pageSummary: "显示 {{start}}-{{end}} / 共 {{total}} 条 | 第 {{page}} / {{pages}} 页",
+      pageSummary:
+        "显示 {{start}}-{{end}} / 共 {{total}} 条 | 第 {{page}} / {{pages}} 页",
       page: "第 {{page}} / {{pages}} 页",
       previous: "上一页",
       next: "下一页",
@@ -4434,7 +4626,8 @@ export default {
         "勾选后，CS Agent 会把这条处理意见视为最终决定，并关闭这个客服升级请求。不勾选则表示只是阶段性更新，升级请求继续保持未完成。",
       sendResponse: "发送处理意见",
       dismissEscalation: "关闭升级请求",
-      dismissEscalationTooltip: "关闭升级请求，但不会唤醒 AI Agent，也不会给买家发送消息。",
+      dismissEscalationTooltip:
+        "关闭升级请求，但不会唤醒 AI Agent，也不会给买家发送消息。",
       dismissEscalationSuccess: "升级请求已关闭。",
       confirmDismissEscalation: "确定关闭这条升级请求吗？",
       previousEscalation: "上一条",
@@ -4520,8 +4713,10 @@ export default {
       needs_link: "需要确认",
       needs_advertiser: "未连接广告账户",
       hint_connected: "这个店铺已经关联到 TikTok Ads store binding。",
-      hint_needs_link: "已经连接 TikTok Ads 账户，但这个店铺还需要确认广告覆盖配置。",
-      hint_needs_advertiser: "请先连接 TikTok Ads 账户，这个店铺才能用于广告报表。",
+      hint_needs_link:
+        "已经连接 TikTok Ads 账户，但这个店铺还需要确认广告覆盖配置。",
+      hint_needs_advertiser:
+        "请先连接 TikTok Ads 账户，这个店铺才能用于广告报表。",
     },
     shopDrawer: {
       tabs: {
@@ -4536,7 +4731,8 @@ export default {
         adsReadiness: "Ads 状态",
         services: "服务",
         csToggle: "AI 智能客服",
-        csToggleHint: "为此店铺启用 AI 智能客服后，可以处理买家消息和订单对话。",
+        csToggleHint:
+          "为此店铺启用 AI 智能客服后，可以处理买家消息和订单对话。",
         inventoryToggle: "库存管理",
         affiliateToggle: "达人管理",
         affiliateToggleHint:
@@ -4585,10 +4781,12 @@ export default {
         bridgeReconnecting: "客服桥正在重新连接（第 {{attempt}} 次尝试）…",
         unpaidReachout: "未付款订单主动触达",
         unpaidReachoutEnabled: "主动联系未付款订单客户",
-        unpaidReachoutHint: "订单仍未付款时，由 Backend 按计划最多发送三阶段提醒。",
+        unpaidReachoutHint:
+          "订单仍未付款时，由 Backend 按计划最多发送三阶段提醒。",
         unpaidReachoutDelay: "延迟分钟数",
         unpaidReachoutDelayHint: "请输入 1 到 2879 之间的整数分钟。",
-        unpaidReachoutInvalidDelay: "每个延迟必须是 1 到 2879 之间且不重复的整数分钟。",
+        unpaidReachoutInvalidDelay:
+          "每个延迟必须是 1 到 2879 之间且不重复的整数分钟。",
         unpaidReachoutTemplate: "提醒消息模板",
         unpaidReachoutTemplatePlaceholder: "填写将发送给未付款买家的提醒消息。",
         unpaidReachoutTemplateHint:
@@ -4599,7 +4797,8 @@ export default {
         unpaidReachoutAddStage: "新增阶段",
         unpaidReachoutMaxStages: "最多 3 个",
         unpaidReachoutControlGroup: "保留对照组",
-        unpaidReachoutControlHint: "对照组订单仍计入 eligible，但不会收到消息。",
+        unpaidReachoutControlHint:
+          "对照组订单仍计入 eligible，但不会收到消息。",
         unpaidReachoutHoldoutHint: "% 对照组；修改比例会开始新实验。",
         unpaidReachoutTemplateTokens: "插入变量",
         unpaidReachoutTemplateTokenOrderId: "订单号",
@@ -4622,7 +4821,8 @@ export default {
         unpaidHoldoutLabel: "对照组比例",
         unpaidTrafficAllocation: "实验流量",
         unpaidTrafficSummary: "{{holdout}}% 对照组 · {{treatment}}% 正常触达",
-        unpaidNestedTrafficSummary: "{{holdout}}% 不触达对照组 · {{treatment}}% 进入配置优化",
+        unpaidNestedTrafficSummary:
+          "{{holdout}}% 不触达对照组 · {{treatment}}% 进入配置优化",
         unpaidOptimizedTreatment: "配置实验流量",
         unpaidIncrementalProductionHint:
           "增量效果只比较不触达对照组与生产方案 A；探索性的 B/C 等方案仅进入配置实验分析。",
@@ -4680,11 +4880,14 @@ export default {
         badReviewReachoutHint:
           "开启后，符合条件的新差评会进入客服待处理流程，由本设备 Agent 根据评价内容主动联系买家。",
         badReviewReachoutStars: "差评星级",
-        badReviewReachoutStarsHint: "评分小于等于该星级时视为差评。请输入 1 到 3。",
+        badReviewReachoutStarsHint:
+          "评分小于等于该星级时视为差评。请输入 1 到 3。",
         badReviewReachoutRecentDays: "跟进天数",
-        badReviewReachoutRecentDaysHint: "只跟进最近 N 天创建的差评。请输入 1 到 90。",
+        badReviewReachoutRecentDaysHint:
+          "只跟进最近 N 天创建的差评。请输入 1 到 90。",
         reviewOptimizationInvalidStars: "差评星级必须是 1 到 3 之间的整数。",
-        reviewOptimizationInvalidRecentDays: "跟进天数必须是 1 到 90 之间的整数。",
+        reviewOptimizationInvalidRecentDays:
+          "跟进天数必须是 1 到 90 之间的整数。",
       },
       affiliate: {
         manualTagAddPreview: "为该达人关系添加标签“{{name}}”。",
@@ -4697,7 +4900,8 @@ export default {
         dailyCreatorOutreachLimitSaved: "已保存每日自动联系达人上限。",
         dailyCreatorOutreachLimitSaveFailed: "保存每日自动联系达人上限失败。",
         bindDevice: "在本设备接管达人消息",
-        bindDeviceHint: "开启后，本设备会唤醒本地 Agent 处理达人回复和达人生命周期事件。",
+        bindDeviceHint:
+          "开启后，本设备会唤醒本地 Agent 处理达人回复和达人生命周期事件。",
         bindConflict: "另一台设备正在处理此店铺的达人消息。是否切换到本设备？",
         bindConflictTitle: "设备冲突",
         thisDevice: "本设备接管中",
@@ -4729,7 +4933,8 @@ export default {
         minExpectedSalesUnits: "最低预期销量",
         minExpectedSalesUnitsHint:
           "仅作为有可用预期销量预测时的店铺级 Agent 判断参考，不会自动批准或拒绝样品。Campaign 自动筛选只使用 Campaign 自身明确配置的阈值。",
-        minExpectedSalesUnitsRequired: "最低预期销量为必填项，请输入 0 或更大的数字。",
+        minExpectedSalesUnitsRequired:
+          "最低预期销量为必填项，请输入 0 或更大的数字。",
         invalidDecisionThreshold: "最低预期销量必须是 0 或更大的数字。",
         performanceFollowUp: "履约后销量跟进",
         performanceFollowUpEnabled: "启用低出单 Sample 跟进",
@@ -4744,7 +4949,8 @@ export default {
         performanceFollowUpStageLabel: "第 {{index}} 次（最近作品发布后天数）",
         performanceFollowUpAddStage: "添加检查点",
         performanceFollowUpRemoveStage: "移除第 {{index}} 个检查点",
-        performanceFollowUpThresholdInvalid: "低出单阈值必须是大于等于 1 的整数。",
+        performanceFollowUpThresholdInvalid:
+          "低出单阈值必须是大于等于 1 的整数。",
         performanceFollowUpStagesRequired: "启用后必须配置 1–3 个检查点。",
         performanceFollowUpDelayInvalid:
           "检查点必须是 1–88 的整数，并按递增顺序配置，且相邻至少间隔 3 天。",
@@ -4770,15 +4976,18 @@ export default {
         requestProposalRevision: "请求重写",
         sendProposalRevisionRequest: "发送重写请求",
         proposalRevisionNoteLabel: "重写备注",
-        proposalRevisionNotePlaceholder: "告诉 Agent 要改什么，例如：同意样品，但回复要更简短。",
-        proposalRevisionNoteHint: "这些备注会传回 Affiliate Agent，用于生成下一版提案。",
+        proposalRevisionNotePlaceholder:
+          "告诉 Agent 要改什么，例如：同意样品，但回复要更简短。",
+        proposalRevisionNoteHint:
+          "这些备注会传回 Affiliate Agent，用于生成下一版提案。",
         messageIntentFallback: "{{type}} 消息",
         sampleReviewPreview: "{{decision}} 样品申请 {{applicationId}}",
         sampleReviewDecisions: {
           APPROVE: "同意",
           REJECT: "拒绝",
         },
-        sampleShipmentPreview: "为申请 {{applicationId}} 寄出 {{quantity}} 件样品",
+        sampleShipmentPreview:
+          "为申请 {{applicationId}} 寄出 {{quantity}} 件样品",
         blockCreatorPreview: "拉黑达人 {{creatorId}}。",
         campaignProductPreview: "更新推广商品 {{productId}}。",
         approvalPolicyPreview: "更新 {{action}} 的审批策略。",
@@ -4814,7 +5023,8 @@ export default {
       pageTitle: "库存管理",
       pageSubtitle: "管理 WMS 账号和库存商品。",
       shopMappings: "店铺仓库映射",
-      shopMappingsSubtitle: "选择店铺，启用库存管理，并将平台仓库映射到统一 WMS 仓库。",
+      shopMappingsSubtitle:
+        "选择店铺，启用库存管理，并将平台仓库映射到统一 WMS 仓库。",
       selectShop: "店铺",
       enableShopInventory: "库存管理",
       enableShopHint: "为此店铺启用库存管理后，可以同步并映射平台仓库。",
@@ -4826,7 +5036,8 @@ export default {
       deleteWmsAccount: "删除仓库管理系统账号",
       wmsProviderSupportTooltip:
         "目前第三方仓库支持易境通和领星 WMS。如果需要新增其他仓库服务商，请通过官网邮箱联系我们。",
-      confirmDeleteWmsAccount: "确定要删除「{{label}}」吗？此账号会被归档，不再展示或用于同步。",
+      confirmDeleteWmsAccount:
+        "确定要删除「{{label}}」吗？此账号会被归档，不再展示或用于同步。",
       refreshInventory: "刷新库存数据",
       noWmsAccounts: "尚未连接仓库管理系统账号。",
       noSyncedWarehouses: "此账号还没有同步到仓库。",
@@ -4838,10 +5049,16 @@ export default {
       providers: {
         YEJOIN: "易境通",
         XLWMS: "领星 WMS",
+        LINGXING: "领星 ERP",
+        SELLFOX: "赛狐",
+        JFWMS: "极风 WMS",
       },
       warehouseProviders: {
         YEJOIN: "易境通",
         XLWMS: "领星 WMS",
+        LINGXING: "领星 ERP",
+        SELLFOX: "赛狐",
+        JFWMS: "极风 WMS",
         TIKTOK_FBT: "TikTok FBT",
         SELLER: "卖家",
         AMAZON_FBA: "Amazon FBA",
@@ -4866,10 +5083,36 @@ export default {
       endpointPlaceholder: "https://api.example.com",
       apiToken: "API 令牌",
       apiTokenPlaceholder: "粘贴 API 令牌",
+      apiKey: "API Key / Client ID",
+      apiSecret: "API Secret",
+      refreshToken: "Refresh Token",
+      providerUserId: "平台用户 ID",
+      authorizationMode: "接入方式",
+      authorizationModes: {
+        AUTHORIZE: "授权 OMS",
+        EXISTING: "已有授权凭证",
+      },
+      authorizationUser: "OMS 账号邮箱",
+      authorizationToken: "一次性授权 Token",
+      authorizationDomain: "授权域名",
+      authorizationDomainPlaceholder: "可选，默认使用接口地址的域名",
+      keepCredentialPlaceholder: "留空则保持已保存的值",
+      credentialsWriteOnlyHint: "凭证只写入后端，保存后不会再次展示。",
+      credentialMissingFields: "请完整填写这些凭证字段：{{fields}}。",
+      credentialFields: {
+        apiKey: "API Key / Client ID",
+        apiSecret: "API Secret",
+        apiToken: "API 令牌",
+        refreshToken: "Refresh Token",
+        providerUserId: "平台用户 ID",
+        authorizationUser: "OMS 账号邮箱",
+        authorizationToken: "一次性授权 Token",
+      },
       apiTokenEditPlaceholder: "留空则保持现有 API 令牌",
       apiTokenHint: "API 令牌只写入后端，不会再次展示。",
       apiTokenIssues: {
-        invalidJson: '不是有效的 JSON。请粘贴凭证对象，例如 {"appKey":"...","appSecret":"..."}。',
+        invalidJson:
+          '不是有效的 JSON。请粘贴凭证对象，例如 {"appKey":"...","appSecret":"..."}。',
         missingFields: "凭证对象缺少 {{fields}}。",
       },
       apiTokenPlaceholders: {
@@ -4878,7 +5121,8 @@ export default {
       },
       apiTokenHints: {
         YEJOIN: "API 令牌只写入后端，不会再次展示。",
-        XLWMS: "请粘贴包含 appKey 和 appSecret 的 JSON。密钥只写入后端，不会再次展示。",
+        XLWMS:
+          "请粘贴包含 appKey 和 appSecret 的 JSON。密钥只写入后端，不会再次展示。",
       },
       apiTokenEditHint:
         "API 令牌只写入后端，不会再次展示。留空则保持现有令牌；填写新令牌会保存后重新同步仓库。",
@@ -4897,13 +5141,15 @@ export default {
       previousInventoryGoodsPage: "上一页",
       nextInventoryGoodsPage: "下一页",
       inventoryGoodsPage: "第 {{page}} 页",
-      inventoryGoodsPageSummary: "共 {{count}} 个商品 · 第 {{page}} / {{pages}} 页",
+      inventoryGoodsPageSummary:
+        "共 {{count}} 个商品 · 第 {{page}} / {{pages}} 页",
       inventoryGoodsGoToPage: "跳到",
       inventoryGoodsGo: "跳转",
       addInventoryGood: "新增库存商品",
       editInventoryGood: "编辑库存商品",
       deleteInventoryGood: "删除库存商品",
-      confirmDeleteInventoryGood: "确定删除库存商品「{{sku}}」吗？此操作会将其归档。",
+      confirmDeleteInventoryGood:
+        "确定删除库存商品「{{sku}}」吗？此操作会将其归档。",
       deleteSelectedInventoryGoodsTitle: "删除已选库存商品",
       confirmDeleteSelectedInventoryGoods:
         "确定删除已选的 {{count}} 个库存商品吗？此操作会将它们归档。",
@@ -4958,12 +5204,14 @@ export default {
       recognizedInventoryGoods: "已匹配",
       unrecognizedInventoryGoods: "待同步",
       viewDetails: "查看详情",
-      matchedInventoryGoodsCount: "已有 {{count}} 个商品匹配到系统内部库存商品。",
+      matchedInventoryGoodsCount:
+        "已有 {{count}} 个商品匹配到系统内部库存商品。",
       needSyncInventoryGoodsCount: "{{count}} 个商品需要同步。",
       matchedInventoryGoodsDetailsUnavailable:
         "后端目前只返回已匹配数量，没有返回已匹配商品明细，所以这里没有可逐条查看的列表。",
       noInventoryGoodsNeedSync: "没有需要同步的库存商品。",
-      allInventoryGoodsMatched: "此仓库管理系统中的库存商品都已匹配到系统内部库存商品。",
+      allInventoryGoodsMatched:
+        "此仓库管理系统中的库存商品都已匹配到系统内部库存商品。",
       noWmsInventoryGoodsFound: "此账号没有发现可同步的库存商品。",
       unrecognizedInventoryGoodsList: "待新增的库存商品",
       moreUnrecognizedInventoryGoods: "还有 {{count}} 个商品",
@@ -4980,9 +5228,11 @@ export default {
       expand: "展开",
       collapse: "收起",
       shopWarehouses: "店铺仓库",
-      shopWarehousesHint: "将平台店铺仓库映射到后端 canonical warehouse 后，库存工作流才会使用。",
+      shopWarehousesHint:
+        "将平台店铺仓库映射到后端 canonical warehouse 后，库存工作流才会使用。",
       syncShopWarehouses: "同步店铺仓库",
-      noShopWarehouses: "后端还没有此店铺的仓库行。请先同步店铺仓库，让后端创建真实 row 后再映射。",
+      noShopWarehouses:
+        "后端还没有此店铺的仓库行。请先同步店铺仓库，让后端创建真实 row 后再映射。",
       shopWarehouseColumn: "店铺仓库",
       warehouseStatusColumn: "状态",
       canonicalWarehouseColumn: "Canonical warehouse",
@@ -5002,7 +5252,8 @@ export default {
     view: "查看",
     reauthorize: "重新授权",
     disconnect: "断开连接",
-    confirmDisconnect: "断开此店铺的连接？您的服务余额将被保留，重新连接后可恢复。",
+    confirmDisconnect:
+      "断开此店铺的连接？您的服务余额将被保留，重新连接后可恢复。",
     disconnectSuccess: "店铺已断开连接。余额已保留。",
     oauthSuccess: "店铺连接成功！",
     oauthFailed: "连接店铺失败，请重试。",
@@ -5017,7 +5268,8 @@ export default {
     customerServiceRoutingUnavailableBody:
       "以下店铺已选择本机作为客服接收设备，但升级接收渠道不可用。基础 AI 客服不受影响；请重新选择存在的升级渠道，或完成微信消息凭证确认。",
     customerServiceRoutingIssue_invalid_channel: "渠道不存在",
-    customerServiceRoutingIssue_missing_context_token: "微信缺少主动发送消息所需的上下文凭证",
+    customerServiceRoutingIssue_missing_context_token:
+      "微信缺少主动发送消息所需的上下文凭证",
     shopUpdatedToast: "店铺「{{shopName}}」已更新。",
   },
 } as const;

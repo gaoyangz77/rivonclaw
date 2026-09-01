@@ -1,53 +1,96 @@
 import { describe, expect, it } from "vitest";
-import { wmsApiTokenFields, wmsApiTokenIssue } from "./wms-credentials.js";
+import {
+  wmsCredentialFields,
+  wmsCredentialIssue,
+  type WmsCredentialDraft,
+} from "./wms-credentials.js";
 
-describe("wmsApiTokenIssue", () => {
-  it("accepts an opaque token for a provider without a JSON contract", () => {
-    expect(wmsApiTokenIssue("YEJOIN", "1f2e3d4c5b6a7988")).toBeNull();
-    expect(wmsApiTokenFields("YEJOIN")).toBeNull();
-  });
+const empty: WmsCredentialDraft = {
+  apiKey: "",
+  apiSecret: "",
+  apiToken: "",
+  refreshToken: "",
+  providerUserId: "",
+  authorizationUser: "",
+  authorizationToken: "",
+};
 
-  it("accepts a well-formed credential object", () => {
-    expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key","appSecret":"secret"}')).toBeNull();
-    expect(wmsApiTokenIssue("LINGXING", '{"appId":"id","appSecret":"secret"}')).toBeNull();
-    expect(wmsApiTokenIssue("SELLFOX", '{"clientId":"id","clientSecret":"secret"}')).toBeNull();
+describe("wmsCredentialIssue", () => {
+  it("models static-token and key/secret providers without JSON", () => {
+    expect(wmsCredentialFields("YEJOIN", "EXISTING")).toEqual(["apiToken"]);
+    expect(wmsCredentialFields("XLWMS", "EXISTING")).toEqual([
+      "apiKey",
+      "apiSecret",
+    ]);
     expect(
-      wmsApiTokenIssue(
-        "JFWMS",
-        '{"clientId":"id","clientSecret":"secret","refreshToken":"refresh","userId":"8"}',
+      wmsCredentialIssue(
+        "XLWMS",
+        "EXISTING",
+        { ...empty, apiKey: "key", apiSecret: "secret" },
+        false,
       ),
     ).toBeNull();
   });
 
-  it("rejects the plain string that broke the nightly inventory sync", () => {
-    expect(wmsApiTokenIssue("XLWMS", "9f8e7d6c5b4a39281706f5e4d3c2b1a0")).toBe("invalidJson");
-  });
-
-  it("rejects JSON that is not a credential object", () => {
-    expect(wmsApiTokenIssue("XLWMS", '["key","secret"]')).toBe("invalidJson");
-    expect(wmsApiTokenIssue("XLWMS", '"token"')).toBe("invalidJson");
-  });
-
-  it("rejects an object missing or blanking a required field", () => {
-    expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key"}')).toBe("missingFields");
-    expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key","appSecret":"  "}')).toBe("missingFields");
-    expect(wmsApiTokenIssue("LINGXING", '{"appKey":"key","appSecret":"secret"}')).toBe(
-      "missingFields",
-    );
-    expect(wmsApiTokenIssue("SELLFOX", '{"appId":"id","appSecret":"secret"}')).toBe(
-      "missingFields",
-    );
+  it("requires one-time authorization inputs for a new JFWMS account", () => {
+    expect(wmsCredentialFields("JFWMS", "AUTHORIZE")).toEqual([
+      "apiKey",
+      "apiSecret",
+      "authorizationUser",
+      "authorizationToken",
+    ]);
     expect(
-      wmsApiTokenIssue("JFWMS", '{"clientId":"id","clientSecret":"secret"}'),
+      wmsCredentialIssue(
+        "JFWMS",
+        "AUTHORIZE",
+        {
+          ...empty,
+          apiKey: "id",
+          apiSecret: "secret",
+          authorizationUser: "merchant@example.com",
+          authorizationToken: "once",
+        },
+        false,
+      ),
+    ).toBeNull();
+  });
+
+  it("also supports importing an existing JFWMS refresh grant", () => {
+    expect(wmsCredentialFields("JFWMS", "EXISTING")).toEqual([
+      "apiKey",
+      "apiSecret",
+      "refreshToken",
+      "providerUserId",
+    ]);
+    expect(
+      wmsCredentialIssue(
+        "JFWMS",
+        "EXISTING",
+        {
+          ...empty,
+          apiKey: "id",
+          apiSecret: "secret",
+          refreshToken: "refresh",
+          providerUserId: "8",
+        },
+        false,
+      ),
+    ).toBeNull();
+  });
+
+  it("allows an edit to retain stored write-only credentials", () => {
+    expect(wmsCredentialIssue("JFWMS", "EXISTING", empty, true)).toBeNull();
+    expect(wmsCredentialIssue("XLWMS", "EXISTING", empty, true)).toBeNull();
+  });
+
+  it("rejects a partial credential replacement", () => {
+    expect(
+      wmsCredentialIssue(
+        "SELLFOX",
+        "EXISTING",
+        { ...empty, apiKey: "only-key" },
+        true,
+      ),
     ).toBe("missingFields");
-  });
-
-  it("treats an empty field as no issue, so editing can keep the stored token", () => {
-    expect(wmsApiTokenIssue("XLWMS", "")).toBeNull();
-    expect(wmsApiTokenIssue("XLWMS", "   ")).toBeNull();
-  });
-
-  it("tolerates whitespace around a pasted credential", () => {
-    expect(wmsApiTokenIssue("XLWMS", '  {"appKey":"key","appSecret":"secret"}\n')).toBeNull();
   });
 });

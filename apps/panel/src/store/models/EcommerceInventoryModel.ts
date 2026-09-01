@@ -1,6 +1,7 @@
 import { flow, getEnv, getRoot, types } from "mobx-state-tree";
-import type { GQL } from "@rivonclaw/core";
+import { GQL } from "@rivonclaw/core";
 import {
+  AUTHORIZE_WMS_ACCOUNT_MUTATION,
   READ_INVENTORY_GOODS_QUERY,
   READ_WMS_INVENTORY_GOOD_COVERAGE_QUERY,
   READ_SHOP_WAREHOUSES_QUERY,
@@ -23,6 +24,14 @@ const AddWmsAccountDraftModel = types.model("AddWmsAccountDraft", {
   endpoint: types.optional(types.string, ""),
   declaredValueCurrency: types.optional(types.string, ""),
   apiToken: types.optional(types.string, ""),
+  apiKey: types.optional(types.string, ""),
+  apiSecret: types.optional(types.string, ""),
+  refreshToken: types.optional(types.string, ""),
+  providerUserId: types.optional(types.string, ""),
+  authorizationMode: types.optional(types.string, "AUTHORIZE"),
+  authorizationUser: types.optional(types.string, ""),
+  authorizationToken: types.optional(types.string, ""),
+  authorizationDomain: types.optional(types.string, ""),
   notes: types.optional(types.string, ""),
   originalEndpoint: types.optional(types.string, ""),
 });
@@ -87,8 +96,12 @@ export const EcommerceInventoryModel = types
     wmsInventoryGoodsCoverageLoading: types.optional(types.boolean, false),
     wmsInventoryGoodsSyncing: types.optional(types.boolean, false),
     wmsInventoryGoodsSyncError: types.maybeNull(types.string),
-    wmsInventoryGoodsCoverage: types.maybeNull(types.frozen<Record<string, any>>()),
-    wmsInventoryGoodsSyncResult: types.maybeNull(types.frozen<Record<string, any>>()),
+    wmsInventoryGoodsCoverage: types.maybeNull(
+      types.frozen<Record<string, any>>(),
+    ),
+    wmsInventoryGoodsSyncResult: types.maybeNull(
+      types.frozen<Record<string, any>>(),
+    ),
     inventoryGoodsLoading: types.optional(types.boolean, false),
     inventoryGoodsError: types.maybeNull(types.string),
     inventoryGoodsSearch: types.optional(types.string, ""),
@@ -113,7 +126,10 @@ export const EcommerceInventoryModel = types
     shopWarehouseTabByShopId: types.optional(types.map(types.string), {}),
     syncingWmsAccountIds: types.optional(types.array(types.string), []),
     syncingShopIds: types.optional(types.array(types.string), []),
-    savingShopWarehouseMappingIds: types.optional(types.array(types.string), []),
+    savingShopWarehouseMappingIds: types.optional(
+      types.array(types.string),
+      [],
+    ),
   })
   .views((self) => ({
     isWmsAccountExpanded(id: string) {
@@ -123,7 +139,9 @@ export const EcommerceInventoryModel = types
       return self.expandedShopWarehouseIds.includes(id);
     },
     getShopWarehouseTab(shopId: string) {
-      return self.shopWarehouseTabByShopId.get(shopId) === "official" ? "official" : "thirdParty";
+      return self.shopWarehouseTabByShopId.get(shopId) === "official"
+        ? "official"
+        : "thirdParty";
     },
     isWmsAccountSyncing(id: string) {
       return self.syncingWmsAccountIds.includes(id);
@@ -132,8 +150,10 @@ export const EcommerceInventoryModel = types
       return self.deletingWmsAccountIds.includes(id);
     },
     isWmsInventoryGoodsWorkflowBusy(id: string) {
-      return self.wmsInventoryGoodsSyncAccountId === id
-        && (self.wmsInventoryGoodsCoverageLoading || self.wmsInventoryGoodsSyncing);
+      return (
+        self.wmsInventoryGoodsSyncAccountId === id &&
+        (self.wmsInventoryGoodsCoverageLoading || self.wmsInventoryGoodsSyncing)
+      );
     },
     get isEditingWmsAccount() {
       return Boolean(self.addWmsAccountDraft.id);
@@ -142,35 +162,45 @@ export const EcommerceInventoryModel = types
       return Boolean(self.inventoryGoodDraft.id);
     },
     get inventoryGoodsOffset() {
-      return Math.max(self.inventoryGoodsPage - 1, 0) * self.inventoryGoodsPageSize;
+      return (
+        Math.max(self.inventoryGoodsPage - 1, 0) * self.inventoryGoodsPageSize
+      );
     },
     get filteredInventoryGoods() {
       const search = self.inventoryGoodsSearch.trim().toLowerCase();
       const goods = getRoot<any>(self).inventoryGoods ?? [];
       return goods
         .filter((good: { status?: string }) => good.status !== "ARCHIVED")
-        .filter((good: {
-          sku?: string | null;
-          name?: string | null;
-          barcode?: string | null;
-          gtin?: string | null;
-          hsCode?: string | null;
-        }) => {
-          if (!search) return true;
-          return [
-            good.sku,
-            good.name,
-            good.barcode,
-            good.gtin,
-            good.hsCode,
-          ].some((value) => value?.toLowerCase().includes(search));
-        });
+        .filter(
+          (good: {
+            sku?: string | null;
+            name?: string | null;
+            barcode?: string | null;
+            gtin?: string | null;
+            hsCode?: string | null;
+          }) => {
+            if (!search) return true;
+            return [
+              good.sku,
+              good.name,
+              good.barcode,
+              good.gtin,
+              good.hsCode,
+            ].some((value) => value?.toLowerCase().includes(search));
+          },
+        );
     },
     get inventoryGoodsFilteredCount() {
       return (self as any).filteredInventoryGoods.length;
     },
     get inventoryGoodsPageCount() {
-      return Math.max(1, Math.ceil((self as any).inventoryGoodsFilteredCount / self.inventoryGoodsPageSize));
+      return Math.max(
+        1,
+        Math.ceil(
+          (self as any).inventoryGoodsFilteredCount /
+            self.inventoryGoodsPageSize,
+        ),
+      );
     },
     get pagedInventoryGoods() {
       return (self as any).filteredInventoryGoods.slice(
@@ -179,7 +209,10 @@ export const EcommerceInventoryModel = types
       );
     },
     get inventoryGoodsHasNextPage() {
-      return (self as any).inventoryGoodsOffset + self.inventoryGoodsPageSize < (self as any).filteredInventoryGoods.length;
+      return (
+        (self as any).inventoryGoodsOffset + self.inventoryGoodsPageSize <
+        (self as any).filteredInventoryGoods.length
+      );
     },
     isInventoryGoodsColumnVisible(column: string) {
       return self.inventoryGoodsVisibleColumns.includes(column);
@@ -191,7 +224,10 @@ export const EcommerceInventoryModel = types
       return self.deletingInventoryGoodIds.includes(id);
     },
     isShopInventoryLoading(shopId: string) {
-      return self.shopInventoryLoadingIds.includes(shopId) || self.syncingShopIds.includes(shopId);
+      return (
+        self.shopInventoryLoadingIds.includes(shopId) ||
+        self.syncingShopIds.includes(shopId)
+      );
     },
     isShopSyncing(shopId: string) {
       return self.syncingShopIds.includes(shopId);
@@ -278,15 +314,23 @@ export const EcommerceInventoryModel = types
         gtin: optionalText(draft.gtin),
         barcode: optionalText(draft.barcode),
         hsCode: optionalText(draft.hsCode),
-        countryOfOrigin: optionalText(draft.countryOfOrigin) as GQL.InventoryCountryCode | null,
+        countryOfOrigin: optionalText(
+          draft.countryOfOrigin,
+        ) as GQL.InventoryCountryCode | null,
         weightValue: optionalNumber(draft.weightValue, "weightValue"),
-        weightUnit: optionalText(draft.weightUnit) as GQL.InventoryWeightUnit | null,
+        weightUnit: optionalText(
+          draft.weightUnit,
+        ) as GQL.InventoryWeightUnit | null,
         lengthValue: optionalNumber(draft.lengthValue, "lengthValue"),
         widthValue: optionalNumber(draft.widthValue, "widthValue"),
         heightValue: optionalNumber(draft.heightValue, "heightValue"),
-        dimensionUnit: optionalText(draft.dimensionUnit) as GQL.InventoryDimensionUnit | null,
+        dimensionUnit: optionalText(
+          draft.dimensionUnit,
+        ) as GQL.InventoryDimensionUnit | null,
         declaredValue: optionalNumber(draft.declaredValue, "declaredValue"),
-        declaredValueCurrency: optionalText(draft.declaredValueCurrency) as GQL.Currency | null,
+        declaredValueCurrency: optionalText(
+          draft.declaredValueCurrency,
+        ) as GQL.Currency | null,
         isBattery: draft.isBattery,
         isHazmat: draft.isHazmat,
       };
@@ -310,6 +354,14 @@ export const EcommerceInventoryModel = types
           self.addWmsAccountDraft.endpoint = "";
           self.addWmsAccountDraft.declaredValueCurrency = "";
           self.addWmsAccountDraft.apiToken = "";
+          self.addWmsAccountDraft.apiKey = "";
+          self.addWmsAccountDraft.apiSecret = "";
+          self.addWmsAccountDraft.refreshToken = "";
+          self.addWmsAccountDraft.providerUserId = "";
+          self.addWmsAccountDraft.authorizationMode = "AUTHORIZE";
+          self.addWmsAccountDraft.authorizationUser = "";
+          self.addWmsAccountDraft.authorizationToken = "";
+          self.addWmsAccountDraft.authorizationDomain = "";
           self.addWmsAccountDraft.notes = "";
           self.addWmsAccountDraft.originalEndpoint = "";
         }
@@ -327,8 +379,17 @@ export const EcommerceInventoryModel = types
         self.addWmsAccountDraft.provider = account.provider;
         self.addWmsAccountDraft.label = account.label;
         self.addWmsAccountDraft.endpoint = account.endpoint;
-        self.addWmsAccountDraft.declaredValueCurrency = account.declaredValueCurrency ?? "";
+        self.addWmsAccountDraft.declaredValueCurrency =
+          account.declaredValueCurrency ?? "";
         self.addWmsAccountDraft.apiToken = "";
+        self.addWmsAccountDraft.apiKey = "";
+        self.addWmsAccountDraft.apiSecret = "";
+        self.addWmsAccountDraft.refreshToken = "";
+        self.addWmsAccountDraft.providerUserId = "";
+        self.addWmsAccountDraft.authorizationMode = "EXISTING";
+        self.addWmsAccountDraft.authorizationUser = "";
+        self.addWmsAccountDraft.authorizationToken = "";
+        self.addWmsAccountDraft.authorizationDomain = "";
         self.addWmsAccountDraft.notes = account.notes ?? "";
         self.addWmsAccountDraft.originalEndpoint = account.endpoint;
         self.addWmsAccountModalOpen = true;
@@ -339,14 +400,46 @@ export const EcommerceInventoryModel = types
         endpoint?: string;
         declaredValueCurrency?: string;
         apiToken?: string;
+        apiKey?: string;
+        apiSecret?: string;
+        refreshToken?: string;
+        providerUserId?: string;
+        authorizationMode?: string;
+        authorizationUser?: string;
+        authorizationToken?: string;
+        authorizationDomain?: string;
         notes?: string;
       }) {
-        if (typeof patch.provider === "string") self.addWmsAccountDraft.provider = patch.provider;
-        if (typeof patch.label === "string") self.addWmsAccountDraft.label = patch.label;
-        if (typeof patch.endpoint === "string") self.addWmsAccountDraft.endpoint = patch.endpoint;
-        if (typeof patch.declaredValueCurrency === "string") self.addWmsAccountDraft.declaredValueCurrency = patch.declaredValueCurrency;
-        if (typeof patch.apiToken === "string") self.addWmsAccountDraft.apiToken = patch.apiToken;
-        if (typeof patch.notes === "string") self.addWmsAccountDraft.notes = patch.notes;
+        if (typeof patch.provider === "string")
+          self.addWmsAccountDraft.provider = patch.provider;
+        if (typeof patch.label === "string")
+          self.addWmsAccountDraft.label = patch.label;
+        if (typeof patch.endpoint === "string")
+          self.addWmsAccountDraft.endpoint = patch.endpoint;
+        if (typeof patch.declaredValueCurrency === "string")
+          self.addWmsAccountDraft.declaredValueCurrency =
+            patch.declaredValueCurrency;
+        if (typeof patch.apiToken === "string")
+          self.addWmsAccountDraft.apiToken = patch.apiToken;
+        if (typeof patch.apiKey === "string")
+          self.addWmsAccountDraft.apiKey = patch.apiKey;
+        if (typeof patch.apiSecret === "string")
+          self.addWmsAccountDraft.apiSecret = patch.apiSecret;
+        if (typeof patch.refreshToken === "string")
+          self.addWmsAccountDraft.refreshToken = patch.refreshToken;
+        if (typeof patch.providerUserId === "string")
+          self.addWmsAccountDraft.providerUserId = patch.providerUserId;
+        if (typeof patch.authorizationMode === "string")
+          self.addWmsAccountDraft.authorizationMode = patch.authorizationMode;
+        if (typeof patch.authorizationUser === "string")
+          self.addWmsAccountDraft.authorizationUser = patch.authorizationUser;
+        if (typeof patch.authorizationToken === "string")
+          self.addWmsAccountDraft.authorizationToken = patch.authorizationToken;
+        if (typeof patch.authorizationDomain === "string")
+          self.addWmsAccountDraft.authorizationDomain =
+            patch.authorizationDomain;
+        if (typeof patch.notes === "string")
+          self.addWmsAccountDraft.notes = patch.notes;
       },
       toggleWmsAccountExpanded(id: string) {
         if (self.expandedWmsAccountIds.includes(id)) {
@@ -366,7 +459,11 @@ export const EcommerceInventoryModel = types
         self.shopWarehouseTabByShopId.set(shopId, tab);
       },
       closeWmsInventoryGoodsSyncModal() {
-        if (self.wmsInventoryGoodsCoverageLoading || self.wmsInventoryGoodsSyncing) return;
+        if (
+          self.wmsInventoryGoodsCoverageLoading ||
+          self.wmsInventoryGoodsSyncing
+        )
+          return;
         self.wmsInventoryGoodsSyncModalOpen = false;
         self.wmsInventoryGoodsSyncAccountId = null;
         self.wmsInventoryGoodsCoverage = null;
@@ -406,11 +503,15 @@ export const EcommerceInventoryModel = types
       },
       nextInventoryGoodsPage() {
         if (!(self as any).inventoryGoodsHasNextPage) return Promise.resolve();
-        return (self as any).goToInventoryGoodsPage(self.inventoryGoodsPage + 1);
+        return (self as any).goToInventoryGoodsPage(
+          self.inventoryGoodsPage + 1,
+        );
       },
       previousInventoryGoodsPage() {
         if (self.inventoryGoodsPage <= 1) return Promise.resolve();
-        return (self as any).goToInventoryGoodsPage(self.inventoryGoodsPage - 1);
+        return (self as any).goToInventoryGoodsPage(
+          self.inventoryGoodsPage - 1,
+        );
       },
       openAddInventoryGoodModal() {
         self.inventoryGoodFormError = null;
@@ -427,14 +528,20 @@ export const EcommerceInventoryModel = types
         self.inventoryGoodDraft.barcode = good.barcode ?? "";
         self.inventoryGoodDraft.hsCode = good.hsCode ?? "";
         self.inventoryGoodDraft.countryOfOrigin = good.countryOfOrigin ?? "";
-        self.inventoryGoodDraft.weightValue = good.weightValue == null ? "" : String(good.weightValue);
+        self.inventoryGoodDraft.weightValue =
+          good.weightValue == null ? "" : String(good.weightValue);
         self.inventoryGoodDraft.weightUnit = good.weightUnit ?? "";
-        self.inventoryGoodDraft.lengthValue = good.lengthValue == null ? "" : String(good.lengthValue);
-        self.inventoryGoodDraft.widthValue = good.widthValue == null ? "" : String(good.widthValue);
-        self.inventoryGoodDraft.heightValue = good.heightValue == null ? "" : String(good.heightValue);
+        self.inventoryGoodDraft.lengthValue =
+          good.lengthValue == null ? "" : String(good.lengthValue);
+        self.inventoryGoodDraft.widthValue =
+          good.widthValue == null ? "" : String(good.widthValue);
+        self.inventoryGoodDraft.heightValue =
+          good.heightValue == null ? "" : String(good.heightValue);
         self.inventoryGoodDraft.dimensionUnit = good.dimensionUnit ?? "";
-        self.inventoryGoodDraft.declaredValue = good.declaredValue == null ? "" : String(good.declaredValue);
-        self.inventoryGoodDraft.declaredValueCurrency = good.declaredValueCurrency ?? "";
+        self.inventoryGoodDraft.declaredValue =
+          good.declaredValue == null ? "" : String(good.declaredValue);
+        self.inventoryGoodDraft.declaredValueCurrency =
+          good.declaredValueCurrency ?? "";
         self.inventoryGoodDraft.isBattery = good.isBattery ?? false;
         self.inventoryGoodDraft.isHazmat = good.isHazmat ?? false;
         self.inventoryGoodDraft.imageAssetId = null;
@@ -443,28 +550,31 @@ export const EcommerceInventoryModel = types
         self.inventoryGoodModalOpen = true;
       },
       closeInventoryGoodModal() {
-        if (self.inventoryGoodSaving || self.inventoryGoodUploadingImage) return;
+        if (self.inventoryGoodSaving || self.inventoryGoodUploadingImage)
+          return;
         self.inventoryGoodModalOpen = false;
         self.inventoryGoodFormError = null;
       },
-      updateInventoryGoodDraft(patch: Partial<{
-        sku: string;
-        name: string;
-        gtin: string;
-        barcode: string;
-        hsCode: string;
-        countryOfOrigin: string;
-        weightValue: string;
-        weightUnit: string;
-        lengthValue: string;
-        widthValue: string;
-        heightValue: string;
-        dimensionUnit: string;
-        declaredValue: string;
-        declaredValueCurrency: string;
-        isBattery: boolean;
-        isHazmat: boolean;
-      }>) {
+      updateInventoryGoodDraft(
+        patch: Partial<{
+          sku: string;
+          name: string;
+          gtin: string;
+          barcode: string;
+          hsCode: string;
+          countryOfOrigin: string;
+          weightValue: string;
+          weightUnit: string;
+          lengthValue: string;
+          widthValue: string;
+          heightValue: string;
+          dimensionUnit: string;
+          declaredValue: string;
+          declaredValueCurrency: string;
+          isBattery: boolean;
+          isHazmat: boolean;
+        }>,
+      ) {
         Object.assign(self.inventoryGoodDraft, patch);
         self.inventoryGoodDraft.clearImage = false;
       },
@@ -510,7 +620,8 @@ export const EcommerceInventoryModel = types
           const uploaded = yield uploadInventoryGoodImage(file);
           self.inventoryGoodDraft.imageAssetId = uploaded.assetId;
           self.inventoryGoodDraft.imageUri = uploaded.uri;
-          self.inventoryGoodDraft.imagePreviewUrl = uploaded.previewUrl ?? uploaded.publicUrl ?? null;
+          self.inventoryGoodDraft.imagePreviewUrl =
+            uploaded.previewUrl ?? uploaded.publicUrl ?? null;
           self.inventoryGoodDraft.clearImage = false;
           return uploaded;
         } catch (err) {
@@ -604,41 +715,123 @@ export const EcommerceInventoryModel = types
       }),
       saveWmsAccount: flow(function* () {
         const isEdit = Boolean(self.addWmsAccountDraft.id);
+        const provider = self.addWmsAccountDraft
+          .provider as GQL.WmsAccountProvider;
         const apiToken = self.addWmsAccountDraft.apiToken.trim();
+        const apiKey = self.addWmsAccountDraft.apiKey.trim();
+        const apiSecret = self.addWmsAccountDraft.apiSecret.trim();
+        const refreshToken = self.addWmsAccountDraft.refreshToken.trim();
+        const providerUserId = self.addWmsAccountDraft.providerUserId.trim();
+        const usesOneTimeAuthorization =
+          provider === GQL.WmsAccountProvider.Jfwms &&
+          self.addWmsAccountDraft.authorizationMode === "AUTHORIZE";
+        const credentials: GQL.WmsCredentialsInput = {};
+        if (provider === GQL.WmsAccountProvider.Yejoin && apiToken)
+          credentials.apiToken = apiToken;
+        if (provider !== GQL.WmsAccountProvider.Yejoin) {
+          if (apiKey) credentials.apiKey = apiKey;
+          if (apiSecret) credentials.apiSecret = apiSecret;
+        }
+        if (
+          provider === GQL.WmsAccountProvider.Jfwms &&
+          !usesOneTimeAuthorization
+        ) {
+          if (refreshToken) credentials.refreshToken = refreshToken;
+          if (providerUserId) credentials.providerUserId = providerUserId;
+        }
+        const credentialsChanged = Object.keys(credentials).length > 0;
         const input: GQL.WriteWmsAccountInput = {
           id: self.addWmsAccountDraft.id ?? undefined,
-          provider: self.addWmsAccountDraft.provider as GQL.WmsAccountProvider,
+          provider,
           label: self.addWmsAccountDraft.label.trim(),
           endpoint: self.addWmsAccountDraft.endpoint.trim(),
-          declaredValueCurrency: self.addWmsAccountDraft.declaredValueCurrency as GQL.Currency,
+          declaredValueCurrency: self.addWmsAccountDraft
+            .declaredValueCurrency as GQL.Currency,
           notes: self.addWmsAccountDraft.notes.trim() || null,
         };
-        if (!isEdit || apiToken) input.apiToken = apiToken;
-        const expectsWarehouseSync = !isEdit
-          || self.addWmsAccountDraft.endpoint.trim() !== self.addWmsAccountDraft.originalEndpoint
-          || Boolean(apiToken);
+        if (credentialsChanged) input.credentials = credentials;
+        const expectsWarehouseSync =
+          !isEdit ||
+          self.addWmsAccountDraft.endpoint.trim() !==
+            self.addWmsAccountDraft.originalEndpoint ||
+          credentialsChanged ||
+          usesOneTimeAuthorization;
 
         self.addWmsAccountSaving = true;
         self.addWmsAccountError = null;
         try {
-          const result = yield client().mutate<{ writeWmsAccounts: GQL.WriteWmsAccountPayload[] }>({
-            mutation: WRITE_WMS_ACCOUNTS_MUTATION,
-            variables: { inputs: [input] },
-          });
-          const graphQLErrors = (result as any).errors as Array<{ message?: string }> | undefined;
+          const result = usesOneTimeAuthorization
+            ? yield client().mutate<{
+                authorizeWmsAccount: GQL.WriteWmsAccountPayload;
+              }>({
+                mutation: AUTHORIZE_WMS_ACCOUNT_MUTATION,
+                variables: {
+                  input: {
+                    id: self.addWmsAccountDraft.id ?? undefined,
+                    provider,
+                    label: self.addWmsAccountDraft.label.trim(),
+                    endpoint: self.addWmsAccountDraft.endpoint.trim(),
+                    apiKey,
+                    apiSecret,
+                    authorizationUser:
+                      self.addWmsAccountDraft.authorizationUser.trim(),
+                    authorizationToken:
+                      self.addWmsAccountDraft.authorizationToken.trim(),
+                    authorizationDomain:
+                      self.addWmsAccountDraft.authorizationDomain.trim() ||
+                      undefined,
+                    declaredValueCurrency: self.addWmsAccountDraft
+                      .declaredValueCurrency as GQL.Currency,
+                    notes: self.addWmsAccountDraft.notes.trim() || null,
+                  } satisfies GQL.AuthorizeWmsAccountInput,
+                },
+              })
+            : yield client().mutate<{
+                writeWmsAccounts: GQL.WriteWmsAccountPayload[];
+              }>({
+                mutation: WRITE_WMS_ACCOUNTS_MUTATION,
+                variables: { inputs: [input] },
+              });
+          const graphQLErrors = (result as any).errors as
+            Array<{ message?: string }> | undefined;
           if (graphQLErrors?.length) {
-            throw new Error(graphQLErrors[0]?.message ?? "Failed to add WMS account");
+            throw new Error(
+              graphQLErrors[0]?.message ?? "Failed to add WMS account",
+            );
           }
-          const payload = result.data?.writeWmsAccounts?.[0];
+          const payload = usesOneTimeAuthorization
+            ? (
+                result.data as
+                  | { authorizeWmsAccount?: GQL.WriteWmsAccountPayload }
+                  | undefined
+              )?.authorizeWmsAccount
+            : (
+                result.data as
+                  | { writeWmsAccounts?: GQL.WriteWmsAccountPayload[] }
+                  | undefined
+              )?.writeWmsAccounts?.[0];
           if (!payload?.account) {
             throw new Error("No WMS account returned from backend");
           }
-          if (expectsWarehouseSync && (!payload.sync || payload.sync.wmsAccountId !== payload.account.id)) {
-            throw new Error("WMS account was saved, but warehouse sync did not complete");
+          if (
+            expectsWarehouseSync &&
+            (!payload.sync || payload.sync.wmsAccountId !== payload.account.id)
+          ) {
+            throw new Error(
+              "WMS account was saved, but warehouse sync did not complete",
+            );
           }
           yield Promise.all([
-            client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: wmsAccountsInput }, fetchPolicy: "network-only" }),
-            client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: warehousesInput }, fetchPolicy: "network-only" }),
+            client().query({
+              query: READ_WMS_ACCOUNTS_QUERY,
+              variables: { input: wmsAccountsInput },
+              fetchPolicy: "network-only",
+            }),
+            client().query({
+              query: READ_WAREHOUSES_QUERY,
+              variables: { input: warehousesInput },
+              fetchPolicy: "network-only",
+            }),
           ]);
           if (!self.expandedWmsAccountIds.includes(payload.account.id)) {
             self.expandedWmsAccountIds.push(payload.account.id);
@@ -646,7 +839,9 @@ export const EcommerceInventoryModel = types
           self.addWmsAccountModalOpen = false;
           if (expectsWarehouseSync) {
             try {
-              yield (self as any).startWmsInventoryGoodsSyncWorkflow(payload.account.id);
+              yield (self as any).startWmsInventoryGoodsSyncWorkflow(
+                payload.account.id,
+              );
             } catch {
               // The WMS account and warehouse sync succeeded. Keep the inventory goods workflow
               // modal open with its own error instead of treating account save as failed.
@@ -681,18 +876,30 @@ export const EcommerceInventoryModel = types
         pushUnique(self.deletingWmsAccountIds, wmsAccountId);
         self.wmsInventoryError = null;
         try {
-          yield client().mutate<{ writeWmsAccounts: GQL.WriteWmsAccountPayload[] }>({
+          yield client().mutate<{
+            writeWmsAccounts: GQL.WriteWmsAccountPayload[];
+          }>({
             mutation: WRITE_WMS_ACCOUNTS_MUTATION,
             variables: {
-              inputs: [{
-                id: wmsAccountId,
-                status: "ARCHIVED",
-              }],
+              inputs: [
+                {
+                  id: wmsAccountId,
+                  status: "ARCHIVED",
+                },
+              ],
             },
           });
           yield Promise.all([
-            client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: wmsAccountsInput }, fetchPolicy: "network-only" }),
-            client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: warehousesInput }, fetchPolicy: "network-only" }),
+            client().query({
+              query: READ_WMS_ACCOUNTS_QUERY,
+              variables: { input: wmsAccountsInput },
+              fetchPolicy: "network-only",
+            }),
+            client().query({
+              query: READ_WAREHOUSES_QUERY,
+              variables: { input: warehousesInput },
+              fetchPolicy: "network-only",
+            }),
           ]);
           removeValue(self.expandedWmsAccountIds, wmsAccountId);
         } catch (err) {
@@ -706,13 +913,23 @@ export const EcommerceInventoryModel = types
         pushUnique(self.syncingWmsAccountIds, wmsAccountId);
         self.wmsInventoryError = null;
         try {
-          yield client().mutate<{ syncWmsWarehouses: GQL.WmsWarehouseSyncPayload }>({
+          yield client().mutate<{
+            syncWmsWarehouses: GQL.WmsWarehouseSyncPayload;
+          }>({
             mutation: SYNC_WMS_WAREHOUSES_MUTATION,
             variables: { wmsAccountId },
           });
           yield Promise.all([
-            client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: wmsAccountsInput }, fetchPolicy: "network-only" }),
-            client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: warehousesInput }, fetchPolicy: "network-only" }),
+            client().query({
+              query: READ_WMS_ACCOUNTS_QUERY,
+              variables: { input: wmsAccountsInput },
+              fetchPolicy: "network-only",
+            }),
+            client().query({
+              query: READ_WAREHOUSES_QUERY,
+              variables: { input: warehousesInput },
+              fetchPolicy: "network-only",
+            }),
           ]);
         } catch (err) {
           self.wmsInventoryError = messageFromError(err);
@@ -748,13 +965,23 @@ export const EcommerceInventoryModel = types
         pushUnique(self.syncingShopIds, shopId);
         self.shopInventoryError = null;
         try {
-          yield client().mutate<{ syncShopWarehouses: GQL.ShopWarehouseSyncPayload }>({
+          yield client().mutate<{
+            syncShopWarehouses: GQL.ShopWarehouseSyncPayload;
+          }>({
             mutation: SYNC_SHOP_WAREHOUSES_MUTATION,
             variables: { shopId },
           });
           yield Promise.all([
-            client().query({ query: READ_SHOP_WAREHOUSES_QUERY, variables: { input: shopWarehousesInput(shopId) }, fetchPolicy: "network-only" }),
-            client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: warehousesInput }, fetchPolicy: "network-only" }),
+            client().query({
+              query: READ_SHOP_WAREHOUSES_QUERY,
+              variables: { input: shopWarehousesInput(shopId) },
+              fetchPolicy: "network-only",
+            }),
+            client().query({
+              query: READ_WAREHOUSES_QUERY,
+              variables: { input: warehousesInput },
+              fetchPolicy: "network-only",
+            }),
           ]);
         } catch (err) {
           self.shopInventoryError = messageFromError(err);
@@ -763,17 +990,25 @@ export const EcommerceInventoryModel = types
           removeValue(self.syncingShopIds, shopId);
         }
       }),
-      writeShopWarehouseMapping: flow(function* (shopId: string, shopWarehouseId: string, warehouseId: string | null) {
+      writeShopWarehouseMapping: flow(function* (
+        shopId: string,
+        shopWarehouseId: string,
+        warehouseId: string | null,
+      ) {
         pushUnique(self.savingShopWarehouseMappingIds, shopWarehouseId);
         self.shopInventoryError = null;
         try {
-          yield client().mutate<{ writeShopWarehouseMappings: GQL.ShopWarehouse[] }>({
+          yield client().mutate<{
+            writeShopWarehouseMappings: GQL.ShopWarehouse[];
+          }>({
             mutation: WRITE_SHOP_WAREHOUSE_MAPPINGS_MUTATION,
             variables: {
-              inputs: [{
-                shopWarehouseId,
-                warehouseId,
-              }],
+              inputs: [
+                {
+                  shopWarehouseId,
+                  warehouseId,
+                },
+              ],
             },
           });
           yield client().query({
@@ -789,7 +1024,9 @@ export const EcommerceInventoryModel = types
           removeValue(self.savingShopWarehouseMappingIds, shopWarehouseId);
         }
       }),
-      startWmsInventoryGoodsSyncWorkflow: flow(function* (wmsAccountId: string) {
+      startWmsInventoryGoodsSyncWorkflow: flow(function* (
+        wmsAccountId: string,
+      ) {
         self.wmsInventoryGoodsSyncModalOpen = true;
         self.wmsInventoryGoodsSyncAccountId = wmsAccountId;
         self.wmsInventoryGoodsCoverage = null;
@@ -797,12 +1034,15 @@ export const EcommerceInventoryModel = types
         self.wmsInventoryGoodsSyncError = null;
         self.wmsInventoryGoodsCoverageLoading = true;
         try {
-          const result = yield client().query<{ readWmsInventoryGoodCoverage: GQL.WmsInventoryGoodCoveragePayload }>({
+          const result = yield client().query<{
+            readWmsInventoryGoodCoverage: GQL.WmsInventoryGoodCoveragePayload;
+          }>({
             query: READ_WMS_INVENTORY_GOOD_COVERAGE_QUERY,
             variables: { wmsAccountId },
             fetchPolicy: "network-only",
           });
-          self.wmsInventoryGoodsCoverage = result.data?.readWmsInventoryGoodCoverage ?? null;
+          self.wmsInventoryGoodsCoverage =
+            result.data?.readWmsInventoryGoodCoverage ?? null;
         } catch (err) {
           self.wmsInventoryGoodsSyncError = messageFromError(err);
           throw err;
@@ -816,13 +1056,17 @@ export const EcommerceInventoryModel = types
         self.wmsInventoryGoodsSyncing = true;
         self.wmsInventoryGoodsSyncError = null;
         try {
-          const result = yield client().mutate<{ syncWmsInventoryGoods: GQL.SyncWmsInventoryGoodsPayload }>({
+          const result = yield client().mutate<{
+            syncWmsInventoryGoods: GQL.SyncWmsInventoryGoodsPayload;
+          }>({
             mutation: SYNC_WMS_INVENTORY_GOODS_MUTATION,
             variables: { wmsAccountId, overrideExisting },
           });
           const payload = result.data?.syncWmsInventoryGoods ?? null;
           if (!payload) {
-            throw new Error("No inventory goods sync result returned from backend");
+            throw new Error(
+              "No inventory goods sync result returned from backend",
+            );
           }
           self.wmsInventoryGoodsSyncResult = payload;
           yield Promise.all([
