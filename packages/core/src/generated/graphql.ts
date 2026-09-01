@@ -2176,7 +2176,7 @@ export interface AffiliateCreatorCollaborationSummary {
   createdAt: Scalars['DateTimeISO']['output'];
   effectiveTime?: Maybe<Scalars['DateTimeISO']['output']>;
   endTime?: Maybe<Scalars['DateTimeISO']['output']>;
-  firstObservedAt: Scalars['DateTimeISO']['output'];
+  firstObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
   lastObservedAt: Scalars['DateTimeISO']['output'];
   lastSyncSource: AffiliateProjectionSyncSource;
@@ -9706,6 +9706,7 @@ export const InventoryRegionCode = {
   My: 'MY',
   Nl: 'NL',
   Ph: 'PH',
+  Pl: 'PL',
   Pt: 'PT',
   Sg: 'SG',
   Th: 'TH',
