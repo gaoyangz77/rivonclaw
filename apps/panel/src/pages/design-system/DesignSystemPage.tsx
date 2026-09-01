@@ -36,6 +36,7 @@ import {
   TkSegmented,
   TkStatus,
   TkSwitch,
+  TkInteractiveTableRow,
   TkTableFrame,
   TkTabs,
   type TkHierarchicalNavItem,
@@ -820,25 +821,31 @@ export function DesignSystemPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {WORK_ITEMS.map((item) => (
-                      <tr key={item.creator}>
-                        <td>
-                          <strong>{item.creator}</strong>
-                        </td>
-                        <td>{item.task}</td>
-                        <td className="tk-design-lab-mono">{item.value}</td>
-                        <td>
-                          <TkBadge tone={item.tone} dot>
-                            {item.status}
-                          </TkBadge>
-                        </td>
-                        <td>
-                          <TkButton variant="ghost" size="sm">
-                            Open
-                          </TkButton>
-                        </td>
-                      </tr>
-                    ))}
+                    {WORK_ITEMS.map((item) => {
+                      const disabled = item.status === "Agent drafting";
+                      return (
+                        <TkInteractiveTableRow
+                          key={item.creator}
+                          aria-label={`Open ${item.creator}`}
+                          disabled={disabled}
+                          onActivate={() => undefined}
+                        >
+                          <td>
+                            <strong>{item.creator}</strong>
+                          </td>
+                          <td>{item.task}</td>
+                          <td className="tk-design-lab-mono">{item.value}</td>
+                          <td>
+                            <TkBadge tone={item.tone} dot>
+                              {item.status}
+                            </TkBadge>
+                          </td>
+                          <td>
+                            <span aria-hidden="true">{disabled ? "—" : "›"}</span>
+                          </td>
+                        </TkInteractiveTableRow>
+                      );
+                    })}
                   </tbody>
                 </table>
               </TkTableFrame>

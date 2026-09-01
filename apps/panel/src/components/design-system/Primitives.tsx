@@ -190,12 +190,7 @@ export interface TkFormStackProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /** Shared vertical rhythm for fields, switches, and nested form groups. */
-export function TkFormStack({
-  gap = "md",
-  className,
-  children,
-  ...props
-}: TkFormStackProps) {
+export function TkFormStack({ gap = "md", className, children, ...props }: TkFormStackProps) {
   return (
     <div className={cx("tk-v1-form-stack", `tk-v1-form-stack-${gap}`, className)} {...props}>
       {children}
@@ -286,40 +281,44 @@ function isInteractiveTableRowDescendant(
   return Boolean(target.closest(TABLE_ROW_INTERACTIVE_DESCENDANT));
 }
 
-export interface TkInteractiveTableRowProps
-  extends Omit<HTMLAttributes<HTMLTableRowElement>, "onClick" | "onKeyDown"> {
+export interface TkInteractiveTableRowProps extends Omit<
+  HTMLAttributes<HTMLTableRowElement>,
+  "onClick" | "onKeyDown"
+> {
   onActivate: () => void;
+  disabled?: boolean;
 }
 
 /** Clickable record row that preserves native table semantics and ignores nested controls. */
-export const TkInteractiveTableRow = forwardRef<
-  HTMLTableRowElement,
-  TkInteractiveTableRowProps
->(function TkInteractiveTableRow({ onActivate, className, ...props }, ref) {
-  return (
-    <tr
-      ref={ref}
-      tabIndex={0}
-      className={cx("tk-v1-table-row-action", className)}
-      onClick={(event) => {
-        if (
-          event.defaultPrevented ||
-          isInteractiveTableRowDescendant(event.target, event.currentTarget)
-        ) {
-          return;
-        }
-        onActivate();
-      }}
-      onKeyDown={(event) => {
-        if (event.defaultPrevented || event.target !== event.currentTarget) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        onActivate();
-      }}
-      {...props}
-    />
-  );
-});
+export const TkInteractiveTableRow = forwardRef<HTMLTableRowElement, TkInteractiveTableRowProps>(
+  function TkInteractiveTableRow({ onActivate, disabled = false, className, ...props }, ref) {
+    return (
+      <tr
+        {...props}
+        ref={ref}
+        tabIndex={disabled ? undefined : 0}
+        aria-disabled={disabled || undefined}
+        className={cx(!disabled && "tk-v1-table-row-action", className)}
+        onClick={(event) => {
+          if (
+            disabled ||
+            event.defaultPrevented ||
+            isInteractiveTableRowDescendant(event.target, event.currentTarget)
+          ) {
+            return;
+          }
+          onActivate();
+        }}
+        onKeyDown={(event) => {
+          if (disabled || event.defaultPrevented || event.target !== event.currentTarget) return;
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          onActivate();
+        }}
+      />
+    );
+  },
+);
 
 export type TkButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type TkButtonSize = "sm" | "md" | "lg";
@@ -367,47 +366,47 @@ export interface TkIconButtonProps extends ButtonHTMLAttributes<HTMLButtonElemen
   loading?: boolean;
 }
 
-export const TkIconButton = forwardRef<HTMLButtonElement, TkIconButtonProps>(
-  function TkIconButton(
-    {
-      label,
-      variant = "secondary",
-      size = "md",
-      loading = false,
-      className,
-      children,
-      disabled,
-      title,
-      type = "button",
-      ...props
-    },
-    ref,
-  ) {
-    return (
-      <button
-        ref={ref}
-        className={cx(
-          "tk-v1-button",
-          `tk-v1-button-${variant}`,
-          `tk-v1-button-${size}`,
-          "tk-v1-icon-button",
-          className,
-        )}
-        aria-label={label}
-        aria-busy={loading || undefined}
-        disabled={disabled || loading}
-        title={title ?? label}
-        type={type}
-        {...props}
-      >
-        {loading ? <span className="tk-v1-spinner" aria-hidden="true" /> : children}
-      </button>
-    );
+export const TkIconButton = forwardRef<HTMLButtonElement, TkIconButtonProps>(function TkIconButton(
+  {
+    label,
+    variant = "secondary",
+    size = "md",
+    loading = false,
+    className,
+    children,
+    disabled,
+    title,
+    type = "button",
+    ...props
   },
-);
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      className={cx(
+        "tk-v1-button",
+        `tk-v1-button-${variant}`,
+        `tk-v1-button-${size}`,
+        "tk-v1-icon-button",
+        className,
+      )}
+      aria-label={label}
+      aria-busy={loading || undefined}
+      disabled={disabled || loading}
+      title={title ?? label}
+      type={type}
+      {...props}
+    >
+      {loading ? <span className="tk-v1-spinner" aria-hidden="true" /> : children}
+    </button>
+  );
+});
 
-export interface TkComposerProps
-  extends Omit<FormHTMLAttributes<HTMLFormElement>, "onChange" | "onSubmit"> {
+export interface TkComposerProps extends Omit<
+  FormHTMLAttributes<HTMLFormElement>,
+  "onChange" | "onSubmit"
+> {
   value: string;
   onValueChange: (value: string) => void;
   onSubmit: () => void;
@@ -693,7 +692,10 @@ export function TkTabs({
           <button
             {...item.buttonProps}
             key={item.id}
-            id={item.buttonProps?.id ?? (idPrefix ? `${idPrefix}-${item.id.toLowerCase()}` : undefined)}
+            id={
+              item.buttonProps?.id ??
+              (idPrefix ? `${idPrefix}-${item.id.toLowerCase()}` : undefined)
+            }
             ref={(node) => {
               tabRefs.current[index] = node;
             }}
@@ -878,8 +880,10 @@ export function TkSwitch({
   );
 }
 
-export interface TkSwitchControlProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "checked" | "onChange"> {
+export interface TkSwitchControlProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "type" | "checked" | "onChange"
+> {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;

@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
-import { TkModal as Modal } from "../../../components/design-system/index.js";
+import { TkModal as Modal, TkTableFrame } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import {
   CREATE_CREATOR_MANUAL_TAG_MUTATION,
@@ -97,7 +97,11 @@ export function AffiliateCreatorTagCatalogPanel() {
   const [deleteTagId, setDeleteTagId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { data: catalogData, loading: catalogLoading, refetch: refetchCatalog } = useQuery<
+  const {
+    data: catalogData,
+    loading: catalogLoading,
+    refetch: refetchCatalog,
+  } = useQuery<
     { creatorManualTags: GQL.CreatorManualTag[] },
     { input: GQL.ReadCreatorManualTagsInput }
   >(CREATOR_MANUAL_TAGS_QUERY, {
@@ -131,11 +135,11 @@ export function AffiliateCreatorTagCatalogPanel() {
   const trimmedCreateDraft = createDraft.trim();
   const canCreate = canCreateManualTag(catalog, trimmedCreateDraft);
   const createIsDuplicate = trimmedCreateDraft.length > 0 && !canCreate;
-  const renameTarget = renameTagId ? catalog.find((tag) => tag.id === renameTagId) ?? null : null;
+  const renameTarget = renameTagId ? (catalog.find((tag) => tag.id === renameTagId) ?? null) : null;
   const renameIssue = renameTarget
     ? manualTagRenameIssue(catalog, renameTarget.id, renameTarget.name, renameDraft)
     : null;
-  const deleteTarget = deleteTagId ? catalog.find((tag) => tag.id === deleteTagId) ?? null : null;
+  const deleteTarget = deleteTagId ? (catalog.find((tag) => tag.id === deleteTagId) ?? null) : null;
   // Apollo can hand back the previous tag's data while the new query is in
   // flight. Counts shown under the wrong tag's name would be a lie the seller
   // cannot detect, so the id has to match before anything is rendered.
@@ -155,7 +159,9 @@ export function AffiliateCreatorTagCatalogPanel() {
       const message = err instanceof Error ? err.message : "";
       showToast(
         isDuplicateManualTagNameError(message)
-          ? t("ecommerce.affiliateWorkspace.manualTags.renameDuplicate", { name: trimmedCreateDraft })
+          ? t("ecommerce.affiliateWorkspace.manualTags.renameDuplicate", {
+              name: trimmedCreateDraft,
+            })
           : message || t("ecommerce.affiliateWorkspace.manualTags.createFailed"),
         "error",
       );
@@ -216,7 +222,9 @@ export function AffiliateCreatorTagCatalogPanel() {
     <section className="affiliate-tag-catalog">
       <div className="affiliate-team-policy-heading">
         <div>
-          <span className="affiliate-team-eyebrow">{t("ecommerce.affiliateTeam.tagCatalog.eyebrow")}</span>
+          <span className="affiliate-team-eyebrow">
+            {t("ecommerce.affiliateTeam.tagCatalog.eyebrow")}
+          </span>
           <h2>{t("ecommerce.affiliateTeam.tagCatalog.title")}</h2>
         </div>
         <div className="affiliate-team-policy-heading-aside">
@@ -258,118 +266,145 @@ export function AffiliateCreatorTagCatalogPanel() {
         </div>
         {createIsDuplicate ? (
           <p className="affiliate-tag-catalog-error">
-            {t("ecommerce.affiliateWorkspace.manualTags.renameDuplicate", { name: trimmedCreateDraft })}
+            {t("ecommerce.affiliateWorkspace.manualTags.renameDuplicate", {
+              name: trimmedCreateDraft,
+            })}
           </p>
         ) : null}
 
-        <div className="affiliate-tag-catalog-table">
-          <div className="affiliate-tag-catalog-table-head" aria-hidden="true">
-            <span>{t("ecommerce.affiliateTeam.tagCatalog.columnName")}</span>
-            <span>{t("ecommerce.affiliateTeam.protectionUpdatedAt")}</span>
-            <span>{t("ecommerce.affiliateTeam.tagCatalog.columnActions")}</span>
-          </div>
-          <div className="affiliate-tag-catalog-list">
-            {catalog.map((tag) => (
-              <div className="affiliate-tag-catalog-row" key={tag.id}>
-                {renameTarget?.id === tag.id ? (
-                  <div className="affiliate-tag-catalog-rename">
-                    <input
-                      value={renameDraft}
-                      onChange={(event) => setRenameDraft(event.target.value)}
-                      aria-label={t("ecommerce.affiliateWorkspace.manualTags.renameLabel", { name: tag.name })}
-                      placeholder={t("ecommerce.affiliateWorkspace.manualTags.renamePlaceholder")}
-                      autoFocus
-                    />
-                    <p className="affiliate-tag-catalog-scope">
-                      {t("ecommerce.affiliateWorkspace.manualTags.renameScopeWarning")}
-                    </p>
-                    {renameIssue === "DUPLICATE" ? (
-                      <p className="affiliate-tag-catalog-error">
-                        {t("ecommerce.affiliateWorkspace.manualTags.renameDuplicate", {
-                          name: renameDraft.trim(),
-                        })}
-                      </p>
-                    ) : null}
-                    {/* Confirm and cancel live with the field they act on, which
+        <TkTableFrame variant="embedded" className="affiliate-tag-catalog-table">
+          <table className="affiliate-tag-catalog-grid">
+            <colgroup>
+              <col />
+              <col className="affiliate-tag-catalog-col-date" />
+              <col className="affiliate-tag-catalog-col-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{t("ecommerce.affiliateTeam.tagCatalog.columnName")}</th>
+                <th>{t("ecommerce.affiliateTeam.protectionUpdatedAt")}</th>
+                <th className="affiliate-tag-catalog-actions-heading">
+                  {t("ecommerce.affiliateTeam.tagCatalog.columnActions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {catalog.map((tag) => (
+                <tr className="affiliate-tag-catalog-row" key={tag.id}>
+                  <td>
+                    {renameTarget?.id === tag.id ? (
+                      <div className="affiliate-tag-catalog-rename">
+                        <input
+                          value={renameDraft}
+                          onChange={(event) => setRenameDraft(event.target.value)}
+                          aria-label={t("ecommerce.affiliateWorkspace.manualTags.renameLabel", {
+                            name: tag.name,
+                          })}
+                          placeholder={t(
+                            "ecommerce.affiliateWorkspace.manualTags.renamePlaceholder",
+                          )}
+                          autoFocus
+                        />
+                        <p className="affiliate-tag-catalog-scope">
+                          {t("ecommerce.affiliateWorkspace.manualTags.renameScopeWarning")}
+                        </p>
+                        {renameIssue === "DUPLICATE" ? (
+                          <p className="affiliate-tag-catalog-error">
+                            {t("ecommerce.affiliateWorkspace.manualTags.renameDuplicate", {
+                              name: renameDraft.trim(),
+                            })}
+                          </p>
+                        ) : null}
+                        {/* Confirm and cancel live with the field they act on, which
                         also keeps the actions column narrow enough to reserve a
                         fixed width in every locale — the only way the header,
                         an ordinary row and a row being renamed stay aligned. */}
-                    <div className="affiliate-tag-catalog-rename-actions">
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        type="button"
-                        onClick={() => {
-                          setRenameTagId(null);
-                          setRenameDraft("");
-                        }}
-                        disabled={renaming}
-                      >
-                        {t("common.cancel")}
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        type="button"
-                        onClick={() => void rename(tag.id, tag.sensitive)}
-                        disabled={busy || renameIssue !== null}
-                      >
-                        {renaming
-                          ? t("common.loading")
-                          : t("ecommerce.affiliateWorkspace.manualTags.renameConfirm")}
-                      </button>
+                        <div className="affiliate-tag-catalog-rename-actions">
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            type="button"
+                            onClick={() => {
+                              setRenameTagId(null);
+                              setRenameDraft("");
+                            }}
+                            disabled={renaming}
+                          >
+                            {t("common.cancel")}
+                          </button>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            type="button"
+                            onClick={() => void rename(tag.id, tag.sensitive)}
+                            disabled={busy || renameIssue !== null}
+                          >
+                            {renaming
+                              ? t("common.loading")
+                              : t("ecommerce.affiliateWorkspace.manualTags.renameConfirm")}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="affiliate-tag-catalog-name">{tag.name}</span>
+                    )}
+                  </td>
+                  <td className="affiliate-tag-catalog-date">
+                    {formatLocalizedDate(tag.updatedAt, i18n.language)}
+                  </td>
+                  <td>
+                    <div className="affiliate-tag-catalog-actions">
+                      {renameTarget?.id === tag.id ? null : (
+                        <>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            type="button"
+                            onClick={() => {
+                              setRenameTagId(tag.id);
+                              setRenameDraft(tag.name);
+                            }}
+                            disabled={busy}
+                          >
+                            {t("ecommerce.affiliateTeam.tagCatalog.renameAction")}
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            type="button"
+                            onClick={() => setDeleteTagId(tag.id)}
+                            disabled={busy}
+                          >
+                            {t("ecommerce.affiliateTeam.tagCatalog.deleteAction")}
+                          </button>
+                        </>
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  <span className="affiliate-tag-catalog-name">{tag.name}</span>
-                )}
-                <span className="affiliate-tag-catalog-date">
-                  {formatLocalizedDate(tag.updatedAt, i18n.language)}
-                </span>
-                <div className="affiliate-tag-catalog-actions">
-                  {renameTarget?.id === tag.id ? null : (
-                    <>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        type="button"
-                        onClick={() => {
-                          setRenameTagId(tag.id);
-                          setRenameDraft(tag.name);
-                        }}
-                        disabled={busy}
-                      >
-                        {t("ecommerce.affiliateTeam.tagCatalog.renameAction")}
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        type="button"
-                        onClick={() => setDeleteTagId(tag.id)}
-                        disabled={busy}
-                      >
-                        {t("ecommerce.affiliateTeam.tagCatalog.deleteAction")}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-            {!catalogLoading && catalog.length === 0 ? (
-              <div className="affiliate-empty-state compact">
-                <p>
-                  {t(
-                    search.trim()
-                      ? "ecommerce.affiliateTeam.tagCatalog.noSearchResults"
-                      : "ecommerce.affiliateTeam.tagCatalog.empty",
-                  )}
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </div>
+                  </td>
+                </tr>
+              ))}
+              {!catalogLoading && catalog.length === 0 ? (
+                <tr>
+                  <td colSpan={3}>
+                    <div className="affiliate-empty-state compact">
+                      <p>
+                        {t(
+                          search.trim()
+                            ? "ecommerce.affiliateTeam.tagCatalog.noSearchResults"
+                            : "ecommerce.affiliateTeam.tagCatalog.empty",
+                        )}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </TkTableFrame>
       </div>
 
       <Modal
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTagId(null)}
-        title={t("ecommerce.affiliateTeam.tagCatalog.deleteTitle", { name: deleteTarget?.name ?? "" })}
+        title={t("ecommerce.affiliateTeam.tagCatalog.deleteTitle", {
+          name: deleteTarget?.name ?? "",
+        })}
         maxWidth={520}
         className="affiliate-tag-catalog-delete-modal"
         closeLabel={t("common.close")}

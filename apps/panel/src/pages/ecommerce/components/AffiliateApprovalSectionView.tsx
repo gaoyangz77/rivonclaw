@@ -108,7 +108,8 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
           <span>{t("ecommerce.affiliateAnalytics.decisionOrigin.notAiDisclosure")}</span>
         </div>
 
-        <div className="affiliate-origin-matrix" role="table" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.title")}>
+        {/* Design-system exception: this is a variable-axis analytics matrix, not a record table. Affiliate Analytics owns its complete ARIA grid. */}
+        <div className="affiliate-origin-matrix" role="table" data-tk-table-exception="analytics-matrix" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.title")}>
           <div className="affiliate-origin-matrix-head" role="row">
             <span role="columnheader">{t("ecommerce.affiliateAnalytics.decisionOrigin.metric")}</span>
             {section.byDecisionOrigin.map((row) => (

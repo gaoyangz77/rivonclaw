@@ -8,6 +8,7 @@ import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
+  TkInteractiveTableRow,
   TkTableFrame,
 } from "../../../components/design-system/index.js";
 
@@ -83,7 +84,11 @@ export function TikTokShopsList({
             <tbody>
               {shops.map((shop) => {
                 return (
-                  <tr key={shop.id}>
+                  <TkInteractiveTableRow
+                    key={shop.id}
+                    aria-label={`${t("tiktokShops.view")} ${shop.shopName}`}
+                    onActivate={() => onView(shop.id)}
+                  >
                     <td>
                       <span className="shop-table-name">{shop.shopName}</span>
                     </td>
@@ -96,12 +101,6 @@ export function TikTokShopsList({
                     <td>{renderCsAccessBadge(shop)}</td>
                     <td className="text-right">
                       <div className="td-actions">
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => onView(shop.id)}
-                        >
-                          {t("tiktokShops.view")}
-                        </button>
                         {shop.authStatus === "TOKEN_EXPIRED" && (
                           <button
                             className="btn btn-primary btn-sm"
@@ -116,7 +115,7 @@ export function TikTokShopsList({
                         </button>
                       </div>
                     </td>
-                  </tr>
+                  </TkInteractiveTableRow>
                 );
               })}
             </tbody>

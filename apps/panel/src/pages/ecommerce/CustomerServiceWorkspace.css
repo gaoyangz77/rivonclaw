@@ -1839,62 +1839,30 @@
   font-size: 12px;
 }
 
-.cs-escalation-table {
-  display: flex;
+.cs-escalation-table-frame {
   min-height: 0;
-  flex-direction: column;
-  overflow: auto;
 }
 
-.cs-escalation-table-head,
-.cs-escalation-row {
-  display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(92px, 140px) minmax(130px, 170px);
-  align-items: center;
-  gap: 14px;
+.cs-escalation-table {
+  min-width: 720px;
+  table-layout: fixed;
 }
 
-.cs-escalation-table-head {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 9px 16px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-bg);
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
+.cs-escalation-col-status {
+  width: 140px;
+}
+
+.cs-escalation-col-updated {
+  width: 170px;
 }
 
 .cs-escalation-row {
-  width: 100%;
-  min-height: 76px;
-  padding: 12px 16px;
-  border: 0;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-bg);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    box-shadow var(--transition-fast);
+  height: 76px;
 }
 
-.cs-escalation-row:hover {
-  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
-  box-shadow: inset 3px 0 0 var(--color-primary);
-}
-
-.cs-escalation-row > span {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cs-escalation-row td {
+  padding: 10px 16px;
+  vertical-align: middle;
 }
 
 .cs-escalation-row-main {
@@ -1953,10 +1921,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.cs-escalation-row > span:not(.cs-escalation-row-main) {
-  text-overflow: ellipsis;
 }
 
 .cs-escalation-detail {

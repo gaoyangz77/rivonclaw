@@ -19,7 +19,10 @@
 
 .affiliate-attention-toolbar {
   display: grid;
-  grid-template-columns: minmax(150px, 180px) minmax(150px, 180px) minmax(180px, 220px) minmax(240px, 1fr);
+  grid-template-columns: minmax(150px, 180px) minmax(150px, 180px) minmax(180px, 220px) minmax(
+      240px,
+      1fr
+    );
   align-items: flex-end;
   gap: 10px;
   min-width: 0;
@@ -176,7 +179,10 @@
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .affiliate-workbench-entity-row:hover {
@@ -256,11 +262,22 @@
   white-space: nowrap;
 }
 
-.affiliate-workbench-badge-protected { color: var(--warning-color); }
-.affiliate-workbench-badge-human { color: var(--danger-color); }
-.affiliate-workbench-badge-proposal { color: var(--accent-color); }
-.affiliate-workbench-badge-sync { color: var(--warning-color); }
-.affiliate-workbench-row-chevron { color: var(--text-tertiary); font-size: 24px; }
+.affiliate-workbench-badge-protected {
+  color: var(--warning-color);
+}
+.affiliate-workbench-badge-human {
+  color: var(--danger-color);
+}
+.affiliate-workbench-badge-proposal {
+  color: var(--accent-color);
+}
+.affiliate-workbench-badge-sync {
+  color: var(--warning-color);
+}
+.affiliate-workbench-row-chevron {
+  color: var(--text-tertiary);
+  font-size: 24px;
+}
 .affiliate-workbench-load-more {
   align-self: center;
   margin: 12px 16px 16px;
@@ -268,14 +285,6 @@
 
 .affiliate-workbench-entity-section > .affiliate-proposal-empty {
   padding: 18px 16px;
-}
-
-.affiliate-escalation-row {
-  width: 100%;
-  border: 0;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .affiliate-escalation-detail-modal {
@@ -399,20 +408,6 @@
   font-size: 12px;
 }
 
-.affiliate-escalation-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.affiliate-escalation-pagination > div {
-  display: flex;
-  gap: 8px;
-}
-
 .affiliate-workbench-summary-divider {
   margin: 0 8px;
   color: var(--color-border-light);
@@ -452,7 +447,10 @@
   font-size: 12px;
   font-weight: 620;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .affiliate-workbench-channel-chip > span {
@@ -476,90 +474,6 @@
 .affiliate-workbench-channel-chip-active > span {
   color: inherit;
   font-weight: 720;
-}
-
-.affiliate-workbench-table-shell {
-  width: 100%;
-  overflow-x: auto;
-  background: var(--color-bg);
-}
-
-.affiliate-workbench-table {
-  display: flex;
-  min-width: 1080px;
-  flex-direction: column;
-}
-
-.affiliate-workbench-table-head,
-.affiliate-workbench-table-row {
-  display: grid;
-  align-items: center;
-  column-gap: 12px;
-  padding: 0 16px;
-}
-
-.affiliate-workbench-table-samples-open .affiliate-workbench-table-head,
-.affiliate-workbench-table-samples-open .affiliate-workbench-table-row {
-  grid-template-columns: 96px 214px 112px minmax(0, 1fr) 122px 236px 24px;
-}
-
-.affiliate-workbench-table-samples-rejected .affiliate-workbench-table-head,
-.affiliate-workbench-table-samples-rejected .affiliate-workbench-table-row {
-  grid-template-columns: 96px 214px 112px minmax(0, 1fr) 210px 130px 110px;
-}
-
-.affiliate-workbench-table-messages .affiliate-workbench-table-head,
-.affiliate-workbench-table-messages .affiliate-workbench-table-row {
-  grid-template-columns: 130px 226px minmax(0, 1fr) 150px 200px 24px;
-}
-
-.affiliate-workbench-table-head {
-  height: 38px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg));
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.035em;
-  white-space: nowrap;
-}
-
-.affiliate-workbench-table-row {
-  min-height: 68px;
-  cursor: pointer;
-  outline: none;
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.affiliate-workbench-table-row + .affiliate-workbench-table-row {
-  border-top: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
-}
-
-.affiliate-workbench-table-row:hover {
-  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
-}
-
-.affiliate-workbench-table-row:focus-visible {
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
-  box-shadow: inset 3px 0 0 var(--color-primary);
-}
-
-.affiliate-workbench-table-row .affiliate-workbench-entity-avatar {
-  width: 34px;
-  height: 34px;
-  flex-basis: 34px;
-  font-size: 14px;
-}
-
-.affiliate-workbench-table-row .affiliate-workbench-entity-identity strong {
-  color: var(--color-text);
-  font-size: 13px;
-  font-weight: 620;
-}
-
-.affiliate-workbench-table-row .affiliate-workbench-entity-identity small {
-  color: var(--color-text-muted);
-  font-size: 12px;
 }
 
 .affiliate-workbench-cell-time {
@@ -789,11 +703,20 @@
 }
 
 @media (max-width: 900px) {
-  .affiliate-workbench-entity-row { grid-template-columns: 1fr 20px; }
+  .affiliate-workbench-entity-row {
+    grid-template-columns: 1fr 20px;
+  }
   .affiliate-workbench-entity-main,
-  .affiliate-workbench-entity-badges { grid-column: 1; }
-  .affiliate-workbench-entity-badges { justify-content: flex-start; }
-  .affiliate-workbench-row-chevron { grid-column: 2; grid-row: 1 / span 3; }
+  .affiliate-workbench-entity-badges {
+    grid-column: 1;
+  }
+  .affiliate-workbench-entity-badges {
+    justify-content: flex-start;
+  }
+  .affiliate-workbench-row-chevron {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
 }
 
 .affiliate-agent-work-table-shell {
@@ -948,7 +871,9 @@
 }
 
 .affiliate-agent-work-table-creator-button:hover .affiliate-agent-work-table-creator-copy strong,
-.affiliate-agent-work-table-creator-button:focus-visible .affiliate-agent-work-table-creator-copy strong {
+.affiliate-agent-work-table-creator-button:focus-visible
+  .affiliate-agent-work-table-creator-copy
+  strong {
   color: var(--color-primary);
 }
 

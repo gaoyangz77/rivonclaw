@@ -4,9 +4,10 @@ import { retryFeishuCallbackSetup, type ChannelAccountSnapshot } from "../../api
 import { ChevronRightIcon } from "../../components/icons.js";
 import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import {
   TkAlert,
+  TkConfirmDialog as ConfirmDialog,
+  TkInteractiveTableRow,
   TkPanel,
   TkPanelHeader,
   TkTableFrame,
@@ -726,15 +727,10 @@ export function ChannelAccountsTable({
                 const displayedRunning = resolveDisplayedRunningStatus(channelId, account);
                 return (
                   <Fragment key={rowKey}>
-                    <tr
+                    <TkInteractiveTableRow
                       className={`table-hover-row${isDeleting ? " row-deleting" : ""}${canExpand ? " row-expandable" : ""}`}
-                      onClick={(e) => {
-                        if (isDeleting || !canExpand) return;
-                        // Don't toggle when clicking buttons or inputs
-                        const target = e.target as HTMLElement;
-                        if (target.closest("button, a, input, select")) return;
-                        toggleExpand(channelId, account);
-                      }}
+                      disabled={isDeleting || !canExpand}
+                      onActivate={() => toggleExpand(channelId, account)}
                     >
                       <td className="channel-expand-col">
                         {canExpand && (
@@ -861,7 +857,7 @@ export function ChannelAccountsTable({
                           </button>
                         </div>
                       </td>
-                    </tr>
+                    </TkInteractiveTableRow>
                     {isExpanded && canExpand && renderExpandedRow(compositeKey, channelId, account)}
                   </Fragment>
                 );

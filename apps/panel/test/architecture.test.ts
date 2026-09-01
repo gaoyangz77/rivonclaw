@@ -34,9 +34,7 @@ function relativeLuminance(hex: string): number {
   const value = Number.parseInt(hex.slice(1), 16);
   const channels = [value >> 16, (value >> 8) & 255, value & 255].map((channel) => {
     const normalized = channel / 255;
-    return normalized <= 0.04045
-      ? normalized / 12.92
-      : ((normalized + 0.055) / 1.055) ** 2.4;
+    return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
 }
@@ -86,6 +84,43 @@ function resolveRelativeImport(filePath: string, importPath: string): string | n
   return rel.replace(/\\/g, "/");
 }
 
+function countTablesOutsideFrames(content: string): number {
+  const tokens = content.matchAll(/<\/TkTableFrame\s*>|<TkTableFrame\b[^>]*>|<table\b/g);
+  let frameDepth = 0;
+  let outsideCount = 0;
+  for (const match of tokens) {
+    const token = match[0];
+    if (token.startsWith("</")) frameDepth = Math.max(0, frameDepth - 1);
+    else if (token.startsWith("<TkTableFrame")) frameDepth += 1;
+    else if (frameDepth === 0) outsideCount += 1;
+  }
+  return outsideCount;
+}
+
+function pseudoTableClasses(content: string): string[] {
+  const violations: string[] = [];
+  const openingTags = content.matchAll(
+    /<([A-Za-z][\w.-]*)\b[^>]*\bclassName=(?:"([^"]*)"|\{`([^`]*)`\})[^>]*>/g,
+  );
+  for (const match of openingTags) {
+    const tag = match[1]!;
+    if (
+      tag === "table" ||
+      tag === "tr" ||
+      tag === "TkTableFrame" ||
+      tag === "TkInteractiveTableRow"
+    ) {
+      continue;
+    }
+    for (const className of (match[2] ?? match[3] ?? "").split(/\s+/)) {
+      if (/(?:^|-)table$/.test(className) || /-table-(?:head|row)$/.test(className)) {
+        violations.push(`${tag}.${className}`);
+      }
+    }
+  }
+  return violations;
+}
+
 // Scan all source files once
 const allFiles = walk(SRC_ROOT);
 const allCssFiles = walkFilesByExtension(SRC_ROOT, ".css");
@@ -106,10 +141,8 @@ function readCssGraph(entryPath: string, seen = new Set<string>()): string {
   seen.add(resolvedEntry);
 
   const source = readFileSync(resolvedEntry, "utf-8");
-  return source.replace(
-    /^\s*@import\s+["']([^"']+)["'];\s*$/gm,
-    (_statement, importPath: string) =>
-      readCssGraph(resolve(dirname(resolvedEntry), importPath), seen),
+  return source.replace(/^\s*@import\s+["']([^"']+)["'];\s*$/gm, (_statement, importPath: string) =>
+    readCssGraph(resolve(dirname(resolvedEntry), importPath), seen),
   );
 }
 
@@ -255,23 +288,37 @@ describe("Panel architecture guardrails", () => {
     ).toEqual([]);
   });
 
-  it("routes every product table through TkTableFrame", () => {
+  it("enforces native framed tables and shared interactive rows", () => {
     const violations: string[] = [];
 
     for (const filePath of allFiles.filter((file) => file.endsWith(".tsx"))) {
       const content = readFileSync(filePath, "utf-8");
+      const relPath = relative(SRC_ROOT, filePath).replace(/\\/g, "/");
       const tableCount = content.match(/<table\b/g)?.length ?? 0;
-      if (tableCount === 0) continue;
-
       const frameCount = content.match(/<TkTableFrame\b/g)?.length ?? 0;
       if (frameCount !== tableCount) {
-        violations.push(
-          `${relative(SRC_ROOT, filePath).replace(/\\/g, "/")}: ${tableCount} table(s), ${frameCount} frame(s)`,
-        );
+        violations.push(`${relPath}: ${tableCount} table(s), ${frameCount} frame(s)`);
+      }
+      if (countTablesOutsideFrames(content) > 0) {
+        violations.push(`${relPath}: table outside TkTableFrame`);
+      }
+      const pseudoTables = pseudoTableClasses(content);
+      if (pseudoTables.length > 0) {
+        violations.push(`${relPath}: pseudo table ${pseudoTables.join(", ")}`);
+      }
+      const ariaTables = content.match(/<[^>]*\brole="table"[^>]*>/g) ?? [];
+      if (ariaTables.some((tag) => !tag.includes('data-tk-table-exception="analytics-matrix"'))) {
+        violations.push(`${relPath}: undocumented ARIA table exception`);
+      }
+      if (
+        relPath !== "components/design-system/Primitives.tsx" &&
+        /<tr\b[^>]*(?:\btabIndex=|\bonClick=|\bonKeyDown=|\brole="button")/.test(content)
+      ) {
+        violations.push(`${relPath}: hand-wired interactive row`);
       }
     }
 
-    expect(violations, `Tables bypassing TkTableFrame:\n${violations.join("\n")}`).toEqual([]);
+    expect(violations, `Table contract violations:\n${violations.join("\n")}`).toEqual([]);
   });
 
   it("routes legacy card surfaces through TkPanel", () => {
@@ -286,10 +333,7 @@ describe("Panel architecture guardrails", () => {
       rawSurfacePattern.lastIndex = 0;
     }
 
-    expect(
-      violations,
-      `Legacy surfaces bypassing TkPanel:\n${violations.join("\n")}`,
-    ).toEqual([]);
+    expect(violations, `Legacy surfaces bypassing TkPanel:\n${violations.join("\n")}`).toEqual([]);
   });
 
   it("routes tab-list interaction through TkTabs", () => {
@@ -314,10 +358,9 @@ describe("Panel architecture guardrails", () => {
       .filter((filePath) => rawBackdropPattern.test(readFileSync(filePath, "utf-8")))
       .map((filePath) => relative(SRC_ROOT, filePath).replace(/\\/g, "/"));
 
-    expect(
-      violations,
-      `Custom modal backdrops bypassing Modal:\n${violations.join("\n")}`,
-    ).toEqual([]);
+    expect(violations, `Custom modal backdrops bypassing Modal:\n${violations.join("\n")}`).toEqual(
+      [],
+    );
   });
 
   it("keeps product overlays behind design-system boundaries", () => {
@@ -388,9 +431,9 @@ describe("Panel architecture guardrails", () => {
 
   it("keeps the design-system radius scale compact and semantic", () => {
     const css = readCssGraph(join(SRC_ROOT, "components", "design-system", "tk-v1.css"));
-    const declaredRadiusValues = [
-      ...css.matchAll(/^\s*--tk-v1-radius-[\w-]+:\s*([^;]+);/gm),
-    ].map((match) => match[1].trim());
+    const declaredRadiusValues = [...css.matchAll(/^\s*--tk-v1-radius-[\w-]+:\s*([^;]+);/gm)].map(
+      (match) => match[1].trim(),
+    );
 
     expect(declaredRadiusValues).toEqual(["2px", "4px", "6px", "8px", "12px", "999px"]);
   });
@@ -402,9 +445,7 @@ describe("Panel architecture guardrails", () => {
     const appCss = readCssGraph(join(SRC_ROOT, "styles.css"));
     const layoutSource = readFileSync(join(SRC_ROOT, "layout", "Layout.tsx"), "utf-8");
 
-    expect(designSystemCss).toMatch(
-      /\.tk-v1-page\s*>\s*\*\s*\{[^}]*flex-shrink:\s*0;/s,
-    );
+    expect(designSystemCss).toMatch(/\.tk-v1-page\s*>\s*\*\s*\{[^}]*flex-shrink:\s*0;/s);
     expect(designSystemCss).toMatch(
       /\[data-theme="dark"\]\s+\.main-content\s*\{[^}]*background-image:\s*var\(--tk-v1-canvas-optical\);/s,
     );
@@ -457,8 +498,7 @@ describe("Panel architecture guardrails", () => {
   });
 
   it("keeps horizontal navigation from becoming an implicit vertical scroller", () => {
-    const navigationSelectorPattern =
-      /(?:^|[-_.])(?:tabs?|nav|rail|strip)(?:[-_.\s:#]|$)/i;
+    const navigationSelectorPattern = /(?:^|[-_.])(?:tabs?|nav|rail|strip)(?:[-_.\s:#]|$)/i;
     const violations: string[] = [];
 
     for (const filePath of allCssFiles) {

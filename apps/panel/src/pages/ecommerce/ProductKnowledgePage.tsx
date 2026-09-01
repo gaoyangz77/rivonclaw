@@ -8,7 +8,11 @@ import { ProductCard } from "../../components/ecommerce/ProductCard.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
-import { TkPanel, TkTableFrame } from "../../components/design-system/index.js";
+import {
+  TkInteractiveTableRow,
+  TkPanel,
+  TkTableFrame,
+} from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { BEFORE_NAVIGATE_EVENT, type BeforeNavigateDetail } from "../../lib/navigation-guard.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
@@ -612,16 +616,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                   const completion = sections.filter((value) => value.trim()).length;
                   const characters = sections.reduce((total, value) => total + value.length, 0);
                   return (
-                    <tr
+                    <TkInteractiveTableRow
                       key={item.id}
-                      tabIndex={0}
-                      onClick={() => selectKnowledge(item.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          selectKnowledge(item.id);
-                        }
-                      }}
+                      onActivate={() => selectKnowledge(item.id)}
                     >
                       <td>
                         <span className="product-knowledge-table-name">{item.name}</span>
@@ -661,7 +658,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                           {formatLocalizedDateTime(item.updatedAt, i18n.language)}
                         </time>
                       </td>
-                    </tr>
+                    </TkInteractiveTableRow>
                   );
                 })}
               </tbody>

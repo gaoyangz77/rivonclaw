@@ -14,7 +14,7 @@
  *   5. no-route-metadata-in-layout — Layout.tsx must not declare route metadata
  *   6. route-registry-exists — routes.tsx must exist
  *   7. route-registry-used   — App.tsx and Layout.tsx must import from routes
- *   8. table-frame-contract  — Product tables use TkTableFrame
+ *   8. table-contract        — Product tables use native semantics, TkTableFrame, and shared rows
  *   9. panel-contract        — Legacy card hooks use TkPanel
  *  10. radius-contract       — Radius scale stays compact; product CSS has no large raw radii
  *  11. tab-contract          — Tab-list interaction uses TkTabs
@@ -61,9 +61,7 @@ function relativeLuminance(hex) {
   const value = Number.parseInt(hex.slice(1), 16);
   const channels = [value >> 16, (value >> 8) & 255, value & 255].map((channel) => {
     const normalized = channel / 255;
-    return normalized <= 0.04045
-      ? normalized / 12.92
-      : ((normalized + 0.055) / 1.055) ** 2.4;
+    return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
@@ -116,17 +114,18 @@ function readCssGraph(entryPath, seen = new Set()) {
   seen.add(resolvedEntry);
 
   const source = readFileSync(resolvedEntry, "utf-8");
-  return source.replace(
-    /^\s*@import\s+["']([^"']+)["'];\s*$/gm,
-    (_statement, importPath) => readCssGraph(resolve(dirname(resolvedEntry), importPath), seen),
+  return source.replace(/^\s*@import\s+["']([^"']+)["'];\s*$/gm, (_statement, importPath) =>
+    readCssGraph(resolve(dirname(resolvedEntry), importPath), seen),
   );
 }
 
 function isImportOnlyCssManifest(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^\s*@import\s+["'][^"']+["'];\s*$/gm, "")
-    .trim() === "";
+  return (
+    source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*@import\s+["'][^"']+["'];\s*$/gm, "")
+      .trim() === ""
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +166,48 @@ function resolveRelativeImport(filePath, importPath) {
   // Ignore imports that escape src/
   if (rel.startsWith("..")) return null;
   return rel.replace(/\\/g, "/");
+}
+
+function countTablesOutsideFrames(content) {
+  const tokens = content.matchAll(/<\/TkTableFrame\s*>|<TkTableFrame\b[^>]*>|<table\b/g);
+  let frameDepth = 0;
+  let outsideCount = 0;
+  for (const match of tokens) {
+    const token = match[0];
+    if (token.startsWith("</")) {
+      frameDepth = Math.max(0, frameDepth - 1);
+    } else if (token.startsWith("<TkTableFrame")) {
+      frameDepth += 1;
+    } else if (frameDepth === 0) {
+      outsideCount += 1;
+    }
+  }
+  return outsideCount;
+}
+
+function pseudoTableClasses(content) {
+  const violations = [];
+  const openingTags = content.matchAll(
+    /<([A-Za-z][\w.-]*)\b[^>]*\bclassName=(?:"([^"]*)"|\{`([^`]*)`\})[^>]*>/g,
+  );
+  for (const match of openingTags) {
+    const tag = match[1];
+    if (
+      tag === "table" ||
+      tag === "tr" ||
+      tag === "TkTableFrame" ||
+      tag === "TkInteractiveTableRow"
+    ) {
+      continue;
+    }
+    const classes = (match[2] ?? match[3] ?? "").split(/\s+/);
+    for (const className of classes) {
+      if (/(?:^|-)table$/.test(className) || /-table-(?:head|row)$/.test(className)) {
+        violations.push(`${tag}.${className}`);
+      }
+    }
+  }
+  return violations;
 }
 
 // ---------------------------------------------------------------------------
@@ -266,12 +307,44 @@ for (const filePath of files) {
         `FAIL [table-frame-contract] ${relPath} has ${tableCount} table(s) and ${frameCount} TkTableFrame(s).`,
       );
     }
+    const unframedTableCount = countTablesOutsideFrames(content);
+    if (unframedTableCount > 0) {
+      violations.push(
+        `FAIL [table-frame-contract] ${relPath} has ${unframedTableCount} table(s) outside TkTableFrame.`,
+      );
+    }
+
+    const pseudoTables = pseudoTableClasses(content);
+    if (pseudoTables.length > 0) {
+      violations.push(
+        `FAIL [table-semantic-contract] ${relPath} implements table UI with non-table markup (${pseudoTables.join(", ")}). Use native table elements inside TkTableFrame.`,
+      );
+    }
+
+    const ariaTables = content.match(/<[^>]*\brole="table"[^>]*>/g) ?? [];
+    const undocumentedAriaTables = ariaTables.filter(
+      (tag) => !tag.includes('data-tk-table-exception="analytics-matrix"'),
+    );
+    if (undocumentedAriaTables.length > 0) {
+      violations.push(
+        `FAIL [table-semantic-contract] ${relPath} declares role="table" without the documented analytics-matrix exception. Use a native table inside TkTableFrame.`,
+      );
+    }
+
+    if (relPath !== "components/design-system/Primitives.tsx") {
+      const rawInteractiveRows = content.match(
+        /<tr\b[^>]*(?:\btabIndex=|\bonClick=|\bonKeyDown=|\brole="button")/g,
+      );
+      if (rawInteractiveRows?.length) {
+        violations.push(
+          `FAIL [table-row-contract] ${relPath} hand-wires ${rawInteractiveRows.length} interactive table row(s). Use TkInteractiveTableRow.`,
+        );
+      }
+    }
 
     rawSurfacePattern.lastIndex = 0;
     if (rawSurfacePattern.test(content)) {
-      violations.push(
-        `FAIL [panel-contract] ${relPath} uses a legacy card hook without TkPanel.`,
-      );
+      violations.push(`FAIL [panel-contract] ${relPath} uses a legacy card hook without TkPanel.`);
     }
 
     if (
@@ -324,9 +397,7 @@ for (const filePath of files) {
       "modal-empty-state",
     ]);
     for (const match of content.matchAll(/className="([^"]+)"/g)) {
-      const legacyClasses = match[1]
-        .split(/\s+/)
-        .filter((name) => forbiddenStateClasses.has(name));
+      const legacyClasses = match[1].split(/\s+/).filter((name) => forbiddenStateClasses.has(name));
       if (legacyClasses.length > 0) {
         violations.push(
           `FAIL [state-contract] ${relPath} uses ${legacyClasses.join(", ")}. Use TkAlert, TkLoadingState, or TkEmptyState.`,
@@ -345,14 +416,12 @@ if (existsSync(designSystemCssPath)) {
       "FAIL [css-ownership-contract] design-system/tk-v1.css must remain an import-only manifest.",
     );
   }
-  const radiusValues = [...css.matchAll(/^\s*--tk-v1-radius-[\w-]+:\s*([^;]+);/gm)].map(
-    (match) => match[1].trim(),
+  const radiusValues = [...css.matchAll(/^\s*--tk-v1-radius-[\w-]+:\s*([^;]+);/gm)].map((match) =>
+    match[1].trim(),
   );
   const expectedRadiusValues = ["2px", "4px", "6px", "8px", "12px", "999px"];
   if (JSON.stringify(radiusValues) !== JSON.stringify(expectedRadiusValues)) {
-    violations.push(
-      `FAIL [radius-contract] tk-v1.css radius scale is ${radiusValues.join(", ")}.`,
-    );
+    violations.push(`FAIL [radius-contract] tk-v1.css radius scale is ${radiusValues.join(", ")}.`);
   }
 
   if (!/\.tk-v1-page\s*>\s*\*\s*\{[^}]*flex-shrink:\s*0;/s.test(css)) {
@@ -439,8 +508,7 @@ for (const filePath of walkFilesByExtension(SRC_ROOT, ".css")) {
       `FAIL [control-boundary] ${relPath} has a broad focus bridge that can override tk-v1 controls. Exclude [class*="tk-v1-"].`,
     );
   }
-  const navigationSelectorPattern =
-    /(?:^|[-_.])(?:tabs?|nav|rail|strip)(?:[-_.\s:#]|$)/i;
+  const navigationSelectorPattern = /(?:^|[-_.])(?:tabs?|nav|rail|strip)(?:[-_.\s:#]|$)/i;
   for (const match of content.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const selector = match[1].trim();
     const declarations = match[2];
@@ -463,9 +531,7 @@ for (const filePath of walkFilesByExtension(SRC_ROOT, ".css")) {
 // Rule 6: route-registry-exists — routes.tsx must exist
 const routesFile = join(SRC_ROOT, "routes.tsx");
 if (!existsSync(routesFile)) {
-  violations.push(
-    `FAIL [route-registry-missing] apps/panel/src/routes.tsx does not exist.`,
-  );
+  violations.push(`FAIL [route-registry-missing] apps/panel/src/routes.tsx does not exist.`);
 }
 
 // Rule 7: route-registry-used — App.tsx and Layout.tsx must import from routes
@@ -480,9 +546,7 @@ for (const { rel, label } of checkRouteImports) {
     const imports = extractImports(content);
     const hasRoutesImport = imports.some((imp) => /routes/.test(imp));
     if (!hasRoutesImport) {
-      violations.push(
-        `FAIL [route-registry-unused] ${label} does not import from routes.tsx.`,
-      );
+      violations.push(`FAIL [route-registry-unused] ${label} does not import from routes.tsx.`);
     }
   }
 }
@@ -504,7 +568,5 @@ if (violations.length > 0) {
   );
   process.exit(1);
 } else {
-  console.log(
-    `\u2713 Panel architecture check passed (${fileCount} files scanned)`,
-  );
+  console.log(`\u2713 Panel architecture check passed (${fileCount} files scanned)`);
 }

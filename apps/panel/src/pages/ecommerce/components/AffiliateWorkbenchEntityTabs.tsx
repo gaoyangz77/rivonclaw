@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import {
 } from "../../../api/shops-queries.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
+import { TkInteractiveTableRow, TkTableFrame } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import {
   formatLocalizedMonthDay,
@@ -353,120 +354,155 @@ function AffiliateWorkbenchSampleList({
           )}
         </WorkbenchEmpty>
       ) : (
-        <div className="affiliate-workbench-table-shell">
-          <div className={`affiliate-workbench-table ${tableVariant}`}>
-            <div className="affiliate-workbench-table-head">
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colAppliedAt")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colShop")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colProduct")}</div>
-              {softRejectedView ? (
-                <>
-                  <div>{t("ecommerce.affiliateWorkspace.workbench.colHandler")}</div>
-                  <div>{t("ecommerce.affiliateWorkspace.workbench.colPlatformExpiry")}</div>
-                </>
-              ) : (
-                <>
-                  <div>{t("ecommerce.affiliateWorkspace.workbench.colExpiry")}</div>
-                  <div>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</div>
-                </>
-              )}
-              <div />
-            </div>
-            {items.map((row) => (
-              <div
-                key={row.id}
-                className="affiliate-workbench-table-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => openRow(row)}
-                onKeyDown={rowKeyHandler(() => openRow(row))}
-              >
-                <TimeCell value={row.sampleApplication.firstObservedAt} />
-                <EntityIdentity
-                  name={row.creatorName}
-                  username={row.creatorUsername}
-                  avatarUrl={row.creatorAvatarUrl}
-                />
-                <div className="affiliate-workbench-cell-shop">
-                  {row.shopName || t("common.unknown")}
-                </div>
-                <div className="affiliate-workbench-cell-product">
-                  <strong>
-                    {row.productTitle || row.sampleApplication.productId || t("common.unknown")}
-                  </strong>
-                  {row.productTitle && row.sampleApplication.productId ? (
-                    <span>{row.sampleApplication.productId}</span>
-                  ) : null}
-                </div>
+        <TkTableFrame variant="embedded" className="affiliate-workbench-entity-table-frame">
+          <table className={`affiliate-workbench-entity-table ${tableVariant}`}>
+            <colgroup>
+              <col className="affiliate-workbench-col-time" />
+              <col className="affiliate-workbench-col-creator" />
+              <col className="affiliate-workbench-col-shop" />
+              <col className="affiliate-workbench-col-product" />
+              <col className="affiliate-workbench-col-support" />
+              <col className="affiliate-workbench-col-status" />
+              <col className="affiliate-workbench-col-action" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colAppliedAt")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colShop")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colProduct")}</th>
                 {softRejectedView ? (
                   <>
-                    <SoftRejectHandlerCell sampleApplication={row.sampleApplication} />
-                    <div className="affiliate-workbench-cell-expiry">
-                      {row.sampleApplication.approveExpirationAt
-                        ? t("ecommerce.affiliateWorkspace.workbench.expiresAt", {
-                            value: formatLocalizedRelativeTime(
-                              new Date(row.sampleApplication.approveExpirationAt).getTime(),
-                              nowMs,
-                              panelI18n.language,
-                            ),
-                          })
-                        : "—"}
-                    </div>
-                    <div className="affiliate-workbench-cell-actions">
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        disabled={reopeningRowId === row.id}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void reopenRow(row);
-                        }}
-                      >
-                        {reopeningRowId === row.id
-                          ? t("common.loading")
-                          : t("ecommerce.affiliateWorkspace.workbench.reopen")}
-                      </button>
-                    </div>
+                    <th>{t("ecommerce.affiliateWorkspace.workbench.colHandler")}</th>
+                    <th>{t("ecommerce.affiliateWorkspace.workbench.colPlatformExpiry")}</th>
                   </>
                 ) : (
                   <>
-                    <ExpiryCell
-                      approveExpirationAt={row.sampleApplication.approveExpirationAt}
-                      nowMs={nowMs}
-                    />
-                    <div className="affiliate-workbench-cell-badges">
-                      <SampleStateBadge sampleApplication={row.sampleApplication} />
-                      <StatusBadges
-                        protectedCreator={row.protected}
-                        humanOnly={row.humanOnly}
-                        proposal={row.proposal}
-                      />
-                      {row.businessDeveloperName ? (
-                        <span className="affiliate-workbench-badge">
-                          {row.businessDeveloperName}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="affiliate-workbench-cell-chevron" aria-hidden="true">
-                      ›
-                    </div>
+                    <th>{t("ecommerce.affiliateWorkspace.workbench.colExpiry")}</th>
+                    <th>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</th>
                   </>
                 )}
-              </div>
-            ))}
+                <th>
+                  <span className="sr-only">
+                    {t("common.actions", { defaultValue: "Actions" })}
+                  </span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <TkInteractiveTableRow
+                  key={row.id}
+                  className="affiliate-workbench-entity-table-row"
+                  onActivate={() => openRow(row)}
+                >
+                  <td>
+                    <TimeCell value={row.sampleApplication.firstObservedAt} />
+                  </td>
+                  <td>
+                    <EntityIdentity
+                      name={row.creatorName}
+                      username={row.creatorUsername}
+                      avatarUrl={row.creatorAvatarUrl}
+                    />
+                  </td>
+                  <td>
+                    <div className="affiliate-workbench-cell-shop">
+                      {row.shopName || t("common.unknown")}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="affiliate-workbench-cell-product">
+                      <strong>
+                        {row.productTitle || row.sampleApplication.productId || t("common.unknown")}
+                      </strong>
+                      {row.productTitle && row.sampleApplication.productId ? (
+                        <span>{row.sampleApplication.productId}</span>
+                      ) : null}
+                    </div>
+                  </td>
+                  {softRejectedView ? (
+                    <>
+                      <td>
+                        <SoftRejectHandlerCell sampleApplication={row.sampleApplication} />
+                      </td>
+                      <td>
+                        <div className="affiliate-workbench-cell-expiry">
+                          {row.sampleApplication.approveExpirationAt
+                            ? t("ecommerce.affiliateWorkspace.workbench.expiresAt", {
+                                value: formatLocalizedRelativeTime(
+                                  new Date(row.sampleApplication.approveExpirationAt).getTime(),
+                                  nowMs,
+                                  panelI18n.language,
+                                ),
+                              })
+                            : "—"}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="affiliate-workbench-cell-actions">
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            disabled={reopeningRowId === row.id}
+                            onClick={() => void reopenRow(row)}
+                          >
+                            {reopeningRowId === row.id
+                              ? t("common.loading")
+                              : t("ecommerce.affiliateWorkspace.workbench.reopen")}
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>
+                        <ExpiryCell
+                          approveExpirationAt={row.sampleApplication.approveExpirationAt}
+                          nowMs={nowMs}
+                        />
+                      </td>
+                      <td>
+                        <div className="affiliate-workbench-cell-badges">
+                          <SampleStateBadge sampleApplication={row.sampleApplication} />
+                          <StatusBadges
+                            protectedCreator={row.protected}
+                            humanOnly={row.humanOnly}
+                            proposal={row.proposal}
+                          />
+                          {row.businessDeveloperName ? (
+                            <span className="affiliate-workbench-badge">
+                              {row.businessDeveloperName}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="affiliate-workbench-cell-chevron" aria-hidden="true">
+                          ›
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </TkInteractiveTableRow>
+              ))}
+            </tbody>
             {!hasMore && items.length > 0 ? (
-              <div className="affiliate-workbench-table-footer">
-                {t(
-                  softRejectedView
-                    ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedSoftRejected"
-                    : "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedOpen",
-                  { count: items.length },
-                )}
-              </div>
+              <tfoot>
+                <tr>
+                  <td className="affiliate-workbench-table-footer" colSpan={7}>
+                    {t(
+                      softRejectedView
+                        ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedSoftRejected"
+                        : "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedOpen",
+                      { count: items.length },
+                    )}
+                  </td>
+                </tr>
+              </tfoot>
             ) : null}
-          </div>
-        </div>
+          </table>
+        </TkTableFrame>
       )}
       {hasMore ? (
         <button
@@ -679,77 +715,103 @@ function AffiliateWorkbenchMessageList({
       ) : viewState === "empty" ? (
         <WorkbenchEmpty>{t("ecommerce.affiliateWorkspace.workbench.noMessages")}</WorkbenchEmpty>
       ) : (
-        <div className="affiliate-workbench-table-shell">
-          <div className="affiliate-workbench-table affiliate-workbench-table-messages">
-            <div className="affiliate-workbench-table-head">
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colWaiting")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colBd")}</div>
-              <div>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</div>
-              <div />
-            </div>
-            {items.map((row) => (
-              <div
-                key={row.id}
-                className="affiliate-workbench-table-row"
-                role="button"
-                tabIndex={0}
-                onClick={() =>
+        <TkTableFrame variant="embedded" className="affiliate-workbench-entity-table-frame">
+          <table className="affiliate-workbench-entity-table affiliate-workbench-table-messages">
+            <colgroup>
+              <col className="affiliate-workbench-col-time" />
+              <col className="affiliate-workbench-col-creator" />
+              <col className="affiliate-workbench-col-product" />
+              <col className="affiliate-workbench-col-support" />
+              <col className="affiliate-workbench-col-status" />
+              <col className="affiliate-workbench-col-action" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colWaiting")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colBd")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</th>
+                <th>
+                  <span className="sr-only">
+                    {t("common.actions", { defaultValue: "Actions" })}
+                  </span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => {
+                const openMessage = () =>
                   onOpen({
                     creatorRelationshipId: row.creatorRelationshipId,
                     selectedShopId: row.sourceShopId ?? undefined,
                     initialTab: "conversation",
                     replyToLifecycleEventId: row.replyToLifecycleEventId,
-                  })
-                }
-                onKeyDown={rowKeyHandler(() =>
-                  onOpen({
-                    creatorRelationshipId: row.creatorRelationshipId,
-                    selectedShopId: row.sourceShopId ?? undefined,
-                    initialTab: "conversation",
-                    replyToLifecycleEventId: row.replyToLifecycleEventId,
-                  }),
-                )}
-              >
-                <WaitingCell lastPendingAt={row.lastPendingAt} nowMs={nowMs} />
-                <EntityIdentity
-                  name={row.creatorName}
-                  username={row.creatorUsername}
-                  avatarUrl={row.creatorAvatarUrl}
-                />
-                <ChannelSourceCell channel={row.channel} sourceLabel={row.sourceLabel} />
-                <div className="affiliate-workbench-cell-badges">
-                  {row.businessDeveloperName ? (
-                    <span className="affiliate-workbench-badge">{row.businessDeveloperName}</span>
-                  ) : null}
-                </div>
-                <div className="affiliate-workbench-cell-badges">
-                  <StatusBadges
-                    protectedCreator={row.protected}
-                    humanOnly={row.humanOnly}
-                    proposal={row.proposal}
-                  />
-                </div>
-                <div className="affiliate-workbench-cell-chevron" aria-hidden="true">
-                  ›
-                </div>
-              </div>
-            ))}
+                  });
+                return (
+                  <TkInteractiveTableRow
+                    key={row.id}
+                    className="affiliate-workbench-entity-table-row"
+                    onActivate={openMessage}
+                  >
+                    <td>
+                      <WaitingCell lastPendingAt={row.lastPendingAt} nowMs={nowMs} />
+                    </td>
+                    <td>
+                      <EntityIdentity
+                        name={row.creatorName}
+                        username={row.creatorUsername}
+                        avatarUrl={row.creatorAvatarUrl}
+                      />
+                    </td>
+                    <td>
+                      <ChannelSourceCell channel={row.channel} sourceLabel={row.sourceLabel} />
+                    </td>
+                    <td>
+                      <div className="affiliate-workbench-cell-badges">
+                        {row.businessDeveloperName ? (
+                          <span className="affiliate-workbench-badge">
+                            {row.businessDeveloperName}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="affiliate-workbench-cell-badges">
+                        <StatusBadges
+                          protectedCreator={row.protected}
+                          humanOnly={row.humanOnly}
+                          proposal={row.proposal}
+                        />
+                      </div>
+                    </td>
+                    <td>
+                      <div className="affiliate-workbench-cell-chevron" aria-hidden="true">
+                        ›
+                      </div>
+                    </td>
+                  </TkInteractiveTableRow>
+                );
+              })}
+            </tbody>
             {!hasMore && items.length > 0 ? (
-              <div className="affiliate-workbench-table-footer">
-                {channel
-                  ? t("ecommerce.affiliateWorkspace.workbench.allMessagesLoadedChannel", {
-                      count: items.length,
-                      channel: channelDisplayName(channel, t),
-                    })
-                  : t("ecommerce.affiliateWorkspace.workbench.allMessagesLoaded", {
-                      count: items.length,
-                    })}
-              </div>
+              <tfoot>
+                <tr>
+                  <td className="affiliate-workbench-table-footer" colSpan={6}>
+                    {channel
+                      ? t("ecommerce.affiliateWorkspace.workbench.allMessagesLoadedChannel", {
+                          count: items.length,
+                          channel: channelDisplayName(channel, t),
+                        })
+                      : t("ecommerce.affiliateWorkspace.workbench.allMessagesLoaded", {
+                          count: items.length,
+                        })}
+                  </td>
+                </tr>
+              </tfoot>
             ) : null}
-          </div>
-        </div>
+          </table>
+        </TkTableFrame>
       )}
       {hasMore ? (
         <button
@@ -817,7 +879,11 @@ function WaitingCell({ lastPendingAt, nowMs }: { lastPendingAt: string; nowMs: n
 function formatWaitingDuration(elapsedMs: number): string {
   const clamped = Math.max(elapsedMs, 0);
   const [unit, divisor]: [Intl.NumberFormatOptions["unit"], number] =
-    clamped >= DAY_MS ? ["day", DAY_MS] : clamped >= HOUR_MS ? ["hour", HOUR_MS] : ["minute", 60_000];
+    clamped >= DAY_MS
+      ? ["day", DAY_MS]
+      : clamped >= HOUR_MS
+        ? ["hour", HOUR_MS]
+        : ["minute", 60_000];
   const value = Math.max(Math.round(clamped / divisor), 1);
   try {
     return new Intl.NumberFormat(panelI18n.language, {
@@ -1057,15 +1123,6 @@ function channelDisplayName(
     return t("ecommerce.affiliateWorkspace.workbench.channelEmail");
   }
   return "TikTok Shop";
-}
-
-function rowKeyHandler(open: () => void) {
-  return (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      open();
-    }
-  };
 }
 
 function appendUniqueRows<T extends { id: string }>(current: T[], incoming: T[]): T[] {

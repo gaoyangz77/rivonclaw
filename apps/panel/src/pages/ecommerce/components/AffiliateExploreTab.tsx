@@ -782,7 +782,7 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
               </div>
             )}
           </section>
-          <section className="affiliate-panel affiliate-result-table">
+          <section className="affiliate-panel affiliate-result-section">
             <header>
               <div>
                 <span>{t("ecommerce.affiliateAnalytics.explore.detail")}</span>
