@@ -10,8 +10,8 @@
  *
  * The provider contracts mirror the backend clients, which are the authority:
  * XlwmsClient.ts requires appKey + appSecret, LingxingWmsClient.ts requires
- * appId + appSecret, Sellfox requires clientId + clientSecret, and YEJOIN takes
- * an opaque string.
+ * appId + appSecret, Sellfox requires clientId + clientSecret, JFWMS requires
+ * its long-lived refresh credential set, and YEJOIN takes an opaque string.
  */
 
 export type WmsApiTokenIssue = "invalidJson" | "missingFields";
@@ -20,6 +20,7 @@ const JSON_CREDENTIAL_FIELDS: Record<string, readonly string[]> = {
   XLWMS: ["appKey", "appSecret"],
   LINGXING: ["appId", "appSecret"],
   SELLFOX: ["clientId", "clientSecret"],
+  JFWMS: ["clientId", "clientSecret", "refreshToken", "userId"],
 };
 
 /** The fields a provider's token must carry, or null when it takes a plain string. */
