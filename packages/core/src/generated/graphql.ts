@@ -2154,7 +2154,7 @@ export interface AffiliateCreatorCollaborationListPayload {
   currentStatus: AffiliateOperationalProjectionStatus;
   historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   historyStatus: AffiliateOperationalProjectionStatus;
-  items: Array<AffiliateCollaboration>;
+  items: Array<AffiliateCreatorCollaborationSummary>;
   lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -2165,6 +2165,34 @@ export interface AffiliateCreatorCollaborationListPayload {
   shopCoverage: Array<AffiliateOperationalProjectionShopCoverage>;
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
+}
+
+/** One Creator-scoped canonical platform Collaboration. This Agent-facing view deliberately excludes the Collaboration-wide Creator roster and its raw Provider snapshot. */
+export interface AffiliateCreatorCollaborationSummary {
+  collaborationSubType?: Maybe<Scalars['String']['output']>;
+  commissionEndTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  commissionStartTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  effectiveTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  endTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  firstObservedAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  lastObservedAt: Scalars['DateTimeISO']['output'];
+  lastSyncSource: AffiliateProjectionSyncSource;
+  message?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  platformCollaborationId: Scalars['String']['output'];
+  platformUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  productIds: Array<Scalars['String']['output']>;
+  projectionRevision: Scalars['Int']['output'];
+  shopId: Scalars['ID']['output'];
+  /** The canonical reason this Collaboration belongs to the bound CreatorRelationship. No other Creator identity is returned. */
+  sources: Array<AffiliateRelationshipPlatformCollaborationSource>;
+  startTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: AffiliateCollaborationStatus;
+  type: AffiliateCollaborationType;
+  updatedAt: Scalars['DateTimeISO']['output'];
 }
 
 export interface AffiliateCreatorContactStateInput {
