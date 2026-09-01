@@ -8,8 +8,8 @@
 // See `scripts/vendor-pnpm.cjs` for why the pinned pnpm is installed outside
 // the vendor tree.
 
-const { readVendorPnpmVersion, resolveVendorPnpmBinary } = require(
+const { readVendorPnpmVersion, resolveVendorPnpmEntry } = require(
   "../../../scripts/vendor-pnpm.cjs",
 );
 
-module.exports = { readVendorPnpmVersion, resolveVendorPnpmBinary };
+module.exports = { readVendorPnpmVersion, resolveVendorPnpmEntry };

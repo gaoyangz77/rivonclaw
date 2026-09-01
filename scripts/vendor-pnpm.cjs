@@ -21,9 +21,15 @@
 // directory as cwd) while letting the pinned package manager be fetched under
 // the repo's own npm config.
 //
+// The resolved entry is pnpm's JavaScript CLI (`node_modules/pnpm/bin/pnpm.mjs`
+// for pnpm 12, `bin/pnpm.cjs` for older releases), not the `.bin` shim: on
+// Windows the shim is a `.cmd` file, which Node refuses to spawn without a
+// shell and which Git Bash cannot exec directly. Callers run it as
+// `node <entry> ...`, which behaves identically on every platform.
+//
 // Usage:
-//   const { resolveVendorPnpmBinary } = require("<repo>/scripts/vendor-pnpm.cjs");
-//   node scripts/vendor-pnpm.cjs <vendorDir>   # prints the binary path
+//   const { resolveVendorPnpmEntry } = require("<repo>/scripts/vendor-pnpm.cjs");
+//   node scripts/vendor-pnpm.cjs <vendorDir>   # prints the pnpm.cjs path
 
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -31,6 +37,22 @@ const path = require("node:path");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const IS_WINDOWS = process.platform === "win32";
+// pnpm 12 ships an ESM CLI; earlier majors ship CommonJS. Prefer whichever the
+// installed package provides.
+const PNPM_ENTRY_CANDIDATES = ["bin/pnpm.mjs", "bin/pnpm.cjs"];
+
+/**
+ * @param {string} cacheDir
+ * @returns {string | null} The installed pnpm CLI entry, or null when absent.
+ */
+function findInstalledPnpmEntry(cacheDir) {
+  const packageDir = path.join(cacheDir, "node_modules", "pnpm");
+  for (const candidate of PNPM_ENTRY_CANDIDATES) {
+    const entry = path.join(packageDir, candidate);
+    if (fs.existsSync(entry)) return entry;
+  }
+  return null;
+}
 
 /**
  * Read the pnpm version pinned by a vendor checkout's `packageManager` field.
@@ -42,7 +64,10 @@ function readVendorPnpmVersion(vendorDir) {
   const manifestPath = path.join(vendorDir, "package.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
   const packageManager = typeof manifest.packageManager === "string" ? manifest.packageManager : "";
-  const match = /^pnpm@([^+\s]+)(?:\+.*)?$/u.exec(packageManager);
+  // Strict semver: the version is interpolated into a shell command on Windows.
+  const match = /^pnpm@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)(?:\+[0-9A-Za-z.]+)?$/u.exec(
+    packageManager,
+  );
   if (!match) {
     throw new Error(
       `Vendor package.json must declare packageManager=pnpm@<version>: ${manifestPath}`,
@@ -63,16 +88,20 @@ function installWithNpm({ cacheDir, spec }) {
     {
       cwd: cacheDir,
       // npm writes its install summary to stdout. This module's stdout is the
-      // resolved binary path and nothing else, because callers capture it with
+      // resolved entry path and nothing else, because callers capture it with
       // `$(...)`, so route npm's progress to stderr. stdin is closed: a prompt
       // here would hang an unattended CI install.
       stdio: ["ignore", 2, 2],
+      // `npm.cmd` is a batch file; Node only spawns those through a shell.
+      // The arguments are fixed flags plus a strictly validated semver spec.
+      shell: IS_WINDOWS,
     },
   );
 }
 
 /**
- * Resolve (installing on first use) the pnpm binary pinned by a vendor checkout.
+ * Resolve (installing on first use) the pnpm CLI entry pinned by a vendor
+ * checkout. Run it as `node <entry> ...`.
  *
  * @param {string} vendorDir Directory containing the vendor `package.json`.
  * @param {{
@@ -80,16 +109,15 @@ function installWithNpm({ cacheDir, spec }) {
  *   cacheRoot?: string,
  *   install?: (args: { cacheDir: string, spec: string, version: string }) => void,
  * }} [options]
- * @returns {string} Absolute path to the pnpm binary.
+ * @returns {string} Absolute path to the installed `pnpm/bin/pnpm.{mjs,cjs}`.
  */
-function resolveVendorPnpmBinary(vendorDir, options = {}) {
+function resolveVendorPnpmEntry(vendorDir, options = {}) {
   const version = readVendorPnpmVersion(vendorDir);
   const repoRoot = options.repoRoot ?? REPO_ROOT;
   const cacheRoot = options.cacheRoot ?? path.join(repoRoot, "tmp", "vendor-pnpm");
   const cacheDir = path.join(cacheRoot, version);
-  const binary = path.join(cacheDir, "node_modules", ".bin", IS_WINDOWS ? "pnpm.cmd" : "pnpm");
-
-  if (fs.existsSync(binary)) return binary;
+  const existing = findInstalledPnpmEntry(cacheDir);
+  if (existing) return existing;
 
   fs.mkdirSync(cacheDir, { recursive: true });
   // Anchor npm's local prefix here. Without a manifest npm walks up to the
@@ -107,13 +135,17 @@ function resolveVendorPnpmBinary(vendorDir, options = {}) {
   process.stderr.write(`Installing ${spec} into ${cacheDir}\n`);
   (options.install ?? installWithNpm)({ cacheDir, spec, version });
 
-  if (!fs.existsSync(binary)) {
-    throw new Error(`Installing ${spec} did not produce ${binary}`);
+  const entry = findInstalledPnpmEntry(cacheDir);
+  if (!entry) {
+    throw new Error(
+      `Installing ${spec} did not produce a pnpm CLI entry under ${cacheDir} ` +
+        `(looked for ${PNPM_ENTRY_CANDIDATES.join(", ")})`,
+    );
   }
-  return binary;
+  return entry;
 }
 
-module.exports = { readVendorPnpmVersion, resolveVendorPnpmBinary };
+module.exports = { readVendorPnpmVersion, resolveVendorPnpmEntry };
 
 if (require.main === module) {
   const vendorDirArg = process.argv[2];
@@ -121,5 +153,5 @@ if (require.main === module) {
     process.stderr.write("Usage: node scripts/vendor-pnpm.cjs <vendorDir>\n");
     process.exit(1);
   }
-  process.stdout.write(`${resolveVendorPnpmBinary(path.resolve(vendorDirArg))}\n`);
+  process.stdout.write(`${resolveVendorPnpmEntry(path.resolve(vendorDirArg))}\n`);
 }

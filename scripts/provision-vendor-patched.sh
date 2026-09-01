@@ -156,7 +156,7 @@ else
     # the pinned pnpm is installed outside it. See scripts/vendor-pnpm.cjs.
     VENDOR_PNPM="$(node "$REPO_ROOT/scripts/vendor-pnpm.cjs" "$TARGET_DIR")"
     vendor_pnpm() {
-      "$VENDOR_PNPM" "$@"
+      node "$VENDOR_PNPM" "$@"
     }
 
     echo "Using vendor pnpm $VENDOR_PNPM"
