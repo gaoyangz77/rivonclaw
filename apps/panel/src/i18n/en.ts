@@ -100,17 +100,21 @@ export default {
     emptyState: "Start a conversation with your agent.",
     examplesTitle: "Try asking",
     example1: "Organize and sort the files and folders on my desktop",
-    example2: "I have an Excel with messy phone number formats — clean them up for me",
+    example2:
+      "I have an Excel with messy phone number formats — clean them up for me",
     example3:
       "Search for nearby piano schools and compile info, phone numbers, and lesson prices for 20 of them",
-    example4: "Help me find a cost-effective dynamic microphone online for live singing",
+    example4:
+      "Help me find a cost-effective dynamic microphone online for live singing",
     example5: "Summarize this 30-page PDF and extract all the key action items",
-    example6: "Monitor this webpage and notify me whenever the price drops below $50",
+    example6:
+      "Monitor this webpage and notify me whenever the price drops below $50",
     editExample: "Edit Prompt",
     restoreDefault: "Restore Default",
     historyEnd: "Beginning of conversation",
     loadError: "Failed to connect to gateway",
-    noProviderError: "No LLM provider configured. Please go to Models page and add an API key.",
+    noProviderError:
+      "No LLM provider configured. Please go to Models page and add an API key.",
     timeoutError:
       "Request timed out. The model may be unavailable or the model ID may be incorrect.",
     emoji: "Emoji",
@@ -167,7 +171,8 @@ export default {
     newSessionTitle: "TK Copilot",
     sessionMain: "Main",
     sessionUntitled: "Untitled",
-    resetConfirm: "Clear all messages in this session? The history will be archived.",
+    resetConfirm:
+      "Clear all messages in this session? The history will be archived.",
     thinkingNone: "Thinking: Default",
     thinkingLow: "Thinking: Low",
     thinkingMedium: "Thinking: Medium",
@@ -231,9 +236,11 @@ export default {
       "Configure your LLM providers and API keys. You can add multiple providers and switch between them.",
     providerLabel: "Provider",
     apiKeyLabel: "API Key",
-    apiKeyPlaceholder: "Stored securely in your OS keychain. Never written to config files.",
+    apiKeyPlaceholder:
+      "Stored securely in your OS keychain. Never written to config files.",
     updateKeyPlaceholder: "Enter new API key",
-    apiKeyHelp: "Stored securely in your OS keychain. Never written to config files.",
+    apiKeyHelp:
+      "Stored securely in your OS keychain. Never written to config files.",
     getApiKey: "Get API key",
     getSubscription: "Get subscription",
     subscribeForValue: "or subscribe for best value",
@@ -286,7 +293,8 @@ export default {
         "After signing in with ChatGPT, copy the full redirect URL from your browser's address bar and paste it here.",
       completeSignIn: "Complete Sign-in",
       confirm: "Confirm Re-authentication",
-      tokenReady: "New OAuth token ready. You can retry rotating the stored credential.",
+      tokenReady:
+        "New OAuth token ready. You can retry rotating the stored credential.",
       autoSaving: "Authorized. Rotating the stored credential automatically…",
       starting: "Starting…",
       rotating: "Rotating credential…",
@@ -300,7 +308,8 @@ export default {
     keyLabel: "Label",
     advancedSettings: "Advanced Settings",
     proxyLabel: "Proxy URL (optional)",
-    proxyPlaceholder: "http://user:pass@proxy.example.com:8080 or socks5://user:pass@...",
+    proxyPlaceholder:
+      "http://user:pass@proxy.example.com:8080 or socks5://user:pass@...",
     proxyHelp:
       "HTTP/HTTPS/SOCKS5 proxy for this key. Credentials are stored securely in your OS keychain.",
     proxyTooltip: "LLM calls with this key are routed through a proxy",
@@ -365,7 +374,8 @@ export default {
     label_ollama: "Ollama",
     "label_openai-codex": "OpenAI Codex (OAuth)",
     desc_ollama: "Run models locally with Ollama",
-    "desc_openai-codex": "Sign in with your ChatGPT account to use Codex models via subscription.",
+    "desc_openai-codex":
+      "Sign in with your ChatGPT account to use Codex models via subscription.",
     "hint_openai-codex": "",
     "oauthSignIn_openai-codex": "Sign in with ChatGPT",
     oauthLoading: "Setting up...",
@@ -381,43 +391,63 @@ export default {
     oauthWaitingForBrowser: "Waiting for browser sign-in...",
     oauthManualUrlLabel: "Authorization URL",
     oauthManualCallbackLabel: "Redirect URL",
-    oauthManualCallbackPlaceholder: "Paste the redirect URL from your browser here",
+    oauthManualCallbackPlaceholder:
+      "Paste the redirect URL from your browser here",
     "oauthManualCallbackHelp_openai-codex":
       "After signing in with ChatGPT, your browser will redirect to a localhost URL — copy the full URL from your browser's address bar and paste it here.",
     oauthManualSubmit: "Complete Sign-in",
-    desc_openai: "Creator of GPT & ChatGPT. Industry leader in general-purpose AI.",
-    desc_anthropic: "Maker of Claude. Known for safety-focused, highly capable models.",
-    desc_claude: "Claude Pro ($20/mo), Max ($100/mo, $200/mo). Subscribe for higher usage limits.",
-    desc_google: "Google's Gemini models. Strong multimodal and long-context capabilities.",
-    desc_deepseek: "Chinese AI lab. Competitive open-weight models at low cost.",
+    desc_openai:
+      "Creator of GPT & ChatGPT. Industry leader in general-purpose AI.",
+    desc_anthropic:
+      "Maker of Claude. Known for safety-focused, highly capable models.",
+    desc_claude:
+      "Claude Pro ($20/mo), Max ($100/mo, $200/mo). Subscribe for higher usage limits.",
+    desc_google:
+      "Google's Gemini models. Strong multimodal and long-context capabilities.",
+    desc_deepseek:
+      "Chinese AI lab. Competitive open-weight models at low cost.",
     desc_zhipu: "Zhipu AI's China service (open.bigmodel.cn). Priced in CNY.",
-    "desc_zhipu-coding": "For GLM Coding Plan subscribers (open.bigmodel.cn). Priced in CNY.",
+    "desc_zhipu-coding":
+      "For GLM Coding Plan subscribers (open.bigmodel.cn). Priced in CNY.",
     desc_zai: "Zhipu AI's global service (z.ai). Priced in USD.",
     desc_moonshot: "Moonshot AI's global service (moonshot.ai). Priced in USD.",
     desc_kimi: "Kimi's China service (moonshot.cn). Priced in CNY.",
     "desc_moonshot-coding":
       "Kimi Code subscription plan for Kimi CLI, Claude Code, and other dev tools.",
-    desc_qwen: "Alibaba's AI models. Strong multilingual and coding capabilities.",
+    desc_qwen:
+      "Alibaba's AI models. Strong multilingual and coding capabilities.",
     "desc_qwen-coding":
       "Alibaba Cloud Coding Plan subscription for Claude Code and other dev tools.",
-    desc_modelscope: "ModelScope community free inference. Access Qwen models with free quota.",
-    desc_groq: "Ultra-fast inference platform. Runs open-source models at high speed.",
-    desc_mistral: "European AI leader. Efficient, high-quality open-weight models.",
-    desc_xai: "Elon Musk's AI company. Creator of Grok with real-time knowledge.",
-    desc_openrouter: "Unified API gateway for 100+ models from multiple providers.",
+    desc_modelscope:
+      "ModelScope community free inference. Access Qwen models with free quota.",
+    desc_groq:
+      "Ultra-fast inference platform. Runs open-source models at high speed.",
+    desc_mistral:
+      "European AI leader. Efficient, high-quality open-weight models.",
+    desc_xai:
+      "Elon Musk's AI company. Creator of Grok with real-time knowledge.",
+    desc_openrouter:
+      "Unified API gateway for 100+ models from multiple providers.",
     desc_minimax: "MiniMax global service. Priced in USD.",
     "desc_minimax-cn": "MiniMax China service (minimaxi.com). Priced in CNY.",
-    "desc_minimax-coding": "MiniMax Coding Plan subscription for Claude Code and other dev tools.",
+    "desc_minimax-coding":
+      "MiniMax Coding Plan subscription for Claude Code and other dev tools.",
     desc_venice: "Privacy-focused AI platform. Uncensored model hosting.",
-    desc_xiaomi: "Xiaomi's AI lab. Lightweight models optimized for efficiency.",
-    desc_volcengine: "ByteDance's cloud platform. Home of Doubao large language models.",
+    desc_xiaomi:
+      "Xiaomi's AI lab. Lightweight models optimized for efficiency.",
+    desc_volcengine:
+      "ByteDance's cloud platform. Home of Doubao large language models.",
     "desc_volcengine-coding":
       "Volcengine Coding Plan subscription for Claude Code and other dev tools.",
-    desc_nvidia: "NVIDIA's AI platform. Access GPU-optimized open-source models.",
-    "desc_nvidia-nim": "NVIDIA NIM microservices. Access GPU-optimized models on NVIDIA's cloud.",
-    "desc_amazon-bedrock": "AWS managed service. Access multiple providers through one API.",
+    desc_nvidia:
+      "NVIDIA's AI platform. Access GPU-optimized open-source models.",
+    "desc_nvidia-nim":
+      "NVIDIA NIM microservices. Access GPU-optimized models on NVIDIA's cloud.",
+    "desc_amazon-bedrock":
+      "AWS managed service. Access multiple providers through one API.",
     hint_openai: "Get your API key at platform.openai.com.",
-    hint_anthropic: "Get your API key at console.anthropic.com, or run {{cmd}} for an OAuth token.",
+    hint_anthropic:
+      "Get your API key at console.anthropic.com, or run {{cmd}} for an OAuth token.",
     hint_claude:
       "Subscribe at claude.ai, then get your API key at console.anthropic.com or run {{cmd}} for an OAuth token.",
     hint_google: "Get your API key at aistudio.google.com.",
@@ -428,7 +458,8 @@ export default {
     hint_zai: "Get your API key at z.ai.",
     hint_moonshot: "Get your API key at platform.moonshot.ai.",
     hint_kimi: "Get your API key at platform.moonshot.cn.",
-    "hint_moonshot-coding": "Subscribe at kimi.com/code, then get your API key from the console.",
+    "hint_moonshot-coding":
+      "Subscribe at kimi.com/code, then get your API key from the console.",
     hint_qwen: "Get your API key at dashscope.console.aliyun.com.",
     "hint_qwen-coding":
       "Subscribe at aliyun.com Coding Plan, then get your API key from the console.",
@@ -447,7 +478,8 @@ export default {
     "hint_volcengine-coding":
       "Subscribe to Coding Plan at volcengine.com, then get your API key from the console.",
     hint_nvidia: "Get your API key at build.nvidia.com/settings/api-keys.",
-    "hint_nvidia-nim": "Get your API key at build.nvidia.com/settings/api-keys.",
+    "hint_nvidia-nim":
+      "Get your API key at build.nvidia.com/settings/api-keys.",
     "hint_amazon-bedrock": "Configure AWS credentials with {{cmd}}.",
     baseUrlLabel: "Server URL",
     baseUrlPlaceholder: "http://localhost:11434",
@@ -459,7 +491,8 @@ export default {
     modalityText: "Text",
     modalityImage: "Image",
     modelCapabilitiesHelp: "Select the input types your local model supports.",
-    localApiKeyHelp: "Optional. Leave empty if your Ollama server has no authentication.",
+    localApiKeyHelp:
+      "Optional. Leave empty if your Ollama server has no authentication.",
     localInfoTitle: "Getting Started with Ollama",
     localInfoBody:
       "Currently only Ollama is supported.\n\n1. Install Ollama from ollama.com\n2. Run: ollama pull llama3.2\n3. Start server: ollama serve\n4. Enter the server URL on the left",
@@ -480,7 +513,8 @@ export default {
     customEndpointPlaceholder: "https://api.example.com/v1",
     customModelsLabel: "Models",
     customModelsPlaceholder: "Type a model ID and press Enter",
-    customModelsHelp: "Press Enter to add each model. The first model will be selected by default.",
+    customModelsHelp:
+      "Press Enter to add each model. The first model will be selected by default.",
     fetchModels: "Fetch Models",
     fetchingModels: "Fetching…",
     refreshModels: "Refresh Models",
@@ -496,7 +530,8 @@ export default {
     refreshButton: "Refresh",
     refreshing: "Refreshing...",
     loading: "Loading channels...",
-    gatewayNotConnected: "Gateway not connected. Please ensure the gateway is running.",
+    gatewayNotConnected:
+      "Gateway not connected. Please ensure the gateway is running.",
     connectingToGateway: "Connecting to gateway...",
     errorLoadingChannels: "Error loading channels:",
     retry: "Retry",
@@ -505,7 +540,8 @@ export default {
     failedToSave: "Failed to save channel: ",
     deleting: "Deleting...",
     failedToDelete: "Failed to delete account:",
-    deleteConfirmTitle: "Are you sure you want to delete this {{channel}} account?",
+    deleteConfirmTitle:
+      "Are you sure you want to delete this {{channel}} account?",
     deleteConfirmMessage:
       "This will remove the account configuration and all stored secrets. This action cannot be undone.",
     // Time formatters
@@ -576,7 +612,8 @@ export default {
     fieldAccountIdRequired: "Account ID *",
     fieldAccountIdPlaceholder: "e.g., my-bot",
     fieldAccountIdHintEdit: "Account ID cannot be changed",
-    fieldAccountIdHintCreate: "Unique identifier for this account (e.g., my-bot, prod-bot)",
+    fieldAccountIdHintCreate:
+      "Unique identifier for this account (e.g., my-bot, prod-bot)",
     fieldDisplayName: "Display Name",
     fieldDisplayNamePlaceholder: "e.g., Production Bot",
     fieldDisplayNameHint: "Optional friendly name shown in the UI",
@@ -584,8 +621,10 @@ export default {
     fieldBotTokenRequired: "Bot Token *",
     fieldBotTokenPlaceholder: "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
     fieldBotTokenPlaceholderEdit: "Leave empty to keep existing token",
-    fieldBotTokenHintEdit: "Stored securely in Keychain. Only provide if changing the token.",
-    fieldBotTokenHintCreate: "Get this from @BotFather on Telegram. Stored securely in Keychain.",
+    fieldBotTokenHintEdit:
+      "Stored securely in Keychain. Only provide if changing the token.",
+    fieldBotTokenHintCreate:
+      "Get this from @BotFather on Telegram. Stored securely in Keychain.",
     fieldWebhookUrl: "Webhook URL (Optional)",
     fieldWebhookUrlPlaceholder: "https://example.com/webhook",
     fieldWebhookUrlHint: "Leave empty to use polling mode",
@@ -618,7 +657,8 @@ export default {
       "Enter Signal user phone numbers in E.164 format (e.g., +1234567890).",
     googlechatGroupAllowFromHint:
       "Enter Google Chat user IDs. Find them in the Google Admin Console \u2192 Users.",
-    imessageGroupAllowFromHint: "Enter phone numbers or Apple IDs of allowed senders.",
+    imessageGroupAllowFromHint:
+      "Enter phone numbers or Apple IDs of allowed senders.",
     msteamsGroupAllowFromHint:
       "Enter Microsoft Teams user IDs (Azure AD Object IDs). Find them in the Azure AD admin center.",
     telegramAllowedGroupsHint:
@@ -637,8 +677,10 @@ export default {
       "Enter iMessage group chat IDs. These are the chat identifiers from the Messages database.",
     msteamsAllowedGroupsHint:
       "Enter Microsoft Teams channel IDs. Find them in Teams \u2192 channel settings \u2192 Get link to channel, or via the Microsoft Graph API.",
-    groupPolicyOpen: "Open - Respond to anyone in any group the bot is added to",
-    groupPolicyAllowlist: "Allowlist - Only respond in approved groups, from approved senders",
+    groupPolicyOpen:
+      "Open - Respond to anyone in any group the bot is added to",
+    groupPolicyAllowlist:
+      "Allowlist - Only respond in approved groups, from approved senders",
     groupPolicyDisabled: "Disabled - Ignore all group messages",
     fieldEnableAccount: "Enable this account",
     errorAccountIdRequired: "Account ID is required",
@@ -673,39 +715,58 @@ export default {
     label_mattermost: "Mattermost",
     label_msteams: "Microsoft Teams",
     label_imessage: "iMessage",
-    desc_telegram: "Popular messaging app with powerful bot API. No restrictions on message types.",
-    desc_discord: "Community platform with rich bot support. Ideal for developer communities.",
-    desc_slack: "Enterprise messaging platform. Connect via Slack App or Bot token.",
-    desc_whatsapp: "World's most popular messenger. Reach users on their daily chat app.",
-    desc_feishu: "ByteDance's enterprise platform (Lark). Strong in China & Asia-Pacific.",
-    desc_wecom: "Tencent enterprise messaging. Reach WeChat users via enterprise account.",
+    desc_telegram:
+      "Popular messaging app with powerful bot API. No restrictions on message types.",
+    desc_discord:
+      "Community platform with rich bot support. Ideal for developer communities.",
+    desc_slack:
+      "Enterprise messaging platform. Connect via Slack App or Bot token.",
+    desc_whatsapp:
+      "World's most popular messenger. Reach users on their daily chat app.",
+    desc_feishu:
+      "ByteDance's enterprise platform (Lark). Strong in China & Asia-Pacific.",
+    desc_wecom:
+      "Tencent enterprise messaging. Reach WeChat users via enterprise account.",
     desc_signal: "Privacy-focused messenger with end-to-end encryption.",
     desc_line: "Dominant messaging app in Japan, Thailand, and Taiwan.",
-    desc_googlechat: "Google Workspace messaging. Integrate with your organization's Google tools.",
-    desc_matrix: "Open-source, decentralized messaging protocol. Self-hostable.",
-    desc_mattermost: "Open-source Slack alternative. Self-hosted enterprise messaging.",
-    desc_msteams: "Microsoft's collaboration platform. Integrated with Office 365.",
-    desc_imessage: "Apple's native messaging. Reach iOS and macOS users directly.",
+    desc_googlechat:
+      "Google Workspace messaging. Integrate with your organization's Google tools.",
+    desc_matrix:
+      "Open-source, decentralized messaging protocol. Self-hostable.",
+    desc_mattermost:
+      "Open-source Slack alternative. Self-hosted enterprise messaging.",
+    desc_msteams:
+      "Microsoft's collaboration platform. Integrated with Office 365.",
+    desc_imessage:
+      "Apple's native messaging. Reach iOS and macOS users directly.",
     // Tutorial links
     setupGuide: "Setup Guide",
     setupGuideLinkAriaLabel: "Open {{channel}} setup guide in new tab",
     viewTutorial: "View Setup Tutorial",
     // Tooltips for each channel
     tooltipTelegram: "Find @BotFather to create a bot and get token",
-    tooltipWhatsApp: "Need a real phone number, use 'openclaw channels login' to scan QR code",
+    tooltipWhatsApp:
+      "Need a real phone number, use 'openclaw channels login' to scan QR code",
     tooltipDiscord:
       "Create Application + Bot at discord.com/developers, enable Message Content Intent",
-    tooltipSlack: "Create App at api.slack.com/apps, get App Token (xapp-) and Bot Token (xoxb-)",
+    tooltipSlack:
+      "Create App at api.slack.com/apps, get App Token (xapp-) and Bot Token (xoxb-)",
     tooltipGoogleChat:
       "Create Service Account in Google Cloud + configure Chat App, requires public HTTPS endpoint",
-    tooltipSignal: "Install signal-cli (requires Java), use 'signal-cli link' to scan QR code",
-    tooltipIMessage: "macOS only, install imsg CLI, requires Full Disk Access permission",
+    tooltipSignal:
+      "Install signal-cli (requires Java), use 'signal-cli link' to scan QR code",
+    tooltipIMessage:
+      "macOS only, install imsg CLI, requires Full Disk Access permission",
     // New channel tooltips
-    tooltipFeishu: "ByteDance enterprise platform, requires App ID and App Secret",
+    tooltipFeishu:
+      "ByteDance enterprise platform, requires App ID and App Secret",
     tooltipLine: "Popular in Japan/Taiwan, requires Channel Access Token",
-    tooltipMatrix: "Open-source decentralized protocol, requires homeserver URL and credentials",
-    tooltipMattermost: "Self-hosted Slack alternative, requires Bot Token and server URL",
-    tooltipMsteams: "Microsoft collaboration platform, requires Azure App ID and Password",
+    tooltipMatrix:
+      "Open-source decentralized protocol, requires homeserver URL and credentials",
+    tooltipMattermost:
+      "Self-hosted Slack alternative, requires Bot Token and server URL",
+    tooltipMsteams:
+      "Microsoft collaboration platform, requires Azure App ID and Password",
     tooltipWeixin: "Connect your WeChat account via QR code",
     // Feishu fields
     feishuAppId: "App ID",
@@ -719,10 +780,12 @@ export default {
     feishuConnectionMode: "Connection Mode",
     feishuVerificationToken: "Verification Token",
     feishuVerificationTokenPlaceholder: "Enter verification token",
-    feishuVerificationTokenHint: "Required for webhook mode. Get from Feishu Developer Console.",
+    feishuVerificationTokenHint:
+      "Required for webhook mode. Get from Feishu Developer Console.",
     feishuEncryptKey: "Encrypt Key",
     feishuEncryptKeyPlaceholder: "Enter encrypt key",
-    feishuEncryptKeyHint: "Optional. Used for Feishu event encryption in webhook mode.",
+    feishuEncryptKeyHint:
+      "Optional. Used for Feishu event encryption in webhook mode.",
     feishuGroupPolicyHint: "Controls how group messages are handled in Feishu",
     feishuRequireMention: "Require @mention",
     feishuRequireMentionHint:
@@ -762,18 +825,21 @@ export default {
     msteamsAppIdHint: "Azure Bot Framework App ID",
     msteamsAppPassword: "App Password",
     msteamsAppPasswordPlaceholder: "Enter app password",
-    msteamsAppPasswordHint: "Azure Bot Framework App Password, stored securely in Keychain",
+    msteamsAppPasswordHint:
+      "Azure Bot Framework App Password, stored securely in Keychain",
     msteamsTenantId: "Tenant ID (Optional)",
     msteamsTenantIdPlaceholder: "12345678-1234-1234-1234-123456789012",
     msteamsTenantIdHint: "Azure AD Tenant ID for organization",
     // Discord fields
     discordToken: "Bot Token",
     discordTokenPlaceholder: "Enter Discord bot token",
-    discordTokenHint: "Get from Discord Developer Portal. Stored securely in Keychain.",
+    discordTokenHint:
+      "Get from Discord Developer Portal. Stored securely in Keychain.",
     // Slack fields
     slackBotToken: "Bot Token",
     slackBotTokenPlaceholder: "xoxb-...",
-    slackBotTokenHint: "Bot User OAuth Token from Slack App settings. Stored securely in Keychain.",
+    slackBotTokenHint:
+      "Bot User OAuth Token from Slack App settings. Stored securely in Keychain.",
     slackAppToken: "App Token (Optional)",
     slackAppTokenPlaceholder: "xapp-...",
     slackAppTokenHint:
@@ -783,7 +849,8 @@ export default {
     // Google Chat fields
     googlechatServiceAccountFile: "Service Account File Path",
     googlechatServiceAccountFilePlaceholder: "/path/to/service-account.json",
-    googlechatServiceAccountFileHint: "Path to Google Cloud service account JSON file",
+    googlechatServiceAccountFileHint:
+      "Path to Google Cloud service account JSON file",
     googlechatWebhookUrl: "Webhook URL (Optional)",
     googlechatWebhookUrlPlaceholder: "https://your-server.com/webhook",
     googlechatWebhookUrlHint: "Public URL where Google Chat can send events",
@@ -796,7 +863,8 @@ export default {
     signalAccountHint: "Your Signal phone number in E.164 format",
     signalHttpUrl: "Signal API URL (Optional)",
     signalHttpUrlPlaceholder: "http://localhost:8080",
-    signalHttpUrlHint: "signal-cli-rest-api server URL. Leave empty for local signal-cli.",
+    signalHttpUrlHint:
+      "signal-cli-rest-api server URL. Leave empty for local signal-cli.",
     // iMessage fields
     imessageService: "Service Type",
     imessageServiceHint: "Choose between iMessage, SMS, or Auto detection",
@@ -854,7 +922,8 @@ export default {
     failed: "Connection failed",
     retry: "Try Again",
     expired: "QR code has expired. Please try again.",
-    gatewayUnavailable: "Gateway is not connected. Please start the gateway first.",
+    gatewayUnavailable:
+      "Gateway is not connected. Please start the gateway first.",
     autoRefresh: "Auto-refresh in {{seconds}}s",
     refreshing: "Refreshing QR code...",
     weixinActivationHint:
@@ -867,7 +936,8 @@ export default {
       "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",
     statusTitle: "ChatClaw Connection",
     generationFailed: "Failed to generate pairing code: {{error}}",
-    disconnectConfirm: "Are you sure you want to disconnect the current mobile device?",
+    disconnectConfirm:
+      "Are you sure you want to disconnect the current mobile device?",
     disconnectFailed: "Failed to disconnect: {{error}}",
     connectedDesc: "Your mobile device ({{device}}) is successfully connected.",
     disconnect: "Disconnect Device",
@@ -881,7 +951,8 @@ export default {
     pairTitle: "Pair Device",
     installHint:
       "First time? Scan the QR code on the right to install ChatClaw on your phone. Already installed? Click the Connect button, then scan the popup QR code using ChatClaw's built-in scanner to pair.",
-    pairHint: "Open the ChatClaw app and use its built-in scanner to scan this QR code.",
+    pairHint:
+      "Open the ChatClaw app and use its built-in scanner to scan this QR code.",
   },
   stt: {
     title: "Speech-to-Text",
@@ -902,14 +973,19 @@ export default {
     volcengineAppKeyPlaceholder: "Enter your Volcengine APP ID",
     volcengineAccessKey: "Volcengine Access Token",
     volcengineAccessKeyPlaceholder: "Enter your Volcengine access token",
-    volcengineKeysRequired: "Both Volcengine APP ID and Access Token are required.",
-    volcengineHelp: "Create an app in the speech console to get credentials from",
+    volcengineKeysRequired:
+      "Both Volcengine APP ID and Access Token are required.",
+    volcengineHelp:
+      "Create an app in the speech console to get credentials from",
     volcengineFreeTier: "New users get 20 hours of free speech recognition.",
     volcentineFreeLink: "Get started",
     volcengineStepsTitle: "How to get credentials?",
-    volcengineStep1: "1. Click the link above to open the speech console and create an app",
-    volcengineStep2: '2. Find "Doubao Recording File Recognition Model 2.0" and click into it',
-    volcengineStep3: "3. Copy the APP ID and Access Token from the page and paste below",
+    volcengineStep1:
+      "1. Click the link above to open the speech console and create an app",
+    volcengineStep2:
+      '2. Find "Doubao Recording File Recognition Model 2.0" and click into it',
+    volcengineStep3:
+      "3. Copy the APP ID and Access Token from the page and paste below",
     failedToLoad: "Failed to load STT settings: ",
     failedToSave: "Failed to save STT settings: ",
     keySaved: "Saved",
@@ -918,9 +994,12 @@ export default {
     whatIsStt: "What is Speech-to-Text?",
     sttExplanation:
       "Speech-to-Text (STT) automatically transcribes voice messages into text before they're sent to your AI agent. This allows your agent to understand and respond to voice messages from channels like Telegram, WhatsApp, and others.",
-    feature1: "Automatic transcription of voice messages from all connected channels",
-    feature2: "Region-aware provider selection for optimal performance and compliance",
-    feature3: "Secure credential storage in your OS keychain (macOS Keychain / Windows DPAPI)",
+    feature1:
+      "Automatic transcription of voice messages from all connected channels",
+    feature2:
+      "Region-aware provider selection for optimal performance and compliance",
+    feature3:
+      "Secure credential storage in your OS keychain (macOS Keychain / Windows DPAPI)",
   },
   extras: {
     title: "Plugins",
@@ -964,7 +1043,8 @@ export default {
     embeddingGeminiHelp: "Get your API key from",
     embeddingVoyageHelp: "Get your API key from",
     embeddingMistralHelp: "Get your API key from",
-    embeddingOllamaHelp: "Optional. Leave empty if your Ollama server has no authentication.",
+    embeddingOllamaHelp:
+      "Optional. Leave empty if your Ollama server has no authentication.",
     failedToLoad: "Failed to load settings: ",
     failedToSave: "Failed to save settings: ",
     keySaved: "Saved",
@@ -992,7 +1072,8 @@ export default {
     cost: "Cost",
     noData: "No usage data available.",
     noRecords: "No usage data recorded yet.",
-    noRecordsHelp: "Token usage will appear here as API calls are made through the gateway.",
+    noRecordsHelp:
+      "Token usage will appear here as API calls are made through the gateway.",
     loadingData: "Loading usage data...",
     failedToLoad: "Failed to load usage data: ",
     costDisclaimer:
@@ -1007,7 +1088,8 @@ export default {
     outputTokens: "Output",
     cost: "Cost",
     active: "Active",
-    noData: "No usage data available. Usage tracking begins when you switch keys or models.",
+    noData:
+      "No usage data available. Usage tracking begins when you switch keys or models.",
     lastUpdated: "Last updated",
     timeRange7d: "7 Days",
     timeRange30d: "30 Days",
@@ -1051,8 +1133,10 @@ export default {
         "Only relevant when your agent serves multiple users via DM. Controls whether they share the same conversation session or get separate ones.",
       dmScopeMain: "Shared (default) - All users share one session",
       dmScopePerPeer: "Per User - Each user gets a separate session",
-      dmScopePerChannelPeer: "Per Channel + User - Separate by channel and user",
-      dmScopePerAccountChannelPeer: "Per Account + Channel + User - Fully isolated",
+      dmScopePerChannelPeer:
+        "Per Channel + User - Separate by channel and user",
+      dmScopePerAccountChannelPeer:
+        "Per Account + Channel + User - Fully isolated",
       failedToLoad: "Failed to load agent settings: ",
       failedToSave: "Failed to save agent settings: ",
     },
@@ -1074,7 +1158,8 @@ export default {
       mode: "Browser Mode",
       modeHint: "Controls how the agent accesses a web browser.",
       modeStandalone: "Standalone",
-      modeStandaloneDesc: "Launch an isolated Chrome — doesn't affect your browser",
+      modeStandaloneDesc:
+        "Launch an isolated Chrome — doesn't affect your browser",
       modeCdp: "CDP (Connect to your Chrome)",
       modeCdpDesc:
         "Use your own Chrome with all your accounts, cookies, and extensions. Works best on macOS/Linux. On Windows, you may need to re-login to websites once due to cookie encryption.",
@@ -1125,7 +1210,8 @@ export default {
     },
     logUpload: {
       title: "Upload Logs",
-      description: "Upload the application log file to help the support team diagnose issues.",
+      description:
+        "Upload the application log file to help the support team diagnose issues.",
       button: "Upload Log File",
       uploading: "Uploading...",
       success: "Log file uploaded successfully",
@@ -1144,7 +1230,8 @@ export default {
     },
     diagnostics: {
       title: "Diagnostics",
-      description: "Run OpenClaw's built-in health check to diagnose and fix common issues.",
+      description:
+        "Run OpenClaw's built-in health check to diagnose and fix common issues.",
       runButton: "Run Diagnostics",
       fixButton: "Run with Auto-Fix",
       statusRunning: "Running...",
@@ -1195,19 +1282,22 @@ export default {
     createAccountDesc:
       "Create an account, enter an invite code if you have one, then connect your first eligible shop.",
     loginTitle: "Existing user login",
-    loginDesc: "Sign in to restore your shops, billing, presets, and cloud workspace.",
+    loginDesc:
+      "Sign in to restore your shops, billing, presets, and cloud workspace.",
   },
   onboarding: {
     skipSetup: "Skip setup",
     welcomeTitle: "Welcome to TK Copilot",
-    welcomeDesc: "Let's get your AI agent set up. First, configure your LLM provider.",
+    welcomeDesc:
+      "Let's get your AI agent set up. First, configure your LLM provider.",
     providerLabel: "Provider",
     modelLabel: "Model",
     apiKeyLabel: "API Key",
     anthropicTokenLabel: "Token / API Key",
     apiKeyPlaceholder: "Enter your API key",
     anthropicTokenPlaceholder: "Paste your OAuth token or API key",
-    apiKeyHelp: "Stored securely in your OS keychain. Never written to config files.",
+    apiKeyHelp:
+      "Stored securely in your OS keychain. Never written to config files.",
     apiKeyRequired: "Please enter your API key.",
     saveAndContinue: "Save & Continue",
     saving: "Saving...",
@@ -1248,7 +1338,8 @@ export default {
     author: "by {{author}}",
     emptyMarket: "No skills found.",
     emptyEssential: "No featured skills available.",
-    emptyInstalled: "No skills installed yet. Browse the marketplace to get started.",
+    emptyInstalled:
+      "No skills installed yet. Browse the marketplace to get started.",
     openFolder: "Open Folder",
     installSuccess: "Skill installed successfully.",
     installError: "Failed to install skill: {{error}}",
@@ -1263,7 +1354,8 @@ export default {
   },
   crons: {
     title: "Cron Jobs",
-    description: "Schedule recurring tasks and one-time reminders for your agent.",
+    description:
+      "Schedule recurring tasks and one-time reminders for your agent.",
     connected: "Connected",
     connecting: "Connecting...",
     disconnected: "Disconnected",
@@ -1334,7 +1426,8 @@ export default {
     deliveryNone: "None",
     deliveryAnnounce: "Announce",
     deliveryWebhook: "Webhook",
-    deliveryAgentOnly: "Delivery is only available for Agent Message payload type.",
+    deliveryAgentOnly:
+      "Delivery is only available for Agent Message payload type.",
     fieldDeliveryChannel: "Channel",
     fieldDeliveryTo: "Webhook URL",
     fieldDeliveryRecipient: "Recipient",
@@ -1358,9 +1451,11 @@ export default {
     hintIrc: "Nick or #channel",
     channelDisconnected: "disconnected",
     channelStatusLoading: "Loading channels...",
-    noConnectedChannels: "No connected channels. Set up a channel in Messaging first.",
+    noConnectedChannels:
+      "No connected channels. Set up a channel in Messaging first.",
     recipientSelectOrType: "Select or type a recipient",
-    recipientLabelPlaceholder: "Set a friendly name for this recipient (optional)",
+    recipientLabelPlaceholder:
+      "Set a friendly name for this recipient (optional)",
     thinkingNone: "None (default)",
     thinkingLow: "Low",
     thinkingMedium: "Medium",
@@ -1372,18 +1467,21 @@ export default {
     wakeModeHeartbeat: "Next heartbeat",
     advancedOptions: "Advanced options",
     hintCronExpr: "Standard 5-field cron expression (e.g. */5 * * * *)",
-    hintTimezone: "IANA timezone (e.g. America/New_York). Leave empty for local timezone.",
+    hintTimezone:
+      "IANA timezone (e.g. America/New_York). Leave empty for local timezone.",
     sessionTargetMain: "Runs in main session",
     sessionTargetIsolated: "Runs in isolated session",
     // Validation
     nameRequired: "Name is required",
     scheduleRequired: "Schedule is required",
-    cronInvalidFormat: "Invalid cron expression. Must be 5 fields: minute hour day month weekday",
+    cronInvalidFormat:
+      "Invalid cron expression. Must be 5 fields: minute hour day month weekday",
     payloadRequired: "Content is required",
     webhookUrlRequired: "Webhook URL is required",
     // Confirm delete
     confirmDelete: "Delete Cron Job",
-    confirmDeleteMessage: 'Are you sure you want to delete "{{name}}"? This cannot be undone.',
+    confirmDeleteMessage:
+      'Are you sure you want to delete "{{name}}"? This cannot be undone.',
     // Run history
     historyTitle: "Run History",
     historyTimestamp: "Time",
@@ -1401,8 +1499,10 @@ export default {
       "Use a specific model for this job instead of the default (e.g. gpt-4o, claude-sonnet-4-20250514).",
     tooltipPayloadKind:
       "Agent Message = send a prompt to an isolated agent session; System Event = emit an event in the main session.",
-    tooltipMessage: "The prompt message that will be sent to the agent when this job runs.",
-    tooltipText: "The event text that will be emitted in the main session when this job runs.",
+    tooltipMessage:
+      "The prompt message that will be sent to the agent when this job runs.",
+    tooltipText:
+      "The event text that will be emitted in the main session when this job runs.",
     tooltipDeliveryMode:
       "None = no notification; Announce = send result to a messaging channel; Webhook = POST result to a URL.",
     tooltipDeleteAfterRun:
@@ -1472,7 +1572,8 @@ export default {
     cronEditRaw: "Edit expression",
     cronModeVisual: "Visual",
     cronModeRaw: "Raw",
-    toolSelectionHint: "Select which tools are available when this cron job runs.",
+    toolSelectionHint:
+      "Select which tools are available when this cron job runs.",
   },
   auth: {
     title: "Welcome",
@@ -1490,7 +1591,8 @@ export default {
     inviteCodePlaceholder: "Optional",
     inviteCodeHint: "Use a 6-character code if an agent invited you.",
     confirmPassword: "Confirm Password",
-    passwordHint: "At least 8 characters with uppercase, lowercase, and a number.",
+    passwordHint:
+      "At least 8 characters with uppercase, lowercase, and a number.",
     passwordMismatch: "Passwords do not match.",
     passwordTooShort: "Password must be at least 8 characters.",
     passwordNeedsUpper: "Password must contain an uppercase letter.",
@@ -1526,7 +1628,8 @@ export default {
     captchaError: "Incorrect captcha, please try again",
     captchaExpired: "Captcha expired, please refresh",
     forgotPassword: "Forgot password?",
-    forgotPasswordHint: "Please contact the administrator to reset your password.",
+    forgotPasswordHint:
+      "Please contact the administrator to reset your password.",
     showPassword: "Show password",
     strengthWeak: "Weak",
     strengthFair: "Fair",
@@ -1539,7 +1642,8 @@ export default {
     agreeUserAgreementPrefix: "I have read and agree to the ",
     userAgreement: "User Agreement",
     agreeUserAgreementSuffix: ".",
-    errorUserAgreementRequired: "Please agree to the User Agreement to create an account.",
+    errorUserAgreementRequired:
+      "Please agree to the User Agreement to create an account.",
     autoRegisterNotice:
       "No account found for this email. Please verify your captcha and click Create Account.",
     errorEmailNotRegistered: "Email not registered",
@@ -1560,7 +1664,8 @@ export default {
     runProfilesDesc:
       "Tool presets for agent runs. Select one or more when starting a chat or cron job.",
     defaultRunProfile: "Default Run Profile",
-    defaultRunProfileHint: "Applied to new sessions when no specific profile is selected",
+    defaultRunProfileHint:
+      "Applied to new sessions when no specific profile is selected",
     noDefault: "None (baseline tools only)",
     llmKey: "LLM Key",
     llmKeySuspended: "Suspended",
@@ -1570,14 +1675,16 @@ export default {
   },
   billing: {
     title: "Billing & Subscription",
-    description: "Review account entitlements, shop service subscriptions, and payment records.",
+    description:
+      "Review account entitlements, shop service subscriptions, and payment records.",
     accountLlm: "Account LLM",
     accountAi: "TK Copilot AI",
     accountAiDescription:
       "TK Copilot's cloud LLM service. You can subscribe to use our hosted models, or keep using your own OpenAI, Gemini, or Anthropic provider.",
     shopServices: "Shop Service Subscriptions",
     planDefinitions: "Plan Definitions",
-    planDefinitionsUnavailable: "Plan definitions are not available from the backend yet.",
+    planDefinitionsUnavailable:
+      "Plan definitions are not available from the backend yet.",
     paymentRecords: "Payment Records",
     noPayments: "No payment records yet.",
     noCompletedPayments: "No completed payment records yet.",
@@ -1608,7 +1715,8 @@ export default {
     subscriptionStatus: "Subscription Status",
     customerService: "AI Customer Service",
     customerServiceUnlimited: "AI Customer Service Unlimited",
-    customerServiceUpgrade: "Subscribe to AI Customer Service: {{price}} per shop.",
+    customerServiceUpgrade:
+      "Subscribe to AI Customer Service: {{price}} per shop.",
     usageUsedPercent: "{{percent}} used",
     usageRemainingPercent: "{{percent}} remaining",
     cloudQuotaExhaustedTitle: "TK Copilot AI tokens exhausted",
@@ -1646,7 +1754,8 @@ export default {
     renewSubscription: "Renew",
     extendPrepaid: "Renew",
     extendPrepaidTitle: "Renew",
-    extendPrepaidMessage: "Pay with WeChat Pay or Alipay to extend service access after {{date}}.",
+    extendPrepaidMessage:
+      "Pay with WeChat Pay or Alipay to extend service access after {{date}}.",
     renewSubscriptionMessage:
       "Choose a payment method to renew. Credit card restores or starts auto-renewal; WeChat Pay / Alipay extends service as prepaid access.",
     resumeSubscription: "Resume automatic renewal",
@@ -1660,7 +1769,8 @@ export default {
       affiliate: "Subscribe to Affiliate Management",
     },
     subscribeShopServices: "Subscribe shop service",
-    shopSubscriptionHint: "Choose one service plan and one shop, then start checkout.",
+    shopSubscriptionHint:
+      "Choose one service plan and one shop, then start checkout.",
     openServiceCheckout: "Choose shop and payment",
     chooseShopServicePlan: "Choose a service plan",
     selectShop: "Choose a shop",
@@ -1771,7 +1881,8 @@ export default {
       success: "Payment succeeded.",
       successClosing:
         "Payment succeeded. Billing data has been refreshed. This window will close shortly.",
-      successCountdown: "Billing data is being refreshed. This window will close in {{count}}s.",
+      successCountdown:
+        "Billing data is being refreshed. This window will close in {{count}}s.",
     },
     subscriptionStartAction: {
       SUBSCRIPTION_RESUMED: "Subscription resumed.",
@@ -1784,7 +1895,8 @@ export default {
       missingQrCode: "QR payment did not return a code for this payment.",
       missingBillingPortalUrl:
         "Stripe billing portal did not return a URL. Please refresh and try again.",
-      pollingExpired: "Payment status polling stopped after 5 minutes. You can refresh manually.",
+      pollingExpired:
+        "Payment status polling stopped after 5 minutes. You can refresh manually.",
     },
   },
   subscription: {
@@ -1850,7 +1962,8 @@ export default {
         ECOM_GET_CS_PERFORMANCE: "CS Performance",
         ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Get Unpaid Order Evaluation",
         ECOM_SEARCH_CS_SESSIONS: "Search CS Sessions",
-        ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED: "Set Conversation AI",
+        ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED:
+          "Set Conversation AI",
         // E-commerce Ops — Orders
         ECOM_GET_ORDER: "Get Order",
         ECOM_GET_ORDER_SALES_STATS: "Get Order Sales Stats",
@@ -1930,13 +2043,17 @@ export default {
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Get Creator Relationship",
         AFFILIATE_GET_CREATOR_PROFILE: "Get Creator Profile",
         AFFILIATE_LIST_OPEN_COLLABORATIONS: "List Open Collaborations",
-        AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS: "List Shop Open Collaborations",
-        AFFILIATE_LIST_SHOP_TARGET_COLLABORATIONS: "List Shop Target Collaborations",
+        AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS:
+          "List Shop Open Collaborations",
+        AFFILIATE_LIST_SHOP_TARGET_COLLABORATIONS:
+          "List Shop Target Collaborations",
         AFFILIATE_SEARCH_MANUAL_TAGS: "Search Creator Manual Tags",
         AFFILIATE_GET_SAMPLE_APPLICATION: "Get Sample Application",
-        AFFILIATE_GET_RELATIONSHIP_TIMELINE: "Get Creator Relationship Timeline",
+        AFFILIATE_GET_RELATIONSHIP_TIMELINE:
+          "Get Creator Relationship Timeline",
         AFFILIATE_LIST_CREATOR_COLLABORATIONS: "List Creator Collaborations",
-        AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS: "List Creator Sample Applications",
+        AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS:
+          "List Creator Sample Applications",
         AFFILIATE_READ_MESSAGE_ATTACHMENT: "Read Creator Message Attachment",
         AFFILIATE_COPY_MESSAGE_ATTACHMENT: "Copy Creator Message Attachment",
         AFFILIATE_UPLOAD_DRAFT_ATTACHMENT: "Upload Affiliate Draft Attachment",
@@ -1994,7 +2111,8 @@ export default {
   shopAnalytics: {
     loadingPage: "Loading shop analytics…",
     signInTitle: "Sign in to view shop analytics",
-    signInBody: "SPS data is available only for shops owned by your current account.",
+    signInBody:
+      "SPS data is available only for shops owned by your current account.",
     eyebrow: "SHOP PERFORMANCE",
     title: "One view of every shop’s SPS health.",
     subtitle:
@@ -2039,7 +2157,8 @@ export default {
       autoScale: "Y-axis auto-scaled to the visible range",
       seriesAria: "Chart series",
       noTrendTitle: "No trend points returned",
-      noTrendBody: "Review the shop status below, then refresh when TikTok SPS data is available.",
+      noTrendBody:
+        "Review the shop status below, then refresh when TikTok SPS data is available.",
       usOnlyTitle: "Current API coverage: United States only",
       unsupportedBody:
         "These shops are shown for visibility. No score or diagnosis is inferred for an unsupported region.",
@@ -2054,11 +2173,15 @@ export default {
     },
     unavailableReasons: {
       AVAILABLE: "",
-      MISSING_SCOPE: "The shop authorization is missing the required SPS permission.",
+      MISSING_SCOPE:
+        "The shop authorization is missing the required SPS permission.",
       NOT_AUTHORIZED: "Reconnect this shop to load SPS data.",
-      UNSUPPORTED_REGION: "TikTok currently exposes SPS APIs for US-region shops only.",
-      UNSUPPORTED_PLATFORM: "TikTok SPS is available only for TikTok Shop connections.",
-      PLATFORM_ERROR: "TikTok SPS data is temporarily unavailable. Try again shortly.",
+      UNSUPPORTED_REGION:
+        "TikTok currently exposes SPS APIs for US-region shops only.",
+      UNSUPPORTED_PLATFORM:
+        "TikTok SPS is available only for TikTok Shop connections.",
+      PLATFORM_ERROR:
+        "TikTok SPS data is temporarily unavailable. Try again shortly.",
     },
     shop: {
       noTopIssue: "No top issue flagged",
@@ -2083,7 +2206,8 @@ export default {
       errorTitle: "Couldn’t load shop analytics",
       retry: "Try again",
       noShopsTitle: "No TikTok Shops found",
-      noShopsBody: "Onboard a TikTok Shop to start monitoring Shop Performance Score.",
+      noShopsBody:
+        "Onboard a TikTok Shop to start monitoring Shop Performance Score.",
     },
   },
   tutorial: {
@@ -2097,26 +2221,31 @@ export default {
     },
     shopAnalytics: {
       welcomeTitle: "Shop Performance Analytics",
-      welcomeBody: "Compare live SPS health across every market and shop from one page.",
+      welcomeBody:
+        "Compare live SPS health across every market and shop from one page.",
       metricsTitle: "Choose a Diagnosis Metric",
       metricsBody:
         "Switch the selected SPS metric to refresh every market chart and shop diagnosis.",
       trendTitle: "Compare Shop Trends",
-      trendBody: "Each line is one shop. TikTok currently returns at most 90 daily observations.",
+      trendBody:
+        "Each line is one shop. TikTok currently returns at most 90 daily observations.",
     },
     adsManagement: {
       welcomeTitle: "TikTok Ads",
-      welcomeBody: "This page connects TikTok Business access and shows shop ad coverage.",
+      welcomeBody:
+        "This page connects TikTok Business access and shows shop ad coverage.",
       actionsTitle: "Connect and Refresh",
       actionsBody:
         "Use Connect TikTok Business to authorize ad-account access. Refresh updates ad accounts and shop coverage.",
       summaryTitle: "Coverage Summary",
-      summaryBody: "These counters show authorized ad accounts and shops with ad coverage.",
+      summaryBody:
+        "These counters show authorized ad accounts and shops with ad coverage.",
       advertisersTitle: "Advertising Accounts",
       advertisersBody:
         "Each row is an ad account available through TikTok Business authorization, including auth state, sync state, and actions.",
       shopCoverageTitle: "Shop Ads Coverage",
-      shopCoverageBody: "Shop groups show whether ad coverage is complete, partial, or missing.",
+      shopCoverageBody:
+        "Shop groups show whether ad coverage is complete, partial, or missing.",
     },
     providers: {
       welcomeTitle: "Welcome to Models",
@@ -2696,7 +2825,8 @@ export default {
       shopRowActionsBody:
         "Open the drawer to configure services, reauthorize expired tokens, or disconnect a shop.",
       wmsTitle: "Warehouse Accounts",
-      wmsBody: "Warehouse accounts connect your shop data to inventory and fulfillment systems.",
+      wmsBody:
+        "Warehouse accounts connect your shop data to inventory and fulfillment systems.",
       wmsActionsTitle: "Warehouse Actions",
       wmsActionsBody:
         "Refresh inventory state, review supported WMS providers, or add a warehouse account.",
@@ -2791,7 +2921,8 @@ export default {
     createRunProfile: "New Profile",
     editRunProfile: "Edit Profile",
     deleteRunProfile: "Delete",
-    confirmDeleteRunProfile: "Are you sure you want to delete this run profile?",
+    confirmDeleteRunProfile:
+      "Are you sure you want to delete this run profile?",
     profileName: "Name",
     profileNamePlaceholder: "e.g. Minimal Tools",
     selectedToolIds: "Selected Tool IDs",
@@ -2836,12 +2967,14 @@ export default {
     connectShopTitle: "Connect TikTok Shop",
     connectShopDesc:
       "A TikTok authorization page will open in your browser. After authorization, your shop will appear here automatically.",
-    noShops: 'No TikTok Shops connected yet. Click "Connect Shop" to get started.',
+    noShops:
+      'No TikTok Shops connected yet. Click "Connect Shop" to get started.',
     view: "View",
     // Platform app selection
     platformAppLabel: "Platform Account",
     platformAppHint: "Select the platform account to authorize with.",
-    noPlatformApps: "No platform accounts configured. Contact your administrator.",
+    noPlatformApps:
+      "No platform accounts configured. Contact your administrator.",
     authorizeButton: "Authorize with TikTok",
     // Table headers
     tableHeaders: {
@@ -2891,7 +3024,8 @@ export default {
         "Describe your business context to help the AI provide better customer service responses.",
       escalationRouting: "Escalation Routing",
       escalationChannel: "Channel",
-      escalationChannelHint: "The messaging channel through which escalation alerts are sent.",
+      escalationChannelHint:
+        "The messaging channel through which escalation alerts are sent.",
       escalationRecipient: "Recipient",
       escalationRecipientHint:
         "The group or individual who receives escalations. Available after selecting a channel.",
@@ -2928,11 +3062,13 @@ export default {
       noCredits: "No credits available.",
     },
     // Upgrade
-    upgradeRequired: "This feature requires a subscription. Please upgrade your plan.",
+    upgradeRequired:
+      "This feature requires a subscription. Please upgrade your plan.",
     // Status messages
     oauthSuccess: "TikTok Shop connected successfully!",
     oauthFailed: "Failed to connect TikTok Shop. Please try again.",
-    oauthWaiting: "Waiting for TikTok authorization... Complete the authorization in your browser.",
+    oauthWaiting:
+      "Waiting for TikTok authorization... Complete the authorization in your browser.",
     oauthTimeout: "Authorization timed out. Please try again.",
     deleteFailed: "Failed to disconnect shop. Please try again.",
     updateFailed: "Failed to update shop settings. Please try again.",
@@ -2973,7 +3109,8 @@ export default {
     currentGmvMaxAccount: "Current GMV Max",
     gmvMaxAvailable: "GMV Max available",
     currentGmvMaxUnknown: "Current authorized account pending sync",
-    unonboardedStoreCount: "{{count}} ad-account shop(s) are not connected in TK Copilot",
+    unonboardedStoreCount:
+      "{{count}} ad-account shop(s) are not connected in TK Copilot",
     noShops: "No shops connected yet.",
     loadFailed: "Failed to load Ads management data.",
     oauthModalTitle: "Connect TikTok Ads",
@@ -3038,7 +3175,8 @@ export default {
   },
   modules: {
     title: "Modules",
-    description: "Enable optional modules to unlock additional features and navigation items.",
+    description:
+      "Enable optional modules to unlock additional features and navigation items.",
     globalEcommerceSeller: {
       name: "Global E-commerce Seller",
       description: "Manage your TikTok shops and automate customer service.",
@@ -3086,7 +3224,8 @@ export default {
       timeRange: "Time range",
       loadFailed: "Failed to load performance data",
       noData: "No performance data for this range.",
-      guidedGmvNoMatureData: "No complete 7-day Guided GMV average is available in this range.",
+      guidedGmvNoMatureData:
+        "No complete 7-day Guided GMV average is available in this range.",
       downloadCsv: "Download CSV",
       dailyTable: "Daily performance",
       scopeSummary:
@@ -3122,7 +3261,8 @@ export default {
         firstResponse: "First response P50",
         firstResponseSamples: "{{value}} measured conversations",
         guidedGmv: "Guided GMV",
-        guidedGmvMaturity: "Latest complete 7-day average · excludes the latest 7 days",
+        guidedGmvMaturity:
+          "Latest complete 7-day average · excludes the latest 7 days",
         p90: "P90 {{value}}",
       },
       charts: {
@@ -3191,7 +3331,11 @@ export default {
       title: "Experiment analysis",
       subtitle:
         "Read live signals, maturity, and final outcomes from unpaid-order randomized experiments.",
-      tabs: { label: "Experiment view", realtime: "Realtime", history: "History" },
+      tabs: {
+        label: "Experiment view",
+        realtime: "Realtime",
+        history: "History",
+      },
       filters: {
         shop: "Shop",
         type: "Experiment type",
@@ -3206,8 +3350,15 @@ export default {
         productionConfig: "Current production configuration",
         configExploration: "Configuration optimization traffic",
       },
-      duration: { minute: "{{count}} min", hour: "{{count}} hr", day: "{{count}} day" },
-      types: { holdout: "Incrementality holdout", config: "Configuration A/B test" },
+      duration: {
+        minute: "{{count}} min",
+        hour: "{{count}} hr",
+        day: "{{count}} day",
+      },
+      types: {
+        holdout: "Incrementality holdout",
+        config: "Configuration A/B test",
+      },
       status: { RUNNING: "Running", STOPPED_MATURING: "Ended", FINAL: "Final" },
       dataStatus: { PROVISIONAL: "Provisional", FINAL: "Final" },
       actions: {
@@ -3248,9 +3399,11 @@ export default {
       loadMore: "Load more",
       loadFailed: "Failed to load experiment data",
       emptyTitle: "No experiments in this view",
-      emptyBody: "Try another shop, experiment type, or switch between realtime and history.",
+      emptyBody:
+        "Try another shop, experiment type, or switch between realtime and history.",
       allocation: "Traffic & configurations",
-      allocationHint: "Variant percentages are calculated within experiment traffic.",
+      allocationHint:
+        "Variant percentages are calculated within experiment traffic.",
       actualAllocationHint:
         "Observed share of assigned orders. Incrementality compares only Control with the current production configuration A.",
       actualAssignedOrders: "{{count}} assigned orders",
@@ -3260,13 +3413,15 @@ export default {
       usesBaseConfiguration: "Uses the shop's base reachout configuration",
       viewConfiguration: "View configuration",
       configurationTitle: "{{variant}} configuration",
-      configurationSubtitle: "The immutable reachout plan assigned to this experiment variant.",
+      configurationSubtitle:
+        "The immutable reachout plan assigned to this experiment variant.",
       stageLabel: "Stage {{index}}",
       enabledStage: "Enabled",
       disabledStage: "Disabled",
       afterOrder: "{{minutes}} minutes after order",
       messageTemplate: "Message template",
-      configurationUnavailable: "The historical configuration snapshot is unavailable.",
+      configurationUnavailable:
+        "The historical configuration snapshot is unavailable.",
       analysis: "Outcome signal",
       comparisons: "Statistical comparisons",
       comparisonHint:
@@ -3344,7 +3499,8 @@ export default {
     affiliateWorkspace: {
       workbench: {
         title: "Workbench",
-        subtitle: "Review Agent work, Sample Applications, and Creator messages in one place.",
+        subtitle:
+          "Review Agent work, Sample Applications, and Creator messages in one place.",
         tabs: {
           pendingAgent: "Pending review",
           allAgent: "All Agent work",
@@ -3367,7 +3523,8 @@ export default {
         approveSample: "Approve",
         platformReject: "Reject on TikTok",
         softReject: "Soft reject",
-        sampleSyncUnknown: "Platform status needs synchronization before review.",
+        sampleSyncUnknown:
+          "Platform status needs synchronization before review.",
         sampleReviewSaved: "Sample review saved.",
         rejectReason: "Reason",
         rejectExplanation: "Explain the reason",
@@ -3379,7 +3536,8 @@ export default {
         },
         reviewDescriptions: {
           APPROVE: "TikTok will receive an approval after live revalidation.",
-          PLATFORM_REJECT: "TikTok will receive a rejection after live revalidation.",
+          PLATFORM_REJECT:
+            "TikTok will receive a rejection after live revalidation.",
           SOFT_REJECT:
             "The seller decision is recorded locally. TikTok is not called and the application may expire naturally.",
           REOPEN: "Reopen this local decision if TikTok still allows review.",
@@ -3411,9 +3569,11 @@ export default {
         ATTRIBUTABLE_ORDER: "Attributable order",
       },
       sampleTierColumnLabel: "Collaboration progress",
-      sampleTierColumnHint: "Highest collaboration rung reached across all shops",
+      sampleTierColumnHint:
+        "Highest collaboration rung reached across all shops",
       sampleTierFilterLabel: "Collaboration progress",
-      sampleTierFilterHint: "Matches creators currently at the selected collaboration rungs.",
+      sampleTierFilterHint:
+        "Matches creators currently at the selected collaboration rungs.",
       sampleTierEmpty: "No collaboration progress",
       manualTagFilterLabel: "Manual tags",
       systemTagFilterLabel: "System tags",
@@ -3424,7 +3584,8 @@ export default {
         ALL: "All selected tags",
       },
       shopSampleTierFilterLabel: "Collaboration progress in this shop",
-      shopSampleTierFilterHint: "Matches the rung held in the selected shop only.",
+      shopSampleTierFilterHint:
+        "Matches the rung held in the selected shop only.",
       manualTagsEmpty: "No manual tags",
       systemTags: {
         editorTitle: "Creator tags",
@@ -3437,7 +3598,8 @@ export default {
         removeSuccess: "System tag removed",
         updateFailed: "Failed to update the system tag",
         lastChangeAdded: "Last change: system tag added {{time}} · {{source}}",
-        lastChangeRemoved: "Last change: system tag removed {{time}} · {{source}}",
+        lastChangeRemoved:
+          "Last change: system tag removed {{time}} · {{source}}",
         noChanges: "No system tag changes recorded yet",
         proposalScope: "Blocks new Campaign outreach only",
         values: {
@@ -3468,7 +3630,8 @@ export default {
         renameConfirm: "Rename tag",
         renameSuccess: "Tag renamed",
         renameFailed: "Failed to rename the tag",
-        renameDuplicate: "You already have a tag named “{{name}}”. Pick a different name.",
+        renameDuplicate:
+          "You already have a tag named “{{name}}”. Pick a different name.",
         updateFailed: "Failed to update tags",
         lastChangeAdded: "Last change: tag added {{time}} · {{source}}",
         lastChangeRemoved: "Last change: tag removed {{time}} · {{source}}",
@@ -3525,7 +3688,8 @@ export default {
       relationshipPanelPlatformCollaborations: "Platform collaborations",
       relationshipProposalHistory: "Proposal history",
       platformCollaborationTargetMembership: "Target Collaboration membership",
-      platformCollaborationSampleReference: "Referenced by a sample application",
+      platformCollaborationSampleReference:
+        "Referenced by a sample application",
       selectMessageShop: "Select a shop before sending",
       messageSubmitted: "Message submitted",
       messageComposerTitle: "Reply to creator",
@@ -3534,10 +3698,12 @@ export default {
       messageComposerEmailSubject: "Subject (required for a new thread)",
       messageComposerAddFiles: "Add files",
       messageComposerInline: "Inline",
-      messageComposerPartsHint: "1–10 ordered text/file parts; no cross-channel fallback",
+      messageComposerPartsHint:
+        "1–10 ordered text/file parts; no cross-channel fallback",
       messageComposerAttachmentCount: "{{count}} attachment(s) added",
       creatorActiveSamples: "{{count}} active samples",
-      creatorActivePlatformCollaborations: "{{count}} active platform collaborations",
+      creatorActivePlatformCollaborations:
+        "{{count}} active platform collaborations",
       creatorLastContactedAt: "Last contacted",
       creatorLastBusinessActivityAt: "Last business activity",
       relationshipPanelActivity: "Action history",
@@ -3546,7 +3712,8 @@ export default {
       timePassedDaysHours: "{{days}}d {{hours}}h",
       timePassedDays: "{{days}}d",
       timePassedHours: "{{hours}}h",
-      timePassedHint: "Elapsed time between timeline items; filtered-out events may exist.",
+      timePassedHint:
+        "Elapsed time between timeline items; filtered-out events may exist.",
       relationshipNoCurrentWork: "No active work",
       relationshipNoCurrentWorkHint:
         "This creator relationship has no pending proposal or manual task right now.",
@@ -3563,10 +3730,12 @@ export default {
       relationshipWorkLastInbound: "Last inbound",
       relationshipWorkLastOutbound: "Last outbound",
       relationshipWorkContext: "Record context",
-      relationshipWorkAmbiguousCollaborations: "Ambiguous collaboration candidates",
+      relationshipWorkAmbiguousCollaborations:
+        "Ambiguous collaboration candidates",
       relationshipWorkNoCollaborations:
         "No platform Collaborations are associated with this Creator yet.",
-      relationshipWorkNoPendingProposals: "No pending proposals on this collaboration record.",
+      relationshipWorkNoPendingProposals:
+        "No pending proposals on this collaboration record.",
       relationshipWorkActiveTitle: "{{count}} active platform Collaboration(s)",
       relationshipWorkAmbiguousSummary:
         "This work has multiple possible platform Collaboration contexts. Review before taking product-specific action.",
@@ -3665,7 +3834,8 @@ export default {
         previousAgentWork: "Previous Agent decisions",
         recentContext: "Recent records visible to the Agent",
         contextLoadFailed: "Relationship context is temporarily unavailable.",
-        noRecentContext: "No relationship records were available before this Agent run.",
+        noRecentContext:
+          "No relationship records were available before this Agent run.",
       },
       revisionHistory: {
         title: "Rewrite history",
@@ -3685,7 +3855,8 @@ export default {
       jumpToPage: "Go to",
       markStaffHandled: "Handled on platform",
       staffActionHandled: "Marked as handled",
-      staffActionHandledNote: "Staff handled this affiliate collaboration work outside TK Copilot.",
+      staffActionHandledNote:
+        "Staff handled this affiliate collaboration work outside TK Copilot.",
       mlInsightsTitle: "Affiliate Intelligence",
       mlInsightsHint:
         "See where the model can discover more productive creators and how it compares with historical staff selection.",
@@ -3703,9 +3874,11 @@ export default {
         "Model data did not load yet. Refresh intelligence again in a moment.",
       intelligenceModelSourceSelector: "Model used for this store",
       intelligenceAccountModel: "Account model",
-      intelligenceAccountModelHint: "Uses this account's cross-shop affiliate history.",
+      intelligenceAccountModelHint:
+        "Uses this account's cross-shop affiliate history.",
       intelligenceRegionModel: "Region model",
-      intelligenceRegionModelHint: "Uses affiliate history from shops in the same region.",
+      intelligenceRegionModelHint:
+        "Uses affiliate history from shops in the same region.",
       intelligenceStoreModel: "Store model",
       intelligenceStoreModelHint: "Uses only this store's affiliate history.",
       intelligenceRecommendedModel: "Recommended",
@@ -3723,12 +3896,14 @@ export default {
         "At the same sample budget, the model ranks creators expected to sell {{lift}} more than historical staff choices.",
       intelligenceBusinessVerdictNeutral:
         "This scope does not yet show a clear lift over historical staff choices.",
-      intelligenceClaimPrecisionTitle: "Better picks with the same sample budget",
+      intelligenceClaimPrecisionTitle:
+        "Better picks with the same sample budget",
       intelligenceClaimPrecisionBody:
         "In the recent test window, if you send the same {{count}} samples, the model-ranked creators are predicted to sell {{lift}} more than historical staff choices.",
       intelligenceClaimPrecisionNeutral:
         "In the recent test window, sending the same {{count}} samples does not yet show a clear model lift.",
-      intelligenceClaimReachTitle: "More creators worth reviewing at the same sales bar",
+      intelligenceClaimReachTitle:
+        "More creators worth reviewing at the same sales bar",
       intelligenceClaimReachBody:
         "At the {{bar}} predicted-sales bar, the model flags {{creators}} creators worth reviewing, including {{overlooked}} creators historical staff did not approve.",
       intelligenceClaimReachNeutral:
@@ -3736,7 +3911,8 @@ export default {
       intelligenceChartSameBudget: "Same sample count",
       intelligenceChartSameSalesBar: "Same expected-sales bar",
       intelligenceChartCreatorSwap: "Who the model would swap",
-      intelligenceSameBudgetStory: "Predicted sales from the same {{count}} sample opportunities",
+      intelligenceSameBudgetStory:
+        "Predicted sales from the same {{count}} sample opportunities",
       intelligenceSameSalesBarStory:
         "{{window}} · creators at or above the same {{bar}} predicted-sales bar",
       intelligenceCreatorSwapStory:
@@ -3760,7 +3936,8 @@ export default {
       intelligenceTrainingScope:
         "Trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
       intelligenceTrainingDataTitle: "Model data",
-      intelligenceTrainingDataHeadline: "Production training and holdout are separate",
+      intelligenceTrainingDataHeadline:
+        "Production training and holdout are separate",
       intelligenceTrainingDataHint:
         "The model is fitted first and evaluated on Creator-isolated holdout data, then retrained on every eligible sample for production.",
       intelligenceProductionTrainingSamples: "production training samples",
@@ -3779,7 +3956,8 @@ export default {
       intelligenceHistoricalApplications: "evaluation samples in this view",
       intelligenceHistoricalApproved: "historically approved in this view",
       intelligenceObservedApproved: "approved with sales outcomes",
-      intelligenceHistoricalApprovedActual: "Historical approved · actual sales",
+      intelligenceHistoricalApprovedActual:
+        "Historical approved · actual sales",
       intelligenceModelSelectedExpected: "Model selected · expected sales",
       intelligenceModelRejectedExpected: "Model rejected · expected sales",
       intelligenceDistributionIncomplete:
@@ -3787,23 +3965,31 @@ export default {
       intelligenceBudgetStatsTitle: "Where the better picks come from",
       intelligenceBudgetStatsHeadline:
         "Same sample count, more model picks land in higher predicted-sales ranges",
-      intelligenceBudgetStatsHint: "Distribution of predicted sales in the holdout test sample.",
+      intelligenceBudgetStatsHint:
+        "Distribution of predicted sales in the holdout test sample.",
       intelligenceHistoricalExpectedUnits: "staff-choice predicted units",
       intelligenceModelExpectedUnits: "model-choice predicted units",
-      intelligenceHistoricalApprovedExpected: "Historical staff choice · predicted sales",
+      intelligenceHistoricalApprovedExpected:
+        "Historical staff choice · predicted sales",
       intelligenceReachStatsTitle: "More creators to consider",
-      intelligenceReachStatsHeadline: "Same sales bar, larger model-flagged opportunity pool",
+      intelligenceReachStatsHeadline:
+        "Same sales bar, larger model-flagged opportunity pool",
       intelligenceReachStatsHint:
         "{{window}} · creators whose predicted sales meet or exceed {{bar}} units.",
-      intelligenceOverlookedQualifiedCreators: "historically missed, model-flagged",
-      intelligenceReachOpportunityTitle: "{{count}} additional creators surfaced",
+      intelligenceOverlookedQualifiedCreators:
+        "historically missed, model-flagged",
+      intelligenceReachOpportunityTitle:
+        "{{count}} additional creators surfaced",
       intelligenceReachOpportunityBody:
         "This is a model-scored opportunity pool. These creators were not historically approved, so their real sales outcomes are not directly observed.",
-      intelligenceReachCumulativeTitle: "Creators above each predicted-sales target",
-      intelligenceReachCumulativeHint: "Gray is historical staff; green is model-flagged.",
+      intelligenceReachCumulativeTitle:
+        "Creators above each predicted-sales target",
+      intelligenceReachCumulativeHint:
+        "Gray is historical staff; green is model-flagged.",
       intelligenceReachThresholdBar: "≥{{bar}}",
       intelligenceReachThresholdUnits: "≥{{units}}",
-      intelligenceHumanQualifiedExpected: "Historical above bar · expected sales",
+      intelligenceHumanQualifiedExpected:
+        "Historical above bar · expected sales",
       intelligenceModelQualifiedExpected: "Model above bar · expected sales",
       intelligenceBelowBarExpected: "Below bar · expected sales",
       evaluationScopes: {
@@ -3821,7 +4007,8 @@ export default {
       mlModelExpectedHint:
         "Predicted total units if the model selected the same number of samples as historical staff.",
       mlHumanExpected: "Human-selected expected units",
-      mlHumanExpectedHint: "Predicted total units for the historical staff-approved applications.",
+      mlHumanExpectedHint:
+        "Predicted total units for the historical staff-approved applications.",
       mlDiscoveredCreators: "Additional high-potential creators",
       mlDiscoveredCreatorsHint:
         "Applications the model would select that historical staff rejected, measured counterfactually.",
@@ -3860,7 +4047,8 @@ export default {
           "Review executed actions, rejected proposals, superseded items, and platform events.",
       },
       allShops: "All shops",
-      queueHint: "Grouped by creator and collaboration so related requests can be judged together.",
+      queueHint:
+        "Grouped by creator and collaboration so related requests can be judged together.",
       creatorGroupTitle: "Creator {{creatorId}}",
       unknownCreator: "Unknown creator",
       groupProposalCount: "{{count}} request(s)",
@@ -3904,16 +4092,19 @@ export default {
       },
       conversation: {
         recentMessages: "Recent conversation",
-        noConversation: "No platform conversation is linked to this collaboration yet.",
+        noConversation:
+          "No platform conversation is linked to this collaboration yet.",
         noMessages: "No conversation messages are available yet.",
         loadOlder: "Load older messages",
         replyLabel: "Reply to creator",
         replyPlaceholder: "Type the message to send to the creator...",
-        replyActorHint: "This message is sent as staff and saved to the collaboration history.",
+        replyActorHint:
+          "This message is sent as staff and saved to the collaboration history.",
         sendReply: "Send reply",
         replySent: "Reply sent",
         replyFailed: "Failed to send reply",
-        replyUnavailable: "A conversation or creator identity is required before replying.",
+        replyUnavailable:
+          "A conversation or creator identity is required before replying.",
         cardOnlyMessage: "This message only contains a card.",
         productCard: "Product card: {{product}}",
         sampleApplicationCard: "Sample request card: {{applicationId}}",
@@ -3983,7 +4174,8 @@ export default {
         rating: "Seller rating",
         pps: "PPS",
         postRate: "Post rate",
-        noMarketplacePerformance: "No marketplace performance metrics are available yet.",
+        noMarketplacePerformance:
+          "No marketplace performance metrics are available yet.",
         identifiers: "Identifiers",
         tiktokHandle: "TikTok handle",
         creatorImId: "Creator IM ID",
@@ -4033,7 +4225,8 @@ export default {
         COLLABORATION_CREATED: "Platform collaboration discovered",
         COLLABORATION_CLOSED: "Collaboration closed",
         COLLABORATION_FIRST_OBSERVED: "Platform collaboration first observed",
-        COLLABORATION_TERMINAL_STATE_FIRST_OBSERVED: "Collaboration terminal state first observed",
+        COLLABORATION_TERMINAL_STATE_FIRST_OBSERVED:
+          "Collaboration terminal state first observed",
         CREATOR_PROTECTION_ADDED: "Creator relationship protection added",
         CREATOR_PROTECTION_MERGED: "Creator relationship protection merged",
         CREATOR_PROTECTION_REMOVED: "Creator relationship protection removed",
@@ -4046,8 +4239,10 @@ export default {
         SAMPLE_APPLICATION_STATE_OBSERVED: "Sample request status updated",
         SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED:
           "Sample request terminal state first observed",
-        SAMPLE_COLLABORATION_LINK_CONFLICT_OBSERVED: "Sample collaboration link conflict observed",
-        SAMPLE_COMMISSION_RATE_CONFLICT_OBSERVED: "Sample commission rate conflict observed",
+        SAMPLE_COLLABORATION_LINK_CONFLICT_OBSERVED:
+          "Sample collaboration link conflict observed",
+        SAMPLE_COMMISSION_RATE_CONFLICT_OBSERVED:
+          "Sample commission rate conflict observed",
         SAMPLE_APPROVED: "Sample request approved",
         SAMPLE_REJECTED: "Sample request rejected",
         SAMPLE_SHIPPED: "Sample shipped",
@@ -4071,10 +4266,12 @@ export default {
         HISTORY: "History",
       },
       sectionHints: {
-        NEEDS_ATTENTION: "Affiliate work that needs approval, manual follow-up, or agent handling.",
+        NEEDS_ATTENTION:
+          "Affiliate work that needs approval, manual follow-up, or agent handling.",
         IN_PROGRESS:
           "Creator collaborations already moving forward with no immediate staff action.",
-        HISTORY: "Executed actions, rejected proposals, platform events, and direct agent actions.",
+        HISTORY:
+          "Executed actions, rejected proposals, platform events, and direct agent actions.",
       },
       summary: {
         needsAttentionHint: "Approvals and staff follow-up",
@@ -4094,7 +4291,8 @@ export default {
       },
       emptyHistory: "No collaboration records match the current filter.",
       emptyApprovals: "No action proposals are waiting for approval.",
-      emptyCollaborationWork: "No collaborations currently need manual handling.",
+      emptyCollaborationWork:
+        "No collaborations currently need manual handling.",
       emptyProposalEntities: "No action proposals match the current filter.",
       loadingEntities: "Loading affiliate records...",
       proposalFilters: {
@@ -4287,7 +4485,8 @@ export default {
           "The system will approve the creator's sample request on TikTok Shop.",
         REJECT_SAMPLE_REQUEST:
           "The system will reject the creator's sample request on TikTok Shop.",
-        REVIEW_SAMPLE_REQUEST: "The system will submit this sample-review decision on TikTok Shop.",
+        REVIEW_SAMPLE_REQUEST:
+          "The system will submit this sample-review decision on TikTok Shop.",
         SEND_MESSAGE: "The system will send the message below to the creator.",
       },
       policyActions: {
@@ -4296,8 +4495,10 @@ export default {
         REVIEW_SAMPLE_APPLICATION: "Review sample application",
       },
       policyActionDescriptions: {
-        MANAGE_CREATOR_TAG: "Require approval before the agent changes a creator’s manual tags.",
-        SEND_MESSAGE: "Require approval before the agent sends creator messages.",
+        MANAGE_CREATOR_TAG:
+          "Require approval before the agent changes a creator’s manual tags.",
+        SEND_MESSAGE:
+          "Require approval before the agent sends creator messages.",
         REVIEW_SAMPLE_APPLICATION:
           "Require approval before sample requests are approved or rejected.",
       },
@@ -4311,11 +4512,13 @@ export default {
         allSampleTiers: "Applies to all collaboration progress levels.",
         excludedSampleTiersLabel: "Excluded collaboration progress",
         noExcludedSampleTiers: "No collaboration progress is excluded.",
-        exclusionHint: "A policy stops matching when the relationship carries any excluded value.",
+        exclusionHint:
+          "A policy stops matching when the relationship carries any excluded value.",
         manualTagSummary: "Manual tags: {{value}}",
         excludedManualTagSummary: "Excluding tags: {{value}}",
         sampleTierSummary: "Collaboration progress: {{value}}",
-        excludedSampleTierSummary: "Excluding collaboration progress: {{value}}",
+        excludedSampleTierSummary:
+          "Excluding collaboration progress: {{value}}",
         title: "Approval Policies",
         subtitle:
           "Control which affiliate platform write actions require merchant approval before execution.",
@@ -4325,7 +4528,8 @@ export default {
         currentPolicies: "{{shop}} policies",
         recommendedHint:
           "Recommended baseline: require approval for messages, sample reviews, and target collaborations across this seller account.",
-        recommendedReady: "Recommended account-wide approval policies are enabled.",
+        recommendedReady:
+          "Recommended account-wide approval policies are enabled.",
         applyRecommended: "Apply recommended",
         empty: "No account-wide approval policies have been configured yet.",
         addForAction: "Add",
@@ -4347,14 +4551,17 @@ export default {
           "Enabled policies intercept matching backend actions and create approval proposals.",
         reasonLabel: "Reason",
         reasonPlaceholder: "Explain why this action should require approval.",
-        defaultReason: "Require merchant approval before this affiliate platform action executes.",
+        defaultReason:
+          "Require merchant approval before this affiliate platform action executes.",
         campaignsLabel: "Campaigns",
         productIdsLabel: "Product IDs",
-        productIdsPlaceholder: "Paste product IDs, separated by lines, spaces, or commas.",
+        productIdsPlaceholder:
+          "Paste product IDs, separated by lines, spaces, or commas.",
         allCampaigns: "Applies to all campaigns.",
         allProducts: "Applies to all products.",
         appliesToAll: "Applies to all",
-        appliesToAllDescription: "All creators, campaigns, and products match for this action.",
+        appliesToAllDescription:
+          "All creators, campaigns, and products match for this action.",
         allMatchPreview:
           "{{action}} will require approval for all creators, campaigns, and products.",
         filteredMatchPreview:
@@ -4365,7 +4572,8 @@ export default {
         productSummary: "{{count}} product(s)",
         productIdsCount: "{{count}} product ID(s) selected.",
         selectedCount: "{{count}} selected.",
-        unknownSelectedCount: "{{count}} selected item(s) are no longer in the loaded options.",
+        unknownSelectedCount:
+          "{{count}} selected item(s) are no longer in the loaded options.",
         unknownSummary: "{{count}} unavailable",
         moreSummary: "+{{count}} more",
         noSelectableOptions: "No saved options yet.",
@@ -4395,10 +4603,12 @@ export default {
         humanWouldApprove: "Usually approve",
         humanWouldReject: "Usually reject",
         humanInsufficient: "Not enough history",
-        humanApprovalProbability: "{{probability}} historical approval tendency",
+        humanApprovalProbability:
+          "{{probability}} historical approval tendency",
         sameDecision: "Aligned",
         differentDecision: "Different",
-        sameDecisionHint: "The model recommendation is aligned with historical staff behavior.",
+        sameDecisionHint:
+          "The model recommendation is aligned with historical staff behavior.",
         differentDecisionHint:
           "The model recommendation differs from historical staff behavior, so review the context carefully.",
         modelDecisions: {
@@ -4417,7 +4627,8 @@ export default {
         REVIEW_ACTION_PROPOSAL: "Review the agent proposal",
         PROPOSAL_REJECTED: "Proposal rejected; staff follow-up needed",
         PROPOSAL_REVISION_REQUESTED: "Proposal revision requested",
-        PRODUCT_CONTEXT_MISSING: "Confirm which product this collaboration is about",
+        PRODUCT_CONTEXT_MISSING:
+          "Confirm which product this collaboration is about",
         CREATOR_IDENTITY_UNRESOLVED: "Confirm the creator identity",
         STAFF_REVIEW_REQUESTED: "Decide the next step",
         AGENT_RUN_FAILED: "Review why the AI run failed",
@@ -4455,8 +4666,10 @@ export default {
         WAITING_FBT_SHIPMENT:
           "The sample is approved and TikTok FBT is fulfilling it automatically. No staff shipment action is required.",
         DONE: "There is no open work on this collaboration. Open the detail view to inspect history.",
-        BLOCKED: "This collaboration is blocked and will not be advanced automatically.",
-        DEFAULT: "Open the detail view to inspect history, proposals, and platform events.",
+        BLOCKED:
+          "This collaboration is blocked and will not be advanced automatically.",
+        DEFAULT:
+          "Open the detail view to inspect history, proposals, and platform events.",
       },
       collaborationWorkBadges: {
         agent: "Agent",
@@ -4473,12 +4686,15 @@ export default {
           "The creator has submitted a sample request and is waiting for your decision.",
         APPROVED_AWAITING_SHIPMENT:
           "The sample request is approved and is waiting for automatic TikTok FBT fulfillment.",
-        SHIPPED_IN_TRANSIT: "The sample has shipped and is on the way to the creator.",
+        SHIPPED_IN_TRANSIT:
+          "The sample has shipped and is on the way to the creator.",
         DELIVERED_AWAITING_CONTENT:
           "The creator has received the sample and should publish content next.",
-        CONTENT_OBSERVED_REVIEWING: "Content has been detected and is being reviewed.",
+        CONTENT_OBSERVED_REVIEWING:
+          "Content has been detected and is being reviewed.",
         FULFILLED: "The sample collaboration has been fulfilled.",
-        FULFILLMENT_FAILED: "The sample collaboration did not finish successfully.",
+        FULFILLMENT_FAILED:
+          "The sample collaboration did not finish successfully.",
         PLATFORM_STATUS_UNKNOWN:
           "TikTok Shop did not return a reviewable sample status, so no sample review action will be attempted.",
         CANCELLED: "The sample request was cancelled.",
@@ -4501,7 +4717,8 @@ export default {
         "{{statusDescription}} {{contentCount}} content item(s) have been observed.",
       manualFollowUpNote:
         "The agent proposal was rejected. Staff should handle this item manually on-platform or in follow-up communication.",
-      sampleStatusPreview: "Sample status: {{status}}; {{contentCount}} content item(s) observed.",
+      sampleStatusPreview:
+        "Sample status: {{status}}; {{contentCount}} content item(s) observed.",
       lifecycleEventPreview: "Platform/system event: {{eventType}}",
     },
     customerServiceWorkspace: {
@@ -4520,8 +4737,10 @@ export default {
       conversationCount: "{{count}} conversation(s)",
       openCount: "{{count}} open escalation(s)",
       queueHint: "Server-paginated, refreshed by desktop subscription events.",
-      conversationQueueHint: "Materialized from platform webhooks and reconciliation syncs.",
-      escalationQueueHint: "Manager decisions that need review before the CS agent continues.",
+      conversationQueueHint:
+        "Materialized from platform webhooks and reconciliation syncs.",
+      escalationQueueHint:
+        "Manager decisions that need review before the CS agent continues.",
       llmUnavailableTooltip: "No active AI model key is available.",
       refresh: "Refresh",
       conversationEmpty: "No customer conversations match the current filters.",
@@ -4595,7 +4814,8 @@ export default {
       summaryFailed: "Failed to summarize conversation.",
       summaryMessageCount: "Summarized through {{count}} message(s).",
       summaryGenerating: "Summarizing conversation",
-      summaryGeneratingHint: "Fetching messages and preparing an operator-friendly summary.",
+      summaryGeneratingHint:
+        "Fetching messages and preparing an operator-friendly summary.",
       clearEscalations: "Dismiss escalation",
       clearEscalationsSuccess: "Escalations dismissed.",
       confirmClearConversationEscalations:
@@ -4606,10 +4826,12 @@ export default {
       details: "Details",
       conversationDetails: "Conversation details",
       search: "Search",
-      conversationSearchPlaceholder: "Search buyer, order, conversation, message...",
+      conversationSearchPlaceholder:
+        "Search buyer, order, conversation, message...",
       searchPlaceholder: "Search ID, order, buyer, conversation, reason...",
       pageSize: "{{count}} / page",
-      pageSummary: "Showing {{start}}-{{end}} of {{total}} | Page {{page}} / {{pages}}",
+      pageSummary:
+        "Showing {{start}}-{{end}} of {{total}} | Page {{page}} / {{pages}}",
       page: "Page {{page}} / {{pages}}",
       previous: "Previous",
       next: "Next",
@@ -4657,13 +4879,15 @@ export default {
       orderIdLabel: "Order ID",
       packageIdLabel: "Package ID",
       trackingIdLabel: "Tracking ID",
-      selectConversation: "Select a conversation to inspect messages and AI handling.",
+      selectConversation:
+        "Select a conversation to inspect messages and AI handling.",
       reason: "Reason",
       context: "Context",
       decision: "Decision",
       decisionPlaceholder: "Approved, rejected, needs more info...",
       instructions: "Instructions for the agent",
-      instructionsPlaceholder: "Tell the customer service agent exactly how to proceed.",
+      instructionsPlaceholder:
+        "Tell the customer service agent exactly how to proceed.",
       managerGuidance: "Manager guidance",
       managerGuidancePlaceholder:
         "Write the decision and exact next step for the CS agent, e.g. approve refund, ask buyer for proof, or wait for carrier confirmation.",
@@ -4810,12 +5034,14 @@ export default {
         noCredits: "No credits available",
         runProfile: "Agent Permissions",
         runProfileLabel: "Run Profile",
-        runProfileHint: "Select a RunProfile to control which tools the CS agent can use.",
+        runProfileHint:
+          "Select a RunProfile to control which tools the CS agent can use.",
         runProfileNone: "No RunProfile selected",
         availableTools: "Available Tools",
         toolCount: "{{count}} tools total",
         csBindDevice: "Handle CS on this device",
-        csBindDeviceHint: "Enable to receive and respond to customer messages on this device",
+        csBindDeviceHint:
+          "Enable to receive and respond to customer messages on this device",
         csBindConflict:
           "Another device is currently handling this shop's customer service. Switch to this device?",
         csBindConflictTitle: "Device Conflict",
@@ -4827,7 +5053,8 @@ export default {
           "Select a specific model for customer service sessions. Default uses the globally active model.",
         csModelDefault: "Default (global model)",
         csModelUnavailable: "Selected model is no longer available",
-        bridgeDisconnected: "CS bridge disconnected — customer messages will not be received.",
+        bridgeDisconnected:
+          "CS bridge disconnected — customer messages will not be received.",
         bridgeReconnecting: "CS bridge reconnecting (attempt {{attempt}})…",
         unpaidReachout: "Unpaid order reachout",
         unpaidReachoutEnabled: "Reach out to unpaid orders",
@@ -4838,7 +5065,8 @@ export default {
         unpaidReachoutInvalidDelay:
           "Each delay must be a unique whole number from 1 to 2879 minutes.",
         unpaidReachoutTemplate: "Reminder template",
-        unpaidReachoutTemplatePlaceholder: "Write the reminder message shown to unpaid buyers.",
+        unpaidReachoutTemplatePlaceholder:
+          "Write the reminder message shown to unpaid buyers.",
         unpaidReachoutTemplateHint:
           "Supports {{order_id}}, {{product_count}}, and {{shop_name}}. Empty uses the localized default.",
         unpaidReachoutStage: "Stage {{index}}",
@@ -4847,14 +5075,17 @@ export default {
         unpaidReachoutAddStage: "Add stage",
         unpaidReachoutMaxStages: "maximum 3",
         unpaidReachoutControlGroup: "Keep a control group",
-        unpaidReachoutControlHint: "Control orders remain eligible but receive no message.",
-        unpaidReachoutHoldoutHint: "% holdout. Changing this starts a new experiment.",
+        unpaidReachoutControlHint:
+          "Control orders remain eligible but receive no message.",
+        unpaidReachoutHoldoutHint:
+          "% holdout. Changing this starts a new experiment.",
         unpaidReachoutTemplateTokens: "Insert placeholder",
         unpaidReachoutTemplateTokenOrderId: "Order ID",
         unpaidReachoutTemplateTokenProductCount: "Item count",
         unpaidReachoutTemplateTokenShopName: "Shop name",
         unpaidReachoutUnsaved: "Unsaved changes",
-        unpaidReachoutInvalidHoldout: "Holdout must be a whole number from 1% to 20%.",
+        unpaidReachoutInvalidHoldout:
+          "Holdout must be a whole number from 1% to 20%.",
         unpaidSettingsConflictRefreshed:
           "Settings changed elsewhere. The latest version is loaded; review your unsaved changes and save again.",
         unpaidStatusExperiment: "Configuration experiment running",
@@ -4863,14 +5094,16 @@ export default {
         unpaidStagesEnabled: "active stages",
         unpaidFirstReachout: "First reachout",
         unpaidSchedule: "Follow-up schedule",
-        unpaidScheduleHint: "Messages run in chronological order while the order remains unpaid.",
+        unpaidScheduleHint:
+          "Messages run in chronological order while the order remains unpaid.",
         unpaidRunningLock: "Locked by running experiment",
         unpaidEvaluation: "Evaluation & optimization",
         unpaidEvaluationHint:
           "Measure incremental impact and compare complete reachout strategies.",
         unpaidHoldoutLabel: "Holdout percentage",
         unpaidTrafficAllocation: "Experiment traffic",
-        unpaidTrafficSummary: "{{holdout}}% holdout · {{treatment}}% normal reachout",
+        unpaidTrafficSummary:
+          "{{holdout}}% holdout · {{treatment}}% normal reachout",
         unpaidNestedTrafficSummary:
           "{{holdout}}% holdout · {{treatment}}% enters configuration optimization",
         unpaidOptimizedTreatment: "Configuration experiment traffic",
@@ -4902,7 +5135,8 @@ export default {
           "Plan A always follows the shop's production stages. Its traffic share can be changed, but its stages cannot be edited inside the experiment.",
         unpaidVariantInvalid:
           "This plan needs a name, at least one enabled stage, valid unique delays, and a unique configuration.",
-        unpaidExperimentInvalid: "Resolve plan and allocation errors before starting.",
+        unpaidExperimentInvalid:
+          "Resolve plan and allocation errors before starting.",
         unpaidSaveDraft: "Save draft",
         unpaidDiscardDraft: "Archive draft",
         unpaidStartNewVersion: "Start new version",
@@ -4910,12 +5144,14 @@ export default {
         unpaidCreateVersion: "Create new version",
         unpaidStopExperiment: "Stop experiment",
         unpaidUnsavedDraftTitle: "Save this experiment draft?",
-        unpaidUnsavedDraftHint: "The draft can be continued from another device after it is saved.",
+        unpaidUnsavedDraftHint:
+          "The draft can be continued from another device after it is saved.",
         unpaidDiscardChanges: "Discard changes",
         unpaidSaveAndClose: "Save & close",
         unpaidExperimentDraftSaved: "Experiment draft saved.",
         unpaidExperimentStarted: "Configuration experiment started.",
-        unpaidExperimentStopped: "Experiment stopped; existing cohorts will continue to mature.",
+        unpaidExperimentStopped:
+          "Experiment stopped; existing cohorts will continue to mature.",
         unpaidPreviousFinal: "Previous experiment finalized",
         unpaidUsePlan: "Use plan",
         unpaidFinal: "Final",
@@ -4936,12 +5172,16 @@ export default {
         badReviewReachoutRecentDays: "Follow-up days",
         badReviewReachoutRecentDaysHint:
           "Only reviews created in the last N days need follow-up. Use 1 to 90.",
-        reviewOptimizationInvalidStars: "Bad-review stars must be a whole number from 1 to 3.",
-        reviewOptimizationInvalidRecentDays: "Follow-up days must be a whole number from 1 to 90.",
+        reviewOptimizationInvalidStars:
+          "Bad-review stars must be a whole number from 1 to 3.",
+        reviewOptimizationInvalidRecentDays:
+          "Follow-up days must be a whole number from 1 to 90.",
       },
       affiliate: {
-        manualTagAddPreview: "Add the tag “{{name}}” to this creator relationship.",
-        manualTagRemovePreview: "Remove the tag “{{name}}” from this creator relationship.",
+        manualTagAddPreview:
+          "Add the tag “{{name}}” to this creator relationship.",
+        manualTagRemovePreview:
+          "Remove the tag “{{name}}” from this creator relationship.",
         serviceStatus: "Service Status",
         dailyCreatorOutreachLimit: "Daily automatic creator outreach limit",
         dailyCreatorOutreachLimitHint:
@@ -4949,7 +5189,8 @@ export default {
         dailyCreatorOutreachLimitInvalid:
           "The daily limit must be a whole number from 1 to 20,000.",
         dailyCreatorOutreachLimitSaved: "Daily creator outreach limit saved.",
-        dailyCreatorOutreachLimitSaveFailed: "The daily creator outreach limit could not be saved.",
+        dailyCreatorOutreachLimitSaveFailed:
+          "The daily creator outreach limit could not be saved.",
         bindDevice: "Handle affiliate inbound on this device",
         bindDeviceHint:
           "Enable to wake this desktop's agent for creator replies and affiliate lifecycle signals.",
@@ -4960,18 +5201,22 @@ export default {
         otherDevice: "Handled by another device",
         runProfile: "Agent Permissions",
         runProfileLabel: "Run Profile",
-        runProfileHint: "Select a RunProfile to control which affiliate tools the agent can use.",
+        runProfileHint:
+          "Select a RunProfile to control which affiliate tools the agent can use.",
         runProfileNone: "No RunProfile selected",
-        modelScopeDiagnostics: "Model scope diagnostics (not the serving selection)",
+        modelScopeDiagnostics:
+          "Model scope diagnostics (not the serving selection)",
         modelScopeDiagnosticsLeader: "Best-performing scope: {{scope}}",
         modelScopeDiagnosticsHint:
           "Diagnostic comparison of the account-, region-, and shop-scope models by historical outperformance. It does not pick the model in use — each prediction resolves its served model through the reliability chain (shop → region → account, first TRUSTED artifact); when no scope is TRUSTED, the most local usable artifact is served labeled DEGRADED; if the merchant historical approval tendency is available (READY), it then becomes the primary signal.",
-        modelScopeDiagnosticsProbabilityBasis: "Highest outperformance probability",
+        modelScopeDiagnosticsProbabilityBasis:
+          "Highest outperformance probability",
         modelScopeDiagnosticsInsufficient:
           "Not enough comparison data for a probability-based diagnosis.",
         modelScopeDiagnosticsUnavailable: "Scope comparison not yet available",
         modelScopeDiagnosticsLoading: "Loading model evaluation data.",
-        outperformanceProbability: "Probability of outperforming historical selection",
+        outperformanceProbability:
+          "Probability of outperforming historical selection",
         dataFoundation: "Data foundation",
         dataFoundationLevels: {
           sufficient: "Sufficient",
@@ -5000,12 +5245,14 @@ export default {
         performanceFollowUpStages: "Follow-up checkpoints",
         performanceFollowUpStagesHint:
           "Configure 1–3 whole-day offsets from the latest published content. Checkpoints must increase by at least 3 days; each is valid for 48 hours and the sequence ends within 90 days.",
-        performanceFollowUpStageLabel: "Checkpoint {{index}} (days after latest content)",
+        performanceFollowUpStageLabel:
+          "Checkpoint {{index}} (days after latest content)",
         performanceFollowUpAddStage: "Add checkpoint",
         performanceFollowUpRemoveStage: "Remove checkpoint {{index}}",
         performanceFollowUpThresholdInvalid:
           "The low attributed-order threshold must be a whole number of at least 1.",
-        performanceFollowUpStagesRequired: "Enable follow-up with 1–3 checkpoints.",
+        performanceFollowUpStagesRequired:
+          "Enable follow-up with 1–3 checkpoints.",
         performanceFollowUpDelayInvalid:
           "Checkpoint days must be whole numbers from 1 to 88, in increasing order with at least 3 days between them.",
         performanceFollowUpSaved: "Post-fulfillment sales follow-up saved.",
@@ -5024,10 +5271,14 @@ export default {
         policyReasons: "Policy",
         proposalApproveSuccess: "Proposal approved and executed.",
         proposalRejectSuccess: "Proposal rejected.",
-        proposalRevisionRequestSuccess: "Revision requested. The agent will use your notes.",
-        proposalApprovedNote: "Approved from Affiliate Management review table.",
-        proposalRejectedNote: "Rejected from Affiliate Management review table.",
-        proposalRevisionRequestedNote: "Revision requested from Affiliate Management review table.",
+        proposalRevisionRequestSuccess:
+          "Revision requested. The agent will use your notes.",
+        proposalApprovedNote:
+          "Approved from Affiliate Management review table.",
+        proposalRejectedNote:
+          "Rejected from Affiliate Management review table.",
+        proposalRevisionRequestedNote:
+          "Revision requested from Affiliate Management review table.",
         requestProposalRevision: "Request revision",
         sendProposalRevisionRequest: "Send revision request",
         proposalRevisionNoteLabel: "Revision notes",
@@ -5036,16 +5287,19 @@ export default {
         proposalRevisionNoteHint:
           "These notes are sent back to the affiliate agent for the next proposal.",
         messageIntentFallback: "{{type}} message",
-        sampleReviewPreview: "{{decision}} sample application {{applicationId}}",
+        sampleReviewPreview:
+          "{{decision}} sample application {{applicationId}}",
         sampleReviewDecisions: {
           APPROVE: "Approve",
           REJECT: "Reject",
         },
-        sampleShipmentPreview: "Ship {{quantity}} sample item(s) for application {{applicationId}}",
+        sampleShipmentPreview:
+          "Ship {{quantity}} sample item(s) for application {{applicationId}}",
         blockCreatorPreview: "Block creator {{creatorId}}.",
         campaignProductPreview: "Update campaign product {{productId}}.",
         approvalPolicyPreview: "Update approval policy for {{action}}.",
-        candidateDecisionPreview: "Mark {{count}} creator candidate(s) as {{status}}.",
+        candidateDecisionPreview:
+          "Mark {{count}} creator candidate(s) as {{status}}.",
         proposalTypes: {
           MANAGE_CREATOR_TAG: "Manage tags",
           NO_ACTION_NEEDED: "No action needed",
@@ -5104,10 +5358,16 @@ export default {
       providers: {
         YEJOIN: "Yejoin",
         XLWMS: "Lingxing WMS",
+        LINGXING: "Lingxing ERP",
+        SELLFOX: "Sellfox",
+        JFWMS: "JFWMS",
       },
       warehouseProviders: {
         YEJOIN: "Yejoin",
         XLWMS: "Lingxing WMS",
+        LINGXING: "Lingxing ERP",
+        SELLFOX: "Sellfox",
+        JFWMS: "JFWMS",
         TIKTOK_FBT: "TikTok FBT",
         SELLER: "Seller",
         AMAZON_FBA: "Amazon FBA",
@@ -5132,6 +5392,33 @@ export default {
       endpointPlaceholder: "https://api.example.com",
       apiToken: "API Token",
       apiTokenPlaceholder: "Paste token",
+      apiKey: "API Key / Client ID",
+      apiSecret: "API Secret",
+      refreshToken: "Refresh Token",
+      providerUserId: "Provider User ID",
+      authorizationMode: "Connection method",
+      authorizationModes: {
+        AUTHORIZE: "Authorize OMS",
+        EXISTING: "Existing grant",
+      },
+      authorizationUser: "OMS account email",
+      authorizationToken: "One-time authorization token",
+      authorizationDomain: "Authorization domain",
+      authorizationDomainPlaceholder:
+        "Optional; defaults to the endpoint hostname",
+      keepCredentialPlaceholder: "Leave blank to keep the stored value",
+      credentialsWriteOnlyHint:
+        "Credentials are write-only and will not be shown again.",
+      credentialMissingFields: "Complete these credential fields: {{fields}}.",
+      credentialFields: {
+        apiKey: "API Key / Client ID",
+        apiSecret: "API Secret",
+        apiToken: "API Token",
+        refreshToken: "Refresh Token",
+        providerUserId: "Provider User ID",
+        authorizationUser: "OMS account email",
+        authorizationToken: "one-time authorization token",
+      },
       apiTokenEditPlaceholder: "Leave blank to keep existing token",
       apiTokenHint: "The token is write-only and will not be shown again.",
       apiTokenIssues: {
@@ -5172,13 +5459,15 @@ export default {
       addInventoryGood: "Add Inventory Good",
       editInventoryGood: "Edit Inventory Good",
       deleteInventoryGood: "Delete Inventory Good",
-      confirmDeleteInventoryGood: 'Delete inventory good "{{sku}}"? This archives it.',
+      confirmDeleteInventoryGood:
+        'Delete inventory good "{{sku}}"? This archives it.',
       deleteSelectedInventoryGoodsTitle: "Delete selected inventory goods",
       confirmDeleteSelectedInventoryGoods:
         "Delete {{count}} selected inventory goods? This archives them.",
       deleteSelectedInventoryGoods: "Delete selected ({{count}})",
       noInventoryGoods: "No inventory goods yet.",
-      noInventoryGoodsForFilters: "No inventory goods match the current filters.",
+      noInventoryGoodsForFilters:
+        "No inventory goods match the current filters.",
       selectAllInventoryGoods: "Select all inventory goods",
       selectInventoryGood: "Select {{sku}}",
       columns: "Columns",
@@ -5227,13 +5516,16 @@ export default {
       recognizedInventoryGoods: "Already matched",
       unrecognizedInventoryGoods: "Need sync",
       viewDetails: "View details",
-      matchedInventoryGoodsCount: "{{count}} goods already match internal inventory goods.",
+      matchedInventoryGoodsCount:
+        "{{count}} goods already match internal inventory goods.",
       needSyncInventoryGoodsCount: "{{count}} goods need sync.",
       matchedInventoryGoodsDetailsUnavailable:
         "The backend currently returns the matched count only, so there are no matched rows to review here.",
       noInventoryGoodsNeedSync: "No inventory goods need sync.",
-      allInventoryGoodsMatched: "All WMS inventory goods already match internal inventory goods.",
-      noWmsInventoryGoodsFound: "No active WMS inventory goods were found for this account.",
+      allInventoryGoodsMatched:
+        "All WMS inventory goods already match internal inventory goods.",
+      noWmsInventoryGoodsFound:
+        "No active WMS inventory goods were found for this account.",
       unrecognizedInventoryGoodsList: "WMS goods to add",
       moreUnrecognizedInventoryGoods: "+ {{count}} more goods",
       syncNewInventoryGoods: "Sync New Inventory Goods",
@@ -5265,7 +5557,8 @@ export default {
       officialWarehouseGroupHint: "{{count}} platform-managed shop warehouses",
       thirdPartyWarehouseTab: "Third-party warehouses",
       officialWarehouseTab: "Official warehouses",
-      noThirdPartyShopWarehouses: "No third-party shop warehouses need mapping.",
+      noThirdPartyShopWarehouses:
+        "No third-party shop warehouses need mapping.",
       noOfficialShopWarehouses: "No official shop warehouses.",
       defaultWarehouse: "Default",
     },
@@ -5281,7 +5574,8 @@ export default {
     oauthTimeout: "Authorization timed out. Please try again.",
     deleteFailed: "Failed to disconnect shop. Please try again.",
     updateFailed: "Failed to update shop settings. Please try again.",
-    upgradeRequired: "This feature requires a subscription. Please upgrade your plan.",
+    upgradeRequired:
+      "This feature requires a subscription. Please upgrade your plan.",
     llmUnavailableTitle: "AI model unavailable",
     llmUnavailableBody:
       "No active AI model key is available. Renew TK Copilot AI, or add and activate an API key in Models.",

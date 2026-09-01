@@ -1,60 +1,55 @@
-/**
- * Shape checks for WMS API tokens.
- *
- * Some providers expect the token field to carry a JSON credential object
- * rather than an opaque string. Nothing in the form said so beyond a
- * placeholder, so a token pasted in the wrong shape saved cleanly and only
- * surfaced hours later as a backend 500 during the nightly inventory sync
- * (2026-08-18: ten shops failed for one account saved as a plain string).
- * Checking here turns that into an inline error at the moment of typing.
- *
- * The provider contracts mirror the backend clients, which are the authority:
- * XlwmsClient.ts requires appKey + appSecret, LingxingWmsClient.ts requires
- * appId + appSecret, Sellfox requires clientId + clientSecret, JFWMS requires
- * its long-lived refresh credential set, and YEJOIN takes an opaque string.
- */
+export type WmsCredentialMode = "AUTHORIZE" | "EXISTING";
 
-export type WmsApiTokenIssue = "invalidJson" | "missingFields";
+export type WmsCredentialField =
+  | "apiKey"
+  | "apiSecret"
+  | "apiToken"
+  | "refreshToken"
+  | "providerUserId"
+  | "authorizationUser"
+  | "authorizationToken";
 
-const JSON_CREDENTIAL_FIELDS: Record<string, readonly string[]> = {
-  XLWMS: ["appKey", "appSecret"],
-  LINGXING: ["appId", "appSecret"],
-  SELLFOX: ["clientId", "clientSecret"],
-  JFWMS: ["clientId", "clientSecret", "refreshToken", "userId"],
-};
-
-/** The fields a provider's token must carry, or null when it takes a plain string. */
-export function wmsApiTokenFields(provider: string): readonly string[] | null {
-  return JSON_CREDENTIAL_FIELDS[provider] ?? null;
+export interface WmsCredentialDraft {
+  apiKey: string;
+  apiSecret: string;
+  apiToken: string;
+  refreshToken: string;
+  providerUserId: string;
+  authorizationUser: string;
+  authorizationToken: string;
 }
 
-/**
- * What is wrong with this token for this provider, or null when it is usable.
- *
- * An empty token is never an issue here: creation already requires a non-empty
- * token, and an empty field while editing means "keep the stored one".
- */
-export function wmsApiTokenIssue(provider: string, apiToken: string): WmsApiTokenIssue | null {
-  const required = wmsApiTokenFields(provider);
-  if (!required) return null;
+const STATIC_FIELDS: Record<string, readonly WmsCredentialField[]> = {
+  YEJOIN: ["apiToken"],
+  XLWMS: ["apiKey", "apiSecret"],
+  LINGXING: ["apiKey", "apiSecret"],
+  SELLFOX: ["apiKey", "apiSecret"],
+};
 
-  const trimmed = apiToken.trim();
-  if (!trimmed) return null;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    return "invalidJson";
+export function wmsCredentialFields(
+  provider: string,
+  mode: WmsCredentialMode,
+): readonly WmsCredentialField[] {
+  if (provider === "JFWMS") {
+    return mode === "AUTHORIZE"
+      ? ["apiKey", "apiSecret", "authorizationUser", "authorizationToken"]
+      : ["apiKey", "apiSecret", "refreshToken", "providerUserId"];
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return "invalidJson";
-  }
+  return STATIC_FIELDS[provider] ?? ["apiToken"];
+}
 
-  const record = parsed as Record<string, unknown>;
-  const hasEvery = required.every((field) => {
-    const value = record[field];
-    return typeof value === "string" && value.trim().length > 0;
-  });
-  return hasEvery ? null : "missingFields";
+/** Missing structured fields, or null when the credential draft can be submitted. */
+export function wmsCredentialIssue(
+  provider: string,
+  mode: WmsCredentialMode,
+  draft: WmsCredentialDraft,
+  isEdit: boolean,
+): "missingFields" | null {
+  const required = wmsCredentialFields(provider, mode);
+  const enteredAny = required.some((field) => draft[field].trim());
+  if (isEdit && !enteredAny && !(provider === "JFWMS" && mode === "AUTHORIZE"))
+    return null;
+  return required.every((field) => draft[field].trim())
+    ? null
+    : "missingFields";
 }

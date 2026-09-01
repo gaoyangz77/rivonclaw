@@ -4988,6 +4988,32 @@ export interface AuthPayload {
   user: MeResponse;
 }
 
+/** Complete a provider's one-time user authorization and create a WMS account with the returned credentials. */
+export interface AuthorizeWmsAccountInput {
+  /** Provider application/client ID. */
+  apiKey: Scalars['String']['input'];
+  /** Provider application/client secret. */
+  apiSecret: Scalars['String']['input'];
+  /** Provider tenant/domain override. Defaults to the endpoint hostname. */
+  authorizationDomain?: InputMaybe<Scalars['String']['input']>;
+  /** One-time provider authorization token. */
+  authorizationToken: Scalars['String']['input'];
+  /** Provider-side user identity used during authorization, such as OMS email. */
+  authorizationUser: Scalars['String']['input'];
+  /** Default declared-value currency for imported inventory goods. */
+  declaredValueCurrency?: InputMaybe<Currency>;
+  /** Merchant-specific WMS API origin. */
+  endpoint: Scalars['String']['input'];
+  /** Existing WMS account ID to reauthorize. Omit to create or upsert by provider and label. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** User-facing account label. */
+  label: Scalars['String']['input'];
+  /** Optional operator notes. */
+  notes?: InputMaybe<Scalars['String']['input']>;
+  /** WMS provider to authorize. */
+  provider: WmsAccountProvider;
+}
+
 /** Bad-review customer-service reachout settings per shop */
 export interface BadReviewReachoutSettings {
   enabled: Scalars['Boolean']['output'];
@@ -9901,6 +9927,8 @@ export interface Mutation {
   assignManualBillingSubscription: BillingSubscription;
   /** Admin-only: assign or adjust the account-level onboarding trial window. This marker does not directly grant entitlements; newly onboarded shops receive shop/seller trials with the remaining window. */
   assignOnboardingTrialWindow: BillingSubscription;
+  /** Complete a provider's one-time WMS user authorization, persist the returned credentials, and sync warehouses. */
+  authorizeWmsAccount: WriteWmsAccountPayload;
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   cancelExpertRun: ExpertRun;
@@ -10213,7 +10241,7 @@ export interface Mutation {
   writeShopWarehouseMappings: Array<ShopWarehouse>;
   /** Write canonical warehouses in batch. Omit input.id to create; pass input.id to update. */
   writeWarehouses: Array<Warehouse>;
-  /** Write WMS accounts in batch. New accounts and endpoint/apiToken changes automatically sync warehouses. apiToken is write-only. */
+  /** Write WMS accounts in batch. New accounts and endpoint/credential changes automatically sync warehouses. Credentials are write-only. */
   writeWmsAccounts: Array<WriteWmsAccountPayload>;
 }
 
@@ -10317,6 +10345,11 @@ export interface MutationAssignManualBillingSubscriptionArgs {
 export interface MutationAssignOnboardingTrialWindowArgs {
   ownerUserId: Scalars['String']['input'];
   validUntil: Scalars['DateTimeISO']['input'];
+}
+
+
+export interface MutationAuthorizeWmsAccountArgs {
+  input: AuthorizeWmsAccountInput;
 }
 
 
@@ -15387,6 +15420,26 @@ export const WmsAccountStatus = {
 } as const;
 
 export type WmsAccountStatus = typeof WmsAccountStatus[keyof typeof WmsAccountStatus];
+/** Structured, write-only WMS credentials. Supply only fields required by the selected provider. */
+export interface WmsCredentialsInput {
+  /** Current short-lived access token. */
+  accessToken?: InputMaybe<Scalars['String']['input']>;
+  /** Access-token expiration time. */
+  accessTokenExpiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Provider API/application key or client ID. */
+  apiKey?: InputMaybe<Scalars['String']['input']>;
+  /** Provider API/application secret. */
+  apiSecret?: InputMaybe<Scalars['String']['input']>;
+  /** Opaque static API token. */
+  apiToken?: InputMaybe<Scalars['String']['input']>;
+  /** User/account ID assigned by the WMS provider. */
+  providerUserId?: InputMaybe<Scalars['String']['input']>;
+  /** Long-lived token used to refresh access. */
+  refreshToken?: InputMaybe<Scalars['String']['input']>;
+  /** Refresh-token expiration time. */
+  refreshTokenExpiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+}
+
 /** Read-only coverage view for WMS goods against canonical InventoryGoods. */
 export interface WmsInventoryGoodCoveragePayload {
   /** WMS provider that produced these goods. */
@@ -15602,10 +15655,10 @@ export interface WriteWarehouseInput {
   warehouseType?: InputMaybe<WarehouseType>;
 }
 
-/** Write a WMS account. Omit id to locate by provider + label or create a new account. apiToken is write-only. */
+/** Write a WMS account. Omit id to locate by provider + label or create a new account. Credentials are write-only. */
 export interface WriteWmsAccountInput {
-  /** WMS API token/key. Stored write-only and never exposed by WmsAccount. */
-  apiToken?: InputMaybe<Scalars['String']['input']>;
+  /** Structured write-only credential patch. Omit fields to keep them; pass null to clear them. */
+  credentials?: InputMaybe<WmsCredentialsInput>;
   /** Default currency for declared inventory goods values imported from this WMS when the provider does not return a currency. Pass null to clear. */
   declaredValueCurrency?: InputMaybe<Currency>;
   /** Base API endpoint for this WMS account. */
@@ -15628,8 +15681,8 @@ export interface WriteWmsAccountInput {
 
 /** Result of writing a WMS account */
 export interface WriteWmsAccountPayload {
-  /** Created or updated WMS account. apiToken is never returned. */
+  /** Created or updated WMS account. Credentials are never returned. */
   account: WmsAccount;
-  /** Sync result when the account is new or its endpoint/apiToken changed. */
+  /** Sync result when the account is new or its endpoint/credentials changed. */
   sync?: Maybe<WmsWarehouseSyncPayload>;
 }

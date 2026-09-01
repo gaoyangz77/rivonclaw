@@ -176,8 +176,14 @@ export const READ_WMS_INVENTORY_GOOD_COVERAGE_QUERY = gql`
 
 export const SYNC_WMS_INVENTORY_GOODS_MUTATION = gql`
   ${INVENTORY_GOOD_FIELDS_FRAGMENT}
-  mutation SyncWmsInventoryGoods($wmsAccountId: ID!, $overrideExisting: Boolean) {
-    syncWmsInventoryGoods(wmsAccountId: $wmsAccountId, overrideExisting: $overrideExisting) {
+  mutation SyncWmsInventoryGoods(
+    $wmsAccountId: ID!
+    $overrideExisting: Boolean
+  ) {
+    syncWmsInventoryGoods(
+      wmsAccountId: $wmsAccountId
+      overrideExisting: $overrideExisting
+    ) {
       wmsAccountId
       overrideExisting
       fetched
@@ -223,6 +229,22 @@ export const WRITE_WMS_ACCOUNTS_MUTATION = gql`
   }
 `;
 
+export const AUTHORIZE_WMS_ACCOUNT_MUTATION = gql`
+  ${WMS_ACCOUNT_FIELDS_FRAGMENT}
+  mutation AuthorizeWmsAccount($input: AuthorizeWmsAccountInput!) {
+    authorizeWmsAccount(input: $input) {
+      account {
+        ...WmsAccountFields
+      }
+      sync {
+        wmsAccountId
+        provider
+        warehousesSynced
+      }
+    }
+  }
+`;
+
 export const SYNC_WMS_WAREHOUSES_MUTATION = gql`
   mutation SyncWmsWarehouses($wmsAccountId: ID!) {
     syncWmsWarehouses(wmsAccountId: $wmsAccountId) {
@@ -249,7 +271,9 @@ export const SYNC_SHOP_WAREHOUSES_MUTATION = gql`
 
 export const WRITE_SHOP_WAREHOUSE_MAPPINGS_MUTATION = gql`
   ${SHOP_WAREHOUSE_FIELDS_FRAGMENT}
-  mutation WriteShopWarehouseMappings($inputs: [WriteShopWarehouseMappingInput!]!) {
+  mutation WriteShopWarehouseMappings(
+    $inputs: [WriteShopWarehouseMappingInput!]!
+  ) {
     writeShopWarehouseMappings(inputs: $inputs) {
       ...ShopWarehouseFields
     }
