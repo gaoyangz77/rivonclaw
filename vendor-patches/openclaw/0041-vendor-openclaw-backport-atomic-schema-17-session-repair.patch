@@ -1,0 +1,69 @@
+From 3dfb48581fe44037917997e6779b5224960565e8 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Tue, 1 Sep 2026 08:41:40 -0700
+Subject: [PATCH] vendor(openclaw): backport atomic schema 17 session repair
+
+Why:
+- v2026.8.1 validates canonical indexes before repairing additive schema 17 session columns and triggers, so real pre-v2 agent databases cannot migrate to schema 19.
+- This is the final upstream fix from PRs #134208 and #134272.
+
+Removal:
+- Drop when the pinned OpenClaw release contains commits 592253ffd1039d877a9ce2cacbde5702176ea297 and c893a1f8453191951bce75a8769fc5db8e775d68.
+
+Tests:
+- packages/gateway/src/vendor/state-migration.test.ts
+---
+ src/state/openclaw-agent-db-schema.ts | 29 ++++++++++++++-------------
+ 1 file changed, 15 insertions(+), 14 deletions(-)
+
+diff --git a/src/state/openclaw-agent-db-schema.ts b/src/state/openclaw-agent-db-schema.ts
+index 962b94284fd..eea93bf6f6c 100644
+--- a/src/state/openclaw-agent-db-schema.ts
++++ b/src/state/openclaw-agent-db-schema.ts
+@@ -593,6 +593,19 @@ function ensureAgentSchema(
+           `OpenClaw agent database ${pathname} uses schema version ${previousVersion}; expected at most ${targetVersion} for this migration.`,
+         );
+       }
++      if (previousVersion === AGENT_MEDIA_SCHEMA_VERSION) {
++        const legacySql = withLegacySessionParticipantsSchema(OPENCLAW_AGENT_SCHEMA_SQL);
++        ensureSessionAdditiveColumns(db);
++        verifyAndRepairCanonicalSqliteIndexes(db, pathname, legacySql, {
++          validateAfterRepair: () => {
++            assertAgentSchemaVersion(
++              db,
++              { agentId, pathname, version: AGENT_MEDIA_SCHEMA_VERSION },
++              legacySql,
++            );
++          },
++        });
++      }
+       migrateRetiredAgentStateLeaseSchema(db, pathname, targetVersion);
+       if (previousVersion === targetVersion) {
+         ensureSessionAdditiveColumns(db);
+@@ -718,21 +731,9 @@ export function ensureOpenClawAgentDatabaseSchema(
+   db.exec(`PRAGMA busy_timeout = ${OPENCLAW_SQLITE_BUSY_TIMEOUT_MS};`);
+   assertSupportedAgentSchemaVersion(db, pathname);
+   assertExistingAgentSchemaOwner(readExistingAgentSchemaMeta(db), agentId, pathname);
+-  if (readSqliteUserVersion(db) === AGENT_MEDIA_SCHEMA_VERSION) {
+-    assertAgentDatabaseMaintenanceAuthority();
+-    const legacySql = withLegacySessionParticipantsSchema(OPENCLAW_AGENT_SCHEMA_SQL);
+-    // Keep canonical index recovery reachable before rebuilding the v17 identity table.
+-    verifyAndRepairCanonicalSqliteIndexes(db, pathname, legacySql, {
+-      allowMissingColumns: true,
+-      validateAfterRepair: () =>
+-        assertAgentSchemaVersion(
+-          db,
+-          { agentId, pathname, version: AGENT_MEDIA_SCHEMA_VERSION },
+-          legacySql,
+-        ),
+-    });
++  if (readSqliteUserVersion(db) !== AGENT_MEDIA_SCHEMA_VERSION) {
++    assertAgentDatabaseIntegrityBeforeMutation(db, agentId, pathname);
+   }
+-  assertAgentDatabaseIntegrityBeforeMutation(db, agentId, pathname);
+   configureSqlitePreSchemaPragmas(db, {
+     busyTimeoutMs: OPENCLAW_SQLITE_BUSY_TIMEOUT_MS,
+   });
+-- 
+2.50.1 (Apple Git-155)
+

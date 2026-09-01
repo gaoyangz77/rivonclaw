@@ -1,4 +1,4 @@
-From 984eb48c234784c6bf26a23e73f825c5780a73c9 Mon Sep 17 00:00:00 2001
+From 6c5a5862081f53632211aeb71263a9f7a8555b1b Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 21 Aug 2026 07:28:02 -0700
 Subject: [PATCH] vendor(openclaw): allow trusted Feishu raw card sends
@@ -19,10 +19,10 @@ Tests:
  2 files changed, 95 insertions(+), 1 deletion(-)
 
 diff --git a/extensions/feishu/src/channel.test.ts b/extensions/feishu/src/channel.test.ts
-index 09c7cb5d251..ccd4d174d71 100644
+index 2bbc3557b75..c5466bb354a 100644
 --- a/extensions/feishu/src/channel.test.ts
 +++ b/extensions/feishu/src/channel.test.ts
-@@ -831,6 +831,73 @@ describe("feishuPlugin actions", () => {
+@@ -1424,6 +1424,73 @@ describe("feishuPlugin actions", () => {
      });
    });
  
@@ -97,10 +97,10 @@ index 09c7cb5d251..ccd4d174d71 100644
      sendCardFeishuMock.mockResolvedValueOnce({ messageId: "om_card", chatId: "oc_group_1" });
  
 diff --git a/extensions/feishu/src/channel.ts b/extensions/feishu/src/channel.ts
-index 99267b707e7..b6ea96917f6 100644
+index c6d09b7c015..b82cd605847 100644
 --- a/extensions/feishu/src/channel.ts
 +++ b/extensions/feishu/src/channel.ts
-@@ -165,6 +165,26 @@ function containsLegacyFeishuCardCommandValue(node: unknown): boolean {
+@@ -255,6 +255,26 @@ function containsLegacyFeishuCardCommandValue(node: unknown): boolean {
    return Object.values(node).some((value) => containsLegacyFeishuCardCommandValue(value));
  }
  
@@ -127,9 +127,9 @@ index 99267b707e7..b6ea96917f6 100644
  const meta: ChannelMeta = {
    id: "feishu",
    label: "Feishu",
-@@ -1087,6 +1107,13 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
-               (interactive ? legacyInteractiveReplyToPresentation(interactive) : undefined);
-             const mediaUrl = readFeishuMediaParam(ctx.params);
+@@ -1249,6 +1269,13 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
+             // and unsupported payloads cannot silently become text-only delivery.
+             const mediaUrl = resolveFeishuSendAttachmentMedia(ctx.params);
              const audioAsVoice = readBooleanParam(ctx.params, ["asVoice", "audioAsVoice"]);
 +            const rawCard = readTrustedFeishuRawCard(ctx);
 +            if (rawCard && presentation) {
@@ -141,7 +141,7 @@ index 99267b707e7..b6ea96917f6 100644
              if (textCard && !presentation) {
                assertFeishuCardWithinEnvelope(textCard, "Feishu native card");
              }
-@@ -1103,7 +1130,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
+@@ -1265,7 +1292,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
                  ? generatedCard
                  : undefined;
              const presentationFellBack = Boolean(generatedCard && !presentationCard);
@@ -152,3 +152,4 @@ index 99267b707e7..b6ea96917f6 100644
              }
 -- 
 2.50.1 (Apple Git-155)
+

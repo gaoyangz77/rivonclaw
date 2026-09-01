@@ -175,6 +175,31 @@
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/lru-cache/dist/commonjs/node/index.min.js",
+      "reason": "Auto-generated schema bundles vendor lru-cache (v2026.8.1 package-spec parsing cache)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/hosted-git-info/lib/hosts.js",
+      "reason": "Auto-generated schema bundles vendor hosted-git-info (v2026.8.1 package-spec validation)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/hosted-git-info/lib/parse-url.js",
+      "reason": "Auto-generated schema bundles vendor hosted-git-info (v2026.8.1 package-spec validation)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/hosted-git-info/lib/from-url.js",
+      "reason": "Auto-generated schema bundles vendor hosted-git-info (v2026.8.1 package-spec validation)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/hosted-git-info/lib/index.js",
+      "reason": "Auto-generated schema bundles vendor hosted-git-info (v2026.8.1 package-spec validation)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/node_modules/json5/lib/unicode.js",
       "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
     },

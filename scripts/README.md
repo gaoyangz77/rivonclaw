@@ -26,6 +26,30 @@ Clones and builds `vendor/openclaw` from the commit pinned in `.openclaw-version
 ./scripts/setup-vendor.sh --prod   # prod build (production deps only)
 ```
 
+Every install and build runs through the exact pnpm release named by the vendor
+`packageManager` field, resolved by `vendor-pnpm.cjs` (below). Node must satisfy
+the vendor's own `engines.node` range — the vendor preinstall script rejects
+anything else, so check `vendor/openclaw/package.json` before running this.
+
+### vendor-pnpm.cjs
+
+Resolves the pnpm release pinned by a vendor checkout and prints the absolute
+path to its binary, installing it into `tmp/vendor-pnpm/<version>` on first use.
+It installs **outside** the vendor tree on purpose: `vendor/openclaw/.npmrc`
+sets a `min-release-age` dependency cooldown, and npm applies that cooldown to
+whatever it resolves from inside the vendor directory — including the package
+manager. A vendor pin newer than the cooldown window would otherwise fail with
+"No matching version found for pnpm@&lt;version&gt;". The cooldown still governs
+the vendor's own dependency install, which runs with the vendor directory as
+cwd.
+
+```bash
+node scripts/vendor-pnpm.cjs vendor/openclaw
+```
+
+`setup-vendor.sh`, `provision-vendor-patched.sh`, and the electron-builder
+`prune-vendor-deps.cjs` hook all go through this module.
+
 ### provision-vendor-patched.sh
 
 Creates a disposable patched OpenClaw workspace from pristine `vendor/openclaw`

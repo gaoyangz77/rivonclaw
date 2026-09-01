@@ -1,4 +1,4 @@
-From 54668ce8dc11aaa9b9fc6d047a129efa0ddc424e Mon Sep 17 00:00:00 2001
+From 63bb26397ea530412323bc81ccf3dd500c4bdfc8 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 20 Aug 2026 17:44:20 -0700
 Subject: [PATCH] vendor(openclaw): backport Feishu visible delivery custody
@@ -18,16 +18,16 @@ Tests:
 - vendor/openclaw/src/channels/turn/run-channel-turn.custody.test.ts
 - vendor/openclaw/extensions/feishu/src/delivery-trace.test.ts
 ---
- extensions/feishu/src/delivery-trace.test.ts  | 135 +++++++++++++++++-
+ extensions/feishu/src/delivery-trace.test.ts  | 131 +++++++++++++++++-
  extensions/feishu/src/reply-dispatcher.ts     |  49 ++++---
  src/channels/turn/lifecycle.ts                |   9 +-
  .../turn/pending-delivery-notice.test.ts      |  28 ++++
- src/channels/turn/pending-delivery-notice.ts  |  40 ++++--
+ src/channels/turn/pending-delivery-notice.ts  |  29 ++++
  .../turn/run-channel-turn.custody.test.ts     |   9 ++
- 6 files changed, 235 insertions(+), 35 deletions(-)
+ 6 files changed, 233 insertions(+), 22 deletions(-)
 
 diff --git a/extensions/feishu/src/delivery-trace.test.ts b/extensions/feishu/src/delivery-trace.test.ts
-index c1499a005ad..d2078da9538 100644
+index 97fc273a4eb..6a8a71c820f 100644
 --- a/extensions/feishu/src/delivery-trace.test.ts
 +++ b/extensions/feishu/src/delivery-trace.test.ts
 @@ -13,11 +13,26 @@ import {
@@ -40,7 +40,7 @@ index c1499a005ad..d2078da9538 100644
 +} from "openclaw/plugin-sdk/channel-inbound";
 +import { setReplyPayloadMetadata } from "openclaw/plugin-sdk/reply-payload-testing";
  import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
--import { afterAll, afterEach, beforeAll, describe, it, vi } from "vitest";
+-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 +import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
  import { FeishuConfigSchema } from "./config-schema.js";
  import type { ResolvedFeishuAccount } from "./types.js";
@@ -58,25 +58,25 @@ index c1499a005ad..d2078da9538 100644
  type RecordedWireCall = Parameters<WireRecorder["recordWireCall"]>[0];
  type CreateFeishuReplyDispatcher =
    typeof import("./reply-dispatcher.js").createFeishuReplyDispatcher;
-@@ -34,6 +49,8 @@ type FeishuTraceState = {
-   cardCount: number;
-   setupCount: number;
+@@ -36,6 +51,8 @@ type FeishuTraceState = {
+   loadedMedia: { buffer: Buffer; fileName: string; contentType: string } | null;
+   omitNextMessageReceipt: boolean;
    wireFaults: Array<{ fault: "rate-limit"; retryAfterMs: number }>;
 +  messageResult: "identified" | "no-id";
 +  failNextReplace: boolean;
  };
  
  const traceState = vi.hoisted(
-@@ -47,6 +64,8 @@ const traceState = vi.hoisted(
-     cardCount: 0,
-     setupCount: 0,
+@@ -51,6 +68,8 @@ const traceState = vi.hoisted(
+     loadedMedia: null,
+     omitNextMessageReceipt: false,
      wireFaults: [],
 +    messageResult: "identified",
 +    failNextReplace: false,
    }),
  );
  
-@@ -135,6 +154,10 @@ beforeAll(async () => {
+@@ -149,6 +168,10 @@ beforeAll(async () => {
    ({ streamingStartBackoffUntilByAccount } = await import("./reply-dispatcher-state.js"));
  });
  
@@ -87,23 +87,19 @@ index c1499a005ad..d2078da9538 100644
  afterAll(() => {
    vi.doUnmock("./accounts.js");
    vi.doUnmock("./client.js");
-@@ -171,11 +194,10 @@ function nextMessageId(): string {
- }
+@@ -188,7 +211,10 @@ function nextMessageId(): string {
  
  function createRecordingLarkClient() {
--  const messageSendResult = (messageId: string) => ({
--    code: 0,
--    msg: "ok",
--    data: { message_id: messageId },
--  });
-+  const messageSendResult = (messageId: string) =>
-+    traceState.messageResult === "identified"
-+      ? { code: 0, msg: "ok", data: { message_id: messageId } }
-+      : { code: 0, msg: "ok", data: {} };
-   return {
-     im: {
-       message: {
-@@ -296,6 +318,14 @@ function createRecordingCardKitFetch(): typeof fetch {
+   const messageSendResult = (messageId: string) => {
+-    const data = traceState.omitNextMessageReceipt ? {} : { message_id: messageId };
++    const data =
++      traceState.omitNextMessageReceipt || traceState.messageResult === "no-id"
++        ? {}
++        : { message_id: messageId };
+     traceState.omitNextMessageReceipt = false;
+     return { code: 0, msg: "ok", data };
+   };
+@@ -324,6 +350,14 @@ function createRecordingCardKitFetch(): typeof fetch {
        }
        if (wirePath.endsWith("/elements/content")) {
          const body = parseJsonRecord(init?.body);
@@ -118,7 +114,7 @@ index c1499a005ad..d2078da9538 100644
          record(
            { element: parseJsonRecord(body.element), sequence: body.sequence, uuid: body.uuid },
            { code: 0 },
-@@ -343,6 +373,8 @@ function setupFeishuTrace(recorder: WireRecorder, scenario: DeliveryTraceScenari
+@@ -371,6 +405,8 @@ function setupFeishuTrace(recorder: WireRecorder, scenario: DeliveryTraceScenari
    traceState.reactionCount = 0;
    traceState.cardCount = 0;
    traceState.wireFaults = [];
@@ -127,7 +123,7 @@ index c1499a005ad..d2078da9538 100644
    traceState.account = makeTraceAccount(scenario);
    traceState.larkClient = createRecordingLarkClient();
    traceState.cardKitFetch = createRecordingCardKitFetch();
-@@ -406,6 +438,43 @@ const FEISHU_TRACE_SCENARIOS: readonly DeliveryTraceScenarioName[] = [
+@@ -434,6 +470,43 @@ const FEISHU_TRACE_SCENARIOS: readonly DeliveryTraceScenarioName[] = [
    "overflow-pagination",
  ];
  
@@ -169,9 +165,9 @@ index c1499a005ad..d2078da9538 100644
 +}
 +
  describe("feishu delivery trace goldens", () => {
-   for (const scenarioName of FEISHU_TRACE_SCENARIOS) {
-     it(`records ${scenarioName}`, async () => {
-@@ -420,3 +489,57 @@ describe("feishu delivery trace goldens", () => {
+   it("updates the accepted card without a duplicate send when its message receipt is absent", async () => {
+     const events = await runDeliveryTraceScenario({
+@@ -601,3 +674,57 @@ describe("feishu delivery trace goldens", () => {
      });
    }
  });
@@ -230,10 +226,10 @@ index c1499a005ad..d2078da9538 100644
 +  });
 +});
 diff --git a/extensions/feishu/src/reply-dispatcher.ts b/extensions/feishu/src/reply-dispatcher.ts
-index 04c3c6e985b..59537705bcc 100644
+index f6ff5dbb527..71fda349607 100644
 --- a/extensions/feishu/src/reply-dispatcher.ts
 +++ b/extensions/feishu/src/reply-dispatcher.ts
-@@ -345,6 +345,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -344,6 +344,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
      visibleReplySent = true;
    };
  
@@ -261,7 +257,7 @@ index 04c3c6e985b..59537705bcc 100644
    const formatReasoningPrefix = (thinking: string): string => {
      if (!thinking) {
        return "";
-@@ -549,23 +570,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -548,23 +569,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
          try {
            closed = await streamingToClose.closeWithResult(text, { note: finalNote });
          } catch (error: unknown) {
@@ -288,7 +284,7 @@ index 04c3c6e985b..59537705bcc 100644
              if (failedResult.content === text) {
                deliveredFinalTexts.add(finalizedAnswerText);
              }
-@@ -573,12 +583,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -572,12 +582,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
                generationToClose,
                finalizedAnswerText,
                failedResult,
@@ -303,7 +299,7 @@ index 04c3c6e985b..59537705bcc 100644
              };
            }
            // Preserve the non-visible result so the settlement owner can recover the accepted
-@@ -690,7 +700,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -689,7 +699,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
        }
        await partialUpdateQueue;
        if (streaming?.isActive()) {
@@ -318,7 +314,7 @@ index 04c3c6e985b..59537705bcc 100644
      } finally {
        resetStreamingState();
 diff --git a/src/channels/turn/lifecycle.ts b/src/channels/turn/lifecycle.ts
-index 81542c18e36..278c25e5e35 100644
+index ed331be08d9..a5a0b2d7c71 100644
 --- a/src/channels/turn/lifecycle.ts
 +++ b/src/channels/turn/lifecycle.ts
 @@ -227,8 +227,9 @@ async function settleChannelDeliveryAttempts(params: {
@@ -345,11 +341,11 @@ index 81542c18e36..278c25e5e35 100644
    } else if (isPlatformMessageNotDispatchedError(error)) {
      await settlePendingFinalDelivery(completion, "prepared", ["queued", "unknown"]);
 diff --git a/src/channels/turn/pending-delivery-notice.test.ts b/src/channels/turn/pending-delivery-notice.test.ts
-index 7985a60a9b9..6a09d8827fe 100644
+index b289d03cc50..26e68ca0c67 100644
 --- a/src/channels/turn/pending-delivery-notice.test.ts
 +++ b/src/channels/turn/pending-delivery-notice.test.ts
-@@ -83,6 +83,34 @@ describe("pending delivery notice", () => {
-     expect(loadSessionEntry({ sessionKey, storePath })?.pendingDeliveryNotice).toBeUndefined();
+@@ -87,6 +87,34 @@ describe("pending delivery notice", () => {
+     });
    });
  
 +  it("silently clears legacy Feishu debt without injecting a chat message", async () => {
@@ -384,10 +380,10 @@ index 7985a60a9b9..6a09d8827fe 100644
      const entry = loadSessionEntry({ sessionKey, storePath })!;
      await replaceSessionEntry(
 diff --git a/src/channels/turn/pending-delivery-notice.ts b/src/channels/turn/pending-delivery-notice.ts
-index 360768f91c5..efb7abdd0be 100644
+index 1ee2ae8c0a9..5ba79f37fb7 100644
 --- a/src/channels/turn/pending-delivery-notice.ts
 +++ b/src/channels/turn/pending-delivery-notice.ts
-@@ -18,6 +18,23 @@ function noticeId(intentId: string): string {
+@@ -18,6 +18,22 @@ function noticeId(intentId: string): string {
    return `main-session-restart-recovery:pending-final:${intentId}`;
  }
  
@@ -407,28 +403,10 @@ index 360768f91c5..efb7abdd0be 100644
 +    { skipMaintenance: true, takeCacheOwnership: true },
 +  );
 +}
-+
- async function acknowledgePendingDeliveryNotice(params: {
-   sessionKey: string;
-   storePath: string;
-@@ -38,15 +55,7 @@ async function acknowledgePendingDeliveryNotice(params: {
-   ) {
-     return;
-   }
--  await updateSessionEntry(
--    { sessionKey: params.sessionKey, storePath: params.storePath },
--    (current) =>
--      current.sessionId === params.sessionId &&
--      current.pendingDeliveryNotice?.intentId === params.intentId
--        ? { pendingDeliveryNotice: undefined, updatedAt: Date.now() }
--        : null,
--    { skipMaintenance: true, takeCacheOwnership: true },
--  );
-+  await clearPendingDeliveryNotice(params);
- }
- 
  export async function deliverPendingDeliveryNotice(
-@@ -73,6 +82,19 @@ export async function deliverPendingDeliveryNotice(
+   sessionKey: string,
+   storePath: string,
+@@ -42,6 +58,19 @@ export async function deliverPendingDeliveryNotice(
    ) {
      return;
    }
@@ -446,21 +424,21 @@ index 360768f91c5..efb7abdd0be 100644
 +    return;
 +  }
    const idempotencyKey = noticeId(notice.intentId);
+   let delivered: boolean;
    try {
-     const outcome = await runtime.sendRecoveryNotice({
 diff --git a/src/channels/turn/run-channel-turn.custody.test.ts b/src/channels/turn/run-channel-turn.custody.test.ts
-index d77ae2b4042..5cf5ee6469a 100644
+index 0920b18d53e..90b4505b5bd 100644
 --- a/src/channels/turn/run-channel-turn.custody.test.ts
 +++ b/src/channels/turn/run-channel-turn.custody.test.ts
-@@ -4,6 +4,7 @@ import type { DispatchReplyWithDispatcher } from "../../auto-reply/reply/provide
- import type { FinalizedMsgContext } from "../../auto-reply/templating.js";
+@@ -5,6 +5,7 @@ import type { FinalizedMsgContext } from "../../auto-reply/templating.js";
  import type { OpenClawConfig } from "../../config/types.openclaw.js";
  import { PlatformMessageNotDispatchedError } from "../../infra/outbound/deliver-types.js";
+ import { createDirectPendingFinalCustody } from "./direct-delivery-custody.js";
 +import { createChannelPartialDeliveryError } from "./delivery-result.js";
  import { dispatchRoutedChannelTurn } from "./lifecycle.js";
  
  const dispatchReplyWithRoutedChannelDispatcherCore = vi.hoisted(() => vi.fn());
-@@ -107,6 +108,14 @@ describe("channel turn failed-send custody", () => {
+@@ -152,6 +153,14 @@ describe("channel turn failed-send custody", () => {
        error: new Error("adapter failed after entry"),
        failureSettle: ["unknown", ["queued", "unknown"]] as const,
      },

@@ -152,13 +152,21 @@ else
   echo "==> Installing patched vendor dependencies"
   (
     cd "$TARGET_DIR"
+    # The patched workspace inherits the vendor .npmrc dependency cooldown, so
+    # the pinned pnpm is installed outside it. See scripts/vendor-pnpm.cjs.
+    VENDOR_PNPM="$(node "$REPO_ROOT/scripts/vendor-pnpm.cjs" "$TARGET_DIR")"
+    vendor_pnpm() {
+      "$VENDOR_PNPM" "$@"
+    }
+
+    echo "Using vendor pnpm $VENDOR_PNPM"
     # Use env var for hoisted layout instead of modifying .npmrc,
     # so vendor git stays clean.
     export npm_config_node_linker=hoisted
-    pnpm install --no-frozen-lockfile
-    pnpm run build
+    vendor_pnpm install --frozen-lockfile
+    vendor_pnpm run build
     if [ "$PROD_ONLY" -eq 1 ]; then
-      pnpm install --prod --no-frozen-lockfile
+      vendor_pnpm install --prod --frozen-lockfile
     fi
   )
 fi

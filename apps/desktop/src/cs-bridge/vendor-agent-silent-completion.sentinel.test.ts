@@ -24,8 +24,10 @@ describe("vendor patch 0030: agent RPC silent completion", () => {
       "+              allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,",
     );
     expect(patch).toContain(
-      "+      params.opts.allowEmptyAssistantReplyAsSilent === true || isSubagentAnnounceHandoff,",
+      "+      params.opts.allowEmptyAssistantReplyAsSilent === true ||",
     );
+    expect(patch).toContain("+      isSubagentLane ||");
+    expect(patch).toContain("+      isSubagentAnnounceHandoff,");
   });
 
   it("carries vendor tests for both forwarding boundaries", () => {

@@ -1,34 +1,37 @@
-From 931896ce64b5438d6c8669b3a7ff94522656d801 Mon Sep 17 00:00:00 2001
+From cdd12e152ab5dc4100463f68c8edeffd58beb6d7 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:21:05 -0700
 Subject: [PATCH] vendor(openclaw): expose embedded state migrations
 
 Why:
-- RivonClaw Desktop starts the embedded Gateway without the node-host runner, so retired device identity state is otherwise never migrated.
-- Configured non-default workspaces can retain Doctor-only setup state that blocks every agent run unless Desktop can invoke OpenClaw's scoped workspace migrator.
+- RivonClaw Desktop starts the embedded Gateway without the node-host runner, so retired startup and configured-workspace state otherwise remains unmigrated.
+- OpenClaw v2 requires stopped-writer maintenance authority for versioned agent database migrations and no longer exposes auth migration through a stable private chunk name.
+- RivonClaw must invoke OpenClaw-owned migration implementations through one stable embedded-host boundary.
 
 Removal:
-- OpenClaw exports runStartupMigrations plus configured-workspace migration from a stable public runtime, or RivonClaw starts Gateway through a host flow that invokes both migrations.
+- OpenClaw exports startup, workspace, auth-profile, and maintenance-authorized agent database migration surfaces from a stable public runtime, or RivonClaw starts Gateway through a host flow that invokes all of them.
 
 Tests:
 - packages/gateway/src/vendor/state-migration.test.ts
 ---
- src/plugin-sdk/node-host.ts | 5 +++++
- 1 file changed, 5 insertions(+)
+ src/plugin-sdk/node-host.ts | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
 diff --git a/src/plugin-sdk/node-host.ts b/src/plugin-sdk/node-host.ts
-index eebbd0c6fac..b6b07dbe00e 100644
+index eebbd0c6fac..626fd8092a7 100644
 --- a/src/plugin-sdk/node-host.ts
 +++ b/src/plugin-sdk/node-host.ts
-@@ -8,6 +8,11 @@ export {
+@@ -8,6 +8,13 @@ export {
    type NodePtyResumeParams,
  } from "../node-host/pty-command.js";
  export { validateClaudeSessionId } from "../node-host/invoke-agent-cli-claude-params.js";
 +export { runStartupMigrations } from "../node-host/startup-state-migrations.js";
++export { maybeMigrateAuthProfileJsonStoresToSqlite } from "../commands/doctor-auth-flat-profiles.js";
 +export {
 +  detectLegacyWorkspaceState,
 +  migrateLegacyWorkspaceState,
 +} from "../infra/state-migrations.workspace-setup.js";
++export { withAgentDatabaseMaintenanceLease } from "../state/openclaw-agent-db.js";
  export type { OpenClawPluginNodeHostCommandIo } from "../plugins/types.js";
  
  /** Resolve a node-host executable using the selected PATH source policy. */

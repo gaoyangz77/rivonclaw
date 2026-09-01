@@ -38,9 +38,11 @@ describe("vendor patch 0037: lazy Windows browser CLI registration", () => {
 
   it("keeps browser config on registration-safe SDK helpers", () => {
     expect(configSource).toContain(
-      'import { parseBrowserHttpUrl, redactCdpUrl } from "openclaw/plugin-sdk/browser-config";',
+      'import { parseBrowserHttpUrl, redactCdpUrl } from "openclaw/plugin-sdk/browser-cdp";',
     );
-    expect(configSource).toContain('import { isLoopbackHost } from "../gateway/net.js";');
+    expect(configSource).toContain(
+      'import { isLoopbackHost, type SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";',
+    );
     expect(configSource).not.toContain(
       'import { parseBrowserHttpUrl, redactCdpUrl, isLoopbackHost } from "./cdp.helpers.js";',
     );
@@ -58,9 +60,19 @@ describe("vendor patch 0037: lazy Windows browser CLI registration", () => {
   it("applies vendor patches before the first build", () => {
     const setupScript = readFileSync(SETUP_VENDOR_SCRIPT, "utf8");
     const patchIndex = setupScript.indexOf('git am --3way "$PATCH_DIR"/*.patch');
-    const buildIndex = setupScript.indexOf("\n  pnpm run build\n");
+    const buildIndex = setupScript.indexOf("\n  vendor_pnpm run build\n");
 
     expect(patchIndex).toBeGreaterThanOrEqual(0);
     expect(buildIndex).toBeGreaterThan(patchIndex);
+  });
+
+  it("uses the pnpm version declared by the pinned vendor", () => {
+    const setupScript = readFileSync(SETUP_VENDOR_SCRIPT, "utf8");
+
+    expect(setupScript).toContain("scripts/vendor-pnpm.cjs");
+    expect(setupScript).toContain("vendor_pnpm install --frozen-lockfile");
+    // The vendor .npmrc dependency cooldown would reject a freshly pinned pnpm,
+    // so the package manager must never be resolved from inside the vendor tree.
+    expect(setupScript).not.toContain("npx --yes");
   });
 });

@@ -1,4 +1,4 @@
-From 087315944b32ad36a96469faa482e5090e1a22e4 Mon Sep 17 00:00:00 2001
+From e46ccc98141e13f0ed38ccaef13f61d99f64bbd8 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 3 Jun 2026 22:09:15 -0700
 Subject: [PATCH] vendor(openclaw): route remote media through RivonClaw cache
@@ -18,11 +18,11 @@ Tests:
  2 files changed, 143 insertions(+), 2 deletions(-)
 
 diff --git a/src/media/fetch.test.ts b/src/media/fetch.test.ts
-index 55042b00b2c..4e1b9f42c56 100644
+index 469785a3038..6905a2a986d 100644
 --- a/src/media/fetch.test.ts
 +++ b/src/media/fetch.test.ts
-@@ -2,7 +2,7 @@
- import fs from "node:fs/promises";
+@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
+ import { createServer } from "node:http";
  import path from "node:path";
  import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
 -import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,7 +30,7 @@ index 55042b00b2c..4e1b9f42c56 100644
  import { hasErrnoCode } from "../infra/errors.js";
  import { createTempHomeEnv, type TempHomeEnv } from "../test-utils/temp-home.js";
  
-@@ -28,6 +28,13 @@ let saveResponseMedia: SaveResponseMedia;
+@@ -29,6 +29,13 @@ let saveResponseMedia: SaveResponseMedia;
  let defaultFetchMediaMaxBytes: number;
  let tempHome: TempHomeEnv;
  
@@ -44,7 +44,7 @@ index 55042b00b2c..4e1b9f42c56 100644
  function makeStream(chunks: Uint8Array[]) {
    return new ReadableStream<Uint8Array>({
      start(controller) {
-@@ -253,6 +260,7 @@ describe("readRemoteMediaBuffer", () => {
+@@ -254,6 +261,7 @@ describe("readRemoteMediaBuffer", () => {
  
    beforeEach(() => {
      vi.useRealTimers();
@@ -52,7 +52,7 @@ index 55042b00b2c..4e1b9f42c56 100644
      fetchWithSsrFGuardMock.mockReset().mockImplementation(async (paramsUnknown: unknown) => {
        const params = paramsUnknown as {
          url: string;
-@@ -287,6 +295,66 @@ describe("readRemoteMediaBuffer", () => {
+@@ -288,6 +296,66 @@ describe("readRemoteMediaBuffer", () => {
      }
    });
  
@@ -120,10 +120,10 @@ index 55042b00b2c..4e1b9f42c56 100644
      {
        name: "rejects when content-length exceeds maxBytes",
 diff --git a/src/media/fetch.ts b/src/media/fetch.ts
-index 4376c644282..5d1910be2da 100644
+index 01b7a417360..0fe8f96b8b0 100644
 --- a/src/media/fetch.ts
 +++ b/src/media/fetch.ts
-@@ -74,6 +74,10 @@ type FetchDispatcherAttempt = {
+@@ -75,6 +75,10 @@ type FetchDispatcherAttempt = {
    lookupFn?: LookupFn;
  };
  
@@ -134,8 +134,8 @@ index 4376c644282..5d1910be2da 100644
  type FetchMediaOptions = {
    url: string;
    fetchImpl?: FetchLike;
-@@ -280,6 +284,74 @@ function redactMediaUrl(url: string): string {
-   return redactSensitiveText(url);
+@@ -291,6 +295,74 @@ function createMediaFetchFailure(sourceUrl: string, cause: unknown): MediaFetchE
+   );
  }
  
 +function shouldFailHardOnRivonClawMediaCacheError(): boolean {
@@ -209,7 +209,7 @@ index 4376c644282..5d1910be2da 100644
  async function fetchGuardedMediaResponse(
    options: FetchMediaOptions,
  ): Promise<GuardedMediaResponse> {
-@@ -298,6 +370,7 @@ async function fetchGuardedMediaResponse(
+@@ -310,6 +382,7 @@ async function fetchGuardedMediaResponse(
      trustExplicitProxyDns,
    } = options;
    const sourceUrl = redactMediaUrl(url);
@@ -217,7 +217,7 @@ index 4376c644282..5d1910be2da 100644
  
    // Dispatcher attempts are fallback routes inside one logical guarded fetch operation.
    const attempts =
-@@ -316,7 +389,7 @@ async function fetchGuardedMediaResponse(
+@@ -328,7 +401,7 @@ async function fetchGuardedMediaResponse(
        (trustExplicitProxyDns && attempt.dispatcherPolicy?.mode === "explicit-proxy"
          ? withTrustedExplicitProxyGuardedFetchMode
          : withStrictGuardedFetchMode)({

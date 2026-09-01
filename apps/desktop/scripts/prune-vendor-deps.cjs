@@ -11,6 +11,7 @@ const fs = require("fs");
 const { createRequire } = require("module");
 const path = require("path");
 const { withPnpmTargetArchitecture } = require("./pnpm-target-architecture.cjs");
+const { resolveVendorPnpmBinary } = require("./vendor-package-manager.cjs");
 const {
   DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
   STAGED_VENDOR_SOURCE_PLUGINS,
@@ -20,6 +21,7 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
+const vendorPnpmBinary = resolveVendorPnpmBinary(vendorDir);
 const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-20.1";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
@@ -770,11 +772,12 @@ console.log(
   `[prune-vendor-deps] Before: ${(sizeBefore / 1024 / 1024).toFixed(0)}MB, ${filesBefore} files`,
 );
 
-console.log("[prune-vendor-deps] Phase 1: pnpm install --prod ...");
+console.log(`[prune-vendor-deps] Phase 1: ${vendorPnpmBinary} install --prod ...`);
 try {
   withCrossArchMacDependencies(() =>
     execSync(
-      "pnpm --config.manage-package-manager-versions=false --config.auto-install-peers=false install --prod --no-frozen-lockfile --ignore-scripts",
+      `"${vendorPnpmBinary}" --config.manage-package-manager-versions=false ` +
+        "--config.auto-install-peers=false install --prod --frozen-lockfile --ignore-scripts",
       {
         cwd: vendorDir,
         stdio: "inherit",

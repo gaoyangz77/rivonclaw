@@ -128,18 +128,6 @@ function stripFinalTags(text3) {
   return output;
 }
 
-// vendor/openclaw/packages/normalization-core/src/expect.ts
-function expectDefined(value, context) {
-  if (value === null || value === void 0) {
-    throw new Error("expected " + context + " to be defined");
-  }
-  return value;
-}
-
-// vendor/openclaw/packages/normalization-core/src/number-coercion.ts
-var MAX_TIMER_TIMEOUT_MS = 2147e6;
-var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS / 1e3);
-
 // vendor/openclaw/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
 function toString(value, options) {
@@ -8204,6 +8192,9 @@ function parseMarkdownOwnership(text3) {
   };
 }
 function findMarkdownCodeSpans(text3) {
+  if (!/[`~\t]| {4}/u.test(text3)) {
+    return [];
+  }
   return parseMarkdownOwnership(text3).codeSpans;
 }
 function isInsideCode(index2, spans) {
@@ -8415,22 +8406,16 @@ function stripReasoningTagsFromText(text3, options) {
     return text3;
   }
   if (matches.length > 0) {
-    const finalMatches = [];
     const preCodeRegions = findCodeRegions(cleaned);
+    let visible = "";
+    let lastIndex = 0;
     for (const match of matches) {
-      const start = match.index;
-      finalMatches.push({
-        start,
-        length: match.text.length,
-        inCode: isInsideCode2(start, preCodeRegions),
-      });
-    }
-    for (let i = finalMatches.length - 1; i >= 0; i--) {
-      const m = expectDefined(finalMatches[i], "final matches capture group i");
-      if (!m.inCode) {
-        cleaned = cleaned.slice(0, m.start) + cleaned.slice(m.start + m.length);
+      if (!isInsideCode2(match.index, preCodeRegions)) {
+        visible += cleaned.slice(lastIndex, match.index);
+        lastIndex = match.index + match.text.length;
       }
     }
+    cleaned = visible + cleaned.slice(lastIndex);
   }
   return applyTrim(stripReasoningTagsFromMarkdown(cleaned, { mode, scope }), trimMode);
 }

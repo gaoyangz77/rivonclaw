@@ -1,6 +1,6 @@
 # OpenClaw Configuration Reference
 
-Generated from OpenClaw commit `fa62fccb867f315bf4282cfc67066d5d878c598a`.
+Generated from OpenClaw commit `ea806575e6450e4d1efdfc72c19f04be982a1b9b`.
 
 This index reflects the canonical Zod schema in `vendor/openclaw/src/config/zod-schema*.ts` and
 `vendor/openclaw/src/config/types.openclaw.ts`. OpenClaw remains authoritative for defaults,
@@ -103,6 +103,14 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `update.auto` | object | no |  |
 | `update.auto.enabled` | boolean | no |  |
 
+## `telemetry`
+
+| Path | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `telemetry` | object | no |  |
+| `telemetry.enabled` | boolean | no |  |
+| `telemetry.consentedAt` | string | no | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]00\|[13579][26]00)-02-29\|\d{4}-(?:(?:0[13578]\|1[02])-(?:0[1-9]\|[12]\d\|3[01])\|(?:0[469]\|11)-(?:0[1-9]\|[12]\d\|30)\|(?:02)-(?:0[1-9]\|1\d\|2[0-8])))T(?:(?:[01]\d\|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$` |
+
 ## `browser`
 
 | Path | Type | Required | Constraints |
@@ -147,12 +155,10 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | --- | --- | --- | --- |
 | `ui` | object | no |  |
 | `ui.seamColor` | string | no | pattern `^#?[0-9a-fA-F]{6}$` |
-| `ui.assistant` | object | no |  |
-| `ui.assistant.name` | string | no | max length 50 |
-| `ui.assistant.avatar` | string | no | max length 2000000 |
 | `ui.prefs` | object | no |  |
-| `ui.prefs.theme` | "claw" \| "knot" \| "dash" \| "custom" | no |  |
+| `ui.prefs.theme` | "claw" \| "knot" \| "dash" \| "absolutely" \| "tide" \| "beacon" \| "phosphor" \| "custom" | no |  |
 | `ui.prefs.themeMode` | "light" \| "dark" \| "system" | no |  |
+| `ui.prefs.accent` | string | no |  |
 | `ui.prefs.locale` | string | no | max length 20 |
 | `ui.prefs.chatShowThinking` | boolean | no |  |
 | `ui.prefs.chatShowToolCalls` | boolean | no |  |
@@ -168,6 +174,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `secrets` | object | no |  |
 | `secrets.egressProxy` | object | no |  |
 | `secrets.egressProxy.enabled` | boolean | no |  |
+| `secrets.egressProxy.allowedHosts` | string[] | no |  |
 | `secrets.egressProxy.bypassHosts` | string[] | no |  |
 | `secrets.providers` | object | no |  |
 | `secrets.providers.*` | object | no | map value |
@@ -304,6 +311,9 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `nodeHost.agentRuns.claude.enabled` | boolean | no |  |
 | `nodeHost.workerRuns` | object | no |  |
 | `nodeHost.workerRuns.enabled` | boolean | no |  |
+| `nodeHost.workerRuns.capacity` | integer | no | min 1; max 1024 |
+| `nodeHost.workerRuns.isolation` | "none" \| "container" | no |  |
+| `nodeHost.workerRuns.containerImage` | string | no |  |
 | `nodeHost.browserProxy` | object | no |  |
 | `nodeHost.browserProxy.enabled` | boolean | no |  |
 | `nodeHost.browserProxy.allowProfiles` | string[] | no |  |
@@ -355,6 +365,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.model` | string \| object | no |  |
 | `agents.defaults.model.primary` | string | no |  |
 | `agents.defaults.model.fallbacks` | string[] | no |  |
+| `agents.defaults.modelSelectionScope` | "session" \| "agent" \| "global" | no |  |
 | `agents.defaults.utilityModel` | string | no |  |
 | `agents.defaults.imageModel` | string \| object | no |  |
 | `agents.defaults.imageModel.primary` | string | no |  |
@@ -390,6 +401,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.models.*.params.*` | any | no | map value |
 | `agents.defaults.models.*.agentRuntime` | object | no |  |
 | `agents.defaults.models.*.agentRuntime.id` | string | no |  |
+| `agents.defaults.models.*.codeMode` | boolean | no |  |
 | `agents.defaults.models.*.streaming` | boolean | no |  |
 | `agents.defaults.modelPolicy` | object | no |  |
 | `agents.defaults.modelPolicy.allow` | string[] | no |  |
@@ -430,7 +442,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.compaction.enabled` | boolean | no |  |
 | `agents.defaults.compaction.mode` | "default" \| "safeguard" | no |  |
 | `agents.defaults.compaction.provider` | string | no |  |
-| `agents.defaults.compaction.thinkingLevel` | "off" \| "minimal" \| "low" \| "medium" \| "high" \| "xhigh" \| "adaptive" \| "max" \| "ultra" | no |  |
+| `agents.defaults.compaction.thinkingLevel` | "off" \| "minimal" \| "low" \| "medium" \| "high" \| "xhigh" \| "adaptive" \| "max" \| "ultra" \| "inherit" | no |  |
 | `agents.defaults.compaction.keepRecentTokens` | integer | no | > 0; max 9007199254740991 |
 | `agents.defaults.compaction.identifierPolicy` | "strict" \| "off" | no |  |
 | `agents.defaults.compaction.recentTurnsPreserve` | integer | no | min 0; max 12 |
@@ -600,6 +612,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.models.*.params.*` | any | no | map value |
 | `agents.entries.*.models.*.agentRuntime` | object | no |  |
 | `agents.entries.*.models.*.agentRuntime.id` | string | no |  |
+| `agents.entries.*.models.*.codeMode` | boolean | no |  |
 | `agents.entries.*.models.*.streaming` | boolean | no |  |
 | `agents.entries.*.modelPolicy` | object | no |  |
 | `agents.entries.*.modelPolicy.allow` | string[] | no |  |
@@ -851,6 +864,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.tools.exec.safeBins` | string[] | no |  |
 | `agents.entries.*.tools.exec.strictInlineEval` | boolean | no |  |
 | `agents.entries.*.tools.exec.commandHighlighting` | boolean | no |  |
+| `agents.entries.*.tools.exec.grantExpiryDays` | integer | no | min 1; max 3650 |
 | `agents.entries.*.tools.exec.safeBinTrustedDirs` | string[] | no |  |
 | `agents.entries.*.tools.exec.safeBinProfiles` | object | no |  |
 | `agents.entries.*.tools.exec.safeBinProfiles.*` | object | no | map value |
@@ -875,6 +889,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.tools.exec.applyPatch.allowModels` | string[] | no |  |
 | `agents.entries.*.tools.github` | object | no |  |
 | `agents.entries.*.tools.github.profileId` | string | yes | pattern `^ghp_[a-f0-9]{32}$` |
+| `agents.entries.*.tools.github.kind` | "oauth" | no |  |
 | `agents.entries.*.tools.github.gitAuthor` | object | no |  |
 | `agents.entries.*.tools.github.gitAuthor.name` | string | no |  |
 | `agents.entries.*.tools.github.gitAuthor.email` | string | no |  |
@@ -963,6 +978,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `tools.web.fetch.ssrfPolicy.allowedHostnames` | string[] | no |  |
 | `tools.github` | object | no |  |
 | `tools.github.profileId` | string | yes | pattern `^ghp_[a-f0-9]{32}$` |
+| `tools.github.kind` | "oauth" | no |  |
 | `tools.github.gitAuthor` | object | no |  |
 | `tools.github.gitAuthor.name` | string | no |  |
 | `tools.github.gitAuthor.email` | string | no |  |
@@ -1179,6 +1195,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `tools.exec.safeBins` | string[] | no |  |
 | `tools.exec.strictInlineEval` | boolean | no |  |
 | `tools.exec.commandHighlighting` | boolean | no |  |
+| `tools.exec.grantExpiryDays` | integer | no | min 1; max 3650 |
 | `tools.exec.safeBinTrustedDirs` | string[] | no |  |
 | `tools.exec.safeBinProfiles` | object | no |  |
 | `tools.exec.safeBinProfiles.*` | object | no | map value |
@@ -1610,12 +1627,16 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.controlUi.enabled` | boolean | no |  |
 | `gateway.controlUi.basePath` | string | no |  |
 | `gateway.controlUi.root` | string | no |  |
+| `gateway.controlUi.environment` | object | no |  |
+| `gateway.controlUi.environment.label` | string | yes | max length 24 |
+| `gateway.controlUi.environment.color` | "teal" \| "amber" \| "purple" \| "coral" \| "pink" \| "blue" \| "green" \| "red" \| "gray" | yes |  |
 | `gateway.controlUi.github` | object | no |  |
 | `gateway.controlUi.github.token` | string | no |  |
 | `gateway.controlUi.toolTitles` | boolean | no |  |
 | `gateway.controlUi.sessionObserver` | boolean | no |  |
 | `gateway.controlUi.embedSandbox` | "strict" \| "scripts" \| "trusted" | no |  |
 | `gateway.controlUi.allowExternalEmbedUrls` | boolean | no |  |
+| `gateway.controlUi.automaticallyFetchFavicons` | boolean | no |  |
 | `gateway.controlUi.allowedOrigins` | string[] | no |  |
 | `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback` | boolean | no |  |
 | `gateway.cliAgents` | object | no |  |
@@ -1644,6 +1665,15 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.auth.trustedProxy.deviceAutoApprove` | object | no |  |
 | `gateway.auth.trustedProxy.deviceAutoApprove.enabled` | boolean | no |  |
 | `gateway.auth.trustedProxy.deviceAutoApprove.scopes` | string[] | no |  |
+| `gateway.roles` | object | no |  |
+| `gateway.roles.default` | string | yes | max length 128 |
+| `gateway.roles.definitions` | object | yes |  |
+| `gateway.roles.definitions.*` | object | no | map value |
+| `gateway.roles.definitions.*.sessions` | object | yes |  |
+| `gateway.roles.definitions.*.sessions.others` | "none" \| "view" \| "suggest" \| "write" | yes |  |
+| `gateway.roles.definitions.*.sandbox` | "inherit" \| "required" | no |  |
+| `gateway.roles.definitions.*.agents` | "*" | yes |  |
+| `gateway.roles.definitions.*.scopes` | any | yes |  |
 | `gateway.trustedProxies` | string[] | no |  |
 | `gateway.allowRealIpFallback` | boolean | no |  |
 | `gateway.tools` | object | no |  |
@@ -1737,10 +1767,13 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | --- | --- | --- | --- |
 | `cloudWorkers` | object | no |  |
 | `cloudWorkers.desktop` | boolean | no |  |
+| `cloudWorkers.projectProfiles` | object | no |  |
+| `cloudWorkers.projectProfiles.*` | string | no | map value |
 | `cloudWorkers.profiles` | object | no |  |
 | `cloudWorkers.profiles.*` | object | no | map value |
 | `cloudWorkers.profiles.*.provider` | string | yes |  |
 | `cloudWorkers.profiles.*.install` | "bundle" \| "npm" | yes |  |
+| `cloudWorkers.profiles.*.suspendAfter` | string | no |  |
 | `cloudWorkers.profiles.*.settings` | object | no |  |
 | `cloudWorkers.profiles.*.settings.*` | any | no | map value |
 

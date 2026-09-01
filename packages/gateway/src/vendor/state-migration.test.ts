@@ -28,7 +28,7 @@ import {
 
 const tempDirs: string[] = [];
 const VENDOR_ROOT = resolve(import.meta.dirname, "../../../../vendor/openclaw");
-const TARGET_AGENT_SCHEMA_VERSION = 17;
+const TARGET_AGENT_SCHEMA_VERSION = 19;
 const LEGACY_DEVICE_ID = "56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c";
 const LEGACY_DEVICE_IDENTITY = {
   deviceId: LEGACY_DEVICE_ID,
@@ -140,6 +140,39 @@ function createLegacyAgentDatabase(stateDir: string, agentId: string): string {
   return databasePath;
 }
 
+async function createV17AdditiveAgentDatabase(stateDir: string, agentId: string): Promise<string> {
+  const agentDir = join(stateDir, "agents", agentId, "agent");
+  mkdirSync(agentDir, { recursive: true });
+  const databasePath = join(agentDir, "openclaw-agent.sqlite");
+  const runtimePath = join(VENDOR_ROOT, "dist", "plugin-sdk", "sqlite-runtime.js");
+  const runtime = (await import(pathToFileURL(runtimePath).href)) as {
+    ensureOpenClawAgentDatabaseSchema: (
+      database: DatabaseSync,
+      options: { agentId: string; path: string; env: NodeJS.ProcessEnv },
+    ) => void;
+  };
+
+  const database = new DatabaseSync(databasePath);
+  try {
+    runtime.ensureOpenClawAgentDatabaseSchema(database, {
+      agentId,
+      path: databasePath,
+      env: { ...process.env, OPENCLAW_STATE_DIR: stateDir },
+    });
+    database.exec(`
+      DROP TABLE session_participants;
+      DROP TRIGGER session_conversations_route_context_invalidate_after_update;
+      ALTER TABLE session_conversations DROP COLUMN route_context_json;
+      DROP INDEX idx_agent_transcript_event_identity_sequence;
+      PRAGMA user_version = 17;
+      UPDATE schema_meta SET schema_version = 17;
+    `);
+  } finally {
+    database.close();
+  }
+  return databasePath;
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
   for (const dir of tempDirs.splice(0)) {
@@ -199,42 +232,78 @@ describe("inspectVendorStateMigration", () => {
     expect(inspection.reasons).toEqual([]);
   });
 
-  it(
-    "migrates only agent databases even when unrelated legacy channel state is malformed",
-    async () => {
-      const fixture = makeFixture();
-      const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
-      const credentialsDir = join(fixture.stateDir, "credentials");
-      mkdirSync(credentialsDir, { recursive: true });
-      writeFileSync(
-        join(credentialsDir, "feishu-pairing.json"),
-        '{"version":1,"requests":[{"accountId":"*"}]}\n',
-      );
+  it("migrates only agent databases even when unrelated legacy channel state is malformed", async () => {
+    const fixture = makeFixture();
+    const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
+    const credentialsDir = join(fixture.stateDir, "credentials");
+    mkdirSync(credentialsDir, { recursive: true });
+    writeFileSync(
+      join(credentialsDir, "feishu-pairing.json"),
+      '{"version":1,"requests":[{"accountId":"*"}]}\n',
+    );
 
-      await migrateVendorStateBeforeGateway({
-        stateDir: fixture.stateDir,
-        vendorDir: VENDOR_ROOT,
+    await migrateVendorStateBeforeGateway({
+      stateDir: fixture.stateDir,
+      vendorDir: VENDOR_ROOT,
+    });
+
+    const database = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      const version = database.prepare("PRAGMA user_version").get() as {
+        user_version: number;
+      };
+      const metadata = database
+        .prepare("SELECT agent_id, schema_version FROM schema_meta WHERE meta_key = 'primary'")
+        .get();
+      expect(version.user_version).toBe(TARGET_AGENT_SCHEMA_VERSION);
+      expect(metadata).toEqual({
+        agent_id: "main",
+        schema_version: TARGET_AGENT_SCHEMA_VERSION,
       });
+    } finally {
+      database.close();
+    }
+  }, 15_000);
 
-      const database = new DatabaseSync(databasePath, { readOnly: true });
-      try {
-        const version = database.prepare("PRAGMA user_version").get() as {
-          user_version: number;
-        };
-        const metadata = database
-          .prepare("SELECT agent_id, schema_version FROM schema_meta WHERE meta_key = 'primary'")
-          .get();
-        expect(version.user_version).toBe(TARGET_AGENT_SCHEMA_VERSION);
-        expect(metadata).toEqual({
-          agent_id: "main",
-          schema_version: TARGET_AGENT_SCHEMA_VERSION,
-        });
-      } finally {
-        database.close();
-      }
-    },
-    15_000,
-  );
+  it("repairs a schema 17 database that predates additive session route context", async () => {
+    const fixture = makeFixture();
+    const databasePath = await createV17AdditiveAgentDatabase(fixture.stateDir, "main");
+
+    await migrateVendorStateBeforeGateway({
+      stateDir: fixture.stateDir,
+      vendorDir: VENDOR_ROOT,
+    });
+
+    const database = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      expect(database.prepare("PRAGMA user_version").get()).toEqual({
+        user_version: TARGET_AGENT_SCHEMA_VERSION,
+      });
+      expect(
+        database
+          .prepare(
+            "SELECT name FROM pragma_table_info('session_conversations') WHERE name = 'route_context_json'",
+          )
+          .get(),
+      ).toEqual({ name: "route_context_json" });
+      expect(
+        database
+          .prepare(
+            "SELECT name FROM sqlite_schema WHERE type = 'trigger' AND name = 'session_conversations_route_context_invalidate_after_update'",
+          )
+          .get(),
+      ).toEqual({ name: "session_conversations_route_context_invalidate_after_update" });
+      expect(
+        database
+          .prepare(
+            "SELECT name FROM sqlite_schema WHERE type = 'index' AND name = 'idx_agent_transcript_event_identity_sequence'",
+          )
+          .get(),
+      ).toEqual({ name: "idx_agent_transcript_event_identity_sequence" });
+    } finally {
+      database.close();
+    }
+  }, 15_000);
 
   it("preserves a legacy device identity through OpenClaw's official startup migration", async () => {
     const fixture = makeFixture();
@@ -461,9 +530,7 @@ describe("inspectVendorStateMigration", () => {
       }) => Promise<{ sessionEntry: Record<string, unknown> }>;
     };
     type AdmissionController = {
-      admitUserTurn: (
-        recorder: AdmissionRecorder,
-      ) => Promise<"admitted" | "duplicate-source">;
+      admitUserTurn: (recorder: AdmissionRecorder) => Promise<"admitted" | "duplicate-source">;
     };
     const createReplyRestartRecoveryClaimController = await loadNamedVendorDistFunction<
       (params: {
@@ -499,8 +566,7 @@ describe("inspectVendorStateMigration", () => {
       hasPersisted: () => false,
       persistApproved: async ({ sessionLifecyclePatch }) => {
         activeEntry = { ...activeEntry, ...sessionLifecyclePatch };
-        const admissionStatus =
-          typeof activeEntry.status === "string" ? activeEntry.status : null;
+        const admissionStatus = typeof activeEntry.status === "string" ? activeEntry.status : null;
         const admissionDatabase = new DatabaseSync(databasePath);
         try {
           admissionDatabase

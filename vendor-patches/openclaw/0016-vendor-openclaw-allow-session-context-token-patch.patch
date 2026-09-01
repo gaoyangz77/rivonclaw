@@ -1,4 +1,4 @@
-From 6cdf52a7ee9deb49d150aac016bf1c952d8ea522 Mon Sep 17 00:00:00 2001
+From b827ae28ba3017eb6c3bd8d01b47f87ae8025804 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 18 Jun 2026 23:53:22 -0700
 Subject: [PATCH] vendor(openclaw): allow session context token patch
@@ -21,10 +21,10 @@ Tests:
  3 files changed, 40 insertions(+)
 
 diff --git a/packages/gateway-protocol/src/schema/sessions-patch.ts b/packages/gateway-protocol/src/schema/sessions-patch.ts
-index 9c5beab40d4..b06907ae85f 100644
+index 21ece82b959..b9249766557 100644
 --- a/packages/gateway-protocol/src/schema/sessions-patch.ts
 +++ b/packages/gateway-protocol/src/schema/sessions-patch.ts
-@@ -51,6 +51,7 @@ const SessionsPatchMutationProperties = {
+@@ -63,6 +63,7 @@ const SessionsPatchMutationProperties = {
    execNode: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
    permissionMode: Type.Optional(Type.Union([SessionPermissionModeSchema, Type.Null()])),
    model: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
@@ -33,7 +33,7 @@ index 9c5beab40d4..b06907ae85f 100644
    inheritedToolPolicyVersion: Type.Optional(Type.Union([Type.Literal(1), Type.Null()])),
    inheritedToolAllow: Type.Optional(Type.Union([Type.Array(NonEmptyString), Type.Null()])),
 diff --git a/src/gateway/sessions-patch.test.ts b/src/gateway/sessions-patch.test.ts
-index 07b31e63216..0b60893bcac 100644
+index b1683723bab..b30a2436686 100644
 --- a/src/gateway/sessions-patch.test.ts
 +++ b/src/gateway/sessions-patch.test.ts
 @@ -533,6 +533,33 @@ describe("gateway sessions patch", () => {
@@ -71,10 +71,10 @@ index 07b31e63216..0b60893bcac 100644
      const entry = expectPatchOk(
        await runPatch({
 diff --git a/src/gateway/sessions-patch.ts b/src/gateway/sessions-patch.ts
-index 9ef433d3853..ff5aa7116c3 100644
+index 81c35548c00..e698961468b 100644
 --- a/src/gateway/sessions-patch.ts
 +++ b/src/gateway/sessions-patch.ts
-@@ -653,6 +653,18 @@ export async function projectSessionsPatchEntry(params: {
+@@ -567,6 +567,18 @@ export async function projectSessionsPatchEntry(params: {
      }
    }
  
@@ -90,7 +90,7 @@ index 9ef433d3853..ff5aa7116c3 100644
 +    }
 +  }
 +
-   if (next.thinkingLevel && ("thinkingLevel" in patch || "model" in patch)) {
+   if ("thinkingLevel" in patch || "model" in patch) {
      const effectiveProvider = next.providerOverride ?? resolvedDefault.provider;
      const effectiveModel = next.modelOverride ?? resolvedDefault.model;
 -- 

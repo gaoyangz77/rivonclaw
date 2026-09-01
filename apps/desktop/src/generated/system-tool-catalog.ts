@@ -69,6 +69,13 @@ export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
     section: "runtime",
     sectionLabel: "Runtime",
   },
+  {
+    id: "secrets",
+    label: "secrets",
+    description: "Request and manage write-only credentials",
+    section: "runtime",
+    sectionLabel: "Runtime",
+  },
 
   // ── Web ──
   {
@@ -170,6 +177,20 @@ export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
     id: "sessions_spawn",
     label: "sessions_spawn",
     description: "Spawn sub-agent",
+    section: "sessions",
+    sectionLabel: "Sessions",
+  },
+  {
+    id: "github_identity_status",
+    label: "github_identity_status",
+    description: "Inspect the effective GitHub identity and credential health",
+    section: "sessions",
+    sectionLabel: "Sessions",
+  },
+  {
+    id: "github_publish",
+    label: "github_publish",
+    description: "Publish the reconciled session worktree as a draft GitHub pull request",
     section: "sessions",
     sectionLabel: "Sessions",
   },

@@ -1,4 +1,4 @@
-From 40392d3dd16b4d5e09a6dc3b4f9e63a84e9ba10a Mon Sep 17 00:00:00 2001
+From d0dd38468107acace12e1dfd54c3dab69524159e Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 22 Aug 2026 22:34:11 -0700
 Subject: [PATCH] vendor(openclaw): give the cron fence a Windows process
@@ -40,10 +40,10 @@ Tests:
  create mode 100644 src/cron/store/run-receipt-store.windows-start-time.test.ts
 
 diff --git a/src/cron/store/run-receipt-store.ts b/src/cron/store/run-receipt-store.ts
-index 77a5b5e3758..0c28d0bec58 100644
+index 468855d1a57..8dc58ccf230 100644
 --- a/src/cron/store/run-receipt-store.ts
 +++ b/src/cron/store/run-receipt-store.ts
-@@ -6,6 +6,7 @@ import {
+@@ -15,6 +15,7 @@ import {
    executeSqliteQueryTakeFirstSync,
    getNodeSqliteKysely,
  } from "../../infra/kysely-sync.js";
@@ -51,7 +51,7 @@ index 77a5b5e3758..0c28d0bec58 100644
  import { getFileLockProcessStartTime, isPidDefinitelyDead } from "../../shared/pid-alive.js";
  import type { DB as OpenClawStateDatabase } from "../../state/openclaw-state-db.generated.js";
  import {
-@@ -254,6 +255,34 @@ function observeOwner(row: CronRunReceiptRow): CronRunReceiptOwnerObservation {
+@@ -300,6 +301,34 @@ function observeOwner(row: CronRunReceiptRow): CronRunReceiptOwnerObservation {
    };
  }
  
@@ -83,19 +83,19 @@ index 77a5b5e3758..0c28d0bec58 100644
 +  return currentProcessStartTime;
 +}
 +
- function ownerDefinitelyStale(owner: {
-   receiptId: string;
-   ownerPid: number;
-@@ -265,7 +294,7 @@ function ownerDefinitelyStale(owner: {
+ function ownerStale(owner: CronRunReceiptOwnerObservation, nowMs = Date.now()): boolean {
+   if (owner.ownerPid === process.pid) {
+     return !locallyOwnedReceipts.has(owner.receiptId);
+@@ -307,7 +336,7 @@ function ownerStale(owner: CronRunReceiptOwnerObservation, nowMs = Date.now()):
    if (isPidDefinitelyDead(owner.ownerPid)) {
      return true;
    }
 -  const observedStartTime = getFileLockProcessStartTime(owner.ownerPid);
 +  const observedStartTime = readCronOwnerStartTime(owner.ownerPid);
-   return (
-     owner.ownerStartTime !== null &&
-     observedStartTime !== null &&
-@@ -367,7 +396,7 @@ export function prepareCronRunReceiptClaim(params: {
+   if (owner.ownerStartTime !== null && observedStartTime !== null) {
+     return owner.ownerStartTime !== observedStartTime;
+   }
+@@ -408,7 +437,7 @@ export function prepareCronRunReceiptClaim(params: {
    requestRunId?: string;
    env?: NodeJS.ProcessEnv;
  }): PreparedCronRunReceiptClaim {
