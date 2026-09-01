@@ -233,58 +233,32 @@
 
 .affiliate-tag-catalog-table {
   width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border-color);
-  border-radius: var(--tk-v1-radius-4);
-  background: var(--surface-primary);
 }
 
-/*
- * Fixed tracks for the date and action columns, not max-content. Each row is
- * its own grid container, so a content-sized track resolves per row: the header
- * ("Actions", 55px), an ordinary row (two buttons, 136-178px depending on
- * locale) and a row mid-rename would each pick a different width and the date
- * column would step sideways from row to row. 180px clears the widest
- * translated Rename + Delete pair, which is German at 178px.
- */
-.affiliate-tag-catalog-table-head,
-.affiliate-tag-catalog-row {
+.affiliate-tag-catalog-grid {
   min-width: 562px;
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) 110px 180px;
-  align-items: center;
-  gap: 18px;
-  padding-right: 18px;
-  padding-left: 18px;
+  table-layout: fixed;
 }
 
-.affiliate-tag-catalog-table-head {
-  min-height: 42px;
-  border-bottom: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--surface-secondary) 74%, var(--surface-primary));
-  color: var(--text-muted);
+.affiliate-tag-catalog-col-date {
+  width: 110px;
 }
 
-.affiliate-tag-catalog-table-head > span {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.affiliate-tag-catalog-col-actions {
+  width: 180px;
 }
 
-.affiliate-tag-catalog-table-head > span:last-child {
-  justify-self: end;
+.affiliate-tag-catalog-actions-heading {
+  text-align: right;
 }
 
 .affiliate-tag-catalog-row {
-  min-height: 56px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  height: 56px;
 }
 
-.affiliate-tag-catalog-row:last-child {
-  border-bottom: 0;
+.affiliate-tag-catalog-row td {
+  padding: 10px 18px;
+  vertical-align: middle;
 }
 
 .affiliate-tag-catalog-name {
@@ -1246,49 +1220,49 @@
 
 .affiliate-protection-preview-table {
   min-height: 180px;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
   margin-top: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  border-radius: var(--tk-v1-radius-3);
 }
 
-.affiliate-protection-preview-table-head,
+.affiliate-protection-preview-grid {
+  min-width: 900px;
+  table-layout: fixed;
+}
+
+.affiliate-protection-preview-col-row {
+  width: 60px;
+}
+
+.affiliate-protection-preview-col-creator {
+  width: 190px;
+}
+
+.affiliate-protection-preview-col-owner {
+  width: 150px;
+}
+
+.affiliate-protection-preview-col-changes {
+  width: 230px;
+}
+
+.affiliate-protection-preview-col-outcome {
+  width: 220px;
+}
+
+.affiliate-protection-preview-col-action {
+  width: 50px;
+}
+
 .affiliate-protection-preview-table-row {
-  display: grid;
-  grid-template-columns: 60px minmax(170px, 1fr) minmax(140px, 0.75fr) minmax(190px, 1.1fr) minmax(180px, 0.9fr) 34px;
-  gap: 12px;
-  align-items: center;
+  height: 52px;
 }
 
-.affiliate-protection-preview-table-head {
-  min-height: 38px;
-  padding: 7px 12px;
-  background: var(--surface-secondary);
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.affiliate-protection-preview-table-body {
-  min-height: 0;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.affiliate-protection-preview-table-row {
-  min-height: 52px;
+.affiliate-protection-preview-table-row td {
   padding: 8px 12px;
-  border-top: 1px solid var(--border-color);
-  font-size: 12px;
+  vertical-align: middle;
 }
 
-.affiliate-protection-preview-table-row > span:first-child,
-.affiliate-protection-preview-table-row > span:nth-child(3) {
+.affiliate-protection-preview-table-row > td:first-child,
+.affiliate-protection-preview-table-row > td:nth-child(3) {
   color: var(--text-muted);
 }
 
@@ -1307,7 +1281,7 @@
   white-space: nowrap;
 }
 
-.affiliate-protection-preview-table-row em {
+.affiliate-protection-preview-table-row td em {
   width: fit-content;
   max-width: 100%;
   padding: 4px 8px;
@@ -1319,22 +1293,22 @@
   font-weight: 700;
 }
 
-.affiliate-protection-preview-table-row em.is-protection-only {
+.affiliate-protection-preview-table-row td em.is-protection-only {
   background: var(--surface-secondary);
   color: var(--text-secondary);
 }
 
-.affiliate-protection-preview-table-row em.is-needs-developer-decision {
+.affiliate-protection-preview-table-row td em.is-needs-developer-decision {
   background: color-mix(in srgb, var(--warning-color) 9%, var(--surface-primary));
   color: var(--warning-color);
 }
 
-.affiliate-protection-preview-table-row em.is-error {
+.affiliate-protection-preview-table-row td em.is-error {
   background: color-mix(in srgb, var(--danger-color) 9%, var(--surface-primary));
   color: var(--danger-color);
 }
 
-.affiliate-protection-preview-table-row em.is-excluded {
+.affiliate-protection-preview-table-row td em.is-excluded {
   background: var(--surface-secondary);
   color: var(--text-muted);
 }
@@ -3138,14 +3112,6 @@
   .affiliate-protection-preview-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .affiliate-protection-preview-table-head,
-  .affiliate-protection-preview-table-row {
-    grid-template-columns: 54px minmax(150px, 1fr) minmax(190px, 1fr) minmax(170px, 1fr) 32px;
-  }
-  .affiliate-protection-preview-table-head > :nth-child(3),
-  .affiliate-protection-preview-table-row > :nth-child(3) {
-    display: none;
-  }
   .affiliate-protection-import-footer {
     margin-right: -18px;
     margin-left: -18px;
@@ -3204,11 +3170,6 @@
   }
   .affiliate-protection-preview-footer .affiliate-pagination {
     width: 100%;
-  }
-  .affiliate-protection-preview-table-head,
-  .affiliate-protection-preview-table-row {
-    grid-template-columns: 46px minmax(120px, 1fr) minmax(145px, 1fr) 30px;
-    gap: 8px;
   }
   .affiliate-team-overview {
     grid-template-columns: 1fr;
@@ -3418,66 +3379,47 @@
 
 .affiliate-protection-directory-table {
   width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border-color);
-  border-radius: var(--tk-v1-radius-4);
-  background: var(--surface-primary);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--surface-primary) 70%, transparent);
 }
 
-.affiliate-protection-directory-table-head,
-.affiliate-protection-directory-row {
+.affiliate-protection-directory-grid {
   min-width: 1068px;
-  display: grid;
-  grid-template-columns:
-    minmax(220px, 1.45fr)
-    minmax(150px, 0.9fr)
-    minmax(150px, 1.05fr)
-    minmax(160px, 1.15fr)
-    104px
-    118px;
-  align-items: center;
-  gap: 18px;
-  padding-right: 18px;
-  padding-left: 18px;
+  table-layout: fixed;
 }
 
-.affiliate-protection-directory-table-head {
-  min-height: 42px;
-  border-bottom: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--surface-secondary) 74%, var(--surface-primary));
-  color: var(--text-muted);
+.affiliate-protection-directory-col-creator {
+  width: 228px;
 }
 
-.affiliate-protection-directory-table-head > span {
-  font-size: 10.5px;
-  font-weight: 750;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
+.affiliate-protection-directory-col-owner {
+  width: 166px;
 }
 
-.affiliate-protection-directory-list {
-  display: grid;
+.affiliate-protection-directory-col-tags {
+  width: 184px;
+}
+
+.affiliate-protection-directory-col-note {
+  width: 206px;
+}
+
+.affiliate-protection-directory-col-date {
+  width: 116px;
+}
+
+.affiliate-protection-directory-col-action {
+  width: 168px;
 }
 
 .affiliate-protection-directory-row {
-  min-height: 70px;
-  padding-top: 11px;
-  padding-bottom: 11px;
-  background: var(--surface-primary);
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 120ms ease;
+  height: 70px;
 }
 
-.affiliate-protection-directory-row:hover {
-  background: color-mix(in srgb, var(--accent-color) 3.5%, var(--surface-primary));
+.affiliate-protection-directory-row td {
+  padding: 10px 12px;
+  vertical-align: middle;
 }
 
-.affiliate-protection-directory-row:last-child {
-  border-bottom: 0;
-}
-
-.affiliate-protection-directory-row > div {
+.affiliate-protection-directory-row td > div {
   display: grid;
   gap: 3px;
 }
@@ -3559,13 +3501,12 @@
   color: var(--color-text-muted);
 }
 
-.affiliate-protection-directory-action {
-  justify-self: end;
-  white-space: nowrap;
+.affiliate-protection-directory-action-cell {
+  text-align: right;
 }
 
-.affiliate-protection-directory-table .affiliate-empty-state {
-  min-width: 1068px;
+.affiliate-protection-directory-action {
+  white-space: nowrap;
 }
 
 .affiliate-relationship-protection-control {
@@ -3601,27 +3542,8 @@
     padding: 18px;
   }
 
-  .affiliate-protection-directory-table-head {
-    display: none;
-  }
-
-  .affiliate-protection-directory-row,
-  .affiliate-protection-directory-table .affiliate-empty-state {
-    min-width: 0;
-  }
-
-  .affiliate-protection-directory-row {
-    grid-template-columns: 1fr;
-    gap: 9px;
-    padding: 14px;
-  }
-
   .affiliate-protection-directory-filters {
     grid-template-columns: 1fr;
     min-width: 0;
-  }
-
-  .affiliate-protection-directory-action {
-    justify-self: start;
   }
 }

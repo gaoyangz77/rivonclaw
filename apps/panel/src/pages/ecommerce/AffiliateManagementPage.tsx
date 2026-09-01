@@ -22,9 +22,11 @@ import { GQL } from "@rivonclaw/core";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import {
+  TkBadge,
   TkButton,
   TkChoiceSelect,
   TkField,
+  TkInteractiveTableRow,
   TkPanel,
   TkSegmented,
   TkTableFrame,
@@ -1575,88 +1577,146 @@ function AffiliateEscalationQueue({
     );
   }
   return (
-    <div className="affiliate-workbench-entity-section affiliate-escalation-queue">
-      <div className="affiliate-workbench-entity-summary">
-        {t("ecommerce.affiliateWorkspace.escalations.openCount", { count: totalCount })}
-      </div>
-      <div className="affiliate-workbench-entity-list" role="table">
-        {items.map((item) => {
-          const snapshot = parseAffiliateEscalationSnapshot(item.sourceAgendaItemsSnapshotJson);
-          return (
-            <button
-              className="affiliate-workbench-entity-row affiliate-escalation-row"
-              type="button"
-              key={item.id}
-              onClick={() => onOpen(item)}
-            >
-              <span className="affiliate-workbench-entity-identity">
-                <span className="affiliate-workbench-entity-avatar-fallback">
-                  <UserIcon />
-                </span>
-                <span>
-                  <strong>
-                    {item.creatorName || item.creatorUsername || item.creatorRelationshipId}
-                  </strong>
-                  <small>
-                    {item.businessDeveloperName ||
-                      t("ecommerce.affiliateWorkspace.escalations.unassignedBd")}
-                  </small>
-                </span>
-              </span>
-              <span className="affiliate-workbench-entity-main">
-                <strong>{item.question}</strong>
-                <span>{item.reason}</span>
-                <small>
-                  {snapshot.latestAgendaLabel ||
-                    t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}
-                </small>
-              </span>
-              <span className="affiliate-workbench-entity-badges">
-                <span className="affiliate-workbench-badge affiliate-workbench-badge-human">
-                  {t("ecommerce.affiliateWorkspace.escalations.waitingSince", {
-                    value: formatLocalizedDateTime(item.createdAt, panelI18n.language),
-                  })}
-                </span>
-                <span className="affiliate-workbench-badge">
-                  {t(
-                    `ecommerce.affiliateWorkspace.escalations.notification.${item.notificationStatus}`,
-                  )}
-                </span>
-              </span>
-              <span className="affiliate-workbench-row-chevron">›</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="affiliate-escalation-pagination">
-        <span>
-          {t("ecommerce.affiliateWorkspace.escalations.pageRange", {
-            start: offset + 1,
-            end: Math.min(totalCount, offset + items.length),
-            total: totalCount,
-          })}
+    <div className="affiliate-escalation-queue">
+      <TkTableFrame compact variant="embedded" className="affiliate-escalation-table-shell">
+        <table className="affiliate-escalation-table">
+          <colgroup>
+            <col className="affiliate-escalation-col-creator" />
+            <col className="affiliate-escalation-col-request" />
+            <col className="affiliate-escalation-col-waiting" />
+            <col className="affiliate-escalation-col-status" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.creator")}</th>
+              <th scope="col">{t("ecommerce.affiliateWorkspace.escalations.question")}</th>
+              <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.time")}</th>
+              <th scope="col">
+                {t("ecommerce.affiliateWorkspace.escalations.notificationStatus")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const snapshot = parseAffiliateEscalationSnapshot(item.sourceAgendaItemsSnapshotJson);
+              const creatorName =
+                item.creatorName || item.creatorUsername || item.creatorRelationshipId;
+              const waitingLabel = t("ecommerce.affiliateWorkspace.escalations.waitingSince", {
+                value: formatLocalizedDateTime(item.createdAt, panelI18n.language),
+              });
+              return (
+                <TkInteractiveTableRow
+                  key={item.id}
+                  className="affiliate-escalation-table-row"
+                  aria-label={`${t(
+                    "ecommerce.affiliateWorkspace.escalations.detailTitle",
+                  )}: ${creatorName}`}
+                  onActivate={() => onOpen(item)}
+                >
+                  <td>
+                    <div className="affiliate-escalation-table-creator">
+                      <CreatorAvatarImage
+                        avatarUrl={item.creatorAvatarUrl}
+                        className="affiliate-escalation-table-avatar"
+                        fallbackClassName="affiliate-escalation-table-avatar-fallback"
+                        name={creatorName}
+                      />
+                      <span>
+                        <strong title={creatorName}>{creatorName}</strong>
+                        <small>
+                          {item.businessDeveloperName ||
+                            t("ecommerce.affiliateWorkspace.escalations.unassignedBd")}
+                        </small>
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="affiliate-escalation-table-request">
+                      <strong title={item.question}>{item.question}</strong>
+                      <span title={item.reason}>{item.reason}</span>
+                      <small>
+                        {snapshot.latestAgendaLabel ||
+                          t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}
+                      </small>
+                    </div>
+                  </td>
+                  <td className="affiliate-escalation-table-waiting">
+                    <time dateTime={item.createdAt} title={waitingLabel}>
+                      {waitingLabel}
+                    </time>
+                  </td>
+                  <td>
+                    <div className="affiliate-escalation-table-status">
+                      <TkBadge
+                        dot
+                        tone={affiliateEscalationNotificationTone(item.notificationStatus)}
+                      >
+                        {t(
+                          `ecommerce.affiliateWorkspace.escalations.notification.${item.notificationStatus}`,
+                        )}
+                      </TkBadge>
+                      <span className="affiliate-escalation-table-chevron" aria-hidden="true">
+                        ›
+                      </span>
+                    </div>
+                  </td>
+                </TkInteractiveTableRow>
+              );
+            })}
+          </tbody>
+        </table>
+      </TkTableFrame>
+      <div className="affiliate-workbench-table-footer affiliate-escalation-pagination">
+        <span className="affiliate-escalation-pagination-summary">
+          <strong>
+            {t("ecommerce.affiliateWorkspace.escalations.openCount", { count: totalCount })}
+          </strong>
+          <span>
+            {t("ecommerce.affiliateWorkspace.escalations.pageRange", {
+              start: offset + 1,
+              end: Math.min(totalCount, offset + items.length),
+              total: totalCount,
+            })}
+          </span>
         </span>
         <div>
-          <button
-            className="btn btn-secondary"
-            type="button"
+          <TkButton
+            variant="secondary"
+            size="sm"
             disabled={loading || offset === 0}
             onClick={() => onPageChange(Math.max(0, offset - pageSize))}
           >
             {t("ecommerce.affiliateWorkspace.escalations.previousPage")}
-          </button>
-          <button
-            className="btn btn-secondary"
-            type="button"
+          </TkButton>
+          <TkButton
+            variant="secondary"
+            size="sm"
             disabled={loading || offset + items.length >= totalCount}
             onClick={() => onPageChange(offset + pageSize)}
           >
             {t("ecommerce.affiliateWorkspace.escalations.nextPage")}
-          </button>
+          </TkButton>
         </div>
       </div>
     </div>
   );
+}
+
+function affiliateEscalationNotificationTone(
+  status: string,
+): "neutral" | "success" | "warning" | "danger" {
+  switch (status) {
+    case "SENT":
+      return "success";
+    case "PENDING":
+    case "CLAIMED":
+      return "warning";
+    case "FAILED":
+    case "UNROUTABLE":
+      return "danger";
+    default:
+      return "neutral";
+  }
 }
 
 function AffiliateEscalationDetailModal({
@@ -5021,10 +5081,7 @@ function AffiliateCollaborationCreateModal({
       backdropClassName="affiliate-creator-detail-backdrop"
       ariaLabel={t("ecommerce.affiliateWorkspace.collaborationOperations.newCollaboration")}
     >
-      <form
-        className="tk-v1-modal-form-shell"
-        onSubmit={(event) => void submit(event)}
-      >
+      <form className="tk-v1-modal-form-shell" onSubmit={(event) => void submit(event)}>
         <div className="modal-header affiliate-platform-collaboration-modal-header">
           <div className="affiliate-collaboration-modal-title-block">
             <div className="affiliate-platform-collaboration-kicker">
@@ -5370,10 +5427,7 @@ function AffiliateOpenCollaborationSettingsModal({
       backdropClassName="affiliate-creator-detail-backdrop"
       ariaLabel={t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}
     >
-      <form
-        className="tk-v1-modal-form-shell"
-        onSubmit={(event) => void submit(event)}
-      >
+      <form className="tk-v1-modal-form-shell" onSubmit={(event) => void submit(event)}>
         <div className="modal-header affiliate-platform-collaboration-modal-header affiliate-platform-settings-header">
           <div className="affiliate-collaboration-modal-title-block">
             <div className="affiliate-platform-collaboration-kicker">
@@ -6957,18 +7011,12 @@ function AgentWorkBundleTable({
             });
 
             return (
-              <tr
+              <TkInteractiveTableRow
                 key={bundle.rootProposalId}
                 className="affiliate-agent-work-table-row"
                 data-tutorial-id="affiliate-attention-bundle"
-                tabIndex={0}
                 aria-label={openLabel}
-                onClick={() => onOpen(bundle)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  onOpen(bundle);
-                }}
+                onActivate={() => onOpen(bundle)}
               >
                 <td className="affiliate-agent-work-table-time">
                   <time dateTime={proposal.createdAt}>
@@ -7072,7 +7120,7 @@ function AgentWorkBundleTable({
                     })}
                   </span>
                 </td>
-              </tr>
+              </TkInteractiveTableRow>
             );
           })}
         </tbody>

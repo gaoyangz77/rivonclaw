@@ -5,7 +5,6 @@
   background: color-mix(in srgb, #288bd7 10%, var(--color-bg)) !important;
   color: color-mix(in srgb, #288bd7 82%, var(--color-text)) !important;
 }
-
 .affiliate-agent-work-type-review-sample-application {
   border-color: color-mix(in srgb, #d27b18 36%, var(--color-border-light)) !important;
   background: color-mix(in srgb, #d27b18 10%, var(--color-bg)) !important;
@@ -3897,17 +3896,6 @@
   .cs-escalation-page-summary {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .cs-escalation-table-head {
-    display: none;
-  }
-
-  .cs-escalation-row {
-    display: flex;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
   }
 
   .cs-escalation-actions,

@@ -19,7 +19,12 @@ import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
-import { TkButton, TkPanel, TkTableFrame } from "../../components/design-system/index.js";
+import {
+  TkButton,
+  TkInteractiveTableRow,
+  TkPanel,
+  TkTableFrame,
+} from "../../components/design-system/index.js";
 import {
   CreatorRelationshipDetailModal,
   type CreatorRelationshipDetailItem,
@@ -404,8 +409,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
-    itemCount:
-      creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates?.items.length ?? 0,
+    itemCount: creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates?.items.length ?? 0,
   });
 
   const [writeCampaign, writeCampaignState] = useMutation<
@@ -1277,17 +1281,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 {visibleCampaigns.map((campaign) => {
                   const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
                   return (
-                    <tr
+                    <TkInteractiveTableRow
                       key={campaign.id}
                       data-tutorial-id="affiliate-campaign-item"
-                      tabIndex={0}
-                      onClick={() => setSelectedCampaignId(campaign.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSelectedCampaignId(campaign.id);
-                        }
-                      }}
+                      onActivate={() => setSelectedCampaignId(campaign.id)}
                     >
                       <td>
                         <div className="affiliate-campaign-directory-name">
@@ -1342,7 +1339,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <td>
                         <ChevronRightIcon />
                       </td>
-                    </tr>
+                    </TkInteractiveTableRow>
                   );
                 })}
               </tbody>
@@ -1519,7 +1516,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
 
                 {selectedCampaign.products.length > 1 ? (
-                  <div className="affiliate-campaign-product-rate-table">
+                  <div className="affiliate-campaign-product-rate-list">
                     {selectedCampaign.products.map((product, index) => {
                       const summary = selectedCampaignProductSummaries.find(
                         (entry) =>
@@ -1795,18 +1792,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                 plan.totals.qualificationFailed;
                               const openDetails = () => setSelectedSearchPlanId(plan.id);
                               return (
-                                <tr
-                                  key={plan.id}
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={openDetails}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter" || event.key === " ") {
-                                      event.preventDefault();
-                                      openDetails();
-                                    }
-                                  }}
-                                >
+                                <TkInteractiveTableRow key={plan.id} onActivate={openDetails}>
                                   <td>
                                     <div className="affiliate-campaign-search-plan-select">
                                       <span>#{plan.generation}</span>
@@ -1873,7 +1859,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                       })}
                                     </small>
                                   </td>
-                                </tr>
+                                </TkInteractiveTableRow>
                               );
                             })}
                           </tbody>

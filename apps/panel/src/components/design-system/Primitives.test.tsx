@@ -118,6 +118,28 @@ describe("design-system primitives", () => {
     expect(onActivate).toHaveBeenCalledTimes(3);
   });
 
+  it("removes disabled interactive rows from the keyboard path", () => {
+    const onActivate = vi.fn();
+    render(
+      <TkTableFrame>
+        <table>
+          <tbody>
+            <TkInteractiveTableRow aria-label="Unavailable record" disabled onActivate={onActivate}>
+              <td>Unavailable</td>
+            </TkInteractiveTableRow>
+          </tbody>
+        </table>
+      </TkTableFrame>,
+    );
+
+    const row = screen.getByRole("row", { name: "Unavailable record" });
+    expect(row.getAttribute("tabindex")).toBeNull();
+    expect(row.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(row);
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
   it("provides semantic form rhythm without page-owned spacing", () => {
     render(
       <TkFormStack gap="lg">
@@ -300,13 +322,7 @@ describe("design-system primitives", () => {
 
   it("provides a compact shared switch for composite rows", () => {
     const onChange = vi.fn();
-    render(
-      <TkSwitchControl
-        label="Enable campaign"
-        checked={false}
-        onChange={onChange}
-      />,
-    );
+    render(<TkSwitchControl label="Enable campaign" checked={false} onChange={onChange} />);
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Enable campaign" }));
     expect(onChange).toHaveBeenCalledWith(true);

@@ -331,7 +331,7 @@
   overflow-y: auto;
 }
 
-.affiliate-campaign-product-rate-table {
+.affiliate-campaign-product-rate-list {
   display: grid;
   gap: 7px;
   padding-top: 10px;

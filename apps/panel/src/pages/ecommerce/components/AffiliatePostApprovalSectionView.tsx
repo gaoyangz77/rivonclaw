@@ -179,7 +179,8 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
           <span>{t("ecommerce.affiliateAnalytics.decisionOrigin.activityDisclosure")}</span>
         </div>
 
-        <div className="affiliate-origin-matrix affiliate-origin-post-matrix" role="table" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.postApprovalTitle")}>
+        {/* Design-system exception: this is a variable-axis analytics matrix, not a record table. Affiliate Analytics owns its complete ARIA grid. */}
+        <div className="affiliate-origin-matrix affiliate-origin-post-matrix" role="table" data-tk-table-exception="analytics-matrix" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.postApprovalTitle")}>
           <div className="affiliate-origin-matrix-head" role="row">
             <span role="columnheader">{t("ecommerce.affiliateAnalytics.decisionOrigin.metric")}</span>
             {section.byDecisionOrigin.map((row) => <strong key={row.decidedBy} role="columnheader">{t(`ecommerce.affiliateAnalytics.decisionOrigin.${row.decidedBy}`)}</strong>)}

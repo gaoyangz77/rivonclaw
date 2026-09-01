@@ -28,10 +28,16 @@ import {
 } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
-import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
-import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
-import { TkSegmented, TkSwitchControl, TkTableFrame, TkTabs } from "../../components/design-system/index.js";
+import {
+  TkConfirmDialog as ConfirmDialog,
+  TkInteractiveTableRow,
+  TkModal as Modal,
+  TkSegmented,
+  TkSwitchControl,
+  TkTableFrame,
+  TkTabs,
+} from "../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 import { formatLocalizedDate } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -1854,17 +1860,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                       {developerSummaries.map((summary) => {
                         const developer = summary.developer;
                         return (
-                          <tr
+                          <TkInteractiveTableRow
                             key={developer.id}
                             className={developer.archivedAt ? "is-archived" : undefined}
-                            tabIndex={0}
-                            onClick={() => openDeveloperDetail(summary)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                openDeveloperDetail(summary);
-                              }
-                            }}
+                            onActivate={() => openDeveloperDetail(summary)}
                           >
                             <td>
                               <div className="affiliate-bd-identity">
@@ -1935,7 +1934,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                             <td className="affiliate-bd-row-action">
                               <ChevronRightIcon />
                             </td>
-                          </tr>
+                          </TkInteractiveTableRow>
                         );
                       })}
                     </tbody>
@@ -2150,107 +2149,137 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 </span>
               ))}
             </div>
-            <div className="affiliate-protection-directory-table">
-              <div className="affiliate-protection-directory-table-head" aria-hidden="true">
-                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
-                <span>{t("ecommerce.affiliateTeam.businessDeveloper")}</span>
-                <span>{t("ecommerce.affiliateWorkspace.manualTags.title")}</span>
-                <span>{t("ecommerce.affiliateTeam.note")}</span>
-                <span>
-                  {t("ecommerce.affiliateTeam.protectionUpdatedAt", { defaultValue: "Updated" })}
-                </span>
-                <span className="sr-only">{t("common.actions", { defaultValue: "Actions" })}</span>
-              </div>
-              <div className="affiliate-protection-directory-list">
-                {(protectionData?.items ?? []).map((protection) => {
-                  const developer = protection.businessDeveloperId
-                    ? workspace.getBusinessDeveloper(protection.businessDeveloperId)
-                    : null;
-                  // Same chip vocabulary and overflow cap as the Creator list: a
-                  // protection row's tags are that Creator's tags, not a second
-                  // tag system.
-                  const manualTags = protection.manualTags ?? [];
-                  const visibleManualTags = manualTags.slice(0, PROTECTION_MANUAL_TAG_CHIP_LIMIT);
-                  const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
-                  return (
-                    <div className="affiliate-protection-directory-row" key={protection.id}>
-                      <div className="affiliate-protection-directory-creator">
-                        <strong>
-                          {protection.username
-                            ? `@${protection.username}`
-                            : (protection.creatorOpenId ?? protection.id)}
-                        </strong>
-                        <span
-                          className={`affiliate-protection-directory-status ${protection.creatorId ? "is-resolved" : "is-unresolved"}`}
-                        >
-                          {protection.creatorId
-                            ? t("ecommerce.affiliateTeam.protectionResolved", {
-                                defaultValue: "Matched Creator",
-                              })
-                            : t("ecommerce.affiliateTeam.protectionUnresolved", {
-                                defaultValue: "Waiting for Creator identity",
-                              })}
-                        </span>
-                      </div>
-                      <div className="affiliate-protection-directory-owner">
-                        <strong>
-                          {developer?.displayName ?? t("ecommerce.affiliateTeam.protectedOnly")}
-                        </strong>
-                        <span>{protection.source}</span>
-                      </div>
-                      <span className="affiliate-protection-directory-tags">
-                        {visibleManualTags.length ? (
-                          <>
-                            {visibleManualTags.map((tag) => (
-                              <span className="affiliate-creator-tag" key={tag.id}>
-                                <span>{tag.name}</span>
-                              </span>
-                            ))}
-                            {hiddenManualTagCount > 0 ? (
-                              <span
-                                className="affiliate-creator-tag affiliate-creator-tag-overflow"
-                                title={manualTags.map((tag) => tag.name).join(", ")}
-                              >
-                                <span>+{hiddenManualTagCount}</span>
-                              </span>
-                            ) : null}
-                          </>
-                        ) : (
-                          <span className="affiliate-creator-tag-empty">
-                            {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
-                          </span>
-                        )}
-                      </span>
-                      <span className="affiliate-protection-directory-note">
-                        {protection.note || "—"}
-                      </span>
-                      <span className="affiliate-protection-directory-date">
-                        {formatLocalizedDate(protection.updatedAt, i18n.language)}
-                      </span>
-                      <button
-                        className="btn btn-secondary btn-sm affiliate-protection-directory-action"
-                        type="button"
-                        disabled={removeProtectionState.loading}
-                        onClick={() => requestRemovePersistedProtection(protection)}
-                      >
-                        {t("ecommerce.affiliateTeam.removeProtection", {
-                          defaultValue: "Remove protection",
-                        })}
-                      </button>
-                    </div>
-                  );
-                })}
-                {!protectionQuery.loading && (protectionData?.items.length ?? 0) === 0 && (
-                  <div className="affiliate-empty-state compact">
-                    <p>
-                      {t("ecommerce.affiliateTeam.noProtectedCreators", {
-                        defaultValue: "No protected Creators match this search.",
+            <TkTableFrame variant="embedded" className="affiliate-protection-directory-table">
+              <table className="affiliate-protection-directory-grid">
+                <colgroup>
+                  <col className="affiliate-protection-directory-col-creator" />
+                  <col className="affiliate-protection-directory-col-owner" />
+                  <col className="affiliate-protection-directory-col-tags" />
+                  <col className="affiliate-protection-directory-col-note" />
+                  <col className="affiliate-protection-directory-col-date" />
+                  <col className="affiliate-protection-directory-col-action" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>{t("ecommerce.affiliateTeam.creatorIdentity")}</th>
+                    <th>{t("ecommerce.affiliateTeam.businessDeveloper")}</th>
+                    <th>{t("ecommerce.affiliateWorkspace.manualTags.title")}</th>
+                    <th>{t("ecommerce.affiliateTeam.note")}</th>
+                    <th>
+                      {t("ecommerce.affiliateTeam.protectionUpdatedAt", {
+                        defaultValue: "Updated",
                       })}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+                    </th>
+                    <th>
+                      <span className="sr-only">
+                        {t("common.actions", { defaultValue: "Actions" })}
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(protectionData?.items ?? []).map((protection) => {
+                    const developer = protection.businessDeveloperId
+                      ? workspace.getBusinessDeveloper(protection.businessDeveloperId)
+                      : null;
+                    // Same chip vocabulary and overflow cap as the Creator list: a
+                    // protection row's tags are that Creator's tags, not a second
+                    // tag system.
+                    const manualTags = protection.manualTags ?? [];
+                    const visibleManualTags = manualTags.slice(0, PROTECTION_MANUAL_TAG_CHIP_LIMIT);
+                    const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
+                    return (
+                      <tr className="affiliate-protection-directory-row" key={protection.id}>
+                        <td>
+                          <div className="affiliate-protection-directory-creator">
+                            <strong>
+                              {protection.username
+                                ? `@${protection.username}`
+                                : (protection.creatorOpenId ?? protection.id)}
+                            </strong>
+                            <span
+                              className={`affiliate-protection-directory-status ${protection.creatorId ? "is-resolved" : "is-unresolved"}`}
+                            >
+                              {protection.creatorId
+                                ? t("ecommerce.affiliateTeam.protectionResolved", {
+                                    defaultValue: "Matched Creator",
+                                  })
+                                : t("ecommerce.affiliateTeam.protectionUnresolved", {
+                                    defaultValue: "Waiting for Creator identity",
+                                  })}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="affiliate-protection-directory-owner">
+                            <strong>
+                              {developer?.displayName ?? t("ecommerce.affiliateTeam.protectedOnly")}
+                            </strong>
+                            <span>{protection.source}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="affiliate-protection-directory-tags">
+                            {visibleManualTags.length ? (
+                              <>
+                                {visibleManualTags.map((tag) => (
+                                  <span className="affiliate-creator-tag" key={tag.id}>
+                                    <span>{tag.name}</span>
+                                  </span>
+                                ))}
+                                {hiddenManualTagCount > 0 ? (
+                                  <span
+                                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                                    title={manualTags.map((tag) => tag.name).join(", ")}
+                                  >
+                                    <span>+{hiddenManualTagCount}</span>
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span className="affiliate-creator-tag-empty">
+                                {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="affiliate-protection-directory-note">
+                          {protection.note || "—"}
+                        </td>
+                        <td className="affiliate-protection-directory-date">
+                          {formatLocalizedDate(protection.updatedAt, i18n.language)}
+                        </td>
+                        <td className="affiliate-protection-directory-action-cell">
+                          <button
+                            className="btn btn-secondary btn-sm affiliate-protection-directory-action"
+                            type="button"
+                            disabled={removeProtectionState.loading}
+                            onClick={() => requestRemovePersistedProtection(protection)}
+                          >
+                            {t("ecommerce.affiliateTeam.removeProtection", {
+                              defaultValue: "Remove protection",
+                            })}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!protectionQuery.loading && (protectionData?.items.length ?? 0) === 0 && (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="affiliate-empty-state compact">
+                          <p>
+                            {t("ecommerce.affiliateTeam.noProtectedCreators", {
+                              defaultValue: "No protected Creators match this search.",
+                            })}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </TkTableFrame>
             {protectionTotalPages > 1 && (
               <div className="affiliate-pagination">
                 <button
@@ -2803,69 +2832,91 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>
             </div>
 
-            <div className="affiliate-protection-preview-table">
-              <div className="affiliate-protection-preview-table-head">
-                <span>{t("ecommerce.affiliateTeam.protectionPreviewRow")}</span>
-                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
-                <span>{t("ecommerce.affiliateTeam.assignDeveloper")}</span>
-                <span>{t("ecommerce.affiliateTeam.creatorUpdatePlannedChanges")}</span>
-                <span>{t("ecommerce.affiliateTeam.protectionPreviewOutcome")}</span>
-                <span />
-              </div>
-              <div className="affiliate-protection-preview-table-body">
-                {visibleProtectionRows.map((row) => {
-                  const disposition = classifyAffiliateProtectionPreviewRow(row);
-                  const statusLabel =
-                    disposition === "ERROR"
-                      ? row.error
-                      : disposition === "EXCLUDED"
-                        ? t("ecommerce.affiliateTeam.excludedFromImport")
-                        : disposition === "NEEDS_DEVELOPER_DECISION"
-                          ? t("ecommerce.affiliateTeam.protectionImportNeedsDecision")
-                          : disposition === "ASSIGNED"
-                            ? t("ecommerce.affiliateTeam.protectionImportAssigned", {
-                                name: row.businessDeveloperName,
-                              })
-                            : t("ecommerce.affiliateTeam.protectionImportUnassigned");
-                  return (
-                    <div className="affiliate-protection-preview-table-row" key={row.rowNumber}>
-                      <span>#{row.rowNumber}</span>
-                      <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
-                      <span>{row.businessDeveloperName || "—"}</span>
-                      <span className="affiliate-creator-update-actions">
-                        {[
-                          row.protect
-                            ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
-                            : null,
-                          ...row.manualTagNames.map((name) => {
-                            const normalizedName = name.trim().toLowerCase();
-                            return !manualTagCatalogLoaded ||
-                              existingManualTagNames.has(normalizedName)
-                              ? `#${name}`
-                              : t("ecommerce.affiliateTeam.creatorUpdateNewTag", { name });
-                          }),
-                        ]
-                          .filter(Boolean)
-                          .join(" · ") || t("ecommerce.affiliateTeam.creatorUpdateBdOnly")}
+            <TkTableFrame className="affiliate-protection-preview-table">
+              <table className="affiliate-protection-preview-grid">
+                <colgroup>
+                  <col className="affiliate-protection-preview-col-row" />
+                  <col className="affiliate-protection-preview-col-creator" />
+                  <col className="affiliate-protection-preview-col-owner" />
+                  <col className="affiliate-protection-preview-col-changes" />
+                  <col className="affiliate-protection-preview-col-outcome" />
+                  <col className="affiliate-protection-preview-col-action" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>{t("ecommerce.affiliateTeam.protectionPreviewRow")}</th>
+                    <th>{t("ecommerce.affiliateTeam.creatorIdentity")}</th>
+                    <th>{t("ecommerce.affiliateTeam.assignDeveloper")}</th>
+                    <th>{t("ecommerce.affiliateTeam.creatorUpdatePlannedChanges")}</th>
+                    <th>{t("ecommerce.affiliateTeam.protectionPreviewOutcome")}</th>
+                    <th>
+                      <span className="sr-only">
+                        {t("common.actions", { defaultValue: "Actions" })}
                       </span>
-                      <em className={`is-${disposition.toLowerCase().replaceAll("_", "-")}`}>
-                        {statusLabel}
-                      </em>
-                      <button
-                        className="affiliate-protection-remove"
-                        type="button"
-                        onClick={() => removeProtectionRow(row.rowNumber)}
-                        title={t("ecommerce.affiliateTeam.removePreviewRow")}
-                        aria-label={t("ecommerce.affiliateTeam.removePreviewRow")}
-                        disabled={protectionImportBusy}
-                      >
-                        <CloseIcon />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleProtectionRows.map((row) => {
+                    const disposition = classifyAffiliateProtectionPreviewRow(row);
+                    const statusLabel =
+                      disposition === "ERROR"
+                        ? row.error
+                        : disposition === "EXCLUDED"
+                          ? t("ecommerce.affiliateTeam.excludedFromImport")
+                          : disposition === "NEEDS_DEVELOPER_DECISION"
+                            ? t("ecommerce.affiliateTeam.protectionImportNeedsDecision")
+                            : disposition === "ASSIGNED"
+                              ? t("ecommerce.affiliateTeam.protectionImportAssigned", {
+                                  name: row.businessDeveloperName,
+                                })
+                              : t("ecommerce.affiliateTeam.protectionImportUnassigned");
+                    return (
+                      <tr className="affiliate-protection-preview-table-row" key={row.rowNumber}>
+                        <td>#{row.rowNumber}</td>
+                        <td>
+                          <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
+                        </td>
+                        <td>{row.businessDeveloperName || "—"}</td>
+                        <td className="affiliate-creator-update-actions">
+                          {[
+                            row.protect
+                              ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
+                              : null,
+                            ...row.manualTagNames.map((name) => {
+                              const normalizedName = name.trim().toLowerCase();
+                              return !manualTagCatalogLoaded ||
+                                existingManualTagNames.has(normalizedName)
+                                ? `#${name}`
+                                : t("ecommerce.affiliateTeam.creatorUpdateNewTag", { name });
+                            }),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || t("ecommerce.affiliateTeam.creatorUpdateBdOnly")}
+                        </td>
+                        <td>
+                          <em className={`is-${disposition.toLowerCase().replaceAll("_", "-")}`}>
+                            {statusLabel}
+                          </em>
+                        </td>
+                        <td>
+                          <button
+                            className="affiliate-protection-remove"
+                            type="button"
+                            onClick={() => removeProtectionRow(row.rowNumber)}
+                            title={t("ecommerce.affiliateTeam.removePreviewRow")}
+                            aria-label={t("ecommerce.affiliateTeam.removePreviewRow")}
+                            disabled={protectionImportBusy}
+                          >
+                            <CloseIcon />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TkTableFrame>
 
             <div className="affiliate-protection-preview-footer">
               <span>
@@ -3816,13 +3867,13 @@ function DeveloperDeviceBinding({
       <span>{t("ecommerce.affiliateTeam.outreachDevice")}</span>
       <div className="affiliate-bd-device-control">
         <TkSwitchControl
-            label={t("ecommerce.affiliateTeam.outreachDevice")}
-            checked={boundToThisDevice}
-            onChange={() =>
-              setForm({ ...form, deviceId: boundToThisDevice ? "" : (myDeviceId ?? "") })
-            }
-            disabled={!myDeviceId}
-          />
+          label={t("ecommerce.affiliateTeam.outreachDevice")}
+          checked={boundToThisDevice}
+          onChange={() =>
+            setForm({ ...form, deviceId: boundToThisDevice ? "" : (myDeviceId ?? "") })
+          }
+          disabled={!myDeviceId}
+        />
         <span className={`badge ${boundToThisDevice ? "badge-success" : "badge-warning"}`}>
           {statusLabel}
         </span>

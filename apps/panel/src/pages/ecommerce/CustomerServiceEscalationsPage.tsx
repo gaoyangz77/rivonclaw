@@ -11,7 +11,6 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
-import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
 import {
   CheckIcon,
@@ -32,7 +31,10 @@ import {
   TkPageHeader,
   TkComposer,
   TkIconButton,
+  TkInteractiveTableRow,
+  TkModal as Modal,
   TkPanel,
+  TkTableFrame,
   TkTabs,
 } from "../../components/design-system/index.js";
 import type {
@@ -1547,41 +1549,57 @@ const EscalationsTab = observer(function EscalationsTab({
             page={workspace.escalationPage}
             pages={workspace.escalationPageCount}
           />
-          <div className="cs-escalation-table" role="table" data-tutorial-id="cs-escalation-table">
-            <div className="cs-escalation-table-head" role="row">
-              <span>{t("ecommerce.customerServiceWorkspace.reason")}</span>
-              <span>{t("ecommerce.customerServiceWorkspace.statusOpen")}</span>
-              <span>{t("ecommerce.customerServiceWorkspace.updatedAt")}</span>
-            </div>
-            {items.map((item) => (
-              <button
-                className="cs-escalation-row"
-                key={item.id}
-                type="button"
-                onClick={() => workspace.selectEscalation(item.id)}
-              >
-                <span className="cs-escalation-row-main">
-                  <strong>{item.id}</strong>
-                  <span>{item.reason}</span>
-                  <small>
-                    {shopLabel(item.shopId)} - {escalationBuyerLabel(item)}
-                  </small>
-                </span>
-                <span>
-                  <span
-                    className={
-                      item.status === GQL.CsEscalationStatus.Pending
-                        ? "badge badge-warning"
-                        : "badge badge-info"
-                    }
+          <TkTableFrame
+            variant="embedded"
+            className="cs-escalation-table-frame"
+            data-tutorial-id="cs-escalation-table"
+          >
+            <table className="cs-escalation-table">
+              <colgroup>
+                <col />
+                <col className="cs-escalation-col-status" />
+                <col className="cs-escalation-col-updated" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>{t("ecommerce.customerServiceWorkspace.reason")}</th>
+                  <th>{t("ecommerce.customerServiceWorkspace.statusOpen")}</th>
+                  <th>{t("ecommerce.customerServiceWorkspace.updatedAt")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <TkInteractiveTableRow
+                    className="cs-escalation-row"
+                    key={item.id}
+                    onActivate={() => workspace.selectEscalation(item.id)}
                   >
-                    {escalationStatusLabel(item.status, t)}
-                  </span>
-                </span>
-                <span>{formatCompactDateTime(item.updatedAt)}</span>
-              </button>
-            ))}
-          </div>
+                    <td>
+                      <span className="cs-escalation-row-main">
+                        <strong>{item.id}</strong>
+                        <span>{item.reason}</span>
+                        <small>
+                          {shopLabel(item.shopId)} - {escalationBuyerLabel(item)}
+                        </small>
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          item.status === GQL.CsEscalationStatus.Pending
+                            ? "badge badge-warning"
+                            : "badge badge-info"
+                        }
+                      >
+                        {escalationStatusLabel(item.status, t)}
+                      </span>
+                    </td>
+                    <td>{formatCompactDateTime(item.updatedAt)}</td>
+                  </TkInteractiveTableRow>
+                ))}
+              </tbody>
+            </table>
+          </TkTableFrame>
           <div className="cs-escalation-pagination">
             <button
               className="btn btn-secondary btn-sm"

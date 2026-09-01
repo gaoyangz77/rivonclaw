@@ -951,6 +951,28 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("onPageChange={setEscalationOffset}");
   });
 
+  it("renders pending escalations with the shared interactive table contract", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queue = page.slice(
+      page.indexOf("function AffiliateEscalationQueue"),
+      page.indexOf("function AffiliateEscalationDetailModal"),
+    );
+
+    expect(queue).toContain('<TkTableFrame compact variant="embedded"');
+    expect(queue).toContain('className="affiliate-escalation-table"');
+    expect(queue).toContain("<TkInteractiveTableRow");
+    expect(queue).toContain("onActivate={() => onOpen(item)}");
+    expect(queue).toContain("<TkBadge");
+    expect(queue).toContain('<TkButton\n            variant="secondary"\n            size="sm"');
+    expect(queue).not.toContain('role="table"');
+    expect(queue).not.toContain('className="btn btn-secondary"');
+    expect(queue).not.toContain("affiliate-workbench-entity-row");
+    expect(queue).not.toContain("affiliate-workbench-entity-section");
+  });
+
   it("uses a dense Agent work table as the workspace entry point", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),

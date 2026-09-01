@@ -49,7 +49,6 @@
   margin: 0 auto;
   padding-bottom: 48px;
 }
-
 .affiliate-analytics-page.affiliate-page-shell {
   max-width: none;
   margin: 0;
@@ -658,7 +657,7 @@
 
 .affiliate-panel { overflow: hidden; }
 .affiliate-panel > header,
-.affiliate-result-table > header {
+.affiliate-result-section > header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -670,9 +669,9 @@
 .affiliate-panel h2,
 .affiliate-contract-selector h2 { margin: 3px 0 0; color: var(--color-text); font-size: 18px; letter-spacing: -.025em; }
 
-.affiliate-result-table table { width: 100%; border-collapse: collapse; }
-.affiliate-result-table th,
-.affiliate-result-table td { padding: 9px 8px; border-bottom: 1px solid var(--color-border); color: var(--color-text); font-size: 11px; text-align: left; }
+.affiliate-result-section table { width: 100%; border-collapse: collapse; }
+.affiliate-result-section th,
+.affiliate-result-section td { padding: 9px 8px; border-bottom: 1px solid var(--color-border); color: var(--color-text); font-size: 11px; text-align: left; }
 
 @keyframes affiliate-shimmer { to { background-position-x: -200%; } }
 
@@ -723,10 +722,10 @@
 .affiliate-result-status small { color: var(--color-text-muted); font-size: 10px; }
 .affiliate-currency-warning { padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); border-radius: var(--tk-v1-radius-3); background: color-mix(in srgb, var(--color-warning) 7%, transparent); }
 .affiliate-table-scroll { max-height: 520px; overflow: auto; }
-.affiliate-result-table th { position: sticky; z-index: 1; top: 0; background: var(--color-bg-alt); }
-.affiliate-result-table th button,
-.affiliate-result-table td button { padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; font-weight: 650; text-align: left; }
-.affiliate-result-table td { white-space: nowrap; }
+.affiliate-result-section th { position: sticky; z-index: 1; top: 0; background: var(--color-bg-alt); }
+.affiliate-result-section th button,
+.affiliate-result-section td button { padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; font-weight: 650; text-align: left; }
+.affiliate-result-section td { white-space: nowrap; }
 .affiliate-load-more { display: block; margin: 14px auto; }
 
 @media (max-width: 1100px) {
