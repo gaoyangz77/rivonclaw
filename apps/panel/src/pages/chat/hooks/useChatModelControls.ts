@@ -120,9 +120,16 @@ export function useChatModelControls({
 
     // "Follow global default" -- reset session override, refresh to show global default
     if (!newProvider && !newModel) {
+      const oldModel = activeModel ? { ...activeModel } : null;
       setActiveModel((prev) => prev ? { ...prev, isOverridden: false } : null);
-      entityStore.llmManager.resetSessionModel(sessionKeyRef.current).catch(() => {});
-      refreshModel(sessionKeyRef.current);
+      try {
+        await entityStore.llmManager.resetSessionModel(sessionKeyRef.current);
+        refreshModel(sessionKeyRef.current);
+      } catch (err) {
+        setActiveModel(oldModel);
+        const errText = formatError(err) || t("chat.unknownError");
+        showToast(errText, "error");
+      }
       return;
     }
 

@@ -11,6 +11,7 @@ import {
   initKnownModels,
   getProviderMeta,
   resolveGatewayProvider,
+  isDisabledProvider,
 } from "./models.js";
 
 describe("PROVIDERS extraModels", () => {
@@ -171,6 +172,18 @@ describe("ALL_PROVIDERS / PROVIDERS", () => {
 
   it("should include at least 10 providers", () => {
     expect(ALL_PROVIDERS.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("does not offer providers that the packaged gateway intentionally disables", () => {
+    expect(ALL_PROVIDERS).not.toContain("nvidia");
+    expect(ALL_PROVIDERS).not.toContain("nvidia-nim");
+  });
+
+  it("keeps historical metadata readable for disabled providers", () => {
+    expect(isDisabledProvider("nvidia")).toBe(true);
+    expect(isDisabledProvider("nvidia-nim")).toBe(true);
+    expect(isDisabledProvider("openai")).toBe(false);
+    expect(getProviderMeta("nvidia-nim")?.label).toBeTruthy();
   });
 });
 

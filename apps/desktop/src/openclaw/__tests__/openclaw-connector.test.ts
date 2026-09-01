@@ -70,6 +70,7 @@ type MockLauncher = {
   stop: Mock;
   reload: Mock;
   setEnv: Mock;
+  getStatus: Mock;
   on: Mock;
   _handlers: Record<string, ((...args: unknown[]) => void)[]>;
   emit: (event: string, ...args: unknown[]) => void;
@@ -82,6 +83,13 @@ function createMockLauncher(): MockLauncher {
     stop: vi.fn().mockResolvedValue(undefined),
     reload: vi.fn().mockResolvedValue(undefined),
     setEnv: vi.fn(),
+    getStatus: vi.fn().mockReturnValue({
+      state: "running",
+      pid: 4242,
+      restartCount: 0,
+      lastStartedAt: null,
+      lastError: null,
+    }),
     on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       if (!handlers[event]) handlers[event] = [];
       handlers[event].push(handler);
@@ -256,6 +264,23 @@ describe("OpenClawConnector", () => {
       await connector.restart("test reason");
 
       expect(callOrder).toEqual(["stop", "start"]);
+    });
+
+    it("throws when the launcher reports the gateway stopped right after start", async () => {
+      connector.initLauncher(launcher as any);
+      launcher.getStatus.mockReturnValue({
+        state: "stopped",
+        pid: null,
+        restartCount: 0,
+        lastStartedAt: null,
+        lastError: "spawn ENOENT",
+      });
+
+      await expect(connector.restart("test reason")).rejects.toThrow(
+        "gateway failed to start: spawn ENOENT",
+      );
+      expect(launcher.stop).toHaveBeenCalledOnce();
+      expect(launcher.start).toHaveBeenCalledOnce();
     });
   });
 

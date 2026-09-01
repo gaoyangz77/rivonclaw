@@ -237,13 +237,26 @@ export class OpenClawConnector {
     await this.launcher.stop();
   }
 
-  /** Restart the gateway process. */
+  /**
+   * Restart the gateway process.
+   *
+   * `start()` resolves once the process is spawned; a spawn failure is
+   * recorded in the launcher state rather than rejected. Surface it here so a
+   * caller that treats the restart as part of a transaction (for example a
+   * default-model activation) fails instead of reporting success.
+   */
   async restart(reason?: string): Promise<void> {
     if (reason) {
       log.info(`Restarting gateway: ${reason}`);
     }
     await this.stop();
     await this.start();
+    const status = this.launcher?.getStatus();
+    if (status?.state === "stopped") {
+      throw new Error(
+        `OpenClawConnector: gateway failed to start${status.lastError ? `: ${status.lastError}` : ""}`,
+      );
+    }
   }
 
   // ── WebSocket Readiness Probe ──────────────────────────────────────────

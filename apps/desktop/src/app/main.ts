@@ -1944,8 +1944,7 @@ app.whenReady().then(async () => {
       writeVendorProviderDefinition({ configPath, entry, remove });
     },
     restartGateway: async () => {
-      await launcher.stop();
-      await launcher.start();
+      await openClawConnector.restart("default model changed");
     },
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     graphqlFetch: (query, variables) => authSession.graphqlFetch(query, variables),

@@ -3,6 +3,7 @@ import {
   getDefaultModelForProvider,
   reconstructProxyUrl,
   formatError,
+  isDisabledProvider,
   isReauthSupportedProvider,
 } from "@rivonclaw/core";
 import { readFullModelCatalog } from "@rivonclaw/gateway";
@@ -70,6 +71,10 @@ const createKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
     sendJson(res, 400, { error: "Missing required field: provider" });
     return;
   }
+  if (isDisabledProvider(body.provider)) {
+    sendJson(res, 400, { error: `Provider ${body.provider} is no longer supported` });
+    return;
+  }
   if (!isLocal && !body.apiKey) {
     sendJson(res, 400, { error: "Missing required field: apiKey" });
     return;
@@ -135,19 +140,29 @@ const createKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
     }
   }
 
-  // LLM Manager action: full create transaction (SQLite + Keychain + syncActiveKey + MST state + auth-profiles + sessions.patch + config)
-  const { entry, shouldActivate } = await rootStore.llmManager.createKey({
-    provider: body.provider,
-    label,
-    model,
-    apiKey: body.apiKey,
-    proxyUrl: body.proxyUrl,
-    authType: body.authType,
-    baseUrl: body.baseUrl,
-    customProtocol: body.customProtocol,
-    customModelsJson: body.customModelsJson,
-    inputModalities: body.inputModalities,
-  });
+  // LLM Manager action: full create transaction (SQLite + Keychain + syncActiveKey +
+  // MST state + auth-profiles + config default + gateway restart when it becomes
+  // the first active key). A failed restart must reach the UI as an error.
+  let created: Awaited<ReturnType<typeof rootStore.llmManager.createKey>>;
+  try {
+    created = await rootStore.llmManager.createKey({
+      provider: body.provider,
+      label,
+      model,
+      apiKey: body.apiKey,
+      proxyUrl: body.proxyUrl,
+      authType: body.authType,
+      baseUrl: body.baseUrl,
+      customProtocol: body.customProtocol,
+      customModelsJson: body.customModelsJson,
+      inputModalities: body.inputModalities,
+    });
+  } catch (err) {
+    log.error(`Provider key creation failed for ${body.provider}:`, err);
+    sendJson(res, 500, { error: formatError(err) || "Failed to create provider key" });
+    return;
+  }
+  const { entry, shouldActivate } = created;
 
   onTelemetryTrack?.("provider.key_added", { provider: body.provider, isFirst: shouldActivate });
 
@@ -174,8 +189,16 @@ const activateKey: EndpointHandler = async (_req, res, _url, params, ctx: ApiCon
     await snapshotEngine.recordActivation(entry.id, entry.provider, entry.model);
   }
 
-  // LLM Manager action: full activate transaction (sessions.patch + auth-profiles + config)
-  await rootStore.llmManager.activateProvider(id);
+  // LLM Manager action: full activate transaction (auth-profiles + config
+  // default + gateway restart). Existing sessions are never patched; only the
+  // global default changes, and a failed step must reach the UI as an error.
+  try {
+    await rootStore.llmManager.activateProvider(id);
+  } catch (err) {
+    log.error(`Provider activation failed for ${entry.provider}:`, err);
+    sendJson(res, 500, { error: formatError(err) || "Failed to activate provider" });
+    return;
+  }
 
   onTelemetryTrack?.("provider.activated", { provider: entry.provider });
 
@@ -300,16 +323,25 @@ const updateKey: EndpointHandler = async (req, res, _url, params, ctx: ApiContex
     await snapshotEngine.recordDeactivation(existing.id, existing.provider, existing.model);
   }
 
-  // LLM Manager action: full update transaction (sessions.patch + auth-profiles + config)
-  const { updated } = await rootStore.llmManager.updateKey(id, {
-    label: body.label,
-    model: body.model,
-    apiKey: body.apiKey,
-    proxyUrl: body.proxyUrl,
-    baseUrl: body.baseUrl,
-    inputModalities: body.inputModalities,
-    customModelsJson: body.customModelsJson,
-  });
+  // LLM Manager action: full update transaction (auth-profiles + config default +
+  // gateway restart when the active key's model changes). A failed restart must
+  // reach the UI as an error instead of a generic 500.
+  let updated: Awaited<ReturnType<typeof rootStore.llmManager.updateKey>>["updated"];
+  try {
+    ({ updated } = await rootStore.llmManager.updateKey(id, {
+      label: body.label,
+      model: body.model,
+      apiKey: body.apiKey,
+      proxyUrl: body.proxyUrl,
+      baseUrl: body.baseUrl,
+      inputModalities: body.inputModalities,
+      customModelsJson: body.customModelsJson,
+    }));
+  } catch (err) {
+    log.error(`Provider key update failed for ${existing.provider}:`, err);
+    sendJson(res, 500, { error: formatError(err) || "Failed to update provider key" });
+    return;
+  }
 
   if (modelChanging && existing.isDefault && snapshotEngine && body.model) {
     await snapshotEngine.recordActivation(existing.id, existing.provider, body.model);
@@ -380,8 +412,7 @@ const getSessionModel: EndpointHandler = async (_req, res, url, _params, _ctx) =
     sendJson(res, 400, { error: "Missing sessionKey query param" });
     return;
   }
-  rootStore.llmManager.trackSessionActivity(sessionKey);
-  const info = rootStore.llmManager.getSessionModelInfo(sessionKey);
+  const info = await rootStore.llmManager.refreshSessionModelInfo(sessionKey);
   sendJson(res, 200, info);
 };
 

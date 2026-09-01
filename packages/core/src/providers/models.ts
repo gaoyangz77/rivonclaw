@@ -1139,8 +1139,21 @@ for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
   }
 }
 
-/** Ordered list of all provider IDs (root + subscription plans). */
-export const ALL_PROVIDERS: LLMProvider[] = _allProviders;
+const DISABLED_PROVIDER_IDS = new Set<LLMProvider>(["nvidia", "nvidia-nim"]);
+
+/** Ordered list of provider IDs offered by the product UI and catalog. */
+export const ALL_PROVIDERS: LLMProvider[] = _allProviders.filter(
+  (provider) => !DISABLED_PROVIDER_IDS.has(provider),
+);
+
+/**
+ * Whether a provider id has been withdrawn from the product. Its metadata
+ * stays readable so historical keys still render, but it must not be offered,
+ * created, or activated again.
+ */
+export function isDisabledProvider(provider: string): boolean {
+  return DISABLED_PROVIDER_IDS.has(provider as LLMProvider);
+}
 
 /**
  * Get resolved metadata for any provider ID (root or subscription plan).
@@ -1228,7 +1241,7 @@ export const SUBSCRIPTION_PROVIDER_IDS: LLMProvider[] = (() => {
   const ids: LLMProvider[] = [];
   for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
     for (const plan of PROVIDERS[root].subscriptionPlans ?? []) {
-      ids.push(plan.id);
+      if (!DISABLED_PROVIDER_IDS.has(plan.id)) ids.push(plan.id);
     }
   }
   return ids;
@@ -1496,7 +1509,6 @@ export function getProvidersForRegion(region: string): LLMProvider[] {
       "minimax-cn",
       "minimax-coding",
       "xiaomi",
-      "nvidia-nim",
       "openai",
       "openai-codex",
       "anthropic",
@@ -1514,7 +1526,6 @@ export function getProvidersForRegion(region: string): LLMProvider[] {
     "deepseek",
     "moonshot",
     "zai",
-    "nvidia-nim",
     "groq",
     "mistral",
     "xai",
