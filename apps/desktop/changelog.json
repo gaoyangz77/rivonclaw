@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.0",
+    "date": "2026-09-01",
+    "en": [
+      "Upgrade the OpenClaw engine to v2026.8.1 with atomic legacy database migration and a reliable global default model switch that restarts the gateway without touching existing conversations",
+      "Withdraw NVIDIA provider support and surface activation and gateway restart errors clearly in the panel"
+    ],
+    "zh": [
+      "升级 OpenClaw 引擎至 v2026.8.1，旧版数据库迁移原子化；激活全局默认模型后可靠重启 Gateway，且不影响已有会话",
+      "下线 NVIDIA 供应商支持，激活或 Gateway 重启失败时在面板中明确报错"
+    ]
+  },
+  {
     "version": "1.8.120",
     "date": "2026-08-31",
     "en": [
