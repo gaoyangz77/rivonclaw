@@ -301,6 +301,9 @@ describe("gateway config builder", () => {
     });
 
     const config = await builder.buildFullGatewayConfig(18789);
+    // NVIDIA is withdrawn from the product: the packaged runtime must not
+    // allow its provider plugin while the UI refuses to offer it.
+    expect(config.plugins?.allow).not.toContain("nvidia");
     expect(config.imageGenerationModel).toBeUndefined();
     const cloudToolsEntry = config.plugins?.entries?.["rivonclaw-cloud-tools"] as
       | { hooks?: { allowConversationAccess?: boolean } }

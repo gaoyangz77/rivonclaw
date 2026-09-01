@@ -1,9 +1,10 @@
 import { types, flow, getRoot } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
 import {
+  isDisabledProvider,
   parseProxyUrl,
+  resolveGatewayModelParts,
   resolveGatewayProvider,
-  stripProviderPrefix,
   getApiBaseUrl,
   ScopeType,
   isUsageQueryableProvider,
@@ -62,7 +63,7 @@ export interface LLMProviderManagerEnv {
     entry: ProviderKeyEntry,
     remove?: boolean,
   ) => Promise<void> | void;
-  /** Full gateway restart (stop + start). Reloads plugins. */
+  /** Connector-owned full gateway restart (stop + start). */
   restartGateway: () => Promise<void>;
   /** Proxy-aware fetch (routes through proxy-router for users behind a proxy). */
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
@@ -143,9 +144,19 @@ function isCloudLlmKeyUnavailableError(err: unknown): boolean {
 // ---------------------------------------------------------------------------
 
 function resolveModelRef(provider: string, model: string, authType?: string): string {
-  const gwProvider =
-    authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
-  return `${gwProvider}/${stripProviderPrefix(model, gwProvider)}`;
+  const runtime = resolveGatewayModelParts({ provider, model, authType });
+  if (!runtime) throw new Error(`Invalid provider model selection: ${provider}/${model}`);
+  return `${runtime.provider}/${runtime.modelId}`;
+}
+
+/**
+ * Withdrawn providers keep their historical metadata readable, but the
+ * product must not create or activate them again.
+ */
+function assertProviderEnabled(provider: string, action: string): void {
+  if (isDisabledProvider(provider)) {
+    throw new Error(`Provider ${provider} is no longer supported and cannot be ${action}`);
+  }
 }
 
 function splitModelRef(modelRef: string): SessionModelOverride {
@@ -163,10 +174,18 @@ function splitModelRef(modelRef: string): SessionModelOverride {
 // MST Model
 // ---------------------------------------------------------------------------
 
-/** Per-session model override (volatile — not persisted, cleared on app restart). */
+/** Desktop's cached view of the durable OpenClaw per-session model override. */
 export interface SessionModelOverride {
   provider: string;
   model: string;
+}
+
+interface GatewaySessionDescription {
+  session?: {
+    model?: unknown;
+    modelProvider?: unknown;
+    modelOverrideSource?: unknown;
+  } | null;
 }
 
 export type SessionModelMode = "default" | "explicit" | "scope";
@@ -377,6 +396,24 @@ export const LLMProviderManagerModel = types
       });
     }
 
+    function resolveDesktopSessionSelection(
+      gatewayProvider: string,
+      gatewayModel: string,
+    ): SessionModelOverride {
+      const { storage } = getEnvDeps();
+      const matchingEntry = storage.providerKeys.getAll().find((entry) => {
+        const runtimeProvider =
+          entry.authType === "custom"
+            ? entry.provider
+            : resolveGatewayProvider(entry.provider as LLMProvider);
+        return runtimeProvider === gatewayProvider;
+      });
+      return {
+        provider: matchingEntry?.provider ?? gatewayProvider,
+        model: gatewayModel,
+      };
+    }
+
     /** Check if a provider/model combo is available in the cached catalog. */
     function isModelAvailable(provider: string, model: string): boolean {
       if (self.catalogModelIds.size === 0) return true; // no catalog yet, allow
@@ -412,11 +449,18 @@ export const LLMProviderManagerModel = types
      */
     function writeDefaultModel(provider: string, modelId: string, authType?: string): void {
       const { writeDefaultModelToConfig } = getEnvDeps();
-      const gwProvider =
-        authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
-      const gatewayModelId = stripProviderPrefix(modelId, gwProvider);
-      writeDefaultModelToConfig(gwProvider, gatewayModelId, provider);
-      log.info(`Updated default model to ${gwProvider}/${gatewayModelId}`);
+      const runtime = resolveGatewayModelParts({ provider, model: modelId, authType });
+      if (!runtime) throw new Error(`Invalid provider model selection: ${provider}/${modelId}`);
+      writeDefaultModelToConfig(runtime.provider, runtime.modelId, provider);
+      log.info(`Updated default model to ${runtime.provider}/${runtime.modelId}`);
+    }
+
+    async function applyDefaultModelRuntimeChange(reason: string): Promise<void> {
+      const { restartGateway } = getEnvDeps();
+      self.appliedSessionModelRefs.clear();
+      log.info(`Restarting gateway to apply default model change (${reason})`);
+      await restartGateway();
+      log.info(`Applied default model change (${reason})`);
     }
 
     /**
@@ -515,6 +559,53 @@ export const LLMProviderManagerModel = types
       clearAppliedSessionModelState() {
         self.appliedSessionModelRefs.clear();
       },
+
+      /**
+       * Reconcile Desktop's volatile model fact with OpenClaw's durable state.
+       * `sessions.describe` is an exact-key lookup, so this does not materialize
+       * or scan the session catalog for customers with large stores.
+       */
+      refreshSessionModelInfo: flow(function* (sessionKey: string) {
+        const { getRpcClient } = getEnvDeps();
+        if (!self.sessionModelFacts.has(sessionKey)) {
+          markDefaultFollowing(sessionKey);
+        }
+        const rpc = getRpcClient();
+        if (!rpc) return self.getSessionModelInfo(sessionKey);
+
+        let result: GatewaySessionDescription;
+        try {
+          result = (yield rpc.request("sessions.describe", {
+            key: sessionKey,
+          })) as GatewaySessionDescription;
+        } catch (err) {
+          // The Gateway may be restarting or mid-reconnect (for example right
+          // after a default-model activation). Desktop's own model fact stays
+          // the answer for the UI in that window; the warning keeps a
+          // systematic describe failure visible in the logs.
+          log.warn(
+            `sessions.describe failed for ${sessionKey}; answering from Desktop's model fact:`,
+            err,
+          );
+          return self.getSessionModelInfo(sessionKey);
+        }
+        const row = result?.session;
+        if (
+          row?.modelOverrideSource === "user" &&
+          typeof row.modelProvider === "string" &&
+          row.modelProvider.length > 0 &&
+          typeof row.model === "string" &&
+          row.model.length > 0
+        ) {
+          const selection = resolveDesktopSessionSelection(row.modelProvider, row.model);
+          self.sessionOverrides.set(sessionKey, selection);
+          markExplicit(sessionKey, selection);
+        } else {
+          self.sessionOverrides.delete(sessionKey);
+          markDefaultFollowing(sessionKey);
+        }
+        return self.getSessionModelInfo(sessionKey);
+      }),
 
       /**
        * Resolve a concrete gateway provider/model without mutating the session.
@@ -633,6 +724,7 @@ export const LLMProviderManagerModel = types
         // Update the OpenClaw config default without mutating individual sessions.
         if (entry.isDefault) {
           writeDefaultModel(entry.provider, newModel, entry.authType);
+          yield applyDefaultModelRuntimeChange("active key model switched");
         }
 
         return updated;
@@ -647,6 +739,7 @@ export const LLMProviderManagerModel = types
 
         const entry = storage.providerKeys.getById(keyId);
         if (!entry) throw new Error("Provider key not found");
+        assertProviderEnabled(entry.provider, "activated");
 
         const oldActive = storage.providerKeys.getActive();
 
@@ -670,6 +763,12 @@ export const LLMProviderManagerModel = types
           secretStore,
         );
         self.root.loadProviderKeys(mstKeys);
+
+        // OpenClaw resolves the process default while constructing its prepared
+        // model runtime. A config write that races gateway startup can happen
+        // after that read but before the hot-reload watcher is ready, so a
+        // deterministic restart is part of the activation transaction.
+        yield applyDefaultModelRuntimeChange("provider activated");
 
         return {
           entry: storage.providerKeys.getById(keyId) ?? entry,
@@ -695,6 +794,8 @@ export const LLMProviderManagerModel = types
         proxyCredentials?: string;
       }) {
         const { storage, secretStore, syncActiveKey, toMstSnapshot } = getEnvDeps();
+
+        assertProviderEnabled(data.provider, "added");
 
         const id = randomUUID();
         const isLocal = data.authType === "local";
@@ -756,6 +857,7 @@ export const LLMProviderManagerModel = types
         if (shouldActivate) {
           activateVendorAuth(entry);
           writeDefaultModel(entry.provider, entry.model, entry.authType);
+          yield applyDefaultModelRuntimeChange("first provider created");
         }
 
         return { entry, shouldActivate };
@@ -843,6 +945,7 @@ export const LLMProviderManagerModel = types
         // mutating individual sessions.
         if (existing.isDefault && modelChanging && fields.model) {
           writeDefaultModel(existing.provider, fields.model, existing.authType);
+          yield applyDefaultModelRuntimeChange("active key model updated");
         }
 
         // If active key and proxy changed: patch sessions + update config
@@ -940,6 +1043,10 @@ export const LLMProviderManagerModel = types
         // through its locked, atomic planner on reload/startup.
         if (updated) {
           yield syncAuthProxyAndConfig(updated);
+          if (updated.isDefault && updated.model !== existing.model) {
+            writeDefaultModel(updated.provider, updated.model, updated.authType);
+            yield applyDefaultModelRuntimeChange("active catalog model changed");
+          }
         }
 
         return updated;
@@ -1133,6 +1240,11 @@ export const LLMProviderManagerModel = types
             yield syncAuthProxyAndConfig(nextEntry);
           }
 
+          if (existing.isDefault && modelChanged) {
+            writeDefaultModel(nextEntry.provider, nextEntry.model, nextEntry.authType);
+            yield applyDefaultModelRuntimeChange("cloud default model changed");
+          }
+
           // Re-project only after the authoritative config has been updated.
           const freshEntry = storage.providerKeys.getById(existing.id) ?? nextEntry;
           const mstEntry: MstProviderKeySnapshot = yield toMstSnapshot(freshEntry, secretStore);
@@ -1198,6 +1310,7 @@ export const LLMProviderManagerModel = types
         if (shouldActivate) {
           activateVendorAuth(entry);
           writeDefaultModel(entry.provider, entry.model, entry.authType);
+          yield applyDefaultModelRuntimeChange("cloud provider activated");
         }
 
         log.info(`Created cloud provider key (activated: ${shouldActivate})`);

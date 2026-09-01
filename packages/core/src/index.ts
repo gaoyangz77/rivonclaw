@@ -125,6 +125,7 @@ export {
   KNOWN_MODELS,
   initKnownModels,
   ALL_PROVIDERS,
+  isDisabledProvider,
   SUBSCRIPTION_PROVIDER_IDS,
   API_PROVIDER_IDS,
   LOCAL_PROVIDER_IDS,

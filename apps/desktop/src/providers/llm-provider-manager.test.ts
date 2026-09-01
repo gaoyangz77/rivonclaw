@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, vi, type Mock } from "vitest";
 import {
   ScopeType,
   resetFirstPartyDomainRouteForTests,
@@ -148,7 +148,7 @@ describe("LLMProviderManager", () => {
       mode: "default",
       isOverridden: false,
     });
-    expect(restartGateway).not.toHaveBeenCalled();
+    expect(restartGateway).toHaveBeenCalledOnce();
   });
 
   it("migrates a refreshed cloud catalog from a legacy model to Flagship", async () => {
@@ -348,7 +348,144 @@ describe("LLMProviderManager", () => {
     });
   });
 
-  it("updates gateway default without eagerly resetting sessions on default provider activation", async () => {
+  it("hydrates a durable user model override with an exact session lookup", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue({
+      session: {
+        key: "agent:main:main",
+        modelProvider: "kimi",
+        model: "moonshot-v1-8k",
+        modelOverrideSource: "user",
+      },
+    });
+    const entry: ProviderKeyEntry = {
+      id: "key-default",
+      provider: "rivonclaw-pro",
+      label: "TK Copilot AI",
+      model: "rivonclaw-flagship",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://example.test/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "rivonclaw-flagship" }]),
+      createdAt: "",
+      updatedAt: "",
+    };
+    const kimiEntry: ProviderKeyEntry = {
+      ...entry,
+      id: "key-kimi",
+      provider: "kimi",
+      label: "Kimi",
+      model: "moonshot-v1-8k",
+      isDefault: false,
+      authType: "api_key",
+    };
+
+    initLLMProviderManagerEnv({
+      storage: {
+        providerKeys: {
+          getActive: () => entry,
+          getById: (id: string) => [entry, kimiEntry].find((key) => key.id === id),
+          getAll: () => [entry, kimiEntry],
+        },
+      } as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig: async () => {},
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await expect(
+      rootStore.llmManager.refreshSessionModelInfo("agent:main:main"),
+    ).resolves.toMatchObject({
+      provider: "kimi",
+      model: "moonshot-v1-8k",
+      mode: "explicit",
+      isOverridden: true,
+    });
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.describe", { key: "agent:main:main" });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.list", expect.anything());
+  });
+
+  it("clears stale volatile overrides when the durable session follows the default", async () => {
+    const rpcRequest = vi
+      .fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce({
+        session: {
+          key: "agent:main:main",
+          modelProvider: "rivonclaw-pro",
+          model: "rivonclaw-flagship",
+          modelOverrideSource: null,
+        },
+      });
+    const entry: ProviderKeyEntry = {
+      id: "key-default",
+      provider: "rivonclaw-pro",
+      label: "TK Copilot AI",
+      model: "rivonclaw-flagship",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://example.test/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "rivonclaw-flagship" }]),
+      createdAt: "",
+      updatedAt: "",
+    };
+
+    initLLMProviderManagerEnv({
+      storage: {
+        providerKeys: {
+          getActive: () => entry,
+          getById: () => entry,
+          getAll: () => [entry],
+        },
+      } as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig: async () => {},
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await rootStore.llmManager.switchModelForSession(
+      "agent:main:main",
+      "kimi",
+      "moonshot-v1-8k",
+    );
+    expect(rpcRequest).toHaveBeenNthCalledWith(1, "sessions.patch", {
+      key: "agent:main:main",
+      model: "kimi/moonshot-v1-8k",
+    });
+    await expect(
+      rootStore.llmManager.refreshSessionModelInfo("agent:main:main"),
+    ).resolves.toMatchObject({
+      provider: "rivonclaw-pro",
+      model: "rivonclaw-flagship",
+      mode: "default",
+      isOverridden: false,
+    });
+  });
+
+  it("restarts for a new global default without mutating existing sessions", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
     const restartGateway = vi.fn();
@@ -431,6 +568,10 @@ describe("LLMProviderManager", () => {
       "rivonclaw-pro",
     );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+    expect(rootStore.llmManager.getSessionModel("chat-session-explicit")).toEqual({
+      provider: "kimi",
+      model: "moonshot-v1-8k",
+    });
     expect(rootStore.llmManager.getSessionModel("telegram-session-default")).toBeNull();
     expect(rootStore.llmManager.getSessionModelFact("telegram-session-default")).toMatchObject({
       mode: "default",
@@ -450,14 +591,11 @@ describe("LLMProviderManager", () => {
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.list", expect.anything());
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
-      key: "chat-session-explicit",
-      model: null,
-    });
-    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
       key: "historical-session-default",
       model: null,
     });
-    expect(restartGateway).not.toHaveBeenCalled();
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.list", expect.anything());
+    expect(restartGateway).toHaveBeenCalledOnce();
   });
 
   it("creates a default cloud provider without eagerly resetting active channel sessions", async () => {
@@ -557,7 +695,7 @@ describe("LLMProviderManager", () => {
 
     await rootStore.llmManager.applyModelForSession("agent:main:telegram:default:direct:42");
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
-    expect(restartGateway).not.toHaveBeenCalled();
+    expect(restartGateway).toHaveBeenCalledOnce();
   });
 
   it("rotates an existing cloud key and migrates a removed model to Flagship", async () => {
@@ -710,9 +848,13 @@ describe("LLMProviderManager", () => {
     );
     expect(entry.inputModalities).toEqual(["text", "image"]);
     expect(writeFullGatewayConfig).toHaveBeenCalled();
-    expect(writeDefaultModelToConfig).not.toHaveBeenCalled();
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
+      "rivonclaw-pro",
+      "rivonclaw-flagship",
+      "rivonclaw-pro",
+    );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
-    expect(restartGateway).not.toHaveBeenCalled();
+    expect(restartGateway).toHaveBeenCalledOnce();
   });
 
   it("persists a routed cloud endpoint before re-projecting Vendor-owned provider state", async () => {
@@ -1136,6 +1278,242 @@ describe("LLMProviderManager", () => {
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-1",
       model: "rivonclaw-pro/gpt-5.4",
+    });
+  });
+
+  async function initActivationFixture(
+    overrides: {
+      writeDefaultModelToConfig?: Mock;
+      restartGateway?: Mock;
+      rpcRequest?: Mock;
+      getRpcClient?: () => unknown;
+      keys?: ProviderKeyEntry[];
+    } = {},
+  ) {
+    const rpcRequest = overrides.rpcRequest ?? vi.fn().mockResolvedValue(true);
+    const writeDefaultModelToConfig = overrides.writeDefaultModelToConfig ?? vi.fn();
+    const restartGateway = overrides.restartGateway ?? vi.fn();
+    const keys: ProviderKeyEntry[] = overrides.keys ?? [
+      {
+        id: "key-kimi",
+        provider: "kimi",
+        label: "Kimi",
+        model: "moonshot-v1-8k",
+        isDefault: true,
+        authType: "api_key",
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "key-pro",
+        provider: "rivonclaw-pro",
+        label: "TK Copilot AI",
+        model: "gpt-5.4",
+        isDefault: false,
+        authType: "custom",
+        baseUrl: "https://example.test/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify([{ id: "gpt-5.4" }]),
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+    const create = vi.fn();
+    const storage = {
+      providerKeys: {
+        getActive: () => keys.find((k) => k.isDefault),
+        getById: (id: string) => keys.find((k) => k.id === id),
+        getAll: () => keys,
+        create,
+      },
+      settings: { set: vi.fn(), get: vi.fn() },
+    };
+    rootStore.loadProviderKeys(await allKeysToMstSnapshots(keys, mockSecretStore as any));
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: (overrides.getRpcClient ?? (() => ({ request: rpcRequest }))) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig,
+      writeFullGatewayConfig: async () => {},
+      restartGateway,
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+    // Earlier tests may leave a stale activeKeyId behind; mirror Desktop startup.
+    rootStore.llmManager.initFromStorage();
+
+    return { keys, storage, rpcRequest, writeDefaultModelToConfig, restartGateway, create };
+  }
+
+  it("answers a brand-new session from the global default when describe finds no row", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue({ session: null });
+    await initActivationFixture({ rpcRequest });
+
+    await expect(
+      rootStore.llmManager.refreshSessionModelInfo("agent:main:new-chat"),
+    ).resolves.toMatchObject({
+      provider: "kimi",
+      model: "moonshot-v1-8k",
+      mode: "default",
+      isOverridden: false,
+    });
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.describe", { key: "agent:main:new-chat" });
+    expect(rootStore.llmManager.getSessionModel("agent:main:new-chat")).toBeNull();
+  });
+
+  it("answers from Desktop's model fact when the gateway is not connected", async () => {
+    const rpcRequest = vi.fn();
+    await initActivationFixture({ rpcRequest, getRpcClient: () => null });
+
+    await expect(
+      rootStore.llmManager.refreshSessionModelInfo("agent:main:main"),
+    ).resolves.toMatchObject({
+      provider: "kimi",
+      model: "moonshot-v1-8k",
+      mode: "default",
+      isOverridden: false,
+    });
+    expect(rpcRequest).not.toHaveBeenCalled();
+  });
+
+  it("keeps a known session override when sessions.describe fails", async () => {
+    const rpcRequest = vi.fn().mockImplementation(async (method: string) => {
+      if (method === "sessions.patch") return true;
+      throw new Error("Request timed out after 30000ms: sessions.describe");
+    });
+    await initActivationFixture({
+      rpcRequest,
+      keys: [
+        {
+          id: "key-pro",
+          provider: "rivonclaw-pro",
+          label: "TK Copilot AI",
+          model: "gpt-5.4",
+          isDefault: true,
+          authType: "custom",
+          baseUrl: "https://example.test/llm/v1",
+          customProtocol: "openai",
+          customModelsJson: JSON.stringify([{ id: "gpt-5.4" }]),
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "key-kimi",
+          provider: "kimi",
+          label: "Kimi",
+          model: "moonshot-v1-8k",
+          isDefault: false,
+          authType: "api_key",
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+    });
+
+    await rootStore.llmManager.switchModelForSession("agent:main:main", "kimi", "moonshot-v1-8k");
+
+    await expect(
+      rootStore.llmManager.refreshSessionModelInfo("agent:main:main"),
+    ).resolves.toMatchObject({
+      provider: "kimi",
+      model: "moonshot-v1-8k",
+      mode: "explicit",
+      isOverridden: true,
+    });
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.describe", { key: "agent:main:main" });
+  });
+
+  it("rejects activation when the config write fails and keeps the previous default active", async () => {
+    const writeDefaultModelToConfig = vi.fn(() => {
+      throw new Error("disk full");
+    });
+    const { restartGateway } = await initActivationFixture({ writeDefaultModelToConfig });
+
+    await expect(rootStore.llmManager.activateProvider("key-pro")).rejects.toThrow("disk full");
+
+    expect(restartGateway).not.toHaveBeenCalled();
+    expect(rootStore.llmManager.getSessionModelInfo("agent:main:main")).toMatchObject({
+      provider: "kimi",
+      model: "moonshot-v1-8k",
+      mode: "default",
+    });
+    expect(rootStore.providerKeys.find((k) => k.id === "key-pro")?.isDefault).toBe(false);
+    expect(rootStore.providerKeys.find((k) => k.id === "key-kimi")?.isDefault).toBe(true);
+  });
+
+  it("propagates a failed gateway restart after the config default was written", async () => {
+    const restartGateway = vi
+      .fn()
+      .mockRejectedValue(new Error("OpenClawConnector: gateway failed to start: spawn ENOENT"));
+    const { writeDefaultModelToConfig, rpcRequest } = await initActivationFixture({
+      restartGateway,
+    });
+
+    await expect(rootStore.llmManager.activateProvider("key-pro")).rejects.toThrow(
+      "spawn ENOENT",
+    );
+
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
+      "rivonclaw-pro",
+      "gpt-5.4",
+      "rivonclaw-pro",
+    );
+    expect(restartGateway).toHaveBeenCalledOnce();
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+  });
+
+  it("refuses to activate or add a withdrawn provider", async () => {
+    const { writeDefaultModelToConfig, restartGateway, create } = await initActivationFixture({
+      keys: [
+        {
+          id: "key-kimi",
+          provider: "kimi",
+          label: "Kimi",
+          model: "moonshot-v1-8k",
+          isDefault: true,
+          authType: "api_key",
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "key-nvidia",
+          provider: "nvidia-nim",
+          label: "Legacy NVIDIA",
+          model: "meta/llama-3.1-70b-instruct",
+          isDefault: false,
+          authType: "api_key",
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+    });
+
+    await expect(rootStore.llmManager.activateProvider("key-nvidia")).rejects.toThrow(
+      "no longer supported",
+    );
+    await expect(
+      rootStore.llmManager.createKey({
+        provider: "nvidia-nim",
+        label: "NVIDIA",
+        model: "meta/llama-3.1-70b-instruct",
+        apiKey: "nvapi-test",
+      }),
+    ).rejects.toThrow("no longer supported");
+
+    expect(create).not.toHaveBeenCalled();
+    expect(writeDefaultModelToConfig).not.toHaveBeenCalled();
+    expect(restartGateway).not.toHaveBeenCalled();
+    expect(rootStore.llmManager.getSessionModelInfo("agent:main:main")).toMatchObject({
+      provider: "kimi",
+      mode: "default",
     });
   });
 });
