@@ -9601,6 +9601,7 @@ export interface InventoryGoodMapping {
 
 /** External inventory/catalog source system */
 export const InventoryGoodMappingSourceSystem = {
+  Jfwms: 'JFWMS',
   Lingxing: 'LINGXING',
   Sellfox: 'SELLFOX',
   TiktokFbt: 'TIKTOK_FBT',
@@ -15227,6 +15228,7 @@ export interface WarehouseAddressInput {
 /** System or provider that owns the physical or platform warehouse */
 export const WarehouseProvider = {
   AmazonFba: 'AMAZON_FBA',
+  Jfwms: 'JFWMS',
   Lingxing: 'LINGXING',
   Seller: 'SELLER',
   Sellfox: 'SELLFOX',
@@ -15370,6 +15372,7 @@ export interface WmsAccount {
 
 /** Third-party WMS provider */
 export const WmsAccountProvider = {
+  Jfwms: 'JFWMS',
   Lingxing: 'LINGXING',
   Sellfox: 'SELLFOX',
   Xlwms: 'XLWMS',

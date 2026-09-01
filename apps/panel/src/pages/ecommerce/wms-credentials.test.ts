@@ -11,6 +11,12 @@ describe("wmsApiTokenIssue", () => {
     expect(wmsApiTokenIssue("XLWMS", '{"appKey":"key","appSecret":"secret"}')).toBeNull();
     expect(wmsApiTokenIssue("LINGXING", '{"appId":"id","appSecret":"secret"}')).toBeNull();
     expect(wmsApiTokenIssue("SELLFOX", '{"clientId":"id","clientSecret":"secret"}')).toBeNull();
+    expect(
+      wmsApiTokenIssue(
+        "JFWMS",
+        '{"clientId":"id","clientSecret":"secret","refreshToken":"refresh","userId":"8"}',
+      ),
+    ).toBeNull();
   });
 
   it("rejects the plain string that broke the nightly inventory sync", () => {
@@ -31,6 +37,9 @@ describe("wmsApiTokenIssue", () => {
     expect(wmsApiTokenIssue("SELLFOX", '{"appId":"id","appSecret":"secret"}')).toBe(
       "missingFields",
     );
+    expect(
+      wmsApiTokenIssue("JFWMS", '{"clientId":"id","clientSecret":"secret"}'),
+    ).toBe("missingFields");
   });
 
   it("treats an empty field as no issue, so editing can keep the stored token", () => {
