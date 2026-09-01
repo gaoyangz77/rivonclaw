@@ -38,7 +38,7 @@ rm -f .pruned vendor-runtime.tar vendor-runtime.tar.gz vendor-runtime-manifest.j
 VENDOR_PNPM="$(node "$REPO_ROOT/scripts/vendor-pnpm.cjs" "$REPO_ROOT/vendor/openclaw")"
 
 vendor_pnpm() {
-  "$VENDOR_PNPM" "$@"
+  node "$VENDOR_PNPM" "$@"
 }
 
 echo "Using vendor pnpm $VENDOR_PNPM"

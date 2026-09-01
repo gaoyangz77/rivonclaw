@@ -34,7 +34,9 @@ anything else, so check `vendor/openclaw/package.json` before running this.
 ### vendor-pnpm.cjs
 
 Resolves the pnpm release pinned by a vendor checkout and prints the absolute
-path to its binary, installing it into `tmp/vendor-pnpm/<version>` on first use.
+path to its JavaScript CLI entry (`pnpm/bin/pnpm.mjs`), installing it into
+`tmp/vendor-pnpm/<version>` on first use. Callers run it as `node <entry> ...`,
+so Windows never has to spawn a `.cmd` shim.
 It installs **outside** the vendor tree on purpose: `vendor/openclaw/.npmrc`
 sets a `min-release-age` dependency cooldown, and npm applies that cooldown to
 whatever it resolves from inside the vendor directory — including the package
