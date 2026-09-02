@@ -78,21 +78,22 @@ export function OfficeShutter({
       >
         {children}
       </div>
-      {!rolling && (
-        // The door's lower edge: the only thing to grab while it is down, and
-        // the only cost the office carries while nobody is looking at it.
-        <div
-          className="office-shutter-handle"
-          role="button"
-          tabIndex={0}
-          aria-label={t("office.pullUp")}
-          title={t("office.pullUp")}
-          onPointerDown={startDrag}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") shutter.open();
-          }}
-        />
-      )}
+      {/* The door's lower edge: the only thing to grab while the door is
+          down. Always mounted - it must survive the drag it starts - and only
+          hidden while the door is up, when the office's own grip takes over. */}
+      <div
+        className={`office-shutter-handle${
+          rolling && !shutter.dragging ? " office-shutter-handle--hidden" : ""
+        }`}
+        role="button"
+        tabIndex={0}
+        aria-label={t("office.pullUp")}
+        title={t("office.pullUp")}
+        onPointerDown={startDrag}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") shutter.open();
+        }}
+      />
       {rolling && (
         <div className="office-stage">
           <OfficeOverlay onExit={shutter.close} />

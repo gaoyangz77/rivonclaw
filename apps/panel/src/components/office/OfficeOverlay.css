@@ -41,6 +41,14 @@
   opacity: 1;
 }
 
+/* Out of the way while the door is up: the rolled-up door's own grip, along
+   the top, is the thing to grab then. Hidden, not unmounted, so a drag that
+   began on this strip keeps its element until the finger lets go. */
+.office-shutter-handle--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .office-shutter-handle:hover::before,
 .office-shutter-handle:focus-visible::before {
   opacity: 1;
