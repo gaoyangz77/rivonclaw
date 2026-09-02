@@ -4336,7 +4336,7 @@ export interface AffiliateRelationshipWorkSummary {
 export interface AffiliateResolveEscalationInput {
   decision: Scalars['String']['input'];
   escalationId: Scalars['ID']['input'];
-  instructions: Scalars['String']['input'];
+  instructions?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface AffiliateResponseHorizon {

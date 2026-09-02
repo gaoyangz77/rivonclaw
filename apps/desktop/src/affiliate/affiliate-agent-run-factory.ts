@@ -333,20 +333,27 @@ const SAMPLE_TERMINAL_CAUSE_PROSE: Record<
  *
  * An `ESCALATION_RESOLUTION` item is the Agent being woken up because staff
  * finished the manual work it asked for — a second Sample shipment, a business
- * answer it could not get from a tool. The Backend has carried the decision and
- * instructions on the agenda item all along; neither selection set fetched them
- * and nothing rendered them, so the Agent was woken with a key, a kind, and no
- * idea what staff had decided. It could not tell the Creator anything. The only
- * production escalation to date — a Creator asking for the tracking number of a
- * reshipped necklace — would have hit exactly that on resolution.
+ * answer it could not get from a tool. Staff write that answer as one free-text
+ * note in the Panel and the Backend carries it on the agenda item as
+ * `escalationDecision`: what was decided and what the Agent should do next, in
+ * the same breath. `escalationInstructions` is an optional second line left
+ * over from an earlier two-box form; render it when it is present and never
+ * require it.
+ *
+ * Neither selection set used to fetch these fields and nothing rendered them,
+ * so the Agent was woken with a key, a kind, and no idea what staff had
+ * decided. It could not tell the Creator anything. The only production
+ * escalation to date — a Creator asking for the tracking number of a reshipped
+ * necklace — would have hit exactly that on resolution.
  *
  * An item of this kind without a decision is a contract violation, not a case to
- * paper over: the Backend emits the item only from a resolved escalation.
+ * paper over: the Backend emits the item only from a resolved escalation, and
+ * the resolve boundary requires the decision.
  */
 function renderEscalationResolution(item: GQL.AffiliateRelationshipAgendaItem): string[] {
-  if (!item.escalationDecision?.trim() || !item.escalationInstructions?.trim()) {
+  if (!item.escalationDecision?.trim()) {
     throw new Error(
-      `Affiliate agenda item ${item.key} is an ESCALATION_RESOLUTION without a staff decision or instructions; refuse to wake the Agent on an answer it cannot read.`,
+      `Affiliate agenda item ${item.key} is an ESCALATION_RESOLUTION without a staff decision; refuse to wake the Agent on an answer it cannot read.`,
     );
   }
   return [
@@ -354,7 +361,7 @@ function renderEscalationResolution(item: GQL.AffiliateRelationshipAgendaItem): 
     `   Escalation — the question you asked staff: ${item.escalationQuestion ?? "(unavailable)"}`,
     ...(item.escalationContext?.trim() ? [`   Escalation — the context you gave staff: ${item.escalationContext}`] : []),
     `   Staff Decision: ${item.escalationDecision}`,
-    `   Staff Instructions: ${item.escalationInstructions}`,
+    ...(item.escalationInstructions?.trim() ? [`   Staff Instructions: ${item.escalationInstructions}`] : []),
     "   This is staff's final answer to the escalation you raised on this Relationship. Act on it now: tell the Creator the outcome in the conversation where the matter was raised, then continue the original work it unblocked. Do not ask staff the same question again.",
   ];
 }
