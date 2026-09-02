@@ -115,6 +115,11 @@ export const Layout = observer(function Layout({
 
   return (
     <div className="layout-root">
+      {/* The whole app is a roller shutter door with the pixel office behind
+          it. Down (the normal state) the door is just the app plus a grab strip
+          along its lower edge; the office is not mounted until something lifts
+          the door, so the canvas renderer costs nothing while people work. */}
+      <OfficeShutter shutter={shutter}>
       <GlobalBannerStack onNavigate={onNavigate} onCurrentVersionChange={setCurrentVersion} />
       <div className="layout-body">
         <aside
@@ -172,9 +177,7 @@ export const Layout = observer(function Layout({
           </main>
         </div>
       </div>
-      {/* Always mounted, but only as a grab strip until pulled down - the canvas
-          renderer costs nothing during the hours a user is actually working. */}
-      <OfficeShutter shutter={shutter} />
+      </OfficeShutter>
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => {

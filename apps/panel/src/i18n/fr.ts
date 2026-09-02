@@ -7,8 +7,8 @@ export default {
     open: "Vue bureau",
     openHint: "Afficher le bureau des agents",
     unavailable: "La vue bureau n'est pas disponible dans cette version.",
-    pullDown: "Dérouler le bureau des agents",
-    pullUp: "Remonter le bureau des agents",
+    pullDown: "Rabaisser le rideau",
+    pullUp: "Relever le rideau pour voir le bureau",
     label: {
       idle: "Au repos",
       idleSlacking: "Glandouille",

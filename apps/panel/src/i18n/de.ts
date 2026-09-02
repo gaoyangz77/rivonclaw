@@ -7,8 +7,8 @@ export default {
     open: "Büroansicht",
     openHint: "Agenten-Büro anzeigen",
     unavailable: "Die Büroansicht ist in diesem Build nicht verfügbar.",
-    pullDown: "Agenten-Büro herunterziehen",
-    pullUp: "Agenten-Büro wieder hochrollen",
+    pullDown: "Rollladen wieder herunterlassen",
+    pullUp: "Rollladen hochziehen und ins Büro schauen",
     label: {
       idle: "Leerlauf",
       idleSlacking: "Drückt sich",
