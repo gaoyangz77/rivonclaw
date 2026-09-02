@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -38,7 +38,7 @@ import {
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_AI_READINESS_QUERY,
-  AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY,
+  AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
   AFFILIATE_PRODUCT_SUMMARIES_QUERY,
@@ -140,7 +140,43 @@ const emptyForm: CampaignForm = {
   messageProductName: "",
 };
 
+/**
+ * Which pane of the search workspace is on screen. The Creator table is the
+ * home view; the search-conditions list is a secondary pane used to narrow it.
+ */
+type CampaignSearchWorkspaceView = "creators" | "conditions";
+
 const stateStatusOptions = Object.values(GQL.AffiliateCampaignCreatorStateStatus);
+
+/**
+ * "Sent" in the operator's vocabulary: the invitation reached the Creator,
+ * whether or not they have replied yet. Mirrors `campaignOutreachDisposition`'s
+ * "reached" bucket so the preset and the disposition column agree.
+ */
+export const SENT_CREATOR_STATE_STATUSES: readonly GQL.AffiliateCampaignCreatorStateStatus[] = [
+  GQL.AffiliateCampaignCreatorStateStatus.ReachedOut,
+  GQL.AffiliateCampaignCreatorStateStatus.Replied,
+];
+
+export function isSentCreatorStatePreset(
+  selected: readonly GQL.AffiliateCampaignCreatorStateStatus[],
+): boolean {
+  return (
+    selected.length === SENT_CREATOR_STATE_STATUSES.length &&
+    SENT_CREATOR_STATE_STATUSES.every((status) => selected.includes(status))
+  );
+}
+
+/**
+ * Returns the current selection untouched when it already equals the preset so
+ * a repeated click is a no-op for React state, and the preset otherwise.
+ */
+export function applySentCreatorStatePreset(
+  current: GQL.AffiliateCampaignCreatorStateStatus[],
+): GQL.AffiliateCampaignCreatorStateStatus[] {
+  return isSentCreatorStatePreset(current) ? current : [...SENT_CREATOR_STATE_STATUSES];
+}
+
 const eligibilityCategoryOptions = Object.values(GQL.AffiliateCampaignEligibilityCategory);
 const eligibilityReasonOptions = [
   "PROTECTION_LIST",
@@ -301,6 +337,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [selectedSearchPlanId, setSelectedSearchPlanId] = useState("");
+  const [searchWorkspaceView, setSearchWorkspaceView] =
+    useState<CampaignSearchWorkspaceView>("creators");
+  const searchWorkspaceRef = useRef<HTMLDivElement | null>(null);
   const [messageTemplateOpen, setMessageTemplateOpen] = useState(false);
   const [selectedCreatorDetail, setSelectedCreatorDetail] =
     useState<CreatorRelationshipDetailItem | null>(null);
@@ -372,20 +411,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       pollInterval: selectedCampaignId ? 15_000 : 0,
     },
   );
+  // Campaign-wide by default; a selected search plan narrows the same query.
   const creatorStatesQuery = useQuery<{
-    affiliateCampaignSearchPlanCreatorStates: CampaignCreatorStatePage;
-  }>(AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY, {
+    affiliateCampaignCreatorStates: CampaignCreatorStatePage;
+  }>(AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY, {
     variables: {
       input: {
         campaignId: selectedCampaignId,
-        searchPlanId: selectedSearchPlanId,
         limit: 50,
+        ...(selectedSearchPlanId ? { searchPlanId: selectedSearchPlanId } : {}),
         ...(stateStatuses.length ? { statuses: stateStatuses } : {}),
         ...(eligibilityCategories.length ? { eligibilityCategories } : {}),
         ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
       },
     },
-    skip: !selectedCampaignId || !selectedSearchPlanId,
+    skip: !selectedCampaignId,
   });
   const selectionReadinessQuery = useQuery<{
     affiliateCampaignSelectionReadiness: GQL.AffiliateCampaignSelectionReadiness;
@@ -410,7 +450,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
-    itemCount: creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates?.items.length ?? 0,
+    itemCount: creatorStatesQuery.data?.affiliateCampaignCreatorStates?.items.length ?? 0,
   });
 
   const [writeCampaign, writeCampaignState] = useMutation<
@@ -522,6 +562,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setEligibilityReasons([]);
     setSelectedCreatorDetail(null);
     setSelectedSearchPlanId("");
+    setSearchWorkspaceView("creators");
     setMessageTemplateOpen(false);
   }, [selectedCampaignId]);
 
@@ -963,31 +1004,50 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
 
   const loadMoreCreatorStates = async () => {
-    const nextCursor =
-      creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates?.nextCursor;
+    const nextCursor = creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor;
     if (!nextCursor) return;
     await creatorStatesQuery.fetchMore({
       variables: {
         input: {
           campaignId: selectedCampaignId,
-          searchPlanId: selectedSearchPlanId,
           limit: 50,
           cursor: nextCursor,
+          ...(selectedSearchPlanId ? { searchPlanId: selectedSearchPlanId } : {}),
           ...(stateStatuses.length ? { statuses: stateStatuses } : {}),
           ...(eligibilityCategories.length ? { eligibilityCategories } : {}),
           ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
         },
       },
       updateQuery: (previous, { fetchMoreResult }) => ({
-        affiliateCampaignSearchPlanCreatorStates: {
-          ...fetchMoreResult.affiliateCampaignSearchPlanCreatorStates,
+        affiliateCampaignCreatorStates: {
+          ...fetchMoreResult.affiliateCampaignCreatorStates,
           items: [
-            ...previous.affiliateCampaignSearchPlanCreatorStates.items,
-            ...fetchMoreResult.affiliateCampaignSearchPlanCreatorStates.items,
+            ...previous.affiliateCampaignCreatorStates.items,
+            ...fetchMoreResult.affiliateCampaignCreatorStates.items,
           ],
         },
       }),
     });
+  };
+
+  // Search-workspace navigation. A selected search plan only exists while the
+  // Creator table is on screen, so leaving for the conditions pane clears it.
+  const openSearchConditions = () => {
+    setSelectedSearchPlanId("");
+    setSearchWorkspaceView("conditions");
+  };
+  const showCampaignCreators = () => {
+    setSelectedSearchPlanId("");
+    setSearchWorkspaceView("creators");
+  };
+  const showSearchPlanCreators = (planId: string) => {
+    setSelectedSearchPlanId(planId);
+    setSearchWorkspaceView("creators");
+  };
+  const showSentCreators = () => {
+    setStateStatuses(applySentCreatorStatePreset);
+    showCampaignCreators();
+    searchWorkspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const loadMoreSearchPlans = async () => {
@@ -1746,6 +1806,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 3}
               deliveryFailureReasons={summary?.deliveryFailureReasons ?? []}
               searchPlanCount={latestExecution?.searchPlanExecutions?.length ?? 0}
+              onOpenSentCreators={showSentCreators}
               t={t}
             />
 
@@ -1757,13 +1818,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               data-tutorial-id="affiliate-campaign-detail-operations"
             >
               <div
-                className={`affiliate-campaign-search-workspace${currentSearchPlan ? " is-detail" : ""}`}
+                ref={searchWorkspaceRef}
+                className={`affiliate-campaign-search-workspace${
+                  searchWorkspaceView === "creators" ? " is-detail" : ""
+                }`}
               >
                 <div className="affiliate-campaign-search-workspace-track">
                   <div
                     className="affiliate-campaign-search-workspace-pane is-conditions"
-                    aria-hidden={Boolean(currentSearchPlan)}
-                    inert={currentSearchPlan ? true : undefined}
+                    aria-hidden={searchWorkspaceView !== "conditions"}
+                    inert={searchWorkspaceView !== "conditions" ? true : undefined}
                   >
                     <div className="affiliate-campaign-section-heading">
                       <div>
@@ -1771,6 +1835,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <h3>{t("ecommerce.affiliateCampaign.searchPlanPerformance")}</h3>
                         <p>{t("ecommerce.affiliateCampaign.searchPlanPerformanceDescription")}</p>
                       </div>
+                      <button
+                        type="button"
+                        className="affiliate-campaign-search-forward"
+                        onClick={showCampaignCreators}
+                      >
+                        {t("ecommerce.affiliateCampaign.viewCampaignCreators")}
+                        <span aria-hidden="true">→</span>
+                      </button>
                     </div>
                     {searchPlanSummaries.length ? (
                       <TkTableFrame className="affiliate-campaign-search-plan-table-wrap">
@@ -1793,7 +1865,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                 plan.totals.protected +
                                 plan.totals.outreachPolicyBlocked +
                                 plan.totals.qualificationFailed;
-                              const openDetails = () => setSelectedSearchPlanId(plan.id);
+                              const openDetails = () => showSearchPlanCreators(plan.id);
                               return (
                                 <TkInteractiveTableRow key={plan.id} onActivate={openDetails}>
                                   <td>
@@ -1912,18 +1984,29 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
                   <div
                     className="affiliate-campaign-search-workspace-pane is-creators"
-                    aria-hidden={!currentSearchPlan}
-                    inert={!currentSearchPlan ? true : undefined}
+                    aria-hidden={searchWorkspaceView !== "creators"}
+                    inert={searchWorkspaceView !== "creators" ? true : undefined}
                   >
                     <div className="affiliate-campaign-search-detail-heading">
-                      <button
-                        type="button"
-                        className="affiliate-campaign-search-back"
-                        onClick={() => setSelectedSearchPlanId("")}
-                      >
-                        <span aria-hidden="true">←</span>
-                        {t("ecommerce.affiliateCampaign.backToSearchConditions")}
-                      </button>
+                      {currentSearchPlan ? (
+                        <button
+                          type="button"
+                          className="affiliate-campaign-search-back"
+                          onClick={openSearchConditions}
+                        >
+                          <span aria-hidden="true">←</span>
+                          {t("ecommerce.affiliateCampaign.backToSearchConditions")}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="affiliate-campaign-search-forward"
+                          onClick={openSearchConditions}
+                        >
+                          {t("ecommerce.affiliateCampaign.browseSearchConditions")}
+                          <span aria-hidden="true">→</span>
+                        </button>
+                      )}
                       <div className="affiliate-campaign-section-heading">
                         <div>
                           <span>{t("ecommerce.affiliateCampaign.creatorPipeline")}</span>
@@ -1934,7 +2017,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                   generation: currentSearchPlan.generation,
                                   phrase: currentSearchPlan.phrase.text,
                                 })
-                              : t("ecommerce.affiliateCampaign.selectSearchPlanForCreators")}
+                              : t("ecommerce.affiliateCampaign.creatorStatesForAllSearchPlans")}
                           </p>
                         </div>
                         {currentSearchPlan && (
@@ -1956,6 +2039,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           setStateStatuses((current) => toggleValue(current, status))
                         }
                       />
+                      <button
+                        type="button"
+                        className={`affiliate-campaign-state-preset${
+                          isSentCreatorStatePreset(stateStatuses) ? " is-active" : ""
+                        }`}
+                        aria-pressed={isSentCreatorStatePreset(stateStatuses)}
+                        onClick={() => setStateStatuses(applySentCreatorStatePreset)}
+                      >
+                        {t("ecommerce.affiliateCampaign.sentCreatorsPreset")}
+                      </button>
                       <CampaignStateFilterGroup
                         label={t("ecommerce.affiliateCampaign.eligibilityCategoryFilter")}
                         options={eligibilityCategoryOptions.map((category) => ({
@@ -2000,6 +2093,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           <tr>
                             <th>{t("ecommerce.affiliateCampaign.creator")}</th>
                             <th>{t("ecommerce.affiliateCampaign.outreachDisposition")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.sentAt")}</th>
                             <th>{t("ecommerce.affiliateCampaign.state")}</th>
                             <th>{t("ecommerce.affiliateCampaign.selectionEvidence")}</th>
                             <th>{t("ecommerce.affiliateCampaign.relationship")}</th>
@@ -2007,22 +2101,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(
-                            creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates
-                              ?.items ?? []
-                          ).map((state) => (
-                            <CampaignCreatorStateRow
-                              key={state.id}
-                              state={state}
-                              t={t}
-                              waitingForTargetCollaborationQuota={Boolean(
-                                targetCollaborationQuota?.active,
-                              )}
-                              onOpen={() =>
-                                setSelectedCreatorDetail(campaignCreatorDetailItem(state))
-                              }
-                            />
-                          ))}
+                          {(creatorStatesQuery.data?.affiliateCampaignCreatorStates?.items ?? []).map(
+                            (state) => (
+                              <CampaignCreatorStateRow
+                                key={state.id}
+                                state={state}
+                                t={t}
+                                waitingForTargetCollaborationQuota={Boolean(
+                                  targetCollaborationQuota?.active,
+                                )}
+                                onOpen={() =>
+                                  setSelectedCreatorDetail(campaignCreatorDetailItem(state))
+                                }
+                              />
+                            ),
+                          )}
                         </tbody>
                       </table>
                       {creatorStatesViewState === "loading" && (
@@ -2052,8 +2145,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </div>
                       )}
                     </TkTableFrame>
-                    {creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates
-                      ?.nextCursor && (
+                    {creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor && (
                       <button
                         type="button"
                         className="btn btn-secondary affiliate-campaign-load-more"
@@ -2980,14 +3072,19 @@ function CampaignCreatorStateRow({
         <span className={`affiliate-campaign-disposition is-${disposition}`}>
           {t(`ecommerce.affiliateCampaign.disposition.${disposition}`)}
         </span>
-        <small>
-          {waitingForTargetCollaborationQuota &&
-          state.status === GQL.AffiliateCampaignCreatorStateStatus.Scheduled
-            ? t("ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled")
-            : state.reachedOutAt
-              ? formatDateTime(state.reachedOutAt)
-              : t("ecommerce.affiliateCampaign.notSent")}
-        </small>
+        {waitingForTargetCollaborationQuota &&
+        state.status === GQL.AffiliateCampaignCreatorStateStatus.Scheduled ? (
+          <small>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled")}</small>
+        ) : state.reachedOutAt ? null : (
+          <small>{t("ecommerce.affiliateCampaign.notSent")}</small>
+        )}
+      </td>
+      <td className="affiliate-campaign-sent-at">
+        {state.reachedOutAt ? (
+          <strong>{formatDateTime(state.reachedOutAt)}</strong>
+        ) : (
+          <span aria-hidden="true">—</span>
+        )}
       </td>
       <td>
         <span className={`affiliate-campaign-state-pill is-${state.status.toLowerCase()}`}>
@@ -3394,12 +3491,14 @@ function CampaignFunnel({
   counterSchemaVersion,
   deliveryFailureReasons,
   searchPlanCount,
+  onOpenSentCreators,
   t,
 }: {
   counters?: GQL.AffiliateCampaignExecutionCounters;
   counterSchemaVersion: number;
   deliveryFailureReasons: GQL.AffiliateCampaignDeliveryFailureReason[];
   searchPlanCount: number;
+  onOpenSentCreators: () => void;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const legacyUnrecorded = counterSchemaVersion < 2;
@@ -3470,6 +3569,8 @@ function CampaignFunnel({
             value={counters?.sent ?? 0}
             tone="success"
             note={t("ecommerce.affiliateCampaign.funnelTooltip.sent")}
+            actionLabel={t("ecommerce.affiliateCampaign.openSentCreators")}
+            onActivate={onOpenSentCreators}
           />
         </div>
         <div className="affiliate-campaign-funnel-branches">
@@ -3583,6 +3684,8 @@ function CampaignFunnelStage({
   emptyNote,
   collapsibleDetails = false,
   detailsLabel,
+  actionLabel,
+  onActivate,
 }: {
   index: string;
   label: string;
@@ -3593,6 +3696,9 @@ function CampaignFunnelStage({
   emptyNote?: string;
   collapsibleDetails?: boolean;
   detailsLabel?: string;
+  /** With `onActivate`, the whole stage becomes a button labelled by this text. */
+  actionLabel?: string;
+  onActivate?: () => void;
 }) {
   const detailRows = details.length > 0 && (
     <div className="affiliate-campaign-funnel-details">
@@ -3605,7 +3711,11 @@ function CampaignFunnelStage({
     </div>
   );
   return (
-    <article className={`affiliate-campaign-funnel-stage data-card-hover is-${tone}`}>
+    <article
+      className={`affiliate-campaign-funnel-stage data-card-hover is-${tone}${
+        onActivate ? " is-interactive" : ""
+      }`}
+    >
       <header>
         <span>{index}</span>
         <strong>{label}</strong>
@@ -3623,6 +3733,16 @@ function CampaignFunnelStage({
       ) : note || emptyNote ? (
         <p>{note ?? emptyNote}</p>
       ) : null}
+      {onActivate && (
+        <button
+          type="button"
+          className="affiliate-campaign-funnel-stage-action"
+          onClick={onActivate}
+        >
+          {actionLabel}
+          <span aria-hidden="true">→</span>
+        </button>
+      )}
     </article>
   );
 }
