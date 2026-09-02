@@ -35,7 +35,13 @@ import {
 } from "../../lib/shop-billing-groups.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
-import { TkAlert, TkPanel, TkTableFrame } from "../design-system/index.js";
+import {
+  TkAlert,
+  TkPanel,
+  TkPanelBody,
+  TkPanelHeader,
+  TkTableFrame,
+} from "../design-system/index.js";
 
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
 const SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["customerService", "inventory", "affiliate"];
@@ -1142,47 +1148,49 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
   return (
     <TkPanel
       as="section"
+      padding="none"
+      clip
       className="section-card account-billing-section"
       data-tutorial-id="billing-overview"
     >
-      <div className="account-section-header">
-        <div>
-          <h3>{t("billing.title")}</h3>
-          <p>{t("billing.description")}</p>
+      <TkPanelHeader title={t("billing.title")} description={t("billing.description")} />
+
+      <TkPanelBody>
+        <div className="billing-dashboard-grid" data-tutorial-id="billing-account-plan">
+          <EntitlementSummary
+            title={accountPlan ? billingPlanDisplayName(t, accountPlan) : t("billing.accountAi")}
+            entitlement={accountLlm?.entitlement ?? null}
+            accountLlm={accountLlm}
+            planDefinitions={planDefinitions}
+          />
         </div>
-      </div>
 
-      <div className="billing-dashboard-grid" data-tutorial-id="billing-account-plan">
-        <EntitlementSummary
-          title={accountPlan ? billingPlanDisplayName(t, accountPlan) : t("billing.accountAi")}
-          entitlement={accountLlm?.entitlement ?? null}
-          accountLlm={accountLlm}
-          planDefinitions={planDefinitions}
-        />
-      </div>
-
-      <div className="billing-subsection" data-tutorial-id="billing-shop-services">
-        <h4>{t("billing.shopServices")}</h4>
-        <ShopServiceSubscriptionFlow groups={shopBillingGroups} planDefinitions={planDefinitions} />
-        <div className="billing-shop-list" data-tutorial-id="billing-shop-list">
-          {shopBillingGroups.length ? (
-            shopBillingGroups.map((group) => (
-              <BillingShopServiceGroup
-                key={group.key}
-                group={group}
-                planDefinitions={planDefinitions}
-              />
-            ))
-          ) : (
-            <div className="billing-empty">{t("billing.noShopBilling")}</div>
-          )}
+        <div className="billing-subsection" data-tutorial-id="billing-shop-services">
+          <h4>{t("billing.shopServices")}</h4>
+          <ShopServiceSubscriptionFlow
+            groups={shopBillingGroups}
+            planDefinitions={planDefinitions}
+          />
+          <div className="billing-shop-list" data-tutorial-id="billing-shop-list">
+            {shopBillingGroups.length ? (
+              shopBillingGroups.map((group) => (
+                <BillingShopServiceGroup
+                  key={group.key}
+                  group={group}
+                  planDefinitions={planDefinitions}
+                />
+              ))
+            ) : (
+              <div className="billing-empty">{t("billing.noShopBilling")}</div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="billing-subsection" data-tutorial-id="billing-payments">
-        <h4>{t("billing.paymentRecords")}</h4>
-        <PaymentRecords payments={payments} />
-      </div>
+        <div className="billing-subsection" data-tutorial-id="billing-payments">
+          <h4>{t("billing.paymentRecords")}</h4>
+          <PaymentRecords payments={payments} />
+        </div>
+      </TkPanelBody>
     </TkPanel>
   );
 });

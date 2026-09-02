@@ -33,7 +33,7 @@
   gap: 20px;
   overflow: visible;
   margin: 0;
-  padding: 15px 18px;
+  padding: var(--tk-v1-page-header-block) var(--tk-v1-page-header-inline);
   border: 1px solid var(--affiliate-line);
   border-radius: var(--affiliate-panel-radius);
   background: var(--affiliate-panel);
@@ -76,7 +76,7 @@
 .affiliate-page-shell .affiliate-page-header p,
 .affiliate-page-shell .affiliate-page-hero p {
   max-width: 820px;
-  margin: 2px 0 0;
+  margin: var(--tk-v1-space-1) 0 0;
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.4;
@@ -284,8 +284,8 @@
   min-height: 48px;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: var(--tk-v1-space-3);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
   border-bottom: 1px solid var(--affiliate-line);
   background: var(--affiliate-panel);
 }
@@ -713,7 +713,7 @@
   min-height: 24px;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px;
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-2);
   border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--affiliate-line));
   border-radius: var(--tk-v1-radius-full);
   background: color-mix(in srgb, var(--color-primary) 7%, var(--affiliate-panel));
@@ -914,7 +914,7 @@
 .affiliate-context-inspector-header.is-navigation-only {
   min-height: 44px;
   align-items: stretch;
-  padding: 0 12px;
+  padding: 0 var(--tk-v1-space-3);
 }
 
 .affiliate-context-inspector-header.is-navigation-only .affiliate-context-inspector-header-main {
@@ -923,6 +923,9 @@
   gap: 0;
 }
 
+/* The -1px is a border hairline, not spacing: it pulls the tab rail's own
+   bottom border onto the header's so the active tab reads as continuous. The
+   design system has no border-width token -- it writes 1px literally too. */
 .affiliate-context-inspector-header.is-navigation-only .affiliate-relationship-context-nav {
   flex: 1 1 auto;
   align-self: stretch;
@@ -931,13 +934,13 @@
 
 .affiliate-context-inspector-header.is-navigation-only .affiliate-relationship-context-nav button {
   min-height: 44px;
-  padding: 6px 2px 7px;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-1);
   font-size: 11px;
 }
 
 .affiliate-context-inspector-header.is-navigation-only .affiliate-context-inspector-close {
   align-self: center;
-  margin-left: 8px;
+  margin-left: var(--tk-v1-space-2);
 }
 
 .affiliate-creator-contact-panel {
@@ -1105,9 +1108,9 @@
   min-height: 56px;
   align-items: center;
   flex: 0 0 auto;
-  gap: 12px;
+  gap: var(--tk-v1-space-3);
   margin: 0;
-  padding: 9px 14px;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-4);
   border-bottom: 1px solid var(--affiliate-line);
 }
 
@@ -1145,7 +1148,7 @@
   .affiliate-platform-collaboration-header-actions
   .btn {
   min-height: 32px;
-  padding: 5px 10px;
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-2);
   font-size: 11px;
 }
 
@@ -1415,26 +1418,6 @@
 .affiliate-platform-auto-add-modal {
   width: min(620px, calc(100vw - 32px));
   max-width: 620px;
-}
-
-.affiliate-platform-settings-header {
-  min-height: 0;
-  align-items: center;
-  padding: 17px 20px 15px;
-}
-
-.affiliate-platform-settings-header h2 {
-  margin: 0;
-  font-size: 19px;
-  line-height: 1.2;
-}
-
-.affiliate-platform-settings-header p {
-  max-width: 500px;
-  margin: 5px 0 0;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 1.45;
 }
 
 .affiliate-platform-auto-add-modal .affiliate-platform-settings-body {
@@ -1886,7 +1869,7 @@
   .affiliate-page-shell .affiliate-page-header,
   .affiliate-page-shell .affiliate-page-hero {
     min-height: 0;
-    padding: 13px 14px;
+    padding: var(--tk-v1-page-header-block) var(--tk-v1-page-header-inline);
     border-radius: var(--tk-v1-radius-3);
   }
 
@@ -2526,7 +2509,7 @@
   line-height: var(--tk-v1-line-page-title);
 }
 
-.affiliate-page-shell.tk-v1-business-page .affiliate-page-hero :is(.ecommerce-page-subtitle, p) {
+.affiliate-page-shell.tk-v1-business-page .affiliate-page-hero :is(.tk-v1-page-description, p) {
   max-width: 820px;
   margin: 0;
   color: var(--tk-v1-fg-secondary);

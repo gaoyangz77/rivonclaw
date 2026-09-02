@@ -245,14 +245,17 @@ Standard easing is `cubic-bezier(.2, 0, 0, 1)`. Emphasized entry uses
 Every standard product page is composed from shared layout primitives. Pages provide content;
 they do not own shell or header geometry.
 
-| Owner          | Component      | Geometry contract                                  |
-| -------------- | -------------- | -------------------------------------------------- |
-| Application    | App Shell      | 28px top, 48px inline, 48px bottom desktop inset   |
-| Page           | `TkPageFrame`  | 16px vertical rhythm; no page-local outer padding  |
-| Page context   | `TkPageHeader` | 12px block, 16px inline padding; 80px minimum      |
-| Content group  | `TkPanel`      | 8px radius and semantic L1/L2 surface variants     |
-| Local controls | `TkToolbar`    | 8px control gap; open or framed composition        |
-| Record set     | `TkTableFrame` | shared overflow, header, row density, and boundary |
+| Owner          | Component                       | Geometry contract                                  | Token                                              |
+| -------------- | ------------------------------- | -------------------------------------------------- | -------------------------------------------------- |
+| Application    | App Shell                       | 28px top, 48px inline, 48px bottom desktop inset   | `--tk-v1-shell-content-*`                          |
+| Page           | `TkPageFrame`                   | 16px vertical rhythm; no page-local outer padding  | `--tk-v1-page-gap`                                 |
+| Page context   | `TkPageHeader`                  | 12px block, 16px inline padding; 80px minimum      | `--tk-v1-page-header-block` / `-inline`            |
+| Content group  | `TkPanel`                       | 8px radius and semantic L1/L2 surface variants     | `--tk-v1-panel-padding-*` classes on the space scale |
+| Group heading  | `TkPanelHeader` / `TkSection`   | 16px block, 16px inline padding                    | `--tk-v1-panel-header-block` / `-inline`           |
+| Group content  | `TkPanelBody` / `TkSection`     | 16px block, 16px inline padding                    | `--tk-v1-panel-body-block` / `-inline`             |
+| Modal heading  | `TkModalHeader`                 | 20px block, 24px inline padding                    | `--tk-v1-modal-header-block` / `-inline`           |
+| Local controls | `TkToolbar`                     | 8px control gap; open or framed composition        | `--tk-v1-space-2`                                  |
+| Record set     | `TkTableFrame`                  | shared overflow, header, row density, and boundary | `--tk-v1-row-*`                                    |
 
 The App Shell is the only owner of distance from the sidebar and viewport. `TkPageHeader` is the
 only owner of title, description, and page-action alignment. A workflow may choose which sections
@@ -262,6 +265,18 @@ appear and in what order, but it may not redefine these measurements. Responsive
 Composite panels use `TkPanelHeader`, `TkPanelBody`, and `TkPanelFooter` for internal geometry.
 When an embedded table or media surface reaches a panel edge, `TkPanel` uses `clip` and remains the
 only owner of the outer radius.
+
+**`padding="none"` transfers the inset, it does not remove it.** A `TkPanel` with `padding="none"`
+has delegated its inset to its children, so every child must be a primitive that owns one:
+`TkPanelHeader`, `TkPanelBody`, `TkPanelFooter`, or `TkTableFrame variant="embedded"`. A raw `div`
+placed directly inside such a panel renders flush against the card edge. Product code must not
+supply that inset from a feature stylesheet, and must not rely on the panel's default `padding="md"`
+to space a hand-rolled header — that coupling breaks silently the moment the panel's padding changes.
+
+The tokens in the table above are the single source for these insets. `.tk-v1-panel-header` and
+`.tk-v1-section-header` read the same `--tk-v1-panel-header-*` pair, and `.tk-v1-panel-body` and
+`.tk-v1-section-body` the same `--tk-v1-panel-body-*` pair, so a section and a panel can never
+disagree about their geometry. Retune the token, never the call site.
 
 ### 6.1 Button
 
@@ -329,6 +344,13 @@ page code.
 surface for existing headings or custom composition. `TkCard` is reserved for independently
 actionable, selectable, draggable, or summarized content.
 
+Section and panel are one geometry contract, not two. `.tk-v1-section-header` and
+`.tk-v1-panel-header` share the `--tk-v1-panel-header-*` inset and the section-title type ramp;
+`.tk-v1-section-body` and `.tk-v1-panel-body` share `--tk-v1-panel-body-*`. The `open` section
+variant spends that inset on the rule between header and body only; `framed` and `raised` spend it
+on all four edges. Choosing between `TkSection` and `TkPanel` is therefore a composition decision,
+never a spacing one.
+
 Static cards do not react on hover. Interactive cards must expose the same selected and focus state
 to keyboard users.
 
@@ -370,6 +392,14 @@ material is allowed only when underlying content remains legible and does not be
   genuine decision or bounded task.
 - Modal headers and navigation rails never own vertical scrolling. One explicit modal body region
   owns the workflow's vertical scroll.
+- `TkModalHeader` is the only owner of modal header padding, at
+  `--tk-v1-modal-header-block` / `--tk-v1-modal-header-inline`. Feature stylesheets must not
+  declare padding or margin on a modal header. It mirrors `TkPanelHeader`'s API
+  (`title`, `description`, `eyebrow`, `actions`, `headingLevel`) so the two read as one contract,
+  and defaults to `headingLevel={2}` because a modal title is its dialog's top heading.
+- `TkModalHeader` carries its own inset rather than bleeding through the modal's, so pair it with
+  `TkModal padding="none"`; inside a padded modal the header would be inset twice. A modal that
+  passes `title` to `TkModal` already has a header and does not need this primitive.
 
 ### 6.9 Feedback state
 

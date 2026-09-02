@@ -17,15 +17,18 @@
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
 }
 
+/* Tier-2: the drawer's own title bar has no design-system equivalent (it is a
+   three-column grid that also hosts the tab bar), so it keeps its rule but
+   spends only design-system space tokens. */
 .drawer-header {
   display: grid;
   grid-template-columns: minmax(220px, 340px) minmax(0, 1fr) 34px;
   align-items: center;
-  padding: 10px 14px 10px 18px;
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-bg);
   flex-shrink: 0;
-  gap: 14px;
+  gap: var(--tk-v1-space-4);
 }
 
 .drawer-header-left {
@@ -214,8 +217,8 @@
 
   .drawer-header {
     grid-template-columns: minmax(0, 1fr) 34px;
-    gap: 10px;
-    padding: 10px 12px 12px 16px;
+    gap: var(--tk-v1-space-3);
+    padding: var(--tk-v1-space-3);
   }
 
   .drawer-tab-bar-header {
@@ -258,7 +261,7 @@
   }
 
   .drawer-header {
-    padding: 10px 12px 12px;
+    padding: var(--tk-v1-space-3);
   }
 
   .drawer-body {

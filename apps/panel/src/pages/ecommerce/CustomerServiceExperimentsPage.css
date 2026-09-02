@@ -12,26 +12,8 @@
   min-height: 0;
 }
 
-.cs-experiments-header {
-  position: relative;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 4px;
-}
-
-.cs-experiments-header h1 {
-  margin: 0;
-  font-size: clamp(25px, 2.2vw, 34px);
-  letter-spacing: -0.035em;
-}
-.cs-experiments-header p {
-  max-width: 680px;
-  margin: 6px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-}
+/* The page header is TkPageHeader; its geometry and typography come from
+   --tk-v1-page-header-* and must not be restated here. */
 
 .cs-experiments-tabs {
   display: inline-flex;
@@ -421,14 +403,13 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border-light));
 }
-.cs-experiment-config-modal .modal-header {
-  padding: 22px 26px 18px;
-  border-bottom: 1px solid var(--color-border-light);
-}
+/* The modal is padding="none", so Modal's own title bar owns the header inset
+   (.tk-v1-modal .modal-header). The body matches that inset from the same scale
+   instead of adding a second one on top of the modal's padding. */
 .cs-experiment-config-modal-body {
   max-height: min(680px, calc(100vh - 170px));
   overflow-y: auto;
-  padding: 0 26px 28px;
+  padding: 0 var(--tk-v1-space-5) var(--tk-v1-space-6);
 }
 .cs-experiment-config-modal-intro {
   display: grid;
@@ -526,8 +507,10 @@
   color: var(--color-text-primary);
   font-size: 13px;
 }
+/* Stage enable/disable pill. Component-local: no design-system badge carries this
+   micro type scale, so only the spacing moves onto the shared scale. */
 .cs-experiment-config-stage-content header span {
-  padding: 3px 6px;
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-2);
   border-radius: var(--tk-v1-radius-full);
   font-size: 9px;
   font-weight: 700;
@@ -586,11 +569,6 @@
   text-align: center;
 }
 @media (max-width: 600px) {
-  .cs-experiment-config-modal .modal-header,
-  .cs-experiment-config-modal-body {
-    padding-right: 16px;
-    padding-left: 16px;
-  }
   .cs-experiment-config-stage-list > article {
     grid-template-columns: 32px minmax(0, 1fr);
     gap: 8px;
@@ -1183,10 +1161,6 @@
 }
 
 @media (max-width: 760px) {
-  .cs-experiments-header {
-    align-items: stretch;
-    flex-direction: column;
-  }
   .cs-experiments-tabs {
     align-self: stretch;
   }

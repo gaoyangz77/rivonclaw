@@ -128,7 +128,7 @@
 
 .tk-v1-alert .error-details summary {
   cursor: pointer;
-  font-size: var(--tk-v1-type-support);
+  font-size: var(--tk-v1-type-supporting);
   opacity: 0.8;
 }
 

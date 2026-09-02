@@ -75,9 +75,11 @@
   }
 }
 
+/* Popover identity block. No design-system equivalent — a centred avatar card,
+   not a title/description header — so the geometry stays local but on-scale. */
 .upop-header {
   text-align: center;
-  padding: 20px 16px 16px;
+  padding: var(--tk-v1-space-5) var(--tk-v1-space-4) var(--tk-v1-space-4);
 }
 
 .upop-avatar {

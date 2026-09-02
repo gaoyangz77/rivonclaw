@@ -214,7 +214,7 @@ test.describe("Ecommerce Page — New User Defaults", () => {
     await expect(navBtn).toBeVisible({ timeout: 15_000 });
     await navBtn.click();
 
-    const header = window.locator(".ecommerce-page-header");
+    const header = window.locator(".tk-v1-page-header");
     await expect(header).toBeVisible({ timeout: 15_000 });
     await expect(header.locator("h1")).toContainText("Shop Management");
   });
@@ -233,7 +233,7 @@ test.describe("Ecommerce Page — Auth Gating", () => {
     // Panel resolves unknown routes to "/" — ecommerce without auth should fall back
     await window.waitForTimeout(500);
     // The page-enter with ecommerce content should NOT be visible
-    const ecommerceHeader = window.locator(".ecommerce-page-header");
+    const ecommerceHeader = window.locator(".tk-v1-page-header h1", { hasText: "Shop Management" });
     const isVisible = await ecommerceHeader.isVisible().catch(() => false);
     expect(isVisible).toBe(false);
   });
@@ -249,10 +249,10 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await loginAndNavigateToEcommerce(window, apiBase);
 
     // Verify page header
-    const header = window.locator(".ecommerce-page-header");
+    const header = window.locator(".tk-v1-page-header");
     await expect(header).toBeVisible({ timeout: 15_000 });
     await expect(header.locator("h1")).toContainText("Shop Management");
-    await expect(header.locator(".ecommerce-page-subtitle")).toContainText("Manage connected shops");
+    await expect(header.locator(".tk-v1-page-description")).toContainText("Manage connected shops");
 
     // Add Shop button
     const addBtn = window.locator(".section-card").filter({ hasText: "Shops" }).locator("button", { hasText: "Add Shop" });
@@ -285,14 +285,14 @@ test.describe("Ecommerce Page — Authenticated", () => {
 
     // First shop row has a name and a View button
     const firstRow = rows.first();
-    await expect(firstRow.locator(".shop-table-name")).toBeVisible();
+    await expect(firstRow.locator(".tk-v1-table-record-name")).toBeVisible();
     await expect(firstRow.locator("button", { hasText: "View" })).toBeVisible();
   });
 
   test("add shop modal opens and closes without submitting", async ({ window, apiBase }) => {
     await dismissModals(window);
     await loginAndNavigateToEcommerce(window, apiBase);
-    await expect(window.locator(".ecommerce-page-header")).toBeVisible({ timeout: 15_000 });
+    await expect(window.locator(".tk-v1-page-header")).toBeVisible({ timeout: 15_000 });
 
     // Open the modal
     await window.locator("button", { hasText: "Add Shop" }).click();

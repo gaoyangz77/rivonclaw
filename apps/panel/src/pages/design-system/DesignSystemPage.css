@@ -761,7 +761,7 @@
   align-content: space-between;
   min-height: 484px;
   gap: var(--tk-v1-space-6);
-  padding: var(--tk-v1-space-7);
+  padding: var(--tk-v1-space-6);
 }
 
 .tk-design-lab-navigation-page-title {

@@ -3025,6 +3025,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         title={detailDeveloper?.displayName ?? t("ecommerce.affiliateTeam.businessDeveloper")}
         maxWidth={1180}
         className="affiliate-bd-detail-modal"
+        padding="none"
         closeLabel={t("common.close")}
         preventBackdropClose={writeState.loading}
         portal
@@ -3419,6 +3420,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         }
         maxWidth={520}
         className="affiliate-account-transfer-modal"
+        padding="none"
         closeLabel={t("common.close")}
         preventBackdropClose={transferBusy}
         portal
@@ -3505,6 +3507,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         }
         maxWidth={connectChannel === "WHATSAPP" ? 760 : 680}
         className={`affiliate-channel-onboarding-modal ${connectChannel === "WHATSAPP" ? "is-whatsapp" : "is-email"}`}
+        padding="none"
         closeLabel={t("common.close")}
         portal
       >
@@ -3549,6 +3552,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         })}
         maxWidth={920}
         className="affiliate-unassigned-modal"
+        padding="none"
         closeLabel={t("common.close")}
         portal
       >
@@ -3589,6 +3593,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         title={editingDeveloper?.displayName ?? t("ecommerce.affiliateTeam.newDeveloper")}
         maxWidth={720}
         className="affiliate-developer-modal"
+        padding="none"
         closeLabel={t("common.close")}
         preventBackdropClose={writeState.loading}
         portal

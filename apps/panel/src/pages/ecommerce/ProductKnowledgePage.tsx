@@ -507,7 +507,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   return (
     <AffiliatePageFrame className="product-knowledge-page">
       <AffiliatePageHeader
-        className="ecommerce-page-header product-knowledge-header"
+        className="product-knowledge-header"
         data-tutorial-id="product-knowledge-header"
         eyebrow={
           <>
@@ -759,6 +759,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
         className="product-knowledge-management-modal"
         closeLabel={t("common.close")}
         maxWidth={1320}
+        padding="none"
         portal
       >
         <div className="product-knowledge-detail" data-tutorial-id="product-knowledge-editor">

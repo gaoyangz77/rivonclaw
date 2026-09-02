@@ -19,41 +19,43 @@
   box-shadow: var(--tk-v1-highlight), var(--tk-v1-elevation-1);
 }
 
+/* Section header/body geometry and heading type are the same contract as
+   .tk-v1-panel-header / .tk-v1-panel-body. Both families read the shared
+   --tk-v1-panel-header-* / --tk-v1-panel-body-* tokens so a section and a panel
+   never disagree about their inset. The open variant carries only the rule
+   between header and body; the framed and raised variants carry the full inset. */
 .tk-v1-section-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding-bottom: 14px;
+  gap: var(--tk-v1-space-5);
+  padding-bottom: var(--tk-v1-panel-header-block);
   border-bottom: 1px solid var(--tk-v1-border-subtle);
 }
 
 .tk-v1-section-framed .tk-v1-section-header,
 .tk-v1-section-raised .tk-v1-section-header {
-  padding: 16px 18px 14px;
+  padding: var(--tk-v1-panel-header-block) var(--tk-v1-panel-header-inline);
   background: var(--tk-v1-surface-header-optical);
 }
 
+.tk-v1-section-header h2,
 .tk-v1-section-header h3 {
   margin: 0;
   color: var(--tk-v1-fg-default);
-  font: 600 15px/1.4 var(--tk-v1-font-sans);
-  letter-spacing: -0.012em;
-}
-
-.tk-v1-section-header h2 {
-  margin: 0;
-  color: var(--tk-v1-fg-default);
-  font: 600 15px/1.4 var(--tk-v1-font-sans);
-  letter-spacing: -0.012em;
+  font-family: var(--tk-v1-font-sans);
+  font-size: var(--tk-v1-type-section-title);
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  line-height: var(--tk-v1-line-section-title);
 }
 
 .tk-v1-section-header p {
   max-width: 68ch;
-  margin: 4px 0 0;
-  color: var(--tk-v1-fg-muted);
-  font-size: 12px;
-  line-height: 1.5;
+  margin: var(--tk-v1-space-1) 0 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-body);
+  line-height: var(--tk-v1-line-body);
 }
 
 .tk-v1-section-action {
@@ -61,12 +63,12 @@
 }
 
 .tk-v1-section-body {
-  padding-top: 16px;
+  padding-top: var(--tk-v1-panel-body-block);
 }
 
 .tk-v1-section-framed .tk-v1-section-body,
 .tk-v1-section-raised .tk-v1-section-body {
-  padding: 16px 18px 18px;
+  padding: var(--tk-v1-panel-body-block) var(--tk-v1-panel-body-inline);
 }
 
 .tk-v1-switch-row {

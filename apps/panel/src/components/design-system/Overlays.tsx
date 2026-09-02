@@ -7,6 +7,7 @@ import {
   useState,
   type ButtonHTMLAttributes,
   type CSSProperties,
+  type HTMLAttributes,
   type ReactNode,
   type Ref,
 } from "react";
@@ -522,6 +523,45 @@ export interface TkModalProps extends Omit<ModalProps, "className" | "portal"> {
 
 export function TkModal({ className, portal: _portal, ...props }: TkModalProps) {
   return <Modal {...props} portal className={className} />;
+}
+
+export interface TkModalHeaderProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
+  title: ReactNode;
+  description?: ReactNode;
+  eyebrow?: ReactNode;
+  actions?: ReactNode;
+  headingLevel?: 2 | 3 | 4;
+}
+
+/**
+ * The only owner of modal header geometry. Mirrors `TkPanelHeader`'s API and DOM
+ * shape so a hand-rolled `.modal-header` div can be swapped for it directly.
+ *
+ * Pair it with `TkModal padding="none"`; the header carries its own inset, so a
+ * padded modal would inset it twice. `headingLevel` defaults to 2 because a modal
+ * title is the dialog's top heading, matching `Modal`'s own `.modal-title`.
+ */
+export function TkModalHeader({
+  title,
+  description,
+  eyebrow,
+  actions,
+  headingLevel = 2,
+  className,
+  ...props
+}: TkModalHeaderProps) {
+  const Heading = `h${headingLevel}` as "h2" | "h3" | "h4";
+
+  return (
+    <header className={cx("tk-v1-modal-header", className)} {...props}>
+      <div className="tk-v1-modal-header-copy">
+        {eyebrow ? <span className="tk-v1-modal-eyebrow">{eyebrow}</span> : null}
+        <Heading>{title}</Heading>
+        {description ? <p>{description}</p> : null}
+      </div>
+      {actions ? <div className="tk-v1-modal-header-actions">{actions}</div> : null}
+    </header>
+  );
 }
 
 export interface TkConfirmDialogProps {

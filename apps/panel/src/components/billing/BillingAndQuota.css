@@ -1,23 +1,5 @@
 /* CSS ownership: billing and quota surfaces. Imported in original cascade order. */
 
-.account-section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.account-section-header h3 {
-  margin: 0;
-}
-
-.account-section-header p {
-  margin: 4px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-}
-
 .account-billing-section {
   margin-bottom: 24px;
 }

@@ -1,4 +1,5 @@
 import type { AdsAdvertiser, AdsStoreBinding, Shop } from "@rivonclaw/core/models";
+import type { TkBadgeTone } from "../../components/design-system/index.js";
 
 export type ShopAdsReadinessStatus = "connected" | "needs_link" | "needs_advertiser";
 
@@ -85,11 +86,12 @@ export function resolveShopAdsReadiness(
   };
 }
 
-export function getReadinessBadgeClass(status: ShopAdsReadinessStatus | "partial"): string {
-  if (status === "connected") return "status-badge status-authorized";
-  if (status === "partial") return "status-badge status-info";
-  if (status === "needs_link") return "status-badge status-warning";
-  return "status-badge status-neutral";
+/** Design-system tone for a shop's Ads readiness, consumed through `TkBadge`. */
+export function readinessBadgeTone(status: ShopAdsReadinessStatus | "partial"): TkBadgeTone {
+  if (status === "connected") return "success";
+  if (status === "partial") return "info";
+  if (status === "needs_link") return "warning";
+  return "neutral";
 }
 
 export function navigateToAdsManagement() {

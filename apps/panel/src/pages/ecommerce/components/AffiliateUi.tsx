@@ -58,7 +58,6 @@ export function AffiliatePageHeader({
       actions={actions}
       copyClassName="affiliate-page-header-copy"
       eyebrowClassName="affiliate-page-header-eyebrow"
-      descriptionClassName="ecommerce-page-subtitle"
       actionsClassName="affiliate-page-header-actions"
     />
   );

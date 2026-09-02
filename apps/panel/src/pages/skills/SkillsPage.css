@@ -7,10 +7,6 @@
   max-width: none;
 }
 
-.skills-page-header {
-  margin-bottom: 12px;
-}
-
 /* skills-tab-* removed: unified into .tab-bar / .tab-btn */
 
 .skills-search-bar {
@@ -272,10 +268,11 @@
   user-select: none;
 }
 
+/* Action row above the installed-skills grid. The page frame owns the vertical
+   rhythm between siblings, so this rule carries alignment only. */
 .skills-installed-header {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 12px;
 }
 
 @media (max-width: 1180px) {

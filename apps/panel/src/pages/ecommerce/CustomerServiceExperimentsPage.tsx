@@ -404,7 +404,6 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   return (
     <TkPageFrame className="cs-experiments-page">
       <TkPageHeader
-        className="cs-experiments-header"
         data-tutorial-id="cs-experiments-header"
         eyebrow={t("ecommerce.customerServiceExperiments.eyebrow")}
         title={t("ecommerce.customerServiceExperiments.title")}
@@ -951,6 +950,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         closeLabel={t("common.close")}
         maxWidth={760}
         className="cs-experiment-config-modal"
+        padding="none"
         portal
       >
         {configurationVariant ? (

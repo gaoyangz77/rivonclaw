@@ -108,6 +108,12 @@
   --tk-v1-page-gap: var(--tk-v1-space-4);
   --tk-v1-page-header-block: var(--tk-v1-space-3);
   --tk-v1-page-header-inline: var(--tk-v1-space-4);
+  --tk-v1-panel-header-block: var(--tk-v1-space-4);
+  --tk-v1-panel-header-inline: var(--tk-v1-space-4);
+  --tk-v1-panel-body-block: var(--tk-v1-space-4);
+  --tk-v1-panel-body-inline: var(--tk-v1-space-4);
+  --tk-v1-modal-header-block: var(--tk-v1-space-5);
+  --tk-v1-modal-header-inline: var(--tk-v1-space-6);
   --tk-v1-z-shell: 10;
   --tk-v1-z-sticky: 20;
   --tk-v1-z-popover: 50;

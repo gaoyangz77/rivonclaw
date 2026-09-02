@@ -3,11 +3,15 @@
 /* Inventory Management */
 
 .ecommerce-inventory-section {
-  margin-top: 24px;
+  margin-top: var(--tk-v1-space-6);
 }
 
-.inventory-page .ecommerce-page-header + .ecommerce-inventory-section {
-  margin-top: 0;
+/* Panel bodies stack their own children; the panel body owns the inset. */
+.ecommerce-inventory-body,
+.inventory-goods-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-4);
 }
 
 .wms-table-wrap {
@@ -267,8 +271,8 @@
   display: grid;
   grid-template-columns: minmax(160px, max-content) max-content max-content max-content;
   align-items: center;
-  column-gap: 24px;
-  padding: 10px 20px;
+  column-gap: var(--tk-v1-space-6);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-5);
 }
 
 .wms-warehouse-list-header {
@@ -285,12 +289,6 @@
 
 .wms-warehouse-row {
   color: var(--color-text);
-}
-
-.inventory-goods-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .inventory-goods-header-actions {
@@ -468,7 +466,7 @@
   gap: 3px;
 }
 
-.inventory-good-main .shop-table-name,
+.inventory-good-main .tk-v1-table-record-name,
 .inventory-good-main .td-meta,
 .inventory-good-identifiers span {
   overflow: hidden;
@@ -658,7 +656,7 @@
 }
 
 .inventory-mapping-header {
-  padding: 9px 18px;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-4);
   border-bottom: 1px solid var(--color-border-light);
   color: var(--color-text-muted);
   font-size: 11px;
@@ -848,14 +846,8 @@
     min-width: 0;
   }
 
-  .ecommerce-section-header,
   .inventory-tab-toolbar {
     flex-direction: column;
-  }
-
-  .ecommerce-section-actions {
-    width: 100%;
-    justify-content: flex-start;
   }
 
   .inventory-mapping-header,

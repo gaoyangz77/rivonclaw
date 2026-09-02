@@ -1,17 +1,29 @@
 /* CSS ownership: account sections. Imported in original cascade order. */
 
-/* ── Account: Section headers ── */
+/* ── Account: Section bodies ── */
 
-.acct-section-header {
+/* The account panels hand their header band to `TkPanelHeader` and drop to
+   `padding="none"`, so their content now sits inside `TkPanelBody` instead of
+   directly inside `.section-card`. legacy-shared.css stacks
+   `.section-card > * + *` at 16px; re-declare that stack for the body so the
+   rhythm between alerts, lists and sub-blocks is unchanged. Kept as adjacent
+   margins rather than a flex gap so blocks that carry their own margin — see
+   `.acct-role-panel` below — keep overriding it exactly as they do today. */
+.acct-section-body > * + * {
+  margin-top: var(--tk-v1-space-4);
+}
+
+/* ── Account: Role sub-section heading ── */
+
+/* Not a panel header band: this heading row sits inside the sub-accounts panel
+   body, above the roles list, separated by `.acct-role-panel`'s own rule. It
+   owns intra-body layout only, so it stays feature-owned. */
+.acct-role-panel-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.acct-section-header h3 {
-  margin-bottom: 4px;
+  gap: var(--tk-v1-space-4);
+  margin-bottom: var(--tk-v1-space-4);
 }
 
 .acct-section-desc {

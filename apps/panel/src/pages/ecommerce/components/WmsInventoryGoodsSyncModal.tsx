@@ -134,7 +134,7 @@ export const WmsInventoryGoodsSyncModal = observer(function WmsInventoryGoodsSyn
                 {unrecognized.map((good, index) => (
                   <div className="inventory-coverage-row" key={`${good.sku}-${index}`}>
                     <div>
-                      <div className="shop-table-name">{good.name}</div>
+                      <div className="tk-v1-table-record-name">{good.name}</div>
                       <div className="td-meta">{good.sku}</div>
                     </div>
                     <span className="badge badge-warning">

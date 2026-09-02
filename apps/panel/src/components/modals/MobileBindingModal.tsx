@@ -5,7 +5,7 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import { observer } from "mobx-react-lite";
 import { TkModal as Modal } from "../design-system/Overlays.js";
-import { TkAlert } from "../design-system/index.js";
+import { TkAlert, TkBadge } from "../design-system/index.js";
 
 const DEFAULT_TTL_MS = 60_000;
 
@@ -194,8 +194,8 @@ export const MobileBindingModal = observer(function MobileBindingModal({ isOpen,
                                 )}
 
                                 {expired
-                                    ? <div className="status-badge badge-danger">{t("mobile.codeExpired")}</div>
-                                    : <div className="status-badge badge-warning">{t("mobile.waitingForConnection")}</div>
+                                    ? <TkBadge tone="danger">{t("mobile.codeExpired")}</TkBadge>
+                                    : <TkBadge tone="warning">{t("mobile.waitingForConnection")}</TkBadge>
                                 }
                                 <p className="mobile-scan-hint">
                                     {expired ? t("mobile.codeExpiredHint") : t("mobile.pairHint")}

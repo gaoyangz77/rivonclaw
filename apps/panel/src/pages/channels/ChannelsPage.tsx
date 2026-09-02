@@ -272,7 +272,6 @@ export const ChannelsPage = observer(function ChannelsPage() {
     <TkPageFrame>
       {/* Header */}
       <TkPageHeader
-        className="channel-header"
         data-tutorial-id="channels-header"
         title={t("channels.title")}
         description={t("channels.statusSubtitle")}

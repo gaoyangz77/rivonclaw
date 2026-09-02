@@ -218,7 +218,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--tk-v1-space-4);
-  padding: var(--tk-v1-space-4);
+  padding: var(--tk-v1-panel-header-block) var(--tk-v1-panel-header-inline);
   border-bottom: 1px solid var(--tk-v1-border-default);
   background-color: var(--tk-v1-bg-surface);
   background-image: var(--tk-v1-surface-header-optical);
@@ -244,10 +244,10 @@
   padding: 0;
   border: 0;
   color: var(--tk-v1-fg-default);
-  font-size: var(--tk-v1-type-section);
+  font-size: var(--tk-v1-type-section-title);
   font-weight: 600;
   letter-spacing: -0.016em;
-  line-height: var(--tk-v1-line-heading);
+  line-height: var(--tk-v1-line-section-title);
 }
 
 .tk-v1-panel-header p {
@@ -288,7 +288,7 @@
   border-top: 1px solid var(--tk-v1-border-default);
   background: var(--tk-v1-bg-subtle);
   color: var(--tk-v1-fg-secondary);
-  font-size: var(--tk-v1-type-caption);
+  font-size: var(--tk-v1-type-supporting);
 }
 
 .tk-v1-panel-footer-between {
@@ -306,6 +306,16 @@
 .tk-v1-panel:is(.section-card, .panel-card):hover {
   border-color: var(--tk-v1-surface-edge);
   box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-surface);
+}
+
+/* legacy-shared.css stacks `.section-card > * + *` with a 16px top margin. Inside
+   a TkPanel that margin lands between the header band and the body or table that
+   follows it, opening a seam in a `clip`ped surface. The panel primitives already
+   own their own spacing, so neutralize the legacy rule whenever either side of the
+   pair is one of ours. Content that is still plain legacy markup keeps its stack. */
+.tk-v1-panel:is(.section-card, .panel-card) > [class*="tk-v1-"] + *,
+.tk-v1-panel:is(.section-card, .panel-card) > * + [class*="tk-v1-"] {
+  margin-top: 0;
 }
 
 .tk-v1-toolbar {
@@ -404,4 +414,18 @@
 .tk-v1-table-compact td {
   height: var(--tk-v1-row-compact);
   padding-block: var(--tk-v1-space-2);
+}
+
+/* The identifying name of a record inside a table cell: it carries the row's
+   emphasis against the muted `td` foreground, and truncates rather than wrapping
+   so a long name cannot push the row out of its rhythm. Features scope their own
+   variants off this class; the contract itself is shared. */
+.tk-v1-table-record-name {
+  display: inline-block;
+  max-width: 24ch;
+  overflow: hidden;
+  color: var(--tk-v1-fg-default);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
