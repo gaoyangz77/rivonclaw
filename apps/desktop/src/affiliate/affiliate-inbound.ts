@@ -594,26 +594,23 @@ function getControlledLiveTestRelationshipIds(): Set<string> | null {
 /**
  * Concurrent affiliate work-item runs.
  *
- * Three tiers, in order:
- *   1. an explicit override;
- *   2. live-test isolation - when a controlled cohort is pinned, concurrency is
- *      exactly that cohort's size so a test cannot dispatch beyond it;
- *   3. the shared product default, which is also what the office layout draws
- *      desks from. Those two used to be independent numbers, and a department
- *      with more concurrency than chairs quietly scatters its workers into
- *      other rooms rather than failing.
+ * Two tiers: an explicit override, then the shared product default, which is
+ * also what the office layout draws desks from. Those two used to be
+ * independent numbers, and a department with more concurrency than chairs
+ * quietly scatters its workers into other rooms rather than failing.
+ *
+ * A live-test cohort deliberately does NOT shrink this pool. Containment is the
+ * relationship filter's job: it decides *which* work may dispatch, and it
+ * already refuses everything outside the cohort. Sizing the pool to the cohort
+ * only decided how many of those allowed runs could proceed at once, which made
+ * a controlled test serialize work that production would run in parallel — so
+ * the test measured a concurrency the product never uses.
  */
 export function resolveMaxActiveAffiliateAgentRuns(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
   const explicit = parseOptionalPositiveInteger(env[AFFILIATE_MAX_CONCURRENT_ENV]);
   if (explicit != null) return explicit;
-  const controlledRelationshipIds = env[AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV]
-    ?.split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const cohortSize = new Set(controlledRelationshipIds ?? []).size;
-  if (cohortSize > 0) return cohortSize;
   return DEFAULT_AFFILIATE_MAX_CONCURRENT;
 }
 
