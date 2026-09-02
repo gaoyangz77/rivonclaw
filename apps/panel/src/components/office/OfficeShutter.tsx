@@ -95,21 +95,25 @@ export function OfficeShutter({
         }}
       />
       {rolling && (
-        <div className="office-stage">
-          <OfficeOverlay onExit={shutter.close} />
-          {/* The rolled-up door's lower edge sits along the top of the window;
-              pulling it down closes the office. */}
+        <>
+          <div className="office-stage">
+            <OfficeOverlay onExit={shutter.close} />
+          </div>
+          {/* The folded door gathers into a thin stack along the top of the
+              window; this pill sits on that stack (above the door, so the stack
+              cannot cover it) and pulling it down unfolds the door again. */}
           <div
             className="office-shutter-grip"
             role="button"
             tabIndex={0}
             aria-label={t("office.pullDown")}
+            title={t("office.pullDown")}
             onPointerDown={startDrag}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") shutter.close();
             }}
           />
-        </div>
+        </>
       )}
     </>
   );

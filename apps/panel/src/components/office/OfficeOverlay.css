@@ -65,18 +65,19 @@
   background: var(--color-bg);
 }
 
-/* The rolled-up door's lower edge, along the top of the window; grabbed to
-   pull the door back down. */
+/* The pill on the folded stack along the top of the window; grabbed to pull
+   the door back down. Above the door (10011), which the stack is part of. */
 .office-shutter-grip {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  top: 10px;
+  top: 4px;
   width: 96px;
-  height: 8px;
+  height: 6px;
   margin-left: -48px;
-  border-radius: 4px;
-  background: var(--color-border-strong);
-  opacity: 0.35;
+  border-radius: 3px;
+  z-index: 10012;
+  background: var(--color-text-muted);
+  opacity: 0.6;
   cursor: grab;
   transition: opacity 140ms ease;
 }
@@ -116,7 +117,9 @@
 
 .office-overlay__exit {
   position: absolute;
-  top: 20px;
+  /* Below the folded door's stack along the top edge (1.4% of the window's
+     height - up to ~30px on a 4K display), which would otherwise cover it. */
+  top: 40px;
   right: 20px;
   padding: 8px 16px;
   border: 1px solid var(--color-border-strong);
