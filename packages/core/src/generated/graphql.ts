@@ -79,7 +79,11 @@ export interface ActionProposal {
   creatorEngagementRate?: Maybe<Scalars['Float']['output']>;
   /** Latest Creator follower count for compact Agent work list display. */
   creatorFollowerCount?: Maybe<Scalars['Int']['output']>;
+  /** Latest Creator GMV, with its window and precision, for compact Agent work list display. Null when no Creator Performance projection exists or it carries no GMV. */
+  creatorGmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
   creatorId?: Maybe<Scalars['ID']['output']>;
+  /** Latest Creator TikTok sample-to-post rate as a 0..1 ratio, for compact Agent work list display. Null when the latest Creator Performance projection has no full snapshot or TikTok reported no rate. */
+  creatorPostRate?: Maybe<Scalars['Float']['output']>;
   /** Best-known creator identity for staff review display. This is a profile projection, not proposal execution input. */
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
   /** Relationship workspace that owns this proposal. A relationship can have at most one blocking PENDING or transient APPROVED proposal. */
@@ -107,6 +111,8 @@ export interface ActionProposal {
   /** Immutable prediction evidence owned by this proposal. It remains reviewable after the short-lived source cache expires and does not depend on Collaboration state. */
   predictionSnapshots: Array<AffiliateActionProposalPredictionSnapshot>;
   productId?: Maybe<Scalars['String']['output']>;
+  /** One current summary (with stock when the platform reported it) for every distinct product the proposal or any of its steps acts on, ordered by first reference. A Sample review bundle over several products lists each of them here; productSummary keeps only the first. Empty when none resolved. */
+  productSummaries: Array<EcomProductSummary>;
   /** Best-known related product summary for staff review display. Proposal execution still uses frozen proposal fields. */
   productSummary?: Maybe<EcomProductSummary>;
   /** Current catalog rows for every manual tag a MANAGE_CREATOR_TAG step names, so review renders the tag by name. An ADD names a tag the Relationship does not carry yet, so this is not the same set as creatorRelationship.manualTags. */
@@ -1198,12 +1204,15 @@ export interface AffiliateCampaign {
   dailyOutreachTarget: Scalars['Int']['output'];
   /** How long a Target Collaboration created by this Campaign stays open, in whole days. Resolved against the moment each collaboration is created, not against the Campaign start. */
   endDays: Scalars['Int']['output'];
+  /** Whether the templated message is sent after the Creator is invited into the Target Collaboration. */
+  firstTouchMode: AffiliateCampaignFirstTouchMode;
   id: Scalars['ID']['output'];
   /** Whether Creators reached by this Campaign skip the seller's sample approval step. Leaving this false keeps producing the approval decisions the screening models learn from. */
   isSampleApprovalExempt: Scalars['Boolean']['output'];
   market: ShopRegion;
   messageProductName: Scalars['String']['output'];
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
+  /** Empty only when firstTouchMode is COLLABORATION_ONLY. */
   messageTemplateText: Scalars['String']['output'];
   name: Scalars['String']['output'];
   needsReconfiguration: Scalars['Boolean']['output'];
@@ -1477,6 +1486,13 @@ export const AffiliateCampaignExecutionRiskState = {
 } as const;
 
 export type AffiliateCampaignExecutionRiskState = typeof AffiliateCampaignExecutionRiskState[keyof typeof AffiliateCampaignExecutionRiskState];
+/** Whether a Campaign sends the templated message after inviting a Creator into the Target Collaboration. */
+export const AffiliateCampaignFirstTouchMode = {
+  CollaborationOnly: 'COLLABORATION_ONLY',
+  DirectMessage: 'DIRECT_MESSAGE'
+} as const;
+
+export type AffiliateCampaignFirstTouchMode = typeof AffiliateCampaignFirstTouchMode[keyof typeof AffiliateCampaignFirstTouchMode];
 export interface AffiliateCampaignFollowerCountRule {
   maximum?: Maybe<Scalars['Int']['output']>;
   minimum?: Maybe<Scalars['Int']['output']>;
@@ -2316,6 +2332,8 @@ export interface AffiliateCreatorPerformanceCurrent {
   liveGmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
   market: Scalars['String']['output'];
   observedAt: Scalars['DateTimeISO']['output'];
+  /** TikTok sample-to-post rate as a 0..1 ratio: the share of fulfilled Samples for which the Creator published content. Read from the full performance snapshot; null when TikTok reported none. */
+  postRate?: Maybe<Scalars['Float']['output']>;
   pps?: Maybe<Scalars['Float']['output']>;
   preciseDataAuthorized: Scalars['Boolean']['output'];
   ratingScore?: Maybe<Scalars['Float']['output']>;
@@ -3356,6 +3374,7 @@ export interface AffiliateMessageDelivery {
   emailAccountBindingId?: Maybe<Scalars['ID']['output']>;
   errorCode?: Maybe<Scalars['String']['output']>;
   errorMessage?: Maybe<Scalars['String']['output']>;
+  firstTouchMode?: Maybe<AffiliateCampaignFirstTouchMode>;
   id: Scalars['ID']['output'];
   idempotencyKey: Scalars['String']['output'];
   marketLocalDate?: Maybe<Scalars['String']['output']>;
@@ -8510,6 +8529,8 @@ export interface EcomProductSkuSummary {
   skuId: Scalars['String']['output'];
   /** Summary label for the SKU. Derived from sellerSku for list/search output. */
   skuName?: Maybe<Scalars['String']['output']>;
+  /** Current total available quantity across all warehouses. Present only when the product was loaded with current inventory; null when stock was not hydrated for this SKU. */
+  totalAvailableQuantity?: Maybe<Scalars['Int']['output']>;
 }
 
 /** Product status filter. Use ALL to return all statuses. */
@@ -8545,6 +8566,8 @@ export interface EcomProductSummary {
   skus?: Maybe<Array<EcomProductSkuSummary>>;
   status?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
+  /** Current total available quantity summed across every SKU. Null when the product has no SKUs or any SKU lacks a current stock number, because a partial sum would read as a real total. */
+  totalAvailableQuantity?: Maybe<Scalars['Int']['output']>;
   /** Unix seconds */
   updateTime?: Maybe<Scalars['Int']['output']>;
 }
@@ -15542,10 +15565,13 @@ export interface WriteAffiliateBusinessDeveloperInput {
 export interface WriteAffiliateCampaignInput {
   dailyOutreachTarget: Scalars['Int']['input'];
   endDays?: InputMaybe<Scalars['Int']['input']>;
+  /** Defaults to DIRECT_MESSAGE for a new Campaign; an existing Campaign keeps its stored mode when omitted. Under COLLABORATION_ONLY the message template may be empty. */
+  firstTouchMode?: InputMaybe<AffiliateCampaignFirstTouchMode>;
   id?: InputMaybe<Scalars['ID']['input']>;
   isSampleApprovalExempt?: InputMaybe<Scalars['Boolean']['input']>;
   messageProductName?: InputMaybe<Scalars['String']['input']>;
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
+  /** Required unless firstTouchMode is COLLABORATION_ONLY. */
   messageTemplateText: Scalars['String']['input'];
   name: Scalars['String']['input'];
   /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
