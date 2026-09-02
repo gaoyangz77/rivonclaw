@@ -57,9 +57,9 @@ export function useOfficeShutter(): OfficeShutter {
         setOpenness(Math.min(1, Math.max(0, next)));
       };
       const end = (event: PointerEvent) => {
-        target.removeEventListener("pointermove", move as EventListener);
-        target.removeEventListener("pointerup", end as EventListener);
-        target.removeEventListener("pointercancel", end as EventListener);
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", end);
+        window.removeEventListener("pointercancel", end);
         const state = drag.current;
         drag.current = null;
         setDragging(false);
@@ -77,11 +77,14 @@ export function useOfficeShutter(): OfficeShutter {
         setOpenness(settled ? 1 : 0);
       };
 
-      if (target instanceof Element && "setPointerCapture" in target) {
-        target.addEventListener("pointermove", move as EventListener);
-        target.addEventListener("pointerup", end as EventListener);
-        target.addEventListener("pointercancel", end as EventListener);
-      }
+      // On the window, not the grabbed element: the element that started the
+      // drag may not survive it (the door's handle re-renders as the door
+      // starts to move), and a release delivered to a detached node is a drag
+      // that never ends.
+      void target;
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
     },
     [openness, screensaver],
   );
