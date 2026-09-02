@@ -4160,7 +4160,10 @@ export function campaignCreatorStatesViewState(input: {
   hasError: boolean;
   itemCount: number;
 }): "loading" | "error" | "empty" | "ready" {
-  if (input.loading) return "loading";
+  // A refetch or a next-page fetch keeps the rows already on screen; the
+  // paging spinner lives in the table's own footer row, so the frame-level
+  // "loading" state is reserved for a table that has nothing to show yet.
+  if (input.loading) return input.itemCount > 0 ? "ready" : "loading";
   if (input.hasError) return "error";
   return input.itemCount > 0 ? "ready" : "empty";
 }
