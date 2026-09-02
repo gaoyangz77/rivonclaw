@@ -4312,6 +4312,55 @@ describe("Target Collaboration coverage is absent from the Working Agenda", () =
  * absent reference never reaches the Agent as a number, and that a shop with no
  * standard is never confused with a reference we failed to read.
  */
+/**
+ * When staff resolves an escalation the Agent is woken with an
+ * ESCALATION_RESOLUTION item. The staff decision and instructions were on the
+ * item all along; nothing fetched or rendered them, so the Agent was woken
+ * with nothing to act on. It must now see the answer, and an item of this kind
+ * with no answer is a contract violation rather than a blank to fill in.
+ */
+describe("Escalation resolution in the Working Agenda", () => {
+  function renderResolution(overrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {}): () => string {
+    const base = createCreatorReplyWorkItem();
+    const agendaItem = (base.creatorRelationship?.agendaItems ?? [])[0] as
+      GQL.AffiliateRelationshipAgendaItem;
+    return () => buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({
+        agentWorkingAgendaItems: [{
+          ...agendaItem,
+          key: "affiliate-escalation:esc-001:resolution",
+          workKind: GQL.AffiliateWorkKind.EscalationResolution,
+          requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleEscalationResolution,
+          sampleApplicationRecordId: null,
+          productId: null,
+          predictionEvidence: null,
+          escalationQuestion: "Please confirm whether the replacement necklace has shipped and give a tracking number.",
+          escalationContext: "Creator reported the first parcel never arrived; recipient details were collected.",
+          escalationDecision: "Reshipped",
+          escalationInstructions: "Shipped 2026-08-30 via USPS, tracking 9400 1111 2222 3333 4444 55. Tell the Creator.",
+          escalationResolvedAt: "2026-08-30T09:12:00.000Z" as unknown as Date,
+          ...overrides,
+        }],
+      }),
+      platform: "tiktok",
+    })?.message ?? "";
+  }
+
+  it("renders the staff decision and instructions on the item", () => {
+    const message = renderResolution()();
+
+    expect(message).toContain("Staff Decision: Reshipped");
+    expect(message).toContain("Staff Instructions: Shipped 2026-08-30 via USPS");
+    expect(message).toContain("the question you asked staff: Please confirm whether the replacement");
+    expect(message).toContain("tell the Creator the outcome");
+  });
+
+  it("refuses to wake the Agent on a resolution with no decision", () => {
+    expect(renderResolution({ escalationDecision: null })).toThrow(/without a staff decision/);
+    expect(renderResolution({ escalationInstructions: "   " })).toThrow(/without a staff decision/);
+  });
+});
+
 describe("Shop minimum expected sales reference in the Working Agenda", () => {
   function renderReference(
     minExpectedSalesReference: GQL.AffiliateMinExpectedSalesReference | null,
