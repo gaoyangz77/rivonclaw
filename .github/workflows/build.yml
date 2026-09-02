@@ -79,6 +79,40 @@ jobs:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
 
+      - name: Clone Pixel Agents vendor
+        shell: bash
+        run: |
+          HASH=$(tr -d '[:space:]' < .pixel-agents-version)
+          git clone https://github.com/pixel-agents-hq/pixel-agents.git vendor/pixel-agents
+          cd vendor/pixel-agents
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache Pixel Agents node_modules
+        id: cache-pixel-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/node_modules
+          key: pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor/pixel-agents/package-lock.json') }}
+          restore-keys: |
+            pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-
+
+      - name: Cache Pixel Agents dist
+        id: cache-pixel-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/dist
+          key: pixel-dist-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor-patches/pixel-agents/*.patch', 'scripts/setup-pixel-agents.sh') }}
+
+      # Stages apps/desktop/build/office/, which is the Panel's Vite publicDir —
+      # so it must run before the Panel is built, not before it is packaged.
+      - name: Provision Pixel Agents office
+        shell: bash
+        run: ./scripts/setup-pixel-agents.sh --skip-clone
+        env:
+          SKIP_PIXEL_AGENTS_INSTALL: ${{ steps.cache-pixel-nm.outputs.cache-hit }}
+          SKIP_PIXEL_AGENTS_BUILD: ${{ steps.cache-pixel-dist.outputs.cache-hit }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -259,6 +293,38 @@ jobs:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
 
+      - name: Clone Pixel Agents vendor
+        run: |
+          HASH=$(tr -d '[:space:]' < .pixel-agents-version)
+          git clone https://github.com/pixel-agents-hq/pixel-agents.git vendor/pixel-agents
+          cd vendor/pixel-agents
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache Pixel Agents node_modules
+        id: cache-pixel-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/node_modules
+          key: pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor/pixel-agents/package-lock.json') }}
+          restore-keys: |
+            pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-
+
+      - name: Cache Pixel Agents dist
+        id: cache-pixel-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/dist
+          key: pixel-dist-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor-patches/pixel-agents/*.patch', 'scripts/setup-pixel-agents.sh') }}
+
+      # Stages apps/desktop/build/office/, which is the Panel's Vite publicDir —
+      # so it must run before the Panel is built, not before it is packaged.
+      - name: Provision Pixel Agents office
+        run: ./scripts/setup-pixel-agents.sh --skip-clone
+        env:
+          SKIP_PIXEL_AGENTS_INSTALL: ${{ steps.cache-pixel-nm.outputs.cache-hit }}
+          SKIP_PIXEL_AGENTS_BUILD: ${{ steps.cache-pixel-dist.outputs.cache-hit }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -431,6 +497,38 @@ jobs:
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
+
+      - name: Clone Pixel Agents vendor
+        run: |
+          HASH=$(tr -d '[:space:]' < .pixel-agents-version)
+          git clone https://github.com/pixel-agents-hq/pixel-agents.git vendor/pixel-agents
+          cd vendor/pixel-agents
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache Pixel Agents node_modules
+        id: cache-pixel-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/node_modules
+          key: pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor/pixel-agents/package-lock.json') }}
+          restore-keys: |
+            pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-
+
+      - name: Cache Pixel Agents dist
+        id: cache-pixel-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/dist
+          key: pixel-dist-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor-patches/pixel-agents/*.patch', 'scripts/setup-pixel-agents.sh') }}
+
+      # Stages apps/desktop/build/office/, which is the Panel's Vite publicDir —
+      # so it must run before the Panel is built, not before it is packaged.
+      - name: Provision Pixel Agents office
+        run: ./scripts/setup-pixel-agents.sh --skip-clone
+        env:
+          SKIP_PIXEL_AGENTS_INSTALL: ${{ steps.cache-pixel-nm.outputs.cache-hit }}
+          SKIP_PIXEL_AGENTS_BUILD: ${{ steps.cache-pixel-dist.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -608,6 +706,38 @@ jobs:
         env:
           SKIP_VENDOR_INSTALL: ${{ steps.cache-vendor-nm.outputs.cache-hit }}
           SKIP_VENDOR_BUILD: ${{ steps.cache-vendor-dist.outputs.cache-hit }}
+
+      - name: Clone Pixel Agents vendor
+        run: |
+          HASH=$(tr -d '[:space:]' < .pixel-agents-version)
+          git clone https://github.com/pixel-agents-hq/pixel-agents.git vendor/pixel-agents
+          cd vendor/pixel-agents
+          git checkout "$HASH"
+          git checkout -B main
+
+      - name: Cache Pixel Agents node_modules
+        id: cache-pixel-nm
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/node_modules
+          key: pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor/pixel-agents/package-lock.json') }}
+          restore-keys: |
+            pixel-nm-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-
+
+      - name: Cache Pixel Agents dist
+        id: cache-pixel-dist
+        uses: actions/cache@v4
+        with:
+          path: vendor/pixel-agents/dist
+          key: pixel-dist-${{ runner.os }}-${{ hashFiles('.pixel-agents-version') }}-${{ hashFiles('vendor-patches/pixel-agents/*.patch', 'scripts/setup-pixel-agents.sh') }}
+
+      # Stages apps/desktop/build/office/, which is the Panel's Vite publicDir —
+      # so it must run before the Panel is built, not before it is packaged.
+      - name: Provision Pixel Agents office
+        run: ./scripts/setup-pixel-agents.sh --skip-clone
+        env:
+          SKIP_PIXEL_AGENTS_INSTALL: ${{ steps.cache-pixel-nm.outputs.cache-hit }}
+          SKIP_PIXEL_AGENTS_BUILD: ${{ steps.cache-pixel-dist.outputs.cache-hit }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

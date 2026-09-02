@@ -174,3 +174,37 @@ describe("createPanelEventBus", () => {
     expect(FakeEventSource.instances.length).toBe(2);
   });
 });
+
+describe("snapshot frames written at connect time", () => {
+  // Desktop writes every snapshot once, the moment the stream opens. The office
+  // view subscribes to its snapshot only when someone opens it, minutes later;
+  // an EventSource only delivers named events to listeners that already exist,
+  // so without listening from the start that frame is lost and - on a quiet
+  // Desktop, which sends another only on change - the office opens empty.
+  it("caches a snapshot that arrived before anyone subscribed to it", () => {
+    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    // Something else opens the stream, as the entity store does at startup.
+    bus.subscribe("entity-snapshot", vi.fn());
+
+    const source = FakeEventSource.instances[0]!;
+    const frame = { snapshot: { revision: 0, rooms: [], desks: [], characters: [] }, cues: [] };
+    source.emit("scene-snapshot", frame);
+
+    const late = vi.fn();
+    bus.subscribe("scene-snapshot", late);
+    expect(late).toHaveBeenCalledTimes(1);
+    expect(late).toHaveBeenCalledWith(frame);
+  });
+
+  it("still does not pre-listen for non-snapshot events", () => {
+    const bus = createPanelEventBus((url) => new FakeEventSource(url) as unknown as EventSource);
+    bus.subscribe("entity-snapshot", vi.fn());
+
+    const source = FakeEventSource.instances[0]!;
+    source.emit("oauth-complete", { shopId: "s1" });
+
+    const late = vi.fn();
+    bus.subscribe("oauth-complete", late);
+    expect(late).not.toHaveBeenCalled();
+  });
+});

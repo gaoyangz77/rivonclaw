@@ -43,6 +43,10 @@ export type CsTelemetryEventType =
   | "cs.escalation_event"
   | "cs.session_event"
   | "ecom.tool_call"
+  // Office view activity, recorded so a run can be replayed as video later.
+  // Carries no session key - see apps/desktop/src/scene/scene-telemetry.ts.
+  | "office.scene_event"
+  | "office.scene_config"
   | "cs.error";
 
 export function emitCsTelemetry(

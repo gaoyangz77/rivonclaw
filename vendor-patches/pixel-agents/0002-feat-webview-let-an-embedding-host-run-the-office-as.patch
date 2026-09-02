@@ -1,0 +1,134 @@
+From 2c6efa4372f374f4a4fd5f754efedaced330e809 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Tue, 1 Sep 2026 16:51:59 -0700
+Subject: [PATCH] feat(webview): let an embedding host run the office as a
+ display surface
+
+Two controls a host needs when the office is ambient decoration - a
+screensaver, a livestream backdrop - rather than a workspace the viewer
+is working in.
+
+window.__OFFICE_KIOSK__ skips rendering the zoom controls, bottom
+toolbar, version indicator and connection indicator. Skipped rather than
+hidden with CSS so nothing behind the office stays clickable or
+focusable, and so a host is not coupled to our class names.
+
+window.__OFFICE_ZOOM__ pins the initial zoom. The existing default is
+derived from devicePixelRatio, which is a fair guess for a panel the
+user sizes themselves but knows nothing about the frame it is embedded
+in - a full-screen embed renders as a small block in the middle of a
+large viewport. Both fall back to current behaviour when unset.
+---
+ webview-ui/src/App.tsx                   | 60 +++++++++++++++++-------
+ webview-ui/src/hooks/useEditorActions.ts |  8 ++++
+ 2 files changed, 52 insertions(+), 16 deletions(-)
+
+diff --git a/webview-ui/src/App.tsx b/webview-ui/src/App.tsx
+index 68a2691..aeb5f89 100644
+--- a/webview-ui/src/App.tsx
++++ b/webview-ui/src/App.tsx
+@@ -31,6 +31,28 @@ import { isBrowserRuntime, isE2E } from './runtime.js';
+ import { installTestHooks } from './testHooks.js';
+ import { transport } from './transport/index.js';
+ 
++declare global {
++  interface Window {
++    /** Host embedding controls; see vendor-patches/pixel-agents. */
++    __OFFICE_KIOSK__?: boolean;
++    __OFFICE_ZOOM__?: number;
++  }
++}
++
++/**
++ * Is the office embedded as a display surface rather than a workspace?
++ *
++ * A host that shows the office as ambient decoration - a screensaver, a
++ * livestream backdrop - owns its own chrome and must be able to suppress ours,
++ * or the viewer is offered buttons that act on a workspace they are not in.
++ * Rendering is skipped entirely rather than hidden with CSS so nothing behind
++ * the office can be clicked or focused.
++ */
++function isOfficeKiosk(): boolean {
++  return typeof window !== 'undefined' && window.__OFFICE_KIOSK__ === true;
++}
++
++
+ // Game state lives outside React — updated imperatively by message handlers
+ const officeStateRef = { current: null as OfficeState | null };
+ const editorState = new EditorState();
+@@ -354,7 +376,9 @@ function App() {
+ 
+       {!isDebugMode ? (
+         <>
+-          <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />
++          {!isOfficeKiosk() && (
++            <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />
++          )}
+ 
+           {/* Vignette overlay */}
+           <div
+@@ -511,23 +535,27 @@ function App() {
+         </div>
+       </Modal>
+ 
+-      <BottomToolbar
+-        isEditMode={editor.isEditMode}
+-        onOpenClaude={editor.handleOpenClaude}
+-        onToggleEditMode={editor.handleToggleEditMode}
+-        isSettingsOpen={isSettingsOpen}
+-        onToggleSettings={() => setIsSettingsOpen((v) => !v)}
+-        workspaceFolders={workspaceFolders}
+-      />
++      {!isOfficeKiosk() && (
++        <>
++          <BottomToolbar
++            isEditMode={editor.isEditMode}
++            onOpenClaude={editor.handleOpenClaude}
++            onToggleEditMode={editor.handleToggleEditMode}
++            isSettingsOpen={isSettingsOpen}
++            onToggleSettings={() => setIsSettingsOpen((v) => !v)}
++            workspaceFolders={workspaceFolders}
++          />
+ 
+-      <VersionIndicator
+-        currentVersion={extensionVersion}
+-        lastSeenVersion={lastSeenVersion}
+-        onDismiss={handleWhatsNewDismiss}
+-        onOpenChangelog={handleOpenChangelog}
+-      />
++          <VersionIndicator
++            currentVersion={extensionVersion}
++            lastSeenVersion={lastSeenVersion}
++            onDismiss={handleWhatsNewDismiss}
++            onOpenChangelog={handleOpenChangelog}
++          />
+ 
+-      <ConnectionIndicator />
++          <ConnectionIndicator />
++        </>
++      )}
+ 
+       <ChangelogModal
+         isOpen={isChangelogOpen}
+diff --git a/webview-ui/src/hooks/useEditorActions.ts b/webview-ui/src/hooks/useEditorActions.ts
+index 5957b9b..3bd250f 100644
+--- a/webview-ui/src/hooks/useEditorActions.ts
++++ b/webview-ui/src/hooks/useEditorActions.ts
+@@ -103,6 +103,14 @@ interface EditorActions {
+  *  it reads `devicePixelRatio`, and a viewport concern in a state module drags
+  *  the DOM into every graph that imports it (OfficeState's included). */
+ function defaultZoom(): number {
++  // An embedding host can pin the zoom that fills its frame. The DPR heuristic
++  // below is a reasonable guess for a panel the user sizes themselves, but it
++  // knows nothing about how large the frame actually is, so an office embedded
++  // full-screen ends up as a small block in the middle of a large viewport.
++  const hosted = typeof window !== 'undefined' ? window.__OFFICE_ZOOM__ : undefined;
++  if (typeof hosted === 'number' && Number.isFinite(hosted) && hosted > 0) {
++    return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(hosted)));
++  }
+   const dpr = window.devicePixelRatio || 1;
+   return Math.max(ZOOM_MIN, Math.round(ZOOM_DEFAULT_DPR_FACTOR * dpr));
+ }
+-- 
+2.50.1 (Apple Git-155)
+

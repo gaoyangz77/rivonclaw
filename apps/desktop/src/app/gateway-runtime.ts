@@ -11,10 +11,12 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createGatewayConfigBuilder } from "../gateway/config-builder.js";
 import { createGatewayEventDispatcher } from "../gateway/event-dispatcher.js";
+import { startIdleMonitor } from "../scene/idle-monitor.js";
+import { startSceneService } from "../scene/scene-service.js";
 import type { GatewayEventHandler } from "../gateway/event-dispatcher.js";
 import { getCsBridge } from "../gateway/connection.js";
 import { rootStore } from "./store/desktop-store.js";
-import type { BroadcastEvent } from "./panel-server.js";
+import { setIdleMonitor, setSceneService, type BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensurePackagedOpenClawRuntimeDepsStage } from "./openclaw-runtime-deps-stage.js";
 
@@ -104,9 +106,24 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     gatewayPort,
   });
 
+  // Office scene projection — turns department run activity into scene frames.
+  // Independent of the CS and affiliate dispatch paths: it only reads their
+  // event stream and their configured concurrency, so it cannot affect either.
+  const sceneService = startSceneService({ broadcastEvent });
+  setSceneService(sceneService);
+
+  // Away-from-keyboard detection for the office screensaver. Lives beside the
+  // scene because it feeds the same surface; it broadcasts only on transitions,
+  // so an unattended machine costs one timer and nothing on the wire.
+  const idleMonitor = startIdleMonitor({
+    onChange: (state) => broadcastEvent("idle-snapshot", state),
+  });
+  setIdleMonitor(idleMonitor);
+
   // Create gateway event dispatcher — routes WS events to Panel SSE
   const dispatchGatewayEvent = createGatewayEventDispatcher({
     broadcastEvent,
+    onSceneEvent: (event) => sceneService.handleEvent(event),
     chatSessions: storage.chatSessions,
     onRecipientSeen: ({ channelId, accountId, recipientId }) => {
       return rootStore.channelManager.recordRecipientSeen({ channelId, accountId, recipientId });

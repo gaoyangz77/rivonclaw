@@ -1,0 +1,107 @@
+From 78ee55d196c8233fc3ae3c0c28d09b366a074427 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Tue, 1 Sep 2026 17:14:48 -0700
+Subject: [PATCH] feat(webview): let a host supply several phrasings for one
+ office label
+
+Idle is the label a character can wear for hours, and an office full of
+characters captioned with the same single word reads as a rendering
+artifact rather than as people.
+
+A host label value may now be a list as well as a string. Given a list,
+each character wears one of its entries, chosen from the character's own
+id and the clock, so neighbours differ and a room left open keeps
+changing. Both terms are arithmetic over values the render already has,
+so nothing is added to the frame loop and no state can disagree with
+what is on screen. A string value, or no value at all, behaves exactly
+as before.
+---
+ .../src/office/components/ToolOverlay.tsx     | 57 +++++++++++++++++--
+ 1 file changed, 53 insertions(+), 4 deletions(-)
+
+diff --git a/webview-ui/src/office/components/ToolOverlay.tsx b/webview-ui/src/office/components/ToolOverlay.tsx
+index 424592e..9647ae8 100644
+--- a/webview-ui/src/office/components/ToolOverlay.tsx
++++ b/webview-ui/src/office/components/ToolOverlay.tsx
+@@ -37,17 +37,64 @@ import { CharacterState } from '../types.js';
+  * first frame paints, which is earlier than any message can arrive; the host
+  * sets it from the page URL in its bootstrap script. Every lookup falls back to
+  * the English literal, so a host that sets nothing behaves exactly as before.
++ *
++ * A label may also be supplied as SEVERAL phrasings. Idle is the one that needs
++ * it: it is the only label a character can wear for hours, and a full office of
++ * them captioned with one identical word reads as a rendering artifact rather
++ * than as people. Given a list, the office wears one of them per character (see
++ * officeLabel).
+  */
+ declare global {
+   interface Window {
+-    __OFFICE_LABELS__?: Record<string, string>;
++    __OFFICE_LABELS__?: Record<string, string | string[]>;
+   }
+ }
+ 
+-function officeLabel(key: string, fallback: string): string {
++/**
++ * How long one phrasing of a multi-variant label stays on a character.
++ *
++ * Long enough that a glance at the office never catches a caption mid-change,
++ * short enough that watching for a minute shows the room shift.
++ */
++const LABEL_ROTATION_MS = 15_000;
++
++/**
++ * Where inside the rotation period a given character's changes fall.
++ *
++ * Every character keeps the same period, but each starts its clock at a
++ * different point in it, so changes are spread across the period rather than
++ * landing on the same tick for the whole office - a room where every caption
++ * flips in the same frame reads as a refresh, not as people. Knuth's
++ * multiplicative hash spreads consecutive ids evenly; `>>> 0` folds a negative
++ * sub-agent id into range.
++ */
++function rotationOffset(seed: number): number {
++  return ((seed * 2654435761) >>> 0) % LABEL_ROTATION_MS;
++}
++
++/**
++ * Resolve a host-supplied label.
++ *
++ * `seed` distinguishes the characters wearing the same label; it is ignored for
++ * a single-string label. Neighbours differ because the seed shifts the index
++ * and staggers the clock, and the same character changes over time because the
++ * clock advances it. All terms are arithmetic over values the render already
++ * has: no timer, no state, and therefore nothing that can disagree with what is
++ * on screen. The overlay re-renders every animation frame, so the clock term
++ * takes effect on its own.
++ */
++function officeLabel(key: string, fallback: string, seed = 0): string {
+   if (typeof window === 'undefined') return fallback;
+   const value = window.__OFFICE_LABELS__?.[key];
+-  return typeof value === 'string' && value.length > 0 ? value : fallback;
++  if (typeof value === 'string') return value.length > 0 ? value : fallback;
++  if (!Array.isArray(value)) return fallback;
++  const variants = value.filter((entry) => typeof entry === 'string' && entry.length > 0);
++  if (variants.length === 0) return fallback;
++  const phase = Math.floor((Date.now() + rotationOffset(seed)) / LABEL_ROTATION_MS);
++  // Character ids are only guaranteed to be distinct, not positive: sub-agents
++  // count down from -1, so the remainder has to be folded back into range.
++  const index = (((seed + phase) % variants.length) + variants.length) % variants.length;
++  return variants[index] ?? fallback;
+ }
+ 
+ const WAITING_INPUT_ACTIVITY_TEXT = 'Waiting for input';
+@@ -95,7 +142,9 @@ function getActivityText(
+     }
+   }
+ 
+-  return officeLabel('idle', 'Idle');
++  // Seeded with the character's own id so a room of idle characters wears a
++  // spread of phrasings rather than one word repeated down every desk.
++  return officeLabel('idle', 'Idle', agentId);
+ }
+ 
+ function getFuelColor(ratio: number): string {
+-- 
+2.50.1 (Apple Git-155)
+

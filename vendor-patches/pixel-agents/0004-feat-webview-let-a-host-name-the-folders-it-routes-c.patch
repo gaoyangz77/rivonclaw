@@ -1,0 +1,36 @@
+From 87bb74ab06ff9473c8871e090f33f47d9dc4a73b Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Tue, 1 Sep 2026 19:31:50 -0700
+Subject: [PATCH] feat(webview): let a host name the folders it routes
+ characters by
+
+A character's folder name is drawn under its caption as-is. For a host that
+routes characters into rooms by that name, it is a key rather than a caption -
+a short language-free id - and printing it shows the viewer an id where a
+department name belongs. A host may now supply a display name for any folder
+under the `folder.<name>` label key; the name itself, and the routing it
+drives, are untouched. A folder without a supplied name prints as before.
+---
+ webview-ui/src/office/components/ToolOverlay.tsx | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/webview-ui/src/office/components/ToolOverlay.tsx b/webview-ui/src/office/components/ToolOverlay.tsx
+index 9647ae8..0de69f8 100644
+--- a/webview-ui/src/office/components/ToolOverlay.tsx
++++ b/webview-ui/src/office/components/ToolOverlay.tsx
+@@ -329,7 +329,11 @@ export function ToolOverlay({
+                 </span>
+                 {ch.folderName && (
+                   <span className="text-2xs leading-none overflow-hidden text-ellipsis block">
+-                    {ch.folderName}
++                    {/* A folder name is a routing key for the host as much as a
++                        caption for the viewer; a host may supply a display name
++                        for it under `folder.<name>` and keep the key itself
++                        language-free. */}
++                    {officeLabel(`folder.${ch.folderName}`, ch.folderName)}
+                   </span>
+                 )}
+               </div>
+-- 
+2.50.1 (Apple Git-155)
+

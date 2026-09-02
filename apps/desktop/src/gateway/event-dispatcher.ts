@@ -17,6 +17,20 @@ export interface GatewayEventDispatcherDeps {
     membershipChanged: boolean;
   };
   onSessionActivity?: (sessionKey: string) => void;
+  /**
+   * Internal department run activity for the office view.
+   *
+   * Separate from `chat-mirror` on purpose: that stream is filtered to what a
+   * user should see in chat, and `isInternalServiceSessionKey` below drops
+   * exactly the customer-service and affiliate traffic the office is made of.
+   */
+  onSceneEvent?: (event: {
+    runId: string;
+    sessionKey: string;
+    stream: string;
+    seq: number;
+    data?: Record<string, unknown>;
+  }) => void;
 }
 
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
@@ -45,9 +59,31 @@ function isInternalTelegramDebugAccount(input: {
 export function createGatewayEventDispatcher(
   deps: GatewayEventDispatcherDeps,
 ): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity } = deps;
+  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onSceneEvent } = deps;
 
   return (evt: GatewayEventFrame): void => {
+    if (
+      evt.event === "plugin.rivonclaw.scene-event" ||
+      evt.event === "rivonclaw.scene-event"
+    ) {
+      const p = evt.payload as {
+        runId?: string;
+        sessionKey?: string;
+        stream?: string;
+        seq?: number;
+        data?: Record<string, unknown>;
+      } | undefined;
+      if (p?.runId && p.sessionKey && p.stream && typeof p.seq === "number") {
+        onSceneEvent?.({
+          runId: p.runId,
+          sessionKey: p.sessionKey,
+          stream: p.stream,
+          seq: p.seq,
+          data: p.data,
+        });
+      }
+    }
+
     if (evt.event === "mobile.session-reset") {
       const payload = evt.payload as { sessionKey?: string } | undefined;
       if (payload?.sessionKey) {

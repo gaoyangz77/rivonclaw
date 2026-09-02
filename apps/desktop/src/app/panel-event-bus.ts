@@ -34,6 +34,18 @@ export interface PanelEventBusDeps {
   getEntitySnapshot(): unknown;
   /** Synchronous read of the MST runtime-status-store snapshot (full state). */
   getRuntimeStatusSnapshot(): unknown;
+  /**
+   * Office scene, when one is running. Optional because the scene service is
+   * created later than this bus and may be absent entirely; a client that
+   * connects before it exists gets its first frame from the normal broadcast.
+   */
+  getSceneSnapshot?(): unknown;
+  /**
+   * Whether the machine is currently unattended. Sent on connect because it is
+   * otherwise only broadcast on transitions - a Panel that loads while the user
+   * is already away would never learn it should show the office.
+   */
+  getIdleState?(): unknown;
 }
 
 /**
@@ -76,6 +88,14 @@ export function createPanelEventBus(deps: PanelEventBusDeps): PanelEventBus {
       writeFrame(res, "entity-snapshot", entitySnapshot);
       const statusSnapshot = deps.getRuntimeStatusSnapshot();
       writeFrame(res, "status-snapshot", statusSnapshot);
+      const sceneSnapshot = deps.getSceneSnapshot?.();
+      if (sceneSnapshot !== undefined) {
+        writeFrame(res, "scene-snapshot", { snapshot: sceneSnapshot, cues: [] });
+      }
+      const idleState = deps.getIdleState?.();
+      if (idleState !== undefined) {
+        writeFrame(res, "idle-snapshot", idleState);
+      }
 
       clients.add(res);
 

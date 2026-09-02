@@ -20,6 +20,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // jsdom has no EventSource; the Panel opens one for Desktop's event stream.
+    setupFiles: ["./test/setup-dom.ts"],
     exclude: [
       "**/node_modules/**",
       "test/pages/MobilePage.test.tsx", // source file not yet created

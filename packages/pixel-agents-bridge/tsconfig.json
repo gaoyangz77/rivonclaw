@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `createIframeFrame` is the browser adapter for the renderer embedding, so
+    // this package compiles against DOM. `OfficeHost` itself stays DOM-free and
+    // is driven through the `OfficeFrame` interface.
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src"]
+}

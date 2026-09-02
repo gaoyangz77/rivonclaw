@@ -169,6 +169,26 @@ export function HomeIcon(props: IconProps) {
     );
 }
 
+/**
+ * Office block — the agent office view.
+ *
+ * A building rather than a screen: MonitorIcon already means "follow the system
+ * theme" in the same sidebar, and one glyph carrying two meanings a few pixels
+ * apart is worse than drawing a second one.
+ */
+export function OfficeIcon(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M3 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17" />
+            <path d="M14 10h6a1 1 0 0 1 1 1v10" />
+            <path d="M2 21h20" />
+            <path d="M7 7h3" />
+            <path d="M7 11h3" />
+            <path d="M17 15h1" />
+        </Icon>
+    );
+}
+
 export function SunIcon(props: IconProps) {
     return (
         <Icon size={16} strokeWidth={2} {...props}>
