@@ -25,6 +25,7 @@
 
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 const VENDOR_ROOT = path.join(REPO_ROOT, "vendor", "pixel-agents");
@@ -43,12 +44,12 @@ if (!existsSync(ASSETS_DIR)) {
 }
 
 const { buildAssetIndex, buildFurnitureCatalog } = await import(
-  path.join(VENDOR_ROOT, "core", "src", "assets", "build.ts")
+  pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "build.ts")).href,
 );
 const { decodeAllCarpets, decodeAllCharacters, decodeAllFloors, decodeAllFurniture, decodeAllWalls } =
-  await import(path.join(VENDOR_ROOT, "core", "src", "assets", "loader.ts"));
+  await import(pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "loader.ts")).href);
 const { decodePetPng } = await import(
-  path.join(VENDOR_ROOT, "core", "src", "assets", "pngDecoder.ts")
+  pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "pngDecoder.ts")).href,
 );
 
 // ── Pets ────────────────────────────────────────────────────────────────────
