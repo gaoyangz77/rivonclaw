@@ -4,6 +4,8 @@ import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-t
 import {
   applySentCreatorStatePreset,
   campaignDecisionReasonLabel,
+  campaignMessageStepValid,
+  campaignSkipsDirectMessage,
   affiliateCampaignCommissionRange,
   campaignDeliveryFailureBreakdown,
   campaignErrorMessage,
@@ -140,6 +142,41 @@ describe("Affiliate Campaign presentation contracts", () => {
         "Hi {{creator_name}}, meet {{product_name}} from {{shop_name}}.",
       ),
     ).toEqual([]);
+  });
+
+  it("requires a template only when the Campaign sends a direct message", () => {
+    const directMessage = GQL.AffiliateCampaignFirstTouchMode.DirectMessage;
+    const collaborationOnly = GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly;
+    expect(campaignSkipsDirectMessage(directMessage)).toBe(false);
+    expect(campaignSkipsDirectMessage(collaborationOnly)).toBe(true);
+
+    expect(campaignMessageStepValid({ templateText: "", firstTouchMode: directMessage })).toBe(
+      false,
+    );
+    expect(campaignMessageStepValid({ templateText: "   ", firstTouchMode: directMessage })).toBe(
+      false,
+    );
+    expect(
+      campaignMessageStepValid({ templateText: "Hi {{creator_name}}", firstTouchMode: directMessage }),
+    ).toBe(true);
+    // A collaboration-only Campaign keeps whatever template text the seller
+    // drafted, but never needs one to advance.
+    expect(
+      campaignMessageStepValid({ templateText: "", firstTouchMode: collaborationOnly }),
+    ).toBe(true);
+    expect(
+      campaignMessageStepValid({ templateText: "Hi {{creator_name}}", firstTouchMode: collaborationOnly }),
+    ).toBe(true);
+  });
+
+  it("localizes the no-direct-message option in every Campaign locale", () => {
+    for (const key of ["noDirectMessage", "noDirectMessageHint", "firstTouchCollaborationOnly"] as const) {
+      const messages = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
+        (translations) => translations.ecommerce.affiliateCampaign[key],
+      );
+      expect(messages.every(Boolean)).toBe(true);
+      expect(new Set(messages).size).toBe(messages.length);
+    }
   });
 
   it("localizes unsupported template-variable guidance in every Campaign locale", () => {
