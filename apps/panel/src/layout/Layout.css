@@ -53,6 +53,11 @@
   content: "";
   position: absolute;
   inset: 0;
+  /* Above everything inside the door - the sidebar and page chrome carry
+     their own z-indexes and would otherwise sit on top of the creases, leaving
+     the pleats stopping at the menu's edge. The door is its own stacking
+     context, so this never competes with anything outside it. */
+  z-index: 10000;
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
