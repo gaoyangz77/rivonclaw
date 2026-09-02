@@ -3285,6 +3285,7 @@ export default {
         avgVideoViews: "Vues vidéo moyennes",
         rating: "Note vendeurs",
         pps: "PPS",
+        engagementRate: "Taux d'engagement",
         postRate: "Taux de publication",
         noMarketplacePerformance:
           "Aucune métrique de performance marketplace disponible pour le moment.",

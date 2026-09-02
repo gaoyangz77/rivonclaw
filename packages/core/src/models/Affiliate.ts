@@ -313,6 +313,10 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   creatorAverageVideoViews: types.maybeNull(types.number),
   creatorEngagementRate: types.maybeNull(types.number),
   creatorShoppableVideoCount: types.maybeNull(types.number),
+  /** Creator GMV money metric (amount or min/max range plus window). */
+  creatorGmv: types.maybeNull(types.frozen<Record<string, any>>()),
+  /** Sample-to-post rate as a 0..1 ratio. */
+  creatorPostRate: types.maybeNull(types.number),
   creatorRelationshipId: types.maybeNull(types.string),
   affiliateCollaborationId: types.maybeNull(types.string),
   sampleApplicationRecordId: types.maybeNull(types.string),
@@ -322,6 +326,10 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   creatorProfile: types.maybeNull(types.frozen<Record<string, any>>()),
   creatorRelationship: types.maybeNull(types.frozen<Record<string, any>>()),
   productSummary: types.maybeNull(types.frozen<Record<string, any>>()),
+  /** One summary per distinct product the proposal or any of its steps acts on,
+   * in first-reference order. A multi-Sample bundle needs every product, not
+   * only the primary one in `productSummary`. */
+  productSummaries: types.optional(types.array(types.frozen<Record<string, any>>()), []),
   type: types.optional(types.string, ""),
   status: types.optional(types.string, ""),
   operatorSummary: types.optional(types.string, ""),
@@ -710,6 +718,7 @@ export const AffiliateWorkspaceModel = types
       upsertCollaboration(proposal.affiliateCollaboration);
       upsertSampleApplication(proposal.sampleApplicationRecord);
       upsertProduct(proposal.productSummary);
+      for (const product of proposal.productSummaries ?? []) upsertProduct(product);
       upsertById(self.actionProposals as any, proposal as any);
     }
 

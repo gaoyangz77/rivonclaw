@@ -3287,6 +3287,7 @@ export default {
         avgVideoViews: "Durchschn. Videoaufrufe",
         rating: "Verkäuferbewertung",
         pps: "PPS",
+        engagementRate: "Interaktionsrate",
         postRate: "Posting-Rate",
         noMarketplacePerformance: "Noch keine Marketplace-Leistungsdaten verfügbar.",
         identifiers: "Kennungen",

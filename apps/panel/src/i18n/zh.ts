@@ -3637,6 +3637,7 @@ export default {
         },
         type: "类型",
         work: "Agent 工作",
+        stock: "库存",
         status: "状态",
         actions: {
           rejectSample: "拒绝样品申请",
@@ -3982,6 +3983,7 @@ export default {
         avgVideoViews: "平均视频播放",
         rating: "卖家评分",
         pps: "带货表现分",
+        engagementRate: "互动率",
         postRate: "寄样后发稿率",
         noMarketplacePerformance: "暂未获得平台表现数据。",
         identifiers: "身份信息",

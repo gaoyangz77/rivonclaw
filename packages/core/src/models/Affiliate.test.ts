@@ -213,4 +213,35 @@ describe("AffiliateWorkspaceModel", () => {
     expect(projection?.proposal.deliveredMessage?.parts?.[0]?.text)
       .toBe("Hola, gracias por avisarnos.");
   });
+
+  it("keeps every Sample product's stock and the Creator sales metrics on a proposal", () => {
+    // A multi-Sample bundle acts on several products; the singular
+    // productSummary only ever carries one. Stock, GMV, and post rate are
+    // undeclared-prop casualties unless the model names them.
+    const workspace = AffiliateWorkspaceModel.create({});
+    workspace.upsertAffiliateActionProposal({
+      id: "proposal-1",
+      type: "REVIEW_SAMPLE_APPLICATION",
+      status: "PENDING",
+      productId: "product-1",
+      productSummary: { productId: "product-1", title: "Product one", totalAvailableQuantity: 12 },
+      productSummaries: [
+        { productId: "product-1", title: "Product one", totalAvailableQuantity: 12 },
+        { productId: "product-2", title: "Product two", totalAvailableQuantity: null },
+      ],
+      creatorGmv: { amount: "1250.5", currency: "USD", window: "LAST_30_DAYS" },
+      creatorPostRate: 0.42,
+      createdAt: NOW,
+      updatedAt: NOW,
+    } as any);
+
+    const projection = workspace.proposalProjection("proposal-1");
+    expect(projection?.proposal.productSummaries.map((product) => product.productId))
+      .toEqual(["product-1", "product-2"]);
+    expect(projection?.proposal.productSummaries[0]?.totalAvailableQuantity).toBe(12);
+    expect(projection?.proposal.productSummaries[1]?.totalAvailableQuantity).toBeNull();
+    expect(projection?.proposal.creatorGmv?.amount).toBe("1250.5");
+    expect(projection?.proposal.creatorPostRate).toBe(0.42);
+    expect(workspace.getProductSummary("product-2")?.title).toBe("Product two");
+  });
 });

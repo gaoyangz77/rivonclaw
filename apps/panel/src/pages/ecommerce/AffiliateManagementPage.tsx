@@ -102,7 +102,10 @@ import {
   AffiliateWorkbenchEntityTabs,
   type AffiliateWorkbenchEntityOpenTarget,
 } from "./components/AffiliateWorkbenchEntityTabs.js";
-import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
+import {
+  ProductSummaryCard,
+  formatProductSummaryPrice,
+} from "./components/ProductSummaryCard.js";
 import {
   AffiliateContextInspector,
   AffiliateDetailModal,
@@ -280,6 +283,12 @@ export type AffiliateSampleProposalReviewRow = {
   productId: string | null;
   productTitle: string | null;
   productSellerSku: string | null;
+  /** The product this Sample acts on, resolved from the proposal's per-product
+   * summaries. Feeds the compact product strip; null when no summary matches. */
+  productSummary: GQL.EcomProductSummary | null;
+  /** Current stock summed across the product's SKUs; null when the backend
+   * could not produce a complete total (any SKU without a stock number). */
+  productTotalAvailableQuantity: number | null;
   decision: GQL.AffiliateSampleReviewDecision;
   executionMode: GQL.AffiliateSampleReviewExecutionMode;
   rejectReason: string | null;
@@ -7150,6 +7159,7 @@ function AgentWorkBundleTable({
           <col className="affiliate-agent-work-col-creator-metrics" />
           <col className="affiliate-agent-work-col-type" />
           <col className="affiliate-agent-work-col-work" />
+          <col className="affiliate-agent-work-col-stock" />
           <col className="affiliate-agent-work-col-status" />
         </colgroup>
         <thead>
@@ -7162,12 +7172,14 @@ function AgentWorkBundleTable({
             </th>
             <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.type")}</th>
             <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.work")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.stock")}</th>
             <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.status")}</th>
           </tr>
         </thead>
         <tbody>
           {bundles.map((bundle) => {
             const proposal = bundle.proposal;
+            const sampleRows = proposalSampleReviewRows(proposal);
             const creatorName = proposal.creatorProfile
               ? creatorPrimaryName(
                   proposal.creatorProfile,
@@ -7293,6 +7305,25 @@ function AgentWorkBundleTable({
                       </span>
                     ))}
                   </div>
+                </td>
+                <td className="affiliate-agent-work-table-stock">
+                  {sampleRows.length > 0 ? (
+                    <ul className="affiliate-agent-work-stock-list">
+                      {sampleRows.map((row) => {
+                        const productLabel = sampleReviewRowProductLabel(row, t);
+                        return (
+                          <li key={row.stepId} title={productLabel}>
+                            <small>{productLabel}</small>
+                            <strong>
+                              {formatStockQuantity(row.productTotalAvailableQuantity)}
+                            </strong>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <span className="affiliate-agent-work-stock-empty">—</span>
+                  )}
                 </td>
                 <td className="affiliate-agent-work-table-status">
                   <span
@@ -7987,6 +8018,7 @@ export function AgentWorkBundleCard({
             <div className="affiliate-proposal-row-context">
               {sampleReviewRows.length > 0 ? (
                 <ProposalSampleDecisionBundle
+                  proposal={proposal}
                   rows={sampleReviewRows}
                   shopLabelForId={shopLabelForId ?? (() => shopLabel)}
                 />
@@ -8138,6 +8170,7 @@ export function AgentWorkBundleCard({
           <>
             {sampleReviewRows.length > 0 ? (
               <ProposalSampleDecisionBundle
+                proposal={proposal}
                 rows={sampleReviewRows}
                 shopLabelForId={shopLabelForId ?? (() => shopLabel)}
               />
@@ -8430,8 +8463,11 @@ export function proposalSampleReviewRows(
       snapshot?.resolvedContext?.productId ??
       snapshot?.subject?.productId ??
       null;
+    // A stepless single-Sample proposal may carry no product id at all; its one
+    // frozen summary is still that Sample's product.
     const productSummary =
-      proposal.productSummary?.productId === productId ? proposal.productSummary : null;
+      resolveProposalProductSummary(proposal, productId) ??
+      (sources.length === 1 ? (proposal.productSummary ?? null) : null);
     const productSellerSku =
       productSummary?.skus
         ?.map((sku) => sku.sellerSku?.trim())
@@ -8442,11 +8478,10 @@ export function proposalSampleReviewRows(
       sampleApplicationRecordId: source.sampleApplicationRecordId,
       platformApplicationId: source.sampleReviewIntent.platformApplicationId ?? null,
       productId,
-      productTitle:
-        snapshot?.resolvedContext?.productTitle ??
-        productSummary?.title ??
-        (sources.length === 1 ? (proposal.productSummary?.title ?? null) : null),
+      productTitle: snapshot?.resolvedContext?.productTitle ?? productSummary?.title ?? null,
       productSellerSku,
+      productSummary,
+      productTotalAvailableQuantity: productSummary?.totalAvailableQuantity ?? null,
       decision: source.sampleReviewIntent.decision,
       executionMode:
         source.sampleReviewIntent.executionMode ??
@@ -8456,6 +8491,39 @@ export function proposalSampleReviewRows(
       predictionSnapshot: snapshot,
     };
   });
+}
+
+/** The frozen summary for one product the proposal acts on. `productSummaries`
+ * carries every product a multi-step bundle touches; the singular
+ * `productSummary` is only the primary one, so it is the fallback. */
+export function resolveProposalProductSummary(
+  proposal: Pick<GQL.ActionProposal, "productSummary" | "productSummaries">,
+  productId: string | null | undefined,
+): GQL.EcomProductSummary | null {
+  if (!productId) return null;
+  return (
+    (proposal.productSummaries ?? []).find((summary) => summary.productId === productId) ??
+    (proposal.productSummary?.productId === productId ? proposal.productSummary : null)
+  );
+}
+
+function sampleReviewRowProductLabel(
+  row: AffiliateSampleProposalReviewRow,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  return (
+    row.productTitle ||
+    (row.productSellerSku
+      ? `${t("ecommerce.affiliateWorkspace.sampleDecisionBundle.sellerSku")} ${row.productSellerSku}`
+      : row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct"))
+  );
+}
+
+/** Stock is an exact inventory count, so it is never compacted the way
+ * audience metrics are. */
+function formatStockQuantity(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
 }
 
 function findPredictionSnapshotForSampleSource(
@@ -8512,10 +8580,51 @@ function findPredictionSnapshotForSampleSource(
   return null;
 }
 
+/** Creator sales metrics shown once per bundle: every Sample in a proposal
+ * belongs to the same Creator, so they sit above the rows, not inside each. */
+function ProposalSampleCreatorMetrics({ proposal }: { proposal: GQL.ActionProposal }) {
+  const { t } = useTranslation();
+  const metrics = [
+    {
+      key: "gmv",
+      label: t("ecommerce.affiliateWorkspace.sampleDecisionBundle.creatorMetrics.gmv"),
+      value: formatPerformanceMoney(proposal.creatorGmv),
+    },
+    {
+      key: "avgViews",
+      label: t("ecommerce.affiliateWorkspace.sampleDecisionBundle.creatorMetrics.avgViews"),
+      value: formatCount(proposal.creatorAverageVideoViews),
+    },
+    {
+      key: "postRate",
+      label: t("ecommerce.affiliateWorkspace.sampleDecisionBundle.creatorMetrics.postRate"),
+      value: formatPerformanceRate(proposal.creatorPostRate),
+    },
+  ];
+  return (
+    <dl
+      className="affiliate-sample-decision-creator-metrics"
+      aria-label={t("ecommerce.affiliateWorkspace.sampleDecisionBundle.creatorMetrics.title")}
+    >
+      <span className="affiliate-sample-decision-creator-metrics-title">
+        {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.creatorMetrics.title")}
+      </span>
+      {metrics.map((metric) => (
+        <div key={metric.key}>
+          <dt>{metric.label}</dt>
+          <dd>{metric.value ?? "—"}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function ProposalSampleDecisionBundle({
+  proposal,
   rows,
   shopLabelForId,
 }: {
+  proposal: GQL.ActionProposal;
   rows: AffiliateSampleProposalReviewRow[];
   shopLabelForId: (shopId: string) => string;
 }) {
@@ -8541,6 +8650,7 @@ function ProposalSampleDecisionBundle({
         </div>
         <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approvalScope")}</span>
       </div>
+      <ProposalSampleCreatorMetrics proposal={proposal} />
       <div className="affiliate-sample-decision-list">
         {rows.map((row, index) => {
           const evidenceState = resolvePredictionEvidenceState(row.predictionSnapshot);
@@ -8574,12 +8684,9 @@ function ProposalSampleDecisionBundle({
               unavailableLabel)
             : evidenceStateFallback;
           const approves = row.decision === GQL.AffiliateSampleReviewDecision.Approve;
-          const productLabel =
-            row.productTitle ||
-            (row.productSellerSku
-              ? `${t("ecommerce.affiliateWorkspace.sampleDecisionBundle.sellerSku")} ${row.productSellerSku}`
-              : row.productId ||
-                t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct"));
+          const productLabel = sampleReviewRowProductLabel(row, t);
+          const productPrice = formatProductSummaryPrice(row.productSummary);
+          const productCoverImage = row.productSummary?.coverImage ?? null;
           const rejectReasonLabel = row.rejectReason
             ? t(
                 `ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectReasons.${row.rejectReason}`,
@@ -8605,7 +8712,37 @@ function ProposalSampleDecisionBundle({
               <div className="affiliate-sample-decision-identity">
                 <span className="affiliate-sample-decision-index">{index + 1}</span>
                 <div>
-                  <strong>{productLabel}</strong>
+                  <div className="affiliate-sample-decision-product">
+                    {productCoverImage ? (
+                      <RemoteMediaImage
+                        alt=""
+                        className="affiliate-sample-decision-product-thumb"
+                        loading="lazy"
+                        sourceUrl={productCoverImage}
+                      />
+                    ) : (
+                      <div
+                        className="affiliate-sample-decision-product-thumb affiliate-sample-decision-product-thumb-empty"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="affiliate-sample-decision-product-copy">
+                      <strong title={productLabel}>{productLabel}</strong>
+                      <div className="affiliate-sample-decision-product-facts">
+                        {productPrice ? (
+                          <span className="affiliate-sample-decision-product-price">
+                            {productPrice}
+                          </span>
+                        ) : null}
+                        <span className="affiliate-sample-decision-product-stock">
+                          <small>
+                            {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.stock")}
+                          </small>
+                          <strong>{formatStockQuantity(row.productTotalAvailableQuantity)}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <div className="affiliate-sample-decision-identifiers">
                     <span>
                       {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.localApplication")}
@@ -9203,8 +9340,7 @@ function ProposalProductSummary({
   label?: string;
 }) {
   const productId = getProposalActionProductId(proposal);
-  const product =
-    productId && proposal.productSummary?.productId === productId ? proposal.productSummary : null;
+  const product = resolveProposalProductSummary(proposal, productId);
   return (
     <ProductSummaryCard
       product={product}
@@ -11793,6 +11929,10 @@ function buildMarketplaceMetricRows(
       value: formatCount(performance.averageVideoViews),
     },
     {
+      label: t("ecommerce.affiliateWorkspace.creatorDetail.engagementRate"),
+      value: formatPerformanceRate(performance.engagementRate),
+    },
+    {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.rating"),
       value: performance.ratingScore == null ? null : String(performance.ratingScore),
     },
@@ -11801,8 +11941,10 @@ function buildMarketplaceMetricRows(
       value: performance.pps == null ? null : String(performance.pps),
     },
     {
+      // Sample-to-post rate is its own platform metric; engagement rate has its
+      // own row above and must never stand in for it.
       label: t("ecommerce.affiliateWorkspace.creatorDetail.postRate"),
-      value: formatPerformanceRate(performance.engagementRate),
+      value: formatPerformanceRate(performance.postRate),
     },
   ];
   return rows.filter((row): row is { label: string; value: string } => Boolean(row.value));

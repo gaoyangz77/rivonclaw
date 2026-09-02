@@ -407,7 +407,7 @@ function ProductPlatformIdCopy({ productId }: { productId?: string | null }) {
   );
 }
 
-function formatProductSummaryPrice(product: GQL.EcomProductSummary | null | undefined): string | null {
+export function formatProductSummaryPrice(product: GQL.EcomProductSummary | null | undefined): string | null {
   if (!product?.priceMin) return null;
   const currency = pickSummaryCurrency(product);
   if (product.priceMax && product.priceMax !== product.priceMin) {

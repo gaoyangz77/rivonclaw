@@ -3232,6 +3232,7 @@ export default {
         avgVideoViews: "Rata-rata tayangan video",
         rating: "Rating penjual",
         pps: "PPS",
+        engagementRate: "Tingkat interaksi",
         postRate: "Tingkat posting",
         noMarketplacePerformance: "Metrik performa marketplace belum tersedia.",
         identifiers: "Identitas",

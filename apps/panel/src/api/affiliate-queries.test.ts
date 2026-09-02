@@ -109,6 +109,24 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("market");
     expect(query).toContain("performance");
     expect(query).toContain("refreshErrorCode");
+    expect(query).toContain("postRate");
+  });
+
+  it("reads Sample stock and Creator sales metrics on both proposal read and decide paths", () => {
+    for (const [name, document] of [
+      ["AFFILIATE_ACTION_PROPOSALS_QUERY", AFFILIATE_ACTION_PROPOSALS_QUERY],
+      ["DECIDE_ACTION_PROPOSAL_MUTATION", DECIDE_ACTION_PROPOSAL_MUTATION],
+    ] as const) {
+      const query = queryText(document);
+
+      expect(query, name).toContain("creatorGmv");
+      expect(query, name).toContain("creatorPostRate");
+      // Every product a multi-Sample bundle acts on, not only the primary one.
+      expect(query, name).toMatch(/productSummaries\s*\{[^}]*totalAvailableQuantity/u);
+      expect(query, name).toMatch(/productSummary\s*\{[^}]*totalAvailableQuantity/u);
+      // SKU-level stock sits inside the product summary's skus block.
+      expect(query, name).toMatch(/skus\s*\{[^}]*totalAvailableQuantity/u);
+    }
   });
 
   it("loads campaign decisions with batched Creator profile, performance, and relationship context", () => {
@@ -145,6 +163,10 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorAverageVideoViews");
     expect(query).toContain("creatorEngagementRate");
     expect(query).toContain("creatorShoppableVideoCount");
+    expect(query).toContain("creatorGmv");
+    expect(query).toContain("creatorPostRate");
+    expect(query).toContain("productSummaries");
+    expect(query).toContain("totalAvailableQuantity");
     expect(query).toContain("sourceWorkBoundary");
     expect(query).toContain("triggerShopId");
     expect(query).toContain("affiliateCollaboration");
