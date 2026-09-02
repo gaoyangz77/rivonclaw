@@ -211,8 +211,7 @@
   color: color-mix(in srgb, var(--color-primary) 46%, var(--color-text-disabled));
 }
 
-.affiliate-campaign-status,
-.affiliate-campaign-state-pill {
+.affiliate-campaign-status {
   display: inline-flex;
   align-items: center;
   width: max-content;
@@ -1058,31 +1057,45 @@
 
 .affiliate-campaign-state-filters {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 14px;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  margin-bottom: var(--tk-v1-space-3);
   flex-wrap: wrap;
+}
+
+/* The preset toggle and every dropdown summary share one control box so the
+   whole row sits on a single baseline. */
+.affiliate-campaign-state-filter > summary,
+.affiliate-campaign-state-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  box-sizing: border-box;
+  min-height: var(--tk-v1-control-default);
+  padding: 0 var(--tk-v1-space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 700;
+  line-height: var(--tk-v1-line-micro);
 }
 
 .affiliate-campaign-state-filter {
   position: relative;
   min-width: 180px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
 }
 
 .affiliate-campaign-state-filter > summary {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 9px 11px;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: 10px;
-  font-weight: 700;
   list-style: none;
+}
+
+.affiliate-campaign-state-filter[open] > summary {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
 }
 
 .affiliate-campaign-state-filter > summary::-webkit-details-marker {
@@ -1135,22 +1148,16 @@
 }
 
 .affiliate-campaign-clear-state-filters {
-  padding: 9px 11px;
+  min-height: var(--tk-v1-control-default);
+  padding: 0 var(--tk-v1-space-3);
   border: 0;
   background: transparent;
   color: var(--color-primary);
-  font-size: 10px;
+  font-size: var(--tk-v1-type-micro);
   font-weight: 750;
 }
 
 .affiliate-campaign-state-preset {
-  padding: 9px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 10px;
   font-weight: 750;
   transition:
     border-color var(--transition-normal),
@@ -1216,48 +1223,20 @@
 .affiliate-campaign-state-table .affiliate-campaign-sent-at > span {
   color: var(--color-text-muted);
 }
-.affiliate-campaign-state-pill {
-  padding: 5px 8px;
-  background: var(--color-bg-alt);
-  color: var(--color-text-secondary);
+.affiliate-campaign-state-table .affiliate-campaign-follower-count {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-.affiliate-campaign-state-pill.is-reached_out,
-.affiliate-campaign-state-pill.is-replied {
-  background: var(--campaign-mint);
-  color: var(--campaign-green);
-}
-.affiliate-campaign-state-pill.is-failed,
-.affiliate-campaign-state-pill.is-disqualified,
-.affiliate-campaign-state-pill.is-ineligible_protected,
-.affiliate-campaign-state-pill.is-ineligible_outreach_policy,
-.affiliate-campaign-state-pill.is-ineligible_qualification {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
-.affiliate-campaign-state-pill.is-deferred {
-  background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg));
-  color: var(--campaign-amber);
-}
-
-.affiliate-campaign-eligibility-category {
-  display: inline-flex;
-  margin-top: 6px;
-  padding: 3px 6px;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--tk-v1-radius-full);
+.affiliate-campaign-state-table .affiliate-campaign-follower-count > span {
   color: var(--color-text-muted);
-  font-size: 9px;
-  font-weight: 700;
 }
-
-.affiliate-campaign-eligibility-category.is-protected {
-  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
-  color: var(--color-danger);
+.affiliate-campaign-state-table .affiliate-campaign-state-table-more td {
+  padding: var(--tk-v1-space-3);
+  border-top: 1px solid var(--campaign-line);
+  text-align: center;
 }
-
-.affiliate-campaign-eligibility-category.is-outreach_policy {
-  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
-  color: var(--color-warning);
+.affiliate-campaign-state-table-footnote {
+  margin: var(--tk-v1-space-2) 0 0;
 }
 .affiliate-campaign-table-empty {
   padding: 44px 20px;
@@ -2901,26 +2880,26 @@
 }
 
 .affiliate-campaign-detail-modal .affiliate-campaign-state-table {
-  min-width: 1100px;
+  min-width: 960px;
 }
 
 .affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(1) {
-  width: 17%;
-}
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(2) {
-  width: 11%;
-}
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(3) {
-  width: 15%;
-}
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(4) {
-  width: 20%;
-}
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(5) {
   width: 24%;
 }
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(2) {
+  width: 9%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(3) {
+  width: 20%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(4) {
+  width: 14%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(5) {
+  width: 15%;
+}
 .affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(6) {
-  width: 13%;
+  width: 18%;
 }
 
 .affiliate-campaign-detail-modal .affiliate-campaign-state-table td {

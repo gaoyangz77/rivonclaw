@@ -184,6 +184,16 @@ export function applySentCreatorStatePreset(
   return isSentCreatorStatePreset(current) ? current : [...SENT_CREATOR_STATE_STATUSES];
 }
 
+/**
+ * The preset button is a toggle: pressing it while the selection already equals
+ * the preset clears the state filter, otherwise it applies the preset.
+ */
+export function toggleSentCreatorStatePreset(
+  current: GQL.AffiliateCampaignCreatorStateStatus[],
+): GQL.AffiliateCampaignCreatorStateStatus[] {
+  return isSentCreatorStatePreset(current) ? [] : [...SENT_CREATOR_STATE_STATUSES];
+}
+
 const eligibilityCategoryOptions = Object.values(GQL.AffiliateCampaignEligibilityCategory);
 const eligibilityReasonOptions = [
   "PROTECTION_LIST",
@@ -364,6 +374,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [searchWorkspaceView, setSearchWorkspaceView] =
     useState<CampaignSearchWorkspaceView>("creators");
   const searchWorkspaceRef = useRef<HTMLDivElement | null>(null);
+  // Creator-table pagination. The sentinel row lives inside the table's scroll
+  // layer; the in-flight flag stops the observer and the manual button from
+  // issuing a second `fetchMore` for the same cursor.
+  const [loadMoreSentinel, setLoadMoreSentinel] = useState<HTMLTableRowElement | null>(null);
+  const loadMoreCreatorStatesInFlightRef = useRef(false);
+  const loadMoreCreatorStatesRef = useRef<() => Promise<void>>(async () => {});
+  const [loadingMoreCreatorStates, setLoadingMoreCreatorStates] = useState(false);
   const [messageTemplateOpen, setMessageTemplateOpen] = useState(false);
   const [selectedCreatorDetail, setSelectedCreatorDetail] =
     useState<CreatorRelationshipDetailItem | null>(null);
@@ -1031,32 +1048,63 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     0,
   );
 
+  const creatorStatesNextCursor =
+    creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor ?? null;
   const loadMoreCreatorStates = async () => {
     const nextCursor = creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor;
-    if (!nextCursor) return;
-    await creatorStatesQuery.fetchMore({
-      variables: {
-        input: {
-          campaignId: selectedCampaignId,
-          limit: 50,
-          cursor: nextCursor,
-          ...(selectedSearchPlanId ? { searchPlanId: selectedSearchPlanId } : {}),
-          ...(stateStatuses.length ? { statuses: stateStatuses } : {}),
-          ...(eligibilityCategories.length ? { eligibilityCategories } : {}),
-          ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
+    if (!nextCursor || loadMoreCreatorStatesInFlightRef.current) return;
+    loadMoreCreatorStatesInFlightRef.current = true;
+    setLoadingMoreCreatorStates(true);
+    try {
+      await creatorStatesQuery.fetchMore({
+        variables: {
+          input: {
+            campaignId: selectedCampaignId,
+            limit: 50,
+            cursor: nextCursor,
+            ...(selectedSearchPlanId ? { searchPlanId: selectedSearchPlanId } : {}),
+            ...(stateStatuses.length ? { statuses: stateStatuses } : {}),
+            ...(eligibilityCategories.length ? { eligibilityCategories } : {}),
+            ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
+          },
         },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => ({
-        affiliateCampaignCreatorStates: {
-          ...fetchMoreResult.affiliateCampaignCreatorStates,
-          items: [
-            ...previous.affiliateCampaignCreatorStates.items,
-            ...fetchMoreResult.affiliateCampaignCreatorStates.items,
-          ],
-        },
-      }),
-    });
+        updateQuery: (previous, { fetchMoreResult }) => ({
+          affiliateCampaignCreatorStates: {
+            ...fetchMoreResult.affiliateCampaignCreatorStates,
+            items: [
+              ...previous.affiliateCampaignCreatorStates.items,
+              ...fetchMoreResult.affiliateCampaignCreatorStates.items,
+            ],
+          },
+        }),
+      });
+    } finally {
+      loadMoreCreatorStatesInFlightRef.current = false;
+      setLoadingMoreCreatorStates(false);
+    }
   };
+  loadMoreCreatorStatesRef.current = loadMoreCreatorStates;
+
+  // Auto-load the next Creator page when the sentinel row scrolls into the
+  // table wrap. Re-armed on every cursor change so a page that still leaves the
+  // sentinel visible keeps loading until the list outgrows the viewport.
+  useEffect(() => {
+    const sentinel = loadMoreSentinel;
+    if (!sentinel || !creatorStatesNextCursor) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreCreatorStatesRef.current();
+        }
+      },
+      {
+        root: sentinel.closest<HTMLElement>(".affiliate-campaign-state-table-wrap"),
+        rootMargin: "0px 0px 160px 0px",
+      },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMoreSentinel, creatorStatesNextCursor]);
 
   // Search-workspace navigation. A selected search plan only exists while the
   // Creator table is on screen, so leaving for the conditions pane clears it.
@@ -2065,6 +2113,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </div>
                     </div>
                     <div className="affiliate-campaign-state-filters">
+                      <button
+                        type="button"
+                        className={`affiliate-campaign-state-preset${
+                          isSentCreatorStatePreset(stateStatuses) ? " is-active" : ""
+                        }`}
+                        aria-pressed={isSentCreatorStatePreset(stateStatuses)}
+                        onClick={() => setStateStatuses(toggleSentCreatorStatePreset)}
+                      >
+                        {t("ecommerce.affiliateCampaign.sentCreatorsPreset")}
+                      </button>
                       <CampaignStateFilterGroup
                         label={t("ecommerce.affiliateCampaign.filterState")}
                         options={stateStatusOptions.map((status) => ({
@@ -2076,16 +2134,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           setStateStatuses((current) => toggleValue(current, status))
                         }
                       />
-                      <button
-                        type="button"
-                        className={`affiliate-campaign-state-preset${
-                          isSentCreatorStatePreset(stateStatuses) ? " is-active" : ""
-                        }`}
-                        aria-pressed={isSentCreatorStatePreset(stateStatuses)}
-                        onClick={() => setStateStatuses(applySentCreatorStatePreset)}
-                      >
-                        {t("ecommerce.affiliateCampaign.sentCreatorsPreset")}
-                      </button>
                       <CampaignStateFilterGroup
                         label={t("ecommerce.affiliateCampaign.eligibilityCategoryFilter")}
                         options={eligibilityCategoryOptions.map((category) => ({
@@ -2129,12 +2177,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <thead>
                           <tr>
                             <th>{t("ecommerce.affiliateCampaign.creator")}</th>
-                            <th>{t("ecommerce.affiliateCampaign.outreachDisposition")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.followers")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.outreachStatus")}</th>
                             <th>{t("ecommerce.affiliateCampaign.sentAt")}</th>
-                            <th>{t("ecommerce.affiliateCampaign.state")}</th>
-                            <th>{t("ecommerce.affiliateCampaign.selectionEvidence")}</th>
-                            <th>{t("ecommerce.affiliateCampaign.relationship")}</th>
-                            <th>{t("ecommerce.affiliateCampaign.lastActivity")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.creatorResponse")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.selectionBasis")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2154,6 +2201,31 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                             ),
                           )}
                         </tbody>
+                        {creatorStatesNextCursor && (
+                          <tfoot>
+                            <tr
+                              ref={setLoadMoreSentinel}
+                              className="affiliate-campaign-state-table-more"
+                            >
+                              <td colSpan={6}>
+                                {loadingMoreCreatorStates ? (
+                                  <LoadingSpinner
+                                    variant="inline"
+                                    label={t("ecommerce.affiliateCampaign.loadingCreatorStates")}
+                                  />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => void loadMoreCreatorStates()}
+                                  >
+                                    {t("ecommerce.affiliateCampaign.loadMoreCreators")}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        )}
                       </table>
                       {creatorStatesViewState === "loading" && (
                         <LoadingSpinner
@@ -2182,15 +2254,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </div>
                       )}
                     </TkTableFrame>
-                    {creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary affiliate-campaign-load-more"
-                        disabled={creatorStatesQuery.loading}
-                        onClick={() => void loadMoreCreatorStates()}
-                      >
-                        {t("ecommerce.affiliateCampaign.loadMoreCreators")}
-                      </button>
+                    {selectedCampaign.selectionPolicy.strategy ===
+                      GQL.AffiliateCampaignSelectionStrategy.AiPreApproval && (
+                      <p className="affiliate-campaign-state-table-footnote form-hint">
+                        {t("ecommerce.affiliateCampaign.preApprovalDisclaimer")}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -3084,7 +3152,6 @@ function CampaignCreatorStateRow({
   waitingForTargetCollaborationQuota: boolean;
 }) {
   const profile = state.creatorProfile;
-  const relationship = state.creatorRelationship;
   const displayName =
     profile?.nickname?.trim() ||
     profile?.username?.trim() ||
@@ -3092,18 +3159,10 @@ function CampaignCreatorStateRow({
   const handle = profile?.username
     ? `@${profile.username.replace(/^@/, "")}`
     : shortId(profile?.creatorOpenId || state.creatorId);
-  const relationshipActivity = relationship?.lastInboundAt || relationship?.lastOutboundAt || null;
-  const lastActivity =
-    state.repliedAt ||
-    state.reachedOutAt ||
-    state.scheduledAt ||
-    relationshipActivity ||
-    state.lastSeenAt;
+  const followerCount = state.followerCount ?? state.creatorPerformance?.followerCount ?? null;
   const disposition = campaignOutreachDisposition(state.status);
-  const deliveryFailureCategory = state.outreachErrorCode
-    ? campaignDeliveryFailureBreakdown([{ code: state.outreachErrorCode, count: 1 }], 1)[0]
-        ?.category
-    : null;
+  const outreachReason = campaignOutreachReasonLabel(state, waitingForTargetCollaborationQuota, t);
+  const response = campaignCreatorResponseSummary(state);
 
   return (
     <tr>
@@ -3130,16 +3189,18 @@ function CampaignCreatorStateRow({
           </div>
         </button>
       </td>
+      <td className="affiliate-campaign-follower-count">
+        {followerCount == null ? (
+          <span aria-hidden="true">—</span>
+        ) : (
+          <strong>{formatNumber(followerCount)}</strong>
+        )}
+      </td>
       <td>
         <span className={`affiliate-campaign-disposition is-${disposition}`}>
           {t(`ecommerce.affiliateCampaign.disposition.${disposition}`)}
         </span>
-        {waitingForTargetCollaborationQuota &&
-        state.status === GQL.AffiliateCampaignCreatorStateStatus.Scheduled ? (
-          <small>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled")}</small>
-        ) : state.reachedOutAt ? null : (
-          <small>{t("ecommerce.affiliateCampaign.notSent")}</small>
-        )}
+        {outreachReason && <small title={state.decisionReason ?? undefined}>{outreachReason}</small>}
       </td>
       <td className="affiliate-campaign-sent-at">
         {state.reachedOutAt ? (
@@ -3149,110 +3210,78 @@ function CampaignCreatorStateRow({
         )}
       </td>
       <td>
-        <span className={`affiliate-campaign-state-pill is-${state.status.toLowerCase()}`}>
-          {campaignStateLabel(state.status, t)}
-        </span>
-        <small title={state.decisionReason ?? undefined}>
-          {state.eligibilityReasonCode
-            ? eligibilityReasonLabel(state.eligibilityReasonCode, t)
-            : campaignDecisionReasonLabel(state.decisionReasonCodes, state.decisionReason, t)}
-        </small>
-        {deliveryFailureCategory && (
+        {response.kind === "replied" && response.repliedAt ? (
+          <>
+            <strong>{t("ecommerce.affiliateCampaign.responseReplied")}</strong>
+            <small>{formatDateTime(response.repliedAt)}</small>
+          </>
+        ) : response.kind === "collaborating" ? (
+          <strong>
+            {t("ecommerce.affiliateCampaign.responseCollaborating", {
+              count: response.activeCollaborationCount,
+            })}
+          </strong>
+        ) : response.kind === "awaiting" ? (
+          <strong>{t("ecommerce.affiliateCampaign.responseAwaiting")}</strong>
+        ) : (
+          <span aria-hidden="true">—</span>
+        )}
+        {response.pendingWorkCount > 0 && (
           <small>
-            <AffiliateMetricLabel
-              label={t(`ecommerce.affiliateCampaign.deliveryFailure.${deliveryFailureCategory}`)}
-              tooltip={t(
-                `ecommerce.affiliateCampaign.deliveryFailureTooltip.${deliveryFailureCategory}`,
-              )}
-            />
+            {t("ecommerce.affiliateCampaign.responsePendingWork", {
+              count: response.pendingWorkCount,
+            })}
           </small>
         )}
-        {state.eligibilityCategory && (
-          <span
-            className={`affiliate-campaign-eligibility-category is-${state.eligibilityCategory.toLowerCase()}`}
-          >
-            {eligibilityCategoryLabel(state.eligibilityCategory, t)}
-          </span>
-        )}
       </td>
-      <td>
-        {state.selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ? (
-          <>
-            <strong>{t("ecommerce.affiliateCampaign.providerOrderEvidence")}</strong>
+      {state.selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ? (
+        <td>
+          <strong>{campaignRuleMatchLabel(state.filterResult, t)}</strong>
+          {state.providerOrdinal != null && (
             <small>
-              {t("ecommerce.affiliateCampaign.providerRank", {
-                rank: state.providerOrdinal ?? "—",
+              {t("ecommerce.affiliateCampaign.providerPagePosition", {
                 page: (state.providerPageSequence ?? 0) + 1,
+                rank: state.providerOrdinal,
               })}
             </small>
+          )}
+        </td>
+      ) : (
+        <td
+          title={[
+            t("ecommerce.affiliateCampaign.preApprovalModel", {
+              model: state.preApprovalModelVersion ?? "—",
+            }),
+            state.preApprovalObservedAt
+              ? t("ecommerce.affiliateCampaign.preApprovalObservedAt", {
+                  date: formatDateTime(state.preApprovalObservedAt),
+                })
+              : t("ecommerce.affiliateCampaign.performancePending"),
+            t("ecommerce.affiliateCampaign.preApprovalDisclaimer"),
+          ].join("\n")}
+        >
+          <strong>
+            {campaignPreApprovalOutcomeLabel(state.preApproved, t)}
+            {state.preApprovalProbability != null &&
+              ` ${formatProbability(state.preApprovalProbability)}`}
+          </strong>
+          {state.preApprovalCutoff != null && (
             <small>
-              {t("ecommerce.affiliateCampaign.ruleFilterResult", {
-                result: marketplaceEnumLabel(state.filterResult ?? "NOT_EVALUATED"),
-              })}
-            </small>
-            <small>
-              {t("ecommerce.affiliateCampaign.searchPlanGeneration", {
-                generation: state.latestSearchPlanGeneration ?? "—",
-              })}
-            </small>
-          </>
-        ) : (
-          <>
-            <strong>{campaignPreApprovalOutcomeLabel(state.preApproved, t)}</strong>
-            <small>
-              {t("ecommerce.affiliateCampaign.preApprovalScore", {
-                probability: formatProbability(state.preApprovalProbability),
+              {t("ecommerce.affiliateCampaign.preApprovalCutoffLine", {
                 cutoff: formatProbability(state.preApprovalCutoff),
               })}
             </small>
-            <small>
-              {t("ecommerce.affiliateCampaign.preApprovalModel", {
-                model: state.preApprovalModelVersion ?? "—",
-              })}
-            </small>
-            <small>
-              {state.preApprovalObservedAt
-                ? t("ecommerce.affiliateCampaign.preApprovalObservedAt", {
-                    date: formatDateTime(state.preApprovalObservedAt),
-                  })
-                : t("ecommerce.affiliateCampaign.performancePending")}
-            </small>
-            <small className="form-hint">
-              {t("ecommerce.affiliateCampaign.preApprovalDisclaimer")}
-            </small>
-          </>
-        )}
-      </td>
-      <td>
-        <strong>
-          {relationship
-            ? t("ecommerce.affiliateCampaign.relationshipEstablished")
-            : t("ecommerce.affiliateCampaign.profileOnly")}
-        </strong>
-        <small>
-          {relationship
-            ? t("ecommerce.affiliateCampaign.relationshipSummary", {
-                shops: relationship.shopStates.length,
-                collaborations: relationship.activeAffiliateCollaborationIds.length,
-              })
-            : t("ecommerce.affiliateCampaign.relationshipAfterOutreach")}
-        </small>
-        {relationship && (
-          <small>{t("ecommerce.affiliateCampaign.relationshipDoesNotBlockShort")}</small>
-        )}
-      </td>
-      <td>
-        <strong>{formatDateTime(lastActivity)}</strong>
-        <small>
-          {t("ecommerce.affiliateCampaign.seenTimes", {
-            count: state.searchOccurrenceCount,
-          })}
-        </small>
-      </td>
+          )}
+        </td>
+      )}
     </tr>
   );
 }
 
+/**
+ * A filter dropdown that behaves like a popover: it closes on a pointer press
+ * outside the control and on Escape, not only on a second summary click.
+ */
 function CampaignStateFilterGroup<T extends string>({
   label,
   options,
@@ -3264,8 +3293,39 @@ function CampaignStateFilterGroup<T extends string>({
   selected: readonly T[];
   onToggle: (value: T) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDetailsElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (root && event.target instanceof Node && !root.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    // Capture phase so Escape closes this popover first and never reaches the
+    // enclosing modal's own document-level Escape handler.
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape, true);
+    };
+  }, [open]);
+
   return (
-    <details className="affiliate-campaign-state-filter">
+    <details
+      ref={rootRef}
+      className="affiliate-campaign-state-filter"
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
       <summary>
         <span>{label}</span>
         <small>{selected.length || "—"}</small>
@@ -3969,6 +4029,102 @@ export function campaignDecisionReasonLabel(
   }
   if (!rawReason?.trim()) return "—";
   return t("ecommerce.affiliateCampaign.decisionReason.recorded");
+}
+
+const GENERIC_QUALIFIED_DECISION_CODES = new Set([
+  "PROVIDER_FILTER_MATCH",
+  "PROVIDER_ORDER",
+  "PRE_APPROVAL_QUALIFIED",
+]);
+
+/**
+ * The one human-readable line under the outreach pill. It explains why the
+ * Creator was not (or not yet) reached; a plain "qualified" decision carries no
+ * information beyond the pill itself, so it renders nothing.
+ */
+export function campaignOutreachReasonLabel(
+  state: Pick<
+    GQL.AffiliateCampaignCreatorState,
+    | "status"
+    | "outreachErrorCode"
+    | "eligibilityReasonCode"
+    | "decisionReason"
+    | "decisionReasonCodes"
+  >,
+  waitingForTargetCollaborationQuota: boolean,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string | null {
+  const { Failed, Scheduled } = GQL.AffiliateCampaignCreatorStateStatus;
+  if (state.status === Failed) {
+    const [failure] = campaignDeliveryFailureBreakdown(
+      state.outreachErrorCode ? [{ code: state.outreachErrorCode, count: 1 }] : [],
+      1,
+    );
+    return t(`ecommerce.affiliateCampaign.deliveryFailure.${failure.category}`);
+  }
+  if (state.status.startsWith("INELIGIBLE_") && state.eligibilityReasonCode) {
+    return eligibilityReasonLabel(state.eligibilityReasonCode, t);
+  }
+  if (state.status === Scheduled && waitingForTargetCollaborationQuota) {
+    return t("ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled");
+  }
+  const codes = state.decisionReasonCodes.map((code) => code.trim().toUpperCase());
+  if (codes.some((code) => GENERIC_QUALIFIED_DECISION_CODES.has(code))) return null;
+  const label = campaignDecisionReasonLabel(codes, state.decisionReason, t);
+  return label === "—" ? null : label;
+}
+
+export type CampaignCreatorResponseSummary = {
+  kind: "replied" | "collaborating" | "awaiting" | "none";
+  repliedAt: string | null;
+  activeCollaborationCount: number;
+  /** Agent- or staff-owned work still open on the Relationship. */
+  pendingWorkCount: number;
+};
+
+/**
+ * What the seller got back from the Creator, in priority order: a reply beats
+ * an active collaboration, which beats a still-unanswered invitation.
+ */
+export function campaignCreatorResponseSummary(
+  state: Pick<GQL.AffiliateCampaignCreatorState, "status" | "repliedAt"> & {
+    creatorRelationship?: Pick<
+      GQL.AffiliateCreatorRelationship,
+      "activeAffiliateCollaborationIds" | "workSummary"
+    > | null;
+  },
+): CampaignCreatorResponseSummary {
+  const relationship = state.creatorRelationship ?? null;
+  const activeCollaborationCount = relationship?.activeAffiliateCollaborationIds.length ?? 0;
+  const pendingWorkCount =
+    (relationship?.workSummary?.agentRequiredCount ?? 0) +
+    (relationship?.workSummary?.staffRequiredCount ?? 0);
+  const kind: CampaignCreatorResponseSummary["kind"] = state.repliedAt
+    ? "replied"
+    : activeCollaborationCount > 0
+      ? "collaborating"
+      : state.status === GQL.AffiliateCampaignCreatorStateStatus.ReachedOut
+        ? "awaiting"
+        : "none";
+  return {
+    kind,
+    repliedAt: state.repliedAt ?? null,
+    activeCollaborationCount,
+    pendingWorkCount,
+  };
+}
+
+export function campaignRuleMatchLabel(
+  filterResult: GQL.AffiliateCampaignRuleFilterResult | null | undefined,
+  t: (key: string) => string,
+): string {
+  if (filterResult === GQL.AffiliateCampaignRuleFilterResult.Passed) {
+    return t("ecommerce.affiliateCampaign.ruleMatched");
+  }
+  if (filterResult === GQL.AffiliateCampaignRuleFilterResult.Failed) {
+    return t("ecommerce.affiliateCampaign.ruleNotMatched");
+  }
+  return t("ecommerce.affiliateCampaign.ruleNotEvaluated");
 }
 
 export function campaignCreatorDetailItem(
