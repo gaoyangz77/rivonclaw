@@ -1,3 +1,29 @@
+import { afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+
+/**
+ * Unmount every tree React Testing Library rendered, after every test.
+ *
+ * RTL registers this itself, but only `if (typeof afterEach === "function")` -
+ * i.e. only when the runner installs globals. This project runs with Vitest's
+ * default `globals: false` and every test imports `describe`/`it` explicitly,
+ * so that check fails and RTL's auto-cleanup never registers. Without it no
+ * component in the suite is ever unmounted, so no `useEffect` cleanup ever
+ * runs: 74 cleanup closures across 45 component files are dead code under test.
+ *
+ * The visible symptom was an intermittent `ReferenceError: window is not
+ * defined` that failed the whole run while all 887 tests passed. A tree left
+ * mounted keeps its timers, `requestAnimationFrame` callbacks and `window`
+ * listeners alive (TkTooltip holds all three while open), and when Vitest tore
+ * the worker's jsdom down, whichever callback was still pending dereferenced a
+ * `window` that no longer existed. The blamed test file was wherever the run
+ * happened to be, which is why the attribution drifted between files.
+ *
+ * Registering it explicitly is also the honest form: the suite does not rely on
+ * globals anywhere else, so it should not rely on them here either.
+ */
+afterEach(cleanup);
+
 /**
  * jsdom lacks APIs the Panel legitimately uses in a browser.
  *
