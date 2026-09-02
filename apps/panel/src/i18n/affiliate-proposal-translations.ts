@@ -5,6 +5,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Loading more proposals…",
       loadedProposalCount: "{{count}} proposals loaded",
       allProposalsLoaded: "All {{count}} proposals in this view are loaded",
+      proposalPagination: {
+        pageSize: "Per page",
+        pageSizeOption: "{{count}} per page",
+        pagePosition: "Page {{page}}",
+        pageRange: "Items {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "Reviewed by {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "Staff" },
       sampleDecisionBundle: {
         recommendationTitle: "Review {{count}} sample applications · {{approveCount}} send · {{rejectCount}} do not send",
@@ -51,6 +57,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "正在加载更多提案…",
       loadedProposalCount: "已加载 {{count}} 条提案",
       allProposalsLoaded: "当前视图的 {{count}} 条提案已全部加载",
+      proposalPagination: {
+        pageSize: "每页条数",
+        pageSizeOption: "每页 {{count}} 条",
+        pagePosition: "第 {{page}} 页",
+        pageRange: "第 {{start}}–{{end}} 条",
+      },
       workbench: { reviewedBy: "{{actor}} 于 {{value}} 处理", reviewActorAgent: "Agent", reviewActorHuman: "员工" },
       sampleDecisionBundle: {
         recommendationTitle: "审核 {{count}} 条样品申请 · {{approveCount}} 条发样 · {{rejectCount}} 条不发样",
@@ -97,6 +109,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Weitere Vorschläge werden geladen…",
       loadedProposalCount: "{{count}} Vorschläge geladen",
       allProposalsLoaded: "Alle {{count}} Vorschläge dieser Ansicht wurden geladen",
+      proposalPagination: {
+        pageSize: "Pro Seite",
+        pageSizeOption: "{{count}} pro Seite",
+        pagePosition: "Seite {{page}}",
+        pageRange: "Einträge {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "Geprüft von {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "Mitarbeiter" },
       agentWorkspaceViews: {
         label: "Ansicht",
@@ -209,6 +227,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Cargando más propuestas…",
       loadedProposalCount: "{{count}} propuestas cargadas",
       allProposalsLoaded: "Se cargaron las {{count}} propuestas de esta vista",
+      proposalPagination: {
+        pageSize: "Por página",
+        pageSizeOption: "{{count}} por página",
+        pagePosition: "Página {{page}}",
+        pageRange: "Elementos {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "Revisado por {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "Personal" },
       agentWorkspaceViews: {
         label: "Vista",
@@ -321,6 +345,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Chargement de propositions supplémentaires…",
       loadedProposalCount: "{{count}} propositions chargées",
       allProposalsLoaded: "Les {{count}} propositions de cette vue sont chargées",
+      proposalPagination: {
+        pageSize: "Par page",
+        pageSizeOption: "{{count}} par page",
+        pagePosition: "Page {{page}}",
+        pageRange: "Éléments {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "Traité par {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "Équipe" },
       agentWorkspaceViews: {
         label: "Vue",
@@ -433,6 +463,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Memuat proposal lainnya…",
       loadedProposalCount: "{{count}} proposal dimuat",
       allProposalsLoaded: "Semua {{count}} proposal dalam tampilan ini telah dimuat",
+      proposalPagination: {
+        pageSize: "Per halaman",
+        pageSizeOption: "{{count}} per halaman",
+        pagePosition: "Halaman {{page}}",
+        pageRange: "Item {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "Ditinjau oleh {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "Staf" },
       agentWorkspaceViews: {
         label: "Tampilan",
@@ -545,6 +581,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Caricamento di altre proposte…",
       loadedProposalCount: "{{count}} proposte caricate",
       allProposalsLoaded: "Tutte le {{count}} proposte di questa vista sono state caricate",
+      proposalPagination: {
+        pageSize: "Per pagina",
+        pageSizeOption: "{{count}} per pagina",
+        pagePosition: "Pagina {{page}}",
+        pageRange: "Elementi {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "Gestito da {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "Staff" },
       agentWorkspaceViews: {
         label: "Vista",
@@ -657,6 +699,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "กำลังโหลดข้อเสนอเพิ่มเติม…",
       loadedProposalCount: "โหลดแล้ว {{count}} ข้อเสนอ",
       allProposalsLoaded: "โหลดข้อเสนอทั้ง {{count}} รายการในมุมมองนี้แล้ว",
+      proposalPagination: {
+        pageSize: "ต่อหน้า",
+        pageSizeOption: "{{count}} รายการต่อหน้า",
+        pagePosition: "หน้า {{page}}",
+        pageRange: "รายการที่ {{start}}–{{end}}",
+      },
       workbench: { reviewedBy: "ตรวจสอบโดย {{actor}} · {{value}}", reviewActorAgent: "Agent", reviewActorHuman: "พนักงาน" },
       agentWorkspaceViews: {
         label: "มุมมอง",
