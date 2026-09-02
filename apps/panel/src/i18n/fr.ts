@@ -22,6 +22,7 @@ export default {
       arriving: "Du boulot !",
       preparing: "Bon, j'y vais",
       thinking: "Laissez-moi réfléchir…",
+      working: "J'y suis",
       replying: "Rédige la réponse",
       "leaving-success": "Fini !",
       "leaving-failure": "Oups.",

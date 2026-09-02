@@ -22,6 +22,7 @@ export default {
       arriving: "งานมาแล้ว!",
       preparing: "เอาก็เอา",
       thinking: "ขอคิดก่อน…",
+      working: "กำลังยุ่งอยู่นะ",
       replying: "กำลังพิมพ์ตอบ",
       "leaving-success": "เสร็จแล้ว!",
       "leaving-failure": "อุ๊ปส์",

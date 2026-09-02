@@ -176,10 +176,17 @@ export class SceneProjector {
       return;
     }
 
+    // Liveness and pose are separate questions, and every event answers the
+    // first one. A run that spends a minute streaming tool results has not gone
+    // quiet, so `sweep` must not reclaim its desk while it works. The revision
+    // is deliberately NOT bumped for an event that changes nothing else:
+    // downstream reads `updatedAt` only for staleness, and publishing a frame
+    // per result would undo the whole point of ignoring them.
+    run.updatedAt = this.now();
+
     const next = statusForStream(event);
     if (next === null) return;
 
-    run.updatedAt = this.now();
     // A queued run holds no desk; it may only advance once one frees up, which
     // `sweep` and terminal removal are what make happen.
     if (run.deskId === null) {
@@ -264,7 +271,15 @@ type StatusUpdate = { status: CharacterStatus; activity?: string };
  * known meaning still says the run is alive and says nothing more than that.
  */
 const RUN_STATUS_POSES: Record<string, CharacterStatus> = {
+  // Everything OpenClaw does before the model is asked for anything: laying out
+  // the workspace, cutting a worktree for it, running setup, provisioning the
+  // environment, assembling the context. A viewer cannot tell these apart and
+  // does not need to - they are one stretch of getting ready.
   preparing_workspace: "preparing",
+  naming_worktree: "preparing",
+  creating_worktree: "preparing",
+  running_setup: "preparing",
+  provisioning_environment: "preparing",
   preparing_context: "preparing",
   // The model has been asked for a turn and nothing has come back yet. From
   // the outside that is indistinguishable from reasoning, and drawing it as
@@ -284,8 +299,10 @@ const RUN_STATUS_POSES: Record<string, CharacterStatus> = {
  * to any stream, so `handleEvent` owns it and every department's arc opens the
  * same way regardless of which event happens to arrive first.
  *
- * Returning null means "this stream says nothing about activity" - usage,
- * items, patches and compaction all pass through without disturbing the pose.
+ * Returning null means "this event says nothing about activity" - usage, items,
+ * patches and compaction all pass through without disturbing the pose, and so
+ * do individual phases of a stream that usually poses. It is not a statement
+ * about liveness: `applyStream` marks the run alive before asking.
  * `error` is deliberately among them: OpenClaw reports run failure on the
  * lifecycle stream with `phase: "error"`, and treating the separate error
  * stream as terminal would retire runs that merely logged a recoverable fault.
@@ -295,11 +312,18 @@ function statusForStream(event: SceneAgentEvent): StatusUpdate | null {
     case "thinking":
       return { status: "thinking" };
     case "tool": {
-      // A result changes nothing visible: the character was already using
-      // that tool. Five tools that start together return in whatever order
-      // they finish, and treating each return as a fresh activity would replay
-      // the whole burst a second time, in shuffled order, on top of the first.
-      if (event.data?.phase === "result") return null;
+      // Only a `start` poses. The tool that is running was named by its start;
+      // `update`, `result`, `review` and `input_delta` are all that same tool
+      // continuing, and none of them says the character moved on. Five tools
+      // that start together return in whatever order they finish, so posing on
+      // returns would replay the whole burst a second time, shuffled, on top of
+      // the first - and `input_delta` carries no name at all, so it would swap
+      // the label for the unnamed-tool sentinel in the middle of an edit.
+      //
+      // An absent phase still poses: it is the shape a tool event has when the
+      // producer sends only a name.
+      const phase = event.data?.phase;
+      if (phase !== undefined && phase !== "start") return null;
       const name = event.data?.name ?? event.data?.toolName;
       return { status: "tooling", activity: typeof name === "string" ? name : "tool" };
     }
@@ -313,10 +337,27 @@ function statusForStream(event: SceneAgentEvent): StatusUpdate | null {
       return { status: "replying" };
     case "lifecycle":
       // `end` and `error` never arrive here: they retire the run upstream.
-      // `start` is still setup - the run has been accepted but no model has
-      // been asked for anything yet, and `run_status/starting_model` is what
-      // ends that stretch. `finishing` and anything else mean it is running.
-      return event.data?.phase === "start" ? { status: "preparing" } : { status: "working" };
+      switch (event.data?.phase) {
+        // Still setup: the run has been accepted but no model has been asked
+        // for anything yet, and `run_status/starting_model` ends that stretch.
+        case "start":
+          return { status: "preparing" };
+        // The sub-second tail of the reply, with `end` right behind it. Posing
+        // it would put a whole beat between the last word being written and the
+        // character getting up - long enough on screen to read as a pause the
+        // run never took.
+        case "finishing":
+          return null;
+        // The turn has been handed to a fallback model and nothing has come
+        // back from it. Indistinguishable from any other wait on a model, and
+        // drawn the same way `starting_model` is.
+        case "fallback_step":
+          return { status: "thinking" };
+        // A phase this build has never met still says the run is alive, and
+        // that is all it is allowed to claim.
+        default:
+          return { status: "working" };
+      }
     case "run_status": {
       const phase = event.data?.phase;
       const pose = typeof phase === "string" ? RUN_STATUS_POSES[phase] : undefined;

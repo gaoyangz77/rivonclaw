@@ -99,12 +99,12 @@ function shouldSkipChannelInbound(channelId: string): boolean {
 /**
  * Streams that can change what an office character is doing.
  *
- * `assistant` is here despite firing once per streamed token, because the
- * several seconds a run spends composing its reply are otherwise invisible -
- * the office showed the tool calls and then nothing until the run ended. The
- * volume problem is real, so it is solved by the burst gate below rather than
- * by dropping the stream: only the FIRST assistant event of a burst is
- * forwarded, and it carries no payload at all.
+ * `assistant` and `thinking` are here despite firing once per streamed token
+ * each, because the several seconds a run spends reasoning and composing its
+ * reply are otherwise invisible - the office showed the tool calls and then
+ * nothing until the run ended. The volume problem is real, so it is solved by
+ * the burst gate below rather than by dropping the streams: only the FIRST
+ * event of a burst is forwarded, and it carries no payload at all.
  *
  * `usage`, `item`, `patch`, `compaction`, `command_output` and `error` carry no
  * pose - run failure arrives on `lifecycle` with phase "error".
@@ -124,17 +124,20 @@ const SCENE_RUN_CACHE_MAX = 512;
 /**
  * Reduce an agent event's payload to what the office reads.
  *
- * `assistant` is deliberately empty rather than filtered: the marker means "a
- * reply is being composed", and the office draws that pose without ever
- * showing the words. Reducing by construction - rather than by removing known
- * text fields - is what keeps a future payload field from leaking into a
- * recording that gets rendered into a public video.
+ * `assistant` and `thinking` are deliberately empty rather than filtered: the
+ * marker means "a reply is being composed" / "the model is reasoning", and the
+ * office draws those poses without ever showing the words - reasoning text is
+ * if anything the more sensitive of the two. Reducing by construction - rather
+ * than by removing known text fields - is what keeps a future payload field
+ * from leaking into a recording that gets rendered into a public video. The
+ * explicit empty return says so at the top rather than leaving it to the fact
+ * that neither stream happens to carry a field the reducer copies.
  */
 function reduceSceneData(
   stream: string,
   data: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
-  if (stream === "assistant") return {};
+  if (stream === "assistant" || stream === "thinking") return {};
   return {
     ...(typeof data?.phase === "string" ? { phase: data.phase } : {}),
     ...(data?.aborted === true ? { aborted: true } : {}),
@@ -433,9 +436,9 @@ export default defineRivonClawPlugin({
       // This runs inside the gateway process, on the path every agent event
       // takes, so it is kept deliberately cheap:
       //   - only the streams that can change a character's pose are forwarded;
-      //   - `assistant`, the one high-volume stream among them, is collapsed
-      //     to one marker per reply burst, so a 900-token reply costs one
-      //     forwarded event rather than 900;
+      //   - `assistant` and `thinking`, the two high-volume streams among them,
+      //     are each collapsed to one marker per burst, so a 900-token reply
+      //     costs one forwarded event rather than 900;
       //   - the payload is reduced to three scalars instead of the raw `data`,
       //     so a frame is a fixed handful of bytes to serialise;
       //   - departmenthood is decided once per run, not per event.
@@ -449,12 +452,15 @@ export default defineRivonClawPlugin({
           state = { department: isDepartmentSession(resolvedSessionKey) };
           sceneRunCache.set(evt.runId, state);
         }
-        // The burst gate. A reply arrives as one assistant event per token,
-        // all saying the same thing; only the first of a run of them says
-        // something new, which is "this run started replying". Any other
+        // The burst gate. A reply arrives as one `assistant` event per token
+        // and reasoning as one `thinking` event per token, all saying the same
+        // thing; only the first of a run of them says something new, which is
+        // "this run started replying" / "this run started reasoning". Any other
         // forwarded stream re-arms it, so a run that replies, calls a tool and
         // replies again is drawn as two separate bursts.
-        const burstRepeat = evt.stream === "assistant" && state.lastStream === "assistant";
+        const burstRepeat =
+          (evt.stream === "assistant" || evt.stream === "thinking") &&
+          state.lastStream === evt.stream;
         if (state.department && !burstRepeat) {
           state.lastStream = evt.stream;
           gatewayBroadcast("plugin.rivonclaw.scene-event", {

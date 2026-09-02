@@ -179,10 +179,15 @@ describe("PixelAgentsTranslator - activity", () => {
   // `agentToolDone` alone leaves the label hanging over the character: the
   // renderer only drops it on `agentToolsClear`. Caught by the browser spike,
   // where finished tools kept their captions.
+  //
+  // The successor is `idle` rather than `working`, because a character that is
+  // genuinely idle is now the only seated one with nothing to caption - and a
+  // clear is what hands a character the renderer's idle label, so this is the
+  // one transition allowed to send it.
   it("clears the activity label, not just the tool, when the tool ends", () => {
     const t = new PixelAgentsTranslator();
     t.apply(scene(1, [character({ id: "lease-1", status: "tooling", activity: "read" })]));
-    const out = t.apply(scene(2, [character({ id: "lease-1", status: "working" })]));
+    const out = t.apply(scene(2, [character({ id: "lease-1", status: "idle" })]));
     expect(typesOf(out)).toContain("agentToolDone");
     expect(typesOf(out)).toContain("agentToolsClear");
   });
@@ -355,12 +360,15 @@ describe("PixelAgentsTranslator - activity captions", () => {
 // change on its own shows nothing at all, so a phase that is worth reading has
 // to travel as a pseudo-tool episode.
 describe("PixelAgentsTranslator - phase captions", () => {
-  const PHASES = ["arriving", "preparing", "thinking", "replying"] as const;
+  const PHASES = ["arriving", "preparing", "thinking", "working", "replying"] as const;
 
+  // Opened from a real tool episode rather than from the helper's default
+  // status: that default is `working`, which now captions itself, so a fresh
+  // character would already hold the caption half of these cases are testing.
   for (const status of PHASES) {
     it(`captions ${status} as a pseudo-tool`, () => {
       const t = new PixelAgentsTranslator();
-      t.apply(scene(1, [character({ id: "lease-1" })]));
+      t.apply(scene(1, [character({ id: "lease-1", status: "tooling", activity: "read" })]));
       const start = pick(t.apply(scene(2, [character({ id: "lease-1", status })])), "agentToolStart");
       expect(start).toHaveLength(1);
       expect(start[0].toolName).toBe(`phase:${status}`);
@@ -416,16 +424,18 @@ describe("PixelAgentsTranslator - phase captions", () => {
     expect(start[0].status).toBe("caption:phase:thinking");
   });
 
-  // `working` means "running, nothing more specific known". There is no
-  // sentence to draw for it, and captioning it would put a permanent label over
-  // a character that is simply at its desk.
-  it("leaves working uncaptioned", () => {
+  // `working` means "running, nothing more specific known" - which sounds like
+  // nothing worth captioning, and is exactly why it used to be left out. The
+  // renderer has no neutral caption: clearing the label drops the character
+  // through to its idle text, so a busy character read as asleep for a beat.
+  it("captions working rather than clearing the label", () => {
     const t = new PixelAgentsTranslator();
     t.apply(scene(1, [character({ id: "lease-1", status: "thinking" })]));
     const out = t.apply(scene(2, [character({ id: "lease-1", status: "working" })]));
-    // The label is torn down and nothing replaces it. The character stays
-    // active throughout, so there is not even a status message to send.
-    expect(typesOf(out)).toEqual(["agentToolDone", "agentToolsClear"]);
+    // The swap and nothing else: no `agentToolsClear`, because a clear is what
+    // empties the renderer's tool list and hands the character the idle label.
+    expect(typesOf(out)).toEqual(["agentToolDone", "agentToolStart"]);
+    expect(pick(out, "agentToolStart")[0].toolName).toBe("phase:working");
   });
 
   it("swaps the caption when one phase follows another", () => {

@@ -111,7 +111,14 @@ export type SceneCharacter = {
   taskRef?: string;
   /** Epoch ms the lease was acquired. */
   startedAt: number;
-  /** Epoch ms of the last status change. Drives watchdog and stale detection. */
+  /**
+   * Epoch ms of the last event seen for this character. Drives watchdog and
+   * stale detection.
+   *
+   * Liveness, not visible change: an event that leaves the pose exactly as it
+   * was still refreshes this, because a run streaming tool results has not gone
+   * quiet and must not have its desk reclaimed while it works.
+   */
   updatedAt: number;
 };
 

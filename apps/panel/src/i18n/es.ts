@@ -22,6 +22,7 @@ export default {
       arriving: "¡Llegó trabajo!",
       preparing: "Bueno, allá voy",
       thinking: "Déjame pensar…",
+      working: "En ello",
       replying: "Escribiendo respuesta",
       "leaving-success": "¡Listo!",
       "leaving-failure": "Ups.",

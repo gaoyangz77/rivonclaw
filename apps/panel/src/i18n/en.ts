@@ -20,6 +20,7 @@ export default {
       arriving: "Incoming!",
       preparing: "Fine, I'm on it",
       thinking: "Let me think…",
+      working: "Hard at work",
       replying: "Typing a reply",
       "leaving-success": "Done!",
       "leaving-failure": "Oops.",

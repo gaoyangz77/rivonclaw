@@ -20,6 +20,7 @@ export default {
       arriving: "来活了",
       preparing: "被迫营业",
       thinking: "让我想想",
+      working: "忙着呢",
       replying: "正在回复",
       "leaving-success": "收工",
       "leaving-failure": "翻车了",
