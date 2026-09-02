@@ -2,6 +2,7 @@ import { GQL } from "@rivonclaw/core";
 import { describe, expect, it } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import {
+  applySentCreatorStatePreset,
   campaignDecisionReasonLabel,
   affiliateCampaignCommissionRange,
   campaignDeliveryFailureBreakdown,
@@ -16,10 +17,12 @@ import {
   eligibilityReasonLabel,
   isEnglishCampaignSearchPhrase,
   isAffiliateCampaignCommissionRateValid,
+  isSentCreatorStatePreset,
   normalizeSuggestedDiscoveryRules,
   normalizeCampaignExplanationLocale,
   paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
+  SENT_CREATOR_STATE_STATUSES,
   unsupportedAffiliateCampaignTemplateVariables,
 } from "./AffiliateCampaignPage.js";
 
@@ -171,6 +174,12 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect(campaign.searchPlan).not.toMatch(/search\s*plan/i);
       expect(campaign.searchPlanPerformance).not.toMatch(/search\s*plan/i);
       expect(campaign.backToSearchConditions).toBeTruthy();
+      expect(campaign.browseSearchConditions).toBeTruthy();
+      expect(campaign.viewCampaignCreators).toBeTruthy();
+      expect(campaign.creatorStatesForAllSearchPlans).toBeTruthy();
+      expect(campaign.sentCreatorsPreset).toBeTruthy();
+      expect(campaign.sentAt).toBeTruthy();
+      expect(campaign.openSentCreators).toBeTruthy();
       expect(campaign.loadingCreatorStates).toBeTruthy();
       expect(campaign.viewFirstMessage).toBeTruthy();
       expect(campaign.hideFirstMessage).toBeTruthy();
@@ -184,6 +193,30 @@ describe("Affiliate Campaign presentation contracts", () => {
     }
     expect(new Set(campaigns.map((campaign) => campaign.searchPlan)).size).toBe(8);
     expect(new Set(campaigns.map((campaign) => campaign.viewFirstMessage)).size).toBe(8);
+    expect(new Set(campaigns.map((campaign) => campaign.openSentCreators)).size).toBe(8);
+    expect(new Set(campaigns.map((campaign) => campaign.sentAt)).size).toBe(8);
+  });
+
+  it("treats reached-out and replied creators as the sent-creator preset", () => {
+    const { ReachedOut, Replied, Scheduled } = GQL.AffiliateCampaignCreatorStateStatus;
+
+    expect(SENT_CREATOR_STATE_STATUSES).toEqual([ReachedOut, Replied]);
+    expect(isSentCreatorStatePreset([ReachedOut, Replied])).toBe(true);
+    expect(isSentCreatorStatePreset([Replied, ReachedOut])).toBe(true);
+    expect(isSentCreatorStatePreset([ReachedOut])).toBe(false);
+    expect(isSentCreatorStatePreset([ReachedOut, Replied, Scheduled])).toBe(false);
+    expect(isSentCreatorStatePreset([])).toBe(false);
+  });
+
+  it("applies the sent-creator preset idempotently", () => {
+    const { ReachedOut, Replied, Scheduled } = GQL.AffiliateCampaignCreatorStateStatus;
+
+    expect(applySentCreatorStatePreset([])).toEqual([ReachedOut, Replied]);
+    expect(applySentCreatorStatePreset([Scheduled])).toEqual([ReachedOut, Replied]);
+    const alreadyPreset = [Replied, ReachedOut];
+    expect(applySentCreatorStatePreset(alreadyPreset)).toBe(alreadyPreset);
+    const fresh = applySentCreatorStatePreset([]);
+    expect(fresh).not.toBe(SENT_CREATOR_STATE_STATUSES);
   });
 
   it("paginates the campaign directory in stable twenty-row pages", () => {
