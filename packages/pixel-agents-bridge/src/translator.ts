@@ -412,16 +412,35 @@ export class PixelAgentsTranslator {
  * itself is the contract's (`PHASE_ACTIVITY_PREFIX`), because the host that
  * captions it must not depend on this package to know it.
  *
- * These are the phases a run spends its time in with nothing else to show. The
- * remaining non-tool statuses stay uncaptioned: `working` means "running, and
- * nothing more specific is known", which is not worth a caption of its own -
- * the character is at its desk and visibly active - while `waiting`, `idle` and
- * `queued` already have their own renderer chrome.
+ * ## Why every working status must be in here
+ *
+ * On this renderer "no caption" is not a neutral state - it is the IDLE state.
+ * `ToolOverlay.getActivityText` ends in `return officeLabel('idle', ...)`, and
+ * everything that could return earlier needs a tool row to do it: its one
+ * mid-turn rescue, "all tools done but the agent is still active, keep the last
+ * tool's status", is inside `if (tools && tools.length > 0)`. Our
+ * `agentToolsClear` is what empties that list (`delete next[id]` in
+ * `useExtensionMessages.ts`), so after a clear there is no row left for
+ * `isActive` to rescue and a busy, visibly typing character is captioned as
+ * asleep. A status this set omits therefore READS AS IDLE ON SCREEN, and the
+ * only safe rule is that every status a seated running character can hold
+ * captions itself.
+ *
+ * `working` was the omission that proved it. It means "running, nothing more
+ * specific is known", which sounded like nothing worth captioning - and every
+ * run that passed through it (OpenClaw's `lifecycle/finishing` used to, so
+ * every run did) showed one beat of "Zzz" in the middle of working.
+ *
+ * The three left out are the ones the renderer already draws its own chrome
+ * for, so they never reach the fall-through: `waiting` (permission bubble),
+ * `queued` (never emitted - a queued character holds no desk) and `idle`, which
+ * genuinely is idle.
  */
 const CAPTIONED_PHASES: ReadonlySet<CharacterStatus> = new Set<CharacterStatus>([
   "arriving",
   "preparing",
   "thinking",
+  "working",
   "replying",
   "leaving",
 ]);

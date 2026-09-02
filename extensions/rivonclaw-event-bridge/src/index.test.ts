@@ -279,6 +279,46 @@ describe("office scene stream", () => {
     expect(sceneCalls(broadcast).map(([, p]) => (p as { seq: number }).seq)).toEqual([1, 3, 4]);
   });
 
+  // Reasoning streams a token at a time exactly like a reply, and for the same
+  // reason it is worth one marker: the office draws the wait for the model, and
+  // 900 forwarded events to say "still thinking" would be 899 too many.
+  it("forwards one marker for a whole reasoning burst", () => {
+    const broadcast: BroadcastMock = vi.fn();
+    const activated = startedRun(broadcast, "think-run", CS_KEY);
+    for (let seq = 1; seq <= 20; seq++) {
+      activated.emitAgentEvent({
+        runId: "think-run",
+        seq,
+        stream: "thinking",
+        ts: seq,
+        data: { text: "a".repeat(200), delta: "a" },
+      });
+    }
+
+    expect(sceneCalls(broadcast)).toHaveLength(1);
+    const [, payload] = sceneCalls(broadcast)[0] as [string, Record<string, unknown>];
+    expect(payload).toMatchObject({ runId: "think-run", seq: 1, stream: "thinking" });
+    // Reasoning text never leaves the gateway; the marker is the whole message.
+    expect(payload.data).toEqual({});
+  });
+
+  // Thinking, a tool call, then thinking again is two visibly different stints
+  // of reasoning, so the second one has to re-arm and be drawn.
+  it("forwards a second reasoning marker once another stream interrupts", () => {
+    const broadcast: BroadcastMock = vi.fn();
+    const activated = startedRun(broadcast, "rethink-run", CS_KEY);
+    const emit = (seq: number, stream: string, data: Record<string, unknown>) =>
+      activated.emitAgentEvent({ runId: "rethink-run", seq, stream, ts: seq, data });
+
+    emit(1, "thinking", { text: "first" });
+    emit(2, "thinking", { text: "still first" });
+    emit(3, "tool", { name: "reply_buyer" });
+    emit(4, "thinking", { text: "second" });
+    emit(5, "thinking", { text: "still second" });
+
+    expect(sceneCalls(broadcast).map(([, p]) => (p as { seq: number }).seq)).toEqual([1, 3, 4]);
+  });
+
   // The marker says a reply is being composed; the words are never part of it.
   // Recordings of this stream get rendered into public video.
   it("sends the reply marker with an empty payload", () => {

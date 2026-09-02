@@ -22,6 +22,7 @@ export default {
       arriving: "Ada kerjaan!",
       preparing: "Ya sudah, kerja",
       thinking: "Coba pikir dulu…",
+      working: "Lagi sibuk nih",
       replying: "Mengetik balasan",
       "leaving-success": "Beres!",
       "leaving-failure": "Waduh.",

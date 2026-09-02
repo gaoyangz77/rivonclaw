@@ -196,7 +196,9 @@ describe("SceneProjector - the arc of a run", () => {
       "tooling(web_fetch)",
       "tooling(web_fetch)",
       "replying",
-      "working",
+      // `finishing` is the tail of the reply, not a phase of its own: the run
+      // keeps writing until `end` takes it away.
+      "replying",
       "removed",
     ]);
   });
@@ -221,7 +223,9 @@ describe("SceneProjector - the arc of a run", () => {
       // Results change nothing visible: the pose stays on the last tool that
       // started, however the five returns are ordered.
       ...tools.map(() => "tooling(reply_buyer)"),
-      "working",
+      // And neither does `finishing`. A customer-service run has no reply
+      // marker of its own, so the last thing it visibly did is the last tool.
+      "tooling(reply_buyer)",
       "removed",
     ]);
   });
@@ -238,6 +242,70 @@ describe("SceneProjector - the arc of a run", () => {
     p.handleEvent(evt({ runId: "r1", seq: 3, stream: "tool", data: { phase: "result", name: "a" } }));
     expect(byId(p, "r1")).toMatchObject({ status: "tooling", activity: "b" });
     expect(p.takeCues()).toEqual([]);
+  });
+
+  // A tool's own progress is not a new activity. `update` and `review` restate
+  // the tool that is already running, and `input_delta` - the model typing a
+  // tool's arguments - carries no name at all, so posing on it would swap the
+  // label for the unnamed-tool sentinel halfway through the edit.
+  it("holds the tool label through every phase but the start", () => {
+    const p = projector();
+    p.handleEvent(
+      evt({ runId: "r1", seq: 1, stream: "tool", data: { phase: "start", name: "edit" } }),
+    );
+    p.takeCues();
+
+    const later = [
+      { phase: "update", name: "edit" },
+      { phase: "input_delta" },
+      { phase: "review", name: "exec" },
+      { phase: "result", name: "edit" },
+    ];
+    later.forEach((data, index) => {
+      p.handleEvent(evt({ runId: "r1", seq: index + 2, stream: "tool", data }));
+    });
+
+    expect(byId(p, "r1")).toMatchObject({ status: "tooling", activity: "edit" });
+    expect(p.takeCues()).toEqual([]);
+  });
+
+  // The tail of the reply, not a phase of its own: `end` follows it within a
+  // second. Posing it put a beat between the last word and the character
+  // getting up, and that beat had no caption of its own to show.
+  it("keeps the pose through the end of the reply", () => {
+    const p = projector();
+    p.handleEvent(evt({ runId: "r1", seq: 1, stream: "assistant" }));
+    p.takeCues();
+    p.handleEvent(evt({ runId: "r1", seq: 2, data: { phase: "finishing" } }));
+    expect(byId(p, "r1")?.status).toBe("replying");
+    expect(p.takeCues()).toEqual([]);
+  });
+
+  // The run has handed the turn to a fallback model and nothing has come back.
+  // That is the same silence `starting_model` covers.
+  it("shows a model fallback as thinking", () => {
+    const p = projector();
+    p.handleEvent(evt({ runId: "r1", seq: 1 }));
+    p.handleEvent(evt({ runId: "r1", seq: 2, data: { phase: "fallback_step" } }));
+    expect(byId(p, "r1")?.status).toBe("thinking");
+  });
+
+  // Everything OpenClaw does before it asks the model for anything is one
+  // stretch of getting ready; a viewer cannot tell a worktree from an
+  // environment and gains nothing from being shown the difference.
+  it("draws every setup phase as preparing", () => {
+    for (const phase of [
+      "preparing_workspace",
+      "naming_worktree",
+      "creating_worktree",
+      "running_setup",
+      "provisioning_environment",
+      "preparing_context",
+    ]) {
+      const p = projector();
+      p.handleEvent(evt({ runId: "r1", seq: 1, stream: "run_status", data: { phase } }));
+      expect(byId(p, "r1")?.status).toBe("preparing");
+    }
   });
 
   // A phase this build has never seen still means the run is alive, and that is
@@ -449,6 +517,31 @@ describe("SceneProjector - delivery hazards", () => {
     clock += 50_000;
     p.sweep();
     expect(chars(p)).toHaveLength(1);
+  });
+
+  // A tool that runs for minutes emits nothing but its own progress while it
+  // does, and none of that changes the pose. Liveness is a separate question
+  // from the pose: an event that draws nothing new is still proof the run is
+  // there, or a character loses its desk in the middle of its own tool call.
+  it("counts an event that changes no pose as proof of life", () => {
+    let clock = 1_000;
+    const p = new SceneProjector({ rooms: ROOMS, now: () => clock, staleAfterMs: 60_000 });
+    p.handleEvent(
+      evt({ runId: "r1", seq: 1, stream: "tool", data: { phase: "start", name: "exec" } }),
+    );
+
+    clock += 50_000;
+    p.handleEvent(
+      evt({ runId: "r1", seq: 2, stream: "tool", data: { phase: "result", name: "exec" } }),
+    );
+    clock += 50_000;
+    p.sweep();
+    expect(byId(p, "r1")).toMatchObject({ status: "tooling", activity: "exec" });
+
+    // And it is only the events that hold it there: with none, it still goes.
+    clock += 70_000;
+    p.sweep();
+    expect(chars(p)).toHaveLength(0);
   });
 
   it("advances the revision so stale snapshots can be discarded downstream", () => {

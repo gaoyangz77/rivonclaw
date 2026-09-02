@@ -22,6 +22,7 @@ export default {
       arriving: "Neue Aufgabe!",
       preparing: "Na gut, ich mach's",
       thinking: "Lass mich überlegen…",
+      working: "Bin dran",
       replying: "Schreibe Antwort",
       "leaving-success": "Feierabend!",
       "leaving-failure": "Hoppla.",

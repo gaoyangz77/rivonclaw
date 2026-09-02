@@ -490,8 +490,8 @@ function verbOf(toolName: string): string {
  * `thinking` is the only one that reads. It is the phase with genuinely nothing
  * on screen to look at - the model has been started and nothing has come back -
  * so the reading pose is the one that says "something is happening here". The
- * other three are moments of doing rather than considering, and the renderer's
- * default typing animation is what they should look like.
+ * rest are moments of doing rather than considering, and the renderer's default
+ * typing animation is what they should look like.
  *
  * Written as this module's own kind so the two classifications - phase and tool
  * - stay one vocabulary and one answer to "does this character read or type".
@@ -500,6 +500,10 @@ export const PHASE_ACTIVITY_KINDS = {
   arriving: "write",
   preparing: "write",
   thinking: "read",
+  // The catch-all: the run is going and this build cannot name what it is doing
+  // any more precisely. Typing, because a character with no caption at all is
+  // drawn as idle by the renderer, and busy-looking is the honest reading.
+  working: "write",
   replying: "write",
   // How the run ended. One id per outcome rather than one `leaving` caption
   // with a modifier, because the office has a single caption slot and the
