@@ -3,8 +3,16 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { GQL } from "@rivonclaw/core";
 import {
+  advanceAffiliateProposalPageCursorStack,
+  affiliateProposalPageCursor,
+  affiliateProposalPagedQueryKey,
   affiliateProposalPageQueryKey,
   appendAffiliateProposalPageBuffer,
+  initialAffiliateProposalPageCursorStack,
+  parseAffiliateProposalPageSize,
+  resetAffiliateProposalPageCursorStack,
+  resizeAffiliateProposalPageCursorStack,
+  retreatAffiliateProposalPageCursorStack,
   applyAffiliateProposalChange,
   affiliateModelStagePresentation,
   affiliateExpectedSalesModelAvailabilityState,
@@ -308,6 +316,94 @@ describe("AffiliateManagementPage proposal source", () => {
         hasMore: false,
       } as never),
     ).toBe(pending);
+  });
+
+  it("pages all Agent work with a cursor stack: next pushes, previous pops", () => {
+    const filterKey = affiliateProposalPageQueryKey({ userId: "user-1" });
+    const first = initialAffiliateProposalPageCursorStack(filterKey);
+    expect(first).toEqual({ filterKey, pageSize: 25, pageIndex: 0, cursors: [null] });
+    expect(affiliateProposalPageCursor(first)).toBeNull();
+
+    const second = advanceAffiliateProposalPageCursorStack(first, "cursor-1");
+    expect(second.pageIndex).toBe(1);
+    expect(second.cursors).toEqual([null, "cursor-1"]);
+    expect(affiliateProposalPageCursor(second)).toBe("cursor-1");
+
+    const third = advanceAffiliateProposalPageCursorStack(second, "cursor-2");
+    expect(third.pageIndex).toBe(2);
+    expect(third.cursors).toEqual([null, "cursor-1", "cursor-2"]);
+
+    const backToSecond = retreatAffiliateProposalPageCursorStack(third);
+    expect(backToSecond.pageIndex).toBe(1);
+    expect(backToSecond.cursors).toEqual([null, "cursor-1"]);
+    expect(affiliateProposalPageCursor(backToSecond)).toBe("cursor-1");
+
+    // A page without a next cursor cannot advance; page 0 cannot retreat.
+    expect(advanceAffiliateProposalPageCursorStack(third, null)).toBe(third);
+    expect(retreatAffiliateProposalPageCursorStack(first)).toBe(first);
+
+    // Every displayed page gets its own buffer key so a late response for
+    // another page can never replace the page on screen.
+    expect(affiliateProposalPagedQueryKey(filterKey, first)).not.toBe(
+      affiliateProposalPagedQueryKey(filterKey, second),
+    );
+    expect(affiliateProposalPagedQueryKey(filterKey, second)).toBe(
+      affiliateProposalPagedQueryKey(filterKey, backToSecond),
+    );
+  });
+
+  it("returns the paged Agent work view to page 0 when filters or page size change", () => {
+    const pendingKey = affiliateProposalPageQueryKey({
+      userId: "user-1",
+      status: "PENDING" as never,
+    });
+    const approvedKey = affiliateProposalPageQueryKey({
+      userId: "user-1",
+      status: "APPROVED" as never,
+    });
+    const deep = advanceAffiliateProposalPageCursorStack(
+      advanceAffiliateProposalPageCursorStack(
+        initialAffiliateProposalPageCursorStack(pendingKey, 50),
+        "cursor-1",
+      ),
+      "cursor-2",
+    );
+
+    expect(resetAffiliateProposalPageCursorStack(deep, pendingKey)).toBe(deep);
+    const refiltered = resetAffiliateProposalPageCursorStack(deep, approvedKey);
+    expect(refiltered).toEqual({
+      filterKey: approvedKey,
+      pageSize: 50,
+      pageIndex: 0,
+      cursors: [null],
+    });
+
+    expect(resizeAffiliateProposalPageCursorStack(deep, 50)).toBe(deep);
+    const resized = resizeAffiliateProposalPageCursorStack(deep, 25);
+    expect(resized).toEqual({ filterKey: pendingKey, pageSize: 25, pageIndex: 0, cursors: [null] });
+
+    expect(parseAffiliateProposalPageSize("25")).toBe(25);
+    expect(parseAffiliateProposalPageSize("50")).toBe(50);
+    expect(() => parseAffiliateProposalPageSize("20")).toThrow(/page size/);
+  });
+
+  it("pages the all-Agent-work tab while the pending tab keeps its load-more stream", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain('const pagedProposalView = agentWorkspaceView === "ALL";');
+    expect(page).toContain('workbenchTab === "ALL_AGENT" &&');
+    expect(page).toContain('className="affiliate-workbench-table-footer affiliate-proposal-pagination"');
+    expect(page).toContain("ecommerce.affiliateWorkspace.proposalPagination.pagePosition");
+    expect(page).toContain(
+      'workbenchTab === "PENDING_AGENT" && (hasMoreProposals || loadingMoreProposals)',
+    );
+    expect(page).not.toContain(
+      '(workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT") &&\n          (hasMoreProposals',
+    );
+    expect(page).not.toContain("IntersectionObserver");
   });
 
   it("treats an empty query result as authoritative", () => {

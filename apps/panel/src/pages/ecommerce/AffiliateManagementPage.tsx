@@ -201,6 +201,9 @@ const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const AFFILIATE_PROPOSAL_PAGE_SIZE = 20;
+export const AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS = [25, 50] as const;
+export type AffiliateProposalPageSize = (typeof AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS)[number];
+const DEFAULT_AFFILIATE_PROPOSAL_PAGE_SIZE: AffiliateProposalPageSize = 25;
 /** Chips beyond this many collapse into a single "+N" chip. */
 const CREATOR_MANUAL_TAG_CHIP_LIMIT = 3;
 const PROJECTION_DATASET_I18N_KEY: Record<string, string> = {
@@ -517,6 +520,90 @@ export function mergeAffiliateProposalPage(
   incoming: GQL.ActionProposal[],
 ): GQL.ActionProposal[] {
   return mergeById([...current, ...incoming]);
+}
+
+/**
+ * Cursor stack behind the paged "all Agent work" view. The backend proposal
+ * page is cursor-only (no offset, no total), so previous/next navigation is
+ * modelled as a stack of the cursors that fetched each visited page:
+ * `cursors[n]` fetches page `n`, page 0 is always fetched from `null`, and the
+ * invariant `cursors.length === pageIndex + 1` holds after every transition.
+ */
+export type AffiliateProposalPageCursorStack = {
+  filterKey: string;
+  pageSize: AffiliateProposalPageSize;
+  pageIndex: number;
+  cursors: (string | null)[];
+};
+
+export function initialAffiliateProposalPageCursorStack(
+  filterKey: string,
+  pageSize: AffiliateProposalPageSize = DEFAULT_AFFILIATE_PROPOSAL_PAGE_SIZE,
+): AffiliateProposalPageCursorStack {
+  return { filterKey, pageSize, pageIndex: 0, cursors: [null] };
+}
+
+/** Returns the stack unchanged for the same filters, otherwise a fresh page 0 keeping the page size. */
+export function resetAffiliateProposalPageCursorStack(
+  stack: AffiliateProposalPageCursorStack,
+  filterKey: string,
+): AffiliateProposalPageCursorStack {
+  if (stack.filterKey === filterKey) return stack;
+  return initialAffiliateProposalPageCursorStack(filterKey, stack.pageSize);
+}
+
+/** Changing the page size invalidates every cursor (they are scoped to the limit), so it restarts at page 0. */
+export function resizeAffiliateProposalPageCursorStack(
+  stack: AffiliateProposalPageCursorStack,
+  pageSize: AffiliateProposalPageSize,
+): AffiliateProposalPageCursorStack {
+  if (stack.pageSize === pageSize) return stack;
+  return initialAffiliateProposalPageCursorStack(stack.filterKey, pageSize);
+}
+
+export function advanceAffiliateProposalPageCursorStack(
+  stack: AffiliateProposalPageCursorStack,
+  nextCursor: string | null | undefined,
+): AffiliateProposalPageCursorStack {
+  if (!nextCursor) return stack;
+  return {
+    ...stack,
+    pageIndex: stack.pageIndex + 1,
+    cursors: [...stack.cursors.slice(0, stack.pageIndex + 1), nextCursor],
+  };
+}
+
+export function retreatAffiliateProposalPageCursorStack(
+  stack: AffiliateProposalPageCursorStack,
+): AffiliateProposalPageCursorStack {
+  if (stack.pageIndex === 0) return stack;
+  return {
+    ...stack,
+    pageIndex: stack.pageIndex - 1,
+    cursors: stack.cursors.slice(0, stack.pageIndex),
+  };
+}
+
+export function affiliateProposalPageCursor(stack: AffiliateProposalPageCursorStack): string | null {
+  return stack.cursors[stack.pageIndex] ?? null;
+}
+
+/** Buffer key for one displayed page: the filters plus the page position, so a stale page response never lands on another page. */
+export function affiliateProposalPagedQueryKey(
+  filterKey: string,
+  stack: AffiliateProposalPageCursorStack,
+): string {
+  return JSON.stringify([filterKey, stack.pageIndex, stack.pageSize]);
+}
+
+export function parseAffiliateProposalPageSize(value: string): AffiliateProposalPageSize {
+  const pageSize = AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS.find(
+    (candidate) => String(candidate) === value,
+  );
+  if (!pageSize) {
+    throw new Error(`Unsupported affiliate proposal page size: ${value}`);
+  }
+  return pageSize;
 }
 
 export function sortAffiliateProposalsNewestFirst(
@@ -936,13 +1023,33 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   const proposalType = useMemo(() => {
     return proposalTypeFilter === "ALL" ? undefined : proposalTypeFilter;
   }, [proposalTypeFilter]);
-  const proposalQueryKey = affiliateProposalPageQueryKey({
+  const proposalFilterKey = affiliateProposalPageQueryKey({
     userId: user?.userId,
     shopId: "",
     businessDeveloperId: selectedBusinessDeveloperId,
     status: proposalStatus,
     type: proposalType,
   });
+  // The "all Agent work" view is a paged table; the pending view keeps its
+  // load-more stream. Only the paged view carries a cursor stack, and a filter
+  // change resets it to page 0 (derived here, the same way the buffer is).
+  const pagedProposalView = agentWorkspaceView === "ALL";
+  const [proposalPageStack, setProposalPageStack] = useState<AffiliateProposalPageCursorStack>(
+    () => initialAffiliateProposalPageCursorStack(proposalFilterKey),
+  );
+  const activeProposalPageStack = resetAffiliateProposalPageCursorStack(
+    proposalPageStack,
+    proposalFilterKey,
+  );
+  const proposalPageRequest = pagedProposalView
+    ? {
+        limit: activeProposalPageStack.pageSize,
+        cursor: affiliateProposalPageCursor(activeProposalPageStack),
+      }
+    : { limit: AFFILIATE_PROPOSAL_PAGE_SIZE, cursor: null };
+  const proposalQueryKey = pagedProposalView
+    ? affiliateProposalPagedQueryKey(proposalFilterKey, activeProposalPageStack)
+    : proposalFilterKey;
   const activeProposalQueryKeyRef = useRef(proposalQueryKey);
   activeProposalQueryKeyRef.current = proposalQueryKey;
   const [proposalPageBuffer, setProposalPageBuffer] = useState<AffiliateProposalPageBuffer>(() =>
@@ -971,8 +1078,8 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
           businessDeveloperId: selectedBusinessDeveloperId || null,
           status: proposalStatus,
           type: proposalType,
-          limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
-          cursor: null,
+          limit: proposalPageRequest.limit,
+          cursor: proposalPageRequest.cursor,
         },
       },
       fetchPolicy: "cache-and-network",
@@ -1052,6 +1159,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   ]);
 
   const loadMoreProposals = useCallback(async () => {
+    // Load-more belongs to the pending stream only; the paged view navigates
+    // with the cursor stack instead of appending.
+    if (pagedProposalView) return;
     if (!proposalCursor || !hasMoreProposals || loadingMoreProposals) return;
     const requestQueryKey = proposalQueryKey;
     setLoadingMoreProposalQueryKey(requestQueryKey);
@@ -1089,6 +1199,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     fetchMoreProposals,
     hasMoreProposals,
     loadingMoreProposals,
+    pagedProposalView,
     proposalCursor,
     proposalQueryKey,
     proposalStatus,
@@ -1097,6 +1208,26 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     showToast,
     t,
   ]);
+
+  function goToPreviousProposalPage(): void {
+    setProposalPageStack(retreatAffiliateProposalPageCursorStack(activeProposalPageStack));
+  }
+
+  function goToNextProposalPage(): void {
+    if (!hasMoreProposals || !proposalCursor) return;
+    setProposalPageStack(
+      advanceAffiliateProposalPageCursorStack(activeProposalPageStack, proposalCursor),
+    );
+  }
+
+  function changeProposalPageSize(value: string): void {
+    setProposalPageStack(
+      resizeAffiliateProposalPageCursorStack(
+        activeProposalPageStack,
+        parseAffiliateProposalPageSize(value),
+      ),
+    );
+  }
 
   useEffect(() => {
     const unsubscribeProposal = panelEventBus.subscribe(
@@ -1250,8 +1381,8 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
           businessDeveloperId: selectedBusinessDeveloperId || null,
           status: proposalStatus,
           type: proposalType,
-          limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
-          cursor: null,
+          limit: proposalPageRequest.limit,
+          cursor: proposalPageRequest.cursor,
         },
       });
       const page = result.data?.affiliateActionProposalPage as
@@ -1438,8 +1569,62 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
               onOpenCreator={(bundle) => openCreatorDetail(bundle.proposal)}
             />
           )}
-          {(workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT") &&
-          (hasMoreProposals || loadingMoreProposals) ? (
+          {workbenchTab === "ALL_AGENT" &&
+          (loadedProposals.length > 0 || activeProposalPageStack.pageIndex > 0) ? (
+            <div
+              className="affiliate-workbench-table-footer affiliate-proposal-pagination"
+              data-tutorial-id="affiliate-agent-work-pagination"
+            >
+              <span className="affiliate-proposal-pagination-summary">
+                <strong>
+                  {t("ecommerce.affiliateWorkspace.proposalPagination.pagePosition", {
+                    page: activeProposalPageStack.pageIndex + 1,
+                  })}
+                </strong>
+                {loadedProposals.length > 0 ? (
+                  <span>
+                    {t("ecommerce.affiliateWorkspace.proposalPagination.pageRange", {
+                      start: activeProposalPageStack.pageIndex * activeProposalPageStack.pageSize + 1,
+                      end:
+                        activeProposalPageStack.pageIndex * activeProposalPageStack.pageSize +
+                        loadedProposals.length,
+                    })}
+                  </span>
+                ) : null}
+              </span>
+              <div className="affiliate-proposal-pagination-controls">
+                <TkChoiceSelect
+                  label={t("ecommerce.affiliateWorkspace.proposalPagination.pageSize")}
+                  value={String(activeProposalPageStack.pageSize)}
+                  onChange={changeProposalPageSize}
+                  options={AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS.map((size) => ({
+                    value: String(size),
+                    label: t("ecommerce.affiliateWorkspace.proposalPagination.pageSizeOption", {
+                      count: size,
+                    }),
+                  }))}
+                  className="affiliate-proposal-page-size-select"
+                  disabled={proposalsLoading}
+                />
+                <TkButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={proposalsLoading || activeProposalPageStack.pageIndex === 0}
+                  onClick={goToPreviousProposalPage}
+                >
+                  {t("ecommerce.affiliateWorkspace.prevPage")}
+                </TkButton>
+                <TkButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={proposalsLoading || !hasMoreProposals || !proposalCursor}
+                  onClick={goToNextProposalPage}
+                >
+                  {t("ecommerce.affiliateWorkspace.nextPage")}
+                </TkButton>
+              </div>
+            </div>
+          ) : workbenchTab === "PENDING_AGENT" && (hasMoreProposals || loadingMoreProposals) ? (
             <div className="affiliate-proposal-stream-footer">
               <button
                 className="btn btn-secondary affiliate-proposal-load-more"
@@ -1457,8 +1642,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
                 })}
               </span>
             </div>
-          ) : (workbenchTab === "PENDING_AGENT" || workbenchTab === "ALL_AGENT") &&
-            loadedProposals.length > 0 ? (
+          ) : workbenchTab === "PENDING_AGENT" && loadedProposals.length > 0 ? (
             <div className="affiliate-proposal-stream-footer affiliate-proposal-stream-complete">
               {t("ecommerce.affiliateWorkspace.allProposalsLoaded", {
                 count: loadedProposals.length,

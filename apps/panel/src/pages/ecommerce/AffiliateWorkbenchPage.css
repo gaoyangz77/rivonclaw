@@ -450,7 +450,8 @@
   font: 400 var(--tk-v1-type-micro) / var(--tk-v1-line-micro) var(--tk-v1-font-mono);
 }
 
-.tk-v1-workbench .affiliate-escalation-pagination {
+.tk-v1-workbench .affiliate-escalation-pagination,
+.tk-v1-workbench .affiliate-proposal-pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -459,19 +460,36 @@
 }
 
 .tk-v1-workbench .affiliate-escalation-pagination-summary,
-.tk-v1-workbench .affiliate-escalation-pagination > div {
+.tk-v1-workbench .affiliate-escalation-pagination > div,
+.tk-v1-workbench .affiliate-proposal-pagination-summary,
+.tk-v1-workbench .affiliate-proposal-pagination-controls {
   display: flex;
   align-items: center;
   gap: var(--tk-v1-space-2);
 }
 
-.tk-v1-workbench .affiliate-escalation-pagination-summary strong {
+.tk-v1-workbench .affiliate-escalation-pagination-summary strong,
+.tk-v1-workbench .affiliate-proposal-pagination-summary strong {
   color: var(--tk-v1-fg-secondary);
   font-weight: 600;
 }
 
-.tk-v1-workbench .affiliate-escalation-pagination-summary span {
+.tk-v1-workbench .affiliate-escalation-pagination-summary span,
+.tk-v1-workbench .affiliate-proposal-pagination-summary span {
   color: var(--tk-v1-fg-muted);
+}
+
+/* The page-size field sits inline in the footer: label beside the select, not above it. */
+.tk-v1-workbench .affiliate-proposal-page-size-select {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  margin-right: var(--tk-v1-space-2);
+}
+
+.tk-v1-workbench .affiliate-proposal-page-size-select .tk-v1-label {
+  color: var(--tk-v1-fg-muted);
+  white-space: nowrap;
 }
 
 @media (max-width: 1120px) {
@@ -511,8 +529,14 @@
   }
 
   .tk-v1-workbench .affiliate-escalation-pagination,
-  .tk-v1-workbench .affiliate-escalation-pagination-summary {
+  .tk-v1-workbench .affiliate-escalation-pagination-summary,
+  .tk-v1-workbench .affiliate-proposal-pagination,
+  .tk-v1-workbench .affiliate-proposal-pagination-summary {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .tk-v1-workbench .affiliate-proposal-pagination-controls {
+    flex-wrap: wrap;
   }
 }
