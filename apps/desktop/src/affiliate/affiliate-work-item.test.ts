@@ -175,17 +175,17 @@ describe("affiliate session identity", () => {
     ).toBe("WhatsApp [REDACTED_BD_CONTACT] and email [REDACTED_BD_CONTACT]");
   });
 
-  it("uses the exact live-test cohort size as the default Agent pool", () => {
+  it("leaves the Agent pool at the product default when a live-test cohort is pinned", () => {
     expect(
       resolveMaxActiveAffiliateAgentRuns({
         RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
       }),
-    ).toBe(3);
+    ).toBe(DEFAULT_AFFILIATE_MAX_CONCURRENT);
     expect(
       resolveMaxActiveAffiliateAgentRuns({
         RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-1,rel-2",
       }),
-    ).toBe(2);
+    ).toBe(DEFAULT_AFFILIATE_MAX_CONCURRENT);
   });
 
   // The office draws one desk per admissible run from the same constant, so a
@@ -4114,7 +4114,7 @@ describe("affiliate containment startup proof", () => {
     vi.resetModules();
   });
 
-  it("proves the exact live-test cohort and derived concurrency the process applied", async () => {
+  it("proves the exact live-test cohort and leaves the Agent pool at the product default", async () => {
     vi.stubEnv(
       "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS",
       " relationship-b , relationship-a ,relationship-b",
@@ -4126,7 +4126,9 @@ describe("affiliate containment startup proof", () => {
     expect(line).toContain("liveTestFilter=active");
     expect(line).toContain("relationshipIdCount=2");
     expect(line).toContain("relationshipIds=relationship-a,relationship-b");
-    expect(line).toContain("maxActiveAffiliateAgentRuns=2");
+    // Containment is the filter's job. A pinned cohort must not also shrink the
+    // Agent pool, or the test serializes work production would run in parallel.
+    expect(line).toContain(`maxActiveAffiliateAgentRuns=${DEFAULT_AFFILIATE_MAX_CONCURRENT}`);
     expect(line).toContain("debugFullPrompt=false");
   });
 
