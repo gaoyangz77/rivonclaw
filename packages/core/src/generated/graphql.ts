@@ -9703,6 +9703,7 @@ export const InventoryRegionCode = {
   Id: 'ID',
   It: 'IT',
   Jp: 'JP',
+  Mx: 'MX',
   My: 'MY',
   Nl: 'NL',
   Ph: 'PH',
