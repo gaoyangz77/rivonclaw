@@ -4439,6 +4439,18 @@ export const AFFILIATE_ESCALATION_PAGE_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_RESOLVE_ESCALATION_MUTATION = gql`
+  mutation AffiliateResolveEscalation($input: AffiliateResolveEscalationInput!) {
+    affiliateResolve(input: $input) {
+      ok
+      escalationId
+      status
+      version
+      changed
+    }
+  }
+`;
+
 export const AFFILIATE_BUSINESS_DEVELOPER_PAGE_QUERY = gql`
   ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
   query AffiliateBusinessDeveloperPage($input: AffiliateBusinessDeveloperPageInput) {

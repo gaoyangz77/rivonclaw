@@ -26,6 +26,7 @@ import {
   TkButton,
   TkChoiceSelect,
   TkField,
+  TkFormStack,
   TkInteractiveTableRow,
   TkModalHeader,
   TkPanel,
@@ -52,6 +53,7 @@ import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_ESCALATION_PAGE_QUERY,
+  AFFILIATE_RESOLVE_ESCALATION_MUTATION,
   AFFILIATE_COLLABORATION_DETAIL_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
@@ -1681,6 +1683,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
       {selectedEscalation ? (
         <AffiliateEscalationDetailModal
           escalation={selectedEscalation}
+          onResolved={() => void refetchEscalations()}
           onClose={() => setSelectedEscalation(null)}
         />
       ) : null}
@@ -1916,12 +1919,60 @@ function affiliateEscalationNotificationTone(
 function AffiliateEscalationDetailModal({
   escalation,
   onClose,
+  onResolved,
 }: {
   escalation: AffiliateEscalationPanelRow;
   onClose: () => void;
+  onResolved: () => void;
 }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
+  const [decision, setDecision] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [resolveEscalation, { loading: resolving }] = useMutation<
+    { affiliateResolve: { ok: boolean; escalationId: string; status: string } },
+    { input: { escalationId: string; decision: string; instructions: string } }
+  >(AFFILIATE_RESOLVE_ESCALATION_MUTATION);
   const snapshot = parseAffiliateEscalationSnapshot(escalation.sourceAgendaItemsSnapshotJson);
+  const creatorName =
+    escalation.creatorName || escalation.creatorUsername || escalation.creatorRelationshipId;
+  const businessDeveloperName =
+    escalation.businessDeveloperName || t("ecommerce.affiliateWorkspace.escalations.unassignedBd");
+  const waitingLabel = t("ecommerce.affiliateWorkspace.escalations.waitingSince", {
+    value: formatLocalizedDateTime(escalation.createdAt, panelI18n.language),
+  });
+  // The frozen agenda is shown as the work it names, never as raw JSON: staff
+  // are here to answer the question, not to debug the snapshot.
+  const relatedWork = [
+    ...new Set(
+      snapshot.agendaItems
+        .map((item) => String(item.requiredAction ?? item.workKind ?? ""))
+        .filter(Boolean),
+    ),
+  ];
+  const canSubmit = decision.trim().length > 0 && instructions.trim().length > 0 && !resolving;
+  const instructionsId = `affiliate-escalation-instructions-${escalation.id}`;
+
+  async function submitDecision() {
+    if (!canSubmit) return;
+    try {
+      await resolveEscalation({
+        variables: {
+          input: {
+            escalationId: escalation.id,
+            decision: decision.trim(),
+            instructions: instructions.trim(),
+          },
+        },
+      });
+      showToast(t("ecommerce.affiliateWorkspace.escalations.resolveSuccess"), "success");
+      onResolved();
+      onClose();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
   return (
     <AffiliateDetailModal
       onClose={onClose}
@@ -1930,73 +1981,93 @@ function AffiliateEscalationDetailModal({
     >
       <TkModalHeader
         eyebrow={t("ecommerce.affiliateWorkspace.escalations.detailTitle")}
-        title={
-          escalation.creatorName ||
-          escalation.creatorUsername ||
-          escalation.creatorRelationshipId
-        }
+        title={creatorName}
+        description={`${businessDeveloperName} · ${waitingLabel}`}
         actions={
-          <button className="btn btn-secondary" type="button" onClick={onClose}>
-            {t("common.close")}
-          </button>
+          <TkBadge dot tone="warning">
+            {t("ecommerce.affiliateWorkspace.escalations.statusOpen")}
+          </TkBadge>
         }
       />
-      <div className="affiliate-escalation-detail-body">
-        <dl className="affiliate-escalation-facts">
-          <div>
-            <dt>{t("ecommerce.affiliateWorkspace.escalations.id")}</dt>
-            <dd className="input-mono">{escalation.id}</dd>
-          </div>
-          <div>
-            <dt>{t("ecommerce.affiliateWorkspace.escalations.bd")}</dt>
-            <dd>
-              {escalation.businessDeveloperName ||
-                t("ecommerce.affiliateWorkspace.escalations.unassignedBd")}
-            </dd>
-          </div>
-          <div>
-            <dt>{t("ecommerce.affiliateWorkspace.escalations.reason")}</dt>
-            <dd>{escalation.reason}</dd>
-          </div>
-          <div>
-            <dt>{t("ecommerce.affiliateWorkspace.escalations.question")}</dt>
-            <dd>{escalation.question}</dd>
-          </div>
-          {escalation.context ? (
-            <div>
-              <dt>{t("ecommerce.affiliateWorkspace.escalations.context")}</dt>
-              <dd>{escalation.context}</dd>
-            </div>
-          ) : null}
-          <div>
-            <dt>{t("ecommerce.affiliateWorkspace.escalations.notificationStatus")}</dt>
-            <dd>
-              {t(
-                `ecommerce.affiliateWorkspace.escalations.notification.${escalation.notificationStatus}`,
-              )}
-            </dd>
-          </div>
-          {escalation.notificationLastError ? (
-            <div>
-              <dt>{t("ecommerce.affiliateWorkspace.escalations.notificationError")}</dt>
-              <dd>{escalation.notificationLastError}</dd>
-            </div>
-          ) : null}
-        </dl>
-        <section className="affiliate-escalation-agenda">
-          <h3>{t("ecommerce.affiliateWorkspace.escalations.frozenAgenda")}</h3>
-          {snapshot.agendaItems.length ? (
-            snapshot.agendaItems.map((item, index) => (
-              <article key={String(item.key ?? index)}>
-                <strong>{String(item.requiredAction ?? item.key ?? "—")}</strong>
-                <span>{String(item.workKind ?? item.sourceType ?? "—")}</span>
-                <pre>{JSON.stringify(item, null, 2)}</pre>
-              </article>
-            ))
-          ) : (
-            <p>{t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}</p>
-          )}
+      <div className="affiliate-escalation-modal-body">
+        <section className="affiliate-escalation-block affiliate-escalation-block-question">
+          <span className="affiliate-escalation-block-label">
+            {t("ecommerce.affiliateWorkspace.escalations.agentQuestion")}
+          </span>
+          <p>{escalation.question}</p>
         </section>
+        <section className="affiliate-escalation-block">
+          <span className="affiliate-escalation-block-label">
+            {t("ecommerce.affiliateWorkspace.escalations.reason")}
+          </span>
+          <p>{escalation.reason}</p>
+        </section>
+        {escalation.context ? (
+          <section className="affiliate-escalation-block">
+            <span className="affiliate-escalation-block-label">
+              {t("ecommerce.affiliateWorkspace.escalations.context")}
+            </span>
+            <pre>{escalation.context}</pre>
+          </section>
+        ) : null}
+        <div className="affiliate-escalation-meta">
+          {relatedWork.map((work) => (
+            <TkBadge key={work} tone="neutral">
+              {affiliateWorkspaceEnumLabel(t, "requiredActions", work)}
+            </TkBadge>
+          ))}
+          <SystemIdCopy
+            value={escalation.id}
+            labelKey="ecommerce.affiliateWorkspace.escalations.copyEscalationId"
+          />
+          <SystemIdCopy
+            value={escalation.creatorRelationshipId}
+            labelKey="ecommerce.affiliateWorkspace.escalations.copyRelationshipId"
+          />
+        </div>
+        <form
+          className="affiliate-escalation-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitDecision();
+          }}
+        >
+          <TkFormStack>
+            <TkField
+              label={t("ecommerce.affiliateWorkspace.escalations.decisionLabel")}
+              placeholder={t("ecommerce.affiliateWorkspace.escalations.decisionPlaceholder")}
+              value={decision}
+              maxLength={200}
+              disabled={resolving}
+              onChange={(event) => setDecision(event.target.value)}
+            />
+            <div className="tk-v1-field">
+              <label className="tk-v1-label" htmlFor={instructionsId}>
+                {t("ecommerce.affiliateWorkspace.escalations.instructionsLabel")}
+              </label>
+              <textarea
+                id={instructionsId}
+                className="input-full textarea-resize-vertical"
+                rows={5}
+                value={instructions}
+                disabled={resolving}
+                placeholder={t("ecommerce.affiliateWorkspace.escalations.instructionsPlaceholder")}
+                onChange={(event) => setInstructions(event.target.value)}
+              />
+              <div className="tk-v1-field-support">
+                {t("ecommerce.affiliateWorkspace.escalations.instructionsHint")}
+              </div>
+            </div>
+          </TkFormStack>
+          <div className="tk-v1-form-action-row affiliate-escalation-actions">
+            <TkButton variant="secondary" type="button" onClick={onClose} disabled={resolving}>
+              {t("common.close")}
+            </TkButton>
+            <TkButton variant="primary" type="submit" loading={resolving} disabled={!canSubmit}>
+              {t("ecommerce.affiliateWorkspace.escalations.submitDecision")}
+            </TkButton>
+          </div>
+        </form>
       </div>
     </AffiliateDetailModal>
   );
