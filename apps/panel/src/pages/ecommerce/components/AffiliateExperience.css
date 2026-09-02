@@ -116,7 +116,7 @@
   line-height: 1.08;
 }
 
-.affiliate-page-shell .affiliate-page-hero :is(.ecommerce-page-subtitle, p) {
+.affiliate-page-shell .affiliate-page-hero :is(.tk-v1-page-description, p) {
   max-width: 760px;
   color: var(--color-text-secondary);
   line-height: 1.55;
@@ -138,7 +138,7 @@
 .affiliate-page-shell .affiliate-team-header-actions,
 .affiliate-page-shell .affiliate-campaign-hero-actions,
 .affiliate-page-shell .affiliate-intelligence-controls {
-  padding: 5px;
+  padding: var(--tk-v1-space-1);
   border: 1px solid color-mix(in srgb, var(--affiliate-page-line) 72%, transparent);
   border-radius: var(--tk-v1-radius-4);
   background: color-mix(in srgb, var(--color-bg) 84%, transparent);
@@ -284,10 +284,13 @@
     0 0 0 1px color-mix(in srgb, white 18%, transparent);
 }
 
+/* Keep the relationship identity bar compact: identity, copy actions and close
+   belong on one scan line; operational explanation lives in the workspace. */
 .affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header {
   position: relative;
+  min-height: 76px;
   align-items: center;
-  padding: 18px 22px;
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-5);
   border-bottom-color: color-mix(
     in srgb,
     var(--color-border-light) 82%,
@@ -305,9 +308,9 @@
 .affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header::after {
   content: "";
   position: absolute;
-  right: 22px;
+  right: var(--tk-v1-space-5);
   bottom: -1px;
-  left: 22px;
+  left: var(--tk-v1-space-5);
   height: 2px;
   background: linear-gradient(90deg, var(--color-primary), transparent 56%);
   opacity: 0.58;
@@ -531,10 +534,6 @@
     border-radius: var(--tk-v1-radius-5);
   }
 
-  .affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header {
-    padding: 14px 16px;
-  }
-
   .affiliate-relationship-workspace-body {
     grid-template-columns: 1fr;
     overflow-y: auto;
@@ -679,13 +678,6 @@
 .affiliate-collaboration-sample-card.affiliate-entity-card
   > .affiliate-collaboration-sample-footer {
   padding: 0 14px 12px;
-}
-
-/* Keep the relationship identity bar compact: identity, copy actions and close
-   belong on one scan line; operational explanation lives in the workspace. */
-.affiliate-relationship-work-modal.affiliate-collaboration-modal .modal-header {
-  min-height: 76px;
-  padding: 11px 18px;
 }
 
 .affiliate-relationship-work-modal-heading {

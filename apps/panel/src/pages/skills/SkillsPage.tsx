@@ -183,7 +183,6 @@ export function SkillsPage() {
   return (
     <TkPageFrame className="skills-page">
       <TkPageHeader
-        className="skills-page-header"
         data-tutorial-id="skills-header"
         title={t("skills.title")}
         description={t("skills.description")}

@@ -10,20 +10,8 @@
   min-height: 0;
 }
 
-.cs-workspace-page .ecommerce-page-header {
-  align-items: center;
-  margin-bottom: 0;
-}
-
-.cs-workspace-page .ecommerce-page-header h1 {
-  font-size: 26px;
-  line-height: 1.05;
-}
-
-.cs-workspace-page .ecommerce-page-subtitle {
-  margin-top: 3px;
-  font-size: 12px;
-}
+/* The workspace page header is TkPageHeader; its geometry and typography come
+   from --tk-v1-page-header-* and must not be restated here. */
 
 .cs-workspace-tabs {
   display: inline-flex;
@@ -53,27 +41,11 @@
   overflow: hidden;
 }
 
-.cs-workspace-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 0 0 auto;
-  gap: 16px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg) 22%);
-}
+/* The escalation queue band is a TkPanelHeader; it owns its own inset, rule and
+   header surface, so nothing here restates them. */
 
-.cs-workspace-toolbar .btn {
-  flex: 0 0 auto;
-}
-
-.cs-workspace-count {
-  color: var(--color-text);
-  font-size: 15px;
-  font-weight: 800;
-}
-
+/* Supplies the workspace panel's body inset through TkPanelBody, so only the
+   grid tracks and the rule below the band live here. */
 .cs-workspace-filter-grid {
   --cs-filter-control-height: 44px;
   --cs-filter-label-height: 14px;
@@ -87,7 +59,6 @@
   align-items: end;
   column-gap: 12px;
   row-gap: 10px;
-  padding: 12px 24px 14px;
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-bg);
 }
@@ -230,15 +201,8 @@
   gap: 18px;
 }
 
-.cs-performance-header {
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.cs-performance-header > :first-child {
-  min-width: 0;
-}
+/* The page header is TkPageHeader; its geometry comes from
+   --tk-v1-page-header-* and must not be restated here. */
 
 .cs-performance-tabs {
   display: inline-flex;
@@ -454,13 +418,8 @@
   color: var(--color-danger);
 }
 
-.cs-performance-table-card {
-  padding: 16px;
-}
-
-.cs-performance-table-header {
-  gap: 14px;
-}
+/* The table panels are padding="none": TkPanelHeader and the embedded
+   TkTableFrame carry the inset, so the panel itself must stay flush. */
 
 .cs-performance-download {
   display: inline-flex;
@@ -523,10 +482,6 @@
 }
 
 @media (max-width: 900px) {
-  .cs-performance-header {
-    align-items: stretch;
-  }
-
   .cs-performance-toolbar {
     justify-content: flex-start;
   }
@@ -549,10 +504,6 @@
   .cs-performance-filter,
   .cs-performance-filter:first-child {
     min-width: min(100%, 320px);
-  }
-
-  .cs-performance-table-header {
-    align-items: stretch;
   }
 
   .cs-performance-download {

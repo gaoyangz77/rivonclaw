@@ -41,12 +41,6 @@
   letter-spacing: -0.035em;
 }
 
-.affiliate-page-shell.tk-v1-workbench .affiliate-page-hero .ecommerce-page-subtitle {
-  margin: 2px 0 0;
-  color: var(--tk-v1-fg-muted);
-  font: 400 12px/1.4 var(--tk-v1-font-sans);
-}
-
 .tk-v1-workbench .affiliate-page-header-actions {
   flex: 1 1 auto;
 }

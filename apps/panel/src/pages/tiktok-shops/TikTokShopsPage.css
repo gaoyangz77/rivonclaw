@@ -53,16 +53,6 @@
   min-width: 0;
 }
 
-.shop-table-name {
-  font-weight: 500;
-  color: var(--color-text);
-  display: inline-block;
-  max-width: 24ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .shop-table-sort-heading {
   display: inline-flex;
   align-items: center;
@@ -92,7 +82,7 @@
   border-left: 3px solid color-mix(in srgb, var(--color-primary) 64%, var(--color-border-light));
 }
 
-.shop-collection-row .shop-table-name {
+.shop-collection-row .tk-v1-table-record-name {
   font-weight: 650;
 }
 
@@ -103,7 +93,7 @@
   min-width: 0;
 }
 
-.shop-collection-identity .shop-table-name {
+.shop-collection-identity .tk-v1-table-record-name {
   min-width: 0;
 }
 
@@ -177,7 +167,7 @@
   transform: translateY(-50%);
 }
 
-.shop-collection-child-row .shop-table-name {
+.shop-collection-child-row .tk-v1-table-record-name {
   max-width: 22ch;
   font-weight: 650;
 }

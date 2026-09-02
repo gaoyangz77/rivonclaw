@@ -34,6 +34,8 @@ import {
   TkInteractiveTableRow,
   TkModal as Modal,
   TkPanel,
+  TkPanelBody,
+  TkPanelHeader,
   TkTableFrame,
   TkTabs,
 } from "../../components/design-system/index.js";
@@ -637,7 +639,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
 
       {activeTab === "conversations" ? (
         <TkPanel as="section" padding="none" clip className="cs-workspace-panel">
-          <div
+          <TkPanelBody
             className="cs-workspace-filter-grid cs-conversation-filter-grid"
             data-tutorial-id="cs-conversation-filters"
           >
@@ -777,7 +779,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                 </FilterField>
               </div>
             ) : null}
-          </div>
+          </TkPanelBody>
 
           {workspace.conversationSearch && (
             <button
@@ -1434,30 +1436,27 @@ const EscalationsTab = observer(function EscalationsTab({
       className="cs-workspace-panel"
       data-tutorial-id="cs-escalation-workspace"
     >
-      <div className="cs-workspace-toolbar" data-tutorial-id="cs-escalation-toolbar">
-        <div>
-          <div className="cs-workspace-count">
-            {t("ecommerce.customerServiceWorkspace.openCount", {
-              count: workspace.escalationTotal,
-            })}
-          </div>
-          <div className="form-hint">
-            {t("ecommerce.customerServiceWorkspace.escalationQueueHint")}
-          </div>
-        </div>
-        <button
-          className="btn btn-secondary"
-          type="button"
-          onClick={() => workspace.fetchEscalations()}
-          disabled={workspace.escalationsLoading}
-        >
-          {workspace.escalationsLoading
-            ? t("common.loading")
-            : t("ecommerce.customerServiceWorkspace.refresh")}
-        </button>
-      </div>
+      <TkPanelHeader
+        data-tutorial-id="cs-escalation-toolbar"
+        title={t("ecommerce.customerServiceWorkspace.openCount", {
+          count: workspace.escalationTotal,
+        })}
+        description={t("ecommerce.customerServiceWorkspace.escalationQueueHint")}
+        actions={
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => workspace.fetchEscalations()}
+            disabled={workspace.escalationsLoading}
+          >
+            {workspace.escalationsLoading
+              ? t("common.loading")
+              : t("ecommerce.customerServiceWorkspace.refresh")}
+          </button>
+        }
+      />
 
-      <div className="cs-workspace-filter-grid" data-tutorial-id="cs-escalation-filters">
+      <TkPanelBody className="cs-workspace-filter-grid" data-tutorial-id="cs-escalation-filters">
         <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
           <Select
             ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
@@ -1521,7 +1520,7 @@ const EscalationsTab = observer(function EscalationsTab({
             }))}
           />
         </FilterField>
-      </div>
+      </TkPanelBody>
 
       {workspace.escalationSearch && (
         <button

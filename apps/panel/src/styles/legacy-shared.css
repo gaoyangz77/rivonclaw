@@ -89,28 +89,7 @@
   overflow: hidden;
 }
 
-.usage-key-header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 8px 14px;
-  background-color: var(--color-bg-alt);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.usage-key-provider {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--color-text);
-}
-
-.usage-key-label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
 .usage-key-cost {
-  margin-left: auto;
   font-weight: 600;
   font-size: 13px;
   color: var(--color-primary);

@@ -23,6 +23,7 @@ import {
   TkButton,
   TkInteractiveTableRow,
   TkPanel,
+  TkPanelHeader,
   TkTableFrame,
 } from "../../components/design-system/index.js";
 import {
@@ -1213,43 +1214,45 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           className="affiliate-campaign-directory"
           data-tutorial-id="affiliate-campaign-directory"
         >
-          <header className="affiliate-campaign-directory-header">
-            <div>
-              <span>{t("ecommerce.affiliateCampaign.portfolio")}</span>
-              <h2>{t("ecommerce.affiliateCampaign.campaignTableTitle")}</h2>
-              <p>{t("ecommerce.affiliateCampaign.campaignTableDescription")}</p>
-            </div>
-            <div className="affiliate-campaign-directory-tools">
-              <fieldset
-                className="affiliate-campaign-directory-status-filter"
-                aria-label={t("ecommerce.affiliateCampaign.statusFilter")}
-              >
-                <legend>{t("ecommerce.affiliateCampaign.statusFilter")}</legend>
-                <div className="affiliate-campaign-status-options">
-                  {CAMPAIGN_STATUS_FILTER_OPTIONS.map((status) => {
-                    const checked = campaignStatusFilters.includes(status);
-                    return (
-                      <label
-                        key={status}
-                        className={`affiliate-campaign-status-option${checked ? " affiliate-campaign-status-option-selected" : ""}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleCampaignStatusFilter(status)}
-                        />
-                        <span>{campaignStatusLabel(status, t)}</span>
-                      </label>
-                    );
-                  })}
+          <TkPanelHeader
+            className="affiliate-campaign-directory-header"
+            headingLevel={2}
+            eyebrow={t("ecommerce.affiliateCampaign.portfolio")}
+            title={t("ecommerce.affiliateCampaign.campaignTableTitle")}
+            description={t("ecommerce.affiliateCampaign.campaignTableDescription")}
+            actions={
+              <div className="affiliate-campaign-directory-tools">
+                <fieldset
+                  className="affiliate-campaign-directory-status-filter"
+                  aria-label={t("ecommerce.affiliateCampaign.statusFilter")}
+                >
+                  <legend>{t("ecommerce.affiliateCampaign.statusFilter")}</legend>
+                  <div className="affiliate-campaign-status-options">
+                    {CAMPAIGN_STATUS_FILTER_OPTIONS.map((status) => {
+                      const checked = campaignStatusFilters.includes(status);
+                      return (
+                        <label
+                          key={status}
+                          className={`affiliate-campaign-status-option${checked ? " affiliate-campaign-status-option-selected" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCampaignStatusFilter(status)}
+                          />
+                          <span>{campaignStatusLabel(status, t)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+                <div className="affiliate-campaign-directory-count">
+                  <strong>{formatNumber(campaigns.length)}</strong>
+                  <span>{t("ecommerce.affiliateCampaign.campaignCountLabel")}</span>
                 </div>
-              </fieldset>
-              <div className="affiliate-campaign-directory-count">
-                <strong>{formatNumber(campaigns.length)}</strong>
-                <span>{t("ecommerce.affiliateCampaign.campaignCountLabel")}</span>
               </div>
-            </div>
-          </header>
+            }
+          />
           <TkTableFrame variant="embedded" className="affiliate-campaign-directory-table-wrap">
             <table className="affiliate-campaign-directory-table">
               <colgroup>

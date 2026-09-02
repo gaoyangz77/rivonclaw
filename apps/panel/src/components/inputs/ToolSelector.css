@@ -27,11 +27,13 @@
   gap: 2px;
 }
 
+/* Collapsible group row inside the tool multiselect. Local geometry: it is a
+   clickable list affordance, not a panel header. 6px snapped to the 8px step. */
 .tool-ms-group-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
   border-radius: var(--radius-sm);
   background: var(--color-bg-alt);
   cursor: pointer;

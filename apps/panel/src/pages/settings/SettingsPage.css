@@ -22,7 +22,7 @@
   position: absolute;
   z-index: 1;
   top: 0;
-  left: var(--tk-v1-space-5);
+  left: var(--tk-v1-panel-header-inline);
   width: 144px;
   height: 1px;
   background: linear-gradient(
@@ -34,14 +34,6 @@
   content: "";
   opacity: 0.68;
   pointer-events: none;
-}
-
-.tk-settings-section .tk-v1-section-header {
-  padding: var(--tk-v1-space-4) var(--tk-v1-space-5) var(--tk-v1-space-3);
-}
-
-.tk-settings-section .tk-v1-section-body {
-  padding: var(--tk-v1-space-4) var(--tk-v1-space-5) var(--tk-v1-space-5);
 }
 
 .tk-settings-switch-list {
@@ -222,11 +214,5 @@
 @media (max-width: 720px) {
   .tk-settings-details {
     grid-template-columns: 1fr;
-  }
-
-  .tk-settings-section .tk-v1-section-header,
-  .tk-settings-section .tk-v1-section-body {
-    padding-right: var(--tk-v1-space-4);
-    padding-left: var(--tk-v1-space-4);
   }
 }

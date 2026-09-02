@@ -2,58 +2,6 @@
 
 /* Auth Link Box styles moved to "OAuth Flow" section below */
 
-/* ── Ecommerce Page ── */
-
-.ecommerce-page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.ecommerce-page-header h1 {
-  margin: 0;
-}
-
-.ecommerce-page-subtitle {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  margin: 4px 0 0 0;
-}
-
-.ecommerce-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.ecommerce-section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.ecommerce-section-header h3 {
-  margin-bottom: 0;
-}
-
-.ecommerce-section-subtitle {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.ecommerce-section-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .ads-summary-strip {
   display: grid;
   grid-template-columns: minmax(120px, 180px) minmax(120px, 180px) 1fr;
@@ -86,29 +34,32 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ads-advertiser-section {
-  padding: 16px;
-}
-
-.ads-advertiser-section .ecommerce-section-header {
-  align-items: flex-start;
+/* The Ads section headers carry a search box and a segmented filter, which need
+   more room than the design system's default `flex: 0 0 auto` actions slot. The
+   header still owns its inset; only the copy/actions split is widened here. */
+.ads-panel-header {
   flex-wrap: wrap;
-  gap: 10px 16px;
 }
 
-.ads-advertiser-section .ecommerce-section-header > div:first-child {
-  min-width: min(520px, 100%);
-  flex: 1 1 520px;
+.ads-panel-header > .tk-v1-panel-header-copy {
+  flex: 1 1 320px;
 }
 
+.ads-panel-header > .tk-v1-panel-actions {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Filter controls handed to `TkPanelHeader` as `actions`; the header owns the
+   inset and the copy/actions split, this only lays the controls out. */
 .ads-section-tools {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 12px;
-  width: 100%;
+  min-width: 0;
 }
 
 .ads-search-input {
@@ -126,12 +77,6 @@
   outline: none;
   border-color: color-mix(in srgb, var(--color-primary) 58%, var(--color-border));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
-}
-
-.ads-segmented-control button.active {
-  background: var(--color-bg);
-  color: var(--color-text);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .ads-compact-table-wrap,
@@ -323,7 +268,7 @@
   padding: 0;
 }
 
-.ads-coverage-toggle .shop-table-name {
+.ads-coverage-toggle .tk-v1-table-record-name {
   display: block;
 }
 
@@ -376,16 +321,10 @@
   border-top: 1px solid var(--color-border-light);
 }
 
-.ads-coverage-account .shop-table-name {
+.ads-coverage-account .tk-v1-table-record-name {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.ads-coverage-account .status-badge {
-  height: 20px;
-  padding: 0 7px;
-  font-size: 11px;
 }
 
 .shop-info-row.shop-ads-accounts-row {
@@ -482,47 +421,6 @@
   }
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 9px;
-  border-radius: var(--tk-v1-radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.status-authorized {
-  color: #047857;
-  background: rgba(16, 185, 129, 0.12);
-}
-
-.status-error {
-  color: #b91c1c;
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.status-warning {
-  color: #a16207;
-  background: rgba(234, 179, 8, 0.14);
-}
-
-.status-info {
-  color: #0369a1;
-  background: rgba(14, 165, 233, 0.13);
-}
-
-.status-disconnected,
-.status-neutral {
-  color: var(--color-text-secondary);
-  background: var(--color-bg-alt);
-}
-
-.ads-status-link:hover .status-badge {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 18%, transparent);
-}
-
 .ads-empty-state {
   min-height: 220px;
   display: flex;
@@ -553,12 +451,13 @@
     grid-template-columns: 1fr;
   }
 
+  .ads-panel-header > .tk-v1-panel-actions,
   .ads-section-tools {
-    justify-content: stretch;
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
 
-  .ads-search-input,
-  .ads-segmented-control {
+  .ads-search-input {
     width: 100%;
   }
 }

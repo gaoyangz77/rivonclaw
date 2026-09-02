@@ -351,7 +351,6 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
   return (
     <TkPageFrame className="cs-performance-page">
       <TkPageHeader
-        className="cs-performance-header"
         data-tutorial-id="cs-performance-header"
         title={t("ecommerce.customerServicePerformance.title")}
         description={t("ecommerce.customerServicePerformance.subtitle")}
@@ -525,7 +524,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
-          <TkPanel as="section" padding="none" clip className="cs-performance-table-card">
+          <TkPanel as="section" padding="none" clip>
             <TkPanelHeader title="Stage comparison" />
             <TkTableFrame variant="embedded" className="table-scroll">
               <table>
@@ -568,7 +567,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             </TkTableFrame>
           </TkPanel>
           {unpaidReport?.experiment?.experimentId && (
-            <TkPanel as="section" padding="none" clip className="cs-performance-table-card">
+            <TkPanel as="section" padding="none" clip>
               <TkPanelHeader
                 title="A/B experiment"
                 description={
@@ -1020,11 +1019,9 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             as="section"
             padding="none"
             clip
-            className="cs-performance-table-card"
             data-tutorial-id="cs-performance-daily-table"
           >
             <TkPanelHeader
-              className="cs-performance-table-header"
               title={t("ecommerce.customerServicePerformance.dailyTable")}
               description={t("ecommerce.customerServicePerformance.scopeSummary", {
                 start: report?.scope.startDate ?? range.startTime,

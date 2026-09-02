@@ -27,6 +27,7 @@ import {
   TkChoiceSelect,
   TkField,
   TkInteractiveTableRow,
+  TkModalHeader,
   TkPanel,
   TkSegmented,
   TkTableFrame,
@@ -1304,7 +1305,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   return (
     <AffiliatePageFrame className="affiliate-workbench tk-v1-workbench">
       <AffiliatePageHeader
-        className="ecommerce-page-header affiliate-workbench-header"
+        className="affiliate-workbench-header"
         data-tutorial-id="affiliate-attention-header"
         title={t("ecommerce.affiliateWorkspace.workbench.title")}
         subtitle={t("ecommerce.affiliateWorkspace.workbench.subtitle")}
@@ -1734,19 +1735,19 @@ function AffiliateEscalationDetailModal({
       ariaLabel={t("ecommerce.affiliateWorkspace.escalations.detailTitle")}
       className="affiliate-escalation-detail-modal"
     >
-      <header className="affiliate-escalation-detail-header">
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.escalations.detailTitle")}</span>
-          <h2>
-            {escalation.creatorName ||
-              escalation.creatorUsername ||
-              escalation.creatorRelationshipId}
-          </h2>
-        </div>
-        <button className="btn btn-secondary" type="button" onClick={onClose}>
-          {t("common.close")}
-        </button>
-      </header>
+      <TkModalHeader
+        eyebrow={t("ecommerce.affiliateWorkspace.escalations.detailTitle")}
+        title={
+          escalation.creatorName ||
+          escalation.creatorUsername ||
+          escalation.creatorRelationshipId
+        }
+        actions={
+          <button className="btn btn-secondary" type="button" onClick={onClose}>
+            {t("common.close")}
+          </button>
+        }
+      />
       <div className="affiliate-escalation-detail-body">
         <dl className="affiliate-escalation-facts">
           <div>
@@ -3115,7 +3116,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   return (
     <AffiliatePageFrame className="affiliate-workbench">
       <AffiliatePageHeader
-        className="ecommerce-page-header affiliate-workbench-header"
+        className="affiliate-workbench-header"
         data-tutorial-id="affiliate-creators-header"
         title={t("ecommerce.affiliateWorkspace.creatorsTitle")}
         subtitle={t("ecommerce.affiliateWorkspace.creatorsSubtitle")}
@@ -5428,23 +5429,21 @@ function AffiliateOpenCollaborationSettingsModal({
       ariaLabel={t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}
     >
       <form className="tk-v1-modal-form-shell" onSubmit={(event) => void submit(event)}>
-        <div className="modal-header affiliate-platform-collaboration-modal-header affiliate-platform-settings-header">
-          <div className="affiliate-collaboration-modal-title-block">
-            <div className="affiliate-platform-collaboration-kicker">
-              {t("ecommerce.affiliateWorkspace.collaborationOperations.settingsScopeTitle")}
-            </div>
-            <h2>{t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}</h2>
-            <p>{t("ecommerce.affiliateWorkspace.collaborationOperations.openSettingsHint")}</p>
-          </div>
-          <button
-            className="modal-close-btn"
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-          >
-            ×
-          </button>
-        </div>
+        <TkModalHeader
+          eyebrow={t("ecommerce.affiliateWorkspace.collaborationOperations.settingsScopeTitle")}
+          title={t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}
+          description={t("ecommerce.affiliateWorkspace.collaborationOperations.openSettingsHint")}
+          actions={
+            <button
+              className="modal-close-btn"
+              type="button"
+              onClick={onClose}
+              aria-label={t("common.close")}
+            >
+              ×
+            </button>
+          }
+        />
         <div className="affiliate-platform-settings-body">
           <section className="affiliate-platform-settings-scope">
             <div className="affiliate-platform-settings-step">
@@ -6077,7 +6076,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   return (
     <AffiliatePageFrame className="affiliate-workbench">
       <AffiliatePageHeader
-        className="ecommerce-page-header affiliate-workbench-header"
+        className="affiliate-workbench-header"
         data-tutorial-id="affiliate-history-header"
         title={t("ecommerce.affiliateWorkspace.historyTitle")}
         subtitle={t("ecommerce.affiliateWorkspace.historySubtitle")}
@@ -7227,11 +7226,14 @@ function AgentWorkBundleDetailModal({
       tutorialId="affiliate-attention-detail"
       onClose={onClose}
     >
-      <div className="modal-header affiliate-agent-work-detail-header">
-        <div className="affiliate-agent-work-detail-heading">
-          <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.eyebrow")}</span>
-          <h2 id={titleId}>{t("ecommerce.affiliateWorkspace.agentWorkDetail.title")}</h2>
-          <p>
+      <TkModalHeader
+        className="affiliate-agent-work-detail-header"
+        eyebrow={t("ecommerce.affiliateWorkspace.agentWorkDetail.eyebrow")}
+        title={
+          <span id={titleId}>{t("ecommerce.affiliateWorkspace.agentWorkDetail.title")}</span>
+        }
+        description={
+          <>
             <strong>{primaryShopLabel}</strong>
             <span>{formatActionProposalTypeLabel(proposal.type, t)}</span>
             <span
@@ -7241,9 +7243,9 @@ function AgentWorkBundleDetailModal({
                 defaultValue: proposal.status,
               })}
             </span>
-          </p>
-        </div>
-        <div className="affiliate-agent-work-detail-header-actions">
+          </>
+        }
+        actions={
           <button
             className="modal-close-btn"
             data-tutorial-id="affiliate-attention-detail-close"
@@ -7253,8 +7255,8 @@ function AgentWorkBundleDetailModal({
           >
             ×
           </button>
-        </div>
-      </div>
+        }
+      />
       <div className="affiliate-agent-work-detail-body">
         <AgentWorkReviewContext
           proposal={proposal}

@@ -242,7 +242,6 @@ export const ExtrasPage = observer(function ExtrasPage() {
   return (
     <TkPageFrame className="extras-page">
       <TkPageHeader
-        className="extras-header"
         data-tutorial-id="extras-header"
         title={t("extras.title")}
         description={t("extras.description")}

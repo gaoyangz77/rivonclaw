@@ -964,6 +964,7 @@ export function UnpaidOrderReachoutSettings({
         closeLabel={t("common.close")}
         maxWidth={1180}
         className="unpaid-experiment-modal"
+        padding="none"
         portal
       >
         <div className="unpaid-workspace-meta">

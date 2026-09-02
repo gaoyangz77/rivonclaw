@@ -224,6 +224,10 @@ try {
   process.exit(1);
 }
 
+// Header and body primitives whose own inset the design system owns outright.
+const OWNED_INSET_PRIMITIVES =
+  /\.tk-v1-(?:page-header|panel-header|section-header|modal-header|panel-body|section-body)\b/;
+
 const fileCount = files.length;
 const rawSurfacePattern =
   /<(?:div|section|article)\b[^>]*className=(?:"[^"]*\b(?:section-card|panel-card)\b[^"]*"|\{`[^`]*\b(?:section-card|panel-card)\b[^`]*`\})/g;
@@ -525,6 +529,51 @@ for (const filePath of walkFilesByExtension(SRC_ROOT, ".css")) {
     violations.push(
       `FAIL [radius-contract] ${relPath}:${line} hard-codes a radius larger than 8px.`,
     );
+  }
+  // Rule 8: spacing-ownership — the design system owns header and body insets.
+  // A page that hand-writes them is how the Ads page ended up with its section
+  // titles flush against the card edge: the class had no padding of its own and
+  // silently relied on a parent TkPanel that later passed padding="none".
+  if (!relPath.startsWith("components/design-system/")) {
+    // Blank comments but keep line numbers, so a "header" mentioned in prose
+    // cannot be mistaken for a selector.
+    const declarationSource = content.replace(/\/\*[\s\S]*?\*\//g, (block) =>
+      block.replace(/[^\n]/g, " "),
+    );
+    for (const rule of declarationSource.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selectorList = rule[1].trim();
+      if (!selectorList || selectorList.startsWith("@")) continue;
+      const declarations = rule[2];
+      const line = declarationSource.slice(0, rule.index).split("\n").length;
+
+      for (const selector of selectorList.split(",").map((part) => part.trim()).filter(Boolean)) {
+        // Only the element the rule actually targets counts. A tk-v1 class used
+        // as an ancestor scope, or a margin between siblings, is legitimate.
+        const target = selector.split(/[\s>+~]+/).filter(Boolean).pop() ?? "";
+
+        for (const declaration of declarations.matchAll(
+          /(?:^|[\s;])(padding|margin)(?:-[\w-]+)?:\s*([^;]+)/g,
+        )) {
+          const [, property, value] = declaration;
+
+          if (property === "padding" && OWNED_INSET_PRIMITIVES.test(target)) {
+            violations.push(
+              `FAIL [spacing-ownership] ${relPath}:${line} sets padding on ${target}. TkPageHeader/TkPanelHeader/TkModalHeader own their inset; do not restate it.`,
+            );
+          }
+
+          if (!/-header\b/.test(target)) continue;
+          if (/var\(--tk-v1-/.test(value)) continue;
+          // Zero and negative values are hairline pulls, not spacing.
+          const pixels = [...value.matchAll(/(-?\d*\.?\d+)px/g)].map((px) => Number(px[1]));
+          if (pixels.some((px) => px > 0)) {
+            violations.push(
+              `FAIL [spacing-ownership] ${relPath}:${line} hard-codes header spacing on ${target} (${property}: ${value.trim()}). Use --tk-v1-space-* or a design-system header.`,
+            );
+          }
+        }
+      }
+    }
   }
 }
 

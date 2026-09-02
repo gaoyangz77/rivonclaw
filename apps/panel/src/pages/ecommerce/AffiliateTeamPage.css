@@ -33,7 +33,7 @@
 .affiliate-team-detail-head h2,
 .affiliate-protection-boundary-title h2,
 .affiliate-team-responsibility-head h2 {
-  margin: 4px 0 6px;
+  margin: var(--tk-v1-space-1) 0 var(--tk-v1-space-2);
   letter-spacing: 0;
 }
 
@@ -1828,17 +1828,14 @@
     0 2px 12px color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 
-.affiliate-bd-detail-modal .modal-header,
-.affiliate-unassigned-modal .modal-header {
-  margin: 0;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
+/* Geometry comes from `.tk-v1-modal .modal-header`; these modals pass
+   `padding="none"` so the design-system header owns its own inset. Only the
+   BD modal's inline inset is overridden, and only to stay aligned with the
+   command card below it, which is inset by the same --bd-modal-pad. */
 .affiliate-bd-detail-modal .modal-header {
   position: relative;
   flex: 0 0 auto;
-  padding: 24px var(--bd-modal-pad) 20px;
+  padding-inline: var(--bd-modal-pad);
   border-bottom: 0;
   background-color: var(--color-bg);
 }
@@ -1869,7 +1866,7 @@
   min-height: 112px;
   flex: 0 0 auto;
   margin: 0 var(--bd-modal-pad);
-  padding: 18px 20px;
+  padding: var(--tk-v1-space-5);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2630,12 +2627,6 @@
   background-color: var(--color-bg) !important;
 }
 
-.affiliate-channel-onboarding-modal .modal-header {
-  margin: 0;
-  padding: 18px 20px 15px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
 .affiliate-channel-onboarding-modal .modal-title {
   font-size: 18px;
 }
@@ -2675,12 +2666,6 @@
   overflow: hidden;
   border: 1px solid var(--color-border-light);
   background: var(--color-bg) !important;
-}
-
-.affiliate-account-transfer-modal .modal-header {
-  margin: 0;
-  padding: 18px 20px 15px;
-  border-bottom: 1px solid var(--color-border-light);
 }
 
 .affiliate-account-transfer-content {
@@ -2936,11 +2921,6 @@
   padding: 0;
   overflow: hidden;
 }
-.affiliate-developer-modal .modal-header {
-  margin: 0;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid var(--border-color);
-}
 .affiliate-developer-modal .modal-title {
   font-size: 20px;
 }
@@ -3195,15 +3175,12 @@
     width: calc(100% - 24px);
     max-height: calc(100dvh - 24px);
   }
-  .affiliate-bd-detail-modal .modal-header {
-    padding-top: 19px;
-  }
   .affiliate-bd-detail-modal .modal-title {
     font-size: 21px;
   }
   .affiliate-bd-command-header {
     min-height: 92px;
-    padding: 14px;
+    padding: var(--tk-v1-space-4);
   }
   .affiliate-bd-command-avatar {
     width: 48px;

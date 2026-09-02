@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  TkBadge,
   TkIconButton,
   TkModal,
   TkSwitchControl,
@@ -12,8 +13,8 @@ import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import {
-  getReadinessBadgeClass,
   navigateToAdsManagement,
+  readinessBadgeTone,
   resolveShopAdsReadiness,
 } from "../ads-readiness.js";
 import { AiCustomerServiceTab } from "./AiCustomerServiceTab.js";
@@ -493,9 +494,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                           </span>
                           <span className="shop-info-value">
                             {adsReadiness && (
-                              <span className={getReadinessBadgeClass(adsReadiness.status)}>
+                              <TkBadge tone={readinessBadgeTone(adsReadiness.status)}>
                                 {t(`ecommerce.shopAdsStatus.${adsReadiness.status}`)}
-                              </span>
+                              </TkBadge>
                             )}
                           </span>
                         </div>

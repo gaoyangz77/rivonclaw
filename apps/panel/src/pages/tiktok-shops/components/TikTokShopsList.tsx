@@ -52,7 +52,6 @@ export function TikTokShopsList({
   return (
     <TkPanel as="section" padding="none" clip className="section-card">
       <TkPanelHeader
-        className="acct-section-header"
         title={t("tiktokShops.connectedShops")}
         actions={
           <button
@@ -90,7 +89,7 @@ export function TikTokShopsList({
                     onActivate={() => onView(shop.id)}
                   >
                     <td>
-                      <span className="shop-table-name">{shop.shopName}</span>
+                      <span className="tk-v1-table-record-name">{shop.shopName}</span>
                     </td>
                     <td>{formatShopRegionLabel(shop.region, t)}</td>
                     <td>

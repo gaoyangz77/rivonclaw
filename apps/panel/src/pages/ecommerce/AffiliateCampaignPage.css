@@ -1267,10 +1267,12 @@
   max-height: calc(100dvh - 48px);
   border-radius: var(--tk-v1-radius-5);
 }
+/* Padding comes from `.tk-v1-modal .modal-header`. Only the flex sizing and the
+   cancelled bottom margin (the wizard step rail sits flush under the title) are
+   local to this modal. */
 .affiliate-campaign-wizard .modal-header {
   flex: 0 0 auto;
   margin-bottom: 0;
-  padding: 22px 28px 16px;
 }
 .affiliate-campaign-wizard-steps {
   display: grid;
@@ -2054,33 +2056,11 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Geometry and typography come from `.tk-v1-panel-header` (TkPanelHeader).
+   Only the campaign-local border tint and the tools column stay here. */
 .affiliate-campaign-directory-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 24px 18px;
-  border-bottom: 1px solid var(--campaign-line);
-}
-
-.affiliate-campaign-directory-header > div > span {
-  color: var(--campaign-green);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
-.affiliate-campaign-directory-header h2 {
-  margin: 4px 0 3px;
-  font-size: 20px;
-  letter-spacing: -0.02em;
-}
-
-.affiliate-campaign-directory-header p {
-  margin: 0;
-  color: var(--campaign-muted);
-  font-size: 12px;
+  border-bottom-color: var(--campaign-line);
 }
 
 .affiliate-campaign-directory-count {
@@ -2469,7 +2449,7 @@
   flex: 0 0 auto;
   min-height: 40px;
   margin: 0;
-  padding: 8px 18px;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-5);
   border-bottom: 1px solid var(--campaign-line);
   background: color-mix(in srgb, var(--color-bg-alt) 42%, var(--color-bg));
 }
@@ -2807,21 +2787,10 @@
   scrollbar-gutter: stable;
 }
 
-.affiliate-campaign-detail-modal .affiliate-campaign-detail-header {
-  padding: 17px 26px;
-  border-bottom: 1px solid var(--campaign-line);
-  background: var(--color-bg-alt);
-}
-
 .affiliate-campaign-detail-modal .affiliate-campaign-title-line {
   flex-wrap: wrap;
   color: var(--campaign-muted);
   font-size: 11px;
-}
-
-.affiliate-campaign-detail-modal .affiliate-campaign-detail-header p {
-  max-width: 760px;
-  margin-top: 8px;
 }
 
 .affiliate-campaign-detail-modal .affiliate-campaign-today {
@@ -3119,7 +3088,6 @@
   .affiliate-campaign-offer-row > .affiliate-campaign-offer-field:first-child {
     grid-column: 1 / -1;
   }
-  .affiliate-campaign-detail-header,
   .affiliate-campaign-section-heading {
     align-items: flex-start;
     flex-direction: column;

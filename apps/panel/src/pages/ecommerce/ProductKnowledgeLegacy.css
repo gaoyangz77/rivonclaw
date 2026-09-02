@@ -289,23 +289,19 @@
   height: min(900px, calc(100dvh - 48px));
   max-height: calc(100dvh - 48px);
   flex-direction: column;
-  padding: 0;
   overflow: hidden;
   border: 1px solid var(--surface-card-border);
   border-radius: var(--tk-v1-radius-5);
 }
 
+/* Title-bar geometry comes from the design system via `TkModal padding="none"`.
+   Only the editor toolbar's share of the bar is described here. */
 .product-knowledge-management-modal > .modal-header {
   flex: 0 0 auto;
-  margin: 0;
-  gap: 16px;
-  padding: 11px 18px 11px 22px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-bg);
 }
 
 .product-knowledge-management-modal > .modal-header .modal-header-main {
-  gap: 18px;
+  gap: var(--tk-v1-space-4);
 }
 
 .product-knowledge-management-modal > .modal-header .modal-title {

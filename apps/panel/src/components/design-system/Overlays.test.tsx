@@ -3,7 +3,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { TkButton } from "./Primitives.js";
-import { TkConfirmDialog, TkInfoTip, TkMenu, TkPopover, TkTooltip } from "./Overlays.js";
+import {
+  TkConfirmDialog,
+  TkInfoTip,
+  TkMenu,
+  TkModalHeader,
+  TkPopover,
+  TkTooltip,
+} from "./Overlays.js";
 
 beforeEach(() => {
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -126,5 +133,36 @@ describe("design-system overlays", () => {
     expect(screen.getByRole("dialog", { name: "Approve proposal?" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     expect(onConfirm).toHaveBeenCalledOnce();
+  });
+
+  it("owns modal header geometry through the shared header contract", () => {
+    render(
+      <TkModalHeader
+        eyebrow="Step 2"
+        title="Connect a shop"
+        description="Authorize the storefront before importing products."
+        actions={<TkButton variant="ghost">Close</TkButton>}
+      />,
+    );
+
+    const header = document.querySelector(".tk-v1-modal-header");
+    expect(header).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Connect a shop" })).toBeTruthy();
+    expect(document.querySelector(".tk-v1-modal-eyebrow")?.textContent).toBe("Step 2");
+    expect(document.querySelector(".tk-v1-modal-header-copy p")?.textContent).toContain(
+      "Authorize the storefront",
+    );
+    // Header actions must not reuse .tk-v1-modal-actions, which is the footer row.
+    expect(document.querySelector(".tk-v1-modal-header-actions")).toBeTruthy();
+    expect(header?.querySelector(".tk-v1-modal-actions")).toBeNull();
+  });
+
+  it("renders a minimal modal header without optional copy or actions", () => {
+    render(<TkModalHeader title="Delete draft?" headingLevel={3} />);
+
+    expect(screen.getByRole("heading", { level: 3, name: "Delete draft?" })).toBeTruthy();
+    expect(document.querySelector(".tk-v1-modal-eyebrow")).toBeNull();
+    expect(document.querySelector(".tk-v1-modal-header-copy p")).toBeNull();
+    expect(document.querySelector(".tk-v1-modal-header-actions")).toBeNull();
   });
 });

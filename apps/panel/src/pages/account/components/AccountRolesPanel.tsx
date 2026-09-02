@@ -138,7 +138,7 @@ export function AccountRolesPanel({
 
   return (
     <div className="acct-role-panel">
-      <div className="acct-section-header">
+      <div className="acct-role-panel-header">
         <div>
           <h4>{t("subAccounts.rolesTitle")}</h4>
           <p className="acct-section-desc">{t("subAccounts.rolesDescription")}</p>

@@ -506,17 +506,14 @@
   width: min(94vw, 1180px);
   height: min(820px, calc(100vh - 48px));
   margin: auto;
-  padding: 0;
   flex-direction: column;
   overflow: hidden;
 }
 
+/* Title-bar geometry comes from the design system via `TkModal padding="none"`.
+   This only keeps the bar from shrinking inside the modal's column layout. */
 .unpaid-experiment-modal > .modal-header {
   flex: 0 0 auto;
-  min-height: 64px;
-  margin: 0;
-  padding: 16px 22px;
-  border-bottom: 1px solid var(--color-border-light);
 }
 
 .unpaid-workspace-meta,

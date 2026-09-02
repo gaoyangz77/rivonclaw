@@ -5,11 +5,14 @@ import type { AdsAdvertiser, AdsStoreBinding, Shop } from "@rivonclaw/core/model
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
 import {
+  TkBadge,
   TkPageFrame,
   TkPageHeader,
   TkPanel,
+  TkPanelHeader,
   TkSegmented,
   TkTableFrame,
+  type TkBadgeTone,
 } from "../../components/design-system/index.js";
 import {
   AdsIcon,
@@ -24,7 +27,7 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToast } from "../../components/Toast.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { OAUTH_TIMEOUT_MS } from "./ecommerce-utils.js";
-import { getReadinessBadgeClass, resolveShopAdsReadiness } from "./ads-readiness.js";
+import { readinessBadgeTone, resolveShopAdsReadiness } from "./ads-readiness.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 import {
   groupShopsByCollection,
@@ -38,18 +41,16 @@ function formatDate(value?: string | null): string {
   return formatLocalizedDateTime(value, panelI18n.language, undefined, "-");
 }
 
-function statusClass(status?: string | null): string {
-  if (status === "AUTHORIZED") return "status-badge status-authorized";
-  if (status === "DISCONNECTED") return "status-badge status-disconnected";
-  if (status === "TOKEN_EXPIRED" || status === "REVOKED") return "status-badge status-error";
-  return "status-badge status-neutral";
+function authStatusTone(status?: string | null): TkBadgeTone {
+  if (status === "AUTHORIZED") return "success";
+  if (status === "TOKEN_EXPIRED" || status === "REVOKED") return "danger";
+  return "neutral";
 }
 
-function syncHealthClass(status?: string | null, issueCode?: string | null): string {
-  if (status === "FAILED" && issueCode === "PERMISSION_DENIED")
-    return "status-badge status-warning";
-  if (status === "FAILED") return "status-badge status-error";
-  return "status-badge status-authorized";
+function syncHealthTone(status?: string | null, issueCode?: string | null): TkBadgeTone {
+  if (status === "FAILED" && issueCode === "PERMISSION_DENIED") return "warning";
+  if (status === "FAILED") return "danger";
+  return "success";
 }
 
 type AdvertiserFilter = "all" | "attention" | "authorized";
@@ -375,12 +376,11 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   }
 
   return (
-    <TkPageFrame className="ads-management-page">
+    <TkPageFrame>
       <TkPageHeader
         title={t("adsManagement.title")}
         description={t("adsManagement.subtitle")}
         data-tutorial-id="ads-header"
-        actionsClassName="ecommerce-header-actions"
         actions={
           <div className="tk-v1-page-action-group" data-tutorial-id="ads-actions">
             <button
@@ -428,40 +428,39 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         as="section"
         padding="none"
         clip
-        className="panel-card ads-advertiser-section"
+        className="panel-card"
         data-tutorial-id="ads-accounts"
       >
-        <div className="ecommerce-section-header">
-          <div>
-            <h3>{t("adsManagement.advertiserTableTitle")}</h3>
-            <p className="ecommerce-section-subtitle">
-              {t("adsManagement.advertiserTableSubtitle")}
-            </p>
-          </div>
-          {advertisers.length > 0 ? (
-            <div className="ads-section-tools" data-tutorial-id="ads-account-filters">
-              <input
-                className="ads-search-input"
-                value={advertiserQuery}
-                placeholder={t("adsManagement.searchPlaceholder", {
-                  defaultValue: "Search ad accounts",
-                })}
-                onChange={(event) => setAdvertiserQuery(event.target.value)}
-              />
-              <TkSegmented
-                size="sm"
-                items={[
-                  { id: "all", label: t("adsManagement.filters.all", { defaultValue: "All" }) },
-                  { id: "attention", label: t("adsManagement.needsAttention") },
-                  { id: "authorized", label: t("adsManagement.authorizedAdvertisers") },
-                ]}
-                value={advertiserFilter}
-                onChange={(value) => setAdvertiserFilter(value as AdvertiserFilter)}
-                label={t("adsManagement.advertiserTableTitle")}
-              />
-            </div>
-          ) : null}
-        </div>
+        <TkPanelHeader
+          className="ads-panel-header"
+          title={t("adsManagement.advertiserTableTitle")}
+          description={t("adsManagement.advertiserTableSubtitle")}
+          actions={
+            advertisers.length > 0 ? (
+              <div className="ads-section-tools" data-tutorial-id="ads-account-filters">
+                <input
+                  className="ads-search-input"
+                  value={advertiserQuery}
+                  placeholder={t("adsManagement.searchPlaceholder", {
+                    defaultValue: "Search ad accounts",
+                  })}
+                  onChange={(event) => setAdvertiserQuery(event.target.value)}
+                />
+                <TkSegmented
+                  size="sm"
+                  items={[
+                    { id: "all", label: t("adsManagement.filters.all", { defaultValue: "All" }) },
+                    { id: "attention", label: t("adsManagement.needsAttention") },
+                    { id: "authorized", label: t("adsManagement.authorizedAdvertisers") },
+                  ]}
+                  value={advertiserFilter}
+                  onChange={(value) => setAdvertiserFilter(value as AdvertiserFilter)}
+                  label={t("adsManagement.advertiserTableTitle")}
+                />
+              </div>
+            ) : null
+          }
+        />
 
         {advertisers.length === 0 ? (
           <div className="empty-cell ads-empty-state">
@@ -484,9 +483,9 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
           <TkTableFrame
             variant="embedded"
             compact
-            className="table-scroll-wrap shop-table-wrap ads-compact-table-wrap"
+            className="table-scroll-wrap ads-compact-table-wrap"
           >
-            <table className="shop-table ads-advertiser-table ads-compact-table">
+            <table className="ads-advertiser-table ads-compact-table">
               <thead>
                 <tr>
                   <th>{t("adsManagement.columns.name")}</th>
@@ -524,7 +523,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                                 undefined
                               }
                             >
-                              <div className="shop-table-name">
+                              <div className="tk-v1-table-record-name">
                                 {advertiser.advertiserName || advertiser.advertiserId}
                               </div>
                               <div className="td-muted ads-inline-meta">
@@ -535,16 +534,16 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                               </div>
                             </td>
                             <td>
-                              <span className={statusClass(advertiser.auth.status)}>
+                              <TkBadge tone={authStatusTone(advertiser.auth.status)}>
                                 {t(`adsManagement.authStatus.${advertiser.auth.status}`, {
                                   defaultValue: advertiser.auth.status,
                                 })}
-                              </span>
+                              </TkBadge>
                             </td>
                             <td>
                               <div className="ads-sync-health-cell">
-                                <span
-                                  className={syncHealthClass(
+                                <TkBadge
+                                  tone={syncHealthTone(
                                     advertiser.syncHealthStatus,
                                     advertiser.syncIssueCode,
                                   )}
@@ -555,7 +554,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                                       defaultValue: advertiser.syncHealthStatus || "HEALTHY",
                                     },
                                   )}
-                                </span>
+                                </TkBadge>
                                 {advertiser.syncIssueCode ? (
                                   <div className="td-muted">
                                     {t(`adsManagement.syncIssue.${advertiser.syncIssueCode}`, {
@@ -570,9 +569,9 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                               </div>
                             </td>
                             <td>
-                              <div className="shop-table-actions">
+                              <div className="td-actions">
                                 <button
-                                  className="btn btn-danger btn-small"
+                                  className="btn btn-danger btn-sm"
                                   onClick={() => setConfirmDisconnectId(advertiser.id)}
                                 >
                                   {t("adsManagement.disconnect")}
@@ -594,34 +593,35 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         as="section"
         padding="none"
         clip
-        className="panel-card ads-advertiser-section ads-shop-readiness-section"
+        className="panel-card"
         data-tutorial-id="ads-coverage"
       >
-        <div className="ecommerce-section-header">
-          <div>
-            <h3>{t("adsManagement.shopCoverageTitle")}</h3>
-            <p className="ecommerce-section-subtitle">{t("adsManagement.shopCoverageSubtitle")}</p>
-          </div>
-          <div className="ads-section-tools" data-tutorial-id="ads-coverage-filters">
-            <TkSegmented
-              size="sm"
-              items={[
-                { id: "all", label: t("adsManagement.filters.all", { defaultValue: "All" }) },
-                {
-                  id: "partial",
-                  label: t("adsManagement.shopAdsStatus.partial", {
-                    defaultValue: "Partially covered",
-                  }),
-                },
-                { id: "needs_link", label: t("adsManagement.shopAdsStatus.needs_link") },
-                { id: "connected", label: t("adsManagement.shopAdsStatus.connected") },
-              ]}
-              value={coverageFilter}
-              onChange={(value) => setCoverageFilter(value as CoverageFilter)}
-              label={t("adsManagement.shopCoverageTitle")}
-            />
-          </div>
-        </div>
+        <TkPanelHeader
+          className="ads-panel-header"
+          title={t("adsManagement.shopCoverageTitle")}
+          description={t("adsManagement.shopCoverageSubtitle")}
+          actions={
+            <div className="ads-section-tools" data-tutorial-id="ads-coverage-filters">
+              <TkSegmented
+                size="sm"
+                items={[
+                  { id: "all", label: t("adsManagement.filters.all", { defaultValue: "All" }) },
+                  {
+                    id: "partial",
+                    label: t("adsManagement.shopAdsStatus.partial", {
+                      defaultValue: "Partially covered",
+                    }),
+                  },
+                  { id: "needs_link", label: t("adsManagement.shopAdsStatus.needs_link") },
+                  { id: "connected", label: t("adsManagement.shopAdsStatus.connected") },
+                ]}
+                value={coverageFilter}
+                onChange={(value) => setCoverageFilter(value as CoverageFilter)}
+                label={t("adsManagement.shopCoverageTitle")}
+              />
+            </div>
+          }
+        />
 
         {shops.length === 0 ? (
           <div className="empty-cell">{t("adsManagement.noShops")}</div>
@@ -630,11 +630,8 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
             {t("adsManagement.noMatchingResults", { defaultValue: "No matching results." })}
           </div>
         ) : (
-          <TkTableFrame
-            variant="embedded"
-            className="table-scroll-wrap shop-table-wrap ads-coverage-table-wrap"
-          >
-            <table className="shop-table ads-advertiser-table ads-coverage-table">
+          <TkTableFrame variant="embedded" className="table-scroll-wrap ads-coverage-table-wrap">
+            <table className="ads-advertiser-table ads-coverage-table">
               <thead>
                 <tr>
                   <th>{t("adsManagement.shopColumns.shop")}</th>
@@ -673,7 +670,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                             />
                             <ShopIcon />
                             <span>
-                              <span className="shop-table-name">
+                              <span className="tk-v1-table-record-name">
                                 {shopCollectionDisplayName(group.shops)}
                               </span>
                               <span className="td-muted">
@@ -685,12 +682,12 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                         </td>
                         <td>{regions || "-"}</td>
                         <td>
-                          <span className={getReadinessBadgeClass(group.status)}>
+                          <TkBadge tone={readinessBadgeTone(group.status)}>
                             {t(`adsManagement.shopAdsStatus.${group.status}`, {
                               defaultValue:
                                 group.status === "partial" ? "Partially covered" : group.status,
                             })}
-                          </span>
+                          </TkBadge>
                           <div className="td-muted">
                             {group.connectedCount}/{group.shops.length}
                           </div>
@@ -714,14 +711,14 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                           return (
                             <tr className="ads-coverage-child-row" key={shop.id}>
                               <td>
-                                <div className="shop-table-name">{shop.alias || shop.shopName}</div>
+                                <div className="tk-v1-table-record-name">{shop.alias || shop.shopName}</div>
                                 <div className="td-muted td-code">{shop.platformShopId}</div>
                               </td>
                               <td>{formatShopRegionLabel(shop.region, t)}</td>
                               <td>
-                                <span className={getReadinessBadgeClass(readiness.status)}>
+                                <TkBadge tone={readinessBadgeTone(readiness.status)}>
                                   {t(`adsManagement.shopAdsStatus.${readiness.status}`)}
-                                </span>
+                                </TkBadge>
                               </td>
                               <td>
                                 {accounts.length > 0 ? (
@@ -732,12 +729,12 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                                         readiness.exclusiveAuthorizedAdvertiserId;
                                       return (
                                         <div className="ads-coverage-account" key={access.id}>
-                                          <div className="shop-table-name">
+                                          <div className="tk-v1-table-record-name">
                                             {advertiser?.advertiserName || access.advertiserId}
                                             {isCurrentGmvMax ? (
-                                              <span className="status-badge status-authorized">
+                                              <TkBadge tone="success">
                                                 {t("adsManagement.currentGmvMaxAccount")}
-                                              </span>
+                                              </TkBadge>
                                             ) : null}
                                           </div>
                                           <div className="td-muted td-code">
@@ -754,7 +751,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                               <td>
                                 {currentGmvMaxAccount ? (
                                   <>
-                                    <div className="shop-table-name">
+                                    <div className="tk-v1-table-record-name">
                                       {currentGmvMaxAccount.advertiser?.advertiserName ||
                                         currentGmvMaxAccount.access.advertiserId}
                                     </div>
@@ -764,9 +761,9 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                                   </>
                                 ) : hasGmvMaxAvailableAccount ? (
                                   <>
-                                    <span className="status-badge status-warning">
+                                    <TkBadge tone="warning">
                                       {t("adsManagement.gmvMaxAvailable")}
-                                    </span>
+                                    </TkBadge>
                                     <div className="td-muted">
                                       {t("adsManagement.currentGmvMaxUnknown")}
                                     </div>

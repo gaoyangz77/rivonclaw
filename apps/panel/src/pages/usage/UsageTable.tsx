@@ -1,5 +1,5 @@
 import { formatCost, formatTokens, type ProviderGroup } from "./usage-utils.js";
-import { TkPanel, TkTableFrame } from "../../components/design-system/index.js";
+import { TkPanel, TkPanelHeader, TkTableFrame } from "../../components/design-system/index.js";
 
 export function UsageTable({
   grouped,
@@ -15,15 +15,18 @@ export function UsageTable({
       {grouped.flatMap((pg) =>
         pg.keys.map((kg) => (
           <TkPanel key={kg.keyId} padding="none" clip className="usage-key-block">
-            <div className="usage-key-header">
-              <span className="usage-key-provider">{pg.provider}</span>
-              <span className="usage-key-label">{kg.keyLabel}</span>
-              {kg.authType !== "oauth" && (
-                <span className="usage-key-cost">
-                  {formatCost(kg.totalCost, kg.currency, isCN)}
-                </span>
-              )}
-            </div>
+            <TkPanelHeader
+              headingLevel={4}
+              title={pg.provider}
+              description={kg.keyLabel}
+              actions={
+                kg.authType !== "oauth" ? (
+                  <span className="usage-key-cost">
+                    {formatCost(kg.totalCost, kg.currency, isCN)}
+                  </span>
+                ) : undefined
+              }
+            />
             <TkTableFrame variant="embedded">
               <table className="usage-inner-table">
                 <thead>

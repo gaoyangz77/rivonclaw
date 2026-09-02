@@ -79,57 +79,22 @@
   padding: 0;
 }
 
+/* Geometry and typography come from `.tk-v1-modal-header` (TkModalHeader).
+   Only the description's inline run -- shop, proposal type and status badge on
+   one wrapping line -- has no design-system equivalent. */
 .affiliate-agent-work-detail-header {
-  display: flex;
   flex: 0 0 auto;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px 20px 15px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: color-mix(in srgb, var(--color-bg-alt) 52%, var(--color-bg));
 }
 
-.affiliate-agent-work-detail-heading {
-  min-width: 0;
-}
-
-.affiliate-agent-work-detail-heading > span {
-  display: block;
-  margin-bottom: 3px;
-  color: var(--color-primary);
-  font-size: 9px;
-  font-weight: 820;
-  letter-spacing: 0.13em;
-}
-
-.affiliate-agent-work-detail-heading h2 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 19px;
-  font-weight: 780;
-  line-height: 1.25;
-}
-
-.affiliate-agent-work-detail-heading p {
+.affiliate-agent-work-detail-header p {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 7px 10px;
-  margin: 7px 0 0;
-  color: var(--color-text-muted);
-  font-size: 11px;
+  gap: var(--tk-v1-space-2) var(--tk-v1-space-3);
 }
 
-.affiliate-agent-work-detail-heading p > strong {
+.affiliate-agent-work-detail-header p > strong {
   color: var(--color-text-secondary);
-}
-
-.affiliate-agent-work-detail-header-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
 }
 
 .affiliate-agent-work-detail-body {
@@ -563,10 +528,6 @@
     max-width: none;
     height: calc(100vh - 24px);
     max-height: calc(100vh - 24px);
-  }
-
-  .affiliate-agent-work-detail-header {
-    padding: 15px 14px 13px;
   }
 
   .affiliate-agent-work-detail-body {
@@ -1583,7 +1544,7 @@
 }
 
 .product-detail-header p {
-  margin-top: 8px;
+  margin-top: var(--tk-v1-space-2);
   color: var(--color-text-muted);
   font-size: 13px;
 }
@@ -2117,9 +2078,9 @@
 
 .affiliate-collaboration-modal .modal-header {
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--tk-v1-space-4);
   flex: 0 0 auto;
-  padding: 20px 22px 14px;
+  padding: var(--tk-v1-modal-header-block) var(--tk-v1-modal-header-inline);
   border-bottom: 1px solid var(--color-border-light);
 }
 
@@ -2153,7 +2114,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 4px 0 0;
+  margin: var(--tk-v1-space-1) 0 0;
   color: var(--color-text-muted);
   font-size: 13px;
 }
@@ -3827,11 +3788,6 @@
 
   .billing-danger-zone,
   .billing-action-zone {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .cs-workspace-page .ecommerce-page-header {
     align-items: stretch;
     flex-direction: column;
   }
