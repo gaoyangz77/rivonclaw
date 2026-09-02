@@ -260,6 +260,12 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         samplePerformanceAttributedOrderCount
         samplePerformanceSnapshotHash
         boundaryEventCursor
+        escalationReason
+        escalationQuestion
+        escalationContext
+        escalationDecision
+        escalationInstructions
+        escalationResolvedAt
         updatedAt
         conversationWindow {
           coverage

@@ -378,6 +378,12 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           samplePerformanceAttributedOrderCount
           samplePerformanceSnapshotHash
           boundaryEventCursor
+          escalationReason
+          escalationQuestion
+          escalationContext
+          escalationDecision
+          escalationInstructions
+          escalationResolvedAt
           updatedAt
           conversationWindow {
             coverage
@@ -526,6 +532,12 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             samplePerformanceAttributedOrderCount
             samplePerformanceSnapshotHash
             boundaryEventCursor
+            escalationReason
+            escalationQuestion
+            escalationContext
+            escalationDecision
+            escalationInstructions
+            escalationResolvedAt
             updatedAt
           }
           workSummary {
