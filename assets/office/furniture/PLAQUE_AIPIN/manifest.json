@@ -1,0 +1,13 @@
+{
+  "id": "PLAQUE_AIPIN",
+  "name": "Aipin Plaque",
+  "category": "wall",
+  "type": "asset",
+  "canPlaceOnWalls": true,
+  "canPlaceOnSurfaces": false,
+  "backgroundTiles": 0,
+  "width": 80,
+  "height": 32,
+  "footprintW": 5,
+  "footprintH": 2
+}

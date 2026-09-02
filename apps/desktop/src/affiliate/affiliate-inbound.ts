@@ -1,3 +1,7 @@
+import {
+  AFFILIATE_MAX_CONCURRENT_ENV,
+  DEFAULT_AFFILIATE_MAX_CONCURRENT,
+} from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import {
@@ -587,18 +591,30 @@ function getControlledLiveTestRelationshipIds(): Set<string> | null {
   return relationshipIds.length > 0 ? new Set(relationshipIds) : null;
 }
 
+/**
+ * Concurrent affiliate work-item runs.
+ *
+ * Three tiers, in order:
+ *   1. an explicit override;
+ *   2. live-test isolation - when a controlled cohort is pinned, concurrency is
+ *      exactly that cohort's size so a test cannot dispatch beyond it;
+ *   3. the shared product default, which is also what the office layout draws
+ *      desks from. Those two used to be independent numbers, and a department
+ *      with more concurrency than chairs quietly scatters its workers into
+ *      other rooms rather than failing.
+ */
 export function resolveMaxActiveAffiliateAgentRuns(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  const explicit = parseOptionalPositiveInteger(
-    env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS,
-  );
+  const explicit = parseOptionalPositiveInteger(env[AFFILIATE_MAX_CONCURRENT_ENV]);
   if (explicit != null) return explicit;
   const controlledRelationshipIds = env[AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV]
     ?.split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  return Math.max(1, new Set(controlledRelationshipIds ?? []).size);
+  const cohortSize = new Set(controlledRelationshipIds ?? []).size;
+  if (cohortSize > 0) return cohortSize;
+  return DEFAULT_AFFILIATE_MAX_CONCURRENT;
 }
 
 function parseOptionalPositiveInteger(value: string | undefined): number | undefined {

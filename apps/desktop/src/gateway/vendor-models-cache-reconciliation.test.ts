@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -18,9 +18,20 @@ const MODELS_MERGE_FILE = resolve(
   __dirname,
   "../../../../vendor/openclaw/src/agents/models-config.merge.ts",
 );
+/**
+ * `tmp/vendor-patched/` is a disposable workspace that only exists while patches
+ * are being authored, so it cannot be the sole source: this file previously
+ * read it unconditionally and passed for months against a months-old copy,
+ * failing the moment the stale directory was cleared. Every sibling sentinel
+ * already falls back to the real vendor checkout; this one now does too.
+ */
+const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
+const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
+  ? PATCHED_VENDOR_ROOT
+  : resolve(__dirname, "../../../../vendor/openclaw");
 const GATEWAY_STARTUP_FILE = resolve(
-  __dirname,
-  "../../../../tmp/vendor-patched/openclaw/src/gateway/server-startup-post-attach.ts",
+  VENDOR_ROOT,
+  "src/gateway/server-startup-post-attach.ts",
 );
 
 describe("OpenClaw managed-provider models.json reconciliation", () => {

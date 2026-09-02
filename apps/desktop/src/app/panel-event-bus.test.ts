@@ -161,3 +161,26 @@ describe("createPanelEventBus", () => {
     expect(b.res.write).not.toHaveBeenCalled();
   });
 });
+
+describe("connect-time snapshot frames match the contract", () => {
+  // The Panel bus pre-listens for exactly the names in SSE_SNAPSHOT_EVENTS, so
+  // a snapshot frame written here under a name missing from that list would be
+  // delivered to nobody on the Panel side until something subscribed to it -
+  // which for the office view is minutes in, long after the frame is gone.
+  it("writes only snapshot frames the Panel pre-listens for, and all of them", async () => {
+    const { SSE_SNAPSHOT_EVENTS } = await import("@rivonclaw/core/api-contract");
+    const bus = createPanelEventBus({
+      getEntitySnapshot: () => ({ kind: "entity" }),
+      getRuntimeStatusSnapshot: () => ({ kind: "status" }),
+      getSceneSnapshot: () => ({ revision: 0, rooms: [], desks: [], characters: [] }),
+      getIdleState: () => ({ idle: false, idleForMs: 0 }),
+    });
+    const { req, res, frames } = makeClientPair();
+    bus.addClient(req, res);
+
+    const written = frames
+      .map((frame) => /^event: (\S+)/m.exec(frame)?.[1])
+      .filter((name): name is string => name !== undefined);
+    expect(written).toEqual([...SSE_SNAPSHOT_EVENTS]);
+  });
+});

@@ -1,4 +1,37 @@
 export default {
+  office: {
+    title: "Agent Office",
+    exit: "Exit",
+    open: "Office view",
+    openHint: "Show the agent office",
+    unavailable: "The office view is not available in this build.",
+    pullDown: "Pull down the agent office",
+    pullUp: "Roll the agent office back up",
+    label: {
+      idle: "Idle",
+      idleSlacking: "Slacking off",
+      idleHumming: "♪",
+      idleSnoozing: "Zzz...",
+      needsApproval: "Needs approval",
+      waitingForInput: "Waiting for input",
+      subtask: "Subtask",
+    },
+    phase: {
+      arriving: "Incoming!",
+      preparing: "Fine, I'm on it",
+      thinking: "Let me think…",
+      replying: "Typing a reply",
+      "leaving-success": "Done!",
+      "leaving-failure": "Oops.",
+      "leaving-aborted": "Never mind",
+      "leaving-reclaimed": "Lost track",
+    },
+    room: {
+      shopOperations: "Ops",
+      customerService: "CS",
+      affiliate: "BD",
+    },
+  },
   common: {
     loading: "Loading...",
     save: "Save",

@@ -100,6 +100,17 @@ extraResources:
   # Panel UI static files
   - from: "../panel/dist"
     to: "panel-dist"
+  # Third-party licence notices for the assets bundled with the pixel-art
+  # office: the FS Pixel Sans Unicode font (SIL Open Font License 1.1), the
+  # Pixel Agents renderer (MIT), and the MetroCity character pack (CC0).
+  # OFL 1.1 clause 2 requires the licence and its copyright notice to travel
+  # with every copy of the font, so this must stay outside asar where it is
+  # readable without unpacking. The three sibling configs
+  # (electron-builder.win.yml, electron-builder.win.unsigned.yml,
+  # electron-builder.linux.yml) inherit this list via `extends`, which is why
+  # it is declared here only — see test/third-party-notices.test.ts.
+  - from: "THIRD_PARTY_NOTICES.md"
+    to: "THIRD_PARTY_NOTICES.md"
 
 mac:
   category: public.app-category.developer-tools

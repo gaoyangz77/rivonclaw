@@ -90,7 +90,27 @@ import {
   buildAffiliateAgentRunRequest,
   renderAgentWorkingAgenda,
 } from "./affiliate-agent-run-factory.js";
+import { DEFAULT_AFFILIATE_MAX_CONCURRENT } from "@rivonclaw/core/node";
 import { AffiliateInbound, resolveMaxActiveAffiliateAgentRuns } from "./affiliate-inbound.js";
+
+/**
+ * Saturates the Affiliate run pool so the next work item has to queue.
+ *
+ * Fills to the configured concurrency rather than seeding a single run: the
+ * pool size is the shared product constant that also decides how many desks the
+ * office draws, so a test that assumed "one active run means full" would break
+ * every time that number moves - and would be testing the number instead of the
+ * queueing behaviour.
+ */
+function fillAffiliateCapacity(inbound: AffiliateInbound): void {
+  const runIndex = (inbound as any).runIndex as Map<string, string>;
+  const sessions = (inbound as any).sessions as Map<string, unknown>;
+  for (let i = 0; i < resolveMaxActiveAffiliateAgentRuns(); i++) {
+    const sessionKey = `affiliate-session-active-${i}`;
+    runIndex.set(`run-active-${i}`, sessionKey);
+    sessions.set(sessionKey, { onRunCompleted: vi.fn() });
+  }
+}
 import {
   __clearActiveAffiliateRunCheckpointsForTests,
   getActiveAffiliateRunCheckpoint,
@@ -166,7 +186,15 @@ describe("affiliate session identity", () => {
         RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-1,rel-2",
       }),
     ).toBe(2);
-    expect(resolveMaxActiveAffiliateAgentRuns({})).toBe(1);
+  });
+
+  // The office draws one desk per admissible run from the same constant, so a
+  // department can never be configured with more concurrency than it has chairs.
+  it("falls back to the shared product default when no cohort is pinned", () => {
+    expect(resolveMaxActiveAffiliateAgentRuns({})).toBe(DEFAULT_AFFILIATE_MAX_CONCURRENT);
+    expect(
+      resolveMaxActiveAffiliateAgentRuns({ RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "" }),
+    ).toBe(DEFAULT_AFFILIATE_MAX_CONCURRENT);
   });
 
   it("allows an explicit Affiliate Agent pool size to override the live-test cohort", () => {
@@ -1033,14 +1061,13 @@ describe("affiliate work item dispatch", () => {
     const workItem = createSampleReviewWorkItem({ id: "relationship-queued" });
     const graphqlFetch = vi.fn(async () => ({ affiliateWorkItems: [workItem] }));
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
-    (inbound as any).runIndex.set("run-active", "affiliate-session-active");
-    (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
+    fillAffiliateCapacity(inbound);
     const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
 
     await inbound.handleWorkItem(workItem);
     expect(dispatchSpy).not.toHaveBeenCalled();
 
-    inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
+    inbound.handleGatewayEvent({ payload: { runId: "run-active-0", state: "final" } } as any);
     await waitForCondition(() => dispatchSpy.mock.calls.length === 1);
 
     expect(graphqlFetch).toHaveBeenCalledWith(expect.any(String), {
@@ -1079,12 +1106,11 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [protectedWorkItem] })),
     });
-    (inbound as any).runIndex.set("run-active", "affiliate-session-active");
-    (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
+    fillAffiliateCapacity(inbound);
     const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
 
     await inbound.handleWorkItem(queuedWorkItem);
-    inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
+    inbound.handleGatewayEvent({ payload: { runId: "run-active-0", state: "final" } } as any);
     await waitForCondition(() => (inbound as any).pendingWorkItems.size === 0);
 
     expect(dispatchSpy).not.toHaveBeenCalled();
@@ -1106,12 +1132,11 @@ describe("affiliate work item dispatch", () => {
       throw new Error("temporary backend failure");
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
-    (inbound as any).runIndex.set("run-active", "affiliate-session-active");
-    (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
+    fillAffiliateCapacity(inbound);
     const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
 
     await inbound.handleWorkItem(workItem);
-    inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
+    inbound.handleGatewayEvent({ payload: { runId: "run-active-0", state: "final" } } as any);
     await waitForCondition(() => graphqlFetch.mock.calls.length === 1);
     await new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -4122,7 +4147,9 @@ describe("affiliate containment startup proof", () => {
     expect(level).toBe("warn");
     expect(line).toContain("liveTestFilter=absent");
     expect(line).toContain("relationshipIdCount=0");
-    expect(line).toContain("maxActiveAffiliateAgentRuns=1");
+    // Uncontained runs fall back to the shared product concurrency, which is
+    // also the number of desks the office draws for this department.
+    expect(line).toContain(`maxActiveAffiliateAgentRuns=${DEFAULT_AFFILIATE_MAX_CONCURRENT}`);
     expect(line).toContain("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS is not set");
     expect(line).toContain("every Affiliate work item is dispatchable");
     expect(line).not.toContain("liveTestFilter=active");

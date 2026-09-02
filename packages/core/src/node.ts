@@ -32,3 +32,12 @@ export {
   resolveAgentConfigDir,
   resolveAgentSessionsDir,
 } from "./node-utils/paths.js";
+export {
+  AFFILIATE_MAX_CONCURRENT_ENV,
+  CS_MAX_CONCURRENT_ENV,
+  DEFAULT_AFFILIATE_MAX_CONCURRENT,
+  DEFAULT_CS_MAX_CONCURRENT,
+  DEFAULT_SHOP_OPERATIONS_MAX_CONCURRENT,
+  SHOP_OPERATIONS_MAX_CONCURRENT_ENV,
+  resolveConcurrency,
+} from "./node-utils/agent-concurrency.js";

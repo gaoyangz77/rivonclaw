@@ -1,6 +1,39 @@
 import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
 
 export default {
+  office: {
+    title: "สำนักงานเอเจนต์",
+    exit: "ออก",
+    open: "มุมมองสำนักงาน",
+    openHint: "แสดงสำนักงานเอเจนต์",
+    unavailable: "มุมมองสำนักงานไม่พร้อมใช้งานในเวอร์ชันนี้",
+    pullDown: "ดึงสำนักงานเอเจนต์ลงมา",
+    pullUp: "ม้วนสำนักงานกลับขึ้นไป",
+    label: {
+      idle: "ว่าง",
+      idleSlacking: "อู้งาน",
+      idleHumming: "♪",
+      idleSnoozing: "Zzz...",
+      needsApproval: "รออนุมัติ",
+      waitingForInput: "รอคำตอบ",
+      subtask: "งานย่อย",
+    },
+    phase: {
+      arriving: "งานมาแล้ว!",
+      preparing: "เอาก็เอา",
+      thinking: "ขอคิดก่อน…",
+      replying: "กำลังพิมพ์ตอบ",
+      "leaving-success": "เสร็จแล้ว!",
+      "leaving-failure": "อุ๊ปส์",
+      "leaving-aborted": "ช่างเถอะ",
+      "leaving-reclaimed": "หลุดไป",
+    },
+    room: {
+      shopOperations: "ปฏิบัติการ",
+      customerService: "บริการลูกค้า",
+      affiliate: "BD",
+    },
+  },
   common: {
     loading: "กำลังโหลด...",
     save: "บันทึก",

@@ -45,6 +45,9 @@ importers:
       '@rivonclaw/proxy-router':
         specifier: workspace:*
         version: link:../../packages/proxy-router
+      '@rivonclaw/scene-contract':
+        specifier: workspace:*
+        version: link:../../packages/scene-contract
       '@rivonclaw/secrets':
         specifier: workspace:*
         version: link:../../packages/secrets
@@ -178,6 +181,12 @@ importers:
       '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@rivonclaw/pixel-agents-bridge':
+        specifier: workspace:*
+        version: link:../../packages/pixel-agents-bridge
+      '@rivonclaw/scene-contract':
+        specifier: workspace:*
+        version: link:../../packages/scene-contract
       emoji-picker-react:
         specifier: ^4.18.0
         version: 4.18.0(react@19.2.4)
@@ -528,6 +537,22 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
 
+  packages/pixel-agents-bridge:
+    dependencies:
+      '@rivonclaw/scene-contract':
+        specifier: workspace:*
+        version: link:../scene-contract
+    devDependencies:
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
   packages/plugin-sdk:
     devDependencies:
       tsdown:
@@ -548,6 +573,18 @@ importers:
       '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
+    devDependencies:
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.6.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  packages/scene-contract:
     devDependencies:
       oxlint:
         specifier: ^1.43.0

@@ -1,4 +1,4 @@
-import { SSE } from "@rivonclaw/core/api-contract";
+import { SSE, SSE_SNAPSHOT_EVENTS } from "@rivonclaw/core/api-contract";
 
 /**
  * Panel event bus — singleton wrapper around a single EventSource
@@ -50,6 +50,15 @@ export function createPanelEventBus(
         console.warn("[panel-event-bus] SSE connection closed permanently");
       }
     };
+    // Every snapshot frame is listened for from the first connection, whether
+    // or not anything has subscribed to it yet. Desktop writes them once, at
+    // connect, and an EventSource hands a named event only to listeners that
+    // already exist - so a snapshot for a consumer that subscribes later (the
+    // office view, opened minutes into a session) would be delivered to nobody,
+    // never cached, and never replayed, with no second copy coming.
+    for (const event of SSE_SNAPSHOT_EVENTS) {
+      attachedEvents.add(event);
+    }
     // Re-attach listeners for any events that were subscribed before the
     // connection was opened (normal flow: subscribe() opens it).
     for (const event of attachedEvents) {

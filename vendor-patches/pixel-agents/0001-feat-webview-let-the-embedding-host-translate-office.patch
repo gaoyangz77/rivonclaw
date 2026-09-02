@@ -1,0 +1,110 @@
+From 7c96a786a45828e9dd436cb1339d9791f1503b16 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Tue, 1 Sep 2026 14:02:37 -0700
+Subject: [PATCH] feat(webview): let the embedding host translate office labels
+
+Pixel Agents ships no i18n, and the four strings drawn over characters -
+Idle, Needs approval, Waiting for input, Subtask - are the only
+user-visible text inside the office. A host embedding the office in a
+localised product currently has no way to translate them.
+
+Read them from an optional window.__OFFICE_LABELS__ map, falling back to
+the existing English literals so behaviour is unchanged when a host sets
+nothing. A global rather than a protocol message because the labels have
+to be in place before the first frame paints, which is earlier than any
+message can arrive.
+---
+ .../src/office/components/ToolOverlay.tsx     | 38 +++++++++++++++----
+ 1 file changed, 31 insertions(+), 7 deletions(-)
+
+diff --git a/webview-ui/src/office/components/ToolOverlay.tsx b/webview-ui/src/office/components/ToolOverlay.tsx
+index 1bb1e13..424592e 100644
+--- a/webview-ui/src/office/components/ToolOverlay.tsx
++++ b/webview-ui/src/office/components/ToolOverlay.tsx
+@@ -27,6 +27,29 @@ import { CharacterState } from '../types.js';
+ // shows ONLY the checkmark (the label falls through to its normal idle text);
+ // going idle waiting on the user (Notification(idle_prompt)) additionally
+ // surfaces this label. Driven by Character.waitingAwaitingInput.
++/**
++ * Host-supplied translations for the labels drawn over characters.
++ *
++ * Pixel Agents has no i18n, and these strings are the only user-visible text
++ * inside the office, so an embedding host that speaks another language has no
++ * way to localise its own product without them. Read from a global rather than
++ * added to the message protocol because the labels must be in place before the
++ * first frame paints, which is earlier than any message can arrive; the host
++ * sets it from the page URL in its bootstrap script. Every lookup falls back to
++ * the English literal, so a host that sets nothing behaves exactly as before.
++ */
++declare global {
++  interface Window {
++    __OFFICE_LABELS__?: Record<string, string>;
++  }
++}
++
++function officeLabel(key: string, fallback: string): string {
++  if (typeof window === 'undefined') return fallback;
++  const value = window.__OFFICE_LABELS__?.[key];
++  return typeof value === 'string' && value.length > 0 ? value : fallback;
++}
++
+ const WAITING_INPUT_ACTIVITY_TEXT = 'Waiting for input';
+ 
+ interface ToolOverlayProps {
+@@ -50,18 +73,19 @@ function getActivityText(
+   bubbleType: 'permission' | 'waiting' | null,
+   waitingAwaitingInput: boolean,
+ ): string {
+-  if (bubbleType === 'permission') return 'Needs approval';
++  if (bubbleType === 'permission') return officeLabel('needsApproval', 'Needs approval');
+   // Only the idle case ("Waiting for input") gets a dedicated label. A finished
+   // turn (Stop, waitingAwaitingInput=false) falls through so the checkmark alone
+   // signals "done", same as the original behavior.
+-  if (bubbleType === 'waiting' && waitingAwaitingInput) return WAITING_INPUT_ACTIVITY_TEXT;
++  if (bubbleType === 'waiting' && waitingAwaitingInput)
++    return officeLabel('waitingForInput', WAITING_INPUT_ACTIVITY_TEXT);
+ 
+   const tools = agentTools[agentId];
+   if (tools && tools.length > 0) {
+     // Find the latest non-done tool
+     const activeTool = [...tools].reverse().find((t) => !t.done);
+     if (activeTool) {
+-      if (activeTool.permissionWait) return 'Needs approval';
++      if (activeTool.permissionWait) return officeLabel('needsApproval', 'Needs approval');
+       return activeTool.status;
+     }
+     // All tools done but agent still active (mid-turn) — keep showing last tool status
+@@ -71,7 +95,7 @@ function getActivityText(
+     }
+   }
+ 
+-  return 'Idle';
++  return officeLabel('idle', 'Idle');
+ }
+ 
+ function getFuelColor(ratio: number): string {
+@@ -164,10 +188,10 @@ export function ToolOverlay({
+         if (hasWaitingBubble && ch.waitingAwaitingInput) {
+           // Idle, waiting on the user -> dedicated label. A finished turn (Stop)
+           // shows only the checkmark and falls through to the normal idle text.
+-          activityText = WAITING_INPUT_ACTIVITY_TEXT;
++          activityText = officeLabel('waitingForInput', WAITING_INPUT_ACTIVITY_TEXT);
+         } else if (isSub) {
+           if (subHasPermission) {
+-            activityText = 'Needs approval';
++            activityText = officeLabel('needsApproval', 'Needs approval');
+           } else {
+             // Hover shows the subtask title; SELECTING the sub reveals its live
+             // tool activity (watched sub-agents stream it via subagentToolStart).
+@@ -175,7 +199,7 @@ export function ToolOverlay({
+             const rows = sub ? subagentTools[sub.parentAgentId]?.[sub.parentToolId] : undefined;
+             const activeRow =
+               isSelected && rows ? [...rows].reverse().find((t) => !t.done) : undefined;
+-            activityText = activeRow?.status ?? (sub?.label || 'Subtask');
++            activityText = activeRow?.status ?? (sub?.label || officeLabel('subtask', 'Subtask'));
+           }
+         } else {
+           activityText = getActivityText(
+-- 
+2.50.1 (Apple Git-155)
+

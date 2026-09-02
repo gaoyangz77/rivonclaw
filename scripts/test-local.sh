@@ -12,6 +12,7 @@
 # Pipeline:
 #   1. pnpm install              — ensure dependencies match lockfile
 #   2. vendor check              — ensure vendor/openclaw matches .openclaw-version
+#   2b. office check             — ensure the pixel office renderer is staged
 #   3. rebuild-native.sh         — prebuild better-sqlite3 for Node.js + Electron
 #   4. pnpm run build            — build all workspace packages
 #   5. pnpm run test             — unit tests (vitest via turbo)
@@ -291,6 +292,40 @@ if [ "$PIPELINE_FAILED" = false ]; then
   fi
 
   record_step "vendor check" "$vendor_rc" $((SECONDS - step_start))
+fi
+
+# ---- Step 2b: Verify the pixel office renderer is staged ----
+# apps/desktop/build/office/ is the Panel's Vite publicDir, so it has to exist
+# before step 4 builds the Panel — otherwise the app ships "office unavailable".
+if [ "$PIPELINE_FAILED" = false ]; then
+  step "Verify Pixel Agents office renderer"
+  step_start=$SECONDS
+  office_rc=0
+  EXPECTED_PIXEL_HASH="$(tr -d '[:space:]' < "$REPO_ROOT/.pixel-agents-version")"
+  PIXEL_DIR="$REPO_ROOT/vendor/pixel-agents"
+  OFFICE_STAGE="$REPO_ROOT/apps/desktop/build/office"
+
+  if [ -d "$PIXEL_DIR/.git" ]; then
+    ACTUAL_PIXEL_HASH="$(cd "$PIXEL_DIR" && git rev-parse HEAD)"
+    # The checkout carries the replayed patch commits on top of the pin, so the
+    # pin is an ancestor rather than HEAD itself.
+    if ! (cd "$PIXEL_DIR" && git merge-base --is-ancestor "$EXPECTED_PIXEL_HASH" "$ACTUAL_PIXEL_HASH"); then
+      warn "Pixel Agents mismatch: expected $EXPECTED_PIXEL_HASH, got ${ACTUAL_PIXEL_HASH:0:9}"
+      info "Re-provisioning vendor/pixel-agents..."
+      rm -rf "$PIXEL_DIR"
+      bash "$REPO_ROOT/scripts/setup-pixel-agents.sh" || office_rc=$?
+    elif [ ! -f "$OFFICE_STAGE/scene-assets.json" ]; then
+      info "Office renderer not staged — rebuilding from the existing checkout..."
+      bash "$REPO_ROOT/scripts/setup-pixel-agents.sh" --skip-clone || office_rc=$?
+    else
+      info "Office already staged at $EXPECTED_PIXEL_HASH — skipping setup."
+    fi
+  else
+    info "vendor/pixel-agents not found — running setup-pixel-agents.sh..."
+    bash "$REPO_ROOT/scripts/setup-pixel-agents.sh" || office_rc=$?
+  fi
+
+  record_step "office check" "$office_rc" $((SECONDS - step_start))
 fi
 
 # ---- Step 3: Prebuild native modules ----

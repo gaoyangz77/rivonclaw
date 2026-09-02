@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomActions } from "../components/BottomActions.js";
 import { GlobalBannerStack } from "../components/banners/GlobalBannerStack.js";
-import { MenuIcon, UserPlusIcon } from "../components/icons.js";
+import { MenuIcon, OfficeIcon, UserPlusIcon } from "../components/icons.js";
 import { ROUTES, type RouteEntry } from "../routes.js";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
@@ -14,6 +14,8 @@ import { canSeeRoute } from "../lib/permission-scope.js";
 import { TkHierarchicalNav } from "../components/design-system/index.js";
 import { PageErrorBoundary } from "../components/PageErrorBoundary.js";
 import { buildSidebarNavigationItems } from "./sidebar-navigation.js";
+import { OfficeShutter } from "../components/office/OfficeShutter.js";
+import { useOfficeShutter } from "../components/office/useOfficeShutter.js";
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -73,6 +75,8 @@ export const Layout = observer(function Layout({
       document.removeEventListener("mouseup", onMouseUp);
     };
   }, []);
+
+  const shutter = useOfficeShutter();
 
   const navRoutes = ROUTES.filter(
     (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
@@ -142,6 +146,14 @@ export const Layout = observer(function Layout({
             className="sidebar-hierarchical-nav"
           />
           <BottomActions collapsed={collapsed} />
+          <button
+            type="button"
+            className="office-screensaver-trigger"
+            onClick={shutter.open}
+            title={t("office.openHint")}
+          >
+            {collapsed ? <OfficeIcon /> : t("office.open")}
+          </button>
           {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
         </aside>
         <div className="main-content">
@@ -160,6 +172,9 @@ export const Layout = observer(function Layout({
           </main>
         </div>
       </div>
+      {/* Always mounted, but only as a grab strip until pulled down - the canvas
+          renderer costs nothing during the hours a user is actually working. */}
+      <OfficeShutter shutter={shutter} />
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => {

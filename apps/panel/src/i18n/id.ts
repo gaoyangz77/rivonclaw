@@ -1,6 +1,39 @@
 import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
 
 export default {
+  office: {
+    title: "Kantor Agen",
+    exit: "Keluar",
+    open: "Tampilan kantor",
+    openHint: "Tampilkan kantor agen",
+    unavailable: "Tampilan kantor tidak tersedia di versi ini.",
+    pullDown: "Turunkan kantor agen",
+    pullUp: "Gulung kembali kantor agen",
+    label: {
+      idle: "Santai",
+      idleSlacking: "Leyeh-leyeh",
+      idleHumming: "♪",
+      idleSnoozing: "Zzz...",
+      needsApproval: "Perlu persetujuan",
+      waitingForInput: "Menunggu masukan",
+      subtask: "Subtugas",
+    },
+    phase: {
+      arriving: "Ada kerjaan!",
+      preparing: "Ya sudah, kerja",
+      thinking: "Coba pikir dulu…",
+      replying: "Mengetik balasan",
+      "leaving-success": "Beres!",
+      "leaving-failure": "Waduh.",
+      "leaving-aborted": "Ya sudahlah",
+      "leaving-reclaimed": "Hilang",
+    },
+    room: {
+      shopOperations: "Operasional",
+      customerService: "CS",
+      affiliate: "BD",
+    },
+  },
   common: {
     loading: "Memuat...",
     save: "Simpan",

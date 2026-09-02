@@ -34,6 +34,7 @@
     "@rivonclaw/gateway": "workspace:*",
     "@rivonclaw/logger": "workspace:*",
     "@rivonclaw/proxy-router": "workspace:*",
+    "@rivonclaw/scene-contract": "workspace:*",
     "@rivonclaw/secrets": "workspace:*",
     "@rivonclaw/storage": "workspace:*",
     "@rivonclaw/stt": "workspace:*",

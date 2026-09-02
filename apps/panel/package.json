@@ -20,6 +20,8 @@
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@mdxeditor/editor": "^4.2.0",
     "@rivonclaw/core": "workspace:*",
+    "@rivonclaw/pixel-agents-bridge": "workspace:*",
+    "@rivonclaw/scene-contract": "workspace:*",
     "emoji-picker-react": "^4.18.0",
     "graphql": "^16.13.1",
     "i18next": "^25.8.4",

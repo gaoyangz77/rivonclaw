@@ -1,6 +1,39 @@
 import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
 
 export default {
+  office: {
+    title: "Oficina de agentes",
+    exit: "Salir",
+    open: "Vista de oficina",
+    openHint: "Mostrar la oficina de agentes",
+    unavailable: "La vista de oficina no está disponible en esta versión.",
+    pullDown: "Bajar la oficina de agentes",
+    pullUp: "Volver a subir la oficina",
+    label: {
+      idle: "Sin tarea",
+      idleSlacking: "Haciendo el vago",
+      idleHumming: "♪",
+      idleSnoozing: "Zzz...",
+      needsApproval: "Requiere aprobación",
+      waitingForInput: "Esperando respuesta",
+      subtask: "Subtarea",
+    },
+    phase: {
+      arriving: "¡Llegó trabajo!",
+      preparing: "Bueno, allá voy",
+      thinking: "Déjame pensar…",
+      replying: "Escribiendo respuesta",
+      "leaving-success": "¡Listo!",
+      "leaving-failure": "Ups.",
+      "leaving-aborted": "Déjalo",
+      "leaving-reclaimed": "Se perdió",
+    },
+    room: {
+      shopOperations: "Operaciones",
+      customerService: "Atención",
+      affiliate: "BD",
+    },
+  },
   common: {
     loading: "Cargando...",
     save: "Guardar",

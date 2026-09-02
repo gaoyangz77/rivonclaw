@@ -45,9 +45,28 @@ export type BroadcastEvent = (event: string, data: unknown) => void;
 // pairing-notifier) can obtain a stable `broadcastEvent` reference BEFORE
 // startPanelServer() finishes binding — matching the old pushChatSSE DI
 // shape but routed through the unified bus.
+// Late-bound: the scene service is created with the gateway runtime, long
+// after this module initialises. Reading it through a mutable reference keeps
+// the bus's stable module-scope shape rather than deferring the whole bus.
+let sceneService: { snapshot(): unknown } | null = null;
+
+/** Called once the office scene projection is running. */
+export function setSceneService(service: { snapshot(): unknown } | null): void {
+  sceneService = service;
+}
+
+let idleMonitor: { state(): unknown } | null = null;
+
+/** Called once the away-from-keyboard monitor is running. */
+export function setIdleMonitor(monitor: { state(): unknown } | null): void {
+  idleMonitor = monitor;
+}
+
 const panelEventBus = createPanelEventBus({
   getEntitySnapshot: () => getSnapshot(rootStore),
   getRuntimeStatusSnapshot: () => getSnapshot(runtimeStatusStore),
+  getSceneSnapshot: () => sceneService?.snapshot(),
+  getIdleState: () => idleMonitor?.state(),
 });
 
 subscribeToPatch((patches) => {

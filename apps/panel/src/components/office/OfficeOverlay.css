@@ -1,0 +1,134 @@
+/* The pixel office, hung from the top of the window as a roller shutter. */
+
+/* Retracted, this strip is the whole feature: the grab target that pulls the
+   office down. Deliberately thin and quiet - it sits over every page. */
+.office-shutter-handle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  z-index: 10009;
+  cursor: grab;
+  background: linear-gradient(to bottom, var(--color-border-strong), transparent);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.office-shutter-handle:hover,
+.office-shutter-handle:focus-visible {
+  opacity: 0.9;
+}
+
+.office-shutter {
+  position: fixed;
+  inset: 0;
+  /* Above the tutorial layer (10000), which is the highest thing the Panel
+     otherwise draws: a screensaver a coach mark can cover is not one. */
+  z-index: 10010;
+  /* Driven imperatively so a pointer drag can move it every frame without a
+     JSX inline style. 0 = fully retracted above the viewport, 1 = fully down. */
+  transform: translateY(calc((var(--office-openness, 0) - 1) * 100%));
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+
+/* While a finger owns the shutter it must track the drag, not chase it. */
+.office-shutter--dragging {
+  transition: none;
+}
+
+/* The bottom lip, grabbed to roll the office back up. */
+.office-shutter-grip {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  width: 96px;
+  height: 8px;
+  margin-left: -48px;
+  border-radius: 4px;
+  background: var(--color-border-strong);
+  opacity: 0.35;
+  cursor: grab;
+  transition: opacity 140ms ease;
+}
+
+.office-shutter-grip:hover,
+.office-shutter-grip:focus-visible {
+  opacity: 0.8;
+}
+
+.office-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.office-overlay__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  /* Inert on purpose. Every click belongs to the overlay's exit handler, and
+     the renderer's own chrome - already suppressed by kiosk mode - must never
+     become operable from here. */
+  pointer-events: none;
+}
+
+.office-overlay__message {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.office-overlay__exit {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  /* Opaque, not translucent. The office behind it is arbitrary pixel art -
+     dimming the button against a pale wall made it disappear entirely - so
+     legibility comes from its own background rather than from opacity. */
+  background: var(--color-bg-alt);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: box-shadow 120ms ease;
+}
+
+.office-overlay__exit:hover,
+.office-overlay__exit:focus-visible {
+  box-shadow: var(--shadow-lg);
+}
+
+.office-screensaver-trigger {
+  display: inline-flex;
+  align-items: center;
+  /* The button stretches to the sidebar's width, so its contents have to be
+     centred explicitly - otherwise the label sits left while every other
+     sidebar control reads as centred, and the collapsed icon lands off-axis. */
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  /* Full sidebar text colour, not the muted one the icon-only actions use: this
+     control carries a word, and a muted word on the sidebar ground was hard to
+     read at all. */
+  color: var(--color-sidebar-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.office-screensaver-trigger:hover {
+  background: var(--color-sidebar-hover);
+}

@@ -1,8 +1,19 @@
+import {
+  CS_MAX_CONCURRENT_ENV,
+  DEFAULT_CS_MAX_CONCURRENT,
+  resolveConcurrency,
+} from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("cs-run-admission");
 
-export const DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT = 4;
+/**
+ * Re-exported from the shared definition so the office layout draws exactly as
+ * many customer-service desks as this controller admits runs. Changing the
+ * number here alone is impossible; it lives in
+ * `packages/core/src/node-utils/agent-concurrency.ts`.
+ */
+export const DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT = DEFAULT_CS_MAX_CONCURRENT;
 
 /**
  * Hard ceiling on how long one admission lease may stay unreleased. A normal
@@ -45,11 +56,8 @@ export class CsRunAdmissionCancelledError extends Error {
   }
 }
 
-export function resolveCsAutomaticMaxConcurrent(): number {
-  const raw = process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT;
-  if (raw === undefined) return DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT;
-  const parsed = Number(raw);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT;
+export function resolveCsAutomaticMaxConcurrent(env: NodeJS.ProcessEnv = process.env): number {
+  return resolveConcurrency(CS_MAX_CONCURRENT_ENV, DEFAULT_CS_MAX_CONCURRENT, env);
 }
 
 /**

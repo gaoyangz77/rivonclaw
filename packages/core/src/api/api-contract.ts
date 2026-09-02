@@ -237,6 +237,24 @@ export const SSE = {
   "doctor.run":      { method: "GET", path: "/api/doctor/run",    sse: true, desc: "Run OpenClaw doctor diagnostics" },
 } as const satisfies Record<string, SSERouteEntry>;
 
+/**
+ * The snapshot frames Desktop writes on every `/api/events` connection, before
+ * any patch, so a client starts from a complete picture.
+ *
+ * The Panel bus listens for all of these from the moment it connects, not from
+ * the moment something subscribes: an EventSource delivers a named event only
+ * to listeners that already exist, so a snapshot written at connect time for a
+ * consumer that subscribes later - the office view, opened minutes in - would
+ * otherwise be lost, and Desktop sends another only when something changes.
+ * Adding a snapshot frame on the Desktop side means adding its name here.
+ */
+export const SSE_SNAPSHOT_EVENTS = [
+  "entity-snapshot",
+  "status-snapshot",
+  "scene-snapshot",
+  "idle-snapshot",
+] as const;
+
 /** Static media serving prefix. */
 export const MEDIA_PREFIX = "/api/media/";
 

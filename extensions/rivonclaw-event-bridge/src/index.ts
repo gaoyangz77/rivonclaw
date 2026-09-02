@@ -96,6 +96,88 @@ function shouldSkipChannelInbound(channelId: string): boolean {
   return CHANNEL_INBOUND_SKIP.has(channelId);
 }
 
+/**
+ * Streams that can change what an office character is doing.
+ *
+ * `assistant` is here despite firing once per streamed token, because the
+ * several seconds a run spends composing its reply are otherwise invisible -
+ * the office showed the tool calls and then nothing until the run ended. The
+ * volume problem is real, so it is solved by the burst gate below rather than
+ * by dropping the stream: only the FIRST assistant event of a burst is
+ * forwarded, and it carries no payload at all.
+ *
+ * `usage`, `item`, `patch`, `compaction`, `command_output` and `error` carry no
+ * pose - run failure arrives on `lifecycle` with phase "error".
+ */
+const SCENE_STREAMS = new Set([
+  "lifecycle",
+  "thinking",
+  "tool",
+  "approval",
+  "run_status",
+  "assistant",
+]);
+
+/** Entries kept before the department cache is dropped wholesale. */
+const SCENE_RUN_CACHE_MAX = 512;
+
+/**
+ * Reduce an agent event's payload to what the office reads.
+ *
+ * `assistant` is deliberately empty rather than filtered: the marker means "a
+ * reply is being composed", and the office draws that pose without ever
+ * showing the words. Reducing by construction - rather than by removing known
+ * text fields - is what keeps a future payload field from leaking into a
+ * recording that gets rendered into a public video.
+ */
+function reduceSceneData(
+  stream: string,
+  data: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (stream === "assistant") return {};
+  return {
+    ...(typeof data?.phase === "string" ? { phase: data.phase } : {}),
+    ...(data?.aborted === true ? { aborted: true } : {}),
+    ...(typeof data?.name === "string"
+      ? { name: data.name }
+      : typeof data?.toolName === "string"
+        ? { name: data.toolName }
+        : {}),
+  };
+}
+
+/**
+ * Agents whose runs the office view renders, one department each.
+ *
+ * Kept as literals rather than imported: this plugin bundles into the gateway
+ * process and depends only on the plugin SDK. The source of truth is
+ * `packages/core/src/node-utils/paths.ts` (`CUSTOMER_SERVICE_AGENT_ID`,
+ * `AFFILIATE_AGENT_ID`, `DEFAULT_AGENT_ID`), mirrored on the Desktop side by
+ * `resolveSceneRooms()`.
+ */
+const DEPARTMENT_AGENT_IDS = new Set(["customer-service", "affiliate", "main"]);
+
+/**
+ * Does this session belong to a department the office view renders?
+ *
+ * Matched on the AGENT segment of `agent:<agentId>:...`, not the channel after
+ * it. Customer service and affiliate happen to name their department in the
+ * channel segment, but shop operations runs on the default agent across every
+ * channel it talks on - `agent:main:main`, `agent:main:telegram:...`,
+ * `agent:main:panel-3` are all the same department.
+ *
+ * Deliberately NOT the complement of `shouldMirrorExternalSession`: a run can
+ * be both a conversation the user should see on the Chat Page and shop
+ * operations work the office should show. The two surfaces answer different
+ * questions and are allowed to overlap.
+ */
+export function isDepartmentSession(sessionKey?: string): boolean {
+  if (!sessionKey) return false;
+  const parts = sessionKey.split(":");
+  if (parts.length < 3 || parts[0] !== "agent") return false;
+  return DEPARTMENT_AGENT_IDS.has(parts[1]);
+}
+
 export function shouldMirrorExternalSession(sessionKey?: string): boolean {
   const channelId = resolveChannelIdFromSessionKey(sessionKey);
   if (!channelId) return false;
@@ -113,6 +195,21 @@ export function shouldMirrorExternalSession(sessionKey?: string): boolean {
 // (OpenClaw may call register→activate, invoking setup twice, and may
 // reuse cached registries on gateway restart without calling setup again).
 const runSessionTracker = createRunSessionTracker();
+/** What the office branch remembers about one run. */
+type SceneRunState = {
+  /** Whether this run belongs to a department the office draws. */
+  department: boolean;
+  /** Stream of the last event actually forwarded. Drives the assistant gate. */
+  lastStream?: string;
+};
+/**
+ * runId -> office state. Departmenthood is decided once per run so the office
+ * branch below never re-parses a session key on the gateway's hot path, and
+ * `lastStream` is what collapses an assistant burst into one marker.
+ * Cleared on `agent_end` together with the session mapping; without that
+ * this map would grow for the life of the gateway process.
+ */
+const sceneRunCache = new Map<string, SceneRunState>();
 // Pending inbound messages from external channels, keyed by channelId.
 // Populated by `message_received`, consumed by `before_agent_run`.
 // Each channelId holds a FIFO queue because multiple conversations on
@@ -133,6 +230,9 @@ export default defineRivonClawPlugin({
       prevUnsubscribe = null;
     }
     runSessionTracker.clear();
+    // Per-run office state must not survive a gateway restart: resuming a
+    // half-remembered assistant burst would swallow the next run's marker.
+    sceneRunCache.clear();
     pendingInboundMessages.clear();
     eventCount = 0;
     // Keep gatewayBroadcast — it will be recaptured via event_bridge_init if null.
@@ -311,12 +411,61 @@ export default defineRivonClawPlugin({
     api.on("agent_end", (evt: { runId?: string }) => {
       if (!evt?.runId) return;
       runSessionTracker.scheduleCleanup(evt.runId);
+      sceneRunCache.delete(evt.runId);
     });
 
     // ── Mirror suppressed agent events to Chat Page ─────────────────
     const unsubscribe = (api as any).runtime.events.onAgentEvent((evt: AgentEventPayload) => {
       eventCount++;
       const shouldLog = eventCount <= 5 || eventCount % 50 === 0;
+
+      // Session resolution is hoisted above the Chat Page's stream filter so
+      // the office view below can see the streams that filter drops -
+      // `thinking`, `approval` and `run_status` are exactly the ones it needs.
+      const resolvedSessionKey = runSessionTracker.get(evt.runId) ?? evt.sessionKey;
+
+      // ── Office view: internal department runs ──────────────────────────
+      // Deliberately the complement of the Chat Page mirror below. Customer
+      // service and affiliate runs are filtered OUT of that mirror on purpose
+      // (they would flood a user's chat with internal traffic), which is also
+      // why they were invisible everywhere until this branch existed.
+      //
+      // This runs inside the gateway process, on the path every agent event
+      // takes, so it is kept deliberately cheap:
+      //   - only the streams that can change a character's pose are forwarded;
+      //   - `assistant`, the one high-volume stream among them, is collapsed
+      //     to one marker per reply burst, so a 900-token reply costs one
+      //     forwarded event rather than 900;
+      //   - the payload is reduced to three scalars instead of the raw `data`,
+      //     so a frame is a fixed handful of bytes to serialise;
+      //   - departmenthood is decided once per run, not per event.
+      if (gatewayBroadcast && resolvedSessionKey && SCENE_STREAMS.has(evt.stream)) {
+        let state = sceneRunCache.get(evt.runId);
+        if (state === undefined) {
+          // Backstop for a run whose `agent_end` never arrives. The map holds
+          // one small record per run, so the cap is generous; dropping it costs
+          // a single session-key parse per live run to refill.
+          if (sceneRunCache.size >= SCENE_RUN_CACHE_MAX) sceneRunCache.clear();
+          state = { department: isDepartmentSession(resolvedSessionKey) };
+          sceneRunCache.set(evt.runId, state);
+        }
+        // The burst gate. A reply arrives as one assistant event per token,
+        // all saying the same thing; only the first of a run of them says
+        // something new, which is "this run started replying". Any other
+        // forwarded stream re-arms it, so a run that replies, calls a tool and
+        // replies again is drawn as two separate bursts.
+        const burstRepeat = evt.stream === "assistant" && state.lastStream === "assistant";
+        if (state.department && !burstRepeat) {
+          state.lastStream = evt.stream;
+          gatewayBroadcast("plugin.rivonclaw.scene-event", {
+            runId: evt.runId,
+            sessionKey: resolvedSessionKey,
+            stream: evt.stream,
+            seq: evt.seq,
+            data: reduceSceneData(evt.stream, evt.data as Record<string, unknown> | undefined),
+          });
+        }
+      }
 
       // Ignore streams that the Chat Page never consumes before resolving the
       // run mapping. Startup/background runs can emit run_status and item
@@ -330,8 +479,7 @@ export default defineRivonClawPlugin({
         return;
       }
 
-      const mappedSessionKey = runSessionTracker.get(evt.runId);
-      const sessionKey = mappedSessionKey ?? evt.sessionKey;
+      const sessionKey = resolvedSessionKey;
 
       // The tracker is authoritative when OpenClaw omits sessionKey from agent
       // events. Only external channel runs belong on this mirror; main/webchat
@@ -381,6 +529,7 @@ export default defineRivonClawPlugin({
         prevUnsubscribe = null;
       }
       runSessionTracker.clear();
+      sceneRunCache.clear();
       gatewayBroadcast = null;
       eventCount = 0;
     });

@@ -1,4 +1,37 @@
 export default {
+  office: {
+    title: "Agent 办公室",
+    exit: "退出",
+    open: "办公室视图",
+    openHint: "显示 Agent 办公室",
+    unavailable: "此版本未包含办公室视图。",
+    pullDown: "拉下 Agent 办公室",
+    pullUp: "把办公室收回去",
+    label: {
+      idle: "摸鱼",
+      idleSlacking: "划水",
+      idleHumming: "♪",
+      idleSnoozing: "Zzz...",
+      needsApproval: "等审批",
+      waitingForInput: "等你回话",
+      subtask: "子任务",
+    },
+    phase: {
+      arriving: "来活了",
+      preparing: "被迫营业",
+      thinking: "让我想想",
+      replying: "正在回复",
+      "leaving-success": "收工",
+      "leaving-failure": "翻车了",
+      "leaving-aborted": "算了",
+      "leaving-reclaimed": "掉线了",
+    },
+    room: {
+      shopOperations: "运营",
+      customerService: "客服",
+      affiliate: "BD",
+    },
+  },
   common: {
     loading: "加载中...",
     save: "保存",
