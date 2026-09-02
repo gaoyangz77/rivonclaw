@@ -87,6 +87,14 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 3 })).toBe(
       "ready",
     );
+    // A next-page fetch keeps the rows on screen; the paging spinner is the
+    // table's own footer row, never a second frame-level spinner.
+    expect(campaignCreatorStatesViewState({ loading: true, hasError: false, itemCount: 3 })).toBe(
+      "ready",
+    );
+    expect(campaignCreatorStatesViewState({ loading: true, hasError: false, itemCount: 0 })).toBe(
+      "loading",
+    );
   });
 
   it("does not render an unrecorded legacy funnel metric as zero", () => {
