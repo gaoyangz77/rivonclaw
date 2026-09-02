@@ -26,7 +26,6 @@ import {
   TkButton,
   TkChoiceSelect,
   TkField,
-  TkFormStack,
   TkInteractiveTableRow,
   TkModalHeader,
   TkPanel,
@@ -1927,11 +1926,13 @@ function AffiliateEscalationDetailModal({
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  const [decision, setDecision] = useState("");
-  const [instructions, setInstructions] = useState("");
+  // One free-text answer, sent as `decision`: staff say what they decided and
+  // what the Agent should do next in the same breath, exactly as they would to
+  // a colleague. Submitting resolves the escalation; there is no interim state.
+  const [answer, setAnswer] = useState("");
   const [resolveEscalation, { loading: resolving }] = useMutation<
     { affiliateResolve: { ok: boolean; escalationId: string; status: string } },
-    { input: { escalationId: string; decision: string; instructions: string } }
+    { input: { escalationId: string; decision: string } }
   >(AFFILIATE_RESOLVE_ESCALATION_MUTATION);
   const snapshot = parseAffiliateEscalationSnapshot(escalation.sourceAgendaItemsSnapshotJson);
   const creatorName =
@@ -1950,20 +1951,15 @@ function AffiliateEscalationDetailModal({
         .filter(Boolean),
     ),
   ];
-  const canSubmit = decision.trim().length > 0 && instructions.trim().length > 0 && !resolving;
-  const instructionsId = `affiliate-escalation-instructions-${escalation.id}`;
+  const canSubmit = answer.trim().length > 0 && !resolving;
+  const answerId = `affiliate-escalation-answer-${escalation.id}`;
+  const answerHintId = `${answerId}-hint`;
 
-  async function submitDecision() {
+  async function submitAnswer() {
     if (!canSubmit) return;
     try {
       await resolveEscalation({
-        variables: {
-          input: {
-            escalationId: escalation.id,
-            decision: decision.trim(),
-            instructions: instructions.trim(),
-          },
-        },
+        variables: { input: { escalationId: escalation.id, decision: answer.trim() } },
       });
       showToast(t("ecommerce.affiliateWorkspace.escalations.resolveSuccess"), "success");
       onResolved();
@@ -2029,42 +2025,33 @@ function AffiliateEscalationDetailModal({
           className="affiliate-escalation-form"
           onSubmit={(event) => {
             event.preventDefault();
-            void submitDecision();
+            void submitAnswer();
           }}
         >
-          <TkFormStack>
-            <TkField
-              label={t("ecommerce.affiliateWorkspace.escalations.decisionLabel")}
-              placeholder={t("ecommerce.affiliateWorkspace.escalations.decisionPlaceholder")}
-              value={decision}
-              maxLength={200}
+          <div className="tk-v1-field">
+            <label className="tk-v1-label" htmlFor={answerId}>
+              {t("ecommerce.affiliateWorkspace.escalations.answerLabel")}
+            </label>
+            <textarea
+              id={answerId}
+              className="input-full textarea-resize-vertical"
+              rows={6}
+              value={answer}
               disabled={resolving}
-              onChange={(event) => setDecision(event.target.value)}
+              aria-describedby={answerHintId}
+              placeholder={t("ecommerce.affiliateWorkspace.escalations.answerPlaceholder")}
+              onChange={(event) => setAnswer(event.target.value)}
             />
-            <div className="tk-v1-field">
-              <label className="tk-v1-label" htmlFor={instructionsId}>
-                {t("ecommerce.affiliateWorkspace.escalations.instructionsLabel")}
-              </label>
-              <textarea
-                id={instructionsId}
-                className="input-full textarea-resize-vertical"
-                rows={5}
-                value={instructions}
-                disabled={resolving}
-                placeholder={t("ecommerce.affiliateWorkspace.escalations.instructionsPlaceholder")}
-                onChange={(event) => setInstructions(event.target.value)}
-              />
-              <div className="tk-v1-field-support">
-                {t("ecommerce.affiliateWorkspace.escalations.instructionsHint")}
-              </div>
+            <div id={answerHintId} className="tk-v1-field-support">
+              {t("ecommerce.affiliateWorkspace.escalations.answerHint")}
             </div>
-          </TkFormStack>
+          </div>
           <div className="tk-v1-form-action-row affiliate-escalation-actions">
             <TkButton variant="secondary" type="button" onClick={onClose} disabled={resolving}>
               {t("common.close")}
             </TkButton>
             <TkButton variant="primary" type="submit" loading={resolving} disabled={!canSubmit}>
-              {t("ecommerce.affiliateWorkspace.escalations.submitDecision")}
+              {t("ecommerce.affiliateWorkspace.escalations.submit")}
             </TkButton>
           </div>
         </form>

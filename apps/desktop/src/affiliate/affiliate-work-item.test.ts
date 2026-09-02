@@ -4314,10 +4314,12 @@ describe("Target Collaboration coverage is absent from the Working Agenda", () =
  */
 /**
  * When staff resolves an escalation the Agent is woken with an
- * ESCALATION_RESOLUTION item. The staff decision and instructions were on the
- * item all along; nothing fetched or rendered them, so the Agent was woken
- * with nothing to act on. It must now see the answer, and an item of this kind
- * with no answer is a contract violation rather than a blank to fill in.
+ * ESCALATION_RESOLUTION item. The staff answer travels as the decision; the
+ * separate instructions line is optional and left over from an earlier two-box
+ * form. The decision was on the item all along; nothing fetched or rendered
+ * it, so the Agent was woken with nothing to act on. It must now see the
+ * answer, and an item of this kind with no decision is a contract violation
+ * rather than a blank to fill in.
  */
 describe("Escalation resolution in the Working Agenda", () => {
   function renderResolution(overrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {}): () => string {
@@ -4357,7 +4359,16 @@ describe("Escalation resolution in the Working Agenda", () => {
 
   it("refuses to wake the Agent on a resolution with no decision", () => {
     expect(renderResolution({ escalationDecision: null })).toThrow(/without a staff decision/);
-    expect(renderResolution({ escalationInstructions: "   " })).toThrow(/without a staff decision/);
+  });
+
+  it("renders the decision alone when staff left no separate instructions", () => {
+    for (const escalationInstructions of ["   ", null]) {
+      const message = renderResolution({ escalationInstructions })();
+
+      expect(message).toContain("Staff Decision: Reshipped");
+      expect(message).not.toContain("Staff Instructions");
+      expect(message).toContain("tell the Creator the outcome");
+    }
   });
 });
 
