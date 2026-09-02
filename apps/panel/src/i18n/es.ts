@@ -3273,6 +3273,7 @@ export default {
         avgVideoViews: "Vistas medias de video",
         rating: "Valoración de vendedores",
         pps: "PPS",
+        engagementRate: "Tasa de interacción",
         postRate: "Tasa de publicación",
         noMarketplacePerformance: "Aún no hay métricas de rendimiento del marketplace.",
         identifiers: "Identificadores",

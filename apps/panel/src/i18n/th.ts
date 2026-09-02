@@ -3115,6 +3115,7 @@ export default {
         avgVideoViews: "ยอดดูวิดีโอเฉลี่ย",
         rating: "คะแนนจากผู้ขาย",
         pps: "PPS",
+        engagementRate: "อัตราการมีส่วนร่วม",
         postRate: "อัตราการโพสต์",
         noMarketplacePerformance: "ยังไม่มีเมตริกประสิทธิภาพ marketplace",
         identifiers: "ตัวระบุ",

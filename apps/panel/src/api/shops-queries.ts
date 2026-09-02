@@ -1406,6 +1406,15 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         creatorAverageVideoViews
         creatorEngagementRate
         creatorShoppableVideoCount
+        creatorGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        creatorPostRate
         creatorProfile {
           id
           creatorOpenId
@@ -1481,12 +1490,31 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           status
           priceMin
           priceMax
+          totalAvailableQuantity
           skus {
             skuId
             skuName
             sellerSku
             price
             currency
+            totalAvailableQuantity
+          }
+        }
+        productSummaries {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          totalAvailableQuantity
+          skus {
+            skuId
+            skuName
+            sellerSku
+            price
+            currency
+            totalAvailableQuantity
           }
         }
         type
@@ -2569,6 +2597,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           liveCount
           averageVideoViews
           engagementRate
+          postRate
           pps
           ratingScore
           contentWindow
@@ -2820,6 +2849,7 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
         liveCount
         averageVideoViews
         engagementRate
+        postRate
         pps
         ratingScore
         contentWindow
@@ -3185,6 +3215,7 @@ export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
         liveCount
         averageVideoViews
         engagementRate
+        postRate
         pps
         ratingScore
         contentWindow
@@ -3535,6 +3566,49 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       productId
       creatorRelationshipId
       businessDeveloperIdSnapshot
+      creatorGmv {
+        amount
+        currency
+        minimumAmount
+        maximumAmount
+        window
+        precision
+      }
+      creatorPostRate
+      productSummary {
+        productId
+        title
+        coverImage
+        status
+        priceMin
+        priceMax
+        totalAvailableQuantity
+        skus {
+          skuId
+          skuName
+          sellerSku
+          price
+          currency
+          totalAvailableQuantity
+        }
+      }
+      productSummaries {
+        productId
+        title
+        coverImage
+        status
+        priceMin
+        priceMax
+        totalAvailableQuantity
+        skus {
+          skuId
+          skuName
+          sellerSku
+          price
+          currency
+          totalAvailableQuantity
+        }
+      }
       sourceWorkBoundary {
         subjectType
         affiliateCollaborationId

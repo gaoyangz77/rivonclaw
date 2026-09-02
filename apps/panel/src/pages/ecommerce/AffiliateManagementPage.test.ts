@@ -676,6 +676,101 @@ describe("AffiliateManagementPage proposal source", () => {
     });
   });
 
+  it("resolves every Sample product of a bundle from the per-product summaries", () => {
+    // The singular productSummary only ever carries the primary product, so a
+    // two-product bundle used to leave the second row untitled and stockless.
+    const bundle = {
+      ...proposal("proposal-two-products", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      productId: "product-1",
+      productSummary: { productId: "product-1", title: "Primary rope", totalAvailableQuantity: 18 },
+      productSummaries: [
+        { productId: "product-1", title: "Primary rope", totalAvailableQuantity: 18 },
+        {
+          productId: "product-2",
+          title: "Second rope",
+          coverImage: "https://cdn.example/rope-2.jpg",
+          priceMin: "10.00",
+          priceMax: "12.00",
+          totalAvailableQuantity: null,
+          skus: [{ skuId: "sku-2", sellerSku: "ROPE-2", totalAvailableQuantity: null }],
+        },
+      ],
+      steps: [
+        {
+          stepId: "step-1",
+          shopId: "shop-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          productId: "product-1",
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-1",
+            decision: "APPROVE",
+          },
+        },
+        {
+          stepId: "step-2",
+          shopId: "shop-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          productId: "product-2",
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-2",
+            platformApplicationId: "platform-2",
+            decision: "REJECT",
+            rejectReason: "OUT_OF_STOCK",
+          },
+        },
+      ],
+    } as unknown as GQL.ActionProposal;
+
+    const rows = proposalSampleReviewRows(bundle);
+
+    expect(
+      rows.map((row) => ({
+        productId: row.productId,
+        productTitle: row.productTitle,
+        productSellerSku: row.productSellerSku,
+        stock: row.productTotalAvailableQuantity,
+        coverImage: row.productSummary?.coverImage ?? null,
+      })),
+    ).toEqual([
+      {
+        productId: "product-1",
+        productTitle: "Primary rope",
+        productSellerSku: null,
+        stock: 18,
+        coverImage: null,
+      },
+      {
+        productId: "product-2",
+        productTitle: "Second rope",
+        productSellerSku: "ROPE-2",
+        // Null means the backend could not sum stock, never zero.
+        stock: null,
+        coverImage: "https://cdn.example/rope-2.jpg",
+      },
+    ]);
+  });
+
+  it("falls back to the singular product summary when no per-product summary matches", () => {
+    const legacy = {
+      ...proposal("proposal-legacy-summary", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      productId: "product-1",
+      productSummary: { productId: "product-1", title: "Only rope", totalAvailableQuantity: 0 },
+      sampleReviewIntent: {
+        sampleApplicationRecordId: "sample-1",
+        platformApplicationId: "platform-1",
+        decision: "APPROVE",
+      },
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalSampleReviewRows(legacy)[0]).toMatchObject({
+      productId: "product-1",
+      productTitle: "Only rope",
+      productTotalAvailableQuantity: 0,
+    });
+    expect(proposalSampleReviewRows(legacy)[0]?.productSummary?.productId).toBe("product-1");
+  });
+
   it("uses an existing Seller SKU when a Sample product title is unavailable", () => {
     const sampleProposal = {
       ...proposal("proposal-seller-sku", "PENDING", "REVIEW_SAMPLE_APPLICATION"),

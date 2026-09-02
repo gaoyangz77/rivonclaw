@@ -540,3 +540,150 @@
     flex-wrap: wrap;
   }
 }
+
+/* Agent work table — per-Sample product stock. One line per Sample in the
+   bundle: product label on the left, exact stock count on the right. */
+.affiliate-agent-work-col-stock {
+  width: 150px;
+}
+
+.tk-v1-workbench .affiliate-agent-work-stock-list {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tk-v1-workbench .affiliate-agent-work-stock-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--tk-v1-space-2);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.tk-v1-workbench .affiliate-agent-work-stock-list small {
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-workbench .affiliate-agent-work-stock-list strong {
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-mono);
+  font-size: var(--tk-v1-type-micro);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.tk-v1-workbench .affiliate-agent-work-stock-empty {
+  color: var(--tk-v1-fg-muted);
+}
+
+/* Sample decision bundle — Creator performance strip and compact product
+   strip. Unscoped on purpose: the work detail modal renders through a portal
+   outside .tk-v1-workbench, and these rules must reach both the inline card
+   and the modal. */
+.affiliate-sample-decision-creator-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tk-v1-space-2) var(--tk-v1-space-4);
+  margin: 0;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border-bottom: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--color-bg-alt) 58%, var(--color-bg));
+}
+
+.affiliate-sample-decision-creator-metrics-title {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.affiliate-sample-decision-creator-metrics > div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+}
+
+.affiliate-sample-decision-creator-metrics dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.affiliate-sample-decision-creator-metrics dd {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.affiliate-sample-decision-product {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--tk-v1-space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.affiliate-sample-decision-product-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--color-bg);
+}
+
+.affiliate-sample-decision-product-thumb-empty {
+  position: relative;
+}
+
+.affiliate-sample-decision-product-thumb-empty::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: var(--tk-v1-radius-1);
+  background: color-mix(in srgb, var(--color-text-muted) 22%, transparent);
+}
+
+.affiliate-sample-decision-product-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.affiliate-sample-decision-product-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-3);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.affiliate-sample-decision-product-price {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.affiliate-sample-decision-product-stock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-sample-decision-product .affiliate-sample-decision-product-stock strong {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

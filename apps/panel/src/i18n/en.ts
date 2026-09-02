@@ -3835,6 +3835,7 @@ export default {
         },
         type: "Type",
         work: "Agent work",
+        stock: "Stock",
         status: "Status",
         actions: {
           rejectSample: "Reject sample application",
@@ -4207,6 +4208,7 @@ export default {
         avgVideoViews: "Avg video views",
         rating: "Seller rating",
         pps: "PPS",
+        engagementRate: "Engagement rate",
         postRate: "Post rate",
         noMarketplacePerformance:
           "No marketplace performance metrics are available yet.",
