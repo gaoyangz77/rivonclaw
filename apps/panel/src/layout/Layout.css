@@ -11,6 +11,36 @@
   overscroll-behavior: none;
 }
 
+/* The whole app as a roller shutter door over the pixel office
+   (components/office/OfficeShutter.tsx). Plain flex passthrough while down. */
+.layout-door {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Only while the office is in play does the door become a positioned,
+   transformed layer: a transform makes this element the containing block for
+   every fixed descendant (modals, toasts), which is right while they ride the
+   door up and wrong for the hours the door is simply down. `--office-openness`
+   is set imperatively on the door: 0 = down, 1 = rolled all the way up. */
+.layout-door--rolling {
+  position: relative;
+  /* One above the office stage (10010), which itself sits above the tutorial
+     layer (10000) - a screensaver a coach mark can poke through is not one. */
+  z-index: 10011;
+  background: var(--color-bg-page);
+  transform: translateY(calc(var(--office-openness, 0) * -100%));
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+
+/* While a finger owns the door it must track the drag, not chase it. */
+.layout-door--dragging {
+  transition: none;
+}
+
 .layout-body {
   display: flex;
   flex: 1;

@@ -5,8 +5,8 @@ export default {
     open: "办公室视图",
     openHint: "显示 Agent 办公室",
     unavailable: "此版本未包含办公室视图。",
-    pullDown: "拉下 Agent 办公室",
-    pullUp: "把办公室收回去",
+    pullDown: "放下卷帘门，回到工作台",
+    pullUp: "拉起卷帘门，看看办公室",
     label: {
       idle: "摸鱼",
       idleSlacking: "划水",

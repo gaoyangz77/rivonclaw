@@ -5,8 +5,8 @@ export default {
     open: "Office view",
     openHint: "Show the agent office",
     unavailable: "The office view is not available in this build.",
-    pullDown: "Pull down the agent office",
-    pullUp: "Roll the agent office back up",
+    pullDown: "Roll the shutter back down",
+    pullUp: "Roll the shutter up to see the office",
     label: {
       idle: "Idle",
       idleSlacking: "Slacking off",

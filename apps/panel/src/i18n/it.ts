@@ -7,8 +7,8 @@ export default {
     open: "Vista ufficio",
     openHint: "Mostra l'ufficio agenti",
     unavailable: "La vista ufficio non è disponibile in questa build.",
-    pullDown: "Abbassa l'ufficio agenti",
-    pullUp: "Riavvolgi l'ufficio agenti",
+    pullDown: "Riabbassa la serranda",
+    pullUp: "Alza la serranda per vedere l'ufficio",
     label: {
       idle: "In pausa",
       idleSlacking: "Batte la fiacca",

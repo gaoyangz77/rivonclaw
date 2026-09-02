@@ -7,8 +7,8 @@ export default {
     open: "Vista de oficina",
     openHint: "Mostrar la oficina de agentes",
     unavailable: "La vista de oficina no está disponible en esta versión.",
-    pullDown: "Bajar la oficina de agentes",
-    pullUp: "Volver a subir la oficina",
+    pullDown: "Vuelve a bajar la persiana",
+    pullUp: "Sube la persiana para ver la oficina",
     label: {
       idle: "Sin tarea",
       idleSlacking: "Haciendo el vago",

@@ -7,8 +7,8 @@ export default {
     open: "Tampilan kantor",
     openHint: "Tampilkan kantor agen",
     unavailable: "Tampilan kantor tidak tersedia di versi ini.",
-    pullDown: "Turunkan kantor agen",
-    pullUp: "Gulung kembali kantor agen",
+    pullDown: "Turunkan lagi pintu roll",
+    pullUp: "Gulung pintu roll ke atas untuk melihat kantor",
     label: {
       idle: "Santai",
       idleSlacking: "Leyeh-leyeh",
