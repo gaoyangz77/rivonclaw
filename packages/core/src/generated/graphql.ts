@@ -2178,14 +2178,14 @@ export interface AffiliateCreatorCollaborationSummary {
   endTime?: Maybe<Scalars['DateTimeISO']['output']>;
   firstObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   id: Scalars['ID']['output'];
-  lastObservedAt: Scalars['DateTimeISO']['output'];
-  lastSyncSource: AffiliateProjectionSyncSource;
+  lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastSyncSource?: Maybe<AffiliateProjectionSyncSource>;
   message?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   platformCollaborationId: Scalars['String']['output'];
   platformUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   productIds: Array<Scalars['String']['output']>;
-  projectionRevision: Scalars['Int']['output'];
+  projectionRevision?: Maybe<Scalars['Int']['output']>;
   shopId: Scalars['ID']['output'];
   /** The canonical reason this Collaboration belongs to the bound CreatorRelationship. No other Creator identity is returned. */
   sources: Array<AffiliateRelationshipPlatformCollaborationSource>;
