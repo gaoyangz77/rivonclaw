@@ -66,6 +66,20 @@ describe("OfficeOverlay", () => {
   // stayed that way. The scene had arrived - replayed by the bus the instant
   // the overlay subscribed - but before the assets, so before there was a host
   // to give it to, and Desktop sends nothing further while nothing changes.
+  // Seen from a nested route: a relative `./office/...` resolved against
+  // `/commerce/shops` and 404ed, which the overlay reports as "this build has
+  // no office". The paths must be root-absolute whatever route is open.
+  it("loads the office from the static root regardless of the current route", async () => {
+    window.history.pushState({}, "", "/commerce/shops");
+    render(<OfficeOverlay onExit={() => {}} />);
+    expect(fetch).toHaveBeenCalledWith("/office/scene-assets.json");
+
+    resolveAssets();
+    await waitFor(() => expect(host.start).toHaveBeenCalled());
+    const iframe = document.querySelector("iframe") as HTMLIFrameElement;
+    expect(new URL(iframe.src, window.location.origin).pathname).toBe("/office/index.html");
+  });
+
   it("applies a scene that arrived before the renderer host existed", async () => {
     bus.replay = { snapshot: SNAPSHOT, cues: [] };
     render(<OfficeOverlay onExit={() => {}} />);

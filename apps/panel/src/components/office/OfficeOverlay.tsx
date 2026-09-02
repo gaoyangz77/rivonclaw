@@ -9,9 +9,16 @@ import { SCENE_ROOM_LABEL_KEYS, type SceneSnapshot } from "@rivonclaw/scene-cont
 import { activityCaptionKey, isReadingTool } from "../../lib/office-activity.js";
 import { useOfficeScene } from "./useOfficeScene.js";
 
-/** Served from the Panel's static root; staged by scripts/setup-pixel-agents.sh. */
-const OFFICE_URL = "./office/index.html";
-const ASSETS_URL = "./office/scene-assets.json";
+/**
+ * Served from the Panel's static root; staged by scripts/setup-pixel-agents.sh.
+ *
+ * Root-absolute on purpose. The overlay mounts over whatever route is open,
+ * and a relative `./office/...` resolves against that route - fine on `/`,
+ * `/ecommerce/office/...` and a 404 on `/ecommerce/shops`, which read as "this
+ * build has no office". Same convention as `/icon.png` in the sidebar.
+ */
+const OFFICE_URL = "/office/index.html";
+const ASSETS_URL = "/office/scene-assets.json";
 
 /** Sprite pixels per tile, fixed by the renderer's own asset grid. */
 const TILE_SIZE = 16;
