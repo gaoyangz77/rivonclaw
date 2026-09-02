@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.2",
+    "date": "2026-09-02",
+    "en": [
+      "Rework the Affiliate campaign workspace: page large creator tables, invite creators without sending a direct message, and review sample applications with product stock and creator performance in view",
+      "Redesign creator escalation around the staff decision so the Agent can act on what staff decided, and open the Agent Office with a pleated shutter and clearer in-run status captions"
+    ],
+    "zh": [
+      "重构达人联盟活动工作台：大列表分页加载、可不发私信直接邀约达人，样品申请审核页同时展示商品库存与达人绩效",
+      "围绕人工决策重新设计达人升级处理流程，Agent 可读取并延续人工处理结果；Agent Office 改为百叶帘式卷帘开合，运行状态提示更清晰"
+    ]
+  },
+  {
     "version": "1.9.1",
     "date": "2026-09-01",
     "en": [
