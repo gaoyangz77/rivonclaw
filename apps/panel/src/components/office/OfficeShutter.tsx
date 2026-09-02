@@ -86,6 +86,7 @@ export function OfficeShutter({
           role="button"
           tabIndex={0}
           aria-label={t("office.pullUp")}
+          title={t("office.pullUp")}
           onPointerDown={startDrag}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") shutter.open();

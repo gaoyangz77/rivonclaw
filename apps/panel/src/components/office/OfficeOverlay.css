@@ -1,25 +1,49 @@
 /* The pixel office, fixed behind the work UI, which rolls up like a shutter
    door to reveal it. The door itself is `.layout-door` in layout/Layout.css. */
 
-/* With the door down, this strip along its lower edge is the whole feature:
-   the grab target that lifts it. Deliberately thin and quiet - it sits over
-   every page. */
+/* With the door down, this band along its lower edge is the whole feature:
+   the grab target that lifts it. Visible at rest - a door's edge that only
+   appears under the cursor is an edge nobody finds - but quiet: a thin lip
+   with the same pill the rolled-up door shows at the top, brightening when
+   the cursor reaches it. The band is wider than the pill so the whole edge
+   grabs, not just the mark. */
 .office-shutter-handle {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 6px;
+  height: 12px;
   z-index: 10009;
   cursor: grab;
-  background: linear-gradient(to top, var(--color-border-strong), transparent);
-  opacity: 0;
+  background: linear-gradient(to top, var(--color-border), transparent);
+  opacity: 0.8;
+  transition: opacity 140ms ease;
+}
+
+/* Muted TEXT colour, not a border colour: on the light theme the border
+   greys sit within a few points of the page ground and the pill vanished. */
+.office-shutter-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 96px;
+  height: 6px;
+  margin-left: -48px;
+  border-radius: 3px;
+  background: var(--color-text-muted);
+  opacity: 0.6;
   transition: opacity 140ms ease;
 }
 
 .office-shutter-handle:hover,
 .office-shutter-handle:focus-visible {
-  opacity: 0.9;
+  opacity: 1;
+}
+
+.office-shutter-handle:hover::before,
+.office-shutter-handle:focus-visible::before {
+  opacity: 1;
 }
 
 /* The office itself. Behind the door, so it never moves: the door does. */
