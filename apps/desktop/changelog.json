@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.1",
+    "date": "2026-09-01",
+    "en": [
+      "Add a pixel-art Agent Office that visualizes department activity and can run as the Desktop screensaver",
+      "Capture privacy-safe office activity for future replay while keeping the panel and gateway event flow in sync"
+    ],
+    "zh": [
+      "新增像素风 Agent Office，将各部门运行状态可视化，并可作为 Desktop 屏保使用",
+      "记录隐私安全的办公室活动以支持后续回放，同时保持面板与 Gateway 事件流同步"
+    ]
+  },
+  {
     "version": "1.9.0",
     "date": "2026-09-01",
     "en": [
