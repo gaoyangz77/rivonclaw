@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import {
   applySentCreatorStatePreset,
+  campaignCreatorResponseSummary,
   campaignDecisionReasonLabel,
+  campaignOutreachReasonLabel,
+  campaignRuleMatchLabel,
   campaignMessageStepValid,
   campaignSkipsDirectMessage,
   affiliateCampaignCommissionRange,
@@ -25,6 +28,7 @@ import {
   paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
   SENT_CREATOR_STATE_STATUSES,
+  toggleSentCreatorStatePreset,
   unsupportedAffiliateCampaignTemplateVariables,
 } from "./AffiliateCampaignPage.js";
 
@@ -256,6 +260,153 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(fresh).not.toBe(SENT_CREATOR_STATE_STATUSES);
   });
 
+  it("toggles the sent-creator preset off when it is already applied", () => {
+    const { ReachedOut, Replied, Scheduled } = GQL.AffiliateCampaignCreatorStateStatus;
+
+    expect(toggleSentCreatorStatePreset([])).toEqual([ReachedOut, Replied]);
+    expect(toggleSentCreatorStatePreset([Scheduled])).toEqual([ReachedOut, Replied]);
+    expect(toggleSentCreatorStatePreset([Replied, ReachedOut])).toEqual([]);
+    expect(toggleSentCreatorStatePreset([ReachedOut, Replied, Scheduled])).toEqual([
+      ReachedOut,
+      Replied,
+    ]);
+  });
+
+  it("summarizes the Creator response as reply, collaboration, or an open invitation", () => {
+    const { ReachedOut, Replied, Scheduled, Discovered } =
+      GQL.AffiliateCampaignCreatorStateStatus;
+    const relationship = (collaborations: number, agent = 0, staff = 0) => ({
+      activeAffiliateCollaborationIds: Array.from({ length: collaborations }, (_, i) => `c${i}`),
+      workSummary: { agentRequiredCount: agent, staffRequiredCount: staff, externalWaitingCount: 9 },
+    });
+
+    expect(
+      campaignCreatorResponseSummary({
+        status: Replied,
+        repliedAt: "2026-09-01T00:00:00.000Z",
+        creatorRelationship: relationship(2, 1, 1),
+      }),
+    ).toEqual({
+      kind: "replied",
+      repliedAt: "2026-09-01T00:00:00.000Z",
+      activeCollaborationCount: 2,
+      pendingWorkCount: 2,
+    });
+    expect(
+      campaignCreatorResponseSummary({
+        status: ReachedOut,
+        repliedAt: null,
+        creatorRelationship: relationship(1),
+      }),
+    ).toMatchObject({ kind: "collaborating", activeCollaborationCount: 1, pendingWorkCount: 0 });
+    expect(
+      campaignCreatorResponseSummary({
+        status: ReachedOut,
+        repliedAt: null,
+        creatorRelationship: relationship(0, 0, 3),
+      }),
+    ).toMatchObject({ kind: "awaiting", pendingWorkCount: 3 });
+    expect(
+      campaignCreatorResponseSummary({ status: Scheduled, repliedAt: null, creatorRelationship: null }),
+    ).toMatchObject({ kind: "none", repliedAt: null, activeCollaborationCount: 0 });
+    expect(campaignCreatorResponseSummary({ status: Discovered, repliedAt: null })).toMatchObject({
+      kind: "none",
+    });
+  });
+
+  it("explains an unreached Creator with one human reason and stays silent when qualified", () => {
+    const t = (key: string, options?: Record<string, unknown>) =>
+      options ? `${key}:${JSON.stringify(options)}` : key;
+    const { Failed, Scheduled, ReachedOut, Disqualified, IneligibleProtected } =
+      GQL.AffiliateCampaignCreatorStateStatus;
+    const base = {
+      outreachErrorCode: null,
+      eligibilityReasonCode: null,
+      decisionReason: null,
+      decisionReasonCodes: [] as string[],
+    };
+
+    expect(
+      campaignOutreachReasonLabel(
+        { ...base, status: Failed, outreachErrorCode: "COLLABORATION_CREATOR_PRODUCT_CONFLICT" },
+        false,
+        t,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.deliveryFailure.duplicateCollaboration");
+    expect(campaignOutreachReasonLabel({ ...base, status: Failed }, false, t)).toBe(
+      "ecommerce.affiliateCampaign.deliveryFailure.otherProviderRejection",
+    );
+    expect(
+      campaignOutreachReasonLabel(
+        { ...base, status: IneligibleProtected, eligibilityReasonCode: "PROTECTION_LIST" },
+        false,
+        t,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.eligibilityReason.protection_list");
+    expect(campaignOutreachReasonLabel({ ...base, status: Scheduled }, true, t)).toBe(
+      "ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled",
+    );
+    expect(
+      campaignOutreachReasonLabel(
+        { ...base, status: Disqualified, decisionReasonCodes: ["PRE_APPROVAL_REJECTED"] },
+        false,
+        t,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.decisionReason.preApprovalRejected");
+    expect(
+      campaignOutreachReasonLabel(
+        { ...base, status: ReachedOut, decisionReasonCodes: ["PROVIDER_FILTER_MATCH"] },
+        false,
+        t,
+      ),
+    ).toBeNull();
+    expect(
+      campaignOutreachReasonLabel(
+        { ...base, status: Scheduled, decisionReasonCodes: ["PRE_APPROVAL_QUALIFIED"] },
+        false,
+        t,
+      ),
+    ).toBeNull();
+    expect(campaignOutreachReasonLabel({ ...base, status: Scheduled }, false, t)).toBeNull();
+  });
+
+  it("labels rule matching without exposing provider enum names", () => {
+    const t = (key: string) => key;
+    expect(campaignRuleMatchLabel(GQL.AffiliateCampaignRuleFilterResult.Passed, t)).toBe(
+      "ecommerce.affiliateCampaign.ruleMatched",
+    );
+    expect(campaignRuleMatchLabel(GQL.AffiliateCampaignRuleFilterResult.Failed, t)).toBe(
+      "ecommerce.affiliateCampaign.ruleNotMatched",
+    );
+    expect(campaignRuleMatchLabel(null, t)).toBe("ecommerce.affiliateCampaign.ruleNotEvaluated");
+  });
+
+  it("ships the Creator-table column copy in every supported locale", () => {
+    for (const locale of ["en", "zh", "de", "es", "fr", "id", "it", "th"] as const) {
+      const copy = AFFILIATE_CAMPAIGN_TRANSLATIONS[locale].ecommerce.affiliateCampaign;
+      for (const key of [
+        "followers",
+        "outreachStatus",
+        "creatorResponse",
+        "responseReplied",
+        "responseCollaborating",
+        "responseAwaiting",
+        "responsePendingWork",
+        "selectionBasis",
+        "ruleMatched",
+        "ruleNotMatched",
+        "ruleNotEvaluated",
+        "providerPagePosition",
+        "preApprovalCutoffLine",
+      ] as const) {
+        expect(copy[key], `${locale}.${key}`).toBeTruthy();
+        expect(copy[key], `${locale}.${key}`).not.toBe(
+          locale === "en" ? "" : AFFILIATE_CAMPAIGN_TRANSLATIONS.en.ecommerce.affiliateCampaign[key],
+        );
+      }
+    }
+  });
+
   it("paginates the campaign directory in stable twenty-row pages", () => {
     const campaigns = Array.from({ length: 45 }, (_, index) => `campaign-${index + 1}`);
 
@@ -308,6 +459,27 @@ describe("Affiliate Campaign presentation contracts", () => {
       "translated:ecommerce.affiliateCampaign.eligibilityReason." +
         "provider_product_collaboration_conflict",
     );
+  });
+
+  it("has copy for every outreach-policy reason the Backend emits, in every locale", () => {
+    const backendReasonCodes = [
+      "PROTECTION_LIST",
+      "NO_CAMPAIGN_DISTURB",
+      "SAME_CAMPAIGN_ALREADY_CONTACTED",
+      "SAME_CAMPAIGN_RESERVED_OR_SUBMITTED",
+      "SHOP_CREATOR_7D_LIMIT",
+      "CAMPAIGN_ALREADY_CONTACTED",
+      "SHOP_CREATOR_PENDING_FIRST_TOUCH",
+      "PROVIDER_PRODUCT_COLLABORATION_CONFLICT",
+      "EXISTING_PRODUCT_COLLABORATION",
+    ];
+    for (const locale of ["en", "zh", "de", "es", "fr", "id", "it", "th"] as const) {
+      const reasons = AFFILIATE_CAMPAIGN_TRANSLATIONS[locale].ecommerce.affiliateCampaign
+        .eligibilityReason as Record<string, string>;
+      for (const code of backendReasonCodes) {
+        expect(reasons[code.toLowerCase()], `${locale} ${code}`).toBeTruthy();
+      }
+    }
   });
 
   it("has localized Provider product-conflict copy in every supported Campaign locale", () => {
