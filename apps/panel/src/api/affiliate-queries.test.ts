@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
+  AFFILIATE_CAMPAIGNS_QUERY,
+  WRITE_AFFILIATE_CAMPAIGN_MUTATION,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
@@ -251,6 +253,16 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(mutation).toContain("setAffiliateBusinessDeveloperPreferredAccount(input: $input)");
     expect(mutation).toContain("preferredWhatsAppAccountBindingId");
     expect(mutation).toContain("preferredEmailAccountBindingId");
+  });
+});
+
+describe("affiliate Campaign first-touch mode", () => {
+  it("reads the first-touch mode beside the message template on every Campaign read and write path", () => {
+    for (const document of [AFFILIATE_CAMPAIGNS_QUERY, WRITE_AFFILIATE_CAMPAIGN_MUTATION]) {
+      const query = queryText(document);
+      expect(query).toContain("firstTouchMode");
+      expect(query).toContain("messageTemplateText");
+    }
   });
 });
 

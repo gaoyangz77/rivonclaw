@@ -99,6 +99,12 @@ type CampaignForm = {
   templateGuidance: string;
   templateSource: GQL.AffiliateCampaignMessageTemplateSource;
   messageProductName: string;
+  /**
+   * COLLABORATION_ONLY invites the Creator into the Target Collaboration
+   * without sending the templated message. The template text is retained
+   * either way so toggling the mode never loses the seller's draft.
+   */
+  firstTouchMode: GQL.AffiliateCampaignFirstTouchMode;
 };
 
 const emptyForm: CampaignForm = {
@@ -138,6 +144,7 @@ const emptyForm: CampaignForm = {
   templateGuidance: "",
   templateSource: GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
   messageProductName: "",
+  firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
 };
 
 /**
@@ -315,6 +322,23 @@ export function unsupportedAffiliateCampaignTemplateVariables(value: string): st
     if (variable && !CAMPAIGN_TEMPLATE_VARIABLES.has(variable)) unsupported.add(variable);
   }
   return [...unsupported];
+}
+
+export function campaignSkipsDirectMessage(mode: GQL.AffiliateCampaignFirstTouchMode): boolean {
+  return mode === GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly;
+}
+
+/**
+ * Whether the wizard's message step may advance. A direct-message Campaign
+ * needs a template; a collaboration-only Campaign sends none, so an empty
+ * template is fine. Unsupported variables in a retained template are checked
+ * separately in both modes, mirroring Backend validation.
+ */
+export function campaignMessageStepValid(
+  form: Pick<CampaignForm, "templateText" | "firstTouchMode">,
+): boolean {
+  if (campaignSkipsDirectMessage(form.firstTouchMode)) return true;
+  return form.templateText.trim().length > 0;
 }
 
 export function paginateCampaigns<T>(
@@ -641,6 +665,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         campaign.messageProductName ||
         campaign.productSnapshot?.title ||
         campaignLeadProductId(campaign),
+      firstTouchMode: campaign.firstTouchMode,
     });
     setEditingCampaignId(campaign.id);
     // Only the lead product has a stored snapshot; the other rows show nothing
@@ -741,7 +766,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired"), "error");
       return false;
     }
-    if (wizardStep === 3 && !form.templateText.trim()) {
+    if (wizardStep === 3 && !campaignMessageStepValid(form)) {
       showToast(t("ecommerce.affiliateCampaign.templateRequired"), "error");
       return false;
     }
@@ -820,6 +845,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         // Both modes take Creators in Marketplace order; AI mode only adds a
         // pre-screen. There is no seller-set threshold to send any more.
         selectionPolicy: { strategy: form.strategy },
+        firstTouchMode: form.firstTouchMode,
         messageTemplateText: form.templateText.trim(),
         messageTemplateSource: form.templateSource,
         messageProductName: form.messageProductName.trim() || productPreview.title,
@@ -848,8 +874,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
   };
 
+  const skipDirectMessage = campaignSkipsDirectMessage(form.firstTouchMode);
+
   const generateMessage = async () => {
-    if (!productPreview) return;
+    if (!productPreview || skipDirectMessage) return;
     setGeneratingTemplate(true);
     try {
       const suggestion = await generateAffiliateCampaignMessageTemplate({
@@ -1566,16 +1594,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       ),
                     )}
                   </span>
-                  <button
-                    type="button"
-                    className="affiliate-campaign-template-toggle"
-                    aria-expanded={messageTemplateOpen}
-                    onClick={() => setMessageTemplateOpen((open) => !open)}
-                  >
-                    {messageTemplateOpen
-                      ? t("ecommerce.affiliateCampaign.hideFirstMessage")
-                      : t("ecommerce.affiliateCampaign.viewFirstMessage")}
-                  </button>
+                  {campaignSkipsDirectMessage(selectedCampaign.firstTouchMode) ? (
+                    <span
+                      className="affiliate-campaign-modal-commission affiliate-campaign-modal-first-touch"
+                    >
+                      {t("ecommerce.affiliateCampaign.noDirectMessage")}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="affiliate-campaign-template-toggle"
+                      aria-expanded={messageTemplateOpen}
+                      onClick={() => setMessageTemplateOpen((open) => !open)}
+                    >
+                      {messageTemplateOpen
+                        ? t("ecommerce.affiliateCampaign.hideFirstMessage")
+                        : t("ecommerce.affiliateCampaign.viewFirstMessage")}
+                    </button>
+                  )}
                 </div>
 
                 {selectedCampaign.products.length > 1 ? (
@@ -1640,7 +1676,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </div>
                 ) : null}
 
-                {messageTemplateOpen && (
+                {messageTemplateOpen &&
+                  !campaignSkipsDirectMessage(selectedCampaign.firstTouchMode) && (
                   <div
                     className="affiliate-campaign-modal-template data-card-hover"
                     role="region"
@@ -2757,7 +2794,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void generateMessage()}
-                    disabled={generatingTemplate}
+                    disabled={generatingTemplate || skipDirectMessage}
                   >
                     {generatingTemplate
                       ? t("ecommerce.affiliateCampaign.generating")
@@ -2778,12 +2815,29 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   />
                   <small>{t("ecommerce.affiliateCampaign.messageProductNameHint")}</small>
                 </label>
+                <label className="affiliate-campaign-check-rule">
+                  <input
+                    type="checkbox"
+                    checked={skipDirectMessage}
+                    onChange={(event) =>
+                      updateForm(
+                        "firstTouchMode",
+                        event.target.checked
+                          ? GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly
+                          : GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
+                      )
+                    }
+                  />
+                  <span>{t("ecommerce.affiliateCampaign.noDirectMessage")}</span>
+                </label>
+                <p className="form-hint">{t("ecommerce.affiliateCampaign.noDirectMessageHint")}</p>
                 <label>
                   <span>{t("ecommerce.affiliateCampaign.messageTemplate")}</span>
                   <textarea
                     rows={8}
                     maxLength={2000}
                     value={form.templateText}
+                    disabled={skipDirectMessage}
                     aria-invalid={unsupportedTemplateVariables.length > 0}
                     aria-describedby={
                       unsupportedTemplateVariables.length > 0
@@ -2906,6 +2960,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     form.isSampleApprovalExempt
                       ? "ecommerce.affiliateCampaign.sampleApprovalExemptOn"
                       : "ecommerce.affiliateCampaign.sampleApprovalExemptOff",
+                  )}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.firstTouch")}
+                  value={t(
+                    skipDirectMessage
+                      ? "ecommerce.affiliateCampaign.firstTouchCollaborationOnly"
+                      : "ecommerce.affiliateCampaign.firstTouchDirectMessage",
                   )}
                 />
                 <ConfirmationItem

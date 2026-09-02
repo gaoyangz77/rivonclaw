@@ -1605,6 +1605,13 @@
   border-color: var(--color-danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 14%, transparent);
 }
+/* A collaboration-only Campaign keeps its template text but never sends it. */
+.affiliate-campaign-wizard-fields textarea:disabled {
+  border-color: var(--color-border-light);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
 .affiliate-campaign-wizard-fields label > small {
   display: block;
   margin-top: 6px;
@@ -2784,6 +2791,10 @@
 .affiliate-campaign-modal-readiness.is-blocked {
   border-color: color-mix(in srgb, var(--color-warning) 34%, var(--color-border-light));
   color: var(--color-warning);
+}
+
+.affiliate-campaign-modal-first-touch {
+  margin-left: auto;
 }
 
 .affiliate-campaign-template-toggle {

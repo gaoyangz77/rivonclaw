@@ -301,6 +301,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     selectionPolicy {
       strategy
     }
+    firstTouchMode
     messageTemplateText
     messageTemplateSource
     messageProductName
