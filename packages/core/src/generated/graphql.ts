@@ -2369,7 +2369,7 @@ export interface AffiliateCreatorProductFitInput {
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Prediction scenario. Defaults to CREATOR_PROSPECTING for creator-product fit checks from affiliate chat. */
   scenario?: InputMaybe<AffiliateExpectedSalesPredictionScenario>;
-  shopId: Scalars['ID']['input'];
+  shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 /** Agent-facing creator-product fit result for affiliate chat/card decisions. It reuses the expected-sales prediction model and does not mutate collaboration product context. */
