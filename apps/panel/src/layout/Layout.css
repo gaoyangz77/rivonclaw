@@ -31,13 +31,42 @@
      layer (10000) - a screensaver a coach mark can poke through is not one. */
   z-index: 10011;
   background: var(--color-bg-page);
-  transform: translateY(calc(var(--office-openness, 0) * -100%));
+  /* The door does not slide away, it folds: pinned at its top edge and
+     squashed toward it, like a pleated blind gathering, until at full openness
+     only a thin stack of pleats is left along the top of the window (1.4% of
+     the height - about 14px on a laptop screen). The office is revealed from
+     the bottom up as the fabric shortens. Squashing the live UI is deliberate:
+     text and panels crumpling into the stack is what reads as folding. */
+  transform-origin: top center;
+  transform: scaleY(calc(1 - var(--office-openness, 0) * 0.986));
   transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
   will-change: transform;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+/* The pleats: a horizontal crease pattern laid over the door, invisible while
+   it hangs flat and darkening as it gathers. Drawn INSIDE the squashed box, so
+   the creases compress with the fabric - at full openness they pack into the
+   dense stripe that is the folded stack. */
+.layout-door--rolling::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 22px,
+    color-mix(in srgb, var(--color-text) 28%, transparent) 22px 27px,
+    color-mix(in srgb, var(--color-bg) 55%, transparent) 27px 32px
+  );
+  opacity: var(--office-openness, 0);
+  transition: opacity 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 /* While a finger owns the door it must track the drag, not chase it. */
-.layout-door--dragging {
+.layout-door--dragging,
+.layout-door--dragging::after {
   transition: none;
 }
 
