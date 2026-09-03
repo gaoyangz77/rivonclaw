@@ -139,6 +139,12 @@ import {
   findMarketingAttributionDeepLink,
   persistMarketingAttributionDeepLink,
 } from "../attribution/marketing-attribution.js";
+import {
+  createDesktopToWebAuthorizationUrl,
+  findDesktopWebSessionDeepLink,
+  parseDesktopWebSessionDeepLink,
+  type DesktopWebSessionRequest,
+} from "../auth/desktop-to-web-handoff.js";
 
 const log = createLogger("desktop");
 
@@ -167,6 +173,10 @@ let marketingAttributionSettings: {
   delete(key: string): boolean;
 } | null = null;
 const pendingMarketingAttributionUrls: string[] = [];
+const pendingDesktopWebSessionRequests: DesktopWebSessionRequest[] = [];
+let deferredDesktopWebSessionRequest: DesktopWebSessionRequest | null = null;
+let handleDesktopWebSessionRequest: ((request: DesktopWebSessionRequest) => Promise<void>) | null =
+  null;
 
 function acceptMarketingAttributionUrl(rawUrl: string): void {
   if (!rawUrl) return;
@@ -186,6 +196,28 @@ function acceptMarketingAttributionArgs(args: string[]): void {
   if (rawUrl) acceptMarketingAttributionUrl(rawUrl);
 }
 
+function acceptDesktopDeepLinkUrl(rawUrl: string): void {
+  const request = parseDesktopWebSessionDeepLink(rawUrl);
+  if (!request) {
+    acceptMarketingAttributionUrl(rawUrl);
+    return;
+  }
+  if (!handleDesktopWebSessionRequest) {
+    pendingDesktopWebSessionRequests.push(request);
+    return;
+  }
+  void handleDesktopWebSessionRequest(request);
+}
+
+function acceptDesktopDeepLinkArgs(args: string[]): void {
+  const webSessionUrl = findDesktopWebSessionDeepLink(args);
+  if (webSessionUrl) {
+    acceptDesktopDeepLinkUrl(webSessionUrl);
+    return;
+  }
+  acceptMarketingAttributionArgs(args);
+}
+
 // Check if a pending auto-update blocks this launch
 const _updateBlocked = checkUpdateBlocked();
 
@@ -200,14 +232,14 @@ const singleInstanceHeartbeat = startHeartbeatInterval();
 
 app.on("second-instance", (_event, commandLine) => {
   log.warn("Attempted to start second instance - showing existing window");
-  acceptMarketingAttributionArgs(commandLine);
+  acceptDesktopDeepLinkArgs(commandLine);
   if (mainWindow?.isMinimized()) mainWindow.restore();
   showMainWindow(mainWindow);
 });
 
 app.on("open-url", (event, rawUrl) => {
   event.preventDefault();
-  acceptMarketingAttributionUrl(rawUrl);
+  acceptDesktopDeepLinkUrl(rawUrl);
   if (mainWindow?.isMinimized()) mainWindow.restore();
   showMainWindow(mainWindow);
 });
@@ -295,7 +327,7 @@ app.whenReady().then(async () => {
   setStorageRef(storage);
   setProviderKeysStore(storage.providerKeys);
   marketingAttributionSettings = storage.settings;
-  acceptMarketingAttributionArgs(process.argv);
+  acceptDesktopDeepLinkArgs(process.argv);
   while (pendingMarketingAttributionUrls.length > 0) {
     acceptMarketingAttributionUrl(pendingMarketingAttributionUrls.shift() ?? "");
   }
@@ -555,8 +587,17 @@ app.whenReady().then(async () => {
       return subscriptionReconnectShopRefresh;
     },
   });
-  const unsubscribeAuthCredentialsChanged = authSession.onCredentialsChanged(async () => {
+  const unsubscribeAuthCredentialsChanged = authSession.onCredentialsChanged(async (event) => {
     await backendSubscription.handleCredentialsChanged();
+    if (
+      event.state === "available" &&
+      deferredDesktopWebSessionRequest &&
+      handleDesktopWebSessionRequest
+    ) {
+      const request = deferredDesktopWebSessionRequest;
+      deferredDesktopWebSessionRequest = null;
+      await handleDesktopWebSessionRequest(request);
+    }
   });
   reaction(
     () => rootStore.getCustomerServiceShopIdsForDevice(deviceId).join("\0"),
@@ -1220,6 +1261,44 @@ app.whenReady().then(async () => {
       contextIsolation: true,
     },
   });
+
+  const inFlightDesktopWebSessions = new Set<string>();
+  handleDesktopWebSessionRequest = async (request) => {
+    if (inFlightDesktopWebSessions.has(request.returnPath)) return;
+    inFlightDesktopWebSessions.add(request.returnPath);
+    try {
+      if (!authSession.getAccessToken()) {
+        deferredDesktopWebSessionRequest = request;
+        showMainWindow(mainWindow);
+        await dialog.showMessageBox(mainWindow!, {
+          type: "info",
+          title: "Sign in to TK Copilot Desktop",
+          message: "Desktop is not signed in yet.",
+          detail:
+            "Sign in from Desktop. TK Copilot will continue this MCP authorization automatically after login.",
+        });
+        return;
+      }
+      const authorizationUrl = await createDesktopToWebAuthorizationUrl(authSession, request);
+      await shell.openExternal(authorizationUrl);
+    } catch (error) {
+      log.warn("Failed to continue MCP authorization from Desktop", {
+        category: error instanceof Error ? error.name : "UnknownError",
+      });
+      await dialog.showMessageBox(mainWindow!, {
+        type: "error",
+        title: "Could not continue MCP authorization",
+        message: "TK Copilot could not open a secure browser session.",
+        detail: "Return to your Agent client and start the connection again.",
+      });
+    } finally {
+      inFlightDesktopWebSessions.delete(request.returnPath);
+    }
+  };
+  while (pendingDesktopWebSessionRequests.length > 0) {
+    const request = pendingDesktopWebSessionRequests.shift();
+    if (request) void handleDesktopWebSessionRequest(request);
+  }
 
   // Open external links in system browser instead of new Electron window
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

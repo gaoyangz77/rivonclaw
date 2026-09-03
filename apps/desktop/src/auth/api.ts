@@ -9,8 +9,8 @@ import {
   clearStoredMarketingAttribution,
   readStoredMarketingAttribution,
 } from "../attribution/marketing-attribution.js";
-import { CREATE_DESKTOP_TO_WEB_LOGIN_MUTATION } from "../cloud/auth-queries.js";
 import { GraphqlRequestError } from "./session.js";
+import { createDesktopToWebAuthorizationUrl } from "./desktop-to-web-handoff.js";
 
 const log = createLogger("auth-api");
 
@@ -399,18 +399,11 @@ const webOpen: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext
   }
 
   try {
-    const result = await ctx.authSession.graphqlFetch<{
-      createDesktopToWebLogin: {
-        authorizationUrl: string;
-      };
-    }>(
-      CREATE_DESKTOP_TO_WEB_LOGIN_MUTATION,
-      {
-        returnPath: "/",
-        surface: getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
-      },
-    );
-    await ctx.openExternal(result.createDesktopToWebLogin.authorizationUrl);
+    const authorizationUrl = await createDesktopToWebAuthorizationUrl(ctx.authSession, {
+      returnPath: "/",
+      surface: getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
+    });
+    await ctx.openExternal(authorizationUrl);
     sendJson(res, 200, { authenticated: true });
   } catch (error) {
     log.warn("Failed to open an authenticated website session", {
