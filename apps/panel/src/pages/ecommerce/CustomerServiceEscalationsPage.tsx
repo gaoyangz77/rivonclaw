@@ -23,6 +23,7 @@ import {
 import { panelEventBus } from "../../lib/event-bus.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
+import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
@@ -36,6 +37,7 @@ import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
+  TkPrivate,
   TkTableFrame,
   TkTabs,
 } from "../../components/design-system/index.js";
@@ -318,15 +320,17 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     { value: "", label: t("ecommerce.customerServiceWorkspace.allShops") },
     ...shops
       .filter((shop) => shop.services?.customerService?.enabled)
-      .map((shop) => ({
-        value: shop.id,
-        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-      })),
+      .map((shop) => {
+        const label = shopDisplayLabel(shop, shop.id);
+        return { value: shop.id, label: label.text, sensitive: label.sensitive };
+      }),
   ];
 
-  function shopLabel(shopId: string): string {
-    const shop = shops.find((candidate) => candidate.id === shopId);
-    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+  function shopLabel(shopId: string): ShopDisplayLabel {
+    return shopDisplayLabel(
+      shops.find((candidate) => candidate.id === shopId),
+      shopId,
+    );
   }
 
   async function copyMeta(label: string, value: string) {
@@ -821,52 +825,59 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                     {t("ecommerce.customerServiceWorkspace.conversationEmpty")}
                   </div>
                 ) : (
-                  conversationItems.map((item) => (
-                    <button
-                      className={
-                        selectedConversation?.conversationId === item.conversationId &&
-                        selectedConversation?.shopId === item.shopId
-                          ? "cs-conversation-row active"
-                          : "cs-conversation-row"
-                      }
-                      key={`${item.shopId}:${item.conversationId}`}
-                      type="button"
-                      onClick={() => workspace.selectConversation(item.shopId, item.conversationId)}
-                    >
-                      <span className="cs-conversation-meta">
-                        <span>{shopLabel(item.shopId)}</span>
-                        <span>
-                          {item.latestMessageTime
-                            ? formatCompactDateTime(item.latestMessageTime)
-                            : "-"}
-                        </span>
-                      </span>
-                      <span className="cs-conversation-row-head">
-                        <strong>{buyerLabel(item)}</strong>
-                        <span className="cs-conversation-badges">
-                          {item.openEscalationCount > 0 && (
-                            <EscalationStateBadge conversation={item} />
-                          )}
-                          <BadReviewBadge
-                            conversation={item}
-                            onClick={() => setReviewModalConversation(item)}
-                          />
-                          <span
-                            className={
-                              item.status === GQL.CustomerServiceConversationStatus.Pending
-                                ? "badge badge-warning"
-                                : "badge badge-info"
-                            }
-                          >
-                            {conversationStatusLabel(item.status, t)}
+                  conversationItems.map((item) => {
+                    const rowShop = shopLabel(item.shopId);
+                    return (
+                      <button
+                        className={
+                          selectedConversation?.conversationId === item.conversationId &&
+                          selectedConversation?.shopId === item.shopId
+                            ? "cs-conversation-row active"
+                            : "cs-conversation-row"
+                        }
+                        key={`${item.shopId}:${item.conversationId}`}
+                        type="button"
+                        onClick={() =>
+                          workspace.selectConversation(item.shopId, item.conversationId)
+                        }
+                      >
+                        <span className="cs-conversation-meta">
+                          <TkPrivate as="span" sensitive={rowShop.sensitive}>
+                            {rowShop.text}
+                          </TkPrivate>
+                          <span>
+                            {item.latestMessageTime
+                              ? formatCompactDateTime(item.latestMessageTime)
+                              : "-"}
                           </span>
                         </span>
-                      </span>
-                      <span className="cs-conversation-preview">
-                        {conversationPreview(item, t)}
-                      </span>
-                    </button>
-                  ))
+                        <span className="cs-conversation-row-head">
+                          <strong>{buyerLabel(item)}</strong>
+                          <span className="cs-conversation-badges">
+                            {item.openEscalationCount > 0 && (
+                              <EscalationStateBadge conversation={item} />
+                            )}
+                            <BadReviewBadge
+                              conversation={item}
+                              onClick={() => setReviewModalConversation(item)}
+                            />
+                            <span
+                              className={
+                                item.status === GQL.CustomerServiceConversationStatus.Pending
+                                  ? "badge badge-warning"
+                                  : "badge badge-info"
+                              }
+                            >
+                              {conversationStatusLabel(item.status, t)}
+                            </span>
+                          </span>
+                        </span>
+                        <span className="cs-conversation-preview">
+                          {conversationPreview(item, t)}
+                        </span>
+                      </button>
+                    );
+                  })
                 )}
               </div>
               <div className="cs-escalation-pagination">
@@ -927,7 +938,12 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             />
                           )}
                         </div>
-                        <p>{shopLabel(selectedConversation.shopId)}</p>
+                        <TkPrivate
+                          as="p"
+                          sensitive={shopLabel(selectedConversation.shopId).sensitive}
+                        >
+                          {shopLabel(selectedConversation.shopId).text}
+                        </TkPrivate>
                       </div>
                     </div>
                     <div className="cs-conversation-tools">
@@ -1421,7 +1437,7 @@ const EscalationsTab = observer(function EscalationsTab({
   shopLabel,
 }: {
   shopOptions: Array<{ value: string; label: string }>;
-  shopLabel: (shopId: string) => string;
+  shopLabel: (shopId: string) => ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -1578,7 +1594,10 @@ const EscalationsTab = observer(function EscalationsTab({
                         <strong>{item.id}</strong>
                         <span>{item.reason}</span>
                         <small>
-                          {shopLabel(item.shopId)} - {escalationBuyerLabel(item)}
+                          <TkPrivate sensitive={shopLabel(item.shopId).sensitive}>
+                            {shopLabel(item.shopId).text}
+                          </TkPrivate>{" "}
+                          - {escalationBuyerLabel(item)}
                         </small>
                       </span>
                     </td>
@@ -1641,7 +1660,7 @@ const EscalationDetailModal = observer(function EscalationDetailModal({
   showNavigation,
 }: {
   selected: Escalation;
-  shopLabel: (shopId: string) => string;
+  shopLabel: (shopId: string) => ShopDisplayLabel;
   copyMeta: (label: string, value: string) => Promise<void>;
   respondToEscalation: () => Promise<void>;
   requestDismissEscalation: () => void;
@@ -1658,7 +1677,9 @@ const EscalationDetailModal = observer(function EscalationDetailModal({
           <div>
             <div className="cs-escalation-detail-title">{selected.id}</div>
             <div className="cs-escalation-detail-subtitle">
-              <span>{shopLabel(selected.shopId)}</span>
+              <TkPrivate as="span" sensitive={shopLabel(selected.shopId).sensitive}>
+                {shopLabel(selected.shopId).text}
+              </TkPrivate>
               <span>{escalationBuyerLabel(selected)}</span>
               <span>
                 {t("ecommerce.customerServiceWorkspace.version", { version: selected.version })}
@@ -1817,7 +1838,7 @@ function BadReviewModal({
 }: {
   conversation: Conversation | null;
   onClose: () => void;
-  shopLabel: (shopId: string) => string;
+  shopLabel: (shopId: string) => ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
   const reviews = conversation?.recentBadReviews ?? [];
@@ -1841,7 +1862,9 @@ function BadReviewModal({
           <div className="cs-bad-review-modal-head">
             <div>
               <strong>{buyerLabel(conversation)}</strong>
-              <span>{shopLabel(conversation.shopId)}</span>
+              <TkPrivate as="span" sensitive={shopLabel(conversation.shopId).sensitive}>
+                {shopLabel(conversation.shopId).text}
+              </TkPrivate>
             </div>
             <div className="cs-bad-review-head-meta">
               <span>{t("ecommerce.customerServiceWorkspace.badReviewConversation")}</span>
@@ -1909,6 +1932,7 @@ function BadReviewModal({
                   <BadReviewMeta
                     label={t("ecommerce.customerServiceWorkspace.badReviewSku")}
                     value={review.sellerSkus}
+                    sensitive
                   />
                   <BadReviewMeta
                     label={t("ecommerce.customerServiceWorkspace.badReviewProduct")}
@@ -1928,12 +1952,23 @@ function BadReviewModal({
   );
 }
 
-function BadReviewMeta({ label, value }: { label: string; value?: string | null }) {
+function BadReviewMeta({
+  label,
+  value,
+  sensitive = false,
+}: {
+  label: string;
+  value?: string | null;
+  /** Set for seller-authored values such as a seller SKU; ids stay readable. */
+  sensitive?: boolean;
+}) {
   if (!value) return null;
   return (
     <div className="cs-bad-review-meta-item">
       <span>{label}</span>
-      <code>{value}</code>
+      <TkPrivate as="code" sensitive={sensitive}>
+        {value}
+      </TkPrivate>
     </div>
   );
 }
@@ -2176,64 +2211,70 @@ function ConversationOrderPopover({
             })}
           </h4>
           <div className="cs-order-items">
-            {(order.lineItems ?? []).map((item, index) => (
-              <div
-                className="cs-order-item"
-                key={item.orderLineItemId ?? `${item.skuId ?? "item"}:${index}`}
-              >
-                <div className="cs-order-item-image">
-                  {item.skuImage ? (
-                    <RemoteMediaImage
-                      alt={
-                        item.productName ??
-                        item.skuName ??
-                        t("ecommerce.customerServiceWorkspace.orderItem")
-                      }
-                      loading="lazy"
-                      sourceUrl={item.skuImage}
-                    />
-                  ) : (
-                    <ModuleIcon size={18} />
-                  )}
-                </div>
-                <div className="cs-order-item-copy">
-                  <strong>
-                    {item.productName ??
-                      item.skuName ??
-                      t("ecommerce.customerServiceWorkspace.orderItem")}
-                  </strong>
-                  {item.skuName && <span>{item.skuName}</span>}
-                  <div className="cs-order-item-foot">
-                    {item.sellerSku && (
-                      <button
-                        className="cs-order-item-sku"
-                        type="button"
-                        title={`${t("ecommerce.customerServiceWorkspace.sellerSku")}: ${item.sellerSku}`}
-                        onClick={() =>
-                          void onCopy(
-                            t("ecommerce.customerServiceWorkspace.sellerSku"),
-                            item.sellerSku!,
-                          )
-                        }
-                      >
-                        <span>{t("ecommerce.customerServiceWorkspace.sellerSku")}</span>
-                        <code>{item.sellerSku}</code>
-                        {copiedMeta ===
-                        `${t("ecommerce.customerServiceWorkspace.sellerSku")}:${item.sellerSku}` ? (
-                          <CheckIcon size={12} />
-                        ) : (
-                          <CopyIcon size={12} />
-                        )}
-                      </button>
+            {(order.lineItems ?? []).map((item, index) => {
+              // The line item names the seller's own product; only the generic
+              // placeholder that stands in for a missing name is not sensitive.
+              const itemName = item.productName ?? item.skuName ?? null;
+              return (
+                <div
+                  className="cs-order-item"
+                  key={item.orderLineItemId ?? `${item.skuId ?? "item"}:${index}`}
+                >
+                  <div className="cs-order-item-image">
+                    {item.skuImage ? (
+                      <RemoteMediaImage
+                        alt={itemName ?? t("ecommerce.customerServiceWorkspace.orderItem")}
+                        loading="lazy"
+                        sensitive
+                        sourceUrl={item.skuImage}
+                      />
+                    ) : (
+                      <ModuleIcon size={18} />
                     )}
-                    {item.quantity ? <span>x{item.quantity}</span> : null}
                   </div>
+                  <div className="cs-order-item-copy">
+                    <TkPrivate as="strong" sensitive={itemName !== null}>
+                      {itemName ?? t("ecommerce.customerServiceWorkspace.orderItem")}
+                    </TkPrivate>
+                    {item.skuName && <TkPrivate as="span">{item.skuName}</TkPrivate>}
+                    <div className="cs-order-item-foot">
+                      {item.sellerSku && (
+                        <button
+                          className="cs-order-item-sku"
+                          type="button"
+                          onClick={() =>
+                            void onCopy(
+                              t("ecommerce.customerServiceWorkspace.sellerSku"),
+                              item.sellerSku!,
+                            )
+                          }
+                        >
+                          <span>{t("ecommerce.customerServiceWorkspace.sellerSku")}</span>
+                          {/* The tooltip spelled the SKU out, so it moves off
+                              the button and onto the masked code itself. */}
+                          <TkPrivate
+                            as="code"
+                            title={`${t("ecommerce.customerServiceWorkspace.sellerSku")}: ${item.sellerSku}`}
+                          >
+                            {item.sellerSku}
+                          </TkPrivate>
+                          {copiedMeta ===
+                          `${t("ecommerce.customerServiceWorkspace.sellerSku")}:${item.sellerSku}` ? (
+                            <CheckIcon size={12} />
+                          ) : (
+                            <CopyIcon size={12} />
+                          )}
+                        </button>
+                      )}
+                      {item.quantity ? <span>x{item.quantity}</span> : null}
+                    </div>
+                  </div>
+                  <small>
+                    {formatOrderMoney(item.salePrice, item.currency ?? order.currency, locale)}
+                  </small>
                 </div>
-                <small>
-                  {formatOrderMoney(item.salePrice, item.currency ?? order.currency, locale)}
-                </small>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

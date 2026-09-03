@@ -9,7 +9,11 @@ import {
 } from "../../../api/shops-queries.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
-import { TkInteractiveTableRow, TkTableFrame } from "../../../components/design-system/index.js";
+import {
+  TkInteractiveTableRow,
+  TkPrivate,
+  TkTableFrame,
+} from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import {
   formatLocalizedMonthDay,
@@ -35,6 +39,13 @@ export interface AffiliateWorkbenchEntityOpenTarget {
 interface FilterOption {
   value: string;
   label: string;
+  /**
+   * Forwarded to `Select` so a shop-name option masks under privacy mode. It is
+   * declared here rather than left to survive as an undeclared extra property:
+   * these options are passed straight through, and a future `.map` that rebuilt
+   * them field by field would silently drop the marking.
+   */
+  sensitive?: boolean;
 }
 
 interface Props {
@@ -407,15 +418,19 @@ function AffiliateWorkbenchSampleList({
                     />
                   </td>
                   <td>
-                    <div className="affiliate-workbench-cell-shop">
+                    <TkPrivate
+                      as="div"
+                      className="affiliate-workbench-cell-shop"
+                      sensitive={Boolean(row.shopName)}
+                    >
                       {row.shopName || t("common.unknown")}
-                    </div>
+                    </TkPrivate>
                   </td>
                   <td>
                     <div className="affiliate-workbench-cell-product">
-                      <strong>
+                      <TkPrivate as="strong" sensitive={Boolean(row.productTitle)}>
                         {row.productTitle || row.sampleApplication.productId || t("common.unknown")}
-                      </strong>
+                      </TkPrivate>
                       {row.productTitle && row.sampleApplication.productId ? (
                         <span>{row.sampleApplication.productId}</span>
                       ) : null}

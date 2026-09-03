@@ -9,6 +9,7 @@ import {
   TkPanelBody,
   TkPanelHeader,
   TkInteractiveTableRow,
+  TkPrivate,
   TkTableFrame,
 } from "../../../components/design-system/index.js";
 
@@ -89,7 +90,7 @@ export function TikTokShopsList({
                     onActivate={() => onView(shop.id)}
                   >
                     <td>
-                      <span className="tk-v1-table-record-name">{shop.shopName}</span>
+                      <TkPrivate className="tk-v1-table-record-name">{shop.shopName}</TkPrivate>
                     </td>
                     <td>{formatShopRegionLabel(shop.region, t)}</td>
                     <td>

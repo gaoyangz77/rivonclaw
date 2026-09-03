@@ -22,6 +22,12 @@ import { TkAlert } from "../design-system/index.js";
 interface CustomerServiceBillingCtaProps {
   shopId: string;
   shopName?: string | null;
+  /**
+   * Whether `shopName` is the platform-issued name rather than the operator's
+   * own alias. Resolved by the caller with `shopDisplayLabel`, because the name
+   * arrives here already resolved and only the caller still holds the shop.
+   */
+  shopNameSensitive: boolean;
   entitlement: BillingEntitlementStatus | null;
   variant?: "card" | "inline";
 }
@@ -50,6 +56,7 @@ function planPriceLine(plan: BillingPlanDefinition | null, monthLabel: string): 
 export const CustomerServiceBillingCta = observer(function CustomerServiceBillingCta({
   shopId,
   shopName,
+  shopNameSensitive,
   entitlement,
   variant = "card",
 }: CustomerServiceBillingCtaProps) {
@@ -58,6 +65,15 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
   const plan = customerServicePlan(entityStore.billingPlanDefinitions);
   const allowed = entitlement?.allowed ?? false;
   const monthLabel = t("subscription.month");
+  // The shop id we fall back to is opaque, so the name's sensitivity only
+  // carries through when there actually is a name to fall back from.
+  const checkoutShops = [
+    {
+      shopId,
+      shopName: shopName ?? shopId,
+      shopNameSensitive: shopName ? shopNameSensitive : false,
+    },
+  ];
   const subscription = entitlement?.subscription ?? null;
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -226,7 +242,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
             onClose={() => setCheckoutModalOpen(false)}
             title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
             plans={plan ? [plan] : []}
-            shops={[{ shopId, shopName: shopName ?? shopId }]}
+            shops={checkoutShops}
             initialShopId={shopId}
             initialPlanId={plan?.planId}
             initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
@@ -255,7 +271,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
       onClose={() => setCheckoutModalOpen(false)}
       title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
       plans={plan ? [plan] : []}
-      shops={[{ shopId, shopName: shopName ?? shopId }]}
+      shops={checkoutShops}
       initialShopId={shopId}
       initialPlanId={plan?.planId}
       initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}

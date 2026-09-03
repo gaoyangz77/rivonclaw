@@ -17,7 +17,8 @@ import {
   UPDATE_UNPAID_REACHOUT_SETTINGS,
 } from "../../../api/unpaid-experiment-queries.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
-import { TkSwitchControl } from "../../../components/design-system/index.js";
+import { TkPrivate, TkSwitchControl } from "../../../components/design-system/index.js";
+import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
 const TOKENS = ["{{order_id}}", "{{product_count}}", "{{shop_name}}"] as const;
 const MAX_VARIANTS = 20;
@@ -249,6 +250,7 @@ export function UnpaidOrderReachoutSettings({
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
+  const shopLabel = shopDisplayLabel(shop);
   const query = useQuery<EvaluationQueryData>(GET_UNPAID_EVALUATION, {
     variables: { shopId: shop.id },
     fetchPolicy: "cache-and-network",
@@ -968,7 +970,7 @@ export function UnpaidOrderReachoutSettings({
         portal
       >
         <div className="unpaid-workspace-meta">
-          <span>{shop.alias || shop.shopName}</span>
+          <TkPrivate sensitive={shopLabel.sensitive}>{shopLabel.text}</TkPrivate>
           <span>
             {workspaceMode === "RUNNING"
               ? t("ecommerce.shopDrawer.aiCS.unpaidRunning", { defaultValue: "Running" })

@@ -1,8 +1,15 @@
 import { useTranslation } from "react-i18next";
+import { TkPrivate } from "../design-system/index.js";
 
 export interface CustomerServiceRoutingProblem {
   shopId: string;
   shopName: string;
+  /**
+   * Whether `shopName` is the platform-issued name rather than the operator's
+   * own alias. Resolved by the caller with `shopDisplayLabel`, because only the
+   * caller still holds the shop it came from.
+   */
+  shopNameSensitive: boolean;
   issue: "invalid_channel" | "missing_context_token";
 }
 
@@ -46,7 +53,9 @@ export function CustomerServiceRoutingBanner({ problems }: CustomerServiceRoutin
       <span className="customer-service-routing-banner-items">
         {problems.map((problem) => (
           <span className="customer-service-routing-banner-item" key={problem.shopId}>
-            <strong>{problem.shopName}</strong>
+            <TkPrivate as="strong" sensitive={problem.shopNameSensitive}>
+              {problem.shopName}
+            </TkPrivate>
             <span>{t(`ecommerce.customerServiceRoutingIssue_${problem.issue}`)}</span>
           </span>
         ))}

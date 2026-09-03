@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
+import { TkPrivate } from "../../../components/design-system/index.js";
+import { shopDisplayLabel } from "../../../lib/shop-display.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
 const CUSTOM_SCOPE = "__CUSTOM__";
@@ -51,13 +53,16 @@ export function AffiliateShopScopeControl({ shops, selected, onChange }: {
           <button type="button" onClick={() => onChange(shops.map((shop) => shop.id))}>
             {t("ecommerce.affiliateAnalytics.selectAll")}
           </button>
-          {shops.map((shop) => (
-            <label key={shop.id}>
-              <input type="checkbox" checked={selected.includes(shop.id)} onChange={() => toggle(shop.id)} />
-              <span>{shop.alias?.trim() || shop.shopName || shop.id}</span>
-              <small>{shop.region}</small>
-            </label>
-          ))}
+          {shops.map((shop) => {
+            const label = shopDisplayLabel(shop, shop.id);
+            return (
+              <label key={shop.id}>
+                <input type="checkbox" checked={selected.includes(shop.id)} onChange={() => toggle(shop.id)} />
+                <TkPrivate sensitive={label.sensitive}>{label.text}</TkPrivate>
+                <small>{shop.region}</small>
+              </label>
+            );
+          })}
         </div>
       </details>
     </div>

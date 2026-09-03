@@ -18,17 +18,27 @@ import {
   TkPageFrame,
   TkPageHeader,
   TkPanel,
+  TkPrivate,
   TkSegmented,
 } from "../../components/design-system/index.js";
 import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
+import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   buildSpsMarketChart,
   buildSpsYAxisDomain,
-  displayShopName,
   formatSpsValue,
 } from "./sps-analytics.js";
 import "./ShopAnalyticsPage.css";
+
+/**
+ * The analytics view carries the alias and the platform name as separate
+ * fields, so it resolves through the same rule as an MST shop: the operator's
+ * alias is never masked, the platform name always is.
+ */
+function spsShopLabel(shop: Pick<GQL.SpsAnalyticsShopView, "shopAlias" | "shopName">) {
+  return shopDisplayLabel({ alias: shop.shopAlias, shopName: shop.shopName });
+}
 
 const METRICS: Array<{
   code: GQL.SpsAnalyticsMetricCode;
@@ -62,11 +72,18 @@ function SpsChartTooltip({
   label,
   payload,
   unit,
+  sensitiveByShopId,
 }: {
   active?: boolean;
   label?: string | number;
   payload?: readonly ChartTooltipEntry[];
   unit?: string | null;
+  /**
+   * Whether each series name is a platform shop name. Recharts hands the
+   * tooltip only the resolved `name`, so the caller — which still has the shop
+   * views — passes the verdict down keyed by the series `dataKey` (the shop id).
+   */
+  sensitiveByShopId?: ReadonlyMap<string, boolean>;
 }) {
   const { i18n } = useTranslation();
   if (!active || !payload?.length) return null;
@@ -75,7 +92,11 @@ function SpsChartTooltip({
       <strong>{formatChartDate(String(label ?? ""), i18n.language)}</strong>
       {payload.map((entry) => (
         <div key={String(entry.dataKey ?? entry.name)}>
-          <span>{entry.name}</span>
+          <TkPrivate
+            sensitive={sensitiveByShopId?.get(String(entry.dataKey)) ?? true}
+          >
+            {entry.name}
+          </TkPrivate>
           <b>{formatSpsValue(Number(entry.value), unit, i18n.language)}</b>
         </div>
       ))}
@@ -121,6 +142,7 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
   const unavailableReason = t(`shopAnalytics.unavailableReasons.${shop.availability}`, {
     defaultValue: shop.unavailableReason || t("shopAnalytics.unavailableReasons.PLATFORM_ERROR"),
   });
+  const nameLabel = spsShopLabel(shop);
 
   return (
     <article
@@ -128,8 +150,12 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
     >
       <div className="sps-shop-card-heading">
         <div>
-          <h3>{displayShopName(shop)}</h3>
-          {shop.shopAlias && <p>{shop.shopName}</p>}
+          <TkPrivate as="h3" sensitive={nameLabel.sensitive}>
+            {nameLabel.text}
+          </TkPrivate>
+          {shop.shopAlias && (
+            <TkPrivate as="p">{shop.shopName}</TkPrivate>
+          )}
         </div>
         <span
           className={`sps-availability sps-availability-${available ? "available" : "unavailable"}`}
@@ -267,6 +293,9 @@ function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
       .filter((value): value is number => typeof value === "number"),
   );
   const yAxisDomain = buildSpsYAxisDomain(yAxisValues, unit);
+  const sensitiveByShopId = new Map(
+    market.shops.map((shop) => [shop.shopId, spsShopLabel(shop).sensitive]),
+  );
 
   return (
     <section className="sps-market-section" data-tutorial-id="analytics-market">
@@ -305,12 +334,13 @@ function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
           {chart.series.length > 0 && (
             <div className="sps-chart-legend" aria-label={t("shopAnalytics.chart.seriesAria")}>
               {chart.series.map((series, index) => (
-                <span
+                <TkPrivate
                   key={series.shopId}
                   className={`sps-series-key sps-series-key-${index % SERIES_COLORS.length}`}
+                  sensitive={sensitiveByShopId.get(series.shopId) ?? true}
                 >
                   {series.shopName}
-                </span>
+                </TkPrivate>
               ))}
             </div>
           )}
@@ -338,7 +368,11 @@ function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
                   tick={{ fontSize: 11 }}
                   width={68}
                 />
-                <Tooltip content={<SpsChartTooltip unit={unit} />} />
+                <Tooltip
+                  content={
+                    <SpsChartTooltip unit={unit} sensitiveByShopId={sensitiveByShopId} />
+                  }
+                />
                 {chart.series.map((series, index) => (
                   <Line
                     key={series.shopId}

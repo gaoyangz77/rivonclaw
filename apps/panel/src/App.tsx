@@ -170,6 +170,19 @@ export const App = observer(function App() {
     document.documentElement.dataset.rivonclawAppSurface = showWelcome ? "welcome" : "shell";
   }, [showWelcome]);
 
+  // Privacy mode masks every node marked `data-tk-private` (see
+  // design-system/styles/privacy.css). Mirroring the setting onto the document
+  // root keeps the toggle a single attribute write instead of a prop threaded
+  // through every masked component.
+  const privacyMode = runtimeStatus.appSettings.privacyMode;
+  useEffect(() => {
+    if (privacyMode) {
+      document.documentElement.setAttribute("data-privacy", "on");
+    } else {
+      document.documentElement.removeAttribute("data-privacy");
+    }
+  }, [privacyMode]);
+
   async function checkWelcome() {
     try {
       const settings = await fetchSettings();

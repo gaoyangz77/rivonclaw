@@ -20,6 +20,7 @@ import {
 } from "../../api/cs-performance-queries.js";
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedTime } from "../../lib/format-datetime.js";
@@ -263,10 +264,10 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       { value: "", label: t("ecommerce.customerServicePerformance.allShops") },
       ...shops
         .filter((shop) => shop.services?.customerService?.enabled)
-        .map((shop) => ({
-          value: shop.id,
-          label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-        })),
+        .map((shop) => {
+          const label = shopDisplayLabel(shop, shop.id);
+          return { value: shop.id, label: label.text, sensitive: label.sensitive };
+        }),
     ],
     [shops, t],
   );

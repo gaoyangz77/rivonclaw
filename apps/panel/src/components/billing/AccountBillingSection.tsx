@@ -27,7 +27,8 @@ import {
   type CheckoutProvider,
   usagePercentLabel,
 } from "./billing-labels.js";
-import { shopCollectionDisplayName } from "../../lib/shop-collections.js";
+import { shopCollectionDisplayName, shopCollectionName } from "../../lib/shop-collections.js";
+import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
 import {
   buildShopServiceBillingGroups,
   type ShopServiceBillingGroup,
@@ -40,6 +41,7 @@ import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
+  TkPrivate,
   TkTableFrame,
 } from "../design-system/index.js";
 
@@ -63,25 +65,24 @@ function billingCancelTarget(entitlement: BillingEntitlementStatus): BillingCanc
   };
 }
 
-function shopDisplayName(
-  shop:
-    | {
-        alias?: string | null;
-        shopName?: string | null;
-        platformShopId?: string | null;
-        id?: string | null;
-      }
-    | null
-    | undefined,
-  fallback: string,
-): string {
-  return shop?.alias || shop?.shopName || shop?.platformShopId || shop?.id || fallback;
+/**
+ * A collection label is built from the member shop names, so it is sensitive
+ * unless every member fell back to an alias or an id. Asking whether the label
+ * equals one of the shop names keeps the judgement tied to what
+ * `shopCollectionDisplayName` actually returned instead of restating its rule.
+ */
+function collectionDisplayLabel(shops: readonly Shop[]): ShopDisplayLabel {
+  const name = shopCollectionName(shops);
+  return {
+    text: shopCollectionDisplayName(shops),
+    sensitive: shops.some((shop) => shop.shopName?.trim() === name),
+  };
 }
 
-function rowDisplayName(row: ShopServiceBillingRow & { shops?: Shop[] }): string {
+function rowDisplayLabel(row: ShopServiceBillingRow & { shops?: Shop[] }): ShopDisplayLabel {
   return row.shops && row.shops.length > 1
-    ? shopCollectionDisplayName(row.shops)
-    : shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName);
+    ? collectionDisplayLabel(row.shops)
+    : shopDisplayLabel(row.shop, row.billing?.shopName ?? row.shop.shopName);
 }
 
 function serviceProduct(key: ShopServiceKey): string {
@@ -606,9 +607,15 @@ function ShopServiceDetailModal({
       subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const rowLabel = rowDisplayLabel(row);
   const title = serviceKey
-    ? `${rowDisplayName(row)} · ${t(`billing.services.${serviceKey}`)}`
+    ? `${rowLabel.text} · ${t(`billing.services.${serviceKey}`)}`
     : t("billing.shopServices");
+  // `titleSensitive` masks the whole heading, so the service suffix blurs along
+  // with the shop name. Splitting the two would mean a `ReactNode` title, and
+  // `title` is also the dialog's accessible label. Without a shop name in it —
+  // an alias, an id, or the plain service heading — nothing is sensitive.
+  const titleSensitive = serviceKey !== null && rowLabel.sensitive;
 
   async function handleManagePaymentMethod() {
     if (!entitlement || !onManagePaymentMethod) return;
@@ -624,7 +631,13 @@ function ShopServiceDetailModal({
   }
 
   return (
-    <Modal isOpen={serviceKey !== null} onClose={onClose} title={title} maxWidth={560}>
+    <Modal
+      isOpen={serviceKey !== null}
+      onClose={onClose}
+      title={title}
+      titleSensitive={titleSensitive}
+      maxWidth={560}
+    >
       <div className="service-detail-body">
         <div className="billing-meta-grid">
           <BillingMetaItem
@@ -820,12 +833,18 @@ function ShopServiceRow({
   const checkoutInitialPlanId = checkoutServiceKey
     ? (row.billing?.[checkoutServiceKey]?.subscription?.planId ?? checkoutPlans[0]?.planId)
     : checkoutPlans[0]?.planId;
+  const rowLabel = rowDisplayLabel(row);
+  // Checkout targets the single shop the row was built from, so it carries that
+  // shop's own label rather than the collection label the header may show.
+  const checkoutShopLabel = shopDisplayLabel(row.shop, row.billing?.shopName ?? row.shop.shopName);
 
   return (
     <>
       <div className={`billing-shop-row${className ? ` ${className}` : ""}`}>
         <div className="billing-shop-name">
-          <span className="billing-shop-name-text">{rowDisplayName(row)}</span>
+          <TkPrivate className="billing-shop-name-text" sensitive={rowLabel.sensitive}>
+            {rowLabel.text}
+          </TkPrivate>
           {row.shops && row.shops.length > 1 && (
             <span className="billing-shop-count">{row.shops.length}</span>
           )}
@@ -920,7 +939,8 @@ function ShopServiceRow({
         shops={[
           {
             shopId: row.shop.id,
-            shopName: shopDisplayName(row.shop, row.billing?.shopName ?? row.shop.shopName),
+            shopName: checkoutShopLabel.text,
+            shopNameSensitive: checkoutShopLabel.sensitive,
           },
         ]}
         initialShopId={row.shop.id}
@@ -1027,13 +1047,10 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
         (!row.billing?.customerService.allowed ||
           shouldShowRenewalReminder(row.billing.customerService)),
     )
-    .map(({ billing, shop, shops }) => ({
-      shopId: shop.id,
-      shopName:
-        shops.length > 1
-          ? shopCollectionDisplayName(shops)
-          : shopDisplayName(shop, billing?.shopName ?? shop.shopName),
-    }));
+    .map((row) => {
+      const label = rowDisplayLabel(row);
+      return { shopId: row.shop.id, shopName: label.text, shopNameSensitive: label.sensitive };
+    });
 
   return (
     <div className="billing-shop-subscribe-flow" data-tutorial-id="billing-subscribe-flow">

@@ -11,10 +11,14 @@ import { useToast } from "../../components/Toast.js";
 import {
   TkInteractiveTableRow,
   TkPanel,
+  TkPrivate,
   TkTableFrame,
+  usePrivacyMode,
 } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { BEFORE_NAVIGATE_EVENT, type BeforeNavigateDetail } from "../../lib/navigation-guard.js";
+import { shopDisplayLabel } from "../../lib/shop-display.js";
+import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
   ARCHIVE_PRODUCT_KNOWLEDGE_MUTATION,
@@ -95,6 +99,7 @@ function errorMessage(error: unknown): string {
 export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const privacyMode = usePrivacyMode();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
@@ -997,11 +1002,23 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                         {discoveryPayload.shopFailures.length > 0 ? (
                           <div className="product-knowledge-shop-failures">
                             <strong>{t("ecommerce.productKnowledge.partialFailure")}</strong>
-                            {discoveryPayload.shopFailures.map((failure) => (
-                              <span key={failure.shopId}>
-                                {failure.shopName}: {failure.message}
-                              </span>
-                            ))}
+                            {discoveryPayload.shopFailures.map((failure) => {
+                              // The failure carries only a snapshot name; when
+                              // the shop is still in the store its alias wins,
+                              // otherwise the snapshot is a platform shop name
+                              // and therefore sensitive.
+                              const failureShop = shopDisplayLabel(
+                                shopById.get(failure.shopId) ?? { shopName: failure.shopName },
+                              );
+                              return (
+                                <span key={failure.shopId}>
+                                  <TkPrivate sensitive={failureShop.sensitive}>
+                                    {failureShop.text}
+                                  </TkPrivate>
+                                  : {failure.message}
+                                </span>
+                              );
+                            })}
                             <button
                               className="btn btn-secondary"
                               onClick={() => void runDiscovery()}
@@ -1156,7 +1173,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
           confirmation?.kind === "archive"
             ? t("ecommerce.productKnowledge.archiveConfirm", { name: confirmation.name })
             : confirmation?.kind === "unlink"
-              ? t("ecommerce.productKnowledge.unlinkConfirm", { name: confirmation.productTitle })
+              ? t("ecommerce.productKnowledge.unlinkConfirm", {
+                  name: privacyMode ? MASKED_NAME_PLACEHOLDER : confirmation.productTitle,
+                })
               : t("ecommerce.productKnowledge.unsavedConfirm")
         }
         confirmLabel={

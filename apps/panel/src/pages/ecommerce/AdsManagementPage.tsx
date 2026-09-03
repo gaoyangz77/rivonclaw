@@ -10,6 +10,7 @@ import {
   TkPageHeader,
   TkPanel,
   TkPanelHeader,
+  TkPrivate,
   TkSegmented,
   TkTableFrame,
   type TkBadgeTone,
@@ -32,8 +33,10 @@ import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 import {
   groupShopsByCollection,
   shopCollectionDisplayName,
+  shopCollectionName,
   shopCollectionRegions,
 } from "../../lib/shop-collections.js";
+import { shopDisplayLabel } from "../../lib/shop-display.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
@@ -644,6 +647,9 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
               <tbody>
                 {filteredCoverageGroups.map((group) => {
                   const expanded = Boolean(expandedCoverageGroups[group.key]);
+                  // The collection label is a member shop name unless every
+                  // member fell back to an alias or an id.
+                  const collectionName = shopCollectionName(group.shops);
                   const regions = shopCollectionRegions(group.shops)
                     .map((region) => formatShopRegionLabel(region, t))
                     .join(", ");
@@ -670,9 +676,14 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                             />
                             <ShopIcon />
                             <span>
-                              <span className="tk-v1-table-record-name">
+                              <TkPrivate
+                                className="tk-v1-table-record-name"
+                                sensitive={group.shops.some(
+                                  (shop) => shop.shopName?.trim() === collectionName,
+                                )}
+                              >
                                 {shopCollectionDisplayName(group.shops)}
-                              </span>
+                              </TkPrivate>
                               <span className="td-muted">
                                 {group.shops.length}{" "}
                                 {t("ecommerce.shops", { defaultValue: "shops" })}
@@ -708,10 +719,17 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                           const hasGmvMaxAvailableAccount = accounts.some(
                             ({ access }) => access.isGmvMaxAvailable,
                           );
+                          const shopLabel = shopDisplayLabel(shop);
                           return (
                             <tr className="ads-coverage-child-row" key={shop.id}>
                               <td>
-                                <div className="tk-v1-table-record-name">{shop.alias || shop.shopName}</div>
+                                <TkPrivate
+                                  as="div"
+                                  className="tk-v1-table-record-name"
+                                  sensitive={shopLabel.sensitive}
+                                >
+                                  {shopLabel.text}
+                                </TkPrivate>
                                 <div className="td-muted td-code">{shop.platformShopId}</div>
                               </td>
                               <td>{formatShopRegionLabel(shop.region, t)}</td>

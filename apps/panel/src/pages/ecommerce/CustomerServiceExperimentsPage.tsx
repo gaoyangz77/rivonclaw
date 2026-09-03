@@ -18,6 +18,7 @@ import {
 } from "../../api/cs-experiment-queries.js";
 import { RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
 import {
   TkPageFrame,
@@ -312,10 +313,10 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   });
   const shops = [
     { value: "", label: t("ecommerce.customerServiceExperiments.filters.allShops") },
-    ...sortedShops.map((shop) => ({
-      value: shop.id,
-      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-    })),
+    ...sortedShops.map((shop) => {
+      const label = shopDisplayLabel(shop, shop.id);
+      return { value: shop.id, label: label.text, sensitive: label.sensitive };
+    }),
   ];
   const shopById = new Map(entityStore.shops.map((shop) => [shop.id, shop]));
   const formatTargetLabel = (target: GQL.CsExperimentTargetView) => {

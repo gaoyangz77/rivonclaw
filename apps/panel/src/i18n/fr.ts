@@ -1103,7 +1103,7 @@ export default {
       accentGray: "Gris Ardoise",
       privacyMode: "Mode de confidentialité",
       privacyModeHint:
-        "Cachez les informations sensibles comme les codes QR derrière un flou. Utile pour le partage d'écran ou la diffusion en direct.",
+        "Floute le code QR d'association du téléphone, les noms de boutiques ainsi que les noms et images de produits. Les alias de boutique restent visibles. Utile pour le partage d'écran ou la diffusion en direct.",
       clickToReveal: "Cliquez pour révéler",
       showAgentName: "Afficher le nom de l'agent dans la barre latérale",
       showAgentNameHint:
@@ -2229,7 +2229,7 @@ export default {
         "Choisissez la couleur d'accent pour l'interface de l'application. Cela modifie la couleur principale utilisée pour les boutons, les liens, les états actifs et les surlignages dans l'interface utilisateur. Choisissez la couleur qui vous convient le mieux: elle est purement cosmétique et n’affecte pas la fonctionnalité.",
       privacyModeTitle: "Mode de confidentialité",
       privacyModeBody:
-        "Masque le contenu sensible dans toute l’interface utilisateur. Lorsqu'elles sont activées, les clés API, le contenu des messages et d'autres données potentiellement sensibles sont masqués par des astérisques ou des effets de flou.\n\nCeci est particulièrement utile lors du partage d'écran lors d'une réunion, de l'enregistrement d'une démo ou du travail dans un espace public où quelqu'un pourrait voir votre écran. Vos données ne sont pas affectées — seul l'affichage visuel change.\n\nDésactivez-le pour voir à nouveau vos données réelles.",
+        "Masque les informations qui identifient votre activité lorsque quelqu'un d'autre peut voir votre écran. Une fois activé, trois éléments sont masqués : le code QR affiché lors de l'association d'un téléphone, les noms de boutiques ainsi que les noms et images de produits.\n\nLes alias de boutique ne sont pas masqués. Attribuez un alias à une boutique et cet alias reste lisible, ce qui vous permet de distinguer vos boutiques pendant un partage d'écran ou un enregistrement.\n\nSeul l'affichage change — vos données ne sont pas modifiées. Désactivez-le pour tout revoir.",
       tutorialToggleTitle: "Mode Tutoriel",
       tutorialToggleBody:
         "Contrôle si la bulle du didacticiel apparaît sur chaque page. Lorsqu'elle est activée, vous verrez une petite icône d'aide sur chaque page qui lance une présentation guidée des fonctionnalités de cette page. C'est la fonctionnalité que vous utilisez actuellement! Désactivez-le une fois que vous êtes familiarisé avec l'application.",

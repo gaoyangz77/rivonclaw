@@ -1097,7 +1097,7 @@ export default {
       accentGray: "Grigio ardesia",
       privacyMode: "Modalità privacy",
       privacyModeHint:
-        "Nascondi informazioni sensibili come i codici QR dietro una sfocatura. Utile per la condivisione dello schermo o lo streaming live.",
+        "Sfoca il codice QR di associazione del telefono, i nomi dei negozi e i nomi e le immagini dei prodotti. Gli alias dei negozi restano visibili. Utile per la condivisione dello schermo o lo streaming live.",
       clickToReveal: "Fare clic per rivelare",
       showAgentName: "Mostra il nome dell'agente nella barra laterale",
       showAgentNameHint:
@@ -2214,7 +2214,7 @@ export default {
         "Scegli il colore principale per l'interfaccia dell'app. Ciò modifica il colore primario utilizzato per pulsanti, collegamenti, stati attivi ed evidenziazioni nell'interfaccia utente. Scegli il colore che ti fa sentire più a tuo agio: è puramente estetico e non influisce sulla funzionalità.",
       privacyModeTitle: "Modalità privacy",
       privacyModeBody:
-        "Nasconde i contenuti sensibili nell'interfaccia utente. Quando abilitati, le chiavi API, il contenuto dei messaggi e altri dati potenzialmente sensibili vengono mascherati con asterischi o effetti sfocati.\n\nCiò è particolarmente utile quando si condivide lo schermo durante una riunione, si registra una demo o si lavora in uno spazio pubblico dove qualcuno potrebbe vedere il proprio schermo. I tuoi dati non sono interessati: cambia solo la visualizzazione.\n\nDisattivalo per visualizzare nuovamente i dati effettivi.",
+        "Nasconde i dettagli che identificano la tua attività quando qualcun altro può vedere il tuo schermo. Quando è attivo, vengono mascherate tre cose: il codice QR mostrato durante l'associazione di un telefono, i nomi dei negozi e i nomi e le immagini dei prodotti.\n\nGli alias dei negozi non vengono mascherati. Assegna un alias a un negozio e quell'alias resta leggibile, così puoi comunque distinguere i tuoi negozi mentre condividi lo schermo o registri.\n\nCambia solo la visualizzazione: i tuoi dati non vengono toccati. Disattivalo per rivedere tutto.",
       tutorialToggleTitle: "Modalità esercitazione",
       tutorialToggleBody:
         "Controlla se il fumetto del tutorial viene visualizzato su ogni pagina. Se abilitato, vedrai una piccola icona di aiuto su ogni pagina che avvia una procedura guidata delle funzionalità di quella pagina. Questa è la funzionalità che stai utilizzando in questo momento! Disabilitalo una volta acquisita familiarità con l'app.",

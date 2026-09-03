@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from "react";
+import { TkPrivate } from "../design-system/index.js";
 import { CheckIcon, ShopIcon } from "../icons.js";
 import { RemoteMediaImage } from "../images/RemoteMediaImage.js";
 
@@ -48,7 +49,7 @@ export function ProductCard({
       <div className="commerce-product-card-main">
         <div className="commerce-product-card-media">
           {imageUrl ? (
-            <RemoteMediaImage className="commerce-product-card-image" sourceUrl={imageUrl} alt="" loading="lazy" />
+            <RemoteMediaImage className="commerce-product-card-image" sourceUrl={imageUrl} alt="" loading="lazy" sensitive />
           ) : (
             <div className="commerce-product-card-image commerce-product-card-image-empty" aria-hidden="true"><ShopIcon /></div>
           )}
@@ -68,23 +69,32 @@ export function ProductCard({
         </div>
 
         <div className="commerce-product-card-copy">
-          <strong title={title}>{title}</strong>
+          <TkPrivate as="strong" title={title}>{title}</TkPrivate>
           <div className="commerce-product-card-shop">
             {normalizedAlias ? <span title={`${aliasLabel}: ${normalizedAlias}`}>{normalizedAlias}</span> : null}
-            <small title={normalizedShopName}>{normalizedShopName}</small>
+            <TkPrivate as="small" title={normalizedShopName}>{normalizedShopName}</TkPrivate>
           </div>
         </div>
       </div>
 
       <div className="commerce-product-card-footer">
-        <div className="commerce-product-card-skus" title={allSkus || sellerSkuLabel}>
+        <div className="commerce-product-card-skus">
+          {/* The label stays readable; only the codes are masked. A seller SKU
+              encodes brand, category and variant, so it identifies the seller
+              the same way a product name does. The tooltip spells every SKU
+              out, so it moves onto the masked node rather than staying on the
+              row that also carries the label. */}
           <span>{sellerSkuLabel}</span>
-          <div>
+          <TkPrivate
+            as="div"
+            sensitive={visibleSkus.length > 0}
+            title={allSkus || sellerSkuLabel}
+          >
             {visibleSkus.length > 0
               ? visibleSkus.map((sku) => <code key={sku}>{sku}</code>)
               : <code>—</code>}
             {hiddenSkuCount > 0 ? <small>+{hiddenSkuCount}</small> : null}
-          </div>
+          </TkPrivate>
         </div>
         {status || actions ? <div className="commerce-product-card-accessories">{status}{actions}</div> : null}
       </div>

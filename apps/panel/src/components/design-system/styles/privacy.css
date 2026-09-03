@@ -1,0 +1,29 @@
+/* CSS ownership: Design System privacy masking.
+ *
+ * Two-part contract:
+ *   - `data-tk-private` marks a node as sensitive. Marking is explicit opt-in
+ *     (TkPrivate for text, RemoteMediaImage `sensitive` for media); nothing is
+ *     auto-detected, so a marked node is always a deliberate decision.
+ *   - `html[data-privacy="on"]` activates the masking. App.tsx mirrors the
+ *     `privacyMode` app setting onto the document root, so one attribute flip
+ *     masks every marked node at once.
+ *
+ * Imported last in tk-v1.css: masking must win over component styling.
+ */
+
+:root {
+  /* Single knob for the mask strength; blur was chosen over text-security
+   * because it keeps the layout metrics of the real text. */
+  --tk-v1-privacy-blur: 4px;
+}
+
+html[data-privacy="on"] [data-tk-private="text"] {
+  filter: blur(var(--tk-v1-privacy-blur));
+}
+
+/* Sensitive media is never fetched or painted (see RemoteMediaImage), so this
+ * only has to occupy the same box as the image it replaces. */
+html[data-privacy="on"] [data-tk-private="media"] {
+  background-color: var(--tk-v1-bg-subtle);
+  object-fit: cover;
+}

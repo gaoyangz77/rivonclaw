@@ -429,11 +429,15 @@ describe("Affiliate Campaign presentation contracts", () => {
         { alias: "  Five Shop  ", shopName: "Holylegend & DIYCOM" },
         "shop-id",
       ),
-    ).toBe("Five Shop");
-    expect(campaignShopDisplayName({ alias: " ", shopName: "Holylegend" }, "shop-id")).toBe(
-      "Holylegend",
-    );
-    expect(campaignShopDisplayName(null, "shop-id")).toBe("shop-id");
+    ).toEqual({ text: "Five Shop", sensitive: false });
+    expect(campaignShopDisplayName({ alias: " ", shopName: "Holylegend" }, "shop-id")).toEqual({
+      text: "Holylegend",
+      sensitive: true,
+    });
+    expect(campaignShopDisplayName(null, "shop-id")).toEqual({
+      text: "shop-id",
+      sensitive: false,
+    });
   });
 
   it("requires a 2–8 word English Marketplace phrase", () => {

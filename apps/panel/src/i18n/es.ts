@@ -1096,7 +1096,7 @@ export default {
       accentGray: "Gris pizarra",
       privacyMode: "Modo de privacidad",
       privacyModeHint:
-        "Oculte información confidencial, como códigos QR, detrás de un desenfoque. Útil para compartir pantalla o transmitir en vivo.",
+        "Difumina el código QR de vinculación del teléfono, los nombres de las tiendas y los nombres e imágenes de los productos. Los alias de tienda siguen visibles. Útil para compartir pantalla o transmitir en vivo.",
       clickToReveal: "Haga clic para revelar",
       showAgentName: "Mostrar el nombre del agente en la barra lateral",
       showAgentNameHint:
@@ -2215,7 +2215,7 @@ export default {
         "Elija el color de acento para la interfaz de la aplicación. Esto cambia el color principal utilizado para botones, enlaces, estados activos y resaltados en toda la interfaz de usuario. Elija el color que le resulte más cómodo: es puramente cosmético y no afecta la funcionalidad.",
       privacyModeTitle: "Modo de privacidad",
       privacyModeBody:
-        "Oculta contenido confidencial en toda la interfaz de usuario. Cuando está habilitado, las claves API, el contenido de los mensajes y otros datos potencialmente confidenciales se enmascaran con asteriscos o efectos de desenfoque.\n\nEsto es especialmente útil cuando se comparte la pantalla durante una reunión, se graba una demostración o se trabaja en un espacio público donde alguien podría ver su pantalla. Sus datos no se ven afectados: solo cambia la visualización.\n\nDesactívelo para volver a ver sus datos reales.",
+        "Oculta los datos que identifican su negocio cuando otra persona puede ver su pantalla. Cuando está habilitado, se enmascaran tres cosas: el código QR que aparece al vincular un teléfono, los nombres de las tiendas y los nombres e imágenes de los productos.\n\nLos alias de tienda no se enmascaran. Asigne un alias a una tienda y ese alias seguirá siendo legible, de modo que pueda distinguir sus tiendas mientras comparte pantalla o graba.\n\nSolo cambia la visualización: sus datos no se ven afectados. Desactívelo para volver a verlo todo.",
       tutorialToggleTitle: "Modo tutorial",
       tutorialToggleBody:
         "Controla si la burbuja del tutorial aparece en cada página. Cuando esté habilitado, verá un pequeño ícono de ayuda en cada página que inicia un recorrido guiado por las funciones de esa página. ¡Esta es la característica que estás usando ahora mismo! Deshabilítelo una vez que esté familiarizado con la aplicación.",
