@@ -118,6 +118,50 @@ describe("design-system primitives", () => {
     expect(onActivate).toHaveBeenCalledTimes(3);
   });
 
+  it("does not activate a row when the switch inside it is toggled", () => {
+    // A switch paints a <span> track beside a visually hidden <input>, so the
+    // surface a user actually clicks is not the input. `closest()` walks
+    // ancestors only and would never reach the input from there, which is why
+    // the primitive tags its own root instead. Clicking the input in a test
+    // would pass even with the bug present - the track is the real target.
+    const onActivate = vi.fn();
+    const onChange = vi.fn();
+    const { container } = render(
+      <TkTableFrame>
+        <table>
+          <tbody>
+            <TkInteractiveTableRow aria-label="Open nightly digest" onActivate={onActivate}>
+              <td>Nightly digest</td>
+              <td>
+                <TkSwitchControl label="Enabled" checked={false} onChange={onChange} />
+              </td>
+            </TkInteractiveTableRow>
+          </tbody>
+        </table>
+      </TkTableFrame>,
+    );
+
+    const track = container.querySelector(".tk-v1-switch-track");
+    const thumb = container.querySelector(".tk-v1-switch-thumb");
+    const label = container.querySelector("label.tk-v1-switch-control");
+    expect(track).not.toBeNull();
+    expect(thumb).not.toBeNull();
+    expect(label).not.toBeNull();
+
+    for (const surface of [track, thumb, label]) {
+      fireEvent.click(surface as Element);
+    }
+    expect(onActivate).not.toHaveBeenCalled();
+
+    // The row itself still activates, so the exemption is scoped, not blanket.
+    fireEvent.click(screen.getByRole("row", { name: "Open nightly digest" }));
+    expect(onActivate).toHaveBeenCalledOnce();
+
+    // And the switch still toggles.
+    fireEvent.click(screen.getByRole("checkbox", { name: "Enabled" }));
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
   it("removes disabled interactive rows from the keyboard path", () => {
     const onActivate = vi.fn();
     render(
