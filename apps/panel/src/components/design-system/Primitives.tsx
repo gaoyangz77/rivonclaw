@@ -270,6 +270,17 @@ export const TkTableFrame = forwardRef<HTMLDivElement, TkTableFrameProps>(functi
   );
 });
 
+/**
+ * Elements that swallow a row click instead of activating the row.
+ *
+ * Matched with `closest()`, so an entry only helps when it is the clicked
+ * element or one of its ancestors. A control whose visible surface is a
+ * *sibling* of its real input - the switch primitives paint a `<span>` track
+ * next to a visually hidden `<input>` - is never matched by the element names
+ * alone, so those primitives tag their own root with
+ * `data-tk-row-action-exempt`. Any future control shaped that way must do the
+ * same; adding the element name here would not reach it.
+ */
 const TABLE_ROW_INTERACTIVE_DESCENDANT =
   "a, button, input, select, textarea, [role='button'], [role='link'], [contenteditable='true'], [data-tk-row-action-exempt]";
 
@@ -861,7 +872,10 @@ export function TkSwitch({
   className?: string;
 }) {
   return (
-    <label className={cx("tk-v1-switch-row", disabled && "is-disabled", className)}>
+    <label
+      className={cx("tk-v1-switch-row", disabled && "is-disabled", className)}
+      data-tk-row-action-exempt
+    >
       <span>
         <span className="tk-v1-switch-label">{label}</span>
         {description && <span className="tk-v1-switch-description">{description}</span>}
@@ -899,7 +913,10 @@ export function TkSwitchControl({
   ...props
 }: TkSwitchControlProps) {
   return (
-    <label className={cx("tk-v1-switch-control", disabled && "is-disabled", className)}>
+    <label
+      className={cx("tk-v1-switch-control", disabled && "is-disabled", className)}
+      data-tk-row-action-exempt
+    >
       <input
         {...props}
         className="tk-v1-switch-input"
