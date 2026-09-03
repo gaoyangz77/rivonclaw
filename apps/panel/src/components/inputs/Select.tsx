@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { TkPrivate } from "../design-system/index.js";
 
 const DROPDOWN_MAX_HEIGHT = 280;
 const DROPDOWN_GAP = 4;
@@ -33,6 +34,12 @@ function getDropdownVerticalLayout(
 export interface SelectOption {
   value: string;
   label: string;
+  /**
+   * Whether `label` is sensitive text that privacy mode must mask. `label`
+   * stays a plain string so search/filtering keeps working on it; only the
+   * rendered node is marked.
+   */
+  sensitive?: boolean;
   description?: string;
   badge?: string;
   badgeTone?: "neutral" | "success" | "warning" | "info";
@@ -212,9 +219,13 @@ export function Select({
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
       >
-        <span className={selected ? "custom-select-label" : "custom-select-placeholder"}>
+        <TkPrivate
+          as="span"
+          className={selected ? "custom-select-label" : "custom-select-placeholder"}
+          sensitive={Boolean(selected?.sensitive)}
+        >
           {selected ? selected.label : (placeholder ?? "")}
-        </span>
+        </TkPrivate>
         {selected?.badge ? (
           <span className={`custom-select-badge ${selected.badgeTone ?? "neutral"}`}>
             {selected.badge}
@@ -255,7 +266,13 @@ export function Select({
                 }}
               >
                 <div className="custom-select-option-main">
-                  <div className="custom-select-option-label">{opt.label}</div>
+                  <TkPrivate
+                    as="div"
+                    className="custom-select-option-label"
+                    sensitive={Boolean(opt.sensitive)}
+                  >
+                    {opt.label}
+                  </TkPrivate>
                   {opt.badge ? (
                     <span className={`custom-select-badge ${opt.badgeTone ?? "neutral"}`}>
                       {opt.badge}

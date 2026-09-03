@@ -1,11 +1,16 @@
 import { useEffect, useState, type MouseEvent } from "react";
+import { observer } from "mobx-react-lite";
 import { useLazyQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ECOMMERCE_GET_PRODUCT_QUERY } from "../../../api/shops-queries.js";
 import { CopyIcon } from "../../../components/icons.js";
 import { RemoteMediaImage } from "../../../components/images/RemoteMediaImage.js";
-import { TkModal as Modal } from "../../../components/design-system/index.js";
+import {
+  TkModal as Modal,
+  TkPrivate,
+  usePrivacyMode,
+} from "../../../components/design-system/index.js";
 import {
   affiliateEntityCardClassName,
   type AffiliateEntityCardVariant,
@@ -23,11 +28,13 @@ type ProductDetailVariables = {
 type ProductSkuRow = {
   key: string;
   name: string;
+  /** Whether `name` resolved to seller-authored text rather than a platform id. */
+  sensitive: boolean;
   status?: string | null;
   price?: string | null;
 };
 
-export function ProductSummaryCard({
+export const ProductSummaryCard = observer(function ProductSummaryCard({
   product,
   productId,
   shopId,
@@ -45,9 +52,13 @@ export function ProductSummaryCard({
   variant?: AffiliateEntityCardVariant;
 }) {
   const { t } = useTranslation();
+  const privacyMode = usePrivacyMode();
   const [detailOpen, setDetailOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const canOpenDetail = allowDetailOpen && Boolean(shopId && productId);
+  // A masked cover image must not stay clickable: the enlarge affordance would
+  // otherwise open a full-size, unmasked copy of the very image being hidden.
+  const canEnlargeCover = canOpenDetail && !privacyMode;
   const shouldLoadInlineProduct = allowInlineLoad && canOpenDetail && !hasUsefulProductSummary(product);
   const [loadInlineProduct, { data: inlineProductData, loading: inlineProductLoading }] = useLazyQuery<
     ProductDetailQuery,
@@ -136,7 +147,7 @@ export function ProductSummaryCard({
         }}
       >
         {label ? <div className="affiliate-product-label">{label}</div> : null}
-        {resolvedProduct?.coverImage && canOpenDetail ? (
+        {resolvedProduct?.coverImage && canEnlargeCover ? (
           <button
             className="affiliate-product-thumb-button"
             type="button"
@@ -148,6 +159,7 @@ export function ProductSummaryCard({
               alt=""
               className="affiliate-product-thumb"
               loading="lazy"
+              sensitive
               sourceUrl={resolvedProduct.coverImage}
             />
           </button>
@@ -156,19 +168,24 @@ export function ProductSummaryCard({
             alt=""
             className="affiliate-product-thumb"
             loading="lazy"
+            sensitive
             sourceUrl={resolvedProduct.coverImage}
           />
         ) : (
           <div className="affiliate-product-thumb affiliate-product-thumb-empty" aria-hidden="true" />
         )}
         <div className="affiliate-product-body">
-          <div className="affiliate-product-title">
+          <TkPrivate
+            as="div"
+            className="affiliate-product-title"
+            sensitive={Boolean(resolvedProduct?.title)}
+          >
             {resolvedProduct?.title || (
               inlineProductLoading
                 ? t("ecommerce.productCard.loadingProduct")
                 : t("ecommerce.affiliateWorkspace.productContextConfirmed")
             )}
-          </div>
+          </TkPrivate>
           <div className="affiliate-product-meta-row">
             {price ? <span className="affiliate-product-price">{price}</span> : null}
             {status ? <span className="affiliate-product-status">{formatProductStatus(status, t)}</span> : null}
@@ -180,9 +197,9 @@ export function ProductSummaryCard({
       {imagePreview}
     </>
   );
-}
+});
 
-function ProductDetailModal({
+const ProductDetailModal = observer(function ProductDetailModal({
   shopId,
   productId,
   fallbackProduct,
@@ -196,6 +213,7 @@ function ProductDetailModal({
   onPreviewImage: (url: string) => void;
 }) {
   const { t } = useTranslation();
+  const privacyMode = usePrivacyMode();
   const [loadProduct, { data, loading, error }] = useLazyQuery<ProductDetailQuery, ProductDetailVariables>(
     ECOMMERCE_GET_PRODUCT_QUERY,
     { fetchPolicy: "cache-first" },
@@ -257,14 +275,18 @@ function ProductDetailModal({
           ) : (
             <div className="product-detail-layout">
               <div className="product-detail-media">
-                {primaryImage ? (
+                {primaryImage && !privacyMode ? (
                   <button
                     type="button"
                     className="product-detail-primary-image"
                     onClick={() => onPreviewImage(primaryImage)}
                   >
-                    <RemoteMediaImage alt="" loading="lazy" sourceUrl={primaryImage} />
+                    <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={primaryImage} />
                   </button>
+                ) : primaryImage ? (
+                  <div className="product-detail-primary-image">
+                    <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={primaryImage} />
+                  </div>
                 ) : (
                   <div className="product-detail-primary-image product-detail-primary-image-empty" />
                 )}
@@ -277,7 +299,7 @@ function ProductDetailModal({
                         className={image === primaryImage ? "product-detail-image-selected" : undefined}
                         onClick={() => setSelectedImageUrl(image)}
                       >
-                        <RemoteMediaImage alt="" loading="lazy" sourceUrl={image} />
+                        <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={image} />
                       </button>
                     ))}
                   </div>
@@ -285,9 +307,13 @@ function ProductDetailModal({
               </div>
 
               <div className="product-detail-facts">
-                <div className="product-detail-product-title">
+                <TkPrivate
+                  as="div"
+                  className="product-detail-product-title"
+                  sensitive={Boolean(product?.title || fallbackProduct?.title)}
+                >
                   {product?.title || fallbackProduct?.title || t("ecommerce.productCard.productDetailTitle")}
-                </div>
+                </TkPrivate>
                 <div className="product-detail-callouts">
                   <ProductMetric label={t("ecommerce.productCard.price")} value={price} tone="price" />
                   <ProductMetric label={t("ecommerce.productCard.status")} value={status ? formatProductStatus(status, t) : null} />
@@ -303,7 +329,9 @@ function ProductDetailModal({
                       {skuRows.map((sku) => (
                         <div className="product-detail-sku-row" key={sku.key}>
                           <div>
-                            <strong>{sku.name}</strong>
+                            <TkPrivate as="strong" sensitive={sku.sensitive}>
+                              {sku.name}
+                            </TkPrivate>
                             {sku.status ? <span>{sku.status}</span> : null}
                           </div>
                           <div>{sku.price || "-"}</div>
@@ -318,7 +346,7 @@ function ProductDetailModal({
         </div>
     </Modal>
   );
-}
+});
 
 function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
   const { t } = useTranslation();
@@ -346,7 +374,7 @@ function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose:
         >
           ×
         </button>
-        <RemoteMediaImage alt="" loading="eager" sourceUrl={imageUrl} />
+        <RemoteMediaImage alt="" loading="eager" sensitive sourceUrl={imageUrl} />
     </Modal>
   );
 }
@@ -521,6 +549,9 @@ function buildSkuRows(
     return product.skus.slice(0, 12).map((sku) => ({
       key: sku.id,
       name: sku.sellerSku || sku.id,
+      // A seller SKU and a variant name carry the seller's own text; the
+      // platform id this falls back to is opaque and is not masked.
+      sensitive: Boolean(sku.sellerSku),
       status: sku.statusInfo?.status ? formatProductStatus(sku.statusInfo.status, t) : null,
       price: formatMoney(sku.price?.salePrice, sku.price?.currency),
     }));
@@ -528,6 +559,7 @@ function buildSkuRows(
   return (fallbackProduct?.skus ?? []).slice(0, 12).map((sku) => ({
     key: sku.skuId,
     name: sku.sellerSku || sku.skuName || sku.skuId,
+    sensitive: Boolean(sku.sellerSku || sku.skuName),
     status: null,
     price: formatMoney(sku.price, sku.currency),
   }));

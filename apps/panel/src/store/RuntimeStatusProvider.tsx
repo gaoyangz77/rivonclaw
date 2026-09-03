@@ -13,7 +13,10 @@ import {
 //         __runtimeStatus.simulateCsBridge("connected")
 //         __runtimeStatus.simulateCloudTools("unavailable")
 //         __runtimeStatus.simulateCloudTools("ready")
-if (import.meta.env.DEV) {
+// `typeof window` guard, not just DEV: this module is reachable from tests that
+// run in the node environment (design-system barrel -> Privacy -> here), where
+// attaching a browser debug hook would throw at import time.
+if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as any).__runtimeStatus = {
     store: runtimeStatusStore,
     simulateCsBridge(state: "connected" | "disconnected" | "reconnecting", attempt = 0) {

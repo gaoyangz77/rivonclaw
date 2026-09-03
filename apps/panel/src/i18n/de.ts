@@ -1106,7 +1106,7 @@ export default {
       accentGray: "Schiefergrau",
       privacyMode: "Datenschutzmodus",
       privacyModeHint:
-        "Verstecken Sie vertrauliche Informationen wie QR-Codes hinter einer Unschärfe. Nützlich für die Bildschirmfreigabe oder Live-Streaming.",
+        "Macht den QR-Code für die Handy-Kopplung, Shop-Namen sowie Produktnamen und Produktbilder unscharf. Shop-Aliasnamen bleiben sichtbar. Nützlich für die Bildschirmfreigabe oder Live-Streaming.",
       clickToReveal: "Klicken Sie hier, um es anzuzeigen",
       showAgentName: "Agentennamen in der Seitenleiste anzeigen",
       showAgentNameHint:
@@ -2227,7 +2227,7 @@ export default {
         "Wählen Sie die Akzentfarbe für die App-Oberfläche. Dadurch wird die Primärfarbe geändert, die für Schaltflächen, Links, aktive Zustände und Hervorhebungen in der gesamten Benutzeroberfläche verwendet wird. Wählen Sie die Farbe, die sich für Sie am angenehmsten anfühlt – sie ist rein kosmetischer Natur und hat keinen Einfluss auf die Funktionalität.",
       privacyModeTitle: "Datenschutzmodus",
       privacyModeBody:
-        "Versteckt vertrauliche Inhalte in der gesamten Benutzeroberfläche. Wenn diese Option aktiviert ist, werden API-Schlüssel, Nachrichteninhalte und andere potenziell vertrauliche Daten mit Sternchen oder Unschärfeeffekten maskiert.\n\nDies ist besonders nützlich, wenn Sie den Bildschirm während eines Meetings teilen, eine Demo aufzeichnen oder in einem öffentlichen Raum arbeiten, wo jemand Ihren Bildschirm sehen könnte. Ihre Daten sind davon nicht betroffen – lediglich die optische Darstellung ändert sich.\n\nSchalten Sie es aus, um Ihre tatsächlichen Daten wieder anzuzeigen.",
+        "Verdeckt die Angaben, die Ihr Geschäft identifizieren, wenn jemand anderes Ihren Bildschirm sehen kann. Wenn diese Option aktiviert ist, werden drei Dinge maskiert: der QR-Code, der beim Koppeln eines Telefons angezeigt wird, Shop-Namen sowie Produktnamen und Produktbilder.\n\nShop-Aliasnamen werden nicht maskiert. Vergeben Sie einem Shop einen Aliasnamen, bleibt dieser lesbar, sodass Sie Ihre Shops beim Teilen des Bildschirms oder beim Aufzeichnen weiterhin auseinanderhalten können.\n\nNur die Darstellung ändert sich – Ihre Daten bleiben unberührt. Schalten Sie es aus, um wieder alles zu sehen.",
       tutorialToggleTitle: "Tutorial-Modus",
       tutorialToggleBody:
         "Steuert, ob die Tutorial-Blase auf jeder Seite angezeigt wird. Wenn diese Option aktiviert ist, wird auf jeder Seite ein kleines Hilfesymbol angezeigt, das eine geführte Anleitung zu den Funktionen dieser Seite startet. Dies ist die Funktion, die Sie gerade verwenden! Deaktivieren Sie es, sobald Sie mit der App vertraut sind.",

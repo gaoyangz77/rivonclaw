@@ -8,6 +8,7 @@ import { CustomerServiceBillingCta } from "../../../components/billing/CustomerS
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
 import { TkSwitchControl } from "../../../components/design-system/index.js";
+import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SHOW_REVIEW_MANAGEMENT_SETTINGS = false;
@@ -116,6 +117,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   const entitlement =
     entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ??
     null;
+  const shopLabel = shopDisplayLabel(shop);
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
     const catLabel = tool?.category
@@ -133,7 +135,8 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.serviceStatus")}</div>
         <CustomerServiceBillingCta
           shopId={shop.id}
-          shopName={shop.alias || shop.shopName}
+          shopName={shopLabel.text}
+          shopNameSensitive={shopLabel.sensitive}
           entitlement={entitlement}
         />
       </section>

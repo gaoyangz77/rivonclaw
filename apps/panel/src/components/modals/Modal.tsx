@@ -1,5 +1,9 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+// Imported from the module rather than the design-system barrel: the barrel
+// re-exports `Overlays`, which imports this file, and that cycle would bite at
+// module-init time.
+import { TkPrivate } from "../design-system/Privacy.js";
 
 const openModalStack: string[] = [];
 let documentOverflowBeforeModal = "";
@@ -10,6 +14,15 @@ export interface ModalProps {
   onClose: () => void;
   onBackdropClose?: () => void;
   title: string;
+  /**
+   * Whether the visible title is sensitive text that privacy mode must mask.
+   *
+   * Only the rendered `<h2>` is marked. `title` stays a plain string because it
+   * doubles as the dialog's accessible label, which a screen reader speaks to
+   * its own operator and no onlooker can read — masking that would cost a blind
+   * operator the name and buy no privacy.
+   */
+  titleSensitive?: boolean;
   headerContent?: ReactNode;
   /** Optional content that shares one scroll region with the modal body while the title stays fixed. */
   bodyLeadContent?: ReactNode;
@@ -36,6 +49,7 @@ export function Modal({
   onClose,
   onBackdropClose,
   title,
+  titleSensitive = false,
   headerContent,
   bodyLeadContent,
   children,
@@ -142,7 +156,7 @@ export function Modal({
           <div className="modal-header">
             <div className="modal-header-main">
               <h2 id={titleId} className="modal-title">
-                {title}
+                {titleSensitive ? <TkPrivate>{title}</TkPrivate> : title}
               </h2>
               {headerContent}
             </div>

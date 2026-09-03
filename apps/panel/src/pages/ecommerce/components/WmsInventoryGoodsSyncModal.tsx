@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
-import { TkModal as Modal } from "../../../components/design-system/index.js";
+import { TkModal as Modal, TkPrivate } from "../../../components/design-system/index.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 function formatCount(value: number | undefined) {
@@ -134,8 +134,12 @@ export const WmsInventoryGoodsSyncModal = observer(function WmsInventoryGoodsSyn
                 {unrecognized.map((good, index) => (
                   <div className="inventory-coverage-row" key={`${good.sku}-${index}`}>
                     <div>
-                      <div className="tk-v1-table-record-name">{good.name}</div>
-                      <div className="td-meta">{good.sku}</div>
+                      <TkPrivate as="div" className="tk-v1-table-record-name">
+                        {good.name}
+                      </TkPrivate>
+                      <TkPrivate as="div" className="td-meta">
+                        {good.sku}
+                      </TkPrivate>
                     </div>
                     <span className="badge badge-warning">
                       {reasonKey(good.reason)
@@ -164,7 +168,9 @@ export const WmsInventoryGoodsSyncModal = observer(function WmsInventoryGoodsSyn
                 <div className="inventory-coverage-list-title">{t("ecommerce.inventory.syncInventoryGoodsErrors")}</div>
                 {result.errors.slice(0, 5).map((err, index) => (
                   <div className="inventory-coverage-row" key={`${err.sku ?? "row"}-${index}`}>
-                    <div className="td-meta">{err.sku ?? "\u2014"}</div>
+                    <TkPrivate as="div" className="td-meta" sensitive={Boolean(err.sku)}>
+                      {err.sku ?? "\u2014"}
+                    </TkPrivate>
                     <div>{err.message}</div>
                   </div>
                 ))}

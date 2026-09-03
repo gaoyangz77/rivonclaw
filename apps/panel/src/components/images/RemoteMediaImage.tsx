@@ -1,8 +1,10 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { observer } from "mobx-react-lite";
 import { routeFirstPartyUrl } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { DEFAULTS } from "@rivonclaw/core/defaults";
 import { fetchJson } from "../../api/client.js";
+import { usePrivacyMode } from "../design-system/Privacy.js";
 
 type MediaCacheResolveResponse = {
   sourceUrl: string;
@@ -21,11 +23,20 @@ type RemoteMediaImageProps = {
   loading?: "eager" | "lazy";
   onResolvedUrlChange?: (url: string) => void;
   onImageError?: () => void;
+  /**
+   * Opt in to privacy masking. When privacy mode is also on, the image is
+   * neither resolved nor painted — see the masked branch below.
+   */
+  sensitive?: boolean;
   style?: CSSProperties;
 };
 
 const resolvedUrlCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string>>();
+
+/** 1x1 transparent GIF — an empty `src` would render a broken-image glyph. */
+const BLANK_PIXEL =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 function cacheKey(sourceUrl: string, cachePolicy: "auto" | "force"): string {
   return `${cachePolicy}:${sourceUrl}`;
@@ -73,7 +84,7 @@ function resolveRemoteMediaUrl(sourceUrl: string, cachePolicy: "auto" | "force")
   return promise;
 }
 
-export function RemoteMediaImage({
+export const RemoteMediaImage = observer(function RemoteMediaImage({
   sourceUrl,
   alt,
   cachePolicy = "auto",
@@ -83,14 +94,20 @@ export function RemoteMediaImage({
   loading = "lazy",
   onResolvedUrlChange,
   onImageError,
+  sensitive = false,
   style,
 }: RemoteMediaImageProps) {
+  const privacyMode = usePrivacyMode();
+  // Primitive, not the MST node: safe to close over in the effect below.
+  const masked = sensitive && privacyMode;
   const [src, setSrc] = useState<string | undefined>(
     () => resolveFirstPartyObjectStorageUrl(sourceUrl) ?? resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy)),
   );
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
+    if (masked) return;
+
     let cancelled = false;
     const firstPartyUrl = resolveFirstPartyObjectStorageUrl(sourceUrl);
     if (firstPartyUrl) {
@@ -129,7 +146,7 @@ export function RemoteMediaImage({
     return () => {
       cancelled = true;
     };
-  }, [cachePolicy, onImageError, onResolvedUrlChange, sourceUrl]);
+  }, [cachePolicy, masked, onImageError, onResolvedUrlChange, sourceUrl]);
 
   const handleError = () => {
     if (retrying) return;
@@ -146,6 +163,24 @@ export function RemoteMediaImage({
       });
   };
 
+  // Masked: same element and className so the call site's sizing is untouched,
+  // but no resolution request was made and nothing of the image is painted.
+  // `alt` is dropped too — the alt text of a product image names the product.
+  if (masked) {
+    return (
+      <img
+        alt=""
+        className={className}
+        data-tk-private="media"
+        height={height}
+        loading={loading}
+        src={BLANK_PIXEL}
+        style={style}
+        width={width}
+      />
+    );
+  }
+
   return (
     <img
       alt={alt}
@@ -158,4 +193,4 @@ export function RemoteMediaImage({
       width={width}
     />
   );
-}
+});

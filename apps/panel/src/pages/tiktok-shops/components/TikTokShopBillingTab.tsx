@@ -8,6 +8,7 @@ import {
   usagePercentLabel,
 } from "../../../components/billing/billing-labels.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
+import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
 interface TikTokShopBillingTabProps {
   shop: Shop;
@@ -17,6 +18,7 @@ export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+  const shopLabel = shopDisplayLabel(shop);
 
   useEffect(() => {
     entityStore.refreshPlanDefinitions().catch(() => {});
@@ -25,7 +27,12 @@ export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
 
   return (
     <div className="shop-detail-section">
-      <CustomerServiceBillingCta shopId={shop.id} shopName={shop.alias || shop.shopName} entitlement={entitlement} />
+      <CustomerServiceBillingCta
+        shopId={shop.id}
+        shopName={shopLabel.text}
+        shopNameSensitive={shopLabel.sensitive}
+        entitlement={entitlement}
+      />
 
       {entitlement?.usage.length ? (
         <div>

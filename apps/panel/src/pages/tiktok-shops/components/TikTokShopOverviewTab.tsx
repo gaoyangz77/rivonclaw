@@ -3,7 +3,7 @@ import type { Shop } from "@rivonclaw/core/models";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
-import { TkSwitchControl } from "../../../components/design-system/index.js";
+import { TkPrivate, TkSwitchControl } from "../../../components/design-system/index.js";
 
 interface TikTokShopOverviewTabProps {
   shop: Shop;
@@ -32,7 +32,7 @@ export function TikTokShopOverviewTab({
       <div className="shop-detail-grid">
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.tableHeaders.name")}</span>
-          <span>{shop.shopName}</span>
+          <TkPrivate>{shop.shopName}</TkPrivate>
         </div>
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.tableHeaders.region")}</span>

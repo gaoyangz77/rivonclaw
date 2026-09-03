@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { panelEventBus } from "../../lib/event-bus.js";
+import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useToast } from "../Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
@@ -63,9 +64,11 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
         channelAccounts: entityStore.channelAccounts,
       });
       if (!issue) return null;
+      const label = shopDisplayLabel(shop, shop.id);
       return {
         shopId: shop.id,
-        shopName: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+        shopName: label.text,
+        shopNameSensitive: label.sensitive,
         issue,
       };
     })

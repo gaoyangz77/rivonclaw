@@ -24,8 +24,11 @@ import {
   TkInteractiveTableRow,
   TkPanel,
   TkPanelHeader,
+  TkPrivate,
   TkTableFrame,
+  usePrivacyMode,
 } from "../../components/design-system/index.js";
+import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
 import {
   CreatorRelationshipDetailModal,
   type CreatorRelationshipDetailItem,
@@ -51,6 +54,12 @@ import {
   SHOPS_QUERY,
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
+import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
+
+/** Text for a plain-`string` slot: the real value, or the placeholder while masked. */
+function maskedIfSensitive(text: string, sensitive: boolean, privacyMode: boolean): string {
+  return sensitive && privacyMode ? MASKED_NAME_PLACEHOLDER : text;
+}
 
 /**
  * One row of the offer. The first row is the product discovery searches on and
@@ -365,6 +374,7 @@ export function paginateCampaigns<T>(
 export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const privacyMode = usePrivacyMode();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [form, setForm] = useState<CampaignForm>(emptyForm);
@@ -559,6 +569,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
   const selectedCampaignShop = shops.find((shop) => shop.id === selectedCampaign?.shopId);
+  const selectedCampaignShopLabel = campaignShopDisplayName(
+    selectedCampaignShop,
+    selectedCampaign?.shopId ?? "",
+  );
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
   const searchPlanSummaries =
@@ -621,11 +635,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setCampaignPage((currentPage) => Math.min(currentPage, campaignPageCount));
   }, [campaignPageCount]);
 
-  const shopOptions = shops.map((shop) => ({
-    value: shop.id,
-    label: shop.shopName,
-    description: `${shop.region ?? "—"} · ${shop.timezone}`,
-  }));
+  // Alias-preferring like every other shop picker: a picker that only ever
+  // shows the platform shop name has no unmasked label left under privacy mode,
+  // which would blur the whole list and make it unusable.
+  const shopOptions = shops.map((shop) => {
+    const label = campaignShopDisplayName(shop, shop.id);
+    return {
+      value: shop.id,
+      label: label.text,
+      sensitive: label.sensitive,
+      description: `${shop.region ?? "—"} · ${shop.timezone}`,
+    };
+  });
   const openCreate = () => {
     setForm(emptyForm);
     setProductPreviews({});
@@ -703,6 +724,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const leadProductId = form.products[0]?.productId.trim() ?? "";
   const productPreview = leadProductId ? (productPreviews[leadProductId] ?? null) : null;
+  /** The product name the message preview names; empty until one is known. */
+  const previewProductName = form.messageProductName || productPreview?.title || "";
 
   const updateProduct = (index: number, patch: Partial<CampaignProductForm>) => {
     setForm((current) => ({
@@ -1419,6 +1442,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 )}
                 {visibleCampaigns.map((campaign) => {
                   const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
+                  const campaignShopLabel = campaignShopDisplayName(campaignShop, campaign.shopId);
+                  const campaignProductTitle = campaign.productSnapshot?.title?.trim() ?? "";
+                  const campaignProductRef = campaignProductReference(campaign, t, privacyMode);
                   return (
                     <TkInteractiveTableRow
                       key={campaign.id}
@@ -1443,7 +1469,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </td>
                       <td>
                         <div className="affiliate-campaign-directory-shop">
-                          <strong>{campaignShopDisplayName(campaignShop, campaign.shopId)}</strong>
+                          <TkPrivate as="strong" sensitive={campaignShopLabel.sensitive}>
+                            {campaignShopLabel.text}
+                          </TkPrivate>
                           <small>{campaign.market}</small>
                         </div>
                       </td>
@@ -1466,13 +1494,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </td>
                       <td>
                         <div className="affiliate-campaign-directory-product">
-                          <strong title={campaign.productSnapshot?.title ?? undefined}>
-                            {campaign.productSnapshot?.title?.trim() ||
-                              campaignLeadProductId(campaign)}
-                          </strong>
-                          <small title={campaignProductReference(campaign, t)}>
-                            {campaignProductReference(campaign, t)}
-                          </small>
+                          <TkPrivate
+                            as="strong"
+                            sensitive={campaignProductTitle !== ""}
+                            title={campaign.productSnapshot?.title ?? undefined}
+                          >
+                            {campaignProductTitle || campaignLeadProductId(campaign)}
+                          </TkPrivate>
+                          <small title={campaignProductRef}>{campaignProductRef}</small>
                         </div>
                       </td>
                       <td>
@@ -1527,9 +1556,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         onClose={() => setSelectedCampaignId("")}
         title={
           selectedCampaign
-            ? `${selectedCampaign.name} - ${campaignShopDisplayName(
-                selectedCampaignShop,
-                selectedCampaign.shopId,
+            ? `${selectedCampaign.name} - ${maskedIfSensitive(
+                selectedCampaignShopLabel.text,
+                selectedCampaignShopLabel.sensitive,
+                privacyMode,
               )}`
             : t("ecommerce.affiliateCampaign.detailTitle")
         }
@@ -1549,6 +1579,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           sourceUrl={selectedCampaign.productSnapshot.coverImage}
                           alt={selectedCampaign.productSnapshot.title}
                           loading="lazy"
+                          sensitive
                         />
                       ) : (
                         <ShopIcon />
@@ -1576,24 +1607,32 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </div>
                       <div className="affiliate-campaign-modal-shop-line">
                         <ShopIcon />
-                        <strong>
-                          {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
-                        </strong>
+                        <TkPrivate as="strong" sensitive={selectedCampaignShopLabel.sensitive}>
+                          {selectedCampaignShopLabel.text}
+                        </TkPrivate>
                         {selectedCampaignShop?.alias?.trim() &&
                           selectedCampaignShop.shopName?.trim() &&
                           selectedCampaignShop.alias.trim() !==
                             selectedCampaignShop.shopName.trim() && (
-                            <small>{selectedCampaignShop.shopName.trim()}</small>
+                            <TkPrivate as="small">{selectedCampaignShop.shopName.trim()}</TkPrivate>
                           )}
                       </div>
                       <div className="affiliate-campaign-modal-product-line">
-                        <strong title={selectedCampaign.productSnapshot?.title ?? undefined}>
+                        <TkPrivate
+                          as="strong"
+                          sensitive={Boolean(selectedCampaign.productSnapshot?.title?.trim())}
+                          title={selectedCampaign.productSnapshot?.title ?? undefined}
+                        >
                           {selectedCampaign.productSnapshot?.title?.trim() ||
                             campaignLeadProductId(selectedCampaign)}
-                        </strong>
+                        </TkPrivate>
                         <span>
                           {t("ecommerce.affiliateCampaign.skuLabel")} ·{" "}
-                          {selectedCampaign.productSnapshot?.sellerSkus?.[0] ?? "—"}
+                          <TkPrivate
+                            sensitive={Boolean(selectedCampaign.productSnapshot?.sellerSkus?.[0])}
+                          >
+                            {selectedCampaign.productSnapshot?.sellerSkus?.[0] ?? "—"}
+                          </TkPrivate>
                         </span>
                       </div>
                     </div>
@@ -1681,6 +1720,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                 sourceUrl={summary.coverImage}
                                 alt=""
                                 loading="lazy"
+                                sensitive
                               />
                             ) : (
                               <span className="affiliate-campaign-product-rate-fallback">
@@ -1688,11 +1728,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                               </span>
                             )}
                             <div>
-                              <strong>{summary?.title || `Product ${index + 1}`}</strong>
-                              <small>
+                              <TkPrivate as="strong" sensitive={Boolean(summary?.title)}>
+                                {summary?.title || `Product ${index + 1}`}
+                              </TkPrivate>
+                              <TkPrivate
+                                as="small"
+                                sensitive={Boolean(summary?.skus?.[0]?.sellerSku)}
+                              >
                                 {summary?.skus?.[0]?.sellerSku ||
                                   t("ecommerce.affiliateCampaign.skuLabel")}
-                              </small>
+                              </TkPrivate>
                             </div>
                           </div>
                           <div>
@@ -2420,7 +2465,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </div>
                         {rowPreview && (
                           <article className="affiliate-campaign-product-preview">
-                            {rowPreview.coverImage ? (
+                            {/* A plain <img>, so it cannot carry
+                                RemoteMediaImage's masked branch: while masked
+                                it falls back to the same empty-state box, which
+                                also means the cover is never requested. */}
+                            {rowPreview.coverImage && !privacyMode ? (
                               <img src={rowPreview.coverImage} alt="" />
                             ) : (
                               <div className="affiliate-campaign-product-preview-placeholder">
@@ -2429,7 +2478,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                             )}
                             <div>
                               <span>{t("ecommerce.affiliateCampaign.productVerified")}</span>
-                              <strong>{rowPreview.title}</strong>
+                              <TkPrivate as="strong">{rowPreview.title}</TkPrivate>
                               <p>{rowPreview.categoryPathNames.join(" / ")}</p>
                               <small>
                                 ${rowPreview.minimumPriceUsdAmount.toFixed(2)}
@@ -2462,7 +2511,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <div>
                       <strong>{t("ecommerce.affiliateCampaign.productChanged")}</strong>
                       <span>
-                        {productPreview.title} → {pendingProductResolution.title}
+                        <TkPrivate>{productPreview.title}</TkPrivate> →{" "}
+                        <TkPrivate>{pendingProductResolution.title}</TkPrivate>
                       </span>
                       <small>
                         ${productPreview.minimumPriceUsdAmount.toFixed(2)} → $
@@ -2944,17 +2994,29 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <div className="affiliate-campaign-message-preview">
                   <span>{t("ecommerce.affiliateCampaign.preview")}</span>
                   <p>
+                    {/* The two nouns are substituted rather than marked: the
+                        surrounding template is the seller's own copy and must
+                        stay readable, and the preview mirrors the message the
+                        creator receives — which carries the platform shop
+                        name, never the alias. */}
                     {renderAffiliateCampaignTemplatePreview(
                       form.templateText,
-                      form.messageProductName ||
-                        productPreview?.title ||
-                        t("ecommerce.affiliateCampaign.previewProduct"),
-                      selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop"),
+                      maskedIfSensitive(
+                        previewProductName || t("ecommerce.affiliateCampaign.previewProduct"),
+                        previewProductName !== "",
+                        privacyMode,
+                      ),
+                      maskedIfSensitive(
+                        selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop"),
+                        Boolean(selectedShop?.shopName),
+                        privacyMode,
+                      ),
                     ) || t("ecommerce.affiliateCampaign.previewEmpty")}
                   </p>
                   {productPreview && (
                     <div className="affiliate-campaign-message-product-card">
-                      {productPreview.coverImage ? (
+                      {/* Same plain-<img> masking as the product rows above. */}
+                      {productPreview.coverImage && !privacyMode ? (
                         <img src={productPreview.coverImage} alt="" />
                       ) : (
                         <span>
@@ -2962,7 +3024,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </span>
                       )}
                       <div>
-                        <strong>{form.messageProductName || productPreview.title}</strong>
+                        <TkPrivate as="strong">
+                          {form.messageProductName || productPreview.title}
+                        </TkPrivate>
                         <small>
                           ${productPreview.minimumPriceUsdAmount.toFixed(2)}
                           {" · "}
@@ -2986,7 +3050,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <div className="affiliate-campaign-confirm-grid">
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.shopAndProduct")}
-                  value={`${selectedShop?.shopName ?? "—"} · ${productPreview?.title ?? leadProductId}`}
+                  value={`${maskedIfSensitive(
+                    selectedShop?.shopName ?? "—",
+                    Boolean(selectedShop?.shopName),
+                    privacyMode,
+                  )} · ${maskedIfSensitive(
+                    productPreview?.title ?? leadProductId,
+                    productPreview?.title != null,
+                    privacyMode,
+                  )}`}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.dailyTarget")}
@@ -3955,8 +4027,11 @@ function campaignStatusLabel(status: GQL.AffiliateCampaignStatus, t: (key: strin
 export function campaignShopDisplayName(
   shop: Pick<GQL.Shop, "alias" | "shopName"> | null | undefined,
   fallback: string,
-): string {
-  return shop?.alias?.trim() || shop?.shopName?.trim() || fallback;
+): ShopDisplayLabel {
+  // Only the two fields this helper documents are forwarded, so the resolver's
+  // `platformShopId` link can never fire and the resolution order stays the one
+  // callers already depend on.
+  return shopDisplayLabel({ alias: shop?.alias, shopName: shop?.shopName }, fallback);
 }
 
 /**
@@ -3968,9 +4043,16 @@ export function campaignLeadProductId(campaign: Pick<GQL.AffiliateCampaign, "pro
   return campaign.products?.[0]?.productId ?? "";
 }
 
-function campaignProductReference(
+/**
+ * The seller SKU carries brand, category, and variant text, so it is masked
+ * alongside product names. The label and the `+n` overflow count are the
+ * operator's own bearings and stay readable, which is why the SKU is
+ * substituted here rather than the whole reference being blurred.
+ */
+export function campaignProductReference(
   campaign: Pick<GQL.AffiliateCampaign, "products" | "productSnapshot">,
   t: (key: string) => string,
+  privacyMode: boolean,
 ): string {
   const sellerSkus = [
     ...new Set(
@@ -3983,9 +4065,11 @@ function campaignProductReference(
     return `${t("ecommerce.affiliateCampaign.productIdLabel")} · ${campaignLeadProductId(campaign)}`;
   }
   const remaining = sellerSkus.length - 1;
-  return `${t("ecommerce.affiliateCampaign.skuLabel")} · ${sellerSkus[0]}${
-    remaining > 0 ? ` +${remaining}` : ""
-  }`;
+  return `${t("ecommerce.affiliateCampaign.skuLabel")} · ${maskedIfSensitive(
+    sellerSkus[0],
+    true,
+    privacyMode,
+  )}${remaining > 0 ? ` +${remaining}` : ""}`;
 }
 
 function isTerminalCampaignStatus(status: GQL.AffiliateCampaignStatus): boolean {

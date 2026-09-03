@@ -1079,7 +1079,7 @@ export default {
       accentGray: "Batu Tulis Abu-abu",
       privacyMode: "Modus Privasi",
       privacyModeHint:
-        "Sembunyikan informasi sensitif seperti kode QR di balik blur. Berguna untuk berbagi layar atau streaming langsung.",
+        "Mengaburkan kode QR penautan ponsel, nama toko, serta nama dan gambar produk. Alias toko tetap terlihat. Berguna untuk berbagi layar atau streaming langsung.",
       clickToReveal: "Klik untuk mengungkapkan",
       showAgentName: "Tampilkan Nama Agen di Sidebar",
       showAgentNameHint: "Tampilkan nama agen di header sidebar, bukan nama merek aplikasi.",
@@ -2183,7 +2183,7 @@ export default {
         "Pilih warna aksen untuk antarmuka aplikasi. Ini mengubah warna utama yang digunakan untuk tombol, tautan, status aktif, dan sorotan di seluruh UI. Pilih warna yang paling nyaman bagi Anda — ini murni kosmetik dan tidak memengaruhi fungsionalitas.",
       privacyModeTitle: "Modus Privasi",
       privacyModeBody:
-        "Menyembunyikan konten sensitif di seluruh UI. Saat diaktifkan, kunci API, konten pesan, dan data sensitif lainnya akan ditutupi dengan tanda bintang atau efek buram.\n\nHal ini sangat berguna ketika berbagi layar saat rapat, merekam demo, atau bekerja di ruang publik di mana seseorang mungkin melihat layar Anda. Data Anda tidak terpengaruh — hanya tampilan visual yang berubah.\n\nNonaktifkan untuk melihat data aktual Anda lagi.",
+        "Menutupi detail yang mengidentifikasi bisnis Anda ketika orang lain dapat melihat layar Anda. Saat diaktifkan, tiga hal ditutupi: kode QR yang muncul saat menautkan ponsel, nama toko, serta nama dan gambar produk.\n\nAlias toko tidak ditutupi. Beri sebuah toko alias, dan alias itu tetap terbaca, sehingga Anda masih dapat membedakan toko-toko Anda saat berbagi layar atau merekam.\n\nHanya tampilannya yang berubah — data Anda tidak tersentuh. Nonaktifkan untuk melihat semuanya lagi.",
       tutorialToggleTitle: "Modus Tutorial",
       tutorialToggleBody:
         "Mengontrol apakah gelembung tutorial muncul di setiap halaman. Jika diaktifkan, Anda akan melihat ikon bantuan kecil di setiap halaman yang meluncurkan panduan fitur halaman tersebut. Ini adalah fitur yang Anda gunakan saat ini! Nonaktifkan setelah Anda terbiasa dengan aplikasinya.",

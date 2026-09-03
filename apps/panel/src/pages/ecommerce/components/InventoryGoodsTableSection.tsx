@@ -9,8 +9,11 @@ import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
+  TkPrivate,
   TkTableFrame,
+  usePrivacyMode,
 } from "../../../components/design-system/index.js";
+import { MASKED_NAME_PLACEHOLDER } from "../../../lib/privacy-placeholder.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { inventoryGoodImageUrl } from "../../../store/models/InventoryGoodModel.js";
 
@@ -37,6 +40,7 @@ function formatDimensions(good: InventoryGood) {
 
 export const InventoryGoodsTableSection = observer(function InventoryGoodsTableSection() {
   const { t } = useTranslation();
+  const privacyMode = usePrivacyMode();
   const entityStore = useEntityStore();
   const inventory = entityStore.ecommerceInventory;
   const goods = inventory.pagedInventoryGoods as InventoryGood[];
@@ -46,6 +50,9 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [pageInput, setPageInput] = useState(String(inventory.inventoryGoodsPage));
   const deleteOne = deleteOneId ? goods.find((good) => good.id === deleteOneId) : null;
+  // `ConfirmDialog` takes a plain `string` message, so the SKU cannot carry the
+  // masking marker; substituting it keeps the question itself readable.
+  const deleteOneSku = privacyMode ? MASKED_NAME_PLACEHOLDER : (deleteOne?.sku ?? "");
   const allSelected =
     goods.length > 0 && goods.every((good) => inventory.isInventoryGoodSelected(good.id));
   const hasInventoryGoodsFilters = inventory.inventoryGoodsSearch.trim() !== "";
@@ -233,7 +240,10 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                 </thead>
                 <tbody>
                   {goods.map((good) => {
-                    const src = imageUrl(good);
+                    // Withholding the source makes ImageAssetPreview render its
+                    // existing empty branch: no <img>, so nothing is fetched or
+                    // painted. CSS alone cannot un-render a plain <img>.
+                    const src = privacyMode ? null : imageUrl(good);
                     return (
                       <tr key={good.id}>
                         <td className="inventory-goods-select-cell">
@@ -250,7 +260,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                           <td className="inventory-goods-image-cell">
                             <ImageAssetPreview
                               src={src}
-                              alt={good.name}
+                              alt={privacyMode ? "" : good.name}
                               className="inventory-good-thumb"
                               emptyLabel={t("ecommerce.inventory.noImage")}
                               failedLabel={t("ecommerce.inventory.imageLoadFailed")}
@@ -261,12 +271,20 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                         {showColumn("good") && (
                           <td className="inventory-goods-good-cell">
                             <div className="inventory-good-main">
-                              <div className="tk-v1-table-record-name" title={good.name}>
+                              <TkPrivate
+                                as="div"
+                                className="tk-v1-table-record-name"
+                                title={good.name}
+                              >
                                 {good.name}
-                              </div>
-                              <div className="td-meta input-mono" title={good.sku}>
+                              </TkPrivate>
+                              <TkPrivate
+                                as="div"
+                                className="td-meta input-mono"
+                                title={good.sku}
+                              >
                                 {good.sku}
-                              </div>
+                              </TkPrivate>
                             </div>
                           </td>
                         )}
@@ -402,7 +420,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
       <ConfirmDialog
         isOpen={Boolean(deleteOne)}
         title={t("ecommerce.inventory.deleteInventoryGood")}
-        message={t("ecommerce.inventory.confirmDeleteInventoryGood", { sku: deleteOne?.sku ?? "" })}
+        message={t("ecommerce.inventory.confirmDeleteInventoryGood", { sku: deleteOneSku })}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         confirmVariant="danger"

@@ -1154,7 +1154,7 @@ export default {
       accentGray: "Slate Gray",
       privacyMode: "Privacy Mode",
       privacyModeHint:
-        "Hide sensitive information like QR codes behind a blur. Useful for screen sharing or live streaming.",
+        "Blur the phone-binding QR code, shop names, and product names and images. Shop aliases stay visible. Useful for screen sharing or live streaming.",
       clickToReveal: "Click to reveal",
       showAgentName: "Show Agent Name in Sidebar",
       showAgentNameHint:
@@ -2366,7 +2366,7 @@ export default {
         "Choose the accent color for the app interface. This changes the primary color used for buttons, links, active states, and highlights throughout the UI. Pick the color that feels most comfortable to you — it's purely cosmetic and doesn't affect functionality.",
       privacyModeTitle: "Privacy Mode",
       privacyModeBody:
-        "Hides sensitive content throughout the UI. When enabled, API keys, message content, and other potentially sensitive data are masked with asterisks or blur effects.\n\nThis is especially useful when screen-sharing during a meeting, recording a demo, or working in a public space where someone might see your screen. Your data is not affected — only the visual display changes.\n\nToggle it off to see your actual data again.",
+        "Covers the details that identify your business when someone else can see your screen. When enabled, three things are masked: the QR code shown while binding a phone, shop names, and product names and images.\n\nShop aliases are not masked. Give a shop an alias and that alias stays readable, so you can still tell your shops apart while sharing a screen or recording.\n\nOnly the display changes — your data is untouched. Turn it off to see everything again.",
       showAgentNameTitle: "Sidebar Agent Name",
       showAgentNameBody:
         "Controls whether the sidebar brand label may show the current agent name instead of the app name. Turn it on when you run multiple named agents and want a quick visual check of which one is active.",

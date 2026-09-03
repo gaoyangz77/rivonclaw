@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { ChevronRightIcon, RefreshIcon } from "../../../components/icons.js";
@@ -7,7 +8,9 @@ import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
+  TkPrivate,
   TkTableFrame,
+  usePrivacyMode,
 } from "../../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
@@ -38,7 +41,7 @@ function getAggregateStatusBadgeClass(activeCount: number, totalCount: number): 
   return "badge badge-warning shop-collection-summary-badge";
 }
 
-export function ShopTable({
+export const ShopTable = observer(function ShopTable({
   shops,
   oauthLoading,
   oauthWaiting,
@@ -51,6 +54,7 @@ export function ShopTable({
   onRequestDelete,
 }: ShopTableProps) {
   const { t } = useTranslation();
+  const privacyMode = usePrivacyMode();
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
   const [savingAliasShopId, setSavingAliasShopId] = useState<string | null>(null);
   const [collapsedCollectionKeys, setCollapsedCollectionKeys] = useState<Set<string>>(
@@ -153,6 +157,11 @@ export function ShopTable({
                     groupIndex > 0 && shopGroups[groupIndex - 1]!.shops.length > 1;
                   const headerShop = group.shops[0];
                   const collectionName = shopCollectionName(group.shops);
+                  // The collection label is the shortest member shop name, and
+                  // only falls back to an alias or id when no member has one.
+                  const collectionNameSensitive = group.shops.some(
+                    (shop) => shop.shopName?.trim() === collectionName,
+                  );
                   const isExpanded = !collapsedCollectionKeys.has(group.key);
                   const authorizedShopCount = group.shops.filter(
                     (shop) => shop.authStatus === "AUTHORIZED",
@@ -181,13 +190,24 @@ export function ShopTable({
                                 aria-label={`${t(
                                   isExpanded ? "chat.collapseMessage" : "chat.expandMessage",
                                 )} ${collectionName}`}
-                                title={`${t(
-                                  isExpanded ? "chat.collapseMessage" : "chat.expandMessage",
-                                )} ${collectionName}`}
+                                title={
+                                  collectionNameSensitive && privacyMode
+                                    ? undefined
+                                    : `${t(
+                                        isExpanded
+                                          ? "chat.collapseMessage"
+                                          : "chat.expandMessage",
+                                      )} ${collectionName}`
+                                }
                               >
                                 <ChevronRightIcon />
                               </button>
-                              <span className="tk-v1-table-record-name">{collectionName}</span>
+                              <TkPrivate
+                                className="tk-v1-table-record-name"
+                                sensitive={collectionNameSensitive}
+                              >
+                                {collectionName}
+                              </TkPrivate>
                               <span className="shop-collection-count">
                                 {group.shops.length} {t("ecommerce.shops")}
                               </span>
@@ -239,7 +259,9 @@ export function ShopTable({
                               onActivate={() => onOpenDrawer(shopId)}
                             >
                               <td>
-                                <span className="tk-v1-table-record-name">{shop.shopName}</span>
+                                <TkPrivate className="tk-v1-table-record-name">
+                                  {shop.shopName}
+                                </TkPrivate>
                               </td>
                               <td className="shop-table-col-alias">
                                 <input
@@ -311,4 +333,4 @@ export function ShopTable({
       </TkPanelBody>
     </TkPanel>
   );
-}
+});

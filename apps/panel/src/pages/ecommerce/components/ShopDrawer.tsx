@@ -5,11 +5,13 @@ import {
   TkBadge,
   TkIconButton,
   TkModal,
+  TkPrivate,
   TkSwitchControl,
   TkTabs,
 } from "../../../components/design-system/index.js";
 import { ChevronRightIcon, CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
+import { shopDisplayLabel } from "../../../lib/shop-display.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import {
@@ -183,6 +185,7 @@ export const ShopDrawer = observer(function ShopDrawer({
   const entityStore = useEntityStore();
   const shop = shopId ? (entityStore.shops.find((item) => item.id === shopId) ?? null) : null;
   const shopAlias = shop?.alias?.trim() ?? "";
+  const shopLabel = shopDisplayLabel(shop);
   const customerServiceEntitlement = shop
     ? (entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)
         ?.customerService ?? null)
@@ -350,11 +353,17 @@ export const ShopDrawer = observer(function ShopDrawer({
             </span>
             <div className="drawer-header-info">
               <div className="drawer-header-identity">
-                <h3 className="drawer-header-title">{shopAlias || shop?.shopName || ""}</h3>
+                <TkPrivate
+                  as="h3"
+                  className="drawer-header-title"
+                  sensitive={shopLabel.sensitive}
+                >
+                  {shopLabel.text}
+                </TkPrivate>
                 {shopAlias && shop?.shopName && (
-                  <span className="drawer-header-shop-name" title={shop.shopName}>
+                  <TkPrivate className="drawer-header-shop-name" title={shop.shopName}>
                     {shop.shopName}
-                  </span>
+                  </TkPrivate>
                 )}
               </div>
               {shop && (
@@ -451,7 +460,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                           <span className="shop-info-label">
                             {t("ecommerce.table.headers.name")}
                           </span>
-                          <span className="shop-info-value">{shop.shopName}</span>
+                          <TkPrivate className="shop-info-value">{shop.shopName}</TkPrivate>
                         </div>
                         <div className="shop-info-row">
                           <span className="shop-info-label">
@@ -638,7 +647,8 @@ export const ShopDrawer = observer(function ShopDrawer({
                           {!customerServiceEntitlement?.allowed && (
                             <CustomerServiceBillingCta
                               shopId={shop.id}
-                              shopName={shop.alias || shop.shopName}
+                              shopName={shopLabel.text}
+                              shopNameSensitive={shopLabel.sensitive}
                               entitlement={customerServiceEntitlement}
                               variant="inline"
                             />

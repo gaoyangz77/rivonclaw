@@ -29,10 +29,14 @@ import {
   TkInteractiveTableRow,
   TkModalHeader,
   TkPanel,
+  TkPrivate,
   TkSegmented,
   TkTableFrame,
   TkTabs,
+  usePrivacyMode,
 } from "../../components/design-system/index.js";
+import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
+import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
@@ -712,6 +716,8 @@ type AffiliateInsightSubject = {
   key: string;
   kind: "user" | "shop";
   label: string;
+  /** Whether `label` is a platform shop name, and so must be masked. */
+  labelSensitive: boolean;
   shopId?: string;
 };
 
@@ -820,13 +826,18 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
       key: "user",
       kind: "user",
       label: t("ecommerce.affiliateWorkspace.intelligenceUserModel"),
+      labelSensitive: false,
     },
-    ...shops.map((shop) => ({
-      key: `shop:${shop.id}`,
-      kind: "shop" as const,
-      shopId: shop.id,
-      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-    })),
+    ...shops.map((shop) => {
+      const label = shopDisplayLabel(shop);
+      return {
+        key: `shop:${shop.id}`,
+        kind: "shop" as const,
+        shopId: shop.id,
+        label: label.text,
+        labelSensitive: label.sensitive,
+      };
+    }),
   ];
 
   useEffect(() => {
@@ -989,10 +1000,10 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
     ...shops
       .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
-      .map((shop) => ({
-        value: shop.id,
-        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-      })),
+      .map((shop) => {
+        const label = shopDisplayLabel(shop, shop.id);
+        return { value: shop.id, label: label.text, sensitive: label.sensitive };
+      }),
   ];
   const businessDeveloperOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allBusinessDevelopers") },
@@ -1404,12 +1415,13 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     }
   }
 
-  function shopLabel(shopId: string): string {
+  function shopLabel(shopId: string): ShopDisplayLabel {
     const shop = shops.find((candidate) => candidate.id === shopId);
-    return (
-      shop?.alias ||
-      shop?.shopName ||
-      t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop")
+    // Only alias and shop name, as before: an unknown shop reads better than a
+    // raw id in the proposal surfaces this feeds.
+    return shopDisplayLabel(
+      { alias: shop?.alias, shopName: shop?.shopName },
+      t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop"),
     );
   }
 
@@ -2155,7 +2167,9 @@ function AffiliateMlInsightsPanel({
             data-tutorial-id="affiliate-intelligence-analysis"
           >
             <InfoIcon />
-            <strong>{selectedSubject.label}</strong>
+            <TkPrivate as="strong" sensitive={selectedSubject.labelSensitive}>
+              {selectedSubject.label}
+            </TkPrivate>
             <span>
               {selectedRows.some((row) => row.failed)
                 ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailableHint")
@@ -2251,9 +2265,10 @@ function AffiliateProductionModelDashboard({
           <div className="affiliate-intelligence-card-head">
             <div className="affiliate-intelligence-card-title">
               <span>
-                {selectedSubject.kind === "shop"
-                  ? `${selectedSubject.label} · ${modelLabel}`
-                  : selectedSubject.label}
+                <TkPrivate sensitive={selectedSubject.labelSensitive}>
+                  {selectedSubject.label}
+                </TkPrivate>
+                {selectedSubject.kind === "shop" ? ` · ${modelLabel}` : null}
               </span>
               <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
               <p>{claimBody}</p>
@@ -2838,7 +2853,9 @@ function AffiliateInsightScopeRail({
               {subject.kind === "user" ? <UserIcon /> : <ShopIcon />}
             </span>
             <span className="affiliate-intelligence-scope-copy">
-              <strong>{subject.label}</strong>
+              <TkPrivate as="strong" sensitive={subject.labelSensitive}>
+                {subject.label}
+              </TkPrivate>
               <small>{status}</small>
             </span>
             {available ? <CheckIcon /> : <InfoIcon />}
@@ -3047,7 +3064,7 @@ function formatDate(value: string | Date | null | undefined): string {
 function filterActionProposals(
   proposals: GQL.ActionProposal[],
   search: string,
-  shopLabel: (shopId: string) => string,
+  shopLabel: (shopId: string) => ShopDisplayLabel,
 ): GQL.ActionProposal[] {
   const query = search.trim().toLowerCase();
   if (!query) return proposals;
@@ -3058,14 +3075,14 @@ function filterActionProposals(
 
 function actionProposalSearchText(
   proposal: GQL.ActionProposal,
-  shopLabel: (shopId: string) => string,
+  shopLabel: (shopId: string) => ShopDisplayLabel,
 ): string {
   const creatorProfile = proposal.creatorProfile;
   const collaboration = proposal.affiliateCollaboration;
   const displayShopIds = actionProposalDisplayShopIds(proposal);
   const values = [
     proposal.id,
-    ...displayShopIds.flatMap((shopId) => [shopId, shopLabel(shopId)]),
+    ...displayShopIds.flatMap((shopId) => [shopId, shopLabel(shopId).text]),
     proposal.creatorId,
     proposal.operatorSummary,
     proposal.type,
@@ -3116,7 +3133,7 @@ function actionProposalDisplayShopIds(proposal: GQL.ActionProposal): string[] {
 function filterAffiliateCollaborations(
   records: GQL.AffiliateCollaboration[],
   search: string,
-  shopLabel: (shopId: string) => string,
+  shopLabel: (shopId: string) => ShopDisplayLabel,
 ): GQL.AffiliateCollaboration[] {
   const query = search.trim().toLowerCase();
   if (!query) return records;
@@ -3127,12 +3144,12 @@ function filterAffiliateCollaborations(
 
 function affiliateCollaborationSearchText(
   record: GQL.AffiliateCollaboration,
-  shopLabel: (shopId: string) => string,
+  shopLabel: (shopId: string) => ShopDisplayLabel,
 ): string {
   const values = [
     record.id,
     record.shopId,
-    shopLabel(record.shopId),
+    shopLabel(record.shopId).text,
     ...record.creatorIds,
     ...record.creatorOpenIds,
     ...record.productIds,
@@ -3212,14 +3229,16 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
   const shopOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-    ...affiliateShops.map((shop) => ({
-      value: shop.id,
-      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-    })),
+    ...affiliateShops.map((shop) => {
+      const label = shopDisplayLabel(shop, shop.id);
+      return { value: shop.id, label: label.text, sensitive: label.sensitive };
+    }),
   ];
-  function shopLabel(shopId: string): string {
-    const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
-    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+  function shopLabel(shopId: string): ShopDisplayLabel {
+    return shopDisplayLabel(
+      entityStore.shops.find((candidate) => candidate.id === shopId),
+      shopId,
+    );
   }
 
   // Manual tags are seller-scoped, so this catalog takes no shop and no campaign
@@ -3555,7 +3574,7 @@ function CreatorRelationshipCompactCard({
   onOpenRelationship,
 }: {
   item: AffiliateCreatorManagementItem;
-  shopLabel: (shopId: string) => string;
+  shopLabel: (shopId: string) => ShopDisplayLabel;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
 }) {
   const { t } = useTranslation();
@@ -3675,9 +3694,14 @@ function CreatorRelationshipCompactCard({
           <div className="affiliate-creator-compact-values">
             {relationshipShopIds.length ? (
               relationshipShopIds.map((shopId) => (
-                <span className="affiliate-creator-shop-pill" key={shopId}>
-                  {shopLabel(shopId)}
-                </span>
+                <TkPrivate
+                  as="span"
+                  className="affiliate-creator-shop-pill"
+                  key={shopId}
+                  sensitive={shopLabel(shopId).sensitive}
+                >
+                  {shopLabel(shopId).text}
+                </TkPrivate>
               ))
             ) : (
               <span className="affiliate-creator-compact-empty">—</span>
@@ -3791,7 +3815,7 @@ export function AffiliateCollaborationCard({
   onOpen,
 }: {
   collaboration: GQL.AffiliateCollaboration;
-  shopLabel: string;
+  shopLabel: ShopDisplayLabel;
   productSummary?: GQL.EcomProductSummary | null;
   productSummaries?: GQL.EcomProductSummary[];
   contextLabels?: string[];
@@ -3861,7 +3885,8 @@ export function AffiliateCollaborationCard({
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-text">
           <div className="affiliate-creator-name-static">
-            {formatAffiliateEnumLabel(collaboration.type)} · {shopLabel}
+            {formatAffiliateEnumLabel(collaboration.type)} ·{" "}
+            <TkPrivate sensitive={shopLabel.sensitive}>{shopLabel.text}</TkPrivate>
           </div>
           <div className="affiliate-work-item-meta">
             {contextLabels.length > 0 ? (
@@ -3886,9 +3911,16 @@ export function AffiliateCollaborationCard({
             {t("ecommerce.affiliateWorkspace.historyTitle")}
           </div>
           <div className="affiliate-card-section-title">
-            {productForId(productIds[0])?.title ||
-              collaboration.name ||
-              `${formatAffiliateEnumLabel(collaboration.type)} · ${shopLabel}`}
+            {productForId(productIds[0])?.title ? (
+              <TkPrivate>{productForId(productIds[0])?.title}</TkPrivate>
+            ) : collaboration.name ? (
+              collaboration.name
+            ) : (
+              <>
+                {formatAffiliateEnumLabel(collaboration.type)} ·{" "}
+                <TkPrivate sensitive={shopLabel.sensitive}>{shopLabel.text}</TkPrivate>
+              </>
+            )}
           </div>
           <div className="affiliate-card-section-copy">
             {formatAffiliateEnumLabel(collaboration.status)} ·{" "}
@@ -3979,7 +4011,7 @@ function AffiliateCollaborationDetailModal({
   onChanged,
 }: {
   collaborationId: string;
-  shopLabel: (shopId: string) => string;
+  shopLabel: (shopId: string) => ShopDisplayLabel;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -4054,7 +4086,9 @@ function AffiliateCollaborationDetailModal({
                 >
                   {formatAffiliateEnumLabel(collaboration.type)}
                 </span>
-                <span>{shopLabel(collaboration.shopId)}</span>
+                <TkPrivate as="span" sensitive={shopLabel(collaboration.shopId).sensitive}>
+                  {shopLabel(collaboration.shopId).text}
+                </TkPrivate>
                 <PlatformIdCopy value={collaboration.platformCollaborationId} />
               </p>
             ) : null}
@@ -5803,7 +5837,7 @@ function RelationshipPlatformCollaborationCard({
   productSummaries,
 }: {
   item: GQL.AffiliateRelationshipPlatformCollaborationItem;
-  shopLabel: string;
+  shopLabel: ShopDisplayLabel;
   productSummaries: GQL.EcomProductSummary[];
 }) {
   const { t } = useTranslation();
@@ -6158,10 +6192,10 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
     ...shops
       .filter((shop) => shop.services?.affiliateService?.enabled)
-      .map((shop) => ({
-        value: shop.id,
-        label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-      })),
+      .map((shop) => {
+        const label = shopDisplayLabel(shop, shop.id);
+        return { value: shop.id, label: label.text, sensitive: label.sensitive };
+      }),
   ];
   const historyStatusFilterOptions = useMemo(
     () =>
@@ -6300,9 +6334,11 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     setHistoryPageInput(String(clampedPage));
   }
 
-  function shopLabel(shopId: string): string {
-    const shop = shops.find((candidate) => candidate.id === shopId);
-    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+  function shopLabel(shopId: string): ShopDisplayLabel {
+    return shopDisplayLabel(
+      shops.find((candidate) => candidate.id === shopId),
+      shopId,
+    );
   }
 
   if (authChecking) {
@@ -6643,6 +6679,9 @@ function AffiliateCreatorMessageRow({
           defaultValue: formatAffiliateEnumLabel(message.channel),
         })
       : null);
+  // Sensitive only on the branch that fell through to the platform shop name;
+  // the operator's own account label and the channel name are not.
+  const channelLabelSensitive = message.accountLabel == null && message.shopName != null;
   const directionKey = String(direction).toLowerCase();
   const hasCardRefs = Boolean(productRefs.length || sampleRefs.length || targetRefs.length);
   const rawCardPayload = text ? parsePlatformCardPayload(text) : null;
@@ -6659,7 +6698,11 @@ function AffiliateCreatorMessageRow({
           })}
         </span>
         {time ? <span>{formatProposalTime(time)}</span> : null}
-        {channelLabel ? <span>{channelLabel}</span> : null}
+        {channelLabel ? (
+          <TkPrivate as="span" sensitive={channelLabelSensitive}>
+            {channelLabel}
+          </TkPrivate>
+        ) : null}
       </div>
       {shouldShowText ? (
         <div className="affiliate-conversation-message-text">{text}</div>
@@ -6857,7 +6900,7 @@ function AffiliateCreatorMessageProductRefCard({
     <div className="affiliate-conversation-card affiliate-conversation-product-card">
       <div className="affiliate-conversation-card-media">
         {product?.coverImage ? (
-          <RemoteMediaImage alt="" loading="lazy" sourceUrl={product.coverImage} />
+          <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={product.coverImage} />
         ) : (
           <span aria-hidden="true" />
         )}
@@ -6866,9 +6909,9 @@ function AffiliateCreatorMessageProductRefCard({
         <span className="affiliate-conversation-card-kicker">
           {t("ecommerce.affiliateWorkspace.conversation.productCardLabel")}
         </span>
-        <strong>
+        <TkPrivate as="strong" sensitive={Boolean(product?.title)}>
           {product?.title || t("ecommerce.affiliateWorkspace.productContextConfirmed")}
-        </strong>
+        </TkPrivate>
         <div className="affiliate-conversation-card-meta">
           {price ? <span className="affiliate-conversation-card-price">{price}</span> : null}
           {product?.status ? (
@@ -7190,18 +7233,21 @@ function agentWorkTableActions(
   return actions;
 }
 
-function AgentWorkBundleTable({
+// `observer()` because the seller-SKU product label is substituted rather than
+// blurred, and a substituted string only updates on re-render.
+const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
   bundles,
   shopLabelForId,
   onOpen,
   onOpenCreator,
 }: {
   bundles: AgentWorkBundle[];
-  shopLabelForId: (shopId: string) => string;
+  shopLabelForId: (shopId: string) => ShopDisplayLabel;
   onOpen: (bundle: AgentWorkBundle) => void;
   onOpenCreator: (bundle: AgentWorkBundle) => void;
 }) {
   const { t } = useTranslation();
+  const privacyMode = usePrivacyMode();
 
   return (
     <TkTableFrame
@@ -7255,8 +7301,10 @@ function AgentWorkBundleTable({
             const recommendationTitle = renderAgentWorkRecommendationTitle(proposal, t);
             const workActions = agentWorkTableActions(proposal, t);
             const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
-            const primaryShopLabel =
-              shopLabels[0] ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
+            const primaryShopLabel: ShopDisplayLabel = shopLabels[0] ?? {
+              text: t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop"),
+              sensitive: false,
+            };
             const additionalShopCount = Math.max(0, shopLabels.length - 1);
             const openLabel = t("ecommerce.affiliateWorkspace.agentWorkTable.openDetail", {
               creator: creatorName,
@@ -7277,8 +7325,16 @@ function AgentWorkBundleTable({
                     <span>{formatProposalTableDate(proposal.createdAt)}</span>
                   </time>
                 </td>
-                <td className="affiliate-agent-work-table-shop" title={shopLabels.join(" · ")}>
-                  <strong>{primaryShopLabel}</strong>
+                <td className="affiliate-agent-work-table-shop">
+                  {/* The tooltip lists every shop, so it carries the same
+                      sensitivity as the label it belongs to. */}
+                  <TkPrivate
+                    as="strong"
+                    sensitive={shopLabels.some((label) => label.sensitive)}
+                    title={shopLabels.map((label) => label.text).join(" · ")}
+                  >
+                    {primaryShopLabel.text}
+                  </TkPrivate>
                   {additionalShopCount > 0 ? (
                     <span>
                       {t("ecommerce.affiliateWorkspace.agentWorkTable.moreShops", {
@@ -7368,10 +7424,18 @@ function AgentWorkBundleTable({
                   {sampleRows.length > 0 ? (
                     <ul className="affiliate-agent-work-stock-list">
                       {sampleRows.map((row) => {
-                        const productLabel = sampleReviewRowProductLabel(row, t);
+                        const productLabel = sampleReviewRowProductLabel(row, t, privacyMode);
                         return (
-                          <li key={row.stepId} title={productLabel}>
-                            <small>{productLabel}</small>
+                          <li key={row.stepId}>
+                            {/* The tooltip repeats the product name, so it
+                                moves onto the masked node itself. */}
+                            <TkPrivate
+                              as="small"
+                              sensitive={Boolean(row.productTitle)}
+                              title={productLabel}
+                            >
+                              {productLabel}
+                            </TkPrivate>
                             <strong>
                               {formatStockQuantity(row.productTotalAvailableQuantity)}
                             </strong>
@@ -7399,7 +7463,7 @@ function AgentWorkBundleTable({
       </table>
     </TkTableFrame>
   );
-}
+});
 
 function AgentWorkBundleDetailModal({
   bundle,
@@ -7414,7 +7478,7 @@ function AgentWorkBundleDetailModal({
   onRequestRevision,
 }: {
   bundle: AgentWorkBundle;
-  shopLabelForId: (shopId: string) => string;
+  shopLabelForId: (shopId: string) => ShopDisplayLabel;
   decidingProposal: boolean;
   affiliateWorkspace: AffiliateWorkspaceStore;
   covered: boolean;
@@ -7427,8 +7491,10 @@ function AgentWorkBundleDetailModal({
   const { t } = useTranslation();
   const proposal = bundle.proposal;
   const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
-  const primaryShopLabel =
-    shopLabels[0] ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
+  const primaryShopLabel: ShopDisplayLabel = shopLabels[0] ?? {
+    text: t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop"),
+    sensitive: false,
+  };
   const isPending = proposal.status === GQL.ActionProposalStatus.Pending;
   const titleId = `affiliate-agent-work-detail-${proposal.id}`;
   const relationshipId =
@@ -7507,7 +7573,9 @@ function AgentWorkBundleDetailModal({
         }
         description={
           <>
-            <strong>{primaryShopLabel}</strong>
+            <TkPrivate as="strong" sensitive={primaryShopLabel.sensitive}>
+              {primaryShopLabel.text}
+            </TkPrivate>
             <span>{formatActionProposalTypeLabel(proposal.type, t)}</span>
             <span
               className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}
@@ -7595,7 +7663,7 @@ function AgentWorkReviewContext({
   previousAgentWork: GQL.ActionProposal[];
   loading: boolean;
   failed: boolean;
-  shopLabelForId: (shopId: string) => string;
+  shopLabelForId: (shopId: string) => ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
   const source = proposal.sourceWorkBoundary;
@@ -7629,10 +7697,11 @@ function AgentWorkReviewContext({
     source?.triggerShopId
       ? {
           label: t("ecommerce.affiliateWorkspace.agentWorkDetail.triggerShop"),
-          value: shopLabelForId(source.triggerShopId),
+          value: shopLabelForId(source.triggerShopId).text,
+          sensitive: shopLabelForId(source.triggerShopId).sensitive,
         }
       : null,
-  ].filter((fact): fact is { label: string; value: string } => Boolean(fact));
+  ].filter((fact): fact is { label: string; value: string; sensitive?: boolean } => Boolean(fact));
 
   return (
     <aside
@@ -7657,7 +7726,9 @@ function AgentWorkReviewContext({
             {triggerFacts.map((fact) => (
               <div key={`${fact.label}-${fact.value}`}>
                 <span>{fact.label}</span>
-                <strong>{fact.value}</strong>
+                <TkPrivate as="strong" sensitive={fact.sensitive ?? false}>
+                  {fact.value}
+                </TkPrivate>
               </div>
             ))}
           </div>
@@ -7785,8 +7856,8 @@ export function AgentWorkBundleCard({
 }: {
   proposal: GQL.ActionProposal;
   revisionHistory?: GQL.ActionProposalRevisionSummary[];
-  shopLabel: string;
-  shopLabelForId?: (shopId: string) => string;
+  shopLabel: ShopDisplayLabel;
+  shopLabelForId?: (shopId: string) => ShopDisplayLabel;
   decidingProposal?: boolean;
   variant?: AffiliateEntityCardVariant | "full";
   allowDecisionActions?: boolean;
@@ -8017,7 +8088,9 @@ export function AgentWorkBundleCard({
                 <CreatorName name={creatorName} onOpen={openCreator} />
                 <CreatorPlatformId handle={creatorHandle} platformId={creatorPlatformId} />
                 <div className="affiliate-work-item-meta">
-                  <span>{shopLabel}</span>
+                  <TkPrivate as="span" sensitive={shopLabel.sensitive}>
+                    {shopLabel.text}
+                  </TkPrivate>
                   <span>{formatProposalTime(proposal.createdAt)}</span>
                 </div>
               </div>
@@ -8192,7 +8265,9 @@ export function AgentWorkBundleCard({
             <CreatorName name={creatorName} onOpen={openCreator} />
             <CreatorPlatformId handle={creatorHandle} platformId={creatorPlatformId} />
             <div className="affiliate-work-item-meta">
-              <span>{shopLabel}</span>
+              <TkPrivate as="span" sensitive={shopLabel.sensitive}>
+                {shopLabel.text}
+              </TkPrivate>
               <span>{formatProposalTime(proposal.createdAt)}</span>
               {proposalStepCountLabel ? <span>{proposalStepCountLabel}</span> : null}
               <SystemIdCopy value={proposal.id} />
@@ -8565,14 +8640,24 @@ export function resolveProposalProductSummary(
   );
 }
 
-function sampleReviewRowProductLabel(
+/**
+ * The label is one plain string, so only the title branch can be blurred by
+ * marking the node that renders it. The seller-SKU branch is a composite —
+ * `Seller SKU ABC-123` — whose leading label must stay readable, so the SKU
+ * itself is substituted instead. Callers must therefore be `observer()`:
+ * unlike the CSS blur, a substituted string goes stale until a re-render.
+ */
+export function sampleReviewRowProductLabel(
   row: AffiliateSampleProposalReviewRow,
   t: ReturnType<typeof useTranslation>["t"],
+  privacyMode: boolean,
 ): string {
   return (
     row.productTitle ||
     (row.productSellerSku
-      ? `${t("ecommerce.affiliateWorkspace.sampleDecisionBundle.sellerSku")} ${row.productSellerSku}`
+      ? `${t("ecommerce.affiliateWorkspace.sampleDecisionBundle.sellerSku")} ${
+          privacyMode ? MASKED_NAME_PLACEHOLDER : row.productSellerSku
+        }`
       : row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct"))
   );
 }
@@ -8677,16 +8762,19 @@ function ProposalSampleCreatorMetrics({ proposal }: { proposal: GQL.ActionPropos
   );
 }
 
-function ProposalSampleDecisionBundle({
+// `observer()` for the same reason as `AgentWorkBundleTable`: it renders the
+// substituted seller-SKU product label.
+const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBundle({
   proposal,
   rows,
   shopLabelForId,
 }: {
   proposal: GQL.ActionProposal;
   rows: AffiliateSampleProposalReviewRow[];
-  shopLabelForId: (shopId: string) => string;
+  shopLabelForId: (shopId: string) => ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
+  const privacyMode = usePrivacyMode();
   const summary = summarizeSampleProposalReviewRows(rows);
   return (
     <section
@@ -8742,7 +8830,7 @@ function ProposalSampleDecisionBundle({
               unavailableLabel)
             : evidenceStateFallback;
           const approves = row.decision === GQL.AffiliateSampleReviewDecision.Approve;
-          const productLabel = sampleReviewRowProductLabel(row, t);
+          const productLabel = sampleReviewRowProductLabel(row, t, privacyMode);
           const productPrice = formatProductSummaryPrice(row.productSummary);
           const productCoverImage = row.productSummary?.coverImage ?? null;
           const rejectReasonLabel = row.rejectReason
@@ -8776,6 +8864,7 @@ function ProposalSampleDecisionBundle({
                         alt=""
                         className="affiliate-sample-decision-product-thumb"
                         loading="lazy"
+                        sensitive
                         sourceUrl={productCoverImage}
                       />
                     ) : (
@@ -8785,7 +8874,13 @@ function ProposalSampleDecisionBundle({
                       />
                     )}
                     <div className="affiliate-sample-decision-product-copy">
-                      <strong title={productLabel}>{productLabel}</strong>
+                      <TkPrivate
+                        as="strong"
+                        sensitive={Boolean(row.productTitle)}
+                        title={productLabel}
+                      >
+                        {productLabel}
+                      </TkPrivate>
                       <div className="affiliate-sample-decision-product-facts">
                         {productPrice ? (
                           <span className="affiliate-sample-decision-product-price">
@@ -8809,9 +8904,13 @@ function ProposalSampleDecisionBundle({
                     <PlatformIdCopy value={row.platformApplicationId} />
                     <span>
                       {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.shop")}：
-                      {row.shopId
-                        ? shopLabelForId(row.shopId)
-                        : t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop")}
+                      {row.shopId ? (
+                        <TkPrivate sensitive={shopLabelForId(row.shopId).sensitive}>
+                          {shopLabelForId(row.shopId).text}
+                        </TkPrivate>
+                      ) : (
+                        t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop")
+                      )}
                     </span>
                   </div>
                 </div>
@@ -8875,7 +8974,7 @@ function ProposalSampleDecisionBundle({
       </div>
     </section>
   );
-}
+});
 
 function ProposalPredictionComparison({
   snapshot,
@@ -9161,11 +9260,11 @@ export function SampleApplicationSummaryCard({
       <div className="affiliate-collaboration-sample-card-head">
         <div>
           <span>{t("ecommerce.affiliateWorkspace.sampleApplication.title")}</span>
-          <strong>
+          <TkPrivate as="strong" sensitive={Boolean(productSummary?.title)}>
             {productSummary?.title ||
               sampleApplication.platformApplicationId ||
               t("ecommerce.affiliateWorkspace.sampleApplication.title")}
-          </strong>
+          </TkPrivate>
           <div className="affiliate-entity-card-identifiers">
             <SystemIdCopy value={sampleApplication.id} />
             <PlatformIdCopy
@@ -9257,7 +9356,7 @@ function RelationshipAgendaCard({
   creatorRelationshipId: string;
   sampleApplication?: GQL.SampleApplicationRecord | null;
   productSummary?: GQL.EcomProductSummary | null;
-  shopLabel: string;
+  shopLabel: ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
   const sampleApplicationRecordId = agenda.sampleApplicationRecordId ?? null;
@@ -9302,7 +9401,8 @@ function RelationshipAgendaCard({
     >
       <div className="affiliate-relationship-work-current-work-main">
         <span>
-          {shopLabel} · {affiliateWorkspaceEnumLabel(t, "agendaOwners", agenda.owner)}
+          <TkPrivate sensitive={shopLabel.sensitive}>{shopLabel.text}</TkPrivate> ·{" "}
+          {affiliateWorkspaceEnumLabel(t, "agendaOwners", agenda.owner)}
         </span>
         <h3>
           {t(`ecommerce.affiliateWorkspace.workKinds.${agenda.workKind}`, {
@@ -9971,12 +10071,11 @@ export function CreatorRelationshipDetailModal({
   const marketplaceBio = profile?.bioDescription?.trim() || null;
   const blocked = Boolean(relationship?.blocked);
   const rawShopStates = relationship?.shopStates ?? (item?.shopState ? [item.shopState] : []);
-  const relationshipShopName = (shopId: string) => {
+  const relationshipShopName = (shopId: string): ShopDisplayLabel => {
     const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
-    return (
-      shop?.alias ||
-      shop?.shopName ||
-      t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop")
+    return shopDisplayLabel(
+      { alias: shop?.alias, shopName: shop?.shopName },
+      t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop"),
     );
   };
   const [relationshipOwnerId, setRelationshipOwnerId] = useState(
@@ -10995,7 +11094,12 @@ export function CreatorRelationshipDetailModal({
                 <div className="affiliate-relationship-shop-state-list">
                   {shopActivitySummaries.slice(0, 4).map((summary) => (
                     <div className="affiliate-relationship-shop-state" key={summary.shopId}>
-                      <strong>{relationshipShopName(summary.shopId)}</strong>
+                      <TkPrivate
+                        as="strong"
+                        sensitive={relationshipShopName(summary.shopId).sensitive}
+                      >
+                        {relationshipShopName(summary.shopId).text}
+                      </TkPrivate>
                       <span className="affiliate-relationship-shop-tier">
                         {t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}:{" "}
                         {creatorSampleTierDisplay(
@@ -11146,7 +11250,12 @@ export function CreatorRelationshipDetailModal({
                               shopLabel={
                                 agenda.shopId
                                   ? relationshipShopName(agenda.shopId)
-                                  : t("ecommerce.affiliateWorkspace.relationshipAcrossShops")
+                                  : {
+                                      text: t(
+                                        "ecommerce.affiliateWorkspace.relationshipAcrossShops",
+                                      ),
+                                      sensitive: false,
+                                    }
                               }
                             />
                           );
@@ -11162,7 +11271,10 @@ export function CreatorRelationshipDetailModal({
                           <AgentWorkBundleCard
                             key={proposal.id}
                             proposal={proposal}
-                            shopLabel={t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}
+                            shopLabel={{
+                              text: t("ecommerce.affiliateWorkspace.relationshipAcrossShops"),
+                              sensitive: false,
+                            }}
                             shopLabelForId={relationshipShopName}
                             decidingProposal={decidingProposalId === proposal.id}
                             variant="embedded"
@@ -11442,10 +11554,14 @@ export function CreatorRelationshipDetailModal({
                       <Select
                         value={composerShopId}
                         onChange={setComposerShopId}
-                        options={includedShopIds.map((shopId) => ({
-                          value: shopId,
-                          label: relationshipShopName(shopId),
-                        }))}
+                        options={includedShopIds.map((shopId) => {
+                          const label = relationshipShopName(shopId);
+                          return {
+                            value: shopId,
+                            label: label.text,
+                            sensitive: label.sensitive,
+                          };
+                        })}
                         placeholder={t("ecommerce.affiliateWorkspace.selectMessageShop")}
                       />
                       <Select
