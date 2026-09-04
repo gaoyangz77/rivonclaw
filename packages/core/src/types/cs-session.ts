@@ -61,6 +61,19 @@ export interface AffiliateIdentificationSessionContext {
   readonly routingShopId?: string;
   /** The `AffiliateUnknownInboundContact` this run is about. */
   readonly unknownInboundContactId: string;
+  /**
+   * The handled cursor this run was dispatched from — everything at or below
+   * it has already been shown to a completed run.
+   *
+   * Carried on the session rather than left to the model for the same reason
+   * `unknownInboundContactId` is: a run must not be able to choose what it is
+   * held to have covered. Both cursors are context-bound on all three terminal
+   * tools, so they are stripped from the Agent-facing schema and injected from
+   * here when one of them is called.
+   */
+  readonly baseInboundSequence: number;
+  /** The end of this run's frozen span; the handled cursor advances to it on a terminal outcome. */
+  readonly targetInboundSequence: number;
   readonly runId?: string;
 }
 

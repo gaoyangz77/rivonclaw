@@ -6,26 +6,56 @@ import {
   type AffiliateUnknownSenderIdentificationWorkPayload,
   type AffiliateUnknownSenderIdentificationWorkQueryResult,
 } from "../cloud/affiliate-queries.js";
-import { requestAgent } from "../gateway/agent-tooling-readiness.js";
+import { ensureAgentToolingReady, requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { localeToStaffLanguage } from "../i18n/locale.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { buildAffiliateIdentificationRunRequest } from "./affiliate-identification-run-factory.js";
+import {
+  getActiveAffiliateIdentificationRun,
+  registerActiveAffiliateIdentificationRun,
+  releaseAffiliateIdentificationRun,
+  sweepFinishedAffiliateIdentificationRuns,
+  __clearActiveAffiliateIdentificationRunsForTests,
+} from "./affiliate-identification-run-spans.js";
 import { DEBUG_AFFILIATE_PROMPT, DEFAULT_AFFILIATE_RUN_PROFILE_ID } from "./affiliate-session.js";
 
 const log = createLogger("affiliate-unknown-sender");
 
-/** How many strangers one poll asks for. The backend caps this at 100. */
+/** How many strangers one read asks for. The backend caps this at 100. */
 const IDENTIFICATION_WORK_PAGE_SIZE = 50;
 
 /**
- * How often we ask the backend who is waiting to be identified.
+ * The safety net, not the delivery path.
  *
- * There is no subscription for unknown senders: a stranger's first message
- * creates the row through the Provider drop site, which publishes nothing. The
- * interval only has to be short relative to how long a person will wait for a
- * reply, and the query is one indexed read per seller.
+ * Identification work reaches this device by subscription: the drop site
+ * records a stranger's message and the backend publishes
+ * `affiliateUnknownSenderIdentificationChanged`, exactly as Creator work
+ * arrives through `affiliateWorkItemChanged`. This sweep exists only because
+ * subscriptions drop, and a dropped event must not leave a person waiting
+ * indefinitely for an answer nobody knows they are owed. It is deliberately
+ * slow: making it fast would make it the mechanism again, and hide the day the
+ * push stops working.
  */
-const IDENTIFICATION_POLL_INTERVAL_MS = 5 * 60 * 1000;
+const IDENTIFICATION_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
+
+/**
+ * How long a wake-up waits for others before reading.
+ *
+ * A stranger sending five messages produces five events and one piece of work.
+ * The backend already refuses to dispatch until their burst settles, so five
+ * immediate reads would return "still settling" five times. Coalescing them
+ * costs a second of latency and removes four round trips.
+ */
+const IDENTIFICATION_WAKE_COALESCE_MS = 1000;
+
+/**
+ * Slack added when re-reading a row the backend withheld until a stated time.
+ *
+ * Without this the settle window would be closed by the sweep — the stranger
+ * stops typing, the backend says "ready in 15 seconds", and nothing asks again
+ * for fifteen minutes. A wait with a stated end is a wait we schedule.
+ */
+const IDENTIFICATION_WAIT_RECHECK_SLACK_MS = 1000;
 
 /**
  * The single device an unknown-sender row is targeted at, or the reason no
@@ -74,17 +104,35 @@ export function computeAffiliateIdentificationDeviceTarget(
 /**
  * Rows this Desktop has already handed to the agent, keyed by row id.
  *
- * The value is the row version an agent run was started for. A re-poll of
+ * The value is the row version an agent run was started for. A re-read of
  * unchanged work must not open a second run for one stranger; a spent attempt
- * or a new message is genuinely new work and re-enters.
+ * or an unread message is genuinely new work and re-enters.
  */
 const dispatchedRowVersions = new Map<string, string>();
 
-/** Rows with a dispatch in flight, so two overlapping polls cannot both start one. */
+/** Rows with a dispatch in flight, so two overlapping reads cannot both start one. */
 const inFlightRowIds = new Set<string>();
 
+/** Coalesces a burst of wake-ups into one read. */
+let pendingWakeTimer: ReturnType<typeof setTimeout> | null = null;
+/** The scheduled re-read for a row the backend withheld until a stated time. */
+let pendingWaitTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingWaitAtMs: number | null = null;
+
+/**
+ * The version of the work, as the span defines it.
+ *
+ * Keyed by the two cursors rather than by `messageCount`, because the span is
+ * what a run is actually given: a message that arrives and is committed in the
+ * same breath is not new work, and a run whose span was never committed still
+ * is. `messageCount` counts observations and answers neither question.
+ */
 function rowVersion(work: AffiliateUnknownSenderIdentificationWorkPayload): string {
-  return `${work.identificationAttempts}:${work.messageCount}`;
+  return [
+    work.identificationAttempts,
+    work.handledThroughInboundSequence,
+    work.latestInboundSequence,
+  ].join(":");
 }
 
 /**
@@ -108,24 +156,94 @@ export async function catchUpAffiliateUnknownSenderIdentification(
   for (const id of dispatchedRowVersions.keys()) {
     if (!liveRowIds.has(id)) dispatchedRowVersions.delete(id);
   }
+  sweepFinishedAffiliateIdentificationRuns();
 
   for (const work of rows) {
     await handleAffiliateUnknownSenderIdentificationWork(work, deviceId, getUiLocale);
   }
+
+  scheduleWithheldRowRecheck(rows, deviceId, () =>
+    catchUpAffiliateUnknownSenderIdentification(authSession, deviceId, getUiLocale),
+  );
 }
 
 /**
- * Starts polling for unknown senders and returns the stop function.
+ * Re-reads once, at the moment the backend said a withheld row becomes ready.
  *
- * Each pass is skipped while the session holds no access token, so the poll
- * goes quiet after logout without a teardown of its own.
+ * `AWAITING_MESSAGE_SETTLE` is a wait with a stated end, and a wait with a
+ * stated end must be scheduled rather than swept up later. Without this a
+ * stranger who stops typing waits out the settle window and then waits for the
+ * sweep — the delay this whole change exists to remove, reappearing behind a
+ * shorter name. Only the earliest such time is tracked: one timer clears every
+ * row that becomes ready at or before it.
  */
-export function startAffiliateUnknownSenderIdentificationPolling(
+function scheduleWithheldRowRecheck(
+  rows: AffiliateUnknownSenderIdentificationWorkPayload[],
+  deviceId: string,
+  reread: () => Promise<void>,
+): void {
+  const now = Date.now();
+  const earliest = rows
+    .filter((row) => {
+      const target = computeAffiliateIdentificationDeviceTarget(row);
+      return target.kind === "BUSINESS_DEVELOPER" && target.deviceId === deviceId;
+    })
+    .map((row) => (row.nextAttemptEligibleAt ? Date.parse(row.nextAttemptEligibleAt) : NaN))
+    .filter((at) => Number.isFinite(at) && at > now)
+    .reduce<number | null>((min, at) => (min == null || at < min ? at : min), null);
+  if (earliest == null) return;
+  if (pendingWaitTimer && pendingWaitAtMs != null && pendingWaitAtMs <= earliest) return;
+  if (pendingWaitTimer) clearTimeout(pendingWaitTimer);
+  pendingWaitAtMs = earliest;
+  pendingWaitTimer = setTimeout(() => {
+    pendingWaitTimer = null;
+    pendingWaitAtMs = null;
+    void reread().catch((error) => {
+      log.warn("Failed to re-read a settled Affiliate unknown sender", error);
+    });
+  }, earliest - now + IDENTIFICATION_WAIT_RECHECK_SLACK_MS);
+}
+
+/**
+ * Wakes this device because a stranger said something nobody has read.
+ *
+ * The signal names a row, but the read is unfiltered: the same query decides
+ * every row's span, candidates and dispatch verdict, and having a second path
+ * that reads one row would be a second answer to the question of what a run is
+ * dispatched with. A burst of signals collapses into one read.
+ */
+export function wakeAffiliateUnknownSenderIdentification(
+  authSession: AuthSessionManager,
+  deviceId: string,
+  getUiLocale?: () => string,
+): void {
+  if (pendingWakeTimer) return;
+  pendingWakeTimer = setTimeout(() => {
+    pendingWakeTimer = null;
+    if (!authSession.getAccessToken()) return;
+    void catchUpAffiliateUnknownSenderIdentification(authSession, deviceId, getUiLocale).catch(
+      (error) => {
+        log.warn("Failed to read pending Affiliate unknown senders after a wake-up", error);
+      },
+    );
+  }, IDENTIFICATION_WAKE_COALESCE_MS);
+}
+
+/**
+ * Starts the low-frequency catch-up sweep and returns the stop function.
+ *
+ * The sweep is the floor, not the mechanism — see
+ * `IDENTIFICATION_SWEEP_INTERVAL_MS`. Push delivery lives in
+ * `wakeAffiliateUnknownSenderIdentification`. Each pass is skipped while the
+ * session holds no access token, so it goes quiet after logout without a
+ * teardown of its own.
+ */
+export function startAffiliateUnknownSenderIdentificationSweep(
   authSession: AuthSessionManager,
   deviceId: string,
   getUiLocale?: () => string,
 ): () => void {
-  const poll = (): void => {
+  const sweep = (): void => {
     if (!authSession.getAccessToken()) return;
     void catchUpAffiliateUnknownSenderIdentification(authSession, deviceId, getUiLocale).catch(
       (error) => {
@@ -133,9 +251,16 @@ export function startAffiliateUnknownSenderIdentificationPolling(
       },
     );
   };
-  poll();
-  const timer = setInterval(poll, IDENTIFICATION_POLL_INTERVAL_MS);
-  return () => clearInterval(timer);
+  sweep();
+  const timer = setInterval(sweep, IDENTIFICATION_SWEEP_INTERVAL_MS);
+  return () => {
+    clearInterval(timer);
+    if (pendingWakeTimer) clearTimeout(pendingWakeTimer);
+    if (pendingWaitTimer) clearTimeout(pendingWaitTimer);
+    pendingWakeTimer = null;
+    pendingWaitTimer = null;
+    pendingWaitAtMs = null;
+  };
 }
 
 async function handleAffiliateUnknownSenderIdentificationWork(
@@ -185,6 +310,18 @@ async function handleAffiliateUnknownSenderIdentificationWork(
   const version = rowVersion(work);
   if (dispatchedRowVersions.get(work.id) === version) return;
   if (inFlightRowIds.has(work.id)) return;
+  // One run per stranger. A message arriving mid-run would otherwise open a
+  // second run over a wider span, and whichever finished first would commit
+  // its own — marking as read messages the other run was still holding.
+  const liveRun = getActiveAffiliateIdentificationRun(work.id);
+  if (liveRun) {
+    log.info(
+      `Affiliate identification run is still in flight for this stranger; not opening a second: ` +
+        `unknownInboundContact=${work.id} ` +
+        `span=${liveRun.baseInboundSequence}-${liveRun.targetInboundSequence}`,
+    );
+    return;
+  }
 
   const request = buildAffiliateIdentificationRunRequest({
     work,
@@ -194,6 +331,19 @@ async function handleAffiliateUnknownSenderIdentificationWork(
 
   inFlightRowIds.add(work.id);
   try {
+    // The gateway may not be up yet — this is the first thing that runs after
+    // a restart, and a wake-up can land before the RPC client connects.
+    // Waiting for readiness turns "RPC client not connected" from a logged
+    // failure into a scheduling detail. Nothing here spends an identification
+    // attempt: the cap is claimed inside the reply tool, which only the agent
+    // can reach, so a dispatch that never starts costs the sender nothing.
+    await ensureAgentToolingReady();
+    registerActiveAffiliateIdentificationRun({
+      unknownInboundContactId: work.id,
+      sessionKey,
+      baseInboundSequence: work.handledThroughInboundSequence,
+      targetInboundSequence: work.latestInboundSequence,
+    });
     await registerIdentificationSession(sessionKey, work);
     logIdentificationPromptContext(sessionKey, work, request.message, request.extraSystemPrompt);
     const resolvedModel = rootStore.llmManager.resolveModelForDispatch(sessionKey);
@@ -209,13 +359,19 @@ async function handleAffiliateUnknownSenderIdentificationWork(
     dispatchedRowVersions.set(work.id, version);
     log.info(
       `Affiliate identification run dispatched: runId=${response?.runId ?? "(none)"} ` +
-        `scope=${sessionKey} unknownInboundContact=${work.id}`,
+        `scope=${sessionKey} unknownInboundContact=${work.id} ` +
+        `span=${work.handledThroughInboundSequence}-${work.latestInboundSequence} ` +
+        `unread=${work.unreadMessages.length}/${work.unreadMessageCount} ` +
+        `coverage=${work.unreadCoverage}`,
     );
   } catch (error) {
-    // Leave the row undispatched so the next poll retries it. The backend has
-    // spent no attempt: the cap is claimed inside the reply tool, not here.
+    // The run never started, so it holds no span and committed nothing.
+    // Release the lease and leave the row undispatched: the next wake-up or
+    // sweep offers exactly the same span again.
+    releaseAffiliateIdentificationRun(work.id);
     log.warn(
-      `Failed to dispatch Affiliate identification run for unknownInboundContact=${work.id}`,
+      `Failed to dispatch Affiliate identification run for unknownInboundContact=${work.id}; ` +
+        `the span is uncommitted and will be offered again`,
       error,
     );
   } finally {
@@ -242,6 +398,13 @@ async function registerIdentificationSession(
     toolContext: {
       kind: "AFFILIATE_IDENTIFICATION",
       unknownInboundContactId: work.id,
+      // The span this run is held to, frozen before it starts. Context-bound
+      // on all three terminal tools, so it is stripped from the Agent-facing
+      // schema and injected from here — the run cannot choose what it is
+      // credited with having read, exactly as it cannot choose which stranger
+      // it is answering for.
+      baseInboundSequence: work.handledThroughInboundSequence,
+      targetInboundSequence: work.latestInboundSequence,
     },
   });
 }
@@ -259,10 +422,14 @@ function logIdentificationPromptContext(
       `unknownInboundContact=${work.id}`,
       `channel=${work.channel}`,
       `attempt=${work.identificationAttempts + 1}/${work.identificationAttempts + work.remainingIdentificationAttempts}`,
+      `span=${work.handledThroughInboundSequence}-${work.latestInboundSequence}`,
+      `unreadShown=${work.unreadMessages.length}`,
+      `unreadOwed=${work.unreadMessageCount}`,
+      `unreadCoverage=${work.unreadCoverage}`,
       `candidates=${work.candidates.length}`,
       `messageChars=${message.length}`,
       `systemPromptChars=${systemPrompt.length}`,
-      "promptContextVersion=affiliate-unknown-sender-identification-v1",
+      "promptContextVersion=affiliate-unknown-sender-identification-v2",
       `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
     ].join(" "),
   );
@@ -292,4 +459,10 @@ function trimmedOrNull(value: string | null | undefined): string | null {
 export function resetAffiliateUnknownSenderDispatchStateForTests(): void {
   dispatchedRowVersions.clear();
   inFlightRowIds.clear();
+  __clearActiveAffiliateIdentificationRunsForTests();
+  if (pendingWakeTimer) clearTimeout(pendingWakeTimer);
+  if (pendingWaitTimer) clearTimeout(pendingWaitTimer);
+  pendingWakeTimer = null;
+  pendingWaitTimer = null;
+  pendingWaitAtMs = null;
 }

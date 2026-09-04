@@ -43,8 +43,10 @@ vi.mock("../openclaw/index.js", () => ({
 }));
 
 const mockRequestAgent = vi.fn();
+const mockEnsureAgentToolingReady = vi.fn();
 vi.mock("../gateway/agent-tooling-readiness.js", () => ({
   requestAgent: (...args: unknown[]) => mockRequestAgent(...args),
+  ensureAgentToolingReady: (...args: unknown[]) => mockEnsureAgentToolingReady(...args),
 }));
 
 const mockSetSessionRunProfile = vi.fn();
@@ -78,7 +80,12 @@ import {
   catchUpAffiliateUnknownSenderIdentification,
   computeAffiliateIdentificationDeviceTarget,
   resetAffiliateUnknownSenderDispatchStateForTests,
+  wakeAffiliateUnknownSenderIdentification,
 } from "./affiliate-unknown-sender-actuator.js";
+import {
+  getActiveAffiliateIdentificationRun,
+  recordAffiliateIdentificationTerminalOutcome,
+} from "./affiliate-identification-run-spans.js";
 
 const THIS_DEVICE = "device-mia";
 const SESSION_KEY = "agent:affiliate:identify:user-1:whatsapp:14253245071:34600206861";
@@ -99,6 +106,17 @@ function makeWork(
     businessDeveloperName: "Mia (BD)",
     businessDeveloperDeviceId: THIS_DEVICE,
     lastMessagePreview: "Hola, soy la creadora del video de ayer",
+    unreadMessages: [
+      {
+        inboundSequence: 1,
+        text: "Hola, soy la creadora del video de ayer",
+        receivedAt: "2026-06-01T00:00:00.000Z",
+      },
+    ],
+    unreadCoverage: "COMPLETE",
+    unreadMessageCount: 1,
+    handledThroughInboundSequence: 0,
+    latestInboundSequence: 1,
     lastProviderMessageId: "MSG-1",
     messageCount: 1,
     firstSeenAt: "2026-06-01T00:00:00.000Z",
@@ -128,6 +146,7 @@ beforeEach(() => {
   loggerMocks.clear();
   mockRpcRequest.mockReset().mockResolvedValue(true);
   mockRequestAgent.mockReset().mockResolvedValue({ runId: "run-1" });
+  mockEnsureAgentToolingReady.mockReset().mockResolvedValue(undefined);
   mockSetSessionRunProfile.mockReset();
   mockResolveModelForDispatch.mockReset().mockReturnValue({
     provider: "anthropic",
@@ -180,7 +199,7 @@ describe("unknown sender dispatch admission", () => {
     const { session } = makeAuthSession([
       makeWork({
         dispatchable: false,
-        notDispatchableReason: "COOLING_DOWN",
+        notDispatchableReason: "AWAITING_SENDER_REPLY",
         identificationAttempts: 1,
         remainingIdentificationAttempts: 2,
         nextAttemptEligibleAt: "2026-06-02T06:00:00.000Z",
@@ -219,17 +238,130 @@ describe("unknown sender dispatch admission", () => {
     expect(loggerMocks.get("affiliate-unknown-sender").error).toHaveBeenCalled();
   });
 
-  it("does not re-run unchanged work, and does run again once an attempt is spent", async () => {
+  it("does not re-run unchanged work, and does run again once the previous run finished", async () => {
     const { session: first } = makeAuthSession([makeWork()]);
     await catchUpAffiliateUnknownSenderIdentification(first, THIS_DEVICE);
     await catchUpAffiliateUnknownSenderIdentification(first, THIS_DEVICE);
     expect(mockRequestAgent).toHaveBeenCalledTimes(1);
 
+    // The run asked who they are and ended; the span it covered is committed
+    // backend-side and the stranger is free for another run.
+    recordAffiliateIdentificationTerminalOutcome({
+      unknownInboundContactId: "unknown-1",
+      outcome: "REPLIED",
+    });
     const { session: afterAttempt } = makeAuthSession([
-      makeWork({ identificationAttempts: 1, remainingIdentificationAttempts: 2 }),
+      makeWork({
+        identificationAttempts: 1,
+        remainingIdentificationAttempts: 2,
+        handledThroughInboundSequence: 1,
+        latestInboundSequence: 2,
+        unreadMessageCount: 1,
+        unreadMessages: [
+          { inboundSequence: 2, text: "@nenishop", receivedAt: "2026-06-01T00:04:00.000Z" },
+        ],
+      }),
     ]);
     await catchUpAffiliateUnknownSenderIdentification(afterAttempt, THIS_DEVICE);
     expect(mockRequestAgent).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not open a second run for a stranger whose first run is still going", async () => {
+    // A message arriving mid-run must not start a second run over a wider
+    // span: whichever finished first would commit its own, marking as read
+    // messages the other run was still holding.
+    const { session: first } = makeAuthSession([makeWork()]);
+    await catchUpAffiliateUnknownSenderIdentification(first, THIS_DEVICE);
+    expect(mockRequestAgent).toHaveBeenCalledTimes(1);
+
+    const { session: midRun } = makeAuthSession([
+      makeWork({
+        latestInboundSequence: 2,
+        unreadMessageCount: 2,
+        unreadMessages: [
+          {
+            inboundSequence: 1,
+            text: "Hola, soy la creadora del video de ayer",
+            receivedAt: "2026-06-01T00:00:00.000Z",
+          },
+          { inboundSequence: 2, text: "@nenishop", receivedAt: "2026-06-01T00:01:00.000Z" },
+        ],
+      }),
+    ]);
+    await catchUpAffiliateUnknownSenderIdentification(midRun, THIS_DEVICE);
+
+    expect(mockRequestAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds no span for a run that never started, so the same span is offered again", async () => {
+    mockEnsureAgentToolingReady.mockRejectedValueOnce(
+      new Error("OpenClawConnector: RPC client not connected"),
+    );
+    const { session } = makeAuthSession([makeWork()]);
+
+    await catchUpAffiliateUnknownSenderIdentification(session, THIS_DEVICE);
+
+    expect(mockRequestAgent).not.toHaveBeenCalled();
+    // No session was registered either, so the agent could not have reached
+    // the reply tool and no identification attempt was spent.
+    expect(mockRpcRequest).not.toHaveBeenCalled();
+    expect(getActiveAffiliateIdentificationRun("unknown-1")).toBeNull();
+
+    await catchUpAffiliateUnknownSenderIdentification(session, THIS_DEVICE);
+    expect(mockRequestAgent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("unknown sender delivery timing", () => {
+  it("re-reads when the settle window ends instead of waiting for the sweep", async () => {
+    // The hole this closes: the stranger stops typing, the backend says "ready
+    // in fifteen seconds", and nothing asks again until the fifteen-minute
+    // safety sweep. That is the delay the push was meant to remove, wearing a
+    // shorter name.
+    vi.useFakeTimers();
+    try {
+      const settledAt = new Date(Date.now() + 15_000).toISOString();
+      const { session, graphqlFetch } = makeAuthSession([
+        // Withheld with a stated end: the backend is letting their burst settle.
+        // The reason enum is deliberately not asserted here — what this test is
+        // about is the stated end being honoured, not which wait it was.
+        makeWork({ dispatchable: false, nextAttemptEligibleAt: settledAt }),
+      ]);
+
+      await catchUpAffiliateUnknownSenderIdentification(session, THIS_DEVICE);
+      expect(mockRequestAgent).not.toHaveBeenCalled();
+      expect(graphqlFetch).toHaveBeenCalledTimes(1);
+
+      // The row becomes dispatchable exactly when the backend said it would.
+      graphqlFetch.mockResolvedValue({
+        affiliateUnknownSenderIdentificationWork: [makeWork()],
+      });
+      await vi.advanceTimersByTimeAsync(16_000);
+
+      expect(graphqlFetch).toHaveBeenCalledTimes(2);
+      expect(mockRequestAgent).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("collapses a burst of wake-ups into one read", async () => {
+    vi.useFakeTimers();
+    try {
+      const { session, graphqlFetch } = makeAuthSession([makeWork()]);
+
+      wakeAffiliateUnknownSenderIdentification(session, THIS_DEVICE);
+      wakeAffiliateUnknownSenderIdentification(session, THIS_DEVICE);
+      wakeAffiliateUnknownSenderIdentification(session, THIS_DEVICE);
+      await vi.advanceTimersByTimeAsync(2_000);
+
+      // Five messages from one stranger are one piece of work, and the backend
+      // would refuse four of the five reads as "still settling" anyway.
+      expect(graphqlFetch).toHaveBeenCalledTimes(1);
+      expect(mockRequestAgent).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -245,6 +377,11 @@ describe("unknown sender session registration", () => {
       toolContext: {
         kind: "AFFILIATE_IDENTIFICATION",
         unknownInboundContactId: "unknown-1",
+        // The span this run is held to, frozen before it starts. The agent
+        // never sees these — they are context-bound on all three terminal
+        // tools — so it cannot choose what it is credited with having read.
+        baseInboundSequence: 0,
+        targetInboundSequence: 1,
       },
     });
 
@@ -271,9 +408,86 @@ describe("the identification prompt", () => {
     expect(rendered).toContain("Channel: WHATSAPP");
     expect(rendered).toContain("Seller Account They Wrote To: Holylegend Jewelry USA");
     expect(rendered).toContain("Name They Show: Ana");
-    expect(rendered).toContain("Latest Message: Hola, soy la creadora del video de ayer");
+    expect(rendered).toContain("Hola, soy la creadora del video de ayer");
     expect(rendered).toContain("Messages Received: 3");
     expect(rendered).toContain("This Would Be Attempt: 2 of 3");
+  });
+
+  it("shows every message they sent that nobody has read, in order, not just the last", () => {
+    // Yolmari's exact shape: asked who she was, answered "@nenishop", then
+    // sent two more messages. The run that followed was handed only the last
+    // line and asked her who she was again, burning attempt 2 of 3.
+    const rendered = renderIdentificationContext(
+      makeWork({
+        messageCount: 13,
+        identificationAttempts: 1,
+        remainingIdentificationAttempts: 2,
+        lastMessagePreview: "Y la cadena cubana",
+        handledThroughInboundSequence: 10,
+        latestInboundSequence: 13,
+        unreadMessageCount: 3,
+        unreadCoverage: "COMPLETE",
+        unreadMessages: [
+          { inboundSequence: 11, text: "@nenishop", receivedAt: "2026-09-03T09:01:00.000Z" },
+          {
+            inboundSequence: 12,
+            text: "Me interesa el collar",
+            receivedAt: "2026-09-03T09:18:00.000Z",
+          },
+          {
+            inboundSequence: 13,
+            text: "Y la cadena cubana",
+            receivedAt: "2026-09-03T09:19:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const answer = rendered.indexOf("@nenishop");
+    const middle = rendered.indexOf("Me interesa el collar");
+    const latest = rendered.indexOf("Y la cadena cubana");
+    expect(answer).toBeGreaterThan(-1);
+    expect(middle).toBeGreaterThan(answer);
+    expect(latest).toBeGreaterThan(middle);
+    // The identifying sentence is present, and nothing frames the last line as
+    // the whole of what she said.
+    expect(rendered).not.toContain("Latest Message:");
+    expect(rendered).toContain("[What They Have Said That You Have Not Read]");
+    expect(rendered).not.toContain("INCOMPLETE");
+    expect(rendered).toContain("already read by a previous run");
+  });
+
+  it("says so when the span is short of what it owes, instead of passing it off as whole", () => {
+    const rendered = renderIdentificationContext(
+      makeWork({
+        handledThroughInboundSequence: 0,
+        latestInboundSequence: 30,
+        unreadMessageCount: 30,
+        unreadCoverage: "TRUNCATED",
+        unreadMessages: [
+          { inboundSequence: 29, text: "gracias", receivedAt: "2026-09-03T09:18:00.000Z" },
+          { inboundSequence: 30, text: "ok", receivedAt: "2026-09-03T09:19:00.000Z" },
+        ],
+      }),
+    );
+
+    expect(rendered).toContain("INCOMPLETE");
+    expect(rendered).toContain("30 message(s) you have not read");
+    expect(rendered).toContain("only 2 of them are still retained");
+    // The distinction the Agent has to be able to draw.
+    expect(rendered).toContain('not as "they never said it"');
+  });
+
+  it("names a message it could not read rather than dropping it", () => {
+    const rendered = renderIdentificationContext(
+      makeWork({
+        unreadMessages: [
+          { inboundSequence: 1, text: null, receivedAt: "2026-09-03T09:19:00.000Z" },
+        ],
+      }),
+    );
+
+    expect(rendered).toContain("no readable text");
   });
 
   it("says plainly that the candidates may all be the wrong person", () => {

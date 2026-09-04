@@ -253,6 +253,24 @@ const AFFILIATE_ESCALATION_CHANGED_SUBSCRIPTION = `
   }
 `;
 
+/**
+ * A stranger said something nobody has read yet.
+ *
+ * A wake-up, not the work: the row's span, candidates and dispatch verdict all
+ * come from `affiliateUnknownSenderIdentificationWork`, and putting a payload
+ * on this wire would create a second answer to what a run is dispatched with.
+ * The escalation stream is shaped the same way for the same reason.
+ */
+const AFFILIATE_UNKNOWN_SENDER_IDENTIFICATION_CHANGED_SUBSCRIPTION = `
+  subscription AffiliateUnknownSenderIdentificationChanged {
+    affiliateUnknownSenderIdentificationChanged {
+      unknownInboundContactId
+      inboundSequence
+      handledThroughInboundSequence
+    }
+  }
+`;
+
 const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
   subscription CsConversationSignal($shopIds: [ID!]) {
     csConversationSignal(shopIds: $shopIds) {
@@ -1087,6 +1105,14 @@ export interface AffiliateEscalationChangedPayload {
   escalationId: string;
   status: "OPEN" | "RESOLVED" | "CLOSED";
   version: number;
+}
+
+export interface AffiliateUnknownSenderIdentificationChangedPayload {
+  unknownInboundContactId: string;
+  /** The row's latest allocated inbound cursor. */
+  inboundSequence: number;
+  /** How far identification has been shown this stream. */
+  handledThroughInboundSequence: number;
 }
 
 export interface ClientLogUploadRequestPayload {
@@ -2781,6 +2807,54 @@ export class BackendSubscriptionClient {
               key,
               attempt,
               "Affiliate escalation subscription error",
+              error,
+            ),
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+    };
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
+  }
+
+  subscribeToAffiliateUnknownSenderIdentificationChanges(
+    onChange: (change: AffiliateUnknownSenderIdentificationChangedPayload) => void,
+  ): () => void {
+    const key = "affiliate-unknown-sender-identification-changed";
+    const subscribe = (attempt: number): (() => void) => {
+      if (!this.client) return () => {};
+      return this.client.subscribe<{
+        affiliateUnknownSenderIdentificationChanged: AffiliateUnknownSenderIdentificationChangedPayload;
+      }>(
+        { query: AFFILIATE_UNKNOWN_SENDER_IDENTIFICATION_CHANGED_SUBSCRIPTION },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key, attempt);
+            if (
+              this.handleResultErrors(
+                key,
+                attempt,
+                "Affiliate unknown sender identification subscription contained GraphQL errors",
+                result.errors,
+              )
+            )
+              return;
+            const payload = result.data?.affiliateUnknownSenderIdentificationChanged;
+            if (!payload) {
+              this.logUnexpectedResult(
+                key,
+                attempt,
+                "affiliateUnknownSenderIdentificationChanged",
+                result as any,
+              );
+              return;
+            }
+            onChange(payload);
+          },
+          error: (error) =>
+            this.handleSubscriptionError(
+              key,
+              attempt,
+              "Affiliate unknown sender identification subscription error",
               error,
             ),
           complete: () => this.handleSubscriptionComplete(key, attempt),

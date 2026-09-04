@@ -1,4 +1,7 @@
-import type { AffiliateUnknownSenderIdentificationWorkPayload } from "../cloud/affiliate-queries.js";
+import type {
+  AffiliateUnknownSenderIdentificationWorkPayload,
+  AffiliateUnknownSenderUnreadMessagePayload,
+} from "../cloud/affiliate-queries.js";
 import type { StaffLanguage } from "../i18n/locale.js";
 
 /**
@@ -40,14 +43,17 @@ export function buildAffiliateIdentificationRunRequest(input: {
   return {
     message: renderIdentificationContext(work),
     extraSystemPrompt: buildIdentificationSystemPrompt(input.staffLanguage),
-    // Changes when an attempt is spent or another message arrives, so a
-    // genuinely new turn is admitted while a re-poll of unchanged work is not.
+    // Changes when an attempt is spent or the span moves, so a genuinely new
+    // turn is admitted while a re-read of unchanged work is not. Keyed by the
+    // span rather than by `messageCount` because the span is what the run is
+    // actually given: a message that arrives and is committed in the same
+    // breath is not new work, and a run whose span was never committed is.
     idempotencyKey: [
       "affiliate",
       "identify",
       work.id,
       `attempt:${work.identificationAttempts}`,
-      `messages:${work.messageCount}`,
+      `span:${work.handledThroughInboundSequence}-${work.latestInboundSequence}`,
     ].join(":"),
   };
 }
@@ -71,6 +77,10 @@ export function buildIdentificationSystemPrompt(staffLanguage?: StaffLanguage): 
     "## Active Run Mode",
     "- OPERATOR_REASONING",
     "- Assistant output is internal and must never be treated as a message to the sender. The only text that reaches them is what you pass to affiliate_reply_unknown_sender.",
+    "",
+    "## What You Are Given",
+    "- You are shown every message this sender has sent that no earlier run has read, oldest first. Read all of it before deciding: the sentence that identifies someone is rarely the last one they sent, and asking a question they have already answered spends an attempt for nothing.",
+    "- If that section says INCOMPLETE, older messages of theirs were dropped before you saw them. Then \"I cannot see anything that identifies them\" is a statement about what you were shown, not about what they said, and it is not grounds to conclude they never told us.",
     "",
     "## What You Are Not",
     "- This run has no Creator Relationship, no shop, no collaboration and no order. You do not have those tools and must not act as if you do.",
@@ -124,7 +134,8 @@ export function renderIdentificationContext(
     `Messages Received: ${work.messageCount}`,
     `First Wrote At: ${work.firstSeenAt}`,
     `Last Wrote At: ${work.lastSeenAt}`,
-    `Latest Message: ${work.lastMessagePreview ?? "(unavailable)"}`,
+    "",
+    ...renderUnreadSpan(work),
     "",
     "[Identification Attempts]",
     `This Would Be Attempt: ${attemptNumber} of ${attemptBudget}`,
@@ -167,4 +178,55 @@ export function renderIdentificationContext(
     );
   });
   return lines.join("\n");
+}
+
+/**
+ * Everything the stranger has said that this run has not been shown, in order.
+ *
+ * This section used to be one line — `Latest Message:` — and that single line
+ * is what made an Agent ask a Creator who she was twice: she had answered
+ * "@nenishop" three messages earlier, and by the time a run looked, her answer
+ * had been overwritten by "Y la cadena cubana". A component asked to work out
+ * who someone is has to be shown what that person said, not their most recent
+ * sentence.
+ *
+ * When the span is short of what it owes, that is stated here rather than left
+ * for the Agent to discover it cannot: a partial exchange read as a whole one
+ * is how a run concludes "they never told us" about someone who did.
+ */
+function renderUnreadSpan(work: AffiliateUnknownSenderIdentificationWorkPayload): string[] {
+  const lines = ["[What They Have Said That You Have Not Read]"];
+  if (work.handledThroughInboundSequence > 0) {
+    lines.push(
+      `Earlier messages from this sender were already read by a previous run and are not repeated here. ` +
+        `This is everything since.`,
+    );
+  }
+  if (work.unreadCoverage === "TRUNCATED") {
+    // Never present a partial span as a whole one. The Agent can reason
+    // perfectly well about a gap it is told about, and not at all about one it
+    // is not.
+    lines.push(
+      `INCOMPLETE: they sent ${work.unreadMessageCount} message(s) you have not read, and only ` +
+        `${work.unreadMessages.length} of them are still retained. The earliest ones are gone, ` +
+        `so something they told you may be missing from what follows. If what you can see does not ` +
+        `identify them, treat that as "not shown to you", not as "they never said it".`,
+    );
+  }
+  if (!work.unreadMessages.length) {
+    lines.push(
+      "(nothing retained — see above; do not read this as silence)",
+    );
+    return lines;
+  }
+  lines.push("");
+  for (const message of work.unreadMessages) {
+    lines.push(`${message.receivedAt} — ${renderUnreadMessageText(message)}`);
+  }
+  return lines;
+}
+
+/** A message we could not read is still a message. Say which it was. */
+function renderUnreadMessageText(message: AffiliateUnknownSenderUnreadMessagePayload): string {
+  return message.text ?? "(they sent something with no readable text — a photo, sticker or voice note)";
 }

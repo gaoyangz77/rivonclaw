@@ -619,6 +619,17 @@ export const AFFILIATE_UNKNOWN_SENDER_IDENTIFICATION_WORK_QUERY = `
       businessDeveloperName
       businessDeveloperDeviceId
       lastMessagePreview
+      # The span, not a sample. Ordered by inboundSequence, because the
+      # sentence that identifies someone is rarely their most recent one.
+      unreadMessages {
+        inboundSequence
+        text
+        receivedAt
+      }
+      unreadCoverage
+      unreadMessageCount
+      handledThroughInboundSequence
+      latestInboundSequence
       lastProviderMessageId
       messageCount
       firstSeenAt
@@ -664,14 +675,19 @@ export type AffiliateUnknownSenderCandidatePayload = IsoDates<
 export type AffiliateUnknownSenderNotDispatchableReason =
   GQL.AffiliateUnknownSenderNotDispatchableReason;
 
+export type AffiliateUnknownSenderUnreadMessagePayload = IsoDates<
+  GQL.AffiliateUnknownSenderUnreadMessageView,
+  "receivedAt"
+>;
+
 export type AffiliateUnknownSenderIdentificationWorkPayload = IsoDates<
   GQL.AffiliateUnknownSenderIdentificationWorkView,
   "firstSeenAt" | "lastSeenAt"
 > & {
-  candidates: AffiliateUnknownSenderCandidatePayload[];
-  lastIdentificationAttemptAt?: string | null;
-  nextAttemptEligibleAt?: string | null;
-};
+    candidates: AffiliateUnknownSenderCandidatePayload[];
+    lastIdentificationAttemptAt?: string | null;
+    nextAttemptEligibleAt?: string | null;
+  };
 
 
 export interface AffiliateUnknownSenderIdentificationWorkQueryResult {
