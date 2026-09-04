@@ -5,6 +5,10 @@ import { rootStore } from "../app/store/desktop-store.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import { ensureAgentToolingReady } from "./agent-tooling-readiness.js";
 import {
+  CS_ADMISSION_CANCEL_REASON,
+  type CsRunAdmissionCancelReason,
+} from "../cs-bridge/cs-run-admission.js";
+import {
   clearPendingCsDispatches,
   flushCsDispatchesAfterBridgeReady,
 } from "../cs-bridge/cs-conversation-signal-buffer.js";
@@ -35,15 +39,25 @@ let _csBridgeStarting = false;
 let _csBridgeLifecycleGeneration = 0;
 let _csBridgeSuspended = false;
 
-export function stopCsBridge(): void {
+export function stopCsBridge(
+  reason: CsRunAdmissionCancelReason = CS_ADMISSION_CANCEL_REASON.BRIDGE_STOPPED,
+): void {
   _csBridgeLifecycleGeneration += 1;
   _csBridgeStarting = false;
+  // Drop what is already buffered BEFORE tearing the bridge down. Stopping the
+  // bridge rejects its queued admissions, and the recovery path re-queues those
+  // into this same buffer. Clearing afterwards happened to still work -- the
+  // rejection handlers run in a later microtask -- but that made the fix depend
+  // on an invisible ordering: making this function async, or awaiting anything
+  // before the clear, would silently wipe the re-queued work in exactly the
+  // scenario it exists for. Clearing first makes the intent explicit and the
+  // ordering irrelevant.
+  clearPendingCsDispatches();
   if (_csBridge) {
-    _csBridge.stop();
+    _csBridge.stop(reason);
     _csBridge = null;
   }
   _csBridgeSuspended = false;
-  clearPendingCsDispatches();
 }
 
 async function flushPendingCsDispatches(bridge: CustomerServiceBridge): Promise<void> {

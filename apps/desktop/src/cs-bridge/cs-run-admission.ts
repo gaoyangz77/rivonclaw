@@ -49,10 +49,30 @@ interface PendingAdmission {
   reject: (error: Error) => void;
 }
 
+/**
+ * Why a teardown cancelled in-flight admissions. The distinction matters at the
+ * recovery site: a Gateway restart should replay the work, while a sign-out or
+ * account switch must discard it -- replaying there would carry the previous
+ * session's conversations into the next one.
+ */
+export const CS_ADMISSION_CANCEL_REASON = {
+  /** Gateway process died or restarted. Work is replayable. */
+  BRIDGE_STOPPED: "bridge_stopped",
+  /** Sign-out or account switch. Work belongs to the previous session. */
+  AUTH_CHANGE: "auth_change",
+} as const;
+
+export type CsRunAdmissionCancelReason =
+  (typeof CS_ADMISSION_CANCEL_REASON)[keyof typeof CS_ADMISSION_CANCEL_REASON];
+
 export class CsRunAdmissionCancelledError extends Error {
-  constructor(message = "CS automatic run admission was cancelled") {
-    super(message);
+  /** Structured form of `message`, so recovery does not match on strings. */
+  readonly reason: string;
+
+  constructor(reason = "CS automatic run admission was cancelled") {
+    super(reason);
     this.name = "CsRunAdmissionCancelledError";
+    this.reason = reason;
   }
 }
 
@@ -75,6 +95,22 @@ export class CsAutomaticRunAdmission {
   private generation = 0;
   private queue: PendingAdmission[] = [];
 
+  /**
+   * Set by `reset()`, cleared by `resume()`.
+   *
+   * A reset controller belongs to a bridge that is being torn down and
+   * replaced, and `reset()` deliberately leaves `paused` true. The
+   * replacement bridge builds its own controller, so a late `acquire()` on
+   * this one would park in a queue nothing will ever drain and its promise
+   * would never settle -- the caller waits forever and the conversation stays
+   * PENDING with no error anywhere. That silently stranded six conversations
+   * in the 2026-09-04 Gateway OOM restart, on top of the eleven `reset()`
+   * cancelled outright. Rejecting immediately turns that silent leak into the
+   * same recoverable failure the cancelled ones already take.
+   */
+  private retired = false;
+  private retiredReason: string | undefined;
+
   /** Live leases by watchdog handle; entries removed on any release path. */
   private readonly activeLeases = new Map<
     symbol,
@@ -92,6 +128,9 @@ export class CsAutomaticRunAdmission {
   }
 
   acquire(request: CsRunAdmissionRequest): Promise<CsRunAdmissionLease> {
+    if (this.retired) {
+      return Promise.reject(new CsRunAdmissionCancelledError(this.retiredReason));
+    }
     return new Promise<CsRunAdmissionLease>((resolve, reject) => {
       const pending: PendingAdmission = {
         request,
@@ -122,6 +161,8 @@ export class CsAutomaticRunAdmission {
   }
 
   resume(): void {
+    this.retired = false;
+    this.retiredReason = undefined;
     if (!this.paused) {
       this.drain();
       return;
@@ -140,13 +181,16 @@ export class CsAutomaticRunAdmission {
     this.generation += 1;
     this.active = 0;
     this.paused = true;
+    this.retired = true;
+    this.retiredReason = reason;
     this.activeLeases.clear();
     this.stopLeaseWatchdogIfIdle();
     const error = new CsRunAdmissionCancelledError(reason);
     for (const pending of queued) pending.reject(error);
     log.info(
       `CS automatic run admission reset: reason=${reason} released=${released} ` +
-        `cancelled=${queued.length}`,
+        `cancelled=${queued.length}; controller retired, later acquires are rejected ` +
+        `until the replacement bridge resumes`,
     );
   }
 

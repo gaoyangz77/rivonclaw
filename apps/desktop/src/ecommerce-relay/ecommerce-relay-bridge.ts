@@ -25,10 +25,14 @@ import { emitCsDispatchEvent, emitCsError, CS_ERROR_STAGE } from "../telemetry/c
 import { AffiliateInbound } from "../affiliate/affiliate-inbound.js";
 import { openClawConnector } from "../openclaw/index.js";
 import {
+  CS_ADMISSION_CANCEL_REASON,
   CsAutomaticRunAdmission,
+  CsRunAdmissionCancelledError,
+  type CsRunAdmissionCancelReason,
   type CsRunAdmissionLease,
   type CsRunAdmissionMode,
 } from "../cs-bridge/cs-run-admission.js";
+import { queueCsDispatchUntilBridgeReady } from "../cs-bridge/cs-conversation-signal-buffer.js";
 
 const log = createLogger("ecommerce-relay");
 
@@ -201,11 +205,11 @@ export class EcommerceRelayBridge {
     log.info("Ecommerce signal bridge started");
   }
 
-  stop(): void {
+  stop(reason: CsRunAdmissionCancelReason = CS_ADMISSION_CANCEL_REASON.BRIDGE_STOPPED): void {
     this.gatewayGeneration += 1;
     this.closed = true;
     this.stopPendingRunSweeper();
-    this.automaticRunAdmission.reset("bridge_stopped");
+    this.automaticRunAdmission.reset(reason);
     // Unsubscribe from entity cache
     if (this.cacheUnsubscribe) {
       this.cacheUnsubscribe();
@@ -1043,6 +1047,36 @@ export class EcommerceRelayBridge {
             : undefined,
       });
     } catch (err) {
+      if (err instanceof CsRunAdmissionCancelledError) {
+        if (err.reason === CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE) {
+          // Sign-out or account switch. `stopCsBridge()` clears the replay
+          // buffer here on purpose, so re-queuing would resurrect the previous
+          // session's conversation under the next login. Drop it deliberately.
+          log.info(
+            `CS signal dropped after sign-out: shop=${dispatch.platformShopId} ` +
+              `conv=${dispatch.conversationId}`,
+          );
+          return;
+        }
+        // The bridge was torn down while this dispatch waited for an admission
+        // slot -- in production, a Gateway OOM restart. That is a recoverable
+        // outage, not a failed dispatch, so hand the request back to the
+        // module-scoped buffer and let the post-restart flush replay it,
+        // exactly as the actuator already does for signals that arrive while
+        // the bridge is down. Dropping it here is what left conversations
+        // PENDING until the next hourly Airflow sweep re-pushed them.
+        //
+        // stopCsBridge() clears the buffer before tearing the bridge down, so
+        // anything re-queued here is deliberately kept rather than surviving
+        // on microtask timing.
+        const pending = queueCsDispatchUntilBridgeReady(dispatch);
+        log.warn(
+          `CS signal re-queued after bridge teardown: shop=${dispatch.platformShopId} ` +
+            `conv=${dispatch.conversationId} reason=${err.reason} ` +
+            `queued=${pending.queued} replaced=${pending.replaced}`,
+        );
+        return;
+      }
       log.error(
         `Failed to handle CS signal ${dispatch.messageId ?? dispatch.conversationId}:`,
         err,

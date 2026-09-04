@@ -138,6 +138,53 @@ describe("CsAutomaticRunAdmission", () => {
     }
   });
 
+  // `reset()` leaves the controller paused on purpose, and the bridge that
+  // owns it is being replaced. Anything that reaches `acquire()` in that window
+  // -- a dispatch that entered before the teardown and spent seconds in async
+  // setup -- used to park in a queue nothing would ever drain, so its promise
+  // never settled and the caller waited forever. Six conversations were
+  // stranded exactly this way in the 2026-09-04 Gateway OOM restart, with no
+  // error logged anywhere.
+  it("rejects an acquire that lands after reset instead of stranding it", async () => {
+    const admission = new CsAutomaticRunAdmission(1);
+    await admission.acquire({ conversationId: "conv-active" });
+    admission.reset("bridge_stopped");
+
+    const late = admission.acquire({ conversationId: "conv-late" });
+    await expect(late).rejects.toBeInstanceOf(CsRunAdmissionCancelledError);
+    await expect(late).rejects.toThrow("bridge_stopped");
+    expect(admission.getDebugState()).toMatchObject({ queued: 0 });
+  });
+
+  it("accepts work again once the bridge resumes after a reset", async () => {
+    const admission = new CsAutomaticRunAdmission(1);
+    admission.reset("bridge_stopped");
+    await expect(
+      admission.acquire({ conversationId: "conv-retired" }),
+    ).rejects.toBeInstanceOf(CsRunAdmissionCancelledError);
+
+    admission.resume();
+    const lease = await admission.acquire({ conversationId: "conv-after-resume" });
+    expect(admission.getDebugState()).toMatchObject({ active: 1, queued: 0, paused: false });
+    lease.release();
+  });
+
+  // A Gateway RPC blip pauses admission but keeps the bridge alive, so queued
+  // work must survive to be drained on resume. Retirement must not leak into
+  // that path: rejecting here would turn every transient reconnect into lost
+  // conversations.
+  it("does not treat a transient pause as retirement", async () => {
+    const admission = new CsAutomaticRunAdmission(1);
+    admission.pause();
+    const queued = admission.acquire({ conversationId: "conv-blip" });
+    expect(admission.getDebugState()).toMatchObject({ queued: 1, paused: true });
+
+    admission.resume();
+    const lease = await queued;
+    expect(admission.getDebugState()).toMatchObject({ active: 1, queued: 0 });
+    lease.release();
+  });
+
   it("uses four by default and falls back for invalid overrides", () => {
     expect(resolveCsAutomaticMaxConcurrent()).toBe(DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT);
 

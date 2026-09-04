@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -116,6 +116,11 @@ vi.mock("./cs-session-cursor-store.js", () => ({
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
 import { CustomerServiceBridge, type CSShopContext } from "./customer-service-bridge.js";
+import {
+  clearPendingCsDispatches,
+  getPendingCsDispatchCount,
+} from "./cs-conversation-signal-buffer.js";
+import { CS_ADMISSION_CANCEL_REASON } from "./cs-run-admission.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { applySnapshot, onAction } from "mobx-state-tree";
 
@@ -3064,6 +3069,12 @@ describe("escalate", () => {
 // ─── 13. Automatic CS run admission ──────────────────────────────────────────
 
 describe("automatic CS run admission", () => {
+  // The replay buffer is module-scoped, so a test that fails midway would
+  // otherwise leak its queued dispatch into every test after it.
+  afterEach(() => {
+    clearPendingCsDispatches();
+  });
+
   function installImmediateAgentRpc(): void {
     mockRpcRequest.mockImplementation((method: string, params?: any) => {
       if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
@@ -3117,6 +3128,87 @@ describe("automatic CS run admission", () => {
       queued: 0,
     });
     bridge.stop();
+  });
+
+  // A Gateway OOM restart tears the bridge down while dispatches are still
+  // waiting for an admission slot. Those requests are not failures -- they are
+  // an interrupted outage -- so they must land back in the module-scoped
+  // buffer that survives bridge replacement. Logging and dropping them is what
+  // left conversations PENDING until the next hourly Airflow sweep re-pushed
+  // them, which is why a 46-second restart cost an hour of backlog.
+  it("hands a queued dispatch back to the replay buffer when the bridge is torn down", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    clearPendingCsDispatches();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-teardown-1", messageId: "msg-teardown-1" }),
+    );
+    const queued = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-teardown-2", messageId: "msg-teardown-2" }),
+    );
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState().queued).toBe(1);
+    });
+    expect(getPendingCsDispatchCount()).toBe(0);
+
+    bridge.stop();
+    await queued;
+
+    expect(getPendingCsDispatchCount()).toBe(1);
+  });
+
+  // The production trace: a dispatch enters before the crash, spends seconds in
+  // async setup (backend session, order context), and only reaches admission
+  // after the controller was already reset. It must be recovered the same way,
+  // not left hanging on a promise that never settles.
+  it("recovers a dispatch that reaches admission after the bridge was torn down", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    clearPendingCsDispatches();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    bridge.stop();
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-late-arrival", messageId: "msg-late-arrival" }),
+    );
+
+    expect(getPendingCsDispatchCount()).toBe(1);
+  });
+
+  // `stopCsBridge()` clears the replay buffer on the auth-change path on
+  // purpose: that work belongs to the session being torn down. Re-queuing it
+  // would land after the clear and resurrect the previous account's
+  // conversation under the next login, so this teardown reason must discard.
+  it("discards a queued dispatch when the bridge is torn down for a sign-out", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    clearPendingCsDispatches();
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-signout-1", messageId: "msg-signout-1" }),
+    );
+    const queued = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-signout-2", messageId: "msg-signout-2" }),
+    );
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState().queued).toBe(1);
+    });
+
+    bridge.stop(CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE);
+    await queued;
+
+    expect(getPendingCsDispatchCount()).toBe(0);
   });
 
   it("admits queued automatic dispatches in FIFO order", async () => {
