@@ -93,6 +93,7 @@ export {
   resolveToolSessionContext,
 } from "./types/index.js";
 export type {
+  AffiliateIdentificationSessionContext,
   AffiliateSessionContext,
   CSSessionContext,
   CSToolArgs,

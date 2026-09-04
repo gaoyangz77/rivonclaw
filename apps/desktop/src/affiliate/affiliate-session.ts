@@ -45,13 +45,7 @@ const AFFILIATE_CHECKPOINT_PLUGIN_ID = "rivonclaw-capability-manager";
 const AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE = "affiliateCheckpoint";
 const MISSING_SESSION_CHECKPOINT_PATTERN = /checkpoint not found/i;
 
-function formatBusinessDeveloperContact(
-  displayName: string | null | undefined,
-  address: string,
-): string {
-  const label = displayName?.trim();
-  return label ? `${label} — ${address}` : address;
-}
+const BD_CONTACT_AVAILABLE = "available (call affiliate_get_bd_contact to obtain it)";
 
 export function buildBusinessDeveloperPromptSection(
   context: GQL.AffiliateBusinessDeveloperDispatchContext | null | undefined,
@@ -63,23 +57,13 @@ export function buildBusinessDeveloperPromptSection(
     // Backend only sends a Creator-facing name; the internal operator-facing
     // name is never exposed, so render nothing when it is absent.
     ...(creatorFacingName ? [`- Creator-facing name: ${creatorFacingName}`] : []),
-    ...(context.whatsApp
-      ? [
-          `- WhatsApp: ${formatBusinessDeveloperContact(
-            context.whatsApp.displayName,
-            context.whatsApp.phoneNumber,
-          )}`,
-        ]
-      : []),
-    ...(context.email
-      ? [
-          `- Email: ${formatBusinessDeveloperContact(
-            context.email.displayName,
-            context.email.emailAddress,
-          )}`,
-        ]
-      : []),
-    "- The contact details above are the assigned Business Developer's Creator-shareable contact identities. Use them only when the conversation and Business Developer instructions call for moving or continuing the relationship on that channel.",
+    // Availability only. The number and address are deliberately absent from this
+    // prompt: obtaining one through the tool is what records that this Creator
+    // was given it, which is how their later message from an unknown sender is
+    // recognized as theirs.
+    ...(context.whatsApp ? [`- WhatsApp: ${BD_CONTACT_AVAILABLE}`] : []),
+    ...(context.email ? [`- Email: ${BD_CONTACT_AVAILABLE}`] : []),
+    "- A channel listed above is a Creator-shareable Business Developer contact identity. Call `affiliate_get_bd_contact` for its value, and only when the conversation and Business Developer instructions call for moving or continuing the relationship on that channel. Never reuse a contact from an earlier turn.",
     "- Do not invent a WhatsApp number, email address, or unavailable channel.",
     ...(context.businessPrompt?.trim()
       ? ["", "### Business Developer Instructions", context.businessPrompt.trim()]

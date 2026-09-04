@@ -1117,21 +1117,51 @@ export interface AffiliateBusinessDeveloper {
   userId: Scalars['ID']['output'];
 }
 
+export interface AffiliateBusinessDeveloperContactInput {
+  /** WHATSAPP or EMAIL. PLATFORM_CHAT has no Business Developer contact identity. */
+  channel: AffiliateMessageChannel;
+  /** CreatorRelationship whose assigned Business Developer owns the contact, and the Creator the share is recorded against. */
+  creatorRelationshipId: Scalars['ID']['input'];
+}
+
+export interface AffiliateBusinessDeveloperContactPayload {
+  /** Label of the seller account the contact belongs to, when it has one. */
+  accountLabel?: Maybe<Scalars['String']['output']>;
+  channel: AffiliateMessageChannel;
+  /** Creator-shareable phone number or email address. Null when the channel is unavailable. */
+  contact?: Maybe<Scalars['String']['output']>;
+  /** Creator-facing Business Developer name, when one is configured. */
+  creatorDisplayName?: Maybe<Scalars['String']['output']>;
+  /** Set iff contact is null. Tell the Creator plainly; do not substitute a channel. */
+  unavailableReason?: Maybe<AffiliateBusinessDeveloperContactUnavailableReason>;
+}
+
+/** Why the assigned Business Developer has no Creator-shareable contact on the requested channel. A business answer the Agent may state to the Creator, not an error. */
+export const AffiliateBusinessDeveloperContactUnavailableReason = {
+  NoAssignedBusinessDeveloper: 'NO_ASSIGNED_BUSINESS_DEVELOPER',
+  NoShareableAccount: 'NO_SHAREABLE_ACCOUNT'
+} as const;
+
+export type AffiliateBusinessDeveloperContactUnavailableReason = typeof AffiliateBusinessDeveloperContactUnavailableReason[keyof typeof AffiliateBusinessDeveloperContactUnavailableReason];
 export interface AffiliateBusinessDeveloperDispatchContext {
   businessPrompt?: Maybe<Scalars['String']['output']>;
   creatorDisplayName?: Maybe<Scalars['String']['output']>;
+  /** Present iff the assigned Business Developer has a Creator-shareable email identity. Read it as availability: obtain the address itself through AFFILIATE_GET_BD_CONTACT. */
   email?: Maybe<AffiliateBusinessDeveloperDispatchEmail>;
+  /** Present iff the assigned Business Developer has a Creator-shareable WhatsApp identity. Read it as availability: obtain the number itself through AFFILIATE_GET_BD_CONTACT. */
   whatsApp?: Maybe<AffiliateBusinessDeveloperDispatchWhatsApp>;
 }
 
 export interface AffiliateBusinessDeveloperDispatchEmail {
   displayName?: Maybe<Scalars['String']['output']>;
-  emailAddress: Scalars['String']['output'];
+  /** @deprecated Populated only for Desktop builds shipped before AFFILIATE_GET_BD_CONTACT existed. Obtain the address through that tool instead: it records which Creator was given the contact, which is what makes their later message from an unknown sender resolvable. */
+  emailAddress?: Maybe<Scalars['String']['output']>;
 }
 
 export interface AffiliateBusinessDeveloperDispatchWhatsApp {
   displayName?: Maybe<Scalars['String']['output']>;
-  phoneNumber: Scalars['String']['output'];
+  /** @deprecated Populated only for Desktop builds shipped before AFFILIATE_GET_BD_CONTACT existed. Obtain the number through that tool instead: it records which Creator was given the contact, which is what makes their later message from an unknown number resolvable. */
+  phoneNumber?: Maybe<Scalars['String']['output']>;
 }
 
 export interface AffiliateBusinessDeveloperPage {
@@ -3191,6 +3221,22 @@ export interface AffiliateHumanReviewRequestInput {
   reason: AffiliateHumanReviewReason;
 }
 
+export interface AffiliateIgnoreUnknownSenderInput {
+  /** Why matching should stop, in one sentence. Stored on the row. */
+  reason: Scalars['String']['input'];
+  runId?: InputMaybe<Scalars['String']['input']>;
+  /** The unknown-sender row to stop matching. */
+  unknownInboundContactId: Scalars['ID']['input'];
+}
+
+export interface AffiliateIgnoreUnknownSenderResult {
+  /** Unchanged by ignoring; later messages keep incrementing it. */
+  messageCount: Scalars['Int']['output'];
+  ok: Scalars['Boolean']['output'];
+  status: AffiliateUnknownInboundContactStatus;
+  unknownInboundContactId: Scalars['ID']['output'];
+}
+
 export interface AffiliateInviteDailyPoint {
   invitations: Scalars['Int']['output'];
   inviteDs: Scalars['String']['output'];
@@ -3318,6 +3364,28 @@ export const AffiliateLifecycleStage = {
 } as const;
 
 export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
+export interface AffiliateLinkUnknownSenderInput {
+  /** The CreatorRelationship this sender turned out to be. Normally one of the candidates offered for the row. */
+  creatorRelationshipId: Scalars['ID']['input'];
+  /** What in the exchange identified them, in one sentence. Stored on the row. */
+  reason: Scalars['String']['input'];
+  runId?: InputMaybe<Scalars['String']['input']>;
+  /** The unknown-sender row being identified. */
+  unknownInboundContactId: Scalars['ID']['input'];
+}
+
+export interface AffiliateLinkUnknownSenderResult {
+  channel: AffiliateMessageChannel;
+  /** The creator channel contact this sender is now reachable at. */
+  creatorChannelContactId: Scalars['ID']['output'];
+  creatorRelationshipId: Scalars['ID']['output'];
+  /** An expectation row recorded that we gave this creator the account, and it has now been confirmed. False is ordinary, not a failure. */
+  expectedContactResolved: Scalars['Boolean']['output'];
+  ok: Scalars['Boolean']['output'];
+  status: AffiliateUnknownInboundContactStatus;
+  unknownInboundContactId: Scalars['ID']['output'];
+}
+
 export interface AffiliateMarketplaceCreatorRuleCapabilities {
   ageRanges: Array<CreatorSearchFollowerAgeRange>;
   apiVersion: Scalars['String']['output'];
@@ -4333,6 +4401,25 @@ export interface AffiliateRelationshipWorkSummary {
   staffRequiredCount: Scalars['Int']['output'];
 }
 
+export interface AffiliateReplyUnknownSenderInput {
+  /** Only needed on email when the stranger's message cannot be replied to and a new thread must start. */
+  emailSubject?: InputMaybe<Scalars['String']['input']>;
+  /** The message asking the stranger who they are. */
+  text: Scalars['String']['input'];
+  /** The unknown-sender row from affiliateUnknownSenderIdentificationWork. */
+  unknownInboundContactId: Scalars['ID']['input'];
+}
+
+export interface AffiliateReplyUnknownSenderResult {
+  channel: AffiliateMessageChannel;
+  identificationAttempts: Scalars['Int']['output'];
+  ok: Scalars['Boolean']['output'];
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  providerRecipient: Scalars['String']['output'];
+  remainingIdentificationAttempts: Scalars['Int']['output'];
+  unknownInboundContactId: Scalars['ID']['output'];
+}
+
 export interface AffiliateResolveEscalationInput {
   decision: Scalars['String']['input'];
   escalationId: Scalars['ID']['input'];
@@ -4642,6 +4729,80 @@ export const AffiliateTimelineTimePassedBasis = {
 } as const;
 
 export type AffiliateTimelineTimePassedBasis = typeof AffiliateTimelineTimePassedBasis[keyof typeof AffiliateTimelineTimePassedBasis];
+export const AffiliateUnknownInboundContactStatus = {
+  Ignored: 'IGNORED',
+  Linked: 'LINKED',
+  PendingIdentification: 'PENDING_IDENTIFICATION',
+  StaffRequired: 'STAFF_REQUIRED'
+} as const;
+
+export type AffiliateUnknownInboundContactStatus = typeof AffiliateUnknownInboundContactStatus[keyof typeof AffiliateUnknownInboundContactStatus];
+/** One creator we told about this seller account, offered as a possible identity for an unknown sender. Evidence only — never a decision. */
+export interface AffiliateUnknownSenderCandidateView {
+  businessDeveloperId?: Maybe<Scalars['ID']['output']>;
+  creatorId: Scalars['ID']['output'];
+  creatorNickname?: Maybe<Scalars['String']['output']>;
+  creatorRelationshipId: Scalars['ID']['output'];
+  creatorUsername?: Maybe<Scalars['String']['output']>;
+  evidenceAgeAtFirstMessageMs: Scalars['Int']['output'];
+  /** The share this candidate was judged by: the latest one still predating the stranger's first message, or firstSharedAt when every share came later. */
+  evidenceAnchorAt: Scalars['DateTimeISO']['output'];
+  /** First time we shared this account's contact with the creator. */
+  firstSharedAt: Scalars['DateTimeISO']['output'];
+  /** Most recent time we shared it. */
+  lastSharedAt: Scalars['DateTimeISO']['output'];
+  /** Every recorded share happened after the stranger's first message, so this creator could not have been using the contact we gave them. */
+  sharedAfterFirstMessage: Scalars['Boolean']['output'];
+  /** The share was already older than the 14-day automatic-match window when the stranger wrote. Weaker evidence, still shown. */
+  stale: Scalars['Boolean']['output'];
+}
+
+/** One unknown sender awaiting identification, with everything needed to ask them who they are. */
+export interface AffiliateUnknownSenderIdentificationWorkView {
+  accountBindingId: Scalars['ID']['output'];
+  accountLabel?: Maybe<Scalars['String']['output']>;
+  /** Outreach device of the assigned business developer, frozen when this view was computed. Stated whenever a business developer is assigned — the bound id, or null when none is usable — so a null device never means 'no business developer': businessDeveloperId answers that. Exactly one desktop dispatches this row, and it is that device. */
+  businessDeveloperDeviceId?: Maybe<Scalars['String']['output']>;
+  businessDeveloperId?: Maybe<Scalars['ID']['output']>;
+  businessDeveloperName?: Maybe<Scalars['String']['output']>;
+  /** Ranked candidates, freshest evidence first. May be empty; one candidate is still not a decision. */
+  candidates: Array<AffiliateUnknownSenderCandidateView>;
+  channel: AffiliateMessageChannel;
+  /** False while the cooldown is running, and false when no unique session key can be minted for the row. */
+  dispatchable: Scalars['Boolean']['output'];
+  firstSeenAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  identificationAttempts: Scalars['Int']['output'];
+  lastIdentificationAttemptAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Excerpt of what the stranger actually wrote. */
+  lastMessagePreview?: Maybe<Scalars['String']['output']>;
+  lastProviderMessageId?: Maybe<Scalars['String']['output']>;
+  lastSeenAt: Scalars['DateTimeISO']['output'];
+  messageCount: Scalars['Int']['output'];
+  /** When the cooldown allows the next attempt; null when ready now. */
+  nextAttemptEligibleAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Why the row is withheld. Present exactly when dispatchable is false. */
+  notDispatchableReason?: Maybe<AffiliateUnknownSenderNotDispatchableReason>;
+  /** Normalized sender address: phone digits on WhatsApp, lowercased address on email. */
+  providerAddress: Scalars['String']['output'];
+  /** The other route form, e.g. a WhatsApp @lid. */
+  providerAddressAlt?: Maybe<Scalars['String']['output']>;
+  /** WhatsApp push name or email display name. */
+  providerAlias?: Maybe<Scalars['String']['output']>;
+  remainingIdentificationAttempts: Scalars['Int']['output'];
+  /** The desktop agent session key for this row's identification run, computed here so both sides cannot drift into two keys for one conversation. Format: agent:affiliate:identify:<userId>:<channel>:<seller account address>:<sender address>. Null exactly when no unique key can be minted; read notDispatchableReason for which defect, and never fall back to a key of your own. */
+  sessionKey?: Maybe<Scalars['String']['output']>;
+}
+
+/** Why an unknown sender is currently withheld from identification dispatch. Present exactly when dispatchable is false. COOLING_DOWN resolves on its own; the two address reasons are seller-account defects a human must repair, and the row waits visibly rather than risking two strangers sharing one transcript. */
+export const AffiliateUnknownSenderNotDispatchableReason = {
+  AmbiguousAccountAddress: 'AMBIGUOUS_ACCOUNT_ADDRESS',
+  AttemptsExhausted: 'ATTEMPTS_EXHAUSTED',
+  CoolingDown: 'COOLING_DOWN',
+  UnresolvableAccountAddress: 'UNRESOLVABLE_ACCOUNT_ADDRESS'
+} as const;
+
+export type AffiliateUnknownSenderNotDispatchableReason = typeof AffiliateUnknownSenderNotDispatchableReason[keyof typeof AffiliateUnknownSenderNotDispatchableReason];
 export interface AffiliateWhatsAppMessagesInput {
   /** CreatorRelationship business boundary. This legacy WhatsApp-only read path is still relationship-scoped and does not accept creator/profile fallback keys. */
   creatorRelationshipId: Scalars['ID']['input'];
@@ -9962,9 +10123,17 @@ export interface Mutation {
   adminRequestClientLogUpload: ClientLogUploadRequestPayload;
   /** Admin-only: point the relay debugging channel at one desktop device, or clear that relay target. Desktop clients configure their debug proxy account automatically after login; this mutation only changes the relay target. */
   adminSetDebugChannel: AdminDebugChannelResult;
+  /** Read the assigned Business Developer's Creator-shareable contact for one channel and record the expectation that this Creator may reply to that account. */
+  affiliateBusinessDeveloperContact: AffiliateBusinessDeveloperContactPayload;
   affiliateEscalate: AffiliateEscalationToolResult;
+  /** Mark an unknown inbound sender as ignored so automatic matching stops. Retains every message and keeps counting later ones. */
+  affiliateIgnoreUnknownSender: AffiliateIgnoreUnknownSenderResult;
+  /** Link an unknown inbound sender to a creator relationship, materialize the creator channel contact for the address they wrote from, and confirm the expectation row that predicted them. */
+  affiliateLinkUnknownSender: AffiliateLinkUnknownSenderResult;
   /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
   affiliatePublishRelationshipSignal: AffiliateRelationshipSignal;
+  /** Ask an unidentified inbound sender who they are, on the channel they wrote from. Spends one of the row's limited identification attempts and is subject to a cooldown. */
+  affiliateReplyUnknownSender: AffiliateReplyUnknownSenderResult;
   affiliateResolve: AffiliateEscalationToolResult;
   approveBrowserToDesktopLogin: BrowserToDesktopLoginApproval;
   archiveAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
@@ -10329,13 +10498,33 @@ export interface MutationAdminSetDebugChannelArgs {
 }
 
 
+export interface MutationAffiliateBusinessDeveloperContactArgs {
+  input: AffiliateBusinessDeveloperContactInput;
+}
+
+
 export interface MutationAffiliateEscalateArgs {
   input: AffiliateEscalateInput;
 }
 
 
+export interface MutationAffiliateIgnoreUnknownSenderArgs {
+  input: AffiliateIgnoreUnknownSenderInput;
+}
+
+
+export interface MutationAffiliateLinkUnknownSenderArgs {
+  input: AffiliateLinkUnknownSenderInput;
+}
+
+
 export interface MutationAffiliatePublishRelationshipSignalArgs {
   input: PublishAffiliateRelationshipSignalInput;
+}
+
+
+export interface MutationAffiliateReplyUnknownSenderArgs {
+  input: AffiliateReplyUnknownSenderInput;
 }
 
 
@@ -12013,6 +12202,8 @@ export interface Query {
   affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
   affiliateShopOpenCollaborations: AffiliateShopCollaborationListPayload;
   affiliateShopTargetCollaborations: AffiliateShopCollaborationListPayload;
+  /** Unknown senders awaiting identification for the authenticated seller. Each row carries the seller account and its business developer, what the stranger wrote, the candidate creators we told about that account, and the attempt/cooldown state. Reading this also retires rows that have spent every attempt to STAFF_REQUIRED. */
+  affiliateUnknownSenderIdentificationWork: Array<AffiliateUnknownSenderIdentificationWorkView>;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
@@ -12533,6 +12724,11 @@ export interface QueryAffiliateShopTargetCollaborationsArgs {
   productId?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCollaborationStatus>;
+}
+
+
+export interface QueryAffiliateUnknownSenderIdentificationWorkArgs {
+  input?: InputMaybe<ReadAffiliateUnknownSenderIdentificationWorkInput>;
 }
 
 
@@ -13217,6 +13413,10 @@ export interface ReadAffiliateCreatorsInput {
   systemTagMatchMode?: InputMaybe<TagMatchMode>;
   /** Relationship-level system tags, combined per systemTagMatchMode. */
   systemTags?: InputMaybe<Array<AffiliateCreatorSystemTag>>;
+}
+
+export interface ReadAffiliateUnknownSenderIdentificationWorkInput {
+  limit?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export interface ReadAffiliateWorkItemsInput {
@@ -14855,12 +15055,15 @@ export const ToolId = {
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateEscalate: 'AFFILIATE_ESCALATE',
+  AffiliateGetBdContact: 'AFFILIATE_GET_BD_CONTACT',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetCreatorProfile: 'AFFILIATE_GET_CREATOR_PROFILE',
   AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
   AffiliateGetProduct: 'AFFILIATE_GET_PRODUCT',
   AffiliateGetRelationshipTimeline: 'AFFILIATE_GET_RELATIONSHIP_TIMELINE',
   AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
+  AffiliateIgnoreUnknownSender: 'AFFILIATE_IGNORE_UNKNOWN_SENDER',
+  AffiliateLinkUnknownSender: 'AFFILIATE_LINK_UNKNOWN_SENDER',
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
   AffiliateListCreatorSampleApplications: 'AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
@@ -14873,6 +15076,7 @@ export const ToolId = {
   AffiliateManageTargetCollaboration: 'AFFILIATE_MANAGE_TARGET_COLLABORATION',
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateReadMessageAttachment: 'AFFILIATE_READ_MESSAGE_ATTACHMENT',
+  AffiliateReplyUnknownSender: 'AFFILIATE_REPLY_UNKNOWN_SENDER',
   AffiliateResolve: 'AFFILIATE_RESOLVE',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
   AffiliateSearchManualTags: 'AFFILIATE_SEARCH_MANUAL_TAGS',
