@@ -3222,9 +3222,13 @@ export interface AffiliateHumanReviewRequestInput {
 }
 
 export interface AffiliateIgnoreUnknownSenderInput {
+  /** The handled cursor this run was dispatched with, from handledThroughInboundSequence. Supplied from the run's session context, never by the Agent; the commit lands only if the cursor has not moved since. */
+  baseInboundSequence: Scalars['Int']['input'];
   /** Why matching should stop, in one sentence. Stored on the row. */
   reason: Scalars['String']['input'];
   runId?: InputMaybe<Scalars['String']['input']>;
+  /** The end of the span this run covered, from latestInboundSequence. Supplied from the run's session context, never by the Agent; the handled cursor advances to it when this call succeeds. */
+  targetInboundSequence: Scalars['Int']['input'];
   /** The unknown-sender row to stop matching. */
   unknownInboundContactId: Scalars['ID']['input'];
 }
@@ -3365,11 +3369,15 @@ export const AffiliateLifecycleStage = {
 
 export type AffiliateLifecycleStage = typeof AffiliateLifecycleStage[keyof typeof AffiliateLifecycleStage];
 export interface AffiliateLinkUnknownSenderInput {
+  /** The handled cursor this run was dispatched with, from handledThroughInboundSequence. Supplied from the run's session context, never by the Agent; the commit lands only if the cursor has not moved since. */
+  baseInboundSequence: Scalars['Int']['input'];
   /** The CreatorRelationship this sender turned out to be. Normally one of the candidates offered for the row. */
   creatorRelationshipId: Scalars['ID']['input'];
   /** What in the exchange identified them, in one sentence. Stored on the row. */
   reason: Scalars['String']['input'];
   runId?: InputMaybe<Scalars['String']['input']>;
+  /** The end of the span this run covered, from latestInboundSequence. Supplied from the run's session context, never by the Agent; the handled cursor advances to it when this call succeeds. */
+  targetInboundSequence: Scalars['Int']['input'];
   /** The unknown-sender row being identified. */
   unknownInboundContactId: Scalars['ID']['input'];
 }
@@ -4402,8 +4410,12 @@ export interface AffiliateRelationshipWorkSummary {
 }
 
 export interface AffiliateReplyUnknownSenderInput {
+  /** The handled cursor this run was dispatched with, from handledThroughInboundSequence. Supplied from the run's session context, never by the Agent; the commit lands only if the cursor has not moved since. */
+  baseInboundSequence: Scalars['Int']['input'];
   /** Only needed on email when the stranger's message cannot be replied to and a new thread must start. */
   emailSubject?: InputMaybe<Scalars['String']['input']>;
+  /** The end of the span this run covered, from latestInboundSequence. Supplied from the run's session context, never by the Agent; the handled cursor advances to it when this call succeeds. */
+  targetInboundSequence: Scalars['Int']['input'];
   /** The message asking the stranger who they are. */
   text: Scalars['String']['input'];
   /** The unknown-sender row from affiliateUnknownSenderIdentificationWork. */
@@ -4757,6 +4769,15 @@ export interface AffiliateUnknownSenderCandidateView {
   stale: Scalars['Boolean']['output'];
 }
 
+/** A stranger has said something no completed identification run has been shown. A wake-up signal, not the work itself: read affiliateUnknownSenderIdentificationWork for the span, the candidates and the dispatch verdict. */
+export interface AffiliateUnknownSenderIdentificationChangedEvent {
+  /** How far identification has been shown this stream. */
+  handledThroughInboundSequence: Scalars['Int']['output'];
+  /** The row's latest allocated inbound cursor. */
+  inboundSequence: Scalars['Int']['output'];
+  unknownInboundContactId: Scalars['ID']['output'];
+}
+
 /** One unknown sender awaiting identification, with everything needed to ask them who they are. */
 export interface AffiliateUnknownSenderIdentificationWorkView {
   accountBindingId: Scalars['ID']['output'];
@@ -4771,13 +4792,17 @@ export interface AffiliateUnknownSenderIdentificationWorkView {
   /** False while the cooldown is running, and false when no unique session key can be minted for the row. */
   dispatchable: Scalars['Boolean']['output'];
   firstSeenAt: Scalars['DateTimeISO']['output'];
+  /** The handled cursor this run starts from. Pass it back unchanged as baseInboundSequence on the terminal tool so a run that raced another cannot overwrite its commit. */
+  handledThroughInboundSequence: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
   identificationAttempts: Scalars['Int']['output'];
   lastIdentificationAttemptAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  /** Excerpt of what the stranger actually wrote. */
+  /** Excerpt of the most recent message, for staff listings. Never the basis for identification: read unreadMessages, which is the whole span this run has not been shown. */
   lastMessagePreview?: Maybe<Scalars['String']['output']>;
   lastProviderMessageId?: Maybe<Scalars['String']['output']>;
   lastSeenAt: Scalars['DateTimeISO']['output'];
+  /** The end of this run's frozen span, as of this read. Pass it back as targetInboundSequence on the terminal tool; the cursor advances to it only when the run reaches an outcome. */
+  latestInboundSequence: Scalars['Int']['output'];
   messageCount: Scalars['Int']['output'];
   /** When the cooldown allows the next attempt; null when ready now. */
   nextAttemptEligibleAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -4792,17 +4817,41 @@ export interface AffiliateUnknownSenderIdentificationWorkView {
   remainingIdentificationAttempts: Scalars['Int']['output'];
   /** The desktop agent session key for this row's identification run, computed here so both sides cannot drift into two keys for one conversation. Format: agent:affiliate:identify:<userId>:<channel>:<seller account address>:<sender address>. Null exactly when no unique key can be minted; read notDispatchableReason for which defect, and never fall back to a key of your own. */
   sessionKey?: Maybe<Scalars['String']['output']>;
+  /** Whether unreadMessages holds every message this run is owed. TRUNCATED means older unread messages were dropped by the retention cap, or one was allocated and never retained. */
+  unreadCoverage: AffiliateUnknownSenderUnreadCoverage;
+  /** How many messages this run is owed — latestInboundSequence minus handledThroughInboundSequence. Larger than unreadMessages.length exactly when the coverage is TRUNCATED. */
+  unreadMessageCount: Scalars['Int']['output'];
+  /** Everything this sender has said that no completed identification run has been shown, oldest first. Check unreadCoverage before reading it: a TRUNCATED span is true but partial and must never be treated as the whole exchange. */
+  unreadMessages: Array<AffiliateUnknownSenderUnreadMessageView>;
 }
 
-/** Why an unknown sender is currently withheld from identification dispatch. Present exactly when dispatchable is false. COOLING_DOWN resolves on its own; the two address reasons are seller-account defects a human must repair, and the row waits visibly rather than risking two strangers sharing one transcript. */
+/** Why an unknown sender is currently withheld from identification dispatch. Present exactly when dispatchable is false. AWAITING_SENDER_REPLY and AWAITING_MESSAGE_SETTLE resolve on their own — the first when the sender says something no completed run has read, the second when their burst stops; the two address reasons are seller-account defects a human must repair, and the row waits visibly rather than risking two strangers sharing one transcript. */
 export const AffiliateUnknownSenderNotDispatchableReason = {
   AmbiguousAccountAddress: 'AMBIGUOUS_ACCOUNT_ADDRESS',
   AttemptsExhausted: 'ATTEMPTS_EXHAUSTED',
-  CoolingDown: 'COOLING_DOWN',
+  AwaitingMessageSettle: 'AWAITING_MESSAGE_SETTLE',
+  AwaitingSenderReply: 'AWAITING_SENDER_REPLY',
   UnresolvableAccountAddress: 'UNRESOLVABLE_ACCOUNT_ADDRESS'
 } as const;
 
 export type AffiliateUnknownSenderNotDispatchableReason = typeof AffiliateUnknownSenderNotDispatchableReason[keyof typeof AffiliateUnknownSenderNotDispatchableReason];
+/** Whether the unread span handed to an identification run holds every message that run has not been shown. TRUNCATED means older unread messages were dropped by the retention cap and the span must not be read as the whole exchange. */
+export const AffiliateUnknownSenderUnreadCoverage = {
+  Complete: 'COMPLETE',
+  Truncated: 'TRUNCATED'
+} as const;
+
+export type AffiliateUnknownSenderUnreadCoverage = typeof AffiliateUnknownSenderUnreadCoverage[keyof typeof AffiliateUnknownSenderUnreadCoverage];
+/** One thing an unidentified sender said that no completed identification run has been shown. */
+export interface AffiliateUnknownSenderUnreadMessageView {
+  /** Position in this sender's own inbound stream. Order the exchange by this, never by receivedAt: the provider may restate, reorder or backdate its own timestamps. */
+  inboundSequence: Scalars['Int']['output'];
+  /** When the provider says they sent it. */
+  receivedAt: Scalars['DateTimeISO']['output'];
+  /** What they wrote, trimmed. Null when the message carried nothing readable — a photo, a sticker, an audio note. The message is still part of the span: somebody wrote to us. */
+  text?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateWhatsAppMessagesInput {
   /** CreatorRelationship business boundary. This legacy WhatsApp-only read path is still relationship-scoped and does not accept creator/profile fallback keys. */
   creatorRelationshipId: Scalars['ID']['input'];
@@ -14364,6 +14413,8 @@ export interface Subscription {
   affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
   /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
   affiliateRelationshipSignal: AffiliateRelationshipSignal;
+  /** Streams unknown senders whose unread material changed, so identification reaches a desktop when the stranger writes rather than when a timer fires. A light signal: re-read affiliateUnknownSenderIdentificationWork for the span and the dispatch verdict. */
+  affiliateUnknownSenderIdentificationChanged: AffiliateUnknownSenderIdentificationChangedEvent;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
   clientLogUploadRequested: ClientLogUploadRequestPayload;

@@ -13,6 +13,11 @@ import {
   recordActiveAffiliateRunPredictionCacheIds,
   recordActiveAffiliateRunTerminalOutcome,
 } from "../affiliate/affiliate-run-checkpoints.js";
+import {
+  assertAffiliateIdentificationTerminalOutcomeAvailable,
+  recordAffiliateIdentificationTerminalOutcome,
+  type AffiliateIdentificationTerminalOutcome,
+} from "../affiliate/affiliate-identification-run-spans.js";
 import { openClawConnector } from "../openclaw/index.js";
 
 const log = createLogger("cloud-graphql-proxy");
@@ -33,6 +38,24 @@ const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const AFFILIATE_ESCALATE_OP_NAME = "AffiliateEscalate";
 const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
 const AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME = "AffiliateRelationshipTimeline";
+
+/**
+ * The three ways an identification (识别) run can end, by mutation field.
+ *
+ * Every one of them is a terminal outcome that commits the run's frozen span
+ * backend-side, so seeing one succeed is how this Desktop learns the run is
+ * done and the stranger is free for another. There is no fourth: a run that
+ * ends without calling one of these commits nothing, and its span is offered
+ * again — which is what makes an abandoned run retryable instead of lost.
+ */
+const AFFILIATE_IDENTIFICATION_TERMINAL_MUTATIONS: ReadonlyArray<{
+  field: string;
+  outcome: AffiliateIdentificationTerminalOutcome;
+}> = [
+  { field: "affiliateReplyUnknownSender", outcome: "REPLIED" },
+  { field: "affiliateLinkUnknownSender", outcome: "LINKED" },
+  { field: "affiliateIgnoreUnknownSender", outcome: "IGNORED" },
+];
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
 // Backend no longer redacts Human Decision output from proposal projections;
 // Desktop owns tool-path gating. This name-based recursive guard strips every
@@ -184,6 +207,16 @@ function sanitizeCloudGraphqlVariables(
 
   if (!variables) {
     return variables;
+  }
+
+  // One terminal call per identification run, refused before it executes. The
+  // span itself travels in the run's session context and needs nothing here.
+  const identificationRow = firstNonEmptyString(asRecord(variables.input)?.unknownInboundContactId);
+  if (
+    identificationRow &&
+    AFFILIATE_IDENTIFICATION_TERMINAL_MUTATIONS.some(({ field }) => query.includes(field))
+  ) {
+    assertAffiliateIdentificationTerminalOutcomeAvailable(identificationRow);
   }
 
   const isAffiliateEscalate =
@@ -342,6 +375,7 @@ function recordAffiliateTerminalToolSuccess(
   data: unknown,
 ): void {
   const input = asRecord(variables?.input);
+  recordAffiliateIdentificationTerminalToolSuccess(input, data);
   const creatorRelationshipId = firstNonEmptyString(input?.creatorRelationshipId);
   if (!creatorRelationshipId) return;
   const response = asRecord(data);
@@ -366,6 +400,30 @@ function recordAffiliateTerminalToolSuccess(
       creatorRelationshipId,
       outcome: "RESOLVED",
     });
+  }
+}
+
+/**
+ * Releases a stranger once the run working on them has actually finished.
+ *
+ * The run's frozen span reaches the backend through its session context and is
+ * committed there; this side only needs to know the run is over, so the next
+ * message from that stranger opens a new run instead of being refused by a
+ * lease nobody is holding. Read from the response rather than the request: a
+ * mutation that failed committed nothing and its span is still owed.
+ */
+function recordAffiliateIdentificationTerminalToolSuccess(
+  input: Record<string, unknown> | null | undefined,
+  data: unknown,
+): void {
+  const unknownInboundContactId = firstNonEmptyString(input?.unknownInboundContactId);
+  if (!unknownInboundContactId) return;
+  const response = asRecord(data);
+  if (!response) return;
+  for (const { field, outcome } of AFFILIATE_IDENTIFICATION_TERMINAL_MUTATIONS) {
+    if (asRecord(response[field])?.ok !== true) continue;
+    recordAffiliateIdentificationTerminalOutcome({ unknownInboundContactId, outcome });
+    return;
   }
 }
 
