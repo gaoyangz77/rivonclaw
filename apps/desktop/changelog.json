@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.3",
+    "date": "2026-09-04",
+    "en": [
+      "Identify unknown senders automatically by dispatching identification runs, and name the unknown-sender and collaboration tools so their activity is readable in the panel",
+      "Extend privacy mode to mask seller shop names, product names, images and SKUs, and fix table interactions where a row switch also opened the row and the payment records header floated"
+    ],
+    "zh": [
+      "自动派发陌生发信人识别任务，并为陌生发信人与合作相关工具命名，面板中可读懂其运行记录",
+      "隐私模式扩展到遮罩店铺名、商品名、商品图与 SKU；修复表格内开关会连带打开行、以及支付记录表头浮动的问题"
+    ]
+  },
+  {
     "version": "1.9.2",
     "date": "2026-09-02",
     "en": [
