@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.4",
+    "date": "2026-09-04",
+    "en": [
+      "Give unknown-sender identification the full unread exchange in order, and state plainly when retention dropped older messages, so a run no longer concludes a creator never mentioned something they did",
+      "Deliver identification work by push over the existing affiliate subscription instead of a five-minute poll, with a per-sender lease and a gateway-readiness wait that removes the RPC client not connected error after a restart"
+    ],
+    "zh": [
+      "陌生发信人识别改为读取完整未读对话并按顺序呈现，历史消息因保留策略缺失时会明确说明，避免误判达人从未提过某件事",
+      "识别任务改由推送下发（复用现有达人联盟订阅通道），不再五分钟轮询；新增按发信人加锁，并等待 Gateway 就绪后再注册会话，消除重启后的 RPC client not connected 报错"
+    ]
+  },
+  {
     "version": "1.9.3",
     "date": "2026-09-04",
     "en": [
