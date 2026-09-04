@@ -1105,7 +1105,7 @@ function PaymentRecords({ payments }: { payments: readonly Payment[] }) {
   }
 
   return (
-    <TkTableFrame className="billing-table-wrap">
+    <TkTableFrame>
       <table className="billing-table">
         <thead>
           <tr>

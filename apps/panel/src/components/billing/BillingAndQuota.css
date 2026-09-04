@@ -718,12 +718,6 @@
   font-size: 13px;
 }
 
-.billing-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
-}
-
 .billing-table {
   width: 100%;
   min-width: 840px;
@@ -732,19 +726,22 @@
   font-size: 12px;
 }
 
+/* TkTableFrame owns cell padding, header density, row rhythm and the frame's
+   own border, overflow and radius, so none of that is restated here. Only the
+   two things the frame leaves to the caller are: heading alignment (a bare
+   `th` still centres) and top-aligning body cells, which the created/updated
+   column needs because it stacks two lines.
+   `vertical-align` is deliberately NOT set on `th`. The frame gives headers a
+   fixed 36px height and no block padding, relying on the default middle
+   alignment to seat the text; pinning them to the top left the header row
+   jammed against its own border and reading as cut off. */
 .billing-table th,
 .billing-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border-light);
   text-align: left;
-  vertical-align: top;
 }
 
-.billing-table th {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  font-weight: 700;
+.billing-table td {
+  vertical-align: top;
 }
 
 /* ── Quota progress bars ── */
