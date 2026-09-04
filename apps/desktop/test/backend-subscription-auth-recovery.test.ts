@@ -278,7 +278,11 @@ describe("BackendSubscriptionClient auth recovery", () => {
     }
   });
 
-  it("blocks an unknown operation error after five bounded retries", async () => {
+  // A rolling backend deploy serves errors for minutes. The old bounded budget
+  // was five retries over ~31s, after which the operation was blocked until
+  // some unrelated lifecycle event restarted it — which is how a deploy left a
+  // device with no customer-service events for 25 minutes.
+  it("keeps retrying an unknown operation error past the old five-retry budget", async () => {
     vi.useFakeTimers();
     const refreshAuth = vi.fn(async () => {});
     const client = new BackendSubscriptionClient("en");
@@ -296,10 +300,18 @@ describe("BackendSubscriptionClient auth recovery", () => {
       }
 
       expect(subscriptions).toHaveLength(6);
-      subscriptions.at(-1)?.sink.error(unknownError);
-      await vi.advanceTimersByTimeAsync(60_000);
 
-      expect(subscriptions).toHaveLength(6);
+      // Past the old cliff: the operation must still come back, now on the
+      // widened ceiling rather than stopping for good.
+      subscriptions.at(-1)?.sink.error(unknownError);
+      await vi.advanceTimersByTimeAsync(300_000);
+      expect(subscriptions).toHaveLength(7);
+
+      subscriptions.at(-1)?.sink.error(unknownError);
+      await vi.advanceTimersByTimeAsync(300_000);
+      expect(subscriptions).toHaveLength(8);
+
+      // Retrying is not an auth problem and must never trigger a token refresh.
       expect(refreshAuth).not.toHaveBeenCalled();
     } finally {
       client.disconnect();
@@ -348,7 +360,13 @@ describe("BackendSubscriptionClient auth recovery", () => {
     }
   });
 
-  it("lets graphql-ws replay active subscriptions after transport reconnect", async () => {
+  // This used to assert the opposite: that an acknowledged reconnect left the
+  // existing subscriptions alone because graphql-ws replays them itself. That
+  // delegation is unobservable (a replayed frame the server accepts but never
+  // serves looks exactly like a quiet subscription) and it is what let a device
+  // sit on a healthy socket with dead CS subscriptions for 25 minutes. The
+  // client now re-issues on every acknowledged generation and owns the answer.
+  it("re-issues every long-lived operation on each acknowledged connection", async () => {
     const onConnectedAfterRetry = vi.fn(async () => {});
     const client = new BackendSubscriptionClient("en");
 
@@ -358,18 +376,29 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.subscribeToUpdates("1.0.0", vi.fn());
 
     expect(subscriptions).toHaveLength(2);
+    const firstUnsubscribes = subscriptions.map((entry) => entry.unsubscribe);
 
     clientOptions.at(-1)?.on?.connected?.({}, undefined, true);
+
+    // Re-issued synchronously inside `connected`, before the hook is awaited.
+    expect(subscriptions).toHaveLength(4);
+    for (const unsubscribe of firstUnsubscribes) {
+      expect(unsubscribe).toHaveBeenCalled();
+    }
 
     await vi.waitFor(() => {
       expect(onConnectedAfterRetry).toHaveBeenCalledTimes(1);
     });
-    expect(subscriptions).toHaveLength(2);
+
+    // Idempotent within a generation: a second reconcile on the same live
+    // socket must not churn subscriptions.
+    client.enableAuthenticatedSubscriptions();
+    expect(subscriptions).toHaveLength(4);
 
     client.disconnect();
   });
 
-  it("does not manually restart subscriptions if the transport reconnect hook fails", async () => {
+  it("re-issues operations even when the transport reconnect hook fails", async () => {
     const onConnectedAfterRetry = vi.fn(async () => {
       throw new Error("shop refresh failed");
     });
@@ -383,10 +412,31 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     clientOptions.at(-1)?.on?.connected?.({}, undefined, true);
 
+    // Subscription liveness must not depend on a best-effort cache warm-up.
+    expect(subscriptions).toHaveLength(2);
+
     await vi.waitFor(() => {
       expect(onConnectedAfterRetry).toHaveBeenCalledTimes(1);
     });
+    expect(subscriptions).toHaveLength(2);
+
+    client.disconnect();
+  });
+
+  // Direction (B): a reconnect that lands after logout must start nothing.
+  it("starts nothing when a transport connects after authenticated subscriptions are disabled", async () => {
+    const client = new BackendSubscriptionClient("en");
+
+    client.connect(() => "token");
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
     expect(subscriptions).toHaveLength(1);
+
+    client.disableAuthenticatedSubscriptions();
+    const afterLogout = subscriptions.length;
+
+    clientOptions.at(-1)?.on?.connected?.({}, undefined, true);
+    expect(subscriptions).toHaveLength(afterLogout);
 
     client.disconnect();
   });

@@ -29,6 +29,15 @@ const AUTH_WS_CLOSE_CODES = new Set([
  */
 const TRANSPORT_STALL_TIMEOUT_MS = 90_000;
 
+/**
+ * Retry ceiling once an operation has failed with unknown errors more times
+ * than the old bounded budget allowed. Retrying forever is what keeps a
+ * long deploy or a transient server fault from permanently killing a
+ * subscription; the wide ceiling keeps a genuinely unserviceable one down to
+ * roughly a dozen requests an hour.
+ */
+const UNKNOWN_ERROR_MAX_RETRY_DELAY_MS = 300_000;
+
 const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
@@ -1239,6 +1248,14 @@ interface SubscriptionConfig {
 interface ActiveSubscriptionAttempt {
   attempt: number;
   unsubscribe: () => void;
+  /**
+   * Transport generation this attempt was issued on. An attempt from an older
+   * generation was handed to a socket that is gone: graphql-ws may or may not
+   * have replayed it, and a replayed frame the server accepts but never serves
+   * is indistinguishable from a quiet subscription. Only the generation stamp
+   * tells us whether the operation is live on the transport we have now.
+   */
+  transportGeneration: number;
 }
 
 type SubscriptionOperationState = "idle" | "active" | "retry_wait" | "blocked" | "stopped";
@@ -1257,10 +1274,12 @@ class LongLivedSubscriptionOperation {
   private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
   private consecutiveFailures = 0;
   private lastBlockedFingerprint: string | null = null;
+  private lastRecoveryFingerprint: string | null = null;
 
   constructor(
     readonly config: SubscriptionConfig,
     private readonly canStart: () => boolean,
+    private readonly currentTransportGeneration: () => number,
   ) {}
 
   get key(): string {
@@ -1296,7 +1315,12 @@ class LongLivedSubscriptionOperation {
     }
 
     const attempt = ++this.attemptCounter;
-    const active: ActiveSubscriptionAttempt = { attempt, unsubscribe: () => {} };
+    const transportGeneration = this.currentTransportGeneration();
+    const active: ActiveSubscriptionAttempt = {
+      attempt,
+      unsubscribe: () => {},
+      transportGeneration,
+    };
     this.activeAttempt = active;
     this.state = "active";
 
@@ -1304,6 +1328,7 @@ class LongLivedSubscriptionOperation {
       subscription: this.key,
       reason,
       attempt,
+      transportGeneration,
       authRequired: this.authRequired,
     });
 
@@ -1315,10 +1340,26 @@ class LongLivedSubscriptionOperation {
     }
   }
 
-  reconcile(reason: string, options?: { retryBlocked?: boolean }): void {
-    if (this.state === "active") return;
-    if (this.state === "retry_wait" && !options?.retryBlocked) return;
-    if (this.state === "blocked" && !options?.retryBlocked) return;
+  /**
+   * Bring this operation in line with the single invariant:
+   *
+   *   every operation that should be running holds an attempt issued on the
+   *   CURRENT transport generation.
+   *
+   * There is no "already active, leave it alone" case. `active` only means we
+   * handed graphql-ws a subscribe() and have not heard error/complete back —
+   * it says nothing about whether the server is still serving it. A socket
+   * that died and came back leaves operations marked `active` on a dead
+   * generation, which is how a device went 25 minutes without a single
+   * customer-service event while the transport reported itself healthy.
+   */
+  reconcile(reason: string): void {
+    // A paused or logged-out operation must never be started from here; that
+    // is what keeps a reconnect from resurrecting a signed-out session.
+    if (!this.canStart()) return;
+    // Idempotent within a generation: repeated reconciles on one live socket
+    // must not churn subscriptions.
+    if (this.activeAttempt?.transportGeneration === this.currentTransportGeneration()) return;
     this.start(reason, { preserveFailures: this.state === "blocked" });
   }
 
@@ -1384,21 +1425,34 @@ class LongLivedSubscriptionOperation {
     this.cancelRecovery();
     this.consecutiveFailures += 1;
 
-    if (bounded && this.consecutiveFailures > 5) {
-      return this.block(fingerprint, "unknown_error_retry_limit");
-    }
-
-    const delayMs = Math.min(1000 * 2 ** Math.min(this.consecutiveFailures - 1, 5), 30_000);
+    // An unknown error used to be capped at five retries — a ~31s budget over
+    // 1/2/4/8/16s — after which the operation was blocked "until lifecycle
+    // changes". A rolling backend deploy serves errors for longer than that,
+    // so the cap reliably burned itself out mid-deploy and left the operation
+    // dead until something unrelated forced a restart. Failures cannot accrue
+    // while the transport is down (graphql-ws surfaces nothing to sinks while
+    // it retries), so every counted failure is a real server response: the
+    // right answer is to keep retrying and widen the ceiling, not to give up.
+    const delayMs = Math.min(
+      1000 * 2 ** Math.min(this.consecutiveFailures - 1, 5),
+      bounded && this.consecutiveFailures > 5 ? UNKNOWN_ERROR_MAX_RETRY_DELAY_MS : 30_000,
+    );
     const generation = this.generation;
     this.state = "retry_wait";
 
-    log.warn("Scheduling backend subscription operation recovery", {
-      subscription: this.key,
-      reason,
-      recoveryAttempt: this.consecutiveFailures,
-      delayMs,
-      fingerprint,
-    });
+    // Only the first failure of a given fingerprint is worth a warning; a
+    // permanently unserviceable operation would otherwise log forever.
+    const logRecovery =
+      !bounded || this.consecutiveFailures <= 5 || this.lastRecoveryFingerprint !== fingerprint;
+    this.lastRecoveryFingerprint = fingerprint;
+    if (logRecovery)
+      log.warn("Scheduling backend subscription operation recovery", {
+        subscription: this.key,
+        reason,
+        recoveryAttempt: this.consecutiveFailures,
+        delayMs,
+        fingerprint,
+      });
 
     this.recoveryTimer = setTimeout(() => {
       this.recoveryTimer = null;
@@ -1491,6 +1545,13 @@ export class BackendSubscriptionClient {
 
   /** True only while the graphql-ws transport has an acknowledged connection. */
   private transportConnected = false;
+
+  /**
+   * Incremented on every acknowledged connection. An operation's attempt is
+   * only live if it was issued on the current generation — this is the single
+   * fact reconcile() decides on.
+   */
+  private transportGeneration = 0;
 
   /** Stall watchdog: fires when a reconnect cycle stops emitting progress events. */
   private transportStallTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1662,9 +1723,7 @@ export class BackendSubscriptionClient {
     if (shouldResume || tokenChanged || options.forceReconnect) {
       this.restartTransport(options.reason);
     }
-    this.reconcileSubscriptions(options.reason, {
-      retryBlocked: shouldResume || tokenChanged || options.forceReconnect === true,
-    });
+    this.reconcileSubscriptions(options.reason);
 
     // A credentials change must never leave a dead transport looking healthy:
     // when the socket is down, the stall watchdog guarantees recovery progress
@@ -1968,10 +2027,10 @@ export class BackendSubscriptionClient {
     return !config.authRequired || this.authenticatedSubscriptionState === "active";
   }
 
-  private reconcileSubscriptions(reason: string, options?: { retryBlocked?: boolean }): void {
+  private reconcileSubscriptions(reason: string): void {
     for (const operation of this.subscriptionOperations.values()) {
       if (!operation.longLived) continue;
-      operation.reconcile(reason, options);
+      operation.reconcile(reason);
     }
   }
 
@@ -2052,6 +2111,10 @@ export class BackendSubscriptionClient {
   private rebuildTransport(reason: string): void {
     const previous = this.client;
     if (!previous) return;
+    log.warn("Rebuilding backend subscription transport", {
+      reason,
+      transportGeneration: this.transportGeneration,
+    });
     this.client = null;
     this.transportConnected = false;
     this.clearPongTimeout();
@@ -2062,10 +2125,10 @@ export class BackendSubscriptionClient {
     void Promise.resolve(previous.dispose()).catch(() => {});
     previous.terminate();
     if (!this.getToken) return;
+    // doConnect() reconciles against the current generation; the operations are
+    // then re-issued for real by the `connected` handler once the fresh client
+    // acknowledges, so no manual start loop is needed here.
     this.doConnect();
-    for (const operation of this.subscriptionOperations.values()) {
-      if (operation.longLived) operation.start(reason, { preserveFailures: true });
-    }
   }
 
   private registerSubscription(config: SubscriptionConfig): () => void {
@@ -2075,6 +2138,7 @@ export class BackendSubscriptionClient {
     const operation = new LongLivedSubscriptionOperation(
       config,
       () => !!this.client && this.shouldSubscribe(config),
+      () => this.transportGeneration,
     );
     this.subscriptionOperations.set(config.key, operation);
     operation.start("register");
@@ -3024,23 +3088,38 @@ export class BackendSubscriptionClient {
         },
         connected: (_socket, _payload, retrying) => {
           if (wrapped && this.client !== wrapped) return;
+          this.transportGeneration += 1;
           this.transportConnected = true;
           this.clearTransportStallWatchdog();
-          log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`);
-          if (retrying) {
+          log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`, {
+            transportGeneration: this.transportGeneration,
+          });
+          // Re-issue every long-lived operation on this generation, SYNCHRONOUSLY
+          // and before any await. Synchronously, because graphql-ws's own replay
+          // loops check `done` when they resume: re-subscribing here makes them
+          // find their attempt disposed and send nothing, so the wire carries
+          // exactly one Subscribe per operation. Before any await, because the
+          // recovery hook below must never be able to decide whether the
+          // subscriptions come back — that dependency is what left a healthy
+          // transport carrying no live subscriptions.
+          this.reconcileSubscriptions(
+            retrying ? "transport_reconnected" : "transport_connected",
+          );
+          if (retrying && this.onConnectedAfterRetry) {
+            const hook = this.onConnectedAfterRetry;
+            // Best-effort cache warm-up (shop lifecycle, escalation catch-up).
+            // Nothing about subscription liveness depends on it any more. The
+            // async wrapper turns a synchronous throw into a rejection so it
+            // cannot escape this callback — graphql-ws treats a throwing
+            // `connected` as a failed connect and would tear the socket down
+            // before the Subscribe frames it just queued are flushed.
             void (async () => {
-              if (this.onConnectedAfterRetry) {
-                await this.onConnectedAfterRetry();
-              }
-              this.reconcileSubscriptions("transport_reconnected", { retryBlocked: true });
+              await hook();
             })().catch((err) => {
               log.warn(
                 "Backend subscription reconnect recovery hook failed",
                 this.formatUnknownError(err),
               );
-              this.reconcileSubscriptions("transport_reconnected_after_hook_error", {
-                retryBlocked: true,
-              });
             });
           }
         },
