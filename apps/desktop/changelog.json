@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.5",
+    "date": "2026-09-04",
+    "en": [
+      "Re-subscribe every channel after a backend deployment closes the connection, so the app no longer sits on a healthy-looking socket that delivers no events",
+      "Replay customer-service dispatches interrupted by a Gateway restart instead of dropping them, so conversations no longer stay pending until the next hourly sweep"
+    ],
+    "zh": [
+      "后端发版关闭连接后重新订阅全部通道，避免连接看起来正常却收不到任何事件",
+      "Gateway 重启期间被中断的客服派发改为重放而非丢弃，会话不再卡在待处理状态直到下一轮扫描"
+    ]
+  },
+  {
     "version": "1.9.4",
     "date": "2026-09-04",
     "en": [
