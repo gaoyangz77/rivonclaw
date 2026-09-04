@@ -99,6 +99,7 @@ import {
 } from "../gateway/agent-tooling-readiness.js";
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
 import { tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../gateway/connection.js";
+import { CS_ADMISSION_CANCEL_REASON } from "../cs-bridge/cs-run-admission.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { flushCsSessionCursorStore } from "../cs-bridge/cs-session-cursor-store.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
@@ -1506,7 +1507,7 @@ app.whenReady().then(async () => {
         try {
           invalidateToolSpecsCache();
           resetAgentToolingReadiness(action);
-          stopCsBridge();
+          stopCsBridge(CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE);
           await bootstrapDesktopAuthState(authSession, rootStore);
           const nextToolNameDigest = getEntitledToolNameDigest();
           const nextAgentToolingDigest = getAgentToolingDigest();
