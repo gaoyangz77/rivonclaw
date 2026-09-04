@@ -69,6 +69,18 @@ const harness = vi.hoisted(() => {
       }, 0);
     }
 
+    /** Reply to one subscribe id with a GraphQL error, as a warming backend does. */
+    serverError(id: string, message: string): void {
+      this.onmessage?.({
+        data: JSON.stringify({ type: "error", id, payload: [{ message }] }),
+      });
+    }
+
+    /** Deliver one event on a subscription id. */
+    serverNext(id: string, data: Record<string, unknown>): void {
+      this.onmessage?.({ data: JSON.stringify({ type: "next", id, payload: { data } }) });
+    }
+
     /** Server-initiated close delivered synchronously (e.g. backend deploy 1001). */
     serverClose(code: number, reason: string): void {
       this.readyState = FakeWebSocket.CLOSED;
@@ -154,6 +166,88 @@ describe("BackendSubscriptionClient transport recovery (real graphql-ws)", () =>
     expect(queries[0]).toContain("PresetSkillsChanged");
     expect(queries[1]).toContain("ToolSpecsChanged");
     expect(client.isConnected()).toBe(true);
+
+    client.disconnect();
+  });
+
+  // The 2026-09-04 outage, end to end: our own rolling deploy closes the socket
+  // with 1001, the first reconnect attempts hit a backend that is still warming
+  // (500 on upgrade), the transport comes back within seconds, and the backend
+  // keeps answering subscribes with errors for another minute before it serves.
+  // Before the invariant this left the device on a healthy socket with dead
+  // subscriptions until an unrelated event happened to restart them.
+  it("survives a rolling backend deploy: re-issues on the new socket and outlasts the warm-up", async () => {
+    const onToolSpecs = vi.fn();
+    const BackendSubscriptionClient = await importClient();
+    const client = new BackendSubscriptionClient("en-US");
+    client.connect(() => "token-1");
+    client.subscribeToToolSpecsChanged(onToolSpecs);
+    client.subscribeToPresetSkillsChanged(vi.fn());
+    client.enableAuthenticatedSubscriptions();
+    await vi.advanceTimersByTimeAsync(20);
+
+    const first = FakeWebSocket.instances[0];
+    const firstIds = first.subscribeMessages().map((m) => m.id);
+    expect(firstIds).toHaveLength(2);
+
+    // Deploy: server closes, then two upgrade failures while the container boots.
+    first.serverClose(1001, "Going away");
+    FakeWebSocket.nextModes.push("hang");
+    await vi.advanceTimersByTimeAsync(1_000);
+    FakeWebSocket.instances.at(-1)?.serverClose(1006, "");
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    const live = FakeWebSocket.instances.at(-1)!;
+    const reissued = live.subscribeMessages();
+    expect(reissued).toHaveLength(2);
+    // The decisive assertion: these are OUR re-issues on a new generation, not
+    // graphql-ws replaying the old ids. Replay would reuse the original ids.
+    expect(reissued.map((m) => m.id).some((id) => firstIds.includes(id))).toBe(false);
+    expect(client.isConnected()).toBe(true);
+
+    // Backend is up but still warming: it errors the ToolSpecs subscribe for
+    // ~3 minutes. That is far past the old five-retry / ~31s budget, which used
+    // to block the operation permanently.
+    const socketCount = FakeWebSocket.instances.length;
+    const toolSpecsFrames = () =>
+      FakeWebSocket.instances.at(-1)!.subscribeMessages().filter((m) =>
+        m.payload.query.includes("ToolSpecsChanged"),
+      );
+    for (let i = 0; i < 6; i += 1) {
+      const target = toolSpecsFrames().at(-1)!;
+      FakeWebSocket.instances.at(-1)!.serverError(target.id, "Unexpected subscription failure");
+      await vi.advanceTimersByTimeAsync(35_000);
+    }
+
+    // Still retrying on the same transport — never blocked, never rebuilt.
+    expect(FakeWebSocket.instances).toHaveLength(socketCount);
+    expect(toolSpecsFrames().length).toBeGreaterThan(6);
+
+    // Backend heals: the newest attempt receives events.
+    FakeWebSocket.instances.at(-1)!.serverNext(toolSpecsFrames().at(-1)!.id, {
+      toolSpecsChanged: { revision: "r1", digest: "d1", changeType: "soft", reason: "test" },
+    });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(onToolSpecs).toHaveBeenCalledTimes(1);
+
+    client.disconnect();
+  });
+
+  // Direction (B), against the real library: once authenticated subscriptions
+  // are disabled, graphql-ws holds no locks and must not build a socket at all,
+  // no matter how long the stall watchdog and retry timers run.
+  it("opens no socket and sends no subscribe after logout", async () => {
+    const client = await connectWithTwoLongLivedOps(() => "token-1");
+    const socketsBefore = FakeWebSocket.instances.length;
+
+    client.disableAuthenticatedSubscriptions();
+    FakeWebSocket.instances.at(-1)?.serverClose(1006, "");
+    await vi.advanceTimersByTimeAsync(STALL_TIMEOUT_MS * 3);
+
+    const opened = FakeWebSocket.instances.slice(socketsBefore);
+    for (const socket of opened) {
+      expect(socket.subscribeMessages()).toHaveLength(0);
+    }
 
     client.disconnect();
   });
