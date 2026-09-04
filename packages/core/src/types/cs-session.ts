@@ -45,7 +45,29 @@ export interface AffiliateSessionContext {
   readonly runId?: string;
 }
 
-export type ToolSessionContext = CSSessionContext | AffiliateSessionContext;
+/**
+ * An Affiliate run that is identifying an unknown sender (未知发信人).
+ *
+ * A sibling of `AffiliateSessionContext` rather than a loosening of it. The
+ * whole point of identification (识别) is that we do not yet know which 达人
+ * wrote to us, so there is no `creatorRelationshipId` to carry — and making
+ * that field optional on the existing context would push the uncertainty onto
+ * every consumer that today relies on it being present. The subject of this
+ * run is the unknown-inbound row itself.
+ */
+export interface AffiliateIdentificationSessionContext {
+  readonly kind: "AFFILIATE_IDENTIFICATION";
+  /** Device/Provider routing context only; never business product provenance. */
+  readonly routingShopId?: string;
+  /** The `AffiliateUnknownInboundContact` this run is about. */
+  readonly unknownInboundContactId: string;
+  readonly runId?: string;
+}
+
+export type ToolSessionContext =
+  | CSSessionContext
+  | AffiliateSessionContext
+  | AffiliateIdentificationSessionContext;
 
 // ── Session store ──────────────────────────────────────────────────
 
@@ -134,7 +156,13 @@ export function resolveToolSessionContext(
   const context = args?.[TOOL_SESSION_KEY]
     ?? args?.[CS_SESSION_KEY]
     ?? args?.csSessionContext;
-  if (isAffiliateContext(context) || isCustomerServiceContext(context)) return context;
+  if (
+    isAffiliateContext(context)
+    || isAffiliateIdentificationContext(context)
+    || isCustomerServiceContext(context)
+  ) {
+    return context;
+  }
   return null;
 }
 
@@ -157,6 +185,16 @@ function isAffiliateContext(value: unknown): value is AffiliateSessionContext {
   if (value == null || typeof value !== "object") return false;
   const context = value as Partial<AffiliateSessionContext>;
   return context.kind === "AFFILIATE" && Boolean(context.creatorRelationshipId);
+}
+
+function isAffiliateIdentificationContext(
+  value: unknown,
+): value is AffiliateIdentificationSessionContext {
+  if (value == null || typeof value !== "object") return false;
+  const context = value as Partial<AffiliateIdentificationSessionContext>;
+  return (
+    context.kind === "AFFILIATE_IDENTIFICATION" && Boolean(context.unknownInboundContactId)
+  );
 }
 
 function isCustomerServiceContext(value: unknown): value is CSSessionContext {

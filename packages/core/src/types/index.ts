@@ -110,6 +110,7 @@ export {
   resolveToolSessionContext,
 } from "./cs-session.js";
 export type {
+  AffiliateIdentificationSessionContext,
   AffiliateSessionContext,
   CSSessionContext,
   CSToolArgs,

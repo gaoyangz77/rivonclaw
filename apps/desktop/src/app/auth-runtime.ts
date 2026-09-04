@@ -15,6 +15,7 @@ import {
   catchUpAffiliateEscalationNotifications,
   handleAffiliateEscalationNotification,
 } from "../affiliate/affiliate-escalation-notification-actuator.js";
+import { startAffiliateUnknownSenderIdentificationPolling } from "../affiliate/affiliate-unknown-sender-actuator.js";
 
 const log = createLogger("auth-runtime");
 
@@ -179,6 +180,11 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   void catchUpAffiliateEscalationNotifications(authSession, deviceId).catch((error) => {
     log.warn("Failed to catch up Affiliate escalation notifications", error);
   });
+
+  // Unknown senders (未知发信人) have no subscription to wake us: a stranger's
+  // first message creates the row through the Provider drop site, which
+  // publishes nothing. Polling is how identification work reaches this device.
+  startAffiliateUnknownSenderIdentificationPolling(authSession, deviceId, getUiLocale);
 
   const campaignSearchPlanActuator = new AffiliateCampaignSearchPlanActuator(
     authSession,

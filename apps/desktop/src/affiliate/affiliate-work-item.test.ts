@@ -132,11 +132,34 @@ describe("affiliate session identity", () => {
     const promptAndEmail = buildBusinessDeveloperPromptSection({
       creatorDisplayName: "Mia",
       businessPrompt: "Move qualified Creators to email.",
-      email: { displayName: "Mia Sales", emailAddress: "mia@example.com" },
-    });
+      email: { displayName: "Mia Sales" },
+    } as GQL.AffiliateBusinessDeveloperDispatchContext);
     expect(promptAndEmail.join("\n")).toContain("Move qualified Creators to email.");
-    expect(promptAndEmail.join("\n")).toContain("Email: Mia Sales — mia@example.com");
+    expect(promptAndEmail.join("\n")).toContain(
+      "Email: available (call affiliate_get_bd_contact to obtain it)",
+    );
     expect(promptAndEmail.join("\n")).not.toContain("WhatsApp:");
+  });
+
+  it("renders BD channel availability without the contact value", () => {
+    const rendered = buildBusinessDeveloperPromptSection({
+      creatorDisplayName: "Mia",
+      whatsApp: { displayName: "Holylegend", phoneNumber: "+1 425 324 5071" },
+      email: { displayName: "Mia Sales", emailAddress: "mia@example.com" },
+    } as GQL.AffiliateBusinessDeveloperDispatchContext).join("\n");
+
+    // The contact values never reach the prompt, even when the backend still
+    // sends them: the Agent must go through the tool so the share is recorded.
+    expect(rendered).not.toContain("+1 425 324 5071");
+    expect(rendered).not.toContain("425");
+    expect(rendered).not.toContain("mia@example.com");
+    expect(rendered).not.toContain("Holylegend");
+    expect(rendered).toContain("- WhatsApp: available (call affiliate_get_bd_contact to obtain it)");
+    expect(rendered).toContain("- Email: available (call affiliate_get_bd_contact to obtain it)");
+    expect(rendered).toContain("Never reuse a contact from an earlier turn.");
+    expect(rendered).toContain(
+      "Do not invent a WhatsApp number, email address, or unavailable channel.",
+    );
   });
 
   it("omits the Creator-facing name line when the BD has no Creator-facing name", () => {
@@ -148,14 +171,14 @@ describe("affiliate session identity", () => {
       const rendered = buildBusinessDeveloperPromptSection({
         ...context,
         businessPrompt: "Keep replies short.",
-        email: { displayName: "Mia Sales", emailAddress: "mia@example.com" },
-      }).join("\n");
+        email: { displayName: "Mia Sales" },
+      } as GQL.AffiliateBusinessDeveloperDispatchContext).join("\n");
 
       expect(rendered).not.toContain("Creator-facing name");
       expect(rendered).not.toContain("undefined");
       expect(rendered).not.toContain("null");
       expect(rendered).toContain("## Assigned Business Developer");
-      expect(rendered).toContain("Email: Mia Sales — mia@example.com");
+      expect(rendered).toContain("Email: available (call affiliate_get_bd_contact to obtain it)");
       expect(rendered).toContain("Keep replies short.");
     }
   });
@@ -783,14 +806,9 @@ function withCheckpointContext(
             : {
                 creatorDisplayName: "Maria Chen",
                 businessPrompt: "Keep creator outreach concise and warm.",
-                whatsApp: {
-                  displayName: "Maria WhatsApp",
-                  phoneNumber: "+1 555 0100",
-                },
-                email: {
-                  displayName: "Maria",
-                  emailAddress: "maria@example.com",
-                },
+                // Availability only — the backend stopped sending the values.
+                whatsApp: { displayName: "Maria WhatsApp" },
+                email: { displayName: "Maria" },
               },
           baseCheckpointId: null,
           baseEventCursor: 0,
@@ -1285,8 +1303,12 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Creator-facing name: Maria Chen");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Maria WhatsApp — +1 555 0100");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Maria — maria@example.com");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "- WhatsApp: available (call affiliate_get_bd_contact to obtain it)",
+    );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "- Email: available (call affiliate_get_bd_contact to obtain it)",
+    );
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "### Affiliate Test Shop (Shop ID: shop-001)",
     );

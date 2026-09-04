@@ -57,13 +57,13 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
       businessDeveloperDispatchContext {
         creatorDisplayName
         businessPrompt
+        # Availability only. The contact values are obtained through
+        # affiliate_get_bd_contact, which records the share.
         whatsApp {
           displayName
-          phoneNumber
         }
         email {
           displayName
-          emailAddress
         }
       }
     }
@@ -594,4 +594,86 @@ export interface ResolveAffiliateWorkItemMutationResult {
   resolveAffiliateWorkItem: {
     success: boolean;
   };
+}
+
+/**
+ * Unknown senders (未知发信人) awaiting identification (识别) for this seller.
+ *
+ * Reading this also retires rows that have spent every attempt, so it is a
+ * poll with a side effect the backend owns — never call it speculatively.
+ */
+export const AFFILIATE_UNKNOWN_SENDER_IDENTIFICATION_WORK_QUERY = `
+  query AffiliateUnknownSenderIdentificationWork($input: ReadAffiliateUnknownSenderIdentificationWorkInput) {
+    affiliateUnknownSenderIdentificationWork(input: $input) {
+      id
+      # Backend-minted. Desktop never builds this key, so the two sides cannot
+      # drift into two sessions for one conversation.
+      sessionKey
+      channel
+      providerAddress
+      providerAddressAlt
+      providerAlias
+      accountBindingId
+      accountLabel
+      businessDeveloperId
+      businessDeveloperName
+      businessDeveloperDeviceId
+      lastMessagePreview
+      lastProviderMessageId
+      messageCount
+      firstSeenAt
+      lastSeenAt
+      identificationAttempts
+      remainingIdentificationAttempts
+      lastIdentificationAttemptAt
+      nextAttemptEligibleAt
+      dispatchable
+      notDispatchableReason
+      candidates {
+        creatorRelationshipId
+        creatorId
+        creatorNickname
+        creatorUsername
+        firstSharedAt
+        lastSharedAt
+        evidenceAnchorAt
+        stale
+        sharedAfterFirstMessage
+        evidenceAgeAtFirstMessageMs
+      }
+    }
+  }
+`;
+
+/**
+ * The backend owns these shapes (ADR-027); this file only narrows them.
+ *
+ * The one narrowing: codegen maps the `DateTimeISO` scalar to `any`, and every
+ * timestamp here reaches Desktop as an ISO string over JSON and is rendered as
+ * one into the identification prompt. Narrowing them to `string` keeps that
+ * honest without redefining a single backend field — every other field, and any
+ * field the backend adds later, flows straight through from `GQL.*`.
+ */
+type IsoDates<T, K extends keyof T> = Omit<T, K> & { [P in K]: string };
+
+export type AffiliateUnknownSenderCandidatePayload = IsoDates<
+  GQL.AffiliateUnknownSenderCandidateView,
+  "firstSharedAt" | "lastSharedAt" | "evidenceAnchorAt"
+>;
+
+export type AffiliateUnknownSenderNotDispatchableReason =
+  GQL.AffiliateUnknownSenderNotDispatchableReason;
+
+export type AffiliateUnknownSenderIdentificationWorkPayload = IsoDates<
+  GQL.AffiliateUnknownSenderIdentificationWorkView,
+  "firstSeenAt" | "lastSeenAt"
+> & {
+  candidates: AffiliateUnknownSenderCandidatePayload[];
+  lastIdentificationAttemptAt?: string | null;
+  nextAttemptEligibleAt?: string | null;
+};
+
+
+export interface AffiliateUnknownSenderIdentificationWorkQueryResult {
+  affiliateUnknownSenderIdentificationWork: AffiliateUnknownSenderIdentificationWorkPayload[];
 }
