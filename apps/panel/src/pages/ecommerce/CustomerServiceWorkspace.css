@@ -108,6 +108,18 @@
   min-width: 0;
 }
 
+/*
+ * The head row may carry three badges at once (escalation, bad review,
+ * status). At the list's 240px minimum width those badges alone are wider
+ * than the row, so the head wraps: the badge group drops beneath the name
+ * rather than shrinking the name to nothing, and the group wraps internally
+ * when even a full line is too narrow. The name only truncates when it is
+ * wider than the whole row by itself.
+ */
+.cs-conversation-row-head {
+  flex-wrap: wrap;
+}
+
 .cs-conversation-row-head strong {
   min-width: 0;
   overflow: hidden;
@@ -120,13 +132,17 @@
 
 .cs-conversation-row-head .badge {
   flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .cs-conversation-badges {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 5px;
+  margin-left: auto;
 }
 
 .cs-open-escalation-badge {
