@@ -28,6 +28,11 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import {
+  BadReviewBadge,
+  CustomerServiceConversationRow,
+  EscalationStateBadge,
+} from "./components/CustomerServiceConversationRow.js";
+import {
   TkPageFrame,
   TkPageHeader,
   TkComposer,
@@ -825,59 +830,25 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                     {t("ecommerce.customerServiceWorkspace.conversationEmpty")}
                   </div>
                 ) : (
-                  conversationItems.map((item) => {
-                    const rowShop = shopLabel(item.shopId);
-                    return (
-                      <button
-                        className={
-                          selectedConversation?.conversationId === item.conversationId &&
-                          selectedConversation?.shopId === item.shopId
-                            ? "cs-conversation-row active"
-                            : "cs-conversation-row"
-                        }
-                        key={`${item.shopId}:${item.conversationId}`}
-                        type="button"
-                        onClick={() =>
-                          workspace.selectConversation(item.shopId, item.conversationId)
-                        }
-                      >
-                        <span className="cs-conversation-meta">
-                          <TkPrivate as="span" sensitive={rowShop.sensitive}>
-                            {rowShop.text}
-                          </TkPrivate>
-                          <span>
-                            {item.latestMessageTime
-                              ? formatCompactDateTime(item.latestMessageTime)
-                              : "-"}
-                          </span>
-                        </span>
-                        <span className="cs-conversation-row-head">
-                          <strong>{buyerLabel(item)}</strong>
-                          <span className="cs-conversation-badges">
-                            {item.openEscalationCount > 0 && (
-                              <EscalationStateBadge conversation={item} />
-                            )}
-                            <BadReviewBadge
-                              conversation={item}
-                              onClick={() => setReviewModalConversation(item)}
-                            />
-                            <span
-                              className={
-                                item.status === GQL.CustomerServiceConversationStatus.Pending
-                                  ? "badge badge-warning"
-                                  : "badge badge-info"
-                              }
-                            >
-                              {conversationStatusLabel(item.status, t)}
-                            </span>
-                          </span>
-                        </span>
-                        <span className="cs-conversation-preview">
-                          {conversationPreview(item, t)}
-                        </span>
-                      </button>
-                    );
-                  })
+                  conversationItems.map((item) => (
+                    <CustomerServiceConversationRow
+                      key={`${item.shopId}:${item.conversationId}`}
+                      item={item}
+                      active={
+                        selectedConversation?.conversationId === item.conversationId &&
+                        selectedConversation?.shopId === item.shopId
+                      }
+                      buyerName={buyerLabel(item)}
+                      shopLabel={shopLabel(item.shopId)}
+                      timeLabel={
+                        item.latestMessageTime ? formatCompactDateTime(item.latestMessageTime) : "-"
+                      }
+                      onSelect={() =>
+                        workspace.selectConversation(item.shopId, item.conversationId)
+                      }
+                      onOpenBadReviews={() => setReviewModalConversation(item)}
+                    />
+                  ))
                 )}
               </div>
               <div className="cs-escalation-pagination">
@@ -2420,15 +2391,6 @@ function escalationBuyerLabel(escalation: Escalation): string {
   return escalation.buyerNickname?.trim() || escalation.buyerUserId;
 }
 
-function conversationStatusLabel(
-  status: GQL.CustomerServiceConversationStatus,
-  t: (key: string) => string,
-): string {
-  if (status === GQL.CustomerServiceConversationStatus.Resolved)
-    return t("ecommerce.customerServiceWorkspace.conversationStatusReplied");
-  return t("ecommerce.customerServiceWorkspace.conversationStatusPending");
-}
-
 function badReviewFollowUpLabel(
   status: GQL.ProductReviewFollowUpStatus,
   t: (key: string) => string,
@@ -2456,85 +2418,6 @@ function badReviewFollowUpClass(status: GQL.ProductReviewFollowUpStatus): string
   )
     return "muted";
   return "pending";
-}
-
-function EscalationStateBadge({
-  conversation,
-  onClick,
-  variant = "list",
-}: {
-  conversation: Conversation;
-  onClick?: () => void;
-  variant?: "list" | "detail";
-}) {
-  const { t } = useTranslation();
-  if (!(conversation.openEscalationCount > 0)) return null;
-  const label = t("ecommerce.customerServiceWorkspace.escalationBadge");
-  if (!onClick) {
-    return <span className="badge badge-warning cs-open-escalation-badge">{label}</span>;
-  }
-  const className =
-    variant === "detail"
-      ? "badge badge-warning cs-open-escalation-badge cs-open-escalation-button cs-open-escalation-button-detail"
-      : "badge badge-warning cs-open-escalation-badge cs-open-escalation-button";
-  return (
-    <button
-      className={className}
-      type="button"
-      aria-label={t("ecommerce.customerServiceWorkspace.openEscalationDetails")}
-      title={t("ecommerce.customerServiceWorkspace.openEscalationDetails")}
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
-    >
-      {label}
-      {variant === "detail" && (
-        <span className="cs-open-escalation-action-label">
-          {t("ecommerce.customerServiceWorkspace.viewEscalationDetails")}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function BadReviewBadge({
-  conversation,
-  onClick,
-  variant = "list",
-}: {
-  conversation: Conversation;
-  onClick: () => void;
-  variant?: "list" | "detail";
-}) {
-  const { t } = useTranslation();
-  const count = conversation.recentBadReviews?.length ?? 0;
-  if (count <= 0) return null;
-  const className =
-    variant === "detail"
-      ? "badge cs-bad-review-badge cs-bad-review-button cs-bad-review-button-detail"
-      : "badge cs-bad-review-badge cs-bad-review-button";
-  return (
-    <button
-      className={className}
-      type="button"
-      aria-label={t("ecommerce.customerServiceWorkspace.openBadReviewDetails")}
-      title={t("ecommerce.customerServiceWorkspace.openBadReviewDetails")}
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
-    >
-      {t("ecommerce.customerServiceWorkspace.badReviewBadge")}
-      {variant === "detail" && count > 1 && <span className="cs-bad-review-count">{count}</span>}
-    </button>
-  );
-}
-
-function conversationPreview(item: Conversation, t: (key: string) => string): string {
-  if (item.latestMessageType === "ESCALATION")
-    return t("ecommerce.customerServiceWorkspace.noPreview");
-  return item.latestMessagePreview || t("ecommerce.customerServiceWorkspace.noPreview");
 }
 
 function normalizeMessageType(message: Pick<ConversationMessage, "type">): string {
