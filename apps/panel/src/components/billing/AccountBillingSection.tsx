@@ -6,7 +6,6 @@ import type {
   AccountLlmBillingStatus,
   BillingEntitlementStatus,
   BillingPlanDefinition,
-  Payment,
   Shop,
 } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -1088,10 +1087,20 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
   );
 });
 
-function PaymentRecords({ payments }: { payments: readonly Payment[] }) {
+/**
+ * Reads `payments` from the store itself rather than taking the array as a
+ * prop. Payment history arrives incrementally - Desktop ingests the
+ * `readPayments` response and the Panel applies the resulting `entity-patch`
+ * frames - and the items are what change, never the array reference the parent
+ * would hand down. A plain child dereferencing a passed-in array is outside any
+ * observer's tracking, so on the first visit to the billing page it kept
+ * rendering the empty state while the store already held the rows.
+ */
+const PaymentRecords = observer(function PaymentRecords() {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
 
-  const displayPayments = payments
+  const displayPayments = entityStore.payments
     .filter(
       (payment) =>
         payment.status === GQL.PaymentStatus.Succeeded ||
@@ -1143,14 +1152,13 @@ function PaymentRecords({ payments }: { payments: readonly Payment[] }) {
       </table>
     </TkTableFrame>
   );
-}
+});
 
 export const AccountBillingSection = observer(function AccountBillingSection() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const billingOverview = entityStore.billingOverview;
   const planDefinitions = entityStore.billingPlanDefinitions;
-  const payments = entityStore.payments;
   const accountLlm = billingOverview?.accountLlm ?? null;
   const accountPlan = findPlanDefinition(
     planDefinitions,
@@ -1205,7 +1213,7 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
 
         <div className="billing-subsection" data-tutorial-id="billing-payments">
           <h4>{t("billing.paymentRecords")}</h4>
-          <PaymentRecords payments={payments} />
+          <PaymentRecords />
         </div>
       </TkPanelBody>
     </TkPanel>
