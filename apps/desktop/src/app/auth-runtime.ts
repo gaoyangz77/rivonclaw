@@ -167,7 +167,9 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
 
   backendSubscription.subscribeToAffiliateWorkItemChanges((workItem) => {
     broadcastEvent("affiliate-work-item-changed", { workItem });
-    void handleAffiliateWorkItemChanged(deviceId, workItem);
+    void handleAffiliateWorkItemChanged(deviceId, workItem).catch((error) => {
+      log.error(`Failed to handle Affiliate dispatch for ${workItem.creatorRelationshipId}`, error);
+    });
   });
 
   backendSubscription.subscribeToAffiliateActionProposalChanges((proposal) => {

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   cloudGraphql: vi.fn(),
   registerCustomerServiceCloudEvents: vi.fn(),
   handleAffiliateWorkItemChanged: vi.fn(),
+  logError: vi.fn(),
   uploadCurrentLog: vi.fn(),
   rootStore: {
     upsertShopsFromGraphQL: vi.fn(),
@@ -17,11 +18,12 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@rivonclaw/logger", () => ({
+vi.mock("@rivonclaw/logger", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@rivonclaw/logger")>(),
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn(),
+    error: mocks.logError,
   }),
   createQuietLogger: () => ({
     info: vi.fn(),
@@ -42,6 +44,11 @@ vi.mock("../affiliate/affiliate-campaign-search-plan-actuator.js", () => ({
 vi.mock("../affiliate/affiliate-escalation-notification-actuator.js", () => ({
   catchUpAffiliateEscalationNotifications: vi.fn().mockResolvedValue(undefined),
   handleAffiliateEscalationNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../affiliate/affiliate-unknown-sender-actuator.js", () => ({
+  startAffiliateUnknownSenderIdentificationSweep: vi.fn(),
+  wakeAffiliateUnknownSenderIdentification: vi.fn(),
 }));
 
 vi.mock("../auth/session.js", () => ({
@@ -90,6 +97,7 @@ vi.mock("../cloud/backend-subscription-client.js", () => ({
       subscribeToAffiliateWorkItemChanges: vi.fn((callback) => {
         mocks.callbacks.affiliateWorkItemChanged = callback;
       }),
+      subscribeToAffiliateUnknownSenderIdentificationChanges: vi.fn(),
       subscribeToAffiliateActionProposalChanges: vi.fn((callback) => {
         mocks.callbacks.affiliateActionProposalChanged = callback;
       }),
@@ -131,6 +139,7 @@ describe("setupAuth backend subscription forwarding", () => {
     mocks.authSessionLoadFromKeychain.mockResolvedValue(undefined);
     mocks.cloudGraphql.mockResolvedValue({});
     mocks.uploadCurrentLog.mockResolvedValue({});
+    mocks.handleAffiliateWorkItemChanged.mockResolvedValue(undefined);
     mocks.backendSubscriptionInstances.length = 0;
     for (const key of Object.keys(mocks.callbacks)) {
       delete mocks.callbacks[key];
@@ -168,5 +177,25 @@ describe("setupAuth backend subscription forwarding", () => {
     mocks.callbacks.affiliateOutreachAccountConnected(payload);
 
     expect(broadcastEvent).toHaveBeenCalledWith("affiliate-outreach-account-connected", payload);
+  });
+
+  it("logs a malformed Affiliate dispatch without losing subsequent subscription notifications", async () => {
+    const { setupAuth } = await import("./auth-runtime.js");
+    await setupAuth({
+      secretStore: {
+        get: vi.fn().mockResolvedValue(null), set: vi.fn(), delete: vi.fn(),
+        listKeys: vi.fn().mockResolvedValue([]),
+      },
+      locale: "en-US", getUiLocale: () => "en-US", deviceId: "device-1",
+      appVersion: "1.0.0-test", proxyFetch: vi.fn(), broadcastEvent: vi.fn(),
+    });
+    const error = new Error("Affiliate dispatch missing agendaItemsSnapshotId");
+    mocks.handleAffiliateWorkItemChanged.mockRejectedValueOnce(error);
+    mocks.callbacks.affiliateWorkItemChanged({ creatorRelationshipId: "relationship-1" });
+    await vi.waitFor(() => expect(mocks.logError).toHaveBeenCalledWith(
+      "Failed to handle Affiliate dispatch for relationship-1", error,
+    ));
+    mocks.callbacks.affiliateWorkItemChanged({ creatorRelationshipId: "relationship-2" });
+    expect(mocks.handleAffiliateWorkItemChanged).toHaveBeenCalledTimes(2);
   });
 });

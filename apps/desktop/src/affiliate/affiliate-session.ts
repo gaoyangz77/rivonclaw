@@ -340,7 +340,7 @@ export class AffiliateSession {
     return result;
   }
 
-  onRunCompleted(runId: string, options: { errored?: boolean } = {}): void {
+  onRunCompleted(runId: string, options: { errored?: boolean } = {}): Promise<void> {
     if (this.activeRunId === runId) {
       this.activeRunId = null;
     }
@@ -355,8 +355,7 @@ export class AffiliateSession {
           `Affiliate agent run reported a gateway error after escalation persisted; ` +
             `restoring the committed session boundary: runId=${runId}`,
         );
-        void this.finalizeSuccessfulRun(runId, workItem);
-        return;
+        return this.finalizeSuccessfulRun(runId, workItem);
       }
       this.runCheckpoints.delete(runId);
       if (workItem != null) this.pendingRunCompletions.delete(runId);
@@ -365,10 +364,10 @@ export class AffiliateSession {
           `runId=${runId} subject=${workItem ? workItemSubjectLabel(workItem) : "(creator-outreach)"} ` +
           `runtimeFailed=${runtimeFailed}`,
       );
-      return;
+      return Promise.resolve();
     }
 
-    void this.finalizeSuccessfulRun(runId, workItem);
+    return this.finalizeSuccessfulRun(runId, workItem);
   }
 
   handleAgentEvent(payload: {
@@ -460,8 +459,8 @@ export class AffiliateSession {
       params.involvedShopInstructions,
       workflowSkillCatalog,
     );
-    // The work-item key is a semantic version used by AffiliateInbound to suppress
-    // duplicate delivery while a run is active. It cannot also be the transcript
+    // The work-item key is a semantic business version, not a dispatch identity
+    // (AffiliateInbound de-duplicates agenda snapshots). It cannot be the transcript
     // admission key: a deliberate replay of the same work version (for example
     // after a rejected proposal or a missing local checkpoint) must create a new
     // user turn instead of colliding with the prior transcript identity.

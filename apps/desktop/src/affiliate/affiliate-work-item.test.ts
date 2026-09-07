@@ -569,6 +569,7 @@ function createSampleReviewWorkItem(
     recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
     versionAt: "2026-05-11T00:01:00.000Z",
     versionKey: "relationship-001:version-1",
+    agendaItemsSnapshotId: "snapshot-001",
     affiliateCollaboration: collaboration,
     creatorRelationship: {
       id: "relationship-001",
@@ -1009,7 +1010,7 @@ describe("affiliate work item dispatch", () => {
     });
   });
 
-  it("does not redispatch the same work item version after a successful agent run", async () => {
+  it("does not redispatch the same snapshot after a successful agent run", async () => {
     const inbound = new AffiliateInbound("en");
     inbound.syncFromShops([
       {
@@ -1032,6 +1033,7 @@ describe("affiliate work item dispatch", () => {
     inbound.handleGatewayEvent({
       payload: { runId: "run-affiliate-queue-001", state: "final" },
     } as any);
+    await waitForCondition(() => (inbound as any).runIndex.size === 0);
     await inbound.handleWorkItem(workItem);
 
     expect(session.handleWorkItem).toHaveBeenCalledTimes(1);
@@ -1060,9 +1062,165 @@ describe("affiliate work item dispatch", () => {
     inbound.handleGatewayEvent({
       payload: { runId: "run-affiliate-queue-001", state: "error" },
     } as any);
+    await waitForCondition(() => (inbound as any).runIndex.size === 0);
     await inbound.handleWorkItem(workItem);
 
     expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+  });
+
+  function setupDispatchTest() {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([{
+      id: "shop-001", userId: "user-001", platform: "tiktok",
+      platformShopId: "platform-shop-001", shopName: "Affiliate Test Shop",
+    }]);
+    let runCount = 0;
+    const session = {
+      scopeKey: "affiliate-session-001",
+      handleWorkItem: vi.fn(async (_item: GQL.AffiliateWorkItem) => ({ runId: `test-run-${++runCount}` })),
+      onRunCompleted: vi.fn(async () => {}),
+    };
+    vi.spyOn(inbound as any, "getOrCreateSession").mockReturnValue(session);
+    // Real sessions are registered by getOrCreateSession; preserve that lifecycle path.
+    (inbound as any).sessions.set(session.scopeKey, session);
+    return { inbound, session };
+  }
+
+  it("admits a new dispatch of unchanged facts after proposal expiry without restarting", async () => {
+    const { inbound, session } = setupDispatchTest();
+    const original = createSampleReviewWorkItem();
+    await inbound.handleWorkItem(original);
+    inbound.handleGatewayEvent({ payload: { runId: "test-run-1", state: "final" } } as any);
+    await waitForCondition(() => (inbound as any).runIndex.size === 0);
+    await inbound.handleWorkItem({ ...original, agentDispatchRecommended: false });
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(1);
+
+    // Backend expires the pending gate and republishes the same boundary with a new snapshot.
+    const replay = { ...original, agendaItemsSnapshotId: "snapshot-replay" };
+    await inbound.handleWorkItem(replay);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+    expect(session.handleWorkItem).toHaveBeenLastCalledWith(replay);
+    await inbound.handleWorkItem(original);
+    await inbound.handleWorkItem(replay);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("reserves a Relationship before preparation and holds it through checkpoint finalization", async () => {
+    const { inbound, session } = setupDispatchTest();
+    let finishPreparation!: (value: { runId: string }) => void;
+    let finishCheckpoint!: () => void;
+    session.handleWorkItem.mockImplementationOnce(() => new Promise((resolve) => { finishPreparation = resolve; }));
+    session.onRunCompleted.mockImplementationOnce(() => new Promise<void>((resolve) => { finishCheckpoint = resolve; }));
+    const first = createSampleReviewWorkItem();
+    const second = { ...first, agendaItemsSnapshotId: "snapshot-second" };
+    const refreshed = { ...second, agendaItemsSnapshotId: "snapshot-refreshed", versionKey: "new-facts" };
+    const graphqlFetch = vi.fn(async () => ({ affiliateWorkItems: [refreshed] }));
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+
+    const preparing = inbound.handleWorkItem(first);
+    await inbound.handleWorkItem(first);
+    await inbound.handleWorkItem(second);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(1);
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    finishPreparation({ runId: "preparing-run" });
+    await preparing;
+    inbound.handleGatewayEvent({ payload: { runId: "preparing-run", state: "final" } } as any);
+    inbound.handleGatewayEvent({ payload: { runId: "preparing-run", state: "final" } } as any);
+    await inbound.handleWorkItem(second);
+    expect(session.onRunCompleted).toHaveBeenCalledTimes(1);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(1);
+    expect(graphqlFetch).not.toHaveBeenCalled();
+
+    finishCheckpoint();
+    await waitForCondition(() => session.handleWorkItem.mock.calls.length === 2);
+    expect(session.handleWorkItem).toHaveBeenLastCalledWith(refreshed);
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
+    // Refresh consumes the original queued command, including its old business version.
+    await inbound.handleWorkItem(second);
+    expect((inbound as any).pendingWorkItems.size).toBe(0);
+  });
+
+  it("revalidates queued replay and drops it when a pending proposal still gates the relationship", async () => {
+    const { inbound, session } = setupDispatchTest();
+    const first = createSampleReviewWorkItem();
+    const replay = { ...first, agendaItemsSnapshotId: "snapshot-queued" };
+    const graphqlFetch = vi.fn(async () => ({ affiliateWorkItems: [] }));
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    await inbound.handleWorkItem(first);
+    await inbound.handleWorkItem(replay);
+    inbound.handleGatewayEvent({ payload: { runId: "test-run-1", state: "final" } } as any);
+    await waitForCondition(() => graphqlFetch.mock.calls.length === 1);
+    await waitForCondition(() => !(inbound as any).activeRelationships.size);
+    await inbound.handleWorkItem(replay);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(1);
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["final", "error"])("handles an early %s frame before the agent RPC returns its run id", async (state) => {
+    const { inbound, session } = setupDispatchTest();
+    let finishPreparation!: (value: { runId: string }) => void;
+    session.handleWorkItem.mockImplementationOnce(() => new Promise((resolve) => { finishPreparation = resolve; }));
+    const work = createSampleReviewWorkItem();
+    const preparing = inbound.handleWorkItem(work);
+    inbound.handleGatewayEvent({ payload: { runId: "early-run", state } } as any);
+    inbound.handleGatewayEvent({ payload: { runId: "early-run", state } } as any);
+    finishPreparation({ runId: "early-run" });
+    await preparing;
+    await waitForCondition(() => (inbound as any).runIndex.size === 0);
+    expect(session.onRunCompleted).toHaveBeenCalledExactlyOnceWith("early-run", { errored: state === "error" });
+    expect((inbound as any).activeRelationships.size).toBe(0);
+    expect((inbound as any).earlyTerminalStates.size).toBe(0);
+    await inbound.handleWorkItem({ ...work, agendaItemsSnapshotId: "after-early-final" });
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases a preparation failure for retry instead of leaving a permanent reservation", async () => {
+    const { inbound, session } = setupDispatchTest();
+    session.handleWorkItem.mockRejectedValueOnce(new Error("preparation failed"));
+    const work = createSampleReviewWorkItem();
+    await expect(inbound.handleWorkItem(work)).resolves.toBe(false);
+    await expect(inbound.handleWorkItem(work)).resolves.toBe(true);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not let a busy Relationship block another Relationship's queued work", async () => {
+    const { inbound, session } = setupDispatchTest();
+    const first = createSampleReviewWorkItem();
+    await inbound.handleWorkItem(first);
+    await inbound.handleWorkItem({ ...first, agendaItemsSnapshotId: "same-relationship-queued" });
+    const other = { ...first, creatorRelationshipId: "relationship-002", agendaItemsSnapshotId: "other-queued" };
+    (inbound as any).enqueueWorkItem(other);
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [{ ...other, agendaItemsSnapshotId: "other-refreshed" }] })),
+    });
+    (inbound as any).drainWorkItemQueue();
+    await waitForCondition(() => session.handleWorkItem.mock.calls.length === 2);
+    expect(session.handleWorkItem).toHaveBeenLastCalledWith(expect.objectContaining({ creatorRelationshipId: "relationship-002" }));
+    expect((inbound as any).pendingWorkItems.has("relationship-001")).toBe(true);
+  });
+
+  it("keeps a refreshed dispatch retryable after failure without re-admitting the old queued snapshot", async () => {
+    const { inbound, session } = setupDispatchTest();
+    const original = createSampleReviewWorkItem();
+    const queued = { ...original, agendaItemsSnapshotId: "queued-before-error" };
+    const refreshed = { ...original, agendaItemsSnapshotId: "refresh-before-error" };
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [refreshed] })) });
+    await inbound.handleWorkItem(original);
+    await inbound.handleWorkItem(queued);
+    session.handleWorkItem.mockRejectedValueOnce(new Error("gateway unavailable"));
+    inbound.handleGatewayEvent({ payload: { runId: "test-run-1", state: "final" } } as any);
+    await waitForCondition(() => session.handleWorkItem.mock.calls.length === 2 && !(inbound as any).activeRelationships.size);
+    await inbound.handleWorkItem(queued);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+    await inbound.handleWorkItem(refreshed);
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects actionable commands without a snapshot instead of falling back to business version", async () => {
+    const { inbound, session } = setupDispatchTest();
+    await expect(inbound.handleWorkItem(createSampleReviewWorkItem({ agendaItemsSnapshotId: null })))
+      .rejects.toThrow("missing agendaItemsSnapshotId");
+    expect(session.handleWorkItem).not.toHaveBeenCalled();
   });
 
   it("drains the next queued work item after active affiliate capacity is released", async () => {
@@ -1099,7 +1257,7 @@ describe("affiliate work item dispatch", () => {
         limit: 10,
       },
     });
-    expect(dispatchSpy).toHaveBeenCalledWith(workItem, workItem.versionKey, workItem.versionAt);
+    expect(dispatchSpy).toHaveBeenCalledWith(workItem);
   });
 
   it("drops queued work that became non-actionable before capacity was released", async () => {
@@ -1146,7 +1304,7 @@ describe("affiliate work item dispatch", () => {
       },
     ]);
     const workItem = createSampleReviewWorkItem({ id: "relationship-refresh-failure" });
-    const graphqlFetch = vi.fn(async () => {
+    const graphqlFetch = vi.fn(async (): Promise<{ affiliateWorkItems: GQL.AffiliateWorkItem[] }> => {
       throw new Error("temporary backend failure");
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
@@ -1161,6 +1319,13 @@ describe("affiliate work item dispatch", () => {
     expect(graphqlFetch).toHaveBeenCalledTimes(1);
     expect((inbound as any).pendingWorkItems.size).toBe(1);
     expect(dispatchSpy).not.toHaveBeenCalled();
+
+    graphqlFetch.mockImplementation(async () => ({ affiliateWorkItems: [
+      { ...workItem, agendaItemsSnapshotId: "snapshot-after-refresh-recovery" },
+    ] }));
+    await inbound.handleWorkItem(workItem);
+    await waitForCondition(() => dispatchSpy.mock.calls.length === 1);
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
   });
 
   it("fetches only checkpoint metadata and keeps the frozen Agenda boundary", async () => {
