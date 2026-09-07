@@ -32,5 +32,6 @@ tmp/
 !apps/panel/src/tutorial/
 !apps/panel/src/tutorial/**
 extensions-merchant/
+mock-cloud/
 apps/desktop/.vendor-bundle-cache/
 apps/desktop/.prebundled-extensions/
