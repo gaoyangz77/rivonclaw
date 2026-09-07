@@ -33,12 +33,18 @@
   background: var(--color-bg-page);
   /* The door does not slide away, it folds: pinned at its top edge and
      squashed toward it, like a pleated blind gathering, until at full openness
-     only a thin stack of pleats is left along the top of the window (1.4% of
-     the height - about 14px on a laptop screen). The office is revealed from
-     the bottom up as the fabric shortens. Squashing the live UI is deliberate:
-     text and panels crumpling into the stack is what reads as folding. */
+     there is nothing of it left. The office is revealed from the bottom up as
+     the fabric shortens. Squashing the live UI is deliberate: text and panels
+     crumpling into the top edge is what reads as folding.
+
+     It closes all the way to zero rather than parking on a sliver of itself.
+     A real blind's housing is an object; the app squashed to 1.4% of its
+     height is not - it renders as a 14px smear of sidebar and page chrome
+     stretched over the office, which is the first thing the eye lands on. The
+     pull-down affordance loses nothing: the grip is its own fixed element
+     (`.office-shutter-grip`), not part of the door. */
   transform-origin: top center;
-  transform: scaleY(calc(1 - var(--office-openness, 0) * 0.986));
+  transform: scaleY(calc(1 - var(--office-openness, 0)));
   transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
   will-change: transform;
   box-shadow: var(--shadow-lg);
@@ -47,8 +53,8 @@
 
 /* The pleats: a horizontal crease pattern laid over the door, invisible while
    it hangs flat and darkening as it gathers. Drawn INSIDE the squashed box, so
-   the creases compress with the fabric - at full openness they pack into the
-   dense stripe that is the folded stack. */
+   the creases compress with the fabric - and go with it, since a door folded
+   to nothing has nothing left to crease. */
 .layout-door--rolling::after {
   content: "";
   position: absolute;

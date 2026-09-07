@@ -99,9 +99,10 @@ export function OfficeShutter({
           <div className="office-stage">
             <OfficeOverlay onExit={shutter.close} />
           </div>
-          {/* The folded door gathers into a thin stack along the top of the
-              window; this pill sits on that stack (above the door, so the stack
-              cannot cover it) and pulling it down unfolds the door again. */}
+          {/* The door folds up into the top edge and leaves nothing behind,
+              so this pill is what marks where it went; pulling it down unfolds
+              the door again. Deliberately a sibling of the door rather than a
+              child: a child would be scaled away with it. */}
           <div
             className="office-shutter-grip"
             role="button"

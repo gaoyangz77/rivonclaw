@@ -65,8 +65,10 @@
   background: var(--color-bg);
 }
 
-/* The pill on the folded stack along the top of the window; grabbed to pull
-   the door back down. Above the door (10011), which the stack is part of. */
+/* The pill along the top of the window, where the door folded away to; grabbed
+   to pull it back down. Its own fixed element rather than part of the door, so
+   the door's collapse cannot take it along - and above the door (10011) for the
+   frames mid-roll where the two still overlap. */
 .office-shutter-grip {
   position: fixed;
   left: 50%;
@@ -117,9 +119,10 @@
 
 .office-overlay__exit {
   position: absolute;
-  /* Below the folded door's stack along the top edge (1.4% of the window's
-     height - up to ~30px on a 4K display), which would otherwise cover it. */
-  top: 40px;
+  /* Matching insets from the corner. The extra top clearance this used to carry
+     was for the band the folded door left behind; the door now closes to
+     nothing, so there is nothing up there to duck under. */
+  top: 20px;
   right: 20px;
   padding: 8px 16px;
   border: 1px solid var(--color-border-strong);
