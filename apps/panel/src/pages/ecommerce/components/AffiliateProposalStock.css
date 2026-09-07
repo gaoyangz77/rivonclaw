@@ -1,0 +1,35 @@
+.affiliate-proposal-stock-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.affiliate-proposal-stock-table th,
+.affiliate-proposal-stock-table td {
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-2);
+  vertical-align: top;
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
+}
+
+.affiliate-proposal-stock-table .affiliate-proposal-stock-quantity {
+  width: 64px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.affiliate-proposal-stock-label {
+  font-family: var(--tk-v1-font-sans);
+  overflow-wrap: anywhere;
+  white-space: normal;
+  color: var(--tk-v1-fg-secondary);
+}
+
+.affiliate-proposal-stock-value {
+  font-family: var(--tk-v1-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.affiliate-proposal-stock-empty {
+  color: var(--tk-v1-fg-muted);
+}

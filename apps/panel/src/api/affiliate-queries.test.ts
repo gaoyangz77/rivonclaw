@@ -125,6 +125,7 @@ describe("affiliate workspace GraphQL contracts", () => {
       expect(query, name).toMatch(/productSummaries\s*\{[^}]*totalAvailableQuantity/u);
       expect(query, name).toMatch(/productSummary\s*\{[^}]*totalAvailableQuantity/u);
       // SKU-level stock sits inside the product summary's skus block.
+      expect(query, name).toMatch(/skus\s*\{[^}]*skuId/u);
       expect(query, name).toMatch(/skus\s*\{[^}]*totalAvailableQuantity/u);
     }
   });

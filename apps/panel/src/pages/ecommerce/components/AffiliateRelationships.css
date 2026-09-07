@@ -73,7 +73,9 @@
   width: min(1240px, calc(100vw - 32px));
   max-width: 1240px;
   height: min(820px, calc(100vh - 40px));
+  height: min(820px, calc(100dvh - 40px));
   max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
   flex-direction: column;
   overflow: hidden;
   padding: 0;
@@ -99,46 +101,90 @@
 
 .affiliate-agent-work-detail-body {
   display: grid;
-  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   gap: 18px;
+  /* Parallel review panes intentionally own separate scroll positions. */
   overflow: hidden;
   padding: 18px 18px 20px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg)) 0%,
-    var(--color-bg) 170px
-  );
+  background: var(--tk-v1-bg-subtle);
 }
 
 .affiliate-agent-work-detail-main {
   min-width: 0;
-  overflow-y: auto;
-  padding: 2px 2px 18px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  padding: 0;
 }
 
-.affiliate-agent-work-detail-main > .affiliate-work-item-card {
-  box-shadow: 0 12px 34px color-mix(in srgb, var(--color-text) 7%, transparent);
+.affiliate-agent-work-detail-main:focus-visible,
+.affiliate-agent-review-context:focus-visible {
+  outline: 2px solid var(--tk-v1-accent);
+  outline-offset: -2px;
+}
+
+.affiliate-agent-work-detail-main > .affiliate-proposal-review-layout {
+  height: 100%;
+  min-height: 0;
+  box-shadow: none;
+}
+
+.affiliate-proposal-review-layout::before {
+  display: none;
+}
+
+.affiliate-proposal-review-layout .affiliate-proposal-row-shell {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.affiliate-proposal-review-layout .affiliate-proposal-row-main {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.affiliate-proposal-review-layout .affiliate-proposal-row-main:focus-visible {
+  outline: 2px solid var(--tk-v1-accent);
+  outline-offset: -2px;
+}
+
+.affiliate-proposal-review-layout .affiliate-proposal-row-decision {
+  padding: var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-default);
+  background: var(--tk-v1-bg-surface);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.affiliate-proposal-review-layout .affiliate-proposal-row-decision:has(> :only-child) {
+  /* Finished work has only the hidden metadata, and needs no empty action bar. */
+  display: none;
 }
 
 .affiliate-agent-review-context {
   min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--color-border-light);
   border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg);
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 5%, transparent);
+  box-shadow: none;
 }
 
 .affiliate-agent-review-context-head {
   padding: 15px 15px 14px;
   border-bottom: 1px solid var(--color-border-light);
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--color-primary) 7%, var(--color-bg)) 0%,
-    color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg)) 100%
-  );
+  background: var(--tk-v1-bg-surface);
 }
 
 .affiliate-agent-review-context-head > span {
@@ -216,10 +262,7 @@
   display: grid;
   min-width: 0;
   gap: 2px;
-  padding: 6px 7px;
-  border: 1px solid var(--color-border-light);
-  border-radius: 6px;
-  background: var(--color-bg-alt);
+  padding: var(--tk-v1-space-1) 0;
 }
 
 .affiliate-agent-review-trigger-facts span,
@@ -230,14 +273,14 @@
 }
 
 .affiliate-agent-review-trigger-facts span {
-  color: var(--color-text-muted);
-  font-size: 8px;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
   font-weight: 680;
 }
 
 .affiliate-agent-review-trigger-facts strong {
-  color: var(--color-text-secondary);
-  font-size: 9px;
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-micro);
   font-weight: 760;
 }
 
@@ -405,8 +448,10 @@
 
 @media (max-width: 1040px) {
   .affiliate-agent-work-detail-body {
+    /* On narrow screens the columns stack, so a single scroll avoids tiny panes. */
     display: block;
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .affiliate-agent-work-detail-main,
@@ -416,6 +461,15 @@
 
   .affiliate-agent-work-detail-main {
     margin-top: 14px;
+  }
+
+  .affiliate-agent-work-detail-main > .affiliate-proposal-review-layout,
+  .affiliate-proposal-review-layout .affiliate-proposal-row-shell {
+    height: auto;
+  }
+
+  .affiliate-proposal-review-layout .affiliate-proposal-row-main {
+    overflow: visible;
   }
 }
 
@@ -527,7 +581,9 @@
     width: 100%;
     max-width: none;
     height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
     max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
   }
 
   .affiliate-agent-work-detail-body {
@@ -754,6 +810,9 @@
 }
 
 .affiliate-action-proposal-card-row {
+  /* Expanded proposals grow with all Sample decisions and reply content;
+     their enclosing workspace/modal owns vertical scrolling. */
+  height: auto;
   min-height: 0;
   gap: 0;
 }

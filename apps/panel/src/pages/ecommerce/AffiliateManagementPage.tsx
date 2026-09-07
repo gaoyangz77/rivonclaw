@@ -26,6 +26,8 @@ import {
   TkButton,
   TkChoiceSelect,
   TkField,
+  TkInfoTip,
+  TkIconButton,
   TkInteractiveTableRow,
   TkModalHeader,
   TkPanel,
@@ -97,6 +99,10 @@ import {
 } from "./affiliate-creator-tiers.js";
 import { creatorSystemTagLabel } from "./affiliate-creator-system-tags.js";
 import { AffiliateCreatorFilterGroups } from "./components/AffiliateCreatorFilterGroups.js";
+import {
+  AffiliateProposalStock,
+  type AffiliateProposalStockItem,
+} from "./components/AffiliateProposalStock.js";
 import {
   AffiliateCreatorManualTagEditor,
   type CreatorManualTagChange,
@@ -7233,8 +7239,6 @@ function agentWorkTableActions(
   return actions;
 }
 
-// `observer()` because the seller-SKU product label is substituted rather than
-// blurred, and a substituted string only updates on re-render.
 const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
   bundles,
   shopLabelForId,
@@ -7247,7 +7251,6 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
   onOpenCreator: (bundle: AgentWorkBundle) => void;
 }) {
   const { t } = useTranslation();
-  const privacyMode = usePrivacyMode();
 
   return (
     <TkTableFrame
@@ -7263,7 +7266,6 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
           <col className="affiliate-agent-work-col-creator-metrics" />
           <col className="affiliate-agent-work-col-type" />
           <col className="affiliate-agent-work-col-work" />
-          <col className="affiliate-agent-work-col-stock" />
           <col className="affiliate-agent-work-col-status" />
         </colgroup>
         <thead>
@@ -7276,14 +7278,12 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
             </th>
             <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.type")}</th>
             <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.work")}</th>
-            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.stock")}</th>
             <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.status")}</th>
           </tr>
         </thead>
         <tbody>
           {bundles.map((bundle) => {
             const proposal = bundle.proposal;
-            const sampleRows = proposalSampleReviewRows(proposal);
             const creatorName = proposal.creatorProfile
               ? creatorPrimaryName(
                   proposal.creatorProfile,
@@ -7420,33 +7420,6 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
                     ))}
                   </div>
                 </td>
-                <td className="affiliate-agent-work-table-stock">
-                  {sampleRows.length > 0 ? (
-                    <ul className="affiliate-agent-work-stock-list">
-                      {sampleRows.map((row) => {
-                        const productLabel = sampleReviewRowProductLabel(row, t, privacyMode);
-                        return (
-                          <li key={row.stepId}>
-                            {/* The tooltip repeats the product name, so it
-                                moves onto the masked node itself. */}
-                            <TkPrivate
-                              as="small"
-                              sensitive={Boolean(row.productTitle)}
-                              title={productLabel}
-                            >
-                              {productLabel}
-                            </TkPrivate>
-                            <strong>
-                              {formatStockQuantity(row.productTotalAvailableQuantity)}
-                            </strong>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <span className="affiliate-agent-work-stock-empty">—</span>
-                  )}
-                </td>
                 <td className="affiliate-agent-work-table-status">
                   <span
                     className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}
@@ -7567,7 +7540,6 @@ function AgentWorkBundleDetailModal({
     >
       <TkModalHeader
         className="affiliate-agent-work-detail-header"
-        eyebrow={t("ecommerce.affiliateWorkspace.agentWorkDetail.eyebrow")}
         title={
           <span id={titleId}>{t("ecommerce.affiliateWorkspace.agentWorkDetail.title")}</span>
         }
@@ -7633,6 +7605,7 @@ function AgentWorkBundleDetailModal({
             decidingProposal={decidingProposal}
             allowDecisionActions={isPending}
             variant="embedded"
+            reviewLayout
             showRevisionHistory={false}
             affiliateWorkspace={affiliateWorkspace}
             onOpenCreator={onOpenCreator}
@@ -7707,11 +7680,14 @@ function AgentWorkReviewContext({
     <aside
       className="affiliate-agent-review-context"
       data-tutorial-id="affiliate-attention-detail-context"
+      aria-label={t("ecommerce.affiliateWorkspace.agentWorkDetail.contextTitle")}
+      tabIndex={0}
     >
       <div className="affiliate-agent-review-context-head">
-        <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextEyebrow")}</span>
-        <h3>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextTitle")}</h3>
-        <p>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextSubtitle")}</p>
+        <h3>
+          {t("ecommerce.affiliateWorkspace.agentWorkDetail.contextTitle")}{" "}
+          <TkInfoTip label={t("ecommerce.affiliateWorkspace.agentWorkDetail.contextSubtitle")} />
+        </h3>
         <time dateTime={contextEndAt}>
           {t("ecommerce.affiliateWorkspace.agentWorkDetail.contextAsOf", {
             time: formatProposalTime(contextEndAt),
@@ -7847,6 +7823,7 @@ export function AgentWorkBundleCard({
   variant = "full",
   allowDecisionActions,
   showRevisionHistory = false,
+  reviewLayout = false,
   affiliateWorkspace,
   onOpenRelationshipWork,
   onOpenCreator,
@@ -7862,6 +7839,8 @@ export function AgentWorkBundleCard({
   variant?: AffiliateEntityCardVariant | "full";
   allowDecisionActions?: boolean;
   showRevisionHistory?: boolean;
+  /** A bounded review pane keeps identity and decisions outside the content scroll. */
+  reviewLayout?: boolean;
   affiliateWorkspace?: AffiliateWorkspaceStore;
   onOpenRelationshipWork?: (item: CreatorRelationshipWorkItem) => void;
   onOpenCreator?: (profile: GQL.AffiliateCreatorIdentity) => void;
@@ -8057,6 +8036,7 @@ export function AgentWorkBundleCard({
             "affiliate-work-item-card",
             "affiliate-work-item-needs_attention",
             "affiliate-action-proposal-card-row",
+            reviewLayout ? "affiliate-proposal-review-layout" : "",
             canOpenRelationshipWork ? "affiliate-work-item-clickable" : "",
           ]
             .filter(Boolean)
@@ -8100,7 +8080,12 @@ export function AgentWorkBundleCard({
             </div>
           </div>
 
-          <div className="affiliate-proposal-row-main">
+          <div
+            className="affiliate-proposal-row-main"
+            role={reviewLayout ? "region" : undefined}
+            aria-label={reviewLayout ? t("ecommerce.affiliateWorkspace.agentWorkDetail.title") : undefined}
+            tabIndex={reviewLayout ? 0 : undefined}
+          >
             <div
               className="affiliate-proposal-row-heading"
               data-tutorial-id="affiliate-attention-queue"
@@ -8109,10 +8094,12 @@ export function AgentWorkBundleCard({
                 <div className="affiliate-card-section-label">
                   {t("ecommerce.affiliateWorkspace.labels.aiRecommendation")}
                 </div>
-                <div className="affiliate-card-section-title">{recommendationTitle}</div>
+                {sampleReviewRows.length === 0 ? (
+                  <div className="affiliate-card-section-title">{recommendationTitle}</div>
+                ) : null}
               </div>
               <div className="affiliate-work-bundle-heading-meta">
-                {statusBadge}
+                {!reviewLayout ? statusBadge : null}
                 {hasRevisionHistory ? (
                   <button
                     className="affiliate-work-bundle-version-button"
@@ -8204,6 +8191,9 @@ export function AgentWorkBundleCard({
                 </section>
               ) : null}
             </div>
+            {reviewLayout && historyOpen ? (
+              <AgentWorkRevisionHistory currentProposalId={proposal.id} versions={revisionHistory} />
+            ) : null}
           </div>
 
           <aside
@@ -8215,13 +8205,14 @@ export function AgentWorkBundleCard({
               {proposalStepCountLabel ? <span>{proposalStepCountLabel}</span> : null}
               <strong>{formatProposalTime(proposal.createdAt)}</strong>
             </div>
+            {reviewLayout ? revisionEditor : null}
             {decisionActions}
           </aside>
         </div>
-        {historyOpen ? (
+        {!reviewLayout && historyOpen ? (
           <AgentWorkRevisionHistory currentProposalId={proposal.id} versions={revisionHistory} />
         ) : null}
-        {revisionEditor}
+        {!reviewLayout ? revisionEditor : null}
       </article>
     );
   }
@@ -8534,6 +8525,33 @@ function isPureSampleReviewProposalSource(source: {
   );
 }
 
+/** The list query already hydrates SKU inventory. Deduplicate repeated sample
+ * products within a shop; never substitute product-wide stock for a SKU. */
+export function proposalSkuStockItems(
+  rows: AffiliateSampleProposalReviewRow[],
+): AffiliateProposalStockItem[] {
+  const items = new Map<string, AffiliateProposalStockItem>();
+  for (const row of rows) {
+    const productKey = [row.shopId, row.productSummary?.productId ?? row.productId ?? row.stepId];
+    const productName = row.productTitle?.trim() || row.productSummary?.title?.trim() || null;
+    if (!row.productSummary?.skus?.length) {
+      const id = JSON.stringify([...productKey, null]);
+      items.set(id, { id, skuId: null, label: productName, quantity: null });
+      continue;
+    }
+    for (const sku of row.productSummary.skus) {
+      const id = JSON.stringify([...productKey, sku.skuId]);
+      items.set(id, {
+        id,
+        skuId: sku.skuId,
+        label: sku.sellerSku?.trim() || productName,
+        quantity: sku.totalAvailableQuantity ?? null,
+      });
+    }
+  }
+  return [...items.values()];
+}
+
 export function proposalSampleReviewRows(
   proposal: GQL.ActionProposal,
 ): AffiliateSampleProposalReviewRow[] {
@@ -8662,13 +8680,6 @@ export function sampleReviewRowProductLabel(
   );
 }
 
-/** Stock is an exact inventory count, so it is never compacted the way
- * audience metrics are. */
-function formatStockQuantity(value: number | null | undefined): string {
-  if (value == null) return "—";
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
-}
-
 function findPredictionSnapshotForSampleSource(
   snapshots: AffiliatePredictionSnapshotView[],
   source: {
@@ -8762,9 +8773,8 @@ function ProposalSampleCreatorMetrics({ proposal }: { proposal: GQL.ActionPropos
   );
 }
 
-// `observer()` for the same reason as `AgentWorkBundleTable`: it renders the
-// substituted seller-SKU product label.
-const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBundle({
+// `observer()` because this renders the privacy-substituted seller-SKU product label.
+export const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBundle({
   proposal,
   rows,
   shopLabelForId,
@@ -8841,18 +8851,9 @@ const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBun
                 },
               )
             : null;
-          const decisionLabel = approves
-            ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approve")
-            : rejectReasonLabel && row.rejectReasonExplanation
-              ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectWithReasonExplanation", {
-                  reason: rejectReasonLabel,
-                  explanation: row.rejectReasonExplanation,
-                })
-              : rejectReasonLabel
-                ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectWithReason", {
-                    reason: rejectReasonLabel,
-                  })
-                : t("ecommerce.affiliateWorkspace.sampleDecisionBundle.reject");
+          const decisionLabel = t(approves
+            ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
+            : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject");
           return (
             <article className="affiliate-sample-decision-row" key={row.stepId}>
               <div className="affiliate-sample-decision-identity">
@@ -8887,12 +8888,6 @@ const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBun
                             {productPrice}
                           </span>
                         ) : null}
-                        <span className="affiliate-sample-decision-product-stock">
-                          <small>
-                            {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.stock")}
-                          </small>
-                          <strong>{formatStockQuantity(row.productTotalAvailableQuantity)}</strong>
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -8900,8 +8895,8 @@ const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBun
                     <span>
                       {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.localApplication")}
                     </span>
-                    <SystemIdCopy value={row.sampleApplicationRecordId} />
-                    <PlatformIdCopy value={row.platformApplicationId} />
+                    <SystemIdCopy value={row.sampleApplicationRecordId} compact />
+                    <PlatformIdCopy value={row.platformApplicationId} compact />
                     <span>
                       {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.shop")}：
                       {row.shopId ? (
@@ -8913,6 +8908,7 @@ const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBun
                       )}
                     </span>
                   </div>
+                  <AffiliateProposalStock items={proposalSkuStockItems([row])} />
                 </div>
               </div>
               <div
@@ -8927,15 +8923,11 @@ const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBun
               </div>
               <div className="affiliate-sample-decision-metric">
                 <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision")}</span>
-                <strong
-                  className={
-                    approves
-                      ? "affiliate-sample-decision-approve"
-                      : "affiliate-sample-decision-reject"
-                  }
-                >
-                  {decisionLabel}
-                </strong>
+                <div>
+                  <TkBadge tone={approves ? "success" : "danger"}>
+                    {decisionLabel}
+                  </TkBadge>
+                </div>
                 <small>
                   {t(
                     row.executionMode === GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
@@ -8968,6 +8960,12 @@ const ProposalSampleDecisionBundle = observer(function ProposalSampleDecisionBun
                       )}
                 </strong>
               </div>
+              {!approves && (rejectReasonLabel || row.rejectReasonExplanation) ? (
+                <div className="affiliate-sample-decision-reason">
+                  {rejectReasonLabel ? <strong>{rejectReasonLabel}</strong> : null}
+                  {row.rejectReasonExplanation ? <p>{row.rejectReasonExplanation}</p> : null}
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -12243,15 +12241,18 @@ function CreatorPlatformHandle({ handle }: { handle: string | null }) {
 
 function SystemIdCopy({
   value,
+  compact = false,
   labelKey = "ecommerce.affiliateWorkspace.copySystemId",
 }: {
   value?: string | null;
+  compact?: boolean;
   labelKey?: string;
 }) {
   if (!value) return null;
   return (
     <CopyInlineValue
       value={value}
+      compact={compact}
       className="affiliate-id-copy-button affiliate-system-id-copy"
       copiedMessageKey="ecommerce.affiliateWorkspace.systemIdCopied"
       copyLabelKey={labelKey}
@@ -12261,15 +12262,18 @@ function SystemIdCopy({
 
 function PlatformIdCopy({
   value,
+  compact = false,
   labelKey = "ecommerce.affiliateWorkspace.copyPlatformId",
 }: {
   value?: string | null;
+  compact?: boolean;
   labelKey?: string;
 }) {
   if (!value) return null;
   return (
     <CopyInlineValue
       value={value}
+      compact={compact}
       className="affiliate-id-copy-button affiliate-platform-id-copy"
       copiedMessageKey="ecommerce.affiliateWorkspace.platformIdCopied"
       copyLabelKey={labelKey}
@@ -12279,11 +12283,13 @@ function PlatformIdCopy({
 
 function CopyInlineValue({
   value,
+  compact = false,
   className,
   copiedMessageKey,
   copyLabelKey,
 }: {
   value: string;
+  compact?: boolean;
   className: string;
   copiedMessageKey: string;
   copyLabelKey: string;
@@ -12309,6 +12315,18 @@ function CopyInlineValue({
       );
     }
   }
+
+  if (compact) return (
+    <TkIconButton
+      label={copied ? t(copiedMessageKey) : t(copyLabelKey)}
+      size="sm"
+      variant="ghost"
+      onClick={copyValue}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <CopyIcon />
+    </TkIconButton>
+  );
 
   return (
     <button

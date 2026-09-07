@@ -541,48 +541,6 @@
   }
 }
 
-/* Agent work table — per-Sample product stock. One line per Sample in the
-   bundle: product label on the left, exact stock count on the right. */
-.affiliate-agent-work-col-stock {
-  width: 150px;
-}
-
-.tk-v1-workbench .affiliate-agent-work-stock-list {
-  display: grid;
-  gap: var(--tk-v1-space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tk-v1-workbench .affiliate-agent-work-stock-list li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--tk-v1-space-2);
-  align-items: baseline;
-  min-width: 0;
-}
-
-.tk-v1-workbench .affiliate-agent-work-stock-list small {
-  overflow: hidden;
-  color: var(--tk-v1-fg-muted);
-  font-size: var(--tk-v1-type-micro);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tk-v1-workbench .affiliate-agent-work-stock-list strong {
-  color: var(--tk-v1-fg-default);
-  font-family: var(--tk-v1-font-mono);
-  font-size: var(--tk-v1-type-micro);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.tk-v1-workbench .affiliate-agent-work-stock-empty {
-  color: var(--tk-v1-fg-muted);
-}
-
 /* Sample decision bundle — Creator performance strip and compact product
    strip. Unscoped on purpose: the work detail modal renders through a portal
    outside .tk-v1-workbench, and these rules must reach both the inline card
@@ -674,18 +632,6 @@
 .affiliate-sample-decision-product-price {
   color: var(--color-text-secondary);
   font-weight: 600;
-}
-
-.affiliate-sample-decision-product-stock {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--tk-v1-space-1);
-}
-
-.affiliate-sample-decision-product .affiliate-sample-decision-product-stock strong {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Escalation detail modal: TkModalHeader owns the header; one body region owns scroll. */

@@ -91,7 +91,7 @@
 
 .affiliate-sample-decision-bundle {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border-light));
+  border: 1px solid var(--tk-v1-border-default);
   border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg);
 }
@@ -103,7 +103,7 @@
   gap: 16px;
   padding: 11px 12px;
   border-bottom: 1px solid var(--color-border-light);
-  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+  background: var(--tk-v1-bg-surface);
 }
 
 .affiliate-sample-decision-bundle-head > div {
@@ -131,7 +131,7 @@
 
 .affiliate-sample-decision-row {
   display: grid;
-  grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(130px, 1fr));
+  grid-template-columns: minmax(240px, 2.5fr) repeat(3, minmax(0, 1fr));
   gap: 0;
   min-width: 0;
 }
@@ -174,12 +174,16 @@
 }
 
 .affiliate-sample-decision-identity strong {
+  display: -webkit-box;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--color-text);
   font-size: 13px;
   line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .affiliate-sample-decision-identity small,
@@ -242,12 +246,23 @@
   line-height: 1.3;
 }
 
-.affiliate-sample-decision-approve {
-  color: var(--color-success, #22c55e) !important;
+.affiliate-sample-decision-reason {
+  grid-column: 1 / -1;
+  padding: var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-default);
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-body);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
-.affiliate-sample-decision-reject {
-  color: var(--color-danger, #ef4444) !important;
+.affiliate-sample-decision-reason strong {
+  color: var(--tk-v1-fg-default);
+  font-weight: 600;
+}
+
+.affiliate-sample-decision-reason p {
+  margin: var(--tk-v1-space-1) 0 0;
 }
 
 .affiliate-workbench-review-attribution {
@@ -261,13 +276,12 @@
 }
 
 .affiliate-sample-decision-signal {
-  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
-  box-shadow: inset 2px 0 0 var(--color-primary);
+  background: var(--tk-v1-bg-subtle);
 }
 
 @media (max-width: 980px) {
   .affiliate-sample-decision-row {
-    grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(112px, 1fr));
+    grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(0, 1fr));
   }
 }
 

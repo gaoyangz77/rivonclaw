@@ -1,6 +1,7 @@
 export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   en: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / Stock", item: "SKU / Product" },
       loadMoreProposals: "Load more proposals",
       loadingMoreProposals: "Loading more proposals…",
       loadedProposalCount: "{{count}} proposals loaded",
@@ -19,7 +20,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "Approving executes every decision in this bundle.",
         confirmSend: "Confirm · send sample",
         confirmDoNotSend: "Confirm · do not send",
-        approveBundle: "Approve entire decision bundle",
+        approveBundle: "Approve entire proposal",
         overrideSend: "Override · send sample",
         overrideDoNotSend: "Override · do not send",
         overrideNote: "Human reversed the Agent's Sample Application decision.",
@@ -60,6 +61,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   zh: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / 库存", item: "SKU / 商品" },
       loadMoreProposals: "加载更多提案",
       loadingMoreProposals: "正在加载更多提案…",
       loadedProposalCount: "已加载 {{count}} 条提案",
@@ -78,7 +80,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "批准该提案会一次执行这个决策包中的全部决定。",
         confirmSend: "确认 · 发样",
         confirmDoNotSend: "确认 · 不发样",
-        approveBundle: "批准整个决策包",
+        approveBundle: "批准整个提案",
         overrideSend: "人工改为发样",
         overrideDoNotSend: "人工改为不发样",
         overrideNote: "人工反向执行了 Agent 的样品申请决策。",
@@ -119,6 +121,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   de: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / Bestand", item: "SKU / Produkt" },
       loadMoreProposals: "Weitere Vorschläge laden",
       loadingMoreProposals: "Weitere Vorschläge werden geladen…",
       loadedProposalCount: "{{count}} Vorschläge geladen",
@@ -245,6 +248,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   es: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / Stock", item: "SKU / Producto" },
       loadMoreProposals: "Cargar más propuestas",
       loadingMoreProposals: "Cargando más propuestas…",
       loadedProposalCount: "{{count}} propuestas cargadas",
@@ -371,6 +375,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   fr: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / Stock", item: "SKU / Produit" },
       loadMoreProposals: "Charger plus de propositions",
       loadingMoreProposals: "Chargement de propositions supplémentaires…",
       loadedProposalCount: "{{count}} propositions chargées",
@@ -497,6 +502,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   id: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / Stok", item: "SKU / Produk" },
       loadMoreProposals: "Muat proposal lainnya",
       loadingMoreProposals: "Memuat proposal lainnya…",
       loadedProposalCount: "{{count}} proposal dimuat",
@@ -623,6 +629,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   it: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / Scorte", item: "SKU / Prodotto" },
       loadMoreProposals: "Carica altre proposte",
       loadingMoreProposals: "Caricamento di altre proposte…",
       loadedProposalCount: "{{count}} proposte caricate",
@@ -749,6 +756,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   th: {
     ecommerce: { affiliateWorkspace: {
+      stockSummary: { title: "SKU / สต็อก", item: "SKU / สินค้า" },
       loadMoreProposals: "โหลดข้อเสนอเพิ่มเติม",
       loadingMoreProposals: "กำลังโหลดข้อเสนอเพิ่มเติม…",
       loadedProposalCount: "โหลดแล้ว {{count}} ข้อเสนอ",

@@ -34,6 +34,7 @@ import {
   resolvePredictionEvidenceState,
   proposalSampleDecisionOverrideTarget,
   proposalSampleReviewRows,
+  proposalSkuStockItems,
   relationshipTimelineLane,
   replaceAffiliateProposalPageBuffer,
   selectAffiliateProposalItems,
@@ -751,6 +752,57 @@ describe("AffiliateManagementPage proposal source", () => {
     ]);
   });
 
+  it("lists each SKU's own stock, deduplicating repeated applications only within the same shop", () => {
+    const bundle = {
+      ...proposal("sku-inventory", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      productSummaries: [{
+        productId: "product-1",
+        title: "Gold rope necklace",
+        totalAvailableQuantity: 999,
+        skus: [
+          { skuId: "sku-1", sellerSku: " ROPE-GOLD-18 ", totalAvailableQuantity: 7 },
+          { skuId: "sku-2", sellerSku: "  ", totalAvailableQuantity: 0 },
+          { skuId: "sku-3", totalAvailableQuantity: null },
+        ],
+      }],
+      steps: ["shop-1", "shop-1", "shop-2"].map((shopId, index) => ({
+        stepId: `step-${index}`,
+        shopId,
+        productId: "product-1",
+        type: "REVIEW_SAMPLE_APPLICATION",
+        sampleReviewIntent: { decision: "APPROVE" },
+      })),
+    } as unknown as GQL.ActionProposal;
+    const items = proposalSkuStockItems(proposalSampleReviewRows(bundle));
+    expect(items.map(({ skuId, quantity }) => ({ skuId, quantity }))).toEqual([
+      { skuId: "sku-1", quantity: 7 },
+      { skuId: "sku-2", quantity: 0 },
+      { skuId: "sku-3", quantity: null },
+      { skuId: "sku-1", quantity: 7 },
+      { skuId: "sku-2", quantity: 0 },
+      { skuId: "sku-3", quantity: null },
+    ]);
+    expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
+    expect(items.map((item) => item.label)).toEqual([
+      "ROPE-GOLD-18", "Gold rope necklace", "Gold rope necklace",
+      "ROPE-GOLD-18", "Gold rope necklace", "Gold rope necklace",
+    ]);
+  });
+
+  it("does not display product stock as SKU stock when SKU details are missing", () => {
+    const legacy = {
+      ...proposal("missing-skus", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      productId: "product-1",
+      productSummary: { productId: "product-1", totalAvailableQuantity: 68 },
+      sampleReviewIntent: { decision: "APPROVE" },
+    } as unknown as GQL.ActionProposal;
+    expect(proposalSkuStockItems(proposalSampleReviewRows(legacy))).toEqual([
+      expect.objectContaining({ skuId: null, quantity: null }),
+    ]);
+    expect(proposalSkuStockItems([])).toEqual([]);
+    expect(proposalSkuStockItems(proposalSampleReviewRows(legacy))[0]?.label).toBeNull();
+  });
+
   it("falls back to the singular product summary when no per-product summary matches", () => {
     const legacy = {
       ...proposal("proposal-legacy-summary", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
@@ -1197,6 +1249,9 @@ describe("Affiliate canonical UI contract", () => {
     expect(table).toContain("affiliate-agent-work-table-action-${action.tone}");
     expect(page).toContain("sampleRows.length === 0 && proposalHasMessageIntent(proposal)");
     expect(table).not.toContain("proposal.operatorSummary");
+    expect(table).not.toContain("AffiliateProposalStock");
+    expect(table).not.toContain("affiliate-agent-work-col-stock");
+    expect(table).not.toContain("stockSummary");
   });
 
   it("keeps decisions inside one shared detail modal and hides customer-facing versions", () => {
