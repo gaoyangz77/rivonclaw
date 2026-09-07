@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.6",
+    "date": "2026-09-06",
+    "en": [
+      "Streamline affiliate proposal review with SKU inventory shown alongside the proposal, and keep customer-service inbox rows readable when status badges crowd the buyer name",
+      "Refresh the payment records table when payments arrive as live updates, and fold the Agent Office shutter fully out of view"
+    ],
+    "zh": [
+      "精简达人提案审核流程，提案旁直接显示 SKU 库存；客服收件箱在状态标签较多时不再把买家名字挤到看不见",
+      "支付记录表格在收到实时推送时正确刷新；Agent Office 卷帘门可完全收起"
+    ]
+  },
+  {
     "version": "1.9.5",
     "date": "2026-09-04",
     "en": [
