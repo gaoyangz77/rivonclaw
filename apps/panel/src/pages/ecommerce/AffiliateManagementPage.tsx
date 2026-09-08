@@ -3205,7 +3205,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter(
-    (shop) => shop.services?.affiliateService?.enabled,
+    // Manual Creator CRM is available without enabling the Affiliate Agent.
+    (shop) => shop.platform === GQL.ShopPlatform.TiktokShop &&
+      shop.authStatus === GQL.ShopAuthStatus.Authorized,
   );
   const [selectedShopId, setSelectedShopId] = useState("");
   const [selectedManualTagIds, setSelectedManualTagIds] = useState<string[]>([]);

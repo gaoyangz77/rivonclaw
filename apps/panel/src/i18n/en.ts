@@ -3597,10 +3597,10 @@ export default {
       subtitle: "Review pending agent actions for creator lifecycle work.",
       creatorsTitle: "Cooperation creators",
       creatorsSubtitle:
-        "Review creator relationships across all Affiliate-enabled shops, maintain labels, and handle current work.",
+        "Review creator relationships across all authorized shops, maintain labels, and handle current work.",
       creatorsPanelTitle: "Shop creator pool",
       creatorsPanelHint:
-        "Shows relationships across all Affiliate-enabled shops by default; select one shop to narrow the view.",
+        "Shows relationships across all authorized shops without requiring Agent activation; select one shop to narrow the view.",
       creatorAttentionOnly: "Needs attention only",
       sampleTiers: {
         SAMPLE_SHIPPED: "Sample shipped",

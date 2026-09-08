@@ -47,6 +47,14 @@ import {
 } from "./AffiliateManagementPage.js";
 
 describe("AffiliateManagementPage proposal source", () => {
+  it("allows authorized shops in manual Creator CRM without Agent activation", () => {
+    const source = readFileSync(resolve(import.meta.dirname, "AffiliateManagementPage.tsx"), "utf8");
+    const shopFilter = source.match(/const affiliateShops = entityStore\.shops\.filter\([\s\S]*?\n  \);/)?.[0];
+    expect(shopFilter).toContain("GQL.ShopAuthStatus.Authorized");
+    expect(shopFilter).toContain("GQL.ShopPlatform.TiktokShop");
+    expect(shopFilter).not.toContain("affiliateService");
+  });
+
   it("orders Creator communication from oldest to newest", () => {
     const message = (
       messageRef: string,

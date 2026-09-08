@@ -3411,10 +3411,10 @@ export default {
       subtitle: "集中审核 Agent 为达人生命周期生成的待执行动作。",
       creatorsTitle: "合作达人",
       creatorsSubtitle:
-        "查看所有已启用 Affiliate 店铺的达人关系，维护标签并处理当前事项。",
+        "查看所有已授权店铺的达人关系，维护标签并处理当前事项。",
       creatorsPanelTitle: "店铺关系池",
       creatorsPanelHint:
-        "默认显示所有已启用 Affiliate 店铺中的达人关系；可按单店缩小范围。",
+        "默认显示所有已授权店铺中的达人关系，无需开启 Agent 服务；可按单店缩小范围。",
       creatorAttentionOnly: "仅看需处理",
       sampleTiers: {
         SAMPLE_SHIPPED: "已发样",

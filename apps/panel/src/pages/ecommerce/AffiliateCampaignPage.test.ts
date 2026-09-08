@@ -1,4 +1,6 @@
 import { GQL } from "@rivonclaw/core";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import {
@@ -33,6 +35,14 @@ import {
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
+  it("offers authorized shops without requiring Affiliate Agent activation", () => {
+    const source = readFileSync(resolve(import.meta.dirname, "AffiliateCampaignPage.tsx"), "utf8");
+    const shopFilter = source.match(/const shops = \(shopsQuery\.data\?\.shops \?\? \[\]\)\.filter\([\s\S]*?\n  \);/)?.[0];
+    expect(shopFilter).toContain("GQL.ShopPlatform.TiktokShop");
+    expect(shopFilter).toContain("GQL.ShopAuthStatus.Authorized");
+    expect(shopFilter).not.toContain("affiliateService");
+  });
+
   it("summarizes commissions without leaking product ids into customer-facing labels", () => {
     expect(affiliateCampaignCommissionRange([14])).toBe("14%");
     expect(affiliateCampaignCommissionRange([14, 8, 14])).toBe("8%–14%");
