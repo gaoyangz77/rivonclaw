@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.7",
+    "date": "2026-09-08",
+    "en": [
+      "Add creator shop views and protected workbench filters, separate operator shop access from agent activation, and prefer shop aliases in creator message headers",
+      "Deduplicate affiliate dispatches by snapshot to avoid repeated work"
+    ],
+    "zh": [
+      "新增达人店铺视图与受保护的工作台筛选，人工店铺访问不再依赖 Agent 激活状态，达人消息标题优先显示店铺别名",
+      "按快照对达人任务派发去重，避免重复执行"
+    ]
+  },
+  {
     "version": "1.9.6",
     "date": "2026-09-06",
     "en": [
