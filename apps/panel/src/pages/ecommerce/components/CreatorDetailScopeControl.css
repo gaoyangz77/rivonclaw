@@ -1,0 +1,25 @@
+.affiliate-creator-scope-control {
+  display: grid;
+  grid-template-columns: auto minmax(144px, 220px);
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.affiliate-creator-scope-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  margin: 0 0 var(--tk-v1-space-3);
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .affiliate-creator-scope-header,
+  .affiliate-creator-scope-actions {
+    flex-wrap: wrap;
+  }
+}

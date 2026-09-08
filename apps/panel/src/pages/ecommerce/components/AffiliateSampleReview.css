@@ -1,0 +1,39 @@
+/* One application owns its summary and review actions, including in Creator Detail. */
+.affiliate-workbench-sample-review-card {
+  display: grid;
+  min-width: 0;
+  gap: var(--tk-v1-space-3);
+}
+
+.affiliate-workbench-sample-review-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+  padding-top: var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-default);
+}
+
+.affiliate-sample-shop-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tk-v1-space-2);
+  margin-block: var(--tk-v1-space-2);
+  color: var(--tk-v1-fg-secondary);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-sample-shop-identity strong {
+  color: var(--tk-v1-fg-default);
+}
+
+.affiliate-sample-shop-identity .affiliate-sample-shop-name {
+  min-width: 0;
+  margin: 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: inherit;
+  font-weight: 500;
+}

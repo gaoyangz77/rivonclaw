@@ -593,19 +593,6 @@
   text-align: center;
 }
 
-.affiliate-workbench-sample-review-card {
-  display: grid;
-  gap: 8px;
-}
-
-.affiliate-workbench-sample-review-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .affiliate-workbench-sample-sync-warning {
   color: var(--warning-color);
   font-size: 13px;

@@ -8,6 +8,7 @@ import {
   type FormEvent,
   type MouseEvent,
   type ReactNode,
+  type ComponentProps,
 } from "react";
 import { useTranslation } from "react-i18next";
 import panelI18n from "../../i18n/index.js";
@@ -22,6 +23,7 @@ import { GQL } from "@rivonclaw/core";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import {
+  TkAlert,
   TkBadge,
   TkButton,
   TkChoiceSelect,
@@ -55,13 +57,29 @@ import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
+  AffiliateSampleIgnoreButton,
+  AffiliateSampleShopIdentity,
+} from "./components/AffiliateSampleReview.js";
+import { sortAffiliateSamplesPendingFirst } from "./affiliate-sample-order.js";
+import {
+  CreatorDetailScopeControl,
+  CreatorGlobalInformation,
+} from "./components/CreatorDetailScopeControl.js";
+import { useCreatorScopeConversation } from "./components/useCreatorScopeConversation.js";
+import {
+  matchesCreatorShop,
+  matchesCreatorProposalShop,
+  creatorProposalRequiresGlobalView,
+  creatorScopeTimeline,
+  creatorScopeWorkSummary,
+} from "./creator-detail-scope.js";
+import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_ESCALATION_PAGE_QUERY,
   AFFILIATE_RESOLVE_ESCALATION_MUTATION,
   AFFILIATE_COLLABORATION_DETAIL_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
-  AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
   AFFILIATE_CREATOR_CONTACT_STATE_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
@@ -113,10 +131,7 @@ import {
   AffiliateWorkbenchEntityTabs,
   type AffiliateWorkbenchEntityOpenTarget,
 } from "./components/AffiliateWorkbenchEntityTabs.js";
-import {
-  ProductSummaryCard,
-  formatProductSummaryPrice,
-} from "./components/ProductSummaryCard.js";
+import { ProductSummaryCard, formatProductSummaryPrice } from "./components/ProductSummaryCard.js";
 import {
   AffiliateContextInspector,
   AffiliateDetailModal,
@@ -604,7 +619,9 @@ export function retreatAffiliateProposalPageCursorStack(
   };
 }
 
-export function affiliateProposalPageCursor(stack: AffiliateProposalPageCursorStack): string | null {
+export function affiliateProposalPageCursor(
+  stack: AffiliateProposalPageCursorStack,
+): string | null {
   return stack.cursors[stack.pageIndex] ?? null;
 }
 
@@ -1061,8 +1078,8 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   // load-more stream. Only the paged view carries a cursor stack, and a filter
   // change resets it to page 0 (derived here, the same way the buffer is).
   const pagedProposalView = agentWorkspaceView === "ALL";
-  const [proposalPageStack, setProposalPageStack] = useState<AffiliateProposalPageCursorStack>(
-    () => initialAffiliateProposalPageCursorStack(proposalFilterKey),
+  const [proposalPageStack, setProposalPageStack] = useState<AffiliateProposalPageCursorStack>(() =>
+    initialAffiliateProposalPageCursorStack(proposalFilterKey),
   );
   const activeProposalPageStack = resetAffiliateProposalPageCursorStack(
     proposalPageStack,
@@ -1612,7 +1629,8 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
                 {loadedProposals.length > 0 ? (
                   <span>
                     {t("ecommerce.affiliateWorkspace.proposalPagination.pageRange", {
-                      start: activeProposalPageStack.pageIndex * activeProposalPageStack.pageSize + 1,
+                      start:
+                        activeProposalPageStack.pageIndex * activeProposalPageStack.pageSize + 1,
                       end:
                         activeProposalPageStack.pageIndex * activeProposalPageStack.pageSize +
                         loadedProposals.length,
@@ -3206,7 +3224,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter(
     // Manual Creator CRM is available without enabling the Affiliate Agent.
-    (shop) => shop.platform === GQL.ShopPlatform.TiktokShop &&
+    (shop) =>
+      shop.platform === GQL.ShopPlatform.TiktokShop &&
       shop.authStatus === GQL.ShopAuthStatus.Authorized,
   );
   const [selectedShopId, setSelectedShopId] = useState("");
@@ -6624,17 +6643,6 @@ export function sortAffiliateCreatorMessagesOldestFirst(
   );
 }
 
-function mergeAffiliateCreatorMessageHistoryItems(
-  currentItems: GQL.AffiliateCreatorMessageHistoryItem[],
-  nextItems: GQL.AffiliateCreatorMessageHistoryItem[],
-): GQL.AffiliateCreatorMessageHistoryItem[] {
-  const merged = new Map<string, GQL.AffiliateCreatorMessageHistoryItem>();
-  for (const item of [...currentItems, ...nextItems]) {
-    merged.set(affiliateCreatorMessageKey(item), item);
-  }
-  return sortAffiliateCreatorMessagesOldestFirst([...merged.values()]);
-}
-
 function mergeAffiliateRelationshipTimelinePayload(
   previous: { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
   next: { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
@@ -7542,9 +7550,7 @@ function AgentWorkBundleDetailModal({
     >
       <TkModalHeader
         className="affiliate-agent-work-detail-header"
-        title={
-          <span id={titleId}>{t("ecommerce.affiliateWorkspace.agentWorkDetail.title")}</span>
-        }
+        title={<span id={titleId}>{t("ecommerce.affiliateWorkspace.agentWorkDetail.title")}</span>}
         description={
           <>
             <TkPrivate as="strong" sensitive={primaryShopLabel.sensitive}>
@@ -8085,7 +8091,9 @@ export function AgentWorkBundleCard({
           <div
             className="affiliate-proposal-row-main"
             role={reviewLayout ? "region" : undefined}
-            aria-label={reviewLayout ? t("ecommerce.affiliateWorkspace.agentWorkDetail.title") : undefined}
+            aria-label={
+              reviewLayout ? t("ecommerce.affiliateWorkspace.agentWorkDetail.title") : undefined
+            }
             tabIndex={reviewLayout ? 0 : undefined}
           >
             <div
@@ -8194,7 +8202,10 @@ export function AgentWorkBundleCard({
               ) : null}
             </div>
             {reviewLayout && historyOpen ? (
-              <AgentWorkRevisionHistory currentProposalId={proposal.id} versions={revisionHistory} />
+              <AgentWorkRevisionHistory
+                currentProposalId={proposal.id}
+                versions={revisionHistory}
+              />
             ) : null}
           </div>
 
@@ -8853,9 +8864,11 @@ export const ProposalSampleDecisionBundle = observer(function ProposalSampleDeci
                 },
               )
             : null;
-          const decisionLabel = t(approves
-            ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
-            : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject");
+          const decisionLabel = t(
+            approves
+              ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
+              : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject",
+          );
           return (
             <article className="affiliate-sample-decision-row" key={row.stepId}>
               <div className="affiliate-sample-decision-identity">
@@ -8926,9 +8939,7 @@ export const ProposalSampleDecisionBundle = observer(function ProposalSampleDeci
               <div className="affiliate-sample-decision-metric">
                 <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision")}</span>
                 <div>
-                  <TkBadge tone={approves ? "success" : "danger"}>
-                    {decisionLabel}
-                  </TkBadge>
+                  <TkBadge tone={approves ? "success" : "danger"}>{decisionLabel}</TkBadge>
                 </div>
                 <small>
                   {t(
@@ -9260,6 +9271,7 @@ export function SampleApplicationSummaryCard({
       <div className="affiliate-collaboration-sample-card-head">
         <div>
           <span>{t("ecommerce.affiliateWorkspace.sampleApplication.title")}</span>
+          <AffiliateSampleShopIdentity shopId={sampleApplication.shopId ?? shopId} />
           <TkPrivate as="strong" sensitive={Boolean(productSummary?.title)}>
             {productSummary?.title ||
               sampleApplication.platformApplicationId ||
@@ -9273,7 +9285,11 @@ export function SampleApplicationSummaryCard({
             />
           </div>
         </div>
-        <div className="affiliate-collaboration-sample-status">{status}</div>
+        <div className="affiliate-collaboration-sample-status">
+          {sampleApplication.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected
+            ? t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected")
+            : status}
+        </div>
       </div>
       {!isEmbedded ? (
         <ProductSummaryCard
@@ -9906,7 +9922,19 @@ function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
   );
 }
 
-export function CreatorRelationshipDetailModal({
+export function CreatorRelationshipDetailModal(
+  props: ComponentProps<typeof CreatorRelationshipDetailContent>,
+) {
+  const id =
+    props.relationshipId ??
+    props.item?.creatorRelation?.id ??
+    props.item?.workItems?.[0]?.relationshipId ??
+    "";
+  // A different Creator starts with global scope and cannot inherit drafts or page cursors.
+  return <CreatorRelationshipDetailContent key={id} {...props} />;
+}
+
+function CreatorRelationshipDetailContent({
   item,
   relationshipId: relationshipIdOverride,
   selectedShopId,
@@ -9936,6 +9964,8 @@ export function CreatorRelationshipDetailModal({
   const [activeTab, setActiveTab] = useState<
     "profile" | "overview" | "samples" | "platform" | "conversation" | "activity"
   >(initialTab);
+  const [scopeShopId, setScopeShopId] = useState("");
+  const [pendingScopeShopId, setPendingScopeShopId] = useState<string | null>(null);
   const [contextInspectorOpen, setContextInspectorOpen] = useState(() =>
     typeof window === "undefined" || typeof window.matchMedia !== "function"
       ? true
@@ -9986,6 +10016,8 @@ export function CreatorRelationshipDetailModal({
     null;
   useEffect(() => {
     setActiveTab(initialTab);
+    setScopeShopId("");
+    setPendingScopeShopId(null);
     setContextInspectorSection("overview");
     setProposalHistoryOpen(false);
     setDecidingProposalId(null);
@@ -10032,13 +10064,14 @@ export function CreatorRelationshipDetailModal({
   }, [refetchRelationshipDetail]);
   const relationshipDetail = relationshipDetailData?.affiliateCreatorRelationshipDetail ?? null;
   const relationship = relationshipDetail?.creatorRelationship ?? item?.creatorRelation ?? null;
-  const cooperationProgressTier =
-    relationship?.highestSampleTier ??
-    highestCreatorSampleTier(
-      (relationship?.shopStates ?? (item?.shopState ? [item.shopState] : [])).map(
-        (state) => state.sampleTier,
-      ),
-    );
+  const cooperationProgressTier = scopeShopId
+    ? relationship?.shopStates.find((state) => state.shopId === scopeShopId)?.sampleTier
+    : (relationship?.highestSampleTier ??
+      highestCreatorSampleTier(
+        (relationship?.shopStates ?? (item?.shopState ? [item.shopState] : [])).map(
+          (state) => state.sampleTier,
+        ),
+      ));
   const {
     data: creatorProfileData,
     loading: creatorProfileLoading,
@@ -10126,7 +10159,7 @@ export function CreatorRelationshipDetailModal({
     removeRelationshipProtectionState.loading;
   const includedShopIds =
     relationshipDetail?.includedShopIds ?? rawShopStates.map((state) => state.shopId);
-  const shopActivitySummaries =
+  const allShopActivitySummaries =
     relationshipDetail?.shopActivitySummaries ??
     includedShopIds.map((shopId) => ({
       shopId,
@@ -10138,15 +10171,73 @@ export function CreatorRelationshipDetailModal({
       platformCollaborationCount: 0,
       pendingProposalCount: 0,
     }));
+  const shopActivitySummaries = allShopActivitySummaries.filter((summary) =>
+    matchesCreatorShop(summary.shopId, scopeShopId),
+  );
+  const scopedShopSummary = scopeShopId ? shopActivitySummaries[0] : null;
+  // Store summaries are TOTAL counts, not active-only counts. Keep labels consistent in both views.
+  const scopedSampleCount = scopeShopId
+    ? scopedShopSummary?.sampleApplicationCount
+    : relationshipDetail?.counts.sampleApplicationCount;
+  const scopedCollaborationCount = scopeShopId
+    ? scopedShopSummary?.platformCollaborationCount
+    : relationshipDetail?.counts.platformCollaborationCount;
+  const scopedPendingProposalCount = scopeShopId
+    ? scopedShopSummary?.pendingProposalCount
+    : relationshipDetail?.counts.pendingProposalCount;
+  const scopedLastContactedAt = scopeShopId
+    ? scopedShopSummary?.lastContactedAt
+    : relationshipDetail?.lastContactedAt;
+  const scopedLastBusinessActivityAt = scopeShopId
+    ? scopedShopSummary?.lastBusinessActivityAt
+    : relationshipDetail?.lastBusinessActivityAt;
+  const scopeKey = `${relationshipId ?? ""}:${scopeShopId}`;
+  const activeScopeKeyRef = useRef(scopeKey);
+  useLayoutEffect(() => {
+    activeScopeKeyRef.current = scopeKey;
+  }, [scopeKey]);
   useEffect(() => {
-    if (selectedShopId && includedShopIds.includes(selectedShopId)) {
-      setComposerShopId(selectedShopId);
+    if (scopeShopId) {
+      setComposerShopId(scopeShopId);
     } else if (includedShopIds.length === 1) {
       setComposerShopId(includedShopIds[0]);
     } else if (!includedShopIds.includes(composerShopId)) {
-      setComposerShopId("");
+      setComposerShopId(includedShopIds.includes(selectedShopId) ? selectedShopId : "");
     }
-  }, [composerShopId, includedShopIds, selectedShopId]);
+  }, [composerShopId, includedShopIds, selectedShopId, scopeShopId]);
+
+  function applyScope(nextShopId: string): void {
+    setPendingScopeShopId(null);
+    setScopeShopId(nextShopId);
+    setComposerShopId(
+      nextShopId || (includedShopIds.includes(selectedShopId) ? selectedShopId : ""),
+    );
+    setComposerText("");
+    setComposerSubject("");
+    setStagedAttachments([]);
+    setComposerChannel("AUTO");
+    setPendingReplyToLifecycleEventId(undefined);
+    setSampleReviewCommand(null);
+    setProposalHistoryOpen(false);
+    conversationAutoScrollPendingRef.current = true;
+    activityLoadedOlderRef.current = false;
+    tabPanelRef.current?.scrollTo({ top: 0, left: 0 });
+  }
+  function changeScope(nextShopId: string): void {
+    if (
+      nextShopId === scopeShopId ||
+      sendingMessage ||
+      uploadingAttachments ||
+      decidingProposalId ||
+      reviewSampleState.loading ||
+      reopenSampleState.loading ||
+      (nextShopId && !includedShopIds.includes(nextShopId))
+    )
+      return;
+    if (composerText.trim() || composerSubject.trim() || stagedAttachments.length) {
+      setPendingScopeShopId(nextShopId);
+    } else applyScope(nextShopId);
+  }
   const [sendAffiliateCreatorMessage] = useMutation<
     { sendAffiliateCreatorMessage: GQL.SendAffiliateCreatorMessagePayload },
     { input: GQL.SendAffiliateCreatorMessageInput }
@@ -10163,7 +10254,13 @@ export function CreatorRelationshipDetailModal({
     { affiliateRelationshipSampleApplications: GQL.AffiliateRelationshipSampleApplicationPage },
     { input: GQL.AffiliateRelationshipEntityPageInput }
   >(AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY, {
-    variables: { input: { creatorRelationshipId: relationshipId ?? "", limit: 25 } },
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        shopId: scopeShopId || null,
+        limit: 25,
+      },
+    },
     fetchPolicy: "cache-and-network",
     skip: !relationshipId,
   });
@@ -10173,7 +10270,13 @@ export function CreatorRelationshipDetailModal({
     },
     { input: GQL.AffiliateRelationshipEntityPageInput }
   >(AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY, {
-    variables: { input: { creatorRelationshipId: relationshipId ?? "", limit: 25 } },
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        shopId: scopeShopId || null,
+        limit: 25,
+      },
+    },
     fetchPolicy: "cache-and-network",
     skip: !relationshipId,
   });
@@ -10181,7 +10284,13 @@ export function CreatorRelationshipDetailModal({
     { affiliateActionProposalPage: GQL.AffiliateActionProposalPage },
     { input: GQL.ReadActionProposalsInput }
   >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
-    variables: { input: { creatorRelationshipId: relationshipId ?? "", limit: 25 } },
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        shopId: scopeShopId || null,
+        limit: 25,
+      },
+    },
     fetchPolicy: "cache-and-network",
     skip: !relationshipId,
   });
@@ -10192,17 +10301,21 @@ export function CreatorRelationshipDetailModal({
   const samplePage = sampleQuery.data?.affiliateRelationshipSampleApplications;
   const platformPage = platformQuery.data?.affiliateRelationshipPlatformCollaborations;
   const proposalPage = proposalQuery.data?.affiliateActionProposalPage;
-  const relationshipSampleApplications = mergeById([
-    ...(item?.workItems ?? []).flatMap((workItem) => [
-      ...(workItem.primarySampleApplication ? [workItem.primarySampleApplication] : []),
-      ...(workItem.relatedSampleApplications ?? []),
-      ...(workItem.workItem?.sampleApplicationRecord
-        ? [workItem.workItem.sampleApplicationRecord]
-        : []),
-    ]),
-    ...(samplePage?.items ?? []),
-  ]);
-  const platformCollaborations = platformPage?.items ?? [];
+  const relationshipSampleApplications = sortAffiliateSamplesPendingFirst(
+    mergeById([
+      ...(item?.workItems ?? []).flatMap((workItem) => [
+        ...(workItem.primarySampleApplication ? [workItem.primarySampleApplication] : []),
+        ...(workItem.relatedSampleApplications ?? []),
+        ...(workItem.workItem?.sampleApplicationRecord
+          ? [workItem.workItem.sampleApplicationRecord]
+          : []),
+      ]),
+      ...(samplePage?.items ?? []),
+    ]).filter((sample) => matchesCreatorShop(sample.shopId, scopeShopId)),
+  );
+  const platformCollaborations = (platformPage?.items ?? []).filter((entry) =>
+    matchesCreatorShop(entry.collaboration.shopId, scopeShopId),
+  );
   // The list/work-item payload already carries the exact pending proposal that
   // produced the queue row. Use it as an immediate entity snapshot while the
   // detail query catches up; the query result wins when both contain the same ID.
@@ -10212,7 +10325,7 @@ export function CreatorRelationshipDetailModal({
       ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
     ]),
     ...(proposalPage?.items ?? []),
-  ]);
+  ]).filter((proposal) => matchesCreatorProposalShop(proposal, scopeShopId));
   const visiblePendingProposals = relationshipProposals.filter(
     (proposal) =>
       proposal.status === GQL.ActionProposalStatus.Pending &&
@@ -10236,10 +10349,14 @@ export function CreatorRelationshipDetailModal({
     productSummaries.find(
       (entry) => entry.shopId === shopId && entry.product.productId === productId,
     )?.product ?? null;
-  const relationshipSummary = relationship?.workSummary;
   const relationshipAgenda = (relationship?.agendaItems ?? []).filter(
-    (agenda) => !agenda.shopId || includedShopIds.includes(agenda.shopId),
+    (agenda) =>
+      matchesCreatorShop(agenda.shopId, scopeShopId) &&
+      (!agenda.shopId || includedShopIds.includes(agenda.shopId)),
   );
+  const relationshipSummary = scopeShopId
+    ? creatorScopeWorkSummary(relationshipAgenda)
+    : relationship?.workSummary;
   const relationshipAggregateStatus =
     (relationshipSummary?.agentRequiredCount ?? 0) > 0
       ? GQL.AffiliateRelationshipProcessingStatus.AgentRequired
@@ -10274,53 +10391,31 @@ export function CreatorRelationshipDetailModal({
       ? t(`ecommerce.affiliateWorkspace.workKinds.${relationshipAgenda[0].workKind}`, {
           defaultValue: formatAffiliateEnumLabel(relationshipAgenda[0].workKind),
         })
-      : management?.needsAttention
+      : !scopeShopId && management?.needsAttention
         ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
         : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWork");
   const currentSummary = relationshipAgenda[0]?.reasons?.length
     ? relationshipAgenda[0].reasons
         .map((reason) => affiliateWorkspaceEnumLabel(t, "processReasons", reason))
         .join(" · ")
-    : management?.needsAttention
+    : !scopeShopId && management?.needsAttention
       ? t("ecommerce.affiliateWorkspace.relationshipNeedsManualReview")
       : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWorkHint");
 
   const {
-    data: messageHistoryData,
+    messages: conversationMessages,
     loading: conversationLoading,
-    fetchMore: fetchMoreConversationMessages,
-    refetch: refetchConversationMessages,
     error: conversationError,
-  } = useQuery<
-    { affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload },
-    { input: GQL.AffiliateCreatorMessageHistoryInput }
-  >(AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, {
-    variables: {
-      input: {
-        creatorRelationshipId: relationshipId ?? "",
-        limit: AFFILIATE_TIMELINE_PAGE_SIZE,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
-  });
-  const conversationHistory = messageHistoryData?.affiliateCreatorMessageHistory;
-  const conversationMessages = useMemo(
-    () => sortAffiliateCreatorMessagesOldestFirst(conversationHistory?.items ?? []),
-    [conversationHistory?.items],
-  );
-  const canLoadOlderConversation = Boolean(
-    conversationHistory?.hasMore && conversationHistory.nextOffset != null,
-  );
+    refetch: refetchConversationMessages,
+    hasOlder: canLoadOlderConversation,
+    loadOlder: fetchOlderScopeMessages,
+  } = useCreatorScopeConversation(relationshipId, scopeShopId);
   const newestConversationMessageKey = conversationMessages.at(-1)
     ? affiliateCreatorMessageKey(conversationMessages.at(-1)!)
     : null;
   useLayoutEffect(() => {
-    if (
-      activeTab === "conversation" &&
-      conversationScrollRelationshipRef.current !== relationshipId
-    ) {
-      conversationScrollRelationshipRef.current = relationshipId;
+    if (activeTab === "conversation" && conversationScrollRelationshipRef.current !== scopeKey) {
+      conversationScrollRelationshipRef.current = scopeKey;
       conversationAutoScrollPendingRef.current = true;
     }
     if (
@@ -10335,7 +10430,7 @@ export function CreatorRelationshipDetailModal({
     if (!viewport) return;
     viewport.scrollTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
     conversationAutoScrollPendingRef.current = false;
-  }, [activeTab, conversationLoading, newestConversationMessageKey, relationshipId]);
+  }, [activeTab, conversationLoading, newestConversationMessageKey, scopeKey]);
 
   async function stageComposerFiles(files: FileList | null): Promise<void> {
     if (!files?.length || !relationshipId) return;
@@ -10366,7 +10461,8 @@ export function CreatorRelationshipDetailModal({
   }
 
   async function submitComposerMessage(): Promise<void> {
-    if (!relationshipId || !composerShopId) return;
+    if (!relationshipId || !composerShopId || (scopeShopId && composerShopId !== scopeShopId))
+      return;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
     if (composerText.trim())
       parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: composerText.trim() });
@@ -10481,6 +10577,7 @@ export function CreatorRelationshipDetailModal({
     variables: {
       input: {
         creatorRelationshipId: relationshipId ?? "",
+        shopIds: scopeShopId ? [scopeShopId] : undefined,
         limit: AFFILIATE_TIMELINE_PAGE_SIZE,
       },
     },
@@ -10558,13 +10655,26 @@ export function CreatorRelationshipDetailModal({
   }
 
   const relationshipTimeline = relationshipTimelineData?.affiliateRelationshipTimeline;
-  const lastManualTagChange = latestManualTagChange(relationshipTimeline?.items ?? []);
-  const lastSystemTagChange = latestSystemTagChange(relationshipTimeline?.items ?? []);
+  const { data: globalManagementTimelineData, refetch: refetchGlobalManagementTimeline } = useQuery<
+    { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
+    { input: GQL.AffiliateRelationshipTimelineInput }
+  >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
+    variables: {
+      input: { creatorRelationshipId: relationshipId ?? "", limit: AFFILIATE_TIMELINE_PAGE_SIZE },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId || !scopeShopId || contextInspectorSection !== "management",
+  });
+  const managementTimelineItems = scopeShopId
+    ? (globalManagementTimelineData?.affiliateRelationshipTimeline.items ?? [])
+    : (relationshipTimeline?.items ?? []);
+  const lastManualTagChange = latestManualTagChange(managementTimelineItems);
+  const lastSystemTagChange = latestSystemTagChange(managementTimelineItems);
   const canLoadOlderActivity = Boolean(
     relationshipTimeline?.hasOlder && relationshipTimeline.olderCursor,
   );
   const activityEntries = buildRelationshipTimelineEntries(
-    relationshipTimeline?.items ?? [],
+    creatorScopeTimeline(relationshipTimeline?.items ?? [], scopeShopId),
     relationshipSampleApplications,
     t,
   );
@@ -10577,12 +10687,13 @@ export function CreatorRelationshipDetailModal({
     window.requestAnimationFrame(() => {
       activityBottomRef.current?.scrollIntoView({ block: "end" });
     });
-  }, [activeTab, activityEntries.length]);
+  }, [activeTab, activityEntries.length, scopeKey]);
   const tabItems = [
     {
       id: "overview" as const,
       label: t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork"),
-      count: visiblePendingProposals.length || relationshipAgenda.length,
+      count:
+        (scopedPendingProposalCount ?? visiblePendingProposals.length) || relationshipAgenda.length,
     },
     {
       id: "conversation" as const,
@@ -10594,15 +10705,14 @@ export function CreatorRelationshipDetailModal({
       label: t("ecommerce.affiliateWorkspace.relationshipPanelSamples", {
         defaultValue: "Samples & fulfillment",
       }),
-      count:
-        relationshipDetail?.counts.sampleApplicationCount ?? relationshipSampleApplications.length,
+      count: scopedSampleCount ?? relationshipSampleApplications.length,
     },
     {
       id: "platform" as const,
       label: t("ecommerce.affiliateWorkspace.relationshipPanelPlatformCollaborations", {
         defaultValue: "Platform collaborations",
       }),
-      count: relationshipDetail?.counts.platformCollaborationCount ?? platformCollaborations.length,
+      count: scopedCollaborationCount ?? platformCollaborations.length,
     },
     {
       id: "profile" as const,
@@ -10614,39 +10724,29 @@ export function CreatorRelationshipDetailModal({
     {
       id: "activity" as const,
       label: t("ecommerce.affiliateWorkspace.relationshipPanelActivity"),
-      count: relationshipDetail?.counts.lifecycleEventCount ?? activityEntries.length,
+      count: scopeShopId
+        ? canLoadOlderActivity
+          ? undefined
+          : activityEntries.length
+        : (relationshipDetail?.counts.lifecycleEventCount ?? activityEntries.length),
     },
   ];
 
   async function loadOlderConversationMessages(): Promise<void> {
-    if (!conversationHistory?.hasMore || conversationHistory.nextOffset == null || !relationshipId)
-      return;
+    if (!canLoadOlderConversation || !relationshipId) return;
+    const requestScopeKey = scopeKey;
     const viewport = conversationViewportRef.current;
     const previousScrollHeight = viewport?.scrollHeight ?? 0;
     const previousScrollTop = viewport?.scrollTop ?? 0;
     conversationAutoScrollPendingRef.current = false;
-    await fetchMoreConversationMessages({
-      variables: {
-        input: {
-          creatorRelationshipId: relationshipId,
-          limit: AFFILIATE_TIMELINE_PAGE_SIZE,
-          offset: conversationHistory.nextOffset,
-        },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => {
-        if (!fetchMoreResult) return previous;
-        return {
-          affiliateCreatorMessageHistory: {
-            ...fetchMoreResult.affiliateCreatorMessageHistory,
-            items: mergeAffiliateCreatorMessageHistoryItems(
-              previous.affiliateCreatorMessageHistory.items,
-              fetchMoreResult.affiliateCreatorMessageHistory.items,
-            ),
-          },
-        };
-      },
-    });
+    try {
+      await fetchOlderScopeMessages();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      return;
+    }
     window.requestAnimationFrame(() => {
+      if (activeScopeKeyRef.current !== requestScopeKey) return;
       const currentViewport = conversationViewportRef.current;
       if (!currentViewport) return;
       currentViewport.scrollTop =
@@ -10662,6 +10762,7 @@ export function CreatorRelationshipDetailModal({
       variables: {
         input: {
           creatorRelationshipId: relationshipId,
+          shopIds: scopeShopId ? [scopeShopId] : undefined,
           limit: AFFILIATE_TIMELINE_PAGE_SIZE,
           cursor: relationshipTimeline.olderCursor,
         },
@@ -10677,7 +10778,12 @@ export function CreatorRelationshipDetailModal({
     if (!samplePage?.hasMore || !samplePage.nextCursor || !relationshipId) return;
     void sampleQuery.fetchMore({
       variables: {
-        input: { creatorRelationshipId: relationshipId, limit: 25, cursor: samplePage.nextCursor },
+        input: {
+          creatorRelationshipId: relationshipId,
+          shopId: scopeShopId || null,
+          limit: 25,
+          cursor: samplePage.nextCursor,
+        },
       },
       updateQuery: (previous, { fetchMoreResult }) => {
         if (!fetchMoreResult) return previous;
@@ -10707,6 +10813,7 @@ export function CreatorRelationshipDetailModal({
       variables: {
         input: {
           creatorRelationshipId: relationshipId,
+          shopId: scopeShopId || null,
           limit: 25,
           cursor: platformPage.nextCursor,
         },
@@ -10742,6 +10849,7 @@ export function CreatorRelationshipDetailModal({
       variables: {
         input: {
           creatorRelationshipId: relationshipId,
+          shopId: scopeShopId || null,
           limit: 25,
           cursor: proposalPage.nextCursor,
         },
@@ -10846,7 +10954,7 @@ export function CreatorRelationshipDetailModal({
         ariaLabel={name}
         onClose={onClose}
       >
-        <div className="modal-header affiliate-relationship-work-modal-header">
+        <div className="modal-header affiliate-relationship-work-modal-header affiliate-creator-scope-header">
           <div className="affiliate-relationship-work-modal-heading">
             <CreatorAvatarImage
               avatarUrl={profile?.avatarUrl}
@@ -10859,7 +10967,11 @@ export function CreatorRelationshipDetailModal({
                 <h2 className="affiliate-relationship-detail-title">{name}</h2>
                 <span
                   className="affiliate-relationship-header-progress"
-                  title={t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}
+                  title={
+                    scopeShopId
+                      ? `${t("ecommerce.affiliateWorkspace.creatorScope.selectedShop")} · ${t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}`
+                      : t("ecommerce.affiliateWorkspace.sampleTierColumnHint")
+                  }
                 >
                   <span>{t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}</span>
                   <strong>{creatorSampleTierDisplay(t, cooperationProgressTier)}</strong>
@@ -10874,7 +10986,20 @@ export function CreatorRelationshipDetailModal({
               </div>
             </div>
           </div>
-          <div className="affiliate-relationship-work-modal-header-actions">
+          <div className="affiliate-relationship-work-modal-header-actions affiliate-creator-scope-actions">
+            <CreatorDetailScopeControl
+              value={scopeShopId}
+              onChange={changeScope}
+              disabled={
+                sendingMessage ||
+                uploadingAttachments ||
+                Boolean(decidingProposalId) ||
+                reviewSampleState.loading ||
+                reopenSampleState.loading ||
+                !relationshipDetail
+              }
+              shops={includedShopIds.map((id) => ({ id, ...relationshipShopName(id) }))}
+            />
             <button
               className="btn btn-secondary btn-sm affiliate-relationship-inspector-mobile-toggle"
               type="button"
@@ -10926,6 +11051,9 @@ export function CreatorRelationshipDetailModal({
               <section className="affiliate-relationship-work-side-card affiliate-relationship-work-side-card-primary">
                 <div className="affiliate-relationship-work-side-card-head">
                   <span>{t("ecommerce.affiliateWorkspace.relationshipProfileSummary")}</span>
+                  <TkBadge>
+                    {t("ecommerce.affiliateWorkspace.creatorScope.globalInformation")}
+                  </TkBadge>
                   {profile ? (
                     <button
                       className="affiliate-inline-link-button"
@@ -10953,6 +11081,7 @@ export function CreatorRelationshipDetailModal({
                 ) : null}
               </section>
             ) : null}
+            {contextInspectorSection !== "overview" ? <CreatorGlobalInformation /> : null}
             {contextInspectorSection === "contacts" && relationshipId ? (
               <CreatorContactPanel relationshipId={relationshipId} />
             ) : null}
@@ -11015,6 +11144,7 @@ export function CreatorRelationshipDetailModal({
                 onChanged={() => {
                   void refetchRelationshipDetail();
                   void refetchRelationshipTimeline();
+                  if (scopeShopId) void refetchGlobalManagementTimeline();
                 }}
               />
             ) : null}
@@ -11039,16 +11169,11 @@ export function CreatorRelationshipDetailModal({
                 <div className="affiliate-relationship-work-side-facts">
                   <SampleApplicationFact
                     label={t("ecommerce.affiliateWorkspace.relationshipWorkPendingProposals")}
-                    value={
-                      relationshipDetail?.counts.pendingProposalCount ??
-                      visiblePendingProposals.length
-                    }
+                    value={scopedPendingProposalCount ?? visiblePendingProposals.length}
                   />
                   <SampleApplicationFact
-                    label={t(
-                      "ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications",
-                    )}
-                    value={relationshipDetail?.counts.activeSampleApplicationCount ?? 0}
+                    label={t("ecommerce.affiliateWorkspace.relationshipPanelSamples")}
+                    value={scopedSampleCount ?? "—"}
                   />
                   <SampleApplicationFact
                     label={t(
@@ -11057,29 +11182,25 @@ export function CreatorRelationshipDetailModal({
                         defaultValue: "Active platform collaborations",
                       },
                     )}
-                    value={relationshipDetail?.counts.activePlatformCollaborationCount ?? 0}
+                    value={scopedCollaborationCount ?? "—"}
                   />
                   <SampleApplicationFact
-                    label={t("ecommerce.affiliateWorkspace.creatorBlocked")}
+                    label={`${t("ecommerce.affiliateWorkspace.creatorBlocked")} · ${t("ecommerce.affiliateWorkspace.creatorScope.globalInformation")}`}
                     value={blocked ? t("common.yes") : t("common.no")}
                   />
                   <SampleApplicationFact
                     label={t("ecommerce.affiliateWorkspace.creatorLastContactedAt", {
                       defaultValue: "Last contacted",
                     })}
-                    value={
-                      relationshipDetail?.lastContactedAt
-                        ? formatProposalTime(relationshipDetail.lastContactedAt)
-                        : "—"
-                    }
+                    value={scopedLastContactedAt ? formatProposalTime(scopedLastContactedAt) : "—"}
                   />
                   <SampleApplicationFact
                     label={t("ecommerce.affiliateWorkspace.creatorLastBusinessActivityAt", {
                       defaultValue: "Last business activity",
                     })}
                     value={
-                      relationshipDetail?.lastBusinessActivityAt
-                        ? formatProposalTime(relationshipDetail.lastBusinessActivityAt)
+                      scopedLastBusinessActivityAt
+                        ? formatProposalTime(scopedLastBusinessActivityAt)
                         : "—"
                     }
                   />
@@ -11124,14 +11245,10 @@ export function CreatorRelationshipDetailModal({
                         :{" "}
                         {summary.lastBusinessActivityAt
                           ? formatProposalTime(summary.lastBusinessActivityAt)
-                          : t("ecommerce.affiliateWorkspace.noRecentBusinessActivity", {
-                              defaultValue: "No recent business activity",
-                            })}
+                          : t("ecommerce.affiliateWorkspace.creatorScope.noRecentActivity")}
                       </span>
                       <span>
-                        {t("ecommerce.affiliateWorkspace.shopActivitySummaryCounts", {
-                          defaultValue:
-                            "{{agenda}} tasks · {{samples}} samples · {{collaborations}} platform collaborations · {{proposals}} pending proposals",
+                        {t("ecommerce.affiliateWorkspace.creatorScope.shopCounts", {
                           agenda: summary.agendaItemCount,
                           samples: summary.sampleApplicationCount,
                           collaborations: summary.platformCollaborationCount,
@@ -11171,13 +11288,16 @@ export function CreatorRelationshipDetailModal({
               ref={tabPanelRef}
             >
               {activeTab === "profile" ? (
-                <CreatorProfilePanel
-                  profile={profile}
-                  performance={performance}
-                  payload={authoritativeProfile}
-                  loading={creatorProfileLoading}
-                  onRefresh={() => void refetchCreatorProfile()}
-                />
+                <>
+                  <CreatorGlobalInformation profile />
+                  <CreatorProfilePanel
+                    profile={profile}
+                    performance={performance}
+                    payload={authoritativeProfile}
+                    loading={creatorProfileLoading}
+                    onRefresh={() => void refetchCreatorProfile()}
+                  />
+                </>
               ) : null}
               {activeTab === "overview" ? (
                 <div className="affiliate-relationship-work-overview-panel">
@@ -11205,15 +11325,13 @@ export function CreatorRelationshipDetailModal({
                       </div>
                       <div className="affiliate-relationship-work-current-work-actions">
                         <div>
-                          <span>
-                            {t(
-                              "ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications",
-                            )}
-                          </span>
-                          <strong>
-                            {relationshipDetail?.counts.activeSampleApplicationCount ?? 0}
-                          </strong>
-                          <small>{t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}</small>
+                          <span>{t("ecommerce.affiliateWorkspace.relationshipPanelSamples")}</span>
+                          <strong>{scopedSampleCount ?? "—"}</strong>
+                          <small>
+                            {scopeShopId
+                              ? t("ecommerce.affiliateWorkspace.creatorScope.selectedShop")
+                              : t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}
+                          </small>
                         </div>
                         <div>
                           <span>
@@ -11267,34 +11385,56 @@ export function CreatorRelationshipDetailModal({
                     <section className="affiliate-relationship-work-overview-section">
                       <h3>{t("ecommerce.affiliateWorkspace.relationshipWorkPendingProposals")}</h3>
                       <div className="affiliate-relationship-work-overview-proposal-list">
-                        {visiblePendingProposals.map((proposal) => (
-                          <AgentWorkBundleCard
-                            key={proposal.id}
-                            proposal={proposal}
-                            shopLabel={{
-                              text: t("ecommerce.affiliateWorkspace.relationshipAcrossShops"),
-                              sensitive: false,
-                            }}
-                            shopLabelForId={relationshipShopName}
-                            decidingProposal={decidingProposalId === proposal.id}
-                            variant="embedded"
-                            allowDecisionActions
-                            affiliateWorkspace={affiliateWorkspace}
-                            onApprove={(item) =>
-                              decideRelationshipProposal(item, GQL.ActionProposalStatus.Approved)
-                            }
-                            onReject={(item) =>
-                              decideRelationshipProposal(item, GQL.ActionProposalStatus.Rejected)
-                            }
-                            onRequestRevision={(item, revisionNote) =>
-                              decideRelationshipProposal(
-                                item,
-                                GQL.ActionProposalStatus.RevisionRequested,
-                                revisionNote,
-                              )
-                            }
-                          />
-                        ))}
+                        {visiblePendingProposals.map((proposal) =>
+                          creatorProposalRequiresGlobalView(proposal, scopeShopId) ? (
+                            <TkAlert
+                              key={proposal.id}
+                              title={t(
+                                "ecommerce.affiliateWorkspace.creatorScope.crossShopProposal",
+                              )}
+                              actions={
+                                <TkButton variant="secondary" onClick={() => changeScope("")}>
+                                  {t("ecommerce.affiliateWorkspace.creatorScope.backToGlobal")}
+                                </TkButton>
+                              }
+                            >
+                              {t("ecommerce.affiliateWorkspace.creatorScope.crossShopProposalHint")}
+                            </TkAlert>
+                          ) : (
+                            <AgentWorkBundleCard
+                              key={proposal.id}
+                              proposal={proposal}
+                              shopLabel={{
+                                ...(scopeShopId
+                                  ? relationshipShopName(scopeShopId)
+                                  : {
+                                      text: t(
+                                        "ecommerce.affiliateWorkspace.relationshipAcrossShops",
+                                      ),
+                                      sensitive: false,
+                                    }),
+                              }}
+                              shopLabelForId={relationshipShopName}
+                              decidingProposal={decidingProposalId === proposal.id}
+                              variant="embedded"
+                              allowDecisionActions
+                              affiliateWorkspace={affiliateWorkspace}
+                              onApprove={(item) =>
+                                decideRelationshipProposal(item, GQL.ActionProposalStatus.Approved)
+                              }
+                              onReject={(item) =>
+                                decideRelationshipProposal(item, GQL.ActionProposalStatus.Rejected)
+                              }
+                              onRequestRevision={(item, revisionNote) =>
+                                decideRelationshipProposal(
+                                  item,
+                                  GQL.ActionProposalStatus.RevisionRequested,
+                                  revisionNote,
+                                )
+                              }
+                            />
+                          ),
+                        )}
                       </div>
                     </section>
                   ) : null}
@@ -11321,17 +11461,35 @@ export function CreatorRelationshipDetailModal({
                       </button>
                       {proposalHistoryOpen ? (
                         <div className="affiliate-relationship-work-overview-proposal-list">
-                          {historicalProposals.map((proposal) => (
-                            <AgentWorkBundleCard
-                              key={proposal.id}
-                              proposal={proposal}
-                              // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId):
-                              // single-shop label slot, same rule as the timeline.
-                              shopLabel={relationshipShopName(proposal.focusShopId)}
-                              shopLabelForId={relationshipShopName}
-                              variant="compact"
-                            />
-                          ))}
+                          {historicalProposals.map((proposal) =>
+                            creatorProposalRequiresGlobalView(proposal, scopeShopId) ? (
+                              <TkAlert
+                                key={proposal.id}
+                                title={t(
+                                  "ecommerce.affiliateWorkspace.creatorScope.crossShopProposal",
+                                )}
+                                actions={
+                                  <TkButton variant="secondary" onClick={() => changeScope("")}>
+                                    {t("ecommerce.affiliateWorkspace.creatorScope.backToGlobal")}
+                                  </TkButton>
+                                }
+                              >
+                                {t(
+                                  "ecommerce.affiliateWorkspace.creatorScope.crossShopProposalHint",
+                                )}
+                              </TkAlert>
+                            ) : (
+                              <AgentWorkBundleCard
+                                key={proposal.id}
+                                proposal={proposal}
+                                // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId):
+                                // single-shop label slot, same rule as the timeline.
+                                shopLabel={relationshipShopName(proposal.focusShopId)}
+                                shopLabelForId={relationshipShopName}
+                                variant="compact"
+                              />
+                            ),
+                          )}
                         </div>
                       ) : null}
                     </section>
@@ -11364,7 +11522,12 @@ export function CreatorRelationshipDetailModal({
                       reviewDispositionRevision: sample.reviewDispositionRevision,
                     };
                     return (
-                      <div className="affiliate-workbench-sample-review-card" key={sample.id}>
+                      <TkPanel
+                        className="affiliate-workbench-sample-review-card"
+                        variant="framed"
+                        padding="sm"
+                        key={sample.id}
+                      >
                         <SampleApplicationSummaryCard
                           sampleApplication={sample}
                           productSummary={productSummaryFor(sample.shopId, sample.productId)}
@@ -11391,31 +11554,28 @@ export function CreatorRelationshipDetailModal({
                           {sample.reviewDisposition ===
                           GQL.AffiliateSampleReviewDisposition.SoftRejected ? (
                             canPlatformReview ? (
-                              <button
-                                className="btn btn-secondary"
-                                type="button"
+                              <TkButton
+                                variant="secondary"
                                 onClick={() =>
                                   setSampleReviewCommand({ ...commandBase, kind: "REOPEN" })
                                 }
                               >
                                 {t("ecommerce.affiliateWorkspace.workbench.reopen")}
-                              </button>
+                              </TkButton>
                             ) : null
                           ) : (
                             <>
-                              <button
-                                className="btn btn-primary"
-                                type="button"
+                              <TkButton
+                                variant="primary"
                                 disabled={!canPlatformReview}
                                 onClick={() =>
                                   setSampleReviewCommand({ ...commandBase, kind: "APPROVE" })
                                 }
                               >
                                 {t("ecommerce.affiliateWorkspace.workbench.approveSample")}
-                              </button>
-                              <button
-                                className="btn btn-secondary"
-                                type="button"
+                              </TkButton>
+                              <TkButton
+                                variant="secondary"
                                 disabled={!canPlatformReview}
                                 onClick={() =>
                                   setSampleReviewCommand({
@@ -11425,17 +11585,13 @@ export function CreatorRelationshipDetailModal({
                                 }
                               >
                                 {t("ecommerce.affiliateWorkspace.workbench.platformReject")}
-                              </button>
-                              <button
-                                className="btn btn-secondary"
-                                type="button"
+                              </TkButton>
+                              <AffiliateSampleIgnoreButton
                                 disabled={!canPlatformReview}
                                 onClick={() =>
                                   setSampleReviewCommand({ ...commandBase, kind: "SOFT_REJECT" })
                                 }
-                              >
-                                {t("ecommerce.affiliateWorkspace.workbench.softReject")}
-                              </button>
+                              />
                             </>
                           )}
                           {sample.sampleWorkStatus === GQL.SampleWorkStatus.PlatformStatusUnknown &&
@@ -11445,7 +11601,7 @@ export function CreatorRelationshipDetailModal({
                             </span>
                           ) : null}
                         </div>
-                      </div>
+                      </TkPanel>
                     );
                   })}
                   {!sampleQuery.loading &&
@@ -11506,6 +11662,23 @@ export function CreatorRelationshipDetailModal({
               {activeTab === "conversation" ? (
                 <div className="affiliate-conversation-tab">
                   <div className="affiliate-conversation-preview" ref={conversationViewportRef}>
+                    {scopeShopId ? (
+                      <p className="affiliate-creator-scope-note">
+                        {t("ecommerce.affiliateWorkspace.creatorScope.sharedMessagesHint")}
+                      </p>
+                    ) : null}
+                    {canLoadOlderConversation ? (
+                      <TkButton
+                        variant="secondary"
+                        className="affiliate-conversation-load-more"
+                        disabled={conversationLoading}
+                        onClick={() => void loadOlderConversationMessages()}
+                      >
+                        {conversationLoading
+                          ? t("common.loading")
+                          : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
+                      </TkButton>
+                    ) : null}
                     {conversationError ? (
                       <AffiliateQueryErrorState
                         error={conversationError}
@@ -11517,22 +11690,14 @@ export function CreatorRelationshipDetailModal({
                       <div className="affiliate-proposal-empty">{t("common.loading")}</div>
                     ) : conversationMessages.length === 0 ? (
                       <div className="affiliate-proposal-empty">
-                        {t("ecommerce.affiliateWorkspace.conversation.noMessages")}
+                        {t(
+                          canLoadOlderConversation
+                            ? "ecommerce.affiliateWorkspace.creatorScope.noLoadedMessages"
+                            : "ecommerce.affiliateWorkspace.conversation.noMessages",
+                        )}
                       </div>
                     ) : (
                       <>
-                        {canLoadOlderConversation ? (
-                          <button
-                            className="btn btn-secondary affiliate-conversation-load-more"
-                            type="button"
-                            disabled={conversationLoading}
-                            onClick={() => void loadOlderConversationMessages()}
-                          >
-                            {conversationLoading
-                              ? t("common.loading")
-                              : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
-                          </button>
-                        ) : null}
                         {conversationMessages.map((message) => (
                           <AffiliateCreatorMessageRow
                             key={affiliateCreatorMessageKey(message)}
@@ -11554,7 +11719,9 @@ export function CreatorRelationshipDetailModal({
                       <Select
                         value={composerShopId}
                         onChange={setComposerShopId}
-                        options={includedShopIds.map((shopId) => {
+                        disabled={Boolean(scopeShopId)}
+                        ariaLabel={t("ecommerce.affiliateWorkspace.selectMessageShop")}
+                        options={(scopeShopId ? [scopeShopId] : includedShopIds).map((shopId) => {
                           const label = relationshipShopName(shopId);
                           return {
                             value: shopId,
@@ -11738,6 +11905,17 @@ export function CreatorRelationshipDetailModal({
           </section>
         </div>
       </AffiliateDetailModal>
+      <ConfirmDialog
+        isOpen={pendingScopeShopId !== null}
+        title={t("ecommerce.affiliateWorkspace.creatorScope.changeView")}
+        message={t("ecommerce.affiliateWorkspace.creatorScope.discardDraftHint")}
+        confirmLabel={t("ecommerce.affiliateWorkspace.creatorScope.discardAndSwitch")}
+        cancelLabel={t("common.cancel")}
+        onCancel={() => setPendingScopeShopId(null)}
+        onConfirm={() => {
+          if (pendingScopeShopId !== null) applyScope(pendingScopeShopId);
+        }}
+      />
       <Modal
         isOpen={Boolean(sampleReviewCommand)}
         onClose={() => setSampleReviewCommand(null)}
@@ -12318,17 +12496,18 @@ function CopyInlineValue({
     }
   }
 
-  if (compact) return (
-    <TkIconButton
-      label={copied ? t(copiedMessageKey) : t(copyLabelKey)}
-      size="sm"
-      variant="ghost"
-      onClick={copyValue}
-      onKeyDown={(event) => event.stopPropagation()}
-    >
-      <CopyIcon />
-    </TkIconButton>
-  );
+  if (compact)
+    return (
+      <TkIconButton
+        label={copied ? t(copiedMessageKey) : t(copyLabelKey)}
+        size="sm"
+        variant="ghost"
+        onClick={copyValue}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <CopyIcon />
+      </TkIconButton>
+    );
 
   return (
     <button

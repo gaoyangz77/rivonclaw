@@ -23,6 +23,11 @@ import {
 } from "../../../lib/format-datetime.js";
 import panelI18n from "../../../i18n/index.js";
 
+import {
+  AffiliateProtectionFilter,
+  workbenchProtectionValue,
+} from "./AffiliateProtectionFilter.js";
+
 const PAGE_SIZE = 25;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -165,7 +170,13 @@ function AffiliateWorkbenchSampleList({
   const [disposition, setDisposition] = useState<GQL.AffiliateSampleReviewDisposition>(
     GQL.AffiliateSampleReviewDisposition.Open,
   );
-  const filterKey = workbenchFilterKey([disposition, selectedShopId, selectedBusinessDeveloperId]);
+  const [protection, setProtection] = useState("ALL");
+  const filterKey = workbenchFilterKey([
+    protection,
+    disposition,
+    selectedShopId,
+    selectedBusinessDeveloperId,
+  ]);
   const [buffer, setBuffer] = useState<WorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>>(() =>
     emptyWorkbenchPageBuffer(filterKey),
   );
@@ -185,6 +196,7 @@ function AffiliateWorkbenchSampleList({
       input: {
         shopId: selectedShopId || null,
         businessDeveloperId: selectedBusinessDeveloperId || null,
+        protected: workbenchProtectionValue(protection),
         reviewDisposition: disposition,
         limit: PAGE_SIZE,
         cursor: null,
@@ -217,6 +229,7 @@ function AffiliateWorkbenchSampleList({
         input: {
           shopId: selectedShopId || null,
           businessDeveloperId: selectedBusinessDeveloperId || null,
+          protected: workbenchProtectionValue(protection),
           reviewDisposition: disposition,
           limit: PAGE_SIZE,
           cursor: nextCursor,
@@ -240,6 +253,7 @@ function AffiliateWorkbenchSampleList({
     disposition,
     fetchMore,
     filterKey,
+    protection,
     hasMore,
     nextCursor,
     selectedBusinessDeveloperId,
@@ -315,6 +329,7 @@ function AffiliateWorkbenchSampleList({
             ]}
             className="affiliate-status-select"
           />
+          <AffiliateProtectionFilter value={protection} onChange={setProtection} />
           <Select
             value={selectedBusinessDeveloperId}
             onChange={onSelectBusinessDeveloper}
@@ -554,7 +569,13 @@ function AffiliateWorkbenchMessageList({
   const [messageShopId, setMessageShopId] = useState("");
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
   const queryShopId = platformChannelActive && messageShopId ? messageShopId : null;
-  const filterKey = workbenchFilterKey([channel, queryShopId, selectedBusinessDeveloperId]);
+  const [protection, setProtection] = useState("ALL");
+  const filterKey = workbenchFilterKey([
+    protection,
+    channel,
+    queryShopId,
+    selectedBusinessDeveloperId,
+  ]);
   const [buffer, setBuffer] = useState<
     WorkbenchPageBuffer<GQL.AffiliateWorkbenchPendingConversationRow>
   >(() => emptyWorkbenchPageBuffer(filterKey));
@@ -574,6 +595,7 @@ function AffiliateWorkbenchMessageList({
         channel: channel || null,
         shopId: queryShopId,
         businessDeveloperId: selectedBusinessDeveloperId || null,
+        protected: workbenchProtectionValue(protection),
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -606,6 +628,7 @@ function AffiliateWorkbenchMessageList({
           channel: channel || null,
           shopId: queryShopId,
           businessDeveloperId: selectedBusinessDeveloperId || null,
+          protected: workbenchProtectionValue(protection),
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -628,6 +651,7 @@ function AffiliateWorkbenchMessageList({
     channel,
     fetchMore,
     filterKey,
+    protection,
     hasMore,
     nextCursor,
     queryShopId,
@@ -700,6 +724,7 @@ function AffiliateWorkbenchMessageList({
               />
             </>
           ) : null}
+          <AffiliateProtectionFilter value={protection} onChange={setProtection} />
           <Select
             value={selectedBusinessDeveloperId}
             onChange={onSelectBusinessDeveloper}

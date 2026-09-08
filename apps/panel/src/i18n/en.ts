@@ -3548,9 +3548,9 @@ export default {
           messages: "Creator messages",
         },
         sampleOpen: "Pending",
-        sampleSoftRejected: "Soft rejected",
+        sampleSoftRejected: "Ignored",
         noSamples: "No Sample Applications need attention.",
-        noSoftRejectedSamples: "No soft-rejected Sample Applications.",
+        noSoftRejectedSamples: "No ignored Sample Applications.",
         noMessages: "No Creator messages need attention.",
         expiresAt: "Expires {{value}}",
         pendingSince: "Pending since {{value}}",
@@ -3561,8 +3561,8 @@ export default {
         sampleSyncIssue: "Sync issue",
         reopen: "Reopen",
         approveSample: "Approve",
-        platformReject: "Reject on TikTok",
-        softReject: "Soft reject",
+        platformReject: "Reject",
+        softReject: "Ignore",
         sampleSyncUnknown:
           "Platform status needs synchronization before review.",
         sampleReviewSaved: "Sample review saved.",
@@ -3570,8 +3570,8 @@ export default {
         rejectExplanation: "Explain the reason",
         reviewTitles: {
           APPROVE: "Approve Sample Application",
-          PLATFORM_REJECT: "Reject on TikTok",
-          SOFT_REJECT: "Soft reject",
+          PLATFORM_REJECT: "Reject Sample Application",
+          SOFT_REJECT: "Ignore Sample Application",
           REOPEN: "Reopen Sample Application",
         },
         reviewDescriptions: {
@@ -3579,7 +3579,7 @@ export default {
           PLATFORM_REJECT:
             "TikTok will receive a rejection after live revalidation.",
           SOFT_REJECT:
-            "The seller decision is recorded locally. TikTok is not called and the application may expire naturally.",
+            "Stop reviewing this Sample Application and let it expire naturally, without rejecting it on TikTok. You can reopen it before expiry.",
           REOPEN: "Reopen this local decision if TikTok still allows review.",
         },
       },

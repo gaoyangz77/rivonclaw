@@ -5052,10 +5052,12 @@ export interface AffiliateWorkbenchPendingConversationPage {
 export interface AffiliateWorkbenchPendingConversationPageInput {
   /** Restrict the page and its counts to conversations whose Relationship is owned by this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
-  /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts always describe the full unfiltered breakdown. */
+  /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts cover all channels while respecting protection, Business Developer and applicable shop filters. */
   channel?: InputMaybe<AffiliateMessageChannel>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
+  protected?: InputMaybe<Scalars['Boolean']['input']>;
   /** Restrict PLATFORM_CHAT conversations to one owned shop. Only accepted together with the PLATFORM_CHAT channel filter. */
   shopId?: InputMaybe<Scalars['ID']['input']>;
 }
@@ -5093,6 +5095,8 @@ export interface AffiliateWorkbenchSamplePageInput {
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
+  protected?: InputMaybe<Scalars['Boolean']['input']>;
   reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
 }
