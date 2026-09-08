@@ -27,6 +27,7 @@ import {
   type ProductFilterValue,
 } from "../../../components/ecommerce/ProductFilter.js";
 import { WorkbenchCreatorSearch } from "./WorkbenchCreatorSearch.js";
+import "./AffiliateWorkbenchEntityTabs.css";
 
 import {
   AffiliateProtectionFilter,

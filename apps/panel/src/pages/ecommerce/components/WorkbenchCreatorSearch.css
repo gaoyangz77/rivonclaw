@@ -1,11 +1,13 @@
 .workbench-creator-search {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   max-width: 100%;
-  flex-wrap: wrap;
+  margin: 0 0 0 auto;
+  min-width: 0;
 }
 .workbench-creator-search-field {
-  width: 280px;
+  width: 220px;
+  flex: 1 1 180px;
   max-width: 100%;
 }

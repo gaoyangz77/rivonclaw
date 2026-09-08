@@ -33,6 +33,11 @@ import {
 afterEach(cleanup);
 
 describe("design-system primitives", () => {
+  it("keeps compact toolbar fields labelled without a visible label row", () => {
+    render(<TkField label="Creator search" hideLabel type="search" />);
+    expect(screen.getByRole("searchbox", { name: "Creator search" })).toBeTruthy();
+    expect(screen.getByText("Creator search").className).toContain("tk-v1-label-hidden");
+  });
   it("provides the shared page hierarchy without wrapping actions in another surface", () => {
     render(
       <TkPageFrame data-tutorial-id="campaign-page">

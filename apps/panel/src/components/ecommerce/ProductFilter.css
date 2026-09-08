@@ -8,6 +8,13 @@
   min-width: 0;
   padding: 12px;
 }
+.product-filter-search {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
 .product-filter-actions,
 .product-filter-meta {
   display: flex;

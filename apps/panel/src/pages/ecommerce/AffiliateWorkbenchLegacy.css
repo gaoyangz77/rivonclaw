@@ -140,22 +140,6 @@
   flex-direction: column;
 }
 
-.affiliate-workbench-entity-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.affiliate-workbench-entity-filters {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .affiliate-workbench-entity-filters .affiliate-status-select {
   width: auto;
   min-width: 170px;
@@ -315,11 +299,6 @@
   align-items: center;
   gap: 12px;
   color: var(--color-danger);
-}
-
-.affiliate-workbench-entity-summary {
-  color: var(--color-text-muted);
-  font-size: 12px;
 }
 
 .affiliate-workbench-summary-divider {

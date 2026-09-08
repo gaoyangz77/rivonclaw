@@ -460,6 +460,12 @@ export function DesignSystemPage() {
               >
                 <div className="tk-design-lab-form-grid">
                   <TkField
+                    label="Compact creator search"
+                    hideLabel
+                    type="search"
+                    placeholder="Creator ID / @username"
+                  />
+                  <TkField
                     label="Search creators"
                     placeholder="Name, handle, or product"
                     prefix="/"

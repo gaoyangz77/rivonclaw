@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useQuery } from "@apollo/client/react";
+import { useEffect, useRef, useState } from "react";
+import { useApolloClient } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
-import { ECOMMERCE_PRODUCT_FILTER_OPTIONS_QUERY } from "../../api/shops-queries.js";
+import { requestProductCatalogs, type ProductOption } from "./product-catalog-request.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { TkButton, TkField, TkPopover, TkPrivate } from "../design-system/index.js";
@@ -13,7 +13,6 @@ export interface ProductFilterValue {
   shopId: string;
   productId: string;
 }
-type ProductOption = Pick<GQL.EcomProductSummary, "shopId" | "productId" | "title">;
 const keyOf = (value: ProductFilterValue) => JSON.stringify([value.shopId, value.productId]);
 
 /** Catalog selection only: consumers own their entity queries and pagination. */
@@ -29,29 +28,79 @@ export const ProductFilter = observer(function ProductFilter({
   const { t } = useTranslation();
   const store = useEntityStore();
   const [open, setOpen] = useState(false);
-  const [requestedScope, setRequestedScope] = useState<string | null>(null);
   const [searchDraft, setSearchDraft] = useState("");
   const scope = shopId || "";
-  const { data, loading, error, refetch } = useQuery<
-    { ecommerceSearchProducts: ProductOption[] },
-    { shopIds: string[] | null }
-  >(ECOMMERCE_PRODUCT_FILTER_OPTIONS_QUERY, {
-    variables: { shopIds: shopId ? [shopId] : null },
-    skip: requestedScope !== scope,
-    fetchPolicy: "network-only",
-    notifyOnNetworkStatusChange: true,
+  const client = useApolloClient();
+  const request = useRef<AbortController | null>(null);
+  const [catalog, setCatalog] = useState({
+    scope,
+    options: [] as ProductOption[],
+    query: "",
+    status: "idle",
+    completed: 0,
+    total: 0,
   });
-  const options = (data?.ecommerceSearchProducts ?? []).filter(
+  useEffect(() => {
+    setCatalog({ scope, options: [], query: "", status: "idle", completed: 0, total: 0 });
+    return () => request.current?.abort();
+  }, [scope]);
+  const active = catalog.scope === scope;
+  const loading = active && catalog.status === "loading";
+  const error = active && catalog.status === "error";
+  const options = (active ? catalog.options : []).filter(
     (option): option is ProductOption & { shopId: string } =>
       Boolean(option.shopId) && (!shopId || option.shopId === shopId),
   );
   const selected = new Set(value.map(keyOf));
-  const query = searchDraft.trim().toLocaleLowerCase();
+  const query = catalog.query;
   const matches = options.filter(
     (option) =>
       (option.title ?? "").toLocaleLowerCase().includes(query) || option.productId.includes(query),
   );
   const label = t("ecommerce.affiliateWorkspace.workbench.productFilter");
+  const search = async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    // Snapshot IDs before async work: never retain live shop nodes.
+    const ids = shopId
+      ? [shopId]
+      : store.shops
+          .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
+          .map((shop) => shop.id);
+    const next = {
+      scope,
+      query: searchDraft.trim().toLocaleLowerCase(),
+      options: [] as ProductOption[],
+      completed: 0,
+      total: ids.length,
+      status: "loading",
+    };
+    setCatalog({ ...next });
+    try {
+      if (!ids.length) throw new Error("No authorized shops available");
+      let failed = false;
+      await requestProductCatalogs(client, ids, controller.signal, (result) => {
+        if (result.status === "fulfilled") {
+          next.options = [...next.options, ...result.products];
+        } else {
+          failed = true;
+        }
+        next.completed += 1;
+        setCatalog({ ...next });
+      });
+      if (!controller.signal.aborted) {
+        setCatalog({ ...next, status: failed ? "error" : "complete" });
+      }
+    } catch {
+      // UI boundary: keep completed shops visible, but explicitly mark results incomplete.
+      if (!controller.signal.aborted) setCatalog({ ...next, status: "error" });
+    }
+  };
+  const cancel = () => {
+    request.current?.abort();
+    setCatalog((current) => ({ ...current, status: "cancelled" }));
+  };
   const toggle = (option: ProductFilterValue) => {
     const key = keyOf(option);
     onChange(
@@ -65,10 +114,7 @@ export const ProductFilter = observer(function ProductFilter({
       label={label}
       className="product-filter-popover"
       open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (next) setRequestedScope(scope);
-      }}
+      onOpenChange={setOpen}
       trigger={(props) => (
         <TkButton {...props}>
           {label}
@@ -77,12 +123,23 @@ export const ProductFilter = observer(function ProductFilter({
       )}
     >
       <div className="product-filter-content">
-        <TkField
-          label={t("ecommerce.affiliateWorkspace.workbench.productSearch")}
-          value={searchDraft}
-          onChange={(event) => setSearchDraft(event.target.value)}
-          type="search"
-        />
+        <form
+          className="product-filter-search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!loading && searchDraft.trim()) void search();
+          }}
+        >
+          <TkField
+            label={t("ecommerce.affiliateWorkspace.workbench.productSearch")}
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            type="search"
+          />
+          <TkButton type="submit" disabled={loading || !searchDraft.trim()}>
+            {t("ecommerce.affiliateWorkspace.workbench.searchCreator")}
+          </TkButton>
+        </form>
         <div className="product-filter-actions">
           <span>
             {t("ecommerce.affiliateWorkspace.workbench.productsSelected", { count: value.length })}
@@ -90,14 +147,15 @@ export const ProductFilter = observer(function ProductFilter({
           <TkButton size="sm" variant="ghost" disabled={!value.length} onClick={() => onChange([])}>
             {t("ecommerce.affiliateWorkspace.workbench.clearProducts")}
           </TkButton>
-          <TkButton
-            size="sm"
-            variant="ghost"
-            disabled={loading}
-            onClick={() => void refetch().catch(() => {})}
-          >
-            {t("ecommerce.affiliateWorkspace.workbench.reloadProducts")}
-          </TkButton>
+          {loading ? (
+            <TkButton size="sm" variant="ghost" onClick={cancel}>
+              {t("common.cancel")}
+            </TkButton>
+          ) : error ? (
+            <TkButton size="sm" variant="ghost" disabled={loading} onClick={() => void search()}>
+              {t("ecommerce.affiliateWorkspace.workbench.reloadProducts")}
+            </TkButton>
+          ) : null}
         </div>
         {value.length > 0 && (
           <div
@@ -129,46 +187,53 @@ export const ProductFilter = observer(function ProductFilter({
         )}
         <div className="product-filter-results" aria-busy={loading}>
           {loading ? (
-            <p role="status">{t("ecommerce.affiliateWorkspace.workbench.loadingProducts")}</p>
+            <p role="status">
+              {t("ecommerce.affiliateWorkspace.workbench.loadingProducts", {
+                completed: catalog.completed,
+                total: catalog.total,
+              })}
+            </p>
           ) : error ? (
             <p role="alert">{t("ecommerce.affiliateWorkspace.workbench.productsLoadFailed")}</p>
+          ) : !active || catalog.status === "idle" ? (
+            <p role="status">{t("ecommerce.affiliateWorkspace.workbench.productSearchPrompt")}</p>
+          ) : catalog.status === "cancelled" ? (
+            <p role="status">
+              {t("ecommerce.affiliateWorkspace.workbench.productSearchCancelled")}
+            </p>
           ) : !matches.length ? (
             <p role="status">{t("ecommerce.affiliateWorkspace.workbench.noMatchingProducts")}</p>
-          ) : (
-            matches.map((option) => {
-              const shop = shopDisplayLabel(
-                store.shops.find((candidate) => candidate.id === option.shopId),
-                option.shopId,
-              );
-              const checked = selected.has(keyOf(option));
-              return (
-                <TkButton
-                  key={keyOf(option)}
-                  variant={checked ? "secondary" : "ghost"}
-                  className="product-filter-option"
-                  aria-pressed={checked}
-                  disabled={!checked && value.length >= 100}
-                  onClick={() => toggle(option)}
-                >
-                  <span className="product-filter-option-layout">
-                    <span aria-hidden="true">{checked ? "✓" : "+"}</span>
-                    <span className="product-filter-option-copy">
-                      <span
-                        className="product-filter-title"
-                        title={option.title ?? option.productId}
-                      >
-                        {option.title || option.productId}
-                      </span>
-                      <span className="product-filter-meta">
-                        <TkPrivate sensitive={shop.sensitive}>{shop.text}</TkPrivate>
-                        <span>{option.productId}</span>
-                      </span>
+          ) : null}
+          {matches.map((option) => {
+            const shop = shopDisplayLabel(
+              store.shops.find((candidate) => candidate.id === option.shopId),
+              option.shopId,
+            );
+            const checked = selected.has(keyOf(option));
+            return (
+              <TkButton
+                key={keyOf(option)}
+                variant={checked ? "secondary" : "ghost"}
+                className="product-filter-option"
+                aria-pressed={checked}
+                disabled={!checked && value.length >= 100}
+                onClick={() => toggle(option)}
+              >
+                <span className="product-filter-option-layout">
+                  <span aria-hidden="true">{checked ? "✓" : "+"}</span>
+                  <span className="product-filter-option-copy">
+                    <span className="product-filter-title" title={option.title ?? option.productId}>
+                      {option.title || option.productId}
+                    </span>
+                    <span className="product-filter-meta">
+                      <TkPrivate sensitive={shop.sensitive}>{shop.text}</TkPrivate>
+                      <span>{option.productId}</span>
                     </span>
                   </span>
-                </TkButton>
-              );
-            })
-          )}
+                </span>
+              </TkButton>
+            );
+          })}
         </div>
         <p className="product-filter-hint">
           {t("ecommerce.affiliateWorkspace.workbench.productSelectionHint")}
