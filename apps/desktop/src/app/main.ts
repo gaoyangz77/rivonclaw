@@ -100,6 +100,11 @@ import {
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
 import { tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../gateway/connection.js";
 import { CS_ADMISSION_CANCEL_REASON } from "../cs-bridge/cs-run-admission.js";
+import {
+  GATEWAY_HEAP_SNAPSHOT_NODE_FLAG,
+  GATEWAY_HEAP_SNAPSHOT_SETTING_KEY,
+  isGatewayHeapSnapshotEnabled,
+} from "../gateway/heap-snapshot-setting.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { flushCsSessionCursorStore } from "../cs-bridge/cs-session-cursor-store.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
@@ -1841,7 +1846,18 @@ app.whenReady().then(async () => {
   // so the --require is never accidentally dropped.
   const proxySetupPath = writeProxySetupModule(stateDir, vendorDir);
   // Quote the path — Windows usernames with spaces break unquoted --require
-  const gatewayNodeOptions = `--require "${proxySetupPath.replaceAll("\\", "/")}"`;
+  const heapSnapshotOnOom = isGatewayHeapSnapshotEnabled((key) => storage.settings.get(key));
+  if (heapSnapshotOnOom) {
+    log.warn(
+      `Gateway heap snapshot on OOM is ENABLED (${GATEWAY_HEAP_SNAPSHOT_SETTING_KEY}). ` +
+        `Every Gateway OOM will write a .heapsnapshot into ${stateDir} while the ` +
+        `process is already out of memory. Turn this off once one snapshot is collected.`,
+    );
+  }
+  const gatewayNodeOptions = [
+    `--require "${proxySetupPath.replaceAll("\\", "/")}"`,
+    ...(heapSnapshotOnOom ? [GATEWAY_HEAP_SNAPSHOT_NODE_FLAG] : []),
+  ].join(" ");
 
   /**
    * Build the complete proxy env including NODE_OPTIONS.

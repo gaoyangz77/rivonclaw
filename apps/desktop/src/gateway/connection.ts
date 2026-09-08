@@ -6,6 +6,7 @@ import { getAuthSession } from "../auth/session-ref.js";
 import { ensureAgentToolingReady } from "./agent-tooling-readiness.js";
 import {
   CS_ADMISSION_CANCEL_REASON,
+  resolveCsAutomaticMaxConcurrent,
   type CsRunAdmissionCancelReason,
 } from "../cs-bridge/cs-run-admission.js";
 import {
@@ -61,12 +62,31 @@ export function stopCsBridge(
 }
 
 async function flushPendingCsDispatches(bridge: CustomerServiceBridge): Promise<void> {
-  const result = await flushCsDispatchesAfterBridgeReady((dispatch) =>
-    bridge.handleCsConversationSignal(dispatch));
+  // Two extra workers over the admission limit: enough that a slot freed by a
+  // finished run has a dispatch already past its pre-admission work and ready
+  // to take it, without putting more concurrent conversation-delta fetches on
+  // a Gateway that is the reason we are replaying in the first place.
+  const concurrency = resolveCsAutomaticMaxConcurrent() + 2;
+  const startedAt = Date.now();
+
+  const result = await flushCsDispatchesAfterBridgeReady(
+    (dispatch) => bridge.handleCsConversationSignal(dispatch),
+    {
+      concurrency,
+      onError: (dispatch, error) =>
+        log.warn(
+          `CS bridge replay failed for conv=${dispatch.conversationId} ` +
+          `shop=${dispatch.platformShopId}:`,
+          error,
+        ),
+    },
+  );
+
   if (result.flushed > 0) {
     log.info(
       `CS bridge replayed ${result.flushed} startup dispatch(es) ` +
-      `(maxWaitMs=${result.maxWaitMs})`,
+      `(maxWaitMs=${result.maxWaitMs} concurrency=${concurrency} ` +
+      `failed=${result.failed} elapsedMs=${Date.now() - startedAt})`,
     );
   }
 }
