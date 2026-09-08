@@ -1,0 +1,10 @@
+.affiliate-message-source-label {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  max-inline-size: min(100%, 24rem);
+  margin-inline-start: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: end;
+}

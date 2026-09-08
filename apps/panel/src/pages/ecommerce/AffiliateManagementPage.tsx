@@ -143,6 +143,7 @@ import {
 } from "./components/AffiliateUi.js";
 import "./components/AffiliateUi.css";
 import "./AffiliateWorkbenchPage.css";
+import { AffiliateMessageSourceLabel } from "./components/AffiliateMessageSourceLabel.js";
 
 type CreatorRelationshipWorkItem = {
   relationshipId: string;
@@ -6687,17 +6688,6 @@ function AffiliateCreatorMessageRow({
     "sampleApplicationRefs" in message ? (message.sampleApplicationRefs ?? []) : [];
   const targetRefs =
     "targetCollaborationRefs" in message ? (message.targetCollaborationRefs ?? []) : [];
-  const channelLabel =
-    message.accountLabel ??
-    message.shopName ??
-    ("channel" in message
-      ? t(`ecommerce.affiliateWorkspace.messageChannels.${message.channel}`, {
-          defaultValue: formatAffiliateEnumLabel(message.channel),
-        })
-      : null);
-  // Sensitive only on the branch that fell through to the platform shop name;
-  // the operator's own account label and the channel name are not.
-  const channelLabelSensitive = message.accountLabel == null && message.shopName != null;
   const directionKey = String(direction).toLowerCase();
   const hasCardRefs = Boolean(productRefs.length || sampleRefs.length || targetRefs.length);
   const rawCardPayload = text ? parsePlatformCardPayload(text) : null;
@@ -6714,11 +6704,7 @@ function AffiliateCreatorMessageRow({
           })}
         </span>
         {time ? <span>{formatProposalTime(time)}</span> : null}
-        {channelLabel ? (
-          <TkPrivate as="span" sensitive={channelLabelSensitive}>
-            {channelLabel}
-          </TkPrivate>
-        ) : null}
+        <AffiliateMessageSourceLabel message={message} />
       </div>
       {shouldShowText ? (
         <div className="affiliate-conversation-message-text">{text}</div>
