@@ -5054,6 +5054,8 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts cover all channels while respecting protection, Business Developer and applicable shop filters. */
   channel?: InputMaybe<AffiliateMessageChannel>;
+  /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
+  creatorSearch?: InputMaybe<Scalars['String']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
@@ -5080,6 +5082,11 @@ export interface AffiliateWorkbenchPendingConversationRow {
   sourceShopId?: Maybe<Scalars['ID']['output']>;
 }
 
+export interface AffiliateWorkbenchProductFilterInput {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
 export interface AffiliateWorkbenchSamplePage {
   /** The subset of openCount whose platform approval deadline falls within the next 24 hours. */
   expiringSoonCount: Scalars['Int']['output'];
@@ -5093,8 +5100,12 @@ export interface AffiliateWorkbenchSamplePage {
 export interface AffiliateWorkbenchSamplePageInput {
   /** Restrict the page and its counts to Sample Applications whose Relationship is owned by this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
+  creatorSearch?: InputMaybe<Scalars['String']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Match any selected shop/product pair. Omit or pass an empty list for all products. Maximum 100 pairs. */
+  products?: InputMaybe<Array<AffiliateWorkbenchProductFilterInput>>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
   protected?: InputMaybe<Scalars['Boolean']['input']>;
   reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;

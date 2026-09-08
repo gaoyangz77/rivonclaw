@@ -239,6 +239,18 @@ export const ECOMMERCE_SEARCH_PRODUCTS_QUERY = gql`
   }
 `;
 
+// No limit: the backend consumes all provider pages before returning. Name matching
+// must never mistake a capped first page for the full product catalog.
+export const ECOMMERCE_PRODUCT_FILTER_OPTIONS_QUERY = gql`
+  query EcommerceProductFilterOptions($shopIds: [ID!]) {
+    ecommerceSearchProducts(shopIds: $shopIds, status: ALL, limit: 0) {
+      shopId
+      productId
+      title
+    }
+  }
+`;
+
 const AFFILIATE_CAMPAIGN_FIELDS = gql`
   fragment AffiliateCampaignFields on AffiliateCampaign {
     id

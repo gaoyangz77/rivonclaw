@@ -1,0 +1,11 @@
+.workbench-creator-search {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.workbench-creator-search-field {
+  width: 280px;
+  max-width: 100%;
+}

@@ -22,6 +22,11 @@ import {
   formatShortDateTime,
 } from "../../../lib/format-datetime.js";
 import panelI18n from "../../../i18n/index.js";
+import {
+  ProductFilter,
+  type ProductFilterValue,
+} from "../../../components/ecommerce/ProductFilter.js";
+import { WorkbenchCreatorSearch } from "./WorkbenchCreatorSearch.js";
 
 import {
   AffiliateProtectionFilter,
@@ -171,7 +176,15 @@ function AffiliateWorkbenchSampleList({
     GQL.AffiliateSampleReviewDisposition.Open,
   );
   const [protection, setProtection] = useState("ALL");
+  const [creatorSearch, setCreatorSearch] = useState("");
+  const [productSelection, setProductSelection] = useState<{
+    scope: string;
+    values: ProductFilterValue[];
+  }>({ scope: selectedShopId, values: [] });
+  const products = productSelection.scope === selectedShopId ? productSelection.values : [];
   const filterKey = workbenchFilterKey([
+    creatorSearch,
+    JSON.stringify(products),
     protection,
     disposition,
     selectedShopId,
@@ -198,6 +211,8 @@ function AffiliateWorkbenchSampleList({
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
         reviewDisposition: disposition,
+        ...(creatorSearch ? { creatorSearch } : {}),
+        ...(products.length ? { products } : {}),
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -231,6 +246,8 @@ function AffiliateWorkbenchSampleList({
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
           reviewDisposition: disposition,
+          ...(creatorSearch ? { creatorSearch } : {}),
+          ...(products.length ? { products } : {}),
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -250,6 +267,8 @@ function AffiliateWorkbenchSampleList({
       };
     });
   }, [
+    creatorSearch,
+    products,
     disposition,
     fetchMore,
     filterKey,
@@ -310,7 +329,10 @@ function AffiliateWorkbenchSampleList({
         <div className="affiliate-workbench-entity-filters">
           <Select
             value={selectedShopId}
-            onChange={onSelectShop}
+            onChange={(next) => {
+              setProductSelection({ scope: next, values: [] });
+              onSelectShop(next);
+            }}
             options={shopOptions}
             className="affiliate-workspace-shop-select"
           />
@@ -339,6 +361,13 @@ function AffiliateWorkbenchSampleList({
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
+          <ProductFilter
+            key={selectedShopId}
+            shopId={selectedShopId || undefined}
+            value={products}
+            onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
+          />
+          <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
           {softRejectedView ? (
             <span className="affiliate-workbench-entity-summary">
               {t("ecommerce.affiliateWorkspace.workbench.softRejectedHint")}
@@ -570,7 +599,9 @@ function AffiliateWorkbenchMessageList({
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
   const queryShopId = platformChannelActive && messageShopId ? messageShopId : null;
   const [protection, setProtection] = useState("ALL");
+  const [creatorSearch, setCreatorSearch] = useState("");
   const filterKey = workbenchFilterKey([
+    creatorSearch,
     protection,
     channel,
     queryShopId,
@@ -593,6 +624,7 @@ function AffiliateWorkbenchMessageList({
     variables: {
       input: {
         channel: channel || null,
+        ...(creatorSearch ? { creatorSearch } : {}),
         shopId: queryShopId,
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
@@ -626,6 +658,7 @@ function AffiliateWorkbenchMessageList({
       variables: {
         input: {
           channel: channel || null,
+          ...(creatorSearch ? { creatorSearch } : {}),
           shopId: queryShopId,
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
@@ -649,6 +682,7 @@ function AffiliateWorkbenchMessageList({
     });
   }, [
     channel,
+    creatorSearch,
     fetchMore,
     filterKey,
     protection,
@@ -734,6 +768,7 @@ function AffiliateWorkbenchMessageList({
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
+          <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
           {page && page.waitingOver24hCount > 0 ? (
             <span className="affiliate-workbench-entity-summary">
               <span className="affiliate-workbench-summary-warning">
