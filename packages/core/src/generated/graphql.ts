@@ -299,7 +299,7 @@ export interface ActionProposalRevisionSummary {
 
 export interface ActionProposalSampleReviewIntent {
   decision: AffiliateSampleReviewDecision;
-  /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
+  /** PLATFORM_ACTION (or omitted) approves or rejects on TikTok. ALLOW_PLATFORM_EXPIRY requires REJECT and means Ignore: record the disposition locally and let the application expire naturally without a platform rejection. */
   executionMode?: Maybe<AffiliateSampleReviewExecutionMode>;
   lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Frozen provider audit id resolved by Backend; callers must not supply it. */
@@ -315,7 +315,7 @@ export interface ActionProposalSampleReviewIntent {
 
 export interface ActionProposalSampleReviewIntentInput {
   decision: AffiliateSampleReviewDecision;
-  /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
+  /** PLATFORM_ACTION (or omitted) approves or rejects on TikTok. ALLOW_PLATFORM_EXPIRY requires REJECT and means Ignore: record the disposition locally and let the application expire naturally without a platform rejection. */
   executionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   lastObservedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Frozen provider audit id resolved by Backend; callers must not supply it. */
@@ -4071,7 +4071,7 @@ export interface AffiliateRelationshipAgendaItem {
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateWorkProcessReason>;
   requiredAction: AffiliateRelationshipRequiredAction;
-  /** Seller-local Sample review disposition frozen into this agenda item. Missing means the Sample has not been explicitly Soft Rejected. */
+  /** Seller-local Sample review disposition frozen into this agenda item. SOFT_REJECTED is the stored value for Ignore. Missing means the Sample has not been explicitly ignored. */
   reviewDisposition?: Maybe<AffiliateSampleReviewDisposition>;
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
@@ -10425,7 +10425,7 @@ export interface Mutation {
   /** Rename a seller-scoped manual tag, or change whether it is sensitive. */
   renameCreatorManualTag: CreatorManualTag;
   renameExpertConversation: ExpertConversation;
-  /** Reopen a locally Soft Rejected Sample Application if TikTok still allows review. */
+  /** Reopen an ignored Sample Application for review if TikTok still allows it. This is a staff-only action. */
   reopenSoftRejectedAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
   /** Validate or apply a strict CAS rewind of one executed NO_ACTION_NEEDED Creator-message boundary for an explicitly declared Affiliate live-test remediation replay. This never sends a message or creates a proposal. */
   replayAffiliateAgentMessageBoundaryForLiveTest: ReplayAffiliateAgentMessageBoundaryPayload;
@@ -10444,7 +10444,7 @@ export interface Mutation {
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
   retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
   retryAffiliateCampaignSearchPlanGeneration: Scalars['Boolean']['output'];
-  /** Review one Affiliate Sample Application using platform Approve/Reject or local Soft Reject. */
+  /** Review one Affiliate Sample Application: Approve or Reject on TikTok, or Ignore locally and let the application expire naturally without a platform rejection. */
   reviewAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
@@ -13771,9 +13771,9 @@ export interface ResolveAffiliateWorkItemActionInput {
   /** Free-text explanation for the rejection reason. Required when rejectReason is OTHER; omit for approvals. */
   rejectReasonExplanation?: InputMaybe<Scalars['String']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE for approval. REJECT means Reject with PLATFORM_ACTION, or Ignore with ALLOW_PLATFORM_EXPIRY. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Omit for PLATFORM_ACTION; use ALLOW_PLATFORM_EXPIRY for a local Soft Reject. */
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Omit for PLATFORM_ACTION; use ALLOW_PLATFORM_EXPIRY only with REJECT to Ignore the application and let it expire naturally without rejecting it on TikTok. */
   sampleReviewExecutionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
