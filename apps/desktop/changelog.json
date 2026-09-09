@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.8",
+    "date": "2026-09-08",
+    "en": [
+      "Add creator and product filters to the affiliate workbench, keep filter labels aligned when choices wrap, and make product catalog searches faster with concurrent on-demand loading",
+      "Replay the customer-service backlog in parallel after the Gateway recovers, with an optional heap snapshot when memory pressure needs investigation"
+    ],
+    "zh": [
+      "达人联盟工作台新增达人和商品筛选，筛选项换行时标签仍保持对齐；商品目录按需并发加载，搜索更快",
+      "Gateway 恢复后并行重放客服积压任务；内存压力排查时可选生成 heap snapshot"
+    ]
+  },
+  {
     "version": "1.9.7",
     "date": "2026-09-08",
     "en": [
