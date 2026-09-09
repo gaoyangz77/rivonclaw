@@ -50,7 +50,7 @@ describe("Affiliate Creator bulk update import", () => {
     ]).unsupportedHeaders).toEqual(["manual_tags"]);
   });
 
-  it("parses additive actions, arbitrary tag columns, and case-insensitive tag duplicates", () => {
+  it("parses target state, arbitrary tag columns, and case-insensitive tag duplicates", () => {
     expect(parseAffiliateCreatorUpdateRow({
       "Creator Username": " @Alice ",
       bd_name: " Regional BD ",
@@ -69,7 +69,7 @@ describe("Affiliate Creator bulk update import", () => {
     });
   });
 
-  it("rejects invalid protection actions, orphaned notes, and rows with no updates", () => {
+  it("rejects invalid protection actions and orphaned notes", () => {
     expect(parseAffiliateCreatorUpdateRow({
       creator_username: "alice",
       protection_action: "REMOVE",
@@ -78,7 +78,12 @@ describe("Affiliate Creator bulk update import", () => {
       creator_username: "alice",
       protection_note: "note",
     }).issue).toBe("NOTE_WITHOUT_PROTECTION");
-    expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice" }).issue).toBe("NO_UPDATES");
+    expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice" })).toMatchObject({
+      issue: null, protect: false, businessDeveloperName: null, manualTagNames: [],
+    });
+    expect(parseAffiliateCreatorUpdateRow({
+      creator_username: "alice", protection_action: " unprotect ",
+    })).toMatchObject({ issue: null, protect: false });
   });
 
   it("describes the actual import outcome instead of marking every valid row ready", () => {

@@ -96,7 +96,7 @@ describe("Affiliate business developer region editor", () => {
 });
 
 describe("Affiliate Creator bulk update template", () => {
-  it("exposes additive BD, protection, and manual-tag actions", () => {
+  it("keeps the existing column names for row-scoped overrides", () => {
     expect(CREATOR_BULK_UPDATE_TEMPLATE_HEADERS).toEqual([
       "creator_username",
       "bd_name",

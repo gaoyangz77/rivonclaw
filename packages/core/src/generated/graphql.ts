@@ -373,6 +373,7 @@ export const ActionProposalStatus = {
   Executed: 'EXECUTED',
   ExecutionFailed: 'EXECUTION_FAILED',
   Expired: 'EXPIRED',
+  Ignored: 'IGNORED',
   Pending: 'PENDING',
   Rejected: 'REJECTED',
   RevisionRequested: 'REVISION_REQUESTED',
@@ -3336,10 +3337,12 @@ export const AffiliateLifecycleEventType = {
   ProposalCreated: 'PROPOSAL_CREATED',
   ProposalExecuted: 'PROPOSAL_EXECUTED',
   ProposalExpired: 'PROPOSAL_EXPIRED',
+  ProposalIgnored: 'PROPOSAL_IGNORED',
   ProposalRejected: 'PROPOSAL_REJECTED',
   ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
   ProposalSuperseded: 'PROPOSAL_SUPERSEDED',
   RelationshipBdAssigned: 'RELATIONSHIP_BD_ASSIGNED',
+  RelationshipBdUnassigned: 'RELATIONSHIP_BD_UNASSIGNED',
   RelationshipContactUpdated: 'RELATIONSHIP_CONTACT_UPDATED',
   SampleApplicationApproved: 'SAMPLE_APPLICATION_APPROVED',
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
@@ -9602,6 +9605,8 @@ export interface ImportAffiliateCreatorUpdateEntryInput {
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   manualTagNames?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Replace this Creator's BD, protection and manual tags with the row's target state. Blank values clear those fields. Other Creators are untouched. */
+  overwrite?: InputMaybe<Scalars['Boolean']['input']>;
   platform: ShopPlatform;
   protect?: InputMaybe<Scalars['Boolean']['input']>;
   protectionNote?: InputMaybe<Scalars['String']['input']>;
@@ -10300,7 +10305,7 @@ export interface Mutation {
   csRespond: CsRespondResult;
   /** Publish a manual CS conversation signal that asks the assigned desktop to start a CS agent session */
   csStartSession: CsConversationSignal;
-  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED applies sampleReviewOverride to exactly one pure Sample Application review (or the legacy opposite decision when omitted) and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note. */
+  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED applies sampleReviewOverride to exactly one pure Sample Application review (or the legacy opposite decision when omitted) and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note; IGNORED discards the proposal while acknowledging its boundary so the Agent will not re-propose for the same messages. */
   decideActionProposal: ActionProposal;
   /** Delete a member account */
   deleteAccountMember: Scalars['Boolean']['output'];

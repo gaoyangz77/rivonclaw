@@ -39,7 +39,7 @@ export type ParsedAffiliateCreatorUpdateRow = {
   protect: boolean;
   protectionNote: string | null;
   manualTagNames: string[];
-  issue: "MISSING_CREATOR" | "INVALID_PROTECTION_ACTION" | "NOTE_WITHOUT_PROTECTION" | "NO_UPDATES" | null;
+  issue: "MISSING_CREATOR" | "INVALID_PROTECTION_ACTION" | "NOTE_WITHOUT_PROTECTION" | null;
 };
 
 export type AffiliateCreatorUpdateTemplateValidation = {
@@ -99,9 +99,8 @@ export function parseAffiliateCreatorUpdateRow(
   const manualTagNames = [...manualTagsByNormalizedName.values()];
   let issue: ParsedAffiliateCreatorUpdateRow["issue"] = null;
   if (!username) issue = "MISSING_CREATOR";
-  else if (protectionAction && !protect) issue = "INVALID_PROTECTION_ACTION";
+  else if (protectionAction && !protect && protectionAction !== "UNPROTECT") issue = "INVALID_PROTECTION_ACTION";
   else if (protectionNote && !protect) issue = "NOTE_WITHOUT_PROTECTION";
-  else if (!businessDeveloperName && !protect && manualTagNames.length === 0) issue = "NO_UPDATES";
   return {
     username,
     businessDeveloperName,
