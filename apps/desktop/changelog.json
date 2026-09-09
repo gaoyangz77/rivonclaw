@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.9",
+    "date": "2026-09-09",
+    "en": [
+      "Stop replaying customer-service dispatches after a Gateway crash: the replay saturated the Gateway the moment it restarted and could hold it in a crash loop, so those conversations are re-delivered by the hourly sweep instead",
+      "Review sample proposals with Ignore and disposition overrides, submit creator contact corrections from a spreadsheet, and validate a creator WhatsApp number when it is saved"
+    ],
+    "zh": [
+      "Gateway 崩溃后不再重放客服派发任务：重放会在重启瞬间把 Gateway 打满并可能使其反复崩溃，这些会话改由每小时扫描重新下发",
+      "样品提案审核新增忽略与处置结果覆盖，支持用表格提交达人联系方式修正，保存达人 WhatsApp 号码时会先校验"
+    ]
+  },
+  {
     "version": "1.9.8",
     "date": "2026-09-08",
     "en": [
