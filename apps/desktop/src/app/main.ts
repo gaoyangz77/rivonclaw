@@ -101,9 +101,11 @@ import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js"
 import { tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../gateway/connection.js";
 import { CS_ADMISSION_CANCEL_REASON } from "../cs-bridge/cs-run-admission.js";
 import {
-  GATEWAY_HEAP_SNAPSHOT_NODE_FLAG,
+  GATEWAY_HEAP_SNAPSHOT_DEFAULT_THRESHOLD_MB,
   GATEWAY_HEAP_SNAPSHOT_SETTING_KEY,
+  GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV,
   isGatewayHeapSnapshotEnabled,
+  writeHeapWatchModule,
 } from "../gateway/heap-snapshot-setting.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { flushCsSessionCursorStore } from "../cs-bridge/cs-session-cursor-store.js";
@@ -1846,17 +1848,22 @@ app.whenReady().then(async () => {
   // so the --require is never accidentally dropped.
   const proxySetupPath = writeProxySetupModule(stateDir, vendorDir);
   // Quote the path — Windows usernames with spaces break unquoted --require
-  const heapSnapshotOnOom = isGatewayHeapSnapshotEnabled((key) => storage.settings.get(key));
-  if (heapSnapshotOnOom) {
+  const heapSnapshotEnabled = isGatewayHeapSnapshotEnabled((key) => storage.settings.get(key));
+  const heapWatchPath = heapSnapshotEnabled ? writeHeapWatchModule(stateDir) : undefined;
+  if (heapWatchPath) {
+    const thresholdMb =
+      Number(process.env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV]) || GATEWAY_HEAP_SNAPSHOT_DEFAULT_THRESHOLD_MB;
     log.warn(
-      `Gateway heap snapshot on OOM is ENABLED (${GATEWAY_HEAP_SNAPSHOT_SETTING_KEY}). ` +
-        `Every Gateway OOM will write a .heapsnapshot into ${stateDir} while the ` +
-        `process is already out of memory. Turn this off once one snapshot is collected.`,
+      `Gateway heap snapshot is ENABLED (${GATEWAY_HEAP_SNAPSHOT_SETTING_KEY}). ` +
+        `Once the Gateway heap crosses ${thresholdMb} MB it will write one .heapsnapshot into ` +
+        `${stateDir}, freezing the Gateway for tens of seconds while it does. ` +
+        `Look for "[heap-watch] armed" in this log to confirm the preload loaded, and ` +
+        `"[heap-watch] wrote" for the file path. Turn this off once one snapshot is collected.`,
     );
   }
   const gatewayNodeOptions = [
     `--require "${proxySetupPath.replaceAll("\\", "/")}"`,
-    ...(heapSnapshotOnOom ? [GATEWAY_HEAP_SNAPSHOT_NODE_FLAG] : []),
+    ...(heapWatchPath ? [`--require "${heapWatchPath.replaceAll("\\", "/")}"`] : []),
   ].join(" ");
 
   /**
@@ -1871,6 +1878,10 @@ app.whenReady().then(async () => {
     env.RIVONCLAW_CN_RELAY = firstPartyRoute === "cn-relay" ? "1" : "0";
     env.RIVONCLAW_PANEL_PORT = String(actualPanelPort);
     env.RIVONCLAW_DESKTOP_API_TOKEN = desktopApiToken;
+    // Let an operator tune the snapshot threshold on one install without a
+    // release: the preload reads it from the Gateway's env.
+    const heapThreshold = process.env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV];
+    if (heapThreshold) env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV] = heapThreshold;
     return env;
   }
 
