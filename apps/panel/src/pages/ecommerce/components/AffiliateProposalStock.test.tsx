@@ -45,7 +45,7 @@ describe("Affiliate proposal stock", () => {
     const reason = screen.getByText(rejection.steps[0].sampleReviewIntent!.rejectReasonExplanation!);
     expect(reason.closest(".affiliate-sample-decision-reason")).toBeTruthy();
     expect(reason.closest(".affiliate-sample-decision-metric")).toBeNull();
-    expect(container.querySelector(".tk-v1-badge-danger")?.textContent).toBe("不发样");
+    expect(container.querySelector(".tk-v1-badge-danger")?.textContent).toBe("拒绝");
   });
 
   it("keeps review actions and revision editor outside the scroll region", () => {
@@ -157,7 +157,7 @@ describe("Affiliate proposal stock", () => {
       expect(within(stock).getByText("0")).toBeTruthy();
       expect(within(application).getAllByText(i18n.t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision"))).toHaveLength(1);
     }
-    expect(screen.getByText("共 2 条 · 2 条发样 · 0 条不发样")).toBeTruthy();
+    expect(screen.getByText("共 2 条申样 · 同意 2 条 · 拒绝 0 条 · 忽略 0 条")).toBeTruthy();
     expect(screen.queryByText("999")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });

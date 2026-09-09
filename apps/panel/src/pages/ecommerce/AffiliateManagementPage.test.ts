@@ -951,7 +951,7 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(proposalSampleDecisionOverrideTarget(singleReject)).toBe("APPROVE");
   });
 
-  it("surfaces Soft Reject execution and does not offer an opposite-decision shortcut", () => {
+  it("surfaces Soft Reject execution and allows single-sample overrides", () => {
     const softReject = {
       ...proposal("proposal-soft-reject", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
       sampleReviewIntent: {
@@ -981,7 +981,7 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(proposalSampleReviewRows(softReject)[0]?.executionMode).toBe(
       GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry,
     );
-    expect(proposalSampleDecisionOverrideTarget(softReject)).toBeNull();
+    expect(proposalSampleDecisionOverrideTarget(softReject)).toBe(GQL.AffiliateSampleReviewDecision.Approve);
   });
 
   it("hides rejection for multi-Sample and mixed-action proposals", () => {
@@ -1290,12 +1290,11 @@ describe("Affiliate canonical UI contract", () => {
     expect(creatorModal).toContain("optimisticallyDecidedProposalIds");
     expect(creatorModal).toContain("<AgentWorkBundleCard");
     expect(creatorModal).toContain("allowDecisionActions");
-    expect(creatorModal).toContain("onApprove={(item, review) =>");
-    expect(creatorModal).toContain("onReject={(item) =>");
+    expect(creatorModal).toContain("onApprove={(item) =>");
+    expect(creatorModal).toContain("onReject={(item, override) =>");
     expect(creatorModal).toContain("onRequestRevision={(item, revisionNote) =>");
     expect(creatorModal).toContain("decideRelationshipActionProposal");
-    expect(page).toContain("onDecideProposal={async (proposal, status, note, review) =>");
-    expect(creatorModal).toContain("...sampleReview");
+    expect(page).toContain("onDecideProposal={async (proposal, status, note, override) =>");
     expect(page).toContain("setWorkbenchEntityRefreshRevision((revision) => revision + 1)");
   });
 

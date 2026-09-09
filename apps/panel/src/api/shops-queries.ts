@@ -1553,8 +1553,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           revisionNumber
           supersededByProposalId
           decision {
-            sampleReviews { sampleApplicationRecordId decision executionMode }
-            relatedMessagesConfirmed
+            sampleReviewOverride { decision executionMode }
             decidedAt
             note
             actorType
@@ -1744,8 +1743,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           question
         }
         decision {
-          sampleReviews { sampleApplicationRecordId decision executionMode }
-          relatedMessagesConfirmed
+          sampleReviewOverride { decision executionMode }
           decidedAt
           note
           actorType
@@ -3662,8 +3660,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         revisionNumber
         supersededByProposalId
         decision {
-          sampleReviews { sampleApplicationRecordId decision executionMode }
-          relatedMessagesConfirmed
+          sampleReviewOverride { decision executionMode }
           decidedAt
           note
           actorType
@@ -3848,8 +3845,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         question
       }
       decision {
-        sampleReviews { sampleApplicationRecordId decision executionMode }
-        relatedMessagesConfirmed
+        sampleReviewOverride { decision executionMode }
         decidedAt
         note
         actorType

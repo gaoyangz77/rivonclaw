@@ -211,8 +211,7 @@ export interface ActionProposalDecisionSnapshot {
   actorType?: Maybe<AffiliateLifecycleActorType>;
   decidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   note?: Maybe<Scalars['String']['output']>;
-  relatedMessagesConfirmed?: Maybe<Scalars['Boolean']['output']>;
-  sampleReviews?: Maybe<Array<ActionProposalSampleReviewDecision>>;
+  sampleReviewOverride?: Maybe<ActionProposalSampleReviewOverride>;
 }
 
 export interface ActionProposalDecisionSnapshotInput {
@@ -220,8 +219,7 @@ export interface ActionProposalDecisionSnapshotInput {
   actorType?: InputMaybe<AffiliateLifecycleActorType>;
   decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
-  relatedMessagesConfirmed?: InputMaybe<Scalars['Boolean']['input']>;
-  sampleReviews?: InputMaybe<Array<ActionProposalSampleReviewDecisionInput>>;
+  sampleReviewOverride?: InputMaybe<ActionProposalSampleReviewOverrideInput>;
 }
 
 /** Content actually delivered for an executed message proposal, retained on the linked Delivery. The proposal's own draft says what was proposed; this says what was actually delivered. Both facts are available. For proposals whose drafts were deleted before message wording became permanently retained, this is the only message body still available. */
@@ -299,18 +297,6 @@ export interface ActionProposalRevisionSummary {
   updatedAt: Scalars['DateTimeISO']['output'];
 }
 
-export interface ActionProposalSampleReviewDecision {
-  decision: AffiliateSampleReviewDecision;
-  executionMode: AffiliateSampleReviewExecutionMode;
-  sampleApplicationRecordId: Scalars['ID']['output'];
-}
-
-export interface ActionProposalSampleReviewDecisionInput {
-  decision: AffiliateSampleReviewDecision;
-  executionMode: AffiliateSampleReviewExecutionMode;
-  sampleApplicationRecordId: Scalars['ID']['input'];
-}
-
 export interface ActionProposalSampleReviewIntent {
   decision: AffiliateSampleReviewDecision;
   /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
@@ -341,6 +327,16 @@ export interface ActionProposalSampleReviewIntentInput {
   reviewDispositionRevision?: InputMaybe<Scalars['Int']['input']>;
   /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface ActionProposalSampleReviewOverride {
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
+}
+
+export interface ActionProposalSampleReviewOverrideInput {
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
 }
 
 export interface ActionProposalSampleShipmentIntent {
@@ -7304,12 +7300,11 @@ export interface CustomerServiceSettingsInput {
 }
 
 export interface DecideActionProposalInput {
-  confirmRelatedMessages?: InputMaybe<Scalars['Boolean']['input']>;
   /** CreatorRelationship workspace for BD proposals. Omit for shop-operations proposals, which are authorized per acted-on shop via shopIds. */
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
-  sampleReviews?: InputMaybe<Array<ActionProposalSampleReviewDecisionInput>>;
+  sampleReviewOverride?: InputMaybe<ActionProposalSampleReviewOverrideInput>;
   status: ActionProposalStatus;
 }
 
@@ -10305,7 +10300,7 @@ export interface Mutation {
   csRespond: CsRespondResult;
   /** Publish a manual CS conversation signal that asks the assigned desktop to start a CS agent session */
   csStartSession: CsConversationSignal;
-  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED reverses exactly one pure Sample Application review and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note. */
+  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED applies sampleReviewOverride to exactly one pure Sample Application review (or the legacy opposite decision when omitted) and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note. */
   decideActionProposal: ActionProposal;
   /** Delete a member account */
   deleteAccountMember: Scalars['Boolean']['output'];
