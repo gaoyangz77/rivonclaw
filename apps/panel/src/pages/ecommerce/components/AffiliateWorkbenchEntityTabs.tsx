@@ -28,6 +28,8 @@ import {
   type ProductFilterValue,
 } from "../../../components/ecommerce/ProductFilter.js";
 import { WorkbenchCreatorSearch } from "./WorkbenchCreatorSearch.js";
+import { creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
+import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
 
 import {
@@ -38,6 +40,14 @@ import {
 const PAGE_SIZE = 25;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
+
+/*
+ * The same chip budget the Creators page spends, so one Creator reads the same
+ * on both surfaces. Anything past the budget collapses into a `+N` chip whose
+ * title carries the full set.
+ */
+const WORKBENCH_SYSTEM_TAG_CHIP_LIMIT = 2;
+const WORKBENCH_MANUAL_TAG_CHIP_LIMIT = 3;
 
 export type AffiliateWorkbenchEntityTab = "SAMPLES" | "MESSAGES";
 
@@ -454,6 +464,7 @@ function AffiliateWorkbenchSampleList({
             <colgroup>
               <col className="affiliate-workbench-col-time" />
               <col className="affiliate-workbench-col-creator" />
+              <col className="affiliate-workbench-col-tags" />
               <col className="affiliate-workbench-col-shop" />
               <col className="affiliate-workbench-col-product" />
               <col className="affiliate-workbench-col-support" />
@@ -464,6 +475,7 @@ function AffiliateWorkbenchSampleList({
               <tr>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colAppliedAt")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colShop")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colProduct")}</th>
                 {softRejectedView ? (
@@ -499,6 +511,13 @@ function AffiliateWorkbenchSampleList({
                       name={row.creatorName}
                       username={row.creatorUsername}
                       avatarUrl={row.creatorAvatarUrl}
+                    />
+                  </td>
+                  <td>
+                    <CreatorTagsCell
+                      sampleTier={row.sampleTier}
+                      systemTags={row.systemTags}
+                      manualTags={row.manualTags}
                     />
                   </td>
                   <td>
@@ -589,7 +608,7 @@ function AffiliateWorkbenchSampleList({
             {!hasMore && items.length > 0 ? (
               <tfoot>
                 <tr>
-                  <td className="affiliate-workbench-table-footer" colSpan={7}>
+                  <td className="affiliate-workbench-table-footer" colSpan={8}>
                     {t(
                       softRejectedView
                         ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedSoftRejected"
@@ -873,6 +892,7 @@ function AffiliateWorkbenchMessageList({
             <colgroup>
               <col className="affiliate-workbench-col-time" />
               <col className="affiliate-workbench-col-creator" />
+              <col className="affiliate-workbench-col-tags" />
               <col className="affiliate-workbench-col-product" />
               <col className="affiliate-workbench-col-support" />
               <col className="affiliate-workbench-col-status" />
@@ -882,6 +902,7 @@ function AffiliateWorkbenchMessageList({
               <tr>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colWaiting")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colBd")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</th>
@@ -918,6 +939,13 @@ function AffiliateWorkbenchMessageList({
                       />
                     </td>
                     <td>
+                      <CreatorTagsCell
+                        sampleTier={row.sampleTier}
+                        systemTags={row.systemTags}
+                        manualTags={row.manualTags}
+                      />
+                    </td>
+                    <td>
                       <ChannelSourceCell channel={row.channel} sourceLabel={row.sourceLabel} />
                     </td>
                     <td>
@@ -950,7 +978,7 @@ function AffiliateWorkbenchMessageList({
             {!hasMore && items.length > 0 ? (
               <tfoot>
                 <tr>
-                  <td className="affiliate-workbench-table-footer" colSpan={6}>
+                  <td className="affiliate-workbench-table-footer" colSpan={7}>
                     {channel
                       ? t("ecommerce.affiliateWorkspace.workbench.allMessagesLoadedChannel", {
                           count: items.length,
@@ -1047,6 +1075,81 @@ function formatWaitingDuration(elapsedMs: number): string {
   } catch {
     return String(value);
   }
+}
+
+/**
+ * The Creator's three kinds of tag in one cell: the sample rung first, then
+ * system tags, then manual tags. Each kind keeps its own chip styling and
+ * names itself through `title`, so the column needs one header rather than
+ * three stacked sub-labels.
+ *
+ * `sampleTier` is the highest rung across every shop of this Creator, not this
+ * row's shop. Absent means no rung was reached anywhere, which is not the
+ * lowest rung, so it renders as nothing rather than as SAMPLE_SHIPPED.
+ */
+function CreatorTagsCell({
+  sampleTier,
+  systemTags,
+  manualTags,
+}: {
+  sampleTier?: GQL.CreatorSampleTier | null;
+  systemTags: ReadonlyArray<GQL.AffiliateCreatorSystemTag>;
+  manualTags: ReadonlyArray<GQL.CreatorManualTag>;
+}) {
+  const { t } = useTranslation();
+  if (!sampleTier && systemTags.length === 0 && manualTags.length === 0) {
+    return <div className="affiliate-workbench-cell-tags">—</div>;
+  }
+  const visibleSystemTags = systemTags.slice(0, WORKBENCH_SYSTEM_TAG_CHIP_LIMIT);
+  const hiddenSystemTagCount = systemTags.length - visibleSystemTags.length;
+  const visibleManualTags = manualTags.slice(0, WORKBENCH_MANUAL_TAG_CHIP_LIMIT);
+  const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
+  return (
+    <div className="affiliate-workbench-cell-tags">
+      {sampleTier ? (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-tier"
+          title={t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}
+        >
+          {creatorSampleTierLabel(t, sampleTier)}
+        </span>
+      ) : null}
+      {visibleSystemTags.map((tag) => (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-system"
+          key={tag}
+          title={t("ecommerce.affiliateWorkspace.systemTagFilterLabel")}
+        >
+          {creatorSystemTagLabel(t, tag)}
+        </span>
+      ))}
+      {hiddenSystemTagCount > 0 ? (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-system affiliate-workbench-tag-overflow"
+          title={systemTags.map((tag) => creatorSystemTagLabel(t, tag)).join(", ")}
+        >
+          +{hiddenSystemTagCount}
+        </span>
+      ) : null}
+      {visibleManualTags.map((tag) => (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-manual"
+          key={tag.id}
+          title={t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
+        >
+          {tag.name}
+        </span>
+      ))}
+      {hiddenManualTagCount > 0 ? (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-manual affiliate-workbench-tag-overflow"
+          title={manualTags.map((tag) => tag.name).join(", ")}
+        >
+          +{hiddenManualTagCount}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function SoftRejectHandlerCell({

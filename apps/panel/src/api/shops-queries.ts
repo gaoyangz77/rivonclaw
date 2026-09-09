@@ -3981,6 +3981,12 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
     businessDeveloperName
     protected
     humanOnly
+    sampleTier
+    systemTags
+    manualTags {
+      id
+      name
+    }
     sampleApplication {
       id
       userId
@@ -4074,6 +4080,12 @@ export const AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY = gql`
         businessDeveloperName
         protected
         humanOnly
+        sampleTier
+        systemTags
+        manualTags {
+          id
+          name
+        }
         proposal {
           id
           status

@@ -5099,12 +5099,18 @@ export interface AffiliateWorkbenchPendingConversationRow {
   humanOnly: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   lastPendingAt: Scalars['DateTimeISO']['output'];
+  /** The Creator's manual tags, resolved to their current catalog rows and ordered by name, the same order the Creator record uses. An id whose catalog row no longer exists is omitted. */
+  manualTags: Array<CreatorManualTag>;
   proposal?: Maybe<ActionProposal>;
   protected: Scalars['Boolean']['output'];
   replyToLifecycleEventId: Scalars['ID']['output'];
+  /** Highest sample tier across every shop state of this Creator, derived at read time and never stored. Null means no rung has been reached anywhere, which is not the lowest rung. */
+  sampleTier?: Maybe<CreatorSampleTier>;
   shopName?: Maybe<Scalars['String']['output']>;
   sourceLabel: Scalars['String']['output'];
   sourceShopId?: Maybe<Scalars['ID']['output']>;
+  /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
+  systemTags: Array<AffiliateCreatorSystemTag>;
 }
 
 export interface AffiliateWorkbenchProductFilterInput {
@@ -5147,11 +5153,17 @@ export interface AffiliateWorkbenchSampleRow {
   creatorUsername?: Maybe<Scalars['String']['output']>;
   humanOnly: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
+  /** The Creator's manual tags, resolved to their current catalog rows and ordered by name, the same order the Creator record uses. An id whose catalog row no longer exists is omitted. */
+  manualTags: Array<CreatorManualTag>;
   productTitle?: Maybe<Scalars['String']['output']>;
   proposal?: Maybe<ActionProposal>;
   protected: Scalars['Boolean']['output'];
   sampleApplication: SampleApplicationRecord;
+  /** Highest sample tier across every shop state of this Creator, derived at read time and never stored. Null means no rung has been reached anywhere, which is not the lowest rung. */
+  sampleTier?: Maybe<CreatorSampleTier>;
   shopName?: Maybe<Scalars['String']['output']>;
+  /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
+  systemTags: Array<AffiliateCreatorSystemTag>;
 }
 
 export interface AffiliateWorkspaceInput {

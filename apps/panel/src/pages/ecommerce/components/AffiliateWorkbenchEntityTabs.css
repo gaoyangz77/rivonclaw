@@ -58,3 +58,61 @@
   color: var(--tk-v1-fg-muted);
   font-size: 12px;
 }
+
+/*
+ * The Creator's three kinds of tag share one cell: sample rung, system tags,
+ * then manual tags. They keep the pill vocabulary the Creators page uses so the
+ * same Creator reads the same on both surfaces, but the classes are owned here
+ * — this component imports only its own sheet.
+ */
+.affiliate-workbench-cell-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+  color: var(--color-text-muted);
+}
+
+.affiliate-workbench-tag {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The rung the Creator currently holds, in the same accent pill the Creators page uses. */
+.affiliate-workbench-tag-tier {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  color: var(--color-primary);
+}
+
+/* Backend-defined controls read as a caution, not as a seller's own label. */
+.affiliate-workbench-tag-system {
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg));
+  color: var(--color-text);
+}
+
+.affiliate-workbench-tag-manual {
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
+  color: var(--color-primary);
+}
+
+/* Stands in for the tags of its own kind that the cell could not fit. */
+.affiliate-workbench-tag-overflow {
+  border-style: dashed;
+}
