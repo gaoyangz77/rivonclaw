@@ -386,27 +386,30 @@ function AffiliateWorkbenchSampleList({
               onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
             />
           </div>
-          <TkChoiceSelect
-            label={t("ecommerce.affiliateWorkspace.workbench.sampleSortLabel")}
-            value={sortOrder}
-            onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
-            options={[
-              {
-                value: GQL.EcomSortOrder.Asc,
-                label: t("ecommerce.affiliateWorkspace.workbench.sampleSortOldestFirst"),
-              },
-              {
-                value: GQL.EcomSortOrder.Desc,
-                label: t("ecommerce.affiliateWorkspace.workbench.sampleSortNewestFirst"),
-              },
-            ]}
-            className="affiliate-workbench-filter-select"
-          />
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
             <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
               {t("common.refresh")}
             </TkButton>
+          </div>
+          {/* Ordering is not a filter, so it sits apart from them at the row's end. */}
+          <div className="affiliate-workbench-filter-order">
+            <TkChoiceSelect
+              label={t("ecommerce.affiliateWorkspace.workbench.sampleSortLabel")}
+              value={sortOrder}
+              onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+              options={[
+                {
+                  value: GQL.EcomSortOrder.Asc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.sampleSortOldestFirst"),
+                },
+                {
+                  value: GQL.EcomSortOrder.Desc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.sampleSortNewestFirst"),
+                },
+              ]}
+              className="affiliate-workbench-filter-select"
+            />
           </div>
           {softRejectedView ? (
             <span className="affiliate-workbench-entity-summary">
@@ -822,27 +825,30 @@ function AffiliateWorkbenchMessageList({
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
-          <TkChoiceSelect
-            label={t("ecommerce.affiliateWorkspace.workbench.messageSortLabel")}
-            value={sortOrder}
-            onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
-            options={[
-              {
-                value: GQL.EcomSortOrder.Asc,
-                label: t("ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst"),
-              },
-              {
-                value: GQL.EcomSortOrder.Desc,
-                label: t("ecommerce.affiliateWorkspace.workbench.messageSortNewestFirst"),
-              },
-            ]}
-            className="affiliate-workbench-filter-select"
-          />
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
             <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
               {t("common.refresh")}
             </TkButton>
+          </div>
+          {/* Ordering is not a filter, so it sits apart from them at the row's end. */}
+          <div className="affiliate-workbench-filter-order">
+            <TkChoiceSelect
+              label={t("ecommerce.affiliateWorkspace.workbench.messageSortLabel")}
+              value={sortOrder}
+              onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+              options={[
+                {
+                  value: GQL.EcomSortOrder.Asc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst"),
+                },
+                {
+                  value: GQL.EcomSortOrder.Desc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.messageSortNewestFirst"),
+                },
+              ]}
+              className="affiliate-workbench-filter-select"
+            />
           </div>
           {page && page.waitingOver24hCount > 0 ? (
             <span className="affiliate-workbench-entity-summary">
