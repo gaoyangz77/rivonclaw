@@ -47,6 +47,7 @@ function renderProposal(proposal: GQL.ActionProposal, decidingProposal = false) 
   const onApprove = vi.fn().mockResolvedValue(true);
   const onReject = vi.fn().mockResolvedValue(true);
   const onRequestRevision = vi.fn().mockResolvedValue(true);
+  const onIgnore = vi.fn().mockResolvedValue(true);
   render(
     <AgentWorkBundleCard
       proposal={proposal}
@@ -57,9 +58,25 @@ function renderProposal(proposal: GQL.ActionProposal, decidingProposal = false) 
       onApprove={onApprove}
       onReject={onReject}
       onRequestRevision={onRequestRevision}
+      onIgnore={onIgnore}
     />,
   );
-  return { onApprove, onReject, onRequestRevision };
+  return { onApprove, onReject, onRequestRevision, onIgnore };
+}
+
+function messageProposal(): GQL.ActionProposal {
+  const messageIntent = {
+    parts: [{ kind: GQL.AffiliateMessagePartKind.Text, text: "Merci pour votre confirmation." }],
+  } as GQL.ActionProposalMessageIntent;
+  return {
+    id: "proposal-message",
+    status: GQL.ActionProposalStatus.Pending,
+    type: GQL.ActionProposalType.SendMessage,
+    messageIntent,
+    steps: [
+      { stepId: "message-1", type: GQL.ActionProposalType.SendMessage, messageIntent },
+    ],
+  } as unknown as GQL.ActionProposal;
 }
 
 beforeEach(async () => {
@@ -160,5 +177,38 @@ describe("single sample proposal actions", () => {
         }
       }
     }
+  });
+});
+
+describe("ignoring a message proposal", () => {
+  it("asks for confirmation first, then reports the decision", () => {
+    const proposal = messageProposal();
+    const { onIgnore, onApprove } = renderProposal(proposal);
+
+    fireEvent.click(screen.getByRole("button", { name: "忽略" }));
+    // The confirmation states the consequence: nothing is sent, and the
+    // messages will not come back as new work.
+    expect(screen.getByText(/不会发送任何消息/)).toBeTruthy();
+    expect(onIgnore).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "确认忽略" }));
+    expect(onIgnore).toHaveBeenCalledWith(proposal);
+    expect(onApprove).not.toHaveBeenCalled();
+  });
+
+  it("lets the operator back out of the confirmation", () => {
+    const { onIgnore, onApprove } = renderProposal(messageProposal());
+
+    fireEvent.click(screen.getByRole("button", { name: "忽略" }));
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+
+    expect(onIgnore).not.toHaveBeenCalled();
+    expect(onApprove).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "忽略" })).toBeTruthy();
+  });
+
+  it("stays out of a sample review, which has its own Ignore disposition", () => {
+    renderProposal(proposalFor("同意"));
+    expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
   });
 });

@@ -1716,6 +1716,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
           onRequestRevision={(item, revisionNote) =>
             decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)
           }
+          onIgnore={(item) => decideProposal(item, GQL.ActionProposalStatus.Ignored)}
         />
       ) : null}
 
@@ -7450,6 +7451,7 @@ function AgentWorkBundleDetailModal({
   onApprove,
   onReject,
   onRequestRevision,
+  onIgnore,
 }: {
   bundle: AgentWorkBundle;
   shopLabelForId: (shopId: string) => ShopDisplayLabel;
@@ -7461,6 +7463,7 @@ function AgentWorkBundleDetailModal({
   onApprove: (proposal: GQL.ActionProposal) => Promise<boolean>;
   onReject: (proposal: GQL.ActionProposal, override: GQL.ActionProposalSampleReviewOverrideInput) => Promise<boolean>;
   onRequestRevision: (proposal: GQL.ActionProposal, note: string) => Promise<boolean>;
+  onIgnore: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
   const proposal = bundle.proposal;
@@ -7611,6 +7614,7 @@ function AgentWorkBundleDetailModal({
             onApprove={isPending ? onApprove : undefined}
             onReject={isPending ? onReject : undefined}
             onRequestRevision={isPending ? onRequestRevision : undefined}
+            onIgnore={isPending ? onIgnore : undefined}
           />
         </div>
       </div>
@@ -7829,6 +7833,7 @@ export function AgentWorkBundleCard({
   onApprove,
   onReject,
   onRequestRevision,
+  onIgnore,
 }: {
   proposal: GQL.ActionProposal;
   revisionHistory?: GQL.ActionProposalRevisionSummary[];
@@ -7846,9 +7851,11 @@ export function AgentWorkBundleCard({
   onApprove?: (proposal: GQL.ActionProposal) => Promise<boolean>;
   onReject?: (proposal: GQL.ActionProposal, override: GQL.ActionProposalSampleReviewOverrideInput) => Promise<boolean>;
   onRequestRevision?: (proposal: GQL.ActionProposal, note: string) => Promise<boolean>;
+  onIgnore?: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
   const [compactOpen, setCompactOpen] = useState(false);
+  const [ignoreOpen, setIgnoreOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
@@ -7886,6 +7893,11 @@ export function AgentWorkBundleCard({
     Boolean(onApprove) &&
     (allowDecisionActions ?? !isCompact);
   const canRequestRevision = canDecide && Boolean(onRequestRevision);
+  // Ignoring drops the work without touching the platform. A Sample review
+  // carries its own Ignore disposition, which records the local decision
+  // before the application expires; offering the generic one there would let
+  // an application lapse with nothing recorded, so it stays out.
+  const canIgnore = canDecide && Boolean(onIgnore) && sampleReviewRows.length === 0;
   const sampleDecisionOverrideTarget = proposalSampleDecisionOverrideTarget(proposal);
   const canRejectOverride = canDecide && Boolean(onReject && sampleDecisionOverrideTarget);
   const approveActionLabel =
@@ -7944,6 +7956,12 @@ export function AgentWorkBundleCard({
         </div>
       </div>
     ) : null;
+  const ignoreConfirmPanel =
+    canIgnore && ignoreOpen ? (
+      <TkAlert tone="warning" title={t("ecommerce.shopDrawer.affiliate.proposalIgnoreConfirmTitle")}>
+        {t("ecommerce.shopDrawer.affiliate.proposalIgnoreConfirmHint")}
+      </TkAlert>
+    ) : null;
   const decisionActions = canDecide ? (
     <div className="affiliate-work-item-actions">
       {revisionOpen ? (
@@ -7998,6 +8016,30 @@ export function AgentWorkBundleCard({
               {t("ecommerce.shopDrawer.affiliate.requestProposalRevision")}
             </TkButton>
           ) : null}
+          {canIgnore ? (
+            <TkButton
+              variant="secondary"
+              type="button"
+              disabled={decidingProposal}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!ignoreOpen) {
+                  setIgnoreOpen(true);
+                  return;
+                }
+                const ignorePromise = onIgnore?.(proposal);
+                if (ignorePromise) {
+                  void ignorePromise.then((succeeded) => {
+                    if (!succeeded) setIgnoreOpen(false);
+                  });
+                }
+              }}
+            >
+              {ignoreOpen
+                ? t("ecommerce.shopDrawer.affiliate.confirmProposalIgnore")
+                : t("ecommerce.shopDrawer.affiliate.ignoreProposal")}
+            </TkButton>
+          ) : null}
         </>
       )}
       <TkButton
@@ -8006,6 +8048,10 @@ export function AgentWorkBundleCard({
         disabled={decidingProposal || (revisionOpen && !trimmedRevisionNote)}
         onClick={(event) => {
           event.stopPropagation();
+          if (ignoreOpen) {
+            setIgnoreOpen(false);
+            return;
+          }
           if (revisionOpen) {
             if (!trimmedRevisionNote) return;
             const revisionPromise = onRequestRevision?.(proposal, trimmedRevisionNote);
@@ -8021,9 +8067,11 @@ export function AgentWorkBundleCard({
           void onApprove?.(proposal);
         }}
       >
-        {revisionOpen
-          ? t("ecommerce.shopDrawer.affiliate.sendProposalRevisionRequest")
-          : approveActionLabel}
+        {ignoreOpen
+          ? t("common.cancel", { defaultValue: "Cancel" })
+          : revisionOpen
+            ? t("ecommerce.shopDrawer.affiliate.sendProposalRevisionRequest")
+            : approveActionLabel}
       </TkButton>
     </div>
   ) : null;
@@ -8213,12 +8261,14 @@ export function AgentWorkBundleCard({
               <strong>{formatProposalTime(proposal.createdAt)}</strong>
             </div>
             {reviewLayout ? revisionEditor : null}
+            {reviewLayout ? ignoreConfirmPanel : null}
             {decisionActions}
           </aside>
         </div>
         {!reviewLayout && historyOpen ? (
           <AgentWorkRevisionHistory currentProposalId={proposal.id} versions={revisionHistory} />
         ) : null}
+        {!reviewLayout ? ignoreConfirmPanel : null}
         {!reviewLayout ? revisionEditor : null}
       </article>
     );
@@ -8376,6 +8426,7 @@ export function AgentWorkBundleCard({
 
       {canDecide ? (
         <>
+          {ignoreConfirmPanel}
           {revisionEditor}
           {decisionActions}
         </>
@@ -8521,6 +8572,8 @@ function actionProposalDecisionNote(
     note?.trim() ||
     (status === GQL.ActionProposalStatus.Approved
       ? t("ecommerce.shopDrawer.affiliate.proposalApprovedNote")
+      : status === GQL.ActionProposalStatus.Ignored
+        ? t("ecommerce.shopDrawer.affiliate.proposalIgnoredNote")
       : status === GQL.ActionProposalStatus.RevisionRequested
         ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestedNote")
         : proposalSampleDecisionOverrideTarget(proposal) != null
@@ -8539,6 +8592,8 @@ function actionProposalDecisionSuccessMessage(
 ): string {
   return status === GQL.ActionProposalStatus.Approved
     ? t("ecommerce.shopDrawer.affiliate.proposalApproveSuccess")
+    : status === GQL.ActionProposalStatus.Ignored
+      ? t("ecommerce.shopDrawer.affiliate.proposalIgnoreSuccess")
     : status === GQL.ActionProposalStatus.RevisionRequested
       ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestSuccess")
       : proposalSampleDecisionOverrideTarget(proposal) != null
@@ -11465,6 +11520,9 @@ function CreatorRelationshipDetailContent({
                                   GQL.ActionProposalStatus.RevisionRequested,
                                   revisionNote,
                                 )
+                              }
+                              onIgnore={(item) =>
+                                decideRelationshipProposal(item, GQL.ActionProposalStatus.Ignored)
                               }
                             />
                           ),

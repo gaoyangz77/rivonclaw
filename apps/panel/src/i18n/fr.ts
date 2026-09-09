@@ -3314,6 +3314,7 @@ export default {
       lifecycleEvents: {
         PROPOSAL_CREATED: "Proposition créée",
         PROPOSAL_REVISION_REQUESTED: "Révision de proposition demandée",
+        PROPOSAL_IGNORED: "Proposition ignorée",
         PROPOSAL_APPROVED: "Proposition approuvée",
         PROPOSAL_REJECTED: "Proposition refusée",
         PROPOSAL_SUPERSEDED: "Proposition remplacée",
@@ -3541,6 +3542,7 @@ export default {
         EXPIRED: "Expirées",
         MODIFIED: "Modifiées",
         REVISION_REQUESTED: "Révision demandée",
+        IGNORED: "Ignorée",
       },
       proposalTypeFilters: {
         ALL: "Tous les types",
@@ -4251,6 +4253,13 @@ export default {
         proposalRevisionRequestedNote:
           "Révision demandée depuis le tableau d'examen de la gestion des affiliés.",
         requestProposalRevision: "Demander une révision",
+        ignoreProposal: "Ignorer",
+        confirmProposalIgnore: "Confirmer l'ignorance",
+        proposalIgnoreConfirmTitle: "Ignorer ce travail ?",
+        proposalIgnoreConfirmHint:
+          "Aucun message n'est envoyé et le créateur ne reçoit pas de réponse. Ces messages sont marqués comme traités : l'Agent ne proposera plus rien pour eux. Un nouveau message du créateur déclenche toujours un nouveau travail.",
+        proposalIgnoreSuccess: "Travail ignoré. Aucune réponse n'a été envoyée.",
+        proposalIgnoredNote: "Ignoré depuis la fiche de revue de gestion des créateurs.",
         sendProposalRevisionRequest: "Envoyer la demande de révision",
         proposalRevisionNoteLabel: "Notes de révision",
         proposalRevisionNotePlaceholder:

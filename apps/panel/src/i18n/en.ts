@@ -4251,6 +4251,7 @@ export default {
         CHANNEL_CONTACT_UPDATED: "Creator channel contact updated",
         PROPOSAL_CREATED: "Proposal created",
         PROPOSAL_REVISION_REQUESTED: "Proposal revision requested",
+        PROPOSAL_IGNORED: "Proposal ignored",
         PROPOSAL_APPROVED: "Proposal approved",
         PROPOSAL_REJECTED: "Proposal rejected",
         PROPOSAL_SUPERSEDED: "Proposal replaced by newer information",
@@ -4344,6 +4345,7 @@ export default {
         EXECUTED: "Executed",
         REJECTED: "Rejected",
         REVISION_REQUESTED: "Revision requested",
+        IGNORED: "Ignored",
         SUPERSEDED: "Superseded",
         EXPIRED: "Expired",
         MODIFIED: "Modified",
@@ -5324,6 +5326,13 @@ export default {
         proposalRevisionRequestedNote:
           "Revision requested from Affiliate Management review table.",
         requestProposalRevision: "Request revision",
+        ignoreProposal: "Ignore",
+        confirmProposalIgnore: "Confirm ignore",
+        proposalIgnoreConfirmTitle: "Ignore this work?",
+        proposalIgnoreConfirmHint:
+          "No message is sent and the creator gets no reply. These messages are marked as handled, so the Agent will not propose anything for them again. A new message from the creator still starts new work.",
+        proposalIgnoreSuccess: "Work ignored. No reply was sent.",
+        proposalIgnoredNote: "Ignored from the Creator management review sheet.",
         sendProposalRevisionRequest: "Send revision request",
         proposalRevisionNoteLabel: "Revision notes",
         proposalRevisionNotePlaceholder:

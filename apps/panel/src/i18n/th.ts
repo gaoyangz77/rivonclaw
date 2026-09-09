@@ -3143,6 +3143,7 @@ export default {
       lifecycleEvents: {
         PROPOSAL_CREATED: "สร้างข้อเสนอแล้ว",
         PROPOSAL_REVISION_REQUESTED: "ขอแก้ไขข้อเสนอแล้ว",
+        PROPOSAL_IGNORED: "ข้อเสนอถูกข้าม",
         PROPOSAL_APPROVED: "อนุมัติข้อเสนอแล้ว",
         PROPOSAL_REJECTED: "ปฏิเสธข้อเสนอแล้ว",
         PROPOSAL_SUPERSEDED: "ข้อเสนอถูกแทนที่แล้ว",
@@ -3353,6 +3354,7 @@ export default {
         EXPIRED: "หมดอายุ",
         MODIFIED: "แก้ไขแล้ว",
         REVISION_REQUESTED: "ขอแก้ไขแล้ว",
+        IGNORED: "ข้ามแล้ว",
       },
       proposalTypeFilters: {
         ALL: "ทุกประเภท",
@@ -4019,6 +4021,13 @@ export default {
         proposalRejectedNote: "ถูกปฏิเสธจากตารางตรวจสอบการจัดการพันธมิตร",
         proposalRevisionRequestedNote: "ขอแก้ไขจากตารางตรวจสอบการจัดการพันธมิตร",
         requestProposalRevision: "ขอแก้ไข",
+        ignoreProposal: "ข้ามไป",
+        confirmProposalIgnore: "ยืนยันการข้าม",
+        proposalIgnoreConfirmTitle: "ข้ามงานนี้ไหม",
+        proposalIgnoreConfirmHint:
+          "จะไม่ส่งข้อความใด ๆ และครีเอเตอร์จะไม่ได้รับการตอบกลับ ข้อความเหล่านี้จะถูกทำเครื่องหมายว่าจัดการแล้ว Agent จะไม่เสนออะไรสำหรับข้อความเหล่านี้อีก หากครีเอเตอร์ส่งข้อความใหม่ก็ยังเกิดงานใหม่ตามปกติ",
+        proposalIgnoreSuccess: "ข้ามงานแล้ว ไม่ได้ส่งการตอบกลับ",
+        proposalIgnoredNote: "ข้ามจากแผ่นตรวจสอบการจัดการครีเอเตอร์",
         sendProposalRevisionRequest: "ส่งคำขอแก้ไข",
         proposalRevisionNoteLabel: "หมายเหตุการแก้ไข",
         proposalRevisionNotePlaceholder: "บอก Agent ว่าต้องแก้อะไร เช่น อนุมัติตัวอย่างแต่ใช้คำตอบที่สั้นลง",

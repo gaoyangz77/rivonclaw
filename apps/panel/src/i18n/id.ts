@@ -3260,6 +3260,7 @@ export default {
       lifecycleEvents: {
         PROPOSAL_CREATED: "Proposal dibuat",
         PROPOSAL_REVISION_REQUESTED: "Revisi proposal diminta",
+        PROPOSAL_IGNORED: "Proposal diabaikan",
         PROPOSAL_APPROVED: "Proposal disetujui",
         PROPOSAL_REJECTED: "Proposal ditolak",
         PROPOSAL_SUPERSEDED: "Proposal digantikan",
@@ -3485,6 +3486,7 @@ export default {
         EXPIRED: "Kedaluwarsa",
         MODIFIED: "Diubah",
         REVISION_REQUESTED: "Revisi diminta",
+        IGNORED: "Diabaikan",
       },
       proposalTypeFilters: {
         ALL: "Semua tipe",
@@ -4178,6 +4180,13 @@ export default {
         proposalRejectedNote: "Ditolak dari tabel tinjauan Manajemen Afiliasi.",
         proposalRevisionRequestedNote: "Revisi diminta dari tabel tinjauan Manajemen Afiliasi.",
         requestProposalRevision: "Minta revisi",
+        ignoreProposal: "Abaikan",
+        confirmProposalIgnore: "Konfirmasi abaikan",
+        proposalIgnoreConfirmTitle: "Abaikan pekerjaan ini?",
+        proposalIgnoreConfirmHint:
+          "Tidak ada pesan yang dikirim dan kreator tidak menerima balasan. Pesan-pesan ini ditandai sudah ditangani, jadi Agent tidak akan mengusulkan apa pun lagi untuknya. Pesan baru dari kreator tetap memulai pekerjaan baru.",
+        proposalIgnoreSuccess: "Pekerjaan diabaikan. Tidak ada balasan yang dikirim.",
+        proposalIgnoredNote: "Diabaikan dari lembar tinjauan manajemen kreator.",
         sendProposalRevisionRequest: "Kirim permintaan revisi",
         proposalRevisionNoteLabel: "Catatan revisi",
         proposalRevisionNotePlaceholder:

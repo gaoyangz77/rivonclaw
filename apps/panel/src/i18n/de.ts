@@ -3315,6 +3315,7 @@ export default {
       lifecycleEvents: {
         PROPOSAL_CREATED: "Vorschlag erstellt",
         PROPOSAL_REVISION_REQUESTED: "Überarbeitung des Vorschlags angefordert",
+        PROPOSAL_IGNORED: "Vorschlag ignoriert",
         PROPOSAL_APPROVED: "Vorschlag genehmigt",
         PROPOSAL_REJECTED: "Vorschlag abgelehnt",
         PROPOSAL_SUPERSEDED: "Vorschlag durch neuere Informationen ersetzt",
@@ -3542,6 +3543,7 @@ export default {
         EXPIRED: "Abgelaufen",
         MODIFIED: "Geändert",
         REVISION_REQUESTED: "Überarbeitung angefordert",
+        IGNORED: "Ignoriert",
       },
       proposalTypeFilters: {
         ALL: "Alle Typen",
@@ -4253,6 +4255,13 @@ export default {
         proposalRevisionRequestedNote:
           "Überarbeitung aus der Affiliate-Management-Prüftabelle angefordert.",
         requestProposalRevision: "Überarbeitung anfordern",
+        ignoreProposal: "Ignorieren",
+        confirmProposalIgnore: "Ignorieren bestätigen",
+        proposalIgnoreConfirmTitle: "Diese Aufgabe ignorieren?",
+        proposalIgnoreConfirmHint:
+          "Es wird keine Nachricht gesendet und der Creator erhält keine Antwort. Diese Nachrichten gelten als erledigt, der Agent schlägt dafür nichts mehr vor. Eine neue Nachricht des Creators startet weiterhin neue Arbeit.",
+        proposalIgnoreSuccess: "Aufgabe ignoriert. Es wurde keine Antwort gesendet.",
+        proposalIgnoredNote: "Über die Creator-Verwaltung ignoriert.",
         sendProposalRevisionRequest: "Überarbeitungsanfrage senden",
         proposalRevisionNoteLabel: "Überarbeitungsnotizen",
         proposalRevisionNotePlaceholder:
