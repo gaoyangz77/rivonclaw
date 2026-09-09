@@ -627,10 +627,17 @@
   margin-top: 22px;
 }
 
+/* The surrounding card (.affiliate-team-responsibility) paints its surface
+   through the shared affiliate card rule in AffiliateUi.css and carries no
+   padding of its own, so each child owns its inset. This band is the card's
+   title/description/actions header, so it takes the same inset as every other
+   header in the panel; 0 2px left the eyebrow and title 2px from the card's
+   own edge. The table below stays flush on purpose - that is the embedded
+   table pattern, the same one TkPanel padding="none" + TkTableFrame uses. */
 .affiliate-team-responsibility-head {
   align-items: flex-end;
-  margin-bottom: 12px;
-  padding: 0 2px;
+  margin-bottom: var(--tk-v1-space-3);
+  padding: var(--tk-v1-panel-header-block) var(--tk-v1-panel-header-inline);
 }
 
 .affiliate-team-responsibility-head h2 {
