@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.10",
+    "date": "2026-09-09",
+    "en": [
+      "Order both affiliate workbench queues oldest- or newest-first from a control of its own, and read each creator's tags directly on the queue rows",
+      "Capture the Gateway heap snapshot once memory crosses a threshold rather than at the out-of-memory wall, where the write had been producing an empty file"
+    ],
+    "zh": [
+      "达人工作台两个队列均可按时间正序或倒序排列，排序控件独立于筛选行；队列行上直接显示达人标签",
+      "Gateway 堆快照改为内存超过阈值时抓取，不再等到内存耗尽才写——那时写出的是空文件"
+    ]
+  },
+  {
     "version": "1.9.9",
     "date": "2026-09-09",
     "en": [
