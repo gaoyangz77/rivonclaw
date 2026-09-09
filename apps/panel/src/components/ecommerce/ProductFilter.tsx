@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApolloClient } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import { GQL } from "@rivonclaw/core";
-import { requestProductCatalogs, type ProductOption } from "./product-catalog-request.js";
+import { requestUserProducts, type ProductOption } from "./product-catalog-request.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { TkButton, TkField, TkPopover, TkPrivate } from "../design-system/index.js";
@@ -35,13 +34,10 @@ export const ProductFilter = observer(function ProductFilter({
   const [catalog, setCatalog] = useState({
     scope,
     options: [] as ProductOption[],
-    query: "",
     status: "idle",
-    completed: 0,
-    total: 0,
   });
   useEffect(() => {
-    setCatalog({ scope, options: [], query: "", status: "idle", completed: 0, total: 0 });
+    setCatalog({ scope, options: [], status: "idle" });
     return () => request.current?.abort();
   }, [scope]);
   const active = catalog.scope === scope;
@@ -52,49 +48,36 @@ export const ProductFilter = observer(function ProductFilter({
       Boolean(option.shopId) && (!shopId || option.shopId === shopId),
   );
   const selected = new Set(value.map(keyOf));
-  const query = catalog.query;
-  const matches = options.filter(
-    (option) =>
-      (option.title ?? "").toLocaleLowerCase().includes(query) || option.productId.includes(query),
-  );
+  const matches = options;
   const label = t("ecommerce.affiliateWorkspace.workbench.productFilter");
   const search = async () => {
+    // Guard rapid repeated submits before React commits the disabled button state.
+    if (request.current && !request.current.signal.aborted) return;
+    const keywordOrId = searchDraft.trim();
+    if (!keywordOrId) return;
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
-    // Snapshot IDs before async work: never retain live shop nodes.
-    const ids = shopId
-      ? [shopId]
-      : store.shops
-          .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
-          .map((shop) => shop.id);
     const next = {
       scope,
-      query: searchDraft.trim().toLocaleLowerCase(),
       options: [] as ProductOption[],
-      completed: 0,
-      total: ids.length,
       status: "loading",
     };
     setCatalog({ ...next });
     try {
-      if (!ids.length) throw new Error("No authorized shops available");
-      let failed = false;
-      await requestProductCatalogs(client, ids, controller.signal, (result) => {
-        if (result.status === "fulfilled") {
-          next.options = [...next.options, ...result.products];
-        } else {
-          failed = true;
-        }
-        next.completed += 1;
-        setCatalog({ ...next });
-      });
+      const result = await requestUserProducts(client, keywordOrId, controller.signal);
       if (!controller.signal.aborted) {
-        setCatalog({ ...next, status: failed ? "error" : "complete" });
+        setCatalog({
+          ...next,
+          options: result.products,
+          status: result.failedShopIds.length ? "error" : "complete",
+        });
       }
     } catch {
-      // UI boundary: keep completed shops visible, but explicitly mark results incomplete.
+      // UI boundary: a transport failure is not an empty successful search.
       if (!controller.signal.aborted) setCatalog({ ...next, status: "error" });
+    } finally {
+      if (request.current === controller) request.current = null;
     }
   };
   const cancel = () => {
@@ -187,12 +170,7 @@ export const ProductFilter = observer(function ProductFilter({
         )}
         <div className="product-filter-results" aria-busy={loading}>
           {loading ? (
-            <p role="status">
-              {t("ecommerce.affiliateWorkspace.workbench.loadingProducts", {
-                completed: catalog.completed,
-                total: catalog.total,
-              })}
-            </p>
+            <p role="status">{t("ecommerce.affiliateWorkspace.workbench.loadingProducts")}</p>
           ) : error ? (
             <p role="alert">{t("ecommerce.affiliateWorkspace.workbench.productsLoadFailed")}</p>
           ) : !active || catalog.status === "idle" ? (

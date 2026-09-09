@@ -12452,6 +12452,8 @@ export interface Query {
   runProfile?: Maybe<RunProfile>;
   /** List run profiles for the authenticated user, optionally filtered by surface */
   runProfiles: Array<RunProfile>;
+  /** Search product name substrings (case-insensitive) or product IDs across the current user's authorized shops. Shops run concurrently; the backend consumes all catalog pages and returns only matches. Inspect failedShopIds for incomplete results. */
+  searchProductsForUser: UserProductSearchResult;
   /** Get a single shop by ID */
   shop?: Maybe<Shop>;
   /** Get OAuth token status for a shop */
@@ -13318,6 +13320,11 @@ export interface QueryRunProfileArgs {
 
 export interface QueryRunProfilesArgs {
   surfaceId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+
+export interface QuerySearchProductsForUserArgs {
+  keywordOrId: Scalars['String']['input'];
 }
 
 
@@ -15490,6 +15497,19 @@ export interface UserAgentProfile {
   enabledByUserId?: Maybe<Scalars['String']['output']>;
   /** Six-character invite code for agent referrals. */
   inviteCode?: Maybe<Scalars['String']['output']>;
+}
+
+export interface UserProductSearchItem {
+  productId: Scalars['String']['output'];
+  shopId: Scalars['ID']['output'];
+  title?: Maybe<Scalars['String']['output']>;
+}
+
+export interface UserProductSearchResult {
+  /** Authorized shops whose search failed or timed out. Results are incomplete when nonempty. */
+  failedShopIds: Array<Scalars['ID']['output']>;
+  products: Array<UserProductSearchItem>;
+  totalShops: Scalars['Int']['output'];
 }
 
 export interface UserSupport {

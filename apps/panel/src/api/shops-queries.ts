@@ -239,14 +239,17 @@ export const ECOMMERCE_SEARCH_PRODUCTS_QUERY = gql`
   }
 `;
 
-// No limit: the backend consumes all provider pages before returning. Name matching
-// must never mistake a capped first page for the full product catalog.
+// One user-level request. Authentication, shop fan-out, pagination and matching are backend-owned.
 export const ECOMMERCE_PRODUCT_FILTER_OPTIONS_QUERY = gql`
-  query EcommerceProductFilterOptions($shopIds: [ID!]) {
-    ecommerceSearchProducts(shopIds: $shopIds, status: ALL, limit: 0) {
-      shopId
-      productId
-      title
+  query EcommerceProductFilterOptions($keywordOrId: String!) {
+    searchProductsForUser(keywordOrId: $keywordOrId) {
+      products {
+        shopId
+        productId
+        title
+      }
+      totalShops
+      failedShopIds
     }
   }
 `;

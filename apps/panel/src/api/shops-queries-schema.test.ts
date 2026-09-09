@@ -19,6 +19,12 @@ function isDocumentNode(value: unknown): value is DocumentNode {
 }
 
 describe("Panel shop GraphQL documents", () => {
+  it("exposes a keyword-only user search without caller-controlled user/shop scope", () => {
+    const schema = buildSchema(readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"));
+    const field = schema.getQueryType()!.getFields().searchProductsForUser;
+    expect(field.args.map((arg) => [arg.name, String(arg.type)])).toEqual([["keywordOrId", "String!"]]);
+    expect(String(field.type)).toBe("UserProductSearchResult!");
+  });
   it("validate against the current Backend schema", () => {
     const schema = buildSchema(readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"));
     const failures: string[] = [];

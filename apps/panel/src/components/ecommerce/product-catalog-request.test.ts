@@ -1,59 +1,56 @@
 import { ApolloClient, ApolloLink, InMemoryCache, Observable } from "@apollo/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { requestProductCatalog, requestProductCatalogs } from "./product-catalog-request.js";
+import { print } from "graphql";
+import { requestUserProducts } from "./product-catalog-request.js";
 
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
-it("starts all shops within the jitter window without waiting for any response", async () => {
-  vi.useFakeTimers();
-  vi.spyOn(Math, "random").mockReturnValue(0.5);
-  const finish = new Map<string, () => void>();
-  const ids = Array.from({ length: 8 }, (_, i) => `shop-${i}`);
-  const settled = vi.fn();
-  const client = new ApolloClient({
-    cache: new InMemoryCache(),
-    link: new ApolloLink((operation) => {
-      const id = operation.variables.shopIds[0];
-      return new Observable((subscriber) => {
-        finish.set(id, () => {
-          if (id === "shop-0") subscriber.error(new Error("One shop unavailable"));
-          else
-            subscriber.next({
-              data: { ecommerceSearchProducts: [{ shopId: id, productId: id, title: id }] },
-            });
-        });
-      });
-    }),
+it("sends exactly one keyword-only operation for an 80-shop search", async () => {
+  const response = {
+    products: [{ shopId: "shop-a", productId: "1", title: "Match" }],
+    totalShops: 80,
+    failedShopIds: ["shop-b"],
+  };
+  const link = vi.fn<ApolloLink.RequestHandler>((operation) => {
+    expect(operation.variables).toEqual({ keywordOrId: "Match" });
+    expect(print(operation.query)).toContain("searchProductsForUser(keywordOrId: $keywordOrId)");
+    return new Observable((subscriber) =>
+      subscriber.next({ data: { searchProductsForUser: response } }),
+    );
   });
-  const pending = requestProductCatalogs(client, ids, new AbortController().signal, settled);
-  expect(finish.size).toBe(0);
-  await vi.advanceTimersByTimeAsync(150);
-  expect([...finish.keys()].sort()).toEqual(ids);
-  expect(settled).not.toHaveBeenCalled();
-  finish.get("shop-0")!();
-  await vi.advanceTimersByTimeAsync(0);
-  expect(settled).toHaveBeenCalledWith(
-    expect.objectContaining({ shopId: "shop-0", status: "rejected" }),
+  const client = new ApolloClient({ cache: new InMemoryCache(), link: new ApolloLink(link) });
+  await expect(requestUserProducts(client, "Match", new AbortController().signal)).resolves.toEqual(
+    response,
   );
-  finish.get("shop-7")!();
-  await vi.advanceTimersByTimeAsync(0);
-  expect(settled).toHaveBeenCalledWith(
-    expect.objectContaining({ shopId: "shop-7", status: "fulfilled" }),
-  );
-  for (const id of ids.slice(1, 7)) finish.get(id)!();
-  await pending;
-  expect(settled).toHaveBeenCalledTimes(8);
+  expect(link).toHaveBeenCalledOnce();
   client.stop();
 });
 
-it.each([0, 150])("cancels both jitter timers and active requests after %i ms", async (elapsed) => {
+it("times out once, aborts transport and does not retry automatically", async () => {
   vi.useFakeTimers();
-  vi.spyOn(Math, "random").mockReturnValue(0.5);
   const signals: AbortSignal[] = [];
-  const settled = vi.fn();
+  const client = new ApolloClient({
+    cache: new InMemoryCache(),
+    link: new ApolloLink((operation) => {
+      signals.push(operation.getContext().fetchOptions.signal);
+      return new Observable(() => {});
+    }),
+  });
+  const pending = requestUserProducts(client, "name", new AbortController().signal);
+  const assertion = expect(pending).rejects.toThrow("timed out");
+  await vi.advanceTimersByTimeAsync(45_000);
+  await assertion;
+  expect(signals).toHaveLength(1);
+  expect(signals[0].aborted).toBe(true);
+  expect(vi.getTimerCount()).toBe(0);
+  client.stop();
+});
+
+it.each([false, true])("cancels a search (already aborted: %s)", async (alreadyAborted) => {
+  const signals: AbortSignal[] = [];
   const client = new ApolloClient({
     cache: new InMemoryCache(),
     link: new ApolloLink((operation) => {
@@ -62,49 +59,11 @@ it.each([0, 150])("cancels both jitter timers and active requests after %i ms", 
     }),
   });
   const controller = new AbortController();
-  const pending = requestProductCatalogs(client, ["a", "b", "c"], controller.signal, settled);
-  await vi.advanceTimersByTimeAsync(elapsed);
+  if (alreadyAborted) controller.abort();
+  const pending = requestUserProducts(client, "name", controller.signal);
   controller.abort();
-  await pending;
-  await vi.advanceTimersByTimeAsync(30_000);
-  expect(signals).toHaveLength(elapsed ? 3 : 0);
+  await expect(pending).rejects.toThrow("cancelled");
+  expect(signals).toHaveLength(alreadyAborted ? 0 : 1);
   expect(signals.every((signal) => signal.aborted)).toBe(true);
-  expect(settled).not.toHaveBeenCalled();
-  expect(vi.getTimerCount()).toBe(0);
-  client.stop();
-});
-it("times out a stalled request, aborts transport and allows a fresh retry", async () => {
-  vi.useFakeTimers();
-  const signals: AbortSignal[] = [];
-  const client = new ApolloClient({
-    cache: new InMemoryCache(),
-    link: new ApolloLink((operation) => {
-      signals.push(operation.getContext().fetchOptions.signal);
-      return new Observable((subscriber) => {
-        if (signals.length === 2) subscriber.next({ data: { ecommerceSearchProducts: [] } });
-      });
-    }),
-  });
-  const promise = requestProductCatalog(client, "shop-a", new AbortController().signal);
-  const assertion = expect(promise).rejects.toThrow("timed out");
-  await vi.advanceTimersByTimeAsync(30_000);
-  await assertion;
-  expect(signals[0].aborted).toBe(true);
-  await expect(
-    requestProductCatalog(client, "shop-a", new AbortController().signal),
-  ).resolves.toEqual([]);
-  expect(signals).toHaveLength(2);
-  client.stop();
-});
-
-it("does not start a request with an already cancelled signal", async () => {
-  const link = vi.fn();
-  const client = new ApolloClient({ cache: new InMemoryCache(), link: new ApolloLink(link) });
-  const controller = new AbortController();
-  controller.abort();
-  await expect(requestProductCatalog(client, "shop-a", controller.signal)).rejects.toThrow(
-    "cancelled",
-  );
-  expect(link).not.toHaveBeenCalled();
   client.stop();
 });
