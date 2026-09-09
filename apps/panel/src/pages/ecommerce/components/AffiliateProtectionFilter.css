@@ -1,7 +1,6 @@
 .affiliate-protection-filter {
-  display: grid;
-  grid-template-columns: auto minmax(140px, 1fr);
-  align-items: center;
-  gap: var(--tk-v1-space-2);
+  flex: 0 1 160px;
+  width: 160px;
+  max-width: 100%;
   min-width: 0;
 }

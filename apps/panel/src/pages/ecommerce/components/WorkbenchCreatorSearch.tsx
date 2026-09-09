@@ -23,7 +23,6 @@ export function WorkbenchCreatorSearch({
       <TkField
         className="workbench-creator-search-field"
         label={t("ecommerce.affiliateWorkspace.workbench.creatorSearch")}
-        hideLabel
         placeholder={t("ecommerce.affiliateWorkspace.workbench.creatorSearchPlaceholder")}
         type="search"
         maxLength={200}
@@ -33,9 +32,7 @@ export function WorkbenchCreatorSearch({
           if (!event.target.value) onChange("");
         }}
       />
-      <TkButton type="submit">
-        {t("ecommerce.affiliateWorkspace.workbench.searchCreator")}
-      </TkButton>
+      <TkButton type="submit">{t("ecommerce.affiliateWorkspace.workbench.searchCreator")}</TkButton>
       {value && (
         <TkButton
           size="sm"

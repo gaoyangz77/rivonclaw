@@ -1,18 +1,44 @@
 .affiliate-workbench-entity-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--tk-v1-border-default);
 }
 
 .affiliate-workbench-entity-filters {
   display: flex;
-  align-items: center;
+  align-items: end;
   gap: 12px;
   flex-wrap: wrap;
   min-width: 0;
+}
+
+.affiliate-workbench-filter-select {
+  flex: 0 1 160px;
+  width: 160px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.affiliate-workbench-filter-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.affiliate-workbench-filter-refresh {
+  flex: 0 0 auto;
+}
+
+.affiliate-workbench-filter-search-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.affiliate-workbench-filter-channels {
+  min-height: var(--tk-v1-control-default);
 }
 
 .affiliate-workbench-entity-summary {

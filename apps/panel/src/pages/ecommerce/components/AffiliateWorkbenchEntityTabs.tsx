@@ -7,9 +7,10 @@ import {
   AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
   REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
 } from "../../../api/shops-queries.js";
-import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import {
+  TkButton,
+  TkChoiceSelect,
   TkInteractiveTableRow,
   TkPrivate,
   TkTableFrame,
@@ -328,16 +329,18 @@ function AffiliateWorkbenchSampleList({
     >
       <div className="affiliate-workbench-entity-toolbar">
         <div className="affiliate-workbench-entity-filters">
-          <Select
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
             value={selectedShopId}
             onChange={(next) => {
               setProductSelection({ scope: next, values: [] });
               onSelectShop(next);
             }}
             options={shopOptions}
-            className="affiliate-workspace-shop-select"
+            className="affiliate-workbench-filter-select"
           />
-          <Select
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
             value={disposition}
             onChange={(value) => setDisposition(value as GQL.AffiliateSampleReviewDisposition)}
             options={[
@@ -350,25 +353,35 @@ function AffiliateWorkbenchSampleList({
                 label: t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected"),
               },
             ]}
-            className="affiliate-status-select"
+            className="affiliate-workbench-filter-select"
           />
           <AffiliateProtectionFilter value={protection} onChange={setProtection} />
-          <Select
+          <TkChoiceSelect
             value={selectedBusinessDeveloperId}
             onChange={onSelectBusinessDeveloper}
             options={businessDeveloperOptions}
-            className="affiliate-status-select"
-            ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+            className="affiliate-workbench-filter-select"
+            label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
-          <ProductFilter
-            key={selectedShopId}
-            shopId={selectedShopId || undefined}
-            value={products}
-            onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
-          />
-          <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
+          <div className="affiliate-workbench-filter-group">
+            <span className="tk-v1-label">
+              {t("ecommerce.affiliateWorkspace.workbench.colProduct")}
+            </span>
+            <ProductFilter
+              key={selectedShopId}
+              shopId={selectedShopId || undefined}
+              value={products}
+              onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
+            />
+          </div>
+          <div className="affiliate-workbench-filter-search-actions">
+            <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
+            <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
+              {t("common.refresh")}
+            </TkButton>
+          </div>
           {softRejectedView ? (
             <span className="affiliate-workbench-entity-summary">
               {t("ecommerce.affiliateWorkspace.workbench.softRejectedHint")}
@@ -393,9 +406,6 @@ function AffiliateWorkbenchSampleList({
             </span>
           ) : null}
         </div>
-        <button className="btn btn-secondary" type="button" onClick={() => void refetch()}>
-          {t("common.refresh")}
-        </button>
       </div>
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />
@@ -734,42 +744,54 @@ function AffiliateWorkbenchMessageList({
     >
       <div className="affiliate-workbench-entity-toolbar">
         <div className="affiliate-workbench-entity-filters">
-          <div className="affiliate-workbench-channel-chips" role="group">
-            {channelChips.map((chip) => (
-              <button
-                key={chip.value || "ALL"}
-                type="button"
-                className={`affiliate-workbench-channel-chip${channel === chip.value ? " affiliate-workbench-channel-chip-active" : ""}`}
-                aria-pressed={channel === chip.value}
-                onClick={() => selectChannel(chip.value)}
-              >
-                {chip.label}
-                {chip.count != null ? <span>{chip.count}</span> : null}
-              </button>
-            ))}
+          <div className="affiliate-workbench-filter-group">
+            <span className="tk-v1-label">
+              {t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}
+            </span>
+            <div
+              className="affiliate-workbench-channel-chips affiliate-workbench-filter-channels"
+              role="group"
+              aria-label={t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}
+            >
+              {channelChips.map((chip) => (
+                <button
+                  key={chip.value || "ALL"}
+                  type="button"
+                  className={`affiliate-workbench-channel-chip${channel === chip.value ? " affiliate-workbench-channel-chip-active" : ""}`}
+                  aria-pressed={channel === chip.value}
+                  onClick={() => selectChannel(chip.value)}
+                >
+                  {chip.label}
+                  {chip.count != null ? <span>{chip.count}</span> : null}
+                </button>
+              ))}
+            </div>
           </div>
           {platformChannelActive ? (
-            <>
-              <span className="affiliate-workbench-toolbar-divider" aria-hidden="true" />
-              <Select
-                value={messageShopId}
-                onChange={setMessageShopId}
-                options={shopOptions}
-                className="affiliate-workspace-shop-select"
-              />
-            </>
+            <TkChoiceSelect
+              label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
+              value={messageShopId}
+              onChange={setMessageShopId}
+              options={shopOptions}
+              className="affiliate-workbench-filter-select"
+            />
           ) : null}
           <AffiliateProtectionFilter value={protection} onChange={setProtection} />
-          <Select
+          <TkChoiceSelect
             value={selectedBusinessDeveloperId}
             onChange={onSelectBusinessDeveloper}
             options={businessDeveloperOptions}
-            className="affiliate-status-select"
-            ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+            className="affiliate-workbench-filter-select"
+            label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
-          <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
+          <div className="affiliate-workbench-filter-search-actions">
+            <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
+            <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
+              {t("common.refresh")}
+            </TkButton>
+          </div>
           {page && page.waitingOver24hCount > 0 ? (
             <span className="affiliate-workbench-entity-summary">
               <span className="affiliate-workbench-summary-warning">
@@ -780,9 +802,6 @@ function AffiliateWorkbenchMessageList({
             </span>
           ) : null}
         </div>
-        <button className="btn btn-secondary" type="button" onClick={() => void refetch()}>
-          {t("common.refresh")}
-        </button>
       </div>
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />

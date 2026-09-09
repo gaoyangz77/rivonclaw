@@ -110,6 +110,29 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       </MockedProvider>,
     );
     await waitFor(() => expect(results[0]).toHaveBeenCalledOnce());
+    for (const key of [
+      "ecommerce.affiliateWorkspace.workbench.protectionFilter",
+      "ecommerce.affiliateWorkspace.businessDeveloperFilter",
+      "ecommerce.affiliateWorkspace.workbench.creatorSearch",
+      ...(samples
+        ? [
+            "ecommerce.affiliateWorkspace.workbench.colShop",
+            "ecommerce.affiliateWorkspace.workbench.colStatus",
+            "ecommerce.affiliateWorkspace.workbench.colProduct",
+          ]
+        : ["ecommerce.affiliateWorkspace.workbench.colChannelSource"]),
+    ]) {
+      const label = screen.getByText(i18n.t(key));
+      expect(label.classList.contains("tk-v1-label")).toBe(true);
+      expect(label.classList.contains("tk-v1-label-hidden")).toBe(false);
+    }
+    expect(document.querySelector("select")).toBeNull();
+    const searchActions = screen
+      .getByRole("searchbox", { name: "搜索达人" })
+      .closest(".affiliate-workbench-filter-search-actions");
+    expect(searchActions).not.toBeNull();
+    expect(searchActions?.contains(screen.getByRole("button", { name: "搜索" }))).toBe(true);
+    expect(searchActions?.contains(screen.getByRole("button", { name: "刷新" }))).toBe(true);
     fireEvent.change(screen.getByRole("searchbox", { name: "搜索达人" }), {
       target: { value: " @alice " },
     });
