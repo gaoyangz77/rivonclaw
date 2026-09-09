@@ -211,6 +211,8 @@ export interface ActionProposalDecisionSnapshot {
   actorType?: Maybe<AffiliateLifecycleActorType>;
   decidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   note?: Maybe<Scalars['String']['output']>;
+  relatedMessagesConfirmed?: Maybe<Scalars['Boolean']['output']>;
+  sampleReviews?: Maybe<Array<ActionProposalSampleReviewDecision>>;
 }
 
 export interface ActionProposalDecisionSnapshotInput {
@@ -218,6 +220,8 @@ export interface ActionProposalDecisionSnapshotInput {
   actorType?: InputMaybe<AffiliateLifecycleActorType>;
   decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
+  relatedMessagesConfirmed?: InputMaybe<Scalars['Boolean']['input']>;
+  sampleReviews?: InputMaybe<Array<ActionProposalSampleReviewDecisionInput>>;
 }
 
 /** Content actually delivered for an executed message proposal, retained on the linked Delivery. The proposal's own draft says what was proposed; this says what was actually delivered. Both facts are available. For proposals whose drafts were deleted before message wording became permanently retained, this is the only message body still available. */
@@ -293,6 +297,18 @@ export interface ActionProposalRevisionSummary {
   supersededByProposalId?: Maybe<Scalars['ID']['output']>;
   type: ActionProposalType;
   updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+export interface ActionProposalSampleReviewDecision {
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
+  sampleApplicationRecordId: Scalars['ID']['output'];
+}
+
+export interface ActionProposalSampleReviewDecisionInput {
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
+  sampleApplicationRecordId: Scalars['ID']['input'];
 }
 
 export interface ActionProposalSampleReviewIntent {
@@ -7288,10 +7304,12 @@ export interface CustomerServiceSettingsInput {
 }
 
 export interface DecideActionProposalInput {
+  confirmRelatedMessages?: InputMaybe<Scalars['Boolean']['input']>;
   /** CreatorRelationship workspace for BD proposals. Omit for shop-operations proposals, which are authorized per acted-on shop via shopIds. */
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
+  sampleReviews?: InputMaybe<Array<ActionProposalSampleReviewDecisionInput>>;
   status: ActionProposalStatus;
 }
 

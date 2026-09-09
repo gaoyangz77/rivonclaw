@@ -1290,11 +1290,12 @@ describe("Affiliate canonical UI contract", () => {
     expect(creatorModal).toContain("optimisticallyDecidedProposalIds");
     expect(creatorModal).toContain("<AgentWorkBundleCard");
     expect(creatorModal).toContain("allowDecisionActions");
-    expect(creatorModal).toContain("onApprove={(item) =>");
+    expect(creatorModal).toContain("onApprove={(item, review) =>");
     expect(creatorModal).toContain("onReject={(item) =>");
     expect(creatorModal).toContain("onRequestRevision={(item, revisionNote) =>");
     expect(creatorModal).toContain("decideRelationshipActionProposal");
-    expect(page).toContain("onDecideProposal={async (proposal, status, note) =>");
+    expect(page).toContain("onDecideProposal={async (proposal, status, note, review) =>");
+    expect(creatorModal).toContain("...sampleReview");
     expect(page).toContain("setWorkbenchEntityRefreshRevision((revision) => revision + 1)");
   });
 
