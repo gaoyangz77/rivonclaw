@@ -1958,7 +1958,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Dapatkan Status Kontak Kreator",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Atur WhatsApp Kreator",
         AFFILIATE_SET_CREATOR_EMAIL: "Atur Email Kreator",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Periksa WhatsApp Kreator",
         read: "Baca Berkas",
         write: "Tulis Berkas",
         edit: "Sunting Berkas",

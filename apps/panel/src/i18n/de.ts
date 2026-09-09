@@ -2002,7 +2002,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Creator-Kontaktstatus abrufen",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Creator-WhatsApp festlegen",
         AFFILIATE_SET_CREATOR_EMAIL: "Creator-E-Mail festlegen",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Creator-WhatsApp prüfen",
         read: "Datei lesen",
         write: "Datei schreiben",
         edit: "Datei bearbeiten",

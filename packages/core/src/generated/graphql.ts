@@ -2397,6 +2397,14 @@ export interface AffiliateCreatorPerformanceMoneyMetric {
   window: Scalars['String']['output'];
 }
 
+/** Where the country code used to read a Creator-supplied phone number came from. PHONE_NUMBER means the number already stated it; CALLER_SUPPLIED means the caller named the Creator's region; COLLABORATING_SHOPS means it was derived from the single region shared by the shops this Creator collaborates with — an inference about the Creator, not a fact we hold about them. */
+export const AffiliateCreatorPhoneRegionSource = {
+  CallerSupplied: 'CALLER_SUPPLIED',
+  CollaboratingShops: 'COLLABORATING_SHOPS',
+  PhoneNumber: 'PHONE_NUMBER'
+} as const;
+
+export type AffiliateCreatorPhoneRegionSource = typeof AffiliateCreatorPhoneRegionSource[keyof typeof AffiliateCreatorPhoneRegionSource];
 export interface AffiliateCreatorProductFitInput {
   /** Optional Backend AffiliateCreatorIdentity id. When omitted, backend derives it from creatorRelationshipId. */
   creatorId?: InputMaybe<Scalars['ID']['input']>;
@@ -5550,21 +5558,6 @@ export interface CancelBillingSubscriptionInput {
 export interface CaptchaResponse {
   svg: Scalars['String']['output'];
   token: Scalars['String']['output'];
-}
-
-export interface CheckCreatorWhatsAppContactInput {
-  creatorPhone: Scalars['String']['input'];
-  /** CreatorRelationship is the business boundary for validating and optionally saving creator contact channels. */
-  creatorRelationshipId: Scalars['ID']['input'];
-  persist?: InputMaybe<Scalars['Boolean']['input']>;
-}
-
-export interface CheckCreatorWhatsAppContactPayload {
-  creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
-  exists: Scalars['Boolean']['output'];
-  jid?: Maybe<Scalars['String']['output']>;
-  number: Scalars['String']['output'];
-  whatsAppAccount: WhatsAppAccountBinding;
 }
 
 export interface ClaimAffiliateCampaignSearchPlanGenerationInput {
@@ -10236,8 +10229,6 @@ export interface Mutation {
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   cancelExpertRun: ExpertRun;
-  /** Check a creator phone number through Evolution API and optionally persist the result. */
-  checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
   claimAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlanGenerationContext;
   claimAffiliateEscalationNotification?: Maybe<AffiliateEscalationNotificationClaim>;
   claimPendingTikTokShops: TikTokShopClaimResult;
@@ -10464,8 +10455,8 @@ export interface Mutation {
   setAffiliateCampaignStatus: AffiliateCampaign;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
-  /** Attach or update a creator WhatsApp contact on an affiliate creator relationship. */
-  setAffiliateCreatorWhatsApp: AffiliateCreatorRelationship;
+  /** Validate a creator WhatsApp number, confirm it is registered on WhatsApp, and attach it to an affiliate creator relationship. */
+  setAffiliateCreatorWhatsApp: SetCreatorWhatsAppContactPayload;
   /** Admin-only: enable or disable an agent invite code for a user by email. */
   setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
@@ -10684,11 +10675,6 @@ export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
 
 export interface MutationCancelExpertRunArgs {
   runId: Scalars['ID']['input'];
-}
-
-
-export interface MutationCheckAffiliateCreatorWhatsAppArgs {
-  input: CheckCreatorWhatsAppContactInput;
 }
 
 
@@ -14053,9 +14039,22 @@ export interface SetCreatorEmailContactInput {
 }
 
 export interface SetCreatorWhatsAppContactInput {
+  /** The Creator's WhatsApp number as they wrote it. The country code may be included or omitted, and a leading national trunk prefix is handled: 07911123456 with region GB becomes +447911123456. */
   creatorPhone: Scalars['String']['input'];
+  /** The Creator's region as an ISO 3166-1 alpha-2 country code, used only when creatorPhone has no country code. Not restricted to the shop's own market: a Creator can be in Brazil while working with a US shop. Omit it and the country code is resolved from the shops this Creator collaborates with; supply it when the conversation says otherwise. Ignored when the number already states its country code. */
+  creatorRegion?: InputMaybe<Scalars['String']['input']>;
   /** CreatorRelationship is the business boundary for setting creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
+}
+
+export interface SetCreatorWhatsAppContactPayload {
+  /** The stored number in canonical E.164 form, country code included. */
+  creatorPhone: Scalars['String']['output'];
+  /** The country the number was read under. Absent only for a valid number on a non-geographic calling code, which belongs to no country. */
+  creatorRegion?: Maybe<Scalars['String']['output']>;
+  /** Where that country code came from. COLLABORATING_SHOPS means it was inferred rather than known — say so if the number is read back to the Creator. */
+  creatorRegionSource: AffiliateCreatorPhoneRegionSource;
+  creatorRelationship: AffiliateCreatorRelationship;
 }
 
 /** A connected e-commerce shop */
@@ -15142,7 +15141,6 @@ export const ToolDataScope = {
 export type ToolDataScope = typeof ToolDataScope[keyof typeof ToolDataScope];
 /** Unique tool identifier */
 export const ToolId = {
-  AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateEscalate: 'AFFILIATE_ESCALATE',

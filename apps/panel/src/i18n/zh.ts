@@ -1976,7 +1976,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "获取达人联系方式状态",
         AFFILIATE_SET_CREATOR_WHATSAPP: "设置达人 WhatsApp",
         AFFILIATE_SET_CREATOR_EMAIL: "设置达人邮箱",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "检查达人 WhatsApp",
         // 系统工具 — 文件
         read: "读取文件",
         write: "写入文件",

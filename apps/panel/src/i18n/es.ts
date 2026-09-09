@@ -1988,7 +1988,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Obtener estado de contacto del creador",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Configurar WhatsApp del creador",
         AFFILIATE_SET_CREATOR_EMAIL: "Configurar correo del creador",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Comprobar WhatsApp del creador",
         read: "Leer archivo",
         write: "Escribir archivo",
         edit: "Editar archivo",

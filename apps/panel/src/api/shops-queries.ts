@@ -3286,7 +3286,12 @@ export const SET_AFFILIATE_CREATOR_EMAIL_MUTATION = gql`
 export const SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION = gql`
   mutation SetAffiliateCreatorWhatsApp($input: SetCreatorWhatsAppContactInput!) {
     setAffiliateCreatorWhatsApp(input: $input) {
-      id
+      creatorPhone
+      creatorRegion
+      creatorRegionSource
+      creatorRelationship {
+        id
+      }
     }
   }
 `;

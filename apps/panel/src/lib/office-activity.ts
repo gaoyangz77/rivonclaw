@@ -275,7 +275,6 @@ export const TOOL_ACTIVITY_CAPTIONS: Record<string, ActivityCaptionId> = {
   AFFILIATE_SEARCH_MANUAL_TAGS: "searchCreatorTags",
   AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT: "predictCreatorFit",
   AFFILIATE_GET_CREATOR_CONTACT_STATE: "readCreatorContact",
-  AFFILIATE_CHECK_CREATOR_WHATSAPP: "readCreatorContact",
   AFFILIATE_SET_CREATOR_WHATSAPP: "updateCreatorContact",
   AFFILIATE_SET_CREATOR_EMAIL: "updateCreatorContact",
   AFFILIATE_LIST_WHATSAPP_ACCOUNTS: "listOutreachAccounts",

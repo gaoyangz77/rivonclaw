@@ -9888,7 +9888,7 @@ function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
     { input: GQL.SetCreatorEmailContactInput }
   >(SET_AFFILIATE_CREATOR_EMAIL_MUTATION);
   const [saveWhatsApp, saveWhatsAppState] = useMutation<
-    { setAffiliateCreatorWhatsApp: GQL.AffiliateCreatorRelationship },
+    { setAffiliateCreatorWhatsApp: GQL.SetCreatorWhatsAppContactPayload },
     { input: GQL.SetCreatorWhatsAppContactInput }
   >(SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION);
   const contactState = data?.affiliateCreatorContactState;

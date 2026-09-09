@@ -1876,7 +1876,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "ดูสถานะช่องทางติดต่อครีเอเตอร์",
         AFFILIATE_SET_CREATOR_WHATSAPP: "ตั้งค่า WhatsApp ของครีเอเตอร์",
         AFFILIATE_SET_CREATOR_EMAIL: "ตั้งค่าอีเมลของครีเอเตอร์",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "ตรวจสอบ WhatsApp ของครีเอเตอร์",
         read: "อ่านไฟล์",
         write: "เขียนไฟล์",
         edit: "แก้ไขไฟล์",

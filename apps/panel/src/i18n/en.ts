@@ -2107,7 +2107,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Get Creator Contact State",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Set Creator WhatsApp",
         AFFILIATE_SET_CREATOR_EMAIL: "Set Creator Email",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Check Creator WhatsApp",
         // System tools — Files
         read: "Read File",
         write: "Write File",

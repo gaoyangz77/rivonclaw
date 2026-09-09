@@ -2001,7 +2001,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Obtenir l'état des contacts du créateur",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Définir le WhatsApp du créateur",
         AFFILIATE_SET_CREATOR_EMAIL: "Définir l'e-mail du créateur",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Vérifier le WhatsApp du créateur",
         read: "Lire le fichier",
         write: "Écrire un fichier",
         edit: "Modifier le fichier",

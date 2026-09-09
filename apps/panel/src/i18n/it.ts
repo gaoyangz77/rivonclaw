@@ -1986,7 +1986,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Ottieni stato contatti creator",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Imposta WhatsApp creator",
         AFFILIATE_SET_CREATOR_EMAIL: "Imposta email creator",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Controlla WhatsApp creator",
         read: "Leggi il file",
         write: "Scrivi file",
         edit: "Modifica file",
