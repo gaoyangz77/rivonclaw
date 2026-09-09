@@ -39,6 +39,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       shopId: null,
       businessDeveloperId: null,
       protected: null,
+      sortOrder: "ASC",
       limit: 25,
       ...(samples ? { reviewDisposition: "OPEN" } : { channel: null }),
     };

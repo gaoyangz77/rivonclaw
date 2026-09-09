@@ -179,6 +179,12 @@ function AffiliateWorkbenchSampleList({
   );
   const [protection, setProtection] = useState("ALL");
   const [creatorSearch, setCreatorSearch] = useState("");
+  /**
+   * Application-time order. A backend cursor is bound to the order that minted
+   * it, so this belongs in `filterKey` — changing it must start a fresh page 1,
+   * never replay the in-flight cursor.
+   */
+  const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
   const [productSelection, setProductSelection] = useState<{
     scope: string;
     values: ProductFilterValue[];
@@ -189,6 +195,7 @@ function AffiliateWorkbenchSampleList({
     JSON.stringify(products),
     protection,
     disposition,
+    sortOrder,
     selectedShopId,
     selectedBusinessDeveloperId,
   ]);
@@ -213,6 +220,7 @@ function AffiliateWorkbenchSampleList({
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
         reviewDisposition: disposition,
+        sortOrder,
         ...(creatorSearch ? { creatorSearch } : {}),
         ...(products.length ? { products } : {}),
         limit: PAGE_SIZE,
@@ -248,6 +256,7 @@ function AffiliateWorkbenchSampleList({
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
           reviewDisposition: disposition,
+          sortOrder,
           ...(creatorSearch ? { creatorSearch } : {}),
           ...(products.length ? { products } : {}),
           limit: PAGE_SIZE,
@@ -279,6 +288,7 @@ function AffiliateWorkbenchSampleList({
     nextCursor,
     selectedBusinessDeveloperId,
     selectedShopId,
+    sortOrder,
   ]);
 
   async function reopenRow(row: GQL.AffiliateWorkbenchSampleRow): Promise<void> {
@@ -376,6 +386,22 @@ function AffiliateWorkbenchSampleList({
               onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
             />
           </div>
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.sampleSortLabel")}
+            value={sortOrder}
+            onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+            options={[
+              {
+                value: GQL.EcomSortOrder.Asc,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleSortOldestFirst"),
+              },
+              {
+                value: GQL.EcomSortOrder.Desc,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleSortNewestFirst"),
+              },
+            ]}
+            className="affiliate-workbench-filter-select"
+          />
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
             <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
@@ -611,10 +637,17 @@ function AffiliateWorkbenchMessageList({
   const queryShopId = platformChannelActive && messageShopId ? messageShopId : null;
   const [protection, setProtection] = useState("ALL");
   const [creatorSearch, setCreatorSearch] = useState("");
+  /**
+   * Waiting-time order. A backend cursor is bound to the order that minted it,
+   * so this belongs in `filterKey` — changing it must start a fresh page 1,
+   * never replay the in-flight cursor.
+   */
+  const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
   const filterKey = workbenchFilterKey([
     creatorSearch,
     protection,
     channel,
+    sortOrder,
     queryShopId,
     selectedBusinessDeveloperId,
   ]);
@@ -639,6 +672,7 @@ function AffiliateWorkbenchMessageList({
         shopId: queryShopId,
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
+        sortOrder,
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -673,6 +707,7 @@ function AffiliateWorkbenchMessageList({
           shopId: queryShopId,
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
+          sortOrder,
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -701,6 +736,7 @@ function AffiliateWorkbenchMessageList({
     nextCursor,
     queryShopId,
     selectedBusinessDeveloperId,
+    sortOrder,
   ]);
 
   const nowMs = Date.now();
@@ -785,6 +821,22 @@ function AffiliateWorkbenchMessageList({
             label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
+          />
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.messageSortLabel")}
+            value={sortOrder}
+            onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+            options={[
+              {
+                value: GQL.EcomSortOrder.Asc,
+                label: t("ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst"),
+              },
+              {
+                value: GQL.EcomSortOrder.Desc,
+                label: t("ecommerce.affiliateWorkspace.workbench.messageSortNewestFirst"),
+              },
+            ]}
+            className="affiliate-workbench-filter-select"
           />
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />

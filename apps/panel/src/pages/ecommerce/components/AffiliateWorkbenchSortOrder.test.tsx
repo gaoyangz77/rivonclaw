@@ -8,42 +8,19 @@ import {
   AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
 } from "../../../api/shops-queries.js";
 import { AffiliateWorkbenchEntityTabs } from "./AffiliateWorkbenchEntityTabs.js";
-import {
-  AffiliateProtectionFilter,
-  workbenchProtectionValue,
-} from "./AffiliateProtectionFilter.js";
+
+vi.mock("../../../components/ecommerce/ProductFilter.js", () => ({
+  ProductFilter: () => null,
+}));
 
 beforeEach(async () => {
   await i18n.changeLanguage("zh");
 });
 afterEach(cleanup);
 
-describe("workbench protection filter", () => {
-  it("distinguishes false from no filter", () => {
-    expect(workbenchProtectionValue("ALL")).toBeNull();
-    expect(workbenchProtectionValue("PROTECTED")).toBe(true);
-    expect(workbenchProtectionValue("UNPROTECTED")).toBe(false);
-  });
-
-  it.each(["zh", "en"])("uses a styled, localized selector in %s", async (language) => {
-    await i18n.changeLanguage(language);
-    const onChange = vi.fn();
-    render(<AffiliateProtectionFilter value="ALL" onChange={onChange} />);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: i18n.t("ecommerce.affiliateWorkspace.workbench.protectionFilter"),
-      }),
-    );
-    expect(document.querySelector("select")).toBeNull();
-    fireEvent.click(
-      screen.getByText(i18n.t("ecommerce.affiliateWorkspace.workbench.unprotectedCreators")),
-    );
-    expect(onChange).toHaveBeenCalledWith("UNPROTECTED");
-    expect(document.querySelector(".custom-select-dropdown")).toBeNull();
-  });
-
+describe("workbench time-order control", () => {
   it.each(["SAMPLES", "MESSAGES"] as const)(
-    "sends protection for %s queries and pagination, resetting the cursor on changes",
+    "sends the order on %s queries and pagination, resetting the cursor when it changes",
     async (tab) => {
       const samples = tab === "SAMPLES";
       const query = samples
@@ -54,8 +31,8 @@ describe("workbench protection filter", () => {
         : "affiliateWorkbenchPendingConversationPage";
       const input = {
         shopId: null,
-        businessDeveloperId: "bd-1",
-        sortOrder: "ASC",
+        businessDeveloperId: null,
+        protected: null,
         limit: 25,
         ...(samples ? { reviewDisposition: "OPEN" } : { channel: null }),
       };
@@ -68,12 +45,13 @@ describe("workbench protection filter", () => {
             emailCount: 0,
             waitingOver24hCount: 0,
           };
+      // A cursor is bound to the order that minted it, so switching the order
+      // must request page 1 again (cursor null) rather than replay `asc-1`.
       const steps = [
-        { protected: null, cursor: null, nextCursor: "all-cursor" },
-        { protected: true, cursor: null, nextCursor: "protected-cursor" },
-        { protected: true, cursor: "protected-cursor", nextCursor: null },
-        { protected: false, cursor: null, nextCursor: null },
-        { protected: null, cursor: null, nextCursor: null },
+        { sortOrder: "ASC", cursor: null, nextCursor: "asc-1" },
+        { sortOrder: "DESC", cursor: null, nextCursor: "desc-1" },
+        { sortOrder: "DESC", cursor: "desc-1", nextCursor: null },
+        { sortOrder: "ASC", cursor: null, nextCursor: null },
       ];
       const results = steps.map((step) =>
         vi.fn(() => ({
@@ -90,7 +68,7 @@ describe("workbench protection filter", () => {
       const mocks = steps.map((step, index) => ({
         request: {
           query,
-          variables: { input: { ...input, protected: step.protected, cursor: step.cursor } },
+          variables: { input: { ...input, sortOrder: step.sortOrder, cursor: step.cursor } },
         },
         result: results[index],
         delay: 0,
@@ -103,8 +81,8 @@ describe("workbench protection filter", () => {
               selectedShopId=""
               shopOptions={[{ value: "", label: "全部店铺" }]}
               onSelectShop={vi.fn()}
-              businessDeveloperOptions={[{ value: "bd-1", label: "BD 1" }]}
-              selectedBusinessDeveloperId="bd-1"
+              businessDeveloperOptions={[]}
+              selectedBusinessDeveloperId=""
               onSelectBusinessDeveloper={vi.fn()}
               refreshRevision={0}
               onOpen={vi.fn()}
@@ -112,17 +90,30 @@ describe("workbench protection filter", () => {
           </ToastProvider>
         </MockedProvider>,
       );
-      const selectProtection = (label: string) => {
-        fireEvent.click(screen.getByRole("button", { name: "达人保护状态" }));
-        // All is also a message-channel chip, so scope selection to the popup.
+      const sortLabelKey = samples
+        ? "ecommerce.affiliateWorkspace.workbench.sampleSortLabel"
+        : "ecommerce.affiliateWorkspace.workbench.messageSortLabel";
+      const oldestFirstKey = samples
+        ? "ecommerce.affiliateWorkspace.workbench.sampleSortOldestFirst"
+        : "ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst";
+      const newestFirstKey = samples
+        ? "ecommerce.affiliateWorkspace.workbench.sampleSortNewestFirst"
+        : "ecommerce.affiliateWorkspace.workbench.messageSortNewestFirst";
+      const selectOrder = (label: string) => {
+        fireEvent.click(screen.getByRole("button", { name: i18n.t(sortLabelKey) }));
         const popup = document.querySelector(".custom-select-dropdown")!;
         const option = Array.from(popup.querySelectorAll(".custom-select-option")).find(
           (node) => node.textContent === label,
         )!;
         fireEvent.click(option);
       };
+
       await waitFor(() => expect(results[0]).toHaveBeenCalledOnce());
-      selectProtection("受保护达人");
+      const label = screen.getByText(i18n.t(sortLabelKey));
+      expect(label.classList.contains("tk-v1-label")).toBe(true);
+      expect(document.querySelector("select")).toBeNull();
+
+      selectOrder(i18n.t(newestFirstKey));
       await waitFor(() => expect(results[1]).toHaveBeenCalledOnce());
       fireEvent.click(
         await screen.findByRole("button", {
@@ -130,10 +121,8 @@ describe("workbench protection filter", () => {
         }),
       );
       await waitFor(() => expect(results[2]).toHaveBeenCalledOnce());
-      selectProtection("未保护达人");
+      selectOrder(i18n.t(oldestFirstKey));
       await waitFor(() => expect(results[3]).toHaveBeenCalledOnce());
-      selectProtection("全部");
-      await waitFor(() => expect(results[4]).toHaveBeenCalledOnce());
     },
   );
 });
