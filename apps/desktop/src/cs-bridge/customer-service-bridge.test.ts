@@ -3131,12 +3131,19 @@ describe("automatic CS run admission", () => {
   });
 
   // A Gateway OOM restart tears the bridge down while dispatches are still
-  // waiting for an admission slot. Those requests are not failures -- they are
-  // an interrupted outage -- so they must land back in the module-scoped
-  // buffer that survives bridge replacement. Logging and dropping them is what
-  // left conversations PENDING until the next hourly Airflow sweep re-pushed
-  // them, which is why a 46-second restart cost an hour of backlog.
-  it("hands a queued dispatch back to the replay buffer when the bridge is torn down", async () => {
+  // waiting for an admission slot. They must be DROPPED, not replayed.
+  //
+  // Replaying them was tried (1.9.5 - 1.9.8) and it produced a nine-minute
+  // crash loop: the Gateway leaks per run, and the only thing that kept it
+  // alive between crashes was coming back up with an empty queue and running
+  // well below its four slots. Replaying the cancelled queue put it straight
+  // back at full saturation, so it leaked at its maximum rate and died again,
+  // re-queuing everything, forever -- ~200 conversations stuck for days on
+  // one merchant's machine. The backend still holds each conversation as
+  // PENDING and the hourly Airflow sweep re-pushes it, so dropping delays
+  // work rather than losing it. This test is the guard against "fixing" that
+  // drop a second time.
+  it("drops a queued dispatch when the bridge is torn down by a Gateway crash", async () => {
     process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
     clearPendingCsDispatches();
     const bridge = createBridge();
@@ -3159,14 +3166,15 @@ describe("automatic CS run admission", () => {
     bridge.stop();
     await queued;
 
-    expect(getPendingCsDispatchCount()).toBe(1);
+    expect(getPendingCsDispatchCount()).toBe(0);
   });
 
-  // The production trace: a dispatch enters before the crash, spends seconds in
-  // async setup (backend session, order context), and only reaches admission
-  // after the controller was already reset. It must be recovered the same way,
-  // not left hanging on a promise that never settles.
-  it("recovers a dispatch that reaches admission after the bridge was torn down", async () => {
+  // A dispatch that entered before the crash and spent seconds in async setup
+  // reaches admission only after the controller was reset. Before the
+  // `retired` guard its promise never settled (six conversations silently
+  // stranded on 2026-09-04). It must now fail fast -- and, like every other
+  // crash-cancelled dispatch, be dropped rather than replayed.
+  it("fails fast and drops a dispatch that reaches admission after a crash teardown", async () => {
     process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
     clearPendingCsDispatches();
     const bridge = createBridge();
@@ -3174,12 +3182,20 @@ describe("automatic CS run admission", () => {
     installImmediateAgentRpc();
 
     bridge.stop();
-    await triggerMessage(
+    const late = triggerMessage(
       bridge,
       createFrame({ conversationId: "conv-late-arrival", messageId: "msg-late-arrival" }),
     );
+    // A hung promise is exactly the pre-guard failure; bound the wait so the
+    // regression shows up as a failure, not a test timeout.
+    await expect(
+      Promise.race([
+        late.then(() => "settled"),
+        new Promise((resolve) => setTimeout(() => resolve("hung"), 2_000)),
+      ]),
+    ).resolves.toBe("settled");
 
-    expect(getPendingCsDispatchCount()).toBe(1);
+    expect(getPendingCsDispatchCount()).toBe(0);
   });
 
   // `stopCsBridge()` clears the replay buffer on the auth-change path on
