@@ -10,7 +10,6 @@ import {
   syncAllAuthProfiles,
   activateAuthProfile,
   syncBackOAuthCredentials,
-  migrateVendorStateBeforeGateway,
   saveCodexOAuthCredentials,
   refreshCodexOAuthCredentials,
   startHybridCodexOAuthFlow,
@@ -98,6 +97,7 @@ import {
   resetAgentToolingReadiness,
 } from "../gateway/agent-tooling-readiness.js";
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
+import { migrateVendorStateInChild } from "../gateway/vendor-state-migration.js";
 import { tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../gateway/connection.js";
 import { CS_ADMISSION_CANCEL_REASON } from "../cs-bridge/cs-run-admission.js";
 import {
@@ -761,7 +761,7 @@ app.whenReady().then(async () => {
 
   // OpenClaw owns migrations for its agent database. Run the vendor schema
   // owner directly before Desktop syncs credentials or starts the gateway.
-  await migrateVendorStateBeforeGateway({
+  await migrateVendorStateInChild({
     configPath,
     stateDir,
     vendorDir,

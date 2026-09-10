@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { materializeRuntimeModuleLinks, assertBundledPluginEntries } = createRequire(import.meta.url)("./scripts/vendor-plugin-dependencies.cjs");
 
-// Two separate build configs so the image compression child process does NOT share
+// Separate build configs so Node child processes do NOT share
 // chunks with main.cjs. If rolldown shares a chunk (rolldown's default code-
 // splitting behavior for multi-entry builds), the child entry's chunk ends up
 // `require`ing main.cjs — which imports `electron`, blowing up in a plain
@@ -53,6 +53,19 @@ export default defineConfig([
         cpSync(src, join(__dirname, "dist", "startup-timer.cjs"));
       }
     },
+  },
+  {
+    name: "vendor-state-migration-child",
+    entry: ["src/gateway/vendor-state-migration-worker.ts"],
+    format: "cjs",
+    dts: false,
+    clean: false,
+    outDir: "dist",
+    outputOptions: { entryFileNames: "[name].cjs" },
+    external: ["electron", "better-sqlite3"],
+    noExternal: [/^@rivonclaw\//],
+    treeshake: true,
+    inlineOnly: false,
   },
   {
     name: "image-compression-child",

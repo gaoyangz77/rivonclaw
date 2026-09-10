@@ -227,6 +227,7 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
 }
 
 type ElectronFixtures = {
+  restartWithExistingState: boolean;
   ports: WorkerPorts;
   apiBase: string;
   electronApp: ElectronApplication;
@@ -290,6 +291,7 @@ async function launchElectronApp(
   use: (app: ElectronApplication) => Promise<void>,
   ports: WorkerPorts,
   testInfo: TestInfo,
+  restartWithExistingState = false,
 ) {
   // Kill any leftover gateway from a previous test or test-suite run
   // BEFORE launching Electron, so the new gateway never hits EADDRINUSE.
@@ -312,25 +314,38 @@ async function launchElectronApp(
     symlinkSync(sharedRuntimeCache, path.join(userDataDir, "runtime"), "dir");
   }
 
-  if (execPath) {
-    // Prod mode: launch the packaged app binary
-    app = await _electron.launch({
-      executablePath: execPath,
-      args: ["--lang=en", `--user-data-dir=${userDataDir}`],
-      env,
-    });
-  } else {
+  const launch = async () => {
+    if (execPath) {
+      // Prod mode: launch the packaged app binary
+      return _electron.launch({
+        executablePath: execPath,
+        args: ["--lang=en", `--user-data-dir=${userDataDir}`],
+        env,
+      });
+    }
     // Launch the package, as pnpm dev does, so app.getVersion/getAppPath use
     // Desktop's manifest rather than Electron's default application metadata.
     const appPath = path.resolve(__dirname, "..");
-    app = await _electron.launch({
+    return _electron.launch({
       executablePath: electronPath,
       args: ["--lang=en", appPath, `--user-data-dir=${userDataDir}`],
       env,
     });
-  }
+  };
+  app = await launch();
 
   try {
+    if (restartWithExistingState) {
+      // Exercise the installed-app upgrade path, not another empty HOME.
+      await app.firstWindow({ timeout: 45_000 });
+      await waitForPort(ports.gateway, 45_000);
+      const stateDatabase = path.join(env.OPENCLAW_STATE_DIR, "state", "openclaw.sqlite");
+      if (!existsSync(stateDatabase)) throw new Error(`Missing SQLite restart fixture: ${stateDatabase}`);
+      await app.close();
+      await ensurePortFree(ports.gateway);
+      await ensurePortFree(ports.panel);
+      app = await launch();
+    }
     // Playwright input does not reset the OS idle clock. Model an active
     // operator so the real screensaver cannot hide controls mid-test.
     await app.evaluate(({ powerMonitor }) => {
@@ -412,12 +427,14 @@ async function dismissBlockingModals(window: Page): Promise<void> {
 
 
 /**
- * Returning-user fixture: skips welcome to reach the main page.
+ * Main-page fixture: skips welcome, but starts with fresh disk state by default.
+ * Set restartWithExistingState to exercise a second boot of the same profile.
  *
  * Always lands on the main page with a fully connected gateway, so
  * individual tests don't race against gateway startup time.
  */
 export const test = base.extend<ElectronFixtures>({
+  restartWithExistingState: [false, { option: true }],
   ports: async ({}, use, testInfo) => {
     await use(computePorts(testInfo.workerIndex));
   },
@@ -426,8 +443,8 @@ export const test = base.extend<ElectronFixtures>({
     await use(`http://127.0.0.1:${ports.panel}`);
   },
 
-  electronApp: async ({ ports }, use, testInfo) => {
-    await launchElectronApp(use, ports, testInfo);
+  electronApp: async ({ ports, restartWithExistingState }, use, testInfo) => {
+    await launchElectronApp(use, ports, testInfo, restartWithExistingState);
   },
 
   window: async ({ electronApp, apiBase, ports }, use) => {
@@ -472,6 +489,7 @@ export const test = base.extend<ElectronFixtures>({
  * shows the welcome page.
  */
 export const freshTest = base.extend<ElectronFixtures>({
+  restartWithExistingState: [false, { option: true }],
   ports: async ({}, use, testInfo) => {
     await use(computePorts(testInfo.workerIndex));
   },
@@ -480,8 +498,8 @@ export const freshTest = base.extend<ElectronFixtures>({
     await use(`http://127.0.0.1:${ports.panel}`);
   },
 
-  electronApp: async ({ ports }, use, testInfo) => {
-    await launchElectronApp(use, ports, testInfo);
+  electronApp: async ({ ports, restartWithExistingState }, use, testInfo) => {
+    await launchElectronApp(use, ports, testInfo, restartWithExistingState);
   },
 
   window: async ({ electronApp, apiBase }, use) => {

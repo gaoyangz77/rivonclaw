@@ -41,9 +41,18 @@ The temp directory is deleted after each test via `rmSync`, ensuring tests are *
 | `test` | `import { test } from "./electron-fixture.js"` | Returning user (has a provider key) | Main page with sidebar |
 | `freshTest` | `import { freshTest as test } from "./electron-fixture.js"` | Brand-new user (empty database) | Welcome page |
 
-**Returning user (`test`)**: Skips welcome by clicking "Use as guest" to reach the main page. No API keys required.
+**Main-page user (`test`)**: Skips welcome by clicking "Use as guest" to reach the main page. No API keys required. Despite the historical "returning user" name, this fixture starts with an empty profile, not an existing installation.
 
 **Fresh user (`freshTest`)**: Launches with an empty database so the app shows the welcome page.
+
+### Existing SQLite State
+
+`startup-existing-state.spec.ts` enables `restartWithExistingState`. It starts a
+Gateway, verifies that shared SQLite state exists, closes the app, and starts
+the same executable again with the same profile. The second boot must open the
+window and connect to Gateway, with migration running in the Node child.
+Run this against `E2E_EXECUTABLE_PATH` after startup or vendor changes. Passing
+only fresh-profile smoke tests does not verify an installed user's next boot.
 
 ## Test Suites
 
