@@ -60,6 +60,9 @@ const SQLITE_VEC_PLATFORM_PACKAGE =
     ? `node_modules/sqlite-vec-${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}/package.json`
     : "";
 if (SQLITE_VEC_PLATFORM_PACKAGE) REQUIRED_PATHS.push(SQLITE_VEC_PLATFORM_PACKAGE);
+if (process.platform === "win32") {
+  REQUIRED_PATHS.push("node_modules/koffi/package.json", `node_modules/@koromix/koffi-win32-${process.arch}/package.json`);
+}
 
 const PRUNED_FORBIDDEN_PATHS = [
   "node_modules/@agentclientprotocol/claude-agent-acp",
@@ -308,6 +311,14 @@ async function runSqliteVecRuntimeSmoke(vendorDir) {
 
   const requireFromVendor = createRequire(path.join(vendorDir, "package.json"));
   const sqliteVecPath = requireFromVendor.resolve("sqlite-vec");
+  if (process.platform === "win32") {
+    const koffi = requireFromVendor("koffi");
+    const kernel32 = koffi.load("kernel32.dll");
+    try {
+      const getCurrentProcessId = kernel32.func("uint32_t __stdcall GetCurrentProcessId(void)");
+      if (getCurrentProcessId() !== process.pid) throw new Error("Koffi Windows native runtime check failed");
+    } finally { kernel32.unload(); }
+  }
   const sqliteVec = await import(pathToFileURL(sqliteVecPath).href);
   if (typeof sqliteVec.getLoadablePath !== "function") {
     throw new Error("sqlite-vec runtime did not export getLoadablePath");

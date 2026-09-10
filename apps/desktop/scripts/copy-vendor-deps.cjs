@@ -15,6 +15,7 @@ const { deduplicateMirroredPluginDependencies } = require("./vendor-plugin-size.
 function shouldCopyVendorNative(file) {
   if (![".node", ".dylib"].includes(path.extname(file))) return true;
   return /[\\/]@img[\\/]sharp-/.test(file) || /[\\/]koffi[\\/]/.test(file) ||
+    /[\\/]@koromix[\\/]koffi-win32-/.test(file) ||
     /[\\/]@snazzah[\\/]davey-/.test(file) ||
     /[\\/]fs-safe-(?:darwin|linux|win32)-[^\\/]+[\\/]/.test(file) ||
     /[\\/]sqlite-vec-[^\\/]+[\\/]/.test(file);

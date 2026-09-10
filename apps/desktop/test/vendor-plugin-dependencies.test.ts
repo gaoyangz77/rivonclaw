@@ -324,6 +324,8 @@ snapshots:
     expect(shouldCopyVendorNative("/node_modules/fs-safe-win32-x64-msvc/fs-safe.node")).toBe(true);
     expect(shouldCopyVendorNative("C:\\node_modules\\fs-safe-linux-x64-gnu\\fs-safe.node")).toBe(true);
     expect(shouldCopyVendorNative("/node_modules/sqlite-vec-darwin-arm64/vec0.dylib")).toBe(true);
+    expect(shouldCopyVendorNative("C:\\app\\node_modules\\@koromix\\koffi-win32-x64\\koffi.node")).toBe(true);
+    expect(shouldCopyVendorNative("/node_modules/@koromix/koffi-win32-arm64/koffi.node")).toBe(true);
     expect(shouldCopyVendorNative("/node_modules/unselected/addon.node")).toBe(false);
     expect(shouldCopyVendorNative("/dist/workspace-chunk.mjs")).toBe(true);
   });

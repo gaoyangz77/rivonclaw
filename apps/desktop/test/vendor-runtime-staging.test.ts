@@ -94,6 +94,30 @@ describe("vendor prune cache inputs", () => {
   });
 });
 
+describe("Windows SQLite native runtime pruning", () => {
+  it.each(["win32", "darwin", "linux"])("retains Koffi only for Windows (%s)", (platform) => {
+    const source = fs.readFileSync(new URL("../scripts/prune-vendor-deps.cjs", import.meta.url), "utf8");
+    const blacklist = source.slice(source.indexOf("const EXTRA_REMOVE ="), source.indexOf("const STRIP_FILES ="));
+    const removed = runInNewContext(`${blacklist}\nEXTRA_REMOVE`, { process: { platform } });
+    expect(removed.includes("koffi")).toBe(platform !== "win32");
+  });
+
+  it.each(["win32", "darwin", "linux"])("keeps only the required Koffi native target (%s)", (platform) => {
+    const source = fs.readFileSync(new URL("../scripts/prune-vendor-deps.cjs", import.meta.url), "utf8");
+    const target = source.slice(source.indexOf("const koffiTargetPackage ="), source.indexOf("const needsCrossArchMacDependencies ="));
+    const start = source.indexOf('for (const pkgDir of packageDirsForPrefix("@koromix/koffi-"))');
+    const prune = source.slice(start, source.indexOf("removeDisabledVendorExtensions();", start));
+    const packages = ["@koromix/koffi-win32-x64", "@koromix/koffi-win32-arm64", "@koromix/koffi-darwin-arm64", "@koromix/koffi-linux-x64"];
+    const retained = new Set(packages);
+    runInNewContext(`${target}\n${prune}`, {
+      process: { platform, arch: "x64" },
+      packageDirsForPrefix: () => packages, packageLabel: (name: string) => name,
+      removePackageDir: (name: string) => retained.delete(name),
+    });
+    expect([...retained]).toEqual(platform === "win32" ? ["@koromix/koffi-win32-x64"] : []);
+  });
+});
+
 describe("vendor prune cache-hit acceptance", () => {
   function cachedFixture() {
     write(path.join(root, "dist/.pruned"), "profile=fixture-profile\n");

@@ -75,6 +75,7 @@ const sqliteVecTargetPackage =
   ["arm64", "x64"].includes(sqliteVecRuntimeArch ?? "")
     ? `sqlite-vec-${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}`
     : null;
+const koffiTargetPackage = process.platform === "win32" ? `@koromix/koffi-win32-${process.arch}` : null;
 const needsCrossArchMacDependencies =
   process.platform === "darwin" &&
   sqliteVecRuntimeArch !== null &&
@@ -155,7 +156,8 @@ const EXTRA_REMOVE = [
   "bare-os",
   "bare-url",
   "fsevents",
-  "koffi",
+  // Windows SQLite snapshot staging creates private directories through Koffi.
+  ...(process.platform === "win32" ? [] : ["koffi"]),
   "playwright",
   "sharp",
 ];
@@ -333,6 +335,7 @@ function removePackageDir(pkgDir) {
 }
 
 function hasBlacklistedPackage() {
+  if (packageDirsForPrefix("@koromix/koffi-").some((dir) => packageLabel(dir) !== koffiTargetPackage)) return true;
   for (const pkg of EXTRA_REMOVE) {
     if (packageDirsForExactOrScope(pkg).length > 0) return true;
   }
@@ -399,6 +402,10 @@ function hasRequiredOfficialVendorPlugins() {
     path.join(nmDir, "@larksuiteoapi", "node-sdk", "package.json"),
     path.join(nmDir, "openclaw", "package.json"),
     path.join(nmDir, "sqlite-vec", "package.json"),
+    ...(koffiTargetPackage ? [
+      path.join(nmDir, "koffi", "package.json"),
+      path.join(nmDir, koffiTargetPackage, "package.json"),
+    ] : []),
   ];
   if (sqliteVecTargetPackage) {
     requiredPaths.push(path.join(nmDir, sqliteVecTargetPackage, "package.json"));
@@ -833,6 +840,11 @@ if (
   process.exit(1);
 }
 
+if (koffiTargetPackage && (!fs.existsSync(path.join(nmDir, "koffi", "package.json")) ||
+  !fs.existsSync(path.join(nmDir, koffiTargetPackage, "package.json")))) {
+  throw new Error(`Missing Windows SQLite runtime dependency: koffi and ${koffiTargetPackage}`);
+}
+
 console.log("[prune-vendor-deps] Materializing production workspace dependencies ...");
 materializeWorkspaceDependencies();
 
@@ -860,6 +872,9 @@ for (const prefix of EXTRA_REMOVE_PREFIXES) {
   }
 }
 removeOtherSqliteVecPlatforms();
+for (const pkgDir of packageDirsForPrefix("@koromix/koffi-")) {
+  if (packageLabel(pkgDir) !== koffiTargetPackage) removePackageDir(pkgDir);
+}
 removeDisabledVendorExtensions();
 removeReplacedVendorExtensionSources();
 
