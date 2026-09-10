@@ -607,7 +607,8 @@ jobs:
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist-runtime/extensions/feishu/openclaw.plugin.json$' || { echo "FAIL: feishu manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist-runtime/extensions/feishu/node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/openclaw/package.json$' || { echo "FAIL: openclaw sdk shim missing from vendor archive"; exit 1; }
-          RIVONCLAW_MAC_RUNTIME_ARCH=x64 node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar" --runtime "$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" --resources "$APP/Contents/Resources"
+          # The x64 Electron smoke runs through Rosetta on macos-latest.
+          RIVONCLAW_VENDOR_RUNTIME_DOCTOR_TIMEOUT_MS=180000 RIVONCLAW_MAC_RUNTIME_ARCH=x64 node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar" --runtime "$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" --resources "$APP/Contents/Resources"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
