@@ -20,6 +20,7 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { bundledModuleLabelRanges } from "./bundled-module-labels.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -56,8 +57,12 @@ const allowlistEntries = config.allowlist || [];
 const sentinelSet = new Set(sentinelEntries.map((e) => `${e.file}|${e.vendorPath}`));
 const allowlistSet = new Set(allowlistEntries.map((e) => `${e.file}|${e.vendorPath}`));
 
-const sentinelReasons = new Map(sentinelEntries.map((e) => [`${e.file}|${e.vendorPath}`, e.reason]));
-const allowlistReasons = new Map(allowlistEntries.map((e) => [`${e.file}|${e.vendorPath}`, e.reason]));
+const sentinelReasons = new Map(
+  sentinelEntries.map((e) => [`${e.file}|${e.vendorPath}`, e.reason]),
+);
+const allowlistReasons = new Map(
+  allowlistEntries.map((e) => [`${e.file}|${e.vendorPath}`, e.reason]),
+);
 
 // ---------------------------------------------------------------------------
 // Walk directories
@@ -98,12 +103,19 @@ for (const dir of SCAN_DIRS) {
 
   for (const filePath of files) {
     const content = readFileSync(filePath, "utf-8");
+    const bundledLabels =
+      relative(ROOT, filePath) === "packages/gateway/src/generated/openclaw-schema.js"
+        ? bundledModuleLabelRanges(content)
+        : [];
     const lines = content.split("\n");
+    let lineOffset = 0;
     for (let i = 0; i < lines.length; i++) {
       const lineText = lines[i];
       let match;
       VENDOR_IMPORT_RE.lastIndex = 0;
       while ((match = VENDOR_IMPORT_RE.exec(lineText)) !== null) {
+        const offset = lineOffset + match.index;
+        if (bundledLabels.some(({ start, end }) => offset >= start && offset < end)) continue;
         const vp = extractVendorPath(match[0]);
         if (vp) {
           violations.push({
@@ -113,6 +125,7 @@ for (const dir of SCAN_DIRS) {
           });
         }
       }
+      lineOffset += lineText.length + 1;
     }
   }
 }
@@ -179,9 +192,7 @@ if (uniqueAllowlisted.length > 0) {
 }
 
 if (matched.newViolations.length > 0) {
-  console.log(
-    `\u274C NEW vendor boundary violations (${matched.newViolations.length}):`,
-  );
+  console.log(`\u274C NEW vendor boundary violations (${matched.newViolations.length}):`);
   for (const v of matched.newViolations) {
     console.log(`  ${v.file}:${v.line} \u2192 ${v.vendorPath}`);
   }
@@ -192,8 +203,12 @@ if (matched.newViolations.length > 0) {
   process.exit(1);
 } else {
   const parts = [];
-  if (uniqueSentinels.length > 0) parts.push(`${uniqueSentinels.length} sentinel${uniqueSentinels.length === 1 ? "" : "s"}`);
-  if (uniqueAllowlisted.length > 0) parts.push(`${uniqueAllowlisted.length} temporary exception${uniqueAllowlisted.length === 1 ? "" : "s"}`);
+  if (uniqueSentinels.length > 0)
+    parts.push(`${uniqueSentinels.length} sentinel${uniqueSentinels.length === 1 ? "" : "s"}`);
+  if (uniqueAllowlisted.length > 0)
+    parts.push(
+      `${uniqueAllowlisted.length} temporary exception${uniqueAllowlisted.length === 1 ? "" : "s"}`,
+    );
   const suffix = parts.length > 0 ? `, ${parts.join(", ")}` : "";
   console.log(`Result: PASS (0 new violations${suffix})`);
 }
