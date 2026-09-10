@@ -85,7 +85,9 @@ jobs:
       - name: Test Windows build (no signing)
         run: |
           cd apps/desktop
-          pnpm run pack
+          node scripts/prune-vendor-deps.cjs
+          if ($LASTEXITCODE -ne 0) { throw "Vendor runtime staging failed" }
+          pnpm exec electron-builder --dir --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
