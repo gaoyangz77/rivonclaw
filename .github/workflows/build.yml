@@ -532,7 +532,18 @@ jobs:
           SKIP_PIXEL_AGENTS_BUILD: ${{ steps.cache-pixel-dist.outputs.cache-hit }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          node <<'NODE'
+          const path = require('node:path');
+          const { createRequire } = require('node:module');
+          const { execFileSync } = require('node:child_process');
+          const { withPnpmTargetArchitecture } = require('./apps/desktop/scripts/pnpm-target-architecture.cjs');
+          const yaml = createRequire(path.resolve('vendor/openclaw/package.json'))('yaml');
+          withPnpmTargetArchitecture({
+            workspacePath: path.resolve('pnpm-workspace.yaml'), targetArch: 'x64', yaml,
+            run: () => execFileSync('pnpm', ['install', '--frozen-lockfile'], { stdio: 'inherit' }),
+          });
+          NODE
 
       - name: Build packages
         run: pnpm run build

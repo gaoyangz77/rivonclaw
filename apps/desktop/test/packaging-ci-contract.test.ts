@@ -11,6 +11,21 @@ const repo = path.resolve(import.meta.dirname, "../../..");
 const workflow = (name: string) => yaml.parse(fs.readFileSync(path.join(repo, ".github/workflows", name), "utf8"));
 
 describe("packaged runtime CI coverage", () => {
+  it("signs merchant native modules rather than excluding their directory", () => {
+    const config = yaml.parse(fs.readFileSync(path.join(repo, "apps/desktop/electron-builder.yml"), "utf8"));
+    const native = "TK Copilot.app/Contents/Resources/extensions-merchant/rivonclaw-cloud-tools/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node";
+    for (const pattern of config.mac.signIgnore ?? []) expect(new RegExp(pattern).test(native)).toBe(false);
+  });
+
+  it("installs x64 optional dependencies in the product workspace before cross-packaging", () => {
+    const steps = workflow("build.yml").jobs["build-macos-x64"].steps;
+    const install = steps.find((step: any) => step.name === "Install dependencies");
+    expect(install.run).toContain("withPnpmTargetArchitecture");
+    expect(install.run).toContain("workspacePath: path.resolve('pnpm-workspace.yaml')");
+    expect(install.run).toContain("targetArch: 'x64'");
+    expect(install.run).toContain("--frozen-lockfile");
+  });
+
   it.each([["build.yml", 4], ["test-build.yml", 1]])("%s checks the actual executable and external Resources", (name, count) => {
     const steps = Object.values(workflow(name as string).jobs).flatMap((job: any) => job.steps);
     const runs = steps.flatMap((step: any) => typeof step.run === "string" ? step.run.split("\n") : [])

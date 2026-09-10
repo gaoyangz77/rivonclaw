@@ -485,7 +485,27 @@ function assertLoadedPluginInventory(inventory, ids, verifyWeixin = false) {
   }
 }
 
+function runExternalNativeRuntimeSmoke(resourcesDir) {
+  if (!resourcesDir) return;
+  const pluginDir = path.join(resourcesDir, "extensions-merchant", "rivonclaw-cloud-tools");
+  const manifestPath = path.join(pluginDir, "package.json");
+  if (!fs.existsSync(manifestPath)) return;
+  const { resolvePackage, assertPluginDependencies } = require("./vendor-plugin-dependencies.cjs");
+  assertPluginDependencies(pluginDir, [pluginDir]);
+  const canvasDir = resolvePackage("@napi-rs/canvas", pluginDir, pluginDir);
+  if (!canvasDir) throw new Error("Missing packaged Canvas runtime");
+  if (process.platform === "darwin" && !resolvePackage(`@napi-rs/canvas-darwin-${process.arch}`, canvasDir, pluginDir)) {
+    throw new Error(`Missing packaged Canvas native runtime for darwin-${process.arch}`);
+  }
+  const { createCanvas } = createRequire(manifestPath)("@napi-rs/canvas");
+  const canvas = createCanvas(2, 2);
+  canvas.getContext("2d").fillRect(0, 0, 2, 2);
+  if (!canvas.toBuffer("image/png").length) throw new Error("Packaged Canvas rendering failed");
+  console.log("[verify-vendor-runtime] Packaged Canvas native rendering verified");
+}
+
 async function runNoHostPackageManagerStartupSmoke(vendorDir, resourcesDir = "") {
+  runExternalNativeRuntimeSmoke(resourcesDir);
   const external = packagedPluginInventory(resourcesDir);
   const requiredIds = [...DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS, ...external.ids];
   const configuredTimeout = Number(process.env.RIVONCLAW_VENDOR_RUNTIME_DOCTOR_TIMEOUT_MS);
@@ -674,4 +694,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { removeTempDirBestEffort, findWorkspaceBundles, isolatedEnvironment, assertNoLifecycleMarkers, runNodeRuntimeSmoke, runGatewayStartupSmoke, runNoHostPackageManagerStartupSmoke, packagedPluginInventory, assertLoadedPluginInventory };
+module.exports = { removeTempDirBestEffort, findWorkspaceBundles, isolatedEnvironment, assertNoLifecycleMarkers, runNodeRuntimeSmoke, runGatewayStartupSmoke, runNoHostPackageManagerStartupSmoke, runExternalNativeRuntimeSmoke, packagedPluginInventory, assertLoadedPluginInventory };
