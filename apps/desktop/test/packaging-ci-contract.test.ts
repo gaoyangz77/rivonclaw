@@ -11,6 +11,16 @@ const repo = path.resolve(import.meta.dirname, "../../..");
 const workflow = (name: string) => yaml.parse(fs.readFileSync(path.join(repo, ".github/workflows", name), "utf8"));
 
 describe("packaged runtime CI coverage", () => {
+  it("runs the Intel runtime natively and never restores ARM dependency caches", () => {
+    const job = workflow("build.yml").jobs["build-macos-x64"];
+    expect(job["runs-on"]).toBe("macos-15-intel");
+    for (const id of ["cache-vendor-nm", "cache-pixel-nm"]) {
+      const cache = job.steps.find((step: any) => step.id === id);
+      expect(cache.with.key).toContain("${{ runner.arch }}");
+      expect(cache.with["restore-keys"]).toContain("${{ runner.arch }}");
+    }
+  });
+
   it("signs merchant native modules rather than excluding their directory", () => {
     const config = yaml.parse(fs.readFileSync(path.join(repo, "apps/desktop/electron-builder.yml"), "utf8"));
     const native = "TK Copilot.app/Contents/Resources/extensions-merchant/rivonclaw-cloud-tools/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node";
