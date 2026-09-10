@@ -577,7 +577,7 @@ describe("inspectVendorStateMigration", () => {
     }
   }, 15_000);
 
-  it("converges an orphaned running recovery claim and admits the next turn", async () => {
+  it.each(["group", "direct"])("converges an orphaned %s recovery claim and admits the next turn", async (chatType) => {
     const fixture = makeFixture();
     const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
     await migrateVendorStateBeforeGateway({
@@ -585,12 +585,12 @@ describe("inspectVendorStateMigration", () => {
       vendorDir: VENDOR_ROOT,
     });
 
-    const sessionKey = "agent:main:feishu:group:oc_recovery_regression";
+    const sessionKey = `agent:main:feishu:default:${chatType}:oc_recovery_regression`;
     const sessionId = "orphaned-running-session";
     const updatedAt = Date.now();
     const orphanedEntry = {
       abortedLastRun: true,
-      chatType: "group",
+      chatType,
       restartRecoveryBeforeAgentReplyState: "admitted",
       restartRecoveryDeliveryContext: {
         accountId: "default",
@@ -621,6 +621,32 @@ describe("inspectVendorStateMigration", () => {
         .run(sessionId, sessionKey, updatedAt, updatedAt);
     } finally {
       database.close();
+    }
+
+    // Reproduce the shipped launcher: the Gateway disabled replay, but the
+    // migration child inherited no flag, leaving the interrupted claim active.
+    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", undefined);
+    await migrateVendorStateBeforeGateway({ stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT });
+    const createStuckController = await loadNamedVendorDistFunction<
+      (params: Record<string, unknown>) => {
+        admitUserTurn: (recorder: Record<string, unknown>) => Promise<unknown>;
+      }
+    >("reply-admission-ticket", "createReplyRestartRecoveryClaimController");
+    for (const sourceTurnId of ["first-new-message", "first-new-message", "second-new-message"]) {
+      const controller = createStuckController({
+        getEntry: () => orphanedEntry,
+        getSessionId: () => sessionId,
+        isRestartAbort: () => false,
+        resolveDeliveryContext: () => orphanedEntry.restartRecoveryDeliveryContext,
+        sessionKey,
+        setEntry: vi.fn(),
+        sourceTurnId,
+        storePath: join(fixture.stateDir, "agents", "main", "sessions", "sessions.json"),
+      });
+      await expect(controller.admitUserTurn({
+        getPersistedMessage: () => ({ idempotencyKey: sourceTurnId }),
+        hasPersisted: () => false,
+      })).rejects.toThrow("restart recovery claim changed before agent adoption");
     }
 
     vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", "1");

@@ -4,6 +4,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { createLogger } from "@rivonclaw/logger";
 import type { VendorStateMigrationOptions } from "@rivonclaw/gateway";
+import { DESKTOP_RESTART_RECOVERY_ENV } from "./restart-recovery-policy.js";
 
 const log = createLogger("vendor-state-migration");
 
@@ -18,7 +19,7 @@ export async function migrateVendorStateInChild(
   await new Promise<void>((resolve, reject) => {
     const childOptions: ForkOptions & Pick<SpawnOptions, "windowsHide"> = {
       execArgv: [],
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+      env: { ...process.env, ...DESKTOP_RESTART_RECOVERY_ENV, ELECTRON_RUN_AS_NODE: "1" },
       stdio: ["ignore", "pipe", "pipe", "ipc"],
       windowsHide: true,
     };

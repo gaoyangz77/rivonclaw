@@ -1,8 +1,13 @@
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fork } from "node:child_process";
 import { migrateVendorStateInChild } from "./vendor-state-migration.js";
+import { convergeOrphanedRunningSessionsBeforeGateway } from "../../../../packages/gateway/src/vendor/state-migration.js";
 
 vi.mock("node:child_process", () => ({ fork: vi.fn() }));
 vi.mock("@rivonclaw/logger", () => ({
@@ -49,6 +54,69 @@ describe("vendor state migration Node boundary", () => {
     child.emit("message", { ok: true });
     child.emit("close", 0, null);
     await promise;
+  });
+
+  it.each([undefined, "0"])("passes the Desktop restart policy even when the parent has %s", async (inherited) => {
+    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", inherited);
+    vi.stubEnv("OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY", inherited);
+    const promise = migrateVendorStateInChild(options);
+    const env = vi.mocked(fork).mock.calls[0][2]?.env;
+    child.emit("message", { ok: true });
+    child.emit("close", 0, null);
+    await promise;
+
+    expect(env?.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY).toBe("1");
+    expect(env?.OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY).toBe("1");
+    expect(process.env.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY).toBe(inherited);
+  });
+
+  it("actually converges orphaned sessions with the fork environment, without losing history or model selection", async () => {
+    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", undefined);
+    const stateDir = mkdtempSync(join(tmpdir(), "desktop-orphaned-session-"));
+    const agentDir = join(stateDir, "agents", "main", "agent");
+    mkdirSync(agentDir, { recursive: true });
+    const database = new DatabaseSync(join(agentDir, "openclaw-agent.sqlite"));
+    const entry = {
+      sessionId: "existing-session", status: "running", updatedAt: 123,
+      abortedLastRun: true, restartRecoveryDeliveryRunId: "interrupted-run",
+      restartRecoveryDeliveryReceiptState: "terminal-pending", modelOverride: "rivonclaw-flagship",
+    };
+    try {
+      database.exec(`
+        CREATE TABLE session_nodes (session_key TEXT PRIMARY KEY, current_session_id TEXT, entry_json TEXT, status TEXT);
+        CREATE TABLE session_windows (session_id TEXT PRIMARY KEY, status TEXT);
+        CREATE TABLE transcript_events (session_id TEXT, text TEXT);
+        INSERT INTO session_windows VALUES ('existing-session', 'running'), ('finished-session', 'done');
+        INSERT INTO transcript_events VALUES ('existing-session', 'previous conversation');
+      `);
+      const insert = database.prepare("INSERT INTO session_nodes VALUES (?, ?, ?, ?)");
+      insert.run("agent:main:feishu:default:direct:ou_fixture", entry.sessionId, JSON.stringify(entry), "running");
+      insert.run("agent:main:main", "finished-session", '{"status":"done"}', "done");
+      // This is the old launcher's environment: the same database stays stuck.
+      expect(convergeOrphanedRunningSessionsBeforeGateway(stateDir)).toBe(0);
+
+      const promise = migrateVendorStateInChild({ ...options, stateDir });
+      const env = vi.mocked(fork).mock.calls[0][2]?.env;
+      child.emit("message", { ok: true });
+      child.emit("close", 0, null);
+      await promise;
+      expect(convergeOrphanedRunningSessionsBeforeGateway(stateDir, env)).toBe(1);
+      expect(convergeOrphanedRunningSessionsBeforeGateway(stateDir, env)).toBe(0);
+
+      const row = database.prepare("SELECT entry_json FROM session_nodes WHERE current_session_id = ?")
+        .get(entry.sessionId) as { entry_json: string };
+      expect(JSON.parse(row.entry_json)).toEqual({ ...entry, status: "killed" });
+      expect(database.prepare("SELECT * FROM session_windows ORDER BY session_id").all()).toEqual([
+        { session_id: entry.sessionId, status: "killed" },
+        { session_id: "finished-session", status: "done" },
+      ]);
+      expect(database.prepare("SELECT * FROM transcript_events").all()).toEqual([
+        { session_id: entry.sessionId, text: "previous conversation" },
+      ]);
+    } finally {
+      database.close();
+      rmSync(stateDir, { recursive: true, force: true });
+    }
   });
 
   it("waits for child close, leaving the parent event loop responsive during a long migration", async () => {
