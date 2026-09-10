@@ -121,6 +121,7 @@ import {
   getPendingCsDispatchCount,
 } from "./cs-conversation-signal-buffer.js";
 import { CS_ADMISSION_CANCEL_REASON } from "./cs-run-admission.js";
+import type { CsAgentDispatchRequest } from "./cs-agent-dispatch-resolver.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { applySnapshot, onAction } from "mobx-state-tree";
 
@@ -3131,19 +3132,20 @@ describe("automatic CS run admission", () => {
   });
 
   // A Gateway OOM restart tears the bridge down while dispatches are still
-  // waiting for an admission slot. They must be DROPPED, not replayed.
+  // waiting for an admission slot. Those requests are an interrupted outage,
+  // not failures: the Desktop process and the work are both still here, so
+  // they must land in the module-scoped buffer that survives bridge
+  // replacement and be replayed (paced) once the new bridge is up.
   //
-  // Replaying them was tried (1.9.5 - 1.9.8) and it produced a nine-minute
-  // crash loop: the Gateway leaks per run, and the only thing that kept it
-  // alive between crashes was coming back up with an empty queue and running
-  // well below its four slots. Replaying the cancelled queue put it straight
-  // back at full saturation, so it leaked at its maximum rate and died again,
-  // re-queuing everything, forever -- ~200 conversations stuck for days on
-  // one merchant's machine. The backend still holds each conversation as
-  // PENDING and the hourly Airflow sweep re-pushes it, so dropping delays
-  // work rather than losing it. This test is the guard against "fixing" that
-  // drop a second time.
-  it("drops a queued dispatch when the bridge is torn down by a Gateway crash", async () => {
+  // This assertion has flipped twice. 1.9.9 inverted it to guard a drop, on
+  // the theory that an empty post-restart queue kept the Gateway alive; the
+  // 2026-09-09 log of the same machine on 1.9.10 showed the Gateway OOMing
+  // with the queue already empty (two of five crashes at cancelled=0) while
+  // its longest healthy window ran at queue depth zero and ~186 conversations
+  // waited for the next hourly Airflow sweep. Dropping wasted capacity; it did
+  // not buy Gateway lifetime. See the catch in ecommerce-relay-bridge.ts for
+  // the full record before changing this a third time.
+  it("hands a queued dispatch back to the replay buffer when the bridge is torn down by a Gateway crash", async () => {
     process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
     clearPendingCsDispatches();
     const bridge = createBridge();
@@ -3166,15 +3168,15 @@ describe("automatic CS run admission", () => {
     bridge.stop();
     await queued;
 
-    expect(getPendingCsDispatchCount()).toBe(0);
+    expect(getPendingCsDispatchCount()).toBe(1);
   });
 
   // A dispatch that entered before the crash and spent seconds in async setup
   // reaches admission only after the controller was reset. Before the
   // `retired` guard its promise never settled (six conversations silently
-  // stranded on 2026-09-04). It must now fail fast -- and, like every other
-  // crash-cancelled dispatch, be dropped rather than replayed.
-  it("fails fast and drops a dispatch that reaches admission after a crash teardown", async () => {
+  // stranded on 2026-09-04). It must fail fast -- and, like every other
+  // crash-cancelled dispatch, be recovered into the replay buffer.
+  it("fails fast and re-queues a dispatch that reaches admission after a crash teardown", async () => {
     process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
     clearPendingCsDispatches();
     const bridge = createBridge();
@@ -3195,6 +3197,45 @@ describe("automatic CS run admission", () => {
       ]),
     ).resolves.toBe("settled");
 
+    expect(getPendingCsDispatchCount()).toBe(1);
+  });
+
+  // Airflow pending-buyer catch-ups wait in a 30 s coalescing window before
+  // they reach admission. At a crash they are queued work exactly like the
+  // cancelled admissions and must take the same route into the replay buffer;
+  // sign-out discards them for the same reason it discards everything else.
+  it("hands coalescing Airflow catch-ups to the replay buffer on a crash teardown, and discards them on sign-out", async () => {
+    const airflowSignal: CsAgentDispatchRequest = {
+      type: "UNREAD_DETECTED",
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+      useMessageDelta: true,
+      source: "AIRFLOW",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "conv-airflow-window",
+      messageId: "msg-airflow-window",
+      aiEnabled: true,
+      eventTime: "2026-06-01T01:00:00.000Z",
+    };
+
+    clearPendingCsDispatches();
+    const crashed = createBridge();
+    await crashed.handleCsConversationSignal(airflowSignal);
+    expect((crashed as any).pendingAirflowBuyerCatchUps.size).toBe(1);
+    expect(getPendingCsDispatchCount()).toBe(0);
+
+    crashed.stop();
+
+    expect((crashed as any).pendingAirflowBuyerCatchUps.size).toBe(0);
+    expect(getPendingCsDispatchCount()).toBe(1);
+
+    clearPendingCsDispatches();
+    const signedOut = createBridge();
+    await signedOut.handleCsConversationSignal(airflowSignal);
+
+    signedOut.stop(CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE);
+
+    expect((signedOut as any).pendingAirflowBuyerCatchUps.size).toBe(0);
     expect(getPendingCsDispatchCount()).toBe(0);
   });
 

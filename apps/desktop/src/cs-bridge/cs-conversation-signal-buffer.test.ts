@@ -1,10 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CsAgentDispatchRequest } from "./cs-agent-dispatch-resolver.js";
 import {
   clearPendingCsDispatches,
+  CS_REPLAY_START_SPACING_ENV,
+  DEFAULT_CS_REPLAY_START_SPACING_MS,
   flushCsDispatchesAfterBridgeReady,
   getPendingCsDispatchCount,
   queueCsDispatchUntilBridgeReady,
+  resolveCsReplayStartSpacingMs,
 } from "./cs-conversation-signal-buffer.js";
 
 function makeDispatch(
@@ -115,6 +118,99 @@ describe("CS conversation signal startup buffer", () => {
     expect(seen).not.toContain("conv-2");
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0]![0].conversationId).toBe("conv-2");
+  });
+
+  // After an OOM restart the buffer holds the whole cancelled admission queue.
+  // Bounded concurrency alone still starts six entries in the first second of
+  // a fresh Gateway's life; the spacing ramps them up instead. It is global
+  // across workers and counted from each entry's start.
+  describe("start spacing", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("starts consecutive entries at least the spacing apart, across workers", async () => {
+      for (let i = 0; i < 5; i += 1) {
+        queueCsDispatchUntilBridgeReady(makeDispatch(`conv-${i}`, `msg-${i}`));
+      }
+      const t0 = Date.now();
+      const startedAt: number[] = [];
+      const handle = vi.fn(async () => {
+        startedAt.push(Date.now() - t0);
+        // Longer than the spacing, so the concurrency bound (not the handler
+        // duration) is what would let workers pile up without the spacing.
+        await new Promise((resolve) => setTimeout(resolve, 60_000));
+      });
+
+      const flush = flushCsDispatchesAfterBridgeReady(handle, {
+        concurrency: 3,
+        startSpacingMs: 10_000,
+      });
+      await vi.advanceTimersByTimeAsync(200_000);
+      const result = await flush;
+
+      expect(result.flushed).toBe(5);
+      // Three workers, five entries: 0/10/20 s for the first three; the fourth
+      // and fifth wait for a worker (free at 60 s and 70 s) and then keep the
+      // 10 s gap between each other.
+      expect(startedAt).toEqual([0, 10_000, 20_000, 60_000, 70_000]);
+    });
+
+    it("preserves queue order under spacing", async () => {
+      for (let i = 0; i < 4; i += 1) {
+        queueCsDispatchUntilBridgeReady(makeDispatch(`conv-${i}`, `msg-${i}`));
+      }
+      const order: string[] = [];
+      const handle = vi.fn(async (dispatch: CsAgentDispatchRequest) => {
+        order.push(dispatch.conversationId);
+      });
+
+      const flush = flushCsDispatchesAfterBridgeReady(handle, {
+        concurrency: 4,
+        startSpacingMs: 5_000,
+      });
+      await vi.advanceTimersByTimeAsync(30_000);
+      await flush;
+
+      expect(order).toEqual(["conv-0", "conv-1", "conv-2", "conv-3"]);
+    });
+
+    it("starts entries back to back when spacing is zero", async () => {
+      for (let i = 0; i < 3; i += 1) {
+        queueCsDispatchUntilBridgeReady(makeDispatch(`conv-${i}`, `msg-${i}`));
+      }
+      const t0 = Date.now();
+      const startedAt: number[] = [];
+      const handle = vi.fn(async () => {
+        startedAt.push(Date.now() - t0);
+      });
+
+      const flush = flushCsDispatchesAfterBridgeReady(handle, {
+        concurrency: 3,
+        startSpacingMs: 0,
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      await flush;
+
+      expect(startedAt).toEqual([0, 0, 0]);
+    });
+  });
+
+  describe("resolveCsReplayStartSpacingMs", () => {
+    it("defaults when unset, accepts zero, and falls back on garbage", () => {
+      expect(resolveCsReplayStartSpacingMs({})).toBe(DEFAULT_CS_REPLAY_START_SPACING_MS);
+      expect(resolveCsReplayStartSpacingMs({ [CS_REPLAY_START_SPACING_ENV]: "0" })).toBe(0);
+      expect(resolveCsReplayStartSpacingMs({ [CS_REPLAY_START_SPACING_ENV]: "2500" })).toBe(2_500);
+      expect(resolveCsReplayStartSpacingMs({ [CS_REPLAY_START_SPACING_ENV]: "-1" })).toBe(
+        DEFAULT_CS_REPLAY_START_SPACING_MS,
+      );
+      expect(resolveCsReplayStartSpacingMs({ [CS_REPLAY_START_SPACING_ENV]: "soon" })).toBe(
+        DEFAULT_CS_REPLAY_START_SPACING_MS,
+      );
+    });
   });
 
   it("keeps only the newest pending dispatch for each conversation", async () => {
