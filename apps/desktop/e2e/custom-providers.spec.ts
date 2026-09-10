@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 async function navigateToModels(window: import("@playwright/test").Page) {
   const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
@@ -9,9 +10,9 @@ async function navigateToModels(window: import("@playwright/test").Page) {
     }
   }
 
-  const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+  const providersBtn = getNavigationButton(window, "Models");
   await providersBtn.click();
-  await expect(providersBtn).toHaveClass(/nav-active/);
+  await expect(providersBtn).toHaveAttribute("aria-current", "page");
 }
 
 test.describe("Custom Providers", () => {
@@ -36,9 +37,9 @@ test.describe("Custom Providers", () => {
 
     // -- Switch to Custom tab --
     const form = window.locator(".page-two-col");
-    const customTab = form.locator(".tab-btn", { hasText: /Custom/i });
+    const customTab = form.getByRole("tab", { name: /Custom/i });
     await customTab.click();
-    await expect(customTab).toHaveClass(/tab-btn-active/);
+    await expect(customTab).toHaveAttribute("aria-selected", "true");
 
     // Info box should be visible on the right side
     const infoBox = form.locator(".provider-info-card");
@@ -76,7 +77,7 @@ test.describe("Custom Providers", () => {
 
     // -- Save --
     const saveBtn = form.locator(".form-actions .btn.btn-primary");
-    const errorAlert = form.locator(".error-alert");
+    const errorAlert = form.getByRole("alert");
 
     for (let attempt = 0; attempt < 3; attempt++) {
       await saveBtn.click();
@@ -141,12 +142,11 @@ test.describe("Custom Providers", () => {
       }),
     });
     expect(baseRes.ok).toBe(true);
+    const baseEntry = await baseRes.json() as { id: string };
 
     // Activate the base provider
-    const activateRes = await fetch(`${apiBase}/api/settings`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ "llm-provider": "custom-e2ebase" }),
+    const activateRes = await fetch(`${apiBase}/api/provider-keys/${baseEntry.id}/activate`, {
+      method: "POST",
     });
     expect(activateRes.ok).toBe(true);
 
@@ -166,14 +166,15 @@ test.describe("Custom Providers", () => {
     });
     expect(createRes.ok).toBe(true);
 
-    // Navigate to Models page — ProvidersPage fetches keys on mount
+    // API seeding bypasses the renderer store; reload its initial snapshot.
+    await window.reload();
     await navigateToModels(window);
 
     // Switch to Custom tab where custom provider key cards are displayed
     const form = window.locator(".page-two-col");
-    const customTab = form.locator(".tab-btn", { hasText: /Custom/i });
+    const customTab = form.getByRole("tab", { name: /Custom/i });
     await customTab.click();
-    await expect(customTab).toHaveClass(/tab-btn-active/);
+    await expect(customTab).toHaveAttribute("aria-selected", "true");
 
     // Wait for key cards to load
     const keyCards = window.locator(".key-card");

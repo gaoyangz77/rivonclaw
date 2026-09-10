@@ -1,4 +1,4 @@
-From 8de6e202dcce52fcb8f66dfc399094b47556528a Mon Sep 17 00:00:00 2001
+From ed4fc5f3963b116ff891b2ec8d40891ef0b20386 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 21 Aug 2026 12:07:19 -0700
 Subject: [PATCH] vendor(openclaw): keep Playwright out of Windows CLI
@@ -77,7 +77,7 @@ index 90a22ff5a08..a093179df6f 100644
  export const DEFAULT_BROWSER_TAB_CLEANUP_IDLE_MINUTES = 120;
  /** Default maximum tracked tabs kept per session. */
 diff --git a/extensions/browser/src/browser/pw-tools-core.snapshot.ts b/extensions/browser/src/browser/pw-tools-core.snapshot.ts
-index 5945fd773e7..7dcbe4bdc5a 100644
+index 128ad330f83..b4c592439ff 100644
 --- a/extensions/browser/src/browser/pw-tools-core.snapshot.ts
 +++ b/extensions/browser/src/browser/pw-tools-core.snapshot.ts
 @@ -10,8 +10,9 @@ import {
@@ -90,9 +90,9 @@ index 5945fd773e7..7dcbe4bdc5a 100644
 +import { ACT_MAX_VIEWPORT_DIMENSION } from "./constants.js";
  import type { BrowserDownloadResult } from "./download-types.js";
  import { BrowserTabNotFoundError } from "./errors.js";
- import {
+ import type { RelayOperationReference } from "./extension-relay/owner-client.js";
 diff --git a/extensions/browser/src/browser/routes/agent.act.normalize.ts b/extensions/browser/src/browser/routes/agent.act.normalize.ts
-index 41b0325da9c..112fa7558ed 100644
+index 5c8c38abbab..33af11ecdea 100644
 --- a/extensions/browser/src/browser/routes/agent.act.normalize.ts
 +++ b/extensions/browser/src/browser/routes/agent.act.normalize.ts
 @@ -9,11 +9,11 @@ import {
@@ -103,9 +103,9 @@ index 41b0325da9c..112fa7558ed 100644
    ACT_MAX_WAIT_TIME_MS,
    normalizeActBoundedNonNegativeMs,
  } from "../act-policy.js";
- import type { BrowserActRequest, BrowserFormField } from "../client-actions.types.js";
+ import type { BrowserActRequest } from "../client-actions.types.js";
 +import { ACT_MAX_VIEWPORT_DIMENSION } from "../constants.js";
- import { normalizeBrowserFormField } from "../form-fields.js";
+ import { normalizeBrowserFormFields } from "../form-fields.js";
  import { resolveTargetIdFromTabs } from "../target-id.js";
  import { isActKind, parseClickButton, parseClickModifiers } from "./agent.act.shared.js";
 diff --git a/extensions/browser/src/cli/browser-cli-resize.ts b/extensions/browser/src/cli/browser-cli-resize.ts

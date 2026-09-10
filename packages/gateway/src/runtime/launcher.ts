@@ -14,6 +14,11 @@ import {
 } from "./gateway-performance-capture.js";
 import { captureGatewayProcessTree } from "./gateway-process-tree.js";
 import { normalizePathEnvironment } from "../utils/cli-utils.js";
+import {
+  GATEWAY_CONTROL_PRELOAD,
+  GATEWAY_STOP_GRACE_MS,
+  GATEWAY_STOP_MESSAGE,
+} from "./process-control.js";
 
 const log = createLogger("gateway");
 
@@ -85,6 +90,8 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
   private lastError: string | null = null;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private stopRequested = false;
+  private stopCompletion: Promise<void> | null = null;
+  private hasProcessControl = false;
   private readonly performanceCapture = new GatewayPerformanceCapture({
     emit: (burst: GatewayPerformanceBurst) => {
       log.warn(`[gateway-perf] burst ${JSON.stringify(burst)}`);
@@ -135,6 +142,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
 
   /** Start the gateway process. */
   async start(): Promise<void> {
+    if (this.stopCompletion) await this.stopCompletion;
     if (this.state === "running" || this.state === "starting") {
       log.warn("Gateway is already running or starting, ignoring start()");
       return;
@@ -183,6 +191,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
   /** Gracefully stop the gateway process and its entire process tree. */
   async stop(): Promise<void> {
     this.stopRequested = true;
+    if (this.stopCompletion) return this.stopCompletion;
 
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
@@ -198,11 +207,11 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     const proc = this.process;
     const pid = proc.pid;
 
-    return new Promise<void>((resolve) => {
+    const completion = new Promise<void>((resolve) => {
       const killTimeout = setTimeout(() => {
         log.warn("Gateway did not exit gracefully, sending SIGKILL to process group");
         this.killProcessTree(proc, pid, "SIGKILL");
-      }, 5000);
+      }, GATEWAY_STOP_GRACE_MS);
 
       proc.once("exit", () => {
         clearTimeout(killTimeout);
@@ -211,10 +220,30 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
         resolve();
       });
 
-      // Kill the entire process group (openclaw + openclaw-gateway)
-      // so child processes don't become orphans
-      this.killProcessTree(proc, pid, "SIGTERM");
+      // Windows SIGTERM/taskkill forcibly terminates Node without invoking its
+      // shutdown handlers. IPC also leaves Unix workers alive for orderly close.
+      if (this.hasProcessControl && proc.connected) {
+        log.info(`Requesting graceful Gateway shutdown (budget=${GATEWAY_STOP_GRACE_MS}ms)`);
+        try {
+          proc.send({ type: GATEWAY_STOP_MESSAGE }, (error) => {
+            if (!error || proc.exitCode !== null || proc.signalCode !== null) return;
+            log.warn("Gateway shutdown IPC failed; waiting for bounded cleanup", error);
+            if (process.platform !== "win32") this.killProcessTree(proc, pid, "SIGTERM");
+          });
+        } catch (error) {
+          log.warn("Gateway shutdown IPC unavailable; waiting for bounded cleanup", error);
+          if (process.platform !== "win32") this.killProcessTree(proc, pid, "SIGTERM");
+        }
+      } else if (process.platform !== "win32") {
+        this.killProcessTree(proc, pid, "SIGTERM");
+      }
     });
+    this.stopCompletion = completion;
+    try {
+      await completion;
+    } finally {
+      if (this.stopCompletion === completion) this.stopCompletion = null;
+    }
   }
 
   private spawnProcess(): void {
@@ -229,6 +258,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       process.platform === "win32" ? key.toLowerCase() === "path" : key === "PATH",
     );
     const env = normalizePathEnvironment(sourceEnv);
+    this.hasProcessControl = false;
     const pathKey = process.platform === "win32" ? "Path" : "PATH";
     const pathEntries = env[pathKey]?.split(process.platform === "win32" ? ";" : ":").length ?? 0;
     log.info(
@@ -260,6 +290,9 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     // reproduce, test, and debug. The symptom is a permanently orphaned
     // gateway process that blocks all future startups.
     env["OPENCLAW_NO_RESPAWN"] = "1";
+    // Desktop owns runtime updates as well as restarts. NO_RESPAWN alone does
+    // not disable OpenClaw's owner-requested gateway update.run action.
+    env["OPENCLAW_SUPERVISOR_MODE"] = "external";
 
     // Skip browser control server at startup.  The browser plugin service
     // blocks the event loop for 15-30 s on Windows during express/route
@@ -283,7 +316,15 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     // NODE_V8_COVERAGE — Coverage instrumentation can hang if the output
     //   directory doesn't exist or isn't writable by the child process.
     delete env.NODE_COMPILE_CACHE;
-    if (this.options.stateDir) {
+    delete env.OPENCLAW_PACKAGED_COMPILE_CACHE_RESPAWNED;
+    const vendorRoot = dirname(this.options.entryPath);
+    const sourceCheckout =
+      existsSync(join(vendorRoot, ".git")) || existsSync(join(vendorRoot, "src", "entry.ts"));
+    if (sourceCheckout) {
+      // Match upstream's source-checkout policy before Node starts. Otherwise
+      // openclaw.mjs respawns a wrapper which SIGKILLs a closing Gateway at 2s.
+      env.NODE_DISABLE_COMPILE_CACHE = "1";
+    } else if (this.options.stateDir && env.NODE_DISABLE_COMPILE_CACHE === undefined) {
       const userCacheDir = join(this.options.stateDir, "compile-cache");
       const shippedCacheDir = join(dirname(this.options.entryPath), "dist", "compile-cache");
       const shippedVersionFile = join(shippedCacheDir, ".version");
@@ -308,6 +349,20 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       }
 
       env.NODE_COMPILE_CACHE = userCacheDir;
+      // Desktop already chose and seeded a per-install writable cache. Mark it
+      // prepared so the packaged launcher does not add a second supervisor just
+      // to relocate it. A real-vendor lifecycle test guards this upstream flag.
+      env.OPENCLAW_PACKAGED_COMPILE_CACHE_RESPAWNED = "1";
+    }
+
+    if (this.options.stateDir) {
+      const controlPath = join(this.options.stateDir, "gateway-control.cjs");
+      mkdirSync(this.options.stateDir, { recursive: true });
+      writeFileSync(controlPath, GATEWAY_CONTROL_PRELOAD);
+      env.RIVONCLAW_GATEWAY_PARENT_PID = String(process.pid);
+      env.NODE_OPTIONS =
+        `--require ${JSON.stringify(controlPath)} ${env.NODE_OPTIONS || ""}`.trim();
+      this.hasProcessControl = true;
     }
 
     log.debug("[spawn:2] compile cache done, writing preload...");
@@ -372,7 +427,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
       child = spawn(this.options.nodeBin, args, {
         env,
         cwd: this.options.stateDir || undefined,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["ignore", "pipe", "pipe", "ipc"],
         detached: true, // New process group so we can kill the entire tree on stop
       });
     } catch (err) {

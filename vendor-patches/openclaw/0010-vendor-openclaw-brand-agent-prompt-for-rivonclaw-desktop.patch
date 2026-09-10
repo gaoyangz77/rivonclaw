@@ -1,4 +1,4 @@
-From d82bc677e468fbf58a0e6abee9b3847c65ef6b36 Mon Sep 17 00:00:00 2001
+From 16c4767c5613e161fbc46bdd065251389dffc013 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
 Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
@@ -19,14 +19,135 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-no-openclaw-cli-guidance.sentinel.test.ts
 ---
- src/agents/system-prompt.ts | 25 ++++++++++++++++++-------
- 1 file changed, 18 insertions(+), 7 deletions(-)
+ src/agents/system-prompt.test.ts | 59 +++++++++++++++++++++++++++-----
+ src/agents/system-prompt.ts      | 15 ++++----
+ 2 files changed, 57 insertions(+), 17 deletions(-)
 
+diff --git a/src/agents/system-prompt.test.ts b/src/agents/system-prompt.test.ts
+index cb4d7b4cca8..c61db6d5158 100644
+--- a/src/agents/system-prompt.test.ts
++++ b/src/agents/system-prompt.test.ts
+@@ -546,13 +546,14 @@ describe("buildAgentSystemPrompt", () => {
+     expect(prompt).toContain("<final>...</final>");
+   });
+ 
+-  it("includes an OpenClaw control section", () => {
++  it("includes Desktop-managed control guidance without a CLI quick reference", () => {
+     const prompt = buildAgentSystemPrompt({
+       workspaceDir: "/tmp/openclaw",
+       toolNames: ["gateway"],
+     });
+ 
+-    expect(prompt).toContain("## OpenClaw Control");
++    expect(prompt).toContain("## RivonClaw Desktop Runtime");
++    expect(prompt).not.toContain("## OpenClaw Control");
+     expect(prompt).toContain("Config read: `gateway`");
+     expect(prompt).not.toContain("openclaw gateway status|restart|start|stop");
+     expect(prompt).toContain("Do not invent commands");
+@@ -1300,7 +1301,7 @@ describe("buildAgentSystemPrompt", () => {
+     expect(prompt).toContain("- Opus: anthropic/claude-opus-4-5");
+   });
+ 
+-  it("routes explicit updates through gateway without exposing config writes", () => {
++  it("routes explicit updates through Desktop without exposing gateway config writes", () => {
+     const prompt = buildAgentSystemPrompt({
+       workspaceDir: "/tmp/openclaw",
+       toolNames: ["gateway", "exec"],
+@@ -1313,11 +1314,16 @@ describe("buildAgentSystemPrompt", () => {
+     expect(prompt).not.toContain("config.apply");
+     expect(prompt).not.toContain("`config.schema.lookup|get|patch|apply`, `restart`");
+     expect(prompt).toContain(
+-      "Update OpenClaw: `gateway` action update.run, only on explicit user request; restart and completion notice are automatic.",
++      "For updates, use the RivonClaw Desktop updater only on explicit user request.",
+     );
+     expect(prompt).toContain(
+-      "Never run openclaw update, npm install -g openclaw, or stop/restart the gateway service via exec.",
++      "Never update, install, stop, or restart the embedded gateway through shell commands.",
+     );
++    expect(prompt).toContain("- gateway: Read RivonClaw Desktop gateway config/schema\n");
++    expect(prompt).not.toContain("update.run");
++    expect(prompt).not.toContain("## RivonClaw Desktop Updates");
++    expect(prompt).not.toContain("automatic restart and completion notice");
++    expect(prompt).not.toContain("pings the last active session");
+     expect(prompt).not.toContain("Use config.schema to");
+     expect(prompt).not.toContain("config.schema, config.apply");
+   });
+@@ -1337,11 +1343,13 @@ describe("buildAgentSystemPrompt", () => {
+         "Gateway restart, config, channels, plugins, agents, models/providers: ask `openclaw`.",
+       );
+       expect(prompt).toContain(
+-        "Never run npm install -g openclaw or stop the gateway service via exec.",
++        "Never update, install, stop, or restart the embedded gateway through shell commands.",
+       );
+       expect(prompt).toContain(
+-        "Updates need the OpenClaw owner: tell the user to run `openclaw update` in a terminal or use the Control UI.",
++        "For updates, use the RivonClaw Desktop updater only on explicit user request.",
+       );
++      expect(prompt).not.toContain("openclaw update");
++      expect(prompt).not.toContain("update.run");
+       expect(prompt).not.toContain("System controls unavailable");
+       expect(prompt).toContain(
+         "`visible:true` for work the user follows or asked for; else hidden.",
+@@ -1354,8 +1362,16 @@ describe("buildAgentSystemPrompt", () => {
+     ({ toolNames }) => {
+       const prompt = buildAgentSystemPrompt({ workspaceDir: "/tmp/openclaw", toolNames });
+       expect(prompt).toContain(
+-        "System controls unavailable. Updates and restarts need the OpenClaw owner: tell the user to run `openclaw update` in a terminal or use the Control UI. Never run npm install -g openclaw or stop the gateway service via exec.",
++        "System controls unavailable; use RivonClaw Desktop settings or ask the operator.",
++      );
++      expect(prompt).toContain("RivonClaw Desktop updater only on explicit user request");
++      expect(prompt).toContain(
++        "Never update, install, stop, or restart the embedded gateway through shell commands.",
+       );
++      expect(prompt).not.toContain("ask `openclaw`");
++      expect(prompt).not.toContain("Config read: `gateway`");
++      expect(prompt).not.toContain("session_status");
++      expect(prompt).not.toContain("openclaw update");
+       expect(prompt).not.toContain("update.run");
+     },
+   );
+@@ -1368,10 +1384,35 @@ describe("buildAgentSystemPrompt", () => {
+     expect(prompt).toContain(
+       "Gateway restart, config, channels, plugins, agents, models/providers: ask `openclaw`.",
+     );
+-    expect(prompt).toContain("Update OpenClaw: `gateway` action update.run");
++    expect(prompt).toContain("RivonClaw Desktop updater only on explicit user request");
++    expect(prompt).not.toContain("update.run");
++    expect(prompt).not.toContain("config.patch");
++    expect(prompt).not.toContain("config.apply");
+     expect(prompt).not.toContain("models/providers, updates: ask `openclaw`");
+   });
+ 
++  it.each(["full", "minimal", "none"] as const)(
++    "keeps Desktop identity without unsupported self-update instructions in %s prompts",
++    (promptMode) => {
++      const prompt = buildAgentSystemPrompt({
++        workspaceDir: "/tmp/openclaw",
++        promptMode,
++        toolNames: ["gateway", "openclaw", "session_status"],
++      });
++      expect(prompt).toMatch(/^You are a personal assistant running inside RivonClaw Desktop\./);
++      expect(prompt).not.toContain("config.patch");
++      expect(prompt).not.toContain("config.apply");
++      expect(prompt).not.toContain("update.run");
++      expect(prompt).not.toContain("openclaw update");
++      expect(prompt).not.toContain("## RivonClaw Desktop Updates");
++      if (promptMode === "none") {
++        expect(prompt).not.toContain("## RivonClaw Desktop Runtime");
++      } else {
++        expect(prompt).toContain("RivonClaw Desktop updater only on explicit user request");
++      }
++    },
++  );
++
+   it("omits openclaw delegation guidance without the tool", () => {
+     const prompt = buildAgentSystemPrompt({
+       workspaceDir: "/tmp/openclaw",
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index b57bb4cdffe..fbc3fd62632 100644
+index 7f12b2ffe1b..4da050ff37f 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -613,7 +613,7 @@ function buildMessagingSection(params: {
+@@ -597,7 +597,7 @@ function buildMessagingSection(params: {
        : []),
      subagentOrchestrationGuidance,
      completionEventGuidance,
@@ -35,7 +156,7 @@ index b57bb4cdffe..fbc3fd62632 100644
      messageToolAvailable
        ? [
            "",
-@@ -854,7 +854,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -837,7 +837,7 @@ export function buildAgentSystemPrompt(params: {
      return params.extraSystemPrompt ?? "";
    }
    if (promptMode === "none") {
@@ -44,11 +165,12 @@ index b57bb4cdffe..fbc3fd62632 100644
        .filter(Boolean)
        .join("\n");
    }
-@@ -898,9 +898,9 @@ export function buildAgentSystemPrompt(params: {
+@@ -890,10 +890,9 @@ export function buildAgentSystemPrompt(params: {
      conversations_send: "Send directly to an external conversation",
      conversations_turn: "Send and wait for one correlated external reply",
-     openclaw: "Gateway restart/system setup/config; changes need human approval",
--    gateway: "Read gateway config/schema",
+     openclaw: "Gateway restart/system setup/config",
+-    gateway:
+-      "Read gateway config/schema; owner-only update on explicit request; automatic restart and completion notice; never via shell",
 +    gateway: "Read RivonClaw Desktop gateway config/schema",
      agents_list: acpSpawnRuntimeEnabled
 -      ? "List allowed OpenClaw subagent ids; not ACP ids"
@@ -56,7 +178,7 @@ index b57bb4cdffe..fbc3fd62632 100644
        : "List allowed subagent ids",
      sessions_list: "List visible sessions; filters/last",
      sessions_history: "Read visible session/subagent history",
-@@ -1210,7 +1210,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1182,7 +1181,7 @@ export function buildAgentSystemPrompt(params: {
    });
    const stablePrefix = cacheStablePromptPrefix(stablePrefixCacheKey, () => {
      const lines = [
@@ -65,42 +187,24 @@ index b57bb4cdffe..fbc3fd62632 100644
        "",
        ...(includeToolGuidance
          ? [
-@@ -1322,7 +1322,7 @@ export function buildAgentSystemPrompt(params: {
-       }),
-       ...safetySection,
+@@ -1305,7 +1304,7 @@ export function buildAgentSystemPrompt(params: {
+         ]),
+       "",
        "## RivonClaw Desktop Runtime",
 -      "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
 +      "RivonClaw Desktop manages the underlying OpenClaw gateway lifecycle for this session.",
        "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
-       "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools for gateway status, config, and restart instead of shell CLI commands.",
-       "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
-@@ -1330,6 +1330,17 @@ export function buildAgentSystemPrompt(params: {
-       ...skillsSection,
-       ...skillWorkshopSection,
-       ...memorySection,
-+      hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : "",
-+      hasGateway && !isMinimal
-+        ? [
-+            "Only explicit user request.",
-+            "Before config edits/questions: `config.schema.lookup` for the exact dot path.",
-+            "Actions: config.get, config.patch, config.apply, update.run. Config writes hot-reload when possible; restart when required.",
-+            "After restart, RivonClaw pings the last active session automatically.",
-+          ].join("\n")
-+        : "",
-+      hasGateway && !isMinimal ? "" : "",
-+      "",
-       params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
-         ? "## Model Aliases"
-         : "",
-@@ -1411,7 +1422,7 @@ export function buildAgentSystemPrompt(params: {
+       "Do not invent commands.",
+       hasOpenClaw
+@@ -1391,7 +1390,7 @@ export function buildAgentSystemPrompt(params: {
        params.sandboxInfo?.enabled ? "" : "",
        ...bootstrapSystemPromptSections,
        "## Workspace Files (injected)",
 -      "User-editable; OpenClaw loads below as Project Context.",
 +      "These user-editable files are loaded by RivonClaw and included below in Project Context.",
        "",
-       ...buildAssistantOutputDirectivesSection({
-         isMinimal,
+     ];
+ 
 -- 
 2.50.1 (Apple Git-155)
 

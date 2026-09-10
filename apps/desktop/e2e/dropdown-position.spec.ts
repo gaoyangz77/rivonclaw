@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 async function navigateToModels(window: import("@playwright/test").Page) {
   const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
@@ -9,9 +10,9 @@ async function navigateToModels(window: import("@playwright/test").Page) {
     }
   }
 
-  const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+  const providersBtn = getNavigationButton(window, "Models");
   await providersBtn.click();
-  await expect(providersBtn).toHaveClass(/nav-active/);
+  await expect(providersBtn).toHaveAttribute("aria-current", "page");
 }
 
 test.describe("Dropdown positioning", () => {
@@ -28,9 +29,9 @@ test.describe("Dropdown positioning", () => {
     await navigateToModels(window);
 
     // Switch to API Key tab where the model dropdown lives
-    const apiTab = window.locator(".tab-btn", { hasText: /API/i });
+    const apiTab = window.getByRole("tab", { name: /API/i });
     await apiTab.click();
-    await expect(apiTab).toHaveClass(/tab-btn-active/);
+    await expect(apiTab).toHaveAttribute("aria-selected", "true");
 
     // Select a provider that has models (e.g. Anthropic/Claude)
     await window.locator(".provider-select-trigger").click();

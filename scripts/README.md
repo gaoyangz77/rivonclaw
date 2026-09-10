@@ -4,18 +4,18 @@
 
 ### rebuild-native.sh
 
-Builds `better-sqlite3` for both Node.js and Electron, enabling both runtimes to coexist.
+Validates `better-sqlite3` under both Node.js and Electron, including statement garbage collection.
 
-Node.js and Electron have different ABIs (e.g. Node.js v24 = ABI 141, Electron 35 = ABI 143). A binary compiled for one crashes when loaded by the other. This script compiles `better-sqlite3` twice and places each binary in an ABI-specific directory under `lib/binding/`. It then deletes `build/` so the `bindings` package auto-selects the correct binary at runtime.
+The pinned better-sqlite3 13.0.3 ships portable N-API binaries in `prebuilds/`. No native compilation or extra download is needed on supported Desktop platforms. The compatibility entrypoint calls `rebuild-native.cjs`, which retains the dual-ABI build path for older installations only. Node 24.19+ can abort during statement garbage collection with the older V8-based 12.x bindings; a successful one-query load is not sufficient verification.
 
 **When it runs:**
 - Automatically after `pnpm install` via the root `postinstall` hook
-- Manually: `./scripts/rebuild-native.sh` (or `--force` to skip the "already exists" check)
+- Manually: `./scripts/rebuild-native.sh`
 
 **Rules:**
-- Do NOT run `electron-rebuild` manually — it creates `build/` and breaks Node.js tests
-- Do NOT delete `lib/binding/` — it contains the dual prebuilds
-- If unit tests fail with ABI mismatch errors, run `./scripts/rebuild-native.sh`
+- Do not replace or delete the package's `prebuilds/` binaries.
+- Electron 42 is provisioned explicitly by `provision-electron.cjs` before native verification.
+- If native loading fails, run `./scripts/rebuild-native.sh` to check both runtimes.
 
 ### setup-vendor.sh
 
@@ -32,13 +32,13 @@ the vendor's own `engines.node` range — the vendor preinstall script rejects
 anything else, so check `vendor/openclaw/package.json` before running this.
 
 **The workstation default Node is not necessarily one of them.** At the
-`v2026.8.1` pin the range is `>=22.22.3 <23 || >=24.15.0 <25 || >=25.9.0`, and a
-default of 24.13.1 fails the preinstall gate before anything is installed. Pick a
+`v2026.9.3` pin the range is `>=24.16.0 <25 || >=26.1.0`; Node 24.15.0 and
+24.13.1 both fail the preinstall gate. CI uses Node 24.21.0. Pick a
 satisfying version explicitly rather than assuming the shell default works:
 
 ```bash
 fnm list                                    # or: nvm ls
-export PATH="$(dirname "$(fnm exec --using 24.15.0 -- which node)"):$PATH"
+export PATH="$(dirname "$(fnm exec --using 24.21.0 -- which node)"):$PATH"
 ./scripts/setup-vendor.sh --skip-clone
 ```
 
@@ -193,6 +193,22 @@ Requires: `gh` CLI authenticated, draft release exists on GitHub, and
 `apps/desktop/changelog.json` contains an entry for the release version.
 
 ## Verification & Auditing
+
+### test-gateway-lifecycle.mjs
+
+After building the workspace, exercise real Electron/Gateway startup and orderly
+shutdown with isolated state. Three 3s/6s/3s service cleanups must exit normally,
+leave only `clean_stop` lifecycle rows, and never add a compile-cache supervisor.
+This is a focused runtime contract, not an E2E or real-account test.
+
+```bash
+node scripts/test-gateway-lifecycle.mjs
+node scripts/test-gateway-lifecycle.mjs --archive "path/to/vendor-runtime.tar"
+```
+
+The archive variant also guards the upstream packaged compile-cache override.
+Run both on vendor upgrades; do not remove the override or disable the crash-loop
+breaker merely to make a source-only shutdown test pass.
 
 ### audit-provider-sync.mjs
 

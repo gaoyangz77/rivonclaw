@@ -455,7 +455,10 @@ export async function readFullModelCatalog(
 
   // Vendor is the base. Runtime-derived and configured entries override at
   // model granularity, never by replacing an entire provider catalog.
-  const merged = mergeCatalogMaps(mergeCatalogMaps(vendor, gateway), configured);
+  // Resolve runtime aliases before adding static rows: a static OpenAI catalog
+  // must not masquerade as a canonical live catalog and suppress legacy Codex data.
+  const runtime = normalizeCatalog(mergeCatalogMaps(gateway, configured));
+  const merged = mergeCatalogMaps(vendor, runtime);
 
   // Local supplemental models append entries that vendor/gateway do not yet
   // provide. For some providers this is runtime-only data (`extraModels`);

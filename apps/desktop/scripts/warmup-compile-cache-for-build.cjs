@@ -28,7 +28,7 @@ const vendorDir = path.resolve(repoRoot, "vendor", "openclaw");
 
 let electronPath;
 try {
-  electronPath = require("electron");
+  electronPath = require("../../../scripts/electron-runtime.cjs").resolveElectronPath();
   if (typeof electronPath !== "string") {
     throw new Error("require('electron') did not return a path string");
   }

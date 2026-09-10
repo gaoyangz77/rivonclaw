@@ -1,4 +1,4 @@
-From 63bb26397ea530412323bc81ccf3dd500c4bdfc8 Mon Sep 17 00:00:00 2001
+From 4b7e9df766419b5db83e9543702b8802b801a103 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 20 Aug 2026 17:44:20 -0700
 Subject: [PATCH] vendor(openclaw): backport Feishu visible delivery custody
@@ -19,15 +19,15 @@ Tests:
 - vendor/openclaw/extensions/feishu/src/delivery-trace.test.ts
 ---
  extensions/feishu/src/delivery-trace.test.ts  | 131 +++++++++++++++++-
- extensions/feishu/src/reply-dispatcher.ts     |  49 ++++---
+ extensions/feishu/src/reply-dispatcher.ts     |  30 +++-
  src/channels/turn/lifecycle.ts                |   9 +-
  .../turn/pending-delivery-notice.test.ts      |  28 ++++
  src/channels/turn/pending-delivery-notice.ts  |  29 ++++
  .../turn/run-channel-turn.custody.test.ts     |   9 ++
- 6 files changed, 233 insertions(+), 22 deletions(-)
+ 6 files changed, 227 insertions(+), 9 deletions(-)
 
 diff --git a/extensions/feishu/src/delivery-trace.test.ts b/extensions/feishu/src/delivery-trace.test.ts
-index 97fc273a4eb..6a8a71c820f 100644
+index 6e4116d4b22..d19a3e01d16 100644
 --- a/extensions/feishu/src/delivery-trace.test.ts
 +++ b/extensions/feishu/src/delivery-trace.test.ts
 @@ -13,11 +13,26 @@ import {
@@ -66,17 +66,17 @@ index 97fc273a4eb..6a8a71c820f 100644
 +  failNextReplace: boolean;
  };
  
- const traceState = vi.hoisted(
-@@ -51,6 +68,8 @@ const traceState = vi.hoisted(
-     loadedMedia: null,
-     omitNextMessageReceipt: false,
-     wireFaults: [],
-+    messageResult: "identified",
-+    failNextReplace: false,
-   }),
- );
+ const traceState = vi.hoisted((): FeishuTraceState => ({
+@@ -50,6 +67,8 @@ const traceState = vi.hoisted((): FeishuTraceState => ({
+   loadedMedia: null,
+   omitNextMessageReceipt: false,
+   wireFaults: [],
++  messageResult: "identified",
++  failNextReplace: false,
+ }));
  
-@@ -149,6 +168,10 @@ beforeAll(async () => {
+ vi.mock("./accounts.js", async (importOriginal) => {
+@@ -147,6 +166,10 @@ beforeAll(async () => {
    ({ streamingStartBackoffUntilByAccount } = await import("./reply-dispatcher-state.js"));
  });
  
@@ -87,7 +87,7 @@ index 97fc273a4eb..6a8a71c820f 100644
  afterAll(() => {
    vi.doUnmock("./accounts.js");
    vi.doUnmock("./client.js");
-@@ -188,7 +211,10 @@ function nextMessageId(): string {
+@@ -186,7 +209,10 @@ function nextMessageId(): string {
  
  function createRecordingLarkClient() {
    const messageSendResult = (messageId: string) => {
@@ -99,7 +99,7 @@ index 97fc273a4eb..6a8a71c820f 100644
      traceState.omitNextMessageReceipt = false;
      return { code: 0, msg: "ok", data };
    };
-@@ -324,6 +350,14 @@ function createRecordingCardKitFetch(): typeof fetch {
+@@ -322,6 +348,14 @@ function createRecordingCardKitFetch(): typeof fetch {
        }
        if (wirePath.endsWith("/elements/content")) {
          const body = parseJsonRecord(init?.body);
@@ -114,7 +114,7 @@ index 97fc273a4eb..6a8a71c820f 100644
          record(
            { element: parseJsonRecord(body.element), sequence: body.sequence, uuid: body.uuid },
            { code: 0 },
-@@ -371,6 +405,8 @@ function setupFeishuTrace(recorder: WireRecorder, scenario: DeliveryTraceScenari
+@@ -369,6 +403,8 @@ function setupFeishuTrace(recorder: WireRecorder, scenario: DeliveryTraceScenari
    traceState.reactionCount = 0;
    traceState.cardCount = 0;
    traceState.wireFaults = [];
@@ -123,7 +123,7 @@ index 97fc273a4eb..6a8a71c820f 100644
    traceState.account = makeTraceAccount(scenario);
    traceState.larkClient = createRecordingLarkClient();
    traceState.cardKitFetch = createRecordingCardKitFetch();
-@@ -434,6 +470,43 @@ const FEISHU_TRACE_SCENARIOS: readonly DeliveryTraceScenarioName[] = [
+@@ -432,6 +468,43 @@ const FEISHU_TRACE_SCENARIOS: readonly DeliveryTraceScenarioName[] = [
    "overflow-pagination",
  ];
  
@@ -167,7 +167,7 @@ index 97fc273a4eb..6a8a71c820f 100644
  describe("feishu delivery trace goldens", () => {
    it("updates the accepted card without a duplicate send when its message receipt is absent", async () => {
      const events = await runDeliveryTraceScenario({
-@@ -601,3 +674,57 @@ describe("feishu delivery trace goldens", () => {
+@@ -599,3 +672,57 @@ describe("feishu delivery trace goldens", () => {
      });
    }
  });
@@ -226,10 +226,10 @@ index 97fc273a4eb..6a8a71c820f 100644
 +  });
 +});
 diff --git a/extensions/feishu/src/reply-dispatcher.ts b/extensions/feishu/src/reply-dispatcher.ts
-index f6ff5dbb527..71fda349607 100644
+index 93964b63a6b..de96d6b6d79 100644
 --- a/extensions/feishu/src/reply-dispatcher.ts
 +++ b/extensions/feishu/src/reply-dispatcher.ts
-@@ -344,6 +344,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -358,6 +358,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
      visibleReplySent = true;
    };
  
@@ -257,67 +257,32 @@ index f6ff5dbb527..71fda349607 100644
    const formatReasoningPrefix = (thinking: string): string => {
      if (!thinking) {
        return "";
-@@ -548,23 +569,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
-         try {
-           closed = await streamingToClose.closeWithResult(text, { note: finalNote });
+@@ -576,15 +597,16 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+             closed = await streamingToClose.closeWithResult(text, { note: finalNote });
+           }
          } catch (error: unknown) {
 -          if (!(error instanceof FeishuStreamingFinalizationError)) {
 +          const failure = normalizeStreamingFinalizationFailure(error);
 +          if (!failure) {
              throw error;
            }
--          const failedResult = createFeishuReplyDeliveryResult({
--            results: [error.result],
--            visibleReplySent: error.result.visibleReplySent,
--            content: error.result.content,
--            kind: "card",
--          });
--          if (failedResult.visibleReplySent) {
--            markVisibleReplySent();
--          }
-+          const failedResult = failure.result;
-           if (failedResult.visibleReplySent && finalizedAnswerText) {
--            const partialError = createFeishuPartialReplyDeliveryError(
--              error.cause ?? error,
--              failedResult,
--            );
-             if (failedResult.content === text) {
-               deliveredFinalTexts.add(finalizedAnswerText);
-             }
-@@ -572,12 +582,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
-               generationToClose,
-               finalizedAnswerText,
-               failedResult,
--              partialError,
-+              failure.error,
-             );
-             return {
-               result: failedResult,
-               ...(generationToClose === undefined ? {} : { generation: generationToClose }),
--              error: partialError,
-+              error: failure.error,
-             };
-           }
-           // Preserve the non-visible result so the settlement owner can recover the accepted
-@@ -689,7 +699,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
-       }
-       await partialUpdateQueue;
-       if (streaming?.isActive()) {
--        await streaming.discard();
-+        try {
-+          await streaming.discard();
-+        } catch (error: unknown) {
-+          const failure = normalizeStreamingFinalizationFailure(error);
-+          throw failure?.result.visibleReplySent ? failure.error : error;
-+        }
-       }
-     } finally {
-       resetStreamingState();
+-          closed = error.result;
+-          finalizationError = error;
++          closed = failure.result;
++          finalizationError = failure.error;
+         }
+         result = createFeishuReplyDeliveryResult({
+           results: [closed],
+-          visibleReplySent: closed.visibleReplySent,
++          visibleReplySent: closed.visibleReplySent === true,
+           content: closed.content,
+           kind: "card",
+         });
 diff --git a/src/channels/turn/lifecycle.ts b/src/channels/turn/lifecycle.ts
-index ed331be08d9..a5a0b2d7c71 100644
+index f99b5a9b650..1cd216fe8c0 100644
 --- a/src/channels/turn/lifecycle.ts
 +++ b/src/channels/turn/lifecycle.ts
-@@ -227,8 +227,9 @@ async function settleChannelDeliveryAttempts(params: {
+@@ -230,8 +230,9 @@ async function settleChannelDeliveryAttempts(params: {
    }
  }
  
@@ -329,7 +294,7 @@ index ed331be08d9..a5a0b2d7c71 100644
  async function settleFailedPendingFinalDelivery(
    payload: ReplyPayload,
    error: unknown,
-@@ -237,7 +238,9 @@ async function settleFailedPendingFinalDelivery(
+@@ -240,7 +241,9 @@ async function settleFailedPendingFinalDelivery(
    if (!completion) {
      return;
    }
@@ -427,7 +392,7 @@ index 1ee2ae8c0a9..5ba79f37fb7 100644
    let delivered: boolean;
    try {
 diff --git a/src/channels/turn/run-channel-turn.custody.test.ts b/src/channels/turn/run-channel-turn.custody.test.ts
-index 0920b18d53e..90b4505b5bd 100644
+index 5e6e14295fd..81bc1e5b14b 100644
 --- a/src/channels/turn/run-channel-turn.custody.test.ts
 +++ b/src/channels/turn/run-channel-turn.custody.test.ts
 @@ -5,6 +5,7 @@ import type { FinalizedMsgContext } from "../../auto-reply/templating.js";
@@ -438,7 +403,7 @@ index 0920b18d53e..90b4505b5bd 100644
  import { dispatchRoutedChannelTurn } from "./lifecycle.js";
  
  const dispatchReplyWithRoutedChannelDispatcherCore = vi.hoisted(() => vi.fn());
-@@ -152,6 +153,14 @@ describe("channel turn failed-send custody", () => {
+@@ -260,6 +261,14 @@ describe("channel turn failed-send custody", () => {
        error: new Error("adapter failed after entry"),
        failureSettle: ["unknown", ["queued", "unknown"]] as const,
      },

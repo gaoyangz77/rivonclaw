@@ -22,8 +22,8 @@ async function navigateToChannels(window: import("@playwright/test").Page) {
 
   const channelsBtn = window.getByRole("button", { name: "Channels", exact: true });
   await channelsBtn.click();
-  await expect(channelsBtn).toHaveClass(/nav-active/);
-  const channelTitle = window.locator(".channel-title").first();
+  await expect(channelsBtn).toHaveAttribute("aria-current", "page");
+  const channelTitle = window.getByRole("heading", { name: "Messaging", exact: true });
   await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 }
 
@@ -95,7 +95,7 @@ test.describe("Channels Page", () => {
     await navigateToChannels(window);
 
     // Verify the refresh button is present
-    const refreshBtn = window.locator(".channel-header .btn.btn-secondary").first();
+    const refreshBtn = window.getByRole("button", { name: /Refresh$/ });
     await expect(refreshBtn).toBeVisible();
 
     // Verify the "Add Account" section renders with the channel dropdown

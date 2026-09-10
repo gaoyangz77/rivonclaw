@@ -18,13 +18,19 @@ e2e/
 
 ## Data Isolation
 
-Each test runs with a **fresh, isolated temp directory**. Three env vars redirect all persistent state:
+Each test runs with a **fresh, isolated temp directory**. Environment overrides
+redirect persistent state, including the packaged CLI installer:
 
 | Env Var | Points to | Isolates |
 |---------|-----------|----------|
 | `RIVONCLAW_DB_PATH` | `<tempdir>/db.sqlite` | SQLite database |
 | `RIVONCLAW_SECRETS_DIR` | `<tempdir>/secrets/` | API keys (bypasses macOS Keychain) |
 | `OPENCLAW_STATE_DIR` | `<tempdir>/openclaw/` | Gateway state files |
+| `HOME`, `USERPROFILE` | `<tempdir>/` | CLI shim and shell profile writes |
+| `APPDATA`, `LOCALAPPDATA`, `XDG_CONFIG_HOME` | Subdirectories of `<tempdir>/` | Platform-specific configuration |
+
+The isolated CLI bin directory is included in the child PATH before launch,
+so Windows CLI installation does not update the real user's PATH registry.
 
 The temp directory is deleted after each test via `rmSync`, ensuring tests are **idempotent**.
 
@@ -107,6 +113,11 @@ All commands run from `apps/desktop/`.
 pnpm run test:e2e:dev
 ```
 
+`E2E_WORKERS` optionally sets a positive integer worker count; the default remains 6.
+Use `E2E_WORKERS=2 pnpm run test:e2e:dev` on constrained hosts. The same variable
+is inherited by both E2E stages when running `E2E_WORKERS=2 bash scripts/test-local.sh`
+from the repository root.
+
 ### Prod mode (after packaging)
 
 ```bash
@@ -159,7 +170,7 @@ test("description of what you're testing", async ({ window }) => {
 
 ### Tips
 
-- **Workers = 1**: The app enforces a single-instance lock, so tests run serially. Don't try to parallelize.
+- **Workers**: Tests use isolated state and per-worker ports. The default is 6; set `E2E_WORKERS=2` to reduce concurrency on constrained hosts.
 - **Timeout = 60s per test**: The gateway takes a few seconds to start. If you add tests that trigger slow operations, increase the timeout with `test.setTimeout(90_000)`.
 - **Modals**: Prod builds may show modals (What's New, telemetry consent) that block clicks. Dismiss them before interacting:
   ```typescript

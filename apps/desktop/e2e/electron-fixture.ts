@@ -6,6 +6,7 @@ import { mkdtempSync, rmSync, readFileSync, existsSync, mkdirSync, symlinkSync }
 import { tmpdir } from "node:os";
 import { execSync } from "node:child_process";
 import { createConnection } from "node:net";
+import { normalizePathEnvironment } from "../../../packages/gateway/src/path-env";
 
 // Load e2e/.env via dotenv in every worker process.
 // Playwright config's env changes don't propagate to Electron test workers.
@@ -20,7 +21,7 @@ const DEFAULT_PANEL_PORT = 3210;
 const DEFAULT_PROXY_ROUTER_PORT = 9999;
 const DESKTOP_VERSION = (() => {
   try {
-    const raw = readFileSync(path.resolve("package.json"), "utf-8");
+    const raw = readFileSync(path.resolve(__dirname, "../package.json"), "utf-8");
     return (JSON.parse(raw) as { version?: string }).version ?? "";
   } catch {
     return "";
@@ -176,6 +177,11 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   delete env.ELECTRON_RUN_AS_NODE;
 
   // Isolate all persistent state to the temp directory
+  env.HOME = tempDir;
+  env.USERPROFILE = tempDir;
+  env.APPDATA = path.join(tempDir, "appdata");
+  env.LOCALAPPDATA = path.join(tempDir, "local-appdata");
+  env.XDG_CONFIG_HOME = path.join(tempDir, "config");
   env.RIVONCLAW_DB_PATH = path.join(tempDir, "db.sqlite");
   env.RIVONCLAW_SECRETS_DIR = path.join(tempDir, "secrets");
   env.OPENCLAW_STATE_DIR = path.join(tempDir, "openclaw");
@@ -207,7 +213,17 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   // which is announced already" → unhandled rejection → exit code 1.
   env.OPENCLAW_DISABLE_BONJOUR = "1";
 
-  return env;
+  // Prevent the packaged CLI installer from editing the real Windows user
+  // PATH registry; its isolated bin directory is already in the child PATH.
+  const cliBin = process.platform === "win32"
+    ? path.join(env.LOCALAPPDATA, "RivonClaw", "bin")
+    : path.join(tempDir, ".local", "bin");
+  mkdirSync(cliBin, { recursive: true });
+  return normalizePathEnvironment(env, {
+    homeDir: tempDir,
+    extraPaths: [cliBin],
+    prependExtraPaths: true,
+  }) as Record<string, string>;
 }
 
 type ElectronFixtures = {
@@ -304,15 +320,22 @@ async function launchElectronApp(
       env,
     });
   } else {
-    const mainPath = path.resolve("dist/main.cjs");
+    // Launch the package, as pnpm dev does, so app.getVersion/getAppPath use
+    // Desktop's manifest rather than Electron's default application metadata.
+    const appPath = path.resolve(__dirname, "..");
     app = await _electron.launch({
       executablePath: electronPath,
-      args: ["--lang=en", mainPath, `--user-data-dir=${userDataDir}`],
+      args: ["--lang=en", appPath, `--user-data-dir=${userDataDir}`],
       env,
     });
   }
 
   try {
+    // Playwright input does not reset the OS idle clock. Model an active
+    // operator so the real screensaver cannot hide controls mid-test.
+    await app.evaluate(({ powerMonitor }) => {
+      powerMonitor.getSystemIdleTime = () => 0;
+    });
     await use(app);
   } finally {
     await app.close();

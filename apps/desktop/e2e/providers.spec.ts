@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 async function navigateToModels(window: import("@playwright/test").Page) {
   const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
@@ -9,9 +10,9 @@ async function navigateToModels(window: import("@playwright/test").Page) {
     }
   }
 
-  const providersBtn = window.locator(".nav-btn", { hasText: "Models" });
+  const providersBtn = getNavigationButton(window, "Models");
   await providersBtn.click();
-  await expect(providersBtn).toHaveClass(/nav-active/);
+  await expect(providersBtn).toHaveAttribute("aria-current", "page");
 }
 
 test.describe("LLM Providers", () => {
@@ -30,8 +31,8 @@ test.describe("LLM Providers", () => {
     await navigateToModels(window);
 
     // -- Subscription tab (default) --
-    const subTab = window.locator(".tab-btn", { hasText: /Subscription/i });
-    await expect(subTab).toHaveClass(/tab-btn-active/);
+    const subTab = window.getByRole("tab", { name: /Subscription/i });
+    await expect(subTab).toHaveAttribute("aria-selected", "true");
 
     // Subscription dropdown: subscription plans (claude, Codex, zhipu-coding,
     // moonshot-coding, minimax-coding, volcengine-coding, qwen-coding,
@@ -55,9 +56,9 @@ test.describe("LLM Providers", () => {
     await expect(subPricingLoaded.first()).toBeVisible({ timeout: 10_000 });
 
     // -- Switch to API Key tab --
-    const apiTab = window.locator(".tab-btn", { hasText: /API/i });
+    const apiTab = window.getByRole("tab", { name: /API/i });
     await apiTab.click();
-    await expect(apiTab).toHaveClass(/tab-btn-active/);
+    await expect(apiTab).toHaveAttribute("aria-selected", "true");
 
     // API Key dropdown: 17 root providers minus subscription, filtered by catalog.
     // At least 10 should always be present.
@@ -89,9 +90,9 @@ test.describe("LLM Providers", () => {
     await navigateToModels(window);
 
     // Switch to API Key tab
-    const apiTab = window.locator(".tab-btn", { hasText: /API/i });
+    const apiTab = window.getByRole("tab", { name: /API/i });
     await apiTab.click();
-    await expect(apiTab).toHaveClass(/tab-btn-active/);
+    await expect(apiTab).toHaveAttribute("aria-selected", "true");
 
     // Select "Google (Gemini)" from the provider dropdown
     const form = window.locator(".page-two-col");

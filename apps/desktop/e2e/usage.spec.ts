@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -72,9 +73,9 @@ VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}
     writeFileSync(configPath, `${JSON.stringify(vendorConfig, null, 2)}\n`, "utf8");
 
     // --- Navigate to Usage page ---
-    const usageBtn = window.locator(".nav-btn", { hasText: "Usage" });
+    const usageBtn = getNavigationButton(window, "Usage");
     await usageBtn.click();
-    await expect(usageBtn).toHaveClass(/nav-active/);
+    await expect(usageBtn).toHaveAttribute("aria-current", "page");
 
     // Wait for loading to finish
     await window
@@ -83,15 +84,14 @@ VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}
       .catch(() => {});
 
     // No error alert
-    await expect(window.locator(".error-alert")).not.toBeVisible();
+    await expect(window.getByRole("alert")).not.toBeVisible();
 
     // --- Verify Today's Usage table (section with "Today" title) ---
-    // Use :has(.usage-section-title) to target only Usage page cards, not hidden cards from other pages
-    const usageSectionCards = window.locator(".section-card:has(.usage-section-title)");
+    const usageSectionCards = window.locator("[data-tutorial-id='usage-today'], [data-tutorial-id='usage-history']");
     const todaySection = usageSectionCards.first();
     await expect(todaySection).toBeVisible({ timeout: 10_000 });
     // Today's section should have the "Today's Usage" heading
-    await expect(todaySection.locator(".usage-section-title")).toContainText(/Today|今日/);
+    await expect(todaySection.getByRole("heading", { level: 3 }).first()).toContainText(/Today|今日/);
 
     // Today's table should contain the active key's data (openai/gpt-4o — has today's record)
     await expect(todaySection.locator(".usage-key-block").first()).toBeVisible();
@@ -203,7 +203,7 @@ VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}
 
     // --- Verify time range filtering works ---
     // Switch to 7-day view and verify data is filtered
-    await window.locator(".usage-time-range-bar .btn", { hasText: "7 Days" }).click();
+    await window.getByRole("tab", { name: "7 Days", exact: true }).click();
     await window
       .locator(".text-muted")
       .waitFor({ state: "hidden", timeout: 10_000 })

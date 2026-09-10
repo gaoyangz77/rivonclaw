@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { join } from "node:path";
 import type { CatalogModelEntry } from "./model-catalog.js";
 import { ALL_PROVIDERS, getProviderMeta } from "@rivonclaw/core";
+import {
+  OPENCLAW_PLUGIN_MODEL_CATALOG,
+  OPENCLAW_PLUGIN_PROVIDER_IDS,
+} from "../generated/openclaw-plugin-model-catalog.js";
 
 // vi.hoisted runs before vi.mock hoisting, so mocks are available in the factory
 const mocks = vi.hoisted(() => ({
@@ -294,6 +298,45 @@ describe("readGatewayModelCatalog", () => {
 });
 
 describe("readFullModelCatalog", () => {
+  it("includes provider manifest models without legacy pi-ai or runtime state", async () => {
+    mocks.existsSync.mockReturnValue(false);
+    const result = await readFullModelCatalog({ OPENCLAW_STATE_DIR: "/tmp/fake" });
+
+    expect(result.openai?.find((model) => model.id === "gpt-6-astra")).toMatchObject({
+      contextWindow: 1_050_000,
+      contextTokens: 272_000,
+    });
+    expect(result.anthropic?.map((model) => model.id)).toContain("claude-fable-5-1");
+    expect(result.zai?.map((model) => model.id)).toContain("glm-5.3");
+    expect(result.groq?.map((model) => model.id)).toContain("openai/gpt-oss-120b");
+    expect(result.mistral?.map((model) => model.id)).toContain("mistral-small-latest");
+  });
+
+  it("records native runtime providers independently of static model rows", () => {
+    expect(OPENCLAW_PLUGIN_PROVIDER_IDS).toEqual(
+      expect.arrayContaining([
+        "openai",
+        "qwen",
+        "kimi",
+        "openrouter",
+        "minimax",
+        "amazon-bedrock",
+        "xai",
+      ]),
+    );
+    for (const id of [
+      "zhipu",
+      "zhipu-coding",
+      "moonshot-coding",
+      "qwen-coding",
+      "modelscope",
+      "minimax-coding",
+      "volcengine-coding",
+    ]) {
+      expect(OPENCLAW_PLUGIN_PROVIDER_IDS).not.toContain(id);
+    }
+  });
+
   it("includes Google plugin static catalogs when pi-ai has no Google entries", async () => {
     mocks.existsSync.mockReturnValue(false);
 
@@ -422,13 +465,14 @@ describe("readFullModelCatalog", () => {
     expect(KNOWN_MODELS.volcengine).toBeDefined();
     expect(KNOWN_MODELS.volcengine!.length).toBeGreaterThan(0);
     expect(KNOWN_MODELS["openai-codex"]).toBeDefined();
-    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual([
-      "gpt-5.6-terra",
-      "gpt-5.6-sol",
-      "gpt-5.6-luna",
-      "gpt-5.6",
-      "gpt-5.5",
-    ]);
+    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual(
+      [
+        ...new Set([
+          ...OPENCLAW_PLUGIN_MODEL_CATALOG.openai.map((model) => model.id),
+          ...getProviderMeta("openai-codex")!.fallbackModels!.map((model) => model.modelId),
+        ]),
+      ].sort((a, b) => b.localeCompare(a)),
+    );
   });
 
   it("should populate KNOWN_MODELS with gateway models", async () => {
@@ -478,9 +522,16 @@ describe("readFullModelCatalog", () => {
 
     // "claude" subscription plan should inherit anthropic's models
     expect(result.claude).toBeDefined();
-    expect(result.claude!.length).toBe(2);
-    expect(result.claude!.map((m) => m.id)).toContain("claude-sonnet-4-20250514");
-    expect(result.claude!.map((m) => m.id)).toContain("claude-opus-4-6");
+    expect(result.claude).toEqual(result.anthropic);
+    expect(result.claude!.map((m) => m.id)).toEqual(
+      [
+        ...new Set([
+          ...OPENCLAW_PLUGIN_MODEL_CATALOG.anthropic.map((model) => model.id),
+          "claude-sonnet-4-20250514",
+          "claude-opus-4-6",
+        ]),
+      ].sort((a, b) => b.localeCompare(a)),
+    );
   });
 
   it("should keep subscription plans with local supplemental models separate", async () => {
@@ -524,8 +575,15 @@ describe("readFullModelCatalog", () => {
     for (const extra of getProviderMeta("volcengine")!.extraModels!) {
       expect(ids).toContain(extra.modelId);
     }
-    // Total should be gateway (1 new) + extraModels (N)
-    expect(result.volcengine!.length).toBe(getProviderMeta("volcengine")!.extraModels!.length + 1);
+    expect(ids).toEqual(
+      [
+        ...new Set([
+          ...OPENCLAW_PLUGIN_MODEL_CATALOG.volcengine.map((model) => model.id),
+          ...getProviderMeta("volcengine")!.extraModels!.map((model) => model.modelId),
+          "vendor-only-model",
+        ]),
+      ].sort((a, b) => b.localeCompare(a)),
+    );
   });
 
   it("should not duplicate models present in both gateway and extraModels", async () => {
@@ -570,6 +628,25 @@ describe("readFullModelCatalog", () => {
     expect(ids).toContain("vendor-only-codex");
     expect(ids).toContain("gpt-5.5");
     expect(result["openai-codex"]!.map((m) => m.id)).toContain("gpt-5.6");
+  });
+
+  it("still prefers canonical live rows over stale aliases when static rows also exist", async () => {
+    mocks.existsSync.mockImplementation((p: string) =>
+      String(p).includes(join("agents", "main", "agent", "models.json")),
+    );
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          openai: { models: [{ id: "live-model", name: "Live model" }] },
+          codex: { models: [{ id: "stale-alias-model", name: "Stale" }] },
+        },
+      }),
+    );
+    const result = await readFullModelCatalog({ OPENCLAW_STATE_DIR: "/tmp/fake" });
+    const ids = result.openai!.map((model) => model.id);
+    expect(ids).toContain("live-model");
+    expect(ids).toContain("gpt-6-astra");
+    expect(ids).not.toContain("stale-alias-model");
   });
 
   it("should expose upstream Codex models under unified openai", async () => {

@@ -18,6 +18,9 @@ import {
 } from "@rivonclaw/core/node";
 import {
   readAuthProfileRuntimeState,
+  readExistingConfig,
+  buildExtraProviderConfigs,
+  OPENCLAW_PLUGIN_PROVIDER_IDS,
   writeGatewayConfig,
   type AuthProfileRuntimeState,
 } from "@rivonclaw/gateway";
@@ -62,6 +65,7 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools"];
 
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
+const VENDOR_PROVIDER_IDS: ReadonlySet<string> = new Set(OPENCLAW_PLUGIN_PROVIDER_IDS);
 const DEVICE_ID_HEADER = "X-Device-Id";
 const CANONICAL_DEVICE_ID_PATTERN = /^[a-f0-9]{64}$/u;
 export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 300;
@@ -142,6 +146,23 @@ type ManagedGatewayAgents = NonNullable<Parameters<typeof writeGatewayConfig>[0]
 type ExtraProviderConfig = NonNullable<
   Parameters<typeof writeGatewayConfig>[0]["extraProviders"]
 >[string];
+
+/** Seed only configured product-only providers; never replace a vendor/user definition. */
+export function buildDesktopOnlyProviderSeeds(
+  keys: ReadonlyArray<ProviderKeyLike>,
+  existingProviders: Record<string, unknown>,
+): Record<string, ExtraProviderConfig> {
+  const definitions = buildExtraProviderConfigs();
+  const seeds: Record<string, ExtraProviderConfig> = {};
+  for (const key of keys) {
+    if (key.authType === "custom" || key.authType === "local") continue;
+    const definition = definitions[key.provider];
+    if (!definition || VENDOR_PROVIDER_IDS.has(key.provider)) continue;
+    if (Object.hasOwn(existingProviders, key.provider)) continue;
+    seeds[key.provider] = definition;
+  }
+  return seeds;
+}
 
 const TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS: ExtraProviderConfig["models"] =
   TEMPORARY_OPENAI_CODEX_MODELS.map((model) => ({
@@ -454,6 +475,16 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     const effectiveEmbeddingEnabled =
       curEmbeddingEnabled && (curEmbeddingProvider === "ollama" || embKeyExists);
 
+    // Only seed Desktop-only providers that have never been defined. Existing
+    // config and providers owned by vendor plugins remain authoritative.
+    const existingConfig = readExistingConfig(configPath);
+    const existingProviderDefinitions = (existingConfig.models as {
+      providers?: Record<string, unknown>;
+    } | undefined)?.providers ?? {};
+    const desktopOnlyProviders = buildDesktopOnlyProviderSeeds(
+      storage.providerKeys.getAll(), existingProviderDefinitions,
+    );
+
     // Runtime provider definitions are persistent Vendor config, not a
     // projection of whichever SQLite metadata row happens to be active.
     // EasyClaw owns only its cloud provider and the narrow, versioned OpenAI
@@ -568,6 +599,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
       extraProviders: {
+        ...desktopOnlyProviders,
         ...customProviderOverrides,
         ...temporaryOpenAICodexOverride,
       },

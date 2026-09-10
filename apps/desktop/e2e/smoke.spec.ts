@@ -13,7 +13,7 @@ test.describe("TK Copilot Smoke Tests", () => {
     const brand = window.locator(".sidebar-brand-text");
     await expect(brand).toBeVisible();
 
-    const navItems = window.locator(".nav-list .nav-btn");
+    const navItems = window.getByRole("navigation", { name: "Primary navigation" }).getByRole("button");
     const count = await navItems.count();
     expect(count).toBeGreaterThanOrEqual(5);
   });

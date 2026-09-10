@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 /**
  * Provider Key CRUD — UI rendering tests.
@@ -27,9 +28,9 @@ async function navigateToModels(window: import("@playwright/test").Page) {
     }
   }
 
-  const btn = window.locator(".nav-btn", { hasText: "Models" });
+  const btn = getNavigationButton(window, "Models");
   await btn.click();
-  await expect(btn).toHaveClass(/nav-active/);
+  await expect(btn).toHaveAttribute("aria-current", "page");
   // After seeding via API, the store cache is stale. Reload the page to trigger initSession → fetchProviderKeys.
   await window.reload();
   if (await connectionsGroup.isVisible().catch(() => false)) {
@@ -39,7 +40,7 @@ async function navigateToModels(window: import("@playwright/test").Page) {
     }
   }
   await btn.click();
-  await expect(btn).toHaveClass(/nav-active/);
+  await expect(btn).toHaveAttribute("aria-current", "page");
 }
 
 async function seedKey(apiBase: string, opts: {

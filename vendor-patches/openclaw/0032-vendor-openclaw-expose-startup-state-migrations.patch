@@ -1,4 +1,4 @@
-From cdd12e152ab5dc4100463f68c8edeffd58beb6d7 Mon Sep 17 00:00:00 2001
+From 2b2e0f55324d352284d24537cff50eb487f12cfe Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:21:05 -0700
 Subject: [PATCH] vendor(openclaw): expose embedded state migrations
@@ -18,10 +18,10 @@ Tests:
  1 file changed, 7 insertions(+)
 
 diff --git a/src/plugin-sdk/node-host.ts b/src/plugin-sdk/node-host.ts
-index eebbd0c6fac..626fd8092a7 100644
+index 411c22461ed..12a96fce6ce 100644
 --- a/src/plugin-sdk/node-host.ts
 +++ b/src/plugin-sdk/node-host.ts
-@@ -8,6 +8,13 @@ export {
+@@ -9,6 +9,13 @@ export {
    type NodePtyResumeParams,
  } from "../node-host/pty-command.js";
  export { validateClaudeSessionId } from "../node-host/invoke-agent-cli-claude-params.js";

@@ -27,7 +27,7 @@ jobs:
           version: 10.6.2
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: pnpm
 
       - name: Setup OpenClaw vendor
@@ -106,7 +106,7 @@ jobs:
           version: 10.6.2
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: pnpm
 
       - name: Setup OpenClaw vendor
@@ -166,6 +166,7 @@ jobs:
           VENDOR="$APP/Contents/Resources/vendor/openclaw"
           test -f "$VENDOR/vendor-runtime.tar" || { echo "FAIL: archive missing"; exit 1; }
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar" --runtime "$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" --resources "$APP/Contents/Resources"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }

@@ -7,128 +7,19 @@ var __export = (target, all2) => {
   for (var name in all2) __defProp(target, name, { get: all2[name], enumerable: true });
 };
 
-// vendor/openclaw/src/shared/text/final-tags.ts
-var FINAL_TAG_CANDIDATE_RE = /<[^<>]*>/g;
-function isWhitespace(char) {
-  return /\s/.test(char);
-}
-function parseAttributeList(text3) {
-  let index2 = 0;
-  while (index2 < text3.length) {
-    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
-      index2 += 1;
-    }
-    if (index2 >= text3.length) {
-      return true;
-    }
-    const nameStart = index2;
-    while (index2 < text3.length) {
-      const char = text3[index2] ?? "";
-      if (isWhitespace(char) || char === "=") {
-        break;
-      }
-      if (char === "/" || char === '"' || char === "'" || char === "<" || char === ">") {
-        return false;
-      }
-      index2 += 1;
-    }
-    if (index2 === nameStart) {
-      return false;
-    }
-    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
-      index2 += 1;
-    }
-    if (text3[index2] !== "=") {
-      continue;
-    }
-    index2 += 1;
-    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
-      index2 += 1;
-    }
-    if (index2 >= text3.length) {
-      return false;
-    }
-    const quote = text3[index2];
-    if (quote === '"' || quote === "'") {
-      index2 += 1;
-      const end = text3.indexOf(quote, index2);
-      if (end === -1) {
-        return false;
-      }
-      index2 = end + 1;
-      continue;
-    }
-    const valueStart = index2;
-    while (index2 < text3.length && !isWhitespace(text3[index2] ?? "")) {
-      const char = text3[index2] ?? "";
-      if (char === '"' || char === "'" || char === "<" || char === ">") {
-        return false;
-      }
-      index2 += 1;
-    }
-    if (index2 === valueStart) {
-      return false;
-    }
+// vendor/openclaw/packages/normalization-core/src/expect.ts
+function expectDefined(value, context) {
+  if (value === null || value === void 0) {
+    throw new Error("expected " + context + " to be defined");
   }
-  return true;
-}
-function parseFinalTag(text3) {
-  if (!text3.startsWith("<") || !text3.endsWith(">")) {
-    return null;
-  }
-  let body = text3.slice(1, -1).trimStart();
-  let isClose = false;
-  if (body.startsWith("/")) {
-    isClose = true;
-    body = body.slice(1).trimStart();
-  }
-  if (!body.toLowerCase().startsWith("final")) {
-    return null;
-  }
-  const boundary = body[5] ?? "";
-  if (boundary && !isWhitespace(boundary) && boundary !== "/") {
-    return null;
-  }
-  let rest = body.slice(5);
-  if (isClose) {
-    return rest.trim().length === 0 ? { isClose: true, isSelfClosing: false } : null;
-  }
-  const trimmedRest = rest.trimEnd();
-  const isSelfClosing = trimmedRest.endsWith("/");
-  rest = isSelfClosing ? trimmedRest.slice(0, -1) : rest;
-  if (!parseAttributeList(rest)) {
-    return null;
-  }
-  return { isClose: false, isSelfClosing };
-}
-function findFinalTagMatches(text3) {
-  const matches = [];
-  for (const match of text3.matchAll(FINAL_TAG_CANDIDATE_RE)) {
-    const tagText = match[0];
-    const parsed = parseFinalTag(tagText);
-    if (!parsed) {
-      continue;
-    }
-    matches.push({
-      index: match.index ?? 0,
-      text: tagText,
-      ...parsed,
-    });
-  }
-  return matches;
-}
-function stripFinalTags(text3) {
-  let output = "";
-  let lastIndex = 0;
-  for (const match of findFinalTagMatches(text3)) {
-    output += text3.slice(lastIndex, match.index);
-    lastIndex = match.index + match.text.length;
-  }
-  output += text3.slice(lastIndex);
-  return output;
+  return value;
 }
 
-// vendor/openclaw/node_modules/mdast-util-to-string/lib/index.js
+// vendor/openclaw/packages/normalization-core/src/number-coercion.ts
+var MAX_TIMER_TIMEOUT_MS = 2147e6;
+var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS / 1e3);
+
+// vendor/openclaw/node_modules/.pnpm/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
 function toString(value, options) {
   const settings = options || emptyOptions;
@@ -166,7 +57,7 @@ function node(value) {
   return Boolean(value && typeof value === "object");
 }
 
-// vendor/openclaw/node_modules/character-entities/index.js
+// vendor/openclaw/node_modules/.pnpm/character-entities@2.0.2/node_modules/character-entities/index.js
 var characterEntities = {
   AElig: "\xC6",
   AMP: "&",
@@ -2295,13 +2186,13 @@ var characterEntities = {
   zwnj: "\u200C",
 };
 
-// vendor/openclaw/node_modules/decode-named-character-reference/index.js
+// vendor/openclaw/node_modules/.pnpm/decode-named-character-reference@1.3.0/node_modules/decode-named-character-reference/index.js
 var own = {}.hasOwnProperty;
 function decodeNamedCharacterReference(value) {
   return own.call(characterEntities, value) ? characterEntities[value] : false;
 }
 
-// vendor/openclaw/node_modules/micromark-util-chunked/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-chunked@2.0.1/node_modules/micromark-util-chunked/index.js
 function splice(list2, start, remove, items) {
   const end = list2.length;
   let chunkStart = 0;
@@ -2335,7 +2226,7 @@ function push(list2, items) {
   return items;
 }
 
-// vendor/openclaw/node_modules/micromark-util-combine-extensions/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-combine-extensions@2.0.1/node_modules/micromark-util-combine-extensions/index.js
 var hasOwnProperty = {}.hasOwnProperty;
 function combineExtensions(extensions) {
   const all2 = {};
@@ -2374,7 +2265,7 @@ function constructs(existing, list2) {
   splice(existing, 0, 0, before);
 }
 
-// vendor/openclaw/node_modules/micromark-util-decode-numeric-character-reference/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-decode-numeric-character-reference@2.0.2/node_modules/micromark-util-decode-numeric-character-reference/index.js
 function decodeNumericCharacterReference(value, base) {
   const code = Number.parseInt(value, base);
   if (
@@ -2395,7 +2286,7 @@ function decodeNumericCharacterReference(value, base) {
   return String.fromCodePoint(code);
 }
 
-// vendor/openclaw/node_modules/micromark-util-normalize-identifier/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-normalize-identifier@2.0.1/node_modules/micromark-util-normalize-identifier/index.js
 function normalizeIdentifier(value) {
   return value
     .replace(/[\t\n\r ]+/g, " ")
@@ -2404,7 +2295,7 @@ function normalizeIdentifier(value) {
     .toUpperCase();
 }
 
-// vendor/openclaw/node_modules/micromark-util-character/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-character@2.1.1/node_modules/micromark-util-character/index.js
 var asciiAlpha = regexCheck(/[A-Za-z]/);
 var asciiAlphanumeric = regexCheck(/[\dA-Za-z]/);
 var asciiAtext = regexCheck(/[#-'*+\--9=?A-Z^-~]/);
@@ -2436,7 +2327,7 @@ function regexCheck(regex) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-factory-space/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-factory-space@2.0.1/node_modules/micromark-factory-space/index.js
 function factorySpace(effects, ok2, type, max) {
   const limit = max ? max - 1 : Number.POSITIVE_INFINITY;
   let size = 0;
@@ -2458,7 +2349,7 @@ function factorySpace(effects, ok2, type, max) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark/lib/initialize/content.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/content.js
 var content = {
   tokenize: initializeContent,
 };
@@ -2512,7 +2403,7 @@ function initializeContent(effects) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark/lib/initialize/document.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/document.js
 var document = {
   tokenize: initializeDocument,
 };
@@ -2707,7 +2598,7 @@ function tokenizeContainer(effects, ok2, nok) {
   );
 }
 
-// vendor/openclaw/node_modules/micromark-util-classify-character/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-classify-character@2.0.1/node_modules/micromark-util-classify-character/index.js
 function classifyCharacter(code) {
   if (code === null || markdownLineEndingOrSpace(code) || unicodeWhitespace(code)) {
     return 1;
@@ -2717,7 +2608,7 @@ function classifyCharacter(code) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-util-resolve-all/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-resolve-all@2.0.1/node_modules/micromark-util-resolve-all/index.js
 function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
@@ -2731,7 +2622,7 @@ function resolveAll(constructs2, events, context) {
   return events;
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/attention.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/attention.js
 var attention = {
   name: "attention",
   resolveAll: resolveAllAttention,
@@ -2908,7 +2799,7 @@ function movePoint(point3, offset) {
   point3._bufferIndex += offset;
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/autolink.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/autolink.js
 var autolink = {
   name: "autolink",
   tokenize: tokenizeAutolink,
@@ -3009,7 +2900,7 @@ function tokenizeAutolink(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/blank-line.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/blank-line.js
 var blankLine = {
   partial: true,
   tokenize: tokenizeBlankLine,
@@ -3024,7 +2915,7 @@ function tokenizeBlankLine(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/block-quote.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/block-quote.js
 var blockQuote = {
   continuation: {
     tokenize: tokenizeBlockQuoteContinuation,
@@ -3087,7 +2978,7 @@ function exit(effects) {
   effects.exit("blockQuote");
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/character-escape.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/character-escape.js
 var characterEscape = {
   name: "characterEscape",
   tokenize: tokenizeCharacterEscape,
@@ -3113,7 +3004,7 @@ function tokenizeCharacterEscape(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/character-reference.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/character-reference.js
 var characterReference = {
   name: "characterReference",
   tokenize: tokenizeCharacterReference,
@@ -3181,7 +3072,7 @@ function tokenizeCharacterReference(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/code-fenced.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-fenced.js
 var nonLazyContinuation = {
   partial: true,
   tokenize: tokenizeNonLazyContinuation,
@@ -3380,7 +3271,7 @@ function tokenizeNonLazyContinuation(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/code-indented.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-indented.js
 var codeIndented = {
   name: "codeIndented",
   tokenize: tokenizeCodeIndented,
@@ -3454,7 +3345,7 @@ function tokenizeFurtherStart(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/code-text.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-text.js
 var codeText = {
   name: "codeText",
   previous,
@@ -3573,7 +3464,7 @@ function tokenizeCodeText(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-util-subtokenize/lib/splice-buffer.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize/lib/splice-buffer.js
 var SpliceBuffer = class {
   /**
    * @param {ReadonlyArray<T> | null | undefined} [initial]
@@ -3787,7 +3678,7 @@ function chunkedPush(list2, right) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-util-subtokenize/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize/index.js
 function subtokenize(eventsArray) {
   const jumps = {};
   let index2 = -1;
@@ -3946,7 +3837,7 @@ function subcontent(events, eventIndex) {
   return gaps;
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/content.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js
 var content2 = {
   resolve: resolveContent,
   tokenize: tokenizeContent,
@@ -4022,7 +3913,7 @@ function tokenizeContinuation(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-factory-destination/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-factory-destination@2.0.1/node_modules/micromark-factory-destination/index.js
 function factoryDestination(
   effects,
   ok2,
@@ -4124,7 +4015,7 @@ function factoryDestination(
   }
 }
 
-// vendor/openclaw/node_modules/micromark-factory-label/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-factory-label@2.0.1/node_modules/micromark-factory-label/index.js
 function factoryLabel(effects, ok2, nok, type, markerType, stringType) {
   const self = this;
   let size = 0;
@@ -4190,7 +4081,7 @@ function factoryLabel(effects, ok2, nok, type, markerType, stringType) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-factory-title/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-factory-title@2.0.1/node_modules/micromark-factory-title/index.js
 function factoryTitle(effects, ok2, nok, type, markerType, stringType) {
   let marker;
   return start;
@@ -4252,7 +4143,7 @@ function factoryTitle(effects, ok2, nok, type, markerType, stringType) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-factory-whitespace/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-factory-whitespace@2.0.1/node_modules/micromark-factory-whitespace/index.js
 function factoryWhitespace(effects, ok2) {
   let seen;
   return start;
@@ -4271,7 +4162,7 @@ function factoryWhitespace(effects, ok2) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/definition.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/definition.js
 var definition = {
   name: "definition",
   tokenize: tokenizeDefinition,
@@ -4374,7 +4265,7 @@ function tokenizeTitleBefore(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/hard-break-escape.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/hard-break-escape.js
 var hardBreakEscape = {
   name: "hardBreakEscape",
   tokenize: tokenizeHardBreakEscape,
@@ -4395,7 +4286,7 @@ function tokenizeHardBreakEscape(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/heading-atx.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/heading-atx.js
 var headingAtx = {
   name: "headingAtx",
   resolve: resolveHeadingAtx,
@@ -4495,7 +4386,7 @@ function tokenizeHeadingAtx(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-util-html-tag-name/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-html-tag-name@2.0.1/node_modules/micromark-util-html-tag-name/index.js
 var htmlBlockNames = [
   "address",
   "article",
@@ -4562,7 +4453,7 @@ var htmlBlockNames = [
 ];
 var htmlRawNames = ["pre", "script", "style", "textarea"];
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/html-flow.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/html-flow.js
 var htmlFlow = {
   concrete: true,
   name: "htmlFlow",
@@ -4959,7 +4850,7 @@ function tokenizeBlankLineBefore(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/html-text.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/html-text.js
 var htmlText = {
   name: "htmlText",
   tokenize: tokenizeHtmlText,
@@ -5272,7 +5163,7 @@ function tokenizeHtmlText(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/label-end.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-end.js
 var labelEnd = {
   name: "labelEnd",
   resolveAll: resolveAllLabelEnd,
@@ -5568,7 +5459,7 @@ function tokenizeReferenceCollapsed(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/label-start-image.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-start-image.js
 var labelStartImage = {
   name: "labelStartImage",
   resolveAll: labelEnd.resolveAll,
@@ -5601,7 +5492,7 @@ function tokenizeLabelStartImage(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/label-start-link.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-start-link.js
 var labelStartLink = {
   name: "labelStartLink",
   resolveAll: labelEnd.resolveAll,
@@ -5625,7 +5516,7 @@ function tokenizeLabelStartLink(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/line-ending.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/line-ending.js
 var lineEnding = {
   name: "lineEnding",
   tokenize: tokenizeLineEnding,
@@ -5640,7 +5531,7 @@ function tokenizeLineEnding(effects, ok2) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/thematic-break.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/thematic-break.js
 var thematicBreak = {
   name: "thematicBreak",
   tokenize: tokenizeThematicBreak,
@@ -5679,7 +5570,7 @@ function tokenizeThematicBreak(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/list.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/list.js
 var list = {
   continuation: {
     tokenize: tokenizeListContinuation,
@@ -5841,7 +5732,7 @@ function tokenizeListItemPrefixWhitespace(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-core-commonmark/lib/setext-underline.js
+// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/setext-underline.js
 var setextUnderline = {
   name: "setextUnderline",
   resolveTo: resolveToSetextUnderline,
@@ -5937,7 +5828,7 @@ function tokenizeSetextUnderline(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark/lib/initialize/flow.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/flow.js
 var flow = {
   tokenize: initializeFlow,
 };
@@ -5987,7 +5878,7 @@ function initializeFlow(effects) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark/lib/initialize/text.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/text.js
 var resolver = {
   resolveAll: createResolver(),
 };
@@ -6130,7 +6021,7 @@ function resolveAllLineSuffixes(events, context) {
   return events;
 }
 
-// vendor/openclaw/node_modules/micromark/lib/constructs.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/constructs.js
 var constructs_exports = {};
 __export(constructs_exports, {
   attentionMarkers: () => attentionMarkers,
@@ -6205,7 +6096,7 @@ var disable = {
   null: [],
 };
 
-// vendor/openclaw/node_modules/micromark/lib/create-tokenizer.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/create-tokenizer.js
 function createTokenizer(parser, initialize, from) {
   let point3 = {
     _bufferIndex: -1,
@@ -6530,7 +6421,7 @@ function serializeChunks(chunks, expandTabs) {
   return result.join("");
 }
 
-// vendor/openclaw/node_modules/micromark/lib/parse.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/parse.js
 function parse(options) {
   const settings = options || {};
   const constructs2 =
@@ -6555,13 +6446,13 @@ function parse(options) {
   }
 }
 
-// vendor/openclaw/node_modules/micromark/lib/postprocess.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/postprocess.js
 function postprocess(events) {
   while (!subtokenize(events)) {}
   return events;
 }
 
-// vendor/openclaw/node_modules/micromark/lib/preprocess.js
+// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/preprocess.js
 var search = /[\0\t\n\r]/g;
 function preprocess() {
   let column = 1;
@@ -6644,7 +6535,7 @@ function preprocess() {
   }
 }
 
-// vendor/openclaw/node_modules/micromark-util-decode-string/index.js
+// vendor/openclaw/node_modules/.pnpm/micromark-util-decode-string@2.0.1/node_modules/micromark-util-decode-string/index.js
 var characterEscapeOrReference =
   /\\([!-/:-@[-`{-~])|&(#(?:\d{1,7}|x[\da-f]{1,6})|[\da-z]{1,31});/gi;
 function decodeString(value) {
@@ -6663,7 +6554,7 @@ function decode($0, $1, $2) {
   return decodeNamedCharacterReference($2) || $0;
 }
 
-// vendor/openclaw/node_modules/unist-util-stringify-position/lib/index.js
+// vendor/openclaw/node_modules/.pnpm/unist-util-stringify-position@4.0.0/node_modules/unist-util-stringify-position/lib/index.js
 function stringifyPosition(value) {
   if (!value || typeof value !== "object") {
     return "";
@@ -6689,7 +6580,7 @@ function index(value) {
   return value && typeof value === "number" ? value : 1;
 }
 
-// vendor/openclaw/node_modules/mdast-util-from-markdown/lib/index.js
+// vendor/openclaw/node_modules/.pnpm/mdast-util-from-markdown@2.0.3_supports-color@10.2.2/node_modules/mdast-util-from-markdown/lib/index.js
 var own2 = {}.hasOwnProperty;
 function fromMarkdown(value, encoding, options) {
   if (encoding && typeof encoding === "object") {
@@ -7454,10 +7345,10 @@ function defaultOnError(left, right) {
   }
 }
 
-// vendor/openclaw/node_modules/devlop/lib/default.js
+// vendor/openclaw/node_modules/.pnpm/devlop@1.1.0/node_modules/devlop/lib/default.js
 function ok() {}
 
-// vendor/openclaw/node_modules/mdast-util-gfm-table/lib/index.js
+// vendor/openclaw/node_modules/.pnpm/mdast-util-gfm-table@2.0.0_supports-color@10.2.2/node_modules/mdast-util-gfm-table/lib/index.js
 function gfmTableFromMarkdown() {
   return {
     enter: {
@@ -7517,7 +7408,7 @@ function replace($0, $1) {
   return $1 === "|" ? $1 : $0;
 }
 
-// vendor/openclaw/node_modules/micromark-extension-gfm-table/lib/edit-map.js
+// vendor/openclaw/node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/edit-map.js
 var EditMap = class {
   /**
    * Create a new edit map.
@@ -7596,7 +7487,7 @@ function addImplementation(editMap, at, remove, add) {
   editMap.map.push([at, remove, add]);
 }
 
-// vendor/openclaw/node_modules/micromark-extension-gfm-table/lib/infer.js
+// vendor/openclaw/node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/infer.js
 function gfmTableAlign(events, index2) {
   let inDelimiterRow = false;
   const align = [];
@@ -7623,7 +7514,7 @@ function gfmTableAlign(events, index2) {
   return align;
 }
 
-// vendor/openclaw/node_modules/micromark-extension-gfm-table/lib/syntax.js
+// vendor/openclaw/node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/syntax.js
 function gfmTable() {
   return {
     flow: {
@@ -8155,41 +8046,111 @@ function isTagNameCharacter(code) {
     code === 58
   );
 }
-function parseMarkdownOwnership(text3) {
+function captureInlineSources(text3, sources) {
+  const observe = function (token) {
+    const start = this.stack.findLast((entry) => entry.type === "inlineCode")?.position?.start
+      .offset;
+    if (start === void 0) {
+      return;
+    }
+    let source = sources.get(start);
+    if (!source) {
+      const inlineBlock = this.stack.findLast(
+        (entry) => entry.type === "paragraph" || entry.type === "heading",
+      );
+      const begin = inlineBlock?.children[0]?.position?.start.offset;
+      const containers = this.stack.filter(
+        (entry) => entry.type === "listItem" || entry.type === "blockquote",
+      );
+      const prefixEnd = begin !== void 0 && containers.length ? begin : start;
+      const prefixStart = containers.length
+        ? Math.max(text3.lastIndexOf("\n", prefixEnd - 1), text3.lastIndexOf("\r", prefixEnd - 1)) +
+          1
+        : start;
+      const prefix = containers
+        .map((entry) =>
+          text3.slice(entry.position?.start.offset, entry.children[0]?.position?.start.offset),
+        )
+        .join("");
+      source = {
+        prefix: {
+          start: prefixStart,
+          end: prefixEnd,
+          ownerStart: containers[0]?.position?.start.offset ?? start,
+          text:
+            prefix +
+            (containers.length && inlineBlock?.type === "heading"
+              ? text3.slice(inlineBlock.position?.start.offset, begin)
+              : ""),
+        },
+        value: "",
+        offsets: [],
+      };
+      sources.set(start, source);
+    }
+    const value = this.sliceSerialize(token);
+    const extra = value.length - (token.end.offset - token.start.offset);
+    for (let cursor = start + source.offsets.length; cursor < token.end.offset; cursor += 1) {
+      const consumed = cursor - token.start.offset;
+      source.offsets.push(source.value.length + (consumed > 0 ? consumed + extra : 0));
+    }
+    source.value += value;
+  };
+  return {
+    enter: {
+      codeTextData(token) {
+        observe.call(this, token);
+        expectDefined(this.config.enter.data, "Markdown data handler").call(this, token);
+      },
+      lineEnding: observe,
+    },
+  };
+}
+function parseMarkdownOwnership(text3, options) {
   if (!text3) {
-    return { codeSpans: [], retainStart: 0 };
+    return { regions: [], codeSpans: [], retainStart: 0 };
   }
+  const sources = /* @__PURE__ */ new Map();
+  const tables = options?.syntax !== "commonmark";
   const tree = fromMarkdown(text3, {
-    extensions: [DISABLE_HTML_MARKDOWN, gfmTable()],
-    mdastExtensions: [gfmTableFromMarkdown()],
+    extensions: [DISABLE_HTML_MARKDOWN, ...(tables ? [gfmTable()] : [])],
+    mdastExtensions: [
+      ...(tables ? [gfmTableFromMarkdown()] : []),
+      ...(options?.includeSource ? [captureInlineSources(text3, sources)] : []),
+    ],
   });
-  const spans = [];
+  const regions = [];
   const pending = [tree];
   while (pending.length > 0) {
-    const node2 = pending.pop();
-    if (!node2) {
-      continue;
-    }
-    if (node2.type === "code" || node2.type === "inlineCode") {
-      const start = node2.position?.start?.offset;
-      const end = node2.position?.end?.offset;
-      if (start !== void 0 && end !== void 0) {
-        spans.push([start, end]);
+    const node2 = expectDefined(pending.pop(), "Markdown ownership node");
+    const start = node2.position?.start?.offset;
+    const end = node2.position?.end?.offset;
+    if (
+      (node2.type === "code" || node2.type === "inlineCode") &&
+      start !== void 0 &&
+      end !== void 0
+    ) {
+      const source = sources.get(start);
+      if (source) {
+        while (source.offsets.length <= end - start) {
+          source.offsets.push(source.value.length);
+        }
       }
+      regions.push({ start, end, block: node2.type === "code", ...(source ? { source } : {}) });
     }
-    const children = node2.children ?? [];
-    for (let index2 = children.length - 1; index2 >= 0; index2 -= 1) {
-      const child = children[index2];
-      if (child) {
-        pending.push(child);
-      }
+    for (const child of node2.children?.toReversed() ?? []) {
+      pending.push(child);
     }
   }
-  const rootChildren = tree.children ?? [];
+  regions.sort((left, right) => left.start - right.start);
   return {
-    codeSpans: spans.toSorted((left, right) => left[0] - right[0]),
-    retainStart: rootChildren.at(-1)?.position?.start?.offset ?? text3.length,
+    regions,
+    codeSpans: regions.map(({ start, end }) => [start, end]),
+    retainStart: tree.children?.at(-1)?.position?.start?.offset ?? text3.length,
   };
+}
+function findMarkdownCodeRegions(text3, options) {
+  return /[`~\t]| {4}/u.test(text3) ? parseMarkdownOwnership(text3, options).regions : [];
 }
 function findMarkdownCodeSpans(text3) {
   if (!/[`~\t]| {4}/u.test(text3)) {
@@ -8363,7 +8324,12 @@ function stripReasoningTagsFromMarkdown(text3, options) {
   const state = { depth: 0, visibleEver: false };
   return reduceReasoningText(text3, findMarkdownCodeSpans(text3), state, {
     final: true,
-    mode: options.mode === "preserve" ? "static-preserve" : "static-strict",
+    mode:
+      options.recoverUnclosed === false
+        ? "hide"
+        : options.mode === "preserve"
+          ? "static-preserve"
+          : "static-strict",
     scope: options.scope,
   })
     .filter((delta) => delta.kind === "text")
@@ -8372,23 +8338,146 @@ function stripReasoningTagsFromMarkdown(text3, options) {
 }
 
 // vendor/openclaw/src/shared/text/code-regions.ts
-function findCodeRegions(text3) {
-  return findMarkdownCodeSpans(text3).map(([start, end]) => ({ start, end }));
+function findCodeRegions(text3, options) {
+  return findMarkdownCodeRegions(text3, options);
 }
-function isInsideCode2(pos, regions) {
-  return regions.some((region) => pos >= region.start && pos < region.end);
+
+// vendor/openclaw/src/shared/text/final-tags.ts
+var FINAL_TAG_CANDIDATE_RE = /<[^<>]*>/g;
+function isWhitespace(char) {
+  return /\s/.test(char);
+}
+function parseAttributeList(text3) {
+  let index2 = 0;
+  while (index2 < text3.length) {
+    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
+      index2 += 1;
+    }
+    if (index2 >= text3.length) {
+      return true;
+    }
+    const nameStart = index2;
+    while (index2 < text3.length) {
+      const char = text3[index2] ?? "";
+      if (isWhitespace(char) || char === "=") {
+        break;
+      }
+      if (char === "/" || char === '"' || char === "'" || char === "<" || char === ">") {
+        return false;
+      }
+      index2 += 1;
+    }
+    if (index2 === nameStart) {
+      return false;
+    }
+    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
+      index2 += 1;
+    }
+    if (text3[index2] !== "=") {
+      continue;
+    }
+    index2 += 1;
+    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
+      index2 += 1;
+    }
+    if (index2 >= text3.length) {
+      return false;
+    }
+    const quote = text3[index2];
+    if (quote === '"' || quote === "'") {
+      index2 += 1;
+      const end = text3.indexOf(quote, index2);
+      if (end === -1) {
+        return false;
+      }
+      index2 = end + 1;
+      continue;
+    }
+    const valueStart = index2;
+    while (index2 < text3.length && !isWhitespace(text3[index2] ?? "")) {
+      const char = text3[index2] ?? "";
+      if (char === '"' || char === "'" || char === "<" || char === ">") {
+        return false;
+      }
+      index2 += 1;
+    }
+    if (index2 === valueStart) {
+      return false;
+    }
+  }
+  return true;
+}
+function parseFinalTag(text3) {
+  if (!text3.startsWith("<") || !text3.endsWith(">")) {
+    return null;
+  }
+  let body = text3.slice(1, -1).trimStart();
+  let isClose = false;
+  if (body.startsWith("/")) {
+    isClose = true;
+    body = body.slice(1).trimStart();
+  }
+  if (!body.toLowerCase().startsWith("final")) {
+    return null;
+  }
+  const boundary = body[5] ?? "";
+  if (boundary && !isWhitespace(boundary) && boundary !== "/") {
+    return null;
+  }
+  let rest = body.slice(5);
+  if (isClose) {
+    return rest.trim().length === 0 ? { isClose: true, isSelfClosing: false } : null;
+  }
+  const trimmedRest = rest.trimEnd();
+  const isSelfClosing = trimmedRest.endsWith("/");
+  rest = isSelfClosing ? trimmedRest.slice(0, -1) : rest;
+  if (!parseAttributeList(rest)) {
+    return null;
+  }
+  return { isClose: false, isSelfClosing };
+}
+function findFinalTagMatches(text3) {
+  const matches = [];
+  for (const match of text3.matchAll(FINAL_TAG_CANDIDATE_RE)) {
+    const tagText = match[0];
+    const parsed = parseFinalTag(tagText);
+    if (!parsed) {
+      continue;
+    }
+    matches.push({
+      index: match.index ?? 0,
+      text: tagText,
+      ...parsed,
+    });
+  }
+  return matches;
+}
+function stripFinalTags(text3) {
+  const matches = findFinalTagMatches(text3);
+  if (matches.length === 0) {
+    return text3;
+  }
+  const codeRegions = findCodeRegions(text3);
+  let codeIndex = 0;
+  let output = "";
+  let lastIndex = 0;
+  for (const match of matches) {
+    let codeRegion = codeRegions[codeIndex];
+    while (codeRegion && codeRegion.end <= match.index) {
+      codeIndex += 1;
+      codeRegion = codeRegions[codeIndex];
+    }
+    if (codeRegion && codeRegion.start <= match.index) {
+      continue;
+    }
+    output += text3.slice(lastIndex, match.index);
+    lastIndex = match.index + match.text.length;
+  }
+  output += text3.slice(lastIndex);
+  return output;
 }
 
 // vendor/openclaw/src/shared/text/reasoning-tags.ts
-function applyTrim(value, mode) {
-  if (mode === "none") {
-    return value;
-  }
-  if (mode === "start") {
-    return value.trimStart();
-  }
-  return value.trim();
-}
 function hasOrphanReasoningCloseBoundary(params) {
   return params.before.trim().length > 0 && params.after.trim().length > 0;
 }
@@ -8406,18 +8495,17 @@ function stripReasoningTagsFromText(text3, options) {
     return text3;
   }
   if (matches.length > 0) {
-    const preCodeRegions = findCodeRegions(cleaned);
-    let visible = "";
-    let lastIndex = 0;
-    for (const match of matches) {
-      if (!isInsideCode2(match.index, preCodeRegions)) {
-        visible += cleaned.slice(lastIndex, match.index);
-        lastIndex = match.index + match.text.length;
-      }
-    }
-    cleaned = visible + cleaned.slice(lastIndex);
+    cleaned = stripFinalTags(cleaned);
   }
-  return applyTrim(stripReasoningTagsFromMarkdown(cleaned, { mode, scope }), trimMode);
+  const stripped = stripReasoningTagsFromMarkdown(cleaned, {
+    mode,
+    scope,
+    recoverUnclosed: options?.recoverUnclosed,
+  });
+  if (trimMode === "none") {
+    return stripped;
+  }
+  return trimMode === "start" ? stripped.trimStart() : stripped.trim();
 }
 export {
   findFinalTagMatches,

@@ -2142,6 +2142,7 @@ app.whenReady().then(async () => {
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
+    const gatewayStop = launcher.stop();
     await flushCsSessionCursorStore();
 
     // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches go
@@ -2158,7 +2159,7 @@ app.whenReady().then(async () => {
       log.info("CS telemetry client shut down gracefully");
     }
 
-    await Promise.all([launcher.stop(), openAICodexCompatibilityProxy.stop(), proxyRouter.stop()]);
+    await Promise.all([gatewayStop, openAICodexCompatibilityProxy.stop(), proxyRouter.stop()]);
 
     try {
       await syncBackOAuthCredentials(stateDir, storage, secretStore);
@@ -2189,6 +2190,9 @@ app.whenReady().then(async () => {
     removeHeartbeat();
 
     const cleanup = async () => {
+      // Start the Gateway watchdog before potentially slow telemetry flushes.
+      // Keep the proxy alive until those flushes finish.
+      const gatewayStop = launcher.stop();
       await flushCsSessionCursorStore();
 
       // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches
@@ -2211,7 +2215,7 @@ app.whenReady().then(async () => {
 
       // Kill gateway and proxy router.
       await Promise.all([
-        launcher.stop(),
+        gatewayStop,
         openAICodexCompatibilityProxy.stop(),
         proxyRouter.stop(),
       ]);
@@ -2239,7 +2243,8 @@ app.whenReady().then(async () => {
       .catch((err) => {
         log.error("Cleanup error during quit:", err);
       })
-      .finally(() => {
+      .finally(async () => {
+        await launcher.stop();
         cleanupDone = true;
         app.exit(0); // Now actually exit — releases single-instance lock
       });

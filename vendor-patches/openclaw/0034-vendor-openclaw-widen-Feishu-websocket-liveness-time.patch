@@ -1,4 +1,4 @@
-From b820c3b5fbe034ea8b20224a5bab5d2c2c7cb0fc Mon Sep 17 00:00:00 2001
+From d5a5a1ec7040267ee1b0e61c94ad3263c6ebab02 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 19 Aug 2026 01:53:43 -0700
 Subject: [PATCH] vendor(openclaw): widen Feishu websocket liveness timeout
@@ -47,10 +47,10 @@ index 00f41732a10..af7893da722 100644
    });
  
 diff --git a/extensions/feishu/src/client.ts b/extensions/feishu/src/client.ts
-index cc8ef2a21aa..2b5b867daa6 100644
+index f768b3ccd79..f834a7d5408 100644
 --- a/extensions/feishu/src/client.ts
 +++ b/extensions/feishu/src/client.ts
-@@ -16,8 +16,16 @@ const pluginVersion = readPluginPackageVersion({ require });
+@@ -17,8 +17,16 @@ const pluginVersion = readPluginPackageVersion({ require });
  const FEISHU_USER_AGENT = `openclaw-feishu-builtin/${pluginVersion}/${process.platform}`;
  const FEISHU_SDK_ORIGIN = "https://open.feishu.cn";
  

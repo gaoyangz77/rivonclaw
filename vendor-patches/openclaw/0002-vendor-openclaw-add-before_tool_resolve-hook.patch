@@ -1,4 +1,4 @@
-From bb99e08917c382025d9cb0b1b13b428c01c88946 Mon Sep 17 00:00:00 2001
+From 03a0e2ebeb09214c1009874c8ab6b278c1f9dc41 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:12:32 -0700
 Subject: [PATCH] vendor(openclaw): add before_tool_resolve hook for
@@ -17,46 +17,195 @@ Removal:
 Tests:
 - extensions/rivonclaw-capability-manager/src/__tests__/
 ---
- .../prepared-compaction-runtime.ts            |  7 +++-
- .../run/attempt-bundle-tools.ts               |  8 ++++-
- src/agents/tool-resolve-hook.test.ts          | 36 +++++++++++++++++++
- src/agents/tool-resolve-hook.ts               | 31 ++++++++++++++++
- src/plugins/hook-types.ts                     | 15 +++++++-
- src/plugins/hooks.ts                          | 20 +++++++++++
- 6 files changed, 114 insertions(+), 3 deletions(-)
+ .../prepared-compaction-runtime.ts            |   7 +-
+ .../run/attempt-bundle-tools.test.ts          | 107 +++++++++++++++++-
+ .../run/attempt-bundle-tools.ts               |  58 +++++++---
+ src/agents/tool-resolve-hook.test.ts          |  36 ++++++
+ src/agents/tool-resolve-hook.ts               |  31 +++++
+ src/plugins/hook-types.ts                     |  15 ++-
+ src/plugins/hooks.ts                          |  20 ++++
+ 7 files changed, 254 insertions(+), 20 deletions(-)
  create mode 100644 src/agents/tool-resolve-hook.test.ts
  create mode 100644 src/agents/tool-resolve-hook.ts
 
 diff --git a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-index c5b63be9739..5c412bf2bd7 100644
+index 5637eccd259..d3ddb52890f 100644
 --- a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
 +++ b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-@@ -87,6 +87,7 @@ import {
- } from "./sandbox-skills.js";
- import { buildEmbeddedSystemPrompt } from "./system-prompt.js";
- import { collectAllowedToolNames } from "./tool-name-allowlist.js";
+@@ -58,6 +58,7 @@ import {
+ import { detectRuntimeShell } from "../shell-utils.js";
+ import { resolveRuntimeAgentName } from "../system-prompt-params.js";
+ import { toolPolicyRestrictsTools } from "../tool-policy.js";
 +import { filterToolsWithBeforeResolveHook } from "../tool-resolve-hook.js";
- import { mapThinkingLevelForProvider } from "./utils.js";
- 
- export async function buildPreparedCompactionRuntime(prepared: DirectCompactionPreparation) {
-@@ -455,7 +456,11 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
+ import {
+   filterProviderNormalizableTools,
+   filterRuntimeCompatibleTools,
+@@ -387,7 +388,11 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
        sessionKey: params.sessionKey,
        sessionId: params.sessionId,
      });
 -    const effectiveTools = [...toolSchemaProjection.tools];
 +    const effectiveTools = await filterToolsWithBeforeResolveHook({
 +      tools: toolSchemaProjection.tools,
-+      agentId: effectiveSkillAgentId,
++      agentId: sessionAgentId,
 +      sessionKey: sandboxSessionKey,
 +    });
      const allowedToolNames = collectAllowedToolNames({ tools: effectiveTools });
      const promptPolicyRestricted = toolPolicyRestrictsTools({ allow: params.toolsAllow });
      // Compaction execution retains its existing tool objects. Only the model-visible endpoint
+diff --git a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.test.ts b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.test.ts
+index 8ea157de2dc..6a5d9b14e96 100644
+--- a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.test.ts
++++ b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.test.ts
+@@ -14,6 +14,15 @@ const mocks = vi.hoisted(() => ({
+   materializeBundleMcpToolsForRun: vi.fn(),
+   applyFinalEffectiveToolPolicy: vi.fn(),
+   filterRuntimeCompatibleTools: vi.fn(),
++  hasHooks: vi.fn(),
++  runBeforeToolResolve: vi.fn(),
++}));
++
++vi.mock("../../../plugins/hook-runner-global.js", () => ({
++  getGlobalHookRunner: () => ({
++    hasHooks: mocks.hasHooks,
++    runBeforeToolResolve: mocks.runBeforeToolResolve,
++  }),
+ }));
+ 
+ vi.mock("../../agent-bundle-lsp-runtime.js", () => ({
+@@ -47,6 +56,8 @@ import { createAttemptSetupFixture } from "./attempt-setup.test-support.js";
+ describe("prepareEmbeddedAttemptBundleTools", () => {
+   beforeEach(() => {
+     vi.clearAllMocks();
++    mocks.hasHooks.mockReset().mockReturnValue(false);
++    mocks.runBeforeToolResolve.mockReset().mockResolvedValue(undefined);
+     mocks.createBundleLspToolRuntime.mockReset().mockResolvedValue(undefined);
+     mocks.acquireSessionMcpRuntime.mockReset().mockResolvedValue(undefined);
+     mocks.materializeBundleMcpToolsForRun.mockReset().mockResolvedValue(undefined);
+@@ -400,9 +411,11 @@ describe("prepareEmbeddedAttemptBundleTools", () => {
+     const second = createStubTool("core_second");
+     core.splice(0, core.length, second);
+     bundledSchema.type = "array";
+-    result.refreshTools();
++    expect(result.refreshTools()).toBeUndefined();
+ 
++    expect(result.uncompactedEffectiveTools).toBe(retained);
+     expect(retained.map((tool) => tool.name)).toEqual(["core_second"]);
++    expect(retained[0]).toBe(second);
+     expect(core).toEqual([second]);
+     expect(inherited).toEqual(["core_second"]);
+     expect(creatorTools).toEqual([{ name: "core_second" }]);
+@@ -418,8 +431,100 @@ describe("prepareEmbeddedAttemptBundleTools", () => {
+       { name: "core_first" },
+       { name: "server__read", pluginId: "bundle-mcp" },
+     ]);
++    expect(mocks.runBeforeToolResolve).not.toHaveBeenCalled();
+   });
+ 
++  it.each([
++    { name: "restricted", allowed: ["core_allowed", "server__read", "lsp_probe"] },
++    { name: "deny-all", allowed: [] },
++  ])(
++    "retains $name hook authority across synchronous permission refreshes",
++    async ({ allowed }) => {
++      const core = [createStubTool("core_allowed"), createStubTool("core_denied")];
++      const bundled = ["server__read", "server__delete", "server__policy", "server__broken"].map(
++        (name) => createStubTool(name),
++      );
++      for (const tool of bundled) {
++        setPluginToolMeta(tool, { pluginId: "bundle-mcp", optional: false });
++      }
++      mocks.acquireSessionMcpRuntime.mockResolvedValue({ runtime: {}, releaseLease: () => {} });
++      mocks.materializeBundleMcpToolsForRun.mockResolvedValue({ tools: bundled });
++      mocks.createBundleLspToolRuntime.mockResolvedValue({
++        tools: [createStubTool("lsp_probe"), createStubTool("lsp_denied")],
++      });
++      mocks.applyFinalEffectiveToolPolicy.mockImplementation(
++        ({ bundledTools }: { bundledTools: Array<{ name: string }> }) =>
++          bundledTools.filter((tool) => tool.name !== "server__policy"),
++      );
++      mocks.filterRuntimeCompatibleTools.mockImplementation((tools: Array<{ name: string }>) => ({
++        tools: tools.filter((tool) => tool.name !== "server__broken"),
++        diagnostics: [],
++      }));
++      mocks.hasHooks.mockImplementation((name) => name === "before_tool_resolve");
++      mocks.runBeforeToolResolve.mockResolvedValue({
++        tools: [...allowed, "server__policy", "server__broken", "core_new"],
++      });
++      const inherited = ["initial"];
++      const input = createInput(inherited, core);
++      input.attempt.sessionKey = "agent:main:session";
++      const creatorTools = input.preparedToolBase.cronCreatorToolAllowlist;
++      input.preparedToolBase.cronCreatorToolAllowlistCaptureRef = {};
++      const expectedCreatorTools = allowed.map((name) =>
++        name === "server__read" ? { name, pluginId: "bundle-mcp" } : { name },
++      );
++
++      const result = await prepareEmbeddedAttemptBundleTools(input);
++      const retained = result.uncompactedEffectiveTools;
++
++      expect(mocks.runBeforeToolResolve).toHaveBeenCalledWith(
++        {
++          tools: [
++            "core_allowed",
++            "core_denied",
++            "server__read",
++            "server__delete",
++            "lsp_probe",
++            "lsp_denied",
++          ],
++        },
++        { agentId: input.setup.sessionAgentId, sessionKey: input.attempt.sessionKey },
++      );
++      expect(retained.map((tool) => tool.name)).toEqual(allowed);
++      expect(inherited).toEqual(allowed);
++      expect(creatorTools).toEqual(expectedCreatorTools);
++
++      const replacement = createStubTool("core_allowed");
++      core.splice(
++        0,
++        core.length,
++        replacement,
++        createStubTool("core_denied"),
++        createStubTool("core_new"),
++      );
++      expect(result.refreshTools()).toBeUndefined();
++
++      expect(result.uncompactedEffectiveTools).toBe(retained);
++      expect(retained.map((tool) => tool.name)).toEqual(allowed);
++      if (allowed.length > 0) {
++        expect(retained[0]).toBe(replacement);
++      }
++      expect(inherited).toEqual(allowed);
++      expect(creatorTools).toEqual(expectedCreatorTools);
++
++      mocks.filterRuntimeCompatibleTools.mockReturnValueOnce({ tools: [], diagnostics: [] });
++      expect(result.refreshTools()).toBeUndefined();
++      expect(retained).toEqual([]);
++      expect(inherited).toEqual([]);
++      expect(creatorTools).toEqual([]);
++
++      expect(result.refreshTools()).toBeUndefined();
++      expect(retained.map((tool) => tool.name)).toEqual(allowed);
++      expect(inherited).toEqual(allowed);
++      expect(creatorTools).toEqual(expectedCreatorTools);
++      expect(mocks.runBeforeToolResolve).toHaveBeenCalledOnce();
++    },
++  );
++
+   it.each([undefined, "MCP", "LSP"])(
+     "disposes prepared runtimes after policy failure and retains %s cleanup failure",
+     async (failedCleanup) => {
 diff --git a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
-index eef1e417b02..bd4f36a242e 100644
+index d0bc446fe1d..9a2d4ebc8c7 100644
 --- a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
 +++ b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
-@@ -10,6 +10,7 @@ import { filterLocalModelLeanTools } from "../../local-model-lean.js";
+@@ -1,3 +1,4 @@
++import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
+ import { getPluginToolMeta } from "../../../plugins/tool-metadata.js";
+ import { createBundleLspToolRuntime } from "../../agent-bundle-lsp-runtime.js";
+ import { assignSafeServerNames, TOOL_NAME_SEPARATOR } from "../../agent-bundle-mcp-names.js";
+@@ -12,6 +13,7 @@ import { recordAgentCleanupFailure } from "../../run-cleanup-timeout.js";
  import { normalizeAgentRuntimeTools } from "../../runtime-plan/tools.js";
  import { createRuntimeToolMatcher } from "../../tool-policy-match.js";
  import { replaceWithEffectiveToolAllowlist } from "../../tool-policy.js";
@@ -64,25 +213,87 @@ index eef1e417b02..bd4f36a242e 100644
  import { filterRuntimeCompatibleTools } from "../../tool-schema-projection.js";
  import { logRuntimeToolSchemaQuarantine } from "../../tool-schema-quarantine.js";
  import { captureFinalEffectiveCronCreatorToolAllowlist } from "../../tools/cron-tool.js";
-@@ -258,12 +259,17 @@ export async function prepareEmbeddedAttemptBundleTools(params: {
-       sessionKey: params.attempt.sessionKey,
-       sessionId: params.attempt.sessionId,
-     });
+@@ -212,33 +214,51 @@ export async function prepareEmbeddedAttemptBundleTools(params: {
+         preserveToolNames: localModelLeanPreserveToolNames,
+       });
+       const schemaProjection = filterRuntimeCompatibleTools(projectedTools);
++      logRuntimeToolSchemaQuarantine({
++        diagnostics: schemaProjection.diagnostics,
++        tools: projectedTools,
++        runId: params.attempt.runId,
++        agentId: params.setup.sessionAgentId,
++        sessionKey: params.attempt.sessionKey,
++        sessionId: params.attempt.sessionId,
++      });
++      return schemaProjection.tools;
++    };
++    const hookRunner = getGlobalHookRunner();
++    const hasToolResolveHooks = hookRunner?.hasHooks("before_tool_resolve");
 +    const uncompactedEffectiveTools = await filterToolsWithBeforeResolveHook({
-+      tools: schemaProjection.tools,
-+      agentId: params.sessionAgentId,
++      tools: projectTools(tools),
++      agentId: params.setup.sessionAgentId,
 +      sessionKey: params.attempt.sessionKey,
++      hookRunner,
 +    });
++    // Permission changes refresh synchronously. Retain hook authority by name,
++    // not tool instance, and leave unhooked attempts free to expose new tools.
++    const hookAllowedToolNames = hasToolResolveHooks
++      ? new Set(uncompactedEffectiveTools.map((tool) => tool.name))
++      : undefined;
++    let captureInheritedToolAllowlist = Boolean(inheritedToolAllowlist?.length);
++    const captureEffectiveToolAllowlists = (effectiveTools: typeof uncompactedEffectiveTools) => {
+       if (cronCreatorToolAllowlistCaptureRef) {
+         // Cron is constructed before bundled tools; capture only the executable
+-        // surface that survived provider normalization and schema quarantine.
++        // surface that survived schema projection and the per-session hook.
+         captureFinalEffectiveCronCreatorToolAllowlist(
+           cronCreatorToolAllowlist,
+           cronCreatorToolAllowlistCaptureRef,
+-          schemaProjection.tools,
++          effectiveTools,
+           (tool) => getPluginToolMeta(tool),
+         );
+       }
+-      if (inheritedToolAllowlist?.length) {
++      // Once captured, an empty projection must not disable later refreshes.
++      captureInheritedToolAllowlist ||= Boolean(inheritedToolAllowlist?.length);
++      if (inheritedToolAllowlist && captureInheritedToolAllowlist) {
+         // Spawn tools close over this ref before MCP/LSP materialize. Refresh it
+-        // only after final policy and schema projection so children inherit the
+-        // parent's complete authorized surface, never denied bundled tools.
+-        replaceWithEffectiveToolAllowlist(inheritedToolAllowlist, schemaProjection.tools);
++        // after final policy, schema projection, and the hook so children inherit
++        // the parent's complete authorized surface, never denied bundled tools.
++        replaceWithEffectiveToolAllowlist(inheritedToolAllowlist, effectiveTools);
+       }
+-      logRuntimeToolSchemaQuarantine({
+-        diagnostics: schemaProjection.diagnostics,
+-        tools: projectedTools,
+-        runId: params.attempt.runId,
+-        agentId: params.setup.sessionAgentId,
+-        sessionKey: params.attempt.sessionKey,
+-        sessionId: params.attempt.sessionId,
+-      });
+-      return schemaProjection.tools;
+     };
+-    const uncompactedEffectiveTools = projectTools(tools);
++    captureEffectiveToolAllowlists(uncompactedEffectiveTools);
      return {
        bundleLspRuntime,
        bundleMcpRuntime,
-       clientTools,
-       tools,
--      uncompactedEffectiveTools: [...schemaProjection.tools],
-+      uncompactedEffectiveTools,
-     };
-   } catch (error) {
-     try {
+@@ -248,7 +268,11 @@ export async function prepareEmbeddedAttemptBundleTools(params: {
+       refreshTools: () => {
+         const nextTools = normalizeTools(toolsEnabled ? toolsRaw : []);
+         tools.splice(0, tools.length, ...nextTools);
+-        const nextEffectiveTools = projectTools(tools);
++        const nextProjectedTools = projectTools(tools);
++        const nextEffectiveTools = hookAllowedToolNames
++          ? nextProjectedTools.filter((tool) => hookAllowedToolNames.has(tool.name))
++          : nextProjectedTools;
++        captureEffectiveToolAllowlists(nextEffectiveTools);
+         uncompactedEffectiveTools.splice(
+           0,
+           uncompactedEffectiveTools.length,
 diff --git a/src/agents/tool-resolve-hook.test.ts b/src/agents/tool-resolve-hook.test.ts
 new file mode 100644
 index 00000000000..184dbc324bd
@@ -163,10 +374,10 @@ index 00000000000..7bb50cac051
 +  return tools.filter((tool) => allowedToolNames.has(tool.name));
 +}
 diff --git a/src/plugins/hook-types.ts b/src/plugins/hook-types.ts
-index 0189aef8356..cc4109d867d 100644
+index 14ed24fd731..0be025b0193 100644
 --- a/src/plugins/hook-types.ts
 +++ b/src/plugins/hook-types.ts
-@@ -139,7 +139,8 @@ export type PluginHookName =
+@@ -138,7 +138,8 @@ export type PluginHookName =
    | "reply_dispatch"
    | "before_install"
    | "before_agent_run"
@@ -176,7 +387,7 @@ index 0189aef8356..cc4109d867d 100644
  
  const PLUGIN_HOOK_NAMES = [
    "before_model_resolve",
-@@ -184,6 +185,7 @@ const PLUGIN_HOOK_NAMES = [
+@@ -183,6 +184,7 @@ const PLUGIN_HOOK_NAMES = [
    "before_install",
    "before_agent_run",
    "resolve_exec_env",
@@ -184,7 +395,7 @@ index 0189aef8356..cc4109d867d 100644
  ] as const satisfies readonly PluginHookName[];
  
  type MissingPluginHookNames = Exclude<PluginHookName, (typeof PLUGIN_HOOK_NAMES)[number]>;
-@@ -1078,6 +1080,13 @@ export type PluginHookGatewayCronService = {
+@@ -1077,6 +1079,13 @@ export type PluginHookGatewayCronService = {
    }) => Promise<number>;
  };
  
@@ -198,7 +409,7 @@ index 0189aef8356..cc4109d867d 100644
  export type PluginInstallTargetType = "skill" | "plugin";
  type PluginInstallRequestKind =
    | "skill-install"
-@@ -1381,6 +1390,10 @@ export type PluginHookHandlerMap = {
+@@ -1380,6 +1389,10 @@ export type PluginHookHandlerMap = {
      event: PluginHookResolveExecEnvEvent,
      ctx: PluginHookResolveExecEnvContext,
    ) => Promise<Record<string, string> | void> | Record<string, string> | void;
@@ -210,10 +421,10 @@ index 0189aef8356..cc4109d867d 100644
  
  export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = {
 diff --git a/src/plugins/hooks.ts b/src/plugins/hooks.ts
-index a50821c18f3..0ee589ac11d 100644
+index eaba6ca3bd7..b15021d4e76 100644
 --- a/src/plugins/hooks.ts
 +++ b/src/plugins/hooks.ts
-@@ -96,6 +96,8 @@ import type {
+@@ -86,6 +86,8 @@ import type {
    PluginHookBeforeInstallResult,
    PluginHookResolveExecEnvContext,
    PluginHookResolveExecEnvEvent,
@@ -222,7 +433,7 @@ index a50821c18f3..0ee589ac11d 100644
    PluginHookSkillChangedEvent,
    PluginHookSkillContext,
    PluginHookSkillProposalChangedEvent,
-@@ -1453,6 +1455,23 @@ export function createHookRunner(
+@@ -1431,6 +1433,23 @@ export function createHookRunner(
    // Tool Hooks
    // =========================================================================
  
@@ -246,9 +457,9 @@ index a50821c18f3..0ee589ac11d 100644
    /**
     * Run before_tool_call hook.
     * Allows plugins to modify or block tool calls.
-@@ -1791,6 +1810,7 @@ export function createHookRunner(
-       ctx: PluginHookMessageContext,
-     ): Promise<void> => runVoidHook("message_sent", event, ctx),
+@@ -1769,6 +1788,7 @@ export function createHookRunner(
+     runMessageSending,
+     runMessageSent: bindVoidHook("message_sent"),
      // Tool hooks
 +    runBeforeToolResolve,
      runBeforeToolCall,

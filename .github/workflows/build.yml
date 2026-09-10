@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: pnpm
 
       - name: Clone OpenClaw vendor
@@ -69,7 +69,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs', 'apps/desktop/scripts/vendor-plugin-dependencies.cjs', 'apps/desktop/scripts/verify-vendor-runtime-contract.cjs', 'apps/desktop/scripts/vendor-package-manager.cjs', 'apps/desktop/scripts/vendor-runtime-cache.cjs', 'apps/desktop/scripts/package-external-plugins.cjs', 'apps/desktop/scripts/vendor-plugin-size.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -193,7 +193,7 @@ jobs:
             "$vendor/dist/extensions/acpx/openclaw.plugin.json",
             "$vendor/dist/extensions/memory-core/openclaw.plugin.json",
             "$vendor/dist-runtime/extensions/feishu/openclaw.plugin.json",
-            "$vendor/node_modules/@larksuiteoapi/node-sdk/package.json",
+            "$vendor/dist-runtime/extensions/feishu/node_modules/@larksuiteoapi/node-sdk/package.json",
             "$vendor/node_modules/openclaw/package.json",
             "$vendor/docs/reference/templates/AGENTS.md",
             "$vendor/docs/reference/templates/SOUL.md",
@@ -206,7 +206,8 @@ jobs:
           # Cold Windows startup can exceed the default contract timeout after a vendor upgrade.
           # Keep the same smoke test, with a bounded platform-specific allowance.
           $env:RIVONCLAW_VENDOR_RUNTIME_DOCTOR_TIMEOUT_MS = "180000"
-          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$vendor"
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$vendor" --runtime "apps/desktop/release/win-unpacked/TK Copilot.exe" --resources "apps/desktop/release/win-unpacked/resources"
+          if ($LASTEXITCODE -ne 0) { throw "Packaged Electron runtime contract failed" }
           $sizeBytes = (Get-ChildItem -Path $vendor -Recurse -File | Measure-Object -Property Length -Sum).Sum
           $sizeMB = [math]::Round($sizeBytes / 1MB, 1)
           Write-Host "Windows vendor payload: ${sizeMB}MB"
@@ -245,7 +246,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: pnpm
 
       - name: Clone OpenClaw vendor
@@ -284,7 +285,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-arm64-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-arm64-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs', 'apps/desktop/scripts/vendor-plugin-dependencies.cjs', 'apps/desktop/scripts/verify-vendor-runtime-contract.cjs', 'apps/desktop/scripts/vendor-package-manager.cjs', 'apps/desktop/scripts/vendor-runtime-cache.cjs', 'apps/desktop/scripts/package-external-plugins.cjs', 'apps/desktop/scripts/vendor-plugin-size.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -399,9 +400,9 @@ jobs:
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist-runtime/extensions/feishu/openclaw.plugin.json$' || { echo "FAIL: feishu manifest missing from vendor archive"; exit 1; }
-          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist-runtime/extensions/feishu/node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/openclaw/package.json$' || { echo "FAIL: openclaw sdk shim missing from vendor archive"; exit 1; }
-          RIVONCLAW_MAC_RUNTIME_ARCH=arm64 node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar"
+          RIVONCLAW_MAC_RUNTIME_ARCH=arm64 node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar" --runtime "$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" --resources "$APP/Contents/Resources"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
@@ -450,7 +451,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: pnpm
 
       - name: Clone OpenClaw vendor
@@ -489,7 +490,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-x64-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-x64-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs', 'apps/desktop/scripts/vendor-plugin-dependencies.cjs', 'apps/desktop/scripts/verify-vendor-runtime-contract.cjs', 'apps/desktop/scripts/vendor-package-manager.cjs', 'apps/desktop/scripts/vendor-runtime-cache.cjs', 'apps/desktop/scripts/package-external-plugins.cjs', 'apps/desktop/scripts/vendor-plugin-size.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -604,9 +605,9 @@ jobs:
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/acpx/openclaw.plugin.json$' || { echo "FAIL: acpx manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist/extensions/memory-core/openclaw.plugin.json$' || { echo "FAIL: memory-core manifest missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist-runtime/extensions/feishu/openclaw.plugin.json$' || { echo "FAIL: feishu manifest missing from vendor archive"; exit 1; }
-          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
+          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^dist-runtime/extensions/feishu/node_modules/@larksuiteoapi/node-sdk/package.json$' || { echo "FAIL: lark sdk dependency missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/openclaw/package.json$' || { echo "FAIL: openclaw sdk shim missing from vendor archive"; exit 1; }
-          RIVONCLAW_MAC_RUNTIME_ARCH=x64 node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar"
+          RIVONCLAW_MAC_RUNTIME_ARCH=x64 node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --archive "$VENDOR/vendor-runtime.tar" --runtime "$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" --resources "$APP/Contents/Resources"
           FILE_COUNT=$(find "$VENDOR" -type f | wc -l)
           echo "Vendor dir: $FILE_COUNT files"
           test "$FILE_COUNT" -le 10 || { echo "FAIL: >10 files in vendor dir"; exit 1; }
@@ -655,7 +656,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: pnpm
 
       - name: Clone OpenClaw vendor
@@ -698,7 +699,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs', 'apps/desktop/scripts/vendor-runtime-plugin-inventory.cjs', 'apps/desktop/scripts/vendor-plugin-dependencies.cjs', 'apps/desktop/scripts/verify-vendor-runtime-contract.cjs', 'apps/desktop/scripts/vendor-package-manager.cjs', 'apps/desktop/scripts/vendor-runtime-cache.cjs', 'apps/desktop/scripts/package-external-plugins.cjs', 'apps/desktop/scripts/vendor-plugin-size.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -772,7 +773,7 @@ jobs:
             "$VENDOR/dist/extensions/acpx/openclaw.plugin.json" \
             "$VENDOR/dist/extensions/memory-core/openclaw.plugin.json" \
             "$VENDOR/dist-runtime/extensions/feishu/openclaw.plugin.json" \
-            "$VENDOR/node_modules/@larksuiteoapi/node-sdk/package.json" \
+            "$VENDOR/dist-runtime/extensions/feishu/node_modules/@larksuiteoapi/node-sdk/package.json" \
             "$VENDOR/node_modules/openclaw/package.json" \
             "$VENDOR/docs/reference/templates/AGENTS.md" \
             "$VENDOR/docs/reference/templates/SOUL.md" \
@@ -780,7 +781,9 @@ jobs:
           do
             test -e "$path" || { echo "Required runtime file is missing from Linux artifact: $path"; exit 1; }
           done
-          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$VENDOR"
+          ELECTRON=$(find apps/desktop/release/linux-unpacked -maxdepth 1 -type f -executable ! -name '*.*' ! -name 'chrome-sandbox' ! -name 'chrome_crashpad_handler')
+          test -f "$ELECTRON" || { echo "FAIL: ambiguous or missing packaged Electron executable"; exit 1; }
+          node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$VENDOR" --runtime "$ELECTRON" --resources "apps/desktop/release/linux-unpacked/resources"
           SIZE_MB=$(du -sm "$VENDOR" | awk '{print $1}')
           echo "Linux vendor payload: ${SIZE_MB}MB"
           test "$SIZE_MB" -le 1000 || { echo "Linux vendor payload is too large after prune: ${SIZE_MB}MB"; exit 1; }
@@ -808,7 +811,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
 
       - name: Read version from package.json
         id: version

@@ -1,4 +1,4 @@
-From 36f8a0f33d18292e60c5bf994117f8c4db0512ce Mon Sep 17 00:00:00 2001
+From 2a8bea9249c65e7a64ebdf0ba25b70eb2dfbb4a3 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:00:58 -0700
 Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
@@ -15,18 +15,18 @@ Tests:
 - vendor/openclaw/src/gateway/server-startup-post-attach.test.ts
 - apps/desktop/src/infra/proxy/proxy-manager.test.ts
 ---
- src/gateway/server-runtime-services.test.ts   | 17 ++++++++
- src/gateway/server-runtime-services.ts        | 42 +++++++++++++------
+ src/gateway/server-runtime-services.test.ts   | 17 +++++++
+ src/gateway/server-runtime-services.ts        | 44 +++++++++++++------
  src/gateway/server-startup-finish.ts          |  1 +
  .../server-startup-post-attach.test.ts        |  9 ++++
  src/gateway/server-startup-post-attach.ts     | 37 +++++++++++-----
- 5 files changed, 82 insertions(+), 24 deletions(-)
+ 5 files changed, 83 insertions(+), 25 deletions(-)
 
 diff --git a/src/gateway/server-runtime-services.test.ts b/src/gateway/server-runtime-services.test.ts
-index 98e06632265..f7aef2f8ac9 100644
+index f1588094b79..88c3ffd755e 100644
 --- a/src/gateway/server-runtime-services.test.ts
 +++ b/src/gateway/server-runtime-services.test.ts
-@@ -563,6 +563,23 @@ describe("server-runtime-services", () => {
+@@ -603,6 +603,23 @@ describe("server-runtime-services", () => {
      );
    });
  
@@ -51,7 +51,7 @@ index 98e06632265..f7aef2f8ac9 100644
      vi.useFakeTimers();
      const cron = { start: vi.fn(async () => undefined) };
 diff --git a/src/gateway/server-runtime-services.ts b/src/gateway/server-runtime-services.ts
-index 53625d32129..2a3c90d1810 100644
+index 3664a9fbd89..8de1d22e7a3 100644
 --- a/src/gateway/server-runtime-services.ts
 +++ b/src/gateway/server-runtime-services.ts
 @@ -3,6 +3,7 @@
@@ -62,7 +62,7 @@ index 53625d32129..2a3c90d1810 100644
  import {
    resolveHeartbeatAgents,
    startHeartbeatRunner,
-@@ -155,7 +156,12 @@ const RECOVERY_SHUTDOWN_STILL_PENDING_WARN_MS = 5_000;
+@@ -157,7 +158,12 @@ const RECOVERY_SHUTDOWN_STILL_PENDING_WARN_MS = 5_000;
  function startPendingOutboundDeliveryRecovery(params: {
    cfg: OpenClawConfig;
    log: GatewayRuntimeServiceLogger;
@@ -75,60 +75,62 @@ index 53625d32129..2a3c90d1810 100644
    let stopped = false;
    let migrationPending = true;
    let initialPass = true;
-@@ -280,6 +286,7 @@ function startPendingSessionDeliveryRuntime(params: {
+@@ -286,6 +292,7 @@ function startPendingSessionDeliveryRuntime(params: {
    log: GatewayRuntimeServiceLogger;
    maxEnqueuedAt: number;
    resolveGatewayContext?: GatewayContextResolver;
 +  disableRestartRecovery: boolean;
- }): () => void {
-   let stopped = false;
-   let stopRuntime: (() => void) | undefined;
-@@ -309,19 +316,23 @@ function startPendingSessionDeliveryRuntime(params: {
-         log: logRecovery,
-         onSettled: settleQueuedSessionDelivery,
-       });
--      try {
--        await recoverPendingRestartContinuationDeliveries({
--          deps: params.deps,
--          log: logRecovery,
--          maxEnqueuedAt: params.maxEnqueuedAt,
--          ...(params.resolveGatewayContext
--            ? { resolveGatewayContext: params.resolveGatewayContext }
--            : {}),
--        });
--      } finally {
--        // Recovery and scheduling are independent safeguards. A transient
--        // recovery failure must not leave persisted rows without timers.
--        await schedulePendingSessionDeliveries();
-+      if (params.disableRestartRecovery) {
-+        logRecovery.info("restart recovery disabled by environment");
-+      } else {
-+        try {
-+          await recoverPendingRestartContinuationDeliveries({
-+            deps: params.deps,
-+            log: logRecovery,
-+            maxEnqueuedAt: params.maxEnqueuedAt,
-+            ...(params.resolveGatewayContext
-+              ? { resolveGatewayContext: params.resolveGatewayContext }
-+              : {}),
-+          });
-+        } finally {
-+          // Recovery and scheduling are independent safeguards. A transient
-+          // recovery failure must not leave persisted rows without timers.
-+          await schedulePendingSessionDeliveries();
-+        }
-       }
-     }).catch((err: unknown) =>
-       params.log.error(`Session delivery recovery failed: ${String(err)}`),
-@@ -348,6 +359,7 @@ export function activateGatewayScheduledServices(params: {
+ }): () => Promise<void> {
+   const controller = new AbortController();
+   const { signal } = controller;
+@@ -319,20 +326,24 @@ function startPendingSessionDeliveryRuntime(params: {
+           log: logRecovery,
+           onSettled: settleQueuedSessionDelivery,
+         });
+-        try {
+-          await recoverPendingRestartContinuationDeliveries({
+-            deps: params.deps,
+-            log: logRecovery,
+-            maxEnqueuedAt: params.maxEnqueuedAt,
+-            ...(params.resolveGatewayContext
+-              ? { resolveGatewayContext: params.resolveGatewayContext }
+-              : {}),
+-          });
+-        } finally {
+-          // Recovery and scheduling are independent safeguards. A transient
+-          // recovery failure must not leave persisted rows without timers.
+-          if (!signal.aborted) {
+-            await schedulePendingSessionDeliveries();
++        if (params.disableRestartRecovery) {
++          logRecovery.info("restart recovery disabled by environment");
++        } else {
++          try {
++            await recoverPendingRestartContinuationDeliveries({
++              deps: params.deps,
++              log: logRecovery,
++              maxEnqueuedAt: params.maxEnqueuedAt,
++              ...(params.resolveGatewayContext
++                ? { resolveGatewayContext: params.resolveGatewayContext }
++                : {}),
++            });
++          } finally {
++            // Recovery and scheduling are independent safeguards. A transient
++            // recovery failure must not leave persisted rows without timers.
++            if (!signal.aborted) {
++              await schedulePendingSessionDeliveries();
++            }
+           }
+         }
+       },
+@@ -369,6 +380,7 @@ export function activateGatewayScheduledServices(params: {
    logCron: { error: (message: string) => void };
    log: GatewayRuntimeServiceLogger;
    resolveGatewayContext?: GatewayContextResolver;
 +  env?: NodeJS.ProcessEnv;
- }): { heartbeatRunner: HeartbeatRunner; stopOutboundDeliveryRecovery: () => Promise<void> } {
+ }): { heartbeatRunner: HeartbeatRunner; stopDeliveryRecovery: () => Promise<void> } {
    if (params.minimalTestGateway) {
      // Minimal gateways keep handles callable but inert so tests can share shutdown paths with
-@@ -405,6 +417,9 @@ export function activateGatewayScheduledServices(params: {
+@@ -426,6 +438,9 @@ export function activateGatewayScheduledServices(params: {
      ...(params.resolveGatewayContext
        ? { resolveGatewayContext: params.resolveGatewayContext }
        : {}),
@@ -138,19 +140,19 @@ index 53625d32129..2a3c90d1810 100644
    });
    if (params.startCron !== false) {
      startGatewayCronWithLogging({
-@@ -418,6 +433,7 @@ export function activateGatewayScheduledServices(params: {
+@@ -439,6 +454,7 @@ export function activateGatewayScheduledServices(params: {
    const stopOutboundDeliveryRecovery = startPendingOutboundDeliveryRecovery({
      cfg: params.cfgAtStart,
      log: params.log,
 +    env: params.env ?? process.env,
    });
-   const heartbeatRunnerWithUpstreamMonitor: HeartbeatRunner = {
-     updateConfig: heartbeatRunner.updateConfig,
+   let deliveryRecoveryStopPromise: Promise<void> | undefined;
+   const stopDeliveryRecovery = () => {
 diff --git a/src/gateway/server-startup-finish.ts b/src/gateway/server-startup-finish.ts
-index 6134bb7d95d..60c83f84044 100644
+index bfe9516b161..9fd15d87537 100644
 --- a/src/gateway/server-startup-finish.ts
 +++ b/src/gateway/server-startup-finish.ts
-@@ -215,6 +215,7 @@ export async function finishGatewayStartup(params: {
+@@ -220,6 +220,7 @@ export async function finishGatewayStartup(params: {
          logCron,
          log,
          resolveGatewayContext: resolvePluginGatewayContext,
@@ -159,11 +161,11 @@ index 6134bb7d95d..60c83f84044 100644
        kernel.setScheduledServiceHandles(activated);
      });
 diff --git a/src/gateway/server-startup-post-attach.test.ts b/src/gateway/server-startup-post-attach.test.ts
-index 3ff0d50258a..a03bbd0e797 100644
+index 530139ab6b3..747d870d6e0 100644
 --- a/src/gateway/server-startup-post-attach.test.ts
 +++ b/src/gateway/server-startup-post-attach.test.ts
-@@ -535,6 +535,15 @@ describe("startGatewayPostAttachRuntime", () => {
-     await cleanupGatewayTestState();
+@@ -581,6 +581,15 @@ describe("startGatewayPostAttachRuntime", () => {
+     ).toBe(testState.path("config", "custom.json"));
    });
  
 +  it("recognizes the desktop session recovery opt-out", () => {
@@ -179,10 +181,10 @@ index 3ff0d50258a..a03bbd0e797 100644
      const firstError = new Error("first cleanup failure");
      const stopOrder: string[] = [];
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index cbeddb33870..70ee1b2ae39 100644
+index 61f578468fd..5b39d7fe96b 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -61,8 +61,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
+@@ -60,8 +60,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
  const PROVIDER_AUTH_REWARM_DELAY_MS = 1_000;
  const DEFERRED_SIDECAR_START_DELAY_MS = 100;
  const SKIP_STARTUP_MODEL_PREWARM_ENV = "OPENCLAW_SKIP_STARTUP_MODEL_PREWARM";
@@ -196,7 +198,7 @@ index cbeddb33870..70ee1b2ae39 100644
  const loadMainSessionRestartRecoveryModule = createLazyRuntimeModule(
    () => import("../agents/main-session-recovery/main-session-restart-recovery.js"),
  );
-@@ -656,6 +661,9 @@ export async function startGatewaySidecars(params: {
+@@ -672,6 +677,9 @@ export async function startGatewaySidecars(params: {
    // These runs were orphaned by the previous Gateway lifecycle. Record that fact
    // even if this process later fails model preparation and never starts channels.
    await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
@@ -206,8 +208,8 @@ index cbeddb33870..70ee1b2ae39 100644
      try {
        const { markStartupOrphanedMainSessionsForRecovery } = await measureStartup(
          params.startupTrace,
-@@ -1526,17 +1534,23 @@ export async function startGatewayPostAttachRuntime(
-             return await stopStartupSidecars(mainSessionRecoverySidecar);
+@@ -1568,17 +1576,23 @@ export async function startGatewayPostAttachRuntime(
+             return retainStartupSidecars(mainSessionRecoverySidecar);
            }
            try {
 -            const { scheduleRestartAbortedMainSessionRecovery } =
@@ -241,7 +243,7 @@ index cbeddb33870..70ee1b2ae39 100644
              }
            } catch (err) {
              params.log.warn(`main-session restart recovery failed to schedule: ${String(err)}`);
-@@ -1691,6 +1705,7 @@ export const testing = {
+@@ -1762,6 +1776,7 @@ export const testing = {
    publishConfiguredModelRuntimeSnapshots,
    publishStartupModelRuntime,
    refreshLatestUpdateRestartSentinelIfPresent,

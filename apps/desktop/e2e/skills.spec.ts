@@ -1,17 +1,9 @@
 import { test, expect } from "./electron-fixture.js";
+import { navigateToExtensionPage } from "./shell-helpers.js";
+import { DEFAULTS } from "@rivonclaw/core/defaults";
 
 async function navigateToSkills(window: import("@playwright/test").Page) {
-  const automationGroup = window.locator(".nav-group-toggle", { hasText: "Automation" });
-  if (await automationGroup.isVisible().catch(() => false)) {
-    const expanded = await automationGroup.getAttribute("aria-expanded");
-    if (expanded !== "true") {
-      await automationGroup.click();
-    }
-  }
-
-  const skillsBtn = window.locator(".nav-btn", { hasText: "Skills" });
-  await skillsBtn.click();
-  await expect(skillsBtn).toHaveClass(/nav-active/);
+  await navigateToExtensionPage(window, "Skills");
 }
 
 test.describe("Skills Page", () => {
@@ -23,8 +15,18 @@ test.describe("Skills Page", () => {
     }, apiBase);
     expect(bundledRes.status).toBe(200);
     expect(bundledRes.body.slugs.length).toBeGreaterThanOrEqual(1);
-    // Use the first bundled slug as a known-good slug for install/delete test
-    const realSlug = bundledRes.body.slugs[0] as string;
+    // Bundled slugs need not exist in the hosted marketplace.
+    const marketResponse = await fetch(`https://${DEFAULTS.domains.apiStaging}/graphql`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "{ skills(page: 1, pageSize: 1) { skills { slug } } }" }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    expect(marketResponse.ok).toBe(true);
+    const market = await marketResponse.json();
+    expect(market.errors).toBeUndefined();
+    const realSlug = market.data.skills.skills[0]?.slug as string;
+    expect(realSlug).toBeTruthy();
 
     // --- Install skill via API (downloads from server) ---
     const installRes = await window.evaluate(async (arg: { base: string; slug: string }) => {
@@ -37,11 +39,7 @@ test.describe("Skills Page", () => {
     }, { base: apiBase, slug: realSlug });
     expect(installRes.status).toBe(200);
 
-    if (!installRes.body.ok) {
-      // Server download endpoint not available — skip gracefully
-      console.warn("Skill install lifecycle skipped (server not ready):", installRes.body.error);
-      return;
-    }
+    expect(installRes.body.ok, installRes.body.error).toBe(true);
 
     // --- Verify skill directory was created on disk ---
     // Get OPENCLAW_STATE_DIR from the Electron process (set by e2e fixture for data isolation)
@@ -120,9 +118,9 @@ test.describe("Skills Page", () => {
     // --- Navigate to Skills page → Installed tab ---
     await navigateToSkills(window);
 
-    const installedTab = window.locator(".tab-bar .tab-btn", { hasText: /Installed|已安装/ });
+    const installedTab = window.getByRole("tab", { name: /Installed|已安装/ });
     await installedTab.click();
-    await expect(installedTab).toHaveClass(/tab-btn-active/);
+    await expect(installedTab).toHaveAttribute("aria-selected", "true");
 
     // Wait for loading
     await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
@@ -149,7 +147,7 @@ test.describe("Skills Page", () => {
     await expect(confirmDialog).toContainText(/delete|删除/i);
 
     // Click confirm (the danger button in the dialog)
-    const confirmBtn = confirmDialog.locator(".btn-danger");
+    const confirmBtn = confirmDialog.getByRole("button", { name: "Delete", exact: true });
     await confirmBtn.click();
 
     // Wait for deletion and list refresh
@@ -180,8 +178,8 @@ test.describe("Skills Page", () => {
     await expect(window.locator("h1", { hasText: /Skills Marketplace|技能市场/ })).toBeVisible();
 
     // --- Market tab should be active by default ---
-    const marketTab = window.locator(".tab-bar .tab-btn", { hasText: /Market|市场/ });
-    await expect(marketTab).toHaveClass(/tab-btn-active/);
+    const marketTab = window.getByRole("tab", { name: /Market|市场/ });
+    await expect(marketTab).toHaveAttribute("aria-selected", "true");
 
     // Wait for either the skills grid or the empty state to appear (loading finished)
     await Promise.race([
@@ -190,7 +188,7 @@ test.describe("Skills Page", () => {
     ]);
 
     // No error alert
-    await expect(window.locator(".error-alert")).not.toBeVisible();
+    await expect(window.getByRole("alert")).not.toBeVisible();
 
     // --- Verify market skills if backend is available ---
     const skillCards = window.locator(".skills-grid .section-card");

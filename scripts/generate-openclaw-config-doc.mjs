@@ -9,10 +9,13 @@ const vendorRoot = path.join(repoRoot, "vendor", "openclaw");
 const distDir = path.join(vendorRoot, "dist");
 const version = (await readFile(path.join(repoRoot, ".openclaw-version"), "utf8")).trim();
 
-const schemaChunk = (await readdir(distDir)).find(
-  (name) => name.startsWith("zod-schema-") && name.endsWith(".js"),
+const schemaChunks = (await readdir(distDir)).filter(
+  (name) => name.startsWith("zod-schema-") && /\.(?:mjs|js)$/.test(name),
 );
-if (!schemaChunk) throw new Error("OpenClaw Zod schema bundle was not found; build vendor first");
+if (schemaChunks.length !== 1) {
+  throw new Error(`Expected one OpenClaw Zod schema bundle, found ${schemaChunks.length}; rebuild vendor`);
+}
+const [schemaChunk] = schemaChunks;
 
 const schemaModule = await import(pathToFileURL(path.join(distDir, schemaChunk)).href);
 const schemaCandidates = Object.values(schemaModule)

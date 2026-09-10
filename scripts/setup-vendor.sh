@@ -54,9 +54,8 @@ if ls "$PATCH_DIR"/*.patch &>/dev/null; then
   git am --3way "$PATCH_DIR"/*.patch
 fi
 
-# Use env var for hoisted layout instead of modifying .npmrc,
-# so vendor git stays clean (pre-commit hook checks for dirty state).
-export npm_config_node_linker=hoisted
+# Pass the linker explicitly on every install. pnpm 12 ignores the legacy
+# npm_config_node_linker override; CLI flags leave vendor config files clean.
 
 # Remove every node_modules directory in the workspace, not only the root one.
 # With the hoisted linker pnpm also creates nested node_modules inside
@@ -74,7 +73,7 @@ INSTALLED_THIS_RUN=false
 if [ "${SKIP_VENDOR_INSTALL:-}" = "true" ]; then
   echo "Skipping pnpm install (cache hit)"
 else
-  vendor_pnpm install --frozen-lockfile
+  vendor_pnpm install --node-linker=hoisted --optional --frozen-lockfile
   INSTALLED_THIS_RUN=true
 fi
 
@@ -107,7 +106,7 @@ if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ -n "$MISSING_VENDOR_BUILD_OUTPUT" 
   # prod-only. pnpm won't re-install dev deps if it thinks the lockfile is
   # already satisfied, so remove node_modules first to force a clean install.
   clean_vendor_node_modules
-  vendor_pnpm install --frozen-lockfile
+  vendor_pnpm install --node-linker=hoisted --optional --frozen-lockfile
   INSTALLED_THIS_RUN=true
 fi
 
@@ -123,7 +122,7 @@ else
   # nested node_modules problem described above.
   if [ "$INSTALLED_THIS_RUN" != "true" ]; then
     clean_vendor_node_modules
-    vendor_pnpm install --frozen-lockfile
+    vendor_pnpm install --node-linker=hoisted --optional --frozen-lockfile
   fi
   vendor_pnpm run build
   vendor_pnpm ui:build
