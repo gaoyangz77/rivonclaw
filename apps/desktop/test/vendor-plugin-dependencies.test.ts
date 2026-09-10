@@ -80,6 +80,37 @@ describe("selected vendor plugin payload", () => {
     expect(() => materializeSelectedPluginDependencies(root, ids)).toThrow("does not satisfy");
   });
 
+  it("ignores optional peers found only in the surrounding build checkout", () => {
+    const payload = path.join(root, "packed/vendor/openclaw");
+    const plugin = pkg(path.join(payload, "dist/extensions/feishu"), "@openclaw/feishu", "2026.9.3", {}, {
+      peerDependencies: { encoding: "^0.1.0" }, peerDependenciesMeta: { encoding: { optional: true } },
+    });
+    pkg(path.join(root, "node_modules/encoding"), "encoding", "0.1.13");
+    expect(resolvePackage("encoding", plugin)).not.toBeNull();
+    expect(() => materializeSelectedPluginDependencies(payload, ids)).not.toThrow();
+    expect(fs.existsSync(path.join(plugin, "node_modules/encoding"))).toBe(false);
+    expect(() => assertSelectedPluginDependencies(payload, ids)).not.toThrow();
+  });
+
+  it("does not satisfy required dependencies from the surrounding build checkout", () => {
+    const payload = path.join(root, "packed/vendor/openclaw");
+    pkg(path.join(payload, "dist/extensions/feishu"), "@openclaw/feishu", "2026.9.3", { encoding: "^0.1.0" });
+    pkg(path.join(root, "node_modules/encoding"), "encoding", "0.1.13");
+    expect(() => materializeSelectedPluginDependencies(payload, ids)).toThrow("Missing runtime dependency");
+    expect(() => assertSelectedPluginDependencies(payload, ids)).toThrow("Missing packaged runtime dependency");
+  });
+
+  it("still rejects optional dependencies linked outside the payload", () => {
+    const payload = path.join(root, "packed/vendor/openclaw");
+    const plugin = pkg(path.join(payload, "dist/extensions/feishu"), "@openclaw/feishu", "2026.9.3", {}, {
+      optionalDependencies: { encoding: "^0.1.0" },
+    });
+    const outside = pkg(path.join(root, "node_modules/encoding"), "encoding", "0.1.13");
+    link(plugin, "encoding", outside);
+    expect(() => materializeSelectedPluginDependencies(payload, ids)).toThrow("escapes vendor payload");
+    expect(() => assertSelectedPluginDependencies(payload, ids)).toThrow("escapes vendor payload");
+  });
+
   it.each([false, true])("preserves direct/transitive version conflicts through the real prune walkers (direct first: %s)", (directFirst) => {
     const deps = directFirst ? { shared: "11.0.2", sdk: "1.0.0" } : { sdk: "1.0.0", shared: "11.0.2" };
     const plugin = pkg(path.join(root, "dist-runtime/extensions/feishu"), "@openclaw/feishu", "2026.9.3", deps);

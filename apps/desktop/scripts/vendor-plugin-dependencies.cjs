@@ -15,12 +15,19 @@ function assertWithin(root, target) {
   return real;
 }
 
-function resolvePackage(name, fromDir) {
+function resolvePackage(name, fromDir, root) {
   if (!/^(?:@[\w.-]+\/)?[\w.-]+$/.test(name)) throw new Error(`Invalid package name: ${name}`);
-  const requireFrom = createRequire(path.join(fromDir, "package.json"));
+  const boundary = root && fs.realpathSync(root);
+  const requireFrom = createRequire(path.join(boundary ? fs.realpathSync(fromDir) : fromDir, "package.json"));
   // A declared npm dependency can share a builtin name (for example buffer/).
   // Query a subpath so Node supplies package paths instead of builtin null.
   for (const parent of requireFrom.resolve.paths(`${name}/package.json`) ?? []) {
+    // A packaged tree can sit inside a checkout during afterPack. Ancestor
+    // dependencies are not shipped, even when Node can resolve them on CI.
+    if (boundary) {
+      const relative = path.relative(boundary, parent);
+      if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) continue;
+    }
     const candidate = path.join(parent, name);
     if (fs.existsSync(path.join(candidate, "package.json"))) return fs.realpathSync(candidate);
   }
@@ -138,7 +145,7 @@ function materializePluginDependencies(vendorDir, pluginDir, sourceDir, { lock =
     const graph = new Map();
     function collect(manifest, fromDir) {
       return runtimeDependencies(manifest).flatMap(({ name, range, optional }) => {
-        const source = (fromDir === sourceDir && rootSources[name]) || resolvePackage(name, fromDir);
+        const source = (fromDir === sourceDir && rootSources[name]) || resolvePackage(name, fromDir, vendorDir);
         if (!source) {
           if (optional) return [];
           throw new Error(`Missing runtime dependency ${id}: ${name} from ${fromDir}`);
@@ -200,7 +207,7 @@ function assertPluginDependencies(vendorDir, pluginDirs) {
   const visited = new Set();
   function visit(dir) {
     for (const { name, range, optional } of runtimeDependencies(readManifest(dir))) {
-      const resolved = resolvePackage(name, dir);
+      const resolved = resolvePackage(name, dir, vendorDir);
       if (!resolved) {
         if (optional) continue;
         throw new Error(`Missing packaged runtime dependency ${name} from ${dir}`);
