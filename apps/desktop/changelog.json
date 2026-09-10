@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.14",
+    "date": "2026-09-10",
+    "en": [
+      "Fix interrupted Feishu conversations remaining stuck after app startup, causing reactions without replies",
+      "Recover interrupted session state at startup while preserving conversation history and model selections"
+    ],
+    "zh": [
+      "修复飞书中断会话在客户端启动后仍被阻塞、只有表情回应却没有回复的问题",
+      "启动时恢复中断会话状态，保留聊天历史与模型选择"
+    ]
+  },
+  {
     "version": "1.9.13",
     "date": "2026-09-10",
     "en": [
