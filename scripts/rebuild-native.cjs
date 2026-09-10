@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { createRequire } = require("node:module");
+const { pathToFileURL } = require("node:url");
 const { spawnSync } = require("node:child_process");
 const { desktopDir, resolveElectronPath, readElectronVersions } = require("./electron-runtime.cjs");
 
@@ -27,7 +28,7 @@ async function main() {
   const repoRoot = path.resolve(__dirname, "..");
   const sqliteDir = resolveSqliteDir(repoRoot);
   const desktopRequire = createRequire(path.join(desktopDir, "package.json"));
-  const { getAbi } = await import(desktopRequire.resolve("node-abi"));
+  const { getAbi } = await import(pathToFileURL(desktopRequire.resolve("node-abi")).href);
   const electronVersion = desktopRequire("electron/package.json").version;
   const electronAbi = getAbi(electronVersion, "electron");
   const runtime = readElectronVersions(resolveElectronPath());

@@ -80,7 +80,7 @@ jobs:
       - name: Test Windows PATH and dependency provisioning
         run: |
           pnpm --dir packages/gateway exec vitest run src/path-env.windows.test.ts src/utils/cli-utils.test.ts src/runtime/launcher.test.ts
-          pnpm --dir apps/desktop exec vitest run src/deps/__tests__/dep-detector.test.ts src/deps/__tests__/dep-installer.test.ts
+          pnpm --dir apps/desktop exec vitest run src/deps/__tests__/dep-detector.test.ts src/deps/__tests__/dep-installer.test.ts test/electron-runtime-provision.test.ts
 
       - name: Test Windows build (no signing)
         run: |
