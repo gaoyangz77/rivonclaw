@@ -10,6 +10,31 @@ const { VENDOR_PRUNE_INPUTS } = require("../scripts/vendor-runtime-cache.cjs");
 const repo = path.resolve(import.meta.dirname, "../../..");
 const workflow = (name: string) => yaml.parse(fs.readFileSync(path.join(repo, ".github/workflows", name), "utf8"));
 
+describe("SQLite installer pruning", () => {
+  it.each([
+    ["electron-builder.yml", "mac", "darwin", "arm64"],
+    ["electron-builder.yml", "mac", "darwin", "x64"],
+    ["electron-builder.win.yml", "win", "win32", "x64"],
+    ["electron-builder.win.unsigned.yml", "win", "win32", "x64"],
+    ["electron-builder.linux.yml", "linux", "linux", "x64"],
+  ])("%s keeps only the %s target N-API prebuild (%s/%s)", (file, platform, os, arch) => {
+    const read = (name: string) => yaml.parse(fs.readFileSync(path.join(repo, "apps/desktop", name), "utf8"));
+    const config = read("electron-builder.yml");
+    const { getNodeModuleFileMatcher } = builder("app-builder-lib/out/fileMatcher.js");
+    const matcher = getNodeModuleFileMatcher(repo, path.join(repo, "unused"),
+      (value: string) => value.replaceAll("${arch}", arch), read(file)[platform],
+      { config, debugLogger: { isEnabled: false } });
+    const filter = matcher.createFilter();
+    const includes = (relative: string) => filter(path.join(repo, "node_modules/better-sqlite3", relative),
+      { isDirectory: () => false });
+    for (const target of ["darwin-arm64", "darwin-x64", "win32-x64", "win32-arm64", "linux-x64", "linux-arm64", "linuxmusl-x64"]) {
+      expect(includes(`prebuilds/${target}.node`)).toBe(target === `${os}-${arch}`);
+    }
+    for (const file of ["deps/sqlite3/sqlite3.c", "src/better_sqlite3.cpp"]) expect(includes(file)).toBe(false);
+    for (const file of ["lib/binding.js", "lib/database.js", "package.json", "LICENSE"]) expect(includes(file)).toBe(true);
+  });
+});
+
 describe("packaged runtime CI coverage", () => {
   it.each(["build-macos-arm64", "build-macos-x64"])("%s keeps its temporary signing keychain unlocked for the bounded build", (id) => {
     const steps = workflow("build.yml").jobs[id].steps;

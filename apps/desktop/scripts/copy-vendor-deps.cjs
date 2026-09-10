@@ -10,7 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const { selectedPluginDirs, assertSelectedPluginDependencies } = require("./vendor-plugin-dependencies.cjs");
 const { packageExternalPlugins } = require("./package-external-plugins.cjs");
-const { deduplicateMirroredPluginDependencies } = require("./vendor-plugin-size.cjs");
+const { deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies } = require("./vendor-plugin-size.cjs");
 
 function shouldCopyVendorNative(file) {
   if (![".node", ".dylib"].includes(path.extname(file))) return true;
@@ -36,6 +36,7 @@ function copySelectedPluginDependencies(vendorSrcDir, vendorDestDir) {
   // fs.cpSync does not preserve hardlinks. Re-establish sharing in Windows
   // and Linux resources without linking any packaged file back to the checkout.
   deduplicateMirroredPluginDependencies(vendorDestDir);
+  deduplicateRuntimeDependencies(vendorDestDir);
 }
 
 function verifyPackagedRuntime(context, resourcesDir) {

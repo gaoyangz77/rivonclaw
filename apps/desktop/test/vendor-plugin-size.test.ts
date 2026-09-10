@@ -9,7 +9,8 @@ import { runInNewContext } from "node:vm";
 const require = createRequire(import.meta.url);
 const builder = createRequire(require.resolve("electron-builder"));
 const tar = builder("tar");
-const { stripPrivateSourceMaps, stripSelectedPluginSourceMaps, deduplicateMirroredPluginDependencies, VENDOR_ARCHIVE_ENV } = require("../scripts/vendor-plugin-size.cjs");
+const { stripPrivateSourceMaps, stripSelectedPluginSourceMaps, stripRuntimeDevelopmentFiles,
+  deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies, VENDOR_ARCHIVE_ENV } = require("../scripts/vendor-plugin-size.cjs");
 const { copySelectedPluginDependencies } = require("../scripts/copy-vendor-deps.cjs");
 const { isSelectedPluginNodeModules } = require("../scripts/vendor-plugin-dependencies.cjs");
 let root: string;
@@ -134,6 +135,33 @@ describe("mirrored plugin dependency size", () => {
 });
 
 describe("private source-map pruning", () => {
+  it("removes test/build cache payloads without deleting runtime caches or data files", () => {
+    const modules = path.join(root, "node_modules");
+    for (const dir of [".experimental-vitest-cache", ".vitest", ".vite", ".turbo"]) {
+      write(path.join(modules, dir, "v1/code.bin"), "compiled cache");
+    }
+    write(path.join(modules, "runtime/cache/data.json"), "runtime data");
+    expect(stripRuntimeDevelopmentFiles(modules)).toEqual({ files: 4, bytes: 56 });
+    expect(fs.readFileSync(path.join(modules, "runtime/cache/data.json"), "utf8")).toBe("runtime data");
+    expect(stripRuntimeDevelopmentFiles(modules).files).toBe(0);
+  });
+  it("removes declarations and explicit tests but retains runtime TS, assets, licenses and SDK declarations", () => {
+    const { vendor, source } = fixture();
+    for (const name of ["index.d.ts", "index.d.mts", "index.d.cts", "index.test.ts", "index.spec.cjs"]) {
+      write(path.join(source, "host", name), "development only");
+    }
+    for (const name of ["index.ts", "index.mts", "test-data.json", "LICENSE", "testing.js"]) {
+      write(path.join(source, "host", name), "runtime");
+    }
+    write(path.join(vendor, "dist/plugin-sdk/index.d.ts"), "export {};");
+    expect(stripRuntimeDevelopmentFiles(source).files).toBe(5);
+    expect(stripRuntimeDevelopmentFiles(source).files).toBe(0);
+    for (const name of ["index.ts", "index.mts", "test-data.json", "LICENSE", "testing.js"]) {
+      expect(fs.existsSync(path.join(source, "host", name))).toBe(true);
+    }
+    expect(fs.existsSync(path.join(vendor, "dist/plugin-sdk/index.d.ts"))).toBe(true);
+    expectPrivateResolution(vendor);
+  });
   it("prunes maps from both runtime roots without stripping canonical SDK output", () => {
     const { vendor, source, destination } = fixture();
     for (const dir of [source, destination]) write(path.join(dir, "dep/index.js.map"), { version: 3, sources: [], mappings: "" });
@@ -170,5 +198,88 @@ describe("private source-map pruning", () => {
     expect(VENDOR_ARCHIVE_ENV).toEqual({ COPYFILE_DISABLE: "1" });
     const archive = fs.readFileSync(new URL("../scripts/archive-vendor-runtime.cjs", import.meta.url), "utf8");
     expect(archive).toContain("env: { ...process.env, ...VENDOR_ARCHIVE_ENV }");
+  });
+});
+
+describe("root and private runtime dependency deduplication", () => {
+  it("archives shared root/private files once and preserves imports after extraction", async () => {
+    const { vendor, source, destination } = fixture();
+    const target = path.join(vendor, "node_modules/dep");
+    fs.cpSync(path.join(source, "dep"), target, { recursive: true });
+    for (const dir of [target, path.join(source, "dep"), path.join(destination, "dep")]) {
+      write(path.join(dir, "large.js"), "x".repeat(256 * 1024));
+    }
+    deduplicateMirroredPluginDependencies(vendor);
+    const before = path.join(root, "before.tar");
+    const after = path.join(root, "after.tar");
+    const env = { ...process.env, ...VENDOR_ARCHIVE_ENV };
+    execFileSync("tar", ["-cf", before, "-C", vendor, "node_modules", "dist", "dist-runtime"], { env });
+    deduplicateRuntimeDependencies(vendor);
+    execFileSync("tar", ["-cf", after, "-C", vendor, "node_modules", "dist", "dist-runtime"], { env });
+    expect(fs.statSync(before).size - fs.statSync(after).size).toBeGreaterThanOrEqual(256 * 1024);
+    const extracted = path.join(root, "extracted");
+    fs.mkdirSync(extracted);
+    await tar.x({ file: after, cwd: extracted });
+    expectPrivateResolution(extracted);
+    expect(fs.statSync(path.join(extracted, "node_modules/dep/large.js")).ino)
+      .toBe(fs.statSync(path.join(extracted, "dist/extensions/feishu/node_modules/dep/large.js")).ino);
+  });
+
+  it("leaves originals intact on failed linking", () => {
+    const { vendor, source } = fixture();
+    const file = path.join(source, "dep/index.js");
+    const before = fs.readFileSync(file);
+    vi.spyOn(fs, "linkSync").mockImplementation(() => { throw new Error("link failed"); });
+    expect(() => deduplicateRuntimeDependencies(vendor)).toThrow("link failed");
+    expect(fs.readFileSync(file)).toEqual(before);
+    expect(fs.readdirSync(path.dirname(file)).some((name) => name.includes("rivonclaw-hardlink"))).toBe(false);
+  });
+
+  it("shares identical package files across all three copies without changing private resolution", () => {
+    const { vendor, source, destination } = fixture();
+    fs.cpSync(path.join(source, "dep"), path.join(vendor, "node_modules/dep"), { recursive: true });
+    deduplicateMirroredPluginDependencies(vendor);
+    const result = deduplicateRuntimeDependencies(vendor);
+    expect(result.savedBytes).toBeGreaterThan(0);
+    const files = [path.join(vendor, "node_modules/dep/index.js"),
+      path.join(source, "dep/index.js"), path.join(destination, "dep/index.js")];
+    expect(new Set(files.map((file) => fs.statSync(file).ino)).size).toBe(1);
+    expect(files.every((file) => !fs.lstatSync(file).isSymbolicLink())).toBe(true);
+    expect(deduplicateRuntimeDependencies(vendor).linkedFiles).toBe(0);
+    expectPrivateResolution(vendor);
+  });
+
+  it("keeps identical bytes separate across package versions and names", () => {
+    const { vendor, source } = fixture();
+    const current = path.join(source, "dep");
+    const nested = path.join(source, "host/node_modules/dep");
+    const scoped = path.join(vendor, "node_modules/@example/dep");
+    write(path.join(scoped, "package.json"), { name: "@example/dep", version: "2.0.0" });
+    for (const dir of [current, nested, scoped]) write(path.join(dir, "shared.js"), "same bytes");
+    deduplicateRuntimeDependencies(vendor);
+    expect(new Set([current, nested, scoped].map((dir) => fs.statSync(path.join(dir, "shared.js")).ino)).size).toBe(3);
+    expectPrivateResolution(vendor);
+  });
+
+  it("does not share different bytes, native binaries, permissions or external hardlinks", () => {
+    const { vendor, source, destination } = fixture();
+    const target = path.join(vendor, "node_modules/dep");
+    fs.cpSync(path.join(source, "dep"), target, { recursive: true });
+    for (const dir of [target, path.join(source, "dep"), path.join(destination, "dep")]) {
+      write(path.join(dir, "native.node"), "native");
+      write(path.join(dir, "data.json"), "original");
+      write(path.join(dir, "mode.js"), "original");
+      write(path.join(dir, "external.js"), "external");
+    }
+    write(path.join(target, "data.json"), "modified");
+    fs.chmodSync(path.join(target, "mode.js"), 0o755);
+    fs.linkSync(path.join(target, "external.js"), path.join(root, "external.js"));
+    const original = fs.statSync(path.join(target, "external.js")).ino;
+    deduplicateRuntimeDependencies(vendor);
+    for (const file of ["native.node", "data.json", "external.js", ...(process.platform === "win32" ? [] : ["mode.js"])]) {
+      expect(fs.statSync(path.join(target, file)).ino).not.toBe(fs.statSync(path.join(source, "dep", file)).ino);
+    }
+    expect(fs.statSync(path.join(target, "external.js")).ino).toBe(original);
+    expectPrivateResolution(vendor);
   });
 });

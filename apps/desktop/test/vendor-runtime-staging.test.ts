@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 const { STAGED_VENDOR_SOURCE_PLUGINS } = require("../scripts/vendor-runtime-plugin-inventory.cjs");
 const { VENDOR_PRUNE_INPUTS, readVendorPruneProfile } = require("../scripts/vendor-runtime-cache.cjs");
 const { assertBundledPluginEntries } = require("../scripts/vendor-plugin-dependencies.cjs");
+const { stripRuntimeDevelopmentFiles } = require("../scripts/vendor-plugin-size.cjs");
 const script = path.resolve(import.meta.dirname, "../scripts/stage-official-vendor-plugins.cjs");
 let root: string;
 const write = (file: string, value: string) => {
@@ -137,7 +138,7 @@ describe("vendor prune cache-hit acceptance", () => {
       hasCompletedProductionInstall: () => true, hasBlacklistedPackage: () => false,
       hasOtherSqliteVecPlatforms: () => false, disabledVendorExtensionDirs: () => [],
       hasRequiredOfficialVendorPlugins: () => true, hasMaterializedWorkspaceDependencies: () => true,
-      assertSelectedPluginDependencies: () => {}, assertBundledPluginEntries,
+      assertSelectedPluginDependencies: () => {}, assertBundledPluginEntries, stripRuntimeDevelopmentFiles,
       console: { log: () => {} }, process: { exit: (code: number) => { throw new Error(`cache-exit:${code}`); } },
     });
   }
@@ -153,6 +154,16 @@ describe("vendor prune cache-hit acceptance", () => {
     fs.unlinkSync(path.join(root, "dist-runtime/extensions/msteams/setup-entry.cjs"));
     expect(() => runCacheBranch()).toThrow("Missing retained plugin entry");
     expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toContain("dist-runtime");
+  });
+  it("removes test cache created after pruning even when the prune profile still matches", () => {
+    cachedFixture();
+    const cache = path.join(root, "node_modules/.experimental-vitest-cache/test.js");
+    const runtime = path.join(root, "node_modules/runtime/index.js");
+    write(cache, "cached test transform");
+    write(runtime, "module.exports = true;");
+    expect(() => runCacheBranch()).toThrow("cache-exit:0");
+    expect(fs.existsSync(cache)).toBe(false);
+    expect(fs.readFileSync(runtime, "utf8")).toBe("module.exports = true;");
   });
 });
 

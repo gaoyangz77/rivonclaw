@@ -11,7 +11,8 @@ const fs = require("fs");
 const { createRequire } = require("module");
 const path = require("path");
 const { readVendorPruneProfile } = require("./vendor-runtime-cache.cjs");
-const { stripPrivateSourceMaps, stripSelectedPluginSourceMaps, deduplicateMirroredPluginDependencies } = require("./vendor-plugin-size.cjs");
+const { stripPrivateSourceMaps, stripSelectedPluginSourceMaps, stripRuntimeDevelopmentFiles,
+  deduplicateMirroredPluginDependencies } = require("./vendor-plugin-size.cjs");
 const { withPnpmTargetArchitecture } = require("./pnpm-target-architecture.cjs");
 const {
   resolveVendorPnpmEntry,
@@ -21,7 +22,7 @@ const {
 const {
   materializeSelectedPluginDependencies, assertSelectedPluginDependencies,
   materializeSelectedPluginAssets, isSelectedPluginNodeModules,
-  materializeRuntimeModuleLinks, assertBundledPluginEntries,
+  materializeRuntimeModuleLinks, assertBundledPluginEntries, selectedPluginDirs,
 } = require("./vendor-plugin-dependencies.cjs");
 const {
   DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
@@ -782,6 +783,8 @@ if (fs.existsSync(prunedMarkerPath)) {
     hasMaterializedWorkspaceDependencies() &&
     hasSelectedPluginDependencies()
   ) {
+    // Tests may have populated build caches after this payload was pruned.
+    stripRuntimeDevelopmentFiles(nmDir);
     assertBundledPluginEntries(vendorDir);
     makeDistVisibleToElectronBuilder();
     console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
@@ -897,11 +900,17 @@ console.log(
 console.log("[prune-vendor-deps] Phase 4: stripping dist and extension baggage ...");
 let phase4Files = 0;
 let phase4Bytes = 0;
-// dist itself is not broadly stripped: retain its SDK output while removing
-// only validated source maps from both copies of selected private closures.
+// Retain canonical SDK output and executable TS. Private dependencies need
+// neither declarations nor explicit test modules in the installed runtime.
 const privateMaps = stripSelectedPluginSourceMaps(vendorDir);
 phase4Files += privateMaps.files;
 phase4Bytes += privateMaps.bytes;
+for (const root of [nmDir, path.join(vendorDir, "extensions"),
+  ...selectedPluginDirs(vendorDir).map((dir) => path.join(dir, "node_modules"))]) {
+  const removed = stripRuntimeDevelopmentFiles(root);
+  phase4Files += removed.files;
+  phase4Bytes += removed.bytes;
+}
 
 for (const subdir of ["dist", "dist-runtime", "extensions"]) {
   const target = path.join(vendorDir, subdir);

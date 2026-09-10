@@ -16,6 +16,7 @@ files:
   - changelog.json
   - node_modules/**
   - "!node_modules/**/test_extension.node"
+  - "!node_modules/better-sqlite3/{deps,src}/**"
   - package.json
 
 extraMetadata:
@@ -113,6 +114,8 @@ extraResources:
     to: "THIRD_PARTY_NOTICES.md"
 
 mac:
+  files:
+    - "!node_modules/better-sqlite3/prebuilds/!(darwin-${arch}).node"
   category: public.app-category.developer-tools
   icon: build/icon.icns
   extendInfo:

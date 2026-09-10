@@ -13,7 +13,7 @@ const path = require("path");
 const { resolveElectronPath, readElectronVersions } = require("../../../scripts/electron-runtime.cjs");
 const { assertNoLifecycleMarkers } = require("./verify-vendor-runtime-contract.cjs");
 const { VENDOR_PRUNE_INPUTS } = require("./vendor-runtime-cache.cjs");
-const { deduplicateMirroredPluginDependencies, VENDOR_ARCHIVE_ENV } = require("./vendor-plugin-size.cjs");
+const { deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies, VENDOR_ARCHIVE_ENV } = require("./vendor-plugin-size.cjs");
 
 const isMacOS = process.platform === "darwin";
 const forceArchive = process.env.ARCHIVE_VENDOR_RUNTIME === "1";
@@ -287,6 +287,7 @@ if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
 // Signing/copying can replace inodes. Deduplicate the final bytes before tar
 // records hardlinks, without changing paths or private package resolution.
 deduplicateMirroredPluginDependencies(vendorDir);
+deduplicateRuntimeDependencies(vendorDir);
 
 // Build the include arguments — only add paths that actually exist
 const includeArgs = RUNTIME_INCLUDES.filter((p) => fs.existsSync(path.join(vendorDir, p)))
