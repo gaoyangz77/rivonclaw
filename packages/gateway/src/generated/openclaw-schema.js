@@ -49,9 +49,9 @@ var __toESM = (mod, isNodeMode, target) => (
   )
 );
 
-// vendor/openclaw/node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
+// vendor/openclaw/node_modules/ms/index.js
 var require_ms = __commonJS({
-  "vendor/openclaw/node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js"(exports, module) {
+  "vendor/openclaw/node_modules/ms/index.js"(exports, module) {
     var s = 1e3;
     var m = s * 60;
     var h = m * 60;
@@ -166,11 +166,9 @@ var require_ms = __commonJS({
   },
 });
 
-// vendor/openclaw/node_modules/.pnpm/lru-cache@11.5.2/node_modules/lru-cache/dist/commonjs/node/index.min.js
+// vendor/openclaw/node_modules/lru-cache/dist/commonjs/node/index.min.js
 var require_index_min = __commonJS({
-  "vendor/openclaw/node_modules/.pnpm/lru-cache@11.5.2/node_modules/lru-cache/dist/commonjs/node/index.min.js"(
-    exports,
-  ) {
+  "vendor/openclaw/node_modules/lru-cache/dist/commonjs/node/index.min.js"(exports) {
     "use strict";
     var j = (u, t) => () => (t || u((t = { exports: {} }).exports, t), t.exports);
     var I = j((O) => {
@@ -1157,12 +1155,9 @@ var require_index_min = __commonJS({
   },
 });
 
-// vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/hosts.js
+// vendor/openclaw/node_modules/hosted-git-info/lib/hosts.js
 var require_hosts = __commonJS({
-  "vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/hosts.js"(
-    exports,
-    module,
-  ) {
+  "vendor/openclaw/node_modules/hosted-git-info/lib/hosts.js"(exports, module) {
     "use strict";
     var maybeJoin = (...args) => (args.every((arg) => arg) ? args.join("") : "");
     var maybeEncode = (arg) => (arg ? encodeURIComponent(arg) : "");
@@ -1382,12 +1377,9 @@ var require_hosts = __commonJS({
   },
 });
 
-// vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/parse-url.js
+// vendor/openclaw/node_modules/hosted-git-info/lib/parse-url.js
 var require_parse_url = __commonJS({
-  "vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/parse-url.js"(
-    exports,
-    module,
-  ) {
+  "vendor/openclaw/node_modules/hosted-git-info/lib/parse-url.js"(exports, module) {
     var lastIndexOfBefore = (str, char, beforeChar) => {
       const startPosition = str.indexOf(beforeChar);
       return str.lastIndexOf(char, startPosition > -1 ? startPosition : Infinity);
@@ -1434,12 +1426,9 @@ var require_parse_url = __commonJS({
   },
 });
 
-// vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/from-url.js
+// vendor/openclaw/node_modules/hosted-git-info/lib/from-url.js
 var require_from_url = __commonJS({
-  "vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/from-url.js"(
-    exports,
-    module,
-  ) {
+  "vendor/openclaw/node_modules/hosted-git-info/lib/from-url.js"(exports, module) {
     "use strict";
     var parseUrl2 = require_parse_url();
     var isGitHubShorthand = (arg) => {
@@ -1545,12 +1534,9 @@ var require_from_url = __commonJS({
   },
 });
 
-// vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/index.js
+// vendor/openclaw/node_modules/hosted-git-info/lib/index.js
 var require_lib = __commonJS({
-  "vendor/openclaw/node_modules/.pnpm/hosted-git-info@10.1.1/node_modules/hosted-git-info/lib/index.js"(
-    exports,
-    module,
-  ) {
+  "vendor/openclaw/node_modules/hosted-git-info/lib/index.js"(exports, module) {
     "use strict";
     var { LRUCache } = require_index_min();
     var hosts = require_hosts();
@@ -1890,7 +1876,7 @@ function resolveProfileStateDir(profile, env, homedir) {
 import os2 from "node:os";
 import path3 from "node:path";
 
-// vendor/openclaw/node_modules/.pnpm/@openclaw+fs-safe@0.8.5/node_modules/@openclaw/fs-safe/dist/native-config.js
+// vendor/openclaw/node_modules/@openclaw/fs-safe/dist/native-config.js
 var overrideConfig = {};
 function configureFsSafeNative(config) {
   overrideConfig = { ...overrideConfig, ...config };

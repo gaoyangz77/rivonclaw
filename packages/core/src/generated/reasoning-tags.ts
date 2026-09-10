@@ -19,7 +19,7 @@ function expectDefined(value, context) {
 var MAX_TIMER_TIMEOUT_MS = 2147e6;
 var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS / 1e3);
 
-// vendor/openclaw/node_modules/.pnpm/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string/lib/index.js
+// vendor/openclaw/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
 function toString(value, options) {
   const settings = options || emptyOptions;
@@ -57,7 +57,7 @@ function node(value) {
   return Boolean(value && typeof value === "object");
 }
 
-// vendor/openclaw/node_modules/.pnpm/character-entities@2.0.2/node_modules/character-entities/index.js
+// vendor/openclaw/node_modules/character-entities/index.js
 var characterEntities = {
   AElig: "\xC6",
   AMP: "&",
@@ -2186,13 +2186,13 @@ var characterEntities = {
   zwnj: "\u200C",
 };
 
-// vendor/openclaw/node_modules/.pnpm/decode-named-character-reference@1.3.0/node_modules/decode-named-character-reference/index.js
+// vendor/openclaw/node_modules/decode-named-character-reference/index.js
 var own = {}.hasOwnProperty;
 function decodeNamedCharacterReference(value) {
   return own.call(characterEntities, value) ? characterEntities[value] : false;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-chunked@2.0.1/node_modules/micromark-util-chunked/index.js
+// vendor/openclaw/node_modules/micromark-util-chunked/index.js
 function splice(list2, start, remove, items) {
   const end = list2.length;
   let chunkStart = 0;
@@ -2226,7 +2226,7 @@ function push(list2, items) {
   return items;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-combine-extensions@2.0.1/node_modules/micromark-util-combine-extensions/index.js
+// vendor/openclaw/node_modules/micromark-util-combine-extensions/index.js
 var hasOwnProperty = {}.hasOwnProperty;
 function combineExtensions(extensions) {
   const all2 = {};
@@ -2265,7 +2265,7 @@ function constructs(existing, list2) {
   splice(existing, 0, 0, before);
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-decode-numeric-character-reference@2.0.2/node_modules/micromark-util-decode-numeric-character-reference/index.js
+// vendor/openclaw/node_modules/micromark-util-decode-numeric-character-reference/index.js
 function decodeNumericCharacterReference(value, base) {
   const code = Number.parseInt(value, base);
   if (
@@ -2286,7 +2286,7 @@ function decodeNumericCharacterReference(value, base) {
   return String.fromCodePoint(code);
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-normalize-identifier@2.0.1/node_modules/micromark-util-normalize-identifier/index.js
+// vendor/openclaw/node_modules/micromark-util-normalize-identifier/index.js
 function normalizeIdentifier(value) {
   return value
     .replace(/[\t\n\r ]+/g, " ")
@@ -2295,7 +2295,7 @@ function normalizeIdentifier(value) {
     .toUpperCase();
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-character@2.1.1/node_modules/micromark-util-character/index.js
+// vendor/openclaw/node_modules/micromark-util-character/index.js
 var asciiAlpha = regexCheck(/[A-Za-z]/);
 var asciiAlphanumeric = regexCheck(/[\dA-Za-z]/);
 var asciiAtext = regexCheck(/[#-'*+\--9=?A-Z^-~]/);
@@ -2327,7 +2327,7 @@ function regexCheck(regex) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-factory-space@2.0.1/node_modules/micromark-factory-space/index.js
+// vendor/openclaw/node_modules/micromark-factory-space/index.js
 function factorySpace(effects, ok2, type, max) {
   const limit = max ? max - 1 : Number.POSITIVE_INFINITY;
   let size = 0;
@@ -2349,7 +2349,7 @@ function factorySpace(effects, ok2, type, max) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/content.js
+// vendor/openclaw/node_modules/micromark/lib/initialize/content.js
 var content = {
   tokenize: initializeContent,
 };
@@ -2403,7 +2403,7 @@ function initializeContent(effects) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/document.js
+// vendor/openclaw/node_modules/micromark/lib/initialize/document.js
 var document = {
   tokenize: initializeDocument,
 };
@@ -2598,7 +2598,7 @@ function tokenizeContainer(effects, ok2, nok) {
   );
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-classify-character@2.0.1/node_modules/micromark-util-classify-character/index.js
+// vendor/openclaw/node_modules/micromark-util-classify-character/index.js
 function classifyCharacter(code) {
   if (code === null || markdownLineEndingOrSpace(code) || unicodeWhitespace(code)) {
     return 1;
@@ -2608,7 +2608,7 @@ function classifyCharacter(code) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-resolve-all@2.0.1/node_modules/micromark-util-resolve-all/index.js
+// vendor/openclaw/node_modules/micromark-util-resolve-all/index.js
 function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
@@ -2622,7 +2622,7 @@ function resolveAll(constructs2, events, context) {
   return events;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/attention.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/attention.js
 var attention = {
   name: "attention",
   resolveAll: resolveAllAttention,
@@ -2799,7 +2799,7 @@ function movePoint(point3, offset) {
   point3._bufferIndex += offset;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/autolink.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/autolink.js
 var autolink = {
   name: "autolink",
   tokenize: tokenizeAutolink,
@@ -2900,7 +2900,7 @@ function tokenizeAutolink(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/blank-line.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/blank-line.js
 var blankLine = {
   partial: true,
   tokenize: tokenizeBlankLine,
@@ -2915,7 +2915,7 @@ function tokenizeBlankLine(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/block-quote.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/block-quote.js
 var blockQuote = {
   continuation: {
     tokenize: tokenizeBlockQuoteContinuation,
@@ -2978,7 +2978,7 @@ function exit(effects) {
   effects.exit("blockQuote");
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/character-escape.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/character-escape.js
 var characterEscape = {
   name: "characterEscape",
   tokenize: tokenizeCharacterEscape,
@@ -3004,7 +3004,7 @@ function tokenizeCharacterEscape(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/character-reference.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/character-reference.js
 var characterReference = {
   name: "characterReference",
   tokenize: tokenizeCharacterReference,
@@ -3072,7 +3072,7 @@ function tokenizeCharacterReference(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-fenced.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/code-fenced.js
 var nonLazyContinuation = {
   partial: true,
   tokenize: tokenizeNonLazyContinuation,
@@ -3271,7 +3271,7 @@ function tokenizeNonLazyContinuation(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-indented.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/code-indented.js
 var codeIndented = {
   name: "codeIndented",
   tokenize: tokenizeCodeIndented,
@@ -3345,7 +3345,7 @@ function tokenizeFurtherStart(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-text.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/code-text.js
 var codeText = {
   name: "codeText",
   previous,
@@ -3464,7 +3464,7 @@ function tokenizeCodeText(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize/lib/splice-buffer.js
+// vendor/openclaw/node_modules/micromark-util-subtokenize/lib/splice-buffer.js
 var SpliceBuffer = class {
   /**
    * @param {ReadonlyArray<T> | null | undefined} [initial]
@@ -3678,7 +3678,7 @@ function chunkedPush(list2, right) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize/index.js
+// vendor/openclaw/node_modules/micromark-util-subtokenize/index.js
 function subtokenize(eventsArray) {
   const jumps = {};
   let index2 = -1;
@@ -3837,7 +3837,7 @@ function subcontent(events, eventIndex) {
   return gaps;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/content.js
 var content2 = {
   resolve: resolveContent,
   tokenize: tokenizeContent,
@@ -3913,7 +3913,7 @@ function tokenizeContinuation(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-factory-destination@2.0.1/node_modules/micromark-factory-destination/index.js
+// vendor/openclaw/node_modules/micromark-factory-destination/index.js
 function factoryDestination(
   effects,
   ok2,
@@ -4015,7 +4015,7 @@ function factoryDestination(
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-factory-label@2.0.1/node_modules/micromark-factory-label/index.js
+// vendor/openclaw/node_modules/micromark-factory-label/index.js
 function factoryLabel(effects, ok2, nok, type, markerType, stringType) {
   const self = this;
   let size = 0;
@@ -4081,7 +4081,7 @@ function factoryLabel(effects, ok2, nok, type, markerType, stringType) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-factory-title@2.0.1/node_modules/micromark-factory-title/index.js
+// vendor/openclaw/node_modules/micromark-factory-title/index.js
 function factoryTitle(effects, ok2, nok, type, markerType, stringType) {
   let marker;
   return start;
@@ -4143,7 +4143,7 @@ function factoryTitle(effects, ok2, nok, type, markerType, stringType) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-factory-whitespace@2.0.1/node_modules/micromark-factory-whitespace/index.js
+// vendor/openclaw/node_modules/micromark-factory-whitespace/index.js
 function factoryWhitespace(effects, ok2) {
   let seen;
   return start;
@@ -4162,7 +4162,7 @@ function factoryWhitespace(effects, ok2) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/definition.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/definition.js
 var definition = {
   name: "definition",
   tokenize: tokenizeDefinition,
@@ -4265,7 +4265,7 @@ function tokenizeTitleBefore(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/hard-break-escape.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/hard-break-escape.js
 var hardBreakEscape = {
   name: "hardBreakEscape",
   tokenize: tokenizeHardBreakEscape,
@@ -4286,7 +4286,7 @@ function tokenizeHardBreakEscape(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/heading-atx.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/heading-atx.js
 var headingAtx = {
   name: "headingAtx",
   resolve: resolveHeadingAtx,
@@ -4386,7 +4386,7 @@ function tokenizeHeadingAtx(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-html-tag-name@2.0.1/node_modules/micromark-util-html-tag-name/index.js
+// vendor/openclaw/node_modules/micromark-util-html-tag-name/index.js
 var htmlBlockNames = [
   "address",
   "article",
@@ -4453,7 +4453,7 @@ var htmlBlockNames = [
 ];
 var htmlRawNames = ["pre", "script", "style", "textarea"];
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/html-flow.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/html-flow.js
 var htmlFlow = {
   concrete: true,
   name: "htmlFlow",
@@ -4850,7 +4850,7 @@ function tokenizeBlankLineBefore(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/html-text.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/html-text.js
 var htmlText = {
   name: "htmlText",
   tokenize: tokenizeHtmlText,
@@ -5163,7 +5163,7 @@ function tokenizeHtmlText(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-end.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/label-end.js
 var labelEnd = {
   name: "labelEnd",
   resolveAll: resolveAllLabelEnd,
@@ -5459,7 +5459,7 @@ function tokenizeReferenceCollapsed(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-start-image.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/label-start-image.js
 var labelStartImage = {
   name: "labelStartImage",
   resolveAll: labelEnd.resolveAll,
@@ -5492,7 +5492,7 @@ function tokenizeLabelStartImage(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-start-link.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/label-start-link.js
 var labelStartLink = {
   name: "labelStartLink",
   resolveAll: labelEnd.resolveAll,
@@ -5516,7 +5516,7 @@ function tokenizeLabelStartLink(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/line-ending.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/line-ending.js
 var lineEnding = {
   name: "lineEnding",
   tokenize: tokenizeLineEnding,
@@ -5531,7 +5531,7 @@ function tokenizeLineEnding(effects, ok2) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/thematic-break.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/thematic-break.js
 var thematicBreak = {
   name: "thematicBreak",
   tokenize: tokenizeThematicBreak,
@@ -5570,7 +5570,7 @@ function tokenizeThematicBreak(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/list.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/list.js
 var list = {
   continuation: {
     tokenize: tokenizeListContinuation,
@@ -5732,7 +5732,7 @@ function tokenizeListItemPrefixWhitespace(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/setext-underline.js
+// vendor/openclaw/node_modules/micromark-core-commonmark/lib/setext-underline.js
 var setextUnderline = {
   name: "setextUnderline",
   resolveTo: resolveToSetextUnderline,
@@ -5828,7 +5828,7 @@ function tokenizeSetextUnderline(effects, ok2, nok) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/flow.js
+// vendor/openclaw/node_modules/micromark/lib/initialize/flow.js
 var flow = {
   tokenize: initializeFlow,
 };
@@ -5878,7 +5878,7 @@ function initializeFlow(effects) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/initialize/text.js
+// vendor/openclaw/node_modules/micromark/lib/initialize/text.js
 var resolver = {
   resolveAll: createResolver(),
 };
@@ -6021,7 +6021,7 @@ function resolveAllLineSuffixes(events, context) {
   return events;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/constructs.js
+// vendor/openclaw/node_modules/micromark/lib/constructs.js
 var constructs_exports = {};
 __export(constructs_exports, {
   attentionMarkers: () => attentionMarkers,
@@ -6096,7 +6096,7 @@ var disable = {
   null: [],
 };
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/create-tokenizer.js
+// vendor/openclaw/node_modules/micromark/lib/create-tokenizer.js
 function createTokenizer(parser, initialize, from) {
   let point3 = {
     _bufferIndex: -1,
@@ -6421,7 +6421,7 @@ function serializeChunks(chunks, expandTabs) {
   return result.join("");
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/parse.js
+// vendor/openclaw/node_modules/micromark/lib/parse.js
 function parse(options) {
   const settings = options || {};
   const constructs2 =
@@ -6446,13 +6446,13 @@ function parse(options) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/postprocess.js
+// vendor/openclaw/node_modules/micromark/lib/postprocess.js
 function postprocess(events) {
   while (!subtokenize(events)) {}
   return events;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark@4.0.2_supports-color@10.2.2/node_modules/micromark/lib/preprocess.js
+// vendor/openclaw/node_modules/micromark/lib/preprocess.js
 var search = /[\0\t\n\r]/g;
 function preprocess() {
   let column = 1;
@@ -6535,7 +6535,7 @@ function preprocess() {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-util-decode-string@2.0.1/node_modules/micromark-util-decode-string/index.js
+// vendor/openclaw/node_modules/micromark-util-decode-string/index.js
 var characterEscapeOrReference =
   /\\([!-/:-@[-`{-~])|&(#(?:\d{1,7}|x[\da-f]{1,6})|[\da-z]{1,31});/gi;
 function decodeString(value) {
@@ -6554,7 +6554,7 @@ function decode($0, $1, $2) {
   return decodeNamedCharacterReference($2) || $0;
 }
 
-// vendor/openclaw/node_modules/.pnpm/unist-util-stringify-position@4.0.0/node_modules/unist-util-stringify-position/lib/index.js
+// vendor/openclaw/node_modules/unist-util-stringify-position/lib/index.js
 function stringifyPosition(value) {
   if (!value || typeof value !== "object") {
     return "";
@@ -6580,7 +6580,7 @@ function index(value) {
   return value && typeof value === "number" ? value : 1;
 }
 
-// vendor/openclaw/node_modules/.pnpm/mdast-util-from-markdown@2.0.3_supports-color@10.2.2/node_modules/mdast-util-from-markdown/lib/index.js
+// vendor/openclaw/node_modules/mdast-util-from-markdown/lib/index.js
 var own2 = {}.hasOwnProperty;
 function fromMarkdown(value, encoding, options) {
   if (encoding && typeof encoding === "object") {
@@ -7345,10 +7345,10 @@ function defaultOnError(left, right) {
   }
 }
 
-// vendor/openclaw/node_modules/.pnpm/devlop@1.1.0/node_modules/devlop/lib/default.js
+// vendor/openclaw/node_modules/devlop/lib/default.js
 function ok() {}
 
-// vendor/openclaw/node_modules/.pnpm/mdast-util-gfm-table@2.0.0_supports-color@10.2.2/node_modules/mdast-util-gfm-table/lib/index.js
+// vendor/openclaw/node_modules/mdast-util-gfm-table/lib/index.js
 function gfmTableFromMarkdown() {
   return {
     enter: {
@@ -7408,7 +7408,7 @@ function replace($0, $1) {
   return $1 === "|" ? $1 : $0;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/edit-map.js
+// vendor/openclaw/node_modules/micromark-extension-gfm-table/lib/edit-map.js
 var EditMap = class {
   /**
    * Create a new edit map.
@@ -7487,7 +7487,7 @@ function addImplementation(editMap, at, remove, add) {
   editMap.map.push([at, remove, add]);
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/infer.js
+// vendor/openclaw/node_modules/micromark-extension-gfm-table/lib/infer.js
 function gfmTableAlign(events, index2) {
   let inDelimiterRow = false;
   const align = [];
@@ -7514,7 +7514,7 @@ function gfmTableAlign(events, index2) {
   return align;
 }
 
-// vendor/openclaw/node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/syntax.js
+// vendor/openclaw/node_modules/micromark-extension-gfm-table/lib/syntax.js
 function gfmTable() {
   return {
     flow: {
