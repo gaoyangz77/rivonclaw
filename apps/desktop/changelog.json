@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.13",
+    "date": "2026-09-10",
+    "en": [
+      "Reduce installer size by removing development-only files and SQLite binaries for other platforms",
+      "Deduplicate identical bundled dependencies while preserving plugin loading and existing-session startup"
+    ],
+    "zh": [
+      "移除仅开发时需要的文件及其他平台的 SQLite 二进制，缩小安装包体积",
+      "对相同的内置依赖去重，保留插件加载与已有会话启动能力"
+    ]
+  },
+  {
     "version": "1.9.12",
     "date": "2026-09-10",
     "en": [
