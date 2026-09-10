@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.12",
+    "date": "2026-09-10",
+    "en": [
+      "Make desktop startup more reliable by isolating vendor SQLite state migration in a Node child process",
+      "Harden Windows and Intel Mac packaging validation so signed releases carry the runtime dependencies they need"
+    ],
+    "zh": [
+      "将 vendor SQLite 状态迁移隔离到 Node 子进程中执行，提升桌面端启动稳定性",
+      "加强 Windows 与 Intel Mac 打包校验，确保签名安装包携带所需运行时依赖"
+    ]
+  },
+  {
     "version": "1.9.11",
     "date": "2026-09-09",
     "en": [
