@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.11",
+    "date": "2026-09-09",
+    "en": [
+      "Upgrade OpenClaw to v2026.9.3 and allow normal Gateway restarts to finish without prematurely triggering channel protection",
+      "Wait for Gateway authentication before sending chat requests, improve startup diagnostics, and fix Windows build dependency loading"
+    ],
+    "zh": [
+      "升级 OpenClaw 至 v2026.9.3，让正常 Gateway 重启完成后再退出，避免提前强杀误触发渠道保护",
+      "聊天请求等待 Gateway 认证完成后再发送，改进启动诊断，并修复 Windows 构建依赖加载问题"
+    ]
+  },
+  {
     "version": "1.9.10",
     "date": "2026-09-09",
     "en": [
