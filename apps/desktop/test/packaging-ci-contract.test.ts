@@ -11,6 +11,15 @@ const repo = path.resolve(import.meta.dirname, "../../..");
 const workflow = (name: string) => yaml.parse(fs.readFileSync(path.join(repo, ".github/workflows", name), "utf8"));
 
 describe("packaged runtime CI coverage", () => {
+  it.each(["build-macos-arm64", "build-macos-x64"])("%s keeps its temporary signing keychain unlocked for the bounded build", (id) => {
+    const steps = workflow("build.yml").jobs[id].steps;
+    const setup = steps.find((step: any) => step.name === "Import Code Signing Certificate");
+    expect(setup.run).toContain('security set-keychain-settings -lut 21600 "$MACOS_KEYCHAIN_PATH"');
+    const build = steps.find((step: any) => step.env?.CODESIGN_TIMEOUT_SECONDS);
+    expect(build.env.CODESIGN_TIMEOUT_SECONDS).toBe("300");
+    expect(build.env.DEBUG).toContain("electron-osx-sign*");
+  });
+
   it("runs the Intel runtime natively and never restores ARM dependency caches", () => {
     const job = workflow("build.yml").jobs["build-macos-x64"];
     expect(job["runs-on"]).toBe("macos-15-intel");

@@ -358,6 +358,8 @@ jobs:
         run: |
           echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$MACOS_KEYCHAIN_PATH"
+          security show-keychain-info "$MACOS_KEYCHAIN_PATH"
           security list-keychains -d user -s "$MACOS_KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/[ "]//g')
           security default-keychain -s "$MACOS_KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
@@ -382,8 +384,8 @@ jobs:
           CSC_KEYCHAIN: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: arm64
           NOTARIZE_TIMEOUT_SECONDS: "7200"
-          CODESIGN_TIMEOUT_SECONDS: "1800"
-          DEBUG: electron-notarize:*
+          CODESIGN_TIMEOUT_SECONDS: "300"
+          DEBUG: electron-notarize:*,electron-osx-sign*
 
       - name: Validate macOS bundle
         run: |
@@ -574,6 +576,8 @@ jobs:
         run: |
           echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$MACOS_KEYCHAIN_PATH"
+          security show-keychain-info "$MACOS_KEYCHAIN_PATH"
           security list-keychains -d user -s "$MACOS_KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/[ "]//g')
           security default-keychain -s "$MACOS_KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$MACOS_KEYCHAIN_PATH"
@@ -598,8 +602,8 @@ jobs:
           CSC_KEYCHAIN: ${{ runner.temp }}/build.keychain-db
           RIVONCLAW_MAC_RUNTIME_ARCH: x64
           NOTARIZE_TIMEOUT_SECONDS: "7200"
-          CODESIGN_TIMEOUT_SECONDS: "1800"
-          DEBUG: electron-notarize:*
+          CODESIGN_TIMEOUT_SECONDS: "300"
+          DEBUG: electron-notarize:*,electron-osx-sign*
 
       - name: Validate macOS bundle
         run: |
