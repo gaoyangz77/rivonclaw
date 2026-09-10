@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
-import { calculateBackoff, createLineReader, GatewayLauncher } from "./launcher.js";
+import { calculateBackoff, createLineReader, GatewayLauncher, isGatewayReadinessProbeClose } from "./launcher.js";
 import type { GatewayLaunchOptions } from "./types.js";
 import * as fs from "node:fs";
 import { GATEWAY_STOP_GRACE_MS, GATEWAY_STOP_MESSAGE } from "./process-control.js";
@@ -48,6 +48,25 @@ describe("createLineReader", () => {
 });
 
 // ─── Mock child_process ────────────────────────────────────────────────────
+
+describe("gateway readiness probe diagnostics", () => {
+  const probe = "[ws] closed before connect conn=test remote=127.0.0.1 fwd=n/a origin=n/a host=127.0.0.1:53571 ua=n/a code=1005 reason=n/a phase=ws_upgrade_started";
+  it("recognizes only the anonymous loopback readiness probe, including colored output", () => {
+    expect(isGatewayReadinessProbeClose(probe)).toBe(true);
+    expect(isGatewayReadinessProbeClose(`\u001b[33m${probe}\u001b[39m`)).toBe(true);
+  });
+  it.each([
+    probe.replace("code=1005 reason=n/a", "code=1008 reason=invalid handshake: first request must be connect"),
+    probe.replace("origin=n/a", "origin=http://localhost:5180"),
+    probe.replace("ua=n/a", "ua=Electron"),
+    probe.replace("remote=127.0.0.1", "remote=203.0.113.1"),
+    "security warning: dangerous config flags enabled",
+    'Plugin command "/dashboard" conflicts with an existing Telegram command.',
+    "[DEP0040] DeprecationWarning: The punycode module is deprecated",
+  ])("keeps actionable or unrelated diagnostics visible: %s", (line) => {
+    expect(isGatewayReadinessProbeClose(line)).toBe(false);
+  });
+});
 
 class MockChildProcess extends EventEmitter {
   pid = 12345;

@@ -4330,17 +4330,17 @@ describe("affiliate containment startup proof", () => {
     expect(line).toContain("maxActiveAffiliateAgentRuns=5");
   });
 
-  it("warns loudly when no live-test containment filter reached the process", async () => {
+  it("reports normal workspace dispatch as info when no live-test filter is requested", async () => {
     const { level, line } = await captureContainmentStartupLog();
 
-    expect(level).toBe("warn");
+    expect(level).toBe("info");
     expect(line).toContain("liveTestFilter=absent");
     expect(line).toContain("relationshipIdCount=0");
     // Uncontained runs fall back to the shared product concurrency, which is
     // also the number of desks the office draws for this department.
     expect(line).toContain(`maxActiveAffiliateAgentRuns=${DEFAULT_AFFILIATE_MAX_CONCURRENT}`);
-    expect(line).toContain("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS is not set");
-    expect(line).toContain("every Affiliate work item is dispatchable");
+    expect(line).toContain("mode=normal");
+    expect(line).toContain("normal workspace dispatch limits apply");
     expect(line).not.toContain("liveTestFilter=active");
   });
 
@@ -4351,6 +4351,12 @@ describe("affiliate containment startup proof", () => {
 
     expect(level).toBe("warn");
     expect(line).toContain("liveTestFilter=absent");
+    expect(line).toContain("mode=invalid-live-test-filter");
+  });
+
+  it("keeps a warning for full-prompt debugging without a containment filter", async () => {
+    vi.stubEnv("DEBUG_AFFILIATE_PROMPT", "1");
+    expect((await captureContainmentStartupLog()).level).toBe("warn");
   });
 
   it("reports the resolved full-prompt debug state", async () => {

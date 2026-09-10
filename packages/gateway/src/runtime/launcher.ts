@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 import { existsSync, readFileSync, mkdirSync, cpSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
+import { stripVTControlCharacters } from "node:util";
 import { fileURLToPath } from "node:url";
 import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
@@ -27,6 +28,17 @@ const DEFAULT_MAX_BACKOFF_MS = DEFAULTS.gateway.maxBackoffMs;
 const DEFAULT_HEALTHY_THRESHOLD_MS = DEFAULTS.gateway.healthyThresholdMs;
 /** Skip reload if the gateway was spawned less than this many ms ago. */
 const STARTUP_GRACE_MS = DEFAULTS.gateway.startupGraceMs;
+
+export function isGatewayReadinessProbeClose(line: string): boolean {
+  const text = stripVTControlCharacters(line);
+  // Only our anonymous loopback probe closes without sending a handshake.
+  // Browser authentication failures and other protocol errors must stay visible.
+  return text.includes("[ws] closed before connect ") &&
+    /\bremote=(?:127\.0\.0\.1|::1)\s/.test(text) &&
+    /\borigin=n\/a\s/.test(text) &&
+    /\bua=n\/a\s/.test(text) &&
+    /\bcode=1005 reason=n\/a phase=ws_upgrade_started\s*$/.test(text);
+}
 
 export function createLineReader(onLine: (line: string) => void): {
   push: (data: Buffer) => void;
@@ -480,17 +492,12 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
     });
     child.stdout?.on("data", (data: Buffer) => stdoutLines.push(data));
 
-    // Substrings that identify known harmless gateway warnings:
-    // - "closed before connect": caused by EasyClaw's WS readiness probe
-    //   (openclaw-connector opens a throwaway WebSocket and immediately closes it)
-    const HARMLESS_WARN_PATTERNS = ["closed before connect"];
-
     const stderrLines = createLineReader((line) => {
       hasOutput = true;
       if (this.performanceCapture.consumeStderrLine(line)) return;
       if (
         line.startsWith("[startup-timer]") ||
-        HARMLESS_WARN_PATTERNS.some((p) => line.includes(p))
+        isGatewayReadinessProbeClose(line)
       ) {
         log.debug(`[gateway stderr] ${line}`);
       } else {

@@ -2,8 +2,10 @@ import { defineConfig } from "tsdown";
 import { cpSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const { materializeRuntimeModuleLinks, assertBundledPluginEntries } = createRequire(import.meta.url)("./scripts/vendor-plugin-dependencies.cjs");
 
 // Two separate build configs so the image compression child process does NOT share
 // chunks with main.cjs. If rolldown shares a chunk (rolldown's default code-
@@ -35,6 +37,13 @@ export default defineConfig([
       __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
     },
     onSuccess() {
+      // A direct upstream rebuild can recreate cross-package CJS/MJS links.
+      // Normalize them for pnpm dev too, without weakening the plugin loader.
+      const vendorDir = process.env.VENDOR_DIR_OVERRIDE ?? join(__dirname, "../../vendor/openclaw");
+      if (existsSync(join(vendorDir, "dist-runtime/extensions"))) {
+        materializeRuntimeModuleLinks(vendorDir);
+        assertBundledPluginEntries(vendorDir);
+      }
       // Copy startup-timer.cjs so the launcher finds the full version (with
       // plugin-sdk resolution optimization) instead of falling back to the
       // minimal inline version. Without this, the packaged app takes ~60s

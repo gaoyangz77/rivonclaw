@@ -292,3 +292,10 @@ module.exports = {
   materializePluginDependencies, assertPluginDependencies,
   materializeRuntimeModuleLinks, assertBundledPluginEntries,
 };
+
+if (require.main === module) {
+  const vendorDir = path.resolve(process.argv[2] || path.join(__dirname, "../../../vendor/openclaw"));
+  materializeRuntimeModuleLinks(vendorDir);
+  assertBundledPluginEntries(vendorDir);
+  console.log("[vendor-runtime] Built plugin entries verified within their package directories");
+}

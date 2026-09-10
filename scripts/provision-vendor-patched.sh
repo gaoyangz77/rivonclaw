@@ -163,6 +163,7 @@ else
     # pnpm 12 needs an explicit install flag; do not edit vendor config files.
     vendor_pnpm install --node-linker=hoisted --optional --frozen-lockfile
     vendor_pnpm run build
+    node "$REPO_ROOT/apps/desktop/scripts/vendor-plugin-dependencies.cjs" "$TARGET_DIR"
     if [ "$PROD_ONLY" -eq 1 ]; then
       vendor_pnpm install --prod --node-linker=hoisted --optional --frozen-lockfile
     fi

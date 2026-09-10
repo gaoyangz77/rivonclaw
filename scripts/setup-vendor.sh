@@ -139,6 +139,9 @@ fi
 # Prod pruning happens later in prune-vendor-deps.cjs (afterPack) on the
 # release COPY, not the original vendor.
 
+# Dev and cached builds need the same package-contained entries as release copies.
+node "$REPO_ROOT/apps/desktop/scripts/vendor-plugin-dependencies.cjs" "$PWD"
+
 # Make dist/ and dist-runtime/ visible to electron-builder's extraResources by
 # removing them from .gitignore. node_modules/ stays ignored — copy-vendor-deps.cjs
 # (afterPack hook) handles copying it manually because .gitignore blocks it.

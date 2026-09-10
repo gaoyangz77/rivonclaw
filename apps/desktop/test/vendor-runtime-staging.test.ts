@@ -131,3 +131,53 @@ describe("vendor prune cache-hit acceptance", () => {
     expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toContain("dist-runtime");
   });
 });
+
+describe("development runtime plugin boundaries", () => {
+  it("materializes CJS/MJS entrypoints and local chunks idempotently without touching source", () => {
+    const source = path.join(root, "dist/extensions/msteams");
+    const target = path.join(root, "dist-runtime/extensions/msteams");
+    const manifest = JSON.stringify({ openclaw: { extensions: ["./index.cjs"], setupEntry: "./setup-entry.cjs" } });
+    write(path.join(source, "package.json"), manifest);
+    write(path.join(target, "package.json"), manifest);
+    const files = ["index.cjs", "setup-entry.cjs", "chunk.mjs"];
+    for (const file of files) {
+      write(path.join(source, file), "// original built content\n");
+      fs.symlinkSync(path.relative(target, path.join(source, file)), path.join(target, file));
+    }
+    expect(() => assertBundledPluginEntries(root)).toThrow();
+    const helper = path.resolve(import.meta.dirname, "../scripts/vendor-plugin-dependencies.cjs");
+    for (let pass = 0; pass < 2; pass++) {
+      const result = spawnSync(process.execPath, [helper, root], { encoding: "utf8" });
+      expect(result.status, result.stderr).toBe(0);
+      for (const file of files) {
+        expect(fs.lstatSync(path.join(target, file)).isSymbolicLink()).toBe(false);
+        expect(fs.readFileSync(path.join(target, file), "utf8")).toBe("// original built content\n");
+        expect(fs.readFileSync(path.join(source, file), "utf8")).toBe("// original built content\n");
+      }
+    }
+  });
+
+  it("rejects links to unexpected files instead of disabling the package boundary check", () => {
+    const source = path.join(root, "dist/extensions/msteams/index.cjs");
+    const target = path.join(root, "dist-runtime/extensions/msteams/index.cjs");
+    write(source, "// trusted entry");
+    write(path.join(root, "unexpected.cjs"), "// unexpected entry");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.symlinkSync(path.relative(path.dirname(target), path.join(root, "unexpected.cjs")), target);
+    const helper = path.resolve(import.meta.dirname, "../scripts/vendor-plugin-dependencies.cjs");
+    const result = spawnSync(process.execPath, [helper, root], { encoding: "utf8" });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("Unexpected runtime module link");
+    expect(fs.lstatSync(target).isSymbolicLink()).toBe(true);
+  });
+
+  it("runs boundary preparation after vendor build/cache restore and before Desktop dev starts", () => {
+    for (const file of ["scripts/setup-vendor.sh", "scripts/provision-vendor-patched.sh"]) {
+      const source = fs.readFileSync(path.resolve(import.meta.dirname, "../../..", file), "utf8");
+      expect(source.indexOf("vendor-plugin-dependencies.cjs")).toBeGreaterThan(source.indexOf("vendor_pnpm run build"));
+    }
+    const config = fs.readFileSync(new URL("../tsdown.config.ts", import.meta.url), "utf8");
+    expect(config).toContain("materializeRuntimeModuleLinks(vendorDir)");
+    expect(config).toContain("assertBundledPluginEntries(vendorDir)");
+  });
+});
