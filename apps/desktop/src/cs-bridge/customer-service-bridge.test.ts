@@ -660,6 +660,63 @@ describe("shop context management", () => {
   });
 });
 
+describe("archived CS session recovery", () => {
+  const key = "agent:customer-service:cs:tiktok:mongo-id-123:conv-789";
+  const archived = `Session "${key}" is archived. Restore it before starting new work. [code=INVALID_REQUEST]`;
+
+  it("restores an archived buyer conversation and retries the same dispatch once", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest
+      .mockResolvedValueOnce({ ok: true })
+      .mockRejectedValueOnce(new Error(archived))
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ runId: "restored-run" });
+
+    await triggerMessage(bridge, createFrame());
+
+    expect(mockRpcRequest.mock.calls.map(([method]) => method)).toEqual([
+      "cs_register_session", "agent", "sessions.patch", "agent",
+    ]);
+    expect(mockRpcRequest.mock.calls[2]).toEqual(["sessions.patch", { key, archived: false }]);
+    expect(mockRpcRequest.mock.calls[3]).toEqual(mockRpcRequest.mock.calls[1]);
+    expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: "accepted", runId: "restored-run",
+    }));
+    expect(mockEmitCsDispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ outcome: "failed" }));
+  });
+
+  it.each(["restore", "retry"])("reports a %s failure without looping or claiming success", async (stage) => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValueOnce({ ok: true }).mockRejectedValueOnce(new Error(archived));
+    if (stage === "restore") {
+      mockRpcRequest.mockRejectedValueOnce(new Error("restore failed"));
+    } else {
+      mockRpcRequest.mockResolvedValueOnce({ ok: true }).mockRejectedValueOnce(new Error(archived));
+    }
+
+    await triggerMessage(bridge, createFrame());
+
+    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "sessions.patch")).toHaveLength(1);
+    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "agent")).toHaveLength(stage === "restore" ? 1 : 2);
+    expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ outcome: "failed" }));
+    expect(mockEmitCsDispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted" }));
+  });
+
+  it.each([
+    "Request timed out after 360000ms: agent",
+    "Session changed while starting work. Retry. [code=INVALID_REQUEST]",
+    'Session "another-session" is archived. Restore it before starting new work. [code=INVALID_REQUEST]',
+  ])("does not restore or retry unrelated errors: %s", async (message) => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    mockRpcRequest.mockResolvedValueOnce({ ok: true }).mockRejectedValueOnce(new Error(message));
+    await triggerMessage(bridge, createFrame());
+    expect(mockRpcRequest.mock.calls.map(([method]) => method)).toEqual(["cs_register_session", "agent"]);
+  });
+});
+
 // ─── 2. Session key construction ────────────────────────────────────────────
 
 describe("session key construction", () => {

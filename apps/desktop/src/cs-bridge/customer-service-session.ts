@@ -2187,20 +2187,34 @@ export class CustomerServiceSession {
         type: ScopeType.CS_SESSION,
         shopId: this.shop.objectId,
       });
-      const response = await requestAgent<DispatchResult>(
-        {
-          sessionKey: this.dispatchKey,
-          provider: resolvedModel.provider,
-          model: resolvedModel.model,
-          message: params.message,
-          extraSystemPrompt,
-          promptMode: "raw",
-          allowEmptyAssistantReplyAsSilent: true,
-          idempotencyKey: params.idempotencyKey,
-          ...(params.attachments ? { attachments: params.attachments } : {}),
-        },
-        CS_AGENT_DISPATCH_RPC_TIMEOUT_MS,
-      );
+      const agentParams = {
+        sessionKey: this.dispatchKey,
+        provider: resolvedModel.provider,
+        model: resolvedModel.model,
+        message: params.message,
+        extraSystemPrompt,
+        promptMode: "raw",
+        allowEmptyAssistantReplyAsSilent: true,
+        idempotencyKey: params.idempotencyKey,
+        ...(params.attachments ? { attachments: params.attachments } : {}),
+      };
+      let response: DispatchResult;
+      try {
+        response = await requestAgent<DispatchResult>(agentParams, CS_AGENT_DISPATCH_RPC_TIMEOUT_MS);
+      } catch (err) {
+        const archivedMessage = `Session "${this.dispatchKey}" is archived. Restore it before starting new work.`;
+        const message = err instanceof Error ? err.message : String(err);
+        if (message !== archivedMessage && message !== `${archivedMessage} [code=INVALID_REQUEST]`) {
+          throw err;
+        }
+        // Archive rejection precedes run admission; preserve the request's idempotency key.
+        await openClawConnector.request("sessions.patch", {
+          key: this.dispatchKey,
+          archived: false,
+        });
+        log.info(`Restored archived CS session for dispatch: conv=${this.csContext.conversationId} session=${this.dispatchKey}`);
+        response = await requestAgent<DispatchResult>(agentParams, CS_AGENT_DISPATCH_RPC_TIMEOUT_MS);
+      }
 
       const runId = response?.runId;
       const reconcileImmediately = response?.status === "in_flight";
