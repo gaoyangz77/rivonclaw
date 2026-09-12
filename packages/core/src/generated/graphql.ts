@@ -16,6 +16,8 @@ export interface Scalars {
   DateTimeISO: { input: any; output: any; }
   /** Arbitrary JSON object used for model-specific prediction output and diagnostics. */
   JSONObject: { input: any; output: any; }
+  /** A file supplied through a GraphQL multipart request. */
+  Upload: { input: any; output: any; }
 }
 
 export interface AccountLlmBillingStatus {
@@ -4896,7 +4898,7 @@ export const AffiliateWorkBundleKind = {
 } as const;
 
 export type AffiliateWorkBundleKind = typeof AffiliateWorkBundleKind[keyof typeof AffiliateWorkBundleKind];
-/** Relationship-centered context resolved by backend before Desktop dispatches an affiliate agent. */
+/** Relationship-centered context resolved by the backend before an affiliate agent is dispatched. */
 export interface AffiliateWorkContext {
   activeCollaborations: Array<AffiliateCollaboration>;
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
@@ -4917,7 +4919,7 @@ export interface AffiliateWorkItem {
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
   /** Optional canonical platform Collaboration context inside the CreatorRelationship. */
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
-  /** Immutable agenda snapshot minted for this exact dispatch. Set on the subscription publish path and on the Desktop dispatch query opt-in; null on inventory/audit reads and on projections that predate snapshot dispatch. */
+  /** Immutable agenda snapshot minted for this exact dispatch. Set on the subscription publish path and on an explicit Desktop or MCP dispatch query; null on inventory/audit reads and on projections that predate snapshot dispatch. */
   agendaItemsSnapshotId?: Maybe<Scalars['ID']['output']>;
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
@@ -8187,6 +8189,14 @@ export interface EcomCreateTargetCollaborationResult {
   targetCollaborationId?: Maybe<Scalars['String']['output']>;
 }
 
+/** Rich card types supported by the standalone customer-service sender */
+export const EcomCustomerServiceCardType = {
+  LogisticsCard: 'LOGISTICS_CARD',
+  OrderCard: 'ORDER_CARD',
+  ProductCard: 'PRODUCT_CARD'
+} as const;
+
+export type EcomCustomerServiceCardType = typeof EcomCustomerServiceCardType[keyof typeof EcomCustomerServiceCardType];
 /** Shipping document format */
 export const EcomDocumentFormat = {
   Pdf: 'PDF',
@@ -9095,12 +9105,294 @@ export interface EcomUpdateTargetCollaborationResult {
   updateFailed?: Maybe<EcomTargetCollaborationUpdateFailed>;
 }
 
+export interface EcommerceDiagnoseOptimizeProductInput {
+  brandId?: InputMaybe<Scalars['String']['input']>;
+  categoryId: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  mainImages?: InputMaybe<Array<EcommerceProductImageReferenceInput>>;
+  optimizationFields?: InputMaybe<Array<Scalars['String']['input']>>;
+  productAttributes?: InputMaybe<Array<EcommerceProductAttributeInput>>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  sizeChart?: InputMaybe<EcommerceProductSizeChartInput>;
+  title?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceFbtGoodsPageInput {
+  goodsIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  pageSize: Scalars['Int']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  productIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  referenceCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
+}
+
+export interface EcommerceFbtInboundOrderInput {
+  includeCartonDetails?: InputMaybe<Scalars['Boolean']['input']>;
+  orderIds: Array<Scalars['String']['input']>;
+}
+
+export interface EcommerceFbtInboundOrderListResult {
+  inboundOrders: Array<Scalars['JSONObject']['output']>;
+  requestId?: Maybe<Scalars['String']['output']>;
+}
+
+export interface EcommerceFbtInventoryPageInput {
+  fbtWarehouseIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  goodsIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  pageSize: Scalars['Int']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+  skuIds?: InputMaybe<Array<Scalars['String']['input']>>;
+}
+
+export interface EcommerceFbtInventoryRecordPageInput {
+  createTimeGe?: InputMaybe<Scalars['Int']['input']>;
+  createTimeLe?: InputMaybe<Scalars['Int']['input']>;
+  fbtWarehouseIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  goodsIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  pageSize: Scalars['Int']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceFbtObjectListResult {
+  items: Array<Scalars['JSONObject']['output']>;
+  nextPageToken?: Maybe<Scalars['String']['output']>;
+  requestId?: Maybe<Scalars['String']['output']>;
+  totalCount?: Maybe<Scalars['Int']['output']>;
+}
+
+export interface EcommerceFbtWarehouseListResult {
+  requestId?: Maybe<Scalars['String']['output']>;
+  warehouses: Array<Scalars['JSONObject']['output']>;
+}
+
+export interface EcommerceOrderPriceDetailLineItem {
+  currency?: Maybe<Scalars['String']['output']>;
+  netPriceAmount?: Maybe<Scalars['String']['output']>;
+  orderLineItemId?: Maybe<Scalars['String']['output']>;
+  paymentAmount?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  raw: Scalars['JSONObject']['output'];
+  sellerSku?: Maybe<Scalars['String']['output']>;
+  shippingFeePlatformDiscountAmount?: Maybe<Scalars['String']['output']>;
+  shippingFeeSellerDiscountAmount?: Maybe<Scalars['String']['output']>;
+  shippingListAmount?: Maybe<Scalars['String']['output']>;
+  shippingSaleAmount?: Maybe<Scalars['String']['output']>;
+  skuId?: Maybe<Scalars['String']['output']>;
+  skuListAmount?: Maybe<Scalars['String']['output']>;
+  skuSaleAmount?: Maybe<Scalars['String']['output']>;
+  subtotalAmount?: Maybe<Scalars['String']['output']>;
+  subtotalPlatformDiscountAmount?: Maybe<Scalars['String']['output']>;
+  subtotalSellerDiscountAmount?: Maybe<Scalars['String']['output']>;
+  taxAmount?: Maybe<Scalars['String']['output']>;
+}
+
+export interface EcommerceOrderPriceDetailResult {
+  currency?: Maybe<Scalars['String']['output']>;
+  lineItems: Array<EcommerceOrderPriceDetailLineItem>;
+  orderId: Scalars['String']['output'];
+  raw: Scalars['JSONObject']['output'];
+}
+
+/** Raw data returned by one stateless TikTok Shop operation */
+export interface EcommercePassthroughResult {
+  data: Scalars['JSONObject']['output'];
+  requestId?: Maybe<Scalars['String']['output']>;
+}
+
+export interface EcommerceProductAttributeInput {
+  id: Scalars['String']['input'];
+  values: Array<EcommerceProductAttributeValueInput>;
+}
+
+export interface EcommerceProductAttributeValueInput {
+  id?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductBrandQueryInput {
+  brandName?: InputMaybe<Scalars['String']['input']>;
+  categoryId?: InputMaybe<Scalars['String']['input']>;
+  categoryVersion?: InputMaybe<Scalars['String']['input']>;
+  isAuthorized?: InputMaybe<Scalars['Boolean']['input']>;
+  pageSize: Scalars['Int']['input'];
+  pageToken?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductCategoryMetadataInput {
+  categoryVersion?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductCategoryQueryInput {
+  categoryVersion?: InputMaybe<Scalars['String']['input']>;
+  includeProhibitedCategories?: InputMaybe<Scalars['Boolean']['input']>;
+  keyword?: InputMaybe<Scalars['String']['input']>;
+  listingPlatform?: InputMaybe<Scalars['String']['input']>;
+  locale?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductExternalListPriceInput {
+  amount: Scalars['String']['input'];
+  currency: Scalars['String']['input'];
+  source: Scalars['String']['input'];
+}
+
+export interface EcommerceProductImageReferenceInput {
+  uri: Scalars['String']['input'];
+}
+
+export interface EcommerceProductImageUploadResult {
+  height: Scalars['Int']['output'];
+  uri: Scalars['String']['output'];
+  url?: Maybe<Scalars['String']['output']>;
+  useCase?: Maybe<Scalars['String']['output']>;
+  width: Scalars['Int']['output'];
+}
+
+export interface EcommerceProductInventoryInput {
+  backorderQuantity?: InputMaybe<Scalars['Int']['input']>;
+  handlingTime?: InputMaybe<Scalars['Int']['input']>;
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+  warehouseId: Scalars['String']['input'];
+}
+
+export interface EcommerceProductLifecycleInput {
+  listingPlatforms?: InputMaybe<Array<Scalars['String']['input']>>;
+  productIds: Array<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductListPriceInput {
+  amount: Scalars['String']['input'];
+  currency: Scalars['String']['input'];
+}
+
+/** Stable core fields for product listing operations. additionalFields accepts official snake_case fields not yet promoted into this schema. */
+export interface EcommerceProductListingInput {
+  additionalFields?: InputMaybe<Scalars['JSONObject']['input']>;
+  brandId?: InputMaybe<Scalars['String']['input']>;
+  categoryId?: InputMaybe<Scalars['String']['input']>;
+  deliveryOptionIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  externalProductId?: InputMaybe<Scalars['String']['input']>;
+  keyProductFeatures?: InputMaybe<Array<Scalars['String']['input']>>;
+  listingPlatforms?: InputMaybe<Array<Scalars['String']['input']>>;
+  mainImages?: InputMaybe<Array<EcommerceProductImageReferenceInput>>;
+  packageDimensions?: InputMaybe<EcommerceProductPackageDimensionsInput>;
+  packageWeight?: InputMaybe<EcommerceProductPackageWeightInput>;
+  productAttributes?: InputMaybe<Array<EcommerceProductAttributeInput>>;
+  saveMode?: InputMaybe<Scalars['String']['input']>;
+  searchTerms?: InputMaybe<Array<Scalars['String']['input']>>;
+  shippingTemplateId?: InputMaybe<Scalars['String']['input']>;
+  sizeChart?: InputMaybe<EcommerceProductSizeChartInput>;
+  skus?: InputMaybe<Array<EcommerceProductListingSkuInput>>;
+  title?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductListingSkuInput {
+  externalListPrices?: InputMaybe<Array<EcommerceProductExternalListPriceInput>>;
+  externalSkuId?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  inventory?: InputMaybe<Array<EcommerceProductInventoryInput>>;
+  listPrice?: InputMaybe<EcommerceProductListPriceInput>;
+  price?: InputMaybe<EcommerceProductPriceInput>;
+  salesAttributes?: InputMaybe<Array<EcommerceProductSalesAttributeInput>>;
+  sellerSku?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductPackageDimensionsInput {
+  height: Scalars['String']['input'];
+  length: Scalars['String']['input'];
+  unit: Scalars['String']['input'];
+  width: Scalars['String']['input'];
+}
+
+export interface EcommerceProductPackageWeightInput {
+  unit: Scalars['String']['input'];
+  value: Scalars['String']['input'];
+}
+
+export interface EcommerceProductPriceInput {
+  amount?: InputMaybe<Scalars['String']['input']>;
+  currency: Scalars['String']['input'];
+  salePrice?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductPriceUpdateSkuInput {
+  externalListPrices?: InputMaybe<Array<EcommerceProductExternalListPriceInput>>;
+  id: Scalars['String']['input'];
+  listPrice?: InputMaybe<EcommerceProductListPriceInput>;
+  price: EcommerceProductPriceInput;
+}
+
+export interface EcommerceProductSalesAttributeInput {
+  id?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  skuImageUri?: InputMaybe<Scalars['String']['input']>;
+  supplementaryImageUris?: InputMaybe<Array<Scalars['String']['input']>>;
+  valueId?: InputMaybe<Scalars['String']['input']>;
+  valueName?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceProductSizeChartInput {
+  imageUri?: InputMaybe<Scalars['String']['input']>;
+  templateId?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcommerceRecommendProductCategoryInput {
+  categoryVersion?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  images?: InputMaybe<Array<EcommerceProductImageReferenceInput>>;
+  includeProhibitedCategories?: InputMaybe<Scalars['Boolean']['input']>;
+  listingPlatform?: InputMaybe<Scalars['String']['input']>;
+  productTitle: Scalars['String']['input'];
+}
+
+export interface EcommerceTtsTrackingValidationResult {
+  isTikTokCollection?: Maybe<Scalars['Boolean']['output']>;
+  isTikTokShipping?: Maybe<Scalars['Boolean']['output']>;
+  requestId?: Maybe<Scalars['String']['output']>;
+}
+
+export interface EcommerceUpdateShippingInfoInput {
+  shippingProviderId: Scalars['String']['input'];
+  trackingNumber: Scalars['String']['input'];
+}
+
 /** Result of updating a shop through the agent-facing resolver */
 export interface EcommerceUpdateShopResult {
   /** Human-readable confirmation message */
   message?: Maybe<Scalars['String']['output']>;
   /** Shop ID that was updated */
   shopId: Scalars['String']['output'];
+}
+
+export interface EcommerceWarehouse {
+  address?: Maybe<EcommerceWarehouseAddress>;
+  effectStatus: Scalars['String']['output'];
+  entityId?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+  isDefault?: Maybe<Scalars['Boolean']['output']>;
+  name: Scalars['String']['output'];
+  regionCode?: Maybe<Scalars['String']['output']>;
+  subType?: Maybe<Scalars['String']['output']>;
+  type: Scalars['String']['output'];
+}
+
+export interface EcommerceWarehouseAddress {
+  addressLine1?: Maybe<Scalars['String']['output']>;
+  addressLine2?: Maybe<Scalars['String']['output']>;
+  city?: Maybe<Scalars['String']['output']>;
+  district?: Maybe<Scalars['String']['output']>;
+  fullAddress?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  region?: Maybe<Scalars['String']['output']>;
+  regionCode?: Maybe<Scalars['String']['output']>;
+  state?: Maybe<Scalars['String']['output']>;
+}
+
+export interface EcommerceWarehouseListResult {
+  requestId?: Maybe<Scalars['String']['output']>;
+  warehouses: Array<EcommerceWarehouse>;
 }
 
 export interface EditAffiliateOpenCollaborationSampleRuleInput {
@@ -10094,6 +10386,17 @@ export interface MarketingTouchInput {
   term?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface McpOAuthAuthorizationDecision {
+  redirectUrl: Scalars['String']['output'];
+}
+
+export interface McpOAuthAuthorizationRequestView {
+  clientName: Scalars['String']['output'];
+  expiresAt: Scalars['DateTimeISO']['output'];
+  resource: Scalars['String']['output'];
+  scopes: Array<Scalars['String']['output']>;
+}
+
 /** Current user profile */
 export interface MeResponse {
   /** Account that owns this user's business data. Equals userId for a main account. */
@@ -10314,6 +10617,7 @@ export interface Mutation {
   csStartSession: CsConversationSignal;
   /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED applies sampleReviewOverride to exactly one pure Sample Application review (or the legacy opposite decision when omitted) and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note; IGNORED discards the proposal while acknowledging its boundary so the Agent will not re-propose for the same messages. */
   decideActionProposal: ActionProposal;
+  decideMcpOAuthAuthorization: McpOAuthAuthorizationDecision;
   /** Delete a member account */
   deleteAccountMember: Scalars['Boolean']['output'];
   /** Delete an account role that no member uses */
@@ -10336,6 +10640,7 @@ export interface Mutation {
   dispatchExpertMessage: ExpertDispatchResult;
   /** Copy Campaign configuration and its immutable product snapshot into a new draft. */
   duplicateAffiliateCampaign: AffiliateCampaign;
+  ecommerceActivateProducts: EcommercePassthroughResult;
   ecommerceApplyCSUnpaidOrderConfigVariantToBase: CsUnpaidOrderEvaluationView;
   /** Approve a cancellation request. Returns true on success. */
   ecommerceApproveCancellation: Scalars['Boolean']['output'];
@@ -10344,12 +10649,23 @@ export interface Mutation {
   /** Approve a return/replacement request. Returns true on success. */
   ecommerceApproveReturn: Scalars['Boolean']['output'];
   ecommerceArchiveCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
+  ecommerceCheckProductListing: EcommercePassthroughResult;
   ecommerceCreateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
   /** Create a new conversation with a buyer */
   ecommerceCreateConversation: CustomerServiceCreateConversationResult;
+  ecommerceCreateProduct: EcommercePassthroughResult;
+  ecommerceDeactivateProducts: EcommercePassthroughResult;
+  ecommerceDeleteProducts: EcommercePassthroughResult;
+  ecommerceDiagnoseAndOptimizeProduct: EcommercePassthroughResult;
+  ecommerceEditProduct: EcommercePassthroughResult;
   /** Mark a conversation as read. Returns true on success. */
   ecommerceMarkConversationRead: Scalars['Boolean']['output'];
+  ecommercePartialEditProduct: EcommercePassthroughResult;
+  ecommerceRecommendProductCategory: EcommercePassthroughResult;
+  ecommerceRecoverProducts: EcommercePassthroughResult;
   ecommerceReplaceCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
+  /** Send a standalone rich card in a customer-service conversation. */
+  ecommerceSendCustomerServiceCard: CustomerServiceSendMessageResult;
   /** Send a manual text reply in a CS conversation without waking or requiring an AI session. */
   ecommerceSendCustomerServiceTextReply: CustomerServiceSendMessageResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
@@ -10362,8 +10678,12 @@ export interface Mutation {
   ecommerceUpdateCSUnpaidOrderReachoutSettings: CsUnpaidOrderEvaluationView;
   /** Update inventory for one or more shops. Each input item contains shopId and its SKU inventory updates. */
   ecommerceUpdateInventory: Array<EcomUpdateInventoryResult>;
+  ecommerceUpdateOrderShippingInfo: EcommercePassthroughResult;
+  ecommerceUpdatePackageShippingInfo: EcommercePassthroughResult;
+  ecommerceUpdateProductPrice: EcommercePassthroughResult;
   /** Update shop settings (agent-facing, flat params) */
   ecommerceUpdateShop: EcommerceUpdateShopResult;
+  ecommerceUploadProductImage: EcommerceProductImageUploadResult;
   /** Activate, edit, or deactivate a product-level Open Collaboration sample rule. */
   editAffiliateOpenCollaborationSampleRule: EditAffiliateOpenCollaborationSampleRulePayload;
   /** Edit shop-wide TikTok Open Collaboration auto-add settings. */
@@ -10448,6 +10768,8 @@ export interface Mutation {
   requestCaptcha: CaptchaResponse;
   /** Request one user's authenticated desktop client to upload its current local log (admin only) */
   requestClientLogUpload: ClientLogUploadRequestPayload;
+  /** Send a one-time email code for browser account registration */
+  requestRegistrationEmailCode: RegistrationEmailCodeResponse;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
   /** Resolve one affiliate work item and return only whether the exact work boundary was accepted. Every completed REQUEST_ACTION or NO_ACTION_NEEDED result is persisted as an ActionProposal work bundle; proposal details and model evidence remain available only through staff review APIs. */
@@ -10901,6 +11223,12 @@ export interface MutationDecideActionProposalArgs {
 }
 
 
+export interface MutationDecideMcpOAuthAuthorizationArgs {
+  approved: Scalars['Boolean']['input'];
+  requestId: Scalars['String']['input'];
+}
+
+
 export interface MutationDeleteAccountMemberArgs {
   memberId: Scalars['String']['input'];
 }
@@ -10965,6 +11293,12 @@ export interface MutationDuplicateAffiliateCampaignArgs {
 }
 
 
+export interface MutationEcommerceActivateProductsArgs {
+  input: EcommerceProductLifecycleInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface MutationEcommerceApplyCsUnpaidOrderConfigVariantToBaseArgs {
   experimentId: Scalars['ID']['input'];
   variantKey: Scalars['String']['input'];
@@ -11002,6 +11336,12 @@ export interface MutationEcommerceArchiveCsUnpaidOrderConfigExperimentDraftArgs 
 }
 
 
+export interface MutationEcommerceCheckProductListingArgs {
+  input: EcommerceProductListingInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface MutationEcommerceCreateCsUnpaidOrderConfigExperimentDraftArgs {
   input: CsUnpaidOrderConfigExperimentInput;
 }
@@ -11009,7 +11349,39 @@ export interface MutationEcommerceCreateCsUnpaidOrderConfigExperimentDraftArgs {
 
 export interface MutationEcommerceCreateConversationArgs {
   buyerUserId: Scalars['String']['input'];
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceCreateProductArgs {
+  input: EcommerceProductListingInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceDeactivateProductsArgs {
+  input: EcommerceProductLifecycleInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceDeleteProductsArgs {
+  productIds: Array<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceDiagnoseAndOptimizeProductArgs {
+  input: EcommerceDiagnoseOptimizeProductInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceEditProductArgs {
+  input: EcommerceProductListingInput;
+  productId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -11019,13 +11391,42 @@ export interface MutationEcommerceMarkConversationReadArgs {
 }
 
 
+export interface MutationEcommercePartialEditProductArgs {
+  input: EcommerceProductListingInput;
+  productId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceRecommendProductCategoryArgs {
+  input: EcommerceRecommendProductCategoryInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceRecoverProductsArgs {
+  productIds: Array<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface MutationEcommerceReplaceCsUnpaidOrderConfigExperimentArgs {
   input: CsUnpaidOrderConfigExperimentInput;
 }
 
 
+export interface MutationEcommerceSendCustomerServiceCardArgs {
+  content: Scalars['String']['input'];
+  conversationId: Scalars['String']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
+  type: EcomCustomerServiceCardType;
+}
+
+
 export interface MutationEcommerceSendCustomerServiceTextReplyArgs {
   conversationId: Scalars['String']['input'];
+  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   message: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
@@ -11073,11 +11474,39 @@ export interface MutationEcommerceUpdateInventoryArgs {
 }
 
 
+export interface MutationEcommerceUpdateOrderShippingInfoArgs {
+  input: EcommerceUpdateShippingInfoInput;
+  orderId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceUpdatePackageShippingInfoArgs {
+  input: EcommerceUpdateShippingInfoInput;
+  packageId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceUpdateProductPriceArgs {
+  productId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+  skus: Array<EcommerceProductPriceUpdateSkuInput>;
+}
+
+
 export interface MutationEcommerceUpdateShopArgs {
   alias?: InputMaybe<Scalars['String']['input']>;
   customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
   shopId: Scalars['String']['input'];
   wmsSettings?: InputMaybe<WmsSettingsInput>;
+}
+
+
+export interface MutationEcommerceUploadProductImageArgs {
+  file: Scalars['Upload']['input'];
+  shopId: Scalars['ID']['input'];
+  useCase?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -11307,6 +11736,11 @@ export interface MutationRequestClientLogUploadArgs {
   deviceId?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface MutationRequestRegistrationEmailCodeArgs {
+  input: RequestRegistrationEmailCodeInput;
 }
 
 
@@ -11547,7 +11981,7 @@ export interface MutationWebLoginArgs {
 
 
 export interface MutationWebRegisterArgs {
-  input: RegisterInput;
+  input: WebRegisterInput;
 }
 
 
@@ -12290,7 +12724,7 @@ export interface Query {
   affiliateUnknownSenderIdentificationWork: Array<AffiliateUnknownSenderIdentificationWorkView>;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
-  /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
+  /** Read current backend-materialized affiliate work projections. Desktop and MCP callers use this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
   /** Read pending Affiliate channel facts as one merged TikTok, WhatsApp, and Email page. */
   affiliateWorkbenchPendingConversationPage: AffiliateWorkbenchPendingConversationPage;
@@ -12328,6 +12762,7 @@ export interface Query {
   /** Get public Google sign-in configuration for native desktop clients */
   desktopGoogleAuthConfig: DesktopGoogleAuthConfig;
   discoverProductsBySellerSku: SellerSkuProductDiscoveryPayload;
+  ecommerceCheckListingPrerequisites: EcommercePassthroughResult;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   ecommerceGetCSExperimentDetail: CsExperimentDetailView;
@@ -12354,10 +12789,13 @@ export interface Query {
   ecommerceGetConversations: Array<CustomerServiceConversationSummary>;
   /** List backend-materialized customer-service conversations across one or more owned shops. */
   ecommerceGetCustomerServiceInbox: CustomerServiceConversationInboxPage;
+  ecommerceGetFbtInboundOrders: EcommerceFbtInboundOrderListResult;
+  ecommerceGetFbtWarehouses: EcommerceFbtWarehouseListResult;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
   ecommerceGetOrder?: Maybe<EcomOrder>;
+  ecommerceGetOrderPriceDetail?: Maybe<EcommerceOrderPriceDetailResult>;
   /** Get order-derived sales statistics from fct_order_shop_daily, fct_order_product_daily, or fct_order_sku_daily. */
   ecommerceGetOrderSalesStats: EcomOrderSalesStatsResult;
   /** List/search orders as a flat summary list. Optional buyerUserId for buyer-scoped queries. Pagination is handled internally by the backend. For full order details use ecommerceGetOrder. */
@@ -12370,6 +12808,11 @@ export interface Query {
   ecommerceGetPendingConversations: CustomerServicePendingConversationsResult;
   /** Get product details */
   ecommerceGetProduct: EcomProduct;
+  ecommerceGetProductBrands: EcommercePassthroughResult;
+  ecommerceGetProductCategories: EcommercePassthroughResult;
+  ecommerceGetProductCategoryAttributes: EcommercePassthroughResult;
+  ecommerceGetProductCategoryRules: EcommercePassthroughResult;
+  ecommerceGetProductDiagnoses: EcommercePassthroughResult;
   /** Get valid reject reasons for a return or cancellation */
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
@@ -12378,17 +12821,22 @@ export interface Query {
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
   /** Load the seller SPS analytics page: current SPS overview plus TikTok's live 90-day trend for one selected SPS metric, grouped by market and shop. */
   ecommerceGetSpsAnalytics: SpsAnalyticsView;
+  ecommerceGetWarehouses: EcommerceWarehouseListResult;
   ecommerceListCSUnpaidOrderExperiments: Array<CsUnpaidOrderConfigExperimentView>;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchCancellations: Array<EcomCancellation>;
+  ecommerceSearchFbtGoodsPage: EcommerceFbtObjectListResult;
+  ecommerceSearchFbtInventoryPage: EcommerceFbtObjectListResult;
+  ecommerceSearchFbtInventoryRecordPage: EcommerceFbtObjectListResult;
   /** Search fulfillment packages with optional filters and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchPackages: Array<EcomPackage>;
   /** Search/list products across authorized shops with optional shopIds and region scope. When shopIds and region are both provided, only shops matching both are searched. When creation-time and update-time filters are both provided, products must match both ranges. The limit applies across all selected shops, and pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
+  ecommerceValidateTtsTracking: EcommerceTtsTrackingValidationResult;
   /** List Outlook/Microsoft Graph email account bindings for the authenticated seller. */
   emailAccountBindings: Array<EmailAccountBinding>;
   experimentGetAnalytics: ExperimentAnalyticsView;
@@ -12418,6 +12866,7 @@ export interface Query {
   getEcommerceBiDimensionValues: EcomBiDimensionValuesResult;
   /** List recent image assets for the authenticated user */
   imageAssets: Array<ImageAsset>;
+  mcpOAuthAuthorizationRequest: McpOAuthAuthorizationRequestView;
   /** Get current authenticated user profile */
   me: MeResponse;
   /** Check Microsoft Graph OAuth/webhook readiness and summarize seller Outlook subscription health. */
@@ -12908,6 +13357,11 @@ export interface QueryDiscoverProductsBySellerSkuArgs {
 }
 
 
+export interface QueryEcommerceCheckListingPrerequisitesArgs {
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryEcommerceGetAftersaleEligibilityArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
@@ -13020,6 +13474,17 @@ export interface QueryEcommerceGetCustomerServiceInboxArgs {
 }
 
 
+export interface QueryEcommerceGetFbtInboundOrdersArgs {
+  input: EcommerceFbtInboundOrderInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetFbtWarehousesArgs {
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryEcommerceGetFulfillmentTrackingArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
@@ -13031,6 +13496,12 @@ export interface QueryEcommerceGetOrderArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetOrderPriceDetailArgs {
+  orderId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -13075,6 +13546,38 @@ export interface QueryEcommerceGetProductArgs {
 }
 
 
+export interface QueryEcommerceGetProductBrandsArgs {
+  input: EcommerceProductBrandQueryInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetProductCategoriesArgs {
+  input?: InputMaybe<EcommerceProductCategoryQueryInput>;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetProductCategoryAttributesArgs {
+  categoryId: Scalars['ID']['input'];
+  input?: InputMaybe<EcommerceProductCategoryMetadataInput>;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetProductCategoryRulesArgs {
+  categoryId: Scalars['ID']['input'];
+  input?: InputMaybe<EcommerceProductCategoryMetadataInput>;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetProductDiagnosesArgs {
+  productIds: Array<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryEcommerceGetRejectReasonsArgs {
   returnOrCancelId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
@@ -13099,6 +13602,11 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
 
 export interface QueryEcommerceGetSpsAnalyticsArgs {
   input: SpsAnalyticsInput;
+}
+
+
+export interface QueryEcommerceGetWarehousesArgs {
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -13128,6 +13636,24 @@ export interface QueryEcommerceSearchCancellationsArgs {
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
+}
+
+
+export interface QueryEcommerceSearchFbtGoodsPageArgs {
+  input: EcommerceFbtGoodsPageInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceSearchFbtInventoryPageArgs {
+  input: EcommerceFbtInventoryPageInput;
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceSearchFbtInventoryRecordPageArgs {
+  input: EcommerceFbtInventoryRecordPageInput;
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -13168,6 +13694,12 @@ export interface QueryEcommerceSearchReturnsArgs {
   shopId: Scalars['String']['input'];
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLt?: InputMaybe<Scalars['Float']['input']>;
+}
+
+
+export interface QueryEcommerceValidateTtsTrackingArgs {
+  shopId: Scalars['ID']['input'];
+  trackingNumber: Scalars['String']['input'];
 }
 
 
@@ -13234,6 +13766,11 @@ export interface QueryGetEcommerceBiDataArgs {
 
 export interface QueryGetEcommerceBiDimensionValuesArgs {
   input: EcomBiDimensionValuesInput;
+}
+
+
+export interface QueryMcpOAuthAuthorizationRequestArgs {
+  requestId: Scalars['String']['input'];
 }
 
 
@@ -13514,7 +14051,7 @@ export interface ReadAffiliateWorkItemsInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   agentDispatchRecommended?: InputMaybe<Scalars['Boolean']['input']>;
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
-  /** Explicit dispatch opt-in. Only the authoritative Desktop dispatch flow passes true; each returned work item then carries a freshly minted immutable agenda snapshot. Inventory, audit, and Panel reads must leave this unset — they never mint. */
+  /** Explicit dispatch opt-in for an agent beginning work. Desktop or MCP callers may pass true; each returned work item then carries a freshly minted immutable agenda snapshot. Inventory, audit, and Panel reads must leave this unset — they never mint. */
   dispatch?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   processingStatus?: InputMaybe<AffiliateRelationshipProcessingStatus>;
@@ -13685,6 +14222,13 @@ export interface RegisterInput {
   password: Scalars['String']['input'];
 }
 
+/** Registration email verification challenge */
+export interface RegistrationEmailCodeResponse {
+  expiresAt: Scalars['DateTimeISO']['output'];
+  remainingDailyRequests: Scalars['Int']['output'];
+  token: Scalars['String']['output'];
+}
+
 export interface RelayTokenResult {
   desktopDeviceId?: Maybe<Scalars['String']['output']>;
   mobileDeviceId?: Maybe<Scalars['String']['output']>;
@@ -13757,6 +14301,13 @@ export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
   generation: Scalars['Int']['input'];
   generationRequestId: Scalars['ID']['input'];
   leaseToken: Scalars['String']['input'];
+}
+
+/** Request a registration email verification code */
+export interface RequestRegistrationEmailCodeInput {
+  captchaAnswer: Scalars['String']['input'];
+  captchaToken: Scalars['String']['input'];
+  email: Scalars['String']['input'];
 }
 
 export interface ResolveAffiliateCampaignProductInput {
@@ -15167,6 +15718,7 @@ export const ToolId = {
   AffiliateGetProduct: 'AFFILIATE_GET_PRODUCT',
   AffiliateGetRelationshipTimeline: 'AFFILIATE_GET_RELATIONSHIP_TIMELINE',
   AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
+  AffiliateGetWorkItems: 'AFFILIATE_GET_WORK_ITEMS',
   AffiliateIgnoreUnknownSender: 'AFFILIATE_IGNORE_UNKNOWN_SENDER',
   AffiliateLinkUnknownSender: 'AFFILIATE_LINK_UNKNOWN_SENDER',
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
@@ -15184,8 +15736,10 @@ export const ToolId = {
   AffiliateReplyUnknownSender: 'AFFILIATE_REPLY_UNKNOWN_SENDER',
   AffiliateResolve: 'AFFILIATE_RESOLVE',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
+  AffiliateReviewSampleApplication: 'AFFILIATE_REVIEW_SAMPLE_APPLICATION',
   AffiliateSearchManualTags: 'AFFILIATE_SEARCH_MANUAL_TAGS',
   AffiliateSearchProducts: 'AFFILIATE_SEARCH_PRODUCTS',
+  AffiliateSendCreatorMessage: 'AFFILIATE_SEND_CREATOR_MESSAGE',
   AffiliateSetCreatorEmail: 'AFFILIATE_SET_CREATOR_EMAIL',
   AffiliateSetCreatorWhatsapp: 'AFFILIATE_SET_CREATOR_WHATSAPP',
   AffiliateUploadDraftAttachment: 'AFFILIATE_UPLOAD_DRAFT_ATTACHMENT',
@@ -15194,9 +15748,14 @@ export const ToolId = {
   CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
   CsRespond: 'CS_RESPOND',
   CsStartSession: 'CS_START_SESSION',
+  EcomActivateProducts: 'ECOM_ACTIVATE_PRODUCTS',
   EcomApproveCancellation: 'ECOM_APPROVE_CANCELLATION',
   EcomApproveRefund: 'ECOM_APPROVE_REFUND',
   EcomApproveReturn: 'ECOM_APPROVE_RETURN',
+  EcomCheckListingPrerequisites: 'ECOM_CHECK_LISTING_PREREQUISITES',
+  EcomCheckProductListing: 'ECOM_CHECK_PRODUCT_LISTING',
+  EcomCreateCustomerServiceConversation: 'ECOM_CREATE_CUSTOMER_SERVICE_CONVERSATION',
+  EcomCreateProduct: 'ECOM_CREATE_PRODUCT',
   EcomCsApproveCancellation: 'ECOM_CS_APPROVE_CANCELLATION',
   EcomCsApproveRefund: 'ECOM_CS_APPROVE_REFUND',
   EcomCsApproveReturn: 'ECOM_CS_APPROVE_RETURN',
@@ -15219,6 +15778,10 @@ export const ToolId = {
   EcomCsSearchReturns: 'ECOM_CS_SEARCH_RETURNS',
   EcomCsSendCard: 'ECOM_CS_SEND_CARD',
   EcomCsSendMedia: 'ECOM_CS_SEND_MEDIA',
+  EcomDeactivateProducts: 'ECOM_DEACTIVATE_PRODUCTS',
+  EcomDeleteProducts: 'ECOM_DELETE_PRODUCTS',
+  EcomDiagnoseAndOptimizeProduct: 'ECOM_DIAGNOSE_AND_OPTIMIZE_PRODUCT',
+  EcomEditProduct: 'ECOM_EDIT_PRODUCT',
   EcomGetAftersaleEligibility: 'ECOM_GET_AFTERSALE_ELIGIBILITY',
   EcomGetBiCatalog: 'ECOM_GET_BI_CATALOG',
   EcomGetBiData: 'ECOM_GET_BI_DATA',
@@ -15226,31 +15789,54 @@ export const ToolId = {
   EcomGetConversationMessages: 'ECOM_GET_CONVERSATION_MESSAGES',
   EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
   EcomGetCsUnpaidOrderEvaluation: 'ECOM_GET_CS_UNPAID_ORDER_EVALUATION',
+  EcomGetCustomerServiceInbox: 'ECOM_GET_CUSTOMER_SERVICE_INBOX',
+  EcomGetFbtInboundOrders: 'ECOM_GET_FBT_INBOUND_ORDERS',
+  EcomGetFbtWarehouses: 'ECOM_GET_FBT_WAREHOUSES',
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetInventoryAnalysis: 'ECOM_GET_INVENTORY_ANALYSIS',
   EcomGetOrder: 'ECOM_GET_ORDER',
+  EcomGetOrderPriceDetail: 'ECOM_GET_ORDER_PRICE_DETAIL',
   EcomGetOrderSalesStats: 'ECOM_GET_ORDER_SALES_STATS',
   EcomGetPackageDetail: 'ECOM_GET_PACKAGE_DETAIL',
   EcomGetPendingConversations: 'ECOM_GET_PENDING_CONVERSATIONS',
   EcomGetProduct: 'ECOM_GET_PRODUCT',
+  EcomGetProductBrands: 'ECOM_GET_PRODUCT_BRANDS',
+  EcomGetProductCategories: 'ECOM_GET_PRODUCT_CATEGORIES',
+  EcomGetProductCategoryAttributes: 'ECOM_GET_PRODUCT_CATEGORY_ATTRIBUTES',
+  EcomGetProductCategoryRules: 'ECOM_GET_PRODUCT_CATEGORY_RULES',
+  EcomGetProductDiagnoses: 'ECOM_GET_PRODUCT_DIAGNOSES',
   EcomGetRejectReasons: 'ECOM_GET_REJECT_REASONS',
   EcomGetReturnRecords: 'ECOM_GET_RETURN_RECORDS',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
   EcomGetShop: 'ECOM_GET_SHOP',
   EcomGetShopSkuPerformanceList: 'ECOM_GET_SHOP_SKU_PERFORMANCE_LIST',
+  EcomGetWarehouses: 'ECOM_GET_WAREHOUSES',
   EcomListOrders: 'ECOM_LIST_ORDERS',
   EcomListShops: 'ECOM_LIST_SHOPS',
   EcomMarkConversationRead: 'ECOM_MARK_CONVERSATION_READ',
+  EcomPartialEditProduct: 'ECOM_PARTIAL_EDIT_PRODUCT',
+  EcomRecommendProductCategory: 'ECOM_RECOMMEND_PRODUCT_CATEGORY',
+  EcomRecoverProducts: 'ECOM_RECOVER_PRODUCTS',
   EcomRejectCancellation: 'ECOM_REJECT_CANCELLATION',
   EcomRejectReturn: 'ECOM_REJECT_RETURN',
   EcomSearchCancellations: 'ECOM_SEARCH_CANCELLATIONS',
   EcomSearchCsSessions: 'ECOM_SEARCH_CS_SESSIONS',
+  EcomSearchFbtGoodsPage: 'ECOM_SEARCH_FBT_GOODS_PAGE',
+  EcomSearchFbtInventoryPage: 'ECOM_SEARCH_FBT_INVENTORY_PAGE',
+  EcomSearchFbtInventoryRecordPage: 'ECOM_SEARCH_FBT_INVENTORY_RECORD_PAGE',
   EcomSearchPackages: 'ECOM_SEARCH_PACKAGES',
   EcomSearchProducts: 'ECOM_SEARCH_PRODUCTS',
   EcomSearchReturns: 'ECOM_SEARCH_RETURNS',
+  EcomSendCustomerServiceCard: 'ECOM_SEND_CUSTOMER_SERVICE_CARD',
+  EcomSendCustomerServiceTextReply: 'ECOM_SEND_CUSTOMER_SERVICE_TEXT_REPLY',
   EcomSetCustomerServiceConversationAiEnabled: 'ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED',
   EcomUpdateInventory: 'ECOM_UPDATE_INVENTORY',
+  EcomUpdateOrderShippingInfo: 'ECOM_UPDATE_ORDER_SHIPPING_INFO',
+  EcomUpdatePackageShippingInfo: 'ECOM_UPDATE_PACKAGE_SHIPPING_INFO',
+  EcomUpdateProductPrice: 'ECOM_UPDATE_PRODUCT_PRICE',
   EcomUpdateShop: 'ECOM_UPDATE_SHOP',
+  EcomUploadProductImage: 'ECOM_UPLOAD_PRODUCT_IMAGE',
+  EcomValidateTtsTracking: 'ECOM_VALIDATE_TTS_TRACKING',
   EcomWriteAffiliateCampaign: 'ECOM_WRITE_AFFILIATE_CAMPAIGN'
 } as const;
 
@@ -15676,6 +16262,19 @@ export type WebAppSurface = typeof WebAppSurface[keyof typeof WebAppSurface];
 export interface WebAuthPayload {
   accessToken: Scalars['String']['output'];
   user: MeResponse;
+}
+
+/** Verified browser registration input */
+export interface WebRegisterInput {
+  /** Optional anonymous website-to-desktop acquisition attribution. */
+  attribution?: InputMaybe<MarketingAttributionInput>;
+  email: Scalars['String']['input'];
+  emailVerificationCode: Scalars['String']['input'];
+  emailVerificationToken: Scalars['String']['input'];
+  /** Optional six-character agent invite code. */
+  inviteCode?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  password: Scalars['String']['input'];
 }
 
 export interface WebSessionTransferStart {
