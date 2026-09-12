@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.9.15",
+    "date": "2026-09-11",
+    "en": [
+      "Restore archived customer-service sessions before retrying dispatch, so interrupted conversations can resume normally"
+    ],
+    "zh": [
+      "客服会话重试派发前自动从归档状态恢复，确保中断会话能够正常继续"
+    ]
+  },
+  {
     "version": "1.9.14",
     "date": "2026-09-10",
     "en": [
