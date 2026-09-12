@@ -1,4 +1,5 @@
 import { freshTest as test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 const testEmail = process.env.STAGING_TEST_USERNAME;
 const testPassword = process.env.STAGING_TEST_PASSWORD;
@@ -58,6 +59,6 @@ test.describe("RivonClaw Welcome Flow", () => {
     await modal.locator(".captcha-row-input input").fill("0000");
     await modal.locator("button[type='submit']").click();
 
-    await expect(window.locator(".user-avatar-btn, .nav-btn", { hasText: /Account/i }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(getNavigationButton(window, "Account")).toBeVisible({ timeout: 30_000 });
   });
 });

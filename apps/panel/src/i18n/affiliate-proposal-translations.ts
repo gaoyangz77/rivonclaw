@@ -1,6 +1,27 @@
 export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   en: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "Approve",
+          "REJECT": "Reject",
+          "IGNORE": "Ignore"
+        },
+        "confirm": {
+          "APPROVE": "Confirm approval",
+          "REJECT": "Confirm rejection",
+          "IGNORE": "Confirm ignore"
+        },
+        "change": "Change to…",
+        "changeTo": {
+          "APPROVE": "Change to approve",
+          "REJECT": "Change to reject",
+          "IGNORE": "Change to ignore"
+        },
+        "ignoreHint": "Stop reviewing this application and let it expire, without rejecting it on the platform.",
+        "summary": "{{count}} applications · {{approveCount}} approve · {{rejectCount}} reject · {{ignoreCount}} ignore",
+        "suggestion": "Agent recommendation: {{action}}"
+      },
       stockSummary: { title: "SKU / Stock", item: "SKU / Product" },
       loadMoreProposals: "Load more proposals",
       loadingMoreProposals: "Loading more proposals…",
@@ -20,11 +41,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "Approving executes every decision in this bundle.",
         confirmSend: "Confirm · send sample",
         confirmDoNotSend: "Confirm · do not send",
-        approveBundle: "Approve entire proposal",
+        approveBundle: "Confirm all Agent recommendations",
         overrideSend: "Override · send sample",
         overrideDoNotSend: "Override · do not send",
-        overrideNote: "Human reversed the Agent's Sample Application decision.",
-        overrideSuccess: "The opposite Sample Application decision was executed",
+        overrideNote: "Staff changed the sample application decision to: {{action}}.",
+        overrideSuccess: "Sample application decision executed: {{action}}",
         localApplication: "Sample application",
         providerApplication: "Provider",
         shop: "Shop",
@@ -33,7 +54,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "Unknown product",
         unavailable: "Unavailable",
         agentDecision: "Agent proposal decision",
-        softRejectExecution: "Soft reject (let it expire)",
+        softRejectExecution: "Ignore (let it expire)",
         platformExecution: "Approve or reject on TikTok",
         approve: "Send sample",
         reject: "Do not send",
@@ -61,6 +82,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   zh: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "同意",
+          "REJECT": "拒绝",
+          "IGNORE": "忽略"
+        },
+        "confirm": {
+          "APPROVE": "确认同意",
+          "REJECT": "确认拒绝",
+          "IGNORE": "确认忽略"
+        },
+        "change": "改为…",
+        "changeTo": {
+          "APPROVE": "改为同意",
+          "REJECT": "改为拒绝",
+          "IGNORE": "改为忽略"
+        },
+        "ignoreHint": "不再继续审查此样品申请，等待它自然过期，不会直接在平台上拒绝。",
+        "summary": "共 {{count}} 条申样 · 同意 {{approveCount}} 条 · 拒绝 {{rejectCount}} 条 · 忽略 {{ignoreCount}} 条",
+        "suggestion": "Agent 建议：{{action}}"
+      },
       stockSummary: { title: "SKU / 库存", item: "SKU / 商品" },
       loadMoreProposals: "加载更多提案",
       loadingMoreProposals: "正在加载更多提案…",
@@ -80,11 +122,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "批准该提案会一次执行这个决策包中的全部决定。",
         confirmSend: "确认 · 发样",
         confirmDoNotSend: "确认 · 不发样",
-        approveBundle: "批准整个提案",
+        approveBundle: "确认全部 Agent 建议",
         overrideSend: "人工改为发样",
         overrideDoNotSend: "人工改为不发样",
-        overrideNote: "人工反向执行了 Agent 的样品申请决策。",
-        overrideSuccess: "已执行相反的样品申请决策",
+        overrideNote: "人工已将样品申请改为：{{action}}。",
+        overrideSuccess: "已执行样品申请处置：{{action}}",
         localApplication: "样品申请",
         providerApplication: "平台申请",
         shop: "店铺",
@@ -93,7 +135,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "未知商品",
         unavailable: "不可用",
         agentDecision: "Agent 提案决策",
-        softRejectExecution: "柔性拒绝（让申请自然过期）",
+        softRejectExecution: "忽略（等待申请自然过期）",
         platformExecution: "在 TikTok 同意或拒绝",
         approve: "发样",
         reject: "不发样",
@@ -121,6 +163,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   de: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "Genehmigen",
+          "REJECT": "Ablehnen",
+          "IGNORE": "Ignorieren"
+        },
+        "confirm": {
+          "APPROVE": "Genehmigung bestätigen",
+          "REJECT": "Ablehnung bestätigen",
+          "IGNORE": "Ignorieren bestätigen"
+        },
+        "change": "Ändern in…",
+        "changeTo": {
+          "APPROVE": "In Genehmigen ändern",
+          "REJECT": "In Ablehnen ändern",
+          "IGNORE": "In Ignorieren ändern"
+        },
+        "ignoreHint": "Den Antrag nicht weiter prüfen und ablaufen lassen, ohne ihn auf der Plattform abzulehnen.",
+        "summary": "{{count}} Anträge · {{approveCount}} genehmigen · {{rejectCount}} ablehnen · {{ignoreCount}} ignorieren",
+        "suggestion": "Agent-Empfehlung: {{action}}"
+      },
       stockSummary: { title: "SKU / Bestand", item: "SKU / Produkt" },
       loadMoreProposals: "Weitere Vorschläge laden",
       loadingMoreProposals: "Weitere Vorschläge werden geladen…",
@@ -207,11 +270,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "Die Genehmigung führt alle Entscheidungen dieses Pakets aus.",
         confirmSend: "Bestätigen · Muster senden",
         confirmDoNotSend: "Bestätigen · nicht senden",
-        approveBundle: "Gesamtes Entscheidungspaket genehmigen",
+        approveBundle: "Alle Agent-Empfehlungen bestätigen",
         overrideSend: "Überschreiben · Muster senden",
         overrideDoNotSend: "Überschreiben · nicht senden",
-        overrideNote: "Die Entscheidung des Agents zum Musterantrag wurde manuell umgekehrt.",
-        overrideSuccess: "Die umgekehrte Entscheidung zum Musterantrag wurde ausgeführt",
+        overrideNote: "Die Entscheidung zum Musterantrag wurde manuell geändert: {{action}}.",
+        overrideSuccess: "Entscheidung zum Musterantrag ausgeführt: {{action}}",
         localApplication: "Musterantrag",
         providerApplication: "Plattform",
         shop: "Shop",
@@ -220,7 +283,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "Unbekanntes Produkt",
         unavailable: "Nicht verfügbar",
         agentDecision: "Vorschlagsentscheidung des Agents",
-        softRejectExecution: "Sanft ablehnen (ablaufen lassen)",
+        softRejectExecution: "Ignorieren (ablaufen lassen)",
         platformExecution: "Auf TikTok genehmigen oder ablehnen",
         approve: "Muster senden",
         reject: "Nicht senden",
@@ -248,6 +311,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   es: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "Aprobar",
+          "REJECT": "Rechazar",
+          "IGNORE": "Ignorar"
+        },
+        "confirm": {
+          "APPROVE": "Confirmar aprobación",
+          "REJECT": "Confirmar rechazo",
+          "IGNORE": "Confirmar ignorar"
+        },
+        "change": "Cambiar a…",
+        "changeTo": {
+          "APPROVE": "Cambiar a aprobar",
+          "REJECT": "Cambiar a rechazar",
+          "IGNORE": "Cambiar a ignorar"
+        },
+        "ignoreHint": "Dejar de revisar esta solicitud y esperar a que caduque, sin rechazarla en la plataforma.",
+        "summary": "{{count}} solicitudes · {{approveCount}} aprobar · {{rejectCount}} rechazar · {{ignoreCount}} ignorar",
+        "suggestion": "Recomendación del agente: {{action}}"
+      },
       stockSummary: { title: "SKU / Stock", item: "SKU / Producto" },
       loadMoreProposals: "Cargar más propuestas",
       loadingMoreProposals: "Cargando más propuestas…",
@@ -334,11 +418,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "La aprobación ejecuta todas las decisiones de este paquete.",
         confirmSend: "Confirmar · enviar muestra",
         confirmDoNotSend: "Confirmar · no enviar",
-        approveBundle: "Aprobar todo el paquete de decisiones",
+        approveBundle: "Confirmar todas las recomendaciones del agente",
         overrideSend: "Anular · enviar muestra",
         overrideDoNotSend: "Anular · no enviar",
-        overrideNote: "La decisión del agente sobre la muestra se revirtió manualmente.",
-        overrideSuccess: "Se ejecutó la decisión opuesta sobre la muestra",
+        overrideNote: "Se cambió manualmente la decisión sobre la muestra a: {{action}}.",
+        overrideSuccess: "Decisión sobre la muestra ejecutada: {{action}}",
         localApplication: "Muestra",
         providerApplication: "Plataforma",
         shop: "Tienda",
@@ -347,7 +431,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "Producto desconocido",
         unavailable: "No disponible",
         agentDecision: "Decisión propuesta por el agente",
-        softRejectExecution: "Rechazo suave (dejar caducar)",
+        softRejectExecution: "Ignorar (dejar caducar)",
         platformExecution: "Aprobar o rechazar en TikTok",
         approve: "Enviar muestra",
         reject: "No enviar",
@@ -375,6 +459,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   fr: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "Approuver",
+          "REJECT": "Refuser",
+          "IGNORE": "Ignorer"
+        },
+        "confirm": {
+          "APPROVE": "Confirmer l’approbation",
+          "REJECT": "Confirmer le refus",
+          "IGNORE": "Confirmer l’ignorance"
+        },
+        "change": "Remplacer par…",
+        "changeTo": {
+          "APPROVE": "Remplacer par approuver",
+          "REJECT": "Remplacer par refuser",
+          "IGNORE": "Remplacer par ignorer"
+        },
+        "ignoreHint": "Ne plus examiner cette demande et la laisser expirer, sans la refuser sur la plateforme.",
+        "summary": "{{count}} demandes · {{approveCount}} approuver · {{rejectCount}} refuser · {{ignoreCount}} ignorer",
+        "suggestion": "Recommandation de l’agent : {{action}}"
+      },
       stockSummary: { title: "SKU / Stock", item: "SKU / Produit" },
       loadMoreProposals: "Charger plus de propositions",
       loadingMoreProposals: "Chargement de propositions supplémentaires…",
@@ -461,11 +566,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "L’approbation exécute toutes les décisions de ce lot.",
         confirmSend: "Confirmer · envoyer l’échantillon",
         confirmDoNotSend: "Confirmer · ne pas envoyer",
-        approveBundle: "Approuver tout le lot de décisions",
+        approveBundle: "Confirmer toutes les recommandations de l’Agent",
         overrideSend: "Inverser · envoyer l’échantillon",
         overrideDoNotSend: "Inverser · ne pas envoyer",
-        overrideNote: "La décision de l’Agent sur l’échantillon a été inversée manuellement.",
-        overrideSuccess: "La décision opposée sur l’échantillon a été exécutée",
+        overrideNote: "La décision sur l’échantillon a été modifiée manuellement : {{action}}.",
+        overrideSuccess: "Décision sur l’échantillon exécutée : {{action}}",
         localApplication: "Échantillon",
         providerApplication: "Plateforme",
         shop: "Boutique",
@@ -474,7 +579,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "Produit inconnu",
         unavailable: "Indisponible",
         agentDecision: "Décision proposée par l’agent",
-        softRejectExecution: "Refus souple (laisser expirer)",
+        softRejectExecution: "Ignorer (laisser expirer)",
         platformExecution: "Approuver ou refuser sur TikTok",
         approve: "Envoyer l’échantillon",
         reject: "Ne pas envoyer",
@@ -502,6 +607,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   id: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "Setujui",
+          "REJECT": "Tolak",
+          "IGNORE": "Abaikan"
+        },
+        "confirm": {
+          "APPROVE": "Konfirmasi persetujuan",
+          "REJECT": "Konfirmasi penolakan",
+          "IGNORE": "Konfirmasi abaikan"
+        },
+        "change": "Ubah ke…",
+        "changeTo": {
+          "APPROVE": "Ubah ke setujui",
+          "REJECT": "Ubah ke tolak",
+          "IGNORE": "Ubah ke abaikan"
+        },
+        "ignoreHint": "Berhenti meninjau permohonan ini dan biarkan kedaluwarsa, tanpa menolaknya di platform.",
+        "summary": "{{count}} permohonan · {{approveCount}} setujui · {{rejectCount}} tolak · {{ignoreCount}} abaikan",
+        "suggestion": "Saran Agent: {{action}}"
+      },
       stockSummary: { title: "SKU / Stok", item: "SKU / Produk" },
       loadMoreProposals: "Muat proposal lainnya",
       loadingMoreProposals: "Memuat proposal lainnya…",
@@ -588,11 +714,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "Persetujuan menjalankan semua keputusan dalam paket ini.",
         confirmSend: "Konfirmasi · kirim sampel",
         confirmDoNotSend: "Konfirmasi · jangan kirim",
-        approveBundle: "Setujui seluruh paket keputusan",
+        approveBundle: "Konfirmasi semua saran Agent",
         overrideSend: "Balikkan · kirim sampel",
         overrideDoNotSend: "Balikkan · jangan kirim",
-        overrideNote: "Keputusan Agent atas permohonan sampel dibalik secara manual.",
-        overrideSuccess: "Keputusan permohonan sampel yang berlawanan telah dijalankan",
+        overrideNote: "Staf mengubah keputusan permohonan sampel menjadi: {{action}}.",
+        overrideSuccess: "Keputusan permohonan sampel dijalankan: {{action}}",
         localApplication: "Sampel",
         providerApplication: "Platform",
         shop: "Toko",
@@ -601,7 +727,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "Produk tidak dikenal",
         unavailable: "Tidak tersedia",
         agentDecision: "Keputusan proposal agen",
-        softRejectExecution: "Tolak lunak (biarkan kedaluwarsa)",
+        softRejectExecution: "Abaikan (biarkan kedaluwarsa)",
         platformExecution: "Setujui atau tolak di TikTok",
         approve: "Kirim sampel",
         reject: "Jangan kirim",
@@ -629,6 +755,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   it: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "Approva",
+          "REJECT": "Rifiuta",
+          "IGNORE": "Ignora"
+        },
+        "confirm": {
+          "APPROVE": "Conferma approvazione",
+          "REJECT": "Conferma rifiuto",
+          "IGNORE": "Conferma ignora"
+        },
+        "change": "Cambia in…",
+        "changeTo": {
+          "APPROVE": "Cambia in approva",
+          "REJECT": "Cambia in rifiuta",
+          "IGNORE": "Cambia in ignora"
+        },
+        "ignoreHint": "Non esaminare più questa richiesta e attendere la scadenza, senza rifiutarla sulla piattaforma.",
+        "summary": "{{count}} richieste · {{approveCount}} approva · {{rejectCount}} rifiuta · {{ignoreCount}} ignora",
+        "suggestion": "Suggerimento dell’agente: {{action}}"
+      },
       stockSummary: { title: "SKU / Scorte", item: "SKU / Prodotto" },
       loadMoreProposals: "Carica altre proposte",
       loadingMoreProposals: "Caricamento di altre proposte…",
@@ -715,11 +862,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "L’approvazione esegue tutte le decisioni del pacchetto.",
         confirmSend: "Conferma · invia campione",
         confirmDoNotSend: "Conferma · non inviare",
-        approveBundle: "Approva l’intero pacchetto di decisioni",
+        approveBundle: "Conferma tutti i suggerimenti dell’Agent",
         overrideSend: "Inverti · invia campione",
         overrideDoNotSend: "Inverti · non inviare",
-        overrideNote: "La decisione dell’Agent sulla richiesta di campione è stata invertita manualmente.",
-        overrideSuccess: "È stata eseguita la decisione opposta sulla richiesta di campione",
+        overrideNote: "La decisione sulla richiesta di campione è stata modificata manualmente: {{action}}.",
+        overrideSuccess: "Decisione sulla richiesta di campione eseguita: {{action}}",
         localApplication: "Campione",
         providerApplication: "Piattaforma",
         shop: "Negozio",
@@ -728,7 +875,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "Prodotto sconosciuto",
         unavailable: "Non disponibile",
         agentDecision: "Decisione proposta dall’agente",
-        softRejectExecution: "Rifiuto soft (lascia scadere)",
+        softRejectExecution: "Ignora (lascia scadere)",
         platformExecution: "Approva o rifiuta su TikTok",
         approve: "Invia campione",
         reject: "Non inviare",
@@ -756,6 +903,27 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   },
   th: {
     ecommerce: { affiliateWorkspace: {
+      sampleReviewActions: {
+        "label": {
+          "APPROVE": "อนุมัติ",
+          "REJECT": "ปฏิเสธ",
+          "IGNORE": "ละเว้น"
+        },
+        "confirm": {
+          "APPROVE": "ยืนยันอนุมัติ",
+          "REJECT": "ยืนยันปฏิเสธ",
+          "IGNORE": "ยืนยันละเว้น"
+        },
+        "change": "เปลี่ยนเป็น…",
+        "changeTo": {
+          "APPROVE": "เปลี่ยนเป็นอนุมัติ",
+          "REJECT": "เปลี่ยนเป็นปฏิเสธ",
+          "IGNORE": "เปลี่ยนเป็นละเว้น"
+        },
+        "ignoreHint": "หยุดตรวจสอบคำขอนี้และรอให้หมดอายุ โดยไม่ปฏิเสธบนแพลตฟอร์ม",
+        "summary": "{{count}} คำขอ · อนุมัติ {{approveCount}} · ปฏิเสธ {{rejectCount}} · ละเว้น {{ignoreCount}}",
+        "suggestion": "คำแนะนำของ Agent: {{action}}"
+      },
       stockSummary: { title: "SKU / สต็อก", item: "SKU / สินค้า" },
       loadMoreProposals: "โหลดข้อเสนอเพิ่มเติม",
       loadingMoreProposals: "กำลังโหลดข้อเสนอเพิ่มเติม…",
@@ -842,11 +1010,11 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         approvalScope: "การอนุมัติจะดำเนินการทุกการตัดสินใจในชุดนี้",
         confirmSend: "ยืนยัน · ส่งตัวอย่าง",
         confirmDoNotSend: "ยืนยัน · ไม่ส่ง",
-        approveBundle: "อนุมัติชุดการตัดสินใจทั้งหมด",
+        approveBundle: "ยืนยันคำแนะนำทั้งหมดของ Agent",
         overrideSend: "เปลี่ยนเป็น · ส่งตัวอย่าง",
         overrideDoNotSend: "เปลี่ยนเป็น · ไม่ส่ง",
-        overrideNote: "มนุษย์ได้กลับคำตัดสินของ Agent สำหรับคำขอตัวอย่าง",
-        overrideSuccess: "ดำเนินการคำตัดสินตรงข้ามสำหรับคำขอตัวอย่างแล้ว",
+        overrideNote: "เจ้าหน้าที่เปลี่ยนการตัดสินใจคำขอตัวอย่างเป็น: {{action}}",
+        overrideSuccess: "ดำเนินการคำขอตัวอย่างแล้ว: {{action}}",
         localApplication: "ตัวอย่าง",
         providerApplication: "แพลตฟอร์ม",
         shop: "ร้านค้า",
@@ -855,7 +1023,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         unknownProduct: "ไม่ทราบสินค้า",
         unavailable: "ไม่พร้อมใช้งาน",
         agentDecision: "การตัดสินใจที่ Agent เสนอ",
-        softRejectExecution: "ปฏิเสธแบบนุ่มนวล (ปล่อยให้หมดอายุ)",
+        softRejectExecution: "ละเว้น (รอให้หมดอายุ)",
         platformExecution: "อนุมัติหรือปฏิเสธใน TikTok",
         approve: "ส่งตัวอย่าง",
         reject: "ไม่ส่ง",

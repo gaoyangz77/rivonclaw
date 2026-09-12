@@ -24,10 +24,13 @@ import {
 import {
   addVendorChannelAllowFromEntry,
   readVendorChannelAllowFrom,
+  removeVendorChannelAllowFromEntry,
 } from "./channel-pairing-state.js";
 
 const tempDirs: string[] = [];
-const VENDOR_ROOT = resolve(import.meta.dirname, "../../../../vendor/openclaw");
+const VENDOR_ROOT = resolve(
+  process.env.OPENCLAW_VENDOR_ROOT ?? resolve(import.meta.dirname, "../../../../vendor/openclaw"),
+);
 const TARGET_AGENT_SCHEMA_VERSION = 19;
 const LEGACY_DEVICE_ID = "56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c";
 const LEGACY_DEVICE_IDENTITY = {
@@ -185,8 +188,9 @@ async function loadNamedVendorDistFunction<T extends (...args: never[]) => unkno
   functionName: string,
 ): Promise<T> {
   const distDir = join(VENDOR_ROOT, "dist");
+  // SDK entrypoints stay .js, but v2026.9.3 emits shared chunks as .mjs.
   const candidates = readdirSync(distDir).filter(
-    (name) => name.startsWith(`${prefix}-`) && name.endsWith(".js"),
+    (name) => name.startsWith(`${prefix}-`) && /\.m?js$/.test(name),
   );
   expect(candidates).toHaveLength(1);
   const module = (await import(pathToFileURL(join(distDir, candidates[0])).href)) as Record<
@@ -203,34 +207,45 @@ async function loadNamedVendorDistFunction<T extends (...args: never[]) => unkno
 }
 
 describe("inspectVendorStateMigration", () => {
-  it("does not require migration for a fresh state directory", () => {
+  it("does not require migration for a fresh state directory", async () => {
     const fixture = makeFixture();
-    expect(inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir)).toEqual({
+    expect(await inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir)).toEqual({
       required: false,
       reasons: [],
       targetAgentSchemaVersion: TARGET_AGENT_SCHEMA_VERSION,
     });
   });
 
-  it("requires migration for an older owned agent schema", () => {
+  it("requires migration for an older owned agent schema", async () => {
     const fixture = makeFixture();
     const databasePath = createAgentDatabase(fixture.stateDir, "main", 1);
-    const inspection = inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir);
+    const inspection = await inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir);
     expect(inspection.required).toBe(true);
     expect(inspection.reasons).toContain(
       `agent schema 1 -> ${TARGET_AGENT_SCHEMA_VERSION}: ${databasePath}`,
     );
   });
 
-  it("leaves legacy auth JSON to the auth bootstrap when SQLite is current", () => {
+  it("runs real startup migration twice for a fresh profile without rewriting config", async () => {
     const fixture = makeFixture();
-    createAgentDatabase(fixture.stateDir, "main", TARGET_AGENT_SCHEMA_VERSION);
-    const authPath = join(fixture.stateDir, "agents", "main", "agent", "auth-profiles.json");
-    writeFileSync(authPath, '{"version":1,"profiles":{}}\n');
-    const inspection = inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir);
-    expect(inspection.required).toBe(false);
-    expect(inspection.reasons).toEqual([]);
-  });
+    const configPath = join(fixture.stateDir, "openclaw.json");
+    writeFileSync(configPath, "{}\n");
+    const options = { stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT, configPath };
+
+    await migrateVendorStateBeforeGateway(options);
+    await migrateVendorStateBeforeGateway(options);
+
+    expect(await inspectVendorStateMigration(fixture.stateDir, VENDOR_ROOT)).toEqual({
+      required: false,
+      reasons: [],
+      targetAgentSchemaVersion: TARGET_AGENT_SCHEMA_VERSION,
+    });
+    expect(readFileSync(configPath, "utf-8")).toBe("{}\n");
+    expect(existsSync(join(fixture.stateDir, "identity", "device.json"))).toBe(false);
+    expect(
+      existsSync(join(fixture.stateDir, "agents", "main", "agent", "auth-profiles.json")),
+    ).toBe(false);
+  }, 15_000);
 
   it("migrates only agent databases even when unrelated legacy channel state is malformed", async () => {
     const fixture = makeFixture();
@@ -303,6 +318,56 @@ describe("inspectVendorStateMigration", () => {
     } finally {
       database.close();
     }
+  }, 15_000);
+
+  it("repairs a required same-version index while leaving lazy columns to the vendor", async () => {
+    const fixture = makeFixture();
+    const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
+    const options = { stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT };
+    await migrateVendorStateBeforeGateway(options);
+
+    const database = new DatabaseSync(databasePath);
+    let entriesBefore: ReturnType<ReturnType<DatabaseSync["prepare"]>["all"]>;
+    try {
+      entriesBefore = database.prepare("SELECT * FROM session_nodes ORDER BY session_key").all();
+      expect(entriesBefore).toContainEqual(
+        expect.objectContaining({
+          session_key: "agent:main:main",
+          current_session_id: "session-1",
+        }),
+      );
+      database.exec("DROP INDEX idx_agent_session_nodes_active");
+    } finally {
+      database.close();
+    }
+
+    const inspection = await inspectVendorStateMigration(fixture.stateDir, VENDOR_ROOT);
+    expect(inspection.required).toBe(true);
+    expect(inspection.reasons).toEqual([expect.stringContaining("idx_agent_session_nodes_active")]);
+    await migrateVendorStateBeforeGateway(options);
+    await migrateVendorStateBeforeGateway(options);
+    expect((await inspectVendorStateMigration(fixture.stateDir, VENDOR_ROOT)).required).toBe(false);
+
+    const repaired = new DatabaseSync(databasePath);
+    try {
+      expect(repaired.prepare("SELECT * FROM session_nodes ORDER BY session_key").all()).toEqual(
+        entriesBefore,
+      );
+      expect(repaired.prepare("PRAGMA user_version").get()).toEqual({
+        user_version: TARGET_AGENT_SCHEMA_VERSION,
+      });
+      expect(
+        repaired
+          .prepare(
+            "SELECT name FROM sqlite_schema WHERE type = 'index' AND name = 'idx_agent_session_nodes_active'",
+          )
+          .get(),
+      ).toEqual({ name: "idx_agent_session_nodes_active" });
+      repaired.exec("ALTER TABLE session_pending_inputs DROP COLUMN consumed_event_id");
+    } finally {
+      repaired.close();
+    }
+    expect((await inspectVendorStateMigration(fixture.stateDir, VENDOR_ROOT)).required).toBe(false);
   }, 15_000);
 
   it("preserves a legacy device identity through OpenClaw's official startup migration", async () => {
@@ -416,9 +481,103 @@ describe("inspectVendorStateMigration", () => {
       vendorDir: VENDOR_ROOT,
     });
     expect(existsSync(legacyPath)).toBe(false);
+    const repeatedDatabase = new DatabaseSync(join(fixture.stateDir, "state", "openclaw.sqlite"), {
+      readOnly: true,
+    });
+    try {
+      expect(
+        repeatedDatabase
+          .prepare(
+            "SELECT workspace_path, setup_completed_at FROM workspace_setup_state WHERE workspace_path = ?",
+          )
+          .all(realpathSync(workspaceDir)),
+      ).toEqual([{
+        workspace_path: realpathSync(workspaceDir),
+        setup_completed_at: "2026-08-01T00:00:00.000Z",
+      }]);
+    } finally {
+      repeatedDatabase.close();
+    }
   });
 
-  it("converges an orphaned running recovery claim and admits the next turn", async () => {
+  it("recovers account-scoped recipients from real migrated state without reviving later removals", async () => {
+    const fixture = makeFixture();
+    const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
+    const options = { stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT };
+    await migrateVendorStateBeforeGateway(options);
+    addVendorChannelAllowFromEntry(fixture.stateDir, "feishu", "existing", "ou_preserved");
+
+    const recipients = [
+      ["default", "direct", "ou_alice", "user:ou_alice"],
+      ["secondary", "direct", "ou_bob", "user:ou_bob"],
+      ["existing", "direct", "ou_ignored", "user:ou_ignored"],
+      ["removed", "direct", "ou_removed", "user:ou_removed"],
+      ["default", "group", "ou_group", "user:ou_group"],
+      ["default", "direct", "ou_wrong_route", "ou_wrong_route"],
+    ];
+    const database = new DatabaseSync(databasePath);
+    try {
+      const insert = database.prepare(`
+        INSERT INTO conversations
+        (conversation_id, channel, account_id, kind, peer_id, delivery_target, created_at, updated_at)
+        VALUES (?, 'feishu', ?, ?, ?, ?, 10, 20)
+      `);
+      recipients.forEach((row, index) => insert.run(`recovered-conversation-${index}`, ...row));
+    } finally {
+      database.close();
+    }
+
+    const configPath = join(fixture.stateDir, "openclaw.json");
+    const accounts = ["default", "secondary", "existing", "empty"];
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        channels: { feishu: { accounts: Object.fromEntries(accounts.map((id) => [id, {}])) } },
+      }),
+    );
+    await migrateVendorStateBeforeGateway({ ...options, configPath });
+
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "default")).toEqual(["ou_alice"]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "secondary")).toEqual(["ou_bob"]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "existing")).toEqual([
+      "ou_preserved",
+    ]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "empty")).toEqual([]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "removed")).toEqual([]);
+    const markers = accounts.map((accountId) => {
+      const path = join(
+        fixture.stateDir,
+        "rivonclaw",
+        "migrations",
+        `feishu-${accountId}-recipient-recovery-v1.json`,
+      );
+      return { path, content: readFileSync(path) };
+    });
+
+    expect(
+      removeVendorChannelAllowFromEntry(fixture.stateDir, "feishu", "default", "ou_alice"),
+    ).toBe(true);
+    await migrateVendorStateBeforeGateway({ ...options, configPath });
+
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "default")).toEqual([]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "secondary")).toEqual(["ou_bob"]);
+    for (const marker of markers) expect(readFileSync(marker.path)).toEqual(marker.content);
+    const preserved = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      expect(
+        preserved
+          .prepare(
+            "SELECT COUNT(*) AS count FROM conversations WHERE conversation_id LIKE 'recovered-conversation-%'",
+          )
+          .get(),
+      ).toEqual({ count: recipients.length });
+      expect(preserved.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally {
+      preserved.close();
+    }
+  }, 15_000);
+
+  it.each(["group", "direct"])("converges an orphaned %s recovery claim and admits the next turn", async (chatType) => {
     const fixture = makeFixture();
     const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
     await migrateVendorStateBeforeGateway({
@@ -426,12 +585,12 @@ describe("inspectVendorStateMigration", () => {
       vendorDir: VENDOR_ROOT,
     });
 
-    const sessionKey = "agent:main:feishu:group:oc_recovery_regression";
+    const sessionKey = `agent:main:feishu:default:${chatType}:oc_recovery_regression`;
     const sessionId = "orphaned-running-session";
     const updatedAt = Date.now();
     const orphanedEntry = {
       abortedLastRun: true,
-      chatType: "group",
+      chatType,
       restartRecoveryBeforeAgentReplyState: "admitted",
       restartRecoveryDeliveryContext: {
         accountId: "default",
@@ -462,6 +621,32 @@ describe("inspectVendorStateMigration", () => {
         .run(sessionId, sessionKey, updatedAt, updatedAt);
     } finally {
       database.close();
+    }
+
+    // Reproduce the shipped launcher: the Gateway disabled replay, but the
+    // migration child inherited no flag, leaving the interrupted claim active.
+    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", undefined);
+    await migrateVendorStateBeforeGateway({ stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT });
+    const createStuckController = await loadNamedVendorDistFunction<
+      (params: Record<string, unknown>) => {
+        admitUserTurn: (recorder: Record<string, unknown>) => Promise<unknown>;
+      }
+    >("reply-admission-ticket", "createReplyRestartRecoveryClaimController");
+    for (const sourceTurnId of ["first-new-message", "first-new-message", "second-new-message"]) {
+      const controller = createStuckController({
+        getEntry: () => orphanedEntry,
+        getSessionId: () => sessionId,
+        isRestartAbort: () => false,
+        resolveDeliveryContext: () => orphanedEntry.restartRecoveryDeliveryContext,
+        sessionKey,
+        setEntry: vi.fn(),
+        sourceTurnId,
+        storePath: join(fixture.stateDir, "agents", "main", "sessions", "sessions.json"),
+      });
+      await expect(controller.admitUserTurn({
+        getPersistedMessage: () => ({ idempotencyKey: sourceTurnId }),
+        hasPersisted: () => false,
+      })).rejects.toThrow("restart recovery claim changed before agent adoption");
     }
 
     vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", "1");
@@ -592,7 +777,7 @@ describe("inspectVendorStateMigration", () => {
     });
     expect(activeEntry.restartRecoveryDeliveryRunId).not.toBe("orphaned-delivery-run");
     expect(activeEntry.restartRecoveryDeliveryReceiptState).toBeUndefined();
-  });
+  }, 15_000);
 });
 
 describe("migrateVendorAuthProfilesBeforeGateway", () => {

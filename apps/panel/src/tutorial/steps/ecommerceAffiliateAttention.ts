@@ -1,7 +1,7 @@
 import type { TutorialStep } from "../types.js"
 import { clickTutorialTarget, tutorialTarget } from "../targets.js"
 
-type WorkbenchTab = "pending-agent" | "escalations" | "samples" | "messages"
+type WorkbenchTab = "pending-agent" | "all-agent" | "escalations" | "samples" | "messages"
 
 async function selectWorkbenchTab(tab: WorkbenchTab) {
   clickTutorialTarget(`affiliate-workbench-tab-${tab}`)
@@ -40,11 +40,21 @@ function step(
 }
 
 export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
-  step("affiliate-attention-welcome", "affiliate-attention-header", "welcome", "bottom"),
+  {
+    ...step("affiliate-attention-welcome", "affiliate-attention-header", "welcome", "bottom"),
+    prepare: () => selectWorkbenchTab("pending-agent"),
+  },
   step("affiliate-attention-scope", "affiliate-attention-scope", "scope", "bottom"),
   step("affiliate-attention-filters", "affiliate-attention-filters", "filters", "top"),
   step("affiliate-attention-queue", "affiliate-attention-queue", "queue", "top", 5000),
   workbenchStep(
+    "affiliate-workbench-all-agent",
+    "affiliate-attention-queue",
+    "allAgent",
+    "top",
+    "all-agent",
+  ),
+  workbenchStep(
     "affiliate-workbench-escalations",
     "affiliate-workbench-escalations",
     "escalations",
@@ -53,14 +63,14 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
   ),
   workbenchStep(
     "affiliate-workbench-samples",
-    "affiliate-workbench-samples",
+    "affiliate-workbench-sample-controls",
     "samples",
     "top",
     "samples",
   ),
   workbenchStep(
     "affiliate-workbench-messages",
-    "affiliate-workbench-messages",
+    "affiliate-workbench-message-controls",
     "messages",
     "top",
     "messages",

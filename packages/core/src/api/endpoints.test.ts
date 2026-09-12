@@ -19,11 +19,13 @@ import {
   getTelemetryUrl,
   routeFirstPartyUrl,
   resetFirstPartyDomainRouteForTests,
+  setApiBaseUrlOverride,
   setFirstPartyDomainRoute,
   setStagingDevMode,
 } from "./endpoints.js";
 
 const ORIGINAL_ENV = {
+  RIVONCLAW_API_BASE_URL: process.env.RIVONCLAW_API_BASE_URL,
   RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE: process.env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE,
   RIVONCLAW_CN_RELAY: process.env.RIVONCLAW_CN_RELAY,
   UPDATE_FEED_URL: process.env.UPDATE_FEED_URL,
@@ -41,6 +43,7 @@ function restoreEnv(): void {
 
 beforeEach(() => {
   resetFirstPartyDomainRouteForTests();
+  delete process.env.RIVONCLAW_API_BASE_URL;
   delete process.env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE;
   delete process.env.RIVONCLAW_CN_RELAY;
   delete process.env.UPDATE_FEED_URL;
@@ -90,6 +93,23 @@ describe("first-party domain routing", () => {
 
     expect(getApiBaseUrl("en")).toBe("https://api-stg.zhuazhuaai.cn");
     expect(getReleaseFeedUrl("en")).toBe("https://stg.zhuazhuaai.cn/releases");
+  });
+
+  it("points the API at a local backend named by RIVONCLAW_API_BASE_URL", () => {
+    process.env.RIVONCLAW_API_BASE_URL = "http://127.0.0.1:4300/";
+    setStagingDevMode(true);
+    setFirstPartyDomainRoute("cn-relay");
+
+    expect(getApiBaseUrl("zh")).toBe("http://127.0.0.1:4300");
+    expect(getTelemetryUrl("zh")).toBe("https://t.zhuazhuaai.cn/");
+
+    setApiBaseUrlOverride("https://override.example.test");
+    expect(getApiBaseUrl("zh")).toBe("https://override.example.test");
+  });
+
+  it("ignores a blank RIVONCLAW_API_BASE_URL", () => {
+    process.env.RIVONCLAW_API_BASE_URL = "   ";
+    expect(getApiBaseUrl("zh")).toBe("https://api.rivonclaw.com");
   });
 
   it("keeps explicit endpoint overrides authoritative", () => {

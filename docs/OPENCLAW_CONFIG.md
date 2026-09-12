@@ -1,6 +1,6 @@
 # OpenClaw Configuration Reference
 
-Generated from OpenClaw commit `ea806575e6450e4d1efdfc72c19f04be982a1b9b`.
+Generated from OpenClaw commit `1391f7cd2d40ab5bbcf2f5f831d3a64f520e72d7`.
 
 This index reflects the canonical Zod schema in `vendor/openclaw/src/config/zod-schema*.ts` and
 `vendor/openclaw/src/config/types.openclaw.ts`. OpenClaw remains authoritative for defaults,
@@ -46,7 +46,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `wizard.lastRunCommit` | string | no |  |
 | `wizard.lastRunCommand` | string | no |  |
 | `wizard.lastRunMode` | "local" \| "remote" | no |  |
-| `wizard.localModelLeanAutoModel` | string | no |  |
 | `wizard.securityAcknowledgedAt` | string | no |  |
 
 ## `diagnostics`
@@ -132,6 +131,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `browser.ssrfPolicy.allowRfc2544BenchmarkRange` | boolean | no |  |
 | `browser.ssrfPolicy.allowIpv6UniqueLocalRange` | boolean | no |  |
 | `browser.ssrfPolicy.allowedHostnames` | string[] | no |  |
+| `browser.ssrfPolicy.blockedHostnames` | string[] | no |  |
 | `browser.profiles` | object | no |  |
 | `browser.profiles.*` | object | no | map value |
 | `browser.profiles.*.cdpPort` | integer | no | min 1; max 65535 |
@@ -156,7 +156,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `ui` | object | no |  |
 | `ui.seamColor` | string | no | pattern `^#?[0-9a-fA-F]{6}$` |
 | `ui.prefs` | object | no |  |
-| `ui.prefs.theme` | "claw" \| "knot" \| "dash" \| "absolutely" \| "tide" \| "beacon" \| "phosphor" \| "custom" | no |  |
+| `ui.prefs.theme` | "claw" \| "knot" \| "dash" \| "absolutely" \| "tide" \| "beacon" \| "phosphor" \| "crt" \| "manuscript" \| "rose" \| "miami" \| "custom" | no |  |
 | `ui.prefs.themeMode` | "light" \| "dark" \| "system" | no |  |
 | `ui.prefs.accent` | string | no |  |
 | `ui.prefs.locale` | string | no | max length 20 |
@@ -406,6 +406,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.modelPolicy` | object | no |  |
 | `agents.defaults.modelPolicy.allow` | string[] | no |  |
 | `agents.defaults.workspace` | string | no |  |
+| `agents.defaults.cwd` | string | no |  |
 | `agents.defaults.skills` | string[] | no |  |
 | `agents.defaults.silentReply` | object | no |  |
 | `agents.defaults.silentReply.group` | "allow" \| "disallow" | no |  |
@@ -600,6 +601,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.name` | string | no |  |
 | `agents.entries.*.description` | string | no |  |
 | `agents.entries.*.workspace` | string | no |  |
+| `agents.entries.*.cwd` | string | no |  |
 | `agents.entries.*.agentDir` | string | no |  |
 | `agents.entries.*.model` | string \| object | no |  |
 | `agents.entries.*.model.primary` | string | no |  |
@@ -923,6 +925,12 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.runtime.acp.cwd` | string | no |  |
 | `agents.entries.*.default` | boolean | no |  |
 
+## `worktreeRoot`
+
+| Path | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `worktreeRoot` | string | no |  |
+
 ## `tools`
 
 | Path | Type | Required | Constraints |
@@ -976,6 +984,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `tools.web.fetch.ssrfPolicy.allowRfc2544BenchmarkRange` | boolean | no |  |
 | `tools.web.fetch.ssrfPolicy.allowIpv6UniqueLocalRange` | boolean | no |  |
 | `tools.web.fetch.ssrfPolicy.allowedHostnames` | string[] | no |  |
+| `tools.web.fetch.ssrfPolicy.blockedHostnames` | string[] | no |  |
 | `tools.github` | object | no |  |
 | `tools.github.profileId` | string | yes | pattern `^ghp_[a-f0-9]{32}$` |
 | `tools.github.kind` | "oauth" | no |  |
@@ -1325,7 +1334,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `messages.ackReactionScope` | "group-mentions" \| "group-all" \| "direct" \| "all" \| "off" \| "none" | no |  |
 | `messages.statusReactions` | object | no |  |
 | `messages.statusReactions.enabled` | boolean | no |  |
-| `messages.suppressToolErrors` | boolean | no |  |
 
 ## `tts`
 
@@ -1467,6 +1475,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | --- | --- | --- | --- |
 | `cron` | object | no |  |
 | `cron.enabled` | boolean | no |  |
+| `cron.skipMissedJobs` | boolean | no |  |
 | `cron.triggers` | object | no |  |
 | `cron.triggers.enabled` | boolean | no |  |
 | `cron.webhookToken` | string | no |  |
@@ -1475,6 +1484,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `cron.webhookSsrfPolicy.allowRfc2544BenchmarkRange` | boolean | no |  |
 | `cron.webhookSsrfPolicy.allowIpv6UniqueLocalRange` | boolean | no |  |
 | `cron.webhookSsrfPolicy.allowedHostnames` | string[] | no |  |
+| `cron.webhookSsrfPolicy.blockedHostnames` | string[] | no |  |
 | `cron.sessionRetention` | string \| false | no |  |
 | `cron.failureAlert` | object | no |  |
 | `cron.failureAlert.enabled` | boolean | no |  |
@@ -1626,13 +1636,15 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.controlUi.dangerouslyDisableDeviceAuth` | boolean | no |  |
 | `gateway.controlUi.enabled` | boolean | no |  |
 | `gateway.controlUi.basePath` | string | no |  |
+| `gateway.controlUi.experimental` | object | no |  |
+| `gateway.controlUi.experimental.customPlugins` | boolean | no |  |
 | `gateway.controlUi.root` | string | no |  |
 | `gateway.controlUi.environment` | object | no |  |
 | `gateway.controlUi.environment.label` | string | yes | max length 24 |
 | `gateway.controlUi.environment.color` | "teal" \| "amber" \| "purple" \| "coral" \| "pink" \| "blue" \| "green" \| "red" \| "gray" | yes |  |
+| `gateway.controlUi.communityInvite` | boolean | no |  |
 | `gateway.controlUi.github` | object | no |  |
 | `gateway.controlUi.github.token` | string | no |  |
-| `gateway.controlUi.toolTitles` | boolean | no |  |
 | `gateway.controlUi.sessionObserver` | boolean | no |  |
 | `gateway.controlUi.embedSandbox` | "strict" \| "scripts" \| "trusted" | no |  |
 | `gateway.controlUi.allowExternalEmbedUrls` | boolean | no |  |
@@ -1838,6 +1850,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | Path | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `mcp` | object | no |  |
+| `mcp.sessionIdleTtlMs` | number | no | min 0 |
 | `mcp.servers` | object | no |  |
 | `mcp.servers.*` | object | no | map value |
 | `mcp.servers.*.enabled` | boolean | no |  |
@@ -1899,7 +1912,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `skills.workshop.autonomous` | object | no |  |
 | `skills.workshop.autonomous.mode` | "off" \| "propose" \| "auto" | no |  |
 | `skills.workshop.approvalPolicy` | "pending" \| "auto" | no |  |
-| `skills.workshop.allowSymlinkTargetWrites` | boolean | no |  |
 | `skills.workshop.maxPending` | integer | no | min 1; max 9007199254740991 |
 | `skills.workshop.maxSkillBytes` | integer | no | min 1; max 9007199254740991 |
 | `skills.entries` | object | no |  |

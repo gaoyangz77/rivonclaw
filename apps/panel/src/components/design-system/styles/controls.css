@@ -452,6 +452,16 @@
   line-height: 1.35;
 }
 
+.tk-v1-label-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .tk-v1-input-shell {
   display: flex;
   align-items: center;

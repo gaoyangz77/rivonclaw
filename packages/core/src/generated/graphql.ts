@@ -211,6 +211,7 @@ export interface ActionProposalDecisionSnapshot {
   actorType?: Maybe<AffiliateLifecycleActorType>;
   decidedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   note?: Maybe<Scalars['String']['output']>;
+  sampleReviewOverride?: Maybe<ActionProposalSampleReviewOverride>;
 }
 
 export interface ActionProposalDecisionSnapshotInput {
@@ -218,6 +219,7 @@ export interface ActionProposalDecisionSnapshotInput {
   actorType?: InputMaybe<AffiliateLifecycleActorType>;
   decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
+  sampleReviewOverride?: InputMaybe<ActionProposalSampleReviewOverrideInput>;
 }
 
 /** Content actually delivered for an executed message proposal, retained on the linked Delivery. The proposal's own draft says what was proposed; this says what was actually delivered. Both facts are available. For proposals whose drafts were deleted before message wording became permanently retained, this is the only message body still available. */
@@ -297,7 +299,7 @@ export interface ActionProposalRevisionSummary {
 
 export interface ActionProposalSampleReviewIntent {
   decision: AffiliateSampleReviewDecision;
-  /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
+  /** PLATFORM_ACTION (or omitted) approves or rejects on TikTok. ALLOW_PLATFORM_EXPIRY requires REJECT and means Ignore: record the disposition locally and let the application expire naturally without a platform rejection. */
   executionMode?: Maybe<AffiliateSampleReviewExecutionMode>;
   lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Frozen provider audit id resolved by Backend; callers must not supply it. */
@@ -313,7 +315,7 @@ export interface ActionProposalSampleReviewIntent {
 
 export interface ActionProposalSampleReviewIntentInput {
   decision: AffiliateSampleReviewDecision;
-  /** PLATFORM_ACTION (or omitted) executes on TikTok. ALLOW_PLATFORM_EXPIRY records a local Soft Reject and lets TikTok expire naturally. */
+  /** PLATFORM_ACTION (or omitted) approves or rejects on TikTok. ALLOW_PLATFORM_EXPIRY requires REJECT and means Ignore: record the disposition locally and let the application expire naturally without a platform rejection. */
   executionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   lastObservedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Frozen provider audit id resolved by Backend; callers must not supply it. */
@@ -325,6 +327,16 @@ export interface ActionProposalSampleReviewIntentInput {
   reviewDispositionRevision?: InputMaybe<Scalars['Int']['input']>;
   /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface ActionProposalSampleReviewOverride {
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
+}
+
+export interface ActionProposalSampleReviewOverrideInput {
+  decision: AffiliateSampleReviewDecision;
+  executionMode: AffiliateSampleReviewExecutionMode;
 }
 
 export interface ActionProposalSampleShipmentIntent {
@@ -361,6 +373,7 @@ export const ActionProposalStatus = {
   Executed: 'EXECUTED',
   ExecutionFailed: 'EXECUTION_FAILED',
   Expired: 'EXPIRED',
+  Ignored: 'IGNORED',
   Pending: 'PENDING',
   Rejected: 'REJECTED',
   RevisionRequested: 'REVISION_REQUESTED',
@@ -2384,6 +2397,14 @@ export interface AffiliateCreatorPerformanceMoneyMetric {
   window: Scalars['String']['output'];
 }
 
+/** Where the country code used to read a Creator-supplied phone number came from. PHONE_NUMBER means the number already stated it; CALLER_SUPPLIED means the caller named the Creator's region; COLLABORATING_SHOPS means it was derived from the single region shared by the shops this Creator collaborates with — an inference about the Creator, not a fact we hold about them. */
+export const AffiliateCreatorPhoneRegionSource = {
+  CallerSupplied: 'CALLER_SUPPLIED',
+  CollaboratingShops: 'COLLABORATING_SHOPS',
+  PhoneNumber: 'PHONE_NUMBER'
+} as const;
+
+export type AffiliateCreatorPhoneRegionSource = typeof AffiliateCreatorPhoneRegionSource[keyof typeof AffiliateCreatorPhoneRegionSource];
 export interface AffiliateCreatorProductFitInput {
   /** Optional Backend AffiliateCreatorIdentity id. When omitted, backend derives it from creatorRelationshipId. */
   creatorId?: InputMaybe<Scalars['ID']['input']>;
@@ -3324,10 +3345,12 @@ export const AffiliateLifecycleEventType = {
   ProposalCreated: 'PROPOSAL_CREATED',
   ProposalExecuted: 'PROPOSAL_EXECUTED',
   ProposalExpired: 'PROPOSAL_EXPIRED',
+  ProposalIgnored: 'PROPOSAL_IGNORED',
   ProposalRejected: 'PROPOSAL_REJECTED',
   ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
   ProposalSuperseded: 'PROPOSAL_SUPERSEDED',
   RelationshipBdAssigned: 'RELATIONSHIP_BD_ASSIGNED',
+  RelationshipBdUnassigned: 'RELATIONSHIP_BD_UNASSIGNED',
   RelationshipContactUpdated: 'RELATIONSHIP_CONTACT_UPDATED',
   SampleApplicationApproved: 'SAMPLE_APPLICATION_APPROVED',
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
@@ -4059,7 +4082,7 @@ export interface AffiliateRelationshipAgendaItem {
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateWorkProcessReason>;
   requiredAction: AffiliateRelationshipRequiredAction;
-  /** Seller-local Sample review disposition frozen into this agenda item. Missing means the Sample has not been explicitly Soft Rejected. */
+  /** Seller-local Sample review disposition frozen into this agenda item. SOFT_REJECTED is the stored value for Ignore. Missing means the Sample has not been explicitly ignored. */
   reviewDisposition?: Maybe<AffiliateSampleReviewDisposition>;
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
@@ -5052,12 +5075,18 @@ export interface AffiliateWorkbenchPendingConversationPage {
 export interface AffiliateWorkbenchPendingConversationPageInput {
   /** Restrict the page and its counts to conversations whose Relationship is owned by this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
-  /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts always describe the full unfiltered breakdown. */
+  /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts cover all channels while respecting protection, Business Developer and applicable shop filters. */
   channel?: InputMaybe<AffiliateMessageChannel>;
+  /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
+  creatorSearch?: InputMaybe<Scalars['String']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
+  protected?: InputMaybe<Scalars['Boolean']['input']>;
   /** Restrict PLATFORM_CHAT conversations to one owned shop. Only accepted together with the PLATFORM_CHAT channel filter. */
   shopId?: InputMaybe<Scalars['ID']['input']>;
+  /** Order the page by the time the conversation started waiting for a reply. ASC, the default, returns the longest-waiting conversation first; DESC returns the most recent first. A cursor is bound to the order that minted it. */
+  sortOrder?: InputMaybe<EcomSortOrder>;
 }
 
 export interface AffiliateWorkbenchPendingConversationRow {
@@ -5070,12 +5099,23 @@ export interface AffiliateWorkbenchPendingConversationRow {
   humanOnly: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   lastPendingAt: Scalars['DateTimeISO']['output'];
+  /** The Creator's manual tags, resolved to their current catalog rows and ordered by name, the same order the Creator record uses. An id whose catalog row no longer exists is omitted. */
+  manualTags: Array<CreatorManualTag>;
   proposal?: Maybe<ActionProposal>;
   protected: Scalars['Boolean']['output'];
   replyToLifecycleEventId: Scalars['ID']['output'];
+  /** Highest sample tier across every shop state of this Creator, derived at read time and never stored. Null means no rung has been reached anywhere, which is not the lowest rung. */
+  sampleTier?: Maybe<CreatorSampleTier>;
   shopName?: Maybe<Scalars['String']['output']>;
   sourceLabel: Scalars['String']['output'];
   sourceShopId?: Maybe<Scalars['ID']['output']>;
+  /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
+  systemTags: Array<AffiliateCreatorSystemTag>;
+}
+
+export interface AffiliateWorkbenchProductFilterInput {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
 }
 
 export interface AffiliateWorkbenchSamplePage {
@@ -5091,10 +5131,18 @@ export interface AffiliateWorkbenchSamplePage {
 export interface AffiliateWorkbenchSamplePageInput {
   /** Restrict the page and its counts to Sample Applications whose Relationship is owned by this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
+  creatorSearch?: InputMaybe<Scalars['String']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Match any selected shop/product pair. Omit or pass an empty list for all products. Maximum 100 pairs. */
+  products?: InputMaybe<Array<AffiliateWorkbenchProductFilterInput>>;
+  /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
+  protected?: InputMaybe<Scalars['Boolean']['input']>;
   reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
+  /** Order the page by Sample application time. ASC, the default, returns the oldest application first; DESC returns the newest first. A cursor is bound to the order that minted it. */
+  sortOrder?: InputMaybe<EcomSortOrder>;
 }
 
 export interface AffiliateWorkbenchSampleRow {
@@ -5105,11 +5153,17 @@ export interface AffiliateWorkbenchSampleRow {
   creatorUsername?: Maybe<Scalars['String']['output']>;
   humanOnly: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
+  /** The Creator's manual tags, resolved to their current catalog rows and ordered by name, the same order the Creator record uses. An id whose catalog row no longer exists is omitted. */
+  manualTags: Array<CreatorManualTag>;
   productTitle?: Maybe<Scalars['String']['output']>;
   proposal?: Maybe<ActionProposal>;
   protected: Scalars['Boolean']['output'];
   sampleApplication: SampleApplicationRecord;
+  /** Highest sample tier across every shop state of this Creator, derived at read time and never stored. Null means no rung has been reached anywhere, which is not the lowest rung. */
+  sampleTier?: Maybe<CreatorSampleTier>;
   shopName?: Maybe<Scalars['String']['output']>;
+  /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
+  systemTags: Array<AffiliateCreatorSystemTag>;
 }
 
 export interface AffiliateWorkspaceInput {
@@ -5520,21 +5574,6 @@ export interface CancelBillingSubscriptionInput {
 export interface CaptchaResponse {
   svg: Scalars['String']['output'];
   token: Scalars['String']['output'];
-}
-
-export interface CheckCreatorWhatsAppContactInput {
-  creatorPhone: Scalars['String']['input'];
-  /** CreatorRelationship is the business boundary for validating and optionally saving creator contact channels. */
-  creatorRelationshipId: Scalars['ID']['input'];
-  persist?: InputMaybe<Scalars['Boolean']['input']>;
-}
-
-export interface CheckCreatorWhatsAppContactPayload {
-  creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
-  exists: Scalars['Boolean']['output'];
-  jid?: Maybe<Scalars['String']['output']>;
-  number: Scalars['String']['output'];
-  whatsAppAccount: WhatsAppAccountBinding;
 }
 
 export interface ClaimAffiliateCampaignSearchPlanGenerationInput {
@@ -7277,6 +7316,7 @@ export interface DecideActionProposalInput {
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
+  sampleReviewOverride?: InputMaybe<ActionProposalSampleReviewOverrideInput>;
   status: ActionProposalStatus;
 }
 
@@ -9574,6 +9614,8 @@ export interface ImportAffiliateCreatorUpdateEntryInput {
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   manualTagNames?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Replace this Creator's BD, protection and manual tags with the row's target state. Blank values clear those fields. Other Creators are untouched. */
+  overwrite?: InputMaybe<Scalars['Boolean']['input']>;
   platform: ShopPlatform;
   protect?: InputMaybe<Scalars['Boolean']['input']>;
   protectionNote?: InputMaybe<Scalars['String']['input']>;
@@ -10203,8 +10245,6 @@ export interface Mutation {
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   cancelExpertRun: ExpertRun;
-  /** Check a creator phone number through Evolution API and optionally persist the result. */
-  checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
   claimAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlanGenerationContext;
   claimAffiliateEscalationNotification?: Maybe<AffiliateEscalationNotificationClaim>;
   claimPendingTikTokShops: TikTokShopClaimResult;
@@ -10272,7 +10312,7 @@ export interface Mutation {
   csRespond: CsRespondResult;
   /** Publish a manual CS conversation signal that asks the assigned desktop to start a CS agent session */
   csStartSession: CsConversationSignal;
-  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED reverses exactly one pure Sample Application review and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note. */
+  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED applies sampleReviewOverride to exactly one pure Sample Application review (or the legacy opposite decision when omitted) and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note; IGNORED discards the proposal while acknowledging its boundary so the Agent will not re-propose for the same messages. */
   decideActionProposal: ActionProposal;
   /** Delete a member account */
   deleteAccountMember: Scalars['Boolean']['output'];
@@ -10397,7 +10437,7 @@ export interface Mutation {
   /** Rename a seller-scoped manual tag, or change whether it is sensitive. */
   renameCreatorManualTag: CreatorManualTag;
   renameExpertConversation: ExpertConversation;
-  /** Reopen a locally Soft Rejected Sample Application if TikTok still allows review. */
+  /** Reopen an ignored Sample Application for review if TikTok still allows it. This is a staff-only action. */
   reopenSoftRejectedAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
   /** Validate or apply a strict CAS rewind of one executed NO_ACTION_NEEDED Creator-message boundary for an explicitly declared Affiliate live-test remediation replay. This never sends a message or creates a proposal. */
   replayAffiliateAgentMessageBoundaryForLiveTest: ReplayAffiliateAgentMessageBoundaryPayload;
@@ -10416,7 +10456,7 @@ export interface Mutation {
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
   retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
   retryAffiliateCampaignSearchPlanGeneration: Scalars['Boolean']['output'];
-  /** Review one Affiliate Sample Application using platform Approve/Reject or local Soft Reject. */
+  /** Review one Affiliate Sample Application: Approve or Reject on TikTok, or Ignore locally and let the application expire naturally without a platform rejection. */
   reviewAffiliateSampleApplication: AffiliateWorkbenchSampleRow;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
@@ -10431,8 +10471,8 @@ export interface Mutation {
   setAffiliateCampaignStatus: AffiliateCampaign;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
-  /** Attach or update a creator WhatsApp contact on an affiliate creator relationship. */
-  setAffiliateCreatorWhatsApp: AffiliateCreatorRelationship;
+  /** Validate a creator WhatsApp number, confirm it is registered on WhatsApp, and attach it to an affiliate creator relationship. */
+  setAffiliateCreatorWhatsApp: SetCreatorWhatsAppContactPayload;
   /** Admin-only: enable or disable an agent invite code for a user by email. */
   setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
@@ -10651,11 +10691,6 @@ export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
 
 export interface MutationCancelExpertRunArgs {
   runId: Scalars['ID']['input'];
-}
-
-
-export interface MutationCheckAffiliateCreatorWhatsAppArgs {
-  input: CheckCreatorWhatsAppContactInput;
 }
 
 
@@ -12437,6 +12472,8 @@ export interface Query {
   runProfile?: Maybe<RunProfile>;
   /** List run profiles for the authenticated user, optionally filtered by surface */
   runProfiles: Array<RunProfile>;
+  /** Search product name substrings (case-insensitive) or product IDs across the current user's authorized shops. Shops run concurrently; the backend consumes all catalog pages and returns only matches. Inspect failedShopIds for incomplete results. */
+  searchProductsForUser: UserProductSearchResult;
   /** Get a single shop by ID */
   shop?: Maybe<Shop>;
   /** Get OAuth token status for a shop */
@@ -13306,6 +13343,11 @@ export interface QueryRunProfilesArgs {
 }
 
 
+export interface QuerySearchProductsForUserArgs {
+  keywordOrId: Scalars['String']['input'];
+}
+
+
 export interface QueryShopArgs {
   id: Scalars['ID']['input'];
 }
@@ -13736,9 +13778,9 @@ export interface ResolveAffiliateWorkItemActionInput {
   /** Free-text explanation for the rejection reason. Required when rejectReason is OTHER; omit for approvals. */
   rejectReasonExplanation?: InputMaybe<Scalars['String']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE for approval. REJECT means Reject with PLATFORM_ACTION, or Ignore with ALLOW_PLATFORM_EXPIRY. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Omit for PLATFORM_ACTION; use ALLOW_PLATFORM_EXPIRY for a local Soft Reject. */
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Omit for PLATFORM_ACTION; use ALLOW_PLATFORM_EXPIRY only with REJECT to Ignore the application and let it expire naturally without rejecting it on TikTok. */
   sampleReviewExecutionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
@@ -14013,9 +14055,22 @@ export interface SetCreatorEmailContactInput {
 }
 
 export interface SetCreatorWhatsAppContactInput {
+  /** The Creator's WhatsApp number as they wrote it. The country code may be included or omitted, and a leading national trunk prefix is handled: 07911123456 with region GB becomes +447911123456. */
   creatorPhone: Scalars['String']['input'];
+  /** The Creator's region as an ISO 3166-1 alpha-2 country code, used only when creatorPhone has no country code. Not restricted to the shop's own market: a Creator can be in Brazil while working with a US shop. Omit it and the country code is resolved from the shops this Creator collaborates with; supply it when the conversation says otherwise. Ignored when the number already states its country code. */
+  creatorRegion?: InputMaybe<Scalars['String']['input']>;
   /** CreatorRelationship is the business boundary for setting creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
+}
+
+export interface SetCreatorWhatsAppContactPayload {
+  /** The stored number in canonical E.164 form, country code included. */
+  creatorPhone: Scalars['String']['output'];
+  /** The country the number was read under. Absent only for a valid number on a non-geographic calling code, which belongs to no country. */
+  creatorRegion?: Maybe<Scalars['String']['output']>;
+  /** Where that country code came from. COLLABORATING_SHOPS means it was inferred rather than known — say so if the number is read back to the Creator. */
+  creatorRegionSource: AffiliateCreatorPhoneRegionSource;
+  creatorRelationship: AffiliateCreatorRelationship;
 }
 
 /** A connected e-commerce shop */
@@ -15102,7 +15157,6 @@ export const ToolDataScope = {
 export type ToolDataScope = typeof ToolDataScope[keyof typeof ToolDataScope];
 /** Unique tool identifier */
 export const ToolId = {
-  AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateEscalate: 'AFFILIATE_ESCALATE',
@@ -15475,6 +15529,19 @@ export interface UserAgentProfile {
   enabledByUserId?: Maybe<Scalars['String']['output']>;
   /** Six-character invite code for agent referrals. */
   inviteCode?: Maybe<Scalars['String']['output']>;
+}
+
+export interface UserProductSearchItem {
+  productId: Scalars['String']['output'];
+  shopId: Scalars['ID']['output'];
+  title?: Maybe<Scalars['String']['output']>;
+}
+
+export interface UserProductSearchResult {
+  /** Authorized shops whose search failed or timed out. Results are incomplete when nonempty. */
+  failedShopIds: Array<Scalars['ID']['output']>;
+  products: Array<UserProductSearchItem>;
+  totalShops: Scalars['Int']['output'];
 }
 
 export interface UserSupport {

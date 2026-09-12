@@ -11,7 +11,7 @@
     "dev": "turbo run dev",
     "format": "oxfmt --check",
     "format:fix": "oxfmt --write",
-    "postinstall": "node scripts/run-bash.mjs scripts/rebuild-native.sh",
+    "postinstall": "node scripts/provision-electron.cjs && node scripts/rebuild-native.cjs",
     "check:ext-deps": "node scripts/check-extension-deps.mjs",
     "check:ext-externals": "node scripts/check-extension-externals.mjs",
     "generate:api-routes": "node scripts/generate-api-routes-doc.mjs",
@@ -37,10 +37,13 @@
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24.16.0 <25 || >=26.1.0"
   },
   "packageManager": "pnpm@10.6.2",
   "pnpm": {
+    "overrides": {
+      "@electron/rebuild>node-abi": "4.35.0"
+    },
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "electron",

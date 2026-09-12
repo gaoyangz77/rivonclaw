@@ -32,6 +32,10 @@ export interface VendorStateMigrationInspection {
 }
 
 type VendorSqliteRuntime = {
+  assertOpenClawAgentDatabaseForMaintenance: (
+    database: DatabaseSync,
+    options: { agentId: string; pathname: string },
+  ) => void;
   ensureOpenClawAgentDatabaseSchema: (
     database: DatabaseSync,
     options: { agentId: string; path: string; env: NodeJS.ProcessEnv },
@@ -445,6 +449,20 @@ async function loadVendorNodeHostRuntime(vendorDir: string): Promise<VendorNodeH
   return runtime as VendorNodeHostRuntime;
 }
 
+async function loadVendorSqliteRuntime(vendorDir: string): Promise<VendorSqliteRuntime> {
+  const runtimePath = join(vendorDir, "dist", "plugin-sdk", "sqlite-runtime.js");
+  const runtime = (await import(pathToFileURL(runtimePath).href)) as Partial<VendorSqliteRuntime>;
+  for (const name of [
+    "assertOpenClawAgentDatabaseForMaintenance",
+    "ensureOpenClawAgentDatabaseSchema",
+  ] as const) {
+    if (typeof runtime[name] !== "function") {
+      throw new Error(`OpenClaw SQLite runtime does not expose ${name}: ${runtimePath}`);
+    }
+  }
+  return runtime as VendorSqliteRuntime;
+}
+
 /** Run OpenClaw's narrow, verified auth-profile migration without invoking full Doctor. */
 export async function migrateVendorAuthProfilesBeforeGateway(options: {
   configPath: string;
@@ -613,14 +631,16 @@ async function migrateConfiguredWorkspaceState(
   }
 }
 
-export function inspectVendorStateMigration(
+/** Read-only inspection, including the vendor's same-version schema compatibility checks. */
+export async function inspectVendorStateMigration(
   stateDir: string,
   vendorDir: string,
-): VendorStateMigrationInspection {
+): Promise<VendorStateMigrationInspection> {
   const targetAgentSchemaVersion = readTargetAgentSchemaVersion(vendorDir);
   const reasons: string[] = [];
+  let runtime: VendorSqliteRuntime | undefined;
 
-  for (const { databasePath } of listAgentDatabaseTargets(stateDir)) {
+  for (const { agentId, databasePath } of listAgentDatabaseTargets(stateDir)) {
     if (!existsSync(databasePath)) continue;
     const database = new DatabaseSync(databasePath, { readOnly: true });
     try {
@@ -628,8 +648,25 @@ export function inspectVendorStateMigration(
         (database.prepare("PRAGMA user_version").get() as { user_version?: unknown } | undefined)
           ?.user_version ?? 0,
       );
+      if (version > targetAgentSchemaVersion) {
+        throw new Error(
+          `OpenClaw agent database ${databasePath} uses schema version ${version}; expected at most ${targetAgentSchemaVersion}`,
+        );
+      }
       if (version > 0 && version < targetAgentSchemaVersion) {
         reasons.push(`agent schema ${version} -> ${targetAgentSchemaVersion}: ${databasePath}`);
+      } else if (version === targetAgentSchemaVersion) {
+        // Additive schema changes can retain user_version. Let the vendor's
+        // read-only assertion decide readiness before Desktop writes state.
+        runtime ??= await loadVendorSqliteRuntime(vendorDir);
+        try {
+          runtime.assertOpenClawAgentDatabaseForMaintenance(database, {
+            agentId,
+            pathname: databasePath,
+          });
+        } catch (error) {
+          reasons.push(`agent schema readiness: ${databasePath}: ${String(error)}`);
+        }
       }
     } finally {
       database.close();
@@ -753,11 +790,10 @@ export async function migrateVendorStateBeforeGateway(
     }
   }
 
-  const inspection = inspectVendorStateMigration(options.stateDir, options.vendorDir);
+  const inspection = await inspectVendorStateMigration(options.stateDir, options.vendorDir);
   if (inspection.required) {
     log.info(`Running OpenClaw agent database migration: ${inspection.reasons.join("; ")}`);
-    const runtimePath = join(options.vendorDir, "dist", "plugin-sdk", "sqlite-runtime.js");
-    const runtime = (await import(pathToFileURL(runtimePath).href)) as VendorSqliteRuntime;
+    const runtime = await loadVendorSqliteRuntime(options.vendorDir);
     const env = { ...process.env, OPENCLAW_STATE_DIR: options.stateDir };
 
     await nodeHostRuntime.withAgentDatabaseMaintenanceLease({ env }, async () => {
@@ -776,7 +812,7 @@ export async function migrateVendorStateBeforeGateway(
       }
     });
 
-    const remaining = inspectVendorStateMigration(options.stateDir, options.vendorDir);
+    const remaining = await inspectVendorStateMigration(options.stateDir, options.vendorDir);
     if (remaining.required) {
       throw new Error(
         `OpenClaw agent database migration remained incomplete: ${remaining.reasons.join("; ")}`,

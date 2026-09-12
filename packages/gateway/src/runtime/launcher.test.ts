@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
-import { calculateBackoff, createLineReader, GatewayLauncher } from "./launcher.js";
+import { calculateBackoff, createLineReader, GatewayLauncher, isGatewayReadinessProbeClose } from "./launcher.js";
 import type { GatewayLaunchOptions } from "./types.js";
+import * as fs from "node:fs";
+import { GATEWAY_STOP_GRACE_MS, GATEWAY_STOP_MESSAGE } from "./process-control.js";
 
 // ─── calculateBackoff tests ────────────────────────────────────────────────
 
@@ -47,11 +49,37 @@ describe("createLineReader", () => {
 
 // ─── Mock child_process ────────────────────────────────────────────────────
 
+describe("gateway readiness probe diagnostics", () => {
+  const probe = "[ws] closed before connect conn=test remote=127.0.0.1 fwd=n/a origin=n/a host=127.0.0.1:53571 ua=n/a code=1005 reason=n/a phase=ws_upgrade_started";
+  it("recognizes only the anonymous loopback readiness probe, including colored output", () => {
+    expect(isGatewayReadinessProbeClose(probe)).toBe(true);
+    expect(isGatewayReadinessProbeClose(`\u001b[33m${probe}\u001b[39m`)).toBe(true);
+  });
+  it.each([
+    probe.replace("code=1005 reason=n/a", "code=1008 reason=invalid handshake: first request must be connect"),
+    probe.replace("origin=n/a", "origin=http://localhost:5180"),
+    probe.replace("ua=n/a", "ua=Electron"),
+    probe.replace("remote=127.0.0.1", "remote=203.0.113.1"),
+    "security warning: dangerous config flags enabled",
+    'Plugin command "/dashboard" conflicts with an existing Telegram command.',
+    "[DEP0040] DeprecationWarning: The punycode module is deprecated",
+  ])("keeps actionable or unrelated diagnostics visible: %s", (line) => {
+    expect(isGatewayReadinessProbeClose(line)).toBe(false);
+  });
+});
+
 class MockChildProcess extends EventEmitter {
   pid = 12345;
   stdout = new EventEmitter();
   stderr = new EventEmitter();
   killed = false;
+  connected = true;
+  exitCode: number | null = null;
+  signalCode: string | null = null;
+  send = vi.fn((_message: unknown, callback?: (error: Error | null) => void) => {
+    callback?.(null);
+    return true;
+  });
   killSignals: string[] = [];
 
   kill(signal?: string): boolean {
@@ -70,6 +98,13 @@ vi.mock("node:child_process", () => ({
     return mockChild;
   }),
   execSync: (...args: unknown[]) => mockExecSync(...args),
+}));
+
+vi.mock("node:fs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:fs")>()),
+  existsSync: vi.fn(() => false),
+  mkdirSync: vi.fn(),
+  writeFileSync: vi.fn(),
 }));
 
 vi.mock("@rivonclaw/logger", () => ({
@@ -107,6 +142,8 @@ describe("GatewayLauncher", () => {
 
   afterEach(async () => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.mocked(fs.existsSync).mockImplementation(() => false);
     vi.clearAllMocks();
   });
 
@@ -157,15 +194,62 @@ describe("GatewayLauncher", () => {
         "node",
         ["/path/to/openclaw.mjs", "gateway"],
         expect.objectContaining({
-          stdio: ["ignore", "pipe", "pipe"],
+          stdio: ["ignore", "pipe", "pipe", "ipc"],
           env: expect.objectContaining({
             OPENCLAW_CONFIG_PATH: "/custom/config.json",
             OPENCLAW_STATE_DIR: "/custom/state",
             RIVONCLAW_OPENCLAW_DIST_DIR: "/path/to/dist",
+            OPENCLAW_NO_RESPAWN: "1",
+            OPENCLAW_SUPERVISOR_MODE: "external",
             CUSTOM_VAR: "value",
           }),
         }),
       );
+    });
+
+    it("keeps Desktop lifecycle ownership despite an inherited supervisor override", async () => {
+      const { spawn } = await import("node:child_process");
+      const launcher = createLauncher({
+        env: { OPENCLAW_SUPERVISOR_MODE: "internal", OPENCLAW_NO_RESPAWN: "0" },
+      });
+
+      await launcher.start();
+
+      expect(vi.mocked(spawn).mock.calls.at(-1)?.[2]?.env).toMatchObject({
+        OPENCLAW_NO_RESPAWN: "1",
+        OPENCLAW_SUPERVISOR_MODE: "external",
+      });
+    });
+
+    it("disables source-checkout caching before Node can spawn another supervisor", async () => {
+      const { spawn } = await import("node:child_process");
+      vi.mocked(fs.existsSync).mockImplementation((p) => String(p) === "/fake/.git");
+      await createLauncher({ stateDir: "/state" }).start();
+      const env = vi.mocked(spawn).mock.calls.at(-1)?.[2]?.env;
+      expect(env?.NODE_DISABLE_COMPILE_CACHE).toBe("1");
+      expect(env?.NODE_COMPILE_CACHE).toBeUndefined();
+      expect(env?.OPENCLAW_PACKAGED_COMPILE_CACHE_RESPAWNED).toBeUndefined();
+    });
+
+    it("keeps a prepared cache without a wrapper in packaged installs", async () => {
+      const { spawn } = await import("node:child_process");
+      await createLauncher({ stateDir: "/state" }).start();
+      const env = vi.mocked(spawn).mock.calls.at(-1)?.[2]?.env;
+      expect(env?.NODE_COMPILE_CACHE).toBe("/state/compile-cache");
+      expect(env?.OPENCLAW_PACKAGED_COMPILE_CACHE_RESPAWNED).toBe("1");
+      expect(env?.RIVONCLAW_GATEWAY_PARENT_PID).toBe(String(process.pid));
+      expect(env?.NODE_OPTIONS).toContain("gateway-control.cjs");
+    });
+
+    it("respects an explicitly disabled compile cache", async () => {
+      const { spawn } = await import("node:child_process");
+      await createLauncher({
+        stateDir: "/state",
+        env: { NODE_DISABLE_COMPILE_CACHE: "1" },
+      }).start();
+      const env = vi.mocked(spawn).mock.calls.at(-1)?.[2]?.env;
+      expect(env?.NODE_COMPILE_CACHE).toBeUndefined();
+      expect(env?.OPENCLAW_PACKAGED_COMPILE_CACHE_RESPAWNED).toBeUndefined();
     });
 
     it("passes the runtime gateway port override to OpenClaw", async () => {
@@ -244,8 +328,8 @@ describe("GatewayLauncher", () => {
   // ── Stop ──
 
   describe("stop()", () => {
-    it("sends SIGTERM and transitions to stopped", async () => {
-      const launcher = createLauncher();
+    it("requests orderly shutdown through IPC and transitions to stopped", async () => {
+      const launcher = createLauncher({ stateDir: "/state" });
       await launcher.start();
 
       const stopPromise = launcher.stop();
@@ -256,14 +340,73 @@ describe("GatewayLauncher", () => {
       await stopPromise;
 
       expect(launcher.getStatus().state).toBe("stopped");
-      if (process.platform === "win32") {
-        // On Windows, killProcessTree uses taskkill instead of proc.kill
-        expect(mockExecSync).toHaveBeenCalledWith(`taskkill /T /F /PID ${mockChild.pid}`, {
-          stdio: "ignore",
-        });
-      } else {
-        expect(mockChild.killSignals).toContain("SIGTERM");
-      }
+      expect(mockChild.send).toHaveBeenCalledWith(
+        { type: GATEWAY_STOP_MESSAGE },
+        expect.any(Function),
+      );
+      expect(mockExecSync).not.toHaveBeenCalled();
+      expect(mockChild.killSignals).toEqual([]);
+    });
+
+    it("does not force-kill Windows on a normal or repeated stop", async () => {
+      vi.stubGlobal(
+        "process",
+        new Proxy(process, {
+          get: (target, key) => (key === "platform" ? "win32" : Reflect.get(target, key)),
+        }),
+      );
+      const launcher = createLauncher({ stateDir: "/state" });
+      await launcher.start();
+      const first = launcher.stop();
+      const second = launcher.stop();
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(mockExecSync).not.toHaveBeenCalled();
+      expect(mockChild.send).toHaveBeenCalledTimes(1);
+      mockChild.emit("exit", 0, null);
+      await Promise.all([first, second]);
+      await vi.advanceTimersByTimeAsync(GATEWAY_STOP_GRACE_MS);
+      expect(mockExecSync).not.toHaveBeenCalled();
+    });
+
+    it("bounds a hung Windows shutdown with process-tree termination", async () => {
+      vi.stubGlobal(
+        "process",
+        new Proxy(process, {
+          get: (target, key) => (key === "platform" ? "win32" : Reflect.get(target, key)),
+        }),
+      );
+      const launcher = createLauncher({ stateDir: "/state" });
+      await launcher.start();
+      const stop = launcher.stop();
+      await vi.advanceTimersByTimeAsync(GATEWAY_STOP_GRACE_MS - 1);
+      expect(mockExecSync).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(mockExecSync).toHaveBeenCalledWith(`taskkill /T /F /PID ${mockChild.pid}`, {
+        stdio: "ignore",
+      });
+      mockChild.emit("exit", 1, null);
+      await stop;
+    });
+
+    it("retains the shutdown deadline if the IPC channel rejects the request", async () => {
+      vi.stubGlobal(
+        "process",
+        new Proxy(process, {
+          get: (target, key) => (key === "platform" ? "win32" : Reflect.get(target, key)),
+        }),
+      );
+      const launcher = createLauncher({ stateDir: "/state" });
+      await launcher.start();
+      mockChild.send.mockImplementation((_message, cb) => {
+        cb?.(new Error("IPC closed"));
+        return false;
+      });
+      const stop = launcher.stop();
+      expect(mockExecSync).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(GATEWAY_STOP_GRACE_MS);
+      expect(mockExecSync).toHaveBeenCalledTimes(1);
+      mockChild.emit("exit", 1, null);
+      await stop;
     });
 
     it("is safe to call when already stopped", async () => {

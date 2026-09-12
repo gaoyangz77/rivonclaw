@@ -6,10 +6,14 @@
 // Must run AFTER prune-vendor-deps.cjs (so node_modules is production-only)
 // and BEFORE electron-builder (so the archive is available for extraResources).
 
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { resolveElectronPath, readElectronVersions } = require("../../../scripts/electron-runtime.cjs");
+const { assertNoLifecycleMarkers } = require("./verify-vendor-runtime-contract.cjs");
+const { VENDOR_PRUNE_INPUTS } = require("./vendor-runtime-cache.cjs");
+const { deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies, VENDOR_ARCHIVE_ENV } = require("./vendor-plugin-size.cjs");
 
 const isMacOS = process.platform === "darwin";
 const forceArchive = process.env.ARCHIVE_VENDOR_RUNTIME === "1";
@@ -37,6 +41,10 @@ if (!fs.existsSync(vendorDir)) {
 // vendor version, patches, or pruning logic changes.
 
 const hash = crypto.createHash("sha256");
+const electronPath = resolveElectronPath();
+const electronVersions = readElectronVersions(electronPath);
+const targetArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH || process.arch;
+hash.update(JSON.stringify({ electron: electronVersions.electron, node: electronVersions.node, arch: targetArch }));
 
 // 1. .openclaw-version
 const openclawVersionPath = path.join(repoRoot, ".openclaw-version");
@@ -57,10 +65,9 @@ if (fs.existsSync(patchDir)) {
 
 // 3. Build scripts that define the archive contents
 for (const scriptName of [
-  "prune-vendor-deps.cjs",
+  ...VENDOR_PRUNE_INPUTS,
   "archive-vendor-runtime.cjs",
-  "stage-official-vendor-plugins.cjs",
-  "vendor-runtime-plugin-inventory.cjs",
+  "verify-vendor-runtime-contract.cjs",
 ]) {
   const scriptPath = path.join(__dirname, scriptName);
   if (fs.existsSync(scriptPath)) {
@@ -87,12 +94,9 @@ const RUNTIME_INCLUDES = [
   "node_modules",
 ];
 
-// Verify at least the entry point exists before archiving
-if (!fs.existsSync(path.join(vendorDir, "openclaw.mjs"))) {
-  console.error(
-    "[archive-vendor-runtime] FAIL: vendor/openclaw/openclaw.mjs not found. Is vendor set up?",
-  );
-  process.exit(1);
+assertNoLifecycleMarkers(vendorDir);
+for (const required of ["openclaw.mjs", "node-version.mjs", "dist", "dist-runtime", "node_modules"]) {
+  if (!fs.existsSync(path.join(vendorDir, required))) throw new Error(`Missing runtime payload: ${required}`);
 }
 
 function shellQuote(value) {
@@ -280,6 +284,11 @@ if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
   }
 }
 
+// Signing/copying can replace inodes. Deduplicate the final bytes before tar
+// records hardlinks, without changing paths or private package resolution.
+deduplicateMirroredPluginDependencies(vendorDir);
+deduplicateRuntimeDependencies(vendorDir);
+
 // Build the include arguments — only add paths that actually exist
 const includeArgs = RUNTIME_INCLUDES.filter((p) => fs.existsSync(path.join(vendorDir, p)))
   .map((p) => shellQuote(p))
@@ -294,6 +303,8 @@ fs.rmSync(legacyGzipArchivePath, { force: true });
 execSync(`tar -cf ${shellQuote(archivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`, {
   stdio: "inherit",
   timeout: 300_000,
+  // Do not serialize macOS resource forks as thousands of ._* payload files.
+  env: { ...process.env, ...VENDOR_ARCHIVE_ENV },
 });
 
 const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
@@ -342,9 +353,11 @@ for (const requiredPath of [
 console.log("[archive-vendor-runtime] Archive verification passed (workspace templates found).");
 
 console.log("[archive-vendor-runtime] Running packaged runtime contract...");
-execSync(
-  `node ${shellQuote(path.join(__dirname, "verify-vendor-runtime-contract.cjs"))} --archive ${shellQuote(archivePath)}`,
-  { stdio: "inherit", timeout: 300_000 },
+execFileSync(
+  process.execPath,
+  [path.join(__dirname, "verify-vendor-runtime-contract.cjs"), "--archive", archivePath,
+    ...(targetArch === process.arch ? ["--runtime", electronPath] : ["--static-only"])],
+  { stdio: "inherit", timeout: 600_000 },
 );
 
 // ─── Write manifest ───

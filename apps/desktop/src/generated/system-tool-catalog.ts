@@ -19,6 +19,13 @@ export interface SystemToolEntry {
 export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
   // ── Files ──
   {
+    id: "ls",
+    label: "ls",
+    description: "List directory entries",
+    section: "fs",
+    sectionLabel: "Files",
+  },
+  {
     id: "read",
     label: "read",
     description: "Read file contents",

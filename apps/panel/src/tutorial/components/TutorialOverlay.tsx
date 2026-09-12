@@ -63,7 +63,6 @@ export function TutorialOverlay() {
   const { isPlaying, steps, currentStepIndex, next, prev, stop } = useTutorial()
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const spotlightRef = useRef<HTMLDivElement>(null)
   const activeTargetRef = useRef<Element | null>(null)
   const activeLifecycleRef = useRef<ActiveLifecycle | null>(null)
   const mouseDownOnOverlay = useRef(false)
@@ -101,14 +100,6 @@ export function TutorialOverlay() {
       )
 
       setSpotlightRect(clampedRect)
-
-      // Position spotlight via CSS custom properties
-      if (spotlightRef.current) {
-        spotlightRef.current.style.setProperty("--spotlight-top", `${clampedRect.top}px`)
-        spotlightRef.current.style.setProperty("--spotlight-left", `${clampedRect.left}px`)
-        spotlightRef.current.style.setProperty("--spotlight-width", `${clampedRect.width}px`)
-        spotlightRef.current.style.setProperty("--spotlight-height", `${clampedRect.height}px`)
-      }
 
       // Position tooltip via CSS custom properties
       const pos = computePlacement(clampedRect, placement, tooltipRef.current)
@@ -223,8 +214,8 @@ export function TutorialOverlay() {
       {/* Spotlight cutout */}
       {spotlightRect && (
         <div
-          ref={spotlightRef}
           className="tutorial-spotlight"
+          style={spotlightRect}
         />
       )}
 

@@ -5,6 +5,8 @@
 extends: electron-builder.yml
 
 linux:
+  files:
+    - "!node_modules/better-sqlite3/prebuilds/!(linux-${arch}).node"
   icon: build/icon
   category: Utility
   maintainer: RIVON LLC

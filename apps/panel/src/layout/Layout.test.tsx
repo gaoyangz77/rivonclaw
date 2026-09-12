@@ -3,6 +3,10 @@ import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Layout } from "./Layout.js";
 
+vi.mock("../tutorial/TutorialProvider.js", () => ({
+  useTutorial: () => ({ isPlaying: false }),
+}));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => (key === "common.brandName" ? "TK Copilot" : key),

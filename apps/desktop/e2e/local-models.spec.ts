@@ -6,6 +6,7 @@
  * update → remove, plus API endpoint validation.
  */
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 import { createServer, type Server } from "node:http";
 
 // ---------------------------------------------------------------------------
@@ -105,9 +106,9 @@ test.describe("Local Models E2E", () => {
       }
     }
 
-    const modelsBtn = window.locator(".nav-btn", { hasText: "Models" });
+    const modelsBtn = getNavigationButton(window, "Models");
     await modelsBtn.click();
-    await expect(modelsBtn).toHaveClass(/nav-active/);
+    await expect(modelsBtn).toHaveAttribute("aria-current", "page");
   }
 
   // ── Test 1: Full lifecycle — add, verify, update URL, remove ────────
@@ -122,7 +123,7 @@ test.describe("Local Models E2E", () => {
     const form = window.locator(".page-two-col");
 
     // --- Step 1: Fill the Local LLM form ---
-    await form.locator(".tab-btn", { hasText: /Local/i }).click();
+    await form.getByRole("tab", { name: /Local/i }).click();
 
     const baseUrlInput = form.locator("input.input-mono[type='text']").first();
     const mockUrl = `http://127.0.0.1:${mockOllamaPort}`;
@@ -225,20 +226,17 @@ test.describe("Local Models E2E", () => {
     const keyId = createRes.body.id as string;
 
     // Activate the key and set it as the default provider
-    await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
-      await fetch(`${base}/api/provider-keys/${id}/activate`, { method: "POST" });
-      await fetch(`${base}/api/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "llm-provider": "ollama" }),
-      });
+    const activated = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
+      const response = await fetch(`${base}/api/provider-keys/${id}/activate`, { method: "POST" });
+      return response.ok;
     }, { base: apiBase, id: keyId });
+    expect(activated).toBe(true);
 
     // Creating a key + activating triggers gateway restarts. Wait for
     // them to settle, then reload so the Models page fetches fresh data.
     await window.waitForTimeout(3_000);
     await window.reload();
-    await window.waitForSelector(".sidebar-brand", { timeout: 45_000 });
+    await expect(getNavigationButton(window, "Models")).toBeVisible({ timeout: 45_000 });
 
     // Navigate to Models page — the seeded key should appear
     await navigateToModels(window);
@@ -260,7 +258,7 @@ test.describe("Local Models E2E", () => {
     // Verify base URL displayed
     await expect(ollamaCard).toContainText(`http://127.0.0.1:${mockOllamaPort}`);
 
-    // Verify it's active (is_default=1 and llm-provider=ollama)
+    // Verify it is the active default.
     await expect(ollamaCard).toHaveClass(/key-card-active/);
 
     // Verify model is shown
@@ -400,15 +398,15 @@ test.describe("Local Models E2E", () => {
     const form = window.locator(".page-two-col");
 
     // -- Click "Local LLM" tab --
-    const localTab = form.locator(".tab-btn", { hasText: /Local/i });
+    const localTab = form.getByRole("tab", { name: /Local/i });
     await localTab.click();
-    await expect(localTab).toHaveClass(/tab-btn-active/);
+    await expect(localTab).toHaveAttribute("aria-selected", "true");
 
     // Subscription and API tabs should NOT be active
-    const subTab = form.locator(".tab-btn", { hasText: /Subscription/i });
-    const apiTab = form.locator(".tab-btn", { hasText: /API/i });
-    await expect(subTab).not.toHaveClass(/tab-btn-active/);
-    await expect(apiTab).not.toHaveClass(/tab-btn-active/);
+    const subTab = form.getByRole("tab", { name: /Subscription/i });
+    const apiTab = form.getByRole("tab", { name: /API/i });
+    await expect(subTab).toHaveAttribute("aria-selected", "false");
+    await expect(apiTab).toHaveAttribute("aria-selected", "false");
 
     // -- Verify form elements --
     // Base URL input (default "localhost:11434", but auto-detect may resolve to "127.0.0.1")
@@ -457,7 +455,7 @@ test.describe("Local Models E2E", () => {
     await navigateToModels(window);
 
     const form = window.locator(".page-two-col");
-    await form.locator(".tab-btn", { hasText: /Local/i }).click();
+    await form.getByRole("tab", { name: /Local/i }).click();
 
     // Type an unreachable URL
     const baseUrlInput = form.locator("input.input-mono[type='text']").first();

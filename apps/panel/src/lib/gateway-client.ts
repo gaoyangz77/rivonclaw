@@ -59,6 +59,7 @@ export class GatewayChatClient {
   private connectNonce: string | null = null;
   private connectSent = false;
   private backoffMs = 800;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
   private keepaliveTimeout: ReturnType<typeof setTimeout> | null = null;
   private authenticated = false;
@@ -69,15 +70,20 @@ export class GatewayChatClient {
   }
 
   start(): void {
+    if (this.ws) return;
     this.closed = false;
+    this.clearReconnect();
     this.doConnect();
   }
 
   stop(): void {
     this.closed = true;
+    this.clearReconnect();
     this.stopKeepalive();
-    this.ws?.close(1000, "client stopped");
+    const ws = this.ws;
     this.ws = null;
+    this.authenticated = false;
+    ws?.close(1000, "client stopped");
     this.flushPending(new Error("client stopped"));
   }
 
@@ -93,11 +99,11 @@ export class GatewayChatClient {
   }
 
   get connected(): boolean {
-    return this.ws?.readyState === WebSocket.OPEN;
+    return this.authenticated && this.ws?.readyState === WebSocket.OPEN;
   }
 
   request<T = unknown>(method: string, params?: unknown, timeoutMs = 30_000): Promise<T> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN || (method !== "connect" && !this.authenticated)) {
       return Promise.reject(new Error("gateway not connected"));
     }
     const id = crypto.randomUUID();
@@ -108,14 +114,20 @@ export class GatewayChatClient {
         reject(new Error(`RPC timeout after ${timeoutMs}ms: ${method}`));
       }, timeoutMs);
       this.pending.set(id, { resolve: (v) => resolve(v as T), reject, timeout });
-      this.ws!.send(JSON.stringify(frame));
+      try {
+        this.ws!.send(JSON.stringify(frame));
+      } catch (err) {
+        clearTimeout(timeout);
+        this.pending.delete(id);
+        reject(err);
+      }
     });
   }
 
   // --- internal ---
 
   private doConnect(): void {
-    if (this.closed) return;
+    if (this.closed || this.ws) return;
     this.connectSent = false;
     this.connectNonce = null;
     this.authenticated = false;
@@ -123,9 +135,12 @@ export class GatewayChatClient {
     const ws = new WebSocket(this.opts.url);
     this.ws = ws;
 
-    ws.addEventListener("message", (ev) => this.handleMessage(String(ev.data ?? "")));
+    ws.addEventListener("message", (ev) => {
+      if (this.ws === ws) this.handleMessage(String(ev.data ?? ""), ws);
+    });
 
     ws.addEventListener("close", () => {
+      if (this.ws !== ws) return;
       this.ws = null;
       this.authenticated = false;
       this.stopKeepalive();
@@ -135,20 +150,30 @@ export class GatewayChatClient {
     });
 
     ws.addEventListener("error", (e) => {
+      if (this.ws !== ws) return;
       console.warn("[gateway-client] WebSocket error (close handler will follow):", e);
     });
   }
 
   private scheduleReconnect(): void {
-    if (this.closed) return;
+    if (this.closed || this.reconnectTimer) return;
     const delay = this.backoffMs;
     this.backoffMs = Math.min(this.backoffMs * 1.7, 15_000);
-    setTimeout(() => this.doConnect(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.doConnect();
+    }, delay);
   }
 
-  private async sendConnect(): Promise<void> {
-    if (this.connectSent || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+  private clearReconnect(): void {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  private async sendConnect(ws: WebSocket): Promise<void> {
+    if (this.connectSent || this.ws !== ws || ws.readyState !== WebSocket.OPEN) return;
     this.connectSent = true;
+    const nonce = this.connectNonce ?? "";
 
     const client = {
       id: "openclaw-control-ui",
@@ -160,7 +185,6 @@ export class GatewayChatClient {
     const scopes = ["operator.admin"];
     const identity = await loadOrCreateGatewayDeviceIdentity();
     const signedAt = Date.now();
-    const nonce = this.connectNonce ?? "";
     const signaturePayload = buildGatewayDeviceAuthPayload({
       deviceId: identity.deviceId,
       clientId: client.id,
@@ -191,8 +215,11 @@ export class GatewayChatClient {
       locale: navigator.language,
     };
 
+    // Device signing is asynchronous; its result belongs only to this socket.
+    if (this.closed || this.ws !== ws) return;
     this.request<GatewayHelloOk>("connect", params)
       .then((hello) => {
+        if (this.closed || this.ws !== ws) return;
         this.backoffMs = 800;
         this.authenticated = true;
         if (this.keepaliveEnabled) {
@@ -201,8 +228,9 @@ export class GatewayChatClient {
         this.opts.onConnected?.(hello);
       })
       .catch((err) => {
+        if (this.closed || this.ws !== ws) return;
         console.warn("[gateway-client] connect handshake failed:", err);
-        this.ws?.close(1000, "handshake failed");
+        ws.close(1000, "handshake failed");
       });
   }
 
@@ -250,7 +278,7 @@ export class GatewayChatClient {
 
   // --- message handling ---
 
-  private handleMessage(raw: string): void {
+  private handleMessage(raw: string, ws: WebSocket): void {
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
@@ -267,14 +295,15 @@ export class GatewayChatClient {
         const payload = evt.payload as { nonce?: string } | undefined;
         if (payload?.nonce) {
           this.connectNonce = payload.nonce;
-          void this.sendConnect().catch((err) => {
+          void this.sendConnect(ws).catch((err) => {
+            if (this.closed || this.ws !== ws) return;
             console.warn("[gateway-client] failed to prepare device authentication:", err);
-            this.ws?.close(1000, "device authentication failed");
+            ws.close(1000, "device authentication failed");
           });
         }
         return;
       }
-      this.opts.onEvent?.(evt);
+      if (this.authenticated) this.opts.onEvent?.(evt);
       return;
     }
 

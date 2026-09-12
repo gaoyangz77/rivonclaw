@@ -50,7 +50,8 @@ export const DEFAULTS = {
 
   desktop: {
     updateMarkerMaxAgeMs: 5 * 60 * 1_000,
-    shutdownTimeoutMs: 10_000,
+    // Allow Gateway's 30s orderly-stop watchdog to finish before Electron exits.
+    shutdownTimeoutMs: 45_000,
     heartbeatIntervalMs: 10_000,
     heartbeatStaleMs: 30_000,
     oauthCleanupIntervalMs: 5 * 60 * 1_000,
@@ -82,13 +83,16 @@ export const DEFAULTS = {
     sessionMaintenanceRotateBytes: undefined as string | undefined,
     sessionMaintenanceMaxDiskBytes: undefined as string | undefined,
     toolsProfile: "full" as const,
+    sessionToolsVisibility: "tree" as const,
+    agentToAgentEnabled: false,
+    swarmEnabled: false,
+    subagentMaxSpawnDepth: 1,
     execHost: "gateway" as const,
     execSecurity: "full" as const,
     defaultBrowserCdpPort: 9222,
     audioMaxBytes: 25 * 1024 * 1024, // 25 MB
     audioTimeoutSeconds: 300, // 5 min
     compactionNotifyUser: false,
-    messagesSuppressToolErrors: true,
   },
 
   settings: {

@@ -1,0 +1,14 @@
+.workbench-creator-search {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  max-width: 100%;
+  /* Continue from the left when the toolbar wraps, just like the other filters. */
+  margin: 0;
+  min-width: 0;
+}
+.workbench-creator-search-field {
+  width: 220px;
+  flex: 1 1 180px;
+  max-width: 100%;
+}

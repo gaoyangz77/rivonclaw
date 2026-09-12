@@ -70,7 +70,9 @@ describe("vendor patch 0037: lazy Windows browser CLI registration", () => {
     const setupScript = readFileSync(SETUP_VENDOR_SCRIPT, "utf8");
 
     expect(setupScript).toContain("scripts/vendor-pnpm.cjs");
-    expect(setupScript).toContain("vendor_pnpm install --frozen-lockfile");
+    expect(setupScript).toContain(
+      "vendor_pnpm install --node-linker=hoisted --optional --frozen-lockfile",
+    );
     // The vendor .npmrc dependency cooldown would reject a freshly pinned pnpm,
     // so the package manager must never be resolved from inside the vendor tree.
     expect(setupScript).not.toContain("npx --yes");

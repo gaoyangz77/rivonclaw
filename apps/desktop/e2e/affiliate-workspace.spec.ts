@@ -11,6 +11,7 @@
  * modal if staging data happens to contain a card on that page.
  */
 import { test, expect } from "./electron-fixture.js";
+import { waitForSignedInShell } from "./shell-helpers.js";
 import { DEFAULTS } from "@rivonclaw/core/defaults";
 
 const STAGING_GRAPHQL_URL = `https://${DEFAULTS.domains.apiStaging}/graphql`;
@@ -98,8 +99,7 @@ async function login(window: import("@playwright/test").Page, apiBase: string): 
 
   await storeTokens(apiBase, loginBody.login.accessToken, loginBody.login.refreshToken);
   await window.reload({ waitUntil: "domcontentloaded" });
-  await expect(window.locator(".nav-btn", { hasText: "Account" })
-    .locator(".nav-account-avatar:not(.nav-account-avatar-loading)")).toBeVisible({ timeout: 15_000 });
+  await waitForSignedInShell(window);
 }
 
 async function dismissModals(window: import("@playwright/test").Page): Promise<void> {
@@ -126,15 +126,18 @@ async function expectAffiliatePage(
 ): Promise<void> {
   await navigateTo(window, path);
   await expect(window.locator(".affiliate-workbench").first()).toBeVisible({ timeout: 20_000 });
-  await expect(window.locator("h1", { hasText: title }).first()).toBeVisible({ timeout: 20_000 });
+  await expect(window.getByRole("heading", { level: 1, name: title, exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
 
   if (!optionalCardSelector) return;
   const firstCard = window.locator(optionalCardSelector).first();
   if (!await firstCard.isVisible({ timeout: 5_000 }).catch(() => false)) return;
   await firstCard.click();
-  await expect(window.locator(".modal-backdrop")).toBeVisible({ timeout: 10_000 });
-  await window.locator(".modal-backdrop .modal-close").first().click();
-  await expect(window.locator(".modal-backdrop")).not.toBeVisible({ timeout: 10_000 });
+  const dialog = window.getByRole("dialog");
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(dialog).not.toBeVisible({ timeout: 10_000 });
 }
 
 test.describe("Affiliate workspace entity pages", () => {
@@ -148,12 +151,12 @@ test.describe("Affiliate workspace entity pages", () => {
       window,
       "/commerce/affiliate/creators",
       "Cooperation creators",
-      ".affiliate-creator-row",
+      ".affiliate-creator-compact-card",
     );
     await expectAffiliatePage(
       window,
       "/commerce/affiliate/attention",
-      "Agent workspace",
+      "Workbench",
       ".affiliate-action-proposal-card-row",
     );
     await expectAffiliatePage(

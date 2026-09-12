@@ -2,10 +2,12 @@ import { defineConfig } from "tsdown";
 import { cpSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const { materializeRuntimeModuleLinks, assertBundledPluginEntries } = createRequire(import.meta.url)("./scripts/vendor-plugin-dependencies.cjs");
 
-// Two separate build configs so the image compression child process does NOT share
+// Separate build configs so Node child processes do NOT share
 // chunks with main.cjs. If rolldown shares a chunk (rolldown's default code-
 // splitting behavior for multi-entry builds), the child entry's chunk ends up
 // `require`ing main.cjs — which imports `electron`, blowing up in a plain
@@ -35,6 +37,13 @@ export default defineConfig([
       __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
     },
     onSuccess() {
+      // A direct upstream rebuild can recreate cross-package CJS/MJS links.
+      // Normalize them for pnpm dev too, without weakening the plugin loader.
+      const vendorDir = process.env.VENDOR_DIR_OVERRIDE ?? join(__dirname, "../../vendor/openclaw");
+      if (existsSync(join(vendorDir, "dist-runtime/extensions"))) {
+        materializeRuntimeModuleLinks(vendorDir);
+        assertBundledPluginEntries(vendorDir);
+      }
       // Copy startup-timer.cjs so the launcher finds the full version (with
       // plugin-sdk resolution optimization) instead of falling back to the
       // minimal inline version. Without this, the packaged app takes ~60s
@@ -44,6 +53,19 @@ export default defineConfig([
         cpSync(src, join(__dirname, "dist", "startup-timer.cjs"));
       }
     },
+  },
+  {
+    name: "vendor-state-migration-child",
+    entry: ["src/gateway/vendor-state-migration-worker.ts"],
+    format: "cjs",
+    dts: false,
+    clean: false,
+    outDir: "dist",
+    outputOptions: { entryFileNames: "[name].cjs" },
+    external: ["electron", "better-sqlite3"],
+    noExternal: [/^@rivonclaw\//],
+    treeshake: true,
+    inlineOnly: false,
   },
   {
     name: "image-compression-child",

@@ -215,10 +215,24 @@ export class EcommerceRelayBridge {
       this.cacheUnsubscribe();
       this.cacheUnsubscribe = null;
     }
+    // Airflow catch-ups sit in a 30 s coalescing window before they reach
+    // admission, so at any moment a few of them are queued here rather than in
+    // the admission gate. On a Gateway crash they are the same interrupted
+    // work as the cancelled admissions and take the same route out: the
+    // module-scoped buffer the replacement bridge replays. Sign-out discards,
+    // for the reason given at the admission catch.
+    let handedOff = 0;
     for (const pending of this.pendingAirflowBuyerCatchUps.values()) {
       if (pending.timer) clearTimeout(pending.timer);
+      if (reason === CS_ADMISSION_CANCEL_REASON.BRIDGE_STOPPED) {
+        queueCsDispatchUntilBridgeReady(pending.dispatch);
+        handedOff += 1;
+      }
     }
     this.pendingAirflowBuyerCatchUps.clear();
+    if (handedOff > 0) {
+      log.warn(`Re-queued ${handedOff} coalescing Airflow catch-up(s) after bridge teardown`);
+    }
     runtimeStatusStore.setCsBridgeDisconnected();
     log.info("Ecommerce signal bridge stopped");
   }
@@ -1049,9 +1063,10 @@ export class EcommerceRelayBridge {
     } catch (err) {
       if (err instanceof CsRunAdmissionCancelledError) {
         if (err.reason === CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE) {
-          // Sign-out or account switch. `stopCsBridge()` clears the replay
-          // buffer here on purpose, so re-queuing would resurrect the previous
-          // session's conversation under the next login. Drop it deliberately.
+          // Sign-out or account switch. The conversation belongs to the
+          // session being torn down; `stopCsBridge()` clears the replay buffer
+          // on this path for the same reason, so re-queuing would resurrect it
+          // under the next login. Drop it deliberately.
           log.info(
             `CS signal dropped after sign-out: shop=${dispatch.platformShopId} ` +
               `conv=${dispatch.conversationId}`,
@@ -1059,16 +1074,30 @@ export class EcommerceRelayBridge {
           return;
         }
         // The bridge was torn down while this dispatch waited for an admission
-        // slot -- in production, a Gateway OOM restart. That is a recoverable
-        // outage, not a failed dispatch, so hand the request back to the
-        // module-scoped buffer and let the post-restart flush replay it,
-        // exactly as the actuator already does for signals that arrive while
-        // the bridge is down. Dropping it here is what left conversations
-        // PENDING until the next hourly Airflow sweep re-pushed them.
+        // slot -- in production, a Gateway OOM restart. The Desktop process is
+        // still here and so is the work, so hand it back to the module-scoped
+        // buffer that survives bridge replacement; the post-restart flush
+        // replays it, paced (see `flushPendingCsDispatches`).
         //
-        // stopCsBridge() clears the buffer before tearing the bridge down, so
-        // anything re-queued here is deliberately kept rather than surviving
-        // on microtask timing.
+        // This is the fourth decision on this line, so the record matters:
+        //   08-20  original admission gate rejected the queue on teardown.
+        //   1.9.5  re-queued (this code).
+        //   1.9.9  dropped again, on the theory that an empty queue after a
+        //          restart was what kept the Gateway alive between OOMs.
+        //   09-09  re-queued (ADR 079). The log of that same machine, on
+        //          1.9.10 with the drop in place, showed five OOMs in 44 min;
+        //          two of them (22:16, 22:27) died with `cancelled=0` -- an
+        //          empty queue and one or two active runs. Load shortens a
+        //          Gateway's life (~8 min saturated vs 11-17 min idle) but is
+        //          not what ends it, and dropping wasted the idle windows: the
+        //          longest healthy stretch (21:59-22:16) ran with the queue at
+        //          zero while ~186 conversations waited for the next hourly
+        //          Airflow sweep. Every Airflow-pushed run that did reach the
+        //          agent and finish was resolved (28/28), so the ceiling is
+        //          how many runs a Gateway life can carry, not this queue.
+        //
+        // If the queue is ever dropped again, the claim it rests on must be
+        // one this log can't refute.
         const pending = queueCsDispatchUntilBridgeReady(dispatch);
         log.warn(
           `CS signal re-queued after bridge teardown: shop=${dispatch.platformShopId} ` +

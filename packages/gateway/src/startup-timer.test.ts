@@ -20,7 +20,7 @@ function findFeishuMonitorChunk(): { distDir: string; chunkPath: string } {
         chunks.push(path);
         continue;
       }
-      if (!entry.name.endsWith(".js")) continue;
+      if (!/\.(?:js|mjs)$/.test(entry.name)) continue;
       if (readFileSync(path, "utf8").includes("monitorFeishuProvider")) {
         chunk = path;
         break;

@@ -223,7 +223,7 @@
 }
 
 .tk-v1-workbench .affiliate-workbench-entity-table {
-  min-width: 1080px;
+  min-width: 1256px;
   table-layout: fixed;
 }
 
@@ -233,6 +233,10 @@
 
 .tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-creator {
   width: 214px;
+}
+
+.tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-tags {
+  width: 176px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-shop {
@@ -259,6 +263,10 @@
   width: 214px;
 }
 
+.tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-tags {
+  width: 176px;
+}
+
 .tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-shop {
   width: 112px;
 }
@@ -281,6 +289,10 @@
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-creator {
   width: 226px;
+}
+
+.tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-tags {
+  width: 176px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-support {

@@ -7,126 +7,17 @@ var __export = (target, all2) => {
   for (var name in all2) __defProp(target, name, { get: all2[name], enumerable: true });
 };
 
-// vendor/openclaw/src/shared/text/final-tags.ts
-var FINAL_TAG_CANDIDATE_RE = /<[^<>]*>/g;
-function isWhitespace(char) {
-  return /\s/.test(char);
+// vendor/openclaw/packages/normalization-core/src/expect.ts
+function expectDefined(value, context) {
+  if (value === null || value === void 0) {
+    throw new Error("expected " + context + " to be defined");
+  }
+  return value;
 }
-function parseAttributeList(text3) {
-  let index2 = 0;
-  while (index2 < text3.length) {
-    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
-      index2 += 1;
-    }
-    if (index2 >= text3.length) {
-      return true;
-    }
-    const nameStart = index2;
-    while (index2 < text3.length) {
-      const char = text3[index2] ?? "";
-      if (isWhitespace(char) || char === "=") {
-        break;
-      }
-      if (char === "/" || char === '"' || char === "'" || char === "<" || char === ">") {
-        return false;
-      }
-      index2 += 1;
-    }
-    if (index2 === nameStart) {
-      return false;
-    }
-    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
-      index2 += 1;
-    }
-    if (text3[index2] !== "=") {
-      continue;
-    }
-    index2 += 1;
-    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
-      index2 += 1;
-    }
-    if (index2 >= text3.length) {
-      return false;
-    }
-    const quote = text3[index2];
-    if (quote === '"' || quote === "'") {
-      index2 += 1;
-      const end = text3.indexOf(quote, index2);
-      if (end === -1) {
-        return false;
-      }
-      index2 = end + 1;
-      continue;
-    }
-    const valueStart = index2;
-    while (index2 < text3.length && !isWhitespace(text3[index2] ?? "")) {
-      const char = text3[index2] ?? "";
-      if (char === '"' || char === "'" || char === "<" || char === ">") {
-        return false;
-      }
-      index2 += 1;
-    }
-    if (index2 === valueStart) {
-      return false;
-    }
-  }
-  return true;
-}
-function parseFinalTag(text3) {
-  if (!text3.startsWith("<") || !text3.endsWith(">")) {
-    return null;
-  }
-  let body = text3.slice(1, -1).trimStart();
-  let isClose = false;
-  if (body.startsWith("/")) {
-    isClose = true;
-    body = body.slice(1).trimStart();
-  }
-  if (!body.toLowerCase().startsWith("final")) {
-    return null;
-  }
-  const boundary = body[5] ?? "";
-  if (boundary && !isWhitespace(boundary) && boundary !== "/") {
-    return null;
-  }
-  let rest = body.slice(5);
-  if (isClose) {
-    return rest.trim().length === 0 ? { isClose: true, isSelfClosing: false } : null;
-  }
-  const trimmedRest = rest.trimEnd();
-  const isSelfClosing = trimmedRest.endsWith("/");
-  rest = isSelfClosing ? trimmedRest.slice(0, -1) : rest;
-  if (!parseAttributeList(rest)) {
-    return null;
-  }
-  return { isClose: false, isSelfClosing };
-}
-function findFinalTagMatches(text3) {
-  const matches = [];
-  for (const match of text3.matchAll(FINAL_TAG_CANDIDATE_RE)) {
-    const tagText = match[0];
-    const parsed = parseFinalTag(tagText);
-    if (!parsed) {
-      continue;
-    }
-    matches.push({
-      index: match.index ?? 0,
-      text: tagText,
-      ...parsed,
-    });
-  }
-  return matches;
-}
-function stripFinalTags(text3) {
-  let output = "";
-  let lastIndex = 0;
-  for (const match of findFinalTagMatches(text3)) {
-    output += text3.slice(lastIndex, match.index);
-    lastIndex = match.index + match.text.length;
-  }
-  output += text3.slice(lastIndex);
-  return output;
-}
+
+// vendor/openclaw/packages/normalization-core/src/number-coercion.ts
+var MAX_TIMER_TIMEOUT_MS = 2147e6;
+var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS / 1e3);
 
 // vendor/openclaw/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
@@ -8155,41 +8046,111 @@ function isTagNameCharacter(code) {
     code === 58
   );
 }
-function parseMarkdownOwnership(text3) {
+function captureInlineSources(text3, sources) {
+  const observe = function (token) {
+    const start = this.stack.findLast((entry) => entry.type === "inlineCode")?.position?.start
+      .offset;
+    if (start === void 0) {
+      return;
+    }
+    let source = sources.get(start);
+    if (!source) {
+      const inlineBlock = this.stack.findLast(
+        (entry) => entry.type === "paragraph" || entry.type === "heading",
+      );
+      const begin = inlineBlock?.children[0]?.position?.start.offset;
+      const containers = this.stack.filter(
+        (entry) => entry.type === "listItem" || entry.type === "blockquote",
+      );
+      const prefixEnd = begin !== void 0 && containers.length ? begin : start;
+      const prefixStart = containers.length
+        ? Math.max(text3.lastIndexOf("\n", prefixEnd - 1), text3.lastIndexOf("\r", prefixEnd - 1)) +
+          1
+        : start;
+      const prefix = containers
+        .map((entry) =>
+          text3.slice(entry.position?.start.offset, entry.children[0]?.position?.start.offset),
+        )
+        .join("");
+      source = {
+        prefix: {
+          start: prefixStart,
+          end: prefixEnd,
+          ownerStart: containers[0]?.position?.start.offset ?? start,
+          text:
+            prefix +
+            (containers.length && inlineBlock?.type === "heading"
+              ? text3.slice(inlineBlock.position?.start.offset, begin)
+              : ""),
+        },
+        value: "",
+        offsets: [],
+      };
+      sources.set(start, source);
+    }
+    const value = this.sliceSerialize(token);
+    const extra = value.length - (token.end.offset - token.start.offset);
+    for (let cursor = start + source.offsets.length; cursor < token.end.offset; cursor += 1) {
+      const consumed = cursor - token.start.offset;
+      source.offsets.push(source.value.length + (consumed > 0 ? consumed + extra : 0));
+    }
+    source.value += value;
+  };
+  return {
+    enter: {
+      codeTextData(token) {
+        observe.call(this, token);
+        expectDefined(this.config.enter.data, "Markdown data handler").call(this, token);
+      },
+      lineEnding: observe,
+    },
+  };
+}
+function parseMarkdownOwnership(text3, options) {
   if (!text3) {
-    return { codeSpans: [], retainStart: 0 };
+    return { regions: [], codeSpans: [], retainStart: 0 };
   }
+  const sources = /* @__PURE__ */ new Map();
+  const tables = options?.syntax !== "commonmark";
   const tree = fromMarkdown(text3, {
-    extensions: [DISABLE_HTML_MARKDOWN, gfmTable()],
-    mdastExtensions: [gfmTableFromMarkdown()],
+    extensions: [DISABLE_HTML_MARKDOWN, ...(tables ? [gfmTable()] : [])],
+    mdastExtensions: [
+      ...(tables ? [gfmTableFromMarkdown()] : []),
+      ...(options?.includeSource ? [captureInlineSources(text3, sources)] : []),
+    ],
   });
-  const spans = [];
+  const regions = [];
   const pending = [tree];
   while (pending.length > 0) {
-    const node2 = pending.pop();
-    if (!node2) {
-      continue;
-    }
-    if (node2.type === "code" || node2.type === "inlineCode") {
-      const start = node2.position?.start?.offset;
-      const end = node2.position?.end?.offset;
-      if (start !== void 0 && end !== void 0) {
-        spans.push([start, end]);
+    const node2 = expectDefined(pending.pop(), "Markdown ownership node");
+    const start = node2.position?.start?.offset;
+    const end = node2.position?.end?.offset;
+    if (
+      (node2.type === "code" || node2.type === "inlineCode") &&
+      start !== void 0 &&
+      end !== void 0
+    ) {
+      const source = sources.get(start);
+      if (source) {
+        while (source.offsets.length <= end - start) {
+          source.offsets.push(source.value.length);
+        }
       }
+      regions.push({ start, end, block: node2.type === "code", ...(source ? { source } : {}) });
     }
-    const children = node2.children ?? [];
-    for (let index2 = children.length - 1; index2 >= 0; index2 -= 1) {
-      const child = children[index2];
-      if (child) {
-        pending.push(child);
-      }
+    for (const child of node2.children?.toReversed() ?? []) {
+      pending.push(child);
     }
   }
-  const rootChildren = tree.children ?? [];
+  regions.sort((left, right) => left.start - right.start);
   return {
-    codeSpans: spans.toSorted((left, right) => left[0] - right[0]),
-    retainStart: rootChildren.at(-1)?.position?.start?.offset ?? text3.length,
+    regions,
+    codeSpans: regions.map(({ start, end }) => [start, end]),
+    retainStart: tree.children?.at(-1)?.position?.start?.offset ?? text3.length,
   };
+}
+function findMarkdownCodeRegions(text3, options) {
+  return /[`~\t]| {4}/u.test(text3) ? parseMarkdownOwnership(text3, options).regions : [];
 }
 function findMarkdownCodeSpans(text3) {
   if (!/[`~\t]| {4}/u.test(text3)) {
@@ -8363,7 +8324,12 @@ function stripReasoningTagsFromMarkdown(text3, options) {
   const state = { depth: 0, visibleEver: false };
   return reduceReasoningText(text3, findMarkdownCodeSpans(text3), state, {
     final: true,
-    mode: options.mode === "preserve" ? "static-preserve" : "static-strict",
+    mode:
+      options.recoverUnclosed === false
+        ? "hide"
+        : options.mode === "preserve"
+          ? "static-preserve"
+          : "static-strict",
     scope: options.scope,
   })
     .filter((delta) => delta.kind === "text")
@@ -8372,23 +8338,146 @@ function stripReasoningTagsFromMarkdown(text3, options) {
 }
 
 // vendor/openclaw/src/shared/text/code-regions.ts
-function findCodeRegions(text3) {
-  return findMarkdownCodeSpans(text3).map(([start, end]) => ({ start, end }));
+function findCodeRegions(text3, options) {
+  return findMarkdownCodeRegions(text3, options);
 }
-function isInsideCode2(pos, regions) {
-  return regions.some((region) => pos >= region.start && pos < region.end);
+
+// vendor/openclaw/src/shared/text/final-tags.ts
+var FINAL_TAG_CANDIDATE_RE = /<[^<>]*>/g;
+function isWhitespace(char) {
+  return /\s/.test(char);
+}
+function parseAttributeList(text3) {
+  let index2 = 0;
+  while (index2 < text3.length) {
+    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
+      index2 += 1;
+    }
+    if (index2 >= text3.length) {
+      return true;
+    }
+    const nameStart = index2;
+    while (index2 < text3.length) {
+      const char = text3[index2] ?? "";
+      if (isWhitespace(char) || char === "=") {
+        break;
+      }
+      if (char === "/" || char === '"' || char === "'" || char === "<" || char === ">") {
+        return false;
+      }
+      index2 += 1;
+    }
+    if (index2 === nameStart) {
+      return false;
+    }
+    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
+      index2 += 1;
+    }
+    if (text3[index2] !== "=") {
+      continue;
+    }
+    index2 += 1;
+    while (index2 < text3.length && isWhitespace(text3[index2] ?? "")) {
+      index2 += 1;
+    }
+    if (index2 >= text3.length) {
+      return false;
+    }
+    const quote = text3[index2];
+    if (quote === '"' || quote === "'") {
+      index2 += 1;
+      const end = text3.indexOf(quote, index2);
+      if (end === -1) {
+        return false;
+      }
+      index2 = end + 1;
+      continue;
+    }
+    const valueStart = index2;
+    while (index2 < text3.length && !isWhitespace(text3[index2] ?? "")) {
+      const char = text3[index2] ?? "";
+      if (char === '"' || char === "'" || char === "<" || char === ">") {
+        return false;
+      }
+      index2 += 1;
+    }
+    if (index2 === valueStart) {
+      return false;
+    }
+  }
+  return true;
+}
+function parseFinalTag(text3) {
+  if (!text3.startsWith("<") || !text3.endsWith(">")) {
+    return null;
+  }
+  let body = text3.slice(1, -1).trimStart();
+  let isClose = false;
+  if (body.startsWith("/")) {
+    isClose = true;
+    body = body.slice(1).trimStart();
+  }
+  if (!body.toLowerCase().startsWith("final")) {
+    return null;
+  }
+  const boundary = body[5] ?? "";
+  if (boundary && !isWhitespace(boundary) && boundary !== "/") {
+    return null;
+  }
+  let rest = body.slice(5);
+  if (isClose) {
+    return rest.trim().length === 0 ? { isClose: true, isSelfClosing: false } : null;
+  }
+  const trimmedRest = rest.trimEnd();
+  const isSelfClosing = trimmedRest.endsWith("/");
+  rest = isSelfClosing ? trimmedRest.slice(0, -1) : rest;
+  if (!parseAttributeList(rest)) {
+    return null;
+  }
+  return { isClose: false, isSelfClosing };
+}
+function findFinalTagMatches(text3) {
+  const matches = [];
+  for (const match of text3.matchAll(FINAL_TAG_CANDIDATE_RE)) {
+    const tagText = match[0];
+    const parsed = parseFinalTag(tagText);
+    if (!parsed) {
+      continue;
+    }
+    matches.push({
+      index: match.index ?? 0,
+      text: tagText,
+      ...parsed,
+    });
+  }
+  return matches;
+}
+function stripFinalTags(text3) {
+  const matches = findFinalTagMatches(text3);
+  if (matches.length === 0) {
+    return text3;
+  }
+  const codeRegions = findCodeRegions(text3);
+  let codeIndex = 0;
+  let output = "";
+  let lastIndex = 0;
+  for (const match of matches) {
+    let codeRegion = codeRegions[codeIndex];
+    while (codeRegion && codeRegion.end <= match.index) {
+      codeIndex += 1;
+      codeRegion = codeRegions[codeIndex];
+    }
+    if (codeRegion && codeRegion.start <= match.index) {
+      continue;
+    }
+    output += text3.slice(lastIndex, match.index);
+    lastIndex = match.index + match.text.length;
+  }
+  output += text3.slice(lastIndex);
+  return output;
 }
 
 // vendor/openclaw/src/shared/text/reasoning-tags.ts
-function applyTrim(value, mode) {
-  if (mode === "none") {
-    return value;
-  }
-  if (mode === "start") {
-    return value.trimStart();
-  }
-  return value.trim();
-}
 function hasOrphanReasoningCloseBoundary(params) {
   return params.before.trim().length > 0 && params.after.trim().length > 0;
 }
@@ -8406,18 +8495,17 @@ function stripReasoningTagsFromText(text3, options) {
     return text3;
   }
   if (matches.length > 0) {
-    const preCodeRegions = findCodeRegions(cleaned);
-    let visible = "";
-    let lastIndex = 0;
-    for (const match of matches) {
-      if (!isInsideCode2(match.index, preCodeRegions)) {
-        visible += cleaned.slice(lastIndex, match.index);
-        lastIndex = match.index + match.text.length;
-      }
-    }
-    cleaned = visible + cleaned.slice(lastIndex);
+    cleaned = stripFinalTags(cleaned);
   }
-  return applyTrim(stripReasoningTagsFromMarkdown(cleaned, { mode, scope }), trimMode);
+  const stripped = stripReasoningTagsFromMarkdown(cleaned, {
+    mode,
+    scope,
+    recoverUnclosed: options?.recoverUnclosed,
+  });
+  if (trimMode === "none") {
+    return stripped;
+  }
+  return trimMode === "start" ? stripped.trimStart() : stripped.trim();
 }
 export {
   findFinalTagMatches,

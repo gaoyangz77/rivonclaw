@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 /**
  * Helper: dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
@@ -41,16 +42,18 @@ async function navigateToCrons(window: import("@playwright/test").Page) {
     }
   }
 
-  const cronsBtn = window.locator(".nav-btn", { hasText: "Cron Jobs" });
+  const cronsBtn = getNavigationButton(window, "Cron Jobs");
   await cronsBtn.click();
-  await expect(cronsBtn).toHaveClass(/nav-active/);
-  await expect(window.locator(".crons-status-dot-connected")).toBeVisible({ timeout: 30_000 });
+  await expect(cronsBtn).toHaveAttribute("aria-current", "page");
+  await expect(window.locator("[data-tutorial-id='crons-status']")).toContainText("Connected", { timeout: 30_000 });
 }
 
 async function readCronJobCount(window: import("@playwright/test").Page): Promise<number> {
-  const statusBar = window.locator(".crons-status-bar");
-  await expect(statusBar).toContainText(/Connected\(\d+ jobs?\)/, { timeout: 30_000 });
-  const match = (await statusBar.textContent())?.match(/\((\d+) jobs?\)/);
+  const statusBar = window.locator("[data-tutorial-id='crons-status']");
+  await expect(statusBar).toContainText("Connected", { timeout: 30_000 });
+  const count = statusBar.locator(".crons-job-count");
+  await expect(count).toContainText(/\d+ jobs?/, { timeout: 30_000 });
+  const match = (await count.textContent())?.match(/(\d+) jobs?/);
   if (!match) throw new Error("Cron status bar did not expose a stable job count");
   return Number(match[1]);
 }
@@ -59,7 +62,7 @@ async function readCronJobCount(window: import("@playwright/test").Page): Promis
  * Helper: open the Create Cron Job form and return the modal locator.
  */
 async function openCreateForm(window: import("@playwright/test").Page) {
-  const addBtn = window.locator(".crons-toolbar .btn-primary", { hasText: "Add Job" });
+  const addBtn = window.getByRole("button", { name: "Add Job", exact: true });
   await addBtn.click();
   const modal = window.locator(".modal-backdrop");
   await expect(modal).toBeVisible();
@@ -167,16 +170,24 @@ async function createIntervalJob(
  * After confirming, the modal closes programmatically via setDeleteTarget(null).
  * If the backdrop lingers, we explicitly click the close button as a fallback.
  */
+async function chooseJobAction(
+  window: import("@playwright/test").Page,
+  row: import("@playwright/test").Locator,
+  action: "Edit" | "History" | "Delete",
+) {
+  await row.getByRole("button", { name: "More", exact: true }).click();
+  await window.getByRole("menuitem", { name: action, exact: true }).click();
+}
+
 async function deleteJob(window: import("@playwright/test").Page, jobName: string) {
   const table = window.locator(".crons-table");
   const row = table.locator("tr", { hasText: jobName });
-  const deleteBtn = row.locator(".btn-danger", { hasText: "Delete" });
-  await deleteBtn.click();
+  await chooseJobAction(window, row, "Delete");
 
   const confirmDialog = window.locator(".modal-backdrop");
   await expect(confirmDialog).toBeVisible();
   await expect(confirmDialog).toContainText(jobName);
-  const confirmBtn = confirmDialog.locator(".btn-danger", { hasText: "Delete" });
+  const confirmBtn = confirmDialog.getByRole("button", { name: "Delete", exact: true });
   await confirmBtn.click();
   const hidden = await confirmDialog
     .waitFor({ state: "hidden", timeout: 10_000 })
@@ -235,15 +246,14 @@ test.describe("Crons Page", () => {
     await expect(jobRow.locator(".crons-schedule-text")).toContainText("Every 30m");
 
     // Verify toggle is enabled
-    const toggle = jobRow.locator(".toggle-switch input[type='checkbox']");
+    const toggle = jobRow.locator(".tk-v1-switch-control input[type='checkbox']");
     await expect(toggle).toBeChecked();
 
     // Verify status badge shows "Never"
-    await expect(jobRow.locator(".badge")).toContainText("Never");
+    await expect(jobRow.locator(".tk-v1-badge")).toContainText("Never");
 
     // ── EDIT ──
-    const editBtn = jobRow.locator(".btn", { hasText: "Edit" });
-    await editBtn.click();
+    await chooseJobAction(window, jobRow, "Edit");
 
     const editModal = window.locator(".modal-backdrop");
     await expect(editModal).toBeVisible();
@@ -264,32 +274,31 @@ test.describe("Crons Page", () => {
     await expect(updatedRow).toBeVisible({ timeout: 10_000 });
 
     // ── TOGGLE DISABLE ──
-    const updatedToggle = updatedRow.locator(".toggle-switch input[type='checkbox']");
+    const updatedToggle = updatedRow.locator(".tk-v1-switch-control input[type='checkbox']");
     await expect(updatedToggle).toBeChecked();
-    await updatedRow.locator(".toggle-switch").click();
+    await updatedRow.locator(".tk-v1-switch-control").click();
     await expect(updatedToggle).not.toBeChecked({ timeout: 10_000 });
 
     // ── TOGGLE ENABLE ──
-    await updatedRow.locator(".toggle-switch").click();
+    await updatedRow.locator(".tk-v1-switch-control").click();
     await expect(updatedToggle).toBeChecked({ timeout: 10_000 });
 
     // ── RUN NOW ──
-    const runBtn = updatedRow.locator(".btn", { hasText: "Run" });
+    const runBtn = updatedRow.getByRole("button", { name: "Run", exact: true });
     await runBtn.click();
     // The job may complete quickly or fail (no LLM configured), but the
     // gateway should accept the command without error.
     await window.waitForTimeout(2_000);
 
     // ── VIEW HISTORY ──
-    const historyBtn = updatedRow.locator(".btn", { hasText: "History" });
-    await historyBtn.click();
+    await chooseJobAction(window, updatedRow, "History");
 
     const historyModal = window.locator(".modal-backdrop");
     await expect(historyModal).toBeVisible();
     await expect(historyModal.locator(".modal-header")).toContainText("E2E CRUD Job Edited");
 
     // History may show the run we just triggered, or empty state
-    await expect(historyModal.locator(".crons-runs-table, .empty-state")).toBeVisible({
+    await expect(historyModal.locator(".crons-runs-table, .tk-v1-empty-state")).toBeVisible({
       timeout: 10_000,
     });
 
@@ -543,8 +552,7 @@ test.describe("Crons Page", () => {
     await expect(jobRow).toBeVisible({ timeout: 10_000 });
 
     // Edit and verify advanced options were persisted
-    const editBtn = jobRow.locator(".btn", { hasText: "Edit" });
-    await editBtn.click();
+    await chooseJobAction(window, jobRow, "Edit");
 
     const editModal = window.locator(".modal-backdrop");
     await expect(editModal).toBeVisible();
@@ -591,7 +599,7 @@ test.describe("Crons Page", () => {
     await expect(table.locator("tr", { hasText: "Beta Job" })).toBeVisible({ timeout: 10_000 });
 
     // ── Search by name ──
-    const searchInput = window.locator(".crons-search-input");
+    const searchInput = window.locator(".crons-search-field input");
     await searchInput.fill("Alpha");
     // Wait for the search to take effect (re-fetch from gateway)
     await window.waitForTimeout(1_000);
@@ -607,13 +615,13 @@ test.describe("Crons Page", () => {
     // ── Filter by enabled/disabled ──
     // First disable Beta Job
     const betaRow = table.locator("tr", { hasText: "Beta Job" });
-    await betaRow.locator(".toggle-switch").click();
-    await expect(betaRow.locator(".toggle-switch input[type='checkbox']")).not.toBeChecked({
+    await betaRow.locator(".tk-v1-switch-control").click();
+    await expect(betaRow.locator(".tk-v1-switch-control input[type='checkbox']")).not.toBeChecked({
       timeout: 10_000,
     });
 
     // Filter to "Enabled" only
-    const filterSelects = window.locator(".crons-filter-select .custom-select-trigger");
+    const filterSelects = window.locator(".crons-filter-field .custom-select-trigger");
     await selectOption(window, filterSelects.first(), "Enabled");
     await window.waitForTimeout(1_000);
 
@@ -660,7 +668,7 @@ test.describe("Crons Page", () => {
     await expect(table.locator("tr", { hasText: "Apple Job" })).toBeVisible({ timeout: 10_000 });
 
     // Switch sort to "Name"
-    const filterSelects = window.locator(".crons-filter-select .custom-select-trigger");
+    const filterSelects = window.locator(".crons-filter-field .custom-select-trigger");
     await selectOption(window, filterSelects.nth(1), "Name");
     await window.waitForTimeout(1_000);
 
@@ -701,7 +709,7 @@ test.describe("Crons Page", () => {
     await expect(jobRow.locator(".crons-schedule-text")).toContainText("Every 2h");
 
     // Edit and verify schedule is preserved
-    await jobRow.locator(".btn", { hasText: "Edit" }).click();
+    await chooseJobAction(window, jobRow, "Edit");
     const editModal = window.locator(".modal-backdrop");
     await expect(editModal).toBeVisible();
 
@@ -757,7 +765,7 @@ test.describe("Crons Page", () => {
     const jobRow = table.locator("tr", { hasText: "Disabled Job" });
     await expect(jobRow).toBeVisible({ timeout: 10_000 });
 
-    const toggle = jobRow.locator(".toggle-switch input[type='checkbox']");
+    const toggle = jobRow.locator(".tk-v1-switch-control input[type='checkbox']");
     await expect(toggle).not.toBeChecked();
 
     // Cleanup
@@ -836,8 +844,7 @@ test.describe("Crons Page", () => {
     );
 
     // Edit and verify description persists
-    const editBtn = jobRow.locator(".btn", { hasText: "Edit" });
-    await editBtn.click();
+    await chooseJobAction(window, jobRow, "Edit");
 
     const editModal = window.locator(".modal-backdrop");
     await expect(editModal).toBeVisible();
@@ -964,7 +971,7 @@ test.describe("Crons Page", () => {
 
     // Vendor-managed jobs can finish loading after navigation. Compare the
     // status bar with the table instead of assuming the initial count is final.
-    const statusBar = window.locator(".crons-status-bar");
+    const statusBar = window.locator("[data-tutorial-id='crons-status']");
     const rows = table.locator("tbody tr");
     await expect
       .poll(async () => {
@@ -997,13 +1004,13 @@ test.describe("Crons Page", () => {
     const jobRow = table.locator("tr", { hasText: "History Empty Job" });
     await expect(jobRow).toBeVisible({ timeout: 10_000 });
 
-    await jobRow.locator(".btn", { hasText: "History" }).click();
+    await chooseJobAction(window, jobRow, "History");
 
     const historyModal = window.locator(".modal-backdrop");
     await expect(historyModal).toBeVisible();
 
     // Should show empty state
-    await expect(historyModal.locator(".empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(historyModal.locator(".tk-v1-empty-state")).toBeVisible({ timeout: 10_000 });
 
     // Close
     await historyModal.locator(".modal-close-btn").click();
@@ -1024,22 +1031,22 @@ test.describe("Crons Page", () => {
     await expect(window.locator("h1", { hasText: "Cron Jobs" })).toBeVisible();
 
     // Page description
-    await expect(window.locator(".page-description")).toBeVisible();
+    await expect(window.locator(".tk-v1-page-description")).toBeVisible();
 
     // Connection status bar
-    const statusBar = window.locator(".crons-status-bar");
+    const statusBar = window.locator("[data-tutorial-id='crons-status']");
     await expect(statusBar).toBeVisible();
     await expect(statusBar).toContainText("Connected");
 
     // Newer vendors can provision managed system jobs during startup.
-    await expect(window.locator(".crons-table, .empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".crons-table, .tk-v1-empty-state")).toBeVisible({ timeout: 10_000 });
 
     // Toolbar with search, filters, and Add Job button
     const toolbar = window.locator(".crons-toolbar");
     await expect(toolbar).toBeVisible();
-    await expect(toolbar.locator(".crons-search-input")).toBeVisible();
-    await expect(toolbar.locator(".crons-filter-select")).toHaveCount(2); // enabled + sort
-    const addBtn = toolbar.locator(".btn-primary", { hasText: "Add Job" });
+    await expect(toolbar.locator(".crons-search-field input")).toBeVisible();
+    await expect(toolbar.locator(".crons-filter-field")).toHaveCount(2); // enabled + sort
+    const addBtn = window.getByRole("button", { name: "Add Job", exact: true });
     await expect(addBtn).toBeVisible();
     await expect(addBtn).toBeEnabled();
   });
@@ -1115,12 +1122,12 @@ test.describe("Crons Page", () => {
     await expect(jobRow).toBeVisible({ timeout: 10_000 });
 
     // Click delete
-    await jobRow.locator(".btn-danger", { hasText: "Delete" }).click();
+    await chooseJobAction(window, jobRow, "Delete");
 
     // Cancel the confirm dialog
     const confirmDialog = window.locator(".modal-backdrop");
     await expect(confirmDialog).toBeVisible();
-    const cancelBtn = confirmDialog.locator(".btn", { hasText: "Cancel" });
+    const cancelBtn = confirmDialog.getByRole("button", { name: "Cancel", exact: true });
     await cancelBtn.click();
     await expect(confirmDialog).toBeHidden({ timeout: 5_000 });
 

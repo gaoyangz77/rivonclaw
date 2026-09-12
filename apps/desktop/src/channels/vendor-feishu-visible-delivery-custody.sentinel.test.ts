@@ -40,7 +40,9 @@ describe("vendor patch 0036: Feishu visible delivery custody", () => {
   it("preserves visible custody when preview cleanup fails", () => {
     const dispatcher = readFileSync(VENDOR_FEISHU_DISPATCHER, "utf8");
     expect(dispatcher).toContain("normalizeStreamingFinalizationFailure");
-    expect(dispatcher).toContain("failure?.result.visibleReplySent ? failure.error : error");
+    expect(dispatcher).toContain("closed = failure.result");
+    expect(dispatcher).toContain("finalizationError = failure.error");
+    expect(dispatcher).toContain("visibleReplySent: closed.visibleReplySent === true");
   });
 
   it("silently clears stale Feishu recovery debt", () => {

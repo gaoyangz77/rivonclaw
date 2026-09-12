@@ -16,9 +16,9 @@ const BUILT_VENDOR_PLUGIN_IDS = [
 
 // OpenClaw publishes these providers separately and marks them with
 // openclaw.build.bundledDist=false. Desktop still exposes them in Settings, so
-// stage their source packages from the pinned vendor checkout into the trusted
-// bundled runtime. They have no external runtime dependencies and OpenClaw's
-// plugin loader handles their TypeScript entrypoints through jiti.
+// stage their locally built packages into the trusted bundled runtime. Entry
+// paths must agree with dist/: OpenClaw canonicalizes dist-runtime aliases back
+// to that tree. These selected packages have no external runtime dependencies.
 const STAGED_VENDOR_SOURCE_PLUGINS = [
   { id: "groq", packageName: "@openclaw/groq-provider" },
   { id: "mistral", packageName: "@openclaw/mistral-provider" },

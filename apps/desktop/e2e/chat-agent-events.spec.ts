@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 /**
  * Helper: dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
@@ -41,19 +42,20 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Seed GLM provider and activate it
     await window.evaluate(async ({ base, key }) => {
-      await fetch(`${base}/api/provider-keys`, {
+      const created = await fetch(`${base}/api/provider-keys`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: "zhipu", label: "E2E GLM", model: "glm-4-flash", apiKey: key }),
       });
-      await fetch(`${base}/api/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "llm-provider": "zhipu" }),
+      if (!created.ok) throw new Error(`Provider creation failed: HTTP ${created.status}`);
+      const entry = await created.json() as { id: string };
+      const activated = await fetch(`${base}/api/provider-keys/${encodeURIComponent(entry.id)}/activate`, {
+        method: "POST",
       });
+      if (!activated.ok) throw new Error(`Provider activation failed: HTTP ${activated.status}`);
     }, { base: apiBase, key: apiKey! });
 
-    // The PUT /api/settings triggers a full gateway stop+start. Reload the page
+    // Provider activation triggers a full gateway stop+start. Reload the page
     // to force a fresh WebSocket connection — without this, the existing
     // ".chat-status-dot-connected" still reflects the OLD gateway session,
     // and the message would be sent into a gateway that is mid-restart.
@@ -61,7 +63,7 @@ test.describe("Chat Agent Events & Settings", () => {
     await window.waitForLoadState("domcontentloaded");
 
     // Ensure we're on Chat page and connected to the NEW gateway
-    const chatNav = window.locator(".nav-list .nav-btn").first();
+    const chatNav = getNavigationButton(window, "Chat");
     await chatNav.click();
     await expect(window.locator(".chat-status-dot-connected")).toBeVisible({ timeout: 30_000 });
 
@@ -92,6 +94,7 @@ test.describe("Chat Agent Events & Settings", () => {
     // Eventually, an assistant response should arrive
     const assistantBubble = window.locator(".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)");
     await expect(assistantBubble.last()).toBeVisible({ timeout: 60_000 });
+    await expect(assistantBubble.last()).toContainText(/\b(?:hello|hi|hey)\b|你好/i, { timeout: 60_000 });
 
     // Thinking indicator should disappear after response.
     // Allow up to 20s: if chat.final is lost, LIFECYCLE_END + 5s FORCE_DONE fallback clears it.
@@ -109,16 +112,17 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Seed GLM provider and activate it
     await window.evaluate(async ({ base, key }) => {
-      await fetch(`${base}/api/provider-keys`, {
+      const created = await fetch(`${base}/api/provider-keys`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: "zhipu", label: "E2E GLM", model: "glm-4-flash", apiKey: key }),
       });
-      await fetch(`${base}/api/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "llm-provider": "zhipu" }),
+      if (!created.ok) throw new Error(`Provider creation failed: HTTP ${created.status}`);
+      const entry = await created.json() as { id: string };
+      const activated = await fetch(`${base}/api/provider-keys/${encodeURIComponent(entry.id)}/activate`, {
+        method: "POST",
       });
+      if (!activated.ok) throw new Error(`Provider activation failed: HTTP ${activated.status}`);
     }, { base: apiBase, key: apiKey! });
 
     // Reload to force a fresh WebSocket connection after provider switch
@@ -127,7 +131,7 @@ test.describe("Chat Agent Events & Settings", () => {
     await window.waitForLoadState("domcontentloaded");
 
     // Navigate to Chat page and wait for the NEW gateway connection
-    const chatNav = window.locator(".nav-list .nav-btn").first();
+    const chatNav = getNavigationButton(window, "Chat");
     await chatNav.click();
     await expect(window.locator(".chat-status-dot-connected")).toBeVisible({ timeout: 30_000 });
 
@@ -142,13 +146,14 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Send a message that should trigger agent processing
     const textarea = window.locator(".chat-input-area textarea");
-    await textarea.fill("What is 2 + 2?");
+    await textarea.fill("What is 2 + 2? Reply with only the number.");
     await window.locator(".chat-input-area .btn-primary").click();
 
     // Wait for a response (or thinking indicator)
     // The agent phase indicator may flash briefly — we check that the flow completes
     const assistantBubble = window.locator(".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)");
     await expect(assistantBubble.last()).toBeVisible({ timeout: 60_000 });
+    await expect(assistantBubble.last()).toHaveText(/^\s*(?:4[.!。]?|2\s*\+\s*2\s*=\s*4[.!。]?|four[.!。]?|四[。！]?)\s*$/i, { timeout: 60_000 });
 
     // After completion, no thinking indicator should remain.
     // Allow up to 20s: if chat.final is lost, LIFECYCLE_END + 5s FORCE_DONE fallback clears it.
@@ -165,13 +170,13 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Navigate to Settings
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     const toggleInput = chatSection.locator("input[type='checkbox']").first();
-    const toggleTrack = chatSection.locator(".toggle-track").first();
+    const toggleTrack = chatSection.locator(".tk-v1-switch-track").first();
 
     // Should start checked
     await expect(toggleInput).toBeChecked();
@@ -277,15 +282,15 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Navigate to Settings
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Wait for settings to load
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     await expect(chatSection).toBeVisible({ timeout: 10_000 });
     const toggleInput = chatSection.locator("input[type='checkbox']").first();
-    const toggleTrack = chatSection.locator(".toggle-track").first();
+    const toggleTrack = chatSection.locator(".tk-v1-switch-track").first();
 
     // Should start ON (fresh install default)
     await expect(toggleInput).toBeChecked();
@@ -316,13 +321,13 @@ test.describe("Chat Agent Events & Settings", () => {
   test("Preserve tool events toggle persists OFF → ON round-trip", async ({ window, apiBase }) => {
     await dismissModals(window);
 
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     const toggleInput = chatSection.locator("input[type='checkbox']").nth(1);
-    const toggleTrack = chatSection.locator(".toggle-track").nth(1);
+    const toggleTrack = chatSection.locator(".tk-v1-switch-track").nth(1);
 
     // Should start unchecked
     await expect(toggleInput).not.toBeChecked();
@@ -412,8 +417,8 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Chat should be default page
-    const chatNav = window.locator(".nav-list .nav-btn").first();
-    await expect(chatNav).toHaveClass(/nav-active/);
+    const chatNav = getNavigationButton(window, "Chat");
+    await expect(chatNav).toHaveAttribute("aria-current", "page");
 
     // Wait for gateway connection
     const connectedDot = window.locator(".chat-status-dot-connected");
@@ -455,21 +460,21 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Navigate to Settings
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Find the Chat Settings section by its heading (wait for Settings page to finish loading)
-    const chatSection = window.locator(".section-card:visible", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section:visible", { hasText: /Chat Settings|聊天设置/ });
     await expect(chatSection).toBeVisible({ timeout: 10_000 });
 
     // Verify all three sections exist: Agent, Chat, Telemetry
-    const sectionCards = window.locator(".section-card:visible");
+    const sectionCards = window.locator(".tk-settings-section:visible");
     const cardCount = await sectionCards.count();
     expect(cardCount).toBeGreaterThanOrEqual(3);
 
     // Verify it has toggle switches
-    const toggles = chatSection.locator(".toggle-switch");
+    const toggles = chatSection.locator(".tk-v1-switch-row");
     await expect(toggles.first()).toBeVisible();
 
     // Verify the label text
@@ -483,12 +488,12 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Navigate to Settings
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Find the Chat Settings toggle (first checkbox = show agent events)
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     const toggle = chatSection.locator("input[type='checkbox']").first();
 
     // Should be checked by default (fresh install → key doesn't exist → defaults to ON)
@@ -498,12 +503,12 @@ test.describe("Chat Agent Events & Settings", () => {
   test("Settings page sections are in correct order: Agent → Chat → App → Tutorial → Startup → Data Directory → Telemetry", async ({ window }) => {
     await dismissModals(window);
 
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Wait for settings sections to render (use :visible to exclude hidden ChannelsPage cards)
-    const sectionCards = window.locator(".section-card:visible");
+    const sectionCards = window.locator(".tk-settings-section:visible");
     await expect(sectionCards.first()).toBeVisible({ timeout: 10_000 });
     const count = await sectionCards.count();
     expect(count).toBeGreaterThanOrEqual(7);
@@ -533,12 +538,12 @@ test.describe("Chat Agent Events & Settings", () => {
   test("Settings page: Agent section has browser mode dropdown", async ({ window }) => {
     await dismissModals(window);
 
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Agent Settings section should have a select/dropdown for browser mode.
-    const agentSection = window.locator(".section-card:visible").first();
+    const agentSection = window.locator(".tk-settings-section:visible").first();
     await expect(agentSection).toContainText(/Agent Settings|智能体设置/);
     await expect(agentSection).toContainText(/Browser Mode|浏览器模式/);
 
@@ -550,14 +555,14 @@ test.describe("Chat Agent Events & Settings", () => {
   test("Settings page: Telemetry section has toggle and info", async ({ window }) => {
     await dismissModals(window);
 
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
 
-    const telemetrySection = window.locator(".section-card", { hasText: /Telemetry|遥测/ });
+    const telemetrySection = window.locator(".tk-settings-section", { hasText: /Telemetry|遥测/ });
     await expect(telemetrySection).toBeVisible();
 
     // Should have a toggle switch
-    const toggle = telemetrySection.locator(".toggle-switch");
+    const toggle = telemetrySection.locator(".tk-v1-switch-row");
     await expect(toggle).toBeVisible();
 
     // Should have "What we collect" and "What we don't collect" sections
@@ -567,18 +572,18 @@ test.describe("Chat Agent Events & Settings", () => {
 
   test("Chat Settings section shows preserve tool events toggle", async ({ window }) => {
     // Wait for app to be ready, then dismiss any modals
-    await window.waitForSelector(".nav-btn", { timeout: 15_000 });
+    await expect(getNavigationButton(window, "Chat")).toBeVisible({ timeout: 15_000 });
     await dismissModals(window);
 
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     await expect(chatSection).toBeVisible();
 
     // Should have three toggle switches: agent events + preserve tool events + collapse messages
-    const toggles = chatSection.locator(".toggle-switch");
+    const toggles = chatSection.locator(".tk-v1-switch-row");
     await expect(toggles).toHaveCount(3);
 
     // Verify label text for the second toggle
@@ -589,11 +594,11 @@ test.describe("Chat Agent Events & Settings", () => {
   test("Preserve tool events toggle is OFF by default (fresh install)", async ({ window }) => {
     await dismissModals(window);
 
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    await expect(settingsBtn).toHaveClass(/nav-active/);
+    await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     const toggleInputs = chatSection.locator("input[type='checkbox']");
 
     // Second toggle (preserve tool events) should be unchecked by default
@@ -608,7 +613,7 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Navigate to Chat page
-    const chatNav = window.locator(".nav-list .nav-btn").first();
+    const chatNav = getNavigationButton(window, "Chat");
     await chatNav.click();
 
     // Wait for gateway connection
@@ -627,8 +632,8 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Chat is default page
-    const chatNav = window.locator(".nav-list .nav-btn").first();
-    await expect(chatNav).toHaveClass(/nav-active/);
+    const chatNav = getNavigationButton(window, "Chat");
+    await expect(chatNav).toHaveAttribute("aria-current", "page");
 
     // Wait for gateway connection so the page is fully loaded
     await expect(window.locator(".chat-status-dot-connected")).toBeVisible({ timeout: 30_000 });
@@ -686,11 +691,11 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Also verify by checking that the Settings page renders translated text
     await dismissModals(window);
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
 
     // The Chat Settings section title should appear translated
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     await expect(chatSection).toBeVisible();
   });
 
@@ -744,9 +749,9 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Verify the label is visible on the Settings page
     await dismissModals(window);
-    const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
+    const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
     await expect(chatSection).toContainText(/Preserve tool call records|保留工具调用记录/);
   });
 

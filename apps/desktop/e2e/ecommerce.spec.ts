@@ -7,6 +7,7 @@
  * All tests are read-only or toggle UI state that doesn't require teardown.
  */
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton, waitForSignedInShell } from "./shell-helpers.js";
 import { DEFAULTS } from "@rivonclaw/core/defaults";
 
 const STAGING_GRAPHQL_URL = `https://${DEFAULTS.domains.apiStaging}/graphql`;
@@ -98,13 +99,6 @@ async function storeTokens(apiBase: string, accessToken: string, refreshToken: s
   throw new Error(`/api/auth/store-tokens failed with ${lastStatus}: ${lastBody}`);
 }
 
-async function waitForSignedInShell(window: import("@playwright/test").Page): Promise<void> {
-  const accountAvatar = window
-    .locator(".nav-btn", { hasText: "Account" })
-    .locator(".nav-account-avatar:not(.nav-account-avatar-loading)");
-  await expect(accountAvatar).toBeVisible({ timeout: 15_000 });
-}
-
 async function requestDeterministicCaptcha(): Promise<string> {
   const body = await graphqlRequest<{ requestCaptcha: { token: string; svg: string } }>(
     REQUEST_CAPTCHA_MUTATION,
@@ -137,7 +131,7 @@ async function loginAndNavigateToEcommerce(
   await waitForSignedInShell(window);
 
   // Navigate to ecommerce page via sidebar
-  const navBtn = window.locator(".nav-btn", { hasText: /^Shops$/ });
+  const navBtn = getNavigationButton(window, "Shops");
   await navBtn.click({ timeout: 15_000 });
 }
 
@@ -210,7 +204,7 @@ test.describe("Ecommerce Page — New User Defaults", () => {
     await dismissModals(window);
 
     await waitForSignedInShell(window);
-    const navBtn = window.locator(".nav-btn", { hasText: /^Shops$/ });
+    const navBtn = getNavigationButton(window, "Shops");
     await expect(navBtn).toBeVisible({ timeout: 15_000 });
     await navBtn.click();
 
@@ -255,7 +249,8 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(header.locator(".tk-v1-page-description")).toContainText("Manage connected shops");
 
     // Add Shop button
-    const addBtn = window.locator(".section-card").filter({ hasText: "Shops" }).locator("button", { hasText: "Add Shop" });
+    const addBtn = window.locator(".ecommerce-shops-page")
+      .getByRole("button", { name: "Add Shop", exact: true });
     await expect(addBtn).toBeVisible();
     await expect(addBtn).toBeEnabled();
   });
@@ -283,10 +278,10 @@ test.describe("Ecommerce Page — Authenticated", () => {
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
-    // First shop row has a name and a View button
+    // The row itself opens the shop details.
     const firstRow = rows.first();
     await expect(firstRow.locator(".tk-v1-table-record-name")).toBeVisible();
-    await expect(firstRow.locator("button", { hasText: "View" })).toBeVisible();
+    await expect(firstRow).toHaveAttribute("aria-label", /^View /);
   });
 
   test("add shop modal opens and closes without submitting", async ({ window, apiBase }) => {
@@ -316,11 +311,11 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(shopTable).toBeVisible({ timeout: 20_000 });
 
     // Click View on the first shop
-    const firstViewBtn = shopTable.locator("tbody tr").first().locator("button", { hasText: "View" });
+    const firstViewBtn = shopTable.getByRole("row", { name: /^View / }).first();
     await firstViewBtn.click();
 
     // Drawer should open
-    const drawer = window.locator(".drawer-panel-open");
+    const drawer = window.getByRole("dialog").filter({ has: window.locator(".drawer-header-title") });
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // Drawer header shows the shop name
@@ -330,7 +325,7 @@ test.describe("Ecommerce Page — Authenticated", () => {
     expect(shopName!.length).toBeGreaterThan(0);
 
     // Overview tab is active by default
-    const overviewTab = drawer.locator(".drawer-tab-btn-active");
+    const overviewTab = drawer.getByRole("tab", { selected: true });
     await expect(overviewTab).toContainText("Overview");
 
     // Overview shows shop info section
@@ -340,10 +335,10 @@ test.describe("Ecommerce Page — Authenticated", () => {
     // Overview shows CS toggle
     const csToggleCard = drawer.locator(".shop-toggle-card").filter({ hasText: "AI Customer Service" }).first();
     await expect(csToggleCard).toBeVisible();
-    await expect(csToggleCard.locator(".toggle-switch")).toBeVisible();
+    await expect(csToggleCard.locator(".tk-v1-switch-control")).toBeVisible();
 
     // Close drawer via close button
-    await drawer.locator(".drawer-close-btn").click();
+    await drawer.getByRole("button", { name: "Close", exact: true }).click();
     await expect(drawer).not.toBeVisible({ timeout: 5_000 });
   });
 
@@ -355,18 +350,18 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(shopTable).toBeVisible({ timeout: 20_000 });
 
     // Open drawer on first shop
-    await shopTable.locator("tbody tr").first().locator("button", { hasText: "View" }).click();
-    const drawer = window.locator(".drawer-panel-open");
+    await shopTable.getByRole("row", { name: /^View / }).first().click();
+    const drawer = window.getByRole("dialog").filter({ has: window.locator(".drawer-header-title") });
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // Check if AI CS tab exists (only when CS is enabled for this shop)
-    const aiCsTab = drawer.locator(".drawer-tab-btn", { hasText: "AI Customer Service" });
+    const aiCsTab = drawer.getByRole("tab", { name: "AI Customer Service", exact: true });
     const csTabVisible = await aiCsTab.isVisible().catch(() => false);
 
     if (csTabVisible) {
       // Click AI CS tab
       await aiCsTab.click();
-      await expect(drawer.locator(".drawer-tab-btn-active")).toContainText("AI Customer Service");
+      await expect(aiCsTab).toHaveAttribute("aria-selected", "true");
 
       // AI CS tab shows service status section
       await expect(drawer.locator(".drawer-section-label", { hasText: "Service Status" })).toBeVisible();
@@ -385,13 +380,13 @@ test.describe("Ecommerce Page — Authenticated", () => {
       await expect(drawer.locator("textarea")).toBeVisible();
 
       // Switch back to overview
-      await drawer.locator(".drawer-tab-btn", { hasText: "Overview" }).click();
-      await expect(drawer.locator(".drawer-tab-btn-active")).toContainText("Overview");
+      await drawer.getByRole("tab", { name: "Overview", exact: true }).click();
+      await expect(drawer.getByRole("tab", { selected: true })).toContainText("Overview");
     }
 
     // Close drawer via close button; clicking the overlay can hit the open
     // drawer panel depending on scroll position and viewport geometry.
-    await drawer.locator(".drawer-close-btn").click();
+    await drawer.getByRole("button", { name: "Close", exact: true }).click();
     await expect(drawer).not.toBeVisible({ timeout: 5_000 });
   });
 
@@ -403,15 +398,15 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(shopTable).toBeVisible({ timeout: 20_000 });
 
     // Open drawer
-    await shopTable.locator("tbody tr").first().locator("button", { hasText: "View" }).click();
-    const drawer = window.locator(".drawer-panel-open");
+    await shopTable.getByRole("row", { name: /^View / }).first().click();
+    const drawer = window.getByRole("dialog").filter({ has: window.locator(".drawer-header-title") });
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // The checkbox input is visually hidden (CSS toggle pattern), so use
     // the label wrapper for clicks and the input for state checks.
     const csToggleCard = drawer.locator(".shop-toggle-card").filter({ hasText: "AI Customer Service" }).first();
-    const toggleInput = csToggleCard.locator(".toggle-switch input[type='checkbox']");
-    const toggleLabel = csToggleCard.locator(".toggle-switch");
+    const toggleInput = csToggleCard.locator("input[type='checkbox']");
+    const toggleLabel = csToggleCard.locator(".tk-v1-switch-control");
     await expect(toggleLabel).toBeVisible();
     const wasChecked = await toggleInput.isChecked();
 
@@ -426,6 +421,6 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(toggleInput).toHaveJSProperty("checked", wasChecked, { timeout: 10_000 });
 
     // Close drawer
-    await drawer.locator(".drawer-close-btn").click();
+    await drawer.getByRole("button", { name: "Close", exact: true }).click();
   });
 });

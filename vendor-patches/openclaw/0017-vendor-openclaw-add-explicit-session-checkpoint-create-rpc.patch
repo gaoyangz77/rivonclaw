@@ -1,4 +1,4 @@
-From a09303eb348df0e2975e589052123d585dcf0821 Mon Sep 17 00:00:00 2001
+From 365e80910005fc202bf27e1f837a906c0f1e0e93 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 20:25:45 -0700
 Subject: [PATCH] vendor(openclaw): add explicit session checkpoint create rpc
@@ -17,13 +17,13 @@ Tests:
  .../gateway-protocol/src/schema/sessions.ts   | 15 +++++
  .../src/validator-registry.ts                 |  3 +
  src/gateway/methods/core-descriptors.ts       |  1 +
- .../sessions-compaction-checkpoints.ts        | 63 ++++++++++++++++++-
- .../server.sessions.compaction.test.ts        | 57 +++++++++++++++++
- src/gateway/session-compaction-checkpoints.ts | 60 ++++++++++++++++--
- 7 files changed, 194 insertions(+), 7 deletions(-)
+ .../sessions-compaction-checkpoints.ts        | 57 +++++++++++++++++-
+ .../server.sessions.compaction.test.ts        | 57 ++++++++++++++++++
+ src/gateway/session-compaction-checkpoints.ts | 60 +++++++++++++++++--
+ 7 files changed, 188 insertions(+), 7 deletions(-)
 
 diff --git a/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts b/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts
-index d13f7248b8d..80a13e12108 100644
+index a3c8c2a0e60..78bec9bef24 100644
 --- a/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts
 +++ b/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts
 @@ -8,9 +8,11 @@ export const SessionLifecycleProtocolSchemas = {
@@ -39,10 +39,10 @@ index d13f7248b8d..80a13e12108 100644
    SessionsRewindResult: sessions.SessionsRewindResultSchema,
    SessionsForkParams: sessions.SessionsForkParamsSchema,
 diff --git a/packages/gateway-protocol/src/schema/sessions.ts b/packages/gateway-protocol/src/schema/sessions.ts
-index 579a0925254..47fcf026988 100644
+index 136cbaef746..577c04e6713 100644
 --- a/packages/gateway-protocol/src/schema/sessions.ts
 +++ b/packages/gateway-protocol/src/schema/sessions.ts
-@@ -696,6 +696,12 @@ export const SessionsBranchesSwitchParamsSchema = closedObject({
+@@ -703,6 +703,12 @@ export const SessionsBranchesSwitchParamsSchema = closedObject({
  
  export const SessionsBranchesSwitchResultSchema = closedObject({});
  
@@ -55,7 +55,7 @@ index 579a0925254..47fcf026988 100644
  /** List response for session compaction checkpoints. */
  export const SessionsCompactionListResultSchema = closedObject({
    ok: Type.Literal(true),
-@@ -734,6 +740,13 @@ export const SessionsCompactionRestoreResultSchema = closedObject({
+@@ -741,6 +747,13 @@ export const SessionsCompactionRestoreResultSchema = closedObject({
    ),
  });
  
@@ -69,7 +69,7 @@ index 579a0925254..47fcf026988 100644
  /** Usage report query across one session, one agent, or all agent sessions. */
  export const SessionsUsageParamsSchema = closedObject({
    /** Specific session key to analyze; if omitted returns sessions for the effective agent. */
-@@ -814,9 +827,11 @@ export type SessionsCompanionResetResult = Static<typeof SessionsCompanionResetR
+@@ -821,9 +834,11 @@ export type SessionsCompanionResetResult = Static<typeof SessionsCompanionResetR
  export type SessionsCompactionListParams = Static<typeof SessionsCompactionListParamsSchema>;
  export type SessionsCompactionBranchParams = Static<typeof SessionsCompactionBranchParamsSchema>;
  export type SessionsCompactionRestoreParams = Static<typeof SessionsCompactionRestoreParamsSchema>;
@@ -82,10 +82,10 @@ index 579a0925254..47fcf026988 100644
  export type SessionsForkParams = Static<typeof SessionsForkParamsSchema>;
  export type SessionsRewindResult = Static<typeof SessionsRewindResultSchema>;
 diff --git a/packages/gateway-protocol/src/validator-registry.ts b/packages/gateway-protocol/src/validator-registry.ts
-index a65e355dfe4..fbbe9b9b8f4 100644
+index a2b91c6e5d4..a1db99d402f 100644
 --- a/packages/gateway-protocol/src/validator-registry.ts
 +++ b/packages/gateway-protocol/src/validator-registry.ts
-@@ -288,6 +288,9 @@ export const validateSessionsCompactionBranchParams = compile(
+@@ -321,6 +321,9 @@ export const validateSessionsCompactionBranchParams = compile(
  export const validateSessionsCompactionRestoreParams = compile(
    S.SessionsCompactionRestoreParamsSchema,
  );
@@ -96,10 +96,10 @@ index a65e355dfe4..fbbe9b9b8f4 100644
  export const validateSessionsBranchesSwitchParams = compile(S.SessionsBranchesSwitchParamsSchema);
  export const validateSessionsRewindParams = compile(S.SessionsRewindParamsSchema);
 diff --git a/src/gateway/methods/core-descriptors.ts b/src/gateway/methods/core-descriptors.ts
-index c04a0b8b0d5..d1b372d9138 100644
+index 33cc2d6fa45..51da4e3bbf7 100644
 --- a/src/gateway/methods/core-descriptors.ts
 +++ b/src/gateway/methods/core-descriptors.ts
-@@ -273,6 +273,7 @@ const CORE_GATEWAY_METHOD_SPECS = [
+@@ -246,6 +246,7 @@ const CORE_GATEWAY_METHOD_SPECS = [
    ["sessions.compaction.list", "sessions-compaction-queries", "operator.read", "<=2026.7"],
    ["sessions.compaction.branch", "sessions-compaction-checkpoints", "operator.write", "<=2026.7"],
    ["sessions.compaction.restore", "sessions-compaction-checkpoints", "operator.admin", "<=2026.7"],
@@ -108,10 +108,10 @@ index c04a0b8b0d5..d1b372d9138 100644
    ["sessions.branches.switch", "sessions-rewind", "operator.admin", "<=2026.7"],
    ["sessions.rewind", "sessions-rewind", "operator.admin", "<=2026.7"],
 diff --git a/src/gateway/server-methods/sessions-compaction-checkpoints.ts b/src/gateway/server-methods/sessions-compaction-checkpoints.ts
-index 5763af64939..080dcb3556c 100644
+index caefc856395..3c9139c8a44 100644
 --- a/src/gateway/server-methods/sessions-compaction-checkpoints.ts
 +++ b/src/gateway/server-methods/sessions-compaction-checkpoints.ts
-@@ -1,9 +1,10 @@
+@@ -1,10 +1,11 @@
 -// Compaction checkpoint branching and restore operations.
 +// Compaction checkpoint creation, branching, and restore operations.
  import {
@@ -119,89 +119,91 @@ index 5763af64939..080dcb3556c 100644
    errorShape,
    validateSessionsCompactionBranchParams,
    validateSessionsCompactionRestoreParams,
+   type ErrorShape,
 +  validateSessionsCheckpointCreateParams,
  } from "../../../packages/gateway-protocol/src/index.js";
+ import { GATEWAY_OWNER_PROFILE_ID } from "../../../packages/gateway-protocol/src/schema/users.js";
  import { clearSessionQueues } from "../../auto-reply/reply/queue/cleanup.js";
- import { SESSION_LIFECYCLE_CHANGED_ERROR_REASON } from "../../config/sessions.js";
-@@ -16,6 +17,7 @@ import { authorizeGatewaySessionCreation, resolveCreatorSandbox } from "../opera
+@@ -18,6 +19,7 @@ import { authorizeGatewaySessionCreation, resolveCreatorSandbox } from "../opera
  import {
    createFileBackedCompactionCheckpointStore,
    getSessionCompactionCheckpoint,
 +  persistExplicitSessionCompactionCheckpoint,
  } from "../session-compaction-checkpoints.js";
  import { buildDashboardSessionKey } from "../session-create-service.js";
- import { resolveRequestedSessionAgentId as resolveRequestedGlobalAgentId } from "../session-request-agent.js";
-@@ -53,6 +55,65 @@ function respondCheckpointConflict(
+ import { resolveRequestedSessionAgentId } from "../session-request-agent.js";
+@@ -48,6 +50,58 @@ function checkpointConflict(key: string, action: CheckpointAction): ErrorShape {
+   );
+ }
+ 
++const createExplicitCheckpoint: GatewayRequestHandler = async ({ params, respond, context }) => {
++  if (
++    !assertValidParams(
++      params,
++      validateSessionsCheckpointCreateParams,
++      "sessions.checkpoint.create",
++      respond,
++    )
++  ) {
++    return;
++  }
++  const key = requireSessionKey(params.key, respond);
++  if (!key) {
++    return;
++  }
++  const cfg = context.getRuntimeConfig();
++  const requestedAgent = resolveRequestedSessionAgentId(cfg, key);
++  if (!requestedAgent.ok) {
++    respond(false, undefined, requestedAgent.error);
++    return;
++  }
++  const { entry, canonicalKey, target, storePath } = loadAccessorSessionEntryForGatewayTarget({
++    key,
++    cfg,
++    agentId: requestedAgent.agentId,
++  });
++  if (!entry?.sessionId) {
++    respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, `session not found: ${key}`));
++    return;
++  }
++  const checkpoint = await persistExplicitSessionCompactionCheckpoint({
++    cfg,
++    sessionKey: canonicalKey,
++    sessionId: entry.sessionId,
++    agentId: target.agentId,
++    storePath,
++    checkpointId: params.checkpointId,
++    ...(params.summary?.trim() ? { summary: params.summary.trim() } : {}),
++    ...(typeof entry.totalTokens === "number" ? { tokensBefore: entry.totalTokens } : {}),
++  });
++  if (!checkpoint) {
++    respond(
++      false,
++      undefined,
++      errorShape(ErrorCodes.UNAVAILABLE, "failed to persist session checkpoint"),
++    );
++    return;
++  }
++  respond(true, { ok: true, key: canonicalKey, sessionId: entry.sessionId, checkpoint }, undefined);
++  emitSessionsChanged(context, { sessionKey: canonicalKey, reason: "checkpoint-create" });
++};
++
+ function createCheckpointHandler(action: CheckpointAction): GatewayRequestHandler {
+   const validate =
+     action === "branch"
+@@ -284,6 +338,7 @@ function createCheckpointHandler(action: CheckpointAction): GatewayRequestHandle
  }
  
  export const sessionCheckpointHandlers: GatewayRequestHandlers = {
-+  "sessions.checkpoint.create": async ({ params, respond, context }) => {
-+    if (
-+      !assertValidParams(
-+        params,
-+        validateSessionsCheckpointCreateParams,
-+        "sessions.checkpoint.create",
-+        respond,
-+      )
-+    ) {
-+      return;
-+    }
-+    const key = requireSessionKey(params.key, respond);
-+    if (!key) {
-+      return;
-+    }
-+    const cfg = context.getRuntimeConfig();
-+    const requestedAgent = resolveRequestedGlobalAgentId(cfg, key);
-+    if (!requestedAgent.ok) {
-+      respond(false, undefined, requestedAgent.error);
-+      return;
-+    }
-+    const { entry, canonicalKey, target, storePath } = loadAccessorSessionEntryForGatewayTarget({
-+      key,
-+      cfg,
-+      agentId: requestedAgent.agentId,
-+    });
-+    if (!entry?.sessionId) {
-+      respond(
-+        false,
-+        undefined,
-+        errorShape(ErrorCodes.INVALID_REQUEST, `session not found: ${key}`),
-+      );
-+      return;
-+    }
-+    const checkpoint = await persistExplicitSessionCompactionCheckpoint({
-+      cfg,
-+      sessionKey: canonicalKey,
-+      sessionId: entry.sessionId,
-+      agentId: target.agentId,
-+      storePath,
-+      checkpointId: params.checkpointId,
-+      ...(params.summary?.trim() ? { summary: params.summary.trim() } : {}),
-+      ...(typeof entry.totalTokens === "number" ? { tokensBefore: entry.totalTokens } : {}),
-+    });
-+    if (!checkpoint) {
-+      respond(
-+        false,
-+        undefined,
-+        errorShape(ErrorCodes.UNAVAILABLE, "failed to persist session checkpoint"),
-+      );
-+      return;
-+    }
-+    respond(
-+      true,
-+      { ok: true, key: canonicalKey, sessionId: entry.sessionId, checkpoint },
-+      undefined,
-+    );
-+    emitSessionsChanged(context, { sessionKey: canonicalKey, reason: "checkpoint-create" });
-+  },
-   "sessions.compaction.branch": async ({ params, respond, context, client }) => {
-     if (
-       !assertValidParams(
++  "sessions.checkpoint.create": createExplicitCheckpoint,
+   "sessions.compaction.branch": createCheckpointHandler("branch"),
+   "sessions.compaction.restore": createCheckpointHandler("restore"),
+ };
 diff --git a/src/gateway/server.sessions.compaction.test.ts b/src/gateway/server.sessions.compaction.test.ts
-index be58806c923..f076c7ae391 100644
+index 16d1a8a442e..c4704f3d03d 100644
 --- a/src/gateway/server.sessions.compaction.test.ts
 +++ b/src/gateway/server.sessions.compaction.test.ts
-@@ -239,6 +239,63 @@ async function alignCheckpointBoundaryWithSqliteRows(params: {
+@@ -243,6 +243,63 @@ async function alignCheckpointBoundaryWithSqliteRows(params: {
    }));
  }
  

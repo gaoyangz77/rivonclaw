@@ -5,7 +5,7 @@ import {
 } from "@rivonclaw/gateway";
 import { resolveGatewayProvider, type LLMProvider, type ProviderKeyEntry } from "@rivonclaw/core";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
-import { buildCustomProviderOverridesFromKeys } from "../gateway/config-builder.js";
+import { buildCustomProviderOverridesFromKeys, buildDesktopOnlyProviderSeeds } from "../gateway/config-builder.js";
 
 export interface VendorDefaultModel {
   provider: string;
@@ -175,7 +175,8 @@ export function writeVendorProviderDefinition(params: {
 }): void {
   const isCustom = params.entry.authType === "custom";
   const isLocal = params.entry.authType === "local";
-  if (!isCustom && !isLocal) return;
+  const isDesktopOnly = Object.hasOwn(buildDesktopOnlyProviderSeeds([params.entry], {}), params.entry.provider);
+  if (!isCustom && !isLocal && (!isDesktopOnly || params.remove)) return;
 
   mutateDesktopOpenClawConfig(
     params.configPath,
@@ -183,6 +184,11 @@ export function writeVendorProviderDefinition(params: {
     (config) => {
       const models = ensureRecord(config, "models");
       const providers = ensureRecord(models, "providers");
+      if (isDesktopOnly) {
+        Object.assign(providers, buildDesktopOnlyProviderSeeds([params.entry], providers));
+        models.mode ??= "merge";
+        return;
+      }
       if (params.remove) {
         delete providers[params.entry.provider];
         return;

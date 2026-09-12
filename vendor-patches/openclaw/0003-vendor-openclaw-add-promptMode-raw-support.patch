@@ -1,4 +1,4 @@
-From 9268109ec594e617bd57746b995cd586d6bf304d Mon Sep 17 00:00:00 2001
+From b41845a36d5b0637e549576f71459b0715318c97 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 13 May 2026 00:20:04 -0700
 Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
@@ -36,10 +36,10 @@ Tests:
  7 files changed, 19 insertions(+), 7 deletions(-)
 
 diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
-index bbc27aeedf3..9e3d6a37c6c 100644
+index 3a9c3231610..2e687a75799 100644
 --- a/packages/gateway-protocol/src/schema/agent.ts
 +++ b/packages/gateway-protocol/src/schema/agent.ts
-@@ -319,7 +319,12 @@ export const AgentParamsSchema = closedObject({
+@@ -320,7 +320,12 @@ export const AgentParamsSchema = closedObject({
    cleanupBundleMcpOnRunEnd: Type.Optional(Type.Boolean()),
    modelRun: Type.Optional(Type.Boolean()),
    promptMode: Type.Optional(
@@ -54,7 +54,7 @@ index bbc27aeedf3..9e3d6a37c6c 100644
    extraSystemPrompt: Type.Optional(Type.String()),
    bootstrapContextMode: Type.Optional(
 diff --git a/src/agents/embedded-agent-runner/compact.types.ts b/src/agents/embedded-agent-runner/compact.types.ts
-index b038ee4cdc1..59c3b84363b 100644
+index fef7cf919de..5034a54d27d 100644
 --- a/src/agents/embedded-agent-runner/compact.types.ts
 +++ b/src/agents/embedded-agent-runner/compact.types.ts
 @@ -19,6 +19,7 @@ import type { AgentRunSessionTarget } from "../run-session-target.js";
@@ -63,9 +63,9 @@ index b038ee4cdc1..59c3b84363b 100644
  import type { TrustedSubagentCompletionHandoff } from "../subagents/announce/subagent-announce-handoff.js";
 +import type { PromptMode } from "../system-prompt.types.js";
  
- export type CompactEmbeddedAgentSessionParams = {
-   /** Explicit session owner captured before fallback agent resolution. */
-@@ -137,6 +138,8 @@ export type CompactEmbeddedAgentSessionParams = {
+ export type CompactEmbeddedAgentSessionParams = Pick<
+   import("./run/params.js").RunEmbeddedAgentParams,
+@@ -144,6 +145,8 @@ export type CompactEmbeddedAgentSessionParams = Pick<
    lane?: string;
    enqueue?: CommandQueueEnqueueFn;
    extraSystemPrompt?: string;
@@ -75,10 +75,10 @@ index b038ee4cdc1..59c3b84363b 100644
    ownerNumbers?: string[];
    abortSignal?: AbortSignal;
 diff --git a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-index 5c412bf2bd7..ccd93a19de1 100644
+index d3ddb52890f..7b051b5ba12 100644
 --- a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
 +++ b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-@@ -561,9 +561,9 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
+@@ -471,9 +471,9 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
      const userTimezone = resolveUserTimezone(params.config?.agents?.defaults?.userTimezone);
      const userDate = formatDateStamp(Date.now(), userTimezone);
      const promptSurface = resolveAgentPromptSurfaceForSessionKey(params.sessionKey);
@@ -92,10 +92,10 @@ index 5c412bf2bd7..ccd93a19de1 100644
        surface: promptSurface,
      });
 diff --git a/src/agents/runtime-plan/types.ts b/src/agents/runtime-plan/types.ts
-index 60664d1a1bd..9a939d04149 100644
+index 8f49cb06cbd..920967e6765 100644
 --- a/src/agents/runtime-plan/types.ts
 +++ b/src/agents/runtime-plan/types.ts
-@@ -29,7 +29,7 @@ type AgentRuntimeThinkLevel =
+@@ -30,7 +30,7 @@ type AgentRuntimeThinkLevel =
    | "max";
  
  /** System prompt rendering mode selected for one attempt. */
@@ -105,10 +105,10 @@ index 60664d1a1bd..9a939d04149 100644
  type AgentRuntimePromptTrigger = "cron" | "heartbeat" | "manual" | "memory" | "overflow" | "user";
  
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index f673d212cb9..d7e903278f8 100644
+index edebaec447e..4367f6b3baf 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -849,6 +849,10 @@ export function buildAgentSystemPrompt(params: {
+@@ -832,6 +832,10 @@ export function buildAgentSystemPrompt(params: {
    const promptMode = params.promptMode ?? "full";
    const runtimeInfo = params.runtimeInfo;
    const modelIdentityLine = buildModelIdentityPromptLine(runtimeInfo?.model);

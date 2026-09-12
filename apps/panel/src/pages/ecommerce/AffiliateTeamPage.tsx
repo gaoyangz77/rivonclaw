@@ -141,6 +141,7 @@ export type DeveloperForm = {
 };
 
 type ProtectionPreviewRow = {
+  overwrite?: boolean;
   rowNumber: number;
   platform: GQL.ShopPlatform;
   creatorOpenId: string | null;
@@ -987,6 +988,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         if (key) seen.add(key);
         return {
           rowNumber: index + 2,
+          overwrite: true,
           platform: GQL.ShopPlatform.TiktokShop,
           creatorOpenId,
           username,
@@ -1270,6 +1272,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       creatorOpenId: row.creatorOpenId,
       username: row.username,
       businessDeveloperId: row.businessDeveloperId,
+      overwrite: row.overwrite === true,
       protect: row.protect,
       protectionNote: row.protectionNote,
       manualTagNames: row.manualTagNames,
@@ -2779,6 +2782,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
         {protectionImportView === "PREVIEW" && (
           <div className="affiliate-protection-import-body is-preview">
+            {protectionRows.some((row) => row.overwrite) && (
+              <p className="form-hint">{t("ecommerce.affiliateTeam.creatorOverrideHint")}</p>
+            )}
             <div className="affiliate-protection-preview-toolbar">
               <div>
                 <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
@@ -2877,12 +2883,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                         <td>
                           <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
                         </td>
-                        <td>{row.businessDeveloperName || "—"}</td>
+                        <td>{row.businessDeveloperName || (row.overwrite
+                          ? t("ecommerce.affiliateTeam.creatorOverrideClearBd") : "—")}</td>
                         <td className="affiliate-creator-update-actions">
                           {[
                             row.protect
                               ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
-                              : null,
+                              : row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect") : null,
+                            row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideTags") : null,
                             ...row.manualTagNames.map((name) => {
                               const normalizedName = name.trim().toLowerCase();
                               return !manualTagCatalogLoaded ||
@@ -4112,8 +4120,6 @@ function creatorUpdateIssueMessage(
       return t("ecommerce.affiliateTeam.creatorUpdateInvalidProtectionAction");
     case "NOTE_WITHOUT_PROTECTION":
       return t("ecommerce.affiliateTeam.creatorUpdateNoteWithoutProtection");
-    case "NO_UPDATES":
-      return t("ecommerce.affiliateTeam.creatorUpdateNoOperations");
     default:
       return null;
   }

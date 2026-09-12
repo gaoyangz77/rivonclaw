@@ -109,10 +109,28 @@ export function setApiBaseUrlOverride(url: string | undefined): void {
   _apiBaseUrlOverride = url;
 }
 
-/** Return the API base URL for the given language/locale. */
+/**
+ * Base URL of a locally served backend, from RIVONCLAW_API_BASE_URL.
+ * Used to point a dev build at a local mock cloud instead of a deployed host.
+ */
+function apiBaseUrlFromEnv(): string | undefined {
+  if (typeof process === "undefined") return undefined;
+  return process.env.RIVONCLAW_API_BASE_URL?.trim().replace(/\/+$/, "") || undefined;
+}
+
+/**
+ * Return the API base URL for the given language/locale.
+ *
+ * Priority: explicit runtime override, then RIVONCLAW_API_BASE_URL, then the
+ * staging host when staging dev mode is on, then production. The env var sits
+ * above staging so a local backend wins over RIVONCLAW_STAGING=1, which dev
+ * runs commonly set for other reasons (deterministic captcha, for one).
+ */
 export function getApiBaseUrl(lang: string): string {
   void lang;
   if (_apiBaseUrlOverride) return _apiBaseUrlOverride;
+  const envBaseUrl = apiBaseUrlFromEnv();
+  if (envBaseUrl) return envBaseUrl;
   if (isStagingDevMode()) {
     return `https://${firstPartyDomain(DEFAULTS.domains.apiStaging, DEFAULTS.domains.apiStagingCn)}`;
   }

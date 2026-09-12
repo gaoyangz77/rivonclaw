@@ -35,6 +35,29 @@ afterEach(() => {
 })
 
 describe("TutorialOverlay step lifecycle", () => {
+  it("applies measured geometry when the spotlight first mounts", async () => {
+    const target = document.createElement("div")
+    target.dataset.tutorialId = "measured"
+    target.getBoundingClientRect = () => ({
+      top: 100, left: 80, width: 300, height: 120,
+      bottom: 220, right: 380, x: 80, y: 100, toJSON: () => ({}),
+    })
+    document.body.append(target)
+    tutorial.steps = [{
+      id: "measured", target: '[data-tutorial-id="measured"]',
+      titleKey: "tutorial.measured.title", bodyKey: "tutorial.measured.body",
+    }]
+    const view = render(<TutorialOverlay />)
+    await waitFor(() => {
+      const spotlight = view.container.querySelector<HTMLElement>(".tutorial-spotlight")
+      expect(spotlight?.style.width).toBe("312px")
+      expect(spotlight?.style.height).toBe("132px")
+      expect(spotlight?.style.top).toBe("94px")
+      expect(spotlight?.style.left).toBe("74px")
+    })
+    view.unmount()
+  })
+
   it("prepares once, only repositions on resize, and cleans up when leaving", async () => {
     const firstPrepare = vi.fn()
     const firstCleanup = vi.fn()

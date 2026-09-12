@@ -20,12 +20,12 @@ function closeConnectForm() {
 }
 
 function ensureShopDrawer() {
-  if (findTutorialTarget("shops-drawer")?.classList.contains("drawer-panel-open")) return
-  document.querySelector<HTMLElement>(".shop-table-actions .btn-secondary")?.click()
+  if (findTutorialTarget("shops-drawer")) return
+  clickTutorialTarget("shops-item")
 }
 
 function closeShopDrawer() {
-  if (findTutorialTarget("shops-drawer")?.classList.contains("drawer-panel-open")) {
+  if (findTutorialTarget("shops-drawer")) {
     clickTutorialTarget("shops-drawer-close")
   }
 }

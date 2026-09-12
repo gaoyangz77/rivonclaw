@@ -17,7 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "13.0.3",
     "uuid": "^11.0.5",
     "@rivonclaw/core": "workspace:*",
     "@rivonclaw/logger": "workspace:*"

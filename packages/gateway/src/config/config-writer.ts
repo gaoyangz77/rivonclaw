@@ -98,6 +98,24 @@ function applyCodexDynamicToolDefaults(config: Record<string, unknown>): void {
   codexConfig.codexDynamicToolsLoading = "direct";
 }
 
+function applySessionAccessDefaults(config: Record<string, unknown>): void {
+  const tools = ensureRecord(config, "tools");
+  const sessions = ensureRecord(tools, "sessions");
+  sessions.visibility ??= DEFAULTS.gatewayConfig.sessionToolsVisibility;
+  const agentToAgent = ensureRecord(tools, "agentToAgent");
+  agentToAgent.enabled ??= DEFAULTS.gatewayConfig.agentToAgentEnabled;
+
+  if (tools.swarm == null) {
+    tools.swarm = DEFAULTS.gatewayConfig.swarmEnabled;
+  } else if (typeof tools.swarm === "object" && !Array.isArray(tools.swarm)) {
+    (tools.swarm as Record<string, unknown>).enabled ??= DEFAULTS.gatewayConfig.swarmEnabled;
+  }
+
+  const defaults = ensureRecord(ensureRecord(config, "agents"), "defaults");
+  const subagents = ensureRecord(defaults, "subagents");
+  subagents.maxSpawnDepth ??= DEFAULTS.gatewayConfig.subagentMaxSpawnDepth;
+}
+
 function collectAgentEntries(
   agents: Record<string, unknown>,
 ): Map<string, Record<string, unknown>> {
@@ -1441,6 +1459,10 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // present for every RivonClaw model/provider combination.
   applyCodexDynamicToolDefaults(config);
 
+  // OpenClaw v2026.9.3 broadens omitted session/delegation policies. Preserve
+  // Desktop's previous defaults without replacing explicit user choices.
+  applySessionAccessDefaults(config);
+
   // Tools profile — RivonClaw is a desktop app with full agent capabilities.
   // OpenClaw v2026.3.2 defaults new installs to "messaging" (no file/exec tools).
   // RivonClaw needs "full" so file permissions, rules, and exec all work.
@@ -2089,18 +2111,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
-  // Messages defaults — suppress internal tool error details from reaching
-  // external channel users. Without this, stack traces and internal paths
-  // from failed tool executions are forwarded to Telegram/WhatsApp/etc.
-  {
-    const existingMessages =
-      typeof config.messages === "object" && config.messages !== null
-        ? (config.messages as Record<string, unknown>)
-        : {};
-    config.messages = {
-      ...existingMessages,
-      suppressToolErrors: DEFAULTS.gatewayConfig.messagesSuppressToolErrors,
-    };
+  // OpenClaw now owns tool-failure reply policy and rejects this retired key.
+  if (config.messages && typeof config.messages === "object" && !Array.isArray(config.messages)) {
+    delete (config.messages as Record<string, unknown>).suppressToolErrors;
   }
 
   // Sanitize Windows-style paths in Docker bind mounts.

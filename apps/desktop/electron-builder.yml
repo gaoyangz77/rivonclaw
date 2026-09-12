@@ -16,6 +16,7 @@ files:
   - changelog.json
   - node_modules/**
   - "!node_modules/**/test_extension.node"
+  - "!node_modules/better-sqlite3/{deps,src}/**"
   - package.json
 
 extraMetadata:
@@ -113,6 +114,8 @@ extraResources:
     to: "THIRD_PARTY_NOTICES.md"
 
 mac:
+  files:
+    - "!node_modules/better-sqlite3/prebuilds/!(darwin-${arch}).node"
   category: public.app-category.developer-tools
   icon: build/icon.icns
   extendInfo:
@@ -126,12 +129,7 @@ mac:
   entitlementsInherit: entitlements.mac.plist
   # CI imports a Developer ID Application certificate into a temporary
   # keychain; electron-builder auto-discovers it for release signing.
-  # Skip signing files that can't be signed (vendor binaries with
-  # unsupported formats, git objects, etc.)
-  # Note: vendor/openclaw/node_modules is no longer in the bundle — macOS ships
-  # the vendor runtime as a single tar archive (extracted on first launch).
-  signIgnore:
-    - "extensions-merchant"
+  # Merchant plugins include native Canvas modules and must be signed too.
   notarize: false
   artifactName: "TK-Copilot-${version}-${arch}.${ext}"
 dmg:

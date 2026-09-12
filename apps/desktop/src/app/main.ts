@@ -10,7 +10,6 @@ import {
   syncAllAuthProfiles,
   activateAuthProfile,
   syncBackOAuthCredentials,
-  migrateVendorStateBeforeGateway,
   saveCodexOAuthCredentials,
   refreshCodexOAuthCredentials,
   startHybridCodexOAuthFlow,
@@ -98,8 +97,16 @@ import {
   resetAgentToolingReadiness,
 } from "../gateway/agent-tooling-readiness.js";
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
+import { migrateVendorStateInChild } from "../gateway/vendor-state-migration.js";
 import { tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../gateway/connection.js";
 import { CS_ADMISSION_CANCEL_REASON } from "../cs-bridge/cs-run-admission.js";
+import {
+  GATEWAY_HEAP_SNAPSHOT_DEFAULT_THRESHOLD_MB,
+  GATEWAY_HEAP_SNAPSHOT_SETTING_KEY,
+  GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV,
+  isGatewayHeapSnapshotEnabled,
+  writeHeapWatchModule,
+} from "../gateway/heap-snapshot-setting.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { flushCsSessionCursorStore } from "../cs-bridge/cs-session-cursor-store.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
@@ -795,7 +802,7 @@ app.whenReady().then(async () => {
 
   // OpenClaw owns migrations for its agent database. Run the vendor schema
   // owner directly before Desktop syncs credentials or starts the gateway.
-  await migrateVendorStateBeforeGateway({
+  await migrateVendorStateInChild({
     configPath,
     stateDir,
     vendorDir,
@@ -1920,7 +1927,23 @@ app.whenReady().then(async () => {
   // so the --require is never accidentally dropped.
   const proxySetupPath = writeProxySetupModule(stateDir, vendorDir);
   // Quote the path — Windows usernames with spaces break unquoted --require
-  const gatewayNodeOptions = `--require "${proxySetupPath.replaceAll("\\", "/")}"`;
+  const heapSnapshotEnabled = isGatewayHeapSnapshotEnabled((key) => storage.settings.get(key));
+  const heapWatchPath = heapSnapshotEnabled ? writeHeapWatchModule(stateDir) : undefined;
+  if (heapWatchPath) {
+    const thresholdMb =
+      Number(process.env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV]) || GATEWAY_HEAP_SNAPSHOT_DEFAULT_THRESHOLD_MB;
+    log.warn(
+      `Gateway heap snapshot is ENABLED (${GATEWAY_HEAP_SNAPSHOT_SETTING_KEY}). ` +
+        `Once the Gateway heap crosses ${thresholdMb} MB it will write one .heapsnapshot into ` +
+        `${stateDir}, freezing the Gateway for tens of seconds while it does. ` +
+        `Look for "[heap-watch] armed" in this log to confirm the preload loaded, and ` +
+        `"[heap-watch] wrote" for the file path. Turn this off once one snapshot is collected.`,
+    );
+  }
+  const gatewayNodeOptions = [
+    `--require "${proxySetupPath.replaceAll("\\", "/")}"`,
+    ...(heapWatchPath ? [`--require "${heapWatchPath.replaceAll("\\", "/")}"`] : []),
+  ].join(" ");
 
   /**
    * Build the complete proxy env including NODE_OPTIONS.
@@ -1934,6 +1957,10 @@ app.whenReady().then(async () => {
     env.RIVONCLAW_CN_RELAY = firstPartyRoute === "cn-relay" ? "1" : "0";
     env.RIVONCLAW_PANEL_PORT = String(actualPanelPort);
     env.RIVONCLAW_DESKTOP_API_TOKEN = desktopApiToken;
+    // Let an operator tune the snapshot threshold on one install without a
+    // release: the preload reads it from the Gateway's env.
+    const heapThreshold = process.env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV];
+    if (heapThreshold) env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV] = heapThreshold;
     return env;
   }
 
@@ -2194,6 +2221,7 @@ app.whenReady().then(async () => {
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
 
+    const gatewayStop = launcher.stop();
     await flushCsSessionCursorStore();
 
     // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches go
@@ -2210,7 +2238,7 @@ app.whenReady().then(async () => {
       log.info("CS telemetry client shut down gracefully");
     }
 
-    await Promise.all([launcher.stop(), openAICodexCompatibilityProxy.stop(), proxyRouter.stop()]);
+    await Promise.all([gatewayStop, openAICodexCompatibilityProxy.stop(), proxyRouter.stop()]);
 
     try {
       await syncBackOAuthCredentials(stateDir, storage, secretStore);
@@ -2241,6 +2269,9 @@ app.whenReady().then(async () => {
     removeHeartbeat();
 
     const cleanup = async () => {
+      // Start the Gateway watchdog before potentially slow telemetry flushes.
+      // Keep the proxy alive until those flushes finish.
+      const gatewayStop = launcher.stop();
       await flushCsSessionCursorStore();
 
       // Flush telemetry BEFORE stopping proxyRouter — telemetry fetches
@@ -2263,7 +2294,7 @@ app.whenReady().then(async () => {
 
       // Kill gateway and proxy router.
       await Promise.all([
-        launcher.stop(),
+        gatewayStop,
         openAICodexCompatibilityProxy.stop(),
         proxyRouter.stop(),
       ]);
@@ -2291,7 +2322,8 @@ app.whenReady().then(async () => {
       .catch((err) => {
         log.error("Cleanup error during quit:", err);
       })
-      .finally(() => {
+      .finally(async () => {
+        await launcher.stop();
         cleanupDone = true;
         app.exit(0); // Now actually exit — releases single-instance lock
       });

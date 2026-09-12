@@ -53,6 +53,11 @@ vi.mock("../src/affiliate/affiliate-escalation-notification-actuator.js", () => 
   handleAffiliateEscalationNotification: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../src/affiliate/affiliate-unknown-sender-actuator.js", () => ({
+  startAffiliateUnknownSenderIdentificationSweep: vi.fn(),
+  wakeAffiliateUnknownSenderIdentification: vi.fn(),
+}));
+
 vi.mock("../src/app/store/desktop-store.js", () => ({
   rootStore: mockRootStore,
 }));
@@ -133,6 +138,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
       return () => {};
     }
     subscribeToAffiliateEscalationChanges() {
+      return () => {};
+    }
+    subscribeToAffiliateUnknownSenderIdentificationChanges() {
       return () => {};
     }
     subscribeToAffiliateCampaignSearchPlanRequests() {

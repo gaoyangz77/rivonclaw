@@ -2759,16 +2759,91 @@ describe("config-writer", () => {
     });
   });
 
-  describe("writeGatewayConfig - messages defaults", () => {
-    it("writes messages.suppressToolErrors as true", () => {
+  describe("writeGatewayConfig - session access defaults", () => {
+    it("preserves pre-upgrade visibility and delegation defaults for a new config", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.tools.sessions.visibility).toBe("tree");
+      expect(config.tools.agentToAgent.enabled).toBe(false);
+      expect(config.tools.swarm).toBe(false);
+      expect(config.agents.defaults.subagents.maxSpawnDepth).toBe(1);
+      expect(config.tools.profile).toBe("full");
+      expect(config.agents.defaults.sandbox.mode).toBe("off");
+    });
+
+    it("fills partial policies without replacing unrelated settings and is idempotent", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          tools: {
+            agentToAgent: { allow: ["main", "customer-service"] },
+            swarm: { maxConcurrent: 3 },
+          },
+          agents: { defaults: { subagents: { maxConcurrent: 2 } } },
+        }),
+      );
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        writeGatewayConfig({ configPath, gatewayPort: 18789 });
+        const config = JSON.parse(readFileSync(configPath, "utf-8"));
+        expect(config.tools.sessions).toEqual({ visibility: "tree" });
+        expect(config.tools.agentToAgent).toEqual({
+          enabled: false,
+          allow: ["main", "customer-service"],
+        });
+        expect(config.tools.swarm).toEqual({ enabled: false, maxConcurrent: 3 });
+        expect(config.agents.defaults.subagents).toEqual({ maxConcurrent: 2, maxSpawnDepth: 1 });
+      }
+    });
+
+    it.each([true, false, { enabled: true, maxConcurrent: 3 }, { enabled: false }])(
+      "preserves explicitly configured access and swarm policy %j",
+      (swarm) => {
+        const configPath = join(tmpDir, "openclaw.json");
+        writeFileSync(
+          configPath,
+          JSON.stringify({
+            tools: {
+              sessions: { visibility: "all" },
+              agentToAgent: { enabled: true, allow: ["main", "customer-service"] },
+              swarm,
+            },
+            agents: {
+              defaults: { subagents: { maxSpawnDepth: 4, maxConcurrent: 2 } },
+              entries: { main: { tools: { swarm: { enabled: true, maxConcurrent: 1 } } } },
+            },
+          }),
+        );
+
+        writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+        const config = JSON.parse(readFileSync(configPath, "utf-8"));
+        expect(config.tools.sessions).toEqual({ visibility: "all" });
+        expect(config.tools.agentToAgent).toEqual({
+          enabled: true,
+          allow: ["main", "customer-service"],
+        });
+        expect(config.tools.swarm).toEqual(swarm);
+        expect(config.agents.defaults.subagents).toEqual({ maxSpawnDepth: 4, maxConcurrent: 2 });
+        expect(config.agents.entries.main.tools.swarm).toEqual({ enabled: true, maxConcurrent: 1 });
+      },
+    );
+  });
+
+  describe("writeGatewayConfig - retired messages policy", () => {
+    it("does not write messages.suppressToolErrors", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.messages.suppressToolErrors).toBe(true);
+      expect(config.messages?.suppressToolErrors).toBeUndefined();
     });
 
-    it("preserves existing messages fields alongside suppressToolErrors", () => {
+    it("preserves existing messages fields", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
@@ -2783,18 +2858,19 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.messages.suppressToolErrors).toBe(true);
+      expect(config.messages.suppressToolErrors).toBeUndefined();
       expect(config.messages.ackReaction).toBe("👀");
       expect(config.messages.queue.mode).toBe("collect");
     });
 
-    it("overwrites pre-existing suppressToolErrors value", () => {
+    it.each([true, false])("removes pre-existing suppressToolErrors=%s", (suppressToolErrors) => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
         JSON.stringify({
           messages: {
-            suppressToolErrors: false,
+            suppressToolErrors,
+            ackReaction: "ok",
           },
         }),
       );
@@ -2802,7 +2878,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.messages.suppressToolErrors).toBe(true);
+      expect(config.messages).toEqual({ ackReaction: "ok" });
     });
   });
 });

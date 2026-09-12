@@ -1,220 +1,250 @@
 #!/usr/bin/env node
 /**
- * Audit provider/model sync between RivonClaw and vendor (OpenClaw + pi-ai).
+ * Audit the compiled app's fresh-state model catalog against built vendor data.
+ * Modern OpenClaw owns catalogs in plugin manifests, not @openclaw/ai transports.
+ * No provider discovery, credentials, network requests, or real user state are used.
  *
- * Compares three sources:
- *   A) pi-ai vendor catalog provider keys (models.generated.js)
- *   B) OpenClaw resolveImplicitProviders provider keys (regex-parsed)
- *   C) RivonClaw ALL_PROVIDERS + extraModels status (compiled core)
- *
- * Reports:
- *   1) Critical: in ALL_PROVIDERS, no extraModels, NOT in pi-ai → invisible
- *   2) New upstream: in pi-ai or OpenClaw but NOT in ALL_PROVIDERS
- *   3) OK: in ALL_PROVIDERS, no extraModels, covered by pi-ai
- *
- * Usage:
- *   node scripts/audit-provider-sync.mjs
- *
- * Exit codes:
- *   0 - No critical gaps
- *   1 - Critical gaps found (providers invisible in UI)
+ * node scripts/audit-provider-sync.mjs [--compare-vendor-dir <old-vendor>] [--json]
+ * Exit: 0 = no empty non-local providers; 1 = coverage gaps; 2 = invalid inputs.
  */
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
 
-import { readFileSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const rootDir = join(__dirname, "..");
-
-// ---------------------------------------------------------------------------
-// Source A: pi-ai vendor catalog provider keys
-// ---------------------------------------------------------------------------
-async function getPiAiProviders() {
-  const piAiPath = join(
-    rootDir,
-    "vendor/openclaw/node_modules/@mariozechner/pi-ai/dist/models.generated.js",
-  );
-  if (!existsSync(piAiPath)) {
-    console.warn("  [warn] pi-ai models.generated.js not found — skipping vendor catalog");
-    return new Set();
-  }
-  const mod = await import(pathToFileURL(piAiPath).href);
-  return new Set(Object.keys(mod.MODELS ?? {}));
+function readJson(path) {
+  if (!existsSync(path)) throw new Error(`Required audit source is missing: ${path}`);
+  return JSON.parse(readFileSync(path, "utf8"));
 }
 
-// ---------------------------------------------------------------------------
-// Source B: OpenClaw resolveImplicitProviders provider keys (regex-parsed)
-// ---------------------------------------------------------------------------
-function getOpenClawImplicitProviders() {
-  const filePath = join(
-    rootDir,
-    "vendor/openclaw/src/agents/models-config.providers.ts",
-  );
-  if (!existsSync(filePath)) {
-    console.warn("  [warn] models-config.providers.ts not found — skipping OpenClaw implicit");
-    return new Set();
+/** Read declarative inventory only. Presence does not imply enabled/account-visible. */
+export function readVendorInventory(vendorDir) {
+  const manifestDir = join(vendorDir, "dist/extensions");
+  if (!existsSync(manifestDir)) {
+    throw new Error(`Required built catalog source is missing: ${manifestDir}`);
   }
-  const content = readFileSync(filePath, "utf-8");
-
-  // Match patterns like: providers.xxx = or providers["xxx"] =
   const providers = new Set();
-  const dotPattern = /providers\.(\w[\w-]*)\s*=/g;
-  const bracketPattern = /providers\["([\w-]+)"\]\s*=/g;
-
-  for (const m of content.matchAll(dotPattern)) {
-    providers.add(m[1]);
+  const models = new Map();
+  let manifestCount = 0;
+  for (const entry of readdirSync(manifestDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const path = join(manifestDir, entry.name, "openclaw.plugin.json");
+    if (!existsSync(path)) continue;
+    const manifest = readJson(path);
+    if (!isRecord(manifest) || typeof manifest.id !== "string") {
+      throw new Error(`Invalid plugin manifest: ${path}`);
+    }
+    manifestCount++;
+    for (const provider of manifest.providers ?? []) providers.add(provider);
+    const catalog = manifest.modelCatalog;
+    if (catalog === undefined) continue;
+    if (!isRecord(catalog) || (catalog.providers !== undefined && !isRecord(catalog.providers))) {
+      throw new Error(`Invalid modelCatalog: ${path}`);
+    }
+    for (const [provider, config] of Object.entries(catalog.providers ?? {})) {
+      if (!isRecord(config) || !Array.isArray(config.models)) {
+        throw new Error(`Invalid modelCatalog provider ${provider}: ${path}`);
+      }
+      providers.add(provider);
+      for (const model of config.models) {
+        if (!isRecord(model) || typeof model.id !== "string" || !model.id.trim()) {
+          throw new Error(`Invalid model ID for ${provider}: ${path}`);
+        }
+        models.set(`${provider}/${model.id}`, {
+          provider,
+          id: model.id,
+          name: model.name ?? model.id,
+          contextWindow: model.contextWindow,
+          contextTokens: model.contextTokens,
+          status: model.status ?? "available",
+          discovery: catalog.discovery?.[provider] ?? "static",
+          pluginId: manifest.id,
+        });
+      }
+    }
   }
-  for (const m of content.matchAll(bracketPattern)) {
-    providers.add(m[1]);
+  if (manifestCount === 0 || models.size === 0) {
+    throw new Error(`No usable built manifest model catalog found: ${manifestDir}`);
   }
-
-  return providers;
+  return {
+    vendorDir,
+    manifestCount,
+    providers: [...providers].sort(),
+    models: [...models.values()],
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Source C: RivonClaw core
-// ---------------------------------------------------------------------------
-async function getRivonClawProviders() {
-  // Import from compiled output
+export function compareInventories(previous, current) {
+  const oldModels = new Map(
+    previous.models.map((model) => [`${model.provider}/${model.id}`, model]),
+  );
+  const newModels = new Map(
+    current.models.map((model) => [`${model.provider}/${model.id}`, model]),
+  );
+  return {
+    previousVendorDir: previous.vendorDir,
+    added: [...newModels.keys()].filter((key) => !oldModels.has(key)).sort(),
+    removed: [...oldModels.keys()].filter((key) => !newModels.has(key)).sort(),
+    contextChanged: [...newModels].flatMap(([key, model]) => {
+      const old = oldModels.get(key);
+      if (
+        !old ||
+        (old.contextWindow === model.contextWindow && old.contextTokens === model.contextTokens)
+      )
+        return [];
+      return [
+        {
+          model: key,
+          before: { contextWindow: old.contextWindow, contextTokens: old.contextTokens },
+          after: { contextWindow: model.contextWindow, contextTokens: model.contextTokens },
+        },
+      ];
+    }),
+  };
+}
+
+export function auditCoverage(core, catalog, inventory, normalizeCatalog) {
+  const local = new Set(core.LOCAL_PROVIDER_IDS);
+  const providers = core.ALL_PROVIDERS.map((provider) => {
+    const meta = core.getProviderMeta(provider);
+    return {
+      provider,
+      models: catalog[provider]?.length ?? 0,
+      extraModels: meta?.extraModels?.length ?? 0,
+      fallbackModels: meta?.fallbackModels?.length ?? 0,
+      runtimeDiscovery: local.has(provider),
+    };
+  });
+  const staticCatalog = {};
+  for (const model of inventory.models) {
+    if (model.status === "disabled" || model.discovery === "runtime") continue;
+    (staticCatalog[model.provider] ??= []).push(model);
+  }
+  const normalized = normalizeCatalog(staticCatalog);
+  return {
+    providers,
+    emptyProviders: providers
+      .filter((provider) => provider.models === 0 && !provider.runtimeDiscovery)
+      .map((provider) => provider.provider),
+    missingDeclaredModels: providers.flatMap(({ provider }) => {
+      const available = new Set((catalog[provider] ?? []).map((model) => model.id));
+      const missing = (normalized[provider] ?? [])
+        .filter((model) => !available.has(model.id))
+        .map((model) => model.id);
+      return missing.length ? [{ provider, models: missing }] : [];
+    }),
+    upstreamOnlyProviders: inventory.providers.filter(
+      (provider) => !core.ALL_PROVIDERS.includes(provider),
+    ),
+  };
+}
+
+export async function runAudit({
+  vendorDir = join(rootDir, "vendor/openclaw"),
+  compareVendorDir,
+} = {}) {
+  // Preflight before the app's deliberately forgiving runtime reader can hide
+  // a missing build/catalog source behind an empty fallback.
+  const inventory = readVendorInventory(vendorDir);
+  const previous = compareVendorDir ? readVendorInventory(compareVendorDir) : undefined;
   const corePath = join(rootDir, "packages/core/dist/index.mjs");
-  if (!existsSync(corePath)) {
-    console.error("  [error] packages/core/dist/index.mjs not found — run 'pnpm run build' first");
-    process.exit(2);
+  const gatewayPath = join(rootDir, "packages/gateway/dist/index.mjs");
+  for (const path of [corePath, gatewayPath]) {
+    if (!existsSync(path))
+      throw new Error(`Required compiled app source is missing: ${path}; build first`);
   }
   const core = await import(pathToFileURL(corePath).href);
-  const allProviders = new Set(core.ALL_PROVIDERS);
-  const withExtraModels = new Set(
-    core.ALL_PROVIDERS.filter((p) => core.getProviderMeta(p)?.extraModels?.length > 0),
-  );
-  // Subscription plans inherit models from parent — they don't need extraModels
-  const subscriptionSet = new Set(core.SUBSCRIPTION_PROVIDER_IDS);
-  // Local providers discover models at runtime
-  const localSet = new Set(core.LOCAL_PROVIDER_IDS);
-  return { allProviders, withExtraModels, subscriptionSet, localSet };
+  const gateway = await import(pathToFileURL(gatewayPath).href);
+  if (
+    !Array.isArray(core.ALL_PROVIDERS) ||
+    !core.ALL_PROVIDERS.length ||
+    !Array.isArray(core.LOCAL_PROVIDER_IDS) ||
+    typeof core.getProviderMeta !== "function" ||
+    typeof gateway.readFullModelCatalog !== "function" ||
+    typeof gateway.normalizeCatalog !== "function"
+  ) {
+    throw new Error("Compiled app catalog API is missing or incompatible; rebuild before auditing");
+  }
+  const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-provider-audit-"));
+  try {
+    const env = {
+      HOME: stateDir,
+      USERPROFILE: stateDir,
+      OPENCLAW_STATE_DIR: stateDir,
+      OPENCLAW_CONFIG_PATH: join(stateDir, "openclaw.json"),
+      OPENCLAW_AGENT_DIR: join(stateDir, "agent"),
+    };
+    const catalog = await gateway.readFullModelCatalog(env, vendorDir);
+    return {
+      vendorDir,
+      scope:
+        "Fresh-state compiled app coverage; manifest inventory is not plugin enablement or account entitlement",
+      manifestCount: inventory.manifestCount,
+      manifestModelCount: inventory.models.length,
+      ...auditCoverage(core, catalog, inventory, gateway.normalizeCatalog),
+      ...(previous ? { comparison: compareInventories(previous, inventory) } : {}),
+    };
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 async function main() {
-  console.log("=== Provider Sync Audit ===\n");
-
-  const piAi = await getPiAiProviders();
-  const openClaw = getOpenClawImplicitProviders();
-  const { allProviders, withExtraModels, subscriptionSet, localSet } = await getRivonClawProviders();
-
-  // Category 1: CRITICAL — in ALL_PROVIDERS, no extraModels, not in pi-ai,
-  // not a subscription plan (inherits from parent), not a local provider (runtime discovery)
-  const critical = [];
-  for (const p of allProviders) {
-    if (withExtraModels.has(p)) continue;
-    if (piAi.has(p)) continue;
-    if (subscriptionSet.has(p)) continue;
-    if (localSet.has(p)) continue;
-    critical.push(p);
-  }
-
-  // Category 2: New upstream — in pi-ai or OpenClaw but not in ALL_PROVIDERS
-  const newUpstream = [];
-  for (const p of piAi) {
-    if (!allProviders.has(p)) newUpstream.push(`${p} (pi-ai)`);
-  }
-  for (const p of openClaw) {
-    if (!allProviders.has(p)) newUpstream.push(`${p} (openclaw)`);
-  }
-
-  // Category 3: OK — in ALL_PROVIDERS, no extraModels, covered by pi-ai
-  const ok = [];
-  for (const p of allProviders) {
-    if (withExtraModels.has(p)) continue;
-    if (piAi.has(p)) ok.push(p);
-  }
-
-  // Report
-  if (critical.length > 0) {
-    console.log("[1] CRITICAL — invisible providers (no extraModels, not in vendor catalog):");
-    for (const p of critical) {
-      console.log(`    - ${p}`);
+  const { values } = parseArgs({
+    options: {
+      "vendor-dir": { type: "string" },
+      "compare-vendor-dir": { type: "string" },
+      json: { type: "boolean", default: false },
+    },
+  });
+  const report = await runAudit({
+    vendorDir: values["vendor-dir"] ? resolve(values["vendor-dir"]) : undefined,
+    compareVendorDir: values["compare-vendor-dir"]
+      ? resolve(values["compare-vendor-dir"])
+      : undefined,
+  });
+  if (values.json) console.log(JSON.stringify(report, null, 2));
+  else {
+    console.log("=== Provider / Model Sync Audit ===");
+    console.log(report.scope);
+    console.log(
+      `Built manifests: ${report.manifestCount}; declared models: ${report.manifestModelCount}`,
+    );
+    console.log(
+      "\nApp model counts (includes extras, fallbacks, aliases and subscription inheritance):",
+    );
+    for (const p of report.providers)
+      console.log(
+        `  ${p.provider}: ${p.models}${p.runtimeDiscovery ? " (local runtime discovery)" : ""}`,
+      );
+    console.log(`\nEmpty non-local providers: ${report.emptyProviders.join(", ") || "none"}`);
+    console.log(
+      "\nDeclared static models absent from fresh-state app (not proof of runtime availability):",
+    );
+    for (const p of report.missingDeclaredModels)
+      console.log(`  ${p.provider}: ${p.models.join(", ")}`);
+    console.log(
+      `\nUpstream-only provider IDs (informational): ${report.upstreamOnlyProviders.join(", ")}`,
+    );
+    if (report.comparison) {
+      console.log(
+        "\nBuilt-manifest comparison only (excludes runtime discovery and module-only catalogs):",
+      );
+      console.log(`  Added: ${report.comparison.added.join(", ") || "none"}`);
+      console.log(`  Removed: ${report.comparison.removed.join(", ") || "none"}`);
+      console.log(`  Context changes: ${JSON.stringify(report.comparison.contextChanged)}`);
     }
-    console.log();
-    console.log("    HOW TO FIX:");
-    console.log("    These providers are registered in ALL_PROVIDERS but have zero models");
-    console.log("    (no extraModels in models.ts, and not in the pi-ai vendor catalog).");
-    console.log("    Users who select these providers will see an empty model dropdown.");
-    console.log();
-    console.log("    For each provider listed above:");
-    console.log("    1. Open packages/core/src/models.ts");
-    console.log("    2. Find the provider entry in the PROVIDERS object");
-    console.log("    3. Add an extraModels array with 3-8 popular models, e.g.:");
-    console.log();
-    console.log("       someProvider: {");
-    console.log("         ...existing fields...,");
-    console.log("         extraModels: [");
-    console.log('           { provider: "someProvider", modelId: "model-id-from-api", displayName: "Human Name" },');
-    console.log("         ],");
-    console.log("       },");
-    console.log();
-    console.log("    Model IDs must match the provider's native API (the string you pass in");
-    console.log("    the API request body). Check the provider's official documentation.");
-    console.log();
-    console.log("    If the provider is a subscription plan (nested under subscriptionPlans[]),");
-    console.log("    add extraModels inside the plan object, not the parent.");
-    console.log();
-    console.log("    After adding extraModels, rebuild: pnpm run build");
-    console.log("    Then re-run this script: node scripts/audit-provider-sync.mjs\n");
-  } else {
-    console.log("[1] No critical gaps found.\n");
   }
-
-  if (newUpstream.length > 0) {
-    console.log("[2] New upstream providers (not in RivonClaw):");
-    for (const p of newUpstream) {
-      console.log(`    - ${p}`);
-    }
-    console.log();
-    console.log("    INFO: These providers exist in the vendor but are not registered in RivonClaw.");
-    console.log("    This is informational — not all vendor providers need to be in RivonClaw.");
-    console.log("    To add one, you need to manually curate these fields (not available from vendor):");
-    console.log();
-    console.log("    1. Add the provider ID to the LLMProvider union type in packages/core/src/models.ts");
-    console.log("    2. Add an entry in the PROVIDERS object with:");
-    console.log("       - label: display name (e.g. \"ProviderName\")");
-    console.log("       - baseUrl: OpenAI-compatible API base URL");
-    console.log("       - url: pricing or documentation page URL");
-    console.log("       - apiKeyUrl: URL where users create API keys");
-    console.log("       - envVar: environment variable name for the API key");
-    console.log("    3. Add i18n entries in apps/panel/src/i18n/{en,zh}.ts:");
-    console.log("       - label_<id>, desc_<id>, hint_<id>\n");
-  } else {
-    console.log("[2] No new upstream providers.\n");
-  }
-
-  if (ok.length > 0) {
-    console.log("[3] OK — covered by vendor catalog (no extraModels needed):");
-    for (const p of ok) {
-      console.log(`    - ${p}`);
-    }
-    console.log();
-  }
-
-  // Summary
-  console.log("--- Summary ---");
-  console.log(`  RivonClaw providers: ${allProviders.size}`);
-  console.log(`  With extraModels:   ${withExtraModels.size}`);
-  console.log(`  Pi-ai providers:    ${piAi.size}`);
-  console.log(`  OpenClaw implicit:  ${openClaw.size}`);
-  console.log(`  Critical gaps:      ${critical.length}`);
-  console.log(`  New upstream:       ${newUpstream.length}`);
-
-  if (critical.length > 0) {
-    process.exit(1);
-  }
+  process.exitCode = report.emptyProviders.length ? 1 : 0;
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(2);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(`[audit error] ${error.message}`);
+    process.exitCode = 2;
+  });
+}

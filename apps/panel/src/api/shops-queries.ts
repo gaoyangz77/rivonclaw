@@ -239,6 +239,21 @@ export const ECOMMERCE_SEARCH_PRODUCTS_QUERY = gql`
   }
 `;
 
+// One user-level request. Authentication, shop fan-out, pagination and matching are backend-owned.
+export const ECOMMERCE_PRODUCT_FILTER_OPTIONS_QUERY = gql`
+  query EcommerceProductFilterOptions($keywordOrId: String!) {
+    searchProductsForUser(keywordOrId: $keywordOrId) {
+      products {
+        shopId
+        productId
+        title
+      }
+      totalShops
+      failedShopIds
+    }
+  }
+`;
+
 const AFFILIATE_CAMPAIGN_FIELDS = gql`
   fragment AffiliateCampaignFields on AffiliateCampaign {
     id
@@ -1538,6 +1553,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           revisionNumber
           supersededByProposalId
           decision {
+            sampleReviewOverride { decision executionMode }
             decidedAt
             note
             actorType
@@ -1727,6 +1743,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           question
         }
         decision {
+          sampleReviewOverride { decision executionMode }
           decidedAt
           note
           actorType
@@ -3269,7 +3286,12 @@ export const SET_AFFILIATE_CREATOR_EMAIL_MUTATION = gql`
 export const SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION = gql`
   mutation SetAffiliateCreatorWhatsApp($input: SetCreatorWhatsAppContactInput!) {
     setAffiliateCreatorWhatsApp(input: $input) {
-      id
+      creatorPhone
+      creatorRegion
+      creatorRegionSource
+      creatorRelationship {
+        id
+      }
     }
   }
 `;
@@ -3643,6 +3665,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         revisionNumber
         supersededByProposalId
         decision {
+          sampleReviewOverride { decision executionMode }
           decidedAt
           note
           actorType
@@ -3827,6 +3850,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         question
       }
       decision {
+        sampleReviewOverride { decision executionMode }
         decidedAt
         note
         actorType
@@ -3957,6 +3981,12 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
     businessDeveloperName
     protected
     humanOnly
+    sampleTier
+    systemTags
+    manualTags {
+      id
+      name
+    }
     sampleApplication {
       id
       userId
@@ -4050,6 +4080,12 @@ export const AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY = gql`
         businessDeveloperName
         protected
         humanOnly
+        sampleTier
+        systemTags
+        manualTags {
+          id
+          name
+        }
         proposal {
           id
           status

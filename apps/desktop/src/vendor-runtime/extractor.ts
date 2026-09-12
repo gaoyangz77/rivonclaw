@@ -46,7 +46,7 @@ const REQUIRED_BUNDLED_PLUGIN_IDS = [
   "voyage",
   "xai",
 ];
-const REQUIRED_SOURCE_PLUGIN_IDS = ["groq", "mistral", "moonshot", "perplexity", "voyage"];
+const REQUIRED_STAGED_PLUGIN_IDS = ["groq", "mistral", "moonshot", "perplexity", "voyage"];
 const REQUIRED_RUNTIME_FILES = [
   ENTRY_FILE,
   "package.json",
@@ -60,7 +60,7 @@ const REQUIRED_RUNTIME_FILES = [
   ...REQUIRED_BUNDLED_PLUGIN_IDS.map(
     (pluginId) => `dist-runtime/extensions/${pluginId}/openclaw.plugin.json`,
   ),
-  ...REQUIRED_SOURCE_PLUGIN_IDS.map((pluginId) => `dist-runtime/extensions/${pluginId}/index.ts`),
+  ...REQUIRED_STAGED_PLUGIN_IDS.map((pluginId) => `dist-runtime/extensions/${pluginId}/index.js`),
 ];
 
 function missingRuntimeFiles(runtimeDir: string): string[] {

@@ -514,19 +514,21 @@ export interface TkFieldProps extends Omit<
   "prefix" | "size"
 > {
   label: string;
+  /** Keep an accessible label without adding a second toolbar row. */
+  hideLabel?: boolean;
   hint?: string;
   error?: string;
   prefix?: ReactNode;
 }
 
-export function TkField({ label, hint, error, prefix, className, id, ...props }: TkFieldProps) {
+export function TkField({ label, hideLabel, hint, error, prefix, className, id, ...props }: TkFieldProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const supportId = `${inputId}-support`;
 
   return (
     <div className={cx("tk-v1-field", error && "tk-v1-field-error", className)}>
-      <label className="tk-v1-label" htmlFor={inputId}>
+      <label className={cx("tk-v1-label", hideLabel && "tk-v1-label-hidden")} htmlFor={inputId}>
         {label}
       </label>
       <div className="tk-v1-input-shell">

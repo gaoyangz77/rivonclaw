@@ -59,6 +59,7 @@ export {
   applyCatalogContextMetadata,
 } from "./catalog/model-catalog.js";
 export type { CatalogModelEntry } from "./catalog/model-catalog.js";
+export { OPENCLAW_PLUGIN_PROVIDER_IDS } from "./generated/openclaw-plugin-model-catalog.js";
 export {
   resolveAuthProfilePath,
   readAuthProfileRuntimeState,

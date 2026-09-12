@@ -564,8 +564,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const shops = (shopsQuery.data?.shops ?? []).filter(
     (shop) =>
       shop.platform === GQL.ShopPlatform.TiktokShop &&
-      shop.authStatus === GQL.ShopAuthStatus.Authorized &&
-      shop.services?.affiliateService?.enabled === true,
+      shop.authStatus === GQL.ShopAuthStatus.Authorized,
   );
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
   const selectedCampaignShop = shops.find((shop) => shop.id === selectedCampaign?.shopId);

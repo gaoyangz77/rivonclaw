@@ -1,5 +1,5 @@
 // @ts-check
-// Stages official external OpenClaw plugins from the pinned vendor checkout
+// Stages locally built official external OpenClaw plugins from the pinned checkout
 // into dist-runtime so supported Desktop settings never require npm on a
 // customer machine.
 
@@ -81,9 +81,9 @@ function stageOpenClawSdkShim() {
 }
 
 function stagePlugin(plugin) {
-  const pluginSourceDir = path.join(vendorDir, "extensions", plugin.id);
+  const pluginSourceDir = path.join(vendorDir, "dist", "extensions", plugin.id);
   if (!fs.existsSync(path.join(pluginSourceDir, "package.json"))) {
-    throw new Error(`Pinned vendor plugin source is missing: extensions/${plugin.id}`);
+    throw new Error(`Built vendor plugin is missing: dist/extensions/${plugin.id}`);
   }
   const pluginManifest = readPackageJson(pluginSourceDir);
   if (pluginManifest.name !== plugin.packageName) {
@@ -95,6 +95,18 @@ function stagePlugin(plugin) {
     throw new Error(
       `${plugin.packageName} gained runtime dependencies; update Desktop staging before release`,
     );
+  }
+
+  const entries = pluginManifest.openclaw?.extensions;
+  if (!Array.isArray(entries) || entries.length === 0) {
+    throw new Error(`${plugin.packageName} has no built plugin entries`);
+  }
+  for (const entry of entries) {
+    const entryPath = typeof entry === "string" ? path.resolve(pluginSourceDir, entry) : "";
+    if (!entryPath.startsWith(`${pluginSourceDir}${path.sep}`) ||
+      !/\.[cm]?js$/.test(entryPath) || !fs.existsSync(entryPath)) {
+      throw new Error(`${plugin.packageName} has an invalid or missing built entry: ${String(entry)}`);
+    }
   }
 
   const pluginTargetDir = path.join(vendorDir, "dist-runtime", "extensions", plugin.id);

@@ -22,6 +22,20 @@ function setIdle(idle: boolean) {
 describe("useOfficeScreensaver", () => {
   beforeEach(() => listeners.clear());
 
+  it("keeps a tutorial visible and waits for renewed activity before rearming", () => {
+    const { result, rerender } = renderHook(
+      ({ paused }) => useOfficeScreensaver(paused),
+      { initialProps: { paused: true } },
+    );
+    setIdle(true);
+    expect(result.current.active).toBe(false);
+    rerender({ paused: false });
+    expect(result.current.active).toBe(false);
+    setIdle(false);
+    setIdle(true);
+    expect(result.current.active).toBe(true);
+  });
+
   it("stays closed while the machine is in use", () => {
     const { result } = renderHook(() => useOfficeScreensaver());
     expect(result.current.active).toBe(false);

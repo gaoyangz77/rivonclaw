@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { getNavigationButton } from "./shell-helpers.js";
 
 /**
  * Helper: dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
@@ -130,8 +131,8 @@ test.describe("Chat Page — Comprehensive", () => {
     await dismissModals(window);
 
     // Chat should be the active nav item by default
-    const firstNav = window.locator(".nav-list .nav-btn").first();
-    await expect(firstNav).toHaveClass(/nav-active/);
+    const firstNav = getNavigationButton(window, "Chat");
+    await expect(firstNav).toHaveAttribute("aria-current", "page");
 
     // Wait for gateway to reach "Connected" state
     const connectedDot = window.locator(".chat-status-dot-connected");

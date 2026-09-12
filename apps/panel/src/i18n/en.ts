@@ -2107,7 +2107,6 @@ export default {
         AFFILIATE_GET_CREATOR_CONTACT_STATE: "Get Creator Contact State",
         AFFILIATE_SET_CREATOR_WHATSAPP: "Set Creator WhatsApp",
         AFFILIATE_SET_CREATOR_EMAIL: "Set Creator Email",
-        AFFILIATE_CHECK_CREATOR_WHATSAPP: "Check Creator WhatsApp",
         // System tools — Files
         read: "Read File",
         write: "Write File",
@@ -3548,9 +3547,9 @@ export default {
           messages: "Creator messages",
         },
         sampleOpen: "Pending",
-        sampleSoftRejected: "Soft rejected",
+        sampleSoftRejected: "Ignored",
         noSamples: "No Sample Applications need attention.",
-        noSoftRejectedSamples: "No soft-rejected Sample Applications.",
+        noSoftRejectedSamples: "No ignored Sample Applications.",
         noMessages: "No Creator messages need attention.",
         expiresAt: "Expires {{value}}",
         pendingSince: "Pending since {{value}}",
@@ -3561,8 +3560,8 @@ export default {
         sampleSyncIssue: "Sync issue",
         reopen: "Reopen",
         approveSample: "Approve",
-        platformReject: "Reject on TikTok",
-        softReject: "Soft reject",
+        platformReject: "Reject",
+        softReject: "Ignore",
         sampleSyncUnknown:
           "Platform status needs synchronization before review.",
         sampleReviewSaved: "Sample review saved.",
@@ -3570,8 +3569,8 @@ export default {
         rejectExplanation: "Explain the reason",
         reviewTitles: {
           APPROVE: "Approve Sample Application",
-          PLATFORM_REJECT: "Reject on TikTok",
-          SOFT_REJECT: "Soft reject",
+          PLATFORM_REJECT: "Reject Sample Application",
+          SOFT_REJECT: "Ignore Sample Application",
           REOPEN: "Reopen Sample Application",
         },
         reviewDescriptions: {
@@ -3579,7 +3578,7 @@ export default {
           PLATFORM_REJECT:
             "TikTok will receive a rejection after live revalidation.",
           SOFT_REJECT:
-            "The seller decision is recorded locally. TikTok is not called and the application may expire naturally.",
+            "Stop reviewing this Sample Application and let it expire naturally, without rejecting it on TikTok. You can reopen it before expiry.",
           REOPEN: "Reopen this local decision if TikTok still allows review.",
         },
       },
@@ -3597,10 +3596,10 @@ export default {
       subtitle: "Review pending agent actions for creator lifecycle work.",
       creatorsTitle: "Cooperation creators",
       creatorsSubtitle:
-        "Review creator relationships across all Affiliate-enabled shops, maintain labels, and handle current work.",
+        "Review creator relationships across all authorized shops, maintain labels, and handle current work.",
       creatorsPanelTitle: "Shop creator pool",
       creatorsPanelHint:
-        "Shows relationships across all Affiliate-enabled shops by default; select one shop to narrow the view.",
+        "Shows relationships across all authorized shops without requiring Agent activation; select one shop to narrow the view.",
       creatorAttentionOnly: "Needs attention only",
       sampleTiers: {
         SAMPLE_SHIPPED: "Sample shipped",
@@ -4251,6 +4250,7 @@ export default {
         CHANNEL_CONTACT_UPDATED: "Creator channel contact updated",
         PROPOSAL_CREATED: "Proposal created",
         PROPOSAL_REVISION_REQUESTED: "Proposal revision requested",
+        PROPOSAL_IGNORED: "Proposal ignored",
         PROPOSAL_APPROVED: "Proposal approved",
         PROPOSAL_REJECTED: "Proposal rejected",
         PROPOSAL_SUPERSEDED: "Proposal replaced by newer information",
@@ -4344,6 +4344,7 @@ export default {
         EXECUTED: "Executed",
         REJECTED: "Rejected",
         REVISION_REQUESTED: "Revision requested",
+        IGNORED: "Ignored",
         SUPERSEDED: "Superseded",
         EXPIRED: "Expired",
         MODIFIED: "Modified",
@@ -5324,6 +5325,13 @@ export default {
         proposalRevisionRequestedNote:
           "Revision requested from Affiliate Management review table.",
         requestProposalRevision: "Request revision",
+        ignoreProposal: "Ignore",
+        confirmProposalIgnore: "Confirm ignore",
+        proposalIgnoreConfirmTitle: "Ignore this work?",
+        proposalIgnoreConfirmHint:
+          "No message is sent and the creator gets no reply. These messages are marked as handled, so the Agent will not propose anything for them again. A new message from the creator still starts new work.",
+        proposalIgnoreSuccess: "Work ignored. No reply was sent.",
+        proposalIgnoredNote: "Ignored from the Creator management review sheet.",
         sendProposalRevisionRequest: "Send revision request",
         proposalRevisionNoteLabel: "Revision notes",
         proposalRevisionNotePlaceholder:

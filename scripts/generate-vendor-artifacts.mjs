@@ -9,11 +9,12 @@
  * Usage:  node scripts/generate-vendor-artifacts.mjs
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { format } from "oxfmt";
+import { readPluginModelCatalog } from "./openclaw-plugin-model-catalog.mjs";
 
 const require = createRequire(import.meta.url);
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -117,7 +118,7 @@ export declare const OpenClawSchema: z.ZodType<Record<string, unknown>>;
   console.log(`wrote ${dtsOutPath}`);
 }
 
-async function generatePluginModelCatalog() {
+export async function generatePluginModelCatalog() {
   // Import the built entry rather than the TypeScript source. Newer OpenClaw
   // provider sources use package self-references that only resolve from the
   // installed package layout; the dist entry keeps those boundaries intact.
@@ -129,22 +130,22 @@ async function generatePluginModelCatalog() {
     `${pathToFileURL(googleCatalogPath).href}?generated=${Date.now()}`
   );
 
-  const toEntries = (provider) =>
-    provider.models.map((model) => ({
-      id: model.id,
-      name: model.name,
-      ...(Number.isFinite(model.contextWindow) ? { contextWindow: model.contextWindow } : {}),
-    }));
-  const google = toEntries(buildGoogleStaticCatalogProvider());
-  const catalog = {
-    google,
-    "google-gemini-cli": google,
-    "google-vertex": toEntries(buildGoogleVertexStaticCatalogProvider()),
-  };
+  const google = buildGoogleStaticCatalogProvider().models;
+  const { catalog, providerIds } = readPluginModelCatalog(
+    resolve(ROOT, "vendor/openclaw/dist/extensions"),
+    {
+      google,
+      "google-gemini-cli": google,
+      "google-vertex": buildGoogleVertexStaticCatalogProvider().models,
+    },
+  );
   const output = `// AUTO-GENERATED from vendor/openclaw — do not edit manually.
 // Re-generate with: node scripts/generate-vendor-artifacts.mjs
 
 export const OPENCLAW_PLUGIN_MODEL_CATALOG = ${JSON.stringify(catalog, null, 2)} as const;
+
+// Native ownership includes runtime/computed providers with no static model rows.
+export const OPENCLAW_PLUGIN_PROVIDER_IDS = ${JSON.stringify(providerIds, null, 2)} as const;
 `;
   const outPath = resolve(ROOT, "packages/gateway/src/generated/openclaw-plugin-model-catalog.ts");
   mkdirSync(dirname(outPath), { recursive: true });
@@ -152,6 +153,8 @@ export const OPENCLAW_PLUGIN_MODEL_CATALOG = ${JSON.stringify(catalog, null, 2)}
   console.log(`wrote ${outPath}`);
 }
 
-await generateReasoningTags();
-await generatePluginModelCatalog();
-await generateOpenClawSchema();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await generateReasoningTags();
+  await generatePluginModelCatalog();
+  await generateOpenClawSchema();
+}

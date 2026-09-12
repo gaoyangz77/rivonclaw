@@ -1,0 +1,118 @@
+.affiliate-workbench-entity-toolbar {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tk-v1-border-default);
+}
+
+.affiliate-workbench-entity-filters {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.affiliate-workbench-filter-select {
+  flex: 0 1 160px;
+  width: 160px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.affiliate-workbench-filter-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.affiliate-workbench-filter-refresh {
+  flex: 0 0 auto;
+}
+
+.affiliate-workbench-filter-search-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+ * Ordering is not a filter. It trails the filter row and hugs its right edge so
+ * the two kinds of control never read as one group.
+ */
+.affiliate-workbench-filter-order {
+  display: flex;
+  align-items: end;
+  margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.affiliate-workbench-filter-channels {
+  min-height: var(--tk-v1-control-default);
+}
+
+.affiliate-workbench-entity-summary {
+  flex-basis: 100%;
+  color: var(--tk-v1-fg-muted);
+  font-size: 12px;
+}
+
+/*
+ * The Creator's three kinds of tag share one cell: sample rung, system tags,
+ * then manual tags. They keep the pill vocabulary the Creators page uses so the
+ * same Creator reads the same on both surfaces, but the classes are owned here
+ * — this component imports only its own sheet.
+ */
+.affiliate-workbench-cell-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+  color: var(--color-text-muted);
+}
+
+.affiliate-workbench-tag {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The rung the Creator currently holds, in the same accent pill the Creators page uses. */
+.affiliate-workbench-tag-tier {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  color: var(--color-primary);
+}
+
+/* Backend-defined controls read as a caution, not as a seller's own label. */
+.affiliate-workbench-tag-system {
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg));
+  color: var(--color-text);
+}
+
+.affiliate-workbench-tag-manual {
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
+  color: var(--color-primary);
+}
+
+/* Stands in for the tags of its own kind that the cell could not fit. */
+.affiliate-workbench-tag-overflow {
+  border-style: dashed;
+}

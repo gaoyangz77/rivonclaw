@@ -1,4 +1,4 @@
-From 597ffa401942abd749fef53a674342d065ce71ea Mon Sep 17 00:00:00 2001
+From 3e976e079c503b2490bd8987b832fe029603fdd5 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 25 Apr 2026 20:08:44 -0700
 Subject: [PATCH] vendor(openclaw): replace CLI guidance for RivonClaw desktop
@@ -13,46 +13,45 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-no-openclaw-cli-guidance.sentinel.test.ts
 ---
- src/agents/system-prompt.ts | 22 ++++++++--------------
- 1 file changed, 8 insertions(+), 14 deletions(-)
+ src/agents/system-prompt.ts | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index d7e903278f8..b57bb4cdffe 100644
+index 4367f6b3baf..7f12b2ffe1b 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -711,9 +711,9 @@ function buildDocsSection(params: {
-       ? "Config field: `gateway(config.schema.lookup)` exact path. Broader: `docs/gateway/configuration.md`, `docs/gateway/configuration-reference.md`."
-       : "Configuration docs: `docs/gateway/configuration.md`, `docs/gateway/configuration-reference.md`.",
+@@ -697,7 +697,7 @@ function buildDocsSection(params: {
      sourcePath
--      ? "If docs are silent/stale, say so and inspect local source."
--      : "If docs are silent/stale, say so and inspect GitHub source.",
+       ? "If docs are silent/stale, say so and inspect local source."
+       : "If docs are silent/stale, say so and inspect GitHub source.",
 -    "Diagnosis: run `openclaw status` when possible; ask only if blocked.",
-+      ? "If docs are incomplete or stale, inspect the local OpenClaw source code before answering."
-+      : "If docs are incomplete or stale, review the OpenClaw source on GitHub before answering.",
 +    "When diagnosing issues in RivonClaw Desktop, use available first-class runtime tools instead of shelling out to the OpenClaw CLI.",
      "",
    ];
    return lines.filter((line): line is string => line !== undefined);
-@@ -1321,17 +1321,11 @@ export function buildAgentSystemPrompt(params: {
-         fallback: [],
-       }),
-       ...safetySection,
+@@ -1304,19 +1304,17 @@ export function buildAgentSystemPrompt(params: {
+           `Only start a new \`${tool}\` call if the user clearly asks for different/new media.`,
+         ]),
+       "",
 -      "## OpenClaw Control",
--      "Do not invent commands.",
--      ...(hasOpenClaw
--        ? [
--            "Gateway restart, config, channels, plugins, agents, models/providers, updates: ask `openclaw`. Never restart the Gateway through shell commands or write your own config.",
--          ]
--        : hasGateway
--          ? [
--              "Config read: `gateway` (`config.get|config.schema.lookup`). Write/restart unavailable; ask human.",
--            ]
--          : ["System controls unavailable; ask human."]),
 +      "## RivonClaw Desktop Runtime",
 +      "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
 +      "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
-+      "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools for gateway status, config, and restart instead of shell CLI commands.",
-+      "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
+       "Do not invent commands.",
+       hasOpenClaw
+         ? "Gateway restart, config, channels, plugins, agents, models/providers: ask `openclaw`."
+         : hasGateway
+           ? "Config read: `gateway` (`config.get|config.schema.lookup`). Write/restart unavailable; ask human."
+-          : "",
+-      [
+-        hasGateway
+-          ? "Update OpenClaw: `gateway` action update.run, only on explicit user request; restart and completion notice are automatic."
+-          : `${hasOpenClaw ? "Updates" : "System controls unavailable. Updates and restarts"} need the OpenClaw owner: tell the user to run \`openclaw update\` in a terminal or use the Control UI.`,
+-        `Never run ${hasGateway ? "openclaw update, npm install -g openclaw, or stop/restart" : "npm install -g openclaw or stop"} the gateway service via exec.`,
+-      ].join(" "),
++          : "System controls unavailable; use RivonClaw Desktop settings or ask the operator.",
++      "For updates, use the RivonClaw Desktop updater only on explicit user request.",
++      "Never update, install, stop, or restart the embedded gateway through shell commands.",
        "",
        ...skillsSection,
        ...skillWorkshopSection,

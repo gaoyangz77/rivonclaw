@@ -7,9 +7,10 @@ import {
   AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
   REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
 } from "../../../api/shops-queries.js";
-import { Select } from "../../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import {
+  TkButton,
+  TkChoiceSelect,
   TkInteractiveTableRow,
   TkPrivate,
   TkTableFrame,
@@ -22,10 +23,31 @@ import {
   formatShortDateTime,
 } from "../../../lib/format-datetime.js";
 import panelI18n from "../../../i18n/index.js";
+import {
+  ProductFilter,
+  type ProductFilterValue,
+} from "../../../components/ecommerce/ProductFilter.js";
+import { WorkbenchCreatorSearch } from "./WorkbenchCreatorSearch.js";
+import { creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
+import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
+import "./AffiliateWorkbenchEntityTabs.css";
+
+import {
+  AffiliateProtectionFilter,
+  workbenchProtectionValue,
+} from "./AffiliateProtectionFilter.js";
 
 const PAGE_SIZE = 25;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
+
+/*
+ * The same chip budget the Creators page spends, so one Creator reads the same
+ * on both surfaces. Anything past the budget collapses into a `+N` chip whose
+ * title carries the full set.
+ */
+const WORKBENCH_SYSTEM_TAG_CHIP_LIMIT = 2;
+const WORKBENCH_MANUAL_TAG_CHIP_LIMIT = 3;
 
 export type AffiliateWorkbenchEntityTab = "SAMPLES" | "MESSAGES";
 
@@ -165,7 +187,28 @@ function AffiliateWorkbenchSampleList({
   const [disposition, setDisposition] = useState<GQL.AffiliateSampleReviewDisposition>(
     GQL.AffiliateSampleReviewDisposition.Open,
   );
-  const filterKey = workbenchFilterKey([disposition, selectedShopId, selectedBusinessDeveloperId]);
+  const [protection, setProtection] = useState("ALL");
+  const [creatorSearch, setCreatorSearch] = useState("");
+  /**
+   * Application-time order. A backend cursor is bound to the order that minted
+   * it, so this belongs in `filterKey` — changing it must start a fresh page 1,
+   * never replay the in-flight cursor.
+   */
+  const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
+  const [productSelection, setProductSelection] = useState<{
+    scope: string;
+    values: ProductFilterValue[];
+  }>({ scope: selectedShopId, values: [] });
+  const products = productSelection.scope === selectedShopId ? productSelection.values : [];
+  const filterKey = workbenchFilterKey([
+    creatorSearch,
+    JSON.stringify(products),
+    protection,
+    disposition,
+    sortOrder,
+    selectedShopId,
+    selectedBusinessDeveloperId,
+  ]);
   const [buffer, setBuffer] = useState<WorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>>(() =>
     emptyWorkbenchPageBuffer(filterKey),
   );
@@ -185,7 +228,11 @@ function AffiliateWorkbenchSampleList({
       input: {
         shopId: selectedShopId || null,
         businessDeveloperId: selectedBusinessDeveloperId || null,
+        protected: workbenchProtectionValue(protection),
         reviewDisposition: disposition,
+        sortOrder,
+        ...(creatorSearch ? { creatorSearch } : {}),
+        ...(products.length ? { products } : {}),
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -217,7 +264,11 @@ function AffiliateWorkbenchSampleList({
         input: {
           shopId: selectedShopId || null,
           businessDeveloperId: selectedBusinessDeveloperId || null,
+          protected: workbenchProtectionValue(protection),
           reviewDisposition: disposition,
+          sortOrder,
+          ...(creatorSearch ? { creatorSearch } : {}),
+          ...(products.length ? { products } : {}),
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -237,13 +288,17 @@ function AffiliateWorkbenchSampleList({
       };
     });
   }, [
+    creatorSearch,
+    products,
     disposition,
     fetchMore,
     filterKey,
+    protection,
     hasMore,
     nextCursor,
     selectedBusinessDeveloperId,
     selectedShopId,
+    sortOrder,
   ]);
 
   async function reopenRow(row: GQL.AffiliateWorkbenchSampleRow): Promise<void> {
@@ -292,15 +347,20 @@ function AffiliateWorkbenchSampleList({
       className="affiliate-workbench-entity-section"
       data-tutorial-id="affiliate-workbench-samples"
     >
-      <div className="affiliate-workbench-entity-toolbar">
+      <div className="affiliate-workbench-entity-toolbar" data-tutorial-id="affiliate-workbench-sample-controls">
         <div className="affiliate-workbench-entity-filters">
-          <Select
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
             value={selectedShopId}
-            onChange={onSelectShop}
+            onChange={(next) => {
+              setProductSelection({ scope: next, values: [] });
+              onSelectShop(next);
+            }}
             options={shopOptions}
-            className="affiliate-workspace-shop-select"
+            className="affiliate-workbench-filter-select"
           />
-          <Select
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
             value={disposition}
             onChange={(value) => setDisposition(value as GQL.AffiliateSampleReviewDisposition)}
             options={[
@@ -313,17 +373,54 @@ function AffiliateWorkbenchSampleList({
                 label: t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected"),
               },
             ]}
-            className="affiliate-status-select"
+            className="affiliate-workbench-filter-select"
           />
-          <Select
+          <AffiliateProtectionFilter value={protection} onChange={setProtection} />
+          <TkChoiceSelect
             value={selectedBusinessDeveloperId}
             onChange={onSelectBusinessDeveloper}
             options={businessDeveloperOptions}
-            className="affiliate-status-select"
-            ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+            className="affiliate-workbench-filter-select"
+            label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
+          <div className="affiliate-workbench-filter-group">
+            <span className="tk-v1-label">
+              {t("ecommerce.affiliateWorkspace.workbench.colProduct")}
+            </span>
+            <ProductFilter
+              key={selectedShopId}
+              shopId={selectedShopId || undefined}
+              value={products}
+              onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
+            />
+          </div>
+          <div className="affiliate-workbench-filter-search-actions">
+            <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
+            <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
+              {t("common.refresh")}
+            </TkButton>
+          </div>
+          {/* Ordering is not a filter, so it sits apart from them at the row's end. */}
+          <div className="affiliate-workbench-filter-order">
+            <TkChoiceSelect
+              label={t("ecommerce.affiliateWorkspace.workbench.sampleSortLabel")}
+              value={sortOrder}
+              onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+              options={[
+                {
+                  value: GQL.EcomSortOrder.Asc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.sampleSortOldestFirst"),
+                },
+                {
+                  value: GQL.EcomSortOrder.Desc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.sampleSortNewestFirst"),
+                },
+              ]}
+              className="affiliate-workbench-filter-select"
+            />
+          </div>
           {softRejectedView ? (
             <span className="affiliate-workbench-entity-summary">
               {t("ecommerce.affiliateWorkspace.workbench.softRejectedHint")}
@@ -348,9 +445,6 @@ function AffiliateWorkbenchSampleList({
             </span>
           ) : null}
         </div>
-        <button className="btn btn-secondary" type="button" onClick={() => void refetch()}>
-          {t("common.refresh")}
-        </button>
       </div>
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />
@@ -370,6 +464,7 @@ function AffiliateWorkbenchSampleList({
             <colgroup>
               <col className="affiliate-workbench-col-time" />
               <col className="affiliate-workbench-col-creator" />
+              <col className="affiliate-workbench-col-tags" />
               <col className="affiliate-workbench-col-shop" />
               <col className="affiliate-workbench-col-product" />
               <col className="affiliate-workbench-col-support" />
@@ -380,6 +475,7 @@ function AffiliateWorkbenchSampleList({
               <tr>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colAppliedAt")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colShop")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colProduct")}</th>
                 {softRejectedView ? (
@@ -415,6 +511,13 @@ function AffiliateWorkbenchSampleList({
                       name={row.creatorName}
                       username={row.creatorUsername}
                       avatarUrl={row.creatorAvatarUrl}
+                    />
+                  </td>
+                  <td>
+                    <CreatorTagsCell
+                      sampleTier={row.sampleTier}
+                      systemTags={row.systemTags}
+                      manualTags={row.manualTags}
                     />
                   </td>
                   <td>
@@ -505,7 +608,7 @@ function AffiliateWorkbenchSampleList({
             {!hasMore && items.length > 0 ? (
               <tfoot>
                 <tr>
-                  <td className="affiliate-workbench-table-footer" colSpan={7}>
+                  <td className="affiliate-workbench-table-footer" colSpan={8}>
                     {t(
                       softRejectedView
                         ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedSoftRejected"
@@ -554,7 +657,22 @@ function AffiliateWorkbenchMessageList({
   const [messageShopId, setMessageShopId] = useState("");
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
   const queryShopId = platformChannelActive && messageShopId ? messageShopId : null;
-  const filterKey = workbenchFilterKey([channel, queryShopId, selectedBusinessDeveloperId]);
+  const [protection, setProtection] = useState("ALL");
+  const [creatorSearch, setCreatorSearch] = useState("");
+  /**
+   * Waiting-time order. A backend cursor is bound to the order that minted it,
+   * so this belongs in `filterKey` — changing it must start a fresh page 1,
+   * never replay the in-flight cursor.
+   */
+  const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
+  const filterKey = workbenchFilterKey([
+    creatorSearch,
+    protection,
+    channel,
+    sortOrder,
+    queryShopId,
+    selectedBusinessDeveloperId,
+  ]);
   const [buffer, setBuffer] = useState<
     WorkbenchPageBuffer<GQL.AffiliateWorkbenchPendingConversationRow>
   >(() => emptyWorkbenchPageBuffer(filterKey));
@@ -572,8 +690,11 @@ function AffiliateWorkbenchMessageList({
     variables: {
       input: {
         channel: channel || null,
+        ...(creatorSearch ? { creatorSearch } : {}),
         shopId: queryShopId,
         businessDeveloperId: selectedBusinessDeveloperId || null,
+        protected: workbenchProtectionValue(protection),
+        sortOrder,
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -604,8 +725,11 @@ function AffiliateWorkbenchMessageList({
       variables: {
         input: {
           channel: channel || null,
+          ...(creatorSearch ? { creatorSearch } : {}),
           shopId: queryShopId,
           businessDeveloperId: selectedBusinessDeveloperId || null,
+          protected: workbenchProtectionValue(protection),
+          sortOrder,
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -626,12 +750,15 @@ function AffiliateWorkbenchMessageList({
     });
   }, [
     channel,
+    creatorSearch,
     fetchMore,
     filterKey,
+    protection,
     hasMore,
     nextCursor,
     queryShopId,
     selectedBusinessDeveloperId,
+    sortOrder,
   ]);
 
   const nowMs = Date.now();
@@ -673,42 +800,75 @@ function AffiliateWorkbenchMessageList({
       className="affiliate-workbench-entity-section"
       data-tutorial-id="affiliate-workbench-messages"
     >
-      <div className="affiliate-workbench-entity-toolbar">
+      <div className="affiliate-workbench-entity-toolbar" data-tutorial-id="affiliate-workbench-message-controls">
         <div className="affiliate-workbench-entity-filters">
-          <div className="affiliate-workbench-channel-chips" role="group">
-            {channelChips.map((chip) => (
-              <button
-                key={chip.value || "ALL"}
-                type="button"
-                className={`affiliate-workbench-channel-chip${channel === chip.value ? " affiliate-workbench-channel-chip-active" : ""}`}
-                aria-pressed={channel === chip.value}
-                onClick={() => selectChannel(chip.value)}
-              >
-                {chip.label}
-                {chip.count != null ? <span>{chip.count}</span> : null}
-              </button>
-            ))}
+          <div className="affiliate-workbench-filter-group">
+            <span className="tk-v1-label">
+              {t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}
+            </span>
+            <div
+              className="affiliate-workbench-channel-chips affiliate-workbench-filter-channels"
+              role="group"
+              aria-label={t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}
+            >
+              {channelChips.map((chip) => (
+                <button
+                  key={chip.value || "ALL"}
+                  type="button"
+                  className={`affiliate-workbench-channel-chip${channel === chip.value ? " affiliate-workbench-channel-chip-active" : ""}`}
+                  aria-pressed={channel === chip.value}
+                  onClick={() => selectChannel(chip.value)}
+                >
+                  {chip.label}
+                  {chip.count != null ? <span>{chip.count}</span> : null}
+                </button>
+              ))}
+            </div>
           </div>
           {platformChannelActive ? (
-            <>
-              <span className="affiliate-workbench-toolbar-divider" aria-hidden="true" />
-              <Select
-                value={messageShopId}
-                onChange={setMessageShopId}
-                options={shopOptions}
-                className="affiliate-workspace-shop-select"
-              />
-            </>
+            <TkChoiceSelect
+              label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
+              value={messageShopId}
+              onChange={setMessageShopId}
+              options={shopOptions}
+              className="affiliate-workbench-filter-select"
+            />
           ) : null}
-          <Select
+          <AffiliateProtectionFilter value={protection} onChange={setProtection} />
+          <TkChoiceSelect
             value={selectedBusinessDeveloperId}
             onChange={onSelectBusinessDeveloper}
             options={businessDeveloperOptions}
-            className="affiliate-status-select"
-            ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+            className="affiliate-workbench-filter-select"
+            label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
           />
+          <div className="affiliate-workbench-filter-search-actions">
+            <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
+            <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
+              {t("common.refresh")}
+            </TkButton>
+          </div>
+          {/* Ordering is not a filter, so it sits apart from them at the row's end. */}
+          <div className="affiliate-workbench-filter-order">
+            <TkChoiceSelect
+              label={t("ecommerce.affiliateWorkspace.workbench.messageSortLabel")}
+              value={sortOrder}
+              onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
+              options={[
+                {
+                  value: GQL.EcomSortOrder.Asc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst"),
+                },
+                {
+                  value: GQL.EcomSortOrder.Desc,
+                  label: t("ecommerce.affiliateWorkspace.workbench.messageSortNewestFirst"),
+                },
+              ]}
+              className="affiliate-workbench-filter-select"
+            />
+          </div>
           {page && page.waitingOver24hCount > 0 ? (
             <span className="affiliate-workbench-entity-summary">
               <span className="affiliate-workbench-summary-warning">
@@ -719,9 +879,6 @@ function AffiliateWorkbenchMessageList({
             </span>
           ) : null}
         </div>
-        <button className="btn btn-secondary" type="button" onClick={() => void refetch()}>
-          {t("common.refresh")}
-        </button>
       </div>
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />
@@ -735,6 +892,7 @@ function AffiliateWorkbenchMessageList({
             <colgroup>
               <col className="affiliate-workbench-col-time" />
               <col className="affiliate-workbench-col-creator" />
+              <col className="affiliate-workbench-col-tags" />
               <col className="affiliate-workbench-col-product" />
               <col className="affiliate-workbench-col-support" />
               <col className="affiliate-workbench-col-status" />
@@ -744,6 +902,7 @@ function AffiliateWorkbenchMessageList({
               <tr>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colWaiting")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colBd")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</th>
@@ -780,6 +939,13 @@ function AffiliateWorkbenchMessageList({
                       />
                     </td>
                     <td>
+                      <CreatorTagsCell
+                        sampleTier={row.sampleTier}
+                        systemTags={row.systemTags}
+                        manualTags={row.manualTags}
+                      />
+                    </td>
+                    <td>
                       <ChannelSourceCell channel={row.channel} sourceLabel={row.sourceLabel} />
                     </td>
                     <td>
@@ -812,7 +978,7 @@ function AffiliateWorkbenchMessageList({
             {!hasMore && items.length > 0 ? (
               <tfoot>
                 <tr>
-                  <td className="affiliate-workbench-table-footer" colSpan={6}>
+                  <td className="affiliate-workbench-table-footer" colSpan={7}>
                     {channel
                       ? t("ecommerce.affiliateWorkspace.workbench.allMessagesLoadedChannel", {
                           count: items.length,
@@ -909,6 +1075,81 @@ function formatWaitingDuration(elapsedMs: number): string {
   } catch {
     return String(value);
   }
+}
+
+/**
+ * The Creator's three kinds of tag in one cell: the sample rung first, then
+ * system tags, then manual tags. Each kind keeps its own chip styling and
+ * names itself through `title`, so the column needs one header rather than
+ * three stacked sub-labels.
+ *
+ * `sampleTier` is the highest rung across every shop of this Creator, not this
+ * row's shop. Absent means no rung was reached anywhere, which is not the
+ * lowest rung, so it renders as nothing rather than as SAMPLE_SHIPPED.
+ */
+function CreatorTagsCell({
+  sampleTier,
+  systemTags,
+  manualTags,
+}: {
+  sampleTier?: GQL.CreatorSampleTier | null;
+  systemTags: ReadonlyArray<GQL.AffiliateCreatorSystemTag>;
+  manualTags: ReadonlyArray<GQL.CreatorManualTag>;
+}) {
+  const { t } = useTranslation();
+  if (!sampleTier && systemTags.length === 0 && manualTags.length === 0) {
+    return <div className="affiliate-workbench-cell-tags">—</div>;
+  }
+  const visibleSystemTags = systemTags.slice(0, WORKBENCH_SYSTEM_TAG_CHIP_LIMIT);
+  const hiddenSystemTagCount = systemTags.length - visibleSystemTags.length;
+  const visibleManualTags = manualTags.slice(0, WORKBENCH_MANUAL_TAG_CHIP_LIMIT);
+  const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
+  return (
+    <div className="affiliate-workbench-cell-tags">
+      {sampleTier ? (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-tier"
+          title={t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}
+        >
+          {creatorSampleTierLabel(t, sampleTier)}
+        </span>
+      ) : null}
+      {visibleSystemTags.map((tag) => (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-system"
+          key={tag}
+          title={t("ecommerce.affiliateWorkspace.systemTagFilterLabel")}
+        >
+          {creatorSystemTagLabel(t, tag)}
+        </span>
+      ))}
+      {hiddenSystemTagCount > 0 ? (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-system affiliate-workbench-tag-overflow"
+          title={systemTags.map((tag) => creatorSystemTagLabel(t, tag)).join(", ")}
+        >
+          +{hiddenSystemTagCount}
+        </span>
+      ) : null}
+      {visibleManualTags.map((tag) => (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-manual"
+          key={tag.id}
+          title={t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
+        >
+          {tag.name}
+        </span>
+      ))}
+      {hiddenManualTagCount > 0 ? (
+        <span
+          className="affiliate-workbench-tag affiliate-workbench-tag-manual affiliate-workbench-tag-overflow"
+          title={manualTags.map((tag) => tag.name).join(", ")}
+        >
+          +{hiddenManualTagCount}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function SoftRejectHandlerCell({

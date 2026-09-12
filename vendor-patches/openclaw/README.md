@@ -186,19 +186,6 @@ inside one ~120s ping cycle.
 Removal: upstream makes the Feishu websocket ping timeout configurable, or
 raises it above the range a gateway event-loop stall can cross.
 
-### 0035 - Bounded known-key session reads
-
-Makes the shared Gateway helpers used by dispatch, compaction, rewind,
-`sessions.describe`, and `sessions.get` read only the requested SQLite row and
-its canonical aliases. This prevents routine work for one session from
-materializing and cloning an entire large session catalog. A missing database
-still follows the original path so configured-agent database creation semantics
-remain unchanged.
-
-Removal: upstream makes both known-key helpers use exact indexed SQLite reads,
-or lands equivalent indexed session lookup support. OpenClaw commit `257b8e0`
-is related but remains unmerged and is much broader than this temporary patch.
-
 ### 0036 - Feishu visible delivery custody backport
 
 Backports OpenClaw commit `1096ca2a708f600386b6efd349823c759e041fcc`.
@@ -222,48 +209,45 @@ Removal: drop this patch when `.openclaw-version` contains that commit or an
 equivalent lazy-loading implementation and the packaged Windows CLI sentinel
 passes on pristine vendor.
 
-### 0039 - Windows process identity for the cron durable fence
+## Dropped In v2026.9.3
 
-The cron durable fence introduced by OpenClaw `d3308e2cfd9` (`fix(cron): fence
-executions with durable receipts`, `#122948`) refuses to claim a run without a
-process start time, but `src/shared/pid-alive.ts#getFileLockProcessStartTime`
-implements Linux procfs and macOS `ps` only and returns null on Windows. Every
-Windows cron execution therefore failed immediately with `cron run cannot
-acquire a durable fence without process start identity`, for both scheduled
-runs and manual run-now.
+Audited on pristine `1391f7cd2d40ab5bbcf2f5f831d3a64f520e72d7` without
+downstream patches. The following upstream commits are verified ancestors.
 
-This patch gives `src/cron/store/run-receipt-store.ts` its own cross-platform
-reader built on the `readWindowsProcessStartTimeSync` helper OpenClaw already
-ships, mirroring the win32 branch that `infra/gateway-lock.ts` and
-`node-host/node-worker-process-identity.ts` already use. Both the claim and the
-staleness comparison read through it so the persisted and observed owner
-identities stay in one unit, and our own immutable start time is cached so a
-claim never respawns PowerShell. The fix stays at the cron call site rather
-than in `shared/pid-alive.ts`, whose other consumers (file locks, startup
-migration checkpoints, stale-lock adjudication) are out of scope.
+- `0035`: `1544e2345589cd8e472d44cfc0a6aacd8ad8c2a3` and
+  `e19a7694cef6d38140033f798215103dd638fafb` make both shared known-key
+  helpers use exact reads and canonical-key resolution. Real SQLite tests
+  observe indexed `session_key = ?` queries, at most one row per query, no
+  catalog listing, and no unrelated payload parsing. Missing-store reads now
+  remain read-only; the next write creates the configured agent database.
+  `sessions.describe` explicitly requests direct children; `sessions.get`
+  does not. Keep the upstream ownership checks and internal-effects filtering.
+  This does **not** resolve broad Gateway `sessions.list` materialization.
+  Related proposal `257b8e0` is **not** an ancestor of this tag.
+- `0039`: `97bc908f8850872b960c36dfb58752f6c3a3b653` adds Windows identity
+  to shared `getFileLockProcessStartTime`, used by both cron claim and stale
+  owner checks. It caches successful self probes only and shares a bounded
+  deadline across PowerShell and WMIC. Real receipt-store tests with mocked
+  Windows probes cover missing-identity retry, persisted epoch-millisecond
+  identity, live-owner conflict, and PID-reuse takeover. The private cron-side
+  reader is obsolete. These tests ran on macOS, **not real Windows**.
+- `0041`: `592253ffd1039d877a9ce2cacbde5702176ea297` and
+  `c893a1f8453191951bce75a8769fc5db8e775d68` perform schema-17 additive repair,
+  canonical index repair, and validation in one migration transaction. Real
+  SQLite tests with the actual maintenance lease/heartbeat worker cover
+  repair to schema 19, preserved data, idempotence, unsupported participant
+  drift rollback, and interrupted-DDL rollback/retry. The embedded-host exports
+  in `0032` remain a separate requirement.
 
-Removal: drop this patch when `.openclaw-version` resolves a Windows process
-start time for the cron fence, either in `getFileLockProcessStartTime` itself or
-through an equivalent cron-side reader. See `WINDOWS-CRON-001` in
-`UPSTREAM_WATCHLIST.md`.
-
-### 0041 - Atomic schema 17 additive session repair
-
-Backports the final OpenClaw fixes from commits
-`592253ffd1039d877a9ce2cacbde5702176ea297` (PR `#134208`) and
-`c893a1f8453191951bce75a8769fc5db8e775d68` (PR `#134272`). OpenClaw
-`v2026.8.1` validates canonical indexes before repairing the additive session
-columns and trigger absent from real schema 17 databases. That ordering makes
-the Desktop's required 17-to-19 startup migration fail before Gateway launch.
-
-The backport performs the additive repair and canonical-index validation inside
-the migration transaction, preserving rollback if later participant identity
-validation rejects unrelated drift.
-
-Removal: drop this patch when `.openclaw-version` contains both upstream
-commits, or a later stable release whose pristine vendor passes the schema 17
-startup migration regression in
-`packages/gateway/src/vendor/state-migration.test.ts`.
+Regression tests are retained, not removed with the patches. See
+[tests/README.md](tests/README.md) for commands and proof limits. The retained
+suite passes 14 behavioral tests plus 10 Desktop source-contract checks on
+pristine v2026.9.3; the initial audit also passed 36 upstream process-identity
+helper tests. The existing built-runtime migration regression in
+`packages/gateway/src/vendor/state-migration.test.ts` is preserved and accepts
+`OPENCLAW_VENDOR_ROOT`, but still requires the coordinator's rebuilt runtime.
+Real Windows scheduled/manual cron, packaged startup, and large-store
+benchmarks remain upgrade acceptance checks, not claims of this retirement.
 
 ## Dropped In v2026.8.1
 

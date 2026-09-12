@@ -476,6 +476,49 @@ describe("gateway config builder", () => {
     expect(config.overlayProviderKeys).toEqual(["openai"]);
   });
 
+  it("seeds a configured Desktop-only provider once without replacing authoritative config", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "desktop-only-provider-"));
+    const configPath = join(stateDir, "openclaw.json");
+    const key = { provider: "zhipu", authType: "api_key", model: "glm-4-flash" };
+    const builder = createGatewayConfigBuilder({
+      storage: {
+        providerKeys: { getActive: () => key, getAll: () => [key] },
+        settings: { get: () => undefined },
+        channelAccounts: { list: () => [], get: () => undefined },
+        channelRecipients: { getOwners: () => [] },
+      } as never,
+      secretStore: { get: async () => null } as never,
+      locale: "en", configPath, stateDir,
+      extensionsDir: "/tmp/extensions", sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}), channelConfigAccounts: () => [],
+    });
+    try {
+      const first = await builder.buildFullGatewayConfig(18789);
+      expect(first.extraProviders?.zhipu).toMatchObject({
+        baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+        api: "openai-completions",
+      });
+      expect(first.extraProviders?.zhipu?.models).toContainEqual(expect.objectContaining({
+        id: "glm-4-flash", contextWindow: 128000,
+      }));
+      expect(first.extraProviders?.["zhipu-coding"]).toBeUndefined();
+      writeGatewayConfig({ ...first, extraProviders: {
+        ...first.extraProviders,
+        zhipu: { baseUrl: "https://user.example/v1", api: "openai-completions",
+          models: [{ id: "custom-model", name: "Custom Model", contextWindow: 64000 }] },
+      } });
+      const next = await builder.buildFullGatewayConfig(18789);
+      expect(next.extraProviders?.zhipu).toBeUndefined();
+      writeGatewayConfig(next);
+      expect(JSON.parse(readFileSync(configPath, "utf8")).models.providers.zhipu).toMatchObject({
+        baseUrl: "https://user.example/v1",
+        models: [{ id: "custom-model", contextWindow: 64000 }],
+      });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   /**
    * The compatibility overlay always writes an `openai` provider row holding
    * OpenClaw's built-in default model, which disables OpenClaw's own

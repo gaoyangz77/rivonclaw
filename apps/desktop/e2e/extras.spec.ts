@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { navigateToExtensionPage } from "./shell-helpers.js";
 
 test.describe("Extra Features Page", () => {
   /** Dismiss any modal(s) blocking the UI and navigate to the Extra Features page. */
@@ -10,17 +11,7 @@ test.describe("Extra Features Page", () => {
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
 
-    const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
-    if (await connectionsGroup.isVisible().catch(() => false)) {
-      const expanded = await connectionsGroup.getAttribute("aria-expanded");
-      if (expanded !== "true") {
-        await connectionsGroup.click();
-      }
-    }
-
-    const extrasBtn = window.locator(".nav-btn", { hasText: /Extensions|Extra Features|扩展功能/ });
-    await extrasBtn.click();
-    await expect(extrasBtn).toHaveClass(/nav-active/);
+    await navigateToExtensionPage(window, "Plugins");
   }
 
   test("navigates to extras page and shows three sections", async ({ window }) => {
@@ -58,7 +49,7 @@ test.describe("Extra Features Page", () => {
     // Enable STT
     const checkbox = section.locator("input[type='checkbox']");
     if (!await checkbox.isChecked()) {
-      await section.locator(".extras-toggle").click();
+      await section.locator(".tk-v1-switch-control").click();
     }
 
     // Groq should be the default provider for en locale; verify it is selected
@@ -87,7 +78,7 @@ test.describe("Extra Features Page", () => {
     // Enable web search
     const checkbox = section.locator("input[type='checkbox']");
     if (!await checkbox.isChecked()) {
-      await section.locator(".extras-toggle").click();
+      await section.locator(".tk-v1-switch-control").click();
     }
 
     // Brave should be the default provider
@@ -116,7 +107,7 @@ test.describe("Extra Features Page", () => {
     // Enable embedding
     const checkbox = section.locator("input[type='checkbox']");
     if (!await checkbox.isChecked()) {
-      await section.locator(".extras-toggle").click();
+      await section.locator(".tk-v1-switch-control").click();
     }
 
     // Select Gemini provider from dropdown
@@ -212,7 +203,7 @@ test.describe("Extra Features Page", () => {
     // Enable web search
     const checkbox = section.locator("input[type='checkbox']");
     if (!await checkbox.isChecked()) {
-      await section.locator(".extras-toggle").click();
+      await section.locator(".tk-v1-switch-control").click();
     }
 
     // Type something in the key input
@@ -243,7 +234,7 @@ test.describe("Extra Features Page", () => {
     // Enable embedding
     const checkbox = section.locator("input[type='checkbox']");
     if (!await checkbox.isChecked()) {
-      await section.locator(".extras-toggle").click();
+      await section.locator(".tk-v1-switch-control").click();
     }
 
     // Select Ollama provider
@@ -265,7 +256,7 @@ test.describe("Extra Features Page", () => {
 
     // Ensure web search is unchecked (disabled)
     if (await checkbox.isChecked()) {
-      await section.locator(".extras-toggle").click();
+      await section.locator(".tk-v1-switch-control").click();
     }
 
     // Save with feature disabled — no API key validation needed

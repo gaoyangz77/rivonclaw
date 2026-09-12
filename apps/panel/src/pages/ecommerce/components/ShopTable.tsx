@@ -254,6 +254,7 @@ export const ShopTable = observer(function ShopTable({
                           return (
                             <TkInteractiveTableRow
                               key={shopId}
+                              data-tutorial-id="shops-item"
                               className={isCollection ? "shop-collection-child-row" : undefined}
                               aria-label={`${t("ecommerce.view")} ${shop.shopName}`}
                               onActivate={() => onOpenDrawer(shopId)}

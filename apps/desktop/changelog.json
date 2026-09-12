@@ -1,5 +1,111 @@
 [
   {
+    "version": "1.9.15",
+    "date": "2026-09-11",
+    "en": [
+      "Restore archived customer-service sessions before retrying dispatch, so interrupted conversations can resume normally"
+    ],
+    "zh": [
+      "客服会话重试派发前自动从归档状态恢复，确保中断会话能够正常继续"
+    ]
+  },
+  {
+    "version": "1.9.14",
+    "date": "2026-09-10",
+    "en": [
+      "Fix interrupted Feishu conversations remaining stuck after app startup, causing reactions without replies",
+      "Recover interrupted session state at startup while preserving conversation history and model selections"
+    ],
+    "zh": [
+      "修复飞书中断会话在客户端启动后仍被阻塞、只有表情回应却没有回复的问题",
+      "启动时恢复中断会话状态，保留聊天历史与模型选择"
+    ]
+  },
+  {
+    "version": "1.9.13",
+    "date": "2026-09-10",
+    "en": [
+      "Reduce installer size by removing development-only files and SQLite binaries for other platforms",
+      "Deduplicate identical bundled dependencies while preserving plugin loading and existing-session startup"
+    ],
+    "zh": [
+      "移除仅开发时需要的文件及其他平台的 SQLite 二进制，缩小安装包体积",
+      "对相同的内置依赖去重，保留插件加载与已有会话启动能力"
+    ]
+  },
+  {
+    "version": "1.9.12",
+    "date": "2026-09-10",
+    "en": [
+      "Make desktop startup more reliable by isolating vendor SQLite state migration in a Node child process",
+      "Harden Windows and Intel Mac packaging validation so signed releases carry the runtime dependencies they need"
+    ],
+    "zh": [
+      "将 vendor SQLite 状态迁移隔离到 Node 子进程中执行，提升桌面端启动稳定性",
+      "加强 Windows 与 Intel Mac 打包校验，确保签名安装包携带所需运行时依赖"
+    ]
+  },
+  {
+    "version": "1.9.11",
+    "date": "2026-09-09",
+    "en": [
+      "Upgrade OpenClaw to v2026.9.3 and allow normal Gateway restarts to finish without prematurely triggering channel protection",
+      "Wait for Gateway authentication before sending chat requests, improve startup diagnostics, and fix Windows build dependency loading"
+    ],
+    "zh": [
+      "升级 OpenClaw 至 v2026.9.3，让正常 Gateway 重启完成后再退出，避免提前强杀误触发渠道保护",
+      "聊天请求等待 Gateway 认证完成后再发送，改进启动诊断，并修复 Windows 构建依赖加载问题"
+    ]
+  },
+  {
+    "version": "1.9.10",
+    "date": "2026-09-09",
+    "en": [
+      "Order both affiliate workbench queues oldest- or newest-first from a control of its own, and read each creator's tags directly on the queue rows",
+      "Capture the Gateway heap snapshot once memory crosses a threshold rather than at the out-of-memory wall, where the write had been producing an empty file"
+    ],
+    "zh": [
+      "达人工作台两个队列均可按时间正序或倒序排列，排序控件独立于筛选行；队列行上直接显示达人标签",
+      "Gateway 堆快照改为内存超过阈值时抓取，不再等到内存耗尽才写——那时写出的是空文件"
+    ]
+  },
+  {
+    "version": "1.9.9",
+    "date": "2026-09-09",
+    "en": [
+      "Stop replaying customer-service dispatches after a Gateway crash: the replay saturated the Gateway the moment it restarted and could hold it in a crash loop, so those conversations are re-delivered by the hourly sweep instead",
+      "Review sample proposals with Ignore and disposition overrides, submit creator contact corrections from a spreadsheet, and validate a creator WhatsApp number when it is saved"
+    ],
+    "zh": [
+      "Gateway 崩溃后不再重放客服派发任务：重放会在重启瞬间把 Gateway 打满并可能使其反复崩溃，这些会话改由每小时扫描重新下发",
+      "样品提案审核新增忽略与处置结果覆盖，支持用表格提交达人联系方式修正，保存达人 WhatsApp 号码时会先校验"
+    ]
+  },
+  {
+    "version": "1.9.8",
+    "date": "2026-09-08",
+    "en": [
+      "Add creator and product filters to the affiliate workbench, keep filter labels aligned when choices wrap, and make product catalog searches faster with concurrent on-demand loading",
+      "Replay the customer-service backlog in parallel after the Gateway recovers, with an optional heap snapshot when memory pressure needs investigation"
+    ],
+    "zh": [
+      "达人联盟工作台新增达人和商品筛选，筛选项换行时标签仍保持对齐；商品目录按需并发加载，搜索更快",
+      "Gateway 恢复后并行重放客服积压任务；内存压力排查时可选生成 heap snapshot"
+    ]
+  },
+  {
+    "version": "1.9.7",
+    "date": "2026-09-08",
+    "en": [
+      "Add creator shop views and protected workbench filters, separate operator shop access from agent activation, and prefer shop aliases in creator message headers",
+      "Deduplicate affiliate dispatches by snapshot to avoid repeated work"
+    ],
+    "zh": [
+      "新增达人店铺视图与受保护的工作台筛选，人工店铺访问不再依赖 Agent 激活状态，达人消息标题优先显示店铺别名",
+      "按快照对达人任务派发去重，避免重复执行"
+    ]
+  },
+  {
     "version": "1.9.6",
     "date": "2026-09-06",
     "en": [

@@ -576,15 +576,19 @@ export class AffiliateInbound {
 function logAffiliateContainmentStartup(): void {
   const controlledRelationshipIds = getControlledLiveTestRelationshipIds();
   if (!controlledRelationshipIds) {
-    log.warn(
+    const invalidFilter = process.env[AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV] !== undefined;
+    const level = invalidFilter || DEBUG_AFFILIATE_PROMPT ? "warn" : "info";
+    log[level](
       [
         "Affiliate containment startup",
         "liveTestFilter=absent",
         "relationshipIdCount=0",
         `maxActiveAffiliateAgentRuns=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS}`,
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
-        `-- UNFILTERED: ${AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV} is not set in this Desktop process,`,
-        "so every Affiliate work item is dispatchable",
+        invalidFilter ? "mode=invalid-live-test-filter" : "mode=normal",
+        invalidFilter
+          ? `-- UNFILTERED: ${AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV} contains no relationship IDs`
+          : "Live-test containment is not enabled; normal workspace dispatch limits apply",
       ].join(" "),
     );
     return;
