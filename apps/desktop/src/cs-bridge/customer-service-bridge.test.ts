@@ -663,46 +663,127 @@ describe("shop context management", () => {
 describe("archived CS session recovery", () => {
   const key = "agent:customer-service:cs:tiktok:mongo-id-123:conv-789";
   const archived = `Session "${key}" is archived. Restore it before starting new work. [code=INVALID_REQUEST]`;
+  const localSessionId = "81b45352-dad9-4f62-b442-24f2dcf1d9b8";
 
-  it("restores an archived buyer conversation and retries the same dispatch once", async () => {
+  it.each([archived, archived.replace(" [code=INVALID_REQUEST]", "")])("restores with the current local session ID and retries once: %s", async (message) => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     mockRpcRequest
       .mockResolvedValueOnce({ ok: true })
-      .mockRejectedValueOnce(new Error(archived))
-      .mockResolvedValueOnce({ ok: true })
+      .mockRejectedValueOnce(new Error(message))
+      .mockResolvedValueOnce({ session: { key, sessionId: localSessionId, archivedAt: 1 } })
+      .mockImplementationOnce(async (method, params) => {
+        // OpenClaw lifecycle patches require the local session generation, not a platform/backend ID.
+        expect(method).toBe("sessions.patch");
+        if (params.expectedSessionId !== localSessionId) {
+          throw new Error(`expectedSessionId required for session lifecycle patch: ${key}`);
+        }
+        return { ok: true };
+      })
       .mockResolvedValueOnce({ runId: "restored-run" });
 
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest.mock.calls.map(([method]) => method)).toEqual([
-      "cs_register_session", "agent", "sessions.patch", "agent",
+      "cs_register_session", "agent", "sessions.describe", "sessions.patch", "agent",
     ]);
-    expect(mockRpcRequest.mock.calls[2]).toEqual(["sessions.patch", { key, archived: false }]);
-    expect(mockRpcRequest.mock.calls[3]).toEqual(mockRpcRequest.mock.calls[1]);
+    expect(mockRpcRequest.mock.calls[2]).toEqual(["sessions.describe", { key }]);
+    expect(mockRpcRequest.mock.calls[3]).toEqual(["sessions.patch", {
+      key, archived: false, expectedSessionId: localSessionId,
+    }]);
+    expect(mockRpcRequest.mock.calls[4]).toEqual(mockRpcRequest.mock.calls[1]);
     expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
       outcome: "accepted", runId: "restored-run",
     }));
     expect(mockEmitCsDispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ outcome: "failed" }));
   });
 
-  it.each(["restore", "retry"])("reports a %s failure without looping or claiming success", async (stage) => {
+  it.each(["describe", "restore", "retry"])("reports a %s failure without looping or claiming success", async (stage) => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     mockRpcRequest.mockResolvedValueOnce({ ok: true }).mockRejectedValueOnce(new Error(archived));
-    if (stage === "restore") {
-      mockRpcRequest.mockRejectedValueOnce(new Error("restore failed"));
+    const failure = stage === "retry" ? archived : `${stage} failed`;
+    if (stage === "describe") {
+      mockRpcRequest.mockRejectedValueOnce(new Error(failure));
     } else {
-      mockRpcRequest.mockResolvedValueOnce({ ok: true }).mockRejectedValueOnce(new Error(archived));
+      mockRpcRequest.mockResolvedValueOnce({ session: { sessionId: localSessionId } });
+      if (stage === "retry") {
+        mockRpcRequest.mockResolvedValueOnce({ ok: true }).mockRejectedValueOnce(new Error(failure));
+      } else {
+        mockRpcRequest.mockImplementationOnce(async (_method, params) => {
+          expect(params.expectedSessionId).toBe(localSessionId);
+          throw new Error(failure);
+        });
+      }
     }
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "sessions.patch")).toHaveLength(1);
-    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "agent")).toHaveLength(stage === "restore" ? 1 : 2);
-    expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ outcome: "failed" }));
+    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "sessions.describe")).toHaveLength(1);
+    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "sessions.patch")).toHaveLength(stage === "describe" ? 0 : 1);
+    expect(mockRpcRequest.mock.calls.filter(([method]) => method === "agent")).toHaveLength(stage === "retry" ? 2 : 1);
+    expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: "failed", errorMessage: expect.objectContaining({ message: failure }),
+    }));
     expect(mockEmitCsDispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted" }));
   });
+
+  it("does not restore a replaced local session or bypass its generation check", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    let currentSessionId = localSessionId;
+    const changed = `Session ${key} changed before patch. Retry.`;
+    mockRpcRequest
+      .mockResolvedValueOnce({ ok: true })
+      .mockRejectedValueOnce(new Error(archived))
+      .mockImplementationOnce(async () => {
+        const session = { sessionId: currentSessionId };
+        currentSessionId = "replacement-session";
+        return { session };
+      })
+      .mockImplementationOnce(async (_method, params) => {
+        if (params.expectedSessionId !== currentSessionId) throw new Error(changed);
+        return { ok: true };
+      });
+
+    await triggerMessage(bridge, createFrame());
+
+    expect(mockRpcRequest.mock.calls.map(([method]) => method)).toEqual([
+      "cs_register_session", "agent", "sessions.describe", "sessions.patch",
+    ]);
+    expect(mockRpcRequest.mock.calls[3]).toEqual(["sessions.patch", {
+      key, archived: false, expectedSessionId: localSessionId,
+    }]);
+    expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: "failed", errorMessage: expect.objectContaining({ message: changed }),
+    }));
+    expect(mockEmitCsDispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted" }));
+  });
+
+  it.each([null, {}, { session: null }, { session: {} }, { session: { sessionId: "" } }, { session: { sessionId: "  " } }])(
+    "does not restore or retry without a local session ID: %j",
+    async (description) => {
+      const bridge = createBridge();
+      bridge.setShopContext(defaultShop);
+      mockRpcRequest
+        .mockResolvedValueOnce({ ok: true })
+        .mockRejectedValueOnce(new Error(archived))
+        .mockResolvedValueOnce(description);
+
+      await triggerMessage(bridge, createFrame());
+
+      expect(mockRpcRequest.mock.calls.map(([method]) => method)).toEqual([
+        "cs_register_session", "agent", "sessions.describe",
+      ]);
+      expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+        outcome: "failed",
+        errorMessage: expect.objectContaining({
+          message: `Cannot restore archived CS session: no local session ID for ${key}`,
+        }),
+      }));
+      expect(mockEmitCsDispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted" }));
+    },
+  );
 
   it.each([
     "Request timed out after 360000ms: agent",

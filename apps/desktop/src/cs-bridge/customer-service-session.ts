@@ -2208,9 +2208,17 @@ export class CustomerServiceSession {
           throw err;
         }
         // Archive rejection precedes run admission; preserve the request's idempotency key.
+        const described = await openClawConnector.request<{
+          session?: { sessionId?: string | null } | null;
+        }>("sessions.describe", { key: this.dispatchKey });
+        const expectedSessionId = described?.session?.sessionId;
+        if (!expectedSessionId?.trim()) {
+          throw new Error(`Cannot restore archived CS session: no local session ID for ${this.dispatchKey}`);
+        }
         await openClawConnector.request("sessions.patch", {
           key: this.dispatchKey,
           archived: false,
+          expectedSessionId,
         });
         log.info(`Restored archived CS session for dispatch: conv=${this.csContext.conversationId} session=${this.dispatchKey}`);
         response = await requestAgent<DispatchResult>(agentParams, CS_AGENT_DISPATCH_RPC_TIMEOUT_MS);
