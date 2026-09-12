@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.16",
+    "date": "2026-09-11",
+    "en": [
+      "Continue MCP authorization smoothly after handing a request from Desktop to the Web flow",
+      "Preserve local session identity when restoring archived customer-service conversations, and refresh Desktop tutorials and Office lifecycle behavior"
+    ],
+    "zh": [
+      "桌面端跳转到网页授权流程后可顺畅继续完成 MCP 授权",
+      "恢复归档客服会话时保留本地会话身份，并更新桌面端教程与 Office 生命周期行为"
+    ]
+  },
+  {
     "version": "1.9.15",
     "date": "2026-09-11",
     "en": [
