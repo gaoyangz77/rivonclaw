@@ -21,14 +21,15 @@ export type OfficeScreensaver = {
  * set while idle, or closing a manually opened office would arm a latch that
  * nothing ever clears.
  */
-export function useOfficeScreensaver(): OfficeScreensaver {
+export function useOfficeScreensaver(paused = false): OfficeScreensaver {
   const idle = useSystemIdle();
   const [manual, setManual] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (!idle) setDismissed(false);
-  }, [idle]);
+    if (paused && idle) setDismissed(true);
+    else if (!idle) setDismissed(false);
+  }, [idle, paused]);
 
   const open = useCallback(() => {
     setManual(true);
@@ -47,5 +48,5 @@ export function useOfficeScreensaver(): OfficeScreensaver {
     setDismissed(idle);
   }, [idle]);
 
-  return { active: manual || (idle && !dismissed), open, close };
+  return { active: !paused && (manual || (idle && !dismissed)), open, close };
 }

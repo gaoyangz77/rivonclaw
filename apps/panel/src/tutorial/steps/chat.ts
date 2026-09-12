@@ -20,4 +20,5 @@ export const chatSteps: TutorialStep[] = [
   step("chat-examples", "chat-examples", "examples", "top"),
   step("chat-controls", "chat-controls", "statusBar", "top"),
   step("chat-input", "chat-input", "inputArea", "top"),
+  step("chat-office", "office-shutter-handle", "office", "top"),
 ]

@@ -16,6 +16,7 @@ import { PageErrorBoundary } from "../components/PageErrorBoundary.js";
 import { buildSidebarNavigationItems } from "./sidebar-navigation.js";
 import { OfficeShutter } from "../components/office/OfficeShutter.js";
 import { useOfficeShutter } from "../components/office/useOfficeShutter.js";
+import { useTutorial } from "../tutorial/TutorialProvider.js";
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -76,7 +77,8 @@ export const Layout = observer(function Layout({
     };
   }, []);
 
-  const shutter = useOfficeShutter();
+  const { isPlaying: tutorialPlaying } = useTutorial();
+  const shutter = useOfficeShutter(tutorialPlaying);
 
   const navRoutes = ROUTES.filter(
     (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),

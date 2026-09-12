@@ -82,6 +82,7 @@ export function OfficeShutter({
           down. Always mounted - it must survive the drag it starts - and only
           hidden while the door is up, when the office's own grip takes over. */}
       <div
+        data-tutorial-id="office-shutter-handle"
         className={`office-shutter-handle${
           rolling && !shutter.dragging ? " office-shutter-handle--hidden" : ""
         }`}

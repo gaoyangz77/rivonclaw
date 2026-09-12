@@ -347,7 +347,7 @@ function AffiliateWorkbenchSampleList({
       className="affiliate-workbench-entity-section"
       data-tutorial-id="affiliate-workbench-samples"
     >
-      <div className="affiliate-workbench-entity-toolbar">
+      <div className="affiliate-workbench-entity-toolbar" data-tutorial-id="affiliate-workbench-sample-controls">
         <div className="affiliate-workbench-entity-filters">
           <TkChoiceSelect
             label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
@@ -800,7 +800,7 @@ function AffiliateWorkbenchMessageList({
       className="affiliate-workbench-entity-section"
       data-tutorial-id="affiliate-workbench-messages"
     >
-      <div className="affiliate-workbench-entity-toolbar">
+      <div className="affiliate-workbench-entity-toolbar" data-tutorial-id="affiliate-workbench-message-controls">
         <div className="affiliate-workbench-entity-filters">
           <div className="affiliate-workbench-filter-group">
             <span className="tk-v1-label">

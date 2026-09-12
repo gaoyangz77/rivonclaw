@@ -30,8 +30,8 @@ export type OfficeShutter = {
  * screensaver state, so a shutter rolled up by hand is dismissed by exactly
  * the same rules as one that went up on its own.
  */
-export function useOfficeShutter(): OfficeShutter {
-  const screensaver = useOfficeScreensaver();
+export function useOfficeShutter(paused = false): OfficeShutter {
+  const screensaver = useOfficeScreensaver(paused);
   const [openness, setOpenness] = useState(0);
   const [dragging, setDragging] = useState(false);
   const drag = useRef<{ startY: number; startOpenness: number } | null>(null);

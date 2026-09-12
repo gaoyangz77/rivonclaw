@@ -31,6 +31,7 @@ import { AFFILIATE_PERFORMANCE_FOLLOW_UP_TRANSLATIONS } from "./affiliate-perfor
 import { SUB_ACCOUNT_TRANSLATIONS } from "./sub-account-translations.js";
 import { WMS_CREDENTIAL_TRANSLATIONS } from "./wms-credential-translations.js";
 import { OFFICE_ACTIVITY_TRANSLATIONS } from "./office-activity-translations.js";
+import { TUTORIAL_SEPTEMBER_TRANSLATIONS } from "./tutorial-september-translations.js";
 import {
   TUTORIAL_CATCHUP_EN,
   TUTORIAL_CATCHUP_ZH,
@@ -272,7 +273,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
   },
 } as const;
 
-export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
+const BASE_LANGUAGE_OPTIONS: readonly LanguageOption[] = [
   {
     code: "en",
     label: "English",
@@ -518,6 +519,14 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
     ),
   },
 ] as const;
+
+export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS.map((language) => ({
+  ...language,
+  resource: mergeTranslationResources(
+    language.resource as TranslationResourceRecord,
+    TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
+  ),
+}));
 
 export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] =
   LANGUAGE_OPTIONS.map((language) => language.code);
