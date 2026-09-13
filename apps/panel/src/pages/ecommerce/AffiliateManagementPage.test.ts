@@ -28,6 +28,7 @@ import {
   latestManualTagChange,
   latestSystemTagChange,
   mergeAffiliateProposalPage,
+  parseAffiliateEscalationSnapshot,
   proposalManualTagRows,
   predictionEvidenceHighlightTarget,
   predictionSignalFallbackLabel,
@@ -1222,6 +1223,45 @@ describe("Affiliate canonical UI contract", () => {
     expect(queue).not.toContain('className="btn btn-secondary"');
     expect(queue).not.toContain("affiliate-workbench-entity-row");
     expect(queue).not.toContain("affiliate-workbench-entity-section");
+  });
+
+  it("previews the latest escalation agenda item as a translated required action", () => {
+    const snapshot = parseAffiliateEscalationSnapshot(
+      JSON.stringify({
+        agendaItems: [
+          {
+            key: "agenda-sample",
+            requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+            updatedAt: "2026-09-12T08:00:00.000Z",
+          },
+          {
+            key: "agenda-message",
+            requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+            updatedAt: "2026-09-13T08:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    expect(snapshot.latestRequiredAction).toBe(
+      GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+    );
+    expect(
+      parseAffiliateEscalationSnapshot(JSON.stringify({ agendaItems: [{ key: "agenda-1" }] }))
+        .latestRequiredAction,
+    ).toBe("");
+
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queue = page.slice(
+      page.indexOf("function AffiliateEscalationQueue"),
+      page.indexOf("function AffiliateEscalationDetailModal"),
+    );
+    expect(queue).toMatch(
+      /affiliateWorkspaceEnumLabel\(\s*t,\s*"requiredActions",\s*snapshot\.latestRequiredAction,?\s*\)/,
+    );
+    expect(queue).not.toMatch(/\{snapshot\.latestRequiredAction \|\|/);
   });
 
   it("uses a dense Agent work table as the workspace entry point", () => {

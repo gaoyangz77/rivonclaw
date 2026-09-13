@@ -625,22 +625,18 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
     <div className="affiliate-whatsapp-connector affiliate-whatsapp-connector-ready">
       <div>
         <strong>
-          {t("ecommerce.affiliateWorkspace.ops.title", {
-            defaultValue: "Outreach operations",
-          })}
+          {t("ecommerce.affiliateWorkspace.ops.title")}
         </strong>
         <span>
           {status
             ? t("ecommerce.affiliateWorkspace.ops.subtitle", {
-                defaultValue: "Last 7 days since {{since}}",
                 since: formatCompactDate(status.since, i18n.language),
               })
-            : t("common.loading", { defaultValue: "Loading..." })}
+            : t("common.loading")}
         </span>
         {status?.latestInboundAt ? (
           <span>
             {t("ecommerce.affiliateWorkspace.ops.latestInbound", {
-              defaultValue: "Latest inbound: {{time}}",
               time: formatCompactDate(status.latestInboundAt, i18n.language),
             })}
           </span>
@@ -648,64 +644,64 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
       </div>
       <div className="affiliate-whatsapp-connector-metrics">
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.directSent", { defaultValue: "Direct sent" })}: {directSent}
+          {t("ecommerce.affiliateWorkspace.ops.directSent")}: {directSent}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.directInbound", { defaultValue: "Direct inbound" })}: {directInbound}
+          {t("ecommerce.affiliateWorkspace.ops.directInbound")}: {directInbound}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.failed", { defaultValue: "Failed" })}: {status?.failedDeliveryCount ?? 0}
+          {t("ecommerce.affiliateWorkspace.ops.failed")}: {status?.failedDeliveryCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.webhooks", { defaultValue: "Webhooks" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.webhooks")}:{" "}
           {status?.webhookReceivedCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.ignoredWebhooks", { defaultValue: "Ignored webhooks" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.ignoredWebhooks")}:{" "}
           {status?.ignoredWebhookCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.rejectedWebhooks", { defaultValue: "Rejected webhooks" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.rejectedWebhooks")}:{" "}
           {status?.rejectedWebhookCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.mailboxSyncs", { defaultValue: "Mailbox syncs" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.mailboxSyncs")}:{" "}
           {status?.mailboxSyncCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.syncFailed", { defaultValue: "Sync failed" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.syncFailed")}:{" "}
           {status?.failedMailboxSyncCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.renewals", { defaultValue: "Renewals" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.renewals")}:{" "}
           {status?.subscriptionRenewalCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.renewalFailed", { defaultValue: "Renewal failed" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.renewalFailed")}:{" "}
           {status?.failedSubscriptionRenewalCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.activeProxies", { defaultValue: "Active proxies" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.activeProxies")}:{" "}
           {status?.activeWhatsAppProxyCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.proxyIssues", { defaultValue: "Proxy issues" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.proxyIssues")}:{" "}
           {(status?.disabledWhatsAppProxyCount ?? 0) + (status?.errorWhatsAppProxyCount ?? 0)}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.badProxyBindings", { defaultValue: "Bad proxy bindings" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.badProxyBindings")}:{" "}
           {status?.whatsappAccountsUsingUnavailableProxyCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.reconnectNeeded", { defaultValue: "Reconnect needed" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.reconnectNeeded")}:{" "}
           {status?.whatsappAccountsNeedingReconnectCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.mailboxAuthIssues", { defaultValue: "Mailbox auth issues" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.mailboxAuthIssues")}:{" "}
           {status?.emailAccountsMissingRefreshTokenCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.sharedMailboxIssues", { defaultValue: "Shared mailbox issues" })}:{" "}
+          {t("ecommerce.affiliateWorkspace.ops.sharedMailboxIssues")}:{" "}
           {status?.sharedEmailAccountsMissingAddressCount ?? 0}
         </span>
         <button
@@ -716,7 +712,7 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
           }}
           disabled={loading}
         >
-          {loading ? t("common.loading", { defaultValue: "Loading..." }) : t("common.refresh", { defaultValue: "Refresh" })}
+          {loading ? t("common.loading") : t("common.refresh")}
         </button>
       </div>
     </div>

@@ -24,12 +24,29 @@ const eventBusMock = vi.hoisted(() => ({
   subscribe: vi.fn(),
 }));
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    i18n: { language: "en" },
-    t: (_key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? _key,
-  }),
-}));
+vi.mock("react-i18next", async () => {
+  // Keys without an inline default resolve from the real English resources, so a
+  // missing locale key fails here instead of rendering the raw key.
+  const { LANGUAGE_RESOURCES } = await import("../../../i18n/languages.js");
+  const english: unknown = LANGUAGE_RESOURCES.en.translation;
+  const lookup = (key: string) =>
+    key
+      .split(".")
+      .reduce<unknown>(
+        (node, segment) =>
+          node && typeof node === "object" ? (node as Record<string, unknown>)[segment] : undefined,
+        english,
+      );
+  return {
+    useTranslation: () => ({
+      i18n: { language: "en" },
+      t: (key: string, options?: { defaultValue?: string }) => {
+        const resolved = lookup(key);
+        return options?.defaultValue ?? (typeof resolved === "string" ? resolved : key);
+      },
+    }),
+  };
+});
 
 vi.mock("../../../components/Toast.js", () => ({
   useToast: () => toastMock,
@@ -340,6 +357,7 @@ describe("affiliate outreach connector onboarding gates", () => {
   it("shows affiliate outreach operational health counters", () => {
     renderOpsPanel({});
 
+    expect(screen.getByText("Outreach operations")).toBeTruthy();
     expect(screen.getByText("Direct sent: 9")).toBeTruthy();
     expect(screen.getByText("Direct inbound: 17")).toBeTruthy();
     expect(screen.getByText("Failed: 2")).toBeTruthy();

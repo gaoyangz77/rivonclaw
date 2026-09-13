@@ -1766,9 +1766,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   );
 });
 
-function parseAffiliateEscalationSnapshot(value: string): {
+export function parseAffiliateEscalationSnapshot(value: string): {
   agendaItems: Array<Record<string, unknown>>;
-  latestAgendaLabel: string;
+  latestRequiredAction: string;
 } {
   try {
     const parsed = JSON.parse(value) as { agendaItems?: Array<Record<string, unknown>> };
@@ -1780,10 +1780,11 @@ function parseAffiliateEscalationSnapshot(value: string): {
     )[0];
     return {
       agendaItems,
-      latestAgendaLabel: String(latest?.requiredAction ?? latest?.key ?? ""),
+      // Every agenda item carries a requiredAction enum; key is an internal id, never display text.
+      latestRequiredAction: String(latest?.requiredAction ?? ""),
     };
   } catch {
-    return { agendaItems: [], latestAgendaLabel: "" };
+    return { agendaItems: [], latestRequiredAction: "" };
   }
 }
 
@@ -1872,8 +1873,13 @@ function AffiliateEscalationQueue({
                       <strong title={item.question}>{item.question}</strong>
                       <span title={item.reason}>{item.reason}</span>
                       <small>
-                        {snapshot.latestAgendaLabel ||
-                          t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}
+                        {snapshot.latestRequiredAction
+                          ? affiliateWorkspaceEnumLabel(
+                              t,
+                              "requiredActions",
+                              snapshot.latestRequiredAction,
+                            )
+                          : t("ecommerce.affiliateWorkspace.escalations.noAgendaPreview")}
                       </small>
                     </div>
                   </td>
