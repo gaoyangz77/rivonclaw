@@ -73,8 +73,8 @@ describe("AuthSessionManager secure storage", () => {
     await manager.storeTokens("access-2", "refresh-2");
 
     expect(listener.mock.calls).toEqual([
-      [{ state: "available" }],
-      [{ state: "available" }],
+      [{ state: "available", reason: "sign_in" }],
+      [{ state: "available", reason: "sign_in" }],
     ]);
 
     unsubscribe();
@@ -99,7 +99,7 @@ describe("AuthSessionManager secure storage", () => {
     await expect(manager.clearTokens()).rejects.toBeInstanceOf(SecretStoreAccessError);
 
     expect(manager.getAccessToken()).toBeNull();
-    expect(listener).toHaveBeenCalledWith({ state: "cleared" });
+    expect(listener).toHaveBeenCalledWith({ state: "cleared", reason: "sign_out" });
   });
 
   it("does not let credential listener failures interrupt token storage", async () => {
@@ -445,6 +445,8 @@ describe("AuthSessionManager.refresh", () => {
   });
 
   it("clears stored tokens when the backend rejects the refresh token", async () => {
+    const credentialsChanged = vi.fn();
+    manager.onCredentialsChanged(credentialsChanged);
     fetchFn.mockResolvedValueOnce({
       status: 200,
       json: async () => ({
@@ -454,6 +456,9 @@ describe("AuthSessionManager.refresh", () => {
 
     await expect(manager.refresh()).rejects.toThrow("Refresh token revoked or invalid");
 
+    expect(credentialsChanged.mock.calls).toEqual([
+      [{ state: "cleared", reason: "refresh_rejected" }],
+    ]);
     expect(manager.getAccessToken()).toBeNull();
     expect(manager.getCachedUser()).toBeNull();
     expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
@@ -537,7 +542,9 @@ describe("AuthSessionManager.refresh", () => {
     expect(manager.isSecureStorageAvailable()).toBe(false);
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(credentialsChanged).toHaveBeenCalledTimes(1);
-    expect(credentialsChanged).toHaveBeenCalledWith({ state: "available" });
+    // Subscribers keep sockets authenticated as the same session across a
+    // refresh; this reason is what lets them tell it from a new sign-in.
+    expect(credentialsChanged).toHaveBeenCalledWith({ state: "available", reason: "refresh" });
   });
 
   it("does not clear stored tokens when background GraphQL auto-refresh sees an invalid JWT", async () => {

@@ -595,7 +595,7 @@ app.whenReady().then(async () => {
     },
   });
   const unsubscribeAuthCredentialsChanged = authSession.onCredentialsChanged(async (event) => {
-    await backendSubscription.handleCredentialsChanged();
+    await backendSubscription.handleCredentialsChanged(event);
     if (
       event.state === "available" &&
       deferredDesktopWebSessionRequest &&

@@ -19,8 +19,23 @@ const log = createLogger("auth-session");
 const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
 export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
+/**
+ * Why the stored credentials changed. Consumers holding a connection that was
+ * authenticated with the previous token use this to tell a routine rotation of
+ * the same session from a different session.
+ */
+export type CredentialsChangeReason =
+  /** Tokens from a new sign-in: login, register, Google or browser login, or a token handoff. */
+  | "sign_in"
+  /** The same session rotated its tokens through the refresh-token exchange. */
+  | "refresh"
+  /** The user signed out. */
+  | "sign_out"
+  /** The backend rejected the refresh token, which ends the session. */
+  | "refresh_rejected";
 export type CredentialsChangedEvent = {
   state: "available" | "cleared";
+  reason: CredentialsChangeReason;
 };
 export type CredentialsChangedListener = (
   event: CredentialsChangedEvent,
@@ -148,6 +163,7 @@ export class AuthSessionManager {
       } catch (error) {
         log.warn("Credentials changed listener failed", {
           state: event.state,
+          reason: event.reason,
           error: getErrorMessage(error),
         });
       }
@@ -196,7 +212,16 @@ export class AuthSessionManager {
     this.cachedUser = user;
   }
 
-  async storeTokens(accessToken: string, refreshToken: string): Promise<void> {
+  /**
+   * @param options.reason `refresh` only from the refresh-token exchange; every
+   * other caller is establishing a session and takes the default `sign_in`.
+   */
+  async storeTokens(
+    accessToken: string,
+    refreshToken: string,
+    options?: { reason?: "sign_in" | "refresh" },
+  ): Promise<void> {
+    const reason = options?.reason ?? "sign_in";
     const changed = this.accessToken !== accessToken || this.refreshToken !== refreshToken;
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
@@ -209,17 +234,17 @@ export class AuthSessionManager {
       this.secureStorageAvailable = true;
     } catch (error) {
       if (error instanceof SecretStoreAccessError) this.secureStorageAvailable = false;
-      if (changed) await this.emitCredentialsChanged({ state: "available" });
+      if (changed) await this.emitCredentialsChanged({ state: "available", reason });
       throw error;
     }
-    if (changed) await this.emitCredentialsChanged({ state: "available" });
+    if (changed) await this.emitCredentialsChanged({ state: "available", reason });
   }
 
   async clearTokens(): Promise<void> {
     const hadCredentials = !!this.accessToken || !!this.refreshToken;
     this.accessToken = null;
     this.refreshToken = null;
-    if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared" });
+    if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared", reason: "sign_out" });
     await this.setUser(null);
     await this.secretStore.delete(ACCESS_TOKEN_KEY);
     await this.secretStore.delete(REFRESH_TOKEN_KEY);
@@ -253,7 +278,7 @@ export class AuthSessionManager {
 
       const payload = result.refreshToken;
       try {
-        await this.storeTokens(payload.accessToken, payload.refreshToken);
+        await this.storeTokens(payload.accessToken, payload.refreshToken, { reason: "refresh" });
       } catch (error) {
         if (!(error instanceof SecretStoreAccessError)) throw error;
         // The backend refresh already succeeded and rotated the token. Keep the
@@ -289,7 +314,9 @@ export class AuthSessionManager {
       const hadCredentials = !!this.accessToken || !!this.refreshToken;
       this.accessToken = null;
       this.refreshToken = null;
-      if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared" });
+      if (hadCredentials) {
+        await this.emitCredentialsChanged({ state: "cleared", reason: "refresh_rejected" });
+      }
       await this.setUser(null);
       await this.secretStore.delete(ACCESS_TOKEN_KEY);
       await this.secretStore.delete(REFRESH_TOKEN_KEY);
@@ -299,7 +326,9 @@ export class AuthSessionManager {
       this.accessToken = null;
       this.refreshToken = null;
       this.secureStorageAvailable = false;
-      if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared" });
+      if (hadCredentials) {
+        await this.emitCredentialsChanged({ state: "cleared", reason: "refresh_rejected" });
+      }
       await this.setUser(null);
       log.error("Rejected auth session could not be removed because secure storage is unavailable");
     }

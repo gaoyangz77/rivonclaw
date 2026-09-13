@@ -1,7 +1,8 @@
 import { createClient, type Client } from "graphql-ws/client";
-import { getApiBaseUrl, type GQL } from "@rivonclaw/core";
+import { decodeJwtPayload, getApiBaseUrl, type GQL } from "@rivonclaw/core";
 import { isNewerVersion } from "@rivonclaw/updater";
 import { createLogger } from "@rivonclaw/logger";
+import type { CredentialsChangedEvent } from "../auth/session.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 
 const log = createLogger("backend-subscription");
@@ -28,6 +29,35 @@ const AUTH_WS_CLOSE_CODES = new Set([
  * so a healthy retry cycle never trips it.
  */
 const TRANSPORT_STALL_TIMEOUT_MS = 90_000;
+
+/**
+ * Whether two access tokens subscribe as the same caller. Every subscription
+ * resolver scopes its stream by the account (and person) its token named when
+ * the operation was subscribed. Claims are read unverified: both tokens come
+ * from this Desktop's own session, and an unreadable token answers "no", which
+ * only costs a reconnect.
+ */
+function isSameSubscriptionIdentity(previousToken: string, nextToken: string): boolean {
+  const previous = subscriptionIdentity(previousToken);
+  const next = subscriptionIdentity(nextToken);
+  return (
+    previous !== null &&
+    next !== null &&
+    previous.userId === next.userId &&
+    previous.accountId === next.accountId
+  );
+}
+
+function subscriptionIdentity(token: string): { userId: string; accountId: string } | null {
+  const claims = decodeJwtPayload(token);
+  const userId = typeof claims?.userId === "string" ? claims.userId : "";
+  if (!userId) return null;
+  // Mirrors the backend's extractAccountId: a token issued before sub-accounts
+  // carries no accountId, and its signer was a main account.
+  const accountId =
+    typeof claims?.accountId === "string" && claims.accountId ? claims.accountId : userId;
+  return { userId, accountId };
+}
 
 /**
  * Retry ceiling once an operation has failed with unknown errors more times
@@ -1280,6 +1310,8 @@ class LongLivedSubscriptionOperation {
     readonly config: SubscriptionConfig,
     private readonly canStart: () => boolean,
     private readonly currentTransportGeneration: () => number,
+    /** Runs right before a subscribe is issued; may restart the transport. */
+    private readonly beforeSubscribe: () => void,
   ) {}
 
   get key(): string {
@@ -1313,6 +1345,12 @@ class LongLivedSubscriptionOperation {
       this.state = "idle";
       return;
     }
+
+    // May restart a socket whose credentials rotated underneath it. The
+    // subscribe below still goes out: graphql-ws parks it until the replacement
+    // socket is open (a subscribe never lands on a CLOSING socket), and that
+    // pending subscribe is also what keeps the lazy client reconnecting.
+    this.beforeSubscribe();
 
     const attempt = ++this.attemptCounter;
     const transportGeneration = this.currentTransportGeneration();
@@ -1529,6 +1567,17 @@ export class BackendSubscriptionClient {
   /** Token used by the current authenticated subscription connection. */
   private authenticatedSubscriptionToken: string | null = null;
 
+  /**
+   * Token the live socket sent in its connection_init. Resolvers read identity
+   * from these connection params at subscribe time, so this — not the latest
+   * session token — is who a new subscribe on this socket would run as. Null
+   * while no socket is acknowledged.
+   */
+  private transportToken: string | null = null;
+
+  /** Transport generation a restart was already requested for; restart it at most once. */
+  private restartRequestedGeneration: number | null = null;
+
   /** Optional auth refresh hook supplied by the app auth runtime. */
   private refreshAuth: (() => Promise<void>) | null = null;
 
@@ -1608,6 +1657,7 @@ export class BackendSubscriptionClient {
       if (!this.transportConnected) client.terminate();
     }
     this.transportConnected = false;
+    this.transportToken = null;
   }
 
   reconnect(): void {
@@ -1635,23 +1685,86 @@ export class BackendSubscriptionClient {
       return;
     }
 
+    // Called after an operation failed authentication on the live socket, so
+    // that socket's credentials are the problem. The refresh that produced
+    // `token` may have deliberately kept the transport (handleCredentialsChanged),
+    // which leaves nothing for tokenChanged to see: reconnect whenever the
+    // socket is not already running on `token`.
     this.applyAuthenticatedCredentials(token, {
       allowEnableFromDisabled: false,
+      forceReconnect: this.transportConnected && this.transportToken !== token,
       reason: "auth_refresh",
     });
   }
 
-  async handleCredentialsChanged(): Promise<void> {
+  /**
+   * React to the auth session rotating or clearing its tokens.
+   *
+   * Only a routine refresh of the same session keeps the live socket. Every
+   * subscription resolver authenticates once, when the operation is
+   * subscribed, and then streams until the socket closes; the backend neither
+   * re-checks the access token per event nor closes a socket when it expires.
+   * A socket authenticated as this identity therefore keeps serving the
+   * operations it has, and restarting it on every refresh (every 30 minutes)
+   * only opened a few-second window in which published events were lost —
+   * customer-service signals among them. Everything else still reconnects:
+   *  - sign-in, sign-out and a rejected refresh. Sign-in and sign-out also force
+   *    a reconnect from the app auth lifecycle, independently of this method;
+   *  - a refresh that changed the user or owning account: the backend
+   *    recomputes accountId on refresh, and resolvers scope their streams by the
+   *    identity they saw at subscribe time;
+   *  - a refresh while the transport is down, stalled or suspended, where the
+   *    restart is what settles a pending attempt with fresh credentials.
+   * A kept socket never takes a NEW subscribe, which would authenticate with
+   * its old token: ensureTransportCredentialsCurrent reconnects first.
+   */
+  async handleCredentialsChanged(event: CredentialsChangedEvent): Promise<void> {
     const token = this.getToken?.() ?? null;
     if (!token) {
       this.disableAuthenticatedSubscriptions();
       return;
     }
 
+    if (this.canKeepTransportAcrossRefresh(event, token)) {
+      this.authenticatedSubscriptionToken = token;
+      this.authRecoveryFailures = 0;
+      log.info("Kept backend subscription transport across token refresh", {
+        transportGeneration: this.transportGeneration,
+      });
+      return;
+    }
+
     this.applyAuthenticatedCredentials(token, {
       allowEnableFromDisabled: false,
-      reason: "credentials_changed",
+      reason: `credentials_changed:${event.reason}`,
     });
+  }
+
+  private canKeepTransportAcrossRefresh(event: CredentialsChangedEvent, token: string): boolean {
+    if (event.reason !== "refresh") return false;
+    if (this.authenticatedSubscriptionState !== "active") return false;
+    if (!this.client || !this.transportConnected || !this.transportToken) return false;
+    return isSameSubscriptionIdentity(this.transportToken, token);
+  }
+
+  /**
+   * Runs right before an authenticated operation subscribes. When the live
+   * socket authenticated with a token that has since rotated (a refresh kept
+   * it), a subscribe on it would run as that old token: most resolvers reject
+   * it once the token has expired, and shopUpdated silently yields nothing.
+   * Restart once, so the subscribe lands on a socket opened with the current
+   * token.
+   */
+  private ensureTransportCredentialsCurrent(key: string): void {
+    if (!this.transportConnected) return;
+    const current = this.getToken?.() ?? null;
+    if (this.transportToken === current) return;
+    if (this.restartRequestedGeneration === this.transportGeneration) return;
+    log.info("Reconnecting backend subscription transport before subscribing with rotated credentials", {
+      subscription: key,
+      transportGeneration: this.transportGeneration,
+    });
+    this.restartTransport("rotated_credentials_subscribe");
   }
 
   disableAuthenticatedSubscriptions(): void {
@@ -2037,6 +2150,7 @@ export class BackendSubscriptionClient {
   private restartTransport(reason: string): void {
     if (!this.client) return;
     log.info("Restarting backend subscription transport", { reason });
+    if (this.transportConnected) this.restartRequestedGeneration = this.transportGeneration;
     this.client.restart();
   }
 
@@ -2117,6 +2231,7 @@ export class BackendSubscriptionClient {
     });
     this.client = null;
     this.transportConnected = false;
+    this.transportToken = null;
     this.clearPongTimeout();
     // dispose() marks the old client disposed so its retry loops exit instead
     // of racing the replacement; it can block on the very connect promise this
@@ -2139,6 +2254,9 @@ export class BackendSubscriptionClient {
       config,
       () => !!this.client && this.shouldSubscribe(config),
       () => this.transportGeneration,
+      () => {
+        if (config.authRequired) this.ensureTransportCredentialsCurrent(config.key);
+      },
     );
     this.subscriptionOperations.set(config.key, operation);
     operation.start("register");
@@ -3048,6 +3166,8 @@ export class BackendSubscriptionClient {
     const wsUrl = baseUrl.replace(/^http/, "ws") + "/graphql";
     let activeSocket: RestartableSocket | null = null;
     let wrapped: RestartableClient | null = null;
+    // The token the in-flight connect attempt sent; becomes transportToken once acknowledged.
+    let connectingToken: string | null = null;
     const restart = () => {
       if (activeSocket?.readyState === 1) {
         activeSocket.close(4205, "Client Restart");
@@ -3064,7 +3184,8 @@ export class BackendSubscriptionClient {
       url: wsUrl,
       webSocketImpl: proxyNetwork.createProxiedWebSocketClass() as any,
       connectionParams: () => {
-        const token = this.getToken?.();
+        const token = this.getToken?.() ?? null;
+        connectingToken = token;
         if (!token) return {};
         return {
           authorization: `Bearer ${token}`,
@@ -3090,6 +3211,8 @@ export class BackendSubscriptionClient {
           if (wrapped && this.client !== wrapped) return;
           this.transportGeneration += 1;
           this.transportConnected = true;
+          // Before reconcile below: its subscribes compare against this token.
+          this.transportToken = connectingToken;
           this.clearTransportStallWatchdog();
           log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`, {
             transportGeneration: this.transportGeneration,
@@ -3127,6 +3250,7 @@ export class BackendSubscriptionClient {
           activeSocket = null;
           if (wrapped && this.client !== wrapped) return;
           this.transportConnected = false;
+          this.transportToken = null;
           this.clearPongTimeout();
           log.info("Backend subscription WebSocket closed", {
             ...this.formatUnknownError(event),

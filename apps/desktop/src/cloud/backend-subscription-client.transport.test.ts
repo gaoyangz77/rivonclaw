@@ -62,9 +62,16 @@ const harness = vi.hoisted(() => {
     }
 
     close(code = 1000, reason = ""): void {
-      if (this.readyState === FakeWebSocket.CLOSED) return;
-      this.readyState = FakeWebSocket.CLOSED;
+      if (this.readyState === FakeWebSocket.CLOSING || this.readyState === FakeWebSocket.CLOSED) {
+        return;
+      }
+      // Like ws: CLOSING at once, CLOSED when the close handshake completes.
+      // graphql-ws parks a subscribe issued against a CLOSING socket until the
+      // replacement connects, so modelling this state is what keeps a frame
+      // from being "sent" on a socket that is already going away.
+      this.readyState = FakeWebSocket.CLOSING;
       setTimeout(() => {
+        this.readyState = FakeWebSocket.CLOSED;
         this.onclose?.({ code, reason, wasClean: code === 1000 });
       }, 0);
     }
@@ -118,6 +125,22 @@ vi.mock("../infra/proxy/proxy-aware-network.js", () => ({
 const { FakeWebSocket } = harness;
 
 const STALL_TIMEOUT_MS = 90_000;
+
+/** An unsigned access token carrying the identity claims the backend issues. */
+function accessToken(claims: { userId: string; accountId?: string; jti: string }): string {
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(claims)}.signature`;
+}
+
+const REFRESHED = { state: "available", reason: "refresh" } as const;
+
+const TOOL_SPECS_EVENT = {
+  toolSpecsChanged: { revision: "r1", digest: "d1", changeType: "soft", reason: "test" },
+};
+
+function toolSpecsSubscribeId(socket: InstanceType<typeof FakeWebSocket>): string {
+  return socket.subscribeMessages().find((m) => m.payload.query.includes("ToolSpecsChanged"))!.id;
+}
 
 async function importClient() {
   const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
@@ -311,13 +334,213 @@ describe("BackendSubscriptionClient transport recovery (real graphql-ws)", () =>
     // Credentials rotate while the reconnect attempt is wedged. restart() must
     // settle the pending connect instead of deferring to an `opened` event
     // that will never fire.
+    // Even a routine refresh must restart here: the transport is down.
     token = "token-2";
-    await client.handleCredentialsChanged();
+    await client.handleCredentialsChanged({ state: "available", reason: "refresh" });
     await vi.advanceTimersByTimeAsync(5_000);
 
     const last = FakeWebSocket.instances.at(-1)!;
     expect(last.connectionInitPayload()).toMatchObject({ authorization: "Bearer token-2" });
     expect(last.subscribeMessages()).toHaveLength(2);
+    expect(client.isConnected()).toBe(true);
+
+    client.disconnect();
+  });
+
+  // Every 30-minute access-token refresh used to restart the socket. The backend
+  // authenticates subscriptions once, at subscribe time, so the restart bought
+  // nothing and lost whatever was published in the ~3s gap — customer-service
+  // signals that then waited an hour for the backend sweep.
+  it("keeps the socket across a same-identity token refresh and keeps delivering events", async () => {
+    let token = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const onToolSpecs = vi.fn();
+    const BackendSubscriptionClient = await importClient();
+    const client = new BackendSubscriptionClient("en-US");
+    client.connect(() => token);
+    client.subscribeToToolSpecsChanged(onToolSpecs);
+    client.subscribeToPresetSkillsChanged(vi.fn());
+    client.enableAuthenticatedSubscriptions();
+    await vi.advanceTimersByTimeAsync(20);
+    const socket = FakeWebSocket.instances[0];
+
+    token = accessToken({ userId: "u1", accountId: "a1", jti: "2" });
+    await client.handleCredentialsChanged(REFRESHED);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(socket.readyState).toBe(FakeWebSocket.OPEN);
+    expect(socket.subscribeMessages()).toHaveLength(2);
+    socket.serverNext(toolSpecsSubscribeId(socket), TOOL_SPECS_EVENT);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(onToolSpecs).toHaveBeenCalledTimes(1);
+
+    client.disconnect();
+  });
+
+  // The backend recomputes accountId on refresh. Resolvers scoped the live
+  // operations to the old account, so keeping the socket would keep streaming
+  // that account's events.
+  it("reconnects when a refresh changes the owning account", async () => {
+    let token = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const client = await connectWithTwoLongLivedOps(() => token);
+
+    token = accessToken({ userId: "u1", accountId: "a2", jti: "2" });
+    await client.handleCredentialsChanged(REFRESHED);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    const last = FakeWebSocket.instances.at(-1)!;
+    expect(last.connectionInitPayload()).toMatchObject({ authorization: `Bearer ${token}` });
+    expect(last.subscribeMessages()).toHaveLength(2);
+    expect(client.isConnected()).toBe(true);
+
+    client.disconnect();
+  });
+
+  it("reconnects when a refreshed token's identity cannot be read", async () => {
+    let token = "opaque-1";
+    const client = await connectWithTwoLongLivedOps(() => token);
+
+    token = "opaque-2";
+    await client.handleCredentialsChanged(REFRESHED);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    expect(FakeWebSocket.instances.at(-1)!.connectionInitPayload()).toMatchObject({
+      authorization: "Bearer opaque-2",
+    });
+
+    client.disconnect();
+  });
+
+  // Signing in again is a new session even for the same account: only a
+  // routine refresh may keep the socket.
+  it("reconnects on sign-in even when the identity is unchanged", async () => {
+    let token = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const client = await connectWithTwoLongLivedOps(() => token);
+
+    token = accessToken({ userId: "u1", accountId: "a1", jti: "2" });
+    await client.handleCredentialsChanged({ state: "available", reason: "sign_in" });
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    const last = FakeWebSocket.instances.at(-1)!;
+    expect(last.connectionInitPayload()).toMatchObject({ authorization: `Bearer ${token}` });
+    expect(last.subscribeMessages()).toHaveLength(2);
+
+    client.disconnect();
+  });
+
+  it("sends no subscribe after sign-out clears the credentials", async () => {
+    let token: string | null = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const client = await connectWithTwoLongLivedOps(() => token);
+    const socketsBefore = FakeWebSocket.instances.length;
+
+    token = null;
+    await client.handleCredentialsChanged({ state: "cleared", reason: "sign_out" });
+    await vi.advanceTimersByTimeAsync(STALL_TIMEOUT_MS * 2);
+
+    for (const socket of FakeWebSocket.instances.slice(socketsBefore)) {
+      expect(socket.subscribeMessages()).toHaveLength(0);
+    }
+
+    client.disconnect();
+  });
+
+  // A kept socket still authenticates as its original token. An operation that
+  // re-subscribes on it after that token expired would be rejected — or, for
+  // shopUpdated, silently receive nothing — so it must reconnect first.
+  it("reconnects with the refreshed token before re-subscribing on a kept socket", async () => {
+    let token = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const client = await connectWithTwoLongLivedOps(() => token);
+    const kept = FakeWebSocket.instances[0];
+
+    token = accessToken({ userId: "u1", accountId: "a1", jti: "2" });
+    await client.handleCredentialsChanged(REFRESHED);
+    // Long enough for a restart to have produced a replacement socket.
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    kept.serverError(toolSpecsSubscribeId(kept), "Unexpected subscription failure");
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    // Nothing was re-subscribed on the kept socket...
+    expect(kept.subscribeMessages()).toHaveLength(2);
+    // ...the transport was rebuilt once, on the refreshed token, with every operation.
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    const replacement = FakeWebSocket.instances[1];
+    expect(replacement.connectionInitPayload()).toMatchObject({ authorization: `Bearer ${token}` });
+    expect(replacement.subscribeMessages()).toHaveLength(2);
+    expect(client.isConnected()).toBe(true);
+
+    client.disconnect();
+  });
+
+  // Subscription auth recovery refreshes the token and relies on reconnecting.
+  // That refresh now keeps the socket by itself, so the recovery path has to
+  // reconnect explicitly or the failed operation stays down on a healthy socket.
+  it("still reconnects after a subscription auth error even though the refresh kept the socket", async () => {
+    let token = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const BackendSubscriptionClient = await importClient();
+    const client = new BackendSubscriptionClient("en-US");
+    client.connect(() => token, {
+      refreshAuth: async () => {
+        token = accessToken({ userId: "u1", accountId: "a1", jti: "2" });
+        // As in the app: the session emits the refresh while refreshAuth runs.
+        await client.handleCredentialsChanged(REFRESHED);
+      },
+    });
+    client.subscribeToToolSpecsChanged(vi.fn());
+    client.subscribeToPresetSkillsChanged(vi.fn());
+    client.enableAuthenticatedSubscriptions();
+    await vi.advanceTimersByTimeAsync(20);
+    const first = FakeWebSocket.instances[0];
+
+    first.serverError(toolSpecsSubscribeId(first), "Authentication required");
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    const replacement = FakeWebSocket.instances[1];
+    expect(replacement.connectionInitPayload()).toMatchObject({ authorization: `Bearer ${token}` });
+    expect(replacement.subscribeMessages()).toHaveLength(2);
+    expect(client.isConnected()).toBe(true);
+
+    client.disconnect();
+  });
+
+  // The same recovery when the auth failure arrives inside a result rather than
+  // as an operation error. The operation is not released on that path, so no
+  // re-subscribe happens that could trigger a reconnect on its own: only the
+  // recovery's explicit reconnect replaces the socket.
+  it("reconnects after an auth error inside a subscription result on a kept socket", async () => {
+    let token = accessToken({ userId: "u1", accountId: "a1", jti: "1" });
+    const BackendSubscriptionClient = await importClient();
+    const client = new BackendSubscriptionClient("en-US");
+    client.connect(() => token, {
+      refreshAuth: async () => {
+        token = accessToken({ userId: "u1", accountId: "a1", jti: "2" });
+        await client.handleCredentialsChanged(REFRESHED);
+      },
+    });
+    client.subscribeToToolSpecsChanged(vi.fn());
+    client.subscribeToPresetSkillsChanged(vi.fn());
+    client.enableAuthenticatedSubscriptions();
+    await vi.advanceTimersByTimeAsync(20);
+    const first = FakeWebSocket.instances[0];
+
+    first.onmessage?.({
+      data: JSON.stringify({
+        type: "next",
+        id: toolSpecsSubscribeId(first),
+        payload: { errors: [{ message: "Authentication required" }] },
+      }),
+    });
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    const replacement = FakeWebSocket.instances[1];
+    expect(replacement.connectionInitPayload()).toMatchObject({ authorization: `Bearer ${token}` });
+    expect(replacement.subscribeMessages()).toHaveLength(2);
     expect(client.isConnected()).toBe(true);
 
     client.disconnect();
