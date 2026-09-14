@@ -57,7 +57,7 @@ Before provisioning, establish a reproducible baseline from the current vendor:
 Run the provision script with the resolved target hash:
 
 ```bash
-bash .claude/skills/update-vendor/scripts/provision-vendor.sh <new-hash>
+bash .agents/skills/update-vendor/scripts/provision-vendor.sh <new-hash>
 ```
 
 This script:
