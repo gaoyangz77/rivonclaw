@@ -3055,6 +3055,8 @@ export default {
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Auf FBT-Abwicklung warten",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Nachfassung zu geschlossener Probe",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "Verkaufsnachverfolgung nach Erfüllung",
+        ESCALATION_RESOLUTION: "Nachfassung zur Eskalationsentscheidung",
       },
       title: "Affiliate-Management",
       subtitle:
@@ -3303,6 +3305,11 @@ export default {
         categorySummary: "Bekannte Creator-Kategorien: {{categories}}",
         noSignals: "Noch keine zusätzlichen Creator-Signale verfügbar.",
         unknown: "Unbekannt",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "Marketplace-Suche",
+          PERFORMANCE_DETAIL: "Creator-Leistungsdetails",
+          SAMPLE_APPLICATION: "Musterantrag",
+        },
       },
       activity: {
         staffDecision: "Mitarbeiterhinweis: {{note}}",
@@ -3590,6 +3597,10 @@ export default {
         CLOSED: "Geschlossen",
         BLOCKED: "Blockiert",
       },
+      collaborationTypes: {
+        OPEN: "Offene Kooperation",
+        TARGET: "Zielkooperation",
+      },
       agendaOwners: { AGENT: "Agent", EXTERNAL: "Extern", STAFF: "Mitarbeiter" },
       agendaSourceTypes: {
         CREATOR_CHANNEL_CONTACT: "Creator-Kanalkontakt",
@@ -3598,6 +3609,7 @@ export default {
         PROPOSAL: "Aktionsvorschlag",
         RELATIONSHIP: "Creator-Beziehung",
         SAMPLE_APPLICATION: "Musterantrag",
+        AFFILIATE_ESCALATION: "Affiliate-Eskalation",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "Konflikt bei der Kanalzuständigkeit",
@@ -3621,6 +3633,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "Creator-Identität ungeklärt",
         USER_LEVEL_BLOCKED: "Vom Händler blockiert",
         SAMPLE_PLATFORM_TERMINAL_STATE: "Probenantrag von TikTok geschlossen",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "Verkaufsnachverfolgung nach Erfüllung fällig",
+        ESCALATION_RESOLVED: "Mitarbeiterentscheidung zur Eskalation liegt vor",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Genehmigung",
@@ -3675,6 +3689,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "Auf Creator-Antwort warten",
         WAIT_PLATFORM_UPDATE: "Auf Plattformaktualisierung warten",
         HANDLE_SAMPLE_TERMINAL_STATE: "Geschlossene Probe nachfassen",
+        HANDLE_ESCALATION_RESOLUTION: "Creator gemäß Mitarbeiterentscheidung nachfassen",
       },
       statusLabels: {
         NEED_PROCESS: "Zu bearbeiten",

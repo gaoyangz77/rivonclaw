@@ -3595,6 +3595,12 @@ export default {
         SAMPLE_APPLICATION: "样品申请",
         TARGET_COLLABORATION: "定向合作",
         ORDER_ATTRIBUTION: "订单归因",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "到货第 3 天内容跟进",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "到货第 7 天内容跟进",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "到货第 12 天内容跟进",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "销量跟进检查点 1",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "销量跟进检查点 2",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "销量跟进检查点 3",
       },
       messageDirections: {
         CREATOR: "达人",
@@ -4002,6 +4008,11 @@ export default {
         categorySummary: "已知达人类目：{{categories}}",
         noSignals: "暂无更多达人信号。",
         unknown: "未知",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "达人广场搜索",
+          PERFORMANCE_DETAIL: "达人表现详情",
+          SAMPLE_APPLICATION: "样品申请",
+        },
       },
       activity: {
         loadOlder: "加载更早操作记录",
@@ -4171,6 +4182,10 @@ export default {
         CLOSED: "已关闭",
         BLOCKED: "已阻止",
       },
+      collaborationTypes: {
+        OPEN: "公开合作",
+        TARGET: "定向合作",
+      },
       agendaOwners: {
         AGENT: "Agent",
         EXTERNAL: "外部",
@@ -4183,6 +4198,7 @@ export default {
         PROPOSAL: "动作提案",
         RELATIONSHIP: "达人关系",
         SAMPLE_APPLICATION: "样品申请",
+        AFFILIATE_ESCALATION: "达人升级工单",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "渠道归属冲突",
@@ -4207,6 +4223,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "达人身份未解析",
         USER_LEVEL_BLOCKED: "商家已拉黑",
         SAMPLE_PLATFORM_TERMINAL_STATE: "样品申请已被平台关闭",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "履约后销量待跟进",
+        ESCALATION_RESOLVED: "升级工单已有决定",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "待审批",
@@ -4235,6 +4253,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "等待达人回复",
         WAIT_PLATFORM_UPDATE: "等待平台更新",
         HANDLE_SAMPLE_TERMINAL_STATE: "跟进已关闭样品",
+        HANDLE_ESCALATION_RESOLUTION: "按员工决定跟进达人",
       },
       workKinds: {
         RELATIONSHIP: "达人关系",
@@ -4249,6 +4268,8 @@ export default {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "等待 FBT 自动履约",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "样品关闭跟进",
         SAMPLE_SHIPMENT: "样品寄送",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "履约后销量跟进",
+        ESCALATION_RESOLUTION: "升级工单结果跟进",
       },
       statusLabels: {
         NEED_PROCESS: "待处理",

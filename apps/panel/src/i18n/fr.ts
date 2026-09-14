@@ -3055,6 +3055,8 @@ export default {
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "En attente du traitement FBT",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Suivi d'échantillon clôturé",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "Suivi des ventes après réalisation",
+        ESCALATION_RESOLUTION: "Suivi de la décision d'escalade",
       },
       title: "Gestion des affiliations",
       subtitle:
@@ -3302,6 +3304,11 @@ export default {
         categorySummary: "Catégories connues du créateur : {{categories}}",
         noSignals: "Aucun autre signal créateur disponible pour le moment.",
         unknown: "Inconnu",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "Recherche Marketplace",
+          PERFORMANCE_DETAIL: "Détail de la performance du créateur",
+          SAMPLE_APPLICATION: "Demande d’échantillon",
+        },
       },
       activity: {
         staffDecision: "Note de l'équipe : {{note}}",
@@ -3589,6 +3596,10 @@ export default {
         CLOSED: "Fermé",
         BLOCKED: "Bloqué",
       },
+      collaborationTypes: {
+        OPEN: "Collaboration ouverte",
+        TARGET: "Collaboration ciblée",
+      },
       agendaOwners: { AGENT: "Agent", EXTERNAL: "Externe", STAFF: "Équipe" },
       agendaSourceTypes: {
         CREATOR_CHANNEL_CONTACT: "Contact de canal du créateur",
@@ -3597,6 +3608,7 @@ export default {
         PROPOSAL: "Proposition d’action",
         RELATIONSHIP: "Relation avec le créateur",
         SAMPLE_APPLICATION: "Demande d’échantillon",
+        AFFILIATE_ESCALATION: "Escalade Affiliate",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "Conflit de responsabilité du canal",
@@ -3620,6 +3632,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "Identité créateur non résolue",
         USER_LEVEL_BLOCKED: "Bloqué par le marchand",
         SAMPLE_PLATFORM_TERMINAL_STATE: "Demande d'échantillon clôturée par TikTok",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "Suivi des ventes après réalisation à effectuer",
+        ESCALATION_RESOLVED: "Escalade tranchée par l'équipe",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Approbation",
@@ -3674,6 +3688,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "Attendre la réponse du créateur",
         WAIT_PLATFORM_UPDATE: "Attendre la mise à jour de la plateforme",
         HANDLE_SAMPLE_TERMINAL_STATE: "Relancer sur l'échantillon clôturé",
+        HANDLE_ESCALATION_RESOLUTION: "Relancer le créateur selon la décision de l'équipe",
       },
       statusLabels: {
         NEED_PROCESS: "À traiter",

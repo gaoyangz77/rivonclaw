@@ -12227,7 +12227,9 @@ function CreatorProfilePanel({
               />
               <CreatorDetailMetric
                 label={t("ecommerce.affiliateWorkspace.creatorDetail.platform")}
-                value={t(`platforms.${profile.platform}`, { defaultValue: profile.platform })}
+                value={t(`ecommerce.platform.${profile.platform}`, {
+                  defaultValue: profile.platform,
+                })}
               />
               <CreatorDetailMetric
                 label={t("ecommerce.affiliateWorkspace.creatorDetail.preciseData")}
@@ -12252,7 +12254,12 @@ function CreatorProfilePanel({
               <CreatorDetailMetric
                 label={t("ecommerce.affiliateWorkspace.creatorDetail.source")}
                 value={
-                  performance?.sourceType ? formatAffiliateEnumLabel(performance.sourceType) : null
+                  performance?.sourceType
+                    ? t(
+                        `ecommerce.affiliateWorkspace.creatorDetail.sourceTypes.${performance.sourceType}`,
+                        { defaultValue: formatAffiliateEnumLabel(performance.sourceType) },
+                      )
+                    : null
                 }
               />
               <CreatorDetailMetric

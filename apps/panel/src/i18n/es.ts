@@ -3042,6 +3042,8 @@ export default {
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Esperando el cumplimiento de FBT",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Seguimiento de muestra cerrada",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "Seguimiento de ventas tras el cumplimiento",
+        ESCALATION_RESOLUTION: "Seguimiento de la decisión de la escalación",
       },
       title: "Gestión de afiliados",
       subtitle:
@@ -3289,6 +3291,11 @@ export default {
         categorySummary: "Categorías conocidas del creador: {{categories}}",
         noSignals: "Aún no hay señales adicionales del creador.",
         unknown: "Desconocido",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "Búsqueda en el marketplace",
+          PERFORMANCE_DETAIL: "Detalle del rendimiento del creador",
+          SAMPLE_APPLICATION: "Solicitud de muestra",
+        },
       },
       activity: {
         staffDecision: "Nota del equipo: {{note}}",
@@ -3577,6 +3584,10 @@ export default {
         CLOSED: "Cerrado",
         BLOCKED: "Bloqueado",
       },
+      collaborationTypes: {
+        OPEN: "Colaboración abierta",
+        TARGET: "Colaboración dirigida",
+      },
       agendaOwners: { AGENT: "Agente", EXTERNAL: "Externo", STAFF: "Personal" },
       agendaSourceTypes: {
         CREATOR_CHANNEL_CONTACT: "Contacto de canal del creador",
@@ -3585,6 +3596,7 @@ export default {
         PROPOSAL: "Propuesta de acción",
         RELATIONSHIP: "Relación con el creador",
         SAMPLE_APPLICATION: "Solicitud de muestra",
+        AFFILIATE_ESCALATION: "Escalación de Affiliate",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "Conflicto de propiedad del canal",
@@ -3608,6 +3620,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "Identidad del creador sin resolver",
         USER_LEVEL_BLOCKED: "Bloqueado por comerciante",
         SAMPLE_PLATFORM_TERMINAL_STATE: "Solicitud de muestra cerrada por TikTok",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "Seguimiento de ventas tras el cumplimiento pendiente",
+        ESCALATION_RESOLVED: "El personal decidió la escalación",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Aprobación",
@@ -3662,6 +3676,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "Esperar respuesta del creador",
         WAIT_PLATFORM_UPDATE: "Esperar actualización de plataforma",
         HANDLE_SAMPLE_TERMINAL_STATE: "Dar seguimiento a la muestra cerrada",
+        HANDLE_ESCALATION_RESOLUTION: "Dar seguimiento al creador según la decisión del personal",
       },
       statusLabels: {
         NEED_PROCESS: "Necesita proceso",

@@ -26,6 +26,15 @@ function flattenValues(value: unknown, prefix = ""): Record<string, string> {
   );
 }
 
+function missingLabelKeys(
+  values: Record<string, string>,
+  labelGroups: Record<string, readonly string[]>,
+): string[] {
+  return Object.entries(labelGroups).flatMap(([prefix, groupValues]) =>
+    groupValues.map((value) => `${prefix}.${value}`).filter((key) => !values[key]?.trim()),
+  );
+}
+
 function interpolationVariables(value: string): string[] {
   return [...value.matchAll(/{{\s*[\w.]+\s*}}/g)]
     .map((match) => match[0].replace(/\s+/g, ""))
@@ -51,6 +60,18 @@ describe("panel i18n resources", () => {
       expect(missing, `${language.code} missing keys`).toEqual([]);
       expect(extra, `${language.code} extra keys`).toEqual([]);
     }
+  });
+
+  it("pluralizes the English sample-review bundle summary", () => {
+    // A one-application bundle used to read "1 applications" in the decision package.
+    const t = i18n.getFixedT("en");
+    const key = "ecommerce.affiliateWorkspace.sampleReviewActions.summary";
+    expect(t(key, { count: 1, approveCount: 1, rejectCount: 0, ignoreCount: 0 })).toBe(
+      "1 application · 1 approve · 0 reject · 0 ignore",
+    );
+    expect(t(key, { count: 2, approveCount: 1, rejectCount: 1, ignoreCount: 0 })).toBe(
+      "2 applications · 1 approve · 1 reject · 0 ignore",
+    );
   });
 
   it("keeps interpolation variables aligned across all supported locales", () => {
@@ -109,6 +130,70 @@ describe("panel i18n resources", () => {
       for (const market of markets) {
         expect(keys.has(`ecommerce.market.${market}`), `${language.code} ${market}`).toBe(true);
       }
+    }
+  });
+
+  it("labels every Affiliate work value the backend emits in every locale", () => {
+    // The Affiliate workspace resolves these through t(..., { defaultValue }), so a
+    // missing key silently renders a title-cased English enum in every locale.
+    // triggerKind is a plain String in the schema: the backend work boundary sets it
+    // to a Sample content follow-up stage, a Sample performance follow-up stage, or
+    // SAMPLE_APPLICATION; the remaining kinds were labelled before those stages.
+    const triggerKinds = [
+      "CREATOR_MESSAGE",
+      "SAMPLE_APPLICATION",
+      "TARGET_COLLABORATION",
+      "ORDER_ATTRIBUTION",
+      "SAMPLE_CONTENT_FOLLOW_UP_DAY_3",
+      "SAMPLE_CONTENT_FOLLOW_UP_DAY_7",
+      "SAMPLE_CONTENT_FOLLOW_UP_DAY_12",
+      "SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1",
+      "SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2",
+      "SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3",
+    ];
+    const labelGroups: Record<string, readonly string[]> = {
+      "ecommerce.affiliateWorkspace.agendaOwners": Object.values(
+        GQL.AffiliateRelationshipAgendaOwner,
+      ),
+      "ecommerce.affiliateWorkspace.agendaSourceTypes": Object.values(
+        GQL.AffiliateRelationshipAgendaSourceType,
+      ),
+      "ecommerce.affiliateWorkspace.processReasons": Object.values(GQL.AffiliateWorkProcessReason),
+      "ecommerce.affiliateWorkspace.requiredActions": Object.values(
+        GQL.AffiliateRelationshipRequiredAction,
+      ),
+      "ecommerce.affiliateWorkspace.workKinds": Object.values(GQL.AffiliateWorkKind),
+      "ecommerce.affiliateWorkspace.triggerKinds": triggerKinds,
+    };
+
+    for (const language of LANGUAGE_OPTIONS) {
+      const values = flattenValues(LANGUAGE_RESOURCES[language.code].translation);
+      expect(
+        missingLabelKeys(values, labelGroups),
+        `${language.code} missing Affiliate work labels`,
+      ).toEqual([]);
+    }
+  });
+
+  it("labels every Affiliate creator card and profile value the backend emits in every locale", () => {
+    // AffiliateCreatorPerformanceCurrent.sourceType is a plain String in the schema.
+    // These values mirror the backend enum AffiliateCreatorPerformanceSourceType in
+    // server/backend/src/ecommerce/affiliate/models/AffiliateCreatorPerformanceCurrent.ts.
+    const performanceSourceTypes = ["MARKETPLACE_SEARCH", "PERFORMANCE_DETAIL", "SAMPLE_APPLICATION"];
+    const labelGroups: Record<string, readonly string[]> = {
+      "ecommerce.affiliateWorkspace.collaborationTypes": Object.values(
+        GQL.AffiliateCollaborationType,
+      ),
+      "ecommerce.platform": Object.values(GQL.ShopPlatform),
+      "ecommerce.affiliateWorkspace.creatorDetail.sourceTypes": performanceSourceTypes,
+    };
+
+    for (const language of LANGUAGE_OPTIONS) {
+      const values = flattenValues(LANGUAGE_RESOURCES[language.code].translation);
+      expect(
+        missingLabelKeys(values, labelGroups),
+        `${language.code} missing Affiliate creator labels`,
+      ).toEqual([]);
     }
   });
 

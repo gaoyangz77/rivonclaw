@@ -19,7 +19,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "Change to ignore"
         },
         "ignoreHint": "Stop reviewing this application and let it expire, without rejecting it on the platform.",
-        "summary": "{{count}} applications · {{approveCount}} approve · {{rejectCount}} reject · {{ignoreCount}} ignore",
+        "summary_one": "{{count}} application · {{approveCount}} approve · {{rejectCount}} reject · {{ignoreCount}} ignore",
+        "summary_other": "{{count}} applications · {{approveCount}} approve · {{rejectCount}} reject · {{ignoreCount}} ignore",
         "suggestion": "Agent recommendation: {{action}}"
       },
       stockSummary: { title: "SKU / Stock", item: "SKU / Product" },
@@ -100,7 +101,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "改为忽略"
         },
         "ignoreHint": "不再继续审查此样品申请，等待它自然过期，不会直接在平台上拒绝。",
-        "summary": "共 {{count}} 条申样 · 同意 {{approveCount}} 条 · 拒绝 {{rejectCount}} 条 · 忽略 {{ignoreCount}} 条",
+        "summary_one": "共 {{count}} 条申样 · 同意 {{approveCount}} 条 · 拒绝 {{rejectCount}} 条 · 忽略 {{ignoreCount}} 条",
+        "summary_other": "共 {{count}} 条申样 · 同意 {{approveCount}} 条 · 拒绝 {{rejectCount}} 条 · 忽略 {{ignoreCount}} 条",
         "suggestion": "Agent 建议：{{action}}"
       },
       stockSummary: { title: "SKU / 库存", item: "SKU / 商品" },
@@ -181,7 +183,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "In Ignorieren ändern"
         },
         "ignoreHint": "Den Antrag nicht weiter prüfen und ablaufen lassen, ohne ihn auf der Plattform abzulehnen.",
-        "summary": "{{count}} Anträge · {{approveCount}} genehmigen · {{rejectCount}} ablehnen · {{ignoreCount}} ignorieren",
+        "summary_one": "{{count}} Antrag · {{approveCount}} genehmigen · {{rejectCount}} ablehnen · {{ignoreCount}} ignorieren",
+        "summary_other": "{{count}} Anträge · {{approveCount}} genehmigen · {{rejectCount}} ablehnen · {{ignoreCount}} ignorieren",
         "suggestion": "Agent-Empfehlung: {{action}}"
       },
       stockSummary: { title: "SKU / Bestand", item: "SKU / Produkt" },
@@ -206,6 +209,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         SAMPLE_APPLICATION: "Musterantrag",
         TARGET_COLLABORATION: "Gezielte Zusammenarbeit",
         ORDER_ATTRIBUTION: "Bestellzuordnung",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "Content-Nachfassung (Tag 3 nach Zustellung)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "Content-Nachfassung (Tag 7 nach Zustellung)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "Content-Nachfassung (Tag 12 nach Zustellung)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "Prüfpunkt 1 der Verkaufsnachverfolgung",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "Prüfpunkt 2 der Verkaufsnachverfolgung",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "Prüfpunkt 3 der Verkaufsnachverfolgung",
       },
       agentWorkTable: {
         time: "Erstellt",
@@ -329,7 +338,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "Cambiar a ignorar"
         },
         "ignoreHint": "Dejar de revisar esta solicitud y esperar a que caduque, sin rechazarla en la plataforma.",
-        "summary": "{{count}} solicitudes · {{approveCount}} aprobar · {{rejectCount}} rechazar · {{ignoreCount}} ignorar",
+        "summary_one": "{{count}} solicitud · {{approveCount}} aprobar · {{rejectCount}} rechazar · {{ignoreCount}} ignorar",
+        "summary_other": "{{count}} solicitudes · {{approveCount}} aprobar · {{rejectCount}} rechazar · {{ignoreCount}} ignorar",
         "suggestion": "Recomendación del agente: {{action}}"
       },
       stockSummary: { title: "SKU / Stock", item: "SKU / Producto" },
@@ -354,6 +364,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         SAMPLE_APPLICATION: "Solicitud de muestra",
         TARGET_COLLABORATION: "Colaboración dirigida",
         ORDER_ATTRIBUTION: "Atribución de pedido",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "Seguimiento de contenido (día 3 tras la entrega)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "Seguimiento de contenido (día 7 tras la entrega)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "Seguimiento de contenido (día 12 tras la entrega)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "Punto 1 del seguimiento de ventas",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "Punto 2 del seguimiento de ventas",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "Punto 3 del seguimiento de ventas",
       },
       agentWorkTable: {
         time: "Creado",
@@ -477,7 +493,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "Remplacer par ignorer"
         },
         "ignoreHint": "Ne plus examiner cette demande et la laisser expirer, sans la refuser sur la plateforme.",
-        "summary": "{{count}} demandes · {{approveCount}} approuver · {{rejectCount}} refuser · {{ignoreCount}} ignorer",
+        "summary_one": "{{count}} demande · {{approveCount}} approuver · {{rejectCount}} refuser · {{ignoreCount}} ignorer",
+        "summary_other": "{{count}} demandes · {{approveCount}} approuver · {{rejectCount}} refuser · {{ignoreCount}} ignorer",
         "suggestion": "Recommandation de l’agent : {{action}}"
       },
       stockSummary: { title: "SKU / Stock", item: "SKU / Produit" },
@@ -502,6 +519,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         SAMPLE_APPLICATION: "Demande d’échantillon",
         TARGET_COLLABORATION: "Collaboration ciblée",
         ORDER_ATTRIBUTION: "Attribution de commande",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "Suivi du contenu (jour 3 après la livraison)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "Suivi du contenu (jour 7 après la livraison)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "Suivi du contenu (jour 12 après la livraison)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "Échéance 1 du suivi des ventes",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "Échéance 2 du suivi des ventes",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "Échéance 3 du suivi des ventes",
       },
       agentWorkTable: {
         time: "Créé",
@@ -625,7 +648,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "Ubah ke abaikan"
         },
         "ignoreHint": "Berhenti meninjau permohonan ini dan biarkan kedaluwarsa, tanpa menolaknya di platform.",
-        "summary": "{{count}} permohonan · {{approveCount}} setujui · {{rejectCount}} tolak · {{ignoreCount}} abaikan",
+        "summary_one": "{{count}} permohonan · {{approveCount}} setujui · {{rejectCount}} tolak · {{ignoreCount}} abaikan",
+        "summary_other": "{{count}} permohonan · {{approveCount}} setujui · {{rejectCount}} tolak · {{ignoreCount}} abaikan",
         "suggestion": "Saran Agent: {{action}}"
       },
       stockSummary: { title: "SKU / Stok", item: "SKU / Produk" },
@@ -650,6 +674,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         SAMPLE_APPLICATION: "Permohonan sampel",
         TARGET_COLLABORATION: "Kolaborasi tertarget",
         ORDER_ATTRIBUTION: "Atribusi pesanan",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "Tindak lanjut konten (hari ke-3 setelah sampel diterima)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "Tindak lanjut konten (hari ke-7 setelah sampel diterima)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "Tindak lanjut konten (hari ke-12 setelah sampel diterima)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "Checkpoint 1 tindak lanjut penjualan",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "Checkpoint 2 tindak lanjut penjualan",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "Checkpoint 3 tindak lanjut penjualan",
       },
       agentWorkTable: {
         time: "Dibuat",
@@ -773,7 +803,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "Cambia in ignora"
         },
         "ignoreHint": "Non esaminare più questa richiesta e attendere la scadenza, senza rifiutarla sulla piattaforma.",
-        "summary": "{{count}} richieste · {{approveCount}} approva · {{rejectCount}} rifiuta · {{ignoreCount}} ignora",
+        "summary_one": "{{count}} richiesta · {{approveCount}} approva · {{rejectCount}} rifiuta · {{ignoreCount}} ignora",
+        "summary_other": "{{count}} richieste · {{approveCount}} approva · {{rejectCount}} rifiuta · {{ignoreCount}} ignora",
         "suggestion": "Suggerimento dell’agente: {{action}}"
       },
       stockSummary: { title: "SKU / Scorte", item: "SKU / Prodotto" },
@@ -798,6 +829,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         SAMPLE_APPLICATION: "Richiesta di campione",
         TARGET_COLLABORATION: "Collaborazione mirata",
         ORDER_ATTRIBUTION: "Attribuzione ordine",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "Follow-up contenuto (giorno 3 dalla consegna)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "Follow-up contenuto (giorno 7 dalla consegna)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "Follow-up contenuto (giorno 12 dalla consegna)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "Checkpoint 1 del follow-up vendite",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "Checkpoint 2 del follow-up vendite",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "Checkpoint 3 del follow-up vendite",
       },
       agentWorkTable: {
         time: "Creato",
@@ -921,7 +958,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           "IGNORE": "เปลี่ยนเป็นละเว้น"
         },
         "ignoreHint": "หยุดตรวจสอบคำขอนี้และรอให้หมดอายุ โดยไม่ปฏิเสธบนแพลตฟอร์ม",
-        "summary": "{{count}} คำขอ · อนุมัติ {{approveCount}} · ปฏิเสธ {{rejectCount}} · ละเว้น {{ignoreCount}}",
+        "summary_one": "{{count}} คำขอ · อนุมัติ {{approveCount}} · ปฏิเสธ {{rejectCount}} · ละเว้น {{ignoreCount}}",
+        "summary_other": "{{count}} คำขอ · อนุมัติ {{approveCount}} · ปฏิเสธ {{rejectCount}} · ละเว้น {{ignoreCount}}",
         "suggestion": "คำแนะนำของ Agent: {{action}}"
       },
       stockSummary: { title: "SKU / สต็อก", item: "SKU / สินค้า" },
@@ -946,6 +984,12 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         SAMPLE_APPLICATION: "คำขอตัวอย่าง",
         TARGET_COLLABORATION: "ความร่วมมือแบบเจาะจง",
         ORDER_ATTRIBUTION: "การระบุแหล่งที่มาของคำสั่งซื้อ",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "ติดตามคอนเทนต์ (วันที่ 3 หลังได้รับตัวอย่าง)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "ติดตามคอนเทนต์ (วันที่ 7 หลังได้รับตัวอย่าง)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "ติดตามคอนเทนต์ (วันที่ 12 หลังได้รับตัวอย่าง)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "จุดตรวจ 1 ของการติดตามยอดขาย",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "จุดตรวจ 2 ของการติดตามยอดขาย",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "จุดตรวจ 3 ของการติดตามยอดขาย",
       },
       agentWorkTable: {
         time: "สร้างเมื่อ",

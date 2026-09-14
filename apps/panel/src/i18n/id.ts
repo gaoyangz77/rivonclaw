@@ -3005,6 +3005,8 @@ export default {
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Menunggu pemenuhan FBT",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Tindak lanjut sampel yang ditutup",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "Tindak lanjut penjualan setelah pemenuhan",
+        ESCALATION_RESOLUTION: "Tindak lanjut keputusan eskalasi",
       },
       title: "Manajemen Afiliasi",
       subtitle: "Tinjau tindakan agen yang tertunda untuk pekerjaan siklus hidup pembuat konten.",
@@ -3248,6 +3250,11 @@ export default {
         categorySummary: "Kategori kreator yang diketahui: {{categories}}",
         noSignals: "Belum ada sinyal kreator tambahan.",
         unknown: "Tidak diketahui",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "Pencarian marketplace",
+          PERFORMANCE_DETAIL: "Detail performa kreator",
+          SAMPLE_APPLICATION: "Permohonan sampel",
+        },
       },
       activity: {
         staffDecision: "Catatan staf: {{note}}",
@@ -3533,6 +3540,10 @@ export default {
         CLOSED: "Ditutup",
         BLOCKED: "Diblokir",
       },
+      collaborationTypes: {
+        OPEN: "Kolaborasi terbuka",
+        TARGET: "Kolaborasi target",
+      },
       agendaOwners: { AGENT: "Agen", EXTERNAL: "Eksternal", STAFF: "Staf" },
       agendaSourceTypes: {
         CREATOR_CHANNEL_CONTACT: "Kontak kanal kreator",
@@ -3541,6 +3552,7 @@ export default {
         PROPOSAL: "Proposal tindakan",
         RELATIONSHIP: "Relasi kreator",
         SAMPLE_APPLICATION: "Permohonan sampel",
+        AFFILIATE_ESCALATION: "Eskalasi Affiliate",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "Konflik kepemilikan kanal",
@@ -3564,6 +3576,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "Identitas kreator belum terselesaikan",
         USER_LEVEL_BLOCKED: "Diblokir oleh merchant",
         SAMPLE_PLATFORM_TERMINAL_STATE: "Permintaan sampel ditutup oleh TikTok",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "Tindak lanjut penjualan setelah pemenuhan jatuh tempo",
+        ESCALATION_RESOLVED: "Eskalasi sudah diputuskan staf",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Persetujuan",
@@ -3618,6 +3632,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "Tunggu balasan kreator",
         WAIT_PLATFORM_UPDATE: "Tunggu pembaruan platform",
         HANDLE_SAMPLE_TERMINAL_STATE: "Tindak lanjuti sampel yang ditutup",
+        HANDLE_ESCALATION_RESOLUTION: "Tindak lanjuti kreator sesuai keputusan staf",
       },
       statusLabels: {
         NEED_PROCESS: "Perlu diproses",

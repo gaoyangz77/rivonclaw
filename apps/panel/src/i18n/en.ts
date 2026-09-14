@@ -3792,6 +3792,12 @@ export default {
         SAMPLE_APPLICATION: "Sample application",
         TARGET_COLLABORATION: "Target collaboration",
         ORDER_ATTRIBUTION: "Order attribution",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_3: "Content follow-up (day 3 after delivery)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_7: "Content follow-up (day 7 after delivery)",
+        SAMPLE_CONTENT_FOLLOW_UP_DAY_12: "Content follow-up (day 12 after delivery)",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1: "Sales follow-up checkpoint 1",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_2: "Sales follow-up checkpoint 2",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_3: "Sales follow-up checkpoint 3",
       },
       messageDirections: {
         CREATOR: "Creator",
@@ -4227,6 +4233,11 @@ export default {
         categorySummary: "Known creator categories: {{categories}}",
         noSignals: "No additional creator signals are available yet.",
         unknown: "Unknown",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "Marketplace search",
+          PERFORMANCE_DETAIL: "Creator performance detail",
+          SAMPLE_APPLICATION: "Sample application",
+        },
       },
       activity: {
         loadOlder: "Load older activity",
@@ -4403,6 +4414,10 @@ export default {
         CLOSED: "Closed",
         BLOCKED: "Blocked",
       },
+      collaborationTypes: {
+        OPEN: "Open collaboration",
+        TARGET: "Target collaboration",
+      },
       agendaOwners: {
         AGENT: "Agent",
         EXTERNAL: "External",
@@ -4415,6 +4430,7 @@ export default {
         PROPOSAL: "Action proposal",
         RELATIONSHIP: "Creator relationship",
         SAMPLE_APPLICATION: "Sample application",
+        AFFILIATE_ESCALATION: "Affiliate escalation",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "Channel ownership conflict",
@@ -4439,6 +4455,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "Creator identity unresolved",
         USER_LEVEL_BLOCKED: "Blocked by merchant",
         SAMPLE_PLATFORM_TERMINAL_STATE: "Sample application closed by TikTok",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "Post-fulfillment sales follow-up due",
+        ESCALATION_RESOLVED: "Escalation decided by staff",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Approval",
@@ -4467,6 +4485,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "Wait for creator response",
         WAIT_PLATFORM_UPDATE: "Wait for platform update",
         HANDLE_SAMPLE_TERMINAL_STATE: "Follow up on closed sample",
+        HANDLE_ESCALATION_RESOLUTION: "Follow up with creator per staff decision",
       },
       workKinds: {
         RELATIONSHIP: "Creator relationship",
@@ -4481,6 +4500,8 @@ export default {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Waiting for FBT fulfillment",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Closed sample follow-up",
         SAMPLE_SHIPMENT: "Sample shipment",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "Post-fulfillment sales follow-up",
+        ESCALATION_RESOLUTION: "Escalation decision follow-up",
       },
       statusLabels: {
         NEED_PROCESS: "Needs processing",

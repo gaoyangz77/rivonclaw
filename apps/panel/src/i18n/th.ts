@@ -2897,6 +2897,8 @@ export default {
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "รอ FBT ดำเนินการ",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "ติดตามหลังคำขอตัวอย่างถูกปิด",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "ติดตามยอดขายหลังส่งมอบงาน",
+        ESCALATION_RESOLUTION: "ติดตามผลการตัดสินใจของงานที่ส่งต่อ",
       },
       title: "การจัดการพันธมิตร",
       subtitle: "ตรวจสอบการดำเนินการของตัวแทนที่รอดำเนินการสำหรับงานวงจรชีวิตของผู้สร้าง",
@@ -3131,6 +3133,11 @@ export default {
         categorySummary: "หมวดหมู่ครีเอเตอร์ที่ทราบ: {{categories}}",
         noSignals: "ยังไม่มีสัญญาณครีเอเตอร์เพิ่มเติม",
         unknown: "ไม่ทราบ",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "ค้นหาใน Marketplace",
+          PERFORMANCE_DETAIL: "รายละเอียดประสิทธิภาพครีเอเตอร์",
+          SAMPLE_APPLICATION: "คำขอตัวอย่าง",
+        },
       },
       activity: {
         staffDecision: "บันทึกจากพนักงาน: {{note}}",
@@ -3401,6 +3408,10 @@ export default {
         CLOSED: "ปิดแล้ว",
         BLOCKED: "ถูกบล็อก",
       },
+      collaborationTypes: {
+        OPEN: "ความร่วมมือแบบเปิด",
+        TARGET: "ความร่วมมือแบบเจาะจง",
+      },
       agendaOwners: { AGENT: "เอเจนต์", EXTERNAL: "ภายนอก", STAFF: "พนักงาน" },
       agendaSourceTypes: {
         CREATOR_CHANNEL_CONTACT: "ช่องทางติดต่อครีเอเตอร์",
@@ -3409,6 +3420,7 @@ export default {
         PROPOSAL: "ข้อเสนอการดำเนินการ",
         RELATIONSHIP: "ความสัมพันธ์กับครีเอเตอร์",
         SAMPLE_APPLICATION: "คำขอตัวอย่าง",
+        AFFILIATE_ESCALATION: "งาน Affiliate ที่ส่งต่อ",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "ความขัดแย้งด้านผู้ดูแลช่องทาง",
@@ -3432,6 +3444,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "ยังไม่ระบุตัวตนครีเอเตอร์",
         USER_LEVEL_BLOCKED: "ถูกบล็อกโดยผู้ขาย",
         SAMPLE_PLATFORM_TERMINAL_STATE: "คำขอตัวอย่างถูกปิดโดย TikTok",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "ถึงกำหนดติดตามยอดขายหลังส่งมอบงาน",
+        ESCALATION_RESOLVED: "พนักงานตัดสินใจงานที่ส่งต่อแล้ว",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "อนุมัติ",
@@ -3486,6 +3500,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "รอคำตอบจากครีเอเตอร์",
         WAIT_PLATFORM_UPDATE: "รอการอัปเดตจากแพลตฟอร์ม",
         HANDLE_SAMPLE_TERMINAL_STATE: "ติดตามคำขอตัวอย่างที่ถูกปิด",
+        HANDLE_ESCALATION_RESOLUTION: "ติดตามครีเอเตอร์ตามการตัดสินใจของพนักงาน",
       },
       statusLabels: {
         NEED_PROCESS: "ต้องดำเนินการ",

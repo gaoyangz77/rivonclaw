@@ -3039,6 +3039,8 @@ export default {
       workKinds: {
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "In attesa dell'evasione FBT",
         SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Follow-up campione chiuso",
+        SAMPLE_PERFORMANCE_FOLLOW_UP: "Follow-up vendite dopo l’adempimento",
+        ESCALATION_RESOLUTION: "Follow-up della decisione sull'escalation",
       },
       title: "Gestione degli affiliati",
       subtitle:
@@ -3286,6 +3288,11 @@ export default {
         categorySummary: "Categorie creator note: {{categories}}",
         noSignals: "Nessun altro segnale creator disponibile.",
         unknown: "Sconosciuto",
+        sourceTypes: {
+          MARKETPLACE_SEARCH: "Ricerca Marketplace",
+          PERFORMANCE_DETAIL: "Dettaglio prestazioni creator",
+          SAMPLE_APPLICATION: "Richiesta campione",
+        },
       },
       activity: {
         staffDecision: "Nota staff: {{note}}",
@@ -3571,6 +3578,10 @@ export default {
         CLOSED: "Chiuso",
         BLOCKED: "Bloccato",
       },
+      collaborationTypes: {
+        OPEN: "Collaborazione aperta",
+        TARGET: "Collaborazione target",
+      },
       agendaOwners: { AGENT: "Agente", EXTERNAL: "Esterno", STAFF: "Staff" },
       agendaSourceTypes: {
         CREATOR_CHANNEL_CONTACT: "Contatto canale del creator",
@@ -3579,6 +3590,7 @@ export default {
         PROPOSAL: "Proposta di azione",
         RELATIONSHIP: "Relazione con il creator",
         SAMPLE_APPLICATION: "Richiesta campione",
+        AFFILIATE_ESCALATION: "Escalation Affiliate",
       },
       processReasons: {
         CHANNEL_OWNERSHIP_CONFLICT: "Conflitto di responsabilità del canale",
@@ -3602,6 +3614,8 @@ export default {
         CREATOR_IDENTITY_UNRESOLVED: "Identità creator non risolta",
         USER_LEVEL_BLOCKED: "Bloccato dal merchant",
         SAMPLE_PLATFORM_TERMINAL_STATE: "Richiesta campione chiusa da TikTok",
+        SAMPLE_PERFORMANCE_FOLLOW_UP_DUE: "Follow-up vendite dopo l’adempimento dovuto",
+        ESCALATION_RESOLVED: "Escalation decisa dallo staff",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Approvazione",
@@ -3656,6 +3670,7 @@ export default {
         WAIT_CREATOR_RESPONSE: "Attendi risposta creator",
         WAIT_PLATFORM_UPDATE: "Attendi aggiornamento piattaforma",
         HANDLE_SAMPLE_TERMINAL_STATE: "Dai seguito al campione chiuso",
+        HANDLE_ESCALATION_RESOLUTION: "Segui il creator secondo la decisione dello staff",
       },
       statusLabels: {
         NEED_PROCESS: "Da elaborare",
