@@ -29,6 +29,7 @@ CODEX.md
 ANTIGRAVITY.md
 tmp/
 /video/
+/artifacts/
 !apps/panel/src/tutorial/
 !apps/panel/src/tutorial/**
 extensions-merchant/
