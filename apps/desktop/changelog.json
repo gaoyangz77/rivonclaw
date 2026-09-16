@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.17",
+    "date": "2026-09-16",
+    "en": [
+      "Upload images and videos into Product Knowledge, paste Markdown that renders as formatting, and find multi-SKU products in a compact media-card editor",
+      "Keep backend subscriptions connected across routine token refreshes so buyer messages no longer drop in the brief reconnect window, and translate Affiliate campaign, follow-up and escalation text in every language"
+    ],
+    "zh": [
+      "产品知识支持上传图片和视频，粘贴 Markdown 自动渲染格式，编辑器采用紧凑媒体卡片并支持多 SKU 查找",
+      "常规令牌刷新时保持后端订阅连接，买家消息不再在短暂重连窗口中丢失；达人联盟活动、跟进和升级处理文案补全各语言翻译"
+    ]
+  },
+  {
     "version": "1.9.16",
     "date": "2026-09-11",
     "en": [
