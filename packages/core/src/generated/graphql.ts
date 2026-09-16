@@ -13694,6 +13694,7 @@ export interface QueryEcommerceGetProductKnowledgeArgs {
   offset?: InputMaybe<Scalars['Int']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
+  sections?: InputMaybe<Array<ProductKnowledgeSection>>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<ProductKnowledgeStatus>;
 }
