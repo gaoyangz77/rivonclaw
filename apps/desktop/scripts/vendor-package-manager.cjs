@@ -35,9 +35,48 @@ function isCompletedVendorProductionInstall(state) {
   );
 }
 
+// pnpm's own completion line. `.modules.yaml` is written before linking ends, so
+// it cannot tell a finished install from one still running.
+const PNPM_INSTALL_DONE_LINE = /\bDone in [^\n]* using pnpm v/u;
+
+/**
+ * Decides what to do with a running vendor install. An install is finished only
+ * when pnpm exits, or when it has printed its completion line and then failed to
+ * exit for `graceMs` (the hang this runner exists for). An install that has not
+ * printed its completion line by `deadlineMs` is killed and fails.
+ *
+ * @param {{
+ *   exited: boolean,
+ *   exitCode: number | null,
+ *   startedAtMs: number,
+ *   doneAtMs: number | null,
+ *   nowMs: number,
+ *   graceMs: number,
+ *   deadlineMs: number,
+ * }} state
+ * @returns {{ action: "wait" } | { action: "exit" | "kill", code: number, reason: string }}
+ */
+function decideVendorInstallWait(state) {
+  if (state.exited) {
+    return state.exitCode === 0
+      ? { action: "exit", code: 0, reason: "pnpm exited successfully" }
+      : { action: "exit", code: 1, reason: `pnpm exited with code ${state.exitCode}` };
+  }
+  if (state.doneAtMs !== null) {
+    return state.nowMs - state.doneAtMs >= state.graceMs
+      ? { action: "kill", code: 0, reason: `pnpm reported completion but did not exit within ${state.graceMs}ms` }
+      : { action: "wait" };
+  }
+  return state.nowMs - state.startedAtMs >= state.deadlineMs
+    ? { action: "kill", code: 1, reason: `pnpm did not finish within ${state.deadlineMs}ms` }
+    : { action: "wait" };
+}
+
 module.exports = {
   readVendorPnpmVersion,
   resolveVendorPnpmEntry,
   VENDOR_PRODUCTION_INSTALL_ARGS,
   isCompletedVendorProductionInstall,
+  PNPM_INSTALL_DONE_LINE,
+  decideVendorInstallWait,
 };

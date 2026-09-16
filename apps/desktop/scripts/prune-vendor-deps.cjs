@@ -6,7 +6,7 @@
 // size win is a fixed blacklist of large packages we have explicitly decided
 // not to ship, plus fixed non-runtime file patterns.
 
-const { execSync } = require("child_process");
+const { execFileSync, execSync } = require("child_process");
 const fs = require("fs");
 const { createRequire } = require("module");
 const path = require("path");
@@ -34,7 +34,9 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
 // Run pnpm through its JS entry so Windows never has to spawn a .cmd shim.
-const vendorPnpmCommand = `"${process.execPath}" "${resolveVendorPnpmEntry(vendorDir)}"`;
+const vendorPnpmEntry = resolveVendorPnpmEntry(vendorDir);
+const vendorPnpmCommand = `"${process.execPath}" "${vendorPnpmEntry}"`;
+const runVendorProductionInstallScript = path.join(__dirname, "run-vendor-production-install.cjs");
 const PRUNE_PROFILE_VERSION = readVendorPruneProfile();
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
@@ -803,26 +805,23 @@ console.log(
 
 console.log(`[prune-vendor-deps] Phase 1: ${vendorPnpmCommand} ${VENDOR_PRODUCTION_INSTALL_ARGS.join(" ")}`);
 try {
+  // The runner returns only after pnpm has really finished; see its header for
+  // why a timeout alone let a still-running install overwrite the tree.
   withCrossArchMacDependencies(() =>
-    execSync(
-      `${vendorPnpmCommand} ${VENDOR_PRODUCTION_INSTALL_ARGS.join(" ")}`,
-      {
-        cwd: vendorDir,
-        stdio: "inherit",
-        timeout: 120_000,
-        env: { ...process.env, CI: "true" },
-      },
+    execFileSync(
+      process.execPath,
+      [
+        runVendorProductionInstallScript,
+        "--cwd", vendorDir,
+        "--",
+        process.execPath, vendorPnpmEntry, ...VENDOR_PRODUCTION_INSTALL_ARGS,
+      ],
+      { stdio: "inherit", env: { ...process.env, CI: "true" } },
     ),
   );
 } catch (err) {
-  if (err?.code === "ETIMEDOUT" && hasCompletedProductionInstall()) {
-    console.warn(
-      "[prune-vendor-deps] pnpm finished the production install but did not exit; continuing after verified timeout.",
-    );
-  } else {
-    console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
-    process.exit(1);
-  }
+  console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
+  process.exit(1);
 }
 
 if (!hasCompletedProductionInstall()) {
