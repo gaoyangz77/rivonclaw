@@ -1,5 +1,6 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -37,8 +38,9 @@ import {
   toolbarPlugin,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
-import { VideoIcon } from "../../../components/icons.js";
+import { ImageIcon, VideoIcon } from "../../../components/icons.js";
 import {
+  MEDIA_IMAGE_MIME_TYPES,
   MEDIA_VIDEO_MIME_TYPES,
   checkMediaFile,
   isSupportedMediaVideo,
@@ -57,7 +59,7 @@ import "./ProductKnowledgeMarkdownEditor.css";
  * its own tree. Only stable callbacks and primitives cross this boundary.
  */
 type MediaEditorApi = {
-  insertVideoFile: (file: File) => Promise<void>;
+  insertMediaFile: (file: File) => Promise<void>;
   readOnly: boolean;
 };
 
@@ -102,6 +104,15 @@ export function videoDirectiveMarkdown(uri: string, title: string): string {
   const safeTitle = directiveAttributeValue(title);
   const titleAttribute = safeTitle ? ` title="${safeTitle}"` : "";
   return `::video{src="${uri}"${titleAttribute}}`;
+}
+
+/** Alt text sits inside `![...]`, so brackets and newlines would break the link. */
+function imageAltText(value: string): string {
+  return value.replace(/[\r\n[\]]+/g, " ").trim();
+}
+
+export function imageMarkdown(uri: string, alt: string): string {
+  return `![${imageAltText(alt)}](${uri})`;
 }
 
 function VideoDirectiveEditor({ mdastNode }: DirectiveEditorProps) {
@@ -165,8 +176,21 @@ const UNKNOWN_DIRECTIVE_DESCRIPTOR: DirectiveDescriptor = {
   Editor: UnknownDirectiveEditor,
 };
 
-function InsertVideoButton() {
-  const { t } = useTranslation();
+/**
+ * A file picker per media kind. Images are also accepted by drag and paste, but
+ * only a toolbar button makes that discoverable, and MDXEditor's own image
+ * button opens a dialog offering an external URL — knowledge referencing a URL
+ * we do not host is exactly what media:// exists to avoid.
+ */
+function InsertMediaButton({
+  accept,
+  icon,
+  label,
+}: {
+  accept: readonly string[];
+  icon: ReactNode;
+  label: string;
+}) {
   const api = useContext(MediaEditorContext);
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -178,25 +202,47 @@ function InsertVideoButton() {
       <ButtonWithTooltip
         disabled={api.readOnly || busy}
         onClick={() => inputRef.current?.click()}
-        title={t("ecommerce.productKnowledge.mediaInsertVideo")}
+        title={label}
       >
-        <VideoIcon aria-hidden="true" />
-        <span className="sr-only">{t("ecommerce.productKnowledge.mediaInsertVideo")}</span>
+        {icon}
+        <span className="sr-only">{label}</span>
       </ButtonWithTooltip>
       <input
-        accept={MEDIA_VIDEO_MIME_TYPES.join(",")}
+        accept={accept.join(",")}
         className="sr-only"
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = "";
           if (!file) return;
           setBusy(true);
-          void api.insertVideoFile(file).finally(() => setBusy(false));
+          void api.insertMediaFile(file).finally(() => setBusy(false));
         }}
         ref={inputRef}
         type="file"
       />
     </>
+  );
+}
+
+function InsertImageButton() {
+  const { t } = useTranslation();
+  return (
+    <InsertMediaButton
+      accept={MEDIA_IMAGE_MIME_TYPES}
+      icon={<ImageIcon aria-hidden="true" />}
+      label={t("ecommerce.productKnowledge.mediaInsertImage")}
+    />
+  );
+}
+
+function InsertVideoButton() {
+  const { t } = useTranslation();
+  return (
+    <InsertMediaButton
+      accept={MEDIA_VIDEO_MIME_TYPES}
+      icon={<VideoIcon aria-hidden="true" />}
+      label={t("ecommerce.productKnowledge.mediaInsertVideo")}
+    />
   );
 }
 
@@ -277,7 +323,7 @@ export function ProductKnowledgeMarkdownEditor({
     }
   }, []);
 
-  const insertVideoFile = useCallback(
+  const insertMediaFile = useCallback(
     async (file: File): Promise<void> => {
       const rejection = describeRejection(file);
       if (rejection) {
@@ -289,13 +335,16 @@ export function ProductKnowledgeMarkdownEditor({
       try {
         const uploaded = await uploadProductKnowledgeMedia(file);
         rememberMediaUrl(uploaded.uri, uploaded.publicUrl);
+        const markdown = uploaded.kind === "VIDEO"
+          ? videoDirectiveMarkdown(uploaded.uri, file.name)
+          : imageMarkdown(uploaded.uri, file.name);
         const editor = editorRef.current;
         // `insertMarkdown` is a no-op while the document has no selection, which
         // is exactly the state after picking a file from the toolbar or dropping
         // one onto an editor that was never focused. Focusing first keeps an
         // existing cursor and otherwise falls back to the end of the document.
         editor?.focus(
-          () => editor.insertMarkdown(videoDirectiveMarkdown(uploaded.uri, file.name)),
+          () => editor.insertMarkdown(markdown),
           { defaultSelection: "rootEnd" },
         );
       } catch (error) {
@@ -310,8 +359,8 @@ export function ProductKnowledgeMarkdownEditor({
   );
 
   const mediaApi = useMemo<MediaEditorApi>(
-    () => ({ insertVideoFile, readOnly }),
-    [insertVideoFile, readOnly],
+    () => ({ insertMediaFile, readOnly }),
+    [insertMediaFile, readOnly],
   );
 
   // Kept in a ref so the plugin list below can stay built once: MDXEditor
@@ -349,6 +398,7 @@ export function ProductKnowledgeMarkdownEditor({
           <ListsToggle options={["bullet", "number"]} />
           <CreateLink />
           <InsertTable />
+          <InsertImageButton />
           <InsertVideoButton />
         </DiffSourceToggleWrapper>
       ),
@@ -373,7 +423,7 @@ export function ProductKnowledgeMarkdownEditor({
       event.preventDefault();
       event.stopPropagation();
       void files.reduce(
-        (chain, file) => chain.then(() => insertVideoFile(file)),
+        (chain, file) => chain.then(() => insertMediaFile(file)),
         Promise.resolve(),
       );
     };
@@ -390,7 +440,7 @@ export function ProductKnowledgeMarkdownEditor({
       event.preventDefault();
       event.stopPropagation();
       void files.reduce(
-        (chain, file) => chain.then(() => insertVideoFile(file)),
+        (chain, file) => chain.then(() => insertMediaFile(file)),
         Promise.resolve(),
       );
     };
@@ -403,7 +453,7 @@ export function ProductKnowledgeMarkdownEditor({
       container.removeEventListener("dragover", onDragOver, true);
       container.removeEventListener("paste", onPaste, true);
     };
-  }, [insertVideoFile, readOnly]);
+  }, [insertMediaFile, readOnly]);
 
   const editorTranslations: Record<string, string> = {
     Undo: t("ecommerce.productKnowledge.editorUndo"),

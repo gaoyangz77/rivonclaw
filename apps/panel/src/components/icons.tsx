@@ -420,6 +420,17 @@ export function ModuleIcon(props: IconProps) {
     );
 }
 
+/** Picture / photo icon */
+export function ImageIcon(props: IconProps) {
+    return (
+        <Icon size={16} {...props}>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="M21 15l-5-5L5 21" />
+        </Icon>
+    );
+}
+
 /** Video / film clip icon */
 export function VideoIcon(props: IconProps) {
     return (

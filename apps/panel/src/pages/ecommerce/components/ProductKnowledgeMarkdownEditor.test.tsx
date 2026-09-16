@@ -180,7 +180,7 @@ describe("product knowledge markdown editor", () => {
       />,
     );
 
-    const input = container.querySelector('input[type="file"]');
+    const input = container.querySelector('input[type="file"][accept*="video/mp4"]');
     expect(input).toBeTruthy();
     const file = new File(["video-bytes"], "clip.mp4", { type: "video/mp4" });
     await act(async () => {
@@ -206,6 +206,44 @@ describe("product knowledge markdown editor", () => {
     });
   });
 
+  it("uploads a picked image and inserts a media:// image into the markdown", async () => {
+    uploadMedia.mockResolvedValue({
+      assetId: IMAGE_URI.replace("media://", ""),
+      uri: IMAGE_URI,
+      kind: "IMAGE",
+      mimeType: "image/png",
+      sizeBytes: 1024,
+      publicUrl: "https://minio.rivonclaw.com/media/image.png",
+      sha256: "def",
+      deduplicated: false,
+    });
+    const onChange = vi.fn();
+    const { container } = render(
+      <ProductKnowledgeMarkdownEditor
+        onChange={onChange}
+        placeholder=""
+        readOnly={false}
+        value={"Existing text\n"}
+      />,
+    );
+
+    // The image picker is its own toolbar button: drag and paste already worked,
+    // but nothing on screen said so.
+    const input = container.querySelector('input[type="file"][accept*="image/png"]');
+    expect(input).toBeTruthy();
+    const file = new File(["png-bytes"], "packshot.png", { type: "image/png" });
+    await act(async () => {
+      fireEvent.change(input as HTMLInputElement, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(uploadMedia).toHaveBeenCalledWith(file);
+      const markdown = onChange.mock.calls.at(-1)?.[0] as string | undefined;
+      expect(markdown).toContain(`![packshot.png](${IMAGE_URI})`);
+      expect(markdown).not.toContain("minio.rivonclaw.com");
+    });
+  });
+
   it("refuses an unsupported file before it reaches the media store", async () => {
     const { container } = render(
       <ProductKnowledgeMarkdownEditor
@@ -216,7 +254,9 @@ describe("product knowledge markdown editor", () => {
       />,
     );
 
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[type="file"][accept*="image/png"]',
+    ) as HTMLInputElement;
     const file = new File(["nope"], "notes.txt", { type: "text/plain" });
     await act(async () => {
       fireEvent.change(input, { target: { files: [file] } });
