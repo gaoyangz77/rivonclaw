@@ -3452,12 +3452,12 @@ export default {
         lastChangeAdded: "最近变更：{{time}} 添加系统标签 · {{source}}",
         lastChangeRemoved: "最近变更：{{time}} 移除系统标签 · {{source}}",
         noChanges: "暂无系统标签变更记录",
-        proposalScope: "仅阻止新的 Campaign 主动触达",
+        proposalScope: "仅阻止新的推广计划主动触达",
         values: {
           NO_CAMPAIGN_DISTURB: {
             label: "勿扰",
             description:
-              "停止新的自动 Campaign 触达；正常 Affiliate 工作流和直接回复不受影响。",
+              "停止新的自动推广计划触达；正常 Affiliate 工作流和直接回复不受影响。",
           },
         },
       },

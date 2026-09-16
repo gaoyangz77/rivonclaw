@@ -2011,7 +2011,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                       </small>
                                       <em>
                                         {plan.discoveryRules
-                                          ? campaignSearchGroupRuleSummary(plan.discoveryRules, t)
+                                          ? campaignSearchGroupRuleSummary(
+                                              plan.discoveryRules,
+                                              t,
+                                            ).join(" · ")
                                           : t(
                                               "ecommerce.affiliateCampaign.noAdditionalProviderRules",
                                             )}
@@ -3635,11 +3638,16 @@ function toggleValue<T extends string>(values: readonly T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
+const MARKETPLACE_RANGE_PREFIX = /^(AGE_RANGE_|GMV_RANGE_|UNITS_SOLD_RANGE_)/;
+
 function marketplaceEnumLabel(value: string): string {
+  // In a range enum the underscore is the gap between two bounds
+  // ("AGE_RANGE_25_34"), so it reads as a dash; anywhere else it is a word break.
+  const separator = MARKETPLACE_RANGE_PREFIX.test(value) ? "–" : " ";
   return value
-    .replace(/^(AGE_RANGE_|GMV_RANGE_|UNITS_SOLD_RANGE_)/, "")
+    .replace(MARKETPLACE_RANGE_PREFIX, "")
     .replace(/_AND_ABOVE$/, "+")
-    .replaceAll("_", " ")
+    .replaceAll("_", separator)
     .toLowerCase()
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }

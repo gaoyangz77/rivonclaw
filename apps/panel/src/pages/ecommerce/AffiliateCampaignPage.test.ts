@@ -595,7 +595,7 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect.arrayContaining([
         "粉丝下限",
         "受众性别: Male ≥ 60%",
-        "30 天 GMV 区间: 1000 10000",
+        "30 天 GMV 区间: 1000–10000",
         "擅长类目: Fashion And Style",
         "ecommerce.affiliateCampaign.categoryConditionCount",
         "ecommerce.affiliateCampaign.contentConditionCount",

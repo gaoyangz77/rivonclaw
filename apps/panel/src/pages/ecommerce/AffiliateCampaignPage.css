@@ -975,6 +975,15 @@
   white-space: nowrap;
 }
 
+/* The explanation is the column's reason for existing, so it wraps to two lines
+   instead of being cut off mid-sentence on one. */
+.affiliate-campaign-search-plan-select > small {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .affiliate-campaign-search-plan-select > em {
   color: var(--color-text-muted);
 }
