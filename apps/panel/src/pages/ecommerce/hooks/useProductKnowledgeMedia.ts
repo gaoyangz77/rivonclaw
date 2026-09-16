@@ -4,25 +4,29 @@ import { getClient } from "../../../api/apollo-client.js";
 import {
   MEDIA_ASSETS_BY_URI_BATCH_LIMIT,
   MEDIA_ASSETS_BY_URI_QUERY,
+  type MediaAssetRef,
   type MediaAssetsByUriResult,
 } from "../../../api/media-asset-queries.js";
 
 /**
  * Markdown authored in Product Knowledge stores media as `media://<assetId>`,
  * never as a URL: object-storage URLs rotate, and the China relay serves them
- * from a different host. This module turns those URIs into a URL fit for the
+ * from a different host. This module turns those URIs into an asset fit for the
  * current client, once per URI, batching every URI a freshly opened document
  * asks for into a single backend round-trip.
  */
 
 const MEDIA_URI_PATTERN = /^media:\/\/[0-9a-f]{24}$/;
 
-/** uri -> display URL, or null when the backend does not know the asset. */
-const resolvedUrls = new Map<string, string | null>();
-const inflight = new Map<string, Promise<string | null>>();
+/** A resolved asset carries the URL this client should actually load. */
+export type ResolvedMediaAsset = Omit<MediaAssetRef, "publicUrl"> & { url: string };
+
+/** uri -> asset, or null when the backend does not know it. */
+const resolved = new Map<string, ResolvedMediaAsset | null>();
+const inflight = new Map<string, Promise<ResolvedMediaAsset | null>>();
 
 type PendingEntry = {
-  resolve: (url: string | null) => void;
+  resolve: (asset: ResolvedMediaAsset | null) => void;
   reject: (error: unknown) => void;
 };
 let pending = new Map<string, PendingEntry[]>();
@@ -32,17 +36,32 @@ export function isMediaUri(value: string): boolean {
   return MEDIA_URI_PATTERN.test(value);
 }
 
+/** An upload response reports unknown dimensions as absent, a query as null. */
+type MediaAssetInput = Omit<MediaAssetRef, "width" | "height"> & {
+  width?: number | null;
+  height?: number | null;
+};
+
+function toResolvedAsset({ publicUrl, width, height, ...asset }: MediaAssetInput): ResolvedMediaAsset {
+  return {
+    ...asset,
+    width: width ?? null,
+    height: height ?? null,
+    url: String(routeFirstPartyUrl(publicUrl)),
+  };
+}
+
 /**
  * Seed the cache from an upload response so media the merchant just inserted
  * renders without waiting for a backend round-trip.
  */
-export function rememberMediaUrl(uri: string, publicUrl: string): void {
-  resolvedUrls.set(uri, String(routeFirstPartyUrl(publicUrl)));
+export function rememberMediaAsset(asset: MediaAssetInput): void {
+  resolved.set(asset.uri, toResolvedAsset(asset));
 }
 
 /** Test-only: drop every cached and in-flight resolution. */
 export function resetMediaUrlCache(): void {
-  resolvedUrls.clear();
+  resolved.clear();
   inflight.clear();
   pending = new Map();
   flushScheduled = false;
@@ -62,13 +81,13 @@ async function flushPending(): Promise<void> {
         variables: { uris: chunk },
       });
       const found = new Map(
-        (data?.mediaAssetsByUri ?? []).map((asset) => [asset.uri, asset.publicUrl]),
+        (data?.mediaAssetsByUri ?? []).map((asset) => [asset.uri, asset]),
       );
       for (const uri of chunk) {
-        const publicUrl = found.get(uri);
-        const url = publicUrl ? String(routeFirstPartyUrl(publicUrl)) : null;
-        resolvedUrls.set(uri, url);
-        for (const entry of batch.get(uri) ?? []) entry.resolve(url);
+        const asset = found.get(uri);
+        const value = asset ? toResolvedAsset(asset) : null;
+        resolved.set(uri, value);
+        for (const entry of batch.get(uri) ?? []) entry.resolve(value);
       }
     } catch (error) {
       // A failed lookup must not be cached: the next render retries it.
@@ -80,17 +99,17 @@ async function flushPending(): Promise<void> {
 }
 
 /**
- * Resolve one `media://` URI to a displayable URL, or `null` when the backend
- * does not return the asset (deleted, or owned by someone else). Transport and
- * GraphQL failures reject so callers can retry rather than cache a lie.
+ * Resolve one `media://` URI, or `null` when the backend does not return the
+ * asset (deleted, or owned by someone else). Transport and GraphQL failures
+ * reject so callers can retry rather than cache a lie.
  */
-export function resolveMediaUrl(uri: string): Promise<string | null> {
-  if (resolvedUrls.has(uri)) return Promise.resolve(resolvedUrls.get(uri) ?? null);
+export function resolveMediaAsset(uri: string): Promise<ResolvedMediaAsset | null> {
+  if (resolved.has(uri)) return Promise.resolve(resolved.get(uri) ?? null);
 
   const existing = inflight.get(uri);
   if (existing) return existing;
 
-  const promise = new Promise<string | null>((resolve, reject) => {
+  const promise = new Promise<ResolvedMediaAsset | null>((resolve, reject) => {
     const entries = pending.get(uri) ?? [];
     entries.push({ resolve, reject });
     pending.set(uri, entries);
@@ -108,12 +127,20 @@ export function resolveMediaUrl(uri: string): Promise<string | null> {
   return promise;
 }
 
+/** URL-only convenience for callers that just need something to paint. */
+export async function resolveMediaUrl(uri: string): Promise<string | null> {
+  return (await resolveMediaAsset(uri))?.url ?? null;
+}
+
 export type MediaUrlState = "resolving" | "ready" | "unavailable";
 
 /** Resolve a `media://` URI for render, re-resolving when the URI changes. */
-export function useMediaUrl(uri: string | undefined): { url: string | null; state: MediaUrlState } {
-  const cached = uri && resolvedUrls.has(uri) ? resolvedUrls.get(uri) ?? null : undefined;
-  const [url, setUrl] = useState<string | null>(cached ?? null);
+export function useMediaAsset(uri: string | undefined): {
+  asset: ResolvedMediaAsset | null;
+  state: MediaUrlState;
+} {
+  const cached = uri && resolved.has(uri) ? resolved.get(uri) ?? null : undefined;
+  const [asset, setAsset] = useState<ResolvedMediaAsset | null>(cached ?? null);
   const [state, setState] = useState<MediaUrlState>(() => {
     if (!uri || !isMediaUri(uri)) return "unavailable";
     if (cached === undefined) return "resolving";
@@ -122,22 +149,22 @@ export function useMediaUrl(uri: string | undefined): { url: string | null; stat
 
   useEffect(() => {
     if (!uri || !isMediaUri(uri)) {
-      setUrl(null);
+      setAsset(null);
       setState("unavailable");
       return;
     }
 
     let cancelled = false;
-    const known = resolvedUrls.has(uri) ? resolvedUrls.get(uri) ?? null : undefined;
-    setUrl(known ?? null);
+    const known = resolved.has(uri) ? resolved.get(uri) ?? null : undefined;
+    setAsset(known ?? null);
     setState(known === undefined ? "resolving" : known ? "ready" : "unavailable");
     if (known !== undefined) return;
 
-    resolveMediaUrl(uri)
-      .then((resolved) => {
+    resolveMediaAsset(uri)
+      .then((value) => {
         if (cancelled) return;
-        setUrl(resolved);
-        setState(resolved ? "ready" : "unavailable");
+        setAsset(value);
+        setState(value ? "ready" : "unavailable");
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -152,5 +179,5 @@ export function useMediaUrl(uri: string | undefined): { url: string | null; stat
     };
   }, [uri]);
 
-  return { url, state };
+  return { asset, state };
 }

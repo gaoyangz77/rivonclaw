@@ -57,10 +57,16 @@ export const PRODUCT_KNOWLEDGE_QUERY = gql`
   }
 `;
 
+/**
+ * A merchant usually sells the same product under a different Seller SKU in
+ * each shop, so discovery takes a list. The backend still fetches each shop's
+ * catalogue exactly once and matches the whole list in that single pass.
+ */
 export const DISCOVER_PRODUCTS_BY_SELLER_SKU_QUERY = gql`
-  query DiscoverProductsBySellerSku($sellerSku: String!) {
-    discoverProductsBySellerSku(sellerSku: $sellerSku) {
-      sellerSku
+  query DiscoverProductsBySellerSku($sellerSkus: [String!]!) {
+    discoverProductsBySellerSku(sellerSkus: $sellerSkus) {
+      sellerSkus
+      unmatchedSellerSkus
       searchedShopCount
       successfulShopCount
       candidates {
@@ -86,6 +92,9 @@ export const DISCOVER_PRODUCTS_BY_SELLER_SKU_QUERY = gql`
     }
   }
 `;
+
+/** Maximum Seller SKUs the backend accepts in one discovery call. */
+export const DISCOVER_SELLER_SKU_LIMIT = 50;
 
 export const CREATE_PRODUCT_KNOWLEDGE_MUTATION = gql`
   ${PRODUCT_KNOWLEDGE_SUMMARY_FIELDS}

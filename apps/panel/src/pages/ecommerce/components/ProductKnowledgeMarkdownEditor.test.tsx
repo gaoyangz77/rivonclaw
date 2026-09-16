@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import i18n from "../../../i18n/index.js";
 import {
-  rememberMediaUrl,
+  rememberMediaAsset,
   resetMediaUrlCache,
   resolveMediaUrl,
 } from "../hooks/useProductKnowledgeMedia.js";
 import {
+  mediaDirectiveMarkdown,
   ProductKnowledgeMarkdownEditor,
-  videoDirectiveMarkdown,
 } from "./ProductKnowledgeMarkdownEditor.js";
 
 const IMAGE_URI = "media://0123456789abcdef01234567";
@@ -64,21 +64,21 @@ afterEach(() => {
   cleanup();
 });
 
-describe("video directive markdown", () => {
+describe("media directive markdown", () => {
   it("writes the stable media URI as a leaf directive with the file name", () => {
-    expect(videoDirectiveMarkdown(VIDEO_URI, "unboxing.mp4")).toBe(
-      `::video{src="${VIDEO_URI}" title="unboxing.mp4"}`,
+    expect(mediaDirectiveMarkdown(VIDEO_URI, "unboxing.mp4")).toBe(
+      `::media{src="${VIDEO_URI}" name="unboxing.mp4"}`,
     );
   });
 
   it("keeps the attribute unambiguous when the file name carries quotes or newlines", () => {
-    expect(videoDirectiveMarkdown(VIDEO_URI, 'a"b\nc.mp4')).toBe(
-      `::video{src="${VIDEO_URI}" title="a b c.mp4"}`,
+    expect(mediaDirectiveMarkdown(VIDEO_URI, 'a"b\nc.mp4')).toBe(
+      `::media{src="${VIDEO_URI}" name="a b c.mp4"}`,
     );
   });
 
-  it("omits an empty title rather than emitting an empty attribute", () => {
-    expect(videoDirectiveMarkdown(VIDEO_URI, "  ")).toBe(`::video{src="${VIDEO_URI}"}`);
+  it("omits an empty name rather than emitting an empty attribute", () => {
+    expect(mediaDirectiveMarkdown(VIDEO_URI, "  ")).toBe(`::media{src="${VIDEO_URI}"}`);
   });
 });
 
@@ -106,7 +106,7 @@ describe("media URI resolution", () => {
   });
 
   it("skips the round-trip for media that was just uploaded", async () => {
-    rememberMediaUrl(VIDEO_URI, "https://minio.rivonclaw.com/media/fresh.mp4");
+    rememberMediaAsset(mediaAsset(VIDEO_URI, "https://minio.rivonclaw.com/media/fresh.mp4", "VIDEO"));
     await expect(resolveMediaUrl(VIDEO_URI)).resolves.toBe(
       "https://minio.rivonclaw.com/media/fresh.mp4",
     );
@@ -123,21 +123,45 @@ describe("media URI resolution", () => {
 });
 
 describe("product knowledge markdown editor", () => {
-  it("renders a stored video directive as a player once its URI resolves", async () => {
+  it("shows stored media as a compact card and only plays it once expanded", async () => {
     render(
       <ProductKnowledgeMarkdownEditor
         onChange={() => {}}
         placeholder=""
         readOnly={false}
-        value={`${videoDirectiveMarkdown(VIDEO_URI, "clip.mp4")}\n`}
+        value={`${mediaDirectiveMarkdown(VIDEO_URI, "clip.mp4")}\n`}
       />,
     );
+
+    // The card names the file and its size; nothing is played until asked.
+    await waitFor(() => {
+      expect(screen.getByText("clip.mp4")).toBeTruthy();
+    });
+    expect(document.querySelector("video")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { expanded: false }));
+    });
 
     await waitFor(() => {
       const player = document.querySelector("video");
       expect(player?.getAttribute("src")).toBe("https://minio.rivonclaw.com/media/clip.mp4");
     });
-    expect(screen.getByText("clip.mp4")).toBeTruthy();
+  });
+
+  it("renders the legacy ::video directive through the same card", async () => {
+    render(
+      <ProductKnowledgeMarkdownEditor
+        onChange={() => {}}
+        placeholder=""
+        readOnly={false}
+        value={`::video{src="${VIDEO_URI}" title="old-clip.mp4"}\n`}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("old-clip.mp4")).toBeTruthy();
+    });
   });
 
   // MDXEditor paints an image only after the browser finishes loading it, which
@@ -190,8 +214,8 @@ describe("product knowledge markdown editor", () => {
     await waitFor(() => {
       expect(uploadMedia).toHaveBeenCalledWith(file);
       const markdown = onChange.mock.calls.at(-1)?.[0] as string | undefined;
-      expect(markdown).toContain(`::video{src="${VIDEO_URI}"`);
-      expect(markdown).toContain('title="clip.mp4"');
+      expect(markdown).toContain(`::media{src="${VIDEO_URI}"`);
+      expect(markdown).toContain('name="clip.mp4"');
       // The resolved object-storage URL must never leak into saved Markdown.
       expect(markdown).toContain(`![cover](${IMAGE_URI})`);
       expect(markdown).not.toContain("minio.rivonclaw.com");
@@ -206,7 +230,7 @@ describe("product knowledge markdown editor", () => {
     });
   });
 
-  it("uploads a picked image and inserts a media:// image into the markdown", async () => {
+  it("uploads a picked image and inserts a media:// card into the markdown", async () => {
     uploadMedia.mockResolvedValue({
       assetId: IMAGE_URI.replace("media://", ""),
       uri: IMAGE_URI,
@@ -239,7 +263,7 @@ describe("product knowledge markdown editor", () => {
     await waitFor(() => {
       expect(uploadMedia).toHaveBeenCalledWith(file);
       const markdown = onChange.mock.calls.at(-1)?.[0] as string | undefined;
-      expect(markdown).toContain(`![packshot.png](${IMAGE_URI})`);
+      expect(markdown).toContain(`::media{src="${IMAGE_URI}" name="packshot.png"}`);
       expect(markdown).not.toContain("minio.rivonclaw.com");
     });
   });

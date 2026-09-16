@@ -43,14 +43,13 @@ import {
   MEDIA_IMAGE_MIME_TYPES,
   MEDIA_VIDEO_MIME_TYPES,
   checkMediaFile,
-  isSupportedMediaVideo,
   uploadProductKnowledgeMedia,
 } from "../../../api/uploads.js";
 import {
   isMediaUri,
-  rememberMediaUrl,
+  rememberMediaAsset,
   resolveMediaUrl,
-  useMediaUrl,
+  useMediaAsset,
 } from "../hooks/useProductKnowledgeMedia.js";
 import "./ProductKnowledgeMarkdownEditor.css";
 
@@ -100,42 +99,105 @@ function directiveAttributeValue(value: string): string {
   return value.replace(/[\r\n"\\]+/g, " ").trim();
 }
 
-export function videoDirectiveMarkdown(uri: string, title: string): string {
-  const safeTitle = directiveAttributeValue(title);
-  const titleAttribute = safeTitle ? ` title="${safeTitle}"` : "";
-  return `::video{src="${uri}"${titleAttribute}}`;
+/**
+ * Both kinds are stored as the same leaf directive. The file name rides along
+ * so the Markdown stays readable on its own — `media://<assetId>` identifies
+ * the bytes but says nothing about what they are.
+ */
+export function mediaDirectiveMarkdown(uri: string, name: string): string {
+  const safeName = directiveAttributeValue(name);
+  const nameAttribute = safeName ? ` name="${safeName}"` : "";
+  return `::media{src="${uri}"${nameAttribute}}`;
 }
 
-/** Alt text sits inside `![...]`, so brackets and newlines would break the link. */
-function imageAltText(value: string): string {
-  return value.replace(/[\r\n[\]]+/g, " ").trim();
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
-export function imageMarkdown(uri: string, alt: string): string {
-  return `![${imageAltText(alt)}](${uri})`;
-}
-
-function VideoDirectiveEditor({ mdastNode }: DirectiveEditorProps) {
+/**
+ * Media reads as one compact row — thumbnail, file name, kind and size — and
+ * opens to full size only when asked. The Markdown holds a `media://` reference,
+ * so a wall of full-bleed pictures would misrepresent what is actually stored
+ * and bury the text the Agent is meant to read.
+ */
+function MediaCard({ src, name }: { src?: string; name: string }) {
   const { t } = useTranslation();
-  const src = mdastNode.attributes?.src ?? undefined;
-  const title = mdastNode.attributes?.title ?? "";
-  const { url, state } = useMediaUrl(src ?? undefined);
+  const { asset, state } = useMediaAsset(src);
+  const [expanded, setExpanded] = useState(false);
+  const isVideo = asset?.kind === "VIDEO";
+  const label = name.trim() || t("ecommerce.productKnowledge.mediaUntitled");
+
+  if (state !== "ready" || !asset) {
+    return (
+      <div className="product-knowledge-media-card product-knowledge-media-card-pending">
+        {state === "resolving"
+          ? t("ecommerce.productKnowledge.mediaResolving")
+          : t("ecommerce.productKnowledge.mediaUnavailable")}
+      </div>
+    );
+  }
 
   return (
-    <figure className="product-knowledge-video">
-      {state === "ready" && url ? (
-        <video className="product-knowledge-video-player" controls preload="metadata" src={url}>
-          {t("ecommerce.productKnowledge.mediaVideoUnsupported")}
-        </video>
-      ) : (
-        <div className="product-knowledge-video-placeholder">
-          {state === "resolving"
-            ? t("ecommerce.productKnowledge.mediaResolving")
-            : t("ecommerce.productKnowledge.mediaUnavailable")}
+    <figure className="product-knowledge-media-card" data-kind={asset.kind}>
+      <button
+        aria-expanded={expanded}
+        className="product-knowledge-media-card-row"
+        onClick={() => setExpanded((open) => !open)}
+        type="button"
+      >
+        <span className="product-knowledge-media-card-thumb">
+          {isVideo ? (
+            <VideoIcon aria-hidden="true" />
+          ) : (
+            <img alt="" loading="lazy" src={asset.url} />
+          )}
+        </span>
+        <span className="product-knowledge-media-card-text">
+          <span className="product-knowledge-media-card-name">{label}</span>
+          <span className="product-knowledge-media-card-meta">
+            {isVideo
+              ? t("ecommerce.productKnowledge.mediaKindVideo")
+              : t("ecommerce.productKnowledge.mediaKindImage")}
+            {" · "}
+            {formatFileSize(asset.sizeBytes)}
+          </span>
+        </span>
+        <span className="product-knowledge-media-card-action">
+          {expanded
+            ? t("ecommerce.productKnowledge.mediaCollapse")
+            : t("ecommerce.productKnowledge.mediaExpand")}
+        </span>
+      </button>
+      {expanded ? (
+        <div className="product-knowledge-media-card-preview">
+          {isVideo ? (
+            <video controls preload="metadata" src={asset.url}>
+              {t("ecommerce.productKnowledge.mediaVideoUnsupported")}
+            </video>
+          ) : (
+            <img alt={label} src={asset.url} />
+          )}
         </div>
-      )}
-      {title ? <figcaption className="product-knowledge-video-caption">{title}</figcaption> : null}
+      ) : null}
     </figure>
+  );
+}
+
+function MediaDirectiveEditor({ mdastNode }: DirectiveEditorProps) {
+  const attributes = mdastNode.attributes ?? {};
+  return (
+    <MediaCard
+      name={attributes.name ?? attributes.title ?? ""}
+      src={attributes.src ?? undefined}
+    />
   );
 }
 
@@ -159,13 +221,23 @@ function UnknownDirectiveEditor({ mdastNode }: DirectiveEditorProps) {
   );
 }
 
+const MEDIA_DIRECTIVE_DESCRIPTOR: DirectiveDescriptor = {
+  name: "media",
+  type: "leafDirective",
+  testNode: (node) => node.name === "media",
+  attributes: ["src", "name"],
+  hasChildren: false,
+  Editor: MediaDirectiveEditor,
+};
+
+/** `::video` is the shape this editor wrote before images joined the same card. */
 const VIDEO_DIRECTIVE_DESCRIPTOR: DirectiveDescriptor = {
   name: "video",
   type: "leafDirective",
   testNode: (node) => node.name === "video",
   attributes: ["src", "title"],
   hasChildren: false,
-  Editor: VideoDirectiveEditor,
+  Editor: MediaDirectiveEditor,
 };
 
 const UNKNOWN_DIRECTIVE_DESCRIPTOR: DirectiveDescriptor = {
@@ -246,8 +318,8 @@ function InsertVideoButton() {
   );
 }
 
-function videoFilesFrom(transfer: DataTransfer | null): File[] {
-  return Array.from(transfer?.files ?? []).filter(isSupportedMediaVideo);
+function mediaFilesFrom(transfer: DataTransfer | null): File[] {
+  return Array.from(transfer?.files ?? []).filter((file) => checkMediaFile(file) === null);
 }
 
 export function ProductKnowledgeMarkdownEditor({
@@ -282,36 +354,6 @@ export function ProductKnowledgeMarkdownEditor({
     [t],
   );
 
-  /**
-   * MDXEditor calls this for drops, pastes and the image dialog. The returned
-   * string is what lands in the Markdown, so it must be the stable
-   * `media://` URI rather than the (rotating) object-storage URL.
-   */
-  const uploadImage = useCallback(
-    async (file: File): Promise<string> => {
-      const rejection = describeRejection(file);
-      if (rejection) {
-        setUploadError(rejection);
-        throw new Error(rejection);
-      }
-      setUploadError(null);
-      setUploading(true);
-      try {
-        const uploaded = await uploadProductKnowledgeMedia(file);
-        rememberMediaUrl(uploaded.uri, uploaded.publicUrl);
-        return uploaded.uri;
-      } catch (error) {
-        setUploadError(
-          error instanceof Error ? error.message : t("ecommerce.productKnowledge.mediaUploadFailed"),
-        );
-        throw error;
-      } finally {
-        setUploading(false);
-      }
-    },
-    [describeRejection, t],
-  );
-
   const previewImage = useCallback(async (src: string): Promise<string> => {
     if (!isMediaUri(src)) return src;
     try {
@@ -334,10 +376,8 @@ export function ProductKnowledgeMarkdownEditor({
       setUploading(true);
       try {
         const uploaded = await uploadProductKnowledgeMedia(file);
-        rememberMediaUrl(uploaded.uri, uploaded.publicUrl);
-        const markdown = uploaded.kind === "VIDEO"
-          ? videoDirectiveMarkdown(uploaded.uri, file.name)
-          : imageMarkdown(uploaded.uri, file.name);
+        rememberMediaAsset(uploaded);
+        const markdown = mediaDirectiveMarkdown(uploaded.uri, file.name);
         const editor = editorRef.current;
         // `insertMarkdown` is a no-op while the document has no selection, which
         // is exactly the state after picking a file from the toolbar or dropping
@@ -365,8 +405,8 @@ export function ProductKnowledgeMarkdownEditor({
 
   // Kept in a ref so the plugin list below can stay built once: MDXEditor
   // re-creates its realm when the plugin array identity changes.
-  const handlersRef = useRef({ uploadImage, previewImage });
-  handlersRef.current = { uploadImage, previewImage };
+  const handlersRef = useRef({ previewImage });
+  handlersRef.current = { previewImage };
 
   const plugins = useMemo(() => [
     headingsPlugin({ allowedHeadingLevels: [2, 3, 4] }),
@@ -374,12 +414,19 @@ export function ProductKnowledgeMarkdownEditor({
     quotePlugin(),
     linkPlugin(),
     linkDialogPlugin(),
+    // No imageUploadHandler on purpose: with one set, MDXEditor swallows image
+    // drops and pastes and inserts its own `![](…)` node, bypassing the card.
+    // The preview handler stays so Markdown already holding `![](media://…)`
+    // still displays.
     imagePlugin({
-      imageUploadHandler: (file) => handlersRef.current.uploadImage(file),
       imagePreviewHandler: (src) => handlersRef.current.previewImage(src),
     }),
     directivesPlugin({
-      directiveDescriptors: [VIDEO_DIRECTIVE_DESCRIPTOR, UNKNOWN_DIRECTIVE_DESCRIPTOR],
+      directiveDescriptors: [
+        MEDIA_DIRECTIVE_DESCRIPTOR,
+        VIDEO_DIRECTIVE_DESCRIPTOR,
+        UNKNOWN_DIRECTIVE_DESCRIPTOR,
+      ],
       escapeUnknownTextDirectives: true,
     }),
     tablePlugin(),
@@ -410,15 +457,15 @@ export function ProductKnowledgeMarkdownEditor({
     editorRef.current.setMarkdown(value);
   }, [value]);
 
-  // Videos are intercepted before Lexical sees the event: MDXEditor's image
-  // plugin filters drops and pastes down to `image/*` and leaves video files to
-  // the browser's default handling, which would paste a file name.
+  // Files are intercepted before Lexical sees the event. Without this the
+  // browser pastes a file name for a video, and an image would go in as
+  // MDXEditor's own node instead of the card.
   useEffect(() => {
     const container = containerRef.current;
     if (!container || readOnly) return;
 
     const onDrop = (event: DragEvent) => {
-      const files = videoFilesFrom(event.dataTransfer);
+      const files = mediaFilesFrom(event.dataTransfer);
       if (files.length === 0) return;
       event.preventDefault();
       event.stopPropagation();
@@ -428,14 +475,18 @@ export function ProductKnowledgeMarkdownEditor({
       );
     };
     const onDragOver = (event: DragEvent) => {
+      const draggable = [
+        ...(MEDIA_IMAGE_MIME_TYPES as readonly string[]),
+        ...(MEDIA_VIDEO_MIME_TYPES as readonly string[]),
+      ];
       if (Array.from(event.dataTransfer?.items ?? []).some((item) =>
-        (MEDIA_VIDEO_MIME_TYPES as readonly string[]).includes(item.type),
+        draggable.includes(item.type),
       )) {
         event.preventDefault();
       }
     };
     const onPaste = (event: ClipboardEvent) => {
-      const files = videoFilesFrom(event.clipboardData);
+      const files = mediaFilesFrom(event.clipboardData);
       if (files.length === 0) return;
       event.preventDefault();
       event.stopPropagation();

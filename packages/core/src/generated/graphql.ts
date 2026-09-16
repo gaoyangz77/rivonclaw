@@ -13462,7 +13462,8 @@ export interface QueryCsPendingEscalationEventsArgs {
 
 
 export interface QueryDiscoverProductsBySellerSkuArgs {
-  sellerSku: Scalars['String']['input'];
+  sellerSku?: InputMaybe<Scalars['String']['input']>;
+  sellerSkus?: InputMaybe<Array<Scalars['String']['input']>>;
 }
 
 
@@ -13795,6 +13796,7 @@ export interface QueryEcommerceSearchProductsArgs {
   createTimeLe?: InputMaybe<Scalars['Float']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   region?: InputMaybe<ShopRegion>;
+  sellerSku?: InputMaybe<Scalars['String']['input']>;
   shopId?: InputMaybe<Scalars['String']['input']>;
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   status?: InputMaybe<EcomProductStatus>;
@@ -14673,9 +14675,17 @@ export interface SellerSkuProductCandidate {
 export interface SellerSkuProductDiscoveryPayload {
   candidates: Array<SellerSkuProductCandidate>;
   searchedShopCount: Scalars['Int']['output'];
+  /**
+   * The searched Seller SKUs joined with ", "; kept for clients that search one SKU.
+   * @deprecated Desktop 1.9.16 and earlier read this single value. Use sellerSkus, which lists every SKU searched.
+   */
   sellerSku: Scalars['String']['output'];
+  /** The normalized Seller SKUs actually searched, in the order they were supplied. */
+  sellerSkus: Array<Scalars['String']['output']>;
   shopFailures: Array<SellerSkuShopSearchFailure>;
   successfulShopCount: Scalars['Int']['output'];
+  /** Searched Seller SKUs that matched no product in any shop. */
+  unmatchedSellerSkus: Array<Scalars['String']['output']>;
 }
 
 export interface SellerSkuShopSearchFailure {

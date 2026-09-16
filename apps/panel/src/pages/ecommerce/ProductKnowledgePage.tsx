@@ -24,6 +24,7 @@ import {
   ARCHIVE_PRODUCT_KNOWLEDGE_MUTATION,
   CREATE_PRODUCT_KNOWLEDGE_MUTATION,
   DISCOVER_PRODUCTS_BY_SELLER_SKU_QUERY,
+  DISCOVER_SELLER_SKU_LIMIT,
   LINK_PRODUCTS_TO_KNOWLEDGE_MUTATION,
   PRODUCT_KNOWLEDGE_QUERY,
   PRODUCT_KNOWLEDGES_QUERY,
@@ -31,6 +32,7 @@ import {
   UNLINK_PRODUCT_KNOWLEDGE_BINDING_MUTATION,
   UPDATE_PRODUCT_KNOWLEDGE_MUTATION,
 } from "../../api/product-knowledge-queries.js";
+import { splitSellerSkuInput } from "./product-knowledge-seller-sku.js";
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
 import "./components/AffiliateUi.css";
 
@@ -340,14 +342,21 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   }
 
   async function runDiscovery(clearLinkFailures = true) {
-    const value = sellerSku.trim();
-    if (!value || isArchived) return;
+    const values = splitSellerSkuInput(sellerSku);
+    if (values.length === 0 || isArchived) return;
+    if (values.length > DISCOVER_SELLER_SKU_LIMIT) {
+      showToast(
+        t("ecommerce.productKnowledge.tooManySellerSkus", { limit: DISCOVER_SELLER_SKU_LIMIT }),
+        "error",
+      );
+      return;
+    }
     const knowledgeId = selectedId;
     setDiscoveryKnowledgeId("");
     setSelectedCandidates(new Set());
     if (clearLinkFailures) setLinkFailures([]);
     try {
-      await discoverProducts({ variables: { sellerSku: value } });
+      await discoverProducts({ variables: { sellerSkus: values } });
       setDiscoveryKnowledgeId(knowledgeId);
     } catch (error) {
       showToast(t("common.operationFailed", { message: errorMessage(error) }), "error");
@@ -971,7 +980,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                         />
                         <button
                           className="btn btn-primary"
-                          disabled={!sellerSku.trim() || discovery.loading}
+                          disabled={splitSellerSkuInput(sellerSku).length === 0 || discovery.loading}
                           type="submit"
                         >
                           {discovery.loading
@@ -999,6 +1008,21 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                             </button>
                           ) : null}
                         </div>
+                        {/* When nothing matched and no shop failed, the no-results
+                            box below already names every searched SKU. */}
+                        {discoveryPayload.unmatchedSellerSkus.length > 0 &&
+                        (candidates.length > 0 || discoveryPayload.shopFailures.length > 0) ? (
+                          <div className="product-knowledge-unmatched-skus">
+                            <strong>
+                              {t("ecommerce.productKnowledge.unmatchedSellerSkus", {
+                                count: discoveryPayload.unmatchedSellerSkus.length,
+                              })}
+                            </strong>
+                            {discoveryPayload.unmatchedSellerSkus.map((value) => (
+                              <code key={value}>{value}</code>
+                            ))}
+                          </div>
+                        ) : null}
                         {discoveryPayload.shopFailures.length > 0 ? (
                           <div className="product-knowledge-shop-failures">
                             <strong>{t("ecommerce.productKnowledge.partialFailure")}</strong>
@@ -1096,7 +1120,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                         {candidates.length === 0 && discoveryPayload.shopFailures.length === 0 ? (
                           <p className="product-knowledge-no-results">
                             {t("ecommerce.productKnowledge.noResults", {
-                              sku: discoveryPayload.sellerSku,
+                              skus: discoveryPayload.sellerSkus.join(", "),
                             })}
                           </p>
                         ) : null}

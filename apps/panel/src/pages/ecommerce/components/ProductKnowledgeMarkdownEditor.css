@@ -1,5 +1,106 @@
 /* Media blocks inside the Product Knowledge Markdown editor. */
 
+/* Media reads as one compact row: the Markdown stores a reference, so a
+   full-bleed picture would misrepresent it and bury the surrounding text. */
+.product-knowledge-media-card {
+  margin: var(--tk-v1-space-2) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+  overflow: hidden;
+}
+
+.product-knowledge-media-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-3);
+  width: 100%;
+  padding: var(--tk-v1-space-2);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.product-knowledge-media-card-row:hover {
+  background: var(--color-bg);
+}
+
+.product-knowledge-media-card-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  overflow: hidden;
+}
+
+.product-knowledge-media-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-knowledge-media-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.product-knowledge-media-card-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.product-knowledge-media-card-meta,
+.product-knowledge-media-card-action {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.product-knowledge-media-card-action {
+  flex: 0 0 auto;
+}
+
+.product-knowledge-media-card-pending {
+  margin: var(--tk-v1-space-2) 0;
+  padding: var(--tk-v1-space-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.product-knowledge-media-card-preview {
+  padding: 0 var(--tk-v1-space-2) var(--tk-v1-space-2);
+}
+
+.product-knowledge-media-card-preview img,
+.product-knowledge-media-card-preview video {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--radius-sm);
+}
+
+/* Markdown that still holds `![](media://…)` renders through MDXEditor's own
+   image node; cap it so legacy content stays as compact as the card. */
+.product-knowledge-rich-editor-content img {
+  max-height: 160px;
+  width: auto;
+}
+
 .product-knowledge-media-editor {
   display: flex;
   flex-direction: column;
@@ -20,22 +121,6 @@
   color: var(--color-danger);
 }
 
-.product-knowledge-video {
-  display: flex;
-  flex-direction: column;
-  gap: var(--tk-v1-space-1);
-  margin: var(--tk-v1-space-3) 0;
-}
-
-.product-knowledge-video-player {
-  width: 100%;
-  max-width: 480px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-alt);
-}
-
-.product-knowledge-video-placeholder,
 .product-knowledge-unknown-directive {
   display: flex;
   align-items: center;
@@ -45,11 +130,6 @@
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-alt);
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.product-knowledge-video-caption {
   color: var(--color-text-muted);
   font-size: 12px;
 }
