@@ -39,7 +39,14 @@ export type ParsedAffiliateCreatorUpdateRow = {
   protect: boolean;
   protectionNote: string | null;
   manualTagNames: string[];
-  issue: "MISSING_CREATOR" | "INVALID_PROTECTION_ACTION" | "NOTE_WITHOUT_PROTECTION" | null;
+  /** Tags in this row that are not in the seller's manual tag catalogue. */
+  unknownManualTagNames: string[];
+  issue:
+    | "MISSING_CREATOR"
+    | "INVALID_PROTECTION_ACTION"
+    | "NOTE_WITHOUT_PROTECTION"
+    | "UNKNOWN_MANUAL_TAGS"
+    | null;
 };
 
 export type AffiliateCreatorUpdateTemplateValidation = {
@@ -74,8 +81,23 @@ export function validateAffiliateCreatorUpdateTemplate(
   };
 }
 
+/**
+ * Manual tag identity. Mirrors the backend's `normalizeCreatorManualTagName`
+ * (server/backend/src/ecommerce/affiliate/services/AffiliateCreatorManualTagService.ts)
+ * exactly, so the preview rejects the same rows the import would.
+ */
+export function normalizeCreatorManualTagName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/**
+ * Manual tags are a controlled vocabulary: the import rejects a row naming a tag
+ * that does not exist, so `manualTagCatalogNames` must be the seller's current
+ * catalogue and unknown tags become a row issue before anything is submitted.
+ */
 export function parseAffiliateCreatorUpdateRow(
   raw: Record<string, unknown>,
+  manualTagCatalogNames: readonly string[],
 ): ParsedAffiliateCreatorUpdateRow {
   const row = Object.fromEntries(Object.entries(raw).map(([key, value]) => [
     normalizeAffiliateCreatorUpdateHeader(key),
@@ -93,20 +115,26 @@ export function parseAffiliateCreatorUpdateRow(
     .forEach(([, value]) => {
       const name = cleanCell(value);
       if (!name) return;
-      const normalizedName = name.trim().toLowerCase();
+      const normalizedName = normalizeCreatorManualTagName(name);
       if (!manualTagsByNormalizedName.has(normalizedName)) manualTagsByNormalizedName.set(normalizedName, name);
     });
   const manualTagNames = [...manualTagsByNormalizedName.values()];
+  const catalog = new Set(manualTagCatalogNames.map(normalizeCreatorManualTagName));
+  const unknownManualTagNames = [...manualTagsByNormalizedName.entries()]
+    .filter(([normalizedName]) => !catalog.has(normalizedName))
+    .map(([, name]) => name);
   let issue: ParsedAffiliateCreatorUpdateRow["issue"] = null;
   if (!username) issue = "MISSING_CREATOR";
   else if (protectionAction && !protect && protectionAction !== "UNPROTECT") issue = "INVALID_PROTECTION_ACTION";
   else if (protectionNote && !protect) issue = "NOTE_WITHOUT_PROTECTION";
+  else if (unknownManualTagNames.length > 0) issue = "UNKNOWN_MANUAL_TAGS";
   return {
     username,
     businessDeveloperName,
     protect,
     protectionNote,
     manualTagNames,
+    unknownManualTagNames,
     issue,
   };
 }

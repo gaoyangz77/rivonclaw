@@ -2137,6 +2137,7 @@ export interface AffiliateCoverageDailyPoint {
 export interface AffiliateCreatorBulkUpdateItemResult {
   addedManualTagNames: Array<Scalars['String']['output']>;
   businessDeveloperChanged: Scalars['Boolean']['output'];
+  /** @deprecated Creator imports no longer create manual tags; a row naming an unknown tag is rejected. Always empty. */
   createdManualTagNames: Array<Scalars['String']['output']>;
   index: Scalars['Int']['output'];
   protectionChanged: Scalars['Boolean']['output'];
@@ -9963,6 +9964,7 @@ export interface ImportAffiliateCreatorUpdatesPayload {
   businessDevelopersChanged: Scalars['Int']['output'];
   failedCount: Scalars['Int']['output'];
   manualTagAssignmentsAdded: Scalars['Int']['output'];
+  /** @deprecated Creator imports no longer create manual tags; a row naming an unknown tag is rejected. Always 0. */
   manualTagsCreated: Scalars['Int']['output'];
   noOpCount: Scalars['Int']['output'];
   protectionsChanged: Scalars['Int']['output'];

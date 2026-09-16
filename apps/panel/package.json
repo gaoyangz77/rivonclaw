@@ -23,6 +23,7 @@
     "@rivonclaw/pixel-agents-bridge": "workspace:*",
     "@rivonclaw/scene-contract": "workspace:*",
     "emoji-picker-react": "^4.18.0",
+    "exceljs": "^4.4.0",
     "graphql": "^16.13.1",
     "i18next": "^25.8.4",
     "mobx": "^6.15.0",

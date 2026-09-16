@@ -10,6 +10,7 @@ import {
   buildAffiliateCreatorUpdateImportBatches,
   classifyAffiliateProtectionPreviewRow,
   normalizeAffiliateBusinessDeveloperName,
+  normalizeCreatorManualTagName,
   parseAffiliateCreatorUpdateRow,
   summarizeAffiliateProtectionAssignments,
   validateAffiliateCreatorUpdateTemplate,
@@ -59,31 +60,49 @@ describe("Affiliate Creator bulk update import", () => {
       add_manual_tag_1: " Long-term ",
       add_manual_tag_2: "long-term",
       add_manual_tag_7: "Fashion",
-    })).toEqual({
+    }, ["long-term", "FASHION"])).toEqual({
       username: "Alice",
       businessDeveloperName: "Regional BD",
       protect: true,
       protectionNote: "VIP relationship",
       manualTagNames: ["Long-term", "Fashion"],
+      unknownManualTagNames: [],
       issue: null,
     });
+  });
+
+  it("rejects tags outside the manual tag catalogue and lists every unknown name", () => {
+    const row = parseAffiliateCreatorUpdateRow({
+      creator_username: "alice",
+      add_manual_tag_1: " VIP ",
+      add_manual_tag_2: "Gold, tier",
+      add_manual_tag_3: "Retired",
+      add_manual_tag_4: "gold, TIER",
+    }, ["vip", "Retired"]);
+    expect(row.issue).toBe("UNKNOWN_MANUAL_TAGS");
+    expect(row.unknownManualTagNames).toEqual(["Gold, tier"]);
+    expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice", add_manual_tag_1: "VIP" }, []))
+      .toMatchObject({ issue: "UNKNOWN_MANUAL_TAGS", unknownManualTagNames: ["VIP"] });
+    // A structural problem with the row is reported first.
+    expect(parseAffiliateCreatorUpdateRow({ add_manual_tag_1: "VIP" }, []).issue).toBe("MISSING_CREATOR");
+    expect(normalizeCreatorManualTagName("  Gold Tier ")).toBe("gold tier");
   });
 
   it("rejects invalid protection actions and orphaned notes", () => {
     expect(parseAffiliateCreatorUpdateRow({
       creator_username: "alice",
       protection_action: "REMOVE",
-    }).issue).toBe("INVALID_PROTECTION_ACTION");
+    }, []).issue).toBe("INVALID_PROTECTION_ACTION");
     expect(parseAffiliateCreatorUpdateRow({
       creator_username: "alice",
       protection_note: "note",
-    }).issue).toBe("NOTE_WITHOUT_PROTECTION");
-    expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice" })).toMatchObject({
+    }, []).issue).toBe("NOTE_WITHOUT_PROTECTION");
+    expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice" }, [])).toMatchObject({
       issue: null, protect: false, businessDeveloperName: null, manualTagNames: [],
     });
     expect(parseAffiliateCreatorUpdateRow({
       creator_username: "alice", protection_action: " unprotect ",
-    })).toMatchObject({ issue: null, protect: false });
+    }, [])).toMatchObject({ issue: null, protect: false });
   });
 
   it("describes the actual import outcome instead of marking every valid row ready", () => {

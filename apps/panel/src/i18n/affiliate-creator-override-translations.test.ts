@@ -11,10 +11,13 @@ describe("Creator Excel override copy", () => {
       expect(copy.templateProtectionActionHint).toContain("UNPROTECT");
       expect(copy.templateDeveloperHint).toContain("AI Team");
       expect(copy.creatorOverrideClearBd).toContain("AI Team");
+      expect(copy.creatorUpdateUnknownManualTags).toContain("{{names}}");
       expect(locale.ecommerce.affiliateWorkspace.lifecycleEvents.RELATIONSHIP_BD_UNASSIGNED).toBeTruthy();
     }
     const en = AFFILIATE_TEAM_TRANSLATIONS.en.ecommerce.affiliateTeam;
     expect(en.templateManualTagHint).toContain("replace");
+    expect(en.templateManualTagHint).toContain("rejected");
+    expect(en.templateManualTagHint).not.toContain("created as non-sensitive");
     expect(en.templateDeveloperHint).not.toContain("no BD change");
   });
 });

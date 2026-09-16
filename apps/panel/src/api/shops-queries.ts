@@ -4689,7 +4689,6 @@ export const IMPORT_AFFILIATE_CREATOR_UPDATES_MUTATION = gql`
       failedCount
       protectionsChanged
       businessDevelopersChanged
-      manualTagsCreated
       manualTagAssignmentsAdded
       results {
         index
@@ -4697,7 +4696,6 @@ export const IMPORT_AFFILIATE_CREATOR_UPDATES_MUTATION = gql`
         reason
         protectionChanged
         businessDeveloperChanged
-        createdManualTagNames
         addedManualTagNames
       }
     }

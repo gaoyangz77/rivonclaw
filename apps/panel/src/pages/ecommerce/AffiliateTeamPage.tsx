@@ -87,6 +87,7 @@ import {
   summarizeAffiliateProtectionAssignments,
   validateAffiliateCreatorUpdateTemplate,
 } from "./affiliate-protection-import.js";
+import { buildAffiliateCreatorUpdateTemplateWorkbook } from "./affiliate-creator-update-template.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
@@ -643,16 +644,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     () => summarizeAffiliateProtectionAssignments(protectionRows),
     [protectionRows],
   );
-  const existingManualTagNames = useMemo(
-    () =>
-      new Set(
-        (creatorTagsQuery.data?.creatorManualTags ?? []).map((tag) =>
-          tag.name.trim().toLowerCase(),
-        ),
-      ),
-    [creatorTagsQuery.data?.creatorManualTags],
-  );
-  const manualTagCatalogLoaded = creatorTagsQuery.data != null;
   const archiveBlocked = Boolean(
     detailSummary &&
     detailSummary.creatorRelationshipCount +
@@ -943,7 +934,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setProtectionImportPhase("PARSING");
     setProtectionImportFileName(file.name);
     try {
-      const developerResult = await developersQuery.refetch({ includeArchived: true });
+      const [developerResult, manualTagCatalogNames] = await Promise.all([
+        developersQuery.refetch({ includeArchived: true }),
+        refetchManualTagCatalogNames(),
+      ]);
       const authoritativeDevelopers = developerResult.data?.affiliateBusinessDevelopers ?? [];
       workspace.replaceAffiliateBusinessDevelopers(authoritativeDevelopers);
       const XLSX = await import("xlsx");
@@ -972,7 +966,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       );
       const seen = new Set<string>();
       const parsed = rawRows.map((raw, index): ProtectionPreviewRow => {
-        const row = parseAffiliateCreatorUpdateRow(raw);
+        const row = parseAffiliateCreatorUpdateRow(raw, manualTagCatalogNames);
         const creatorOpenId = null;
         const username = row.username;
         const developerName = row.businessDeveloperName;
@@ -983,7 +977,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           ? activeDevelopersByName.get(normalizedDeveloperName)
           : null;
         const key = username ? `username:${username.toLowerCase()}` : "";
-        let error = creatorUpdateIssueMessage(row.issue, t);
+        let error = creatorUpdateIssueMessage(row, t);
         if (!error && seen.has(key)) error = t("ecommerce.affiliateTeam.duplicateCreator");
         if (key) seen.add(key);
         return {
@@ -1290,7 +1284,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     const invalidRowCount = rows.length - validRows.length;
     let appliedCount = 0;
     let noOpCount = 0;
-    let manualTagsCreated = 0;
     let manualTagAssignmentsAdded = 0;
     let completedCount = 0;
     setProtectionImportPhase("IMPORTING_PROTECTIONS");
@@ -1349,7 +1342,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         }
         appliedCount += payload.appliedCount;
         noOpCount += payload.noOpCount;
-        manualTagsCreated += payload.manualTagsCreated;
         manualTagAssignmentsAdded += payload.manualTagAssignmentsAdded;
         for (let index = 0; index < batch.entries.length; index += 1) {
           const item = resultByIndex.get(index)!;
@@ -1394,7 +1386,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         t("ecommerce.affiliateTeam.creatorUpdatesImported", {
           applied: appliedCount,
           noOp: noOpCount,
-          tagsCreated: manualTagsCreated,
           tagAssignments: manualTagAssignmentsAdded,
         }),
         rejectedRows.size > 0 || invalidRowCount > 0 ? "warning" : "success",
@@ -1535,58 +1526,38 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     }
   }
 
+  /**
+   * The seller's current manual tag names, read fresh from the backend. The
+   * template dropdown and the import preview both enforce this vocabulary, so a
+   * stale cache would reject a tag created moments ago or offer a deleted one.
+   */
+  async function refetchManualTagCatalogNames(): Promise<string[]> {
+    const result = await creatorTagsQuery.refetch();
+    if (!result.data) throw new Error("Creator manual tag catalogue is unavailable");
+    return result.data.creatorManualTags.map((tag) => tag.name);
+  }
+
   async function downloadTemplate() {
-    const XLSX = await import("xlsx");
-    const worksheet = XLSX.utils.aoa_to_sheet([[...CREATOR_BULK_UPDATE_TEMPLATE_HEADERS]]);
-    worksheet["!cols"] = [
-      { wch: 28 },
-      { wch: 32 },
-      { wch: 22 },
-      { wch: 42 },
-      { wch: 26 },
-      { wch: 26 },
-      { wch: 26 },
-      { wch: 26 },
-      { wch: 26 },
-    ];
-    worksheet["!autofilter"] = { ref: "A1:I1" };
-    const instructions = XLSX.utils.aoa_to_sheet([
-      [
-        t("ecommerce.affiliateTeam.templateField"),
-        t("ecommerce.affiliateTeam.templateRequirement"),
-        t("ecommerce.affiliateTeam.templateInstructions"),
-      ],
-      [
-        "creator_username",
-        t("ecommerce.affiliateTeam.templateRequired"),
-        t("ecommerce.affiliateTeam.templateIdentityHint"),
-      ],
-      [
-        "bd_name",
-        t("ecommerce.affiliateTeam.templateOptional"),
-        t("ecommerce.affiliateTeam.templateDeveloperHint"),
-      ],
-      [
-        "protection_action",
-        t("ecommerce.affiliateTeam.templateOptional"),
-        t("ecommerce.affiliateTeam.templateProtectionActionHint"),
-      ],
-      [
-        "protection_note",
-        t("ecommerce.affiliateTeam.templateOptional"),
-        t("ecommerce.affiliateTeam.templateProtectionNoteHint"),
-      ],
-      [
-        "add_manual_tag_1 … add_manual_tag_5",
-        t("ecommerce.affiliateTeam.templateOptional"),
-        t("ecommerce.affiliateTeam.templateManualTagHint"),
-      ],
-    ]);
-    instructions["!cols"] = [{ wch: 34 }, { wch: 24 }, { wch: 76 }];
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Creator updates");
-    XLSX.utils.book_append_sheet(workbook, instructions, "Instructions");
-    XLSX.writeFile(workbook, "affiliate-creator-bulk-update.xlsx");
+    try {
+      const [manualTagNames, { default: ExcelJS }] = await Promise.all([
+        refetchManualTagCatalogNames(),
+        import("exceljs"),
+      ]);
+      const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(ExcelJS, t, manualTagNames);
+      const bytes = await workbook.xlsx.writeBuffer();
+      const url = URL.createObjectURL(
+        new Blob([bytes], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+      );
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "affiliate-creator-bulk-update.xlsx";
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
   }
 
   function removeProtectionRow(rowNumber: number) {
@@ -2426,6 +2397,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   <div>
                     <strong>{t("ecommerce.affiliateTeam.protectionTemplateTitle")}</strong>
                     <p>{t("ecommerce.affiliateTeam.protectionTemplateHint")}</p>
+                    <p>
+                      {t("ecommerce.affiliateTeam.templateInstructionsSheetHint", {
+                        sheet: t("ecommerce.affiliateTeam.templateInstructionsSheetName"),
+                      })}
+                    </p>
                   </div>
                   <button
                     className="btn btn-secondary"
@@ -2891,13 +2867,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                               ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
                               : row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect") : null,
                             row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideTags") : null,
-                            ...row.manualTagNames.map((name) => {
-                              const normalizedName = name.trim().toLowerCase();
-                              return !manualTagCatalogLoaded ||
-                                existingManualTagNames.has(normalizedName)
-                                ? `#${name}`
-                                : t("ecommerce.affiliateTeam.creatorUpdateNewTag", { name });
-                            }),
+                            ...row.manualTagNames.map((name) => `#${name}`),
                           ]
                             .filter(Boolean)
                             .join(" · ") || t("ecommerce.affiliateTeam.creatorUpdateBdOnly")}
@@ -4110,16 +4080,20 @@ function ChannelWorkspaceCard({
 }
 
 function creatorUpdateIssueMessage(
-  issue: ReturnType<typeof parseAffiliateCreatorUpdateRow>["issue"],
+  row: ReturnType<typeof parseAffiliateCreatorUpdateRow>,
   t: TFunction,
 ): string | null {
-  switch (issue) {
+  switch (row.issue) {
     case "MISSING_CREATOR":
       return t("ecommerce.affiliateTeam.missingCreatorIdentity");
     case "INVALID_PROTECTION_ACTION":
       return t("ecommerce.affiliateTeam.creatorUpdateInvalidProtectionAction");
     case "NOTE_WITHOUT_PROTECTION":
       return t("ecommerce.affiliateTeam.creatorUpdateNoteWithoutProtection");
+    case "UNKNOWN_MANUAL_TAGS":
+      return t("ecommerce.affiliateTeam.creatorUpdateUnknownManualTags", {
+        names: row.unknownManualTagNames.join(", "),
+      });
     default:
       return null;
   }
