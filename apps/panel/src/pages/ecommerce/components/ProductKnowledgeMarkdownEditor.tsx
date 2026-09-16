@@ -52,6 +52,25 @@ import {
   useMediaAsset,
 } from "../hooks/useProductKnowledgeMedia.js";
 import "./ProductKnowledgeMarkdownEditor.css";
+import { looksLikeMarkdown } from "../product-knowledge-markdown-paste.js";
+import { createEditorTranslation } from "../product-knowledge-editor-translation.js";
+
+const ROOT_CONTENT_CLASS = "product-knowledge-rich-editor-content";
+
+/**
+ * Markdown-aware paste applies only to the top-level rich-text surface. Source
+ * mode is CodeMirror and must paste literally, and a table cell is a nested
+ * editor — its nearest content-editable is not the root one — where headings
+ * and lists do not belong.
+ */
+function isRootRichTextTarget(target: EventTarget | null): boolean {
+  const element = target instanceof Element
+    ? target
+    : target instanceof Node
+      ? target.parentElement
+      : null;
+  return element?.closest('[contenteditable="true"]')?.classList.contains(ROOT_CONTENT_CLASS) ?? false;
+}
 
 /**
  * Shared by the editor shell and the toolbar button MDXEditor renders inside
@@ -365,6 +384,19 @@ export function ProductKnowledgeMarkdownEditor({
     }
   }, []);
 
+  const insertMarkdownAtCursor = useCallback((markdown: string): void => {
+    const editor = editorRef.current;
+    // `insertMarkdown` is a no-op while the document has no selection, which
+    // is exactly the state after picking a file from the toolbar or dropping
+    // one onto an editor that was never focused. Focusing first keeps an
+    // existing cursor (replacing any selected text, as a paste would) and
+    // otherwise falls back to the end of the document.
+    editor?.focus(
+      () => editor.insertMarkdown(markdown),
+      { defaultSelection: "rootEnd" },
+    );
+  }, []);
+
   const insertMediaFile = useCallback(
     async (file: File): Promise<void> => {
       const rejection = describeRejection(file);
@@ -378,15 +410,7 @@ export function ProductKnowledgeMarkdownEditor({
         const uploaded = await uploadProductKnowledgeMedia(file);
         rememberMediaAsset(uploaded);
         const markdown = mediaDirectiveMarkdown(uploaded.uri, file.name);
-        const editor = editorRef.current;
-        // `insertMarkdown` is a no-op while the document has no selection, which
-        // is exactly the state after picking a file from the toolbar or dropping
-        // one onto an editor that was never focused. Focusing first keeps an
-        // existing cursor and otherwise falls back to the end of the document.
-        editor?.focus(
-          () => editor.insertMarkdown(markdown),
-          { defaultSelection: "rootEnd" },
-        );
+        insertMarkdownAtCursor(markdown);
       } catch (error) {
         setUploadError(
           error instanceof Error ? error.message : t("ecommerce.productKnowledge.mediaUploadFailed"),
@@ -395,7 +419,7 @@ export function ProductKnowledgeMarkdownEditor({
         setUploading(false);
       }
     },
-    [describeRejection, t],
+    [describeRejection, insertMarkdownAtCursor, t],
   );
 
   const mediaApi = useMemo<MediaEditorApi>(
@@ -457,9 +481,10 @@ export function ProductKnowledgeMarkdownEditor({
     editorRef.current.setMarkdown(value);
   }, [value]);
 
-  // Files are intercepted before Lexical sees the event. Without this the
-  // browser pastes a file name for a video, and an image would go in as
-  // MDXEditor's own node instead of the card.
+  // Files and Markdown text are intercepted before Lexical sees the event.
+  // Without this the browser pastes a file name for a video, an image goes in
+  // as MDXEditor's own node instead of the card, and pasted Markdown stays
+  // literal.
   useEffect(() => {
     const container = containerRef.current;
     if (!container || readOnly) return;
@@ -487,13 +512,23 @@ export function ProductKnowledgeMarkdownEditor({
     };
     const onPaste = (event: ClipboardEvent) => {
       const files = mediaFilesFrom(event.clipboardData);
-      if (files.length === 0) return;
+      if (files.length > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        void files.reduce(
+          (chain, file) => chain.then(() => insertMediaFile(file)),
+          Promise.resolve(),
+        );
+        return;
+      }
+      // Raw Markdown pasted into the rich-text view would otherwise land as
+      // literal `## ` and `- ` text; render it the way source mode would.
+      if (!isRootRichTextTarget(event.target)) return;
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (!looksLikeMarkdown(text)) return;
       event.preventDefault();
       event.stopPropagation();
-      void files.reduce(
-        (chain, file) => chain.then(() => insertMediaFile(file)),
-        Promise.resolve(),
-      );
+      insertMarkdownAtCursor(text);
     };
 
     container.addEventListener("drop", onDrop, true);
@@ -504,21 +539,9 @@ export function ProductKnowledgeMarkdownEditor({
       container.removeEventListener("dragover", onDragOver, true);
       container.removeEventListener("paste", onPaste, true);
     };
-  }, [insertMediaFile, readOnly]);
+  }, [insertMarkdownAtCursor, insertMediaFile, readOnly]);
 
-  const editorTranslations: Record<string, string> = {
-    Undo: t("ecommerce.productKnowledge.editorUndo"),
-    Redo: t("ecommerce.productKnowledge.editorRedo"),
-    "Block type": t("ecommerce.productKnowledge.editorBlockType"),
-    Bold: t("ecommerce.productKnowledge.editorBold"),
-    Italic: t("ecommerce.productKnowledge.editorItalic"),
-    "Bulleted list": t("ecommerce.productKnowledge.editorBulletedList"),
-    "Numbered list": t("ecommerce.productKnowledge.editorNumberedList"),
-    "Create link": t("ecommerce.productKnowledge.editorCreateLink"),
-    "Insert Table": t("ecommerce.productKnowledge.editorInsertTable"),
-    "Rich text": t("ecommerce.productKnowledge.editorRichText"),
-    "Source mode": t("ecommerce.productKnowledge.editorSourceMode"),
-  };
+  const translation = useMemo(() => createEditorTranslation(t), [t]);
 
   return (
     <MediaEditorContext.Provider value={mediaApi}>
@@ -526,7 +549,7 @@ export function ProductKnowledgeMarkdownEditor({
         <MDXEditor
           ref={editorRef}
           className="product-knowledge-rich-editor"
-          contentEditableClassName="product-knowledge-rich-editor-content"
+          contentEditableClassName={ROOT_CONTENT_CLASS}
           markdown={value}
           onChange={(markdown, initialMarkdownNormalize) => {
             if (!initialMarkdownNormalize) onChange(markdown);
@@ -537,7 +560,7 @@ export function ProductKnowledgeMarkdownEditor({
           spellCheck
           toMarkdownOptions={TO_MARKDOWN_OPTIONS}
           trim={false}
-          translation={(_key, defaultValue) => editorTranslations[defaultValue] ?? defaultValue}
+          translation={translation}
         />
         {uploading ? (
           <p className="product-knowledge-media-status" role="status">

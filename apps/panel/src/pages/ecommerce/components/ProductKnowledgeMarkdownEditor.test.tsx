@@ -268,6 +268,64 @@ describe("product knowledge markdown editor", () => {
     });
   });
 
+  // Pasted on an empty line, the way a merchant fills a blank section. Pasted
+  // mid-line, the first block joins the current paragraph — the same as
+  // MDXEditor's own HTML paste and ordinary word processors.
+  it("renders raw Markdown pasted into the rich-text view instead of keeping it literal", async () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <ProductKnowledgeMarkdownEditor
+        onChange={onChange}
+        placeholder=""
+        readOnly={false}
+        value={""}
+      />,
+    );
+
+    const content = await waitFor(() => {
+      const element = container.querySelector(".product-knowledge-rich-editor-content");
+      expect(element).toBeTruthy();
+      return element as HTMLElement;
+    });
+    const pasted = "## 使用方法\n\n- 每日一次\n- 饭后服用";
+    await act(async () => {
+      fireEvent.paste(content, {
+        clipboardData: {
+          files: [],
+          getData: (type: string) => (type === "text/plain" ? pasted : ""),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector("h2")?.textContent).toBe("使用方法");
+      expect([...container.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
+        "每日一次",
+        "饭后服用",
+      ]);
+      const markdown = onChange.mock.calls.at(-1)?.[0] as string | undefined;
+      expect(markdown).toContain("## 使用方法");
+      // Literal text would have been escaped on save.
+      expect(markdown).not.toContain("\\#");
+    });
+  });
+
+  it("never shows a raw translation placeholder in the toolbar", async () => {
+    const { container } = render(
+      <ProductKnowledgeMarkdownEditor onChange={() => {}} placeholder="" readOnly={false} value={""} />,
+    );
+
+    // MDXEditor puts toolbar labels on aria-label and shows them in a tooltip.
+    const labels = await waitFor(() => {
+      const values = [...container.querySelectorAll("[aria-label], [title]")].map((element) =>
+        element.getAttribute("aria-label") ?? element.getAttribute("title") ?? "",
+      );
+      expect(values.some((label) => label.startsWith("撤销"))).toBe(true);
+      return values;
+    });
+    expect(labels.filter((label) => label.includes("{{"))).toEqual([]);
+  });
+
   it("refuses an unsupported file before it reaches the media store", async () => {
     const { container } = render(
       <ProductKnowledgeMarkdownEditor
