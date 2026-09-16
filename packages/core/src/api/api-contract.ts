@@ -308,4 +308,5 @@ export function cloudRestPath(backendPath: string): string {
 
 export const CLOUD_REST = {
   "uploads.images": { method: "POST", path: cloudRestPath("/uploads/images"), desc: "Upload image to cloud temporary bucket" },
+  "uploads.media": { method: "POST", path: cloudRestPath("/uploads/media"), desc: "Upload an image or video to the durable cloud media store" },
 } as const satisfies Record<string, RouteEntry>;

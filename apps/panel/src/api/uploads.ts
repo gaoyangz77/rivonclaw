@@ -69,6 +69,88 @@ async function compressImageForUpload(file: File): Promise<File> {
   return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
 }
 
+/**
+ * Durable media asset stored by the cloud media store. Markdown never stores
+ * `publicUrl` — only `uri` (`media://<assetId>`), which stays valid when the
+ * object-storage URL rotates or the client switches to the China relay.
+ */
+export interface UploadedMediaResult {
+  assetId: string;
+  uri: string;
+  kind: "IMAGE" | "VIDEO";
+  mimeType: string;
+  sizeBytes: number;
+  width?: number | null;
+  height?: number | null;
+  publicUrl: string;
+  sha256: string;
+  deduplicated: boolean;
+}
+
+/** Mirrors the media store's accepted types; keep in sync with the backend. */
+export const MEDIA_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+export const MEDIA_VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
+export const MEDIA_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+export const MEDIA_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+
+export type MediaRejection =
+  | { reason: "unsupported-type" }
+  | { reason: "too-large"; maxBytes: number };
+
+export function isSupportedMediaVideo(file: File): boolean {
+  return (MEDIA_VIDEO_MIME_TYPES as readonly string[]).includes(file.type);
+}
+
+/**
+ * Client-side gate mirroring the media store's own limits, so an oversized or
+ * unsupported file is reported in the merchant's language instead of coming
+ * back as an opaque 400 after a long upload.
+ */
+export function checkMediaFile(file: File): MediaRejection | null {
+  const isImage = (MEDIA_IMAGE_MIME_TYPES as readonly string[]).includes(file.type);
+  const isVideo = isSupportedMediaVideo(file);
+  if (!isImage && !isVideo) return { reason: "unsupported-type" };
+  const maxBytes = isImage ? MEDIA_IMAGE_MAX_BYTES : MEDIA_VIDEO_MAX_BYTES;
+  if (file.size > maxBytes) return { reason: "too-large", maxBytes };
+  return null;
+}
+
+/**
+ * Upload one image or video to the durable media store.
+ *
+ * Unlike {@link uploadInventoryGoodImage} this does not re-encode images: the
+ * merchant is authoring reference documentation where a screenshot's text must
+ * stay legible, PNG transparency and GIF animation must survive, and the 8 MB
+ * cap is generous enough that silently degrading to JPEG would cost more than
+ * it saves. Files over the cap are refused by {@link checkMediaFile} instead.
+ */
+export async function uploadProductKnowledgeMedia(file: File): Promise<UploadedMediaResult> {
+  const body = new FormData();
+  body.append("file", file);
+
+  const res = await fetch(CLOUD_REST["uploads.media"].path, {
+    method: "POST",
+    body,
+  });
+
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent("rivonclaw:auth-expired"));
+    throw new Error("Authentication required");
+  }
+  if (!res.ok) {
+    let message = `Media upload failed: ${res.status} ${res.statusText}`;
+    try {
+      const json = await res.json() as { error?: string };
+      if (json.error) message = json.error;
+    } catch {
+      // Non-JSON response.
+    }
+    throw new Error(message);
+  }
+
+  return await res.json() as UploadedMediaResult;
+}
+
 export async function uploadInventoryGoodImage(file: File): Promise<UploadedImageResult> {
   const uploadFile = await compressImageForUpload(file);
   const body = new FormData();

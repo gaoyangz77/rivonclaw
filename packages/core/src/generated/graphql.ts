@@ -5230,6 +5230,44 @@ export interface AgentCsSettingsInput {
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
 }
 
+/** One Product Knowledge record as returned to an Agent. In list results the three Markdown fields are null and bindings/media are empty; the per-section character counts are always populated. */
+export interface AgentProductKnowledgeItem {
+  /** Number of products bound to this record. */
+  bindingCount: Scalars['Int']['output'];
+  /** The bound products. Empty in list results. */
+  bindings: Array<ProductKnowledgeBinding>;
+  /** Stored length of creativeCasesMarkdown; 0 means empty. */
+  creativeCasesCharacterCount: Scalars['Int']['output'];
+  /** Null in list results. Read one record to obtain the content. */
+  creativeCasesMarkdown?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  /** Every media:// asset referenced by the Markdown, one entry per (uri, section). Empty in list results. */
+  media: Array<ProductKnowledgeMedia>;
+  name: Scalars['String']['output'];
+  /** Stored length of qaMarkdown; 0 means empty. */
+  qaCharacterCount: Scalars['Int']['output'];
+  /** Null in list results. Read one record to obtain the content. */
+  qaMarkdown?: Maybe<Scalars['String']['output']>;
+  /** Pass this value back as expectedRevision when writing this record. */
+  revision: Scalars['Int']['output'];
+  status: ProductKnowledgeStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  /** Stored length of usageInstructionsMarkdown; 0 means empty. */
+  usageInstructionsCharacterCount: Scalars['Int']['output'];
+  /** Null in list results. Read one record to obtain the content. */
+  usageInstructionsMarkdown?: Maybe<Scalars['String']['output']>;
+}
+
+/** Product Knowledge read result. A detail read returns exactly one item with its Markdown populated; a list read returns summaries. */
+export interface AgentProductKnowledgePage {
+  /** True when the items carry their Markdown content, false for a summary list. */
+  detail: Scalars['Boolean']['output'];
+  items: Array<AgentProductKnowledgeItem>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+}
+
 export interface AgentUnpaidOrderConfigExperimentInput {
   enabled: Scalars['Boolean']['input'];
   expectedExperimentId?: InputMaybe<Scalars['String']['input']>;
@@ -9851,6 +9889,7 @@ export interface ImageAsset {
   extension: Scalars['String']['output'];
   height?: Maybe<Scalars['Int']['output']>;
   id: Scalars['ID']['output'];
+  kind: MediaAssetKind;
   linkedEntityId?: Maybe<Scalars['String']['output']>;
   linkedEntityType?: Maybe<Scalars['String']['output']>;
   mimeType: Scalars['String']['output'];
@@ -10418,6 +10457,27 @@ export interface MeResponse {
   userId: Scalars['String']['output'];
 }
 
+/** Whether a user media asset is an image or a video */
+export const MediaAssetKind = {
+  Image: 'IMAGE',
+  Video: 'VIDEO'
+} as const;
+
+export type MediaAssetKind = typeof MediaAssetKind[keyof typeof MediaAssetKind];
+/** A user media asset resolved from its stable media:// URI */
+export interface MediaAssetRef {
+  assetId: Scalars['ID']['output'];
+  height?: Maybe<Scalars['Int']['output']>;
+  kind: MediaAssetKind;
+  mimeType: Scalars['String']['output'];
+  /** Anonymous-readable URL of the object in the permanent bucket */
+  publicUrl: Scalars['String']['output'];
+  sizeBytes: Scalars['Int']['output'];
+  /** Stable identifier, media://<assetId> */
+  uri: Scalars['String']['output'];
+  width?: Maybe<Scalars['Int']['output']>;
+}
+
 /** Cached proxy URL for an external media object */
 export interface MediaCachedProxy {
   canonicalUrl: Scalars['String']['output'];
@@ -10672,6 +10732,8 @@ export interface Mutation {
   ecommerceSendMessage: CustomerServiceSendMessageResult;
   /** Enable or disable AI automation for one backend-materialized CS conversation. */
   ecommerceSetCustomerServiceConversationAiEnabled: CustomerServiceConversationInboxItem;
+  /** Create or edit merchant Product Knowledge (agent-facing, flat params) */
+  ecommerceSetProductKnowledge: SetProductKnowledgePayload;
   ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   ecommerceUpdateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
@@ -10854,6 +10916,8 @@ export interface Mutation {
   webRefresh: WebAuthPayload;
   /** Register in a browser and store the rotating refresh token in an HttpOnly cookie */
   webRegister: WebAuthPayload;
+  /** Register with a verified email and store the rotating refresh token in an HttpOnly cookie */
+  webRegisterVerified: WebAuthPayload;
   /** Create or update an account role */
   writeAccountRole: AccountRoleType;
   /** Create or update an affiliate approval interception policy. */
@@ -11447,6 +11511,19 @@ export interface MutationEcommerceSetCustomerServiceConversationAiEnabledArgs {
 }
 
 
+export interface MutationEcommerceSetProductKnowledgeArgs {
+  bindProducts?: InputMaybe<Array<ProductKnowledgeProductReferenceInput>>;
+  creativeCasesMarkdown?: InputMaybe<Scalars['String']['input']>;
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  qaMarkdown?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<ProductKnowledgeStatus>;
+  unbindProducts?: InputMaybe<Array<ProductKnowledgeProductReferenceInput>>;
+  usageInstructionsMarkdown?: InputMaybe<Scalars['String']['input']>;
+}
+
+
 export interface MutationEcommerceStartCsUnpaidOrderConfigExperimentArgs {
   expectedRunningExperimentId?: InputMaybe<Scalars['ID']['input']>;
   experimentId: Scalars['ID']['input'];
@@ -11981,6 +12058,11 @@ export interface MutationWebLoginArgs {
 
 
 export interface MutationWebRegisterArgs {
+  input: RegisterInput;
+}
+
+
+export interface MutationWebRegisterVerifiedArgs {
   input: WebRegisterInput;
 }
 
@@ -12360,6 +12442,8 @@ export interface ProductKnowledgeBinding {
 export interface ProductKnowledgeContent {
   creativeCasesMarkdown: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  /** Every media:// asset referenced by the three Markdown fields, one entry per (uri, section) in order of first appearance. */
+  media: Array<ProductKnowledgeMedia>;
   name: Scalars['String']['output'];
   qaMarkdown: Scalars['String']['output'];
   revision: Scalars['Int']['output'];
@@ -12374,6 +12458,19 @@ export interface ProductKnowledgeLinkFailure {
   message: Scalars['String']['output'];
   productId: Scalars['String']['output'];
   shopId: Scalars['ID']['output'];
+}
+
+/** A media:// asset referenced from one Product Knowledge Markdown field */
+export interface ProductKnowledgeMedia {
+  height?: Maybe<Scalars['Int']['output']>;
+  kind: MediaAssetKind;
+  mimeType: Scalars['String']['output'];
+  publicUrl: Scalars['String']['output'];
+  section: ProductKnowledgeSection;
+  sizeBytes: Scalars['Int']['output'];
+  /** Stable identifier as written in the Markdown, media://<assetId> */
+  uri: Scalars['String']['output'];
+  width?: Maybe<Scalars['Int']['output']>;
 }
 
 export interface ProductKnowledgePage {
@@ -12395,6 +12492,14 @@ export interface ProductKnowledgeProductReferenceInput {
   shopId: Scalars['ID']['input'];
 }
 
+/** Which Markdown field of a Product Knowledge record a media asset appears in */
+export const ProductKnowledgeSection = {
+  CreativeCases: 'CREATIVE_CASES',
+  Qa: 'QA',
+  UsageInstructions: 'USAGE_INSTRUCTIONS'
+} as const;
+
+export type ProductKnowledgeSection = typeof ProductKnowledgeSection[keyof typeof ProductKnowledgeSection];
 export const ProductKnowledgeStatus = {
   Active: 'ACTIVE',
   Archived: 'ARCHIVED'
@@ -12813,6 +12918,8 @@ export interface Query {
   ecommerceGetProductCategoryAttributes: EcommercePassthroughResult;
   ecommerceGetProductCategoryRules: EcommercePassthroughResult;
   ecommerceGetProductDiagnoses: EcommercePassthroughResult;
+  /** Read merchant Product Knowledge (agent-facing, flat params) */
+  ecommerceGetProductKnowledge: AgentProductKnowledgePage;
   /** Get valid reject reasons for a return or cancellation */
   ecommerceGetRejectReasons: Array<EcomRejectReason>;
   /** Get return event records (audit trail) */
@@ -12869,6 +12976,8 @@ export interface Query {
   mcpOAuthAuthorizationRequest: McpOAuthAuthorizationRequestView;
   /** Get current authenticated user profile */
   me: MeResponse;
+  /** Resolve media:// URIs owned by the authenticated user to their public URLs. Unknown, foreign, and deleted URIs are omitted. */
+  mediaAssetsByUri: Array<MediaAssetRef>;
   /** Check Microsoft Graph OAuth/webhook readiness and summarize seller Outlook subscription health. */
   microsoftGraphConnectorStatus: MicrosoftGraphConnectorStatus;
   /** Get PWA install URL (base URL without pairing code) */
@@ -13578,6 +13687,17 @@ export interface QueryEcommerceGetProductDiagnosesArgs {
 }
 
 
+export interface QueryEcommerceGetProductKnowledgeArgs {
+  id?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<ProductKnowledgeStatus>;
+}
+
+
 export interface QueryEcommerceGetRejectReasonsArgs {
   returnOrCancelId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
@@ -13771,6 +13891,11 @@ export interface QueryGetEcommerceBiDimensionValuesArgs {
 
 export interface QueryMcpOAuthAuthorizationRequestArgs {
   requestId: Scalars['String']['input'];
+}
+
+
+export interface QueryMediaAssetsByUriArgs {
+  uris: Array<Scalars['String']['input']>;
 }
 
 
@@ -14622,6 +14747,16 @@ export interface SetCreatorWhatsAppContactPayload {
   /** Where that country code came from. COLLABORATING_SHOPS means it was inferred rather than known — say so if the number is read back to the Creator. */
   creatorRegionSource: AffiliateCreatorPhoneRegionSource;
   creatorRelationship: AffiliateCreatorRelationship;
+}
+
+/** Result of one Product Knowledge write. productKnowledge is the state after every step that succeeded, so partial progress is visible here rather than inferred. */
+export interface SetProductKnowledgePayload {
+  /** Products from bindProducts that could not be bound, each with the reason and, for a product already bound elsewhere, the existing record's id. */
+  linkFailures: Array<ProductKnowledgeLinkFailure>;
+  /** The record after the write, including its new revision. */
+  productKnowledge: AgentProductKnowledgeItem;
+  /** How many bindings unbindProducts actually removed. A product that was not bound counts zero. */
+  unboundCount: Scalars['Int']['output'];
 }
 
 /** A connected e-commerce shop */
@@ -15742,6 +15877,7 @@ export const ToolId = {
   AffiliateSendCreatorMessage: 'AFFILIATE_SEND_CREATOR_MESSAGE',
   AffiliateSetCreatorEmail: 'AFFILIATE_SET_CREATOR_EMAIL',
   AffiliateSetCreatorWhatsapp: 'AFFILIATE_SET_CREATOR_WHATSAPP',
+  AffiliateStageProductMedia: 'AFFILIATE_STAGE_PRODUCT_MEDIA',
   AffiliateUploadDraftAttachment: 'AFFILIATE_UPLOAD_DRAFT_ATTACHMENT',
   CsDismissConversationEscalations: 'CS_DISMISS_CONVERSATION_ESCALATIONS',
   CsEscalate: 'CS_ESCALATE',
@@ -15805,6 +15941,7 @@ export const ToolId = {
   EcomGetProductCategoryAttributes: 'ECOM_GET_PRODUCT_CATEGORY_ATTRIBUTES',
   EcomGetProductCategoryRules: 'ECOM_GET_PRODUCT_CATEGORY_RULES',
   EcomGetProductDiagnoses: 'ECOM_GET_PRODUCT_DIAGNOSES',
+  EcomGetProductKnowledge: 'ECOM_GET_PRODUCT_KNOWLEDGE',
   EcomGetRejectReasons: 'ECOM_GET_REJECT_REASONS',
   EcomGetReturnRecords: 'ECOM_GET_RETURN_RECORDS',
   EcomGetShippingDocument: 'ECOM_GET_SHIPPING_DOCUMENT',
@@ -15830,6 +15967,7 @@ export const ToolId = {
   EcomSendCustomerServiceCard: 'ECOM_SEND_CUSTOMER_SERVICE_CARD',
   EcomSendCustomerServiceTextReply: 'ECOM_SEND_CUSTOMER_SERVICE_TEXT_REPLY',
   EcomSetCustomerServiceConversationAiEnabled: 'ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED',
+  EcomSetProductKnowledge: 'ECOM_SET_PRODUCT_KNOWLEDGE',
   EcomUpdateInventory: 'ECOM_UPDATE_INVENTORY',
   EcomUpdateOrderShippingInfo: 'ECOM_UPDATE_ORDER_SHIPPING_INFO',
   EcomUpdatePackageShippingInfo: 'ECOM_UPDATE_PACKAGE_SHIPPING_INFO',

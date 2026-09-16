@@ -419,3 +419,13 @@ export function ModuleIcon(props: IconProps) {
         </Icon>
     );
 }
+
+/** Video / film clip icon */
+export function VideoIcon(props: IconProps) {
+    return (
+        <Icon size={16} {...props}>
+            <rect x="2" y="5" width="14" height="14" rx="2" />
+            <path d="M16 10.5l5-3v9l-5-3z" />
+        </Icon>
+    );
+}

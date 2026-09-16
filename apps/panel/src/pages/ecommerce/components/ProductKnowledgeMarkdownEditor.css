@@ -1,0 +1,55 @@
+/* Media blocks inside the Product Knowledge Markdown editor. */
+
+.product-knowledge-media-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-2);
+}
+
+.product-knowledge-media-status,
+.product-knowledge-media-error {
+  margin: 0;
+  font-size: 12px;
+}
+
+.product-knowledge-media-status {
+  color: var(--color-text-muted);
+}
+
+.product-knowledge-media-error {
+  color: var(--color-danger);
+}
+
+.product-knowledge-video {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
+  margin: var(--tk-v1-space-3) 0;
+}
+
+.product-knowledge-video-player {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+}
+
+.product-knowledge-video-placeholder,
+.product-knowledge-unknown-directive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+  padding: var(--tk-v1-space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.product-knowledge-video-caption {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}

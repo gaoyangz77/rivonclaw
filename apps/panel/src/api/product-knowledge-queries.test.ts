@@ -8,7 +8,10 @@ import {
   validate,
 } from "graphql";
 import { describe, expect, it } from "vitest";
-import * as documents from "./product-knowledge-queries.js";
+import * as mediaDocuments from "./media-asset-queries.js";
+import * as productKnowledgeDocuments from "./product-knowledge-queries.js";
+
+const documents = { ...productKnowledgeDocuments, ...mediaDocuments };
 
 function isDocumentNode(value: unknown): value is DocumentNode {
   return Boolean(
