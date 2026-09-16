@@ -603,6 +603,10 @@
   --baseText: var(--color-text);
   --accentSolid: var(--color-primary);
   --accentText: var(--color-primary);
+  /* The editing area scrolls inside itself past this height instead of
+     stretching the modal: a long section would otherwise push the product
+     bindings below it off screen and scroll the toolbar away. */
+  --product-knowledge-editor-max-height: min(56vh, 560px);
   min-height: 360px;
   color: var(--color-text);
   background: var(--color-bg);
@@ -635,6 +639,21 @@
   min-height: 300px;
   color: var(--color-text);
   background: var(--color-bg);
+}
+
+.product-knowledge-rich-editor .mdxeditor-root-contenteditable {
+  max-height: var(--product-knowledge-editor-max-height);
+  overflow-y: auto;
+}
+
+/* Markdown source mode is CodeMirror: bound its editor and let its own
+   scroller scroll, so it keeps rendering only the visible lines. */
+.product-knowledge-rich-editor .mdxeditor-source-editor .cm-editor {
+  max-height: var(--product-knowledge-editor-max-height);
+}
+
+.product-knowledge-rich-editor .mdxeditor-source-editor .cm-scroller {
+  overflow-y: auto;
 }
 
 .product-knowledge-rich-editor-content {
