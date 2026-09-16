@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.18",
+    "date": "2026-09-16",
+    "en": [
+      "Download a Creator bulk-update template that explains every column in a hover note and on a localized Instructions sheet with examples",
+      "Guard the template with dropdowns: protection accepts only Protect or Unprotect, and manual tag columns accept only the seller's own tags"
+    ],
+    "zh": [
+      "下载达人批量更新模板时，每一列表头都有本地化的悬停说明，另附带示例的本地化说明工作表",
+      "模板加入下拉校验：保护操作只能选择保护或取消保护，手动标签列只能从卖家自己的标签中选择"
+    ]
+  },
+  {
     "version": "1.9.17",
     "date": "2026-09-16",
     "en": [
