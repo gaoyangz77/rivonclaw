@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.19",
+    "date": "2026-09-20",
+    "en": [
+      "Filter every Affiliate workbench queue by a local-time preset or custom date range, with all time remaining the default",
+      "Show the requested SKU on sample applications, add seller relationship notes, and complete tool labels across all supported languages"
+    ],
+    "zh": [
+      "达人联盟工作台的每个队列均可按本地时区预设或自定义日期范围筛选，默认仍为全部时间",
+      "样品申请中显示达人所选 SKU，新增卖家关系备注，并补全所有支持语言的工具标签"
+    ]
+  },
+  {
     "version": "1.9.18",
     "date": "2026-09-16",
     "en": [
