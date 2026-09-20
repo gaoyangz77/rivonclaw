@@ -218,10 +218,14 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
 });
 
 /**
- * The variant a Creator actually applied for, shown beside the product rather
- * than in place of it: the product cover stays the card's main image, and this
- * row carries its own small thumbnail so "the product" and "the variant they
- * asked for" never collapse into one picture.
+ * The variant a Creator applied for, as one more fact about this product rather
+ * than a panel of its own.
+ *
+ * It sits flat in the product's own meta stack, under the price row: the SKU
+ * describes the product the card is already showing, so boxing it separately
+ * detached the variant from the name it belongs to. It carries no image either
+ * — the variant's own picture is a near-duplicate of the cover directly beside
+ * it, and two pictures of one product read as two products.
  */
 const AppliedForSkuRow = observer(function AppliedForSkuRow({
   appliedForSku,
@@ -233,47 +237,31 @@ const AppliedForSkuRow = observer(function AppliedForSkuRow({
   const { t } = useTranslation();
   if (!appliedForSku) return null;
   const variantName = trimmedOrNull(appliedForSku.skuName);
-  const imageUrl = trimmedOrNull(appliedForSku.skuImageUrl);
   const sellerSku = resolveAppliedForSellerSku(appliedForSku, product);
   // A row with a label and nothing else would read as "we know the SKU" while
   // showing none of it.
-  if (!variantName && !imageUrl && !sellerSku) return null;
+  if (!variantName && !sellerSku) return null;
 
   return (
     <div className="affiliate-product-applied-sku">
       <span className="affiliate-product-applied-sku-label">
         {t("ecommerce.productCard.appliedSku")}
       </span>
-      <div className="affiliate-product-applied-sku-body">
-        {imageUrl ? (
-          <RemoteMediaImage
-            alt=""
-            className="affiliate-product-applied-sku-thumb"
-            loading="lazy"
-            sensitive
-            sourceUrl={imageUrl}
-          />
-        ) : null}
-        {variantName || sellerSku ? (
-          <div className="affiliate-product-applied-sku-text">
-            {variantName ? (
-              <TkPrivate as="span" className="affiliate-product-applied-sku-name" sensitive>
-                {variantName}
-              </TkPrivate>
-            ) : null}
-            {sellerSku ? (
-              <span className="affiliate-product-applied-sku-code">
-                <span className="affiliate-product-applied-sku-code-label">
-                  {t("ecommerce.productCard.appliedSkuSellerCode")}
-                </span>
-                <TkPrivate as="strong" sensitive>
-                  {sellerSku}
-                </TkPrivate>
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      {variantName ? (
+        <TkPrivate as="span" className="affiliate-product-applied-sku-name" sensitive>
+          {variantName}
+        </TkPrivate>
+      ) : null}
+      {sellerSku ? (
+        <span className="affiliate-product-applied-sku-code">
+          <span className="affiliate-product-applied-sku-code-label">
+            {t("ecommerce.productCard.appliedSkuSellerCode")}
+          </span>
+          <TkPrivate as="strong" sensitive>
+            {sellerSku}
+          </TkPrivate>
+        </span>
+      ) : null}
     </div>
   );
 });

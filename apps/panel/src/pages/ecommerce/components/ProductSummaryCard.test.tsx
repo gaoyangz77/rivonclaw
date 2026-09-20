@@ -107,7 +107,9 @@ describe("applied SKU on the product summary card", () => {
     expect(container.querySelector(".affiliate-product-applied-sku")).toBeNull();
   });
 
-  it("keeps the product cover as the card's main image and the SKU image as its own thumbnail", () => {
+  it("shows one image for one product: the cover, never a second SKU picture", () => {
+    // The variant's own picture is a near-duplicate of the cover beside it, and
+    // two pictures of one product read as two products.
     const { container } = renderCard({
       product: productSummary([{ skuId: "sku-applied", sellerSku: "NECK-8MM-26IN" }]),
       appliedForSku: {
@@ -118,33 +120,20 @@ describe("applied SKU on the product summary card", () => {
     });
 
     expect(container.querySelector(".affiliate-product-thumb")).toBeTruthy();
-    expect(container.querySelector(".affiliate-product-applied-sku-thumb")).toBeTruthy();
+    expect(container.querySelector(".affiliate-product-applied-sku-thumb")).toBeNull();
+    const painted = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
+    expect(painted).not.toContain(SKU_IMAGE_URL);
   });
 
-  it("routes the SKU image through RemoteMediaImage instead of a bare img src", () => {
-    // Mainland-China sellers cannot reach the platform CDN: the raw URL is
-    // resolved to a cached copy at render time, so it must never be painted
-    // directly.
-    const source = readFileSync(
-      resolve(process.cwd(), "src/pages/ecommerce/components/ProductSummaryCard.tsx"),
-      "utf8",
-    );
-    const remoteMediaBlocks = source.match(/<RemoteMediaImage[\s\S]*?\/>/g) ?? [];
-    const skuImageBlock = remoteMediaBlocks.find((block) => block.includes("sourceUrl={imageUrl}"));
-
-    expect(skuImageBlock, "the applied-SKU image is not a RemoteMediaImage").toBeDefined();
-    expect(skuImageBlock).toContain("affiliate-product-applied-sku-thumb");
-    expect(skuImageBlock).toContain("sensitive");
-    // `cachePolicy` is left at its default `auto`, as for the product cover.
-    expect(skuImageBlock).not.toContain("cachePolicy");
-
+  it("sits inside the product body, not in a panel of its own", () => {
+    // The SKU describes the product the card already shows, so it belongs in
+    // that product's own meta stack rather than boxed away from its name.
     const { container } = renderCard({
-      appliedForSku: { skuId: null, skuName: "8 mm, 26 inches", skuImageUrl: SKU_IMAGE_URL },
+      product: productSummary([{ skuId: "sku-applied", sellerSku: "NECK-8MM-26IN" }]),
+      appliedForSku: { skuId: "sku-applied", skuName: "8 mm, 26 inches", skuImageUrl: null },
     });
-    const thumb = container.querySelector<HTMLImageElement>(
-      ".affiliate-product-applied-sku-thumb",
-    );
-    expect(thumb).toBeTruthy();
-    expect(thumb?.getAttribute("src")).toBeNull();
+
+    const row = container.querySelector(".affiliate-product-applied-sku");
+    expect(row?.closest(".affiliate-product-body")).toBeTruthy();
   });
 });
