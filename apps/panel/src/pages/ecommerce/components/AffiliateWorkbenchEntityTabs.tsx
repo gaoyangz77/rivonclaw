@@ -28,6 +28,14 @@ import {
   type ProductFilterValue,
 } from "../../../components/ecommerce/ProductFilter.js";
 import { WorkbenchCreatorSearch } from "./WorkbenchCreatorSearch.js";
+import { AffiliateWorkbenchTimeFilter } from "./AffiliateWorkbenchTimeFilter.js";
+import {
+  ALL_TIME_WORKBENCH_FILTER,
+  affiliateWorkbenchTimeBounds,
+  affiliateWorkbenchTimeFilterKey,
+  affiliateWorkbenchTimeSelection,
+  type AffiliateWorkbenchTimeFilter as AffiliateWorkbenchTimeFilterValue,
+} from "../affiliate-workbench-time-filter.js";
 import { creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
 import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
@@ -195,6 +203,15 @@ function AffiliateWorkbenchSampleList({
    * never replay the in-flight cursor.
    */
   const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
+  /** Application time, so this queue filters `firstObservedAt`. */
+  const [timeFilter, setTimeFilter] =
+    useState<AffiliateWorkbenchTimeFilterValue>(ALL_TIME_WORKBENCH_FILTER);
+  const timeSelection = affiliateWorkbenchTimeSelection(timeFilter);
+  const timeBounds = affiliateWorkbenchTimeBounds(timeSelection);
+  const firstObservedAtGe = timeBounds?.geIso ?? null;
+  const firstObservedAtLt = timeBounds?.ltIso ?? null;
+  const timeArgs =
+    firstObservedAtGe && firstObservedAtLt ? { firstObservedAtGe, firstObservedAtLt } : {};
   const [productSelection, setProductSelection] = useState<{
     scope: string;
     values: ProductFilterValue[];
@@ -206,6 +223,7 @@ function AffiliateWorkbenchSampleList({
     protection,
     disposition,
     sortOrder,
+    affiliateWorkbenchTimeFilterKey(timeSelection),
     selectedShopId,
     selectedBusinessDeveloperId,
   ]);
@@ -233,6 +251,7 @@ function AffiliateWorkbenchSampleList({
         sortOrder,
         ...(creatorSearch ? { creatorSearch } : {}),
         ...(products.length ? { products } : {}),
+        ...timeArgs,
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -269,6 +288,9 @@ function AffiliateWorkbenchSampleList({
           sortOrder,
           ...(creatorSearch ? { creatorSearch } : {}),
           ...(products.length ? { products } : {}),
+          ...(firstObservedAtGe && firstObservedAtLt
+            ? { firstObservedAtGe, firstObservedAtLt }
+            : {}),
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -293,6 +315,8 @@ function AffiliateWorkbenchSampleList({
     disposition,
     fetchMore,
     filterKey,
+    firstObservedAtGe,
+    firstObservedAtLt,
     protection,
     hasMore,
     nextCursor,
@@ -396,6 +420,11 @@ function AffiliateWorkbenchSampleList({
               onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
             />
           </div>
+          <AffiliateWorkbenchTimeFilter
+            value={timeFilter}
+            onChange={setTimeFilter}
+            selection={timeSelection}
+          />
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
             <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
@@ -665,11 +694,20 @@ function AffiliateWorkbenchMessageList({
    * never replay the in-flight cursor.
    */
   const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
+  /** Waiting time, so this queue filters `lastPendingAt`. */
+  const [timeFilter, setTimeFilter] =
+    useState<AffiliateWorkbenchTimeFilterValue>(ALL_TIME_WORKBENCH_FILTER);
+  const timeSelection = affiliateWorkbenchTimeSelection(timeFilter);
+  const timeBounds = affiliateWorkbenchTimeBounds(timeSelection);
+  const lastPendingAtGe = timeBounds?.geIso ?? null;
+  const lastPendingAtLt = timeBounds?.ltIso ?? null;
+  const timeArgs = lastPendingAtGe && lastPendingAtLt ? { lastPendingAtGe, lastPendingAtLt } : {};
   const filterKey = workbenchFilterKey([
     creatorSearch,
     protection,
     channel,
     sortOrder,
+    affiliateWorkbenchTimeFilterKey(timeSelection),
     queryShopId,
     selectedBusinessDeveloperId,
   ]);
@@ -695,6 +733,7 @@ function AffiliateWorkbenchMessageList({
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
         sortOrder,
+        ...timeArgs,
         limit: PAGE_SIZE,
         cursor: null,
       },
@@ -730,6 +769,7 @@ function AffiliateWorkbenchMessageList({
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
           sortOrder,
+          ...(lastPendingAtGe && lastPendingAtLt ? { lastPendingAtGe, lastPendingAtLt } : {}),
           limit: PAGE_SIZE,
           cursor: nextCursor,
         },
@@ -753,6 +793,8 @@ function AffiliateWorkbenchMessageList({
     creatorSearch,
     fetchMore,
     filterKey,
+    lastPendingAtGe,
+    lastPendingAtLt,
     protection,
     hasMore,
     nextCursor,
@@ -824,6 +866,14 @@ function AffiliateWorkbenchMessageList({
                 </button>
               ))}
             </div>
+            {/*
+             * The chip counts describe the whole pending queue and ignore every
+             * filter on this row, the time range included. Said plainly here so
+             * a filtered list beside a much larger count does not read as a bug.
+             */}
+            <span className="affiliate-workbench-filter-note">
+              {t("ecommerce.affiliateWorkspace.workbench.queueCountsHint")}
+            </span>
           </div>
           {platformChannelActive ? (
             <TkChoiceSelect
@@ -843,6 +893,11 @@ function AffiliateWorkbenchMessageList({
             label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
             searchable
             searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
+          />
+          <AffiliateWorkbenchTimeFilter
+            value={timeFilter}
+            onChange={setTimeFilter}
+            selection={timeSelection}
           />
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />

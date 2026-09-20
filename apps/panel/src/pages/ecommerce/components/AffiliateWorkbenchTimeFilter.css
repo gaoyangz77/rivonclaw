@@ -1,0 +1,32 @@
+/*
+ * CSS ownership: the workbench time-range control, imported by
+ * AffiliateWorkbenchTimeFilter.tsx. Only the control's internal geometry lives
+ * here; where the control sits inside a host toolbar is that toolbar's rule.
+ */
+
+.affiliate-workbench-time-filter {
+  display: flex;
+  align-items: end;
+  gap: var(--tk-v1-space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.affiliate-workbench-time-preset {
+  flex: 0 1 160px;
+  width: 160px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+ * Wide enough for a native `mm/dd/yyyy` field plus its picker glyph; the shell
+ * itself already carries the shared control height, so the pair lines up with
+ * the selects beside them.
+ */
+.affiliate-workbench-time-date {
+  flex: 0 1 168px;
+  width: 168px;
+  min-width: 0;
+  max-width: 100%;
+}

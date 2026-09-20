@@ -132,6 +132,14 @@ import {
   AffiliateWorkbenchEntityTabs,
   type AffiliateWorkbenchEntityOpenTarget,
 } from "./components/AffiliateWorkbenchEntityTabs.js";
+import { AffiliateWorkbenchTimeFilter } from "./components/AffiliateWorkbenchTimeFilter.js";
+import {
+  ALL_TIME_WORKBENCH_FILTER,
+  affiliateWorkbenchTimeBounds,
+  affiliateWorkbenchTimeFilterKey,
+  affiliateWorkbenchTimeSelection,
+  type AffiliateWorkbenchTimeFilter as AffiliateWorkbenchTimeFilterValue,
+} from "./affiliate-workbench-time-filter.js";
 import { ProductSummaryCard, formatProductSummaryPrice } from "./components/ProductSummaryCard.js";
 import {
   AffiliateContextInspector,
@@ -507,6 +515,12 @@ export function affiliateProposalPageQueryKey(filters: {
   businessDeveloperId?: string | null;
   status?: GQL.ActionProposalStatus;
   type?: GQL.ActionProposalType;
+  /**
+   * `affiliateWorkbenchTimeFilterKey` of the active range. A backend cursor is
+   * bound to the range that minted it and is rejected outright when replayed
+   * under another, so the range keys the buffer like every other filter.
+   */
+  timeRange?: string | null;
 }): string {
   return JSON.stringify([
     filters.userId ?? "",
@@ -514,6 +528,7 @@ export function affiliateProposalPageQueryKey(filters: {
     filters.businessDeveloperId ?? "",
     filters.status ?? "ALL",
     filters.type ?? "ALL",
+    filters.timeRange ?? "",
   ]);
 }
 
@@ -983,6 +998,23 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
+  /**
+   * One range for the three Agent-work tabs: pending review, all Agent work and
+   * escalations all filter their own `createdAt`, so a single control serves
+   * them and the selection survives a tab switch.
+   */
+  const [agentWorkTimeFilter, setAgentWorkTimeFilter] =
+    useState<AffiliateWorkbenchTimeFilterValue>(ALL_TIME_WORKBENCH_FILTER);
+  const agentWorkTimeSelection = affiliateWorkbenchTimeSelection(agentWorkTimeFilter);
+  const agentWorkTimeBounds = affiliateWorkbenchTimeBounds(agentWorkTimeSelection);
+  // Primitives, so the memoized `loadMoreProposals` can depend on the range
+  // itself rather than on a fresh object literal it would never see change.
+  const agentWorkCreatedAtGe = agentWorkTimeBounds?.geIso ?? null;
+  const agentWorkCreatedAtLt = agentWorkTimeBounds?.ltIso ?? null;
+  const agentWorkTimeArgs = agentWorkTimeBounds
+    ? { createdAtGe: agentWorkTimeBounds.geIso, createdAtLt: agentWorkTimeBounds.ltIso }
+    : {};
+  const agentWorkTimeRangeKey = affiliateWorkbenchTimeFilterKey(agentWorkTimeSelection);
   const [escalationOffset, setEscalationOffset] = useState(0);
   const [selectedEscalation, setSelectedEscalation] = useState<AffiliateEscalationPanelRow | null>(
     null,
@@ -1075,6 +1107,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
     businessDeveloperId: selectedBusinessDeveloperId,
     status: proposalStatus,
     type: proposalType,
+    timeRange: agentWorkTimeRangeKey,
   });
   // The "all Agent work" view is a paged table; the pending view keeps its
   // load-more stream. Only the paged view carries a cursor stack, and a filter
@@ -1124,6 +1157,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
           businessDeveloperId: selectedBusinessDeveloperId || null,
           status: proposalStatus,
           type: proposalType,
+          ...agentWorkTimeArgs,
           limit: proposalPageRequest.limit,
           cursor: proposalPageRequest.cursor,
         },
@@ -1144,6 +1178,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
         status: "OPEN",
         businessDeveloperId: selectedBusinessDeveloperId || null,
         search: attentionSearch.trim() || null,
+        ...agentWorkTimeArgs,
         offset: escalationOffset,
         limit: AFFILIATE_ESCALATION_PAGE_SIZE,
       },
@@ -1155,7 +1190,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
 
   useEffect(() => {
     setEscalationOffset(0);
-  }, [attentionSearch, selectedBusinessDeveloperId]);
+  }, [agentWorkTimeRangeKey, attentionSearch, selectedBusinessDeveloperId]);
 
   useEffect(() => {
     const totalCount = escalationData?.affiliateEscalationPage.totalCount;
@@ -1219,6 +1254,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
             businessDeveloperId: selectedBusinessDeveloperId || null,
             status: proposalStatus,
             type: proposalType,
+            ...(agentWorkCreatedAtGe && agentWorkCreatedAtLt
+              ? { createdAtGe: agentWorkCreatedAtGe, createdAtLt: agentWorkCreatedAtLt }
+              : {}),
             limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
             cursor: proposalCursor,
           },
@@ -1241,6 +1279,8 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
       setLoadingMoreProposalQueryKey((current) => (current === requestQueryKey ? null : current));
     }
   }, [
+    agentWorkCreatedAtGe,
+    agentWorkCreatedAtLt,
     entityStore.affiliateWorkspace,
     fetchMoreProposals,
     hasMoreProposals,
@@ -1557,6 +1597,11 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
                 value={attentionSearch}
                 onChange={(event) => setAttentionSearch(event.target.value)}
                 placeholder={t("ecommerce.affiliateWorkspace.searchPlaceholder")}
+              />
+              <AffiliateWorkbenchTimeFilter
+                value={agentWorkTimeFilter}
+                onChange={setAgentWorkTimeFilter}
+                selection={agentWorkTimeSelection}
               />
             </div>
             <TkButton

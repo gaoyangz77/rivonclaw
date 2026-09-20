@@ -74,6 +74,16 @@
   gap: var(--tk-v1-space-2);
 }
 
+/*
+ * The toolbar is a fixed-column grid whose templates differ per tab and per
+ * breakpoint. The time range takes a row of its own instead of a column, so it
+ * keeps the same geometry under every one of them — and so the custom date
+ * inputs have room to appear without reflowing the filters above.
+ */
+.affiliate-attention-toolbar > .affiliate-workbench-time-filter {
+  grid-column: 1 / -1;
+}
+
 .tk-v1-workbench .tk-v1-field {
   gap: 5px;
 }

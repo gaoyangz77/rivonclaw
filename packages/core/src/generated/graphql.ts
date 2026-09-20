@@ -2780,6 +2780,10 @@ export interface AffiliateEscalationPage {
 
 export interface AffiliateEscalationPageInput {
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  /** Keep only escalations raised at or after this instant (createdAt). Omit for no lower bound. totalCount follows the range because it drives offset pagination. */
+  createdAtGe?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Keep only escalations raised strictly before this instant (createdAt). The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
+  createdAtLt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
@@ -5089,6 +5093,10 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
   creatorSearch?: InputMaybe<Scalars['String']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
+  /** Keep only conversations whose latest unanswered message (lastPendingAt) is at or after this instant. This is when the conversation started waiting for a reply, not when every message in it arrived. Omit for no lower bound. Queue counts continue to describe the whole queue. */
+  lastPendingAtGe?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Keep only conversations whose latest unanswered message (lastPendingAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
+  lastPendingAtLt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
   protected?: InputMaybe<Scalars['Boolean']['input']>;
@@ -5143,6 +5151,10 @@ export interface AffiliateWorkbenchSamplePageInput {
   /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
   creatorSearch?: InputMaybe<Scalars['String']['input']>;
   cursor?: InputMaybe<Scalars['String']['input']>;
+  /** Keep only Sample Applications whose application time (firstObservedAt) is at or after this instant. Omit for no lower bound. Queue counts continue to describe the whole queue. */
+  firstObservedAtGe?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Keep only Sample Applications whose application time (firstObservedAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
+  firstObservedAtLt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Match any selected shop/product pair. Omit or pass an empty list for all products. Maximum 100 pairs. */
   products?: InputMaybe<Array<AffiliateWorkbenchProductFilterInput>>;
@@ -14096,6 +14108,10 @@ export interface ReadActionProposalsInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   /** Filter work by the Business Developer assignment frozen on the proposal. */
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  /** Keep only proposals whose proposal time (createdAt) is at or after this instant. Omit for no lower bound. */
+  createdAtGe?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Keep only proposals whose proposal time (createdAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
+  createdAtLt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   /** Opaque cursor returned by affiliateActionProposalPage. Cursors are scoped to the current filters. */

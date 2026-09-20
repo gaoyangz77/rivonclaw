@@ -53,6 +53,16 @@
   min-height: var(--tk-v1-control-default);
 }
 
+/*
+ * Says what a count in this group actually counts. Sized like the design
+ * system's field support text so it reads as guidance, not as a value.
+ */
+.affiliate-workbench-filter-note {
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .affiliate-workbench-entity-summary {
   flex-basis: 100%;
   color: var(--tk-v1-fg-muted);
