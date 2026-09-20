@@ -2280,4 +2280,15 @@ describe("creator tag catalog wiring", () => {
     expect(page).not.toContain("onUpdateTier");
     expect(page).not.toContain("setSampleTier");
   });
+
+  it("edits seller-maintained UID and notes without touching operational state", () => {
+    const creatorDetail = page.slice(
+      page.indexOf("export function CreatorRelationshipDetailModal"),
+      page.indexOf("function CreatorProfilePanel"),
+    );
+    expect(creatorDetail).toContain("UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION");
+    expect(creatorDetail).toContain('saveSellerMetadata("sellerProvidedUid"');
+    expect(creatorDetail).toContain('saveSellerMetadata("sellerNote"');
+    expect(creatorDetail).not.toContain("operationalConfigRevision:");
+  });
 });

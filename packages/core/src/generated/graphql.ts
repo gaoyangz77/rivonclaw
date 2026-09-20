@@ -2142,6 +2142,7 @@ export interface AffiliateCreatorBulkUpdateItemResult {
   index: Scalars['Int']['output'];
   protectionChanged: Scalars['Boolean']['output'];
   reason?: Maybe<Scalars['String']['output']>;
+  sellerMetadataChanged: Scalars['Boolean']['output'];
   status: AffiliateCreatorBulkUpdateStatus;
 }
 
@@ -2563,6 +2564,9 @@ export interface AffiliateCreatorRelationship {
   /** The manual tags named by manualTagIds, resolved to their current catalog rows. */
   manualTags: Array<CreatorManualTag>;
   operationalConfigRevision: Scalars['Int']['output'];
+  sellerNote?: Maybe<Scalars['String']['output']>;
+  /** Seller-maintained UID note; not a provider identity key. */
+  sellerProvidedUid?: Maybe<Scalars['String']['output']>;
   shopStates: Array<AffiliateCreatorRelationshipShopState>;
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
   /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
@@ -2599,6 +2603,12 @@ export interface AffiliateCreatorRelationshipDetailPayload {
   performance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   protection?: Maybe<AffiliateCreatorProtection>;
   shopActivitySummaries: Array<AffiliateCreatorRelationshipShopActivitySummary>;
+}
+
+export interface AffiliateCreatorRelationshipSellerMetadataPayload {
+  creatorRelationshipId: Scalars['ID']['output'];
+  sellerNote?: Maybe<Scalars['String']['output']>;
+  sellerProvidedUid?: Maybe<Scalars['String']['output']>;
 }
 
 /** Canonical contact and business activity summary for one shop in a CreatorRelationship. */
@@ -9969,6 +9979,8 @@ export interface ImportAffiliateCreatorUpdateEntryInput {
   platform: ShopPlatform;
   protect?: InputMaybe<Scalars['Boolean']['input']>;
   protectionNote?: InputMaybe<Scalars['String']['input']>;
+  sellerNote?: InputMaybe<Scalars['String']['input']>;
+  sellerProvidedUid?: InputMaybe<Scalars['String']['input']>;
   username?: InputMaybe<Scalars['String']['input']>;
 }
 
@@ -10909,6 +10921,7 @@ export interface Mutation {
   /** Update a member account */
   updateAccountMember: AccountMember;
   updateAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
+  updateAffiliateCreatorRelationshipSellerMetadata: AffiliateCreatorRelationshipSellerMetadataPayload;
   /** Patch a TikTok Target Collaboration without clearing unspecified Provider fields. */
   updateAffiliateTargetCollaboration: UpdateAffiliateTargetCollaborationPayload;
   updateExpertMessage: ExpertMessage;
@@ -12009,6 +12022,11 @@ export interface MutationUpdateAccountMemberArgs {
 
 export interface MutationUpdateAffiliateCreatorChannelContactArgs {
   input: UpdateAffiliateCreatorChannelContactInput;
+}
+
+
+export interface MutationUpdateAffiliateCreatorRelationshipSellerMetadataArgs {
+  input: UpdateAffiliateCreatorRelationshipSellerMetadataInput;
 }
 
 
@@ -16184,6 +16202,12 @@ export interface UpdateAffiliateCreatorChannelContactInput {
   customAlias?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCreatorChannelContactStatus>;
+}
+
+export interface UpdateAffiliateCreatorRelationshipSellerMetadataInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  sellerNote?: InputMaybe<Scalars['String']['input']>;
+  sellerProvidedUid?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface UpdateAffiliateTargetCollaborationInput {

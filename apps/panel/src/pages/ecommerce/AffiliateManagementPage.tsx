@@ -94,6 +94,7 @@ import {
   AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY,
   AFFILIATE_PRODUCT_SUMMARIES_QUERY,
   ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
+  UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION,
   CREATOR_MANUAL_TAGS_QUERY,
   CREATE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
@@ -10207,6 +10208,16 @@ function CreatorRelationshipDetailContent({
   }, [refetchRelationshipDetail]);
   const relationshipDetail = relationshipDetailData?.affiliateCreatorRelationshipDetail ?? null;
   const relationship = relationshipDetail?.creatorRelationship ?? item?.creatorRelation ?? null;
+  const [sellerUidEditing, setSellerUidEditing] = useState(false);
+  const [sellerUidDraft, setSellerUidDraft] = useState(relationship?.sellerProvidedUid ?? "");
+  const [sellerNoteEditing, setSellerNoteEditing] = useState(false);
+  const [sellerNoteDraft, setSellerNoteDraft] = useState(relationship?.sellerNote ?? "");
+  useEffect(() => {
+    setSellerUidEditing(false);
+    setSellerUidDraft(relationship?.sellerProvidedUid ?? "");
+    setSellerNoteEditing(false);
+    setSellerNoteDraft(relationship?.sellerNote ?? "");
+  }, [relationshipId, relationship?.sellerProvidedUid, relationship?.sellerNote]);
   const cooperationProgressTier = scopeShopId
     ? relationship?.shopStates.find((state) => state.shopId === scopeShopId)?.sampleTier
     : (relationship?.highestSampleTier ??
@@ -10278,6 +10289,9 @@ function CreatorRelationshipDetailContent({
   }, [affiliateWorkspace, developerData]);
   const [assignDeveloper, assignDeveloperState] = useMutation(
     ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
+  );
+  const [updateSellerMetadata, updateSellerMetadataState] = useMutation(
+    UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION,
   );
   const [protectRelationship, protectRelationshipState] = useMutation(
     PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
@@ -11036,6 +11050,24 @@ function CreatorRelationshipDetailContent({
     }
   }
 
+  async function saveSellerMetadata(
+    field: "sellerProvidedUid" | "sellerNote",
+    value: string,
+  ): Promise<void> {
+    if (!relationshipId || updateSellerMetadataState.loading) return;
+    try {
+      await updateSellerMetadata({
+        variables: { input: { creatorRelationshipId: relationshipId, [field]: value.trim() || null } },
+      });
+      await refetchRelationshipDetail();
+      if (field === "sellerProvidedUid") setSellerUidEditing(false);
+      else setSellerNoteEditing(false);
+      showToast(t("ecommerce.affiliateWorkspace.sellerMetadataSaved"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
   function toggleRelationshipProtection(): void {
     if (!relationshipId || ownershipBusy) return;
     setPendingOwnershipConfirmation({ kind: "PROTECTION" });
@@ -11127,6 +11159,47 @@ function CreatorRelationshipDetailContent({
                   {t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}
                 </span>
                 <CreatorPlatformId handle={handle} platformId={platformId} />
+                <div className="affiliate-relationship-seller-uid">
+                  <span>{t("ecommerce.affiliateWorkspace.sellerProvidedUid")}</span>
+                  {sellerUidEditing ? (
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void saveSellerMetadata("sellerProvidedUid", sellerUidDraft);
+                      }}
+                    >
+                      <input
+                        className="affiliate-relationship-seller-uid-input"
+                        value={sellerUidDraft}
+                        onChange={(event) => setSellerUidDraft(event.target.value)}
+                        maxLength={128}
+                        autoFocus
+                        aria-label={t("ecommerce.affiliateWorkspace.sellerProvidedUid")}
+                      />
+                      <button className="btn btn-primary btn-sm" type="submit" disabled={updateSellerMetadataState.loading}>
+                        {t("common.save")}
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        type="button"
+                        onClick={() => {
+                          setSellerUidDraft(relationship?.sellerProvidedUid ?? "");
+                          setSellerUidEditing(false);
+                        }}
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    </form>
+                  ) : (
+                    <button
+                      className="affiliate-relationship-seller-uid-value"
+                      type="button"
+                      onClick={() => setSellerUidEditing(true)}
+                    >
+                      {relationship?.sellerProvidedUid || t("ecommerce.affiliateWorkspace.addSellerProvidedUid")}
+                    </button>
+                  )}
+                </div>
                 {relationshipId ? <SystemIdCopy value={relationshipId} /> : null}
               </div>
             </div>
@@ -11277,6 +11350,60 @@ function CreatorRelationshipDetailContent({
                     })}
                   </small>
                 ) : null}
+              </section>
+            ) : null}
+            {contextInspectorSection === "management" && relationshipId ? (
+              <section className="affiliate-relationship-work-side-card affiliate-relationship-seller-note-card">
+                <div className="affiliate-relationship-work-side-card-head">
+                  <span>{t("ecommerce.affiliateWorkspace.sellerNote")}</span>
+                  {!sellerNoteEditing ? (
+                    <button
+                      className="affiliate-inline-link-button"
+                      type="button"
+                      onClick={() => setSellerNoteEditing(true)}
+                    >
+                      {relationship?.sellerNote ? t("common.edit") : t("common.add")}
+                    </button>
+                  ) : null}
+                </div>
+                {sellerNoteEditing ? (
+                  <div className="affiliate-relationship-seller-note-editor">
+                    <textarea
+                      value={sellerNoteDraft}
+                      onChange={(event) => setSellerNoteDraft(event.target.value)}
+                      maxLength={5000}
+                      rows={6}
+                      placeholder={t("ecommerce.affiliateWorkspace.sellerNotePlaceholder")}
+                    />
+                    <div>
+                      <span>{sellerNoteDraft.length}/5000</span>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        type="button"
+                        onClick={() => {
+                          setSellerNoteDraft(relationship?.sellerNote ?? "");
+                          setSellerNoteEditing(false);
+                        }}
+                      >
+                        {t("common.cancel")}
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        type="button"
+                        disabled={updateSellerMetadataState.loading}
+                        onClick={() => void saveSellerMetadata("sellerNote", sellerNoteDraft)}
+                      >
+                        {t("common.save")}
+                      </button>
+                    </div>
+                  </div>
+                ) : relationship?.sellerNote ? (
+                  <p className="affiliate-relationship-seller-note-text">{relationship.sellerNote}</p>
+                ) : (
+                  <p className="affiliate-relationship-seller-note-empty">
+                    {t("ecommerce.affiliateWorkspace.sellerNoteEmpty")}
+                  </p>
+                )}
               </section>
             ) : null}
             {contextInspectorSection === "management" && relationshipId ? (

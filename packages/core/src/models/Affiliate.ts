@@ -62,6 +62,8 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   userId: types.optional(types.string, ""),
   creatorId: types.string,
   businessDeveloperId: types.maybeNull(types.string),
+  sellerProvidedUid: types.maybeNull(types.string),
+  sellerNote: types.maybeNull(types.string),
   operationalConfigRevision: types.optional(types.number, 1),
   /** Seller-scoped manual tags on the relationship itself. Never shop-scoped. */
   manualTagIds: types.optional(types.array(types.string), []),

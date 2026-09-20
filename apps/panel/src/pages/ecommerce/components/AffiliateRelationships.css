@@ -2973,52 +2973,6 @@
   white-space: nowrap;
 }
 
-.affiliate-relationship-seller-note-editor {
-  display: grid;
-  gap: 8px;
-}
-
-.affiliate-relationship-seller-note-editor textarea {
-  width: 100%;
-  min-height: 112px;
-  resize: vertical;
-  padding: 9px 10px;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--tk-v1-radius-2);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
-  line-height: 1.5;
-}
-
-.affiliate-relationship-seller-note-editor textarea:focus {
-  border-color: var(--color-primary);
-  outline: 2px solid color-mix(in srgb, var(--color-primary) 16%, transparent);
-}
-
-.affiliate-relationship-seller-note-editor > div {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
-}
-
-.affiliate-relationship-seller-note-editor > div > span,
-.affiliate-relationship-seller-note-empty {
-  margin: 0 auto 0 0;
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.affiliate-relationship-seller-note-text {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
 .affiliate-relationship-work-side-meta {
   display: flex;
   flex-wrap: wrap;

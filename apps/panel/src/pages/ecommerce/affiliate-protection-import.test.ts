@@ -42,7 +42,7 @@ describe("Affiliate Creator bulk update import", () => {
     ]).valid).toBe(true);
     expect(validateAffiliateCreatorUpdateTemplate(["creator_username", "bd_name"])).toEqual({
       valid: false,
-      missingHeaders: ["protection_action", "protection_note", "add_manual_tag_1"],
+      missingHeaders: ["creator_uid_note", "creator_note", "protection_action", "protection_note", "add_manual_tag_1"],
       unsupportedHeaders: [],
     });
     expect(validateAffiliateCreatorUpdateTemplate([
@@ -57,6 +57,8 @@ describe("Affiliate Creator bulk update import", () => {
       bd_name: " Regional BD ",
       protection_action: " protect ",
       protection_note: "VIP relationship",
+      creator_uid_note: "6905667682868806661",
+      creator_note: "Priority partner",
       add_manual_tag_1: " Long-term ",
       add_manual_tag_2: "long-term",
       add_manual_tag_7: "Fashion",
@@ -65,10 +67,23 @@ describe("Affiliate Creator bulk update import", () => {
       businessDeveloperName: "Regional BD",
       protect: true,
       protectionNote: "VIP relationship",
+      sellerProvidedUid: "6905667682868806661",
+      sellerNote: "Priority partner",
       manualTagNames: ["Long-term", "Fashion"],
       unknownManualTagNames: [],
       issue: null,
     });
+  });
+
+  it("preserves UID text and rejects numeric spreadsheet cells", () => {
+    expect(parseAffiliateCreatorUpdateRow({
+      creator_username: "alice",
+      creator_uid_note: "6905667682868806661",
+    }, [])).toMatchObject({ sellerProvidedUid: "6905667682868806661", issue: null });
+    expect(parseAffiliateCreatorUpdateRow({
+      creator_username: "alice",
+      creator_uid_note: 6905667682868807000,
+    }, []).issue).toBe("UID_MUST_BE_TEXT");
   });
 
   it("rejects tags outside the manual tag catalogue and lists every unknown name", () => {

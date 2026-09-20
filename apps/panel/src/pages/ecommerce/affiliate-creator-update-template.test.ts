@@ -16,7 +16,7 @@ import {
 type Locale = keyof typeof AFFILIATE_TEAM_TRANSLATIONS;
 
 const LOCALES = Object.keys(AFFILIATE_TEAM_TRANSLATIONS) as Locale[];
-const MANUAL_TAG_COLUMNS = ["E", "F", "G", "H", "I"];
+const MANUAL_TAG_COLUMNS = ["G", "H", "I", "J", "K"];
 // Includes a sensitive tag and a name with a comma, which an inline list would split.
 const TAG_NAMES = ["VIP", "Blacklisted (sensitive)", "Gold, tier"];
 
@@ -83,6 +83,16 @@ function readWithImporter(bytes: Uint8Array) {
 }
 
 describe("Creator bulk-update template", () => {
+  it("formats the seller UID column as text before customers enter long IDs", async () => {
+    const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(
+      ExcelJS,
+      await translatorFor("en"),
+      [],
+    );
+    const sheet = workbook.getWorksheet(AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME)!;
+    expect(sheet.getColumn(2).numFmt).toBe("@");
+  });
+
   for (const locale of LOCALES) {
     const copy = AFFILIATE_TEAM_TRANSLATIONS[locale].ecommerce.affiliateTeam;
 
@@ -94,10 +104,12 @@ describe("Creator bulk-update template", () => {
         expect(cell.v).toBe(header);
         const note = cell.c?.[0]?.t ?? "";
         const expected = header === "creator_username" ? copy.templateIdentityHint
-          : header === "bd_name" ? copy.templateDeveloperHint
-            : header === "protection_action" ? copy.templateProtectionActionHint
-              : header === "protection_note" ? copy.templateProtectionNoteHint
-                : copy.templateManualTagHint;
+          : header === "creator_uid_note" ? copy.templateCreatorUidHint
+            : header === "creator_note" ? copy.templateCreatorNoteHint
+              : header === "bd_name" ? copy.templateDeveloperHint
+                : header === "protection_action" ? copy.templateProtectionActionHint
+                  : header === "protection_note" ? copy.templateProtectionNoteHint
+                    : copy.templateManualTagHint;
         expect(note).toContain(header);
         expect(note).toContain(expected);
       });
@@ -122,7 +134,7 @@ describe("Creator bulk-update template", () => {
 
     it(`restricts protection_action to PROTECT or UNPROTECT, blank allowed, in ${locale}`, async () => {
       const validations = validationsBySqref(await templateBytes(locale, TAG_NAMES));
-      expect(validations.get("C2:C10001")).toEqual({
+      expect(validations.get("E2:E10001")).toEqual({
         type: "list",
         allowBlank: "1",
         showErrorMessage: "1",
@@ -200,6 +212,8 @@ describe("Creator bulk-update template", () => {
       ]);
       const exampleByField = new Map(guide.slice(1).map((row) => [row[0], row[3]]));
       expect(exampleByField.get("creator_username")).toBe("@creatorname");
+      expect(exampleByField.get("creator_uid_note")).toBe("6905667682868806661");
+      expect(exampleByField.get("creator_note")).toBe(copy.templateCreatorNoteExample);
       expect(exampleByField.get("bd_name")).toBe(copy.templateDeveloperExample);
       expect(exampleByField.get("protection_action")).toBe("PROTECT");
       expect(exampleByField.get("protection_note")).toBe(copy.templateProtectionNoteExample);

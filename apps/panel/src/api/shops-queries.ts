@@ -2909,6 +2909,8 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
       creatorRelationship {
         id
         creatorId
+        sellerProvidedUid
+        sellerNote
         activeSampleApplicationRecordIds
         businessDeveloperId
         operationalConfigRevision
@@ -4723,6 +4725,7 @@ export const IMPORT_AFFILIATE_CREATOR_UPDATES_MUTATION = gql`
         reason
         protectionChanged
         businessDeveloperChanged
+        sellerMetadataChanged
         addedManualTagNames
       }
     }
@@ -4746,6 +4749,18 @@ export const ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
       businessDeveloperId
       operationalConfigRevision
       updatedAt
+    }
+  }
+`;
+
+export const UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION = gql`
+  mutation UpdateAffiliateCreatorRelationshipSellerMetadata(
+    $input: UpdateAffiliateCreatorRelationshipSellerMetadataInput!
+  ) {
+    updateAffiliateCreatorRelationshipSellerMetadata(input: $input) {
+      creatorRelationshipId
+      sellerProvidedUid
+      sellerNote
     }
   }
 `;

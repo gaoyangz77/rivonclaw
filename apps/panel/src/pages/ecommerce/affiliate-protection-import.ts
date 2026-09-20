@@ -6,6 +6,8 @@ export const AFFILIATE_DEVELOPER_PROVISION_MAX_ENTRIES = 100;
 
 export const AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS = [
   "creator_username",
+  "creator_uid_note",
+  "creator_note",
   "bd_name",
   "protection_action",
   "protection_note",
@@ -18,6 +20,8 @@ export const AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS = [
 
 const REQUIRED_CREATOR_UPDATE_HEADERS = [
   "creator_username",
+  "creator_uid_note",
+  "creator_note",
   "bd_name",
   "protection_action",
   "protection_note",
@@ -35,6 +39,8 @@ export type AffiliateCreatorUpdateImportBatch = {
 
 export type ParsedAffiliateCreatorUpdateRow = {
   username: string | null;
+  sellerProvidedUid: string | null;
+  sellerNote: string | null;
   businessDeveloperName: string | null;
   protect: boolean;
   protectionNote: string | null;
@@ -45,6 +51,7 @@ export type ParsedAffiliateCreatorUpdateRow = {
     | "MISSING_CREATOR"
     | "INVALID_PROTECTION_ACTION"
     | "NOTE_WITHOUT_PROTECTION"
+    | "UID_MUST_BE_TEXT"
     | "UNKNOWN_MANUAL_TAGS"
     | null;
 };
@@ -70,7 +77,14 @@ export function validateAffiliateCreatorUpdateTemplate(
   const headers = rawHeaders.map(normalizeAffiliateCreatorUpdateHeader).filter(Boolean);
   const headerSet = new Set(headers);
   const missingHeaders = REQUIRED_CREATOR_UPDATE_HEADERS.filter((header) => !headerSet.has(header));
-  const supported = new Set(["creator_username", "bd_name", "protection_action", "protection_note"]);
+  const supported = new Set([
+    "creator_username",
+    "creator_uid_note",
+    "creator_note",
+    "bd_name",
+    "protection_action",
+    "protection_note",
+  ]);
   const unsupportedHeaders = headers.filter((header) => (
     !supported.has(header) && !MANUAL_TAG_HEADER_PATTERN.test(header)
   ));
@@ -104,6 +118,8 @@ export function parseAffiliateCreatorUpdateRow(
     value,
   ]));
   const username = cleanCell(row.creator_username)?.replace(/^@/u, "") || null;
+  const sellerProvidedUid = cleanCell(row.creator_uid_note);
+  const sellerNote = cleanCell(row.creator_note);
   const businessDeveloperName = cleanCell(row.bd_name);
   const protectionAction = cleanCell(row.protection_action)?.toUpperCase() ?? "";
   const protect = protectionAction === "PROTECT";
@@ -125,11 +141,14 @@ export function parseAffiliateCreatorUpdateRow(
     .map(([, name]) => name);
   let issue: ParsedAffiliateCreatorUpdateRow["issue"] = null;
   if (!username) issue = "MISSING_CREATOR";
+  else if (typeof row.creator_uid_note === "number") issue = "UID_MUST_BE_TEXT";
   else if (protectionAction && !protect && protectionAction !== "UNPROTECT") issue = "INVALID_PROTECTION_ACTION";
   else if (protectionNote && !protect) issue = "NOTE_WITHOUT_PROTECTION";
   else if (unknownManualTagNames.length > 0) issue = "UNKNOWN_MANUAL_TAGS";
   return {
     username,
+    sellerProvidedUid,
+    sellerNote,
     businessDeveloperName,
     protect,
     protectionNote,

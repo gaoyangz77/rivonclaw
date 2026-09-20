@@ -57,6 +57,18 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
       example: "@creatorname",
     },
     {
+      field: "creator_uid_note",
+      requirement: optional,
+      hint: t("ecommerce.affiliateTeam.templateCreatorUidHint"),
+      example: "6905667682868806661",
+    },
+    {
+      field: "creator_note",
+      requirement: optional,
+      hint: t("ecommerce.affiliateTeam.templateCreatorNoteHint"),
+      example: t("ecommerce.affiliateTeam.templateCreatorNoteExample"),
+    },
+    {
       field: "bd_name",
       requirement: optional,
       hint: t("ecommerce.affiliateTeam.templateDeveloperHint"),
@@ -99,7 +111,7 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
       texts: [{ font: { bold: true }, text: `${header}\n` }, { text: note }],
     };
   });
-  const widths = [28, 32, 22, 42, 26, 26, 26, 26, 26];
+  const widths = [28, 28, 48, 32, 22, 42, 26, 26, 26, 26, 26];
   widths.forEach((width, index) => {
     data.getColumn(index + 1).width = width;
   });
@@ -107,6 +119,8 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
     from: { row: 1, column: 1 },
     to: { row: 1, column: AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.length },
   };
+  const sellerUidColumn = AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.indexOf("creator_uid_note") + 1;
+  data.getColumn(sellerUidColumn).numFmt = "@";
 
   const instructions = workbook.addWorksheet(
     t("ecommerce.affiliateTeam.templateInstructionsSheetName"),

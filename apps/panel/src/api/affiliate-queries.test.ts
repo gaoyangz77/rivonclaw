@@ -229,6 +229,8 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(detail).toContain("agendaItems");
     expect(detail).toContain("activeSampleApplicationCount");
     expect(detail).toContain("activeSampleApplicationRecordIds");
+    expect(detail).toContain("sellerProvidedUid");
+    expect(detail).toContain("sellerNote");
     expect(detail).toContain("activePlatformCollaborationCount");
     expect(samples).toContain("affiliateRelationshipSampleApplications");
     expect(samples).toContain("platformApplicationId");

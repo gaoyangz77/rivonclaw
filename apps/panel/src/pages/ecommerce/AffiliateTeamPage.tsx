@@ -147,6 +147,8 @@ type ProtectionPreviewRow = {
   platform: GQL.ShopPlatform;
   creatorOpenId: string | null;
   username: string | null;
+  sellerProvidedUid: string | null;
+  sellerNote: string | null;
   businessDeveloperId: string | null;
   businessDeveloperName: string | null;
   protect: boolean;
@@ -986,6 +988,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           platform: GQL.ShopPlatform.TiktokShop,
           creatorOpenId,
           username,
+          sellerProvidedUid: row.sellerProvidedUid,
+          sellerNote: row.sellerNote,
           businessDeveloperId: developer?.id ?? null,
           businessDeveloperName: developerName,
           protect: row.protect,
@@ -1057,6 +1061,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         platform: GQL.ShopPlatform.TiktokShop,
         creatorOpenId: null,
         username: identity,
+        sellerProvidedUid: null,
+        sellerNote: null,
         businessDeveloperId: developer?.id ?? null,
         businessDeveloperName: developer?.displayName ?? null,
         protect: true,
@@ -1265,6 +1271,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       platform: row.platform,
       creatorOpenId: row.creatorOpenId,
       username: row.username,
+      sellerProvidedUid: row.sellerProvidedUid,
+      sellerNote: row.sellerNote,
       businessDeveloperId: row.businessDeveloperId,
       overwrite: row.overwrite === true,
       protect: row.protect,
@@ -2863,6 +2871,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                           ? t("ecommerce.affiliateTeam.creatorOverrideClearBd") : "—")}</td>
                         <td className="affiliate-creator-update-actions">
                           {[
+                            row.sellerProvidedUid
+                              ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: ${row.sellerProvidedUid}`
+                              : row.overwrite
+                                ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: —`
+                                : null,
+                            row.sellerNote
+                              ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: ${row.sellerNote}`
+                              : row.overwrite
+                                ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: —`
+                                : null,
                             row.protect
                               ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
                               : row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect") : null,
@@ -4090,6 +4108,8 @@ function creatorUpdateIssueMessage(
       return t("ecommerce.affiliateTeam.creatorUpdateInvalidProtectionAction");
     case "NOTE_WITHOUT_PROTECTION":
       return t("ecommerce.affiliateTeam.creatorUpdateNoteWithoutProtection");
+    case "UID_MUST_BE_TEXT":
+      return t("ecommerce.affiliateTeam.creatorUidMustBeText");
     case "UNKNOWN_MANUAL_TAGS":
       return t("ecommerce.affiliateTeam.creatorUpdateUnknownManualTags", {
         names: row.unknownManualTagNames.join(", "),
