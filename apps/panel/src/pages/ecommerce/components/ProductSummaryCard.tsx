@@ -244,32 +244,36 @@ const AppliedForSkuRow = observer(function AppliedForSkuRow({
       <span className="affiliate-product-applied-sku-label">
         {t("ecommerce.productCard.appliedSku")}
       </span>
-      {imageUrl ? (
-        <RemoteMediaImage
-          alt=""
-          className="affiliate-product-applied-sku-thumb"
-          loading="lazy"
-          sensitive
-          sourceUrl={imageUrl}
-        />
-      ) : null}
-      {variantName || sellerSku ? (
-        <div className="affiliate-product-applied-sku-text">
-          {variantName ? (
-            <TkPrivate as="span" className="affiliate-product-applied-sku-name" sensitive>
-              {variantName}
-            </TkPrivate>
-          ) : null}
-          {sellerSku ? (
-            <span className="affiliate-product-applied-sku-code">
-              <span>{t("ecommerce.productCard.appliedSkuSellerCode")}</span>
-              <TkPrivate as="strong" sensitive>
-                {sellerSku}
+      <div className="affiliate-product-applied-sku-body">
+        {imageUrl ? (
+          <RemoteMediaImage
+            alt=""
+            className="affiliate-product-applied-sku-thumb"
+            loading="lazy"
+            sensitive
+            sourceUrl={imageUrl}
+          />
+        ) : null}
+        {variantName || sellerSku ? (
+          <div className="affiliate-product-applied-sku-text">
+            {variantName ? (
+              <TkPrivate as="span" className="affiliate-product-applied-sku-name" sensitive>
+                {variantName}
               </TkPrivate>
-            </span>
-          ) : null}
-        </div>
-      ) : null}
+            ) : null}
+            {sellerSku ? (
+              <span className="affiliate-product-applied-sku-code">
+                <span className="affiliate-product-applied-sku-code-label">
+                  {t("ecommerce.productCard.appliedSkuSellerCode")}
+                </span>
+                <TkPrivate as="strong" sensitive>
+                  {sellerSku}
+                </TkPrivate>
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 });

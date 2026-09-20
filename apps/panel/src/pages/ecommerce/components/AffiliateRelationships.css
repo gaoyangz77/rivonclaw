@@ -1544,45 +1544,68 @@
 
 /* The variant a Creator applied for. Sits below the product facts with its own
    small thumbnail, so the card's main image stays the product cover. */
+/*
+ * A caption over a two-column body, not one long inline row. The variant name
+ * and the seller's code are different facts about the same SKU, so they stack
+ * as their own lines beside the thumbnail.
+ *
+ * Every inner rule is written as a descendant of the block on purpose. This
+ * block renders inside `.affiliate-collaboration-sample-card`, whose blanket
+ * `... span { display: block; margin-bottom: 4px; font-size: 11px; ... }` rule
+ * outranks a bare class and would otherwise turn each span into its own line
+ * with a forced size and colour — which is exactly how the label and its value
+ * ended up on separate rows. Two classes beat one class plus a type selector,
+ * so these win without `!important`.
+ */
 .affiliate-product-applied-sku {
   display: flex;
   min-width: 0;
-  align-items: center;
-  gap: var(--tk-v1-space-2);
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
   padding: var(--tk-v1-space-2);
   border: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-bg) 62%, var(--color-bg-alt));
 }
 
-.affiliate-product-applied-sku-label {
-  flex: none;
+.affiliate-product-applied-sku .affiliate-product-applied-sku-label {
+  display: block;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.2;
 }
 
-.affiliate-product-applied-sku-thumb {
+.affiliate-product-applied-sku .affiliate-product-applied-sku-body {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-product-applied-sku .affiliate-product-applied-sku-thumb {
   flex: none;
   width: 34px;
   height: 34px;
+  margin: 0;
   object-fit: cover;
   border-radius: 6px;
   background: var(--color-bg);
   border: 1px solid var(--color-border-light);
 }
 
-.affiliate-product-applied-sku-text {
+.affiliate-product-applied-sku .affiliate-product-applied-sku-text {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--tk-v1-space-1) var(--tk-v1-space-2);
+  flex-direction: column;
+  gap: 2px;
 }
 
-.affiliate-product-applied-sku-name {
+.affiliate-product-applied-sku .affiliate-product-applied-sku-name {
+  display: block;
   min-width: 0;
+  margin: 0;
   color: var(--color-text);
   font-size: 13px;
   font-weight: 700;
@@ -1590,19 +1613,30 @@
   overflow-wrap: anywhere;
 }
 
-.affiliate-product-applied-sku-code {
-  display: inline-flex;
+/* Label and value keep one line together; only the value itself may wrap. */
+.affiliate-product-applied-sku .affiliate-product-applied-sku-code {
+  display: flex;
   min-width: 0;
+  margin: 0;
   align-items: baseline;
   gap: var(--tk-v1-space-1);
   color: var(--color-text-muted);
   font-size: 11px;
+  font-weight: 400;
   line-height: 1.35;
-  overflow-wrap: anywhere;
 }
 
-.affiliate-product-applied-sku-code strong {
+.affiliate-product-applied-sku .affiliate-product-applied-sku-code-label {
+  display: block;
+  flex: none;
+  margin: 0;
+}
+
+.affiliate-product-applied-sku .affiliate-product-applied-sku-code strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text);
+  font-size: 12px;
   font-weight: 700;
 }
 
