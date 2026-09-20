@@ -2866,6 +2866,8 @@ export default {
       description: "Deskripsi",
       noDescription: "Tidak ada deskripsi produk.",
       skus: "SKU",
+      appliedSku: "SKU yang diajukan",
+      appliedSkuSellerCode: "SKU penjual",
       statusLabels: {
         ACTIVATE: "Aktif",
         ALL: "Semua",

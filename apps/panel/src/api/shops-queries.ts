@@ -1486,6 +1486,9 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           creatorId
           creatorOpenId
           productId
+          skuId
+          skuName
+          skuImageUrl
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
@@ -1913,6 +1916,9 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         platformApplicationId
         creatorId
         productId
+        skuId
+        skuName
+        skuImageUrl
         sampleWorkStatus
         observedContentCount
         latestObservedContentAt
@@ -2022,6 +2028,9 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           platformApplicationId
           creatorId
           productId
+          skuId
+          skuName
+          skuImageUrl
           sampleWorkStatus
           observedContentCount
           latestObservedContentAt
@@ -2040,6 +2049,9 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           platformApplicationId
           creatorId
           productId
+          skuId
+          skuName
+          skuImageUrl
           sampleWorkStatus
           observedContentCount
           latestObservedContentAt
@@ -2192,6 +2204,9 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
         platformApplicationId
         creatorId
         productId
+        skuId
+        skuName
+        skuImageUrl
         sampleWorkStatus
         reviewDisposition
         reviewDispositionRevision
@@ -2771,6 +2786,9 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           platformApplicationId
           creatorId
           productId
+          skuId
+          skuName
+          skuImageUrl
           sampleWorkStatus
           observedContentCount
           latestObservedContentAt
@@ -2979,6 +2997,9 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         creatorId
         creatorOpenId
         productId
+        skuId
+        skuName
+        skuImageUrl
         affiliateCollaborationId
         collaborationLinkBasis
         collaborationType
@@ -3043,6 +3064,9 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         creatorId
         creatorOpenId
         productId
+        skuId
+        skuName
+        skuImageUrl
         affiliateCollaborationId
         collaborationLinkBasis
         collaborationType
@@ -3996,6 +4020,9 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       creatorId
       creatorOpenId
       productId
+      skuId
+      skuName
+      skuImageUrl
       sampleWorkStatus
       reviewDisposition
       reviewDispositionRevision

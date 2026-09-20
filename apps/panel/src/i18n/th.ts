@@ -2761,6 +2761,8 @@ export default {
       description: "คำอธิบาย",
       noDescription: "ไม่มีคำอธิบายสินค้า",
       skus: "SKU",
+      appliedSku: "SKU ที่ครีเอเตอร์ขอ",
+      appliedSkuSellerCode: "SKU ของผู้ขาย",
       statusLabels: {
         ACTIVATE: "เปิดขาย",
         ALL: "ทั้งหมด",

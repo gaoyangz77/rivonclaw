@@ -9390,6 +9390,11 @@ export function SampleApplicationSummaryCard({
           shopId={shopId ?? sampleApplication.shopId}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
           allowInlineLoad={allowProductLoad}
+          appliedForSku={{
+            skuId: sampleApplication.skuId,
+            skuName: sampleApplication.skuName,
+            skuImageUrl: sampleApplication.skuImageUrl,
+          }}
         />
       ) : null}
       <div className="affiliate-collaboration-sample-grid">

@@ -4295,6 +4295,12 @@ export interface AffiliateRelationshipSignal {
   senderRole?: Maybe<Scalars['String']['output']>;
   /** MongoDB shop ID. Used for ownership checks and desktop shop routing. */
   shopId: Scalars['ID']['output'];
+  /** SKU ID the Creator applied for, when carried by a sample event. */
+  skuId?: Maybe<Scalars['String']['output']>;
+  /** Raw platform SKU image URL when carried by a sample event. Stored unchanged; UI/media-cache resolution turns it into a MinIO URL at render time. */
+  skuImageUrl?: Maybe<Scalars['String']['output']>;
+  /** SKU name the Creator applied for, when carried by a sample event. */
+  skuName?: Maybe<Scalars['String']['output']>;
   /** System that emitted this signal. */
   source: AffiliateRelationshipSignalSource;
   /** Sample shipment tracking number when available. */
@@ -12664,6 +12670,12 @@ export interface PublishAffiliateRelationshipSignalInput {
   senderRole?: InputMaybe<Scalars['String']['input']>;
   /** MongoDB shop ID. Provide this from authenticated clients when available. */
   shopId?: InputMaybe<Scalars['ID']['input']>;
+  /** SKU ID the Creator applied for, if available. */
+  skuId?: InputMaybe<Scalars['String']['input']>;
+  /** Raw platform SKU image URL if available. Stored unchanged; UI/media-cache resolution turns it into a MinIO URL at render time. */
+  skuImageUrl?: InputMaybe<Scalars['String']['input']>;
+  /** SKU name the Creator applied for, if available. */
+  skuName?: InputMaybe<Scalars['String']['input']>;
   /** Origin of the signal. */
   source: AffiliateRelationshipSignalSource;
   /** Sample shipment tracking number when available. */
@@ -14639,6 +14651,12 @@ export interface SampleApplicationRecord {
   sampleWorkStatus: SampleWorkStatus;
   shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   shopId: Scalars['ID']['output'];
+  /** SKU ID the Creator applied for on this sample application. */
+  skuId?: Maybe<Scalars['String']['output']>;
+  /** Raw platform SKU image URL as sent by the Provider. Resolved to a MinIO URL at render time. */
+  skuImageUrl?: Maybe<Scalars['String']['output']>;
+  /** SKU name the Creator applied for, e.g. a size/length variant. */
+  skuName?: Maybe<Scalars['String']['output']>;
   trackingNumber?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];

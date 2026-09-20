@@ -3113,6 +3113,8 @@ export default {
       description: "商品描述",
       noDescription: "暂无商品描述。",
       skus: "SKU",
+      appliedSku: "达人申请的 SKU",
+      appliedSkuSellerCode: "卖家 SKU",
       statusLabels: {
         ACTIVATE: "已上架",
         ALL: "全部",

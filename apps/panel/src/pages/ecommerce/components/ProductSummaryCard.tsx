@@ -34,11 +34,27 @@ type ProductSkuRow = {
   price?: string | null;
 };
 
+/**
+ * The one SKU a Creator asked for, as carried by the request that named it (a
+ * sample application, for instance). This is not "the product's SKU" — a
+ * product has many — so only a caller that holds a request for a specific
+ * variant can supply it.
+ */
+export type AppliedForSku = {
+  /** Platform SKU id, used to look the seller's own code up in the catalog. */
+  skuId?: string | null;
+  /** Variant name the Creator picked, e.g. "8 mm, 26 inches". */
+  skuName?: string | null;
+  /** Raw platform image URL for the variant; resolved at render time. */
+  skuImageUrl?: string | null;
+};
+
 export const ProductSummaryCard = observer(function ProductSummaryCard({
   product,
   productId,
   shopId,
   label,
+  appliedForSku,
   allowInlineLoad = true,
   allowDetailOpen = true,
   variant = "embedded",
@@ -47,6 +63,7 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
   productId?: string | null;
   shopId?: string | null;
   label?: string;
+  appliedForSku?: AppliedForSku | null;
   allowInlineLoad?: boolean;
   allowDetailOpen?: boolean;
   variant?: AffiliateEntityCardVariant;
@@ -191,6 +208,7 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
             {status ? <span className="affiliate-product-status">{formatProductStatus(status, t)}</span> : null}
             <ProductPlatformIdCopy productId={productId} />
           </div>
+          <AppliedForSkuRow appliedForSku={appliedForSku} product={resolvedProduct} />
         </div>
       </article>
       {detailModal}
@@ -198,6 +216,90 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
     </>
   );
 });
+
+/**
+ * The variant a Creator actually applied for, shown beside the product rather
+ * than in place of it: the product cover stays the card's main image, and this
+ * row carries its own small thumbnail so "the product" and "the variant they
+ * asked for" never collapse into one picture.
+ */
+const AppliedForSkuRow = observer(function AppliedForSkuRow({
+  appliedForSku,
+  product,
+}: {
+  appliedForSku?: AppliedForSku | null;
+  product?: GQL.EcomProductSummary | null;
+}) {
+  const { t } = useTranslation();
+  if (!appliedForSku) return null;
+  const variantName = trimmedOrNull(appliedForSku.skuName);
+  const imageUrl = trimmedOrNull(appliedForSku.skuImageUrl);
+  const sellerSku = resolveAppliedForSellerSku(appliedForSku, product);
+  // A row with a label and nothing else would read as "we know the SKU" while
+  // showing none of it.
+  if (!variantName && !imageUrl && !sellerSku) return null;
+
+  return (
+    <div className="affiliate-product-applied-sku">
+      <span className="affiliate-product-applied-sku-label">
+        {t("ecommerce.productCard.appliedSku")}
+      </span>
+      {imageUrl ? (
+        <RemoteMediaImage
+          alt=""
+          className="affiliate-product-applied-sku-thumb"
+          loading="lazy"
+          sensitive
+          sourceUrl={imageUrl}
+        />
+      ) : null}
+      {variantName || sellerSku ? (
+        <div className="affiliate-product-applied-sku-text">
+          {variantName ? (
+            <TkPrivate as="span" className="affiliate-product-applied-sku-name" sensitive>
+              {variantName}
+            </TkPrivate>
+          ) : null}
+          {sellerSku ? (
+            <span className="affiliate-product-applied-sku-code">
+              <span>{t("ecommerce.productCard.appliedSkuSellerCode")}</span>
+              <TkPrivate as="strong" sensitive>
+                {sellerSku}
+              </TkPrivate>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
+/**
+ * The seller's own code for the applied SKU, taken from the loaded catalog.
+ *
+ * The catalog summary carries only the first 12 SKUs, so a product with a
+ * longer variant list can legitimately have no entry for the applied one. That
+ * resolves to no seller code — never to another SKU's code — and the variant
+ * name the Creator picked is shown regardless.
+ */
+export function resolveAppliedForSellerSku(
+  appliedForSku: AppliedForSku,
+  product: GQL.EcomProductSummary | null | undefined,
+): string | null {
+  const skuId = trimmedOrNull(appliedForSku.skuId);
+  if (!skuId) return null;
+  const match = (product?.skus ?? []).find((sku) => sku.skuId === skuId);
+  const sellerSku = trimmedOrNull(match?.sellerSku);
+  if (!sellerSku) return null;
+  // A summary SKU name can itself be derived from the seller SKU, which would
+  // otherwise print the same string twice under two different labels.
+  return sellerSku === trimmedOrNull(appliedForSku.skuName) ? null : sellerSku;
+}
+
+function trimmedOrNull(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
 
 const ProductDetailModal = observer(function ProductDetailModal({
   shopId,

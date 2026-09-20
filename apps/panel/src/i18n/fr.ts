@@ -2916,6 +2916,8 @@ export default {
       description: "Description",
       noDescription: "Aucune description produit disponible.",
       skus: "SKU",
+      appliedSku: "SKU demandé",
+      appliedSkuSellerCode: "SKU vendeur",
       statusLabels: {
         ACTIVATE: "Actif",
         ALL: "Tous",

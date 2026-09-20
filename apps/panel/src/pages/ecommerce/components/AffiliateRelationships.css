@@ -1542,6 +1542,70 @@
   align-items: center;
 }
 
+/* The variant a Creator applied for. Sits below the product facts with its own
+   small thumbnail, so the card's main image stays the product cover. */
+.affiliate-product-applied-sku {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg) 62%, var(--color-bg-alt));
+}
+
+.affiliate-product-applied-sku-label {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.affiliate-product-applied-sku-thumb {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+}
+
+.affiliate-product-applied-sku-text {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-2);
+}
+
+.affiliate-product-applied-sku-name {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-product-applied-sku-code {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--tk-v1-space-1);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-product-applied-sku-code strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
 .affiliate-product-price,
 .affiliate-product-status,
 .affiliate-product-muted {
