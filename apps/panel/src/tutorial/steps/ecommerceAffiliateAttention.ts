@@ -14,11 +14,12 @@ function workbenchStep(
   key: string,
   placement: TutorialStep["placement"],
   tab: Exclude<WorkbenchTab, "pending-agent">,
+  returnTab: WorkbenchTab = "pending-agent",
 ): TutorialStep {
   return {
     ...step(id, targetId, key, placement, 5000),
     prepare: () => selectWorkbenchTab(tab),
-    cleanup: () => selectWorkbenchTab("pending-agent"),
+    cleanup: () => selectWorkbenchTab(returnTab),
   }
 }
 
@@ -61,11 +62,15 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
     "top",
     "escalations",
   ),
+]
+
+export const ecommerceAffiliateManualWorkbenchSteps: TutorialStep[] = [
   workbenchStep(
     "affiliate-workbench-samples",
     "affiliate-workbench-sample-controls",
     "samples",
     "top",
+    "samples",
     "samples",
   ),
   workbenchStep(
@@ -74,5 +79,6 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
     "messages",
     "top",
     "messages",
+    "samples",
   ),
 ]

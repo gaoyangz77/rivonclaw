@@ -4,15 +4,16 @@ import { ROUTES, resolveLandingPath, FALLBACK_LANDING_PATH } from "./routes.js";
 import { canSeeRoute } from "./lib/permission-scope.js";
 
 describe("commerce navigation", () => {
-  it("keeps the Affiliate manual workspace in its task-priority order", () => {
+  it("puts Campaign and Team on the first Affiliate row, then the two workbenches", () => {
     const affiliateChildren = ROUTES
       .filter((route) => route.parentPath === "/commerce/affiliate")
       .map((route) => route.path);
 
     expect(affiliateChildren).toEqual([
       "/commerce/affiliate/campaigns",
-      "/commerce/affiliate/attention",
       "/commerce/affiliate/team",
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/manual-workbench",
       "/commerce/product-knowledge",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",
@@ -75,8 +76,9 @@ describe("permission-scope navigation", () => {
     expect(visible).toEqual([
       "/commerce/affiliate",
       "/commerce/affiliate/campaigns",
-      "/commerce/affiliate/attention",
       "/commerce/affiliate/team",
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/manual-workbench",
       "/commerce/product-knowledge",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",

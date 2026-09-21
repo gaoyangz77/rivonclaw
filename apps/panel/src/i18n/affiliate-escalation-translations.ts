@@ -1,8 +1,21 @@
 export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   en: {
+    nav: {
+      affiliateTeam: "Team & channels",
+      affiliateNeedsAttention: "Agent Workbench",
+      affiliateManualWorkbench: "Manual Workbench",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "Pending" } },
+        workbench: {
+          agentTitle: "Agent Workbench",
+          agentSubtitle:
+            "Review Action Proposals, handle Agent Escalations, and inspect all Agent work.",
+          manualTitle: "Manual Workbench",
+          manualSubtitle:
+            "Process Sample Applications and Creator messages that belong to staff.",
+          tabs: { pendingEscalations: "Pending" },
+        },
         escalations: {
           statusOpen: "Awaiting your decision",
           agentQuestion: "What the Agent is asking",
@@ -44,9 +57,20 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   zh: {
+    nav: {
+      affiliateTeam: "渠道和团队",
+      affiliateNeedsAttention: "智能体工作台",
+      affiliateManualWorkbench: "人工工作台",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "待处理" } },
+        workbench: {
+          agentTitle: "智能体工作台",
+          agentSubtitle: "审核操作提案、处理 Agent 升级事项，并查看全部 Agent 工作。",
+          manualTitle: "人工工作台",
+          manualSubtitle: "集中处理由员工负责的申样申请与达人消息。",
+          tabs: { pendingEscalations: "待处理" },
+        },
         escalations: {
           statusOpen: "等待你的决定",
           agentQuestion: "Agent 想问你的事",
@@ -87,9 +111,22 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   de: {
+    nav: {
+      affiliateTeam: "Team & Kanäle",
+      affiliateNeedsAttention: "Agent-Arbeitsbereich",
+      affiliateManualWorkbench: "Manueller Arbeitsbereich",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "Ausstehend" } },
+        workbench: {
+          agentTitle: "Agent-Arbeitsbereich",
+          agentSubtitle:
+            "Aktionsvorschläge prüfen, Agent-Eskalationen bearbeiten und alle Agent-Arbeiten einsehen.",
+          manualTitle: "Manueller Arbeitsbereich",
+          manualSubtitle:
+            "Sample-Anträge und Creator-Nachrichten bearbeiten, die Mitarbeitenden gehören.",
+          tabs: { pendingEscalations: "Ausstehend" },
+        },
         escalations: {
           statusOpen: "Wartet auf deine Entscheidung",
           agentQuestion: "Was der Agent fragt",
@@ -130,9 +167,22 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   es: {
+    nav: {
+      affiliateTeam: "Equipo y canales",
+      affiliateNeedsAttention: "Área de trabajo del Agent",
+      affiliateManualWorkbench: "Área de trabajo manual",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "Pendiente" } },
+        workbench: {
+          agentTitle: "Área de trabajo del Agent",
+          agentSubtitle:
+            "Revisa propuestas de acción, gestiona escalaciones y consulta todo el trabajo del Agent.",
+          manualTitle: "Área de trabajo manual",
+          manualSubtitle:
+            "Procesa solicitudes de muestras y mensajes de creadores asignados al personal.",
+          tabs: { pendingEscalations: "Pendiente" },
+        },
         escalations: {
           statusOpen: "Esperando tu decisión",
           agentQuestion: "Lo que pregunta el Agente",
@@ -173,9 +223,22 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   fr: {
+    nav: {
+      affiliateTeam: "Équipe et canaux",
+      affiliateNeedsAttention: "Espace de travail Agent",
+      affiliateManualWorkbench: "Espace de travail manuel",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "À traiter" } },
+        workbench: {
+          agentTitle: "Espace de travail Agent",
+          agentSubtitle:
+            "Vérifiez les propositions d’action, traitez les escalades et consultez tout le travail de l’Agent.",
+          manualTitle: "Espace de travail manuel",
+          manualSubtitle:
+            "Traitez les demandes d’échantillons et les messages de créateurs confiés à l’équipe.",
+          tabs: { pendingEscalations: "À traiter" },
+        },
         escalations: {
           statusOpen: "En attente de votre décision",
           agentQuestion: "Ce que l'Agent demande",
@@ -216,9 +279,22 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   id: {
+    nav: {
+      affiliateTeam: "Tim & kanal",
+      affiliateNeedsAttention: "Ruang kerja Agent",
+      affiliateManualWorkbench: "Ruang kerja manual",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "Perlu ditangani" } },
+        workbench: {
+          agentTitle: "Ruang kerja Agent",
+          agentSubtitle:
+            "Tinjau proposal tindakan, tangani eskalasi, dan periksa semua pekerjaan Agent.",
+          manualTitle: "Ruang kerja manual",
+          manualSubtitle:
+            "Proses permohonan sampel dan pesan kreator yang menjadi tanggung jawab staf.",
+          tabs: { pendingEscalations: "Perlu ditangani" },
+        },
         escalations: {
           statusOpen: "Menunggu keputusan Anda",
           agentQuestion: "Yang ditanyakan Agent",
@@ -259,9 +335,22 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   it: {
+    nav: {
+      affiliateTeam: "Team e canali",
+      affiliateNeedsAttention: "Area di lavoro Agent",
+      affiliateManualWorkbench: "Area di lavoro manuale",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "Da gestire" } },
+        workbench: {
+          agentTitle: "Area di lavoro Agent",
+          agentSubtitle:
+            "Revisiona le proposte di azione, gestisci le escalation e consulta tutto il lavoro Agent.",
+          manualTitle: "Area di lavoro manuale",
+          manualSubtitle:
+            "Gestisci le richieste di campioni e i messaggi dei creator affidati al personale.",
+          tabs: { pendingEscalations: "Da gestire" },
+        },
         escalations: {
           statusOpen: "In attesa della tua decisione",
           agentQuestion: "Cosa chiede l'Agente",
@@ -303,9 +392,22 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
     },
   },
   th: {
+    nav: {
+      affiliateTeam: "ทีมและช่องทาง",
+      affiliateNeedsAttention: "พื้นที่ทำงาน Agent",
+      affiliateManualWorkbench: "พื้นที่ทำงานของเจ้าหน้าที่",
+    },
     ecommerce: {
       affiliateWorkspace: {
-        workbench: { tabs: { pendingEscalations: "รอดำเนินการ" } },
+        workbench: {
+          agentTitle: "พื้นที่ทำงาน Agent",
+          agentSubtitle:
+            "ตรวจสอบข้อเสนอการดำเนินการ จัดการงานที่ Agent ส่งต่อ และดูงาน Agent ทั้งหมด",
+          manualTitle: "พื้นที่ทำงานของเจ้าหน้าที่",
+          manualSubtitle:
+            "จัดการคำขอตัวอย่างและข้อความครีเอเตอร์ที่เจ้าหน้าที่เป็นผู้รับผิดชอบ",
+          tabs: { pendingEscalations: "รอดำเนินการ" },
+        },
         escalations: {
           statusOpen: "รอการตัดสินใจของคุณ",
           agentQuestion: "สิ่งที่ Agent กำลังถาม",

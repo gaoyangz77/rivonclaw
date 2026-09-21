@@ -7,6 +7,7 @@ import {
   affiliateProposalPageCursor,
   affiliateProposalPagedQueryKey,
   affiliateProposalPageQueryKey,
+  affiliateWorkbenchTabs,
   appendAffiliateProposalPageBuffer,
   initialAffiliateProposalPageCursorStack,
   parseAffiliateProposalPageSize,
@@ -46,6 +47,20 @@ import {
   resolveProposalMessageDisplay,
   summarizeSampleProposalReviewRows,
 } from "./AffiliateManagementPage.js";
+
+describe("Affiliate workbench boundaries", () => {
+  it("keeps Agent work separate from staff-owned Shop queues", () => {
+    expect(affiliateWorkbenchTabs("AGENT").map(([id]) => id)).toEqual([
+      "PENDING_AGENT",
+      "ESCALATIONS",
+      "ALL_AGENT",
+    ]);
+    expect(affiliateWorkbenchTabs("MANUAL").map(([id]) => id)).toEqual([
+      "SAMPLES",
+      "MESSAGES",
+    ]);
+  });
+});
 
 describe("AffiliateManagementPage proposal source", () => {
   it("allows authorized shops in manual Creator CRM without Agent activation", () => {

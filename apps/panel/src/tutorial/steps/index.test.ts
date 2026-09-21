@@ -9,6 +9,7 @@ const SRC_ROOT = resolve(__dirname, "../..")
 const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/
 const AFFILIATE_TUTORIAL_ROUTES = [
   "/commerce/affiliate/attention",
+  "/commerce/affiliate/manual-workbench",
   "/commerce/affiliate/team",
   "/commerce/product-knowledge",
   "/commerce/affiliate/campaigns",
@@ -48,7 +49,8 @@ const renderedSource = ["pages", "components"]
 describe("tutorial step registry", () => {
   it("keeps the audited Affiliate tutorials at their intended coverage", () => {
     const expectedStepCounts: Record<string, number> = {
-      "/commerce/affiliate/attention": 8,
+      "/commerce/affiliate/attention": 6,
+      "/commerce/affiliate/manual-workbench": 2,
       "/commerce/affiliate/team": 5,
       "/commerce/product-knowledge": 3,
       "/commerce/affiliate/campaigns": 8,

@@ -463,7 +463,25 @@ const PROPOSAL_TYPE_FILTERS = [
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
 
 type AgentWorkspaceView = "PENDING" | "ALL";
-type AffiliateWorkbenchTab = "PENDING_AGENT" | "ESCALATIONS" | "ALL_AGENT" | "SAMPLES" | "MESSAGES";
+type AffiliateAgentWorkbenchTab = "PENDING_AGENT" | "ESCALATIONS" | "ALL_AGENT";
+type AffiliateManualWorkbenchTab = "SAMPLES" | "MESSAGES";
+type AffiliateWorkbenchTab = AffiliateAgentWorkbenchTab | AffiliateManualWorkbenchTab;
+type AffiliateWorkbenchKind = "AGENT" | "MANUAL";
+
+export function affiliateWorkbenchTabs(
+  kind: AffiliateWorkbenchKind,
+): readonly [AffiliateWorkbenchTab, string][] {
+  return kind === "AGENT"
+    ? [
+        ["PENDING_AGENT", "pendingAgent"],
+        ["ESCALATIONS", "pendingEscalations"],
+        ["ALL_AGENT", "allAgent"],
+      ]
+    : [
+        ["SAMPLES", "samples"],
+        ["MESSAGES", "messages"],
+      ];
+}
 const AFFILIATE_ESCALATION_PAGE_SIZE = 25;
 
 interface AffiliateEscalationPanelRow {
@@ -991,7 +1009,19 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
   );
 });
 
-export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage() {
+export function AffiliateWorkbenchPage() {
+  return <AffiliateWorkbenchSurface kind="AGENT" />;
+}
+
+export function AffiliateManualWorkbenchPage() {
+  return <AffiliateWorkbenchSurface kind="MANUAL" />;
+}
+
+const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
+  kind,
+}: {
+  kind: AffiliateWorkbenchKind;
+}) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
@@ -1000,7 +1030,9 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
   const [selectedBusinessDeveloperId, setSelectedBusinessDeveloperId] = useState("");
-  const [workbenchTab, setWorkbenchTab] = useState<AffiliateWorkbenchTab>("PENDING_AGENT");
+  const [workbenchTab, setWorkbenchTab] = useState<AffiliateWorkbenchTab>(() =>
+    kind === "AGENT" ? "PENDING_AGENT" : "SAMPLES",
+  );
   const agentWorkspaceView: AgentWorkspaceView = workbenchTab === "ALL_AGENT" ? "ALL" : "PENDING";
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
@@ -1037,6 +1069,15 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   const [loadingMoreProposalQueryKey, setLoadingMoreProposalQueryKey] = useState<string | null>(
     null,
   );
+  const workbenchTitleKey =
+    kind === "AGENT"
+      ? "ecommerce.affiliateWorkspace.workbench.agentTitle"
+      : "ecommerce.affiliateWorkspace.workbench.manualTitle";
+  const workbenchSubtitleKey =
+    kind === "AGENT"
+      ? "ecommerce.affiliateWorkspace.workbench.agentSubtitle"
+      : "ecommerce.affiliateWorkspace.workbench.manualSubtitle";
+  const workbenchTabs = affiliateWorkbenchTabs(kind);
 
   useEffect(() => {
     if (user) {
@@ -1535,23 +1576,26 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
   }
 
   return (
-    <AffiliatePageFrame className="affiliate-workbench tk-v1-workbench">
-      <AffiliatePageHeader
-        className="affiliate-workbench-header"
-        data-tutorial-id="affiliate-attention-header"
-        title={t("ecommerce.affiliateWorkspace.workbench.title")}
-        subtitle={t("ecommerce.affiliateWorkspace.workbench.subtitle")}
-      />
+    <AffiliatePageFrame
+      className={`affiliate-workbench tk-v1-workbench affiliate-${kind.toLowerCase()}-workbench`}
+    >
+      {kind === "AGENT" ? (
+        <AffiliatePageHeader
+          className="affiliate-workbench-header"
+          data-tutorial-id="affiliate-attention-header"
+          title={t(workbenchTitleKey)}
+          subtitle={t(workbenchSubtitleKey)}
+        />
+      ) : (
+        <AffiliatePageHeader
+          className="affiliate-workbench-header"
+          data-tutorial-id="affiliate-manual-workbench-header"
+          title={t(workbenchTitleKey)}
+          subtitle={t(workbenchSubtitleKey)}
+        />
+      )}
       <TkTabs
-        items={(
-          [
-            ["PENDING_AGENT", "pendingAgent"],
-            ["ESCALATIONS", "pendingEscalations"],
-            ["ALL_AGENT", "allAgent"],
-            ["SAMPLES", "samples"],
-            ["MESSAGES", "messages"],
-          ] as const
-        ).map(([id, label]) => ({
+        items={workbenchTabs.map(([id, label]) => ({
           id,
           label: t(`ecommerce.affiliateWorkspace.workbench.tabs.${label}`),
           buttonProps: {
@@ -1560,7 +1604,7 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
         }))}
         value={workbenchTab}
         onChange={(value) => setWorkbenchTab(value as AffiliateWorkbenchTab)}
-        label={t("ecommerce.affiliateWorkspace.workbench.title")}
+        label={t(workbenchTitleKey)}
         data-tutorial-id="affiliate-attention-scope"
       />
 

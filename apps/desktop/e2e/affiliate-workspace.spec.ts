@@ -143,7 +143,7 @@ async function expectAffiliatePage(
 test.describe("Affiliate workspace entity pages", () => {
   test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
 
-  test("renders the four affiliate entry points and opens relationship context when data exists", async ({ window, apiBase }) => {
+  test("renders the split Affiliate workbenches and opens relationship context when data exists", async ({ window, apiBase }) => {
     await dismissModals(window);
     await login(window, apiBase);
 
@@ -156,15 +156,15 @@ test.describe("Affiliate workspace entity pages", () => {
     await expectAffiliatePage(
       window,
       "/commerce/affiliate/attention",
-      "Workbench",
+      "Agent Workbench",
       ".affiliate-action-proposal-card-row",
     );
     await expectAffiliatePage(
       window,
-      "/commerce/affiliate/history",
-      "Platform collaborations",
-      ".affiliate-collaboration-record-card",
+      "/commerce/affiliate/manual-workbench",
+      "Manual Workbench",
     );
+    await expectAffiliatePage(window, "/commerce/affiliate/history", "Platform collaborations", ".affiliate-collaboration-record-card");
     await expectAffiliatePage(
       window,
       "/commerce/affiliate/intelligence",

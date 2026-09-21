@@ -18,7 +18,10 @@ import {
   customerServicePerformanceSteps,
   customerServiceExperimentsSteps,
 } from "./ecommerceCustomerService.js"
-import { ecommerceAffiliateAttentionSteps } from "./ecommerceAffiliateAttention.js"
+import {
+  ecommerceAffiliateAttentionSteps,
+  ecommerceAffiliateManualWorkbenchSteps,
+} from "./ecommerceAffiliateAttention.js"
 import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js"
 import { ecommerceAffiliateAnalyticsSteps } from "./ecommerceAffiliateAnalytics.js"
 import { ecommerceAffiliateCreatorsSteps } from "./ecommerceAffiliateCreators.js"
@@ -41,6 +44,7 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/customer-service/experiments": customerServiceExperimentsSteps,
   "/commerce/affiliate": ecommerceAffiliateCreatorsSteps,
   "/commerce/affiliate/attention": ecommerceAffiliateAttentionSteps,
+  "/commerce/affiliate/manual-workbench": ecommerceAffiliateManualWorkbenchSteps,
   "/commerce/affiliate/history": ecommerceAffiliateHistorySteps,
   "/commerce/affiliate/creators": ecommerceAffiliateCreatorsSteps,
   "/commerce/affiliate/intelligence": ecommerceAffiliateIntelligenceSteps,
