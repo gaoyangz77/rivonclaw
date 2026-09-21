@@ -4074,6 +4074,7 @@ export default {
       ID: "Indonesia",
       PH: "Filipina",
       VN: "Vietnam",
+      JP: "Jepang",
     },
     platform: {
       TIKTOK_SHOP: "Toko TikTok",

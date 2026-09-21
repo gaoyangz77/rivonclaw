@@ -4144,6 +4144,7 @@ export default {
       ID: "Indonesien",
       PH: "Philippinen",
       VN: "Vietnam",
+      JP: "Japan",
     },
     platform: {
       TIKTOK_SHOP: "TikTok Shop",
