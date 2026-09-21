@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { applySnapshot } from "mobx-state-tree";
 import { runtimeStatusStore } from "../../../store/runtime-status-store.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
@@ -26,6 +26,17 @@ afterEach(() => {
 });
 
 describe("AffiliateShopScopeControl privacy masking", () => {
+  it("finds an alias by the platform shop name", () => {
+    render(<AffiliateShopScopeControl shops={shops} selected={[]} onChange={() => {}} />);
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "common.searchShops" }), {
+      target: { value: "Official Store" },
+    });
+
+    expect(screen.getByText("US hero shop")).toBeTruthy();
+    expect(screen.queryByText("Windboss Benessere")).toBeNull();
+  });
+
   it("masks a platform shop name but never the operator's own alias", () => {
     setPrivacyMode(true);
     render(<AffiliateShopScopeControl shops={shops} selected={[]} onChange={() => {}} />);

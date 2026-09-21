@@ -69,6 +69,7 @@ export default {
     openWebsite: "Open website",
     openInBrowser: "Open app in browser",
     refresh: "Refresh",
+    searchShops: "Search shops",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "Cloud tools unavailable",
     cloudToolsUnavailableBody:

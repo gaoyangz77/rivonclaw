@@ -9,7 +9,12 @@ export function CreatorDetailScopeControl({
   disabled,
 }: {
   value: string;
-  shops: Array<{ id: string; text: string; sensitive: boolean }>;
+  shops: Array<{
+    id: string;
+    text: string;
+    sensitive: boolean;
+    searchTerms?: readonly string[];
+  }>;
   onChange: (shopId: string) => void;
   disabled?: boolean;
 }) {
@@ -23,8 +28,15 @@ export function CreatorDetailScopeControl({
       disabled={disabled}
       options={[
         { value: "", label: t("ecommerce.affiliateWorkspace.creatorScope.globalView") },
-        ...shops.map((shop) => ({ value: shop.id, label: shop.text, sensitive: shop.sensitive })),
+        ...shops.map((shop) => ({
+          value: shop.id,
+          label: shop.text,
+          sensitive: shop.sensitive,
+          searchTerms: shop.searchTerms,
+        })),
       ]}
+      searchable
+      searchPlaceholder={t("common.searchShops")}
     />
   );
 }

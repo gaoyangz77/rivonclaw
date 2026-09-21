@@ -69,6 +69,7 @@ export interface AffiliateWorkbenchEntityOpenTarget {
 interface FilterOption {
   value: string;
   label: string;
+  searchTerms?: readonly string[];
   /**
    * Forwarded to `Select` so a shop-name option masks under privacy mode. It is
    * declared here rather than left to survive as an undeclared extra property:
@@ -382,6 +383,8 @@ function AffiliateWorkbenchSampleList({
             }}
             options={shopOptions}
             className="affiliate-workbench-filter-select"
+            searchable
+            searchPlaceholder={t("common.searchShops")}
           />
           <TkChoiceSelect
             label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
@@ -882,6 +885,8 @@ function AffiliateWorkbenchMessageList({
               onChange={setMessageShopId}
               options={shopOptions}
               className="affiliate-workbench-filter-select"
+              searchable
+              searchPlaceholder={t("common.searchShops")}
             />
           ) : null}
           <AffiliateProtectionFilter value={protection} onChange={setProtection} />

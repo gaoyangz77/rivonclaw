@@ -51,3 +51,20 @@ export function shopDisplayLabel(
 
   return { text: fallback, sensitive: false };
 }
+
+/**
+ * Build the complete search index for a shop picker. The visible label may be
+ * an alias, but users can still find the same shop by its platform name or id.
+ */
+export function shopSelectSearchTerms(
+  shop: ShopDisplayLike | null | undefined,
+  fallback = "",
+): string[] {
+  return [
+    ...new Set(
+      [shop?.alias, shop?.shopName, shop?.platformShopId, shop?.id, fallback]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+}

@@ -2116,6 +2116,23 @@
   min-width: 0;
 }
 
+.affiliate-intelligence-scope-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.affiliate-intelligence-scope-search {
+  width: min(280px, 100%);
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+}
+
 .affiliate-intelligence-scope-rail {
   display: flex;
   flex-wrap: nowrap;

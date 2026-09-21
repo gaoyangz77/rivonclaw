@@ -18,6 +18,7 @@ import {
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import { TkAlert } from "../design-system/index.js";
+import { shopSelectSearchTerms } from "../../lib/shop-display.js";
 
 interface CustomerServiceBillingCtaProps {
   shopId: string;
@@ -72,6 +73,10 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
       shopId,
       shopName: shopName ?? shopId,
       shopNameSensitive: shopName ? shopNameSensitive : false,
+      shopSearchTerms: shopSelectSearchTerms(
+        entityStore.shops.find((shop) => shop.id === shopId),
+        shopId,
+      ),
     },
   ];
   const subscription = entitlement?.subscription ?? null;

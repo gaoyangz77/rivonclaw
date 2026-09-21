@@ -244,6 +244,18 @@
   text-align: left;
 }
 
+.affiliate-shop-picker-search {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+}
+
 .affiliate-shop-picker label {
   display: grid;
   grid-template-columns: auto 1fr auto;

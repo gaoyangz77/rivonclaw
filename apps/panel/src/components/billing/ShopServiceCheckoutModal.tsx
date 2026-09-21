@@ -20,6 +20,7 @@ import { startBillingCheckout } from "./start-billing-checkout.js";
 interface ShopCheckoutOption {
   shopId: string;
   shopName: string;
+  shopSearchTerms?: readonly string[];
   /**
    * Whether `shopName` is the platform-issued name rather than the operator's
    * own alias. Resolved by the caller with `shopDisplayLabel`, because the
@@ -194,10 +195,12 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
                     value: shop.shopId,
                     label: shop.shopName,
                     sensitive: shop.shopNameSensitive,
+                    searchTerms: shop.shopSearchTerms,
                   }))}
                   placeholder={t("billing.selectShopPlaceholder")}
                   disabled={!!initialShopId}
-                  searchable={shops.length > 8}
+                  searchable
+                  searchPlaceholder={t("common.searchShops")}
                 />
               )}
             </div>

@@ -28,7 +28,11 @@ import {
   TkTableFrame,
   usePrivacyMode,
 } from "../../components/design-system/index.js";
-import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
+import {
+  shopDisplayLabel,
+  shopSelectSearchTerms,
+  type ShopDisplayLabel,
+} from "../../lib/shop-display.js";
 import {
   CreatorRelationshipDetailModal,
   type CreatorRelationshipDetailItem,
@@ -765,6 +769,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       value: shop.id,
       label: label.text,
       sensitive: label.sensitive,
+      searchTerms: shopSelectSearchTerms(shop, shop.id),
       description: `${shop.region ?? "—"} · ${shop.timezone}`,
     };
   });

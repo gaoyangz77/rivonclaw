@@ -29,6 +29,35 @@ describe("Select", () => {
     expect(screen.getByPlaceholderText("搜索店铺")).toBeTruthy();
   });
 
+  it("matches hidden search terms without rendering them as labels", () => {
+    render(
+      <Select
+        value=""
+        onChange={() => {}}
+        options={[
+          {
+            value: "shop-1",
+            label: "MXTK-02",
+            searchTerms: ["Windboss Mexico"],
+          },
+          { value: "shop-2", label: "US flagship" },
+        ]}
+        placeholder="Select shop"
+        searchable
+        searchPlaceholder="Search shops"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Select shop/i }));
+    fireEvent.change(screen.getByPlaceholderText("Search shops"), {
+      target: { value: "windboss" },
+    });
+
+    expect(screen.getByText("MXTK-02")).toBeTruthy();
+    expect(screen.queryByText("US flagship")).toBeNull();
+    expect(screen.queryByText("Windboss Mexico")).toBeNull();
+  });
+
   it("focuses searchable dropdowns without scrolling the page", async () => {
     const focusSpy = vi.spyOn(HTMLInputElement.prototype, "focus");
     render(

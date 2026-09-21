@@ -68,6 +68,7 @@ export default {
     openWebsite: "Buka situs web",
     openInBrowser: "Buka aplikasi di browser",
     refresh: "Segarkan",
+    searchShops: "Cari toko",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "Alat cloud tidak tersedia",
     cloudToolsUnavailableBody:

@@ -68,6 +68,7 @@ export default {
     openWebsite: "Apri il sito web",
     openInBrowser: "Apri l'app nel browser",
     refresh: "Aggiorna",
+    searchShops: "Cerca negozi",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "Strumenti cloud non disponibili",
     cloudToolsUnavailableBody:

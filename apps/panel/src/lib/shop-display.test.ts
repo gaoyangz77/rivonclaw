@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shopDisplayLabel } from "./shop-display.js";
+import { shopDisplayLabel, shopSelectSearchTerms } from "./shop-display.js";
 
 describe("shopDisplayLabel", () => {
   it("prefers the alias and never marks it sensitive", () => {
@@ -43,5 +43,24 @@ describe("shopDisplayLabel", () => {
       sensitive: false,
     });
     expect(shopDisplayLabel(undefined)).toEqual({ text: "", sensitive: false });
+  });
+});
+
+describe("shopSelectSearchTerms", () => {
+  it("indexes both the operator alias and platform shop identity", () => {
+    expect(
+      shopSelectSearchTerms({
+        id: "shop-a",
+        alias: "MXTK-02",
+        shopName: "Windboss Mexico",
+        platformShopId: "7490",
+      }),
+    ).toEqual(["MXTK-02", "Windboss Mexico", "7490", "shop-a"]);
+  });
+
+  it("trims and de-duplicates fallback values", () => {
+    expect(shopSelectSearchTerms({ id: " shop-a ", alias: "shop-a" }, " shop-a ")).toEqual([
+      "shop-a",
+    ]);
   });
 });

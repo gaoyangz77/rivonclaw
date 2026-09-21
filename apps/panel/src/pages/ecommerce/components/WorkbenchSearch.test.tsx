@@ -99,7 +99,14 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
           <AffiliateWorkbenchEntityTabs
             tab={tab}
             selectedShopId=""
-            shopOptions={[{ value: "", label: "全部店铺" }]}
+            shopOptions={[
+              { value: "", label: "全部店铺" },
+              {
+                value: "shop-1",
+                label: "MXTK-02",
+                searchTerms: ["Windboss Mexico"],
+              },
+            ]}
             onSelectShop={vi.fn()}
             businessDeveloperOptions={[]}
             selectedBusinessDeveloperId=""
@@ -128,6 +135,18 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       expect(label.classList.contains("tk-v1-label-hidden")).toBe(false);
     }
     expect(document.querySelector("select")).toBeNull();
+    if (samples) {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: i18n.t("ecommerce.affiliateWorkspace.workbench.colShop"),
+        }),
+      );
+      fireEvent.change(screen.getByPlaceholderText(i18n.t("common.searchShops")), {
+        target: { value: "Windboss Mexico" },
+      });
+      expect(screen.getByText("MXTK-02")).toBeTruthy();
+      fireEvent.keyDown(document, { key: "Escape" });
+    }
     const searchActions = screen
       .getByRole("searchbox", { name: "搜索达人" })
       .closest(".affiliate-workbench-filter-search-actions");

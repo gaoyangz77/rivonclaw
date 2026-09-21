@@ -69,6 +69,7 @@ export default {
     openWebsite: "打开官网",
     openInBrowser: "在浏览器中打开应用",
     refresh: "刷新",
+    searchShops: "搜索店铺",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "云端工具库不可用",
     cloudToolsUnavailableBody:

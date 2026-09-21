@@ -23,7 +23,11 @@ import {
 import { panelEventBus } from "../../lib/event-bus.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
-import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
+import {
+  shopDisplayLabel,
+  shopSelectSearchTerms,
+  type ShopDisplayLabel,
+} from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
@@ -327,7 +331,12 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       .filter((shop) => shop.services?.customerService?.enabled)
       .map((shop) => {
         const label = shopDisplayLabel(shop, shop.id);
-        return { value: shop.id, label: label.text, sensitive: label.sensitive };
+        return {
+          value: shop.id,
+          label: label.text,
+          sensitive: label.sensitive,
+          searchTerms: shopSelectSearchTerms(shop, shop.id),
+        };
       }),
   ];
 
@@ -659,6 +668,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                   value={workspace.conversationShopId}
                   onChange={(value) => workspace.setConversationShopId(value)}
                   options={shopOptions}
+                  searchable
+                  searchPlaceholder={t("common.searchShops")}
                 />
               </FilterField>
               <FilterField label={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}>
@@ -1407,7 +1418,12 @@ const EscalationsTab = observer(function EscalationsTab({
   shopOptions,
   shopLabel,
 }: {
-  shopOptions: Array<{ value: string; label: string }>;
+  shopOptions: Array<{
+    value: string;
+    label: string;
+    sensitive?: boolean;
+    searchTerms?: readonly string[];
+  }>;
   shopLabel: (shopId: string) => ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
@@ -1450,6 +1466,8 @@ const EscalationsTab = observer(function EscalationsTab({
             value={workspace.escalationShopId}
             onChange={(value) => workspace.setEscalationShopId(value)}
             options={shopOptions}
+            searchable
+            searchPlaceholder={t("common.searchShops")}
           />
         </FilterField>
         <FilterField label={t("ecommerce.customerServiceWorkspace.filterStatus")}>

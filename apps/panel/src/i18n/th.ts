@@ -68,6 +68,7 @@ export default {
     openWebsite: "เปิดเว็บไซต์",
     openInBrowser: "เปิดแอปในเบราว์เซอร์",
     refresh: "รีเฟรช",
+    searchShops: "ค้นหาร้านค้า",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "เครื่องมือคลาวด์ไม่พร้อมใช้งาน",
     cloudToolsUnavailableBody:

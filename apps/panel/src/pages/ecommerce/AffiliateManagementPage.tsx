@@ -41,7 +41,11 @@ import {
   usePrivacyMode,
 } from "../../components/design-system/index.js";
 import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
-import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
+import {
+  shopDisplayLabel,
+  shopSelectSearchTerms,
+  type ShopDisplayLabel,
+} from "../../lib/shop-display.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
@@ -759,6 +763,7 @@ type AffiliateInsightSubject = {
   label: string;
   /** Whether `label` is a platform shop name, and so must be masked. */
   labelSensitive: boolean;
+  searchTerms?: readonly string[];
   shopId?: string;
 };
 
@@ -877,6 +882,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
         shopId: shop.id,
         label: label.text,
         labelSensitive: label.sensitive,
+        searchTerms: shopSelectSearchTerms(shop, shop.id),
       };
     }),
   ];
@@ -1060,7 +1066,12 @@ export const AffiliateWorkbenchPage = observer(function AffiliateWorkbenchPage()
       .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
       .map((shop) => {
         const label = shopDisplayLabel(shop, shop.id);
-        return { value: shop.id, label: label.text, sensitive: label.sensitive };
+        return {
+          value: shop.id,
+          label: label.text,
+          sensitive: label.sensitive,
+          searchTerms: shopSelectSearchTerms(shop, shop.id),
+        };
       }),
   ];
   const businessDeveloperOptions = [
@@ -2900,49 +2911,70 @@ function AffiliateInsightScopeRail({
   onSelect: (key: string) => void;
 }) {
   const { t } = useTranslation();
+  const [shopSearch, setShopSearch] = useState("");
+  const normalizedShopSearch = shopSearch.trim().toLocaleLowerCase();
+  const visibleSubjects = normalizedShopSearch
+    ? subjects.filter(
+        (subject) =>
+          subject.kind === "user" ||
+          [subject.label, ...(subject.searchTerms ?? [])].some((term) =>
+            term.toLocaleLowerCase().includes(normalizedShopSearch),
+          ),
+      )
+    : subjects;
   return (
     <div
-      className="affiliate-intelligence-scope-rail"
+      className="affiliate-intelligence-scope-picker"
       data-tutorial-id="affiliate-intelligence-scopes"
     >
-      {subjects.map((subject) => {
-        const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
-        const modelStates = subjectRows.map((row) =>
-          affiliateExpectedSalesModelAvailabilityState(row.availability),
-        );
-        const ready = modelStates.some((state) => state.status === "ready");
-        const fallback = !ready
-          ? (modelStates.find((state) => state.status === "fallback") ?? null)
-          : null;
-        const available = ready || Boolean(fallback);
-        const failed = !available && subjectRows.some((row) => row.failed);
-        const status = ready
-          ? t("ecommerce.affiliateWorkspace.modelReady")
-          : fallback
-            ? affiliateModelFallbackLabel(fallback.effectiveTenantScope, t)
-            : failed
-              ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
-              : t("ecommerce.affiliateWorkspace.intelligenceNoModel");
-        return (
-          <button
-            key={subject.key}
-            type="button"
-            className={`affiliate-intelligence-scope${selectedKey === subject.key ? " affiliate-intelligence-scope-active" : ""}${available ? "" : " affiliate-intelligence-scope-empty"}`}
-            onClick={() => onSelect(subject.key)}
-          >
-            <span className="affiliate-intelligence-scope-icon">
-              {subject.kind === "user" ? <UserIcon /> : <ShopIcon />}
-            </span>
-            <span className="affiliate-intelligence-scope-copy">
-              <TkPrivate as="strong" sensitive={subject.labelSensitive}>
-                {subject.label}
-              </TkPrivate>
-              <small>{status}</small>
-            </span>
-            {available ? <CheckIcon /> : <InfoIcon />}
-          </button>
-        );
-      })}
+      <input
+        className="affiliate-intelligence-scope-search"
+        type="search"
+        value={shopSearch}
+        onChange={(event) => setShopSearch(event.target.value)}
+        placeholder={t("common.searchShops")}
+        aria-label={t("common.searchShops")}
+      />
+      <div className="affiliate-intelligence-scope-rail">
+        {visibleSubjects.map((subject) => {
+          const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
+          const modelStates = subjectRows.map((row) =>
+            affiliateExpectedSalesModelAvailabilityState(row.availability),
+          );
+          const ready = modelStates.some((state) => state.status === "ready");
+          const fallback = !ready
+            ? (modelStates.find((state) => state.status === "fallback") ?? null)
+            : null;
+          const available = ready || Boolean(fallback);
+          const failed = !available && subjectRows.some((row) => row.failed);
+          const status = ready
+            ? t("ecommerce.affiliateWorkspace.modelReady")
+            : fallback
+              ? affiliateModelFallbackLabel(fallback.effectiveTenantScope, t)
+              : failed
+                ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
+                : t("ecommerce.affiliateWorkspace.intelligenceNoModel");
+          return (
+            <button
+              key={subject.key}
+              type="button"
+              className={`affiliate-intelligence-scope${selectedKey === subject.key ? " affiliate-intelligence-scope-active" : ""}${available ? "" : " affiliate-intelligence-scope-empty"}`}
+              onClick={() => onSelect(subject.key)}
+            >
+              <span className="affiliate-intelligence-scope-icon">
+                {subject.kind === "user" ? <UserIcon /> : <ShopIcon />}
+              </span>
+              <span className="affiliate-intelligence-scope-copy">
+                <TkPrivate as="strong" sensitive={subject.labelSensitive}>
+                  {subject.label}
+                </TkPrivate>
+                <small>{status}</small>
+              </span>
+              {available ? <CheckIcon /> : <InfoIcon />}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -3315,7 +3347,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
     ...affiliateShops.map((shop) => {
       const label = shopDisplayLabel(shop, shop.id);
-      return { value: shop.id, label: label.text, sensitive: label.sensitive };
+      return {
+        value: shop.id,
+        label: label.text,
+        sensitive: label.sensitive,
+        searchTerms: shopSelectSearchTerms(shop, shop.id),
+      };
     }),
   ];
   function shopLabel(shopId: string): ShopDisplayLabel {
@@ -3485,6 +3522,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               options={shopOptions}
               className="affiliate-workspace-shop-select"
               disabled={shopOptions.length === 0}
+              searchable
+              searchPlaceholder={t("common.searchShops")}
             />
             <button
               className="btn btn-secondary"
@@ -4460,7 +4499,12 @@ function AffiliateCollaborationDetailModal({
   );
 }
 
-type AffiliateCollaborationShopOption = { value: string; label: string };
+type AffiliateCollaborationShopOption = {
+  value: string;
+  label: string;
+  sensitive?: boolean;
+  searchTerms?: readonly string[];
+};
 
 type AffiliateTargetProductDraft = {
   productId: string;
@@ -5474,7 +5518,13 @@ function AffiliateCollaborationCreateModal({
             <AffiliateOperationField
               label={t("ecommerce.affiliateWorkspace.collaborationOperations.shop")}
             >
-              <Select value={shopId} onChange={setShopId} options={shopOptions} />
+              <Select
+                value={shopId}
+                onChange={setShopId}
+                options={shopOptions}
+                searchable
+                searchPlaceholder={t("common.searchShops")}
+              />
             </AffiliateOperationField>
             <TkSegmented
               items={[
@@ -5824,7 +5874,13 @@ function AffiliateOpenCollaborationSettingsModal({
                 </small>
               </div>
             </div>
-            <Select value={shopId} onChange={setShopId} options={shopOptions} />
+            <Select
+              value={shopId}
+              onChange={setShopId}
+              options={shopOptions}
+              searchable
+              searchPlaceholder={t("common.searchShops")}
+            />
           </section>
           {error ? <AffiliateQueryErrorState error={error} onRetry={() => void refetch()} /> : null}
           {loading ? (
@@ -6278,7 +6334,12 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
       .filter((shop) => shop.services?.affiliateService?.enabled)
       .map((shop) => {
         const label = shopDisplayLabel(shop, shop.id);
-        return { value: shop.id, label: label.text, sensitive: label.sensitive };
+        return {
+          value: shop.id,
+          label: label.text,
+          sensitive: label.sensitive,
+          searchTerms: shopSelectSearchTerms(shop, shop.id),
+        };
       }),
   ];
   const historyStatusFilterOptions = useMemo(
@@ -6462,6 +6523,8 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
                 onChange={setSelectedShopId}
                 options={shopOptions}
                 className="affiliate-workspace-shop-select"
+                searchable
+                searchPlaceholder={t("common.searchShops")}
               />
               <button
                 className="btn btn-secondary"
@@ -11216,7 +11279,14 @@ function CreatorRelationshipDetailContent({
                 reopenSampleState.loading ||
                 !relationshipDetail
               }
-              shops={includedShopIds.map((id) => ({ id, ...relationshipShopName(id) }))}
+              shops={includedShopIds.map((id) => ({
+                id,
+                ...relationshipShopName(id),
+                searchTerms: shopSelectSearchTerms(
+                  entityStore.shops.find((candidate) => candidate.id === id),
+                  id,
+                ),
+              }))}
             />
             <button
               className="btn btn-secondary btn-sm affiliate-relationship-inspector-mobile-toggle"
@@ -12002,9 +12072,15 @@ function CreatorRelationshipDetailContent({
                             value: shopId,
                             label: label.text,
                             sensitive: label.sensitive,
+                            searchTerms: shopSelectSearchTerms(
+                              entityStore.shops.find((candidate) => candidate.id === shopId),
+                              shopId,
+                            ),
                           };
                         })}
                         placeholder={t("ecommerce.affiliateWorkspace.selectMessageShop")}
+                        searchable
+                        searchPlaceholder={t("common.searchShops")}
                       />
                       <Select
                         value={composerChannel}

@@ -27,7 +27,11 @@ import {
   usagePercentLabel,
 } from "./billing-labels.js";
 import { shopCollectionDisplayName, shopCollectionName } from "../../lib/shop-collections.js";
-import { shopDisplayLabel, type ShopDisplayLabel } from "../../lib/shop-display.js";
+import {
+  shopDisplayLabel,
+  shopSelectSearchTerms,
+  type ShopDisplayLabel,
+} from "../../lib/shop-display.js";
 import {
   buildShopServiceBillingGroups,
   type ShopServiceBillingGroup,
@@ -940,6 +944,7 @@ function ShopServiceRow({
             shopId: row.shop.id,
             shopName: checkoutShopLabel.text,
             shopNameSensitive: checkoutShopLabel.sensitive,
+            shopSearchTerms: shopSelectSearchTerms(row.shop, row.shop.id),
           },
         ]}
         initialShopId={row.shop.id}
@@ -1048,7 +1053,14 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
     )
     .map((row) => {
       const label = rowDisplayLabel(row);
-      return { shopId: row.shop.id, shopName: label.text, shopNameSensitive: label.sensitive };
+      return {
+        shopId: row.shop.id,
+        shopName: label.text,
+        shopNameSensitive: label.sensitive,
+        shopSearchTerms: [
+          ...new Set(row.shops.flatMap((shop) => shopSelectSearchTerms(shop, shop.id))),
+        ],
+      };
     });
 
   return (

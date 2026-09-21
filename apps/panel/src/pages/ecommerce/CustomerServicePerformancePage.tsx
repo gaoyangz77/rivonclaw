@@ -20,7 +20,7 @@ import {
 } from "../../api/cs-performance-queries.js";
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
-import { shopDisplayLabel } from "../../lib/shop-display.js";
+import { shopDisplayLabel, shopSelectSearchTerms } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedTime } from "../../lib/format-datetime.js";
@@ -266,7 +266,12 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         .filter((shop) => shop.services?.customerService?.enabled)
         .map((shop) => {
           const label = shopDisplayLabel(shop, shop.id);
-          return { value: shop.id, label: label.text, sensitive: label.sensitive };
+          return {
+            value: shop.id,
+            label: label.text,
+            sensitive: label.sensitive,
+            searchTerms: shopSelectSearchTerms(shop, shop.id),
+          };
         }),
     ],
     [shops, t],
@@ -387,6 +392,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             value={shopId}
             onChange={setShopId}
             searchable
+            searchPlaceholder={t("common.searchShops")}
           />
         </label>
         {activeTab !== "realtime" ? (

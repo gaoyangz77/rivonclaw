@@ -34,6 +34,8 @@ function getDropdownVerticalLayout(
 export interface SelectOption {
   value: string;
   label: string;
+  /** Additional values that should match dropdown search without being rendered. */
+  searchTerms?: readonly string[];
   /**
    * Whether `label` is sensitive text that privacy mode must mask. `label`
    * stays a plain string so search/filtering keeps working on it; only the
@@ -186,12 +188,13 @@ export function Select({
     options.find((o) => o.value === value) ??
     (creatable && value ? { value, label: value } : undefined);
 
+  const normalizedSearch = search.toLocaleLowerCase();
   const filteredOptions =
     searchable && search
-      ? options.filter(
-          (option) =>
-            option.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
-            option.value.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+      ? options.filter((option) =>
+          [option.label, option.value, ...(option.searchTerms ?? [])].some((term) =>
+            term.toLocaleLowerCase().includes(normalizedSearch),
+          ),
         )
       : options;
 
