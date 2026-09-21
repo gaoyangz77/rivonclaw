@@ -632,6 +632,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                   return (
                     <TkInteractiveTableRow
                       key={item.id}
+                      data-tutorial-id="product-knowledge-item"
                       onActivate={() => selectKnowledge(item.id)}
                     >
                       <td>
@@ -817,7 +818,10 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                 </div>
               ) : null}
 
-              <section className="product-knowledge-content-studio">
+              <section
+                className="product-knowledge-content-studio"
+                data-tutorial-id="product-knowledge-content"
+              >
                 <div className="product-knowledge-content-sections">
                   <div className="product-knowledge-content-heading">
                     <div className="product-knowledge-content-heading-title">

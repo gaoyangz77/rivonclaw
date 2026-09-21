@@ -67,6 +67,7 @@ export function TutorialOverlay() {
   const activeLifecycleRef = useRef<ActiveLifecycle | null>(null)
   const mouseDownOnOverlay = useRef(false)
   const directionRef = useRef<"forward" | "backward">("forward")
+  const hasSpotlight = spotlightRect !== null
 
   const cleanupActiveLifecycle = useCallback(async () => {
     const lifecycle = activeLifecycleRef.current
@@ -193,6 +194,45 @@ export function TutorialOverlay() {
     window.addEventListener("resize", updatePosition)
     return () => window.removeEventListener("resize", updatePosition)
   }, [isPlaying, updatePosition])
+
+  // Async queues replace their loading shell and can grow after the first
+  // measurement. Follow the live target, not just the window's dimensions.
+  useEffect(() => {
+    if (!isPlaying || !hasSpotlight) return;
+    const step = steps[currentStepIndex];
+    if (!step) return;
+    let observed: Element | null = null;
+    let geometry = "";
+    const resize =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
+    const observeTarget = () => {
+      const target = document.querySelector(step.target);
+      if (target !== observed) {
+        resize?.disconnect();
+        observed = target;
+        geometry = "";
+        if (target) resize?.observe(target);
+      }
+      if (target) {
+        // A sibling can move the target without changing its own size (for
+        // example, channel counts loading beside a time-range control).
+        const rect = target.getBoundingClientRect();
+        const nextGeometry = [rect.top, rect.left, rect.width, rect.height].join(":");
+        if (geometry !== nextGeometry) {
+          geometry = nextGeometry;
+          updatePosition();
+        }
+      }
+    };
+    observeTarget();
+    const mutations = new MutationObserver(observeTarget);
+    mutations.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      resize?.disconnect();
+      mutations.disconnect();
+    };
+    // Geometry changes must not recreate the observers.
+  }, [isPlaying, hasSpotlight, steps, currentStepIndex, updatePosition]);
 
   if (!isPlaying || steps.length === 0) return null
 

@@ -43,7 +43,7 @@ export const ecommerceSteps: TutorialStep[] = [
     targetTimeoutMs: 1800,
   },
   {
-    ...step("shops-drawer", "shops-drawer-navigation", "drawer", "left"),
+    ...step("shops-drawer", "shops-drawer-tabs", "drawer", "bottom"),
     prepare: ensureShopDrawer,
     cleanup: closeShopDrawer,
     targetTimeoutMs: 1800,

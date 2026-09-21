@@ -35,6 +35,42 @@ afterEach(() => {
 })
 
 describe("TutorialOverlay step lifecycle", () => {
+  it("remeasures when an async queue replaces its loading target", async () => {
+    const loading = document.createElement("div");
+    loading.dataset.tutorialId = "async-queue";
+    document.body.append(loading);
+    tutorial.steps = [
+      {
+        id: "async-queue",
+        target: '[data-tutorial-id="async-queue"]',
+        titleKey: "tutorial.queue.title",
+        bodyKey: "tutorial.queue.body",
+      },
+    ];
+    const view = render(<TutorialOverlay />);
+    await waitFor(() => expect(view.container.querySelector(".tutorial-spotlight")).not.toBeNull());
+    const loaded = document.createElement("div");
+    loaded.dataset.tutorialId = "async-queue";
+    loaded.getBoundingClientRect = () => ({
+      top: 100,
+      left: 80,
+      width: 600,
+      height: 400,
+      bottom: 500,
+      right: 680,
+      x: 80,
+      y: 100,
+      toJSON: () => ({}),
+    });
+    act(() => loading.replaceWith(loaded));
+    await waitFor(() => {
+      const spotlight = view.container.querySelector<HTMLElement>(".tutorial-spotlight");
+      expect(spotlight?.style.width).toBe("612px");
+      expect(spotlight?.style.height).toBe("412px");
+    });
+    view.unmount();
+  });
+
   it("applies measured geometry when the spotlight first mounts", async () => {
     const target = document.createElement("div")
     target.dataset.tutorialId = "measured"

@@ -47,6 +47,7 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
   },
   step("affiliate-attention-scope", "affiliate-attention-scope", "scope", "bottom"),
   step("affiliate-attention-filters", "affiliate-attention-filters", "filters", "top"),
+  step("affiliate-attention-time", "affiliate-workbench-time", "agentTime", "bottom"),
   step("affiliate-attention-queue", "affiliate-attention-queue", "queue", "top", 5000),
   workbenchStep(
     "affiliate-workbench-all-agent",
@@ -65,6 +66,16 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
 ]
 
 export const ecommerceAffiliateManualWorkbenchSteps: TutorialStep[] = [
+  {
+    ...step(
+      "affiliate-manual-welcome",
+      "affiliate-manual-workbench-header",
+      "manualWelcome",
+      "bottom",
+    ),
+    prepare: () => selectWorkbenchTab("samples"),
+  },
+  step("affiliate-manual-scope", "affiliate-attention-scope", "manualScope", "bottom"),
   workbenchStep(
     "affiliate-workbench-samples",
     "affiliate-workbench-sample-controls",
@@ -74,10 +85,26 @@ export const ecommerceAffiliateManualWorkbenchSteps: TutorialStep[] = [
     "samples",
   ),
   workbenchStep(
+    "affiliate-samples-time",
+    "affiliate-workbench-time",
+    "sampleTime",
+    "bottom",
+    "samples",
+    "samples",
+  ),
+  workbenchStep(
     "affiliate-workbench-messages",
     "affiliate-workbench-message-controls",
     "messages",
     "top",
+    "messages",
+    "samples",
+  ),
+  workbenchStep(
+    "affiliate-messages-time",
+    "affiliate-workbench-time",
+    "messageTime",
+    "bottom",
     "messages",
     "samples",
   ),

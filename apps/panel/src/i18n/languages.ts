@@ -32,6 +32,7 @@ import { SUB_ACCOUNT_TRANSLATIONS } from "./sub-account-translations.js";
 import { WMS_CREDENTIAL_TRANSLATIONS } from "./wms-credential-translations.js";
 import { OFFICE_ACTIVITY_TRANSLATIONS } from "./office-activity-translations.js";
 import { TUTORIAL_SEPTEMBER_TRANSLATIONS } from "./tutorial-september-translations.js";
+import { TUTORIAL_WORKBENCHES_TRANSLATIONS } from "./tutorial-workbenches-translations.js";
 import {
   TUTORIAL_CATCHUP_EN,
   TUTORIAL_CATCHUP_ZH,
@@ -524,7 +525,9 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
   ...language,
   resource: mergeTranslationResources(
     language.resource as TranslationResourceRecord,
+    AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
     TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
+    TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
   ),
 }));
 
@@ -546,7 +549,6 @@ export const LANGUAGE_RESOURCES = Object.fromEntries(
     {
       translation: mergeTranslationResources(
         language.resource as TranslationResourceRecord,
-        AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
         // Merged here rather than per-locale above because the bundle's own
         // types already force all eight locales to carry every caption; adding
         // it once keeps that guarantee from depending on eight edits.

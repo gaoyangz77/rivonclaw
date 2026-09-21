@@ -28,7 +28,10 @@ function step(
 }
 
 export const ecommerceAffiliateTeamSteps: TutorialStep[] = [
-  step("affiliate-team-welcome", "affiliate-team-header", "welcome", "bottom"),
+  {
+    ...step("affiliate-team-welcome", "affiliate-team-header", "welcome", "bottom"),
+    prepare: () => selectTeamTab("team"),
+  },
   step("affiliate-team-tabs", "affiliate-team-tabs", "tabs", "bottom"),
   step("affiliate-team-responsibilities", "affiliate-team-responsibilities", "responsibilities", "top"),
   step("affiliate-team-assignments", "affiliate-team-assignments", "assignments", "top", "assignments"),

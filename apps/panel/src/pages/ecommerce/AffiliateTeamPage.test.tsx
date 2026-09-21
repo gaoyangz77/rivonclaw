@@ -99,6 +99,8 @@ describe("Affiliate Creator bulk update template", () => {
   it("keeps the existing column names for row-scoped overrides", () => {
     expect(CREATOR_BULK_UPDATE_TEMPLATE_HEADERS).toEqual([
       "creator_username",
+      "creator_uid_note",
+      "creator_note",
       "bd_name",
       "protection_action",
       "protection_note",

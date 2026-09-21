@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { readFileSync, readdirSync } from "node:fs"
 import { extname, join, resolve } from "node:path"
 import { ROUTES } from "../../routes.js"
-import { LANGUAGE_OPTIONS } from "../../i18n/languages.js"
+import { LANGUAGE_OPTIONS, LANGUAGE_RESOURCES } from "../../i18n/languages.js"
 import { getStepsForRoute } from "./index.js"
 
 const SRC_ROOT = resolve(__dirname, "../..")
@@ -49,10 +49,10 @@ const renderedSource = ["pages", "components"]
 describe("tutorial step registry", () => {
   it("keeps the audited Affiliate tutorials at their intended coverage", () => {
     const expectedStepCounts: Record<string, number> = {
-      "/commerce/affiliate/attention": 6,
-      "/commerce/affiliate/manual-workbench": 2,
+      "/commerce/affiliate/attention": 7,
+      "/commerce/affiliate/manual-workbench": 6,
       "/commerce/affiliate/team": 5,
-      "/commerce/product-knowledge": 3,
+      "/commerce/product-knowledge": 5,
       "/commerce/affiliate/campaigns": 8,
       "/commerce/affiliate/analytics": 7,
       "/commerce/affiliate/creators": 4,
@@ -126,7 +126,9 @@ describe("tutorial step registry", () => {
       for (const step of getStepsForRoute(route.path)) {
         for (const language of [english!, chinese!]) {
           for (const key of [step.titleKey, step.bodyKey]) {
-            if (!hasTranslation(language.resource, key)) missing.push(`${language.code} ${key}`)
+            if (!hasTranslation(LANGUAGE_RESOURCES[language.code].translation, key)) {
+              missing.push(`${language.code} ${key}`);
+            }
           }
         }
       }
@@ -143,8 +145,8 @@ describe("tutorial step registry", () => {
       for (const step of getStepsForRoute(route)) {
         for (const language of LANGUAGE_OPTIONS.filter((entry) => entry.code !== "en")) {
           for (const key of [step.titleKey, step.bodyKey]) {
-            const localized = getTranslation(language.resource, key)
-            const source = getTranslation(english!.resource, key)
+            const localized = getTranslation(LANGUAGE_RESOURCES[language.code].translation, key)
+            const source = getTranslation(LANGUAGE_RESOURCES.en.translation, key)
             if (!localized || localized === source) {
               missingOrFallback.push(`${language.code} ${key}`)
             }

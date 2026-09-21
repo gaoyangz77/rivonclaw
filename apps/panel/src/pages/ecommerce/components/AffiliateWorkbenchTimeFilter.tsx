@@ -41,7 +41,10 @@ export function AffiliateWorkbenchTimeFilter({ value, onChange, selection, class
   const custom = value.preset === "CUSTOM";
 
   return (
-    <div className={`affiliate-workbench-time-filter${className ? ` ${className}` : ""}`}>
+    <div
+      className={`affiliate-workbench-time-filter${className ? ` ${className}` : ""}`}
+      data-tutorial-id="affiliate-workbench-time"
+    >
       <TkChoiceSelect
         label={t("ecommerce.affiliateWorkspace.workbench.timeFilter")}
         value={value.preset}
