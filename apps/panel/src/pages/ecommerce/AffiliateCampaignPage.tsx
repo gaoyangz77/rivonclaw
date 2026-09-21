@@ -116,7 +116,7 @@ type CampaignForm = {
   firstTouchMode: GQL.AffiliateCampaignFirstTouchMode;
 };
 
-const emptyForm: CampaignForm = {
+export const emptyForm: CampaignForm = {
   shopId: "",
   products: [{ productId: "", commissionRate: "10", shopAdsCommissionRate: "10" }],
   name: "",
@@ -360,6 +360,120 @@ export function campaignMessageStepValid(
   return form.templateText.trim().length > 0;
 }
 
+export type CampaignTargetStepField =
+  | "dailyTarget"
+  | "endDays"
+  | "sellerContactEmail"
+  | "searchPlanGuidance";
+
+export type CampaignTargetStepIssueCode =
+  | "dailyTargetInvalid"
+  | "endDaysInvalid"
+  | "sellerContactEmailRequired"
+  | "sellerContactEmailInvalid"
+  | "searchPlanGuidanceTooLong";
+
+export type CampaignTargetStepIssue = {
+  field: CampaignTargetStepField;
+  code: CampaignTargetStepIssueCode;
+};
+
+export const CAMPAIGN_SEARCH_PLAN_GUIDANCE_MAX_LENGTH = 500;
+
+function isWholeNumberInRange(value: string, min: number, max: number): boolean {
+  if (!value.trim()) return false;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= min && numeric <= max;
+}
+
+/**
+ * Mirrors Backend `normalizeSellerContactEmail`: deliberately shallow, because
+ * TikTok is the authority on which addresses it accepts. Expects a trimmed,
+ * non-empty value.
+ */
+export function isPlausibleSellerContactEmail(value: string): boolean {
+  return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
+}
+
+/**
+ * Every reason the wizard's targets step cannot advance, in field order, so
+ * the first issue is the first field the seller meets on the page. Products
+ * are not re-checked here: the shop/product step already blocks them.
+ */
+export function campaignTargetStepIssues(
+  form: Pick<CampaignForm, CampaignTargetStepField>,
+): CampaignTargetStepIssue[] {
+  const issues: CampaignTargetStepIssue[] = [];
+  if (!isWholeNumberInRange(form.dailyTarget, 1, Number.MAX_SAFE_INTEGER)) {
+    issues.push({ field: "dailyTarget", code: "dailyTargetInvalid" });
+  }
+  if (!isWholeNumberInRange(form.endDays, 1, 365)) {
+    issues.push({ field: "endDays", code: "endDaysInvalid" });
+  }
+  const email = form.sellerContactEmail.trim();
+  if (!email) {
+    issues.push({ field: "sellerContactEmail", code: "sellerContactEmailRequired" });
+  } else if (!isPlausibleSellerContactEmail(email)) {
+    issues.push({ field: "sellerContactEmail", code: "sellerContactEmailInvalid" });
+  }
+  if (form.searchPlanGuidance.length > CAMPAIGN_SEARCH_PLAN_GUIDANCE_MAX_LENGTH) {
+    issues.push({ field: "searchPlanGuidance", code: "searchPlanGuidanceTooLong" });
+  }
+  return issues;
+}
+
+/**
+ * The seller contact email a new Campaign for `shopId` should start with: the
+ * one on that shop's most recently updated Campaign that has one, whatever its
+ * status. The Shop itself carries no contact email, so earlier Campaigns are
+ * the only source.
+ */
+export function latestShopSellerContactEmail(
+  campaigns: readonly Pick<GQL.AffiliateCampaign, "shopId" | "sellerContactEmail" | "updatedAt">[],
+  shopId: string,
+): string {
+  let latestEmail = "";
+  let latestUpdatedAt = Number.NEGATIVE_INFINITY;
+  for (const campaign of campaigns) {
+    const email = campaign.sellerContactEmail?.trim();
+    if (campaign.shopId !== shopId || !email) continue;
+    const updatedAt = new Date(campaign.updatedAt).getTime();
+    if (updatedAt > latestUpdatedAt) {
+      latestUpdatedAt = updatedAt;
+      latestEmail = email;
+    }
+  }
+  return latestEmail;
+}
+
+const TARGET_STEP_ISSUE_MESSAGE_KEYS: Record<CampaignTargetStepIssueCode, string> = {
+  dailyTargetInvalid: "ecommerce.affiliateCampaign.dailyTargetInvalid",
+  endDaysInvalid: "ecommerce.affiliateCampaign.endDaysInvalid",
+  sellerContactEmailRequired: "ecommerce.affiliateCampaign.sellerContactEmailRequired",
+  sellerContactEmailInvalid: "ecommerce.affiliateCampaign.sellerContactEmailInvalid",
+  searchPlanGuidanceTooLong: "ecommerce.affiliateCampaign.searchPlanGuidanceTooLong",
+};
+
+function targetFieldErrorId(field: CampaignTargetStepField): string {
+  return `affiliate-campaign-${field}-error`;
+}
+
+/** The inline error line under a targets-step field, referenced by `aria-describedby`. */
+function TargetFieldError({
+  field,
+  code,
+}: {
+  field: CampaignTargetStepField;
+  code: CampaignTargetStepIssueCode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <small id={targetFieldErrorId(field)} className="affiliate-campaign-field-error" role="alert">
+      {t(TARGET_STEP_ISSUE_MESSAGE_KEYS[code])}
+    </small>
+  );
+}
+
 export function paginateCampaigns<T>(
   items: readonly T[],
   page: number,
@@ -378,6 +492,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [form, setForm] = useState<CampaignForm>(emptyForm);
+  // Inline errors on the targets step appear only once the seller has tried
+  // to continue; each one clears as soon as its field becomes valid.
+  const [targetStepAttempted, setTargetStepAttempted] = useState(false);
+  // Once the seller types an email, choosing another shop must not replace it.
+  const [sellerContactEmailEdited, setSellerContactEmailEdited] = useState(false);
+  const targetFieldRefs = useRef<
+    Partial<Record<CampaignTargetStepField, HTMLInputElement | HTMLTextAreaElement | null>>
+  >({});
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [selectedSearchPlanId, setSelectedSearchPlanId] = useState("");
@@ -648,6 +770,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   });
   const openCreate = () => {
     setForm(emptyForm);
+    setTargetStepAttempted(false);
+    setSellerContactEmailEdited(false);
     setProductPreviews({});
     setPendingProductResolution(null);
     setEditingCampaignId("");
@@ -705,6 +829,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       firstTouchMode: campaign.firstTouchMode,
     });
     setEditingCampaignId(campaign.id);
+    setTargetStepAttempted(false);
+    setSellerContactEmailEdited(false);
     // Only the lead product has a stored snapshot; the other rows show nothing
     // until the seller fetches them.
     setProductPreviews(
@@ -774,6 +900,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     form.templateText,
   );
 
+  const targetStepIssues = campaignTargetStepIssues(form);
+  const targetFieldIssue = (field: CampaignTargetStepField) =>
+    targetStepAttempted ? targetStepIssues.find((issue) => issue.field === field) : undefined;
+  const dailyTargetIssue = targetFieldIssue("dailyTarget");
+  const endDaysIssue = targetFieldIssue("endDays");
+  const sellerContactEmailIssue = targetFieldIssue("sellerContactEmail");
+  const searchPlanGuidanceIssue = targetFieldIssue("searchPlanGuidance");
+  // In a new Campaign the email can only be non-empty without the seller typing
+  // it when it was carried over from the shop's previous Campaign.
+  const sellerContactEmailPrefilled =
+    !editingCampaignId && !sellerContactEmailEdited && form.sellerContactEmail !== "";
+
   const validateStep = () => {
     if (
       wizardStep === 1 &&
@@ -786,17 +924,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.completeShopProduct"), "error");
       return false;
     }
-    if (
-      wizardStep === 2 &&
-      (Number(form.dailyTarget) < 1 ||
-        productsInvalid ||
-        !Number.isInteger(Number(form.endDays)) ||
-        Number(form.endDays) < 1 ||
-        Number(form.endDays) > 365 ||
-        !form.sellerContactEmail.trim())
-    ) {
-      showToast(t("ecommerce.affiliateCampaign.invalidTargets"), "error");
-      return false;
+    if (wizardStep === 2) {
+      const [firstIssue] = targetStepIssues;
+      if (firstIssue) {
+        setTargetStepAttempted(true);
+        showToast(t(TARGET_STEP_ISSUE_MESSAGE_KEYS[firstIssue.code]), "error");
+        const field = targetFieldRefs.current[firstIssue.field];
+        field?.focus({ preventScroll: true });
+        field?.scrollIntoView({ block: "center" });
+        return false;
+      }
     }
     if (
       wizardStep === 2 &&
@@ -810,7 +947,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       return false;
     }
     if (wizardStep >= 3 && unsupportedTemplateVariables.length > 0) return false;
-    if (wizardStep === 2 && form.searchPlanGuidance.length > 500) return false;
     return true;
   };
 
@@ -2362,9 +2498,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <Select
                     value={form.shopId}
                     onChange={(shopId) => {
+                      // Only a new Campaign whose email the seller has not typed
+                      // follows the shop; an edit keeps its stored address.
+                      const defaultSellerContactEmail =
+                        !editingCampaignId && !sellerContactEmailEdited
+                          ? latestShopSellerContactEmail(campaignPortfolio, shopId)
+                          : null;
                       setForm((current) => ({
                         ...current,
                         shopId,
+                        ...(defaultSellerContactEmail === null
+                          ? {}
+                          : { sellerContactEmail: defaultSellerContactEmail }),
                         productId: "",
                         refreshProductSnapshot: false,
                         messageProductName: "",
@@ -2618,11 +2763,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.dailyTarget")}</span>
                     <input
+                      ref={(node) => {
+                        targetFieldRefs.current.dailyTarget = node;
+                      }}
                       type="number"
                       min={1}
                       value={form.dailyTarget}
+                      aria-invalid={dailyTargetIssue ? true : undefined}
+                      aria-describedby={
+                        dailyTargetIssue ? targetFieldErrorId("dailyTarget") : undefined
+                      }
                       onChange={(event) => updateForm("dailyTarget", event.target.value)}
                     />
+                    {dailyTargetIssue && (
+                      <TargetFieldError field="dailyTarget" code={dailyTargetIssue.code} />
+                    )}
                     <small>{t("ecommerce.affiliateCampaign.dailyTargetHint")}</small>
                   </label>
                   <label>
@@ -2632,18 +2787,52 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       min={1}
                       max={365}
                       step="1"
+                      ref={(node) => {
+                        targetFieldRefs.current.endDays = node;
+                      }}
                       value={form.endDays}
+                      aria-invalid={endDaysIssue ? true : undefined}
+                      aria-describedby={endDaysIssue ? targetFieldErrorId("endDays") : undefined}
                       onChange={(event) => updateForm("endDays", event.target.value)}
                     />
+                    {endDaysIssue && <TargetFieldError field="endDays" code={endDaysIssue.code} />}
                     <small>{t("ecommerce.affiliateCampaign.endDaysHint")}</small>
                   </label>
                   <label>
-                    <span>{t("ecommerce.affiliateCampaign.sellerContactEmail")}</span>
+                    <span>
+                      {t("ecommerce.affiliateCampaign.sellerContactEmail")}{" "}
+                      <span className="required" aria-hidden="true">
+                        *
+                      </span>
+                    </span>
                     <input
+                      ref={(node) => {
+                        targetFieldRefs.current.sellerContactEmail = node;
+                      }}
                       type="email"
+                      required
+                      aria-required="true"
                       value={form.sellerContactEmail}
-                      onChange={(event) => updateForm("sellerContactEmail", event.target.value)}
+                      aria-invalid={sellerContactEmailIssue ? true : undefined}
+                      aria-describedby={
+                        sellerContactEmailIssue
+                          ? targetFieldErrorId("sellerContactEmail")
+                          : undefined
+                      }
+                      onChange={(event) => {
+                        setSellerContactEmailEdited(true);
+                        updateForm("sellerContactEmail", event.target.value);
+                      }}
                     />
+                    {sellerContactEmailIssue && (
+                      <TargetFieldError
+                        field="sellerContactEmail"
+                        code={sellerContactEmailIssue.code}
+                      />
+                    )}
+                    {sellerContactEmailPrefilled && (
+                      <small>{t("ecommerce.affiliateCampaign.sellerContactEmailPrefilled")}</small>
+                    )}
                     <small>{t("ecommerce.affiliateCampaign.sellerContactEmailHint")}</small>
                   </label>
                   <label className="affiliate-campaign-check-rule">
@@ -2673,12 +2862,27 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.searchPlanGuidance")}</span>
                     <textarea
+                      ref={(node) => {
+                        targetFieldRefs.current.searchPlanGuidance = node;
+                      }}
                       value={form.searchPlanGuidance}
-                      maxLength={500}
+                      maxLength={CAMPAIGN_SEARCH_PLAN_GUIDANCE_MAX_LENGTH}
                       rows={4}
+                      aria-invalid={searchPlanGuidanceIssue ? true : undefined}
+                      aria-describedby={
+                        searchPlanGuidanceIssue
+                          ? targetFieldErrorId("searchPlanGuidance")
+                          : undefined
+                      }
                       onChange={(event) => updateForm("searchPlanGuidance", event.target.value)}
                       placeholder={t("ecommerce.affiliateCampaign.searchPlanGuidancePlaceholder")}
                     />
+                    {searchPlanGuidanceIssue && (
+                      <TargetFieldError
+                        field="searchPlanGuidance"
+                        code={searchPlanGuidanceIssue.code}
+                      />
+                    )}
                     <small className="affiliate-campaign-guidance-contract-hint">
                       {t("ecommerce.affiliateCampaign.searchPlanGuidanceHint", {
                         count: form.searchPlanGuidance.length,

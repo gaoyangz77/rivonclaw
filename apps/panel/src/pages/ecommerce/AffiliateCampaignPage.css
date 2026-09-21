@@ -1588,6 +1588,8 @@
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
+.affiliate-campaign-wizard-fields input[aria-invalid="true"],
+.affiliate-campaign-wizard-fields input[aria-invalid="true"]:focus,
 .affiliate-campaign-wizard-fields textarea[aria-invalid="true"],
 .affiliate-campaign-wizard-fields textarea[aria-invalid="true"]:focus {
   border-color: var(--color-danger);
@@ -1606,7 +1608,8 @@
   color: var(--color-text-muted);
   font-size: 10px;
 }
-.affiliate-campaign-wizard-fields label > .affiliate-campaign-template-error {
+.affiliate-campaign-wizard-fields label > .affiliate-campaign-template-error,
+.affiliate-campaign-wizard-fields label > .affiliate-campaign-field-error {
   color: var(--color-danger);
   font-weight: 650;
   line-height: 1.45;

@@ -18,6 +18,9 @@ import {
   campaignFunnelCounterValue,
   campaignSearchGroupRuleSummary,
   campaignShopDisplayName,
+  campaignTargetStepIssues,
+  emptyForm,
+  latestShopSellerContactEmail,
   countDistinctActiveCampaignShops,
   DEFAULT_CAMPAIGN_STATUS_FILTERS,
   estimateCampaignCadence,
@@ -602,5 +605,124 @@ describe("Affiliate Campaign presentation contracts", () => {
         "ecommerce.affiliateCampaign.affiliateConditionCount",
       ]),
     );
+  });
+});
+
+describe("Affiliate Campaign targets step validation", () => {
+  it("flags only the blank seller contact email on the default form", () => {
+    expect(campaignTargetStepIssues(emptyForm)).toEqual([
+      { field: "sellerContactEmail", code: "sellerContactEmailRequired" },
+    ]);
+    expect(campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "   " })).toEqual([
+      { field: "sellerContactEmail", code: "sellerContactEmailRequired" },
+    ]);
+  });
+
+  it("accepts the defaults once an email is present", () => {
+    expect(
+      campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: " ops@shop.example " }),
+    ).toEqual([]);
+  });
+
+  it("requires a whole daily target of at least one", () => {
+    for (const dailyTarget of ["", "0", "-3", "1.5", "abc"]) {
+      expect(
+        campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "a@b.co", dailyTarget }),
+      ).toEqual([{ field: "dailyTarget", code: "dailyTargetInvalid" }]);
+    }
+  });
+
+  it("requires a whole collaboration length from 1 to 365 days", () => {
+    for (const endDays of ["", "0", "366", "7.5", "x"]) {
+      expect(
+        campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "a@b.co", endDays }),
+      ).toEqual([{ field: "endDays", code: "endDaysInvalid" }]);
+    }
+    for (const endDays of ["1", "365"]) {
+      expect(
+        campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "a@b.co", endDays }),
+      ).toEqual([]);
+    }
+  });
+
+  it("mirrors the Backend's shallow email rule", () => {
+    for (const sellerContactEmail of ["name", "name@", "@host.com", "a@b", "a b@c.d", "a@@b.c"]) {
+      expect(campaignTargetStepIssues({ ...emptyForm, sellerContactEmail })).toEqual([
+        { field: "sellerContactEmail", code: "sellerContactEmailInvalid" },
+      ]);
+    }
+    expect(
+      campaignTargetStepIssues({
+        ...emptyForm,
+        sellerContactEmail: `${"a".repeat(250)}@b.co`,
+      }),
+    ).toEqual([{ field: "sellerContactEmail", code: "sellerContactEmailInvalid" }]);
+    expect(campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "x+y@sub.shop.io" })).toEqual(
+      [],
+    );
+  });
+
+  it("limits search guidance to 500 characters", () => {
+    const base = { ...emptyForm, sellerContactEmail: "a@b.co" };
+    expect(campaignTargetStepIssues({ ...base, searchPlanGuidance: "g".repeat(500) })).toEqual([]);
+    expect(campaignTargetStepIssues({ ...base, searchPlanGuidance: "g".repeat(501) })).toEqual([
+      { field: "searchPlanGuidance", code: "searchPlanGuidanceTooLong" },
+    ]);
+  });
+
+  it("orders issues by field position on the page", () => {
+    expect(
+      campaignTargetStepIssues({
+        ...emptyForm,
+        dailyTarget: "0",
+        endDays: "0",
+        searchPlanGuidance: "g".repeat(501),
+      }).map((issue) => issue.field),
+    ).toEqual(["dailyTarget", "endDays", "sellerContactEmail", "searchPlanGuidance"]);
+  });
+});
+
+describe("latestShopSellerContactEmail", () => {
+  const campaign = (shopId: string, sellerContactEmail: string | null, updatedAt: string) => ({
+    shopId,
+    sellerContactEmail,
+    updatedAt,
+  });
+
+  it("returns the email of the shop's most recently updated campaign, any status", () => {
+    expect(
+      latestShopSellerContactEmail(
+        [
+          campaign("shop-a", "old@a.com", "2026-08-01T00:00:00.000Z"),
+          campaign("shop-a", "new@a.com", "2026-09-01T00:00:00.000Z"),
+          campaign("shop-b", "latest@b.com", "2026-09-10T00:00:00.000Z"),
+          campaign("shop-a", "mid@a.com", "2026-08-15T00:00:00.000Z"),
+        ],
+        "shop-a",
+      ),
+    ).toBe("new@a.com");
+  });
+
+  it("skips campaigns without an email", () => {
+    expect(
+      latestShopSellerContactEmail(
+        [
+          campaign("shop-a", "kept@a.com", "2026-08-01T00:00:00.000Z"),
+          campaign("shop-a", null, "2026-09-01T00:00:00.000Z"),
+          campaign("shop-a", "  ", "2026-09-02T00:00:00.000Z"),
+        ],
+        "shop-a",
+      ),
+    ).toBe("kept@a.com");
+  });
+
+  it("returns an empty string when the shop has no campaign with an email", () => {
+    expect(latestShopSellerContactEmail([], "shop-a")).toBe("");
+    expect(
+      latestShopSellerContactEmail(
+        [campaign("shop-b", "b@b.com", "2026-09-01T00:00:00.000Z")],
+        "shop-a",
+      ),
+    ).toBe("");
   });
 });
