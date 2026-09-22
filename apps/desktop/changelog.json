@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.20",
+    "date": "2026-09-22",
+    "en": [
+      "Navigate clearer Affiliate workbenches with searchable shop selectors, refreshed tutorials, and more precise campaign setup guidance",
+      "Support Japan shop onboarding, validate campaign names before submission, and distinguish AI-model rejections in the campaign funnel"
+    ],
+    "zh": [
+      "达人联盟工作台分区更清晰，店铺选择支持搜索，教程同步更新，并提供更准确的活动配置指引",
+      "支持日本店铺接入，提交前校验活动名称，并在活动漏斗中区分 AI 模型拒绝"
+    ]
+  },
+  {
     "version": "1.9.19",
     "date": "2026-09-20",
     "en": [
