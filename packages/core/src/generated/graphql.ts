@@ -14029,6 +14029,8 @@ export interface ReadAffiliateCollaborationsInput {
 }
 
 export interface ReadAffiliateCreatorsInput {
+  /** Return only Creator Relationships assigned to this Business Developer. */
+  businessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
   creatorId?: InputMaybe<Scalars["ID"]["input"]>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
@@ -14048,6 +14050,8 @@ export interface ReadAffiliateCreatorsInput {
   systemTagMatchMode?: InputMaybe<TagMatchMode>;
   /** Relationship-level system tags, combined per systemTagMatchMode. */
   systemTags?: InputMaybe<Array<AffiliateCreatorSystemTag>>;
+  /** Return only Creator Relationships without a Business Developer. Cannot be combined with businessDeveloperId. */
+  unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
 export interface ReadAffiliateUnknownSenderIdentificationWorkInput {

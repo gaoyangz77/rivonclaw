@@ -1268,8 +1268,7 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueHint");
     expect(page).toContain("selectedBusinessDeveloperId");
-    expect(page).toContain("businessDeveloperSearchPlaceholder");
-    expect(page).toContain("searchable");
+    expect(page).toContain("<AffiliateBusinessDeveloperSelect");
     expect(page).toContain("AFFILIATE_ESCALATION_PAGE_SIZE = 25");
     expect(page).toContain("offset: escalationOffset");
     expect(page).toContain("onPageChange={setEscalationOffset}");
@@ -2305,6 +2304,10 @@ describe("creator tag catalog wiring", () => {
     expect(page).toMatch(
       /shopSampleTiers:\s*selectedShopId\s*&&\s*selectedShopSampleTiers\.length/u,
     );
+    expect(page).toContain("businessDeveloperId:");
+    expect(page).toContain("unassignedBusinessDeveloperOnly:");
+    expect(page).toContain("AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE");
+    expect(page).toContain("<AffiliateBusinessDeveloperSelect");
   });
 
   it("shows collaboration progress and both tag groups on compact creator cards and detail headers", () => {
@@ -2325,6 +2328,8 @@ describe("creator tag catalog wiring", () => {
     expect(creatorCard).toContain("affiliate-creator-compact-metrics");
     expect(creatorCard).toContain("affiliate-creator-compact-relationship");
     expect(creatorCard).toContain("affiliate-creator-compact-status");
+    expect(creatorCard).toContain('t("ecommerce.affiliateTeam.businessDeveloper")');
+    expect(creatorCard).toContain("businessDeveloperLabel");
     expect(creatorCard).not.toContain("affiliate-creator-compact-next");
     expect(creatorCard).not.toContain("affiliateWorkspace.labels.nextStep");
     expect(creatorCard).not.toContain("affiliate-creator-card-stat-strip");

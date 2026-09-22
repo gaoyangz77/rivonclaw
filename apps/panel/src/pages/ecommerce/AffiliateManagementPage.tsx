@@ -23,6 +23,10 @@ import { GQL } from "@rivonclaw/core";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import {
+  AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
+  AffiliateBusinessDeveloperSelect,
+} from "../../components/ecommerce/AffiliateBusinessDeveloperSelect.js";
+import {
   TkAlert,
   TkBadge,
   TkButton,
@@ -1625,16 +1629,11 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
               className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
               data-tutorial-id="affiliate-attention-filters"
             >
-              <TkChoiceSelect
-                label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+              <AffiliateBusinessDeveloperSelect
+                developers={businessDeveloperData?.affiliateBusinessDevelopers ?? []}
                 value={selectedBusinessDeveloperId}
                 onChange={setSelectedBusinessDeveloperId}
-                options={businessDeveloperOptions}
                 className="affiliate-status-select"
-                searchable
-                searchPlaceholder={t(
-                  "ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder",
-                )}
                 disabled={businessDevelopersLoading && businessDeveloperOptions.length === 1}
               />
               {workbenchTab === "ESCALATIONS" ? null : agentWorkspaceView === "ALL" ? (
@@ -3385,6 +3384,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     [],
   );
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
+  const [selectedBusinessDeveloperId, setSelectedBusinessDeveloperId] = useState("");
   const [creatorSearch, setCreatorSearch] = useState("");
   const [debouncedCreatorSearch, setDebouncedCreatorSearch] = useState("");
   const [creatorPage, setCreatorPage] = useState(1);
@@ -3435,6 +3435,17 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     skip: !user,
   });
   const systemTagDefinitions = systemTagDefinitionData?.affiliateCreatorSystemTagDefinitions ?? [];
+  const { data: businessDeveloperData, loading: businessDevelopersLoading } = useQuery<{
+    affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[];
+  }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
+    variables: { includeArchived: true },
+    fetchPolicy: "cache-and-network",
+    skip: !user,
+  });
+  const businessDevelopers = businessDeveloperData?.affiliateBusinessDevelopers ?? [];
+  const businessDeveloperById = new Map(
+    businessDevelopers.map((developer) => [developer.id, developer] as const),
+  );
 
   const { data: projectionHealthData, refetch: refetchProjectionHealth } = useQuery<
     { affiliateOperationalProjectionHealth: GQL.AffiliateOperationalProjectionHealthPayload },
@@ -3491,6 +3502,15 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
         shopSampleTiers:
           selectedShopId && selectedShopSampleTiers.length ? selectedShopSampleTiers : undefined,
         needsAttentionOnly,
+        businessDeveloperId:
+          selectedBusinessDeveloperId &&
+          selectedBusinessDeveloperId !== AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+            ? selectedBusinessDeveloperId
+            : undefined,
+        unassignedBusinessDeveloperOnly:
+          selectedBusinessDeveloperId === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+            ? true
+            : undefined,
         search: debouncedCreatorSearch || undefined,
         offset: (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE,
         limit: AFFILIATE_CREATORS_PAGE_SIZE,
@@ -3525,6 +3545,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     manualTagMatchMode,
     systemTagMatchMode,
     needsAttentionOnly,
+    selectedBusinessDeveloperId,
     selectedManualTagIds,
     selectedSystemTags,
     selectedSampleTiers,
@@ -3648,16 +3669,26 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             </div>
             <div className="form-hint">{t("ecommerce.affiliateWorkspace.creatorsPanelHint")}</div>
           </div>
-          <label className="affiliate-filter-field affiliate-creators-search">
-            <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
-            <input
-              className="affiliate-attention-search"
-              value={creatorSearch}
-              onChange={(event) => setCreatorSearch(event.target.value)}
-              placeholder={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
-              aria-label={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+          <div className="affiliate-creators-panel-head-controls">
+            <AffiliateBusinessDeveloperSelect
+              developers={businessDevelopers}
+              value={selectedBusinessDeveloperId}
+              onChange={setSelectedBusinessDeveloperId}
+              includeUnassigned
+              className="affiliate-creators-bd-filter"
+              disabled={businessDevelopersLoading && businessDevelopers.length === 0}
             />
-          </label>
+            <label className="affiliate-filter-field affiliate-creators-search">
+              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
+              <input
+                className="affiliate-attention-search"
+                value={creatorSearch}
+                onChange={(event) => setCreatorSearch(event.target.value)}
+                placeholder={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+                aria-label={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+              />
+            </label>
+          </div>
         </div>
 
         <AffiliateCreatorFilterGroups
@@ -3698,6 +3729,11 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 key={item.creatorId}
                 item={item}
                 shopLabel={shopLabel}
+                businessDeveloper={
+                  item.creatorRelation?.businessDeveloperId
+                    ? (businessDeveloperById.get(item.creatorRelation.businessDeveloperId) ?? null)
+                    : null
+                }
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
               />
             ))}
@@ -3748,10 +3784,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 function CreatorRelationshipCompactCard({
   item,
   shopLabel,
+  businessDeveloper,
   onOpenRelationship,
 }: {
   item: AffiliateCreatorManagementItem;
   shopLabel: (shopId: string) => ShopDisplayLabel;
+  businessDeveloper: GQL.AffiliateBusinessDeveloper | null;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
 }) {
   const { t } = useTranslation();
@@ -3803,6 +3841,11 @@ function CreatorRelationshipCompactCard({
     );
   const observedContentCount = item.latestSampleApplicationRecord?.observedContentCount ?? null;
   const relationshipDetail = relationshipDetailFromManagementItem(item);
+  const businessDeveloperLabel = item.creatorRelation?.businessDeveloperId
+    ? businessDeveloper
+      ? `${businessDeveloper.displayName}${businessDeveloper.archivedAt ? ` · ${t("ecommerce.affiliateTeam.archivedStatus")}` : ""}`
+      : "—"
+    : t("ecommerce.affiliateTeam.aiTeam");
 
   return (
     <article
@@ -3975,6 +4018,10 @@ function CreatorRelationshipCompactCard({
             <dd title={item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}>
               {item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}
             </dd>
+          </div>
+          <div>
+            <dt>{t("ecommerce.affiliateTeam.businessDeveloper")}</dt>
+            <dd title={businessDeveloperLabel}>{businessDeveloperLabel}</dd>
           </div>
         </dl>
       </section>

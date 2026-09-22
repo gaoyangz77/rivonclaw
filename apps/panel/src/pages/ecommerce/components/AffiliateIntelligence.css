@@ -459,6 +459,20 @@
   min-width: 0;
 }
 
+.affiliate-creators-panel-head-controls {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 680px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.affiliate-creators-bd-filter {
+  min-width: 210px;
+  flex: 0 1 250px;
+}
+
 /*
  * Identity lookup, not a filter condition — hence its place beside the panel
  * title rather than in the chip row below. It grows into the space the title
@@ -2005,6 +2019,19 @@
 @media (max-width: 720px) {
   .affiliate-creators-panel-head {
     align-items: stretch;
+  }
+
+  .affiliate-creators-panel-head-controls {
+    flex: 1 1 auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-creators-bd-filter,
+  .affiliate-creators-search {
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
   }
 
   .affiliate-creator-filter-groups {
