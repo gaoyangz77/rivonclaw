@@ -65,6 +65,11 @@ import {
   AFFILIATE_CAMPAIGN_NAME_MAX_LENGTH,
   isAffiliateCampaignNameValid,
 } from "./affiliate-campaign-name.js";
+import {
+  appendCursorPageBuffer,
+  emptyCursorPageBuffer,
+  replaceCursorPageBufferFirstPage,
+} from "../../lib/cursor-page-buffer.js";
 
 /** Text for a plain-`string` slot: the real value, or the placeholder while masked. */
 function maskedIfSensitive(text: string, sensitive: boolean, privacyMode: boolean): string {
@@ -523,6 +528,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const loadMoreCreatorStatesInFlightRef = useRef(false);
   const loadMoreCreatorStatesRef = useRef<() => Promise<void>>(async () => {});
   const [loadingMoreCreatorStates, setLoadingMoreCreatorStates] = useState(false);
+  const loadMoreSearchPlansInFlightRef = useRef(false);
+  const [loadingMoreSearchPlans, setLoadingMoreSearchPlans] = useState(false);
   const [messageTemplateOpen, setMessageTemplateOpen] = useState(false);
   const [selectedCreatorDetail, setSelectedCreatorDetail] =
     useState<CreatorRelationshipDetailItem | null>(null);
@@ -638,6 +645,26 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     pollInterval: selectedCampaignId ? 60_000 : 0,
     skipPollAttempt: () => document.visibilityState === "hidden",
   });
+  const searchPlanPageQueryKey = selectedCampaignId;
+  const [searchPlanPageBuffer, setSearchPlanPageBuffer] = useState(() =>
+    emptyCursorPageBuffer<CampaignSearchPlanSummaryView>(searchPlanPageQueryKey),
+  );
+  const firstSearchPlanPage = searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries;
+  const activeSearchPlanPageBuffer =
+    searchPlanPageBuffer.queryKey === searchPlanPageQueryKey
+      ? searchPlanPageBuffer
+      : emptyCursorPageBuffer<CampaignSearchPlanSummaryView>(searchPlanPageQueryKey);
+  useEffect(() => {
+    if (!firstSearchPlanPage) return;
+    setSearchPlanPageBuffer((current) =>
+      replaceCursorPageBufferFirstPage(
+        current,
+        searchPlanPageQueryKey,
+        firstSearchPlanPage,
+        (summary) => summary.plan.id,
+      ),
+    );
+  }, [firstSearchPlanPage, searchPlanPageQueryKey]);
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
@@ -714,8 +741,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
-  const searchPlanSummaries =
-    searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries?.items ?? [];
+  const searchPlanSummaries = activeSearchPlanPageBuffer.items;
   const selectedSearchPlanSummary =
     searchPlanSummaries.find((summaryItem) => summaryItem.plan.id === selectedSearchPlanId) ?? null;
   const currentSearchPlan = selectedSearchPlanSummary?.plan ?? null;
@@ -1304,26 +1330,31 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const loadMoreSearchPlans = async () => {
-    const nextCursor = searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries?.nextCursor;
-    if (!nextCursor || !selectedCampaignId) return;
-    await searchPlansQuery.fetchMore({
-      variables: {
-        input: {
-          campaignId: selectedCampaignId,
-          limit: 20,
-          cursor: nextCursor,
+    const nextCursor = activeSearchPlanPageBuffer.nextCursor;
+    if (!nextCursor || !selectedCampaignId || loadMoreSearchPlansInFlightRef.current) return;
+    const requestQueryKey = searchPlanPageQueryKey;
+    loadMoreSearchPlansInFlightRef.current = true;
+    setLoadingMoreSearchPlans(true);
+    try {
+      const result = await searchPlansQuery.fetchMore({
+        variables: {
+          input: {
+            campaignId: selectedCampaignId,
+            limit: 20,
+            cursor: nextCursor,
+          },
         },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => ({
-        affiliateCampaignSearchPlanSummaries: {
-          ...fetchMoreResult.affiliateCampaignSearchPlanSummaries,
-          items: [
-            ...previous.affiliateCampaignSearchPlanSummaries.items,
-            ...fetchMoreResult.affiliateCampaignSearchPlanSummaries.items,
-          ],
-        },
-      }),
-    });
+        updateQuery: (current) => current,
+      });
+      const nextPage = result.data?.affiliateCampaignSearchPlanSummaries;
+      if (!nextPage) return;
+      setSearchPlanPageBuffer((current) =>
+        appendCursorPageBuffer(current, requestQueryKey, nextPage, (summary) => summary.plan.id),
+      );
+    } finally {
+      loadMoreSearchPlansInFlightRef.current = false;
+      setLoadingMoreSearchPlans(false);
+    }
   };
 
   const retryCurrentSearchPlan = async () => {
@@ -2262,11 +2293,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </button>
                       </div>
                     )}
-                    {searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries?.nextCursor && (
+                    {activeSearchPlanPageBuffer.nextCursor && (
                       <button
                         type="button"
                         className="btn btn-secondary affiliate-campaign-load-more"
-                        disabled={searchPlansQuery.loading}
+                        disabled={searchPlansQuery.loading || loadingMoreSearchPlans}
                         onClick={() => void loadMoreSearchPlans()}
                       >
                         {t("ecommerce.affiliateCampaign.loadMoreSearchPlans")}

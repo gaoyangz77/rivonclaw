@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -35,6 +35,11 @@ import {
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart.js";
 import { formatLocalizedDate, formatLocalizedDateTime } from "../../lib/format-datetime.js";
+import {
+  appendCursorPageBuffer,
+  emptyCursorPageBuffer,
+  replaceCursorPageBufferFirstPage,
+} from "../../lib/cursor-page-buffer.js";
 
 type View = "REALTIME" | "HISTORY";
 type SignalView = "PAYMENT_PROGRESS" | "METRIC_TREND";
@@ -134,6 +139,11 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
   );
   const [configurationVariantKey, setConfigurationVariantKey] = useState<string | null>(null);
+  const experimentPageQueryKey = JSON.stringify([view, typeFilter, shopId]);
+  const [experimentPageBuffer, setExperimentPageBuffer] = useState(() =>
+    emptyCursorPageBuffer<GQL.CsExperimentListItemView>(experimentPageQueryKey),
+  );
+  const loadMoreExperimentsInFlightRef = useRef(false);
   const visible = usePageVisibility();
   const variantDisplayLabel = (variantKey: string, label?: string | null): string => {
     const key = variantKey.trim().toUpperCase();
@@ -200,7 +210,25 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       notifyOnNetworkStatusChange: true,
     },
   );
-  const items = pageQuery.data?.ecommerceGetCSExperimentPage.items ?? [];
+  const firstExperimentPage = pageQuery.data?.ecommerceGetCSExperimentPage;
+  const activeExperimentPageBuffer =
+    experimentPageBuffer.queryKey === experimentPageQueryKey
+      ? experimentPageBuffer
+      : emptyCursorPageBuffer<GQL.CsExperimentListItemView>(experimentPageQueryKey);
+  const items = activeExperimentPageBuffer.items;
+  const nextExperimentCursor = activeExperimentPageBuffer.nextCursor;
+
+  useEffect(() => {
+    if (!firstExperimentPage) return;
+    setExperimentPageBuffer((current) =>
+      replaceCursorPageBufferFirstPage(
+        current,
+        experimentPageQueryKey,
+        firstExperimentPage,
+        (item) => item.id,
+      ),
+    );
+  }, [experimentPageQueryKey, firstExperimentPage]);
 
   useEffect(() => {
     if (!items.length) {
@@ -367,29 +395,31 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     setExperimentId("");
     setRange(next === "REALTIME" ? "REALTIME_24H" : "DAILY_30D");
   };
-  const loadMore = () => {
-    const cursor = pageQuery.data?.ecommerceGetCSExperimentPage.nextCursor;
-    if (!cursor) return;
-    void pageQuery.fetchMore({
-      variables: {
-        input: {
-          view,
-          experimentType: typeFilter || null,
-          shopId: shopId || null,
-          cursor,
-          limit: 20,
+  const loadMore = async () => {
+    if (!nextExperimentCursor || loadMoreExperimentsInFlightRef.current) return;
+    const requestQueryKey = experimentPageQueryKey;
+    loadMoreExperimentsInFlightRef.current = true;
+    try {
+      const result = await pageQuery.fetchMore({
+        variables: {
+          input: {
+            view,
+            experimentType: typeFilter || null,
+            shopId: shopId || null,
+            cursor: nextExperimentCursor,
+            limit: 20,
+          },
         },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => ({
-        ecommerceGetCSExperimentPage: {
-          ...fetchMoreResult.ecommerceGetCSExperimentPage,
-          items: [
-            ...previous.ecommerceGetCSExperimentPage.items,
-            ...fetchMoreResult.ecommerceGetCSExperimentPage.items,
-          ],
-        },
-      }),
-    });
+        updateQuery: (current) => current,
+      });
+      const nextPage = result.data?.ecommerceGetCSExperimentPage;
+      if (!nextPage) return;
+      setExperimentPageBuffer((current) =>
+        appendCursorPageBuffer(current, requestQueryKey, nextPage, (item) => item.id),
+      );
+    } finally {
+      loadMoreExperimentsInFlightRef.current = false;
+    }
   };
   const refreshActiveView = () => {
     void Promise.all([
@@ -494,8 +524,12 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                     : t("ecommerce.customerServiceExperiments.archive")}
                   <b>{items.length}</b>
                 </span>
-                {pageQuery.data?.ecommerceGetCSExperimentPage.nextCursor ? (
-                  <button type="button" onClick={loadMore}>
+                {nextExperimentCursor ? (
+                  <button
+                    type="button"
+                    onClick={() => void loadMore()}
+                    disabled={pageQuery.loading}
+                  >
                     {t("ecommerce.customerServiceExperiments.loadMore")}
                   </button>
                 ) : null}

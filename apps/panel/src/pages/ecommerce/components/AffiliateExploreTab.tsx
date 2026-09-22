@@ -247,7 +247,8 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
     }) as GQL.EcomBiQueryInput;
 
   const execute = async (state: AffiliateExplorerDraft, append = false) => {
-    const offset = append ? rows.length : 0;
+    const offset = append ? result?.pageInfo.nextOffset : 0;
+    if (offset == null) return;
     const response = await queryData({ variables: { input: toInput(state, offset) } });
     const next = response.data?.getEcommerceBiData;
     if (!next) return;

@@ -116,6 +116,7 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
   "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
   "ecommerce.affiliateAnalytics.run": "Run",
+  "ecommerce.affiliateAnalytics.loadMore": "Load more",
   "ecommerce.affiliateAnalytics.noEntitlementTitle": "Analytics access is not enabled",
   "ecommerce.affiliateAnalytics.region": "Shop region",
   "ecommerce.affiliateAnalytics.allRegions": "All regions",
@@ -719,6 +720,48 @@ describe("AffiliateAnalyticsPage Explore", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
     await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+  });
+
+  it("continues from the backend nextOffset instead of the rendered row count", async () => {
+    const result = (
+      rows: Array<Record<string, unknown>>,
+      hasMore: boolean,
+      nextOffset: number | null,
+    ) => ({
+      data: {
+        getEcommerceBiData: {
+          datasetId: "AFFILIATE_PLATFORM_PERFORMANCE_DAILY",
+          granularity: "DAILY",
+          totalCount: rows.length,
+          rows,
+          columns: [
+            { key: "DATE", label: "Date", dimension: "DATE", metric: null },
+            {
+              key: "AFFILIATE_NET_GMV_USD",
+              label: "Net GMV USD",
+              dimension: null,
+              metric: "AFFILIATE_NET_GMV_USD",
+            },
+          ],
+          pageInfo: { hasMore, nextOffset },
+          freshness: { asOf: "2026-08-23T12:00:00Z", stale: false, warnings: [] },
+        },
+      },
+    });
+    mocks.dataQuery
+      .mockResolvedValueOnce(result([{ DATE: "2026-08-23", AFFILIATE_NET_GMV_USD: 125 }], true, 37))
+      .mockResolvedValueOnce(
+        result([{ DATE: "2026-08-22", AFFILIATE_NET_GMV_USD: 80 }], false, null),
+      );
+    render(<AffiliateAnalyticsPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load more" })).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(2));
+
+    expect(mocks.dataQuery.mock.calls[1]?.[0]?.variables.input.offset).toBe(37);
   });
 
   it("localizes the filter operator and sort direction instead of showing raw codes", () => {

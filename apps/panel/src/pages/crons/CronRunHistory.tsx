@@ -34,6 +34,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
@@ -54,6 +55,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
         }
         setTotal(result.total);
         setHasMore(result.hasMore);
+        setNextOffset(result.nextOffset);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -69,8 +71,8 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
   }, [load]);
 
   const loadMore = useCallback(() => {
-    load(entries.length);
-  }, [load, entries.length]);
+    if (nextOffset != null) load(nextOffset);
+  }, [load, nextOffset]);
 
   function statusBadge(status?: string) {
     if (!status) return null;
