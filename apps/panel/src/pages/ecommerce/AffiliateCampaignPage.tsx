@@ -60,6 +60,10 @@ import {
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
 import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
+import {
+  AFFILIATE_CAMPAIGN_NAME_MAX_LENGTH,
+  isAffiliateCampaignNameValid,
+} from "./affiliate-campaign-name.js";
 
 /** Text for a plain-`string` slot: the real value, or the placeholder while masked. */
 function maskedIfSensitive(text: string, sensitive: boolean, privacyMode: boolean): string {
@@ -932,7 +936,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       (!form.shopId ||
         !leadProductId ||
         productsInvalid ||
-        !form.name.trim() ||
+        !isAffiliateCampaignNameValid(form.name) ||
         productPreview?.productId !== leadProductId)
     ) {
       showToast(t("ecommerce.affiliateCampaign.completeShopProduct"), "error");
@@ -2512,6 +2516,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     value={form.name}
                     onChange={(event) => updateForm("name", event.target.value)}
                     placeholder={t("ecommerce.affiliateCampaign.campaignNamePlaceholder")}
+                    maxLength={AFFILIATE_CAMPAIGN_NAME_MAX_LENGTH}
                   />
                 </label>
                 <label>
