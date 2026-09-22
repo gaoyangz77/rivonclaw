@@ -8,12 +8,7 @@
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
 
 function hasSearchApiKey(config: Record<string, unknown> | undefined): boolean {
-  const envKeys = [
-    "BRAVE_API_KEY",
-    "PERPLEXITY_API_KEY",
-    "OPENROUTER_API_KEY",
-    "XAI_API_KEY",
-  ];
+  const envKeys = ["BRAVE_API_KEY", "PERPLEXITY_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY"];
   for (const key of envKeys) {
     if (process.env[key]?.trim()) return true;
   }

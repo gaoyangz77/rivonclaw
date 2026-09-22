@@ -1568,7 +1568,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           revisionNumber
           supersededByProposalId
           decision {
-            sampleReviewOverride { decision executionMode }
+            sampleReviewOverride {
+              decision
+              executionMode
+            }
             decidedAt
             note
             actorType
@@ -1758,7 +1761,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           question
         }
         decision {
-          sampleReviewOverride { decision executionMode }
+          sampleReviewOverride {
+            decision
+            executionMode
+          }
           decidedAt
           note
           actorType
@@ -3703,7 +3709,10 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         revisionNumber
         supersededByProposalId
         decision {
-          sampleReviewOverride { decision executionMode }
+          sampleReviewOverride {
+            decision
+            executionMode
+          }
           decidedAt
           note
           actorType
@@ -3888,7 +3897,10 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         question
       }
       decision {
-        sampleReviewOverride { decision executionMode }
+        sampleReviewOverride {
+          decision
+          executionMode
+        }
         decidedAt
         note
         actorType

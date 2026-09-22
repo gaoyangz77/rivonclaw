@@ -45,13 +45,15 @@ export async function handleCsConversationSignal(
   if (shop && !shop.handlesCustomerServiceOnDevice(deviceId)) {
     log.info(
       `Ignoring CS signal for shop ${signal.platformShopId}: ` +
-      `assignedDevice=${cs?.csDeviceId ?? ""} currentDevice=${deviceId}`,
+        `assignedDevice=${cs?.csDeviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }
 
   if (signal.aiEnabled === false) {
-    log.info(`Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`);
+    log.info(
+      `Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`,
+    );
     return;
   }
 
@@ -59,7 +61,7 @@ export async function handleCsConversationSignal(
   if (!dispatch) {
     log.warn(
       `Ignoring CS signal with unknown type ${String(signal.type)} ` +
-      `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
+        `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
     );
     return;
   }
@@ -68,7 +70,7 @@ export async function handleCsConversationSignal(
     const pending = queueCsDispatchUntilBridgeReady(dispatch);
     log.warn(
       `CS signal queued until bridge is ready: shop=${signal.platformShopId} ` +
-      `conv=${signal.conversationId} queued=${pending.queued} replaced=${pending.replaced}`,
+        `conv=${signal.conversationId} queued=${pending.queued} replaced=${pending.replaced}`,
     );
     return;
   }
@@ -87,20 +89,24 @@ export async function handleCsConversationChanged(
   const bridge = getCsBridge();
 
   if (!shop || !cs?.enabled) {
-    log.info(`Ignoring CS conversation change for unavailable/disabled shop ${conversation.platformShopId}`);
+    log.info(
+      `Ignoring CS conversation change for unavailable/disabled shop ${conversation.platformShopId}`,
+    );
     return;
   }
 
   if (shop && !shop.handlesCustomerServiceOnDevice(deviceId)) {
     log.info(
       `Ignoring CS conversation change for shop ${conversation.platformShopId}: ` +
-      `assignedDevice=${cs?.csDeviceId ?? ""} currentDevice=${deviceId}`,
+        `assignedDevice=${cs?.csDeviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }
 
   if (conversation.aiEnabled === false) {
-    log.info(`Ignoring CS conversation change for shop ${conversation.platformShopId} conv=${conversation.conversationId}: AI disabled`);
+    log.info(
+      `Ignoring CS conversation change for shop ${conversation.platformShopId} conv=${conversation.conversationId}: AI disabled`,
+    );
     return;
   }
 
@@ -108,8 +114,8 @@ export async function handleCsConversationChanged(
   if (!dispatch) {
     log.warn(
       `Ignoring CS conversation dispatch with unsupported or incomplete hint ${String(conversation.dispatchHint.reason)} ` +
-      `for shop=${conversation.platformShopId ?? conversation.shopId ?? ""} ` +
-      `conv=${conversation.conversationId}`,
+        `for shop=${conversation.platformShopId ?? conversation.shopId ?? ""} ` +
+        `conv=${conversation.conversationId}`,
     );
     return;
   }
@@ -118,7 +124,7 @@ export async function handleCsConversationChanged(
     const pending = queueCsDispatchUntilBridgeReady(dispatch);
     log.warn(
       `CS conversation change queued until bridge is ready: shop=${dispatch.platformShopId} ` +
-      `conv=${dispatch.conversationId} queued=${pending.queued} replaced=${pending.replaced}`,
+        `conv=${dispatch.conversationId} queued=${pending.queued} replaced=${pending.replaced}`,
     );
     return;
   }

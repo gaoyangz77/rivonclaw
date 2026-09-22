@@ -45,17 +45,26 @@ function snapshot(
 describe("buildAccountsList — MST-authoritative with snapshot overlay", () => {
   it("merges MST identity with runtime overlay when both are present", () => {
     const result = buildAccountsList(
-      [mst({ channelId: "telegram", accountId: "a1", name: "Prod Bot", config: { dmPolicy: "auto" } })],
-      snapshot({
-        telegram: [{
+      [
+        mst({
+          channelId: "telegram",
           accountId: "a1",
-          name: "Stale Name From Gateway",
-          configured: true,
-          enabled: true,
-          running: true,
-          tokenSource: "keychain",
-          mode: "polling",
-        }],
+          name: "Prod Bot",
+          config: { dmPolicy: "auto" },
+        }),
+      ],
+      snapshot({
+        telegram: [
+          {
+            accountId: "a1",
+            name: "Stale Name From Gateway",
+            configured: true,
+            enabled: true,
+            running: true,
+            tokenSource: "keychain",
+            mode: "polling",
+          },
+        ],
       }),
       t,
     );
@@ -78,7 +87,14 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
 
   it("uses conservative defaults when snapshot is null", () => {
     const result = buildAccountsList(
-      [mst({ channelId: "telegram", accountId: "a1", name: "Prod Bot", config: { dmPolicy: "manual" } })],
+      [
+        mst({
+          channelId: "telegram",
+          accountId: "a1",
+          name: "Prod Bot",
+          config: { dmPolicy: "manual" },
+        }),
+      ],
       null,
       t,
     );
@@ -128,11 +144,13 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     const result = buildAccountsList(
       [mst({ channelId: "telegram", accountId: "a1" })],
       snapshot({
-        telegram: [{
-          accountId: "OTHER",
-          configured: true,
-          running: true,
-        }],
+        telegram: [
+          {
+            accountId: "OTHER",
+            configured: true,
+            running: true,
+          },
+        ],
       }),
       t,
     );
@@ -147,11 +165,13 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     const result = buildAccountsList(
       [mst({ channelId: "telegram", accountId: "a1", name: "Correct Name" })],
       snapshot({
-        telegram: [{
-          accountId: "a1",
-          name: "Wrong Name",
-          running: true,
-        }],
+        telegram: [
+          {
+            accountId: "a1",
+            name: "Wrong Name",
+            running: true,
+          },
+        ],
       }),
       t,
     );
@@ -161,17 +181,21 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
 
   it("preserves WeChat context-token readiness from MST status", () => {
     const result = buildAccountsList(
-      [mst({
-        channelId: "openclaw-weixin",
-        accountId: "wx-1",
-        name: "Support WeChat",
-        status: { hasContextToken: false },
-      })],
-      snapshot({
-        "openclaw-weixin": [{
+      [
+        mst({
+          channelId: "openclaw-weixin",
           accountId: "wx-1",
-          running: true,
-        }],
+          name: "Support WeChat",
+          status: { hasContextToken: false },
+        }),
+      ],
+      snapshot({
+        "openclaw-weixin": [
+          {
+            accountId: "wx-1",
+            running: true,
+          },
+        ],
       }),
       t,
     );
@@ -181,12 +205,14 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
 
   it("uses MST status when snapshot is missing", () => {
     const result = buildAccountsList(
-      [mst({
-        channelId: "openclaw-weixin",
-        accountId: "wx-1",
-        name: "Support WeChat",
-        status: { hasContextToken: false },
-      })],
+      [
+        mst({
+          channelId: "openclaw-weixin",
+          accountId: "wx-1",
+          name: "Support WeChat",
+          status: { hasContextToken: false },
+        }),
+      ],
       null,
       t,
     );
@@ -196,16 +222,20 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
 
   it("does not let runtime override explicit MST context-token readiness", () => {
     const result = buildAccountsList(
-      [mst({
-        channelId: "openclaw-weixin",
-        accountId: "wx-1",
-        status: { hasContextToken: true },
-      })],
-      snapshot({
-        "openclaw-weixin": [{
+      [
+        mst({
+          channelId: "openclaw-weixin",
           accountId: "wx-1",
-          running: true,
-        }],
+          status: { hasContextToken: true },
+        }),
+      ],
+      snapshot({
+        "openclaw-weixin": [
+          {
+            accountId: "wx-1",
+            running: true,
+          },
+        ],
       }),
       t,
     );
@@ -215,22 +245,26 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
 
   it("preserves WeChat unhealthy runtime status so the account is not shown as normally running", () => {
     const result = buildAccountsList(
-      [mst({
-        channelId: "openclaw-weixin",
-        accountId: "wx-1",
-        name: "Support WeChat",
-        status: { hasContextToken: true },
-      })],
-      snapshot({
-        "openclaw-weixin": [{
+      [
+        mst({
+          channelId: "openclaw-weixin",
           accountId: "wx-1",
-          configured: true,
-          running: false,
-          connected: false,
-          healthy: false,
-          healthState: "send-unavailable",
-          lastError: "WeChat sendmessage business failure: sendmessage result status=200 ret=-2",
-        }],
+          name: "Support WeChat",
+          status: { hasContextToken: true },
+        }),
+      ],
+      snapshot({
+        "openclaw-weixin": [
+          {
+            accountId: "wx-1",
+            configured: true,
+            running: false,
+            connected: false,
+            healthy: false,
+            healthState: "send-unavailable",
+            lastError: "WeChat sendmessage business failure: sendmessage result status=200 ret=-2",
+          },
+        ],
       }),
       t,
     );
@@ -250,13 +284,15 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
         mst({ channelId: "openclaw-weixin", accountId: "wx-2", name: "Owner WeChat" }),
       ],
       snapshot({
-        "openclaw-weixin": [{
-          accountId: "wx-1",
-          configured: true,
-          running: true,
-          healthy: true,
-          healthState: "healthy",
-        }],
+        "openclaw-weixin": [
+          {
+            accountId: "wx-1",
+            configured: true,
+            running: true,
+            healthy: true,
+            healthState: "healthy",
+          },
+        ],
       }),
       t,
     );
@@ -268,45 +304,57 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
   });
 
   it("shows WeChat process runtime separately from explicit send health failures", () => {
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: true,
-    })).toBe(true);
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: true,
-      contextTokenReady: false,
-    })).toBe("activation-required");
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: null,
-      contextTokenReady: true,
-    })).toBe(true);
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: true,
-      healthy: true,
-      healthState: "healthy",
-    })).toBe(true);
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: true,
-      connected: false,
-    })).toBe(false);
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: true,
-      healthState: "send-unavailable",
-    })).toBe("send-unavailable");
-    expect(resolveDisplayedRunningStatus("openclaw-weixin", {
-      running: true,
-      healthState: "reauth-required",
-    })).toBe("reauth-required");
-    expect(resolveDisplayedRunningStatus("telegram", {
-      running: true,
-    })).toBe(true);
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: true,
+      }),
+    ).toBe(true);
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: true,
+        contextTokenReady: false,
+      }),
+    ).toBe("activation-required");
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: null,
+        contextTokenReady: true,
+      }),
+    ).toBe(true);
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: true,
+        healthy: true,
+        healthState: "healthy",
+      }),
+    ).toBe(true);
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: true,
+        connected: false,
+      }),
+    ).toBe(false);
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: true,
+        healthState: "send-unavailable",
+      }),
+    ).toBe("send-unavailable");
+    expect(
+      resolveDisplayedRunningStatus("openclaw-weixin", {
+        running: true,
+        healthState: "reauth-required",
+      }),
+    ).toBe("reauth-required");
+    expect(
+      resolveDisplayedRunningStatus("telegram", {
+        running: true,
+      }),
+    ).toBe(true);
   });
 
   it("respects enabled=false from MST config when snapshot is missing", () => {
-    const result = buildAccountsList(
-      [mst({ config: { enabled: false } })],
-      null,
-      t,
-    );
+    const result = buildAccountsList([mst({ config: { enabled: false } })], null, t);
 
     expect(result[0]!.account.enabled).toBe(false);
   });
@@ -315,12 +363,14 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     const result = buildAccountsList(
       [],
       snapshot({
-        mobile: [{
-          accountId: "pair-123",
-          name: "iPhone 15",
-          configured: true,
-          running: true,
-        }],
+        mobile: [
+          {
+            accountId: "pair-123",
+            name: "iPhone 15",
+            configured: true,
+            running: true,
+          },
+        ],
       }),
       t,
     );
@@ -338,17 +388,21 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     const result = buildAccountsList(
       [],
       snapshot({
-        weixin: [{
-          accountId: "ghost",
-          name: "Ghost WeChat",
-          configured: true,
-          running: true,
-        }],
-        telegram: [{
-          accountId: "ghost2",
-          configured: true,
-          running: true,
-        }],
+        weixin: [
+          {
+            accountId: "ghost",
+            name: "Ghost WeChat",
+            configured: true,
+            running: true,
+          },
+        ],
+        telegram: [
+          {
+            accountId: "ghost2",
+            configured: true,
+            running: true,
+          },
+        ],
       }),
       t,
     );
@@ -400,7 +454,7 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     );
 
     expect(result).toHaveLength(3);
-    const byAccount = new Map(result.map(r => [r.account.accountId, r]));
+    const byAccount = new Map(result.map((r) => [r.account.accountId, r]));
     expect(byAccount.get("tg-1")?.account.running).toBe(true);
     expect(byAccount.get("tg-2")?.account.running).toBe(false);
     expect(byAccount.get("fs-1")?.account.running).toBe(true);
@@ -417,16 +471,19 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
     );
 
     expect(result).toHaveLength(2);
-    const channels = result.map(r => r.channelId).sort();
+    const channels = result.map((r) => r.channelId).sort();
     expect(channels).toEqual(["mobile", "telegram"]);
   });
 
   it("falls back to snapshot.channelLabels for unknown channels", () => {
     const result = buildAccountsList(
       [mst({ channelId: "custom-channel", accountId: "a1" })],
-      snapshot({ "custom-channel": [{ accountId: "a1" }] }, {
-        channelLabels: { "custom-channel": "Custom Channel Label" },
-      }),
+      snapshot(
+        { "custom-channel": [{ accountId: "a1" }] },
+        {
+          channelLabels: { "custom-channel": "Custom Channel Label" },
+        },
+      ),
       t,
     );
 
@@ -434,11 +491,7 @@ describe("buildAccountsList — MST-authoritative with snapshot overlay", () => 
   });
 
   it("uses i18n label from KNOWN_CHANNELS for known channels", () => {
-    const result = buildAccountsList(
-      [mst({ channelId: "telegram", accountId: "a1" })],
-      null,
-      t,
-    );
+    const result = buildAccountsList([mst({ channelId: "telegram", accountId: "a1" })], null, t);
 
     // Our test `t` returns the key, and KNOWN_CHANNELS has an entry for telegram
     expect(result[0]!.channelLabel).toMatch(/^channels?\./);

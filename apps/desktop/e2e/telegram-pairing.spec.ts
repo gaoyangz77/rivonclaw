@@ -3,14 +3,18 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 test.describe("Telegram Pairing Flow", () => {
-  test("add account, simulate pairing request, and approve", async ({ window, electronApp, apiBase }) => {
+  test("add account, simulate pairing request, and approve", async ({
+    window,
+    electronApp,
+    apiBase,
+  }) => {
     test.slow();
     test.skip(!process.env.E2E_TELEGRAM_BOT_TOKEN, "E2E_TELEGRAM_BOT_TOKEN required");
 
     // --- Step 1: Dismiss any blocking modals ---
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -34,7 +38,8 @@ test.describe("Telegram Pairing Flow", () => {
     await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 
     const telegramRows = window
-      .locator(".channel-table").first()
+      .locator(".channel-table")
+      .first()
       .locator("tbody tr.table-hover-row")
       .filter({ hasText: "Telegram" });
     const initialTelegramRowCount = await telegramRows.count();
@@ -48,9 +53,11 @@ test.describe("Telegram Pairing Flow", () => {
     await selectTrigger.click();
 
     // The dropdown is rendered via portal to document.body
-    const telegramOption = window.locator(".custom-select-dropdown .custom-select-option", {
-      hasText: "Telegram",
-    }).first();
+    const telegramOption = window
+      .locator(".custom-select-dropdown .custom-select-option", {
+        hasText: "Telegram",
+      })
+      .first();
     await expect(telegramOption).toBeVisible({ timeout: 5_000 });
     await telegramOption.click();
 
@@ -99,7 +106,10 @@ test.describe("Telegram Pairing Flow", () => {
       channels?: { telegram?: { defaultAccount?: string; accounts?: Record<string, unknown> } };
     };
     const telegramAccounts = config.channels?.telegram?.accounts ?? {};
-    const accountId = config.channels?.telegram?.defaultAccount ?? Object.keys(telegramAccounts).at(-1) ?? "default";
+    const accountId =
+      config.channels?.telegram?.defaultAccount ??
+      Object.keys(telegramAccounts).at(-1) ??
+      "default";
 
     const credentialsDir = path.join(stateDir!, "credentials");
     mkdirSync(credentialsDir, { recursive: true });
@@ -127,13 +137,18 @@ test.describe("Telegram Pairing Flow", () => {
       path.join(credentialsDir, "telegram-pairing.json"),
       JSON.stringify(pairingData, null, 2),
     );
-    await expect.poll(async () => {
-      const res = await fetch(
-        `${apiBase}/api/pairing/requests/telegram?accountId=${encodeURIComponent(accountId)}`,
-      );
-      const body = await res.json() as { requests?: Array<unknown> };
-      return body.requests?.length ?? 0;
-    }, { timeout: 10_000 }).toBeGreaterThan(0);
+    await expect
+      .poll(
+        async () => {
+          const res = await fetch(
+            `${apiBase}/api/pairing/requests/telegram?accountId=${encodeURIComponent(accountId)}`,
+          );
+          const body = (await res.json()) as { requests?: Array<unknown> };
+          return body.requests?.length ?? 0;
+        },
+        { timeout: 10_000 },
+      )
+      .toBeGreaterThan(0);
 
     // Wait for the 5s polling to pick up the new pairing request
     const pendingSection = window
@@ -176,7 +191,9 @@ test.describe("Telegram Pairing Flow", () => {
 
     // The allowlist renders TruncatedId which shows "...345" (last 3 chars)
     // and puts the full ID in the copy button's title attribute
-    const allowlistCopyBtn = window.locator(".recipients-section .id-copy-btn[title='e2e_test_user_12345']").last();
+    const allowlistCopyBtn = window
+      .locator(".recipients-section .id-copy-btn[title='e2e_test_user_12345']")
+      .last();
     await expect(allowlistCopyBtn).toBeVisible({ timeout: 10_000 });
   });
 });

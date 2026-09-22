@@ -5,7 +5,10 @@ import {
 } from "@rivonclaw/gateway";
 import { resolveGatewayProvider, type LLMProvider, type ProviderKeyEntry } from "@rivonclaw/core";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
-import { buildCustomProviderOverridesFromKeys, buildDesktopOnlyProviderSeeds } from "../gateway/config-builder.js";
+import {
+  buildCustomProviderOverridesFromKeys,
+  buildDesktopOnlyProviderSeeds,
+} from "../gateway/config-builder.js";
 
 export interface VendorDefaultModel {
   provider: string;
@@ -175,7 +178,10 @@ export function writeVendorProviderDefinition(params: {
 }): void {
   const isCustom = params.entry.authType === "custom";
   const isLocal = params.entry.authType === "local";
-  const isDesktopOnly = Object.hasOwn(buildDesktopOnlyProviderSeeds([params.entry], {}), params.entry.provider);
+  const isDesktopOnly = Object.hasOwn(
+    buildDesktopOnlyProviderSeeds([params.entry], {}),
+    params.entry.provider,
+  );
   if (!isCustom && !isLocal && (!isDesktopOnly || params.remove)) return;
 
   mutateDesktopOpenClawConfig(

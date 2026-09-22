@@ -20,7 +20,10 @@ export interface KeyUsageModalProps {
  * Fetch cadence: fire once per open. Quota freshness matters more than network
  * economy, so there's no caching; reopening refetches.
  */
-export const KeyUsageModal = observer(function KeyUsageModal({ keyId, onClose }: KeyUsageModalProps) {
+export const KeyUsageModal = observer(function KeyUsageModal({
+  keyId,
+  onClose,
+}: KeyUsageModalProps) {
   const { t, i18n } = useTranslation();
   const store = useEntityStore();
   const key = keyId ? store.providerKeys.find((k) => k.id === keyId) : null;
@@ -61,9 +64,7 @@ export const KeyUsageModal = observer(function KeyUsageModal({ keyId, onClose }:
           <div className="key-usage-empty">{t("providers.usageModal.empty")}</div>
         ) : (
           <>
-            {usage.plan && (
-              <div className="key-usage-plan">{usage.plan}</div>
-            )}
+            {usage.plan && <div className="key-usage-plan">{usage.plan}</div>}
             <div className="key-usage-windows">
               {usage.windows.map((w, idx) => (
                 <UsageWindowRow
@@ -106,16 +107,10 @@ function UsageWindowRow({
     <div className="key-usage-row">
       <div className="quota-header">
         <span className="key-usage-label">{label}</span>
-        {resetAt ? (
-          <span className="quota-refresh-time">{refreshesAtLabel}</span>
-        ) : null}
+        {resetAt ? <span className="quota-refresh-time">{refreshesAtLabel}</span> : null}
       </div>
       <div className="quota-bar-wrap">
-        <progress
-          className={`quota-bar${isHigh ? " quota-bar-low" : ""}`}
-          value={pct}
-          max={100}
-        />
+        <progress className={`quota-bar${isHigh ? " quota-bar-low" : ""}`} value={pct} max={100} />
         <span className="quota-bar-label">{Math.round(pct)}%</span>
       </div>
     </div>

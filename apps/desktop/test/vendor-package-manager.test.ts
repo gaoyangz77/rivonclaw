@@ -30,9 +30,7 @@ const {
   isCompletedVendorProductionInstall,
   PNPM_INSTALL_DONE_LINE,
   decideVendorInstallWait,
-} = require(
-  "../scripts/vendor-package-manager.cjs",
-) as {
+} = require("../scripts/vendor-package-manager.cjs") as {
   readVendorPnpmVersion: (vendorDir: string) => string;
   resolveVendorPnpmEntry: (
     vendorDir: string,
@@ -70,32 +68,42 @@ describe("vendor package manager", () => {
   it.each([
     ["setup-vendor.sh", 3],
     ["provision-vendor-patched.sh", 2],
-  ] as const)("keeps every %s install on the same explicit packaging boundary", (script, expectedCount) => {
-    const source = readFileSync(new URL(`../../../scripts/${script}`, import.meta.url), "utf8");
-    const commands = source.split("\n").filter((line) => /^\s*vendor_pnpm install\b/.test(line));
-    expect(commands).toHaveLength(expectedCount);
-    for (const command of commands) {
-      expect(command).toContain("--node-linker=hoisted");
-      expect(command).toContain("--optional");
-      expect(command).toContain("--frozen-lockfile");
-    }
-    expect(source).not.toMatch(/^\s*export npm_config_node_linker=/m);
-  });
+  ] as const)(
+    "keeps every %s install on the same explicit packaging boundary",
+    (script, expectedCount) => {
+      const source = readFileSync(new URL(`../../../scripts/${script}`, import.meta.url), "utf8");
+      const commands = source.split("\n").filter((line) => /^\s*vendor_pnpm install\b/.test(line));
+      expect(commands).toHaveLength(expectedCount);
+      for (const command of commands) {
+        expect(command).toContain("--node-linker=hoisted");
+        expect(command).toContain("--optional");
+        expect(command).toContain("--frozen-lockfile");
+      }
+      expect(source).not.toMatch(/^\s*export npm_config_node_linker=/m);
+    },
+  );
 
   it("explicitly requests a hoisted production install with native optional packages", () => {
     const args = [...VENDOR_PRODUCTION_INSTALL_ARGS];
     expect(args.slice(args.indexOf("install"))).toEqual([
-      "install", "--prod", "--node-linker=hoisted", "--optional", "--frozen-lockfile", "--ignore-scripts",
+      "install",
+      "--prod",
+      "--node-linker=hoisted",
+      "--optional",
+      "--frozen-lockfile",
+      "--ignore-scripts",
     ]);
     expect(args).not.toContain("--force");
     expect(args).not.toContain("--trust-lockfile");
   });
 
   it("accepts only a completed flat production layout", () => {
-    expect(isCompletedVendorProductionInstall({
-      nodeLinker: "hoisted",
-      included: { dependencies: true, devDependencies: false, optionalDependencies: true },
-    })).toBe(true);
+    expect(
+      isCompletedVendorProductionInstall({
+        nodeLinker: "hoisted",
+        included: { dependencies: true, devDependencies: false, optionalDependencies: true },
+      }),
+    ).toBe(true);
   });
 
   it.each<ModulesState | null | undefined>([
@@ -103,31 +111,57 @@ describe("vendor package manager", () => {
     null,
     {},
     { nodeLinker: "hoisted" },
-    { nodeLinker: "isolated", included: { dependencies: true, devDependencies: false, optionalDependencies: true } },
-    { nodeLinker: "hoisted", included: { dependencies: true, devDependencies: true, optionalDependencies: true } },
-    { nodeLinker: "hoisted", included: { dependencies: false, devDependencies: false, optionalDependencies: true } },
-    { nodeLinker: "hoisted", included: { dependencies: true, devDependencies: false, optionalDependencies: false } },
+    {
+      nodeLinker: "isolated",
+      included: { dependencies: true, devDependencies: false, optionalDependencies: true },
+    },
+    {
+      nodeLinker: "hoisted",
+      included: { dependencies: true, devDependencies: true, optionalDependencies: true },
+    },
+    {
+      nodeLinker: "hoisted",
+      included: { dependencies: false, devDependencies: false, optionalDependencies: true },
+    },
+    {
+      nodeLinker: "hoisted",
+      included: { dependencies: true, devDependencies: false, optionalDependencies: false },
+    },
   ])("rejects incomplete or non-packageable install state %j", (state) => {
     expect(isCompletedVendorProductionInstall(state)).toBe(false);
   });
 
   describe("install completion", () => {
     const running: InstallWaitState = {
-      exited: false, exitCode: null, startedAtMs: 0, doneAtMs: null, nowMs: 0, graceMs: 30_000, deadlineMs: 900_000,
+      exited: false,
+      exitCode: null,
+      startedAtMs: 0,
+      doneAtMs: null,
+      nowMs: 0,
+      graceMs: 30_000,
+      deadlineMs: 900_000,
     };
 
-    it.each([
-      "Done in 49.2s using pnpm v12.3.4",
-      "Done in 2m 14.8s using pnpm v12.3.4",
-    ])("recognizes pnpm's completion line %j", (line) => {
-      expect(PNPM_INSTALL_DONE_LINE.test(line)).toBe(true);
-    });
+    it.each(["Done in 49.2s using pnpm v12.3.4", "Done in 2m 14.8s using pnpm v12.3.4"])(
+      "recognizes pnpm's completion line %j",
+      (line) => {
+        expect(PNPM_INSTALL_DONE_LINE.test(line)).toBe(true);
+      },
+    );
 
     it("does not mistake progress for completion", () => {
       // The macOS x64 1.9.17 build was still at this line when the old timeout
       // declared the install finished.
-      expect(PNPM_INSTALL_DONE_LINE.test("Progress: resolved 1439, reused 0, downloaded 1432, added 774")).toBe(false);
-      expect(PNPM_INSTALL_DONE_LINE.test("Progress: resolved 1439, reused 0, downloaded 1432, added 1186, done")).toBe(false);
+      expect(
+        PNPM_INSTALL_DONE_LINE.test(
+          "Progress: resolved 1439, reused 0, downloaded 1432, added 774",
+        ),
+      ).toBe(false);
+      expect(
+        PNPM_INSTALL_DONE_LINE.test(
+          "Progress: resolved 1439, reused 0, downloaded 1432, added 1186, done",
+        ),
+      ).toBe(false);
     });
 
     it("keeps waiting for an install that is still running, however long it takes", () => {
@@ -136,31 +170,42 @@ describe("vendor package manager", () => {
     });
 
     it("succeeds only on a clean exit", () => {
-      expect(decideVendorInstallWait({ ...running, exited: true, exitCode: 0 }))
-        .toMatchObject({ action: "exit", code: 0 });
+      expect(decideVendorInstallWait({ ...running, exited: true, exitCode: 0 })).toMatchObject({
+        action: "exit",
+        code: 0,
+      });
     });
 
     it.each([1, null])("fails when pnpm exits with %s", (exitCode) => {
-      expect(decideVendorInstallWait({ ...running, exited: true, exitCode }))
-        .toMatchObject({ action: "exit", code: 1 });
+      expect(decideVendorInstallWait({ ...running, exited: true, exitCode })).toMatchObject({
+        action: "exit",
+        code: 1,
+      });
     });
 
     it("waits out the grace period after pnpm reports completion", () => {
-      expect(decideVendorInstallWait({ ...running, doneAtMs: 10_000, nowMs: 39_999 })).toEqual({ action: "wait" });
+      expect(decideVendorInstallWait({ ...running, doneAtMs: 10_000, nowMs: 39_999 })).toEqual({
+        action: "wait",
+      });
     });
 
     it("stops a pnpm that reported completion but never exits, and treats it as finished", () => {
-      expect(decideVendorInstallWait({ ...running, doneAtMs: 10_000, nowMs: 40_000 }))
-        .toMatchObject({ action: "kill", code: 0 });
+      expect(
+        decideVendorInstallWait({ ...running, doneAtMs: 10_000, nowMs: 40_000 }),
+      ).toMatchObject({ action: "kill", code: 0 });
     });
 
     it("never lets the deadline fail an install that already reported completion", () => {
-      expect(decideVendorInstallWait({ ...running, doneAtMs: 899_000, nowMs: 900_000 })).toEqual({ action: "wait" });
+      expect(decideVendorInstallWait({ ...running, doneAtMs: 899_000, nowMs: 900_000 })).toEqual({
+        action: "wait",
+      });
     });
 
     it("stops and fails an install that has not completed by the deadline", () => {
-      expect(decideVendorInstallWait({ ...running, nowMs: 900_000 }))
-        .toMatchObject({ action: "kill", code: 1 });
+      expect(decideVendorInstallWait({ ...running, nowMs: 900_000 })).toMatchObject({
+        action: "kill",
+        code: 1,
+      });
     });
   });
 

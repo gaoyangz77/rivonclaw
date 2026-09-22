@@ -97,10 +97,10 @@ export async function readWeixinContextTokenRecipientIds(
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       for (const [recipientId, token] of Object.entries(parsed)) {
         if (
-          typeof recipientId === "string"
-          && recipientId.trim()
-          && typeof token === "string"
-          && token.trim()
+          typeof recipientId === "string" &&
+          recipientId.trim() &&
+          typeof token === "string" &&
+          token.trim()
         ) {
           recipientIds.add(recipientId.trim());
         }
@@ -138,10 +138,10 @@ export function readWeixinContextTokensSync(
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       for (const [recipientId, token] of Object.entries(parsed)) {
         if (
-          typeof recipientId === "string"
-          && recipientId.trim()
-          && typeof token === "string"
-          && token.trim()
+          typeof recipientId === "string" &&
+          recipientId.trim() &&
+          typeof token === "string" &&
+          token.trim()
         ) {
           tokens[recipientId.trim()] = token.trim();
         }
@@ -183,8 +183,9 @@ export async function clearWeixinContextTokenFiles(
   accountId: string,
 ): Promise<void> {
   await Promise.all(
-    resolveWeixinAccountSidecarPaths(stateDir, accountId, ".context-tokens.json")
-      .map((filePath) => rm(filePath, { force: true })),
+    resolveWeixinAccountSidecarPaths(stateDir, accountId, ".context-tokens.json").map((filePath) =>
+      rm(filePath, { force: true }),
+    ),
   );
 }
 

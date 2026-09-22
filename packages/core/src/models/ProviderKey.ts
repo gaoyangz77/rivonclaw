@@ -31,35 +31,36 @@ export const ProviderKeyUsageModel = types.model("ProviderKeyUsage", {
   error: types.maybe(types.string),
 });
 
-export const ProviderKeyModel = types.model("ProviderKey", {
-  id: types.identifier,
-  provider: types.string,
-  label: types.string,
-  model: types.string,
-  isDefault: types.boolean,
-  proxyUrl: types.maybeNull(types.string),
-  authType: types.optional(types.string, "api_key"),
-  baseUrl: types.maybeNull(types.string),
-  customProtocol: types.maybeNull(types.string),
-  customModelsJson: types.maybeNull(types.string),
-  inputModalities: types.maybeNull(types.array(types.string)),
-  source: types.optional(types.string, "local"),
-  /**
-   * OAuth credential expiry (ms since epoch). For OpenAI Codex, this is the
-   * refresh token's JWT `exp` claim, not the ChatGPT subscription renewal date
-   * or short-lived access-token TTL. Null when the provider is opaque or the
-   * row pre-dates the column.
-   */
-  oauthExpiresAt: types.optional(types.maybeNull(types.number), null),
-  createdAt: types.string,
-  updatedAt: types.string,
-  /**
-   * Subscription quota usage. Null until the user explicitly requests it via the
-   * "Usage" button. Using `types.optional(..., null)` so snapshots that omit it
-   * (e.g. from Desktop's `toMstSnapshot`) reset to null rather than erroring.
-   */
-  usage: types.optional(types.maybeNull(ProviderKeyUsageModel), null),
-})
+export const ProviderKeyModel = types
+  .model("ProviderKey", {
+    id: types.identifier,
+    provider: types.string,
+    label: types.string,
+    model: types.string,
+    isDefault: types.boolean,
+    proxyUrl: types.maybeNull(types.string),
+    authType: types.optional(types.string, "api_key"),
+    baseUrl: types.maybeNull(types.string),
+    customProtocol: types.maybeNull(types.string),
+    customModelsJson: types.maybeNull(types.string),
+    inputModalities: types.maybeNull(types.array(types.string)),
+    source: types.optional(types.string, "local"),
+    /**
+     * OAuth credential expiry (ms since epoch). For OpenAI Codex, this is the
+     * refresh token's JWT `exp` claim, not the ChatGPT subscription renewal date
+     * or short-lived access-token TTL. Null when the provider is opaque or the
+     * row pre-dates the column.
+     */
+    oauthExpiresAt: types.optional(types.maybeNull(types.number), null),
+    createdAt: types.string,
+    updatedAt: types.string,
+    /**
+     * Subscription quota usage. Null until the user explicitly requests it via the
+     * "Usage" button. Using `types.optional(..., null)` so snapshots that omit it
+     * (e.g. from Desktop's `toMstSnapshot`) reset to null rather than erroring.
+     */
+    usage: types.optional(types.maybeNull(ProviderKeyUsageModel), null),
+  })
   .actions((self) => ({
     /**
      * Begin a usage fetch — clears any prior error and marks fetching.

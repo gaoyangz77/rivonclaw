@@ -14,7 +14,9 @@ if (!version || version === "0.0.0") {
   throw new Error("Release version is missing or still 0.0.0.");
 }
 
-const changelog = JSON.parse(await readFile(path.join(repoRoot, "apps/desktop/changelog.json"), "utf8"));
+const changelog = JSON.parse(
+  await readFile(path.join(repoRoot, "apps/desktop/changelog.json"), "utf8"),
+);
 const entry = changelog.find((item) => item.version === version);
 
 if (!entry) {

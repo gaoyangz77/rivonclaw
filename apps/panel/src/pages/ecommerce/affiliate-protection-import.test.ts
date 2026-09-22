@@ -31,38 +31,55 @@ function entry(index: number, note: string | null = null): AffiliateCreatorUpdat
 
 describe("Affiliate Creator bulk update import", () => {
   it("requires the new general template while accepting extra numbered tag columns", () => {
-    expect(validateAffiliateCreatorUpdateTemplate([...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS])).toEqual({
+    expect(
+      validateAffiliateCreatorUpdateTemplate([...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS]),
+    ).toEqual({
       valid: true,
       missingHeaders: [],
       unsupportedHeaders: [],
     });
-    expect(validateAffiliateCreatorUpdateTemplate([
-      ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
-      "add_manual_tag_12",
-    ]).valid).toBe(true);
+    expect(
+      validateAffiliateCreatorUpdateTemplate([
+        ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+        "add_manual_tag_12",
+      ]).valid,
+    ).toBe(true);
     expect(validateAffiliateCreatorUpdateTemplate(["creator_username", "bd_name"])).toEqual({
       valid: false,
-      missingHeaders: ["creator_uid_note", "creator_note", "protection_action", "protection_note", "add_manual_tag_1"],
+      missingHeaders: [
+        "creator_uid_note",
+        "creator_note",
+        "protection_action",
+        "protection_note",
+        "add_manual_tag_1",
+      ],
       unsupportedHeaders: [],
     });
-    expect(validateAffiliateCreatorUpdateTemplate([
-      ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
-      "manual_tags",
-    ]).unsupportedHeaders).toEqual(["manual_tags"]);
+    expect(
+      validateAffiliateCreatorUpdateTemplate([
+        ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+        "manual_tags",
+      ]).unsupportedHeaders,
+    ).toEqual(["manual_tags"]);
   });
 
   it("parses target state, arbitrary tag columns, and case-insensitive tag duplicates", () => {
-    expect(parseAffiliateCreatorUpdateRow({
-      "Creator Username": " @Alice ",
-      bd_name: " Regional BD ",
-      protection_action: " protect ",
-      protection_note: "VIP relationship",
-      creator_uid_note: "6905667682868806661",
-      creator_note: "Priority partner",
-      add_manual_tag_1: " Long-term ",
-      add_manual_tag_2: "long-term",
-      add_manual_tag_7: "Fashion",
-    }, ["long-term", "FASHION"])).toEqual({
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        {
+          "Creator Username": " @Alice ",
+          bd_name: " Regional BD ",
+          protection_action: " protect ",
+          protection_note: "VIP relationship",
+          creator_uid_note: "6905667682868806661",
+          creator_note: "Priority partner",
+          add_manual_tag_1: " Long-term ",
+          add_manual_tag_2: "long-term",
+          add_manual_tag_7: "Fashion",
+        },
+        ["long-term", "FASHION"],
+      ),
+    ).toEqual({
       username: "Alice",
       businessDeveloperName: "Regional BD",
       protect: true,
@@ -76,107 +93,154 @@ describe("Affiliate Creator bulk update import", () => {
   });
 
   it("preserves UID text and rejects numeric spreadsheet cells", () => {
-    expect(parseAffiliateCreatorUpdateRow({
-      creator_username: "alice",
-      creator_uid_note: "6905667682868806661",
-    }, [])).toMatchObject({ sellerProvidedUid: "6905667682868806661", issue: null });
-    expect(parseAffiliateCreatorUpdateRow({
-      creator_username: "alice",
-      creator_uid_note: 6905667682868807000,
-    }, []).issue).toBe("UID_MUST_BE_TEXT");
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        {
+          creator_username: "alice",
+          creator_uid_note: "6905667682868806661",
+        },
+        [],
+      ),
+    ).toMatchObject({ sellerProvidedUid: "6905667682868806661", issue: null });
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        {
+          creator_username: "alice",
+          creator_uid_note: 6905667682868807000,
+        },
+        [],
+      ).issue,
+    ).toBe("UID_MUST_BE_TEXT");
   });
 
   it("rejects tags outside the manual tag catalogue and lists every unknown name", () => {
-    const row = parseAffiliateCreatorUpdateRow({
-      creator_username: "alice",
-      add_manual_tag_1: " VIP ",
-      add_manual_tag_2: "Gold, tier",
-      add_manual_tag_3: "Retired",
-      add_manual_tag_4: "gold, TIER",
-    }, ["vip", "Retired"]);
+    const row = parseAffiliateCreatorUpdateRow(
+      {
+        creator_username: "alice",
+        add_manual_tag_1: " VIP ",
+        add_manual_tag_2: "Gold, tier",
+        add_manual_tag_3: "Retired",
+        add_manual_tag_4: "gold, TIER",
+      },
+      ["vip", "Retired"],
+    );
     expect(row.issue).toBe("UNKNOWN_MANUAL_TAGS");
     expect(row.unknownManualTagNames).toEqual(["Gold, tier"]);
-    expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice", add_manual_tag_1: "VIP" }, []))
-      .toMatchObject({ issue: "UNKNOWN_MANUAL_TAGS", unknownManualTagNames: ["VIP"] });
+    expect(
+      parseAffiliateCreatorUpdateRow({ creator_username: "alice", add_manual_tag_1: "VIP" }, []),
+    ).toMatchObject({ issue: "UNKNOWN_MANUAL_TAGS", unknownManualTagNames: ["VIP"] });
     // A structural problem with the row is reported first.
-    expect(parseAffiliateCreatorUpdateRow({ add_manual_tag_1: "VIP" }, []).issue).toBe("MISSING_CREATOR");
+    expect(parseAffiliateCreatorUpdateRow({ add_manual_tag_1: "VIP" }, []).issue).toBe(
+      "MISSING_CREATOR",
+    );
     expect(normalizeCreatorManualTagName("  Gold Tier ")).toBe("gold tier");
   });
 
   it("rejects invalid protection actions and orphaned notes", () => {
-    expect(parseAffiliateCreatorUpdateRow({
-      creator_username: "alice",
-      protection_action: "REMOVE",
-    }, []).issue).toBe("INVALID_PROTECTION_ACTION");
-    expect(parseAffiliateCreatorUpdateRow({
-      creator_username: "alice",
-      protection_note: "note",
-    }, []).issue).toBe("NOTE_WITHOUT_PROTECTION");
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        {
+          creator_username: "alice",
+          protection_action: "REMOVE",
+        },
+        [],
+      ).issue,
+    ).toBe("INVALID_PROTECTION_ACTION");
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        {
+          creator_username: "alice",
+          protection_note: "note",
+        },
+        [],
+      ).issue,
+    ).toBe("NOTE_WITHOUT_PROTECTION");
     expect(parseAffiliateCreatorUpdateRow({ creator_username: "alice" }, [])).toMatchObject({
-      issue: null, protect: false, businessDeveloperName: null, manualTagNames: [],
+      issue: null,
+      protect: false,
+      businessDeveloperName: null,
+      manualTagNames: [],
     });
-    expect(parseAffiliateCreatorUpdateRow({
-      creator_username: "alice", protection_action: " unprotect ",
-    }, [])).toMatchObject({ issue: null, protect: false });
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        {
+          creator_username: "alice",
+          protection_action: " unprotect ",
+        },
+        [],
+      ),
+    ).toMatchObject({ issue: null, protect: false });
   });
 
   it("describes the actual import outcome instead of marking every valid row ready", () => {
-    expect(classifyAffiliateProtectionPreviewRow({
-      error: "Missing creator",
-      businessDeveloperId: null,
-      businessDeveloperName: null,
-    })).toBe("ERROR");
-    expect(classifyAffiliateProtectionPreviewRow({
-      error: null,
-      excluded: true,
-      businessDeveloperId: null,
-      businessDeveloperName: "Skipped BD",
-    })).toBe("EXCLUDED");
-    expect(classifyAffiliateProtectionPreviewRow({
-      error: null,
-      businessDeveloperId: null,
-      businessDeveloperName: "Unknown BD",
-    })).toBe("NEEDS_DEVELOPER_DECISION");
-    expect(classifyAffiliateProtectionPreviewRow({
-      error: null,
-      businessDeveloperId: "bd-1",
-      businessDeveloperName: "Alice",
-    })).toBe("ASSIGNED");
-    expect(classifyAffiliateProtectionPreviewRow({
-      error: null,
-      businessDeveloperId: null,
-      businessDeveloperName: null,
-    })).toBe("PROTECTION_ONLY");
-  });
-
-  it("summarizes matched BD assignments before the user confirms them", () => {
-    expect(summarizeAffiliateProtectionAssignments([
-      {
-        error: null,
-        businessDeveloperId: "bd-lin",
-        businessDeveloperName: "林",
-      },
-      {
-        error: null,
-        businessDeveloperId: "bd-lin",
-        businessDeveloperName: "林",
-      },
-      {
-        error: null,
-        businessDeveloperId: "bd-chen",
-        businessDeveloperName: "陈",
-      },
-      {
-        error: null,
-        businessDeveloperId: null,
-        businessDeveloperName: null,
-      },
-      {
+    expect(
+      classifyAffiliateProtectionPreviewRow({
         error: "Missing creator",
         businessDeveloperId: null,
         businessDeveloperName: null,
-      },
-    ])).toEqual({
+      }),
+    ).toBe("ERROR");
+    expect(
+      classifyAffiliateProtectionPreviewRow({
+        error: null,
+        excluded: true,
+        businessDeveloperId: null,
+        businessDeveloperName: "Skipped BD",
+      }),
+    ).toBe("EXCLUDED");
+    expect(
+      classifyAffiliateProtectionPreviewRow({
+        error: null,
+        businessDeveloperId: null,
+        businessDeveloperName: "Unknown BD",
+      }),
+    ).toBe("NEEDS_DEVELOPER_DECISION");
+    expect(
+      classifyAffiliateProtectionPreviewRow({
+        error: null,
+        businessDeveloperId: "bd-1",
+        businessDeveloperName: "Alice",
+      }),
+    ).toBe("ASSIGNED");
+    expect(
+      classifyAffiliateProtectionPreviewRow({
+        error: null,
+        businessDeveloperId: null,
+        businessDeveloperName: null,
+      }),
+    ).toBe("PROTECTION_ONLY");
+  });
+
+  it("summarizes matched BD assignments before the user confirms them", () => {
+    expect(
+      summarizeAffiliateProtectionAssignments([
+        {
+          error: null,
+          businessDeveloperId: "bd-lin",
+          businessDeveloperName: "林",
+        },
+        {
+          error: null,
+          businessDeveloperId: "bd-lin",
+          businessDeveloperName: "林",
+        },
+        {
+          error: null,
+          businessDeveloperId: "bd-chen",
+          businessDeveloperName: "陈",
+        },
+        {
+          error: null,
+          businessDeveloperId: null,
+          businessDeveloperName: null,
+        },
+        {
+          error: "Missing creator",
+          businessDeveloperId: null,
+          businessDeveloperName: null,
+        },
+      ]),
+    ).toEqual({
       assigned: [
         {
           businessDeveloperId: "bd-lin",
@@ -205,42 +269,47 @@ describe("Affiliate Creator bulk update import", () => {
 
   it("normalizes and groups unresolved BD names while keeping blank names protection-only", () => {
     expect(normalizeAffiliateBusinessDeveloperName("  Ａｌｉｃｅ   Smith ")).toBe("alice smith");
-    const groups = buildAffiliateProtectionDeveloperResolutionSeeds([
-      {
-        rowNumber: 2,
-        businessDeveloperName: "Alice",
-        businessDeveloperId: null,
-        error: null,
-      },
-      {
-        rowNumber: 3,
-        businessDeveloperName: "  Ａｌｉｃｅ ",
-        businessDeveloperId: null,
-        error: null,
-      },
-      {
-        rowNumber: 4,
-        businessDeveloperName: "Archived BD",
-        businessDeveloperId: null,
-        error: null,
-      },
-      {
-        rowNumber: 5,
-        businessDeveloperName: null,
-        businessDeveloperId: null,
-        error: null,
-      },
-      {
-        rowNumber: 6,
-        businessDeveloperName: "Invalid row BD",
-        businessDeveloperId: null,
-        error: "Missing creator",
-      },
-    ], [{
-      id: "archived-id",
-      normalizedDisplayName: "archived bd",
-      archivedAt: "2026-07-24",
-    }]);
+    const groups = buildAffiliateProtectionDeveloperResolutionSeeds(
+      [
+        {
+          rowNumber: 2,
+          businessDeveloperName: "Alice",
+          businessDeveloperId: null,
+          error: null,
+        },
+        {
+          rowNumber: 3,
+          businessDeveloperName: "  Ａｌｉｃｅ ",
+          businessDeveloperId: null,
+          error: null,
+        },
+        {
+          rowNumber: 4,
+          businessDeveloperName: "Archived BD",
+          businessDeveloperId: null,
+          error: null,
+        },
+        {
+          rowNumber: 5,
+          businessDeveloperName: null,
+          businessDeveloperId: null,
+          error: null,
+        },
+        {
+          rowNumber: 6,
+          businessDeveloperName: "Invalid row BD",
+          businessDeveloperId: null,
+          error: "Missing creator",
+        },
+      ],
+      [
+        {
+          id: "archived-id",
+          normalizedDisplayName: "archived bd",
+          archivedAt: "2026-07-24",
+        },
+      ],
+    );
 
     expect(groups).toEqual([
       expect.objectContaining({
@@ -265,15 +334,20 @@ describe("Affiliate Creator bulk update import", () => {
     const batches = buildAffiliateCreatorUpdateImportBatches(entries, importBatchId);
 
     expect(batches).toHaveLength(16);
-    expect(batches.every((batch) => batch.entries.length <= AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_ENTRIES)).toBe(true);
-    expect(batches.every((batch) => (
-      affiliateCreatorUpdateImportVariablesByteLength(batch.entries, importBatchId)
-        <= AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_VARIABLE_BYTES
-    ))).toBe(true);
+    expect(
+      batches.every((batch) => batch.entries.length <= AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_ENTRIES),
+    ).toBe(true);
+    expect(
+      batches.every(
+        (batch) =>
+          affiliateCreatorUpdateImportVariablesByteLength(batch.entries, importBatchId) <=
+          AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_VARIABLE_BYTES,
+      ),
+    ).toBe(true);
     expect(batches.flatMap((batch) => batch.entries)).toEqual(entries);
     expect(batches.map((batch) => batch.startIndex)).toEqual([
-      0, 200, 400, 600, 800, 1_000, 1_200, 1_400,
-      1_600, 1_800, 2_000, 2_200, 2_400, 2_600, 2_800, 3_000,
+      0, 200, 400, 600, 800, 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_200, 2_400, 2_600, 2_800,
+      3_000,
     ]);
   });
 
@@ -293,10 +367,10 @@ describe("Affiliate Creator bulk update import", () => {
   });
 
   it("rejects a single row that cannot fit inside the safe request budget", () => {
-    expect(() => buildAffiliateCreatorUpdateImportBatches(
-      [entry(0, "x".repeat(2_000))],
-      "oversized-row",
-      { maxVariableBytes: 1_000 },
-    )).toThrow("row 1 exceeds the safe request size");
+    expect(() =>
+      buildAffiliateCreatorUpdateImportBatches([entry(0, "x".repeat(2_000))], "oversized-row", {
+        maxVariableBytes: 1_000,
+      }),
+    ).toThrow("row 1 exceeds the safe request size");
   });
 });

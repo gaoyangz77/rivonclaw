@@ -28,12 +28,14 @@ describe("CustomerServiceWorkspaceModel order context", () => {
           currency: "USD",
           lineItems: [],
         },
-        returns: [{
-          returnId: "return-1",
-          orderId: "order-1",
-          returnType: "REFUND_ONLY",
-          returnStatus: "RETURN_OR_REFUND_REQUEST_PENDING",
-        }],
+        returns: [
+          {
+            returnId: "return-1",
+            orderId: "order-1",
+            returnType: "REFUND_ONLY",
+            returnStatus: "RETURN_OR_REFUND_REQUEST_PENDING",
+          },
+        ],
       },
     });
     const store = CustomerServiceWorkspaceModel.create(
@@ -44,14 +46,16 @@ describe("CustomerServiceWorkspaceModel order context", () => {
 
     await store.fetchSelectedConversationOrderContext();
 
-    expect(query).toHaveBeenCalledWith(expect.objectContaining({
-      variables: {
-        shopId: "shop-1",
-        orderId: "order-1",
-        buyerUserId: "buyer-1",
-      },
-      fetchPolicy: "network-only",
-    }));
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variables: {
+          shopId: "shop-1",
+          orderId: "order-1",
+          buyerUserId: "buyer-1",
+        },
+        fetchPolicy: "network-only",
+      }),
+    );
     expect((store.selectedConversationOrderContext as any)?.order.orderId).toBe("order-1");
     expect((store.selectedConversationOrderContext as any)?.orderId).toBe("order-1");
     expect((store.selectedConversationOrderContext as any)?.returns[0].returnId).toBe("return-1");

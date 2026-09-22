@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  resetFirstPartyDomainRouteForTests,
-  setFirstPartyDomainRoute,
-} from "@rivonclaw/core";
+import { resetFirstPartyDomainRouteForTests, setFirstPartyDomainRoute } from "@rivonclaw/core";
 import { EXTERNAL_LINKS } from "./external-links.js";
 
 describe("EXTERNAL_LINKS", () => {

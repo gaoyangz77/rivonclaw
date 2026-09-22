@@ -7,12 +7,12 @@
   "types": "dist/index.d.mts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.mts"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     },
     "./path-env": {
-      "import": "./dist/path-env.mjs",
-      "types": "./dist/path-env.d.mts"
+      "types": "./dist/path-env.d.mts",
+      "import": "./dist/path-env.mjs"
     }
   },
   "scripts": {
@@ -26,8 +26,8 @@
     "@rivonclaw/secrets": "workspace:*",
     "@rivonclaw/storage": "workspace:*",
     "undici": "^7.21.0",
-    "zod": "^4.3.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "zod": "^4.3.0"
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",

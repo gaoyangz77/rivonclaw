@@ -62,17 +62,16 @@ export function createGatewayEventDispatcher(
   const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onSceneEvent } = deps;
 
   return (evt: GatewayEventFrame): void => {
-    if (
-      evt.event === "plugin.rivonclaw.scene-event" ||
-      evt.event === "rivonclaw.scene-event"
-    ) {
-      const p = evt.payload as {
-        runId?: string;
-        sessionKey?: string;
-        stream?: string;
-        seq?: number;
-        data?: Record<string, unknown>;
-      } | undefined;
+    if (evt.event === "plugin.rivonclaw.scene-event" || evt.event === "rivonclaw.scene-event") {
+      const p = evt.payload as
+        | {
+            runId?: string;
+            sessionKey?: string;
+            stream?: string;
+            seq?: number;
+            data?: Record<string, unknown>;
+          }
+        | undefined;
       if (p?.runId && p.sessionKey && p.stream && typeof p.seq === "number") {
         onSceneEvent?.({
           runId: p.runId,

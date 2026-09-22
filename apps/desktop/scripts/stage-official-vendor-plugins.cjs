@@ -103,9 +103,14 @@ function stagePlugin(plugin) {
   }
   for (const entry of entries) {
     const entryPath = typeof entry === "string" ? path.resolve(pluginSourceDir, entry) : "";
-    if (!entryPath.startsWith(`${pluginSourceDir}${path.sep}`) ||
-      !/\.[cm]?js$/.test(entryPath) || !fs.existsSync(entryPath)) {
-      throw new Error(`${plugin.packageName} has an invalid or missing built entry: ${String(entry)}`);
+    if (
+      !entryPath.startsWith(`${pluginSourceDir}${path.sep}`) ||
+      !/\.[cm]?js$/.test(entryPath) ||
+      !fs.existsSync(entryPath)
+    ) {
+      throw new Error(
+        `${plugin.packageName} has an invalid or missing built entry: ${String(entry)}`,
+      );
     }
   }
 

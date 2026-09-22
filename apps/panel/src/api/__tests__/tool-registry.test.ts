@@ -18,10 +18,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
-import {
-  setRunProfileForScope,
-  getRunProfileForScope,
-} from "../tool-registry.js";
+import { setRunProfileForScope, getRunProfileForScope } from "../tool-registry.js";
 
 // ---------------------------------------------------------------------------
 // Tests

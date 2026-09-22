@@ -4,7 +4,11 @@
  */
 import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
 
-export function formatNumber(value: number | null | undefined, locale: string, compact = false): string {
+export function formatNumber(
+  value: number | null | undefined,
+  locale: string,
+  compact = false,
+): string {
   if (value == null || !Number.isFinite(value)) return "—";
   return new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
@@ -29,13 +33,17 @@ export function formatMoney(value: number | null | undefined, locale: string): s
 export function formatPercent(value: number | null | undefined, locale: string): string {
   if (value == null || !Number.isFinite(value)) return "—";
   const magnitude = Math.abs(value);
-  const maximumFractionDigits = magnitude === 0 ? 0 : magnitude < 0.01 ? 3 : magnitude < 0.1 ? 2 : 1;
+  const maximumFractionDigits =
+    magnitude === 0 ? 0 : magnitude < 0.01 ? 3 : magnitude < 0.1 ? 2 : 1;
   return new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits }).format(value);
 }
 
 export function formatRatio(value: number | null | undefined, locale: string): string {
   if (value == null || !Number.isFinite(value)) return "—";
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(value);
 }
 
 export function formatTimestamp(value: string | null | undefined, locale: string): string {
@@ -53,10 +61,15 @@ export function formatCohortDay(value: string, locale: string): string {
   return formatLocalizedMonthDay(date, locale, "UTC", value);
 }
 
-export function metricDisplay(value: number | null | undefined, key: string, locale: string): string {
+export function metricDisplay(
+  value: number | null | undefined,
+  key: string,
+  locale: string,
+): string {
   const lowered = key.toLowerCase();
   if (lowered.includes("gmv") || lowered.includes("commission")) return formatMoney(value, locale);
-  if (lowered.includes("rate") || lowered.includes("coverage") || lowered.includes("share")) return formatPercent(value, locale);
+  if (lowered.includes("rate") || lowered.includes("coverage") || lowered.includes("share"))
+    return formatPercent(value, locale);
   return formatNumber(value, locale);
 }
 

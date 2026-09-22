@@ -10,11 +10,7 @@ interface RegisterPairingData extends Record<string, unknown> {
   registerPairing: RegisterPairingResult;
 }
 
-function gqlError(
-  message: string,
-  path: string[],
-  code?: string,
-): MobileGraphQLResponse {
+function gqlError(message: string, path: string[], code?: string): MobileGraphQLResponse {
   return {
     data: null,
     errors: [{ message, path, extensions: code ? { code } : undefined }],

@@ -42,9 +42,12 @@ describe("tool-specs-sync", () => {
     let resolveFetch!: (value: { toolSpecs: Array<Record<string, unknown>> }) => void;
     const authSession = {
       getAccessToken: vi.fn(() => "token"),
-      graphqlFetch: vi.fn(() => new Promise<{ toolSpecs: Array<Record<string, unknown>> }>((resolve) => {
-        resolveFetch = resolve;
-      })),
+      graphqlFetch: vi.fn(
+        () =>
+          new Promise<{ toolSpecs: Array<Record<string, unknown>> }>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      ),
     };
 
     const first = syncDesktopToolSpecs({ authSession, source: "a" });
@@ -61,7 +64,9 @@ describe("tool-specs-sync", () => {
       graphqlFetch: vi.fn(async () => ({ toolSpecs: [{ id: "bad" }] })),
     };
 
-    await expect(syncDesktopToolSpecs({ authSession, source: "bad" })).rejects.toThrow(/valid name/);
+    await expect(syncDesktopToolSpecs({ authSession, source: "bad" })).rejects.toThrow(
+      /valid name/,
+    );
     expect(getCachedToolSpecsSnapshot()).toBeNull();
   });
 
@@ -93,8 +98,14 @@ describe("tool-specs-sync", () => {
   });
 
   it("computes stable full and name digests", () => {
-    const left = [{ name: "b", description: "B" }, { description: "A", name: "a" }];
-    const right = [{ description: "B", name: "b" }, { name: "a", description: "A" }];
+    const left = [
+      { name: "b", description: "B" },
+      { description: "A", name: "a" },
+    ];
+    const right = [
+      { description: "B", name: "b" },
+      { name: "a", description: "A" },
+    ];
 
     expect(computeToolSpecsDigest(left)).toBe(computeToolSpecsDigest(right));
     expect(computeToolNameDigest(left)).toBe(computeToolNameDigest(right));

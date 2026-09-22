@@ -1,14 +1,19 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.adsManagement.${key}Title`,
     bodyKey: `tutorial.adsManagement.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const adsManagementSteps: TutorialStep[] = [
@@ -19,4 +24,4 @@ export const adsManagementSteps: TutorialStep[] = [
   step("ads-account-filters", "ads-account-filters", "accountFilters", "bottom"),
   step("ads-coverage", "ads-coverage", "shopCoverage", "top"),
   step("ads-coverage-filters", "ads-coverage-filters", "coverageFilters", "top"),
-]
+];

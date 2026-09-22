@@ -13,7 +13,12 @@ interface CronAdvancedFieldsProps {
   onRunProfileChange: (profileId: string) => void;
 }
 
-export function CronAdvancedFields({ form, onUpdate, selectedRunProfileId, onRunProfileChange }: CronAdvancedFieldsProps) {
+export function CronAdvancedFields({
+  form,
+  onUpdate,
+  selectedRunProfileId,
+  onRunProfileChange,
+}: CronAdvancedFieldsProps) {
   const { t } = useTranslation();
 
   return (

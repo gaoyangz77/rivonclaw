@@ -1,14 +1,19 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.chat.${key}Title`,
     bodyKey: `tutorial.chat.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const chatSteps: TutorialStep[] = [
@@ -21,4 +26,4 @@ export const chatSteps: TutorialStep[] = [
   step("chat-controls", "chat-controls", "statusBar", "top"),
   step("chat-input", "chat-input", "inputArea", "top"),
   step("chat-office", "office-shutter-handle", "office", "top"),
-]
+];

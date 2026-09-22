@@ -26,8 +26,9 @@ describe("Product Knowledge editor translation", () => {
   });
 
   it("still fills placeholders for a label it has no translation for", () => {
-    expect(translate()("toolbar.somethingNew", "Level {{level}} of {{total}}", { level: 1, total: 3 }))
-      .toBe("Level 1 of 3");
+    expect(
+      translate()("toolbar.somethingNew", "Level {{level}} of {{total}}", { level: 1, total: 3 }),
+    ).toBe("Level 1 of 3");
   });
 
   it("has every mapped label in both English and Chinese", () => {

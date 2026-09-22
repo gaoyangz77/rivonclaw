@@ -21,14 +21,20 @@ const ASSIGNMENT_BADGE = {
   },
 } as const;
 
-export const BalanceBadge = observer(function BalanceBadge({ shop }: { shop: Shop }): JSX.Element | null {
+export const BalanceBadge = observer(function BalanceBadge({
+  shop,
+}: {
+  shop: Shop;
+}): JSX.Element | null {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const runtimeStatus = useRuntimeStatus();
   if (!shop.services?.customerService?.enabled) {
     return <span className="badge badge-muted">{t("common.disabled")}</span>;
   }
-  const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+  const entitlement =
+    entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ??
+    null;
   if (!entitlement) return null;
 
   const assignment = shop.customerServiceDeviceAssignment(runtimeStatus.deviceId);
@@ -36,9 +42,11 @@ export const BalanceBadge = observer(function BalanceBadge({ shop }: { shop: Sho
 
   return (
     <div className="shop-service-badges">
-      {entitlement.allowed
-        ? <span className="badge badge-active">{t("billing.allowed")}</span>
-        : <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>}
+      {entitlement.allowed ? (
+        <span className="badge badge-active">{t("billing.allowed")}</span>
+      ) : (
+        <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
+      )}
       {entitlement.allowed ? (
         <span className={assignmentBadge.className}>{t(assignmentBadge.labelKey)}</span>
       ) : null}

@@ -1,20 +1,20 @@
 export interface TutorialStep {
   /** Stable identifier used by tests and future analytics. Unique within a route. */
-  id?: string
+  id?: string;
   /** CSS selector to highlight. If element not found, skip step. */
-  target: string
+  target: string;
   /** i18n key for the tooltip title */
-  titleKey: string
+  titleKey: string;
   /** i18n key for the tooltip body */
-  bodyKey: string
+  bodyKey: string;
   /** Tooltip placement relative to target */
-  placement?: "top" | "bottom" | "left" | "right"
+  placement?: "top" | "bottom" | "left" | "right";
   /** One-shot setup performed when entering the step. */
-  prepare?: () => void | Promise<void>
+  prepare?: () => void | Promise<void>;
   /** One-shot cleanup performed when leaving the step or tutorial. */
-  cleanup?: () => void | Promise<void>
+  cleanup?: () => void | Promise<void>;
   /** Keep prepare/cleanup active across adjacent steps that share this lifecycle group. */
-  lifecycleGroup?: string
+  lifecycleGroup?: string;
   /** Time to wait for an async or conditionally-rendered target. */
-  targetTimeoutMs?: number
+  targetTimeoutMs?: number;
 }

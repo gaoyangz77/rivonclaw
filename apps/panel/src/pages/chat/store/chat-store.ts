@@ -106,19 +106,22 @@ export const ChatStoreModel = types
      * Get an existing session or create a new one with defaults.
      * Always returns the session model instance.
      */
-    getOrCreateSession(key: string, defaults?: {
-      displayName?: string | null;
-      derivedTitle?: string | null;
-      customTitle?: string | null;
-      panelTitle?: string | null;
-      channel?: string | null;
-      updatedAt?: number | null;
-      kind?: string | null;
-      pinned?: boolean;
-      isLocal?: boolean;
-      totalTokens?: number;
-      contextTokens?: number | null;
-    }): Instance<typeof ChatSessionModel> {
+    getOrCreateSession(
+      key: string,
+      defaults?: {
+        displayName?: string | null;
+        derivedTitle?: string | null;
+        customTitle?: string | null;
+        panelTitle?: string | null;
+        channel?: string | null;
+        updatedAt?: number | null;
+        kind?: string | null;
+        pinned?: boolean;
+        isLocal?: boolean;
+        totalTokens?: number;
+        contextTokens?: number | null;
+      },
+    ): Instance<typeof ChatSessionModel> {
       let session = self.sessions.get(key);
       if (!session) {
         self.sessions.put({

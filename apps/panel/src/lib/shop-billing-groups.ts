@@ -30,9 +30,7 @@ export function buildShopServiceBillingGroups(
       key: group.key,
       shops: group.shops,
       rows,
-      customerServiceRow: customerServiceRow
-        ? { ...customerServiceRow, shops: group.shops }
-        : null,
+      customerServiceRow: customerServiceRow ? { ...customerServiceRow, shops: group.shops } : null,
     };
   });
 }

@@ -15,12 +15,12 @@ export async function setRunProfileForScope(
 }
 
 /** Get the RunProfile ID currently set for a scope. Returns null if none. */
-export async function getRunProfileForScope(
-  scopeKey: string,
-): Promise<string | null> {
+export async function getRunProfileForScope(scopeKey: string): Promise<string | null> {
   try {
     const params = new URLSearchParams({ scopeKey });
-    const data = await fetchJson<{ runProfileId: string | null }>(clientPath(API["tools.runProfile.get"]) + `?${params}`);
+    const data = await fetchJson<{ runProfileId: string | null }>(
+      clientPath(API["tools.runProfile.get"]) + `?${params}`,
+    );
     return data.runProfileId;
   } catch {
     return null;

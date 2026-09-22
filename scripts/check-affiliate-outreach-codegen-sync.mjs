@@ -26,7 +26,10 @@ function generatedInterface(name) {
 }
 
 function generatedConst(name) {
-  const pattern = new RegExp(`export const ${name}\\s*=\\s*\\{([\\s\\S]*?)\\n\\}\\s+as const;`, "m");
+  const pattern = new RegExp(
+    `export const ${name}\\s*=\\s*\\{([\\s\\S]*?)\\n\\}\\s+as const;`,
+    "m",
+  );
   return generated.match(pattern)?.[1] ?? "";
 }
 
@@ -87,15 +90,24 @@ addCheck(
 
 const deliveryInputSchema = block(schema, "input", "ResolveAffiliateWorkItemActionInput");
 const deliveryInputGenerated = generatedInterface("ResolveAffiliateWorkItemActionInput");
-const messageIntentInputSchema = block(schema, "input", "ResolveAffiliateWorkItemMessageIntentInput");
-const messageIntentInputGenerated = generatedInterface("ResolveAffiliateWorkItemMessageIntentInput");
+const messageIntentInputSchema = block(
+  schema,
+  "input",
+  "ResolveAffiliateWorkItemMessageIntentInput",
+);
+const messageIntentInputGenerated = generatedInterface(
+  "ResolveAffiliateWorkItemMessageIntentInput",
+);
 addCheck(
   "ResolveAffiliateWorkItemActionInput.messageIntent is in backend schema",
   hasLine(deliveryInputSchema, "messageIntent: ResolveAffiliateWorkItemMessageIntentInput"),
 );
 addCheck(
   "ResolveAffiliateWorkItemActionInput.messageIntent is in core generated type",
-  hasLine(deliveryInputGenerated, "messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;"),
+  hasLine(
+    deliveryInputGenerated,
+    "messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;",
+  ),
 );
 addCheck(
   "ResolveAffiliateWorkItemMessageIntentInput.parts is in backend schema",
@@ -115,8 +127,8 @@ addCheck(
 );
 addCheck(
   "ResolveAffiliateWorkItemMessageIntentInput.preferredChannel stayed removed",
-  !hasSnippet(messageIntentInputSchema, "preferredChannel")
-    && !hasSnippet(messageIntentInputGenerated, "preferredChannel"),
+  !hasSnippet(messageIntentInputSchema, "preferredChannel") &&
+    !hasSnippet(messageIntentInputGenerated, "preferredChannel"),
 );
 addCheck(
   "ResolveAffiliateWorkItemMessageIntentInput.shopId is in backend schema",
@@ -138,7 +150,10 @@ addCheck(
 const workItemSchema = block(schema, "type", "AffiliateWorkItem");
 const workItemGenerated = generatedInterface("AffiliateWorkItem");
 for (const field of ["triggerChannel: AffiliateMessageChannel", "triggerLifecycleEventId: ID"]) {
-  addCheck(`AffiliateWorkItem.${field.split(":")[0]} is in backend schema`, hasLine(workItemSchema, field));
+  addCheck(
+    `AffiliateWorkItem.${field.split(":")[0]} is in backend schema`,
+    hasLine(workItemSchema, field),
+  );
 }
 addCheck(
   "AffiliateWorkItem.triggerChannel is in core generated type",
@@ -162,7 +177,9 @@ for (const check of checks) {
 }
 
 if (failed.length > 0) {
-  console.error(`Affiliate outreach schema/codegen sync check failed: ${failed.length} check(s) failed.`);
+  console.error(
+    `Affiliate outreach schema/codegen sync check failed: ${failed.length} check(s) failed.`,
+  );
   process.exit(1);
 }
 

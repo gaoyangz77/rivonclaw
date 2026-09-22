@@ -7,88 +7,96 @@ import * as mobileApi from "../../src/api/mobile-chat.js";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
-    useTranslation: () => ({
-        t: (key: string) => key,
-    }),
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
 }));
 
 // Mock QR Code module
 vi.mock("qrcode", () => ({
-    default: {
-        toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,mockqrcodedata"),
-    },
+  default: {
+    toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,mockqrcodedata"),
+  },
 }));
 
 describe("MobilePage component", () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should show disconnected state with a generated pairing code and QR code", async () => {
+    vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({});
+    vi.spyOn(mobileApi, "generateMobilePairingCode").mockResolvedValue({ pairingCode: "123456" });
+
+    render(<MobilePage />);
+
+    // Initial loading state
+    expect(screen.getByText("common.loading")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("mobile.waitingForConnection")).toBeInTheDocument();
     });
 
-    it("should show disconnected state with a generated pairing code and QR code", async () => {
-        vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({});
-        vi.spyOn(mobileApi, "generateMobilePairingCode").mockResolvedValue({ pairingCode: "123456" });
+    // Code is displayed
+    const codeEl = screen.getByText("123456");
+    expect(codeEl).toBeInTheDocument();
 
-        render(<MobilePage />);
+    // QR code is displayed
+    const qrImage = screen.getByAltText("Pairing QR Code");
+    expect(qrImage).toHaveAttribute("src", "data:image/png;base64,mockqrcodedata");
+  });
 
-        // Initial loading state
-        expect(screen.getByText("common.loading")).toBeInTheDocument();
+  it("should show connected state if already paired", async () => {
+    vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({
+      status: "connected",
+      mobileDeviceId: "iPhone-15",
+    } as any);
 
-        await waitFor(() => {
-            expect(screen.getByText("mobile.waitingForConnection")).toBeInTheDocument();
-        });
+    render(<MobilePage />);
 
-        // Code is displayed
-        const codeEl = screen.getByText("123456");
-        expect(codeEl).toBeInTheDocument();
-
-        // QR code is displayed
-        const qrImage = screen.getByAltText("Pairing QR Code");
-        expect(qrImage).toHaveAttribute("src", "data:image/png;base64,mockqrcodedata");
+    await waitFor(() => {
+      expect(screen.getByText("common.connected")).toBeInTheDocument();
     });
 
-    it("should show connected state if already paired", async () => {
-        vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({ status: "connected", mobileDeviceId: "iPhone-15" } as any);
+    // Uses the mobile.connectedDesc key
+    // We mocked t(key) -> key, so it doesn't interpolate the args. The text would just be the key name.
+    expect(screen.getByText("mobile.connectedDesc")).toBeInTheDocument();
+    expect(screen.queryByAltText("Pairing QR Code")).not.toBeInTheDocument();
+  });
 
-        render(<MobilePage />);
+  it("should allow disconnecting", async () => {
+    vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({
+      status: "connected",
+      mobileDeviceId: "My-Phone",
+    } as any);
+    const disconnectSpy = vi.spyOn(mobileApi, "disconnectMobilePairing").mockResolvedValue({});
 
-        await waitFor(() => {
-            expect(screen.getByText("common.connected")).toBeInTheDocument();
-        });
+    // We must mock window.confirm to return true since it's used in handleDisconnect
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
-        // Uses the mobile.connectedDesc key
-        // We mocked t(key) -> key, so it doesn't interpolate the args. The text would just be the key name.
-        expect(screen.getByText("mobile.connectedDesc")).toBeInTheDocument();
-        expect(screen.queryByAltText("Pairing QR Code")).not.toBeInTheDocument();
+    render(<MobilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "mobile.disconnect" })).toBeInTheDocument();
     });
 
-    it("should allow disconnecting", async () => {
-        vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({ status: "connected", mobileDeviceId: "My-Phone" } as any);
-        const disconnectSpy = vi.spyOn(mobileApi, "disconnectMobilePairing").mockResolvedValue({});
+    // Mock regenerating code post-disconnect
+    const generateSpy = vi
+      .spyOn(mobileApi, "generateMobilePairingCode")
+      .mockResolvedValue({ pairingCode: "654321" });
 
-        // We must mock window.confirm to return true since it's used in handleDisconnect
-        const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    // Now simulate disconnect
+    vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({});
 
-        render(<MobilePage />);
+    await userEvent.click(screen.getByRole("button", { name: "mobile.disconnect" }));
 
-        await waitFor(() => {
-            expect(screen.getByRole("button", { name: "mobile.disconnect" })).toBeInTheDocument();
-        });
+    expect(confirmSpy).toHaveBeenCalledWith("mobile.disconnectConfirm");
+    expect(disconnectSpy).toHaveBeenCalled();
 
-        // Mock regenerating code post-disconnect
-        const generateSpy = vi.spyOn(mobileApi, "generateMobilePairingCode").mockResolvedValue({ pairingCode: "654321" });
-
-        // Now simulate disconnect
-        vi.spyOn(mobileApi, "getMobilePairingStatus").mockResolvedValue({});
-
-        await userEvent.click(screen.getByRole("button", { name: "mobile.disconnect" }));
-
-        expect(confirmSpy).toHaveBeenCalledWith("mobile.disconnectConfirm");
-        expect(disconnectSpy).toHaveBeenCalled();
-
-        await waitFor(() => {
-            expect(screen.getByText("mobile.waitingForConnection")).toBeInTheDocument();
-        });
-
-        expect(generateSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByText("mobile.waitingForConnection")).toBeInTheDocument();
     });
+
+    expect(generateSpy).toHaveBeenCalled();
+  });
 });

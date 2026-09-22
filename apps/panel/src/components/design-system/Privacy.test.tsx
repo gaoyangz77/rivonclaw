@@ -34,9 +34,7 @@ describe("TkPrivate", () => {
   it("keeps the tooltip while privacy mode is off", () => {
     render(<TkPrivate title="Windboss Benessere">Windboss Benessere</TkPrivate>);
 
-    expect(screen.getByText("Windboss Benessere").getAttribute("title")).toBe(
-      "Windboss Benessere",
-    );
+    expect(screen.getByText("Windboss Benessere").getAttribute("title")).toBe("Windboss Benessere");
   });
 
   it("suppresses the tooltip while privacy mode is on so hover cannot leak the name", () => {
@@ -48,9 +46,7 @@ describe("TkPrivate", () => {
 
   it("re-renders when privacy mode flips", () => {
     render(<TkPrivate title="Windboss Benessere">Windboss Benessere</TkPrivate>);
-    expect(screen.getByText("Windboss Benessere").getAttribute("title")).toBe(
-      "Windboss Benessere",
-    );
+    expect(screen.getByText("Windboss Benessere").getAttribute("title")).toBe("Windboss Benessere");
 
     act(() => setPrivacyMode(true));
 

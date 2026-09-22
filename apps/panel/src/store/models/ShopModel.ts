@@ -105,9 +105,9 @@ export const ShopModel = ShopModelBase.views((self) => ({
 
     const channelId = escalationChannelId.slice(0, colonIdx);
     const accountId = escalationChannelId.slice(colonIdx + 1);
-    const account = params.channelAccounts.find((candidate) => (
-      candidate.channelId === channelId && candidate.accountId === accountId
-    ));
+    const account = params.channelAccounts.find(
+      (candidate) => candidate.channelId === channelId && candidate.accountId === accountId,
+    );
     if (!account) return "invalid_channel";
 
     return null;
@@ -127,10 +127,7 @@ export const ShopModel = ShopModelBase.views((self) => ({
       return yield updateShop(input);
     }),
 
-    setCustomerServiceEnabled: flow(function* (
-      enabled: boolean,
-      currentDeviceId?: string | null,
-    ) {
+    setCustomerServiceEnabled: flow(function* (enabled: boolean, currentDeviceId?: string | null) {
       const existingDeviceId = self.services?.customerService?.csDeviceId?.trim();
       return yield updateShop({
         services: {
@@ -156,10 +153,7 @@ export const ShopModel = ShopModelBase.views((self) => ({
       });
     }),
 
-    setAffiliateServiceEnabled: flow(function* (
-      enabled: boolean,
-      currentDeviceId?: string | null,
-    ) {
+    setAffiliateServiceEnabled: flow(function* (enabled: boolean, currentDeviceId?: string | null) {
       const affiliateService = self.services?.affiliateService;
       const existingDeviceId = affiliateService?.deviceId?.trim();
       const existingMinExpectedSalesUnits =

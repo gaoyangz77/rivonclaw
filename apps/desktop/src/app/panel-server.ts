@@ -4,7 +4,13 @@ import type { AddressInfo } from "node:net";
 import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { basename, join, extname, resolve, normalize } from "node:path";
 import { getSnapshot } from "mobx-state-tree";
-import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort, getApiBaseUrl, getFirstPartyDomainRoute } from "@rivonclaw/core";
+import {
+  formatError,
+  IMAGE_EXT_TO_MIME,
+  resolvePanelPort,
+  getApiBaseUrl,
+  getFirstPartyDomainRoute,
+} from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -132,15 +138,34 @@ export interface PanelServerOptions {
   onAuthChange?: (action?: string) => Promise<void>;
   onCloudLlmEntitlementAvailable?: () => Promise<void>;
   onChannelConfigured?: (channelId: string) => void;
-  onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
-  onOAuthAcquire?: (provider: string) => Promise<{ email?: string; tokenPreview: string; manualMode?: boolean; authUrl?: string; flowId?: string }>;
-  onOAuthSave?: (provider: string, options: { proxyUrl?: string; label?: string; model?: string }) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
+  onOAuthFlow?: (
+    provider: string,
+  ) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
+  onOAuthAcquire?: (provider: string) => Promise<{
+    email?: string;
+    tokenPreview: string;
+    manualMode?: boolean;
+    authUrl?: string;
+    flowId?: string;
+  }>;
+  onOAuthSave?: (
+    provider: string,
+    options: { proxyUrl?: string; label?: string; model?: string },
+  ) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
   /** Rotate stored OAuth credentials for an existing key in place (no new row).
    *  `idTokenCaptureFailed` propagates back to the Panel so the Reauth modal
    *  can warn the user about the narrow OAuth server-side rotation race. */
   onOAuthReauth?: (keyId: string) => Promise<{ ok: true; idTokenCaptureFailed: boolean }>;
-  onOAuthManualComplete?: (provider: string, callbackUrl: string) => Promise<{ email?: string; tokenPreview: string }>;
-  onOAuthPoll?: (flowId: string) => { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string };
+  onOAuthManualComplete?: (
+    provider: string,
+    callbackUrl: string,
+  ) => Promise<{ email?: string; tokenPreview: string }>;
+  onOAuthPoll?: (flowId: string) => {
+    status: "pending" | "completed" | "failed";
+    tokenPreview?: string;
+    email?: string;
+    error?: string;
+  };
   onTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
   /** Emit a CS business-telemetry event (bypasses user opt-in). See `ApiContext.onCsTelemetryTrack`. */
   onCsTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
@@ -160,7 +185,7 @@ export interface PanelServerOptions {
   onUpdateDownload?: () => Promise<void>;
   onUpdateCancel?: () => void;
   onUpdateInstall?: () => Promise<void>;
-  getUpdateDownloadState?: () => { status: string;[key: string]: unknown };
+  getUpdateDownloadState?: () => { status: string; [key: string]: unknown };
   authSession?: AuthSessionManager;
   proxyFetch?: (url: string | URL, init?: RequestInit) => Promise<Response>;
   onOpenExternal?: (url: string) => Promise<unknown>;
@@ -180,10 +205,50 @@ registerAllHandlers(registry);
  * the Server instance and the actual port (useful when port 0 is used
  * for OS-assigned dynamic allocation).
  */
-export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
+export async function startPanelServer(
+  options: PanelServerOptions,
+): Promise<{ server: Server; port: number }> {
   const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, getPanelUrl, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, channelManager, desktopApiToken } = options;
+  const {
+    storage,
+    secretStore,
+    proxyRouterPort,
+    gatewayPort,
+    onProviderChange,
+    onOpenFileDialog,
+    sttManager,
+    onSttChange,
+    onExtrasChange,
+    onToolSelectionChange,
+    onBrowserChange,
+    onAutoLaunchChange,
+    onAuthChange,
+    onCloudLlmEntitlementAvailable,
+    onChannelConfigured,
+    onOAuthFlow,
+    onOAuthAcquire,
+    onOAuthSave,
+    onOAuthReauth,
+    onOAuthManualComplete,
+    onOAuthPoll,
+    onTelemetryTrack,
+    onCsTelemetryTrack,
+    vendorDir,
+    nodeBin,
+    deviceId,
+    getUpdateResult,
+    getGatewayInfo,
+    getPanelUrl,
+    changelogPath,
+    onUpdateDownload,
+    onUpdateCancel,
+    onUpdateInstall,
+    getUpdateDownloadState,
+    authSession,
+    channelManager,
+    desktopApiToken,
+  } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -206,7 +271,13 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     storage,
     controlPlaneUrl: getApiBaseUrl(getSystemLocale()),
     stateDir: resolveOpenClawStateDir(),
-    getRpcClient: () => { try { return openClawConnector.ensureRpcReady(); } catch { return null; } },
+    getRpcClient: () => {
+      try {
+        return openClawConnector.ensureRpcReady();
+      } catch {
+        return null;
+      }
+    },
   });
 
   // Hydrate runtime-status AppSettings from persisted storage
@@ -218,9 +289,15 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
   // Reconcile usage snapshot for the active key on startup
   const activeKeyOnStartup = storage.providerKeys.getActive();
   if (activeKeyOnStartup) {
-    snapshotEngine.reconcileOnStartup(activeKeyOnStartup.id, activeKeyOnStartup.provider, activeKeyOnStartup.model).catch((err) => {
-      log.error(`Failed to reconcile usage for key ${activeKeyOnStartup.id}:`, err);
-    });
+    snapshotEngine
+      .reconcileOnStartup(
+        activeKeyOnStartup.id,
+        activeKeyOnStartup.provider,
+        activeKeyOnStartup.model,
+      )
+      .catch((err) => {
+        log.error(`Failed to reconcile usage for key ${activeKeyOnStartup.id}:`, err);
+      });
   }
 
   // Start pairing notifier — uses the module-scoped broadcastEvent.
@@ -228,14 +305,43 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
 
   // Build the ApiContext object passed to all route handlers
   const ctx: ApiContext = {
-    storage, secretStore, proxyRouterPort, gatewayPort,
-    onProviderChange, onOpenFileDialog,
-    sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable,
-    onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll,
-    onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, getPanelUrl,
-    snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
+    storage,
+    secretStore,
+    proxyRouterPort,
+    gatewayPort,
+    onProviderChange,
+    onOpenFileDialog,
+    sttManager,
+    onSttChange,
+    onExtrasChange,
+    onToolSelectionChange,
+    onBrowserChange,
+    onAutoLaunchChange,
+    onAuthChange,
+    onCloudLlmEntitlementAvailable,
+    onChannelConfigured,
+    onOAuthFlow,
+    onOAuthAcquire,
+    onOAuthSave,
+    onOAuthReauth,
+    onOAuthManualComplete,
+    onOAuthPoll,
+    onTelemetryTrack,
+    onCsTelemetryTrack,
+    vendorDir,
+    nodeBin,
+    deviceId,
+    getUpdateResult,
+    getGatewayInfo,
+    getPanelUrl,
+    snapshotEngine,
+    queryService,
+    mobileManager: rootStore.mobileManager,
+    authSession,
     openExternal: options.onOpenExternal,
-    cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,
+    cloudClient: authSession
+      ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch)
+      : undefined,
     channelManager,
     desktopApiToken,
   };
@@ -338,7 +444,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
           sendJson(res, 501, { error: "Not supported" });
           return;
         }
-        onUpdateDownload().catch(() => { });
+        onUpdateDownload().catch(() => {});
         sendJson(res, 200, { ok: true });
         return;
       }
@@ -443,12 +549,7 @@ async function proxyManagedChatMedia(
       return;
     }
     const headers: Record<string, string> = {};
-    for (const name of [
-      "content-type",
-      "content-length",
-      "cache-control",
-      "content-disposition",
-    ]) {
+    for (const name of ["content-type", "content-length", "cache-control", "content-disposition"]) {
       const value = upstream.headers.get(name);
       if (value) headers[name] = value;
     }
@@ -545,10 +646,11 @@ function serveManagedChatMediaFromLocalStore(res: ServerResponse, url: URL): boo
   }
 
   const mediaPath = record?.original?.path;
-  const transcriptMediaPath = mediaPath && existsSync(mediaPath)
-    ? null
-    : (record ? findTranscriptMediaPathForRecord(record) : null)
-      ?? findTranscriptMediaPathForAttachment(sessionKey, attachmentId);
+  const transcriptMediaPath =
+    mediaPath && existsSync(mediaPath)
+      ? null
+      : ((record ? findTranscriptMediaPathForRecord(record) : null) ??
+        findTranscriptMediaPathForAttachment(sessionKey, attachmentId));
   const sourcePath = mediaPath && existsSync(mediaPath) ? mediaPath : transcriptMediaPath;
   if (!sourcePath) {
     return false;
@@ -561,10 +663,15 @@ function serveManagedChatMediaFromLocalStore(res: ServerResponse, url: URL): boo
 
   try {
     const data = readFileSync(absPath);
-    const filename = sanitizeContentDispositionFilename(record?.original?.filename ?? basename(absPath));
+    const filename = sanitizeContentDispositionFilename(
+      record?.original?.filename ?? basename(absPath),
+    );
     const recordContentType = sourcePath === mediaPath ? record?.original?.contentType : undefined;
     res.writeHead(200, {
-      "Content-Type": recordContentType || IMAGE_EXT_TO_MIME[extname(absPath).toLowerCase()] || "application/octet-stream",
+      "Content-Type":
+        recordContentType ||
+        IMAGE_EXT_TO_MIME[extname(absPath).toLowerCase()] ||
+        "application/octet-stream",
       "Content-Length": String(data.byteLength),
       "Cache-Control": "private, max-age=31536000, immutable",
       "Content-Disposition": `inline; filename="${filename}"`,
@@ -605,18 +712,21 @@ function findTranscriptMediaPathForRecord(record: ManagedChatMediaRecord): strin
   return null;
 }
 
-function findTranscriptMediaPathForAttachment(sessionKey: string, attachmentId: string): string | null {
+function findTranscriptMediaPathForAttachment(
+  sessionKey: string,
+  attachmentId: string,
+): string | null {
   const encodedSessionKey = encodeURIComponent(sessionKey);
   const eventsByTranscript = readTranscriptEventsForSessionKey(sessionKey);
 
   for (const events of eventsByTranscript) {
     const index = events.findIndex((event) =>
-      extractImageContentUrls(event.message?.content).some((value) =>
-        value.includes(attachmentId) && (
-          value.includes(encodedSessionKey)
-          || value.includes(sessionKey)
-          || value.includes(`/outgoing/${encodedSessionKey}/`)
-        ),
+      extractImageContentUrls(event.message?.content).some(
+        (value) =>
+          value.includes(attachmentId) &&
+          (value.includes(encodedSessionKey) ||
+            value.includes(sessionKey) ||
+            value.includes(`/outgoing/${encodedSessionKey}/`)),
       ),
     );
     if (index < 0) {
@@ -700,7 +810,9 @@ function extractImageContentUrls(content: unknown): string[] {
       return [];
     }
     const imageBlock = block as { url?: unknown; openUrl?: unknown };
-    return [imageBlock.url, imageBlock.openUrl].filter((value): value is string => typeof value === "string");
+    return [imageBlock.url, imageBlock.openUrl].filter(
+      (value): value is string => typeof value === "string",
+    );
   });
 }
 
@@ -724,8 +836,11 @@ function extractTranscriptText(content: unknown): string {
     return "";
   }
   return content
-    .filter((block): block is { type?: string; text?: string } =>
-      Boolean(block) && typeof block === "object" && (block as { type?: unknown }).type === "text",
+    .filter(
+      (block): block is { type?: string; text?: string } =>
+        Boolean(block) &&
+        typeof block === "object" &&
+        (block as { type?: unknown }).type === "text",
     )
     .map((block) => block.text ?? "")
     .join("");
@@ -736,11 +851,7 @@ function sanitizeContentDispositionFilename(value: string): string {
   return sanitized || "generated-image";
 }
 
-function serveStatic(
-  res: ServerResponse,
-  distDir: string,
-  pathname: string,
-): void {
+function serveStatic(res: ServerResponse, distDir: string, pathname: string): void {
   const safePath = normalize(pathname).replace(/^(\.\.(\/|\\|$))+/, "");
   let filePath = join(distDir, safePath);
 
@@ -770,7 +881,10 @@ function serveStatic(
     if (ext === ".html") {
       const route = JSON.stringify(getFirstPartyDomainRoute());
       const bootstrap = `<script>globalThis.__RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE__=${route};</script>`;
-      content = Buffer.from(content.toString("utf-8").replace("</head>", `${bootstrap}</head>`), "utf-8");
+      content = Buffer.from(
+        content.toString("utf-8").replace("</head>", `${bootstrap}</head>`),
+        "utf-8",
+      );
     }
     res.writeHead(200, { "Content-Type": contentType });
     res.end(content);

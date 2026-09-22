@@ -16,17 +16,13 @@ export const DEFAULT_PROXY_ROUTER_PORT = DEFAULTS.ports.proxyRouter;
 export const DEFAULT_PANEL_DEV_PORT = DEFAULTS.ports.panelDev;
 
 /** Resolve the gateway port, respecting RIVONCLAW_GATEWAY_PORT env var. */
-export function resolveGatewayPort(
-  env: Record<string, string | undefined> = process.env,
-): number {
+export function resolveGatewayPort(env: Record<string, string | undefined> = process.env): number {
   const v = env.RIVONCLAW_GATEWAY_PORT?.trim();
   return v ? Number(v) : DEFAULT_GATEWAY_PORT;
 }
 
 /** Resolve the panel server port, respecting RIVONCLAW_PANEL_PORT env var. */
-export function resolvePanelPort(
-  env: Record<string, string | undefined> = process.env,
-): number {
+export function resolvePanelPort(env: Record<string, string | undefined> = process.env): number {
   const v = env.RIVONCLAW_PANEL_PORT?.trim();
   return v ? Number(v) : DEFAULT_PANEL_PORT;
 }

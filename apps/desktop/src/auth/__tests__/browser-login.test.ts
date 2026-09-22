@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  resetFirstPartyDomainRouteForTests,
-  setFirstPartyDomainRoute,
-} from "@rivonclaw/core";
+import { resetFirstPartyDomainRouteForTests, setFirstPartyDomainRoute } from "@rivonclaw/core";
 import type { AuthSessionManager } from "../session.js";
 
 const gatewayMocks = vi.hoisted(() => ({

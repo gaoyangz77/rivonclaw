@@ -23,8 +23,29 @@ function parseCronFields(expr: string): [string, string, string, string, string]
   return [parts[0] || "*", parts[1] || "*", parts[2] || "*", parts[3] || "*", parts[4] || "*"];
 }
 
-const MONTH_KEYS = ["cronJan", "cronFeb", "cronMar", "cronApr", "cronMay", "cronJun", "cronJul", "cronAug", "cronSep", "cronOct", "cronNov", "cronDec"] as const;
-const DOW_KEYS = ["cronSun", "cronMon", "cronTue", "cronWed", "cronThu", "cronFri", "cronSat"] as const;
+const MONTH_KEYS = [
+  "cronJan",
+  "cronFeb",
+  "cronMar",
+  "cronApr",
+  "cronMay",
+  "cronJun",
+  "cronJul",
+  "cronAug",
+  "cronSep",
+  "cronOct",
+  "cronNov",
+  "cronDec",
+] as const;
+const DOW_KEYS = [
+  "cronSun",
+  "cronMon",
+  "cronTue",
+  "cronWed",
+  "cronThu",
+  "cronFri",
+  "cronSat",
+] as const;
 
 interface CronScheduleFieldsProps {
   form: CronJobFormData;
@@ -34,7 +55,13 @@ interface CronScheduleFieldsProps {
   onUpdate: <K extends keyof CronJobFormData>(key: K, value: CronJobFormData[K]) => void;
 }
 
-export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronChange, onUpdate }: CronScheduleFieldsProps) {
+export function CronScheduleFields({
+  form,
+  errors,
+  showRawCron,
+  onShowRawCronChange,
+  onUpdate,
+}: CronScheduleFieldsProps) {
   const { t } = useTranslation();
 
   /** Build translated option lists for the 5 cron fields. */
@@ -88,17 +115,22 @@ export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronCha
     ];
   }, [t]);
 
-  const handleCronFieldChange = useCallback((index: number, value: string) => {
-    const parts = parseCronFields(form.cronExpr || "* * * * *");
-    parts[index] = value;
-    onUpdate("cronExpr", parts.join(" "));
-  }, [form.cronExpr, onUpdate]);
+  const handleCronFieldChange = useCallback(
+    (index: number, value: string) => {
+      const parts = parseCronFields(form.cronExpr || "* * * * *");
+      parts[index] = value;
+      onUpdate("cronExpr", parts.join(" "));
+    },
+    [form.cronExpr, onUpdate],
+  );
 
   return (
     <>
       {/* Schedule type */}
       <div className="form-group">
-        <label className="form-label-block">{t("crons.fieldScheduleType")} <span className="required">*</span></label>
+        <label className="form-label-block">
+          {t("crons.fieldScheduleType")} <span className="required">*</span>
+        </label>
         <div className="crons-schedule-type-row">
           {SCHEDULE_KINDS.map((kind) => (
             <button
@@ -117,7 +149,9 @@ export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronCha
       {form.scheduleKind === "cron" && (
         <>
           <div className="form-group">
-            <label className="form-label-block">{t("crons.fieldCronExpr")} <span className="required">*</span></label>
+            <label className="form-label-block">
+              {t("crons.fieldCronExpr")} <span className="required">*</span>
+            </label>
             {/* Quick presets */}
             <div className="crons-preset-grid">
               {CRON_PRESETS.map((p) => (
@@ -182,7 +216,9 @@ export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronCha
                 })}
               </div>
             )}
-            {errors.cronExpr && <div className="crons-field-error">{t(`crons.${errors.cronExpr}`)}</div>}
+            {errors.cronExpr && (
+              <div className="crons-field-error">{t(`crons.${errors.cronExpr}`)}</div>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label-block">{t("crons.fieldTimezone")}</label>
@@ -201,7 +237,9 @@ export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronCha
 
       {form.scheduleKind === "every" && (
         <div className="form-group">
-          <label className="form-label-block">{t("crons.fieldInterval")} <span className="required">*</span></label>
+          <label className="form-label-block">
+            {t("crons.fieldInterval")} <span className="required">*</span>
+          </label>
           <div className="crons-form-row">
             <input
               type="number"
@@ -213,16 +251,23 @@ export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronCha
             <Select
               value={form.everyUnit}
               onChange={(v) => onUpdate("everyUnit", v as EveryUnit)}
-              options={EVERY_UNITS.map((u) => ({ value: u, label: t(`crons.unit${u.charAt(0).toUpperCase()}${u.slice(1)}`) }))}
+              options={EVERY_UNITS.map((u) => ({
+                value: u,
+                label: t(`crons.unit${u.charAt(0).toUpperCase()}${u.slice(1)}`),
+              }))}
             />
           </div>
-          {errors.everyValue && <div className="crons-field-error">{t(`crons.${errors.everyValue}`)}</div>}
+          {errors.everyValue && (
+            <div className="crons-field-error">{t(`crons.${errors.everyValue}`)}</div>
+          )}
         </div>
       )}
 
       {form.scheduleKind === "at" && (
         <div className="form-group">
-          <label className="form-label-block">{t("crons.fieldRunAt")} <span className="required">*</span></label>
+          <label className="form-label-block">
+            {t("crons.fieldRunAt")} <span className="required">*</span>
+          </label>
           <input
             type="datetime-local"
             className="input-full"
@@ -232,7 +277,9 @@ export function CronScheduleFields({ form, errors, showRawCron, onShowRawCronCha
               onUpdate("deleteAfterRun", true);
             }}
           />
-          {errors.atDatetime && <div className="crons-field-error">{t(`crons.${errors.atDatetime}`)}</div>}
+          {errors.atDatetime && (
+            <div className="crons-field-error">{t(`crons.${errors.atDatetime}`)}</div>
+          )}
         </div>
       )}
     </>

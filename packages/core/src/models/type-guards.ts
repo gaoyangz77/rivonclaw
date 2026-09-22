@@ -13,7 +13,11 @@ import type { SurfaceModel } from "./Surface.js";
 import type { RunProfileModel } from "./RunProfile.js";
 import type { ShopModel } from "./Shop.js";
 import type { ToolSpecModel } from "./ToolSpec.js";
-import type { BillingOverviewModel, BillingPlanDefinitionModel, PaymentModel } from "./Subscription.js";
+import type {
+  BillingOverviewModel,
+  BillingPlanDefinitionModel,
+  PaymentModel,
+} from "./Subscription.js";
 import type { PlatformAppModel } from "./PlatformApp.js";
 import type { InventoryGoodModel } from "./InventoryGood.js";
 import type { ShopWarehouseModel, WarehouseModel, WmsAccountModel } from "./Warehouse.js";
@@ -25,7 +29,9 @@ import type { AffiliateWorkspaceModel } from "./Affiliate.js";
  */
 type AssertSubset<GQL, MST> = {
   [K in keyof Required<MST>]: K extends keyof GQL ? true : never;
-}[keyof Required<MST>] extends true ? true : never;
+}[keyof Required<MST>] extends true
+  ? true
+  : never;
 
 // ── Surface ──────────────────────────────────────────────────────────
 type _AssertSurfaceCompat = AssertSubset<GQL.Surface, SnapshotIn<typeof SurfaceModel>>;
@@ -40,14 +46,23 @@ type _AssertShopCompat = AssertSubset<GQL.Shop, SnapshotIn<typeof ShopModel>>;
 const _shopGuard: _AssertShopCompat = true;
 
 // ── ToolSpec (ToolModel adds `source` which is local-only, not in GQL) ──
-type _AssertToolSpecCompat = AssertSubset<GQL.ToolSpec, Omit<SnapshotIn<typeof ToolSpecModel>, "source">>;
+type _AssertToolSpecCompat = AssertSubset<
+  GQL.ToolSpec,
+  Omit<SnapshotIn<typeof ToolSpecModel>, "source">
+>;
 const _toolSpecGuard: _AssertToolSpecCompat = true;
 
 // ── BillingOverview ─────────────────────────────────────────────────
-type _AssertBillingOverviewCompat = AssertSubset<GQL.BillingOverview, SnapshotIn<typeof BillingOverviewModel>>;
+type _AssertBillingOverviewCompat = AssertSubset<
+  GQL.BillingOverview,
+  SnapshotIn<typeof BillingOverviewModel>
+>;
 const _billingOverviewGuard: _AssertBillingOverviewCompat = true;
 
-type _AssertBillingPlanDefinitionCompat = AssertSubset<GQL.BillingPlanDefinition, SnapshotIn<typeof BillingPlanDefinitionModel>>;
+type _AssertBillingPlanDefinitionCompat = AssertSubset<
+  GQL.BillingPlanDefinition,
+  SnapshotIn<typeof BillingPlanDefinitionModel>
+>;
 const _billingPlanDefinitionGuard: _AssertBillingPlanDefinitionCompat = true;
 
 type _AssertPaymentCompat = AssertSubset<GQL.Payment, SnapshotIn<typeof PaymentModel>>;
@@ -58,7 +73,10 @@ type _AssertPlatformAppCompat = AssertSubset<GQL.PlatformApp, SnapshotIn<typeof 
 const _platformAppGuard: _AssertPlatformAppCompat = true;
 
 // ── InventoryGood ───────────────────────────────────────────────────
-type _AssertInventoryGoodCompat = AssertSubset<GQL.InventoryGood, SnapshotIn<typeof InventoryGoodModel>>;
+type _AssertInventoryGoodCompat = AssertSubset<
+  GQL.InventoryGood,
+  SnapshotIn<typeof InventoryGoodModel>
+>;
 const _inventoryGoodGuard: _AssertInventoryGoodCompat = true;
 
 // ── WmsAccount ──────────────────────────────────────────────────────
@@ -70,7 +88,10 @@ type _AssertWarehouseCompat = AssertSubset<GQL.Warehouse, SnapshotIn<typeof Ware
 const _warehouseGuard: _AssertWarehouseCompat = true;
 
 // ── ShopWarehouse ───────────────────────────────────────────────────
-type _AssertShopWarehouseCompat = AssertSubset<GQL.ShopWarehouse, SnapshotIn<typeof ShopWarehouseModel>>;
+type _AssertShopWarehouseCompat = AssertSubset<
+  GQL.ShopWarehouse,
+  SnapshotIn<typeof ShopWarehouseModel>
+>;
 const _shopWarehouseGuard: _AssertShopWarehouseCompat = true;
 
 // AffiliateWorkspace is a client-side normalized store composed from many GQL

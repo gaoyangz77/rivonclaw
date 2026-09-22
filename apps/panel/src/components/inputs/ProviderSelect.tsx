@@ -30,11 +30,7 @@ const ZH_PRIORITY_PROVIDERS: LLMProvider[] = [
   "xiaomi",
 ];
 
-const EN_PRIORITY_PROVIDERS: LLMProvider[] = [
-  "openai-codex",
-  "claude",
-  "anthropic",
-];
+const EN_PRIORITY_PROVIDERS: LLMProvider[] = ["openai-codex", "claude", "anthropic"];
 
 export function ProviderSelect({
   value,
@@ -52,9 +48,11 @@ export function ProviderSelect({
   const [catalogProviders, setCatalogProviders] = useState<Set<string> | null>(null);
 
   useEffect(() => {
-    fetchModelCatalog().then((data) => {
-      setCatalogProviders(new Set(Object.keys(data)));
-    }).catch(() => {});
+    fetchModelCatalog()
+      .then((data) => {
+        setCatalogProviders(new Set(Object.keys(data)));
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -69,12 +67,14 @@ export function ProviderSelect({
 
   // Sort providers by locale-specific priority, then alphabetically.
   const sortedProviders = useMemo(() => {
-    const all = ALL_PROVIDERS.filter((p) =>
-      SUPPLEMENTAL_MODEL_PROVIDERS.has(p) || SUBSCRIPTION_SET.has(p) || !catalogProviders || catalogProviders.has(p),
+    const all = ALL_PROVIDERS.filter(
+      (p) =>
+        SUPPLEMENTAL_MODEL_PROVIDERS.has(p) ||
+        SUBSCRIPTION_SET.has(p) ||
+        !catalogProviders ||
+        catalogProviders.has(p),
     );
-    const available = filterProviders
-      ? all.filter((p) => filterProviders.includes(p))
-      : all;
+    const available = filterProviders ? all.filter((p) => filterProviders.includes(p)) : all;
     const priority = i18n.language === "zh" ? ZH_PRIORITY_PROVIDERS : EN_PRIORITY_PROVIDERS;
     const availableSet = new Set(available);
     const top = priority.filter((p) => availableSet.has(p));
@@ -84,16 +84,10 @@ export function ProviderSelect({
 
   return (
     <div ref={ref} className="provider-select-wrap">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="provider-select-trigger"
-      >
+      <button type="button" onClick={() => setOpen(!open)} className="provider-select-trigger">
         <span>
           <strong>{t(`providers.label_${value}`)}</strong>
-          <span className="provider-select-desc">
-            {t(`providers.desc_${value}`)}
-          </span>
+          <span className="provider-select-desc">{t(`providers.desc_${value}`)}</span>
         </span>
         <span className="provider-select-arrow">{open ? "\u25B2" : "\u25BC"}</span>
       </button>
@@ -109,12 +103,8 @@ export function ProviderSelect({
               }}
               className={`provider-select-option${p === value ? " provider-select-option-active" : ""}`}
             >
-              <div className="provider-select-option-label">
-                {t(`providers.label_${p}`)}
-              </div>
-              <div className="provider-select-option-desc">
-                {t(`providers.desc_${p}`)}
-              </div>
+              <div className="provider-select-option-label">{t(`providers.label_${p}`)}</div>
+              <div className="provider-select-option-desc">{t(`providers.desc_${p}`)}</div>
             </button>
           ))}
         </div>

@@ -546,10 +546,17 @@ for (const filePath of walkFilesByExtension(SRC_ROOT, ".css")) {
       const declarations = rule[2];
       const line = declarationSource.slice(0, rule.index).split("\n").length;
 
-      for (const selector of selectorList.split(",").map((part) => part.trim()).filter(Boolean)) {
+      for (const selector of selectorList
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean)) {
         // Only the element the rule actually targets counts. A tk-v1 class used
         // as an ancestor scope, or a margin between siblings, is legitimate.
-        const target = selector.split(/[\s>+~]+/).filter(Boolean).pop() ?? "";
+        const target =
+          selector
+            .split(/[\s>+~]+/)
+            .filter(Boolean)
+            .pop() ?? "";
 
         for (const declaration of declarations.matchAll(
           /(?:^|[\s;])(padding|margin)(?:-[\w-]+)?:\s*([^;]+)/g,

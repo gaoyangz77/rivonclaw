@@ -193,25 +193,20 @@ function normaliseUsage(raw: Record<string, unknown>): NormalisedUsage {
   );
 
   let cacheRead = num(
-    raw.cache_read_input_tokens ??
-      raw.cacheRead ??
-      raw.cache_read ??
-      raw.cached_tokens ??
-      0,
+    raw.cache_read_input_tokens ?? raw.cacheRead ?? raw.cache_read ?? raw.cached_tokens ?? 0,
   );
-  if (cacheRead === 0 && raw.prompt_tokens_details && typeof raw.prompt_tokens_details === "object") {
+  if (
+    cacheRead === 0 &&
+    raw.prompt_tokens_details &&
+    typeof raw.prompt_tokens_details === "object"
+  ) {
     cacheRead = num((raw.prompt_tokens_details as Record<string, unknown>).cached_tokens ?? 0);
   }
   cacheRead = Math.max(0, cacheRead);
 
   const cacheWrite = Math.max(
     0,
-    num(
-      raw.cache_creation_input_tokens ??
-        raw.cacheWrite ??
-        raw.cache_write ??
-        0,
-    ),
+    num(raw.cache_creation_input_tokens ?? raw.cacheWrite ?? raw.cache_write ?? 0),
   );
 
   return { input, output, cacheRead, cacheWrite };
@@ -271,7 +266,14 @@ function extractCost(
     }
   }
 
-  return { total: 0, inputCost: 0, outputCost: 0, cacheReadCost: 0, cacheWriteCost: 0, estimated: true };
+  return {
+    total: 0,
+    inputCost: 0,
+    outputCost: 0,
+    cacheReadCost: 0,
+    cacheWriteCost: 0,
+    estimated: true,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -296,9 +298,7 @@ function extractTimestamp(entry: Record<string, unknown>): number | null {
 // JSONL line iteration helper
 // ---------------------------------------------------------------------------
 
-async function* readJsonlLines(
-  filePath: string,
-): AsyncGenerator<Record<string, unknown>> {
+async function* readJsonlLines(filePath: string): AsyncGenerator<Record<string, unknown>> {
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
     crlfDelay: Infinity,
@@ -321,13 +321,11 @@ async function* readJsonlLines(
 // discoverAllSessions
 // ---------------------------------------------------------------------------
 
-export async function discoverAllSessions(
-  params?: {
-    startMs?: number;
-    endMs?: number;
-    config?: OpenClawConfig | Record<string, unknown>;
-  },
-): Promise<DiscoveredSession[]> {
+export async function discoverAllSessions(params?: {
+  startMs?: number;
+  endMs?: number;
+  config?: OpenClawConfig | Record<string, unknown>;
+}): Promise<DiscoveredSession[]> {
   const results: DiscoveredSession[] = [];
 
   for (const { agentId, dir } of sessionDirs(params?.config)) {
@@ -358,7 +356,9 @@ export async function discoverAllSessions(
           } else if (Array.isArray(content)) {
             const textPart = content.find(
               (p: unknown) =>
-                typeof p === "object" && p !== null && (p as Record<string, unknown>).type === "text",
+                typeof p === "object" &&
+                p !== null &&
+                (p as Record<string, unknown>).type === "text",
             ) as Record<string, unknown> | undefined;
             if (textPart && typeof textPart.text === "string") {
               firstUserMessage = (textPart.text as string).slice(0, 100);
@@ -430,14 +430,21 @@ export async function loadSessionCostSummary(params: {
     const model = (msg.model as string) ?? (entry.model as string) ?? undefined;
 
     const normalised = normaliseUsage(usage);
-    const cost = extractCost(usage, normalised, provider, model, config as OpenClawConfig | undefined);
+    const cost = extractCost(
+      usage,
+      normalised,
+      provider,
+      model,
+      config as OpenClawConfig | undefined,
+    );
 
     // Accumulate grand totals
     grandTotals.input += normalised.input;
     grandTotals.output += normalised.output;
     grandTotals.cacheRead += normalised.cacheRead;
     grandTotals.cacheWrite += normalised.cacheWrite;
-    grandTotals.totalTokens += normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
+    grandTotals.totalTokens +=
+      normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
     grandTotals.totalCost += cost.total;
     grandTotals.inputCost += cost.inputCost;
     grandTotals.outputCost += cost.outputCost;
@@ -456,7 +463,8 @@ export async function loadSessionCostSummary(params: {
       existing.totals.output += normalised.output;
       existing.totals.cacheRead += normalised.cacheRead;
       existing.totals.cacheWrite += normalised.cacheWrite;
-      existing.totals.totalTokens += normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
+      existing.totals.totalTokens +=
+        normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
       existing.totals.totalCost += cost.total;
       existing.totals.inputCost += cost.inputCost;
       existing.totals.outputCost += cost.outputCost;
@@ -471,7 +479,8 @@ export async function loadSessionCostSummary(params: {
       totals.output = normalised.output;
       totals.cacheRead = normalised.cacheRead;
       totals.cacheWrite = normalised.cacheWrite;
-      totals.totalTokens = normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
+      totals.totalTokens =
+        normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
       totals.totalCost = cost.total;
       totals.inputCost = cost.inputCost;
       totals.outputCost = cost.outputCost;
@@ -492,7 +501,8 @@ export async function loadSessionCostSummary(params: {
       activityDateSet.add(dateKey);
 
       const dailyEntry = dailyMap.get(dateKey) ?? { tokens: 0, cost: 0 };
-      dailyEntry.tokens += normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
+      dailyEntry.tokens +=
+        normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
       dailyEntry.cost += cost.total;
       dailyMap.set(dateKey, dailyEntry);
     }
@@ -523,7 +533,10 @@ export async function loadSessionCostSummary(params: {
     sessionFile,
     firstActivity,
     lastActivity,
-    durationMs: firstActivity !== undefined && lastActivity !== undefined ? lastActivity - firstActivity : undefined,
+    durationMs:
+      firstActivity !== undefined && lastActivity !== undefined
+        ? lastActivity - firstActivity
+        : undefined,
     activityDates: Array.from(activityDateSet).sort(),
     dailyBreakdown,
     modelUsage,
@@ -582,9 +595,16 @@ export async function loadCostUsageSummary(params?: {
         const model = (msg.model as string) ?? (entry.model as string) ?? undefined;
 
         const normalised = normaliseUsage(usage);
-        const cost = extractCost(usage, normalised, provider, model, config as OpenClawConfig | undefined);
+        const cost = extractCost(
+          usage,
+          normalised,
+          provider,
+          model,
+          config as OpenClawConfig | undefined,
+        );
 
-        const tokens = normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
+        const tokens =
+          normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
 
         grandTotals.input += normalised.input;
         grandTotals.output += normalised.output;

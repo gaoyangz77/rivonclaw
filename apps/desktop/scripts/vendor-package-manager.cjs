@@ -8,9 +8,10 @@
 // See `scripts/vendor-pnpm.cjs` for why the pinned pnpm is installed outside
 // the vendor tree.
 
-const { readVendorPnpmVersion, resolveVendorPnpmEntry } = require(
-  "../../../scripts/vendor-pnpm.cjs",
-);
+const {
+  readVendorPnpmVersion,
+  resolveVendorPnpmEntry,
+} = require("../../../scripts/vendor-pnpm.cjs");
 
 // pnpm 12 does not honor the legacy npm_config_node_linker environment override.
 // This is an install option, so it must follow the subcommand, not precede it.
@@ -64,7 +65,11 @@ function decideVendorInstallWait(state) {
   }
   if (state.doneAtMs !== null) {
     return state.nowMs - state.doneAtMs >= state.graceMs
-      ? { action: "kill", code: 0, reason: `pnpm reported completion but did not exit within ${state.graceMs}ms` }
+      ? {
+          action: "kill",
+          code: 0,
+          reason: `pnpm reported completion but did not exit within ${state.graceMs}ms`,
+        }
       : { action: "wait" };
   }
   return state.nowMs - state.startedAtMs >= state.deadlineMs

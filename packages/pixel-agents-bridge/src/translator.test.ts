@@ -1,4 +1,8 @@
-import { SCENE_CONTRACT_VERSION, type SceneCharacter, type SceneSnapshot } from "@rivonclaw/scene-contract";
+import {
+  SCENE_CONTRACT_VERSION,
+  type SceneCharacter,
+  type SceneSnapshot,
+} from "@rivonclaw/scene-contract";
 import { describe, expect, it } from "vitest";
 import type { OutboundMessage } from "./capabilities.js";
 import { PixelAgentsTranslator } from "./translator.js";
@@ -320,9 +324,7 @@ describe("PixelAgentsTranslator - activity captions", () => {
     t.apply(scene(1, [character({ id: "lease-1" })]));
     const start = pick(
       t.apply(
-        scene(2, [
-          character({ id: "lease-1", status: "tooling", activity: "ecom_cs_get_order" }),
-        ]),
+        scene(2, [character({ id: "lease-1", status: "tooling", activity: "ecom_cs_get_order" })]),
       ),
       "agentToolStart",
     );
@@ -347,7 +349,9 @@ describe("PixelAgentsTranslator - activity captions", () => {
   // episode and leave the renderer animating the tool that already finished.
   it("opens a new episode when the tool changes but the caption does not", () => {
     const t = new PixelAgentsTranslator({ resolveActivity: () => "Reading an order" });
-    t.apply(scene(1, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]));
+    t.apply(
+      scene(1, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]),
+    );
     const out = t.apply(
       scene(2, [character({ id: "lease-1", status: "tooling", activity: "ecom_cs_get_order" })]),
     );
@@ -369,7 +373,10 @@ describe("PixelAgentsTranslator - phase captions", () => {
     it(`captions ${status} as a pseudo-tool`, () => {
       const t = new PixelAgentsTranslator();
       t.apply(scene(1, [character({ id: "lease-1", status: "tooling", activity: "read" })]));
-      const start = pick(t.apply(scene(2, [character({ id: "lease-1", status })])), "agentToolStart");
+      const start = pick(
+        t.apply(scene(2, [character({ id: "lease-1", status })])),
+        "agentToolStart",
+      );
       expect(start).toHaveLength(1);
       expect(start[0].toolName).toBe(`phase:${status}`);
     });
@@ -395,10 +402,14 @@ describe("PixelAgentsTranslator - phase captions", () => {
   it("keeps each outcome its own episode", () => {
     const t = new PixelAgentsTranslator();
     t.apply(
-      scene(1, [character({ id: "lease-1", status: "leaving", activity: "phase:leaving-success" })]),
+      scene(1, [
+        character({ id: "lease-1", status: "leaving", activity: "phase:leaving-success" }),
+      ]),
     );
     const out = t.apply(
-      scene(2, [character({ id: "lease-1", status: "leaving", activity: "phase:leaving-failure" })]),
+      scene(2, [
+        character({ id: "lease-1", status: "leaving", activity: "phase:leaving-failure" }),
+      ]),
     );
     expect(typesOf(out)).toEqual(["agentToolDone", "agentToolStart"]);
     expect(pick(out, "agentToolStart")[0].toolName).toBe("phase:leaving-failure");
@@ -506,7 +517,9 @@ describe("PixelAgentsTranslator - reading tool taxonomy", () => {
 
   it("does not re-announce a tool it has already taught", () => {
     const t = new PixelAgentsTranslator({ isReadingTool: readsAnythingNamedGet });
-    t.apply(scene(1, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]));
+    t.apply(
+      scene(1, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]),
+    );
     t.apply(scene(2, [character({ id: "lease-1", status: "working" })]));
     const out = t.apply(
       scene(3, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]),
@@ -527,7 +540,9 @@ describe("PixelAgentsTranslator - reading tool taxonomy", () => {
   // tool learned before the reload would animate wrongly until it ran again.
   it("re-announces everything it has learned after a reset", () => {
     const t = new PixelAgentsTranslator({ isReadingTool: readsAnythingNamedGet });
-    t.apply(scene(1, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]));
+    t.apply(
+      scene(1, [character({ id: "lease-1", status: "tooling", activity: "ecom_get_order" })]),
+    );
     t.reset();
     const out = t.apply(scene(2, [character({ id: "lease-1" })]));
     expect(pick(out, "providerCapabilities")[0].readingTools).toEqual(["ecom_get_order"]);

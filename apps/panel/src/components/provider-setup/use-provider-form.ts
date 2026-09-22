@@ -21,9 +21,12 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
   const { t, i18n } = useTranslation();
 
   // MST auto-updates via SSE — no manual fetch needed after key creation
-  const onSave = useCallback((provider: string) => {
-    onSaveCallback(provider);
-  }, [onSaveCallback]);
+  const onSave = useCallback(
+    (provider: string) => {
+      onSaveCallback(provider);
+    },
+    [onSaveCallback],
+  );
 
   const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "openai-codex";
   const [tab, setTab] = useState<"subscription" | "api" | "local" | "custom">("subscription");
@@ -33,7 +36,9 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
   const [customProtocol, setCustomProtocol] = useState<"openai" | "anthropic">("openai");
   const [customEndpoint, setCustomEndpoint] = useState("");
   const [customModels, setCustomModels] = useState<string[]>([]);
-  const [model, setModel] = useState(getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "");
+  const [model, setModel] = useState(
+    getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "",
+  );
   const [apiKey, setApiKey] = useState("");
   const [label, setLabel] = useState("");
   const [proxyUrl, setProxyUrl] = useState("");
@@ -95,12 +100,22 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
   }, []);
 
   const pricingLang = navigator.language?.slice(0, 2) || "en";
-  const pricingPlatform = navigator.userAgent.includes("Mac") ? "darwin"
-    : navigator.userAgent.includes("Win") ? "win32" : "linux";
+  const pricingPlatform = navigator.userAgent.includes("Mac")
+    ? "darwin"
+    : navigator.userAgent.includes("Win")
+      ? "win32"
+      : "linux";
 
   // Fetch pricing via Apollo (skipped until deviceId is known)
-  const { data: pricingData, loading: pricingQueryLoading } = useQuery<{ pricing: GQL.ProviderPricing[] }>(PRICING_QUERY, {
-    variables: { deviceId: deviceId ?? "", platform: pricingPlatform, appVersion: "0.8.0", language: pricingLang },
+  const { data: pricingData, loading: pricingQueryLoading } = useQuery<{
+    pricing: GQL.ProviderPricing[];
+  }>(PRICING_QUERY, {
+    variables: {
+      deviceId: deviceId ?? "",
+      platform: pricingPlatform,
+      appVersion: "0.8.0",
+      language: pricingLang,
+    },
     skip: !deviceId,
     fetchPolicy: "cache-first",
   });
@@ -183,11 +198,16 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
       setInputModalities(["text"]);
       return;
     }
-    const prov = newTab === "local"
-      ? "ollama"
-      : newTab === "subscription"
-        ? (i18n.language === "zh" ? "zhipu-coding" : "openai-codex")
-        : (i18n.language === "zh" ? "zhipu" : "openai");
+    const prov =
+      newTab === "local"
+        ? "ollama"
+        : newTab === "subscription"
+          ? i18n.language === "zh"
+            ? "zhipu-coding"
+            : "openai-codex"
+          : i18n.language === "zh"
+            ? "zhipu"
+            : "openai";
     handleProviderChange(prov);
     if (newTab === "local") {
       setBaseUrl(getOllamaBaseUrl());
@@ -295,10 +315,17 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
             if (status.status === "completed") {
               stopPolling();
               setOauthTokenPreview(status.tokenPreview || "oauth-token-••••••••");
-              setLabel((prev) => prev.trim() ? prev : (status.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth"));
+              setLabel((prev) =>
+                prev.trim()
+                  ? prev
+                  : status.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth",
+              );
               // Respect a model the user picked *before* clicking "Sign in".
               // Only seed the provider default when the user hasn't chosen anything yet.
-              setModel((prev) => prev || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""));
+              setModel(
+                (prev) =>
+                  prev || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
+              );
               setOauthManualMode(false);
               setOauthAuthUrl("");
               setOauthCallbackUrl("");
@@ -307,7 +334,9 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
               stopPolling();
               setError({
                 key: "providers.oauthFailed",
-                detail: status.error || "Browser callback did not complete. Paste the redirect URL to continue.",
+                detail:
+                  status.error ||
+                  "Browser callback did not complete. Paste the redirect URL to continue.",
               });
             }
           } catch {
@@ -317,7 +346,11 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
       }
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err));
-      setError({ key: "providers.oauthFailed", detail: e.message, hover: (e as Error & { detail?: string }).detail });
+      setError({
+        key: "providers.oauthFailed",
+        detail: e.message,
+        hover: (e as Error & { detail?: string }).detail,
+      });
     } finally {
       setOauthLoading(false);
     }
@@ -331,16 +364,26 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     try {
       const result = await entityStore.completeManualOAuth(provider, oauthCallbackUrl.trim());
       setOauthTokenPreview(result.tokenPreview || "oauth-token-••••••••");
-      setLabel((prev) => prev.trim() ? prev : (result.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth"));
+      setLabel((prev) =>
+        prev.trim()
+          ? prev
+          : result.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth",
+      );
       // Respect a model the user picked *before* completing manual OAuth.
-      setModel((prev) => prev || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""));
+      setModel(
+        (prev) => prev || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
+      );
       setOauthManualMode(false);
       setOauthAuthUrl("");
       setOauthCallbackUrl("");
       setOauthFlowId("");
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err));
-      setError({ key: "providers.oauthFailed", detail: e.message, hover: (e as Error & { detail?: string }).detail });
+      setError({
+        key: "providers.oauthFailed",
+        detail: e.message,
+        hover: (e as Error & { detail?: string }).detail,
+      });
     } finally {
       setOauthManualLoading(false);
     }
@@ -371,7 +414,11 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
       onSave(provider);
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err));
-      setError({ key: "providers.failedToSave", detail: e.message, hover: (e as Error & { detail?: string }).detail });
+      setError({
+        key: "providers.failedToSave",
+        detail: e.message,
+        hover: (e as Error & { detail?: string }).detail,
+      });
     } finally {
       setSaving(false);
       setValidating(false);
@@ -384,7 +431,10 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     setError(null);
     try {
       const validation = await validateCustomApiKey(
-        customEndpoint.trim(), apiKey.trim(), customProtocol, customModels[0],
+        customEndpoint.trim(),
+        apiKey.trim(),
+        customProtocol,
+        customModels[0],
       );
       if (!validation.valid) {
         setError({ key: "providers.invalidKey", detail: validation.error });
@@ -427,33 +477,73 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
   }
 
   return {
-    t, i18n,
+    t,
+    i18n,
     // Tab state
-    tab, handleTabChange,
+    tab,
+    handleTabChange,
     // Provider state
-    provider, handleProviderChange, model, setModel,
+    provider,
+    handleProviderChange,
+    model,
+    setModel,
     // Key state
-    apiKey, setApiKey, label, setLabel, proxyUrl, setProxyUrl,
+    apiKey,
+    setApiKey,
+    label,
+    setLabel,
+    proxyUrl,
+    setProxyUrl,
     // Local state
-    baseUrl, setBaseUrl, baseUrlTouched, setBaseUrlTouched,
-    modelName, setModelName, detectedServer,
-    detecting, localModels, loadingModels, healthStatus,
-    inputModalities, setInputModalities,
+    baseUrl,
+    setBaseUrl,
+    baseUrlTouched,
+    setBaseUrlTouched,
+    modelName,
+    setModelName,
+    detectedServer,
+    detecting,
+    localModels,
+    loadingModels,
+    healthStatus,
+    inputModalities,
+    setInputModalities,
     // Custom provider state
-    customName, setCustomName, customProtocol, setCustomProtocol,
-    customEndpoint, setCustomEndpoint, customModels, setCustomModels,
+    customName,
+    setCustomName,
+    customProtocol,
+    setCustomProtocol,
+    customEndpoint,
+    setCustomEndpoint,
+    customModels,
+    setCustomModels,
     // UI state
-    showAdvanced, setShowAdvanced, saving, validating, error,
+    showAdvanced,
+    setShowAdvanced,
+    saving,
+    validating,
+    error,
     // OAuth state
-    oauthLoading, oauthTokenPreview, oauthManualMode,
-    oauthAuthUrl, oauthCallbackUrl, setOauthCallbackUrl, oauthManualLoading,
+    oauthLoading,
+    oauthTokenPreview,
+    oauthManualMode,
+    oauthAuthUrl,
+    oauthCallbackUrl,
+    setOauthCallbackUrl,
+    oauthManualLoading,
     // Pricing state
-    pricingList, pricingLoading,
+    pricingList,
+    pricingLoading,
     // Refs
-    leftCardRef, leftHeight,
+    leftCardRef,
+    leftHeight,
     // Handlers
-    handleAddLocalKey, handleAddKey, handleAddCustomProvider,
-    handleOAuth, handleManualOAuthComplete, handleOAuthSave,
+    handleAddLocalKey,
+    handleAddKey,
+    handleAddCustomProvider,
+    handleOAuth,
+    handleManualOAuthComplete,
+    handleOAuthSave,
   };
 }
 

@@ -466,11 +466,7 @@ describe("LLMProviderManager", () => {
       getLastSystemProxy: () => null,
     });
 
-    await rootStore.llmManager.switchModelForSession(
-      "agent:main:main",
-      "kimi",
-      "moonshot-v1-8k",
-    );
+    await rootStore.llmManager.switchModelForSession("agent:main:main", "kimi", "moonshot-v1-8k");
     expect(rpcRequest).toHaveBeenNthCalledWith(1, "sessions.patch", {
       key: "agent:main:main",
       model: "kimi/moonshot-v1-8k",
@@ -1457,9 +1453,7 @@ describe("LLMProviderManager", () => {
       restartGateway,
     });
 
-    await expect(rootStore.llmManager.activateProvider("key-pro")).rejects.toThrow(
-      "spawn ENOENT",
-    );
+    await expect(rootStore.llmManager.activateProvider("key-pro")).rejects.toThrow("spawn ENOENT");
 
     expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
       "rivonclaw-pro",

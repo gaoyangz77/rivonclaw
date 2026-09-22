@@ -1,14 +1,19 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.inventoryManagement.${key}Title`,
     bodyKey: `tutorial.inventoryManagement.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const inventoryManagementSteps: TutorialStep[] = [
@@ -19,4 +24,4 @@ export const inventoryManagementSteps: TutorialStep[] = [
   step("inventory-filters", "inventory-goods-filters", "filters", "bottom"),
   step("inventory-table", "inventory-goods-table", "table", "top"),
   step("inventory-pagination", "inventory-pagination", "pagination", "top"),
-]
+];

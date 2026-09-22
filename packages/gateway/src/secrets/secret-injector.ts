@@ -38,9 +38,7 @@ const STATIC_SECRET_ENV_MAP: Record<string, string> = {
  *
  * Secret values are NEVER logged.
  */
-export async function resolveSecretEnv(
-  store: SecretStore,
-): Promise<Record<string, string>> {
+export async function resolveSecretEnv(store: SecretStore): Promise<Record<string, string>> {
   const env: Record<string, string> = {};
 
   // LLM provider API keys are NO LONGER injected as environment variables.

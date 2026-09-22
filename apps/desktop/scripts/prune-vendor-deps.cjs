@@ -11,8 +11,12 @@ const fs = require("fs");
 const { createRequire } = require("module");
 const path = require("path");
 const { readVendorPruneProfile } = require("./vendor-runtime-cache.cjs");
-const { stripPrivateSourceMaps, stripSelectedPluginSourceMaps, stripRuntimeDevelopmentFiles,
-  deduplicateMirroredPluginDependencies } = require("./vendor-plugin-size.cjs");
+const {
+  stripPrivateSourceMaps,
+  stripSelectedPluginSourceMaps,
+  stripRuntimeDevelopmentFiles,
+  deduplicateMirroredPluginDependencies,
+} = require("./vendor-plugin-size.cjs");
 const { withPnpmTargetArchitecture } = require("./pnpm-target-architecture.cjs");
 const {
   resolveVendorPnpmEntry,
@@ -20,9 +24,13 @@ const {
   isCompletedVendorProductionInstall,
 } = require("./vendor-package-manager.cjs");
 const {
-  materializeSelectedPluginDependencies, assertSelectedPluginDependencies,
-  materializeSelectedPluginAssets, isSelectedPluginNodeModules,
-  materializeRuntimeModuleLinks, assertBundledPluginEntries, selectedPluginDirs,
+  materializeSelectedPluginDependencies,
+  assertSelectedPluginDependencies,
+  materializeSelectedPluginAssets,
+  isSelectedPluginNodeModules,
+  materializeRuntimeModuleLinks,
+  assertBundledPluginEntries,
+  selectedPluginDirs,
 } = require("./vendor-plugin-dependencies.cjs");
 const {
   DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
@@ -78,7 +86,8 @@ const sqliteVecTargetPackage =
   ["arm64", "x64"].includes(sqliteVecRuntimeArch ?? "")
     ? `sqlite-vec-${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}`
     : null;
-const koffiTargetPackage = process.platform === "win32" ? `@koromix/koffi-win32-${process.arch}` : null;
+const koffiTargetPackage =
+  process.platform === "win32" ? `@koromix/koffi-win32-${process.arch}` : null;
 const needsCrossArchMacDependencies =
   process.platform === "darwin" &&
   sqliteVecRuntimeArch !== null &&
@@ -338,7 +347,10 @@ function removePackageDir(pkgDir) {
 }
 
 function hasBlacklistedPackage() {
-  if (packageDirsForPrefix("@koromix/koffi-").some((dir) => packageLabel(dir) !== koffiTargetPackage)) return true;
+  if (
+    packageDirsForPrefix("@koromix/koffi-").some((dir) => packageLabel(dir) !== koffiTargetPackage)
+  )
+    return true;
   for (const pkg of EXTRA_REMOVE) {
     if (packageDirsForExactOrScope(pkg).length > 0) return true;
   }
@@ -405,10 +417,12 @@ function hasRequiredOfficialVendorPlugins() {
     path.join(nmDir, "@larksuiteoapi", "node-sdk", "package.json"),
     path.join(nmDir, "openclaw", "package.json"),
     path.join(nmDir, "sqlite-vec", "package.json"),
-    ...(koffiTargetPackage ? [
-      path.join(nmDir, "koffi", "package.json"),
-      path.join(nmDir, koffiTargetPackage, "package.json"),
-    ] : []),
+    ...(koffiTargetPackage
+      ? [
+          path.join(nmDir, "koffi", "package.json"),
+          path.join(nmDir, koffiTargetPackage, "package.json"),
+        ]
+      : []),
   ];
   if (sqliteVecTargetPackage) {
     requiredPaths.push(path.join(nmDir, sqliteVecTargetPackage, "package.json"));
@@ -767,7 +781,12 @@ function removeOrphanedDistRuntimeWrappers() {
 
 const prunedMarkerPath = path.join(vendorDir, "dist", ".pruned");
 function hasSelectedPluginDependencies() {
-  try { assertSelectedPluginDependencies(vendorDir); return true; } catch { return false; }
+  try {
+    assertSelectedPluginDependencies(vendorDir);
+    return true;
+  } catch {
+    return false;
+  }
 }
 if (fs.existsSync(prunedMarkerPath)) {
   const markerText = fs.readFileSync(prunedMarkerPath, "utf-8");
@@ -803,7 +822,9 @@ console.log(
   `[prune-vendor-deps] Before: ${(sizeBefore / 1024 / 1024).toFixed(0)}MB, ${filesBefore} files`,
 );
 
-console.log(`[prune-vendor-deps] Phase 1: ${vendorPnpmCommand} ${VENDOR_PRODUCTION_INSTALL_ARGS.join(" ")}`);
+console.log(
+  `[prune-vendor-deps] Phase 1: ${vendorPnpmCommand} ${VENDOR_PRODUCTION_INSTALL_ARGS.join(" ")}`,
+);
 try {
   // The runner returns only after pnpm has really finished; see its header for
   // why a timeout alone let a still-running install overwrite the tree.
@@ -812,9 +833,12 @@ try {
       process.execPath,
       [
         runVendorProductionInstallScript,
-        "--cwd", vendorDir,
+        "--cwd",
+        vendorDir,
         "--",
-        process.execPath, vendorPnpmEntry, ...VENDOR_PRODUCTION_INSTALL_ARGS,
+        process.execPath,
+        vendorPnpmEntry,
+        ...VENDOR_PRODUCTION_INSTALL_ARGS,
       ],
       { stdio: "inherit", env: { ...process.env, CI: "true" } },
     ),
@@ -842,8 +866,11 @@ if (
   process.exit(1);
 }
 
-if (koffiTargetPackage && (!fs.existsSync(path.join(nmDir, "koffi", "package.json")) ||
-  !fs.existsSync(path.join(nmDir, koffiTargetPackage, "package.json")))) {
+if (
+  koffiTargetPackage &&
+  (!fs.existsSync(path.join(nmDir, "koffi", "package.json")) ||
+    !fs.existsSync(path.join(nmDir, koffiTargetPackage, "package.json")))
+) {
   throw new Error(`Missing Windows SQLite runtime dependency: koffi and ${koffiTargetPackage}`);
 }
 
@@ -904,8 +931,11 @@ let phase4Bytes = 0;
 const privateMaps = stripSelectedPluginSourceMaps(vendorDir);
 phase4Files += privateMaps.files;
 phase4Bytes += privateMaps.bytes;
-for (const root of [nmDir, path.join(vendorDir, "extensions"),
-  ...selectedPluginDirs(vendorDir).map((dir) => path.join(dir, "node_modules"))]) {
+for (const root of [
+  nmDir,
+  path.join(vendorDir, "extensions"),
+  ...selectedPluginDirs(vendorDir).map((dir) => path.join(dir, "node_modules")),
+]) {
   const removed = stripRuntimeDevelopmentFiles(root);
   phase4Files += removed.files;
   phase4Bytes += removed.bytes;

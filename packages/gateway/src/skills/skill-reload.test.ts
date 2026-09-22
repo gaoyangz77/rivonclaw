@@ -9,12 +9,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir, homedir } from "node:os";
-import {
-  resolveSkillsDir,
-  ensureSkillsDir,
-  watchSkillsDir,
-  isSkillFile,
-} from "./skill-reload.js";
+import { resolveSkillsDir, ensureSkillsDir, watchSkillsDir, isSkillFile } from "./skill-reload.js";
 
 describe("skill-reload", () => {
   let tmpDir: string;
@@ -188,9 +183,7 @@ describe("skill-reload", () => {
       await waitFor(() => events.length > 0, 500);
 
       expect(events.length).toBeGreaterThan(0);
-      const skillEvents = events.filter(
-        (e) => e.filename === "remove-SKILL.md",
-      );
+      const skillEvents = events.filter((e) => e.filename === "remove-SKILL.md");
       expect(skillEvents.length).toBeGreaterThan(0);
     });
 

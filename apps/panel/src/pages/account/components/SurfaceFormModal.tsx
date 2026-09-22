@@ -42,9 +42,7 @@ export function SurfaceFormModal({
     >
       <div className="modal-form-col">
         <div>
-          <label className="form-label-block">
-            {t("surfaces.name")}
-          </label>
+          <label className="form-label-block">{t("surfaces.name")}</label>
           <input
             type="text"
             value={surfaceName}
@@ -54,9 +52,7 @@ export function SurfaceFormModal({
           />
         </div>
         <div>
-          <label className="form-label-block">
-            {t("surfaces.descriptionLabel")}
-          </label>
+          <label className="form-label-block">{t("surfaces.descriptionLabel")}</label>
           <input
             type="text"
             value={surfaceDescription}
@@ -66,29 +62,30 @@ export function SurfaceFormModal({
           />
         </div>
         <div>
-          <label className="form-label-block">
-            {t("surfaces.allowedToolIds")}
-          </label>
+          <label className="form-label-block">{t("surfaces.allowedToolIds")}</label>
           <div className="form-hint">{t("surfaces.allowedToolIdsHint")}</div>
           <ToolMultiSelect selected={surfaceToolIds} onChange={onToolIdsChange} />
         </div>
 
-        {editingSurfaceId && (() => {
-          const currentAllowed = surfaceToolIds;
-          const childProfiles = profiles.filter((p) => p.surfaceId === editingSurfaceId);
-          const affectedProfiles = childProfiles.filter((p) =>
-            p.selectedToolIds.some((tid) => currentAllowed.size > 0 && !currentAllowed.has(tid)),
-          );
-          if (affectedProfiles.length === 0) return null;
-          return (
-            <div className="form-warning">
-              {t("surfaces.surfaceNarrowWarning", { count: affectedProfiles.length })}
-              <ul className="form-warning-list">
-                {affectedProfiles.map((p) => <li key={p.id}>{p.name}</li>)}
-              </ul>
-            </div>
-          );
-        })()}
+        {editingSurfaceId &&
+          (() => {
+            const currentAllowed = surfaceToolIds;
+            const childProfiles = profiles.filter((p) => p.surfaceId === editingSurfaceId);
+            const affectedProfiles = childProfiles.filter((p) =>
+              p.selectedToolIds.some((tid) => currentAllowed.size > 0 && !currentAllowed.has(tid)),
+            );
+            if (affectedProfiles.length === 0) return null;
+            return (
+              <div className="form-warning">
+                {t("surfaces.surfaceNarrowWarning", { count: affectedProfiles.length })}
+                <ul className="form-warning-list">
+                  {affectedProfiles.map((p) => (
+                    <li key={p.id}>{p.name}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
 
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onClose}>

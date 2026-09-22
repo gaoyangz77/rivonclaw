@@ -78,10 +78,7 @@ const VERSION_CHECKS: DepCheck[] = [
   },
 ];
 
-async function checkDep(
-  check: DepCheck,
-  env: NodeJS.ProcessEnv,
-): Promise<DepStatus> {
+async function checkDep(check: DepCheck, env: NodeJS.ProcessEnv): Promise<DepStatus> {
   for (const [cmd, ...args] of check.commands) {
     try {
       const { stdout, stderr } = await execFile(cmd, args, {

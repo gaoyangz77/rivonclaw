@@ -16,7 +16,7 @@ export async function pollGatewayReady(
   const { initialDelay = 800, retryDelay = 400, maxRetries = 15 } = opts ?? {};
 
   // Give gateway time to receive SIGUSR1 and start reloading
-  await new Promise(r => setTimeout(r, initialDelay));
+  await new Promise((r) => setTimeout(r, initialDelay));
 
   // Poll until gateway responds with fresh data
   for (let i = 0; i < maxRetries; i++) {
@@ -25,7 +25,7 @@ export async function pollGatewayReady(
       onSuccess?.();
       return;
     } catch {
-      await new Promise(r => setTimeout(r, retryDelay));
+      await new Promise((r) => setTimeout(r, retryDelay));
     }
   }
 }

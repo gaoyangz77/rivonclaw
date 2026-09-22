@@ -1,11 +1,21 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchChannelStatus, fetchAllowlist, type ChannelsStatusSnapshot } from "../../../api/channels.js";
+import {
+  fetchChannelStatus,
+  fetchAllowlist,
+  type ChannelsStatusSnapshot,
+} from "../../../api/channels.js";
 import { KNOWN_CHANNELS } from "../../../lib/channel-defs.js";
 import { getRunProfileForScope } from "../../../api/tool-registry.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { CronJob, CronJobFormData, FormErrors } from "../cron-utils.js";
-import { defaultFormData, cronJobToFormData, formDataToCreateParams, formDataToPatch, validateCronForm } from "../cron-utils.js";
+import {
+  defaultFormData,
+  cronJobToFormData,
+  formDataToCreateParams,
+  formDataToPatch,
+  validateCronForm,
+} from "../cron-utils.js";
 
 export const SUBMIT_RUN_PROFILE_ID_KEY = "__runProfileId";
 
@@ -44,43 +54,54 @@ export function useCronForm({ mode, initialData, onSubmit }: UseCronFormParams) 
     }
 
     let cancelled = false;
-    getRunProfileForScope(scopeKey).then((runProfileId) => {
-      if (!cancelled) {
-        setSelectedRunProfileId(runProfileId ?? "");
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        setSelectedRunProfileId("");
-      }
-    });
+    getRunProfileForScope(scopeKey)
+      .then((runProfileId) => {
+        if (!cancelled) {
+          setSelectedRunProfileId(runProfileId ?? "");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSelectedRunProfileId("");
+        }
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [mode, initialData?.id]);
 
   useEffect(() => {
     let cancelled = false;
-    fetchChannelStatus(false).then((snapshot) => {
-      if (!cancelled) {
-        setChannelSnapshot(snapshot);
-        setChannelStatusLoading(false);
-      }
-    }).catch(() => {
-      if (!cancelled) setChannelStatusLoading(false);
-    });
-    return () => { cancelled = true; };
+    fetchChannelStatus(false)
+      .then((snapshot) => {
+        if (!cancelled) {
+          setChannelSnapshot(snapshot);
+          setChannelStatusLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setChannelStatusLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const update = useCallback(<K extends keyof CronJobFormData>(key: K, value: CronJobFormData[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => {
-      if (prev[key]) {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      }
-      return prev;
-    });
-  }, []);
+  const update = useCallback(
+    <K extends keyof CronJobFormData>(key: K, value: CronJobFormData[K]) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+      setErrors((prev) => {
+        if (prev[key]) {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        }
+        return prev;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (form.deliveryMode !== "announce" || !form.deliveryChannel) {
@@ -90,24 +111,28 @@ export function useCronForm({ mode, initialData, onSubmit }: UseCronFormParams) 
     }
     let cancelled = false;
     setAllowlistLoading(true);
-    fetchAllowlist(form.deliveryChannel, form.deliveryAccountId || undefined).then((result) => {
-      if (!cancelled) {
-        setAllowlist(result.allowlist);
-        setRecipientLabels(result.labels);
-        setAllowlistLoading(false);
-        // Auto-select first recipient if none selected
-        if (!form.deliveryTo && result.allowlist.length > 0) {
-          update("deliveryTo", result.allowlist[0]);
+    fetchAllowlist(form.deliveryChannel, form.deliveryAccountId || undefined)
+      .then((result) => {
+        if (!cancelled) {
+          setAllowlist(result.allowlist);
+          setRecipientLabels(result.labels);
+          setAllowlistLoading(false);
+          // Auto-select first recipient if none selected
+          if (!form.deliveryTo && result.allowlist.length > 0) {
+            update("deliveryTo", result.allowlist[0]);
+          }
         }
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        setAllowlist([]);
-        setRecipientLabels({});
-        setAllowlistLoading(false);
-      }
-    });
-    return () => { cancelled = true; };
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAllowlist([]);
+          setRecipientLabels({});
+          setAllowlistLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [form.deliveryChannel, form.deliveryAccountId, form.deliveryMode]);
 
   const handleSubmit = useCallback(async () => {
@@ -119,9 +144,10 @@ export function useCronForm({ mode, initialData, onSubmit }: UseCronFormParams) 
     setSaving(true);
     setSubmitError(null);
     try {
-      const params = mode === "edit" && initialData
-        ? formDataToPatch(initialData, form)
-        : formDataToCreateParams(form);
+      const params =
+        mode === "edit" && initialData
+          ? formDataToPatch(initialData, form)
+          : formDataToCreateParams(form);
       (params as Record<string, unknown>)[SUBMIT_RUN_PROFILE_ID_KEY] =
         selectedRunProfileId && runProfiles.find((p) => p.id === selectedRunProfileId)
           ? selectedRunProfileId
@@ -170,7 +196,9 @@ export function useCronForm({ mode, initialData, onSubmit }: UseCronFormParams) 
   // by matching the first connected account for that channel.
   useEffect(() => {
     if (form.deliveryChannel && !form.deliveryAccountId && connectedChannelOptions.length > 0) {
-      const match = connectedChannelOptions.find((o) => o.value.startsWith(`${form.deliveryChannel}:`));
+      const match = connectedChannelOptions.find((o) =>
+        o.value.startsWith(`${form.deliveryChannel}:`),
+      );
       if (match) {
         const colonIdx = match.value.indexOf(":");
         update("deliveryAccountId", match.value.slice(colonIdx + 1));
@@ -180,11 +208,13 @@ export function useCronForm({ mode, initialData, onSubmit }: UseCronFormParams) 
 
   /** Channel options with fallback for disconnected current selection (edit mode). */
   const channelOptions = useMemo(() => {
-    const compositeValue = form.deliveryChannel && form.deliveryAccountId
-      ? `${form.deliveryChannel}:${form.deliveryAccountId}`
-      : form.deliveryChannel;
+    const compositeValue =
+      form.deliveryChannel && form.deliveryAccountId
+        ? `${form.deliveryChannel}:${form.deliveryAccountId}`
+        : form.deliveryChannel;
     if (!compositeValue) return connectedChannelOptions;
-    if (connectedChannelOptions.some((o) => o.value === compositeValue)) return connectedChannelOptions;
+    if (connectedChannelOptions.some((o) => o.value === compositeValue))
+      return connectedChannelOptions;
     return [
       { value: compositeValue, label: `${compositeValue} (${t("crons.channelDisconnected")})` },
       ...connectedChannelOptions,
@@ -199,22 +229,28 @@ export function useCronForm({ mode, initialData, onSubmit }: UseCronFormParams) 
     });
     if (form.deliveryTo && !opts.some((o) => o.value === form.deliveryTo)) {
       const lbl = recipientLabels[form.deliveryTo];
-      opts.unshift({ value: form.deliveryTo, label: lbl ? `${lbl} (${form.deliveryTo})` : form.deliveryTo });
+      opts.unshift({
+        value: form.deliveryTo,
+        label: lbl ? `${lbl} (${form.deliveryTo})` : form.deliveryTo,
+      });
     }
     return opts;
   }, [allowlist, form.deliveryTo, recipientLabels]);
 
-  const handleChannelChange = useCallback((v: string) => {
-    const colonIdx = v.indexOf(":");
-    if (colonIdx === -1) {
-      update("deliveryChannel", v);
-      update("deliveryAccountId", "");
-    } else {
-      update("deliveryChannel", v.slice(0, colonIdx));
-      update("deliveryAccountId", v.slice(colonIdx + 1));
-    }
-    update("deliveryTo", "");
-  }, [update]);
+  const handleChannelChange = useCallback(
+    (v: string) => {
+      const colonIdx = v.indexOf(":");
+      if (colonIdx === -1) {
+        update("deliveryChannel", v);
+        update("deliveryAccountId", "");
+      } else {
+        update("deliveryChannel", v.slice(0, colonIdx));
+        update("deliveryAccountId", v.slice(colonIdx + 1));
+      }
+      update("deliveryTo", "");
+    },
+    [update],
+  );
 
   const handleRunProfileChange = useCallback((profileId: string) => {
     setSelectedRunProfileId(profileId);

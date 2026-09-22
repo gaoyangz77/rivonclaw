@@ -229,9 +229,7 @@ export function KeyUsagePage() {
         </TkAlert>
       )}
 
-      {loading && (
-        <TkLoadingState label={t("keyUsage.loadingData")} />
-      )}
+      {loading && <TkLoadingState label={t("keyUsage.loadingData")} />}
 
       {/* Today's Usage Table */}
       {!loading && !error && hasTodayData && (

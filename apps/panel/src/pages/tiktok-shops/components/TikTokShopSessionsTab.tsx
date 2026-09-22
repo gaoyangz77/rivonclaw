@@ -11,7 +11,9 @@ interface TikTokShopSessionsTabProps {
 export function TikTokShopSessionsTab({ shop }: TikTokShopSessionsTabProps) {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
-  const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+  const entitlement =
+    entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ??
+    null;
 
   if (!entitlement) {
     return (

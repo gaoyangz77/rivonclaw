@@ -26,7 +26,10 @@ describe("createApolloClient", () => {
           id
           variants {
             variantKey
-            stages { id delayMinutes }
+            stages {
+              id
+              delayMinutes
+            }
           }
         }
       }
@@ -41,20 +44,24 @@ describe("createApolloClient", () => {
             {
               __typename: "CsUnpaidOrderConfigVariantView",
               variantKey: "A",
-              stages: [{
-                __typename: "UnpaidOrderReachoutStage",
-                id: "shared-stage-id",
-                delayMinutes: 3,
-              }],
+              stages: [
+                {
+                  __typename: "UnpaidOrderReachoutStage",
+                  id: "shared-stage-id",
+                  delayMinutes: 3,
+                },
+              ],
             },
             {
               __typename: "CsUnpaidOrderConfigVariantView",
               variantKey: "B",
-              stages: [{
-                __typename: "UnpaidOrderReachoutStage",
-                id: "shared-stage-id",
-                delayMinutes: 720,
-              }],
+              stages: [
+                {
+                  __typename: "UnpaidOrderReachoutStage",
+                  id: "shared-stage-id",
+                  delayMinutes: 720,
+                },
+              ],
             },
           ],
         },
@@ -65,17 +72,14 @@ describe("createApolloClient", () => {
       experiment: { variants: Array<{ stages: Array<{ delayMinutes: number }> }> };
     }>({ query });
     expect(result?.experiment.variants.map((variant) => variant.stages[0]?.delayMinutes)).toEqual([
-      3,
-      720,
+      3, 720,
     ]);
   });
 });
 
 describe("getClient", () => {
   it("throws before createApolloClient is called", () => {
-    expect(() => mod.getClient()).toThrow(
-      "Apollo client not initialised",
-    );
+    expect(() => mod.getClient()).toThrow("Apollo client not initialised");
   });
 
   it("returns the client after createApolloClient is called", () => {

@@ -22,10 +22,7 @@ const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
   ? PATCHED_VENDOR_ROOT
   : resolve(__dirname, "../../../../vendor/openclaw");
 
-const VENDOR_FILE = resolve(
-  VENDOR_ROOT,
-  "src/gateway/server-methods/web.ts",
-);
+const VENDOR_FILE = resolve(VENDOR_ROOT, "src/gateway/server-methods/web.ts");
 
 describe("vendor patch 0004: skip stopChannel for new-account QR login", () => {
   const source = readFileSync(VENDOR_FILE, "utf-8");

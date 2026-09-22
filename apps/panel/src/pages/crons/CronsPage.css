@@ -127,7 +127,6 @@
 }
 
 @keyframes cron-pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -287,7 +286,7 @@
   align-items: flex-end;
 }
 
-.crons-builder-row>div {
+.crons-builder-row > div {
   flex: 1 1 140px;
   min-width: 140px;
 }
@@ -385,7 +384,7 @@
   gap: 12px;
 }
 
-.crons-form-row>* {
+.crons-form-row > * {
   flex: 1;
 }
 

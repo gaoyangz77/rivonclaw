@@ -2,7 +2,10 @@ import type { AuthSessionManager } from "../auth/session.js";
 import { getApiBaseUrl } from "@rivonclaw/core";
 
 export class CloudRestError extends Error {
-  constructor(public readonly status: number, public readonly body: unknown) {
+  constructor(
+    public readonly status: number,
+    public readonly body: unknown,
+  ) {
     super(`Cloud REST error: ${status}`);
   }
 }
@@ -54,7 +57,11 @@ export class CloudClient {
 
     if (!res.ok) {
       let body: unknown;
-      try { body = await res.json(); } catch { body = null; }
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
       throw new CloudRestError(res.status, body);
     }
     return res;

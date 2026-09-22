@@ -30,10 +30,7 @@ function stableAxisNumber(value: number): number {
  * 0–100 range for percentages and include enough padding to avoid exaggerating
  * a single noisy point.
  */
-export function buildSpsYAxisDomain(
-  values: number[],
-  unit?: string | null,
-): [number, number] {
+export function buildSpsYAxisDomain(values: number[], unit?: string | null): [number, number] {
   const finiteValues = values.filter(Number.isFinite);
   if (!finiteValues.length) return [0, 1];
 
@@ -41,12 +38,11 @@ export function buildSpsYAxisDomain(
   const maximum = Math.max(...finiteValues);
   const percent = isPercentUnit(unit);
   const observedSpan = maximum - minimum;
-  const flatSeriesPadding = percent
-    ? 0.5
-    : Math.max(Math.abs(maximum) * 0.05, 0.5);
-  const padding = observedSpan > 0
-    ? Math.max(observedSpan * 0.2, percent ? 0.05 : observedSpan * 0.05)
-    : flatSeriesPadding;
+  const flatSeriesPadding = percent ? 0.5 : Math.max(Math.abs(maximum) * 0.05, 0.5);
+  const padding =
+    observedSpan > 0
+      ? Math.max(observedSpan * 0.2, percent ? 0.05 : observedSpan * 0.05)
+      : flatSeriesPadding;
 
   const rawMinimum = percent ? Math.max(0, minimum - padding) : minimum - padding;
   const rawMaximum = percent ? Math.min(100, maximum + padding) : maximum + padding;
@@ -55,12 +51,8 @@ export function buildSpsYAxisDomain(
   const roundedMinimum = Math.floor(rawMinimum / roundingStep) * roundingStep;
   const roundedMaximum = Math.ceil(rawMaximum / roundingStep) * roundingStep;
 
-  const domainMinimum = stableAxisNumber(
-    percent ? Math.max(0, roundedMinimum) : roundedMinimum,
-  );
-  const domainMaximum = stableAxisNumber(
-    percent ? Math.min(100, roundedMaximum) : roundedMaximum,
-  );
+  const domainMinimum = stableAxisNumber(percent ? Math.max(0, roundedMinimum) : roundedMinimum);
+  const domainMaximum = stableAxisNumber(percent ? Math.min(100, roundedMaximum) : roundedMaximum);
   if (domainMaximum > domainMinimum) return [domainMinimum, domainMaximum];
 
   const fallbackPadding = percent ? 0.5 : 1;
@@ -78,10 +70,7 @@ export function displayShopName(
 
 export function buildSpsMarketChart(
   shops: Array<
-    Pick<
-      GQL.SpsAnalyticsShopView,
-      "availability" | "shopAlias" | "shopId" | "shopName" | "trend"
-    >
+    Pick<GQL.SpsAnalyticsShopView, "availability" | "shopAlias" | "shopId" | "shopName" | "trend">
   >,
 ): SpsMarketChart {
   const availableShops = shops.filter(
@@ -139,8 +128,7 @@ export function formatSpsValue(
       maximumFractionDigits: 1,
     }).format(value);
   }
-  return [
-    value.toLocaleString(locale, { maximumFractionDigits: 2 }),
-    unit?.trim(),
-  ].filter(Boolean).join(" ");
+  return [value.toLocaleString(locale, { maximumFractionDigits: 2 }), unit?.trim()]
+    .filter(Boolean)
+    .join(" ");
 }

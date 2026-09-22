@@ -85,8 +85,7 @@ export function initTelemetry(
   //
   // `CS_TELEMETRY_ENDPOINT` env var still overrides the default endpoint
   // when you need to point at a local mock or a staging variant.
-  const csTelemetryEndpoint =
-    process.env.CS_TELEMETRY_ENDPOINT || getCsTelemetryUrl(locale);
+  const csTelemetryEndpoint = process.env.CS_TELEMETRY_ENDPOINT || getCsTelemetryUrl(locale);
 
   let csClient: RemoteTelemetryClient | null = null;
   try {
@@ -115,11 +114,14 @@ export function initTelemetry(
 
   // Track heartbeat every 5 minutes
   const heartbeatTimer = client
-    ? setInterval(() => {
-        client?.track("app.heartbeat", {
-          uptimeMs: client.getUptime(),
-        });
-      }, 5 * 60 * 1000)
+    ? setInterval(
+        () => {
+          client?.track("app.heartbeat", {
+            uptimeMs: client.getUptime(),
+          });
+        },
+        5 * 60 * 1000,
+      )
     : null;
 
   return { client, csClient, heartbeatTimer };

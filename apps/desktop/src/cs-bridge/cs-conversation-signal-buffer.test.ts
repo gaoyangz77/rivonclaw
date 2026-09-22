@@ -10,10 +10,7 @@ import {
   resolveCsReplayStartSpacingMs,
 } from "./cs-conversation-signal-buffer.js";
 
-function makeDispatch(
-  conversationId: string,
-  messageId: string,
-): CsAgentDispatchRequest {
+function makeDispatch(conversationId: string, messageId: string): CsAgentDispatchRequest {
   return {
     type: "UNREAD_DETECTED",
     dispatchReason: "PENDING_BUYER_MESSAGE",

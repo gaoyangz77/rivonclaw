@@ -36,11 +36,7 @@ export function RuntimeStatusProvider({ children }: { children: ReactNode }) {
     return () => disconnectRuntimeStatusStore();
   }, []);
 
-  return (
-    <RuntimeStatusContext value={runtimeStatusStore}>
-      {children}
-    </RuntimeStatusContext>
-  );
+  return <RuntimeStatusContext value={runtimeStatusStore}>{children}</RuntimeStatusContext>;
 }
 
 /**

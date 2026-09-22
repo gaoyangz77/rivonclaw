@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { trackEvent, fetchOpenClawStateDir, updateOpenClawStateDir, resetOpenClawStateDir, openFileDialog } from "../../../api/index.js";
+import {
+  trackEvent,
+  fetchOpenClawStateDir,
+  updateOpenClawStateDir,
+  resetOpenClawStateDir,
+  openFileDialog,
+} from "../../../api/index.js";
 import type { OpenClawStateDirInfo } from "../../../api/index.js";
 import { useToast } from "../../../components/Toast.js";
 
@@ -20,7 +26,9 @@ export function useOpenClawStateDir() {
     }
   }
 
-  useEffect(() => { loadStateDir(); }, []);
+  useEffect(() => {
+    loadStateDir();
+  }, []);
 
   async function handleChangeDataDir() {
     const selected = await openFileDialog();
@@ -28,7 +36,7 @@ export function useOpenClawStateDir() {
     try {
       setSaving(true);
       await updateOpenClawStateDir(selected);
-      setDataDirInfo((prev) => prev ? { ...prev, override: selected } : prev);
+      setDataDirInfo((prev) => (prev ? { ...prev, override: selected } : prev));
       setDataDirRestartNeeded(true);
     } catch (err) {
       showToast(t("settings.dataDir.failedToSave") + String(err), "error");
@@ -42,7 +50,7 @@ export function useOpenClawStateDir() {
       setSaving(true);
       await resetOpenClawStateDir();
       trackEvent("settings.state_dir_reset");
-      setDataDirInfo((prev) => prev ? { ...prev, override: null } : prev);
+      setDataDirInfo((prev) => (prev ? { ...prev, override: null } : prev));
       setDataDirRestartNeeded(true);
     } catch (err) {
       showToast(t("settings.dataDir.failedToReset") + String(err), "error");

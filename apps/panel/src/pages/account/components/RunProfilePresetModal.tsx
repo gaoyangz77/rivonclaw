@@ -29,16 +29,10 @@ export function RunProfilePresetModal({
   const { t } = useTranslation();
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("surfaces.createFromPreset")}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={t("surfaces.createFromPreset")}>
       <div className="modal-form-col">
         <div>
-          <label className="form-label-block">
-            {t("surfaces.presetLabel")}
-          </label>
+          <label className="form-label-block">{t("surfaces.presetLabel")}</label>
           <Select
             value={selectedPresetId}
             onChange={onSelectedPresetIdChange}

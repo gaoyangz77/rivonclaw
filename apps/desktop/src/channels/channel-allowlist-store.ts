@@ -31,14 +31,22 @@ export async function readAllowFromList(channelId: string, accountId?: string): 
   }
 }
 
-export async function writeAllowFromList(channelId: string, allowFrom: string[], accountId?: string): Promise<void> {
+export async function writeAllowFromList(
+  channelId: string,
+  allowFrom: string[],
+  accountId?: string,
+): Promise<void> {
   const filePath = resolveAllowFromPathForChannel(channelId, accountId);
   const data: AllowFromStore = { version: 1, allowFrom };
   await fs.mkdir(dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(data, null, 2) + "\n", "utf-8");
 }
 
-export async function addAllowFromEntry(channelId: string, accountId: string | undefined, entry: string): Promise<boolean> {
+export async function addAllowFromEntry(
+  channelId: string,
+  accountId: string | undefined,
+  entry: string,
+): Promise<boolean> {
   const trimmed = entry.trim();
   if (!trimmed) return false;
 
@@ -49,7 +57,11 @@ export async function addAllowFromEntry(channelId: string, accountId: string | u
   return true;
 }
 
-export function addAllowFromEntrySync(channelId: string, accountId: string | undefined, entry: string): boolean {
+export function addAllowFromEntrySync(
+  channelId: string,
+  accountId: string | undefined,
+  entry: string,
+): boolean {
   const trimmed = entry.trim();
   if (!trimmed) return false;
 
@@ -67,15 +79,23 @@ export function addAllowFromEntrySync(channelId: string, accountId: string | und
 
   if (allowlist.includes(trimmed)) return false;
   mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, JSON.stringify({ version: 1, allowFrom: [...allowlist, trimmed] }, null, 2) + "\n", "utf-8");
+  writeFileSync(
+    filePath,
+    JSON.stringify({ version: 1, allowFrom: [...allowlist, trimmed] }, null, 2) + "\n",
+    "utf-8",
+  );
   return true;
 }
 
-export async function mergeAccountAllowFromList(channelId: string, fromAccountId: string, toAccountId: string): Promise<boolean> {
+export async function mergeAccountAllowFromList(
+  channelId: string,
+  fromAccountId: string,
+  toAccountId: string,
+): Promise<boolean> {
   const from = await readAllowFromList(channelId, fromAccountId);
   if (from.length === 0) return false;
 
-  const merged = [...new Set([...await readAllowFromList(channelId, toAccountId), ...from])];
+  const merged = [...new Set([...(await readAllowFromList(channelId, toAccountId)), ...from])];
   await writeAllowFromList(channelId, merged, toAccountId);
   return true;
 }

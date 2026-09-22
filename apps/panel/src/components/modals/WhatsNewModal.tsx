@@ -50,10 +50,7 @@ export function WhatsNewModal({
         </>
       )}
       <div className="mt-lg text-right">
-        <button
-          className="btn btn-primary"
-          onClick={handleClose}
-        >
+        <button className="btn btn-primary" onClick={handleClose}>
           {isZh ? "知道了" : "Got it"}
         </button>
       </div>

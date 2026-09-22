@@ -18,7 +18,10 @@ export interface AffiliateAnalyticsShop {
  * Keeps a shop selection valid against the currently authorized shops. Returns
  * the same array reference when nothing changed so callers can skip a setState.
  */
-export function reconcileShopSelection(current: string[], shops: readonly AffiliateAnalyticsShop[]): string[] {
+export function reconcileShopSelection(
+  current: string[],
+  shops: readonly AffiliateAnalyticsShop[],
+): string[] {
   const allowed = new Set(shops.map((shop) => shop.id));
   const kept = current.filter((id) => allowed.has(id));
   if (kept.length === current.length) return current;

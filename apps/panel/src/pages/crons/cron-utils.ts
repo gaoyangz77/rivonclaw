@@ -224,7 +224,8 @@ export function cronJobToFormData(job: CronJob): CronJobFormData {
     form.message = job.payload.message;
     form.model = job.payload.model ?? "";
     form.thinking = job.payload.thinking ?? "";
-    form.timeoutSeconds = job.payload.timeoutSeconds != null ? String(job.payload.timeoutSeconds) : "";
+    form.timeoutSeconds =
+      job.payload.timeoutSeconds != null ? String(job.payload.timeoutSeconds) : "";
   } else if (job.payload?.kind === "systemEvent") {
     form.payloadKind = "systemEvent";
     form.text = job.payload.text;
@@ -265,9 +266,11 @@ export function formDataToCreateParams(data: CronJobFormData): Record<string, un
 export function formDataToPatch(original: CronJob, data: CronJobFormData): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   if (data.name.trim() !== original.name) patch.name = data.name.trim();
-  if ((data.description.trim() || "") !== (original.description ?? "")) patch.description = data.description.trim();
+  if ((data.description.trim() || "") !== (original.description ?? ""))
+    patch.description = data.description.trim();
   if (data.enabled !== original.enabled) patch.enabled = data.enabled;
-  if ((data.deleteAfterRun ?? false) !== (original.deleteAfterRun ?? false)) patch.deleteAfterRun = data.deleteAfterRun;
+  if ((data.deleteAfterRun ?? false) !== (original.deleteAfterRun ?? false))
+    patch.deleteAfterRun = data.deleteAfterRun;
   if (data.wakeMode !== original.wakeMode) patch.wakeMode = data.wakeMode;
 
   const sessionTarget: CronSessionTarget = data.payloadKind === "systemEvent" ? "main" : "isolated";
@@ -293,7 +296,8 @@ function buildSchedule(data: CronJobFormData): CronSchedule {
     return s;
   }
   if (data.scheduleKind === "every") {
-    const multiplier = data.everyUnit === "hours" ? 3600000 : data.everyUnit === "minutes" ? 60000 : 1000;
+    const multiplier =
+      data.everyUnit === "hours" ? 3600000 : data.everyUnit === "minutes" ? 60000 : 1000;
     return { kind: "every", everyMs: data.everyValue * multiplier };
   }
   return { kind: "at", at: datetimeLocalToIso(data.atDatetime) };
@@ -303,7 +307,10 @@ function buildPayload(data: CronJobFormData): CronPayload {
   if (data.payloadKind === "systemEvent") {
     return { kind: "systemEvent", text: data.text.trim() };
   }
-  const p: CronPayload & { kind: "agentTurn" } = { kind: "agentTurn", message: data.message.trim() };
+  const p: CronPayload & { kind: "agentTurn" } = {
+    kind: "agentTurn",
+    message: data.message.trim(),
+  };
   if (data.model.trim()) p.model = data.model.trim();
   if (data.thinking.trim()) p.thinking = data.thinking.trim();
   if (data.timeoutSeconds.trim()) p.timeoutSeconds = Number(data.timeoutSeconds);
@@ -429,7 +436,13 @@ export function validateCronExpr(expr: string): string | null {
   if (!trimmed) return "scheduleRequired";
   const parts = trimmed.split(/\s+/);
   if (parts.length !== 5) return "cronInvalidFormat";
-  const ranges: [number, number][] = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 7]];
+  const ranges: [number, number][] = [
+    [0, 59],
+    [0, 23],
+    [1, 31],
+    [1, 12],
+    [0, 7],
+  ];
   for (let i = 0; i < 5; i++) {
     if (!isValidCronField(parts[i], ranges[i][0], ranges[i][1])) return "cronInvalidFormat";
   }
@@ -447,11 +460,13 @@ export function validateCronForm(data: CronJobFormData): FormErrors {
       if (cronErr) errors.cronExpr = cronErr;
     }
   }
-  if (data.scheduleKind === "every" && (!data.everyValue || data.everyValue <= 0)) errors.everyValue = "scheduleRequired";
+  if (data.scheduleKind === "every" && (!data.everyValue || data.everyValue <= 0))
+    errors.everyValue = "scheduleRequired";
   if (data.scheduleKind === "at" && !data.atDatetime) errors.atDatetime = "scheduleRequired";
   if (data.payloadKind === "agentTurn" && !data.message.trim()) errors.message = "payloadRequired";
   if (data.payloadKind === "systemEvent" && !data.text.trim()) errors.text = "payloadRequired";
-  if (data.deliveryMode === "webhook" && !data.deliveryTo.trim()) errors.deliveryTo = "webhookUrlRequired";
+  if (data.deliveryMode === "webhook" && !data.deliveryTo.trim())
+    errors.deliveryTo = "webhookUrlRequired";
   return errors;
 }
 

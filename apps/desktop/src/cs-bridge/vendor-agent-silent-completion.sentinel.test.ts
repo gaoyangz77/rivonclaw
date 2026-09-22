@@ -23,9 +23,7 @@ describe("vendor patch 0030: agent RPC silent completion", () => {
     expect(patch).toContain(
       "+              allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,",
     );
-    expect(patch).toContain(
-      "+      params.opts.allowEmptyAssistantReplyAsSilent === true ||",
-    );
+    expect(patch).toContain("+      params.opts.allowEmptyAssistantReplyAsSilent === true ||");
     expect(patch).toContain("+      isSubagentLane ||");
     expect(patch).toContain("+      isSubagentAnnounceHandoff,");
   });

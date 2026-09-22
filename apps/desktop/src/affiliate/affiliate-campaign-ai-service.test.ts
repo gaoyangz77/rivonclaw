@@ -15,10 +15,7 @@ describe("affiliate Campaign Desktop AI service", () => {
       productShortName: "faith-inspired pendant",
       source: "AI_GENERATED" as const,
     };
-    const graphqlFetch = vi.fn(async (
-      query: string,
-      _variables?: Record<string, unknown>,
-    ) => {
+    const graphqlFetch = vi.fn(async (query: string, _variables?: Record<string, unknown>) => {
       if (query.includes("AffiliateCampaignMessageProductPreview")) {
         return {
           affiliateCampaignProductPreview: {

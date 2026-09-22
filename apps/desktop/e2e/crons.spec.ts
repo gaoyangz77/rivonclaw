@@ -45,7 +45,9 @@ async function navigateToCrons(window: import("@playwright/test").Page) {
   const cronsBtn = getNavigationButton(window, "Cron Jobs");
   await cronsBtn.click();
   await expect(cronsBtn).toHaveAttribute("aria-current", "page");
-  await expect(window.locator("[data-tutorial-id='crons-status']")).toContainText("Connected", { timeout: 30_000 });
+  await expect(window.locator("[data-tutorial-id='crons-status']")).toContainText("Connected", {
+    timeout: 30_000,
+  });
 }
 
 async function readCronJobCount(window: import("@playwright/test").Page): Promise<number> {
@@ -1039,7 +1041,9 @@ test.describe("Crons Page", () => {
     await expect(statusBar).toContainText("Connected");
 
     // Newer vendors can provision managed system jobs during startup.
-    await expect(window.locator(".crons-table, .tk-v1-empty-state")).toBeVisible({ timeout: 10_000 });
+    await expect(window.locator(".crons-table, .tk-v1-empty-state")).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Toolbar with search, filters, and Add Job button
     const toolbar = window.locator(".crons-toolbar");

@@ -91,14 +91,16 @@ describe("agent tooling readiness", () => {
         return ready ? { ready: true, toolCount: 1 } : { ready: false, toolCount: 0 };
       }
       return {
-        groups: [{
-          tools: ready
-            ? [
-                { id: "read", source: "core" },
-                { id: "ecom_find_orders", source: "plugin", pluginId: CLOUD_TOOLS_PLUGIN_ID },
-              ]
-            : [{ id: "read", source: "core" }],
-        }],
+        groups: [
+          {
+            tools: ready
+              ? [
+                  { id: "read", source: "core" },
+                  { id: "ecom_find_orders", source: "plugin", pluginId: CLOUD_TOOLS_PLUGIN_ID },
+                ]
+              : [{ id: "read", source: "core" }],
+          },
+        ],
       };
     });
     const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };

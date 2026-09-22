@@ -33,7 +33,9 @@ for (const entry of readdirSync(extensionsDir, { withFileTypes: true })) {
 }
 
 if (missing.length > 0) {
-  console.error("ERROR: The following extensions are missing from apps/desktop/package.json devDependencies:");
+  console.error(
+    "ERROR: The following extensions are missing from apps/desktop/package.json devDependencies:",
+  );
   for (const name of missing) {
     console.error(`  - ${name}`);
   }

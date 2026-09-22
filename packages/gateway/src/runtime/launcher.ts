@@ -33,11 +33,13 @@ export function isGatewayReadinessProbeClose(line: string): boolean {
   const text = stripVTControlCharacters(line);
   // Only our anonymous loopback probe closes without sending a handshake.
   // Browser authentication failures and other protocol errors must stay visible.
-  return text.includes("[ws] closed before connect ") &&
+  return (
+    text.includes("[ws] closed before connect ") &&
     /\bremote=(?:127\.0\.0\.1|::1)\s/.test(text) &&
     /\borigin=n\/a\s/.test(text) &&
     /\bua=n\/a\s/.test(text) &&
-    /\bcode=1005 reason=n\/a phase=ws_upgrade_started\s*$/.test(text);
+    /\bcode=1005 reason=n\/a phase=ws_upgrade_started\s*$/.test(text)
+  );
 }
 
 export function createLineReader(onLine: (line: string) => void): {
@@ -495,10 +497,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
     const stderrLines = createLineReader((line) => {
       hasOutput = true;
       if (this.performanceCapture.consumeStderrLine(line)) return;
-      if (
-        line.startsWith("[startup-timer]") ||
-        isGatewayReadinessProbeClose(line)
-      ) {
+      if (line.startsWith("[startup-timer]") || isGatewayReadinessProbeClose(line)) {
         log.debug(`[gateway stderr] ${line}`);
       } else {
         log.warn(`[gateway stderr] ${line}`);

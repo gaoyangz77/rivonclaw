@@ -1,8 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import {
-  startLoopbackOAuthCallback,
-  type LoopbackOAuthCallback,
-} from "@rivonclaw/gateway";
+import { startLoopbackOAuthCallback, type LoopbackOAuthCallback } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import type { MarketingAttribution } from "../attribution/marketing-attribution.js";
 import {
@@ -108,10 +105,7 @@ export class DesktopGoogleAuthCoordinator {
     this.cancelActive("GOOGLE_AUTH_CANCELLED");
     const config = await this.options.authSession.getDesktopGoogleAuthConfig();
     if (!config.enabled || !config.clientId) {
-      throw new GraphqlRequestError(
-        "Google sign-in is unavailable",
-        "GOOGLE_AUTH_UNAVAILABLE",
-      );
+      throw new GraphqlRequestError("Google sign-in is unavailable", "GOOGLE_AUTH_UNAVAILABLE");
     }
 
     const state = base64Url(randomBytes(32));
@@ -153,11 +147,7 @@ export class DesktopGoogleAuthCoordinator {
       prompt: "select_account",
     }).toString();
 
-    void this.completeBrowserFlow(
-      flow,
-      verifier,
-      authorizationUrl.toString(),
-    );
+    void this.completeBrowserFlow(flow, verifier, authorizationUrl.toString());
     return publicFlow(flow);
   }
 
@@ -165,10 +155,10 @@ export class DesktopGoogleAuthCoordinator {
     const flow = this.activeFlow;
     if (!flow || flow.flowId !== flowId) return null;
     if (
-      flow.status !== "completed"
-      && flow.status !== "failed"
-      && flow.status !== "cancelled"
-      && this.now() - flow.createdAt >= FLOW_TTL_MS
+      flow.status !== "completed" &&
+      flow.status !== "failed" &&
+      flow.status !== "cancelled" &&
+      this.now() - flow.createdAt >= FLOW_TTL_MS
     ) {
       flow.status = "expired";
       flow.errorCode = "GOOGLE_AUTH_TIMEOUT";
@@ -180,12 +170,7 @@ export class DesktopGoogleAuthCoordinator {
 
   async link(input: LinkDesktopGoogleAuthInput): Promise<DesktopGoogleAuthFlowView> {
     const flow = this.activeFlow;
-    if (
-      !flow
-      || flow.flowId !== input.flowId
-      || flow.status !== "link_required"
-      || !flow.idToken
-    ) {
+    if (!flow || flow.flowId !== input.flowId || flow.status !== "link_required" || !flow.idToken) {
       throw new GraphqlRequestError("Google sign-in flow not found", "GOOGLE_AUTH_FLOW_NOT_FOUND");
     }
     if (this.now() - flow.createdAt >= FLOW_TTL_MS) {
@@ -266,10 +251,7 @@ export class DesktopGoogleAuthCoordinator {
         this.clearSensitive(flow);
         await this.notifySuccess();
       } catch (error) {
-        if (
-          error instanceof GraphqlRequestError
-          && error.code === "GOOGLE_ACCOUNT_LINK_REQUIRED"
-        ) {
+        if (error instanceof GraphqlRequestError && error.code === "GOOGLE_ACCOUNT_LINK_REQUIRED") {
           flow.status = "link_required";
           flow.errorCode = error.code;
           return;
@@ -285,9 +267,7 @@ export class DesktopGoogleAuthCoordinator {
         category: flow.errorCode,
         stage,
         errorType: error instanceof Error ? error.name : "UnknownError",
-        ...(error instanceof GraphqlRequestError && error.code
-          ? { graphqlCode: error.code }
-          : {}),
+        ...(error instanceof GraphqlRequestError && error.code ? { graphqlCode: error.code } : {}),
       });
     } finally {
       flow.callback?.close();

@@ -5,10 +5,7 @@ import {
   UNENROLL_MODULE_MUTATION,
   SET_DEFAULT_RUN_PROFILE_MUTATION,
 } from "../../api/auth-queries.js";
-import {
-  SHOPS_QUERY,
-  PLATFORM_APPS_QUERY,
-} from "../../api/shops-queries.js";
+import { SHOPS_QUERY, PLATFORM_APPS_QUERY } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
 export const UserModel = UserModelBase.actions((self) => {

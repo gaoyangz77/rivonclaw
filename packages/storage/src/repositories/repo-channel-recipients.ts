@@ -35,7 +35,9 @@ export class ChannelRecipientsRepository {
   /** Get all recipients for a channel, returned as a map of recipientId → label. */
   getLabels(channelId: string): Record<string, string> {
     const rows = this.db
-      .prepare("SELECT recipient_id, label FROM channel_recipients WHERE channel_id = ? AND label != ''")
+      .prepare(
+        "SELECT recipient_id, label FROM channel_recipients WHERE channel_id = ? AND label != ''",
+      )
       .all(channelId) as Array<{ recipient_id: string; label: string }>;
     const labels: Record<string, string> = {};
     for (const row of rows) {
@@ -89,7 +91,9 @@ export class ChannelRecipientsRepository {
   setOwner(channelId: string, recipientId: string, isOwner: boolean): void {
     const now = Date.now();
     this.db
-      .prepare("UPDATE channel_recipients SET is_owner = ?, updated_at = ? WHERE channel_id = ? AND recipient_id = ?")
+      .prepare(
+        "UPDATE channel_recipients SET is_owner = ?, updated_at = ? WHERE channel_id = ? AND recipient_id = ?",
+      )
       .run(isOwner ? 1 : 0, now, channelId, recipientId);
   }
 

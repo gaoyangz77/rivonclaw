@@ -8,5 +8,5 @@ export const OUR_PLUGIN_IDS: ReadonlySet<string> = new Set([
   "rivonclaw-event-bridge",
   "rivonclaw-local-tools",
   "rivonclaw-mobile-chat-channel",
-  "rivonclaw-search-browser-fallback"
+  "rivonclaw-search-browser-fallback",
 ]);

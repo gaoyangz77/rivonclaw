@@ -41,7 +41,8 @@ function collectConstBlock(name) {
 
 function collectRouteRows(block, kind) {
   const rows = [];
-  const lineRe = /^\s*"([^"]+)":\s*\{\s*method:\s*"([^"]+)"\s*,\s*path:\s*([^,]+),.*?desc:\s*"((?:\\"|[^"])*)"/gm;
+  const lineRe =
+    /^\s*"([^"]+)":\s*\{\s*method:\s*"([^"]+)"\s*,\s*path:\s*([^,]+),.*?desc:\s*"((?:\\"|[^"])*)"/gm;
   let match;
   while ((match = lineRe.exec(block))) {
     rows.push({

@@ -11,10 +11,7 @@ import {
   TkPrivate,
   usePrivacyMode,
 } from "../../../components/design-system/index.js";
-import {
-  affiliateEntityCardClassName,
-  type AffiliateEntityCardVariant,
-} from "./AffiliateUi.js";
+import { affiliateEntityCardClassName, type AffiliateEntityCardVariant } from "./AffiliateUi.js";
 
 type ProductDetailQuery = {
   ecommerceGetProduct: GQL.EcomProduct;
@@ -76,15 +73,14 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
   // A masked cover image must not stay clickable: the enlarge affordance would
   // otherwise open a full-size, unmasked copy of the very image being hidden.
   const canEnlargeCover = canOpenDetail && !privacyMode;
-  const shouldLoadInlineProduct = allowInlineLoad && canOpenDetail && !hasUsefulProductSummary(product);
-  const [loadInlineProduct, { data: inlineProductData, loading: inlineProductLoading }] = useLazyQuery<
-    ProductDetailQuery,
-    ProductDetailVariables
-  >(
-    ECOMMERCE_GET_PRODUCT_QUERY,
-    { fetchPolicy: "cache-first" },
-  );
-  const resolvedProduct = product ?? productSummaryFromProductDetail(inlineProductData?.ecommerceGetProduct);
+  const shouldLoadInlineProduct =
+    allowInlineLoad && canOpenDetail && !hasUsefulProductSummary(product);
+  const [loadInlineProduct, { data: inlineProductData, loading: inlineProductLoading }] =
+    useLazyQuery<ProductDetailQuery, ProductDetailVariables>(ECOMMERCE_GET_PRODUCT_QUERY, {
+      fetchPolicy: "cache-first",
+    });
+  const resolvedProduct =
+    product ?? productSummaryFromProductDetail(inlineProductData?.ecommerceGetProduct);
   const price = formatProductSummaryPrice(resolvedProduct);
   const status = resolvedProduct?.status ?? null;
 
@@ -129,15 +125,16 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
     );
   }
 
-  const detailModal = detailOpen && shopId ? (
-    <ProductDetailModal
-      shopId={shopId}
-      productId={productId}
-      fallbackProduct={resolvedProduct}
-      onClose={() => setDetailOpen(false)}
-      onPreviewImage={setPreviewImage}
-    />
-  ) : null;
+  const detailModal =
+    detailOpen && shopId ? (
+      <ProductDetailModal
+        shopId={shopId}
+        productId={productId}
+        fallbackProduct={resolvedProduct}
+        onClose={() => setDetailOpen(false)}
+        onPreviewImage={setPreviewImage}
+      />
+    ) : null;
   const imagePreview = previewImage ? (
     <ProductImagePreview imageUrl={previewImage} onClose={() => setPreviewImage(null)} />
   ) : null;
@@ -189,7 +186,10 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
             sourceUrl={resolvedProduct.coverImage}
           />
         ) : (
-          <div className="affiliate-product-thumb affiliate-product-thumb-empty" aria-hidden="true" />
+          <div
+            className="affiliate-product-thumb affiliate-product-thumb-empty"
+            aria-hidden="true"
+          />
         )}
         <div className="affiliate-product-body">
           <TkPrivate
@@ -197,15 +197,16 @@ export const ProductSummaryCard = observer(function ProductSummaryCard({
             className="affiliate-product-title"
             sensitive={Boolean(resolvedProduct?.title)}
           >
-            {resolvedProduct?.title || (
-              inlineProductLoading
+            {resolvedProduct?.title ||
+              (inlineProductLoading
                 ? t("ecommerce.productCard.loadingProduct")
-                : t("ecommerce.affiliateWorkspace.productContextConfirmed")
-            )}
+                : t("ecommerce.affiliateWorkspace.productContextConfirmed"))}
           </TkPrivate>
           <div className="affiliate-product-meta-row">
             {price ? <span className="affiliate-product-price">{price}</span> : null}
-            {status ? <span className="affiliate-product-status">{formatProductStatus(status, t)}</span> : null}
+            {status ? (
+              <span className="affiliate-product-status">{formatProductStatus(status, t)}</span>
+            ) : null}
             <ProductPlatformIdCopy productId={productId} />
           </div>
           <AppliedForSkuRow appliedForSku={appliedForSku} product={resolvedProduct} />
@@ -308,10 +309,10 @@ const ProductDetailModal = observer(function ProductDetailModal({
 }) {
   const { t } = useTranslation();
   const privacyMode = usePrivacyMode();
-  const [loadProduct, { data, loading, error }] = useLazyQuery<ProductDetailQuery, ProductDetailVariables>(
-    ECOMMERCE_GET_PRODUCT_QUERY,
-    { fetchPolicy: "cache-first" },
-  );
+  const [loadProduct, { data, loading, error }] = useLazyQuery<
+    ProductDetailQuery,
+    ProductDetailVariables
+  >(ECOMMERCE_GET_PRODUCT_QUERY, { fetchPolicy: "cache-first" });
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -324,11 +325,15 @@ const ProductDetailModal = observer(function ProductDetailModal({
 
   const product = data?.ecommerceGetProduct;
   const images = uniqueProductImages([
-    ...(product?.images?.map((image) => image.url).filter((url): url is string => Boolean(url)) ?? []),
+    ...(product?.images?.map((image) => image.url).filter((url): url is string => Boolean(url)) ??
+      []),
     fallbackProduct?.coverImage ?? null,
   ]);
-  const primaryImage = selectedImageUrl && images.includes(selectedImageUrl) ? selectedImageUrl : images[0] ?? null;
-  const price = (product ? formatFullProductPrice(product) : null) ?? formatProductSummaryPrice(fallbackProduct);
+  const primaryImage =
+    selectedImageUrl && images.includes(selectedImageUrl) ? selectedImageUrl : (images[0] ?? null);
+  const price =
+    (product ? formatFullProductPrice(product) : null) ??
+    formatProductSummaryPrice(fallbackProduct);
   const status = product?.status || fallbackProduct?.status || null;
   const description = normalizeProductDescription(product?.description);
   const shortDescription = description ? truncateProductDescription(description) : null;
@@ -351,93 +356,117 @@ const ProductDetailModal = observer(function ProductDetailModal({
       backdropClassName="product-detail-backdrop"
       ariaLabel={t("ecommerce.productCard.productDetailTitle")}
     >
-        <div className="modal-header product-detail-header">
-          <div>
-            <h2>{t("ecommerce.productCard.productDetailTitle")}</h2>
-            <ProductPlatformIdCopy productId={productId} />
-          </div>
-          <button className="modal-close-btn" type="button" onClick={closeFromButton} aria-label={t("common.close")}>
-            ×
-          </button>
+      <div className="modal-header product-detail-header">
+        <div>
+          <h2>{t("ecommerce.productCard.productDetailTitle")}</h2>
+          <ProductPlatformIdCopy productId={productId} />
         </div>
+        <button
+          className="modal-close-btn"
+          type="button"
+          onClick={closeFromButton}
+          aria-label={t("common.close")}
+        >
+          ×
+        </button>
+      </div>
 
-        <div className="product-detail-body">
-          {loading && !product ? (
-            <div className="affiliate-proposal-empty">{t("ecommerce.productCard.loadingProduct")}</div>
-          ) : error ? (
-            <div className="affiliate-proposal-empty">{t("ecommerce.productCard.productUnavailable")}</div>
-          ) : (
-            <div className="product-detail-layout">
-              <div className="product-detail-media">
-                {primaryImage && !privacyMode ? (
-                  <button
-                    type="button"
-                    className="product-detail-primary-image"
-                    onClick={() => onPreviewImage(primaryImage)}
-                  >
-                    <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={primaryImage} />
-                  </button>
-                ) : primaryImage ? (
-                  <div className="product-detail-primary-image">
-                    <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={primaryImage} />
+      <div className="product-detail-body">
+        {loading && !product ? (
+          <div className="affiliate-proposal-empty">
+            {t("ecommerce.productCard.loadingProduct")}
+          </div>
+        ) : error ? (
+          <div className="affiliate-proposal-empty">
+            {t("ecommerce.productCard.productUnavailable")}
+          </div>
+        ) : (
+          <div className="product-detail-layout">
+            <div className="product-detail-media">
+              {primaryImage && !privacyMode ? (
+                <button
+                  type="button"
+                  className="product-detail-primary-image"
+                  onClick={() => onPreviewImage(primaryImage)}
+                >
+                  <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={primaryImage} />
+                </button>
+              ) : primaryImage ? (
+                <div className="product-detail-primary-image">
+                  <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={primaryImage} />
+                </div>
+              ) : (
+                <div className="product-detail-primary-image product-detail-primary-image-empty" />
+              )}
+              {images.length > 1 ? (
+                <div className="product-detail-image-strip">
+                  {images.map((image) => (
+                    <button
+                      key={image}
+                      type="button"
+                      className={
+                        image === primaryImage ? "product-detail-image-selected" : undefined
+                      }
+                      onClick={() => setSelectedImageUrl(image)}
+                    >
+                      <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={image} />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="product-detail-facts">
+              <TkPrivate
+                as="div"
+                className="product-detail-product-title"
+                sensitive={Boolean(product?.title || fallbackProduct?.title)}
+              >
+                {product?.title ||
+                  fallbackProduct?.title ||
+                  t("ecommerce.productCard.productDetailTitle")}
+              </TkPrivate>
+              <div className="product-detail-callouts">
+                <ProductMetric
+                  label={t("ecommerce.productCard.price")}
+                  value={price}
+                  tone="price"
+                />
+                <ProductMetric
+                  label={t("ecommerce.productCard.status")}
+                  value={status ? formatProductStatus(status, t) : null}
+                />
+              </div>
+              <div className="product-detail-description">
+                <div className="product-detail-section-label">
+                  {t("ecommerce.productCard.description")}
+                </div>
+                <p>{shortDescription || t("ecommerce.productCard.noDescription")}</p>
+              </div>
+              {skuRows.length ? (
+                <div className="product-detail-skus">
+                  <div className="product-detail-section-label">
+                    {t("ecommerce.productCard.skus")}
                   </div>
-                ) : (
-                  <div className="product-detail-primary-image product-detail-primary-image-empty" />
-                )}
-                {images.length > 1 ? (
-                  <div className="product-detail-image-strip">
-                    {images.map((image) => (
-                      <button
-                        key={image}
-                        type="button"
-                        className={image === primaryImage ? "product-detail-image-selected" : undefined}
-                        onClick={() => setSelectedImageUrl(image)}
-                      >
-                        <RemoteMediaImage alt="" loading="lazy" sensitive sourceUrl={image} />
-                      </button>
+                  <div className="product-detail-sku-list">
+                    {skuRows.map((sku) => (
+                      <div className="product-detail-sku-row" key={sku.key}>
+                        <div>
+                          <TkPrivate as="strong" sensitive={sku.sensitive}>
+                            {sku.name}
+                          </TkPrivate>
+                          {sku.status ? <span>{sku.status}</span> : null}
+                        </div>
+                        <div>{sku.price || "-"}</div>
+                      </div>
                     ))}
                   </div>
-                ) : null}
-              </div>
-
-              <div className="product-detail-facts">
-                <TkPrivate
-                  as="div"
-                  className="product-detail-product-title"
-                  sensitive={Boolean(product?.title || fallbackProduct?.title)}
-                >
-                  {product?.title || fallbackProduct?.title || t("ecommerce.productCard.productDetailTitle")}
-                </TkPrivate>
-                <div className="product-detail-callouts">
-                  <ProductMetric label={t("ecommerce.productCard.price")} value={price} tone="price" />
-                  <ProductMetric label={t("ecommerce.productCard.status")} value={status ? formatProductStatus(status, t) : null} />
                 </div>
-                <div className="product-detail-description">
-                  <div className="product-detail-section-label">{t("ecommerce.productCard.description")}</div>
-                  <p>{shortDescription || t("ecommerce.productCard.noDescription")}</p>
-                </div>
-                {skuRows.length ? (
-                  <div className="product-detail-skus">
-                    <div className="product-detail-section-label">{t("ecommerce.productCard.skus")}</div>
-                    <div className="product-detail-sku-list">
-                      {skuRows.map((sku) => (
-                        <div className="product-detail-sku-row" key={sku.key}>
-                          <div>
-                            <TkPrivate as="strong" sensitive={sku.sensitive}>
-                              {sku.name}
-                            </TkPrivate>
-                            {sku.status ? <span>{sku.status}</span> : null}
-                          </div>
-                          <div>{sku.price || "-"}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+              ) : null}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
     </Modal>
   );
 });
@@ -460,15 +489,15 @@ function ProductImagePreview({ imageUrl, onClose }: { imageUrl: string; onClose:
       backdropClassName="product-image-preview-backdrop"
       ariaLabel={t("ecommerce.productCard.imagePreview")}
     >
-        <button
-          className="modal-close-btn"
-          type="button"
-          onClick={closeFromButton}
-          aria-label={t("common.close")}
-        >
-          ×
-        </button>
-        <RemoteMediaImage alt="" loading="eager" sensitive sourceUrl={imageUrl} />
+      <button
+        className="modal-close-btn"
+        type="button"
+        onClick={closeFromButton}
+        aria-label={t("common.close")}
+      >
+        ×
+      </button>
+      <RemoteMediaImage alt="" loading="eager" sensitive sourceUrl={imageUrl} />
     </Modal>
   );
 }
@@ -483,7 +512,9 @@ function ProductMetric({
   tone?: "price";
 }) {
   return (
-    <div className={`product-detail-metric${tone === "price" ? " product-detail-metric-price" : ""}`}>
+    <div
+      className={`product-detail-metric${tone === "price" ? " product-detail-metric-price" : ""}`}
+    >
       <span>{label}</span>
       <strong>{value || "-"}</strong>
     </div>
@@ -517,19 +548,25 @@ function ProductPlatformIdCopy({ productId }: { productId?: string | null }) {
       type="button"
       onClick={copyProductId}
       aria-label={t("ecommerce.affiliateWorkspace.copyProductPlatformId")}
-      title={copied
-        ? t("ecommerce.affiliateWorkspace.platformIdCopied")
-        : t("ecommerce.affiliateWorkspace.copyProductPlatformId")}
+      title={
+        copied
+          ? t("ecommerce.affiliateWorkspace.platformIdCopied")
+          : t("ecommerce.affiliateWorkspace.copyProductPlatformId")
+      }
     >
       <CopyIcon />
-      <span>{copied
-        ? t("ecommerce.affiliateWorkspace.platformIdCopied")
-        : t("ecommerce.affiliateWorkspace.copyProductPlatformId")}</span>
+      <span>
+        {copied
+          ? t("ecommerce.affiliateWorkspace.platformIdCopied")
+          : t("ecommerce.affiliateWorkspace.copyProductPlatformId")}
+      </span>
     </button>
   );
 }
 
-export function formatProductSummaryPrice(product: GQL.EcomProductSummary | null | undefined): string | null {
+export function formatProductSummaryPrice(
+  product: GQL.EcomProductSummary | null | undefined,
+): string | null {
   if (!product?.priceMin) return null;
   const currency = pickSummaryCurrency(product);
   if (product.priceMax && product.priceMax !== product.priceMin) {
@@ -544,7 +581,9 @@ function hasUsefulProductSummary(product: GQL.EcomProductSummary | null | undefi
   return Boolean(product?.title || product?.coverImage || product?.priceMin || product?.status);
 }
 
-function productSummaryFromProductDetail(product: GQL.EcomProduct | null | undefined): GQL.EcomProductSummary | null {
+function productSummaryFromProductDetail(
+  product: GQL.EcomProduct | null | undefined,
+): GQL.EcomProductSummary | null {
   if (!product) return null;
   const prices = (product.skus ?? [])
     .map((sku) => ({
@@ -583,8 +622,14 @@ function formatFullProductPrice(product: GQL.EcomProduct): string | null {
     .filter((price) => price.amount && Number.isFinite(price.value));
   if (!prices.length) return null;
   const currency = pickSingleCurrency(prices.map((price) => price.currency));
-  const min = prices.reduce((current, price) => price.value < current.value ? price : current, prices[0]);
-  const max = prices.reduce((current, price) => price.value > current.value ? price : current, prices[0]);
+  const min = prices.reduce(
+    (current, price) => (price.value < current.value ? price : current),
+    prices[0],
+  );
+  const max = prices.reduce(
+    (current, price) => (price.value > current.value ? price : current),
+    prices[0],
+  );
   if (min.amount === max.amount) return formatMoney(min.amount, currency) || min.amount || null;
   const minText = formatMoney(min.amount, currency) || min.amount;
   const maxText = formatMoney(max.amount, currency) || max.amount;
@@ -598,11 +643,18 @@ function pickSummaryCurrency(product: GQL.EcomProductSummary): GQL.EcomProductSk
 function pickSingleCurrency(
   currencies: Array<GQL.EcomProductSkuCurrency | null | undefined>,
 ): GQL.EcomProductSkuCurrency | null {
-  const unique = Array.from(new Set(currencies.filter((currency): currency is GQL.EcomProductSkuCurrency => Boolean(currency))));
+  const unique = Array.from(
+    new Set(
+      currencies.filter((currency): currency is GQL.EcomProductSkuCurrency => Boolean(currency)),
+    ),
+  );
   return unique.length === 1 ? unique[0] : null;
 }
 
-function formatMoney(amount: string | null | undefined, currency?: GQL.EcomProductSkuCurrency | null): string | null {
+function formatMoney(
+  amount: string | null | undefined,
+  currency?: GQL.EcomProductSkuCurrency | null,
+): string | null {
   if (!amount) return null;
   const numeric = parseFloat(amount);
   if (!Number.isFinite(numeric) || !currency) return amount;
@@ -619,7 +671,10 @@ function formatMoney(amount: string | null | undefined, currency?: GQL.EcomProdu
 
 function formatProductStatus(value: string, t: ReturnType<typeof useTranslation>["t"]): string {
   return t(`ecommerce.productCard.statusLabels.${value}`, {
-    defaultValue: value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase()),
+    defaultValue: value
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase()),
   });
 }
 

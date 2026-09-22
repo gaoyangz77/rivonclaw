@@ -56,7 +56,8 @@ function parseArgs(argv) {
 /** @param {string} name @param {string} value */
 function positiveInteger(name, value) {
   const number = Number(value);
-  if (!Number.isInteger(number) || number <= 0) throw new Error(`${name} must be a positive integer`);
+  if (!Number.isInteger(number) || number <= 0)
+    throw new Error(`${name} must be a positive integer`);
   return number;
 }
 
@@ -123,18 +124,28 @@ async function main() {
   let exitCode = null;
   /** @type {Error | undefined} */
   let spawnError;
-  child.once("error", (error) => { spawnError = error; });
+  child.once("error", (error) => {
+    spawnError = error;
+  });
   // `close` waits for stdio to drain, so no output is lost to the final decision.
-  const closed = new Promise((resolve) => child.once("close", (code) => {
-    exited = true;
-    exitCode = code;
-    resolve(undefined);
-  }));
+  const closed = new Promise((resolve) =>
+    child.once("close", (code) => {
+      exited = true;
+      exitCode = code;
+      resolve(undefined);
+    }),
+  );
 
   for (;;) {
     if (spawnError) throw spawnError;
     const decision = decideVendorInstallWait({
-      exited, exitCode, startedAtMs, doneAtMs, nowMs: Date.now(), graceMs, deadlineMs,
+      exited,
+      exitCode,
+      startedAtMs,
+      doneAtMs,
+      nowMs: Date.now(),
+      graceMs,
+      deadlineMs,
     });
     if (decision.action === "wait") {
       await settlesWithin(closed, POLL_MS);
@@ -158,7 +169,9 @@ async function main() {
 }
 
 main().then(
-  (code) => { process.exitCode = code; },
+  (code) => {
+    process.exitCode = code;
+  },
   (error) => {
     console.error(`[vendor-install] ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;

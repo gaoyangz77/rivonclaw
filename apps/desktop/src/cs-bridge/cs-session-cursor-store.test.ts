@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 const files = new Map<string, string>();
 
 vi.mock("@rivonclaw/core/node", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@rivonclaw/core/node")>(),
+  ...(await importOriginal<typeof import("@rivonclaw/core/node")>()),
   resolveCredentialsDir: () => "/tmp/rivonclaw-cs-cursor-test",
 }));
 
@@ -100,7 +100,9 @@ describe("cs-session-cursor-store", () => {
 
     expect(fsPromises.readFile).toHaveBeenCalledTimes(1);
     expect(fsPromises.writeFile).not.toHaveBeenCalled();
-    expect(await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-2" })).toMatchObject({
+    expect(
+      await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-2" }),
+    ).toMatchObject({
       messageId: "m-20",
       messageIndex: "20",
     });
@@ -128,7 +130,9 @@ describe("cs-session-cursor-store", () => {
         runId: "run-summary",
       });
 
-      expect(await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" })).toMatchObject({
+      expect(
+        await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" }),
+      ).toMatchObject({
         summary: "Buyer asked about shipping. Staff promised an update.",
         messageIndex: "10",
         messageCount: 10,
@@ -136,8 +140,12 @@ describe("cs-session-cursor-store", () => {
 
       vi.setSystemTime(new Date("2029-05-22T00:00:00.000Z"));
 
-      expect(await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" })).toBeUndefined();
-      expect(await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-1" })).toBeUndefined();
+      expect(
+        await readConversationSummary({ shopId: "shop-1", conversationId: "conv-1" }),
+      ).toBeUndefined();
+      expect(
+        await readOpenClawSessionCursor({ shopId: "shop-1", conversationId: "conv-1" }),
+      ).toBeUndefined();
     } finally {
       vi.useRealTimers();
     }

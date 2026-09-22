@@ -1,6 +1,10 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { LANGUAGE_RESOURCES, SUPPORTED_LANGUAGE_CODES, normalizeLanguageCode } from "./languages.js";
+import {
+  LANGUAGE_RESOURCES,
+  SUPPORTED_LANGUAGE_CODES,
+  normalizeLanguageCode,
+} from "./languages.js";
 
 const lng = normalizeLanguageCode(navigator.language);
 

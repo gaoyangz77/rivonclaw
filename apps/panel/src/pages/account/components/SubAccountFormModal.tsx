@@ -48,9 +48,7 @@ export function SubAccountFormModal({
   }, [isOpen, editingMemberId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEditing = editingMemberId !== null;
-  const canSave = isEditing
-    ? Boolean(roleId)
-    : Boolean(email.trim() && password && roleId);
+  const canSave = isEditing ? Boolean(roleId) : Boolean(email.trim() && password && roleId);
 
   async function handleSave() {
     if (!canSave) return;
@@ -148,11 +146,7 @@ export function SubAccountFormModal({
           <button className="btn btn-secondary" onClick={onClose}>
             {t("common.cancel")}
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleSave}
-            disabled={!canSave || saving}
-          >
+          <button className="btn btn-primary" onClick={handleSave} disabled={!canSave || saving}>
             {saving ? t("common.loading") : t("common.save")}
           </button>
         </div>

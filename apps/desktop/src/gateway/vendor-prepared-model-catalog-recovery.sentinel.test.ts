@@ -18,9 +18,7 @@ describe("OpenClaw v2026.8.1: prepared model catalog metadata generation", () =>
   );
 
   it("restores the exact Gateway plugin metadata snapshot in the worker", () => {
-    expect(worker).toContain(
-      "restorePluginMetadataSnapshot(value.pluginMetadataSnapshot)",
-    );
+    expect(worker).toContain("restorePluginMetadataSnapshot(value.pluginMetadataSnapshot)");
     expect(worker).toContain("const prepared = await prepareWorkspaceBuildGroup(");
     expect(worker).toContain("metadata,");
   });

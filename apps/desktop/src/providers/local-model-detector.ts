@@ -31,7 +31,9 @@ function httpGet(url: string, timeoutMs: number): Promise<{ status: number; body
     const req = request(new URL(url), (res) => {
       let body = "";
       res.setEncoding("utf8");
-      res.on("data", (chunk) => { body += chunk; });
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
       res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
     });
     req.setTimeout(timeoutMs, () => {

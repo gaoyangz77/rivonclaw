@@ -44,29 +44,33 @@ export function useChatExamples() {
 
   // --- Load overrides from settings on mount ---
   useEffect(() => {
-    fetchSettings().then((s) => {
-      try {
-        const raw = s["chat-example-prompts"];
-        if (!raw) return;
-        const parsed: unknown = JSON.parse(raw);
-        if (isNewFormat(parsed)) {
-          prefStore.loadOverrides(parsed.overridesByPreset);
-        } else if (typeof parsed === "object" && parsed !== null) {
-          // Legacy flat format: copy overrides to both "default" and the
-          // current active preset so the user's customizations remain visible
-          // regardless of which preset is active after migration.
-          const flat = parsed as Record<string, string>;
-          const activeId = prefStore.activePresetId;
-          const migrated: Record<string, Record<string, string>> = { default: flat };
-          if (activeId !== "default") {
-            migrated[activeId] = { ...flat };
+    fetchSettings()
+      .then((s) => {
+        try {
+          const raw = s["chat-example-prompts"];
+          if (!raw) return;
+          const parsed: unknown = JSON.parse(raw);
+          if (isNewFormat(parsed)) {
+            prefStore.loadOverrides(parsed.overridesByPreset);
+          } else if (typeof parsed === "object" && parsed !== null) {
+            // Legacy flat format: copy overrides to both "default" and the
+            // current active preset so the user's customizations remain visible
+            // regardless of which preset is active after migration.
+            const flat = parsed as Record<string, string>;
+            const activeId = prefStore.activePresetId;
+            const migrated: Record<string, Record<string, string>> = { default: flat };
+            if (activeId !== "default") {
+              migrated[activeId] = { ...flat };
+            }
+            prefStore.loadOverrides(migrated);
           }
-          prefStore.loadOverrides(migrated);
+        } catch {
+          /* ignore invalid JSON */
         }
-      } catch { /* ignore invalid JSON */ }
-      // Expand/collapse state is now sourced from runtimeStatus.appSettings
-      // (MST + SSE) — no separate hydration needed.
-    }).catch(() => {});
+        // Expand/collapse state is now sourced from runtimeStatus.appSettings
+        // (MST + SSE) — no separate hydration needed.
+      })
+      .catch(() => {});
   }, [prefStore]);
 
   // --- Resolve examples: override -> preset default -> i18n fallback ---

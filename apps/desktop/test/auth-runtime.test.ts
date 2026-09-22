@@ -199,10 +199,7 @@ describe("setupAuth backend subscriptions", () => {
     });
 
     expect(mockRootStore.upsertShopsFromGraphQL).toHaveBeenCalledWith(
-      [
-        expect.objectContaining({ id: "shop-2" }),
-        expect.objectContaining({ id: "shop-3" }),
-      ],
+      [expect.objectContaining({ id: "shop-2" }), expect.objectContaining({ id: "shop-3" })],
       "oauth-complete",
     );
     expect(mockRootStore.ingestGraphQLResponse).not.toHaveBeenCalledWith({
@@ -257,9 +254,11 @@ describe("setupAuth backend subscriptions", () => {
 
   it("uploads the current log once per in-flight server request", async () => {
     let resolveUpload: (value: unknown) => void = () => {};
-    mockUploadCurrentLog.mockReturnValue(new Promise((resolve) => {
-      resolveUpload = resolve;
-    }));
+    mockUploadCurrentLog.mockReturnValue(
+      new Promise((resolve) => {
+        resolveUpload = resolve;
+      }),
+    );
 
     await setupAuth({
       storage: {} as any,

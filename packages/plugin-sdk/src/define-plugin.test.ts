@@ -3,10 +3,16 @@ import { defineRivonClawPlugin } from "./define-plugin.js";
 import type { PluginApi, ToolDefinition } from "./define-plugin.js";
 
 function createMockApi(overrides?: Partial<PluginApi>): PluginApi & {
-  registeredTools: Array<{ factory: () => unknown; opts?: { name?: string; names?: string[]; optional?: boolean } }>;
+  registeredTools: Array<{
+    factory: () => unknown;
+    opts?: { name?: string; names?: string[]; optional?: boolean };
+  }>;
   hooks: string[];
 } {
-  const registeredTools: Array<{ factory: () => unknown; opts?: { name?: string; names?: string[]; optional?: boolean } }> = [];
+  const registeredTools: Array<{
+    factory: () => unknown;
+    opts?: { name?: string; names?: string[]; optional?: boolean };
+  }> = [];
   const hooks: string[] = [];
   return {
     id: "test-plugin",
@@ -14,7 +20,10 @@ function createMockApi(overrides?: Partial<PluginApi>): PluginApi & {
     on(event: string) {
       hooks.push(event);
     },
-    registerTool(factory: () => unknown, opts?: { name?: string; names?: string[]; optional?: boolean }) {
+    registerTool(
+      factory: () => unknown,
+      opts?: { name?: string; names?: string[]; optional?: boolean },
+    ) {
       registeredTools.push({ factory, opts });
     },
     registeredTools,

@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 // ─── Hoisted Mocks (vi.mock factories are hoisted, so refs must be too) ────
 
-const {
-  mockRuntimeStatusStore,
-  mockRpcClientInstance,
-  MockGatewayRpcClient,
-} = vi.hoisted(() => {
+const { mockRuntimeStatusStore, mockRpcClientInstance, MockGatewayRpcClient } = vi.hoisted(() => {
   const mockRuntimeStatusStore = {
     openClawConnector: {
       processState: "stopped" as string,
@@ -258,8 +254,14 @@ describe("OpenClawConnector", () => {
       connector.initLauncher(launcher as any);
 
       const callOrder: string[] = [];
-      launcher.stop.mockImplementation(() => { callOrder.push("stop"); return Promise.resolve(); });
-      launcher.start.mockImplementation(() => { callOrder.push("start"); return Promise.resolve(); });
+      launcher.stop.mockImplementation(() => {
+        callOrder.push("stop");
+        return Promise.resolve();
+      });
+      launcher.start.mockImplementation(() => {
+        callOrder.push("start");
+        return Promise.resolve();
+      });
 
       await connector.restart("test reason");
 
@@ -424,15 +426,16 @@ describe("OpenClawConnector", () => {
         request: vi.fn().mockResolvedValue(undefined),
         _opts: null as Record<string, unknown> | null,
       };
-      MockGatewayRpcClient
-        .mockImplementationOnce(function (this: unknown, opts: Record<string, unknown>) {
-          firstClient._opts = opts;
-          return firstClient;
-        })
-        .mockImplementationOnce(function (this: unknown, opts: Record<string, unknown>) {
-          secondClient._opts = opts;
-          return secondClient;
-        });
+      MockGatewayRpcClient.mockImplementationOnce(function (
+        this: unknown,
+        opts: Record<string, unknown>,
+      ) {
+        firstClient._opts = opts;
+        return firstClient;
+      }).mockImplementationOnce(function (this: unknown, opts: Record<string, unknown>) {
+        secondClient._opts = opts;
+        return secondClient;
+      });
 
       await connector.connectRpc(rpcDeps);
 
@@ -532,7 +535,9 @@ describe("OpenClawConnector", () => {
       connector.initDeps(deps);
       await connector.connectRpc(rpcDeps);
 
-      const unavailableError = Object.assign(new Error("Service unavailable"), { code: "UNAVAILABLE" });
+      const unavailableError = Object.assign(new Error("Service unavailable"), {
+        code: "UNAVAILABLE",
+      });
       mockRpcClientInstance.request
         .mockRejectedValueOnce(unavailableError)
         .mockRejectedValueOnce(unavailableError)
@@ -548,7 +553,9 @@ describe("OpenClawConnector", () => {
       connector.initDeps(deps);
       await connector.connectRpc(rpcDeps);
 
-      const unavailableError = Object.assign(new Error("Service unavailable"), { code: "UNAVAILABLE" });
+      const unavailableError = Object.assign(new Error("Service unavailable"), {
+        code: "UNAVAILABLE",
+      });
       mockRpcClientInstance.request.mockRejectedValue(unavailableError);
 
       await connector.probeSidecarReady();
@@ -586,7 +593,6 @@ describe("OpenClawConnector", () => {
       expect(mockRpcClientInstance.request).toHaveBeenCalledTimes(3);
       expect(mockRuntimeStatusStore.setConnectorSidecarState).toHaveBeenCalledWith("ready");
     });
-
   });
 
   // ── Unified RPC Facade ─────────────────────────────────────────────────
@@ -622,7 +628,11 @@ describe("OpenClawConnector", () => {
 
       const result = await connector.request("channels.status", { limit: 10 });
 
-      expect(mockRpcClientInstance.request).toHaveBeenCalledWith("channels.status", { limit: 10 }, undefined);
+      expect(mockRpcClientInstance.request).toHaveBeenCalledWith(
+        "channels.status",
+        { limit: 10 },
+        undefined,
+      );
       expect(result).toEqual({ result: "ok" });
     });
 
@@ -725,9 +735,17 @@ describe("OpenClawConnector", () => {
       connector.initDeps(deps);
 
       const callOrder: string[] = [];
-      const mutator = vi.fn(() => { callOrder.push("mutator"); });
-      launcher.stop.mockImplementation(() => { callOrder.push("stop"); return Promise.resolve(); });
-      launcher.start.mockImplementation(() => { callOrder.push("start"); return Promise.resolve(); });
+      const mutator = vi.fn(() => {
+        callOrder.push("mutator");
+      });
+      launcher.stop.mockImplementation(() => {
+        callOrder.push("stop");
+        return Promise.resolve();
+      });
+      launcher.start.mockImplementation(() => {
+        callOrder.push("start");
+        return Promise.resolve();
+      });
 
       await connector.applyConfigMutation(mutator, "restart_process");
 
@@ -736,9 +754,9 @@ describe("OpenClawConnector", () => {
 
     it("with policy 'reload_config' throws if launcher not initialized", async () => {
       const mutator = vi.fn();
-      await expect(
-        connector.applyConfigMutation(mutator, "reload_config"),
-      ).rejects.toThrow("launcher not initialized");
+      await expect(connector.applyConfigMutation(mutator, "reload_config")).rejects.toThrow(
+        "launcher not initialized",
+      );
       // Mutator should still have been called before the policy action
       expect(mutator).toHaveBeenCalled();
     });
@@ -790,7 +808,9 @@ describe("OpenClawConnector", () => {
     it("skips stale connectRpc when stop() fires during probe", async () => {
       // Probe resolves after a delay, simulating in-flight probe
       let resolveProbe!: () => void;
-      const probePromise = new Promise<void>((r) => { resolveProbe = r; });
+      const probePromise = new Promise<void>((r) => {
+        resolveProbe = r;
+      });
       const spy = vi.spyOn(connector as any, "waitForWsReady").mockReturnValue(probePromise);
 
       connector.initLauncher(launcher as any);
@@ -816,8 +836,11 @@ describe("OpenClawConnector", () => {
 
     it("skips stale connectRpc when a new ready fires during probe", async () => {
       let resolveFirstProbe!: () => void;
-      const firstProbe = new Promise<void>((r) => { resolveFirstProbe = r; });
-      const spy = vi.spyOn(connector as any, "waitForWsReady")
+      const firstProbe = new Promise<void>((r) => {
+        resolveFirstProbe = r;
+      });
+      const spy = vi
+        .spyOn(connector as any, "waitForWsReady")
         .mockReturnValueOnce(firstProbe)
         .mockResolvedValueOnce(undefined);
 

@@ -15,9 +15,9 @@ const log = createLogger("client-tool-loader");
  * Load client tool specs from the gateway via RPC.
  * @param rpcClient - the gateway RPC client (available after gateway connects)
  */
-export async function loadClientToolSpecs(
-  rpcClient: { request: <T>(method: string, params?: unknown) => Promise<T> },
-): Promise<void> {
+export async function loadClientToolSpecs(rpcClient: {
+  request: <T>(method: string, params?: unknown) => Promise<T>;
+}): Promise<void> {
   try {
     const result = await rpcClient.request<{ specs: Array<Record<string, unknown>> }>(
       "get_client_tool_specs",

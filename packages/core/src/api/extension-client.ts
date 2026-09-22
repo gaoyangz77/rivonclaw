@@ -37,7 +37,10 @@ export async function extensionGraphqlFetch<T>(
  * type the generic as a concrete shape should only use it on routes known
  * to return JSON.
  */
-export async function extensionRestFetch<T>(path: string, init?: RequestInit): Promise<T | undefined> {
+export async function extensionRestFetch<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T | undefined> {
   const res = await extensionRestFetchResponse(path, init);
   // 204 (or any empty body) → no JSON to parse.
   if (res.status === 204) return undefined;

@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  CLOUD_TOOLS_RELOAD_METHOD,
-  reloadCloudToolsFromSpecs,
-} from "./cloud-tools-runtime.js";
+import { CLOUD_TOOLS_RELOAD_METHOD, reloadCloudToolsFromSpecs } from "./cloud-tools-runtime.js";
 
 describe("cloud-tools-runtime", () => {
   it("pushes ToolSpecs snapshots to the cloud-tools plugin reload RPC", async () => {

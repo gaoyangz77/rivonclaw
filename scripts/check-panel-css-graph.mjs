@@ -44,15 +44,11 @@ for (const sourceFile of sourceFiles) {
     const importedFile = normalizeLocalImport(sourceFile, match[1]);
     if (!importedFile) continue;
     if (!existsSync(importedFile)) {
-      violations.push(
-        `Missing CSS import: ${displayPath(sourceFile)} -> ${match[1]}`,
-      );
+      violations.push(`Missing CSS import: ${displayPath(sourceFile)} -> ${match[1]}`);
       continue;
     }
     if (!cssFileSet.has(importedFile)) {
-      violations.push(
-        `CSS import leaves Panel source: ${displayPath(sourceFile)} -> ${match[1]}`,
-      );
+      violations.push(`CSS import leaves Panel source: ${displayPath(sourceFile)} -> ${match[1]}`);
       continue;
     }
     roots.add(importedFile);
@@ -74,9 +70,7 @@ for (const cssFile of cssFiles) {
       continue;
     }
     if (!cssFileSet.has(importedFile)) {
-      violations.push(
-        `CSS import leaves Panel source: ${displayPath(cssFile)} -> ${match[1]}`,
-      );
+      violations.push(`CSS import leaves Panel source: ${displayPath(cssFile)} -> ${match[1]}`);
       continue;
     }
     if (seenImports.has(importedFile)) {

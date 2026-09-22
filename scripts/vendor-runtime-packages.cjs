@@ -38,9 +38,9 @@ const ALWAYS_EXTERNAL_PACKAGES = [
   // Optional/platform-specific native deps — not installed on all platforms,
   // but referenced via conditional require(). Must stay external so esbuild
   // doesn't try to resolve them.
-  "ffmpeg-static",        // optional dep of prism-media (Discord voice)
-  "authenticate-pam",     // Linux-only PAM auth
-  "better-sqlite3",       // native module, may not be in vendor node_modules
+  "ffmpeg-static", // optional dep of prism-media (Discord voice)
+  "authenticate-pam", // Linux-only PAM auth
+  "better-sqlite3", // native module, may not be in vendor node_modules
 ];
 
 // Legacy alias — the full effective externals list is now computed at bundle
@@ -53,9 +53,11 @@ const EXTERNAL_PACKAGES = ALWAYS_EXTERNAL_PACKAGES;
 const RUNTIME_REQUIRED_PACKAGES = [];
 
 function matchesPackagePattern(name, pattern) {
-  return name === pattern
-    || (pattern.endsWith("/*") && name.startsWith(pattern.slice(0, -1)))
-    || (pattern.endsWith("-*") && name.startsWith(pattern.slice(0, -1)));
+  return (
+    name === pattern ||
+    (pattern.endsWith("/*") && name.startsWith(pattern.slice(0, -1))) ||
+    (pattern.endsWith("-*") && name.startsWith(pattern.slice(0, -1)))
+  );
 }
 
 function matchesExternalPackage(name) {

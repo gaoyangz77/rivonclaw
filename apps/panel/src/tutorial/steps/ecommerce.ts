@@ -1,32 +1,37 @@
-import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.ecommerce.${key}Title`,
     bodyKey: `tutorial.ecommerce.${key}Body`,
     placement,
-  }
+  };
 }
 
 function ensureConnectForm() {
-  if (!findTutorialTarget("shops-connect-form")) clickTutorialTarget("shops-add")
+  if (!findTutorialTarget("shops-connect-form")) clickTutorialTarget("shops-add");
 }
 
 function closeConnectForm() {
-  if (findTutorialTarget("shops-connect-form")) clickTutorialTarget("shops-connect-cancel")
+  if (findTutorialTarget("shops-connect-form")) clickTutorialTarget("shops-connect-cancel");
 }
 
 function ensureShopDrawer() {
-  if (findTutorialTarget("shops-drawer")) return
-  clickTutorialTarget("shops-item")
+  if (findTutorialTarget("shops-drawer")) return;
+  clickTutorialTarget("shops-item");
 }
 
 function closeShopDrawer() {
   if (findTutorialTarget("shops-drawer")) {
-    clickTutorialTarget("shops-drawer-close")
+    clickTutorialTarget("shops-drawer-close");
   }
 }
 
@@ -48,4 +53,4 @@ export const ecommerceSteps: TutorialStep[] = [
     cleanup: closeShopDrawer,
     targetTimeoutMs: 1800,
   },
-]
+];

@@ -35,12 +35,15 @@ describe("first-party domain route detection", () => {
     const fetchFn = vi.fn().mockResolvedValue({ status: 204 } as Response);
 
     await expect(detectFirstPartyDomainRoute(fetchFn)).resolves.toBe("global");
-    expect(fetchFn).toHaveBeenCalledWith("https://api.rivonclaw.com/graphql", expect.objectContaining({
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: "query RivonClawFirstPartyRouteProbe { __typename }" }),
-      signal: expect.any(AbortSignal),
-    }));
+    expect(fetchFn).toHaveBeenCalledWith(
+      "https://api.rivonclaw.com/graphql",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "query RivonClawFirstPartyRouteProbe { __typename }" }),
+        signal: expect.any(AbortSignal),
+      }),
+    );
   });
 
   it("uses the CN relay when the connectivity probe fails", async () => {

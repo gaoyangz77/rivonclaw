@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-const RUNNER = fileURLToPath(new URL("../scripts/run-vendor-production-install.cjs", import.meta.url));
+const RUNNER = fileURLToPath(
+  new URL("../scripts/run-vendor-production-install.cjs", import.meta.url),
+);
 const DONE = "Done in 0.1s using pnpm v12.3.4";
 
 const tempDirs: string[] = [];
@@ -27,9 +29,16 @@ function runInstall(script: string, dir: string, options: { deadlineMs: number; 
   return spawnSync(
     process.execPath,
     [
-      RUNNER, "--cwd", dir,
-      "--deadline-ms", String(options.deadlineMs), "--grace-ms", String(options.graceMs),
-      "--", process.execPath, script,
+      RUNNER,
+      "--cwd",
+      dir,
+      "--deadline-ms",
+      String(options.deadlineMs),
+      "--grace-ms",
+      String(options.graceMs),
+      "--",
+      process.execPath,
+      script,
     ],
     { encoding: "utf8", timeout: 60_000 },
   );
@@ -150,7 +159,10 @@ describe("run-vendor-production-install", { timeout: 30_000 }, () => {
         process.exit(0);
       `);
 
-      const result = runInstall(install.script, install.dir, { deadlineMs: 20_000, graceMs: 5_000 });
+      const result = runInstall(install.script, install.dir, {
+        deadlineMs: 20_000,
+        graceMs: 5_000,
+      });
 
       expect(result.status).toBe(0);
       const workerPid = Number(readFileSync(install.workerPidFile, "utf8"));
@@ -161,11 +173,17 @@ describe("run-vendor-production-install", { timeout: 30_000 }, () => {
   it.each([
     [[] as string[], /usage:/],
     [["--cwd", "/tmp", "--"], /usage:/],
-    [["--deadline-ms", "0", "--cwd", "/tmp", "--", "node"], /--deadline-ms must be a positive integer/],
+    [
+      ["--deadline-ms", "0", "--cwd", "/tmp", "--", "node"],
+      /--deadline-ms must be a positive integer/,
+    ],
     [["--nope", "1", "--cwd", "/tmp", "--", "node"], /unknown option --nope/],
     [["--", "node"], /--cwd is required/],
   ])("rejects invalid arguments %j", (args, message) => {
-    const result = spawnSync(process.execPath, [RUNNER, ...args], { encoding: "utf8", timeout: 30_000 });
+    const result = spawnSync(process.execPath, [RUNNER, ...args], {
+      encoding: "utf8",
+      timeout: 30_000,
+    });
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(message);
   });

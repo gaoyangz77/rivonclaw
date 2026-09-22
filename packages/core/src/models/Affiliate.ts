@@ -6,7 +6,9 @@ function nowIso(): string {
 }
 
 function normalizedText(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function includesSearch(search: string, values: unknown[]): boolean {
@@ -27,12 +29,17 @@ function relationshipHasShop(
 }
 
 function proposalTargetsCollaboration(
-  proposal: { affiliateCollaborationId?: string | null; steps?: readonly Record<string, any>[] } | null | undefined,
+  proposal:
+    | { affiliateCollaborationId?: string | null; steps?: readonly Record<string, any>[] }
+    | null
+    | undefined,
   affiliateCollaborationId: string,
 ): boolean {
   if (!proposal || !affiliateCollaborationId) return false;
   if (proposal.affiliateCollaborationId === affiliateCollaborationId) return true;
-  return (proposal.steps ?? []).some((step) => step?.affiliateCollaborationId === affiliateCollaborationId);
+  return (proposal.steps ?? []).some(
+    (step) => step?.affiliateCollaborationId === affiliateCollaborationId,
+  );
 }
 
 export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile", {
@@ -47,15 +54,18 @@ export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile
   updatedAt: types.optional(types.string, nowIso),
 });
 
-export const AffiliateCreatorRelationshipShopStateModel = types.model("AffiliateCreatorRelationshipShopState", {
-  shopId: types.string,
-  /** Backend-derived rung of the sample review ladder at this shop. Exactly one
-   * per (relationship, shop); absent means no rung reached, not the lowest one. */
-  sampleTier: types.maybeNull(types.string),
-  lastContactedAt: types.maybeNull(types.string),
-  lastInvitedAt: types.maybeNull(types.string),
-  lastQualifiedAt: types.maybeNull(types.string),
-});
+export const AffiliateCreatorRelationshipShopStateModel = types.model(
+  "AffiliateCreatorRelationshipShopState",
+  {
+    shopId: types.string,
+    /** Backend-derived rung of the sample review ladder at this shop. Exactly one
+     * per (relationship, shop); absent means no rung reached, not the lowest one. */
+    sampleTier: types.maybeNull(types.string),
+    lastContactedAt: types.maybeNull(types.string),
+    lastInvitedAt: types.maybeNull(types.string),
+    lastQualifiedAt: types.maybeNull(types.string),
+  },
+);
 
 export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRelationship", {
   id: types.identifier,
@@ -248,35 +258,38 @@ export const AffiliateCollaborationModel = types.model("AffiliateCollaboration",
   updatedAt: types.optional(types.string, nowIso),
 });
 
-export const AffiliateSampleApplicationRecordModel = types.model("AffiliateSampleApplicationRecord", {
-  id: types.identifier,
-  userId: types.optional(types.string, ""),
-  shopId: types.optional(types.string, ""),
-  creatorId: types.maybeNull(types.string),
-  creatorRelationshipId: types.optional(types.string, ""),
-  creatorOpenId: types.maybeNull(types.string),
-  productId: types.maybeNull(types.string),
-  affiliateCollaborationId: types.maybeNull(types.string),
-  collaborationType: types.maybeNull(types.string),
-  platformApplicationId: types.optional(types.string, ""),
-  platformCollaborationId: types.maybeNull(types.string),
-  platformOpenCollaborationId: types.maybeNull(types.string),
-  platformTargetCollaborationId: types.maybeNull(types.string),
-  sampleWorkStatus: types.optional(types.string, ""),
-  order: types.maybeNull(types.frozen<GQL.SampleApplicationOrderRecord>()),
-  trackingNumber: types.maybeNull(types.string),
-  carrier: types.maybeNull(types.string),
-  shippedAt: types.maybeNull(types.string),
-  deliveredAt: types.maybeNull(types.string),
-  observedContentCount: types.optional(types.number, 0),
-  latestObservedContentAt: types.maybeNull(types.string),
-  latestObservedContentId: types.maybeNull(types.string),
-  latestObservedContentFormat: types.maybeNull(types.string),
-  latestObservedContentUrl: types.maybeNull(types.string),
-  latestObservedContentViewCount: types.maybeNull(types.number),
-  latestObservedContentPaidOrderCount: types.maybeNull(types.number),
-  updatedAt: types.optional(types.string, nowIso),
-});
+export const AffiliateSampleApplicationRecordModel = types.model(
+  "AffiliateSampleApplicationRecord",
+  {
+    id: types.identifier,
+    userId: types.optional(types.string, ""),
+    shopId: types.optional(types.string, ""),
+    creatorId: types.maybeNull(types.string),
+    creatorRelationshipId: types.optional(types.string, ""),
+    creatorOpenId: types.maybeNull(types.string),
+    productId: types.maybeNull(types.string),
+    affiliateCollaborationId: types.maybeNull(types.string),
+    collaborationType: types.maybeNull(types.string),
+    platformApplicationId: types.optional(types.string, ""),
+    platformCollaborationId: types.maybeNull(types.string),
+    platformOpenCollaborationId: types.maybeNull(types.string),
+    platformTargetCollaborationId: types.maybeNull(types.string),
+    sampleWorkStatus: types.optional(types.string, ""),
+    order: types.maybeNull(types.frozen<GQL.SampleApplicationOrderRecord>()),
+    trackingNumber: types.maybeNull(types.string),
+    carrier: types.maybeNull(types.string),
+    shippedAt: types.maybeNull(types.string),
+    deliveredAt: types.maybeNull(types.string),
+    observedContentCount: types.optional(types.number, 0),
+    latestObservedContentAt: types.maybeNull(types.string),
+    latestObservedContentId: types.maybeNull(types.string),
+    latestObservedContentFormat: types.maybeNull(types.string),
+    latestObservedContentUrl: types.maybeNull(types.string),
+    latestObservedContentViewCount: types.maybeNull(types.number),
+    latestObservedContentPaidOrderCount: types.maybeNull(types.number),
+    updatedAt: types.optional(types.string, nowIso),
+  },
+);
 
 export const AffiliateLifecycleEventModel = types.model("AffiliateLifecycleEvent", {
   id: types.identifier,
@@ -378,7 +391,10 @@ export const AffiliateWorkspaceModel = types
     affiliateCollaborations: types.optional(types.array(AffiliateCollaborationModel), []),
     creatorRelationships: types.optional(types.array(AffiliateCreatorRelationshipModel), []),
     creatorProfiles: types.optional(types.array(AffiliateCreatorProfileModel), []),
-    sampleApplicationRecords: types.optional(types.array(AffiliateSampleApplicationRecordModel), []),
+    sampleApplicationRecords: types.optional(
+      types.array(AffiliateSampleApplicationRecordModel),
+      [],
+    ),
     lifecycleEvents: types.optional(types.array(AffiliateLifecycleEventModel), []),
     productSummaries: types.optional(types.array(AffiliateProductSummaryModel), []),
     businessDevelopers: types.optional(types.array(AffiliateBusinessDeveloperModel), []),
@@ -406,17 +422,24 @@ export const AffiliateWorkspaceModel = types
     },
     getCreatorRelationshipByCreatorId(creatorId: string | null | undefined) {
       if (!creatorId) return null;
-      return self.creatorRelationships.find((relationship) => relationship.creatorId === creatorId) ?? null;
+      return (
+        self.creatorRelationships.find((relationship) => relationship.creatorId === creatorId) ??
+        null
+      );
     },
     getBusinessDeveloper(id: string | null | undefined) {
       if (!id) return null;
       return self.businessDevelopers.find((developer) => developer.id === id) ?? null;
     },
     whatsappAccountsForBusinessDeveloper(id: string | null | undefined) {
-      return self.whatsappAccounts.filter((account) => (account.businessDeveloperId ?? null) === (id ?? null));
+      return self.whatsappAccounts.filter(
+        (account) => (account.businessDeveloperId ?? null) === (id ?? null),
+      );
     },
     emailAccountsForBusinessDeveloper(id: string | null | undefined) {
-      return self.emailAccounts.filter((account) => (account.businessDeveloperId ?? null) === (id ?? null));
+      return self.emailAccounts.filter(
+        (account) => (account.businessDeveloperId ?? null) === (id ?? null),
+      );
     },
     getProductSummary(productId: string | null | undefined) {
       const key = productSummaryKey(productId);
@@ -432,17 +455,20 @@ export const AffiliateWorkspaceModel = types
       platformCollaborationId?: string | null;
     }) {
       return self.sampleApplicationRecords
-        .filter((record) => (
-          record.affiliateCollaborationId === affiliateCollaboration.id ||
-          record.platformCollaborationId === affiliateCollaboration.platformCollaborationId ||
-          record.platformOpenCollaborationId === affiliateCollaboration.platformCollaborationId ||
-          record.platformTargetCollaborationId === affiliateCollaboration.platformCollaborationId
-        ))
+        .filter(
+          (record) =>
+            record.affiliateCollaborationId === affiliateCollaboration.id ||
+            record.platformCollaborationId === affiliateCollaboration.platformCollaborationId ||
+            record.platformOpenCollaborationId === affiliateCollaboration.platformCollaborationId ||
+            record.platformTargetCollaborationId === affiliateCollaboration.platformCollaborationId,
+        )
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
     },
     affiliateCollaborationsForRelationship(creatorRelationshipId: string | null | undefined) {
       if (!creatorRelationshipId) return [];
-      const relationship = self.creatorRelationships.find((item) => item.id === creatorRelationshipId);
+      const relationship = self.creatorRelationships.find(
+        (item) => item.id === creatorRelationshipId,
+      );
       if (!relationship) return [];
       const activeIds = new Set(relationship.activeAffiliateCollaborationIds);
       return self.affiliateCollaborations
@@ -451,15 +477,18 @@ export const AffiliateWorkspaceModel = types
     },
     sampleApplicationsForRelationship(creatorRelationshipId: string | null | undefined) {
       if (!creatorRelationshipId) return [];
-      const relationship = self.creatorRelationships.find((item) => item.id === creatorRelationshipId);
+      const relationship = self.creatorRelationships.find(
+        (item) => item.id === creatorRelationshipId,
+      );
       if (!relationship) return [];
       const sampleRecordIds = new Set(relationship.activeSampleApplicationRecordIds);
       return self.sampleApplicationRecords
-        .filter((record) => (
-          sampleRecordIds.has(record.id) ||
-          record.creatorRelationshipId === creatorRelationshipId ||
-          record.creatorId === relationship.creatorId
-        ))
+        .filter(
+          (record) =>
+            sampleRecordIds.has(record.id) ||
+            record.creatorRelationshipId === creatorRelationshipId ||
+            record.creatorId === relationship.creatorId,
+        )
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
     },
     lifecycleEventsForCollaboration(affiliateCollaborationId: string) {
@@ -469,44 +498,39 @@ export const AffiliateWorkspaceModel = types
           .map((proposal) => proposal.id),
       );
       return self.lifecycleEvents
-        .filter((event) => (
-          event.affiliateCollaborationId === affiliateCollaborationId ||
-          (
-            typeof event.proposalId === "string" &&
-            proposalIds.has(event.proposalId)
-          )
-        ))
+        .filter(
+          (event) =>
+            event.affiliateCollaborationId === affiliateCollaborationId ||
+            (typeof event.proposalId === "string" && proposalIds.has(event.proposalId)),
+        )
         .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
     },
     lifecycleEventsForRelationship(creatorRelationshipId: string | null | undefined) {
       if (!creatorRelationshipId) return [];
-      const relationship = self.creatorRelationships.find((item) => item.id === creatorRelationshipId);
+      const relationship = self.creatorRelationships.find(
+        (item) => item.id === creatorRelationshipId,
+      );
       const affiliateCollaborationIds = new Set(
         relationship?.activeAffiliateCollaborationIds ?? [],
       );
       const proposalIds = new Set(
         self.actionProposals
-          .filter((proposal) => (
-            proposal.creatorRelationshipId === creatorRelationshipId ||
-            (
-              typeof proposal.affiliateCollaborationId === "string" &&
-              affiliateCollaborationIds.has(proposal.affiliateCollaborationId)
-            )
-          ))
+          .filter(
+            (proposal) =>
+              proposal.creatorRelationshipId === creatorRelationshipId ||
+              (typeof proposal.affiliateCollaborationId === "string" &&
+                affiliateCollaborationIds.has(proposal.affiliateCollaborationId)),
+          )
           .map((proposal) => proposal.id),
       );
       return self.lifecycleEvents
-        .filter((event) => (
-          event.creatorRelationshipId === creatorRelationshipId ||
-          (
-            typeof event.affiliateCollaborationId === "string" &&
-            affiliateCollaborationIds.has(event.affiliateCollaborationId)
-          ) ||
-          (
-            typeof event.proposalId === "string" &&
-            proposalIds.has(event.proposalId)
-          )
-        ))
+        .filter(
+          (event) =>
+            event.creatorRelationshipId === creatorRelationshipId ||
+            (typeof event.affiliateCollaborationId === "string" &&
+              affiliateCollaborationIds.has(event.affiliateCollaborationId)) ||
+            (typeof event.proposalId === "string" && proposalIds.has(event.proposalId)),
+        )
         .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
     },
     proposalsForCollaboration(affiliateCollaborationId: string) {
@@ -516,18 +540,19 @@ export const AffiliateWorkspaceModel = types
     },
     proposalsForRelationship(creatorRelationshipId: string | null | undefined) {
       if (!creatorRelationshipId) return [];
-      const relationship = self.creatorRelationships.find((item) => item.id === creatorRelationshipId);
+      const relationship = self.creatorRelationships.find(
+        (item) => item.id === creatorRelationshipId,
+      );
       const affiliateCollaborationIds = new Set(
         relationship?.activeAffiliateCollaborationIds ?? [],
       );
       return self.actionProposals
-        .filter((proposal) => (
-          proposal.creatorRelationshipId === creatorRelationshipId ||
-          (
-            typeof proposal.affiliateCollaborationId === "string" &&
-            affiliateCollaborationIds.has(proposal.affiliateCollaborationId)
-          )
-        ))
+        .filter(
+          (proposal) =>
+            proposal.creatorRelationshipId === creatorRelationshipId ||
+            (typeof proposal.affiliateCollaborationId === "string" &&
+              affiliateCollaborationIds.has(proposal.affiliateCollaborationId)),
+        )
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
     },
   }))
@@ -535,20 +560,22 @@ export const AffiliateWorkspaceModel = types
     proposalProjection(proposalId: string) {
       const proposal = self.getActionProposal(proposalId);
       if (!proposal) return null;
-      const affiliateCollaboration = proposal.affiliateCollaboration
-        ?? self.getCollaboration(proposal.affiliateCollaborationId);
-      const creatorRelationship = proposal.creatorRelationship
-        ?? self.getCreatorRelationship(proposal.creatorRelationshipId);
-      const creatorProfile = proposal.creatorProfile
-        ?? self.getCreatorProfile(proposal.creatorId ?? affiliateCollaboration?.creatorIds?.[0]);
+      const affiliateCollaboration =
+        proposal.affiliateCollaboration ?? self.getCollaboration(proposal.affiliateCollaborationId);
+      const creatorRelationship =
+        proposal.creatorRelationship ?? self.getCreatorRelationship(proposal.creatorRelationshipId);
+      const creatorProfile =
+        proposal.creatorProfile ??
+        self.getCreatorProfile(proposal.creatorId ?? affiliateCollaboration?.creatorIds?.[0]);
       const productSummary = self.getProductSummary(
-        proposal.productId
-          ?? affiliateCollaboration?.productIds?.[0]
-          ?? (proposal.messageIntent as any)?.productId
-          ?? (proposal.steps?.[0] as any)?.messageIntent?.productId,
+        proposal.productId ??
+          affiliateCollaboration?.productIds?.[0] ??
+          (proposal.messageIntent as any)?.productId ??
+          (proposal.steps?.[0] as any)?.messageIntent?.productId,
       );
-      const sampleApplicationRecord = proposal.sampleApplicationRecord
-        ?? self.getSampleApplicationRecord(proposal.sampleApplicationRecordId);
+      const sampleApplicationRecord =
+        proposal.sampleApplicationRecord ??
+        self.getSampleApplicationRecord(proposal.sampleApplicationRecordId);
       return {
         proposal,
         affiliateCollaboration,
@@ -562,7 +589,8 @@ export const AffiliateWorkspaceModel = types
       const creatorRelationship = self.getCreatorRelationship(creatorRelationshipId);
       if (!creatorRelationship) return null;
       const creatorProfile = self.getCreatorProfile(creatorRelationship.creatorId);
-      const affiliateCollaborations = self.affiliateCollaborationsForRelationship(creatorRelationshipId);
+      const affiliateCollaborations =
+        self.affiliateCollaborationsForRelationship(creatorRelationshipId);
       const sampleApplications = self.sampleApplicationsForRelationship(creatorRelationshipId);
       const productIds = new Set(
         [
@@ -590,9 +618,10 @@ export const AffiliateWorkspaceModel = types
     collaborationProjection(affiliateCollaborationId: string) {
       const affiliateCollaboration = self.getCollaboration(affiliateCollaborationId);
       if (!affiliateCollaboration) return null;
-      const creatorRelationship = self.creatorRelationships.find((relationship) => (
-        relationship.activeAffiliateCollaborationIds.includes(affiliateCollaboration.id)
-      )) ?? null;
+      const creatorRelationship =
+        self.creatorRelationships.find((relationship) =>
+          relationship.activeAffiliateCollaborationIds.includes(affiliateCollaboration.id),
+        ) ?? null;
       const creatorProfile = self.getCreatorProfile(
         creatorRelationship?.creatorId ?? affiliateCollaboration.creatorIds[0],
       );
@@ -610,7 +639,12 @@ export const AffiliateWorkspaceModel = types
         lifecycleEvents: self.lifecycleEventsForCollaboration(affiliateCollaborationId),
       };
     },
-    actionProposalPage(input?: { shopId?: string; status?: string; type?: string; search?: string }) {
+    actionProposalPage(input?: {
+      shopId?: string;
+      status?: string;
+      type?: string;
+      search?: string;
+    }) {
       const search = normalizedText(input?.search);
       return self.actionProposals
         .filter((proposal) => !input?.status || proposal.status === input.status)
@@ -627,20 +661,22 @@ export const AffiliateWorkspaceModel = types
           if (projection.affiliateCollaboration?.shopId === input.shopId) return true;
           return relationshipHasShop(projection.creatorRelationship, input.shopId);
         })
-        .filter((projection) => includesSearch(search, [
-          projection.proposal.id,
-          projection.proposal.operatorSummary,
-          projection.proposal.type,
-          projection.proposal.status,
-          projection.affiliateCollaboration?.id,
-          ...(projection.affiliateCollaboration?.productIds ?? []),
-          projection.creatorProfile?.username,
-          projection.creatorProfile?.nickname,
-          projection.creatorProfile?.creatorOpenId,
-          projection.creatorProfile?.creatorImId,
-          projection.productSummary?.title,
-          projection.productSummary?.productId,
-        ]))
+        .filter((projection) =>
+          includesSearch(search, [
+            projection.proposal.id,
+            projection.proposal.operatorSummary,
+            projection.proposal.type,
+            projection.proposal.status,
+            projection.affiliateCollaboration?.id,
+            ...(projection.affiliateCollaboration?.productIds ?? []),
+            projection.creatorProfile?.username,
+            projection.creatorProfile?.nickname,
+            projection.creatorProfile?.creatorOpenId,
+            projection.creatorProfile?.creatorImId,
+            projection.productSummary?.title,
+            projection.productSummary?.productId,
+          ]),
+        )
         .sort((a, b) => Date.parse(b.proposal.updatedAt) - Date.parse(a.proposal.updatedAt));
     },
     affiliateCollaborationPage(input?: {
@@ -656,20 +692,26 @@ export const AffiliateWorkspaceModel = types
         .filter((record) => !input?.type || record.type === input.type)
         .map((record) => (self as any).collaborationProjection(record.id))
         .filter((projection): projection is NonNullable<typeof projection> => !!projection)
-        .filter((projection) => includesSearch(search, [
-          projection.affiliateCollaboration.id,
-          projection.affiliateCollaboration.status,
-          projection.affiliateCollaboration.type,
-          projection.affiliateCollaboration.platformCollaborationId,
-          ...projection.affiliateCollaboration.productIds,
-          projection.creatorProfile?.username,
-          projection.creatorProfile?.nickname,
-          projection.creatorProfile?.creatorOpenId,
-          projection.creatorProfile?.creatorImId,
-          projection.productSummary?.title,
-          projection.productSummary?.productId,
-        ]))
-        .sort((a, b) => Date.parse(b.affiliateCollaboration.updatedAt) - Date.parse(a.affiliateCollaboration.updatedAt));
+        .filter((projection) =>
+          includesSearch(search, [
+            projection.affiliateCollaboration.id,
+            projection.affiliateCollaboration.status,
+            projection.affiliateCollaboration.type,
+            projection.affiliateCollaboration.platformCollaborationId,
+            ...projection.affiliateCollaboration.productIds,
+            projection.creatorProfile?.username,
+            projection.creatorProfile?.nickname,
+            projection.creatorProfile?.creatorOpenId,
+            projection.creatorProfile?.creatorImId,
+            projection.productSummary?.title,
+            projection.productSummary?.productId,
+          ]),
+        )
+        .sort(
+          (a, b) =>
+            Date.parse(b.affiliateCollaboration.updatedAt) -
+            Date.parse(a.affiliateCollaboration.updatedAt),
+        );
     },
   }))
   .actions((self) => {
@@ -687,7 +729,9 @@ export const AffiliateWorkspaceModel = types
 
     function upsertProduct(product: GQL.EcomProductSummary | null | undefined): void {
       if (!product?.productId) return;
-      const idx = self.productSummaries.findIndex((existing) => existing.productId === product.productId);
+      const idx = self.productSummaries.findIndex(
+        (existing) => existing.productId === product.productId,
+      );
       if (idx >= 0) {
         applySnapshot(self.productSummaries[idx] as any, {
           ...(getSnapshot(self.productSummaries[idx] as any) as Record<string, any>),
@@ -703,7 +747,9 @@ export const AffiliateWorkspaceModel = types
       upsertById(self.creatorProfiles as any, profile as any);
     }
 
-    function upsertCreatorRelationship(relationship: GQL.AffiliateCreatorRelationship | null | undefined): void {
+    function upsertCreatorRelationship(
+      relationship: GQL.AffiliateCreatorRelationship | null | undefined,
+    ): void {
       if (!relationship?.id) return;
       upsertById(self.creatorRelationships as any, relationship as any);
     }
@@ -734,12 +780,16 @@ export const AffiliateWorkspaceModel = types
       upsertById(self.sampleApplicationRecords as any, record as any);
     }
 
-    function upsertBusinessDeveloper(developer: GQL.AffiliateBusinessDeveloper | null | undefined): void {
+    function upsertBusinessDeveloper(
+      developer: GQL.AffiliateBusinessDeveloper | null | undefined,
+    ): void {
       if (!developer?.id) return;
       upsertById(self.businessDevelopers as any, developer as any);
     }
 
-    function upsertChannelContact(contact: GQL.AffiliateCreatorChannelContact | null | undefined): void {
+    function upsertChannelContact(
+      contact: GQL.AffiliateCreatorChannelContact | null | undefined,
+    ): void {
       if (!contact?.id) return;
       upsertById(self.creatorChannelContacts as any, contact as any);
     }
@@ -781,7 +831,9 @@ export const AffiliateWorkspaceModel = types
         self.businessDevelopers.clear();
         for (const developer of developers) upsertBusinessDeveloper(developer);
       },
-      setAffiliateOperationalSettings(settings: GQL.AffiliateOperationalSettings | null | undefined) {
+      setAffiliateOperationalSettings(
+        settings: GQL.AffiliateOperationalSettings | null | undefined,
+      ) {
         self.operationalSettings = settings as any;
       },
       replaceAffiliateCreatorChannelContacts(contacts: GQL.AffiliateCreatorChannelContact[]) {
@@ -801,14 +853,22 @@ export const AffiliateWorkspaceModel = types
         for (const account of accounts) upsertById(self.emailAccounts as any, account as any);
       },
       ingestAffiliateWorkspace(workspace: GQL.AffiliateWorkspacePayload | null | undefined) {
-        for (const relationship of workspace?.creatorRelations ?? []) upsertCreatorRelationship(relationship);
+        for (const relationship of workspace?.creatorRelations ?? [])
+          upsertCreatorRelationship(relationship);
         for (const profile of workspace?.creatorProfiles ?? []) upsertCreator(profile);
         for (const record of workspace?.affiliateCollaborations ?? []) upsertCollaboration(record);
-        for (const sample of workspace?.sampleApplicationRecords ?? []) upsertSampleApplication(sample);
+        for (const sample of workspace?.sampleApplicationRecords ?? [])
+          upsertSampleApplication(sample);
         for (const proposal of workspace?.actionProposals ?? []) upsertProposal(proposal);
-        const lifecycleEvents = (workspace as (GQL.AffiliateWorkspacePayload & {
-          lifecycleEvents?: AffiliateLifecycleEvent[];
-        }) | null | undefined)?.lifecycleEvents ?? [];
+        const lifecycleEvents =
+          (
+            workspace as
+              | (GQL.AffiliateWorkspacePayload & {
+                  lifecycleEvents?: AffiliateLifecycleEvent[];
+                })
+              | null
+              | undefined
+          )?.lifecycleEvents ?? [];
         for (const event of lifecycleEvents) upsertLifecycleEvent(event);
       },
       clearAffiliateWorkspace() {

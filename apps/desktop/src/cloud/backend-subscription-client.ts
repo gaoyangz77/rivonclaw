@@ -1760,10 +1760,13 @@ export class BackendSubscriptionClient {
     const current = this.getToken?.() ?? null;
     if (this.transportToken === current) return;
     if (this.restartRequestedGeneration === this.transportGeneration) return;
-    log.info("Reconnecting backend subscription transport before subscribing with rotated credentials", {
-      subscription: key,
-      transportGeneration: this.transportGeneration,
-    });
+    log.info(
+      "Reconnecting backend subscription transport before subscribing with rotated credentials",
+      {
+        subscription: key,
+        transportGeneration: this.transportGeneration,
+      },
+    );
     this.restartTransport("rotated_credentials_subscribe");
   }
 
@@ -3225,9 +3228,7 @@ export class BackendSubscriptionClient {
           // recovery hook below must never be able to decide whether the
           // subscriptions come back — that dependency is what left a healthy
           // transport carrying no live subscriptions.
-          this.reconcileSubscriptions(
-            retrying ? "transport_reconnected" : "transport_connected",
-          );
+          this.reconcileSubscriptions(retrying ? "transport_reconnected" : "transport_connected");
           if (retrying && this.onConnectedAfterRetry) {
             const hook = this.onConnectedAfterRetry;
             // Best-effort cache warm-up (shop lifecycle, escalation catch-up).

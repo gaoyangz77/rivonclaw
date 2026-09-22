@@ -245,17 +245,17 @@ Standard easing is `cubic-bezier(.2, 0, 0, 1)`. Emphasized entry uses
 Every standard product page is composed from shared layout primitives. Pages provide content;
 they do not own shell or header geometry.
 
-| Owner          | Component                       | Geometry contract                                  | Token                                              |
-| -------------- | ------------------------------- | -------------------------------------------------- | -------------------------------------------------- |
-| Application    | App Shell                       | 28px top, 48px inline, 48px bottom desktop inset   | `--tk-v1-shell-content-*`                          |
-| Page           | `TkPageFrame`                   | 16px vertical rhythm; no page-local outer padding  | `--tk-v1-page-gap`                                 |
-| Page context   | `TkPageHeader`                  | 12px block, 16px inline padding; 80px minimum      | `--tk-v1-page-header-block` / `-inline`            |
-| Content group  | `TkPanel`                       | 8px radius and semantic L1/L2 surface variants     | `--tk-v1-panel-padding-*` classes on the space scale |
-| Group heading  | `TkPanelHeader` / `TkSection`   | 16px block, 16px inline padding                    | `--tk-v1-panel-header-block` / `-inline`           |
-| Group content  | `TkPanelBody` / `TkSection`     | 16px block, 16px inline padding                    | `--tk-v1-panel-body-block` / `-inline`             |
-| Modal heading  | `TkModalHeader`                 | 20px block, 24px inline padding                    | `--tk-v1-modal-header-block` / `-inline`           |
-| Local controls | `TkToolbar`                     | 8px control gap; open or framed composition        | `--tk-v1-space-2`                                  |
-| Record set     | `TkTableFrame`                  | shared overflow, header, row density, and boundary | `--tk-v1-row-*`                                    |
+| Owner          | Component                     | Geometry contract                                  | Token                                                |
+| -------------- | ----------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| Application    | App Shell                     | 28px top, 48px inline, 48px bottom desktop inset   | `--tk-v1-shell-content-*`                            |
+| Page           | `TkPageFrame`                 | 16px vertical rhythm; no page-local outer padding  | `--tk-v1-page-gap`                                   |
+| Page context   | `TkPageHeader`                | 12px block, 16px inline padding; 80px minimum      | `--tk-v1-page-header-block` / `-inline`              |
+| Content group  | `TkPanel`                     | 8px radius and semantic L1/L2 surface variants     | `--tk-v1-panel-padding-*` classes on the space scale |
+| Group heading  | `TkPanelHeader` / `TkSection` | 16px block, 16px inline padding                    | `--tk-v1-panel-header-block` / `-inline`             |
+| Group content  | `TkPanelBody` / `TkSection`   | 16px block, 16px inline padding                    | `--tk-v1-panel-body-block` / `-inline`               |
+| Modal heading  | `TkModalHeader`               | 20px block, 24px inline padding                    | `--tk-v1-modal-header-block` / `-inline`             |
+| Local controls | `TkToolbar`                   | 8px control gap; open or framed composition        | `--tk-v1-space-2`                                    |
+| Record set     | `TkTableFrame`                | shared overflow, header, row density, and boundary | `--tk-v1-row-*`                                      |
 
 The App Shell is the only owner of distance from the sidebar and viewport. `TkPageHeader` is the
 only owner of title, description, and page-action alignment. A workflow may choose which sections
@@ -488,19 +488,19 @@ contract and resolved in the library first.
 
 ### Migration ledger
 
-| Area                                         | Status           | Next gate                                      |
-| -------------------------------------------- | ---------------- | ---------------------------------------------- |
-| Foundation tokens and Light/Dark mapping     | Approved         | Reuse without page-local visual values         |
-| Button, field, choice select, switch, tabs   | Adopted          | Guard against page-local clones                 |
-| Alert, loading, empty, badge, status, metrics| Adopted          | Extend only through component contracts         |
-| Page frame, header, panel, toolbar, table    | Adopted          | Structural CI guard active                      |
-| Popover, menu, modal contract                | Adopted          | Continue keyboard and collision regression QA  |
-| Tooltip and info-tip contract                | Adopted          | Use the shared portal implementation           |
-| Settings                                     | Approved         | Reference archetype for preference pages       |
-| Affiliate attention workbench                | Approved         | Reference archetype for operational pages      |
-| Affiliate shared business-page frame         | Adopted          | Preserve domain-specific dense composites      |
-| Commerce operations                          | Adopted          | Representative Light/Dark visual regression    |
-| Remaining product families                   | Adopted          | Continue replacing nonstructural legacy controls|
+| Area                                          | Status   | Next gate                                        |
+| --------------------------------------------- | -------- | ------------------------------------------------ |
+| Foundation tokens and Light/Dark mapping      | Approved | Reuse without page-local visual values           |
+| Button, field, choice select, switch, tabs    | Adopted  | Guard against page-local clones                  |
+| Alert, loading, empty, badge, status, metrics | Adopted  | Extend only through component contracts          |
+| Page frame, header, panel, toolbar, table     | Adopted  | Structural CI guard active                       |
+| Popover, menu, modal contract                 | Adopted  | Continue keyboard and collision regression QA    |
+| Tooltip and info-tip contract                 | Adopted  | Use the shared portal implementation             |
+| Settings                                      | Approved | Reference archetype for preference pages         |
+| Affiliate attention workbench                 | Approved | Reference archetype for operational pages        |
+| Affiliate shared business-page frame          | Adopted  | Preserve domain-specific dense composites        |
+| Commerce operations                           | Adopted  | Representative Light/Dark visual regression      |
+| Remaining product families                    | Adopted  | Continue replacing nonstructural legacy controls |
 
 The chat session tab bar remains an intentional composite exception: it manages closable,
 reorderable sessions rather than page navigation. It must keep the shared tokens and accessibility

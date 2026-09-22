@@ -34,7 +34,10 @@ interface AnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBackdropClose: () => void;
-  onAction: (action: ActiveAnnouncementAction, eventType: "PRIMARY_CLICK" | "SECONDARY_CLICK") => void;
+  onAction: (
+    action: ActiveAnnouncementAction,
+    eventType: "PRIMARY_CLICK" | "SECONDARY_CLICK",
+  ) => void;
 }
 
 const ALLOWED_TAGS = new Set([
@@ -145,10 +148,7 @@ export function AnnouncementModal({
       title={announcement.title}
       maxWidth={announcement.maxWidth || 560}
     >
-      <div
-        className="announcement-modal"
-        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-      />
+      <div className="announcement-modal" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
       <div className="announcement-modal-actions">
         {actions.map((action) => (
           <button

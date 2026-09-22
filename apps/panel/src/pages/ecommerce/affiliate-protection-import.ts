@@ -63,7 +63,11 @@ export type AffiliateCreatorUpdateTemplateValidation = {
 };
 
 export function normalizeAffiliateCreatorUpdateHeader(value: unknown): string {
-  return String(value ?? "").normalize("NFKC").trim().toLowerCase().replace(/[\s-]+/gu, "_");
+  return String(value ?? "")
+    .normalize("NFKC")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/gu, "_");
 }
 
 /**
@@ -85,9 +89,9 @@ export function validateAffiliateCreatorUpdateTemplate(
     "protection_action",
     "protection_note",
   ]);
-  const unsupportedHeaders = headers.filter((header) => (
-    !supported.has(header) && !MANUAL_TAG_HEADER_PATTERN.test(header)
-  ));
+  const unsupportedHeaders = headers.filter(
+    (header) => !supported.has(header) && !MANUAL_TAG_HEADER_PATTERN.test(header),
+  );
   return {
     valid: missingHeaders.length === 0 && unsupportedHeaders.length === 0,
     missingHeaders,
@@ -113,10 +117,9 @@ export function parseAffiliateCreatorUpdateRow(
   raw: Record<string, unknown>,
   manualTagCatalogNames: readonly string[],
 ): ParsedAffiliateCreatorUpdateRow {
-  const row = Object.fromEntries(Object.entries(raw).map(([key, value]) => [
-    normalizeAffiliateCreatorUpdateHeader(key),
-    value,
-  ]));
+  const row = Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [normalizeAffiliateCreatorUpdateHeader(key), value]),
+  );
   const username = cleanCell(row.creator_username)?.replace(/^@/u, "") || null;
   const sellerProvidedUid = cleanCell(row.creator_uid_note);
   const sellerNote = cleanCell(row.creator_note);
@@ -127,12 +130,17 @@ export function parseAffiliateCreatorUpdateRow(
   const manualTagsByNormalizedName = new Map<string, string>();
   Object.entries(row)
     .filter(([header]) => MANUAL_TAG_HEADER_PATTERN.test(header))
-    .sort(([left], [right]) => Number(left.match(MANUAL_TAG_HEADER_PATTERN)?.[1]) - Number(right.match(MANUAL_TAG_HEADER_PATTERN)?.[1]))
+    .sort(
+      ([left], [right]) =>
+        Number(left.match(MANUAL_TAG_HEADER_PATTERN)?.[1]) -
+        Number(right.match(MANUAL_TAG_HEADER_PATTERN)?.[1]),
+    )
     .forEach(([, value]) => {
       const name = cleanCell(value);
       if (!name) return;
       const normalizedName = normalizeCreatorManualTagName(name);
-      if (!manualTagsByNormalizedName.has(normalizedName)) manualTagsByNormalizedName.set(normalizedName, name);
+      if (!manualTagsByNormalizedName.has(normalizedName))
+        manualTagsByNormalizedName.set(normalizedName, name);
     });
   const manualTagNames = [...manualTagsByNormalizedName.values()];
   const catalog = new Set(manualTagCatalogNames.map(normalizeCreatorManualTagName));
@@ -142,7 +150,8 @@ export function parseAffiliateCreatorUpdateRow(
   let issue: ParsedAffiliateCreatorUpdateRow["issue"] = null;
   if (!username) issue = "MISSING_CREATOR";
   else if (typeof row.creator_uid_note === "number") issue = "UID_MUST_BE_TEXT";
-  else if (protectionAction && !protect && protectionAction !== "UNPROTECT") issue = "INVALID_PROTECTION_ACTION";
+  else if (protectionAction && !protect && protectionAction !== "UNPROTECT")
+    issue = "INVALID_PROTECTION_ACTION";
   else if (protectionNote && !protect) issue = "NOTE_WITHOUT_PROTECTION";
   else if (unknownManualTagNames.length > 0) issue = "UNKNOWN_MANUAL_TAGS";
   return {
@@ -197,11 +206,14 @@ export function summarizeAffiliateProtectionAssignments(
     businessDeveloperName: string | null;
   }>,
 ): AffiliateProtectionAssignmentSummary {
-  const assignedByDeveloper = new Map<string, {
-    businessDeveloperId: string;
-    businessDeveloperName: string;
-    rowCount: number;
-  }>();
+  const assignedByDeveloper = new Map<
+    string,
+    {
+      businessDeveloperId: string;
+      businessDeveloperName: string;
+      rowCount: number;
+    }
+  >();
   let assignedRowCount = 0;
   let protectionOnlyRowCount = 0;
   let attentionRowCount = 0;
@@ -228,10 +240,11 @@ export function summarizeAffiliateProtectionAssignments(
   }
 
   return {
-    assigned: [...assignedByDeveloper.values()].sort((left, right) => (
-      right.rowCount - left.rowCount ||
-      left.businessDeveloperName.localeCompare(right.businessDeveloperName)
-    )),
+    assigned: [...assignedByDeveloper.values()].sort(
+      (left, right) =>
+        right.rowCount - left.rowCount ||
+        left.businessDeveloperName.localeCompare(right.businessDeveloperName),
+    ),
     assignedRowCount,
     protectionOnlyRowCount,
     attentionRowCount,
@@ -245,9 +258,8 @@ export function buildAffiliateDeveloperProvisionBatches<T>(
   if (!Number.isInteger(maxEntries) || maxEntries < 1) {
     throw new Error("Affiliate developer provision maxEntries must be a positive integer.");
   }
-  return Array.from(
-    { length: Math.ceil(entries.length / maxEntries) },
-    (_, index) => entries.slice(index * maxEntries, (index + 1) * maxEntries),
+  return Array.from({ length: Math.ceil(entries.length / maxEntries) }, (_, index) =>
+    entries.slice(index * maxEntries, (index + 1) * maxEntries),
   );
 }
 
@@ -312,12 +324,14 @@ function variablesByteLength(
   entries: AffiliateCreatorUpdateImportEntry[],
   importBatchId: string,
 ): number {
-  return textEncoder.encode(JSON.stringify({
-    input: {
-      importBatchId,
-      entries,
-    },
-  })).byteLength;
+  return textEncoder.encode(
+    JSON.stringify({
+      input: {
+        importBatchId,
+        entries,
+      },
+    }),
+  ).byteLength;
 }
 
 export function buildAffiliateCreatorUpdateImportBatches(
@@ -329,7 +343,8 @@ export function buildAffiliateCreatorUpdateImportBatches(
   } = {},
 ): AffiliateCreatorUpdateImportBatch[] {
   const maxEntries = options.maxEntries ?? AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_ENTRIES;
-  const maxVariableBytes = options.maxVariableBytes ?? AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_VARIABLE_BYTES;
+  const maxVariableBytes =
+    options.maxVariableBytes ?? AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_VARIABLE_BYTES;
   if (!Number.isInteger(maxEntries) || maxEntries < 1) {
     throw new Error("Affiliate Creator update maxEntries must be a positive integer.");
   }
@@ -344,7 +359,8 @@ export function buildAffiliateCreatorUpdateImportBatches(
   for (const [index, entry] of entries.entries()) {
     const candidateEntries = [...currentEntries, entry];
     const exceedsEntryLimit = candidateEntries.length > maxEntries;
-    const exceedsByteLimit = variablesByteLength(candidateEntries, importBatchId) > maxVariableBytes;
+    const exceedsByteLimit =
+      variablesByteLength(candidateEntries, importBatchId) > maxVariableBytes;
 
     if (currentEntries.length > 0 && (exceedsEntryLimit || exceedsByteLimit)) {
       batches.push({

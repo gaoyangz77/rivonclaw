@@ -2,7 +2,8 @@ import type { Storage } from "@rivonclaw/storage";
 
 export const TELEGRAM_CHANNEL_ID = "telegram";
 export const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
-export const RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY = "telegram-debug.operator-user-ids";
+export const RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY =
+  "telegram-debug.operator-user-ids";
 
 export function normalizeTelegramDebugOperatorUserIds(values: readonly unknown[]): string[] {
   const ids: string[] = [];
@@ -30,4 +31,3 @@ export function readTelegramDebugOperatorUserIds(storage: Storage): string[] {
     return [];
   }
 }
-

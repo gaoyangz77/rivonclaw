@@ -408,7 +408,8 @@ export function validateGeneratedPlan(value: unknown, context: GenerationContext
   // Empty guidance is valid. The product context may still drive keyword and
   // rule generation, but model-authored guidance interpretation is not user
   // intent and must be normalized away deterministically.
-  const hardConstraints = guidance &&
+  const hardConstraints =
+    guidance &&
     rawInterpretation.hardConstraints &&
     typeof rawInterpretation.hardConstraints === "object" &&
     !Array.isArray(rawInterpretation.hardConstraints)
@@ -424,12 +425,13 @@ export function validateGeneratedPlan(value: unknown, context: GenerationContext
         allowLocalizedFallback: !hasHardGuidance,
       })
     : [];
-  const unsupportedHardConstraints = !guidance || rawInterpretation.unsupportedHardConstraints === undefined
-    ? []
-    : normalizeInterpretationStatements(
-      rawInterpretation.unsupportedHardConstraints,
-      "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_INVALID",
-    );
+  const unsupportedHardConstraints =
+    !guidance || rawInterpretation.unsupportedHardConstraints === undefined
+      ? []
+      : normalizeInterpretationStatements(
+          rawInterpretation.unsupportedHardConstraints,
+          "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_INVALID",
+        );
   const hasHardConstraints = hasMeaningfulRule(hardConstraints);
   if (unsupportedHardConstraints.length) {
     throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
@@ -510,7 +512,9 @@ function normalizeInterpretationStatements(
 ): string[] {
   const values = options.allowSingleton && typeof value === "string" ? [value] : value;
   if (!Array.isArray(values) || values.length > 10) throw new Error(errorCode);
-  const statements = values.map((item) => String(item).normalize("NFKC").trim().replace(/\s+/gu, " "));
+  const statements = values.map((item) =>
+    String(item).normalize("NFKC").trim().replace(/\s+/gu, " "),
+  );
   if (statements.some((item) => !item || item.length > 200)) throw new Error(errorCode);
   return [...new Set(statements)];
 }
@@ -574,10 +578,9 @@ function containsRequiredValue(actual: unknown, required: unknown): boolean {
   if (!required || typeof required !== "object") return Object.is(actual, required);
   if (!actual || typeof actual !== "object" || Array.isArray(actual)) return false;
   return Object.entries(required as Record<string, unknown>).every(
-    ([key, child]) => !hasMeaningfulRule(child) || containsRequiredValue(
-      (actual as Record<string, unknown>)[key],
-      child,
-    ),
+    ([key, child]) =>
+      !hasMeaningfulRule(child) ||
+      containsRequiredValue((actual as Record<string, unknown>)[key], child),
   );
 }
 

@@ -8,9 +8,7 @@ import {
 describe("windowsPathToPosix", () => {
   it("converts drive-letter backslash paths", () => {
     expect(windowsPathToPosix("E:\\OpenClaw")).toBe("/e/OpenClaw");
-    expect(windowsPathToPosix("C:\\Users\\kai\\workspace")).toBe(
-      "/c/Users/kai/workspace",
-    );
+    expect(windowsPathToPosix("C:\\Users\\kai\\workspace")).toBe("/c/Users/kai/workspace");
   });
 
   it("converts drive-letter forward-slash paths", () => {
@@ -42,9 +40,7 @@ describe("windowsPathToPosix", () => {
 
 describe("normalizeBindSpec", () => {
   it("converts Windows bind spec to POSIX", () => {
-    expect(normalizeBindSpec("E:\\OpenClaw:E:\\OpenClaw:rw")).toBe(
-      "/e/OpenClaw:/e/OpenClaw:rw",
-    );
+    expect(normalizeBindSpec("E:\\OpenClaw:E:\\OpenClaw:rw")).toBe("/e/OpenClaw:/e/OpenClaw:rw");
   });
 
   it("converts drive-root bind spec", () => {
@@ -52,15 +48,11 @@ describe("normalizeBindSpec", () => {
   });
 
   it("handles mixed host Windows / container POSIX", () => {
-    expect(normalizeBindSpec("C:\\Users\\kai:/workspace:ro")).toBe(
-      "/c/Users/kai:/workspace:ro",
-    );
+    expect(normalizeBindSpec("C:\\Users\\kai:/workspace:ro")).toBe("/c/Users/kai:/workspace:ro");
   });
 
   it("passes POSIX bind specs through unchanged", () => {
-    expect(normalizeBindSpec("/home/user:/home/user:ro")).toBe(
-      "/home/user:/home/user:ro",
-    );
+    expect(normalizeBindSpec("/home/user:/home/user:ro")).toBe("/home/user:/home/user:ro");
   });
 
   it("handles bind spec without options", () => {
@@ -75,12 +67,10 @@ describe("normalizeBindSpec", () => {
 
 describe("sanitizeWindowsBinds", () => {
   it("converts an array of Windows bind specs", () => {
-    expect(
-      sanitizeWindowsBinds([
-        "E:\\OpenClaw:E:\\OpenClaw:rw",
-        "D:\\:D:\\:rw",
-      ]),
-    ).toEqual(["/e/OpenClaw:/e/OpenClaw:rw", "/d:/d:rw"]);
+    expect(sanitizeWindowsBinds(["E:\\OpenClaw:E:\\OpenClaw:rw", "D:\\:D:\\:rw"])).toEqual([
+      "/e/OpenClaw:/e/OpenClaw:rw",
+      "/d:/d:rw",
+    ]);
   });
 
   it("returns undefined for non-array input", () => {
@@ -89,9 +79,7 @@ describe("sanitizeWindowsBinds", () => {
   });
 
   it("filters out non-string entries", () => {
-    expect(sanitizeWindowsBinds(["/a:/a:ro", 42, null])).toEqual([
-      "/a:/a:ro",
-    ]);
+    expect(sanitizeWindowsBinds(["/a:/a:ro", 42, null])).toEqual(["/a:/a:ro"]);
   });
 
   it("leaves POSIX specs unchanged", () => {

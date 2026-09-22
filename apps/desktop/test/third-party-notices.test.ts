@@ -22,7 +22,7 @@ const NOTICES_PATH = join(DESKTOP_DIR, "THIRD_PARTY_NOTICES.md");
  * author left in it. OFL clause 2 requires "the above copyright notice", not a
  * tidied paraphrase of it, so the oddities are load-bearing.
  */
-const FONT_COPYRIGHT_NOTICE = 'Copyright NZWStudios2024 2025\n“FS Pixel Classic Regular';
+const FONT_COPYRIGHT_NOTICE = "Copyright NZWStudios2024 2025\n“FS Pixel Classic Regular";
 
 /**
  * Sentences from the licence body rather than its title. A notices file that
@@ -33,7 +33,7 @@ const OFL_BODY_MARKERS = [
   "SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007",
   "Neither the Font Software nor any of its individual components,\nin Original or Modified Versions, may be sold by itself.",
   "provided that each copy\ncontains the above copyright notice and this license",
-  "THE FONT SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND",
+  'THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND',
 ];
 
 const BASE_CONFIG = "electron-builder.yml";

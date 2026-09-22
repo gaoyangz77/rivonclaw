@@ -13,10 +13,7 @@ interface PageErrorBoundaryState {
 }
 
 /** Keeps the application shell usable when one route fails during render. */
-export class PageErrorBoundary extends Component<
-  PageErrorBoundaryProps,
-  PageErrorBoundaryState
-> {
+export class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBoundaryState> {
   state: PageErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): PageErrorBoundaryState {

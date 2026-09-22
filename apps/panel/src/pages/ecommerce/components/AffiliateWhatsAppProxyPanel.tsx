@@ -59,7 +59,12 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
     const host = proxyForm.host.trim();
     const port = proxyForm.port.trim();
     if (!host || !port) {
-      showToast(t("ecommerce.affiliateWorkspace.whatsapp.proxyRequired", { defaultValue: "Proxy host and port are required." }), "error");
+      showToast(
+        t("ecommerce.affiliateWorkspace.whatsapp.proxyRequired", {
+          defaultValue: "Proxy host and port are required.",
+        }),
+        "error",
+      );
       return;
     }
     const input = {
@@ -80,10 +85,20 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
             },
           },
         });
-        showToast(t("ecommerce.affiliateWorkspace.whatsapp.proxyUpdated", { defaultValue: "WhatsApp proxy updated." }), "success");
+        showToast(
+          t("ecommerce.affiliateWorkspace.whatsapp.proxyUpdated", {
+            defaultValue: "WhatsApp proxy updated.",
+          }),
+          "success",
+        );
       } else {
         await createProxy({ variables: { input } });
-        showToast(t("ecommerce.affiliateWorkspace.whatsapp.proxyCreated", { defaultValue: "WhatsApp proxy created." }), "success");
+        showToast(
+          t("ecommerce.affiliateWorkspace.whatsapp.proxyCreated", {
+            defaultValue: "WhatsApp proxy created.",
+          }),
+          "success",
+        );
       }
       resetProxyForm();
       await refetchProxies();
@@ -93,9 +108,8 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
   }
 
   async function handleToggleProxy(proxy: WhatsAppProxy) {
-    const nextStatus = proxy.status === GQL.ProxyStatus.Active
-      ? GQL.ProxyStatus.Disabled
-      : GQL.ProxyStatus.Active;
+    const nextStatus =
+      proxy.status === GQL.ProxyStatus.Active ? GQL.ProxyStatus.Disabled : GQL.ProxyStatus.Active;
     try {
       await updateProxy({
         variables: {
@@ -132,12 +146,24 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
     <div className="affiliate-whatsapp-proxy-panel">
       <div className="affiliate-whatsapp-proxy-head">
         <div>
-          <strong>{t("ecommerce.affiliateWorkspace.whatsapp.proxyPool", { defaultValue: "Proxy pool" })}</strong>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.proxyPoolHint", { defaultValue: "Assign one stable egress proxy before scanning a seller WhatsApp account." })}</span>
+          <strong>
+            {t("ecommerce.affiliateWorkspace.whatsapp.proxyPool", { defaultValue: "Proxy pool" })}
+          </strong>
+          <span>
+            {t("ecommerce.affiliateWorkspace.whatsapp.proxyPoolHint", {
+              defaultValue:
+                "Assign one stable egress proxy before scanning a seller WhatsApp account.",
+            })}
+          </span>
         </div>
         <div className="affiliate-whatsapp-proxy-head-actions">
           {editingProxyId && (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={resetProxyForm} disabled={proxyBusy}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={resetProxyForm}
+              disabled={proxyBusy}
+            >
               {t("common.cancel", { defaultValue: "Cancel" })}
             </button>
           )}
@@ -150,10 +176,14 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
       </div>
       <div className="affiliate-whatsapp-proxy-form">
         <label>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.protocol", { defaultValue: "Protocol" })}</span>
+          <span>
+            {t("ecommerce.affiliateWorkspace.whatsapp.protocol", { defaultValue: "Protocol" })}
+          </span>
           <Select
             value={proxyForm.protocol}
-            onChange={(value) => setProxyForm((prev) => ({ ...prev, protocol: value as GQL.ProxyProtocol }))}
+            onChange={(value) =>
+              setProxyForm((prev) => ({ ...prev, protocol: value as GQL.ProxyProtocol }))
+            }
             options={[
               { value: GQL.ProxyProtocol.Socks5, label: "SOCKS5" },
               { value: GQL.ProxyProtocol.Http, label: "HTTP" },
@@ -183,7 +213,9 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
           />
         </label>
         <label>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.region", { defaultValue: "Region" })}</span>
+          <span>
+            {t("ecommerce.affiliateWorkspace.whatsapp.region", { defaultValue: "Region" })}
+          </span>
           <input
             className="input"
             value={proxyForm.region}
@@ -193,26 +225,45 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
           />
         </label>
         <label>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.username", { defaultValue: "Username" })}</span>
+          <span>
+            {t("ecommerce.affiliateWorkspace.whatsapp.username", { defaultValue: "Username" })}
+          </span>
           <input
             className="input"
             value={proxyForm.username}
-            onChange={(event) => setProxyForm((prev) => ({ ...prev, username: event.target.value }))}
+            onChange={(event) =>
+              setProxyForm((prev) => ({ ...prev, username: event.target.value }))
+            }
             disabled={proxyBusy}
           />
         </label>
         <label>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.password", { defaultValue: "Password" })}</span>
+          <span>
+            {t("ecommerce.affiliateWorkspace.whatsapp.password", { defaultValue: "Password" })}
+          </span>
           <input
             className="input"
             value={proxyForm.password}
-            onChange={(event) => setProxyForm((prev) => ({ ...prev, password: event.target.value }))}
-            placeholder={editingProxyId ? t("ecommerce.affiliateWorkspace.whatsapp.passwordKeep", { defaultValue: "Leave blank to keep" }) : ""}
+            onChange={(event) =>
+              setProxyForm((prev) => ({ ...prev, password: event.target.value }))
+            }
+            placeholder={
+              editingProxyId
+                ? t("ecommerce.affiliateWorkspace.whatsapp.passwordKeep", {
+                    defaultValue: "Leave blank to keep",
+                  })
+                : ""
+            }
             type="password"
             disabled={proxyBusy}
           />
         </label>
-        <button type="button" className="btn btn-secondary" onClick={handleSaveProxy} disabled={proxyBusy}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handleSaveProxy}
+          disabled={proxyBusy}
+        >
           {proxyBusy
             ? t("common.loading")
             : editingProxyId
@@ -223,23 +274,37 @@ export function AffiliateWhatsAppProxyPanel({ onBack }: { onBack?: () => void })
       <div className="affiliate-whatsapp-proxy-list">
         {proxies.length === 0 && (
           <div className="affiliate-policy-option-empty">
-            {t("ecommerce.affiliateWorkspace.whatsapp.noProxies", { defaultValue: "No proxy configured yet." })}
+            {t("ecommerce.affiliateWorkspace.whatsapp.noProxies", {
+              defaultValue: "No proxy configured yet.",
+            })}
           </div>
         )}
         {proxies.map((proxy) => (
           <div className="affiliate-whatsapp-proxy-row" key={proxy.id}>
             <div>
-              <span className={`affiliate-whatsapp-status affiliate-whatsapp-status-${proxy.status.toLowerCase()}`}>
+              <span
+                className={`affiliate-whatsapp-status affiliate-whatsapp-status-${proxy.status.toLowerCase()}`}
+              >
                 {proxyStatusLabel(t, proxy.status)}
               </span>
               <strong>{proxyDisplayLabel(proxy)}</strong>
               {proxy.lastError && <em>{proxy.lastError}</em>}
             </div>
             <div className="affiliate-whatsapp-account-actions">
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEditProxy(proxy)} disabled={proxyBusy}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleEditProxy(proxy)}
+                disabled={proxyBusy}
+              >
                 {t("common.edit", { defaultValue: "Edit" })}
               </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleToggleProxy(proxy)} disabled={proxyBusy}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleToggleProxy(proxy)}
+                disabled={proxyBusy}
+              >
                 {proxy.status === GQL.ProxyStatus.Active
                   ? t("common.disable", { defaultValue: "Disable" })
                   : t("common.enable", { defaultValue: "Enable" })}

@@ -50,7 +50,8 @@ const en = {
   usageDescription: "Setup, correct use, care, safety, and troubleshooting.",
   qaDescription: "Approved answers to product questions and common objections.",
   casesDescription: "Reference videos, hooks, scripts, and repeatable creative patterns.",
-  markdownNativeHint: "Saved as Markdown. Use the source view to paste or copy raw Markdown without conversion.",
+  markdownNativeHint:
+    "Saved as Markdown. Use the source view to paste or copy raw Markdown without conversion.",
   overLimit: "This section exceeds 10,000 characters. Shorten it before saving.",
   editorUndo: "Undo {{shortcut}}",
   editorRedo: "Redo {{shortcut}}",
@@ -105,7 +106,8 @@ const en = {
   mediaInsertVideo: "Insert video",
   mediaUploading: "Uploading media…",
   mediaUploadFailed: "The media file was not uploaded.",
-  mediaUnsupportedType: "“{{name}}” is not a supported media type. Use JPEG, PNG, WebP, GIF, MP4, WebM, or MOV.",
+  mediaUnsupportedType:
+    "“{{name}}” is not a supported media type. Use JPEG, PNG, WebP, GIF, MP4, WebM, or MOV.",
   mediaTooLarge: "“{{name}}” is larger than {{limit}} MB. Compress it and try again.",
   mediaResolving: "Loading media…",
   mediaUnavailable: "This media is no longer available.",
@@ -116,19 +118,23 @@ const en = {
   mediaKindVideo: "Video",
   mediaExpand: "Preview",
   mediaCollapse: "Hide",
-  usagePlaceholder: "Write setup, usage, care, troubleshooting, and other product instructions in Markdown…",
+  usagePlaceholder:
+    "Write setup, usage, care, troubleshooting, and other product instructions in Markdown…",
   qaPlaceholder: "Write common product questions and approved answers in Markdown…",
-  casesPlaceholder: "Add reference videos, links, scripts, hooks, and notes about reusable creative patterns in Markdown…",
+  casesPlaceholder:
+    "Add reference videos, links, scripts, hooks, and notes about reusable creative patterns in Markdown…",
   preview: "Preview",
   previewEmpty: "Nothing to preview yet.",
   saveFailed: "Product Knowledge was not saved.",
   staleConflict: "A newer version exists on the server.",
   staleTitle: "This knowledge changed elsewhere",
-  staleBody: "Your draft is preserved. Load the server version, or acknowledge the latest revision and save your draft again.",
+  staleBody:
+    "Your draft is preserved. Load the server version, or acknowledge the latest revision and save your draft again.",
   useServerVersion: "Use server version",
   keepDraft: "Keep my draft",
   bindingsTitle: "Connected shop products",
-  bindingsSubtitle: "Seller SKU discovers candidates; your confirmed Shop ID and Product ID become the durable link.",
+  bindingsSubtitle:
+    "Seller SKU discovers candidates; your confirmed Shop ID and Product ID become the durable link.",
   noBindings: "No shop products are connected yet.",
   unlink: "Unlink",
   unlinkTitle: "Unlink product?",
@@ -138,7 +144,8 @@ const en = {
   shopAlias: "Shop alias",
   sellerSkuLabel: "Seller SKU",
   sellerSku: "Discover by Seller SKU",
-  sellerSkuHint: "Exact, case-sensitive matching across every authorized TikTok Shop. Paste several Seller SKUs separated by commas — the same product often carries a different one in each shop.",
+  sellerSkuHint:
+    "Exact, case-sensitive matching across every authorized TikTok Shop. Paste several Seller SKUs separated by commas — the same product often carries a different one in each shop.",
   sellerSkuPlaceholder: "Enter exact Seller SKUs, separated by commas",
   discover: "Discover products",
   searching: "Searching shops…",
@@ -267,7 +274,8 @@ const zh = {
   mediaInsertVideo: "插入视频",
   mediaUploading: "正在上传媒体文件…",
   mediaUploadFailed: "媒体文件上传失败。",
-  mediaUnsupportedType: "“{{name}}”不是受支持的媒体格式，请使用 JPEG、PNG、WebP、GIF、MP4、WebM 或 MOV。",
+  mediaUnsupportedType:
+    "“{{name}}”不是受支持的媒体格式，请使用 JPEG、PNG、WebP、GIF、MP4、WebM 或 MOV。",
   mediaTooLarge: "“{{name}}”超过 {{limit}} MB，请压缩后重试。",
   mediaResolving: "正在加载媒体…",
   mediaUnavailable: "该媒体已不可用。",
@@ -300,7 +308,8 @@ const zh = {
   shopAlias: "店铺别名",
   sellerSkuLabel: "Seller SKU",
   sellerSku: "通过 Seller SKU 发现商品",
-  sellerSkuHint: "在当前用户所有已授权 TikTok 店铺中进行大小写敏感的精确匹配。同一款商品在不同店铺常用不同的 Seller SKU，可用逗号分隔一次粘贴多个。",
+  sellerSkuHint:
+    "在当前用户所有已授权 TikTok 店铺中进行大小写敏感的精确匹配。同一款商品在不同店铺常用不同的 Seller SKU，可用逗号分隔一次粘贴多个。",
   sellerSkuPlaceholder: "输入准确的 Seller SKU，多个用逗号分隔",
   discover: "发现商品",
   searching: "正在搜索店铺…",
@@ -323,13 +332,17 @@ const zh = {
 
 const enTutorial = {
   welcomeTitle: "A reusable product truth layer",
-  welcomeBody: "Keep product instructions, approved answers, and creative references independent from any one shop listing.",
+  welcomeBody:
+    "Keep product instructions, approved answers, and creative references independent from any one shop listing.",
   libraryTitle: "Knowledge library",
-  libraryBody: "Use the table to scan status, content coverage, linked products, revision, and freshness before opening a knowledge base.",
+  libraryBody:
+    "Use the table to scan status, content coverage, linked products, revision, and freshness before opening a knowledge base.",
   editorTitle: "Markdown knowledge editor",
-  editorBody: "Edit and preview the three business-owned knowledge sections, then save them with revision protection.",
+  editorBody:
+    "Edit and preview the three business-owned knowledge sections, then save them with revision protection.",
   bindingsTitle: "Connect shop products",
-  bindingsBody: "Discover exact Seller SKU matches across shops and confirm the Product IDs that belong to this knowledge.",
+  bindingsBody:
+    "Discover exact Seller SKU matches across shops and confirm the Product IDs that belong to this knowledge.",
 };
 
 const zhTutorial = {
@@ -348,12 +361,83 @@ function locale(overrides: Partial<typeof en>) {
 }
 
 export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
-  en: { nav: { productKnowledge: "Product Knowledge" }, ecommerce: { productKnowledge: en }, tutorial: { productKnowledge: enTutorial } },
-  zh: { nav: { productKnowledge: "产品知识" }, ecommerce: { productKnowledge: zh }, tutorial: { productKnowledge: zhTutorial } },
-  de: { nav: { productKnowledge: "Produktwissen" }, ecommerce: { productKnowledge: locale({ pageTitle: "Produktwissen", pageSubtitle: "Produktwissen einmal pflegen und mit Angeboten in allen Shops verbinden.", create: "Neues Wissen" }) }, tutorial: { productKnowledge: enTutorial } },
-  es: { nav: { productKnowledge: "Conocimiento del producto" }, ecommerce: { productKnowledge: locale({ pageTitle: "Conocimiento del producto", pageSubtitle: "Crea conocimiento reutilizable y conéctalo con productos de todas tus tiendas.", create: "Nuevo conocimiento" }) }, tutorial: { productKnowledge: enTutorial } },
-  fr: { nav: { productKnowledge: "Connaissance produit" }, ecommerce: { productKnowledge: locale({ pageTitle: "Connaissance produit", pageSubtitle: "Créez une base réutilisable et reliez-la aux produits de toutes vos boutiques.", create: "Nouvelle connaissance" }) }, tutorial: { productKnowledge: enTutorial } },
-  id: { nav: { productKnowledge: "Pengetahuan produk" }, ecommerce: { productKnowledge: locale({ pageTitle: "Pengetahuan produk", pageSubtitle: "Bangun pengetahuan yang dapat digunakan kembali dan hubungkan ke produk di semua toko.", create: "Pengetahuan baru" }) }, tutorial: { productKnowledge: enTutorial } },
-  it: { nav: { productKnowledge: "Conoscenza prodotto" }, ecommerce: { productKnowledge: locale({ pageTitle: "Conoscenza prodotto", pageSubtitle: "Crea conoscenza riutilizzabile e collegala ai prodotti di tutti i negozi.", create: "Nuova conoscenza" }) }, tutorial: { productKnowledge: enTutorial } },
-  th: { nav: { productKnowledge: "ความรู้ผลิตภัณฑ์" }, ecommerce: { productKnowledge: locale({ pageTitle: "ความรู้ผลิตภัณฑ์", pageSubtitle: "สร้างความรู้ที่นำกลับมาใช้ซ้ำและเชื่อมกับสินค้าในทุกร้าน", create: "สร้างความรู้" }) }, tutorial: { productKnowledge: enTutorial } },
+  en: {
+    nav: { productKnowledge: "Product Knowledge" },
+    ecommerce: { productKnowledge: en },
+    tutorial: { productKnowledge: enTutorial },
+  },
+  zh: {
+    nav: { productKnowledge: "产品知识" },
+    ecommerce: { productKnowledge: zh },
+    tutorial: { productKnowledge: zhTutorial },
+  },
+  de: {
+    nav: { productKnowledge: "Produktwissen" },
+    ecommerce: {
+      productKnowledge: locale({
+        pageTitle: "Produktwissen",
+        pageSubtitle: "Produktwissen einmal pflegen und mit Angeboten in allen Shops verbinden.",
+        create: "Neues Wissen",
+      }),
+    },
+    tutorial: { productKnowledge: enTutorial },
+  },
+  es: {
+    nav: { productKnowledge: "Conocimiento del producto" },
+    ecommerce: {
+      productKnowledge: locale({
+        pageTitle: "Conocimiento del producto",
+        pageSubtitle:
+          "Crea conocimiento reutilizable y conéctalo con productos de todas tus tiendas.",
+        create: "Nuevo conocimiento",
+      }),
+    },
+    tutorial: { productKnowledge: enTutorial },
+  },
+  fr: {
+    nav: { productKnowledge: "Connaissance produit" },
+    ecommerce: {
+      productKnowledge: locale({
+        pageTitle: "Connaissance produit",
+        pageSubtitle:
+          "Créez une base réutilisable et reliez-la aux produits de toutes vos boutiques.",
+        create: "Nouvelle connaissance",
+      }),
+    },
+    tutorial: { productKnowledge: enTutorial },
+  },
+  id: {
+    nav: { productKnowledge: "Pengetahuan produk" },
+    ecommerce: {
+      productKnowledge: locale({
+        pageTitle: "Pengetahuan produk",
+        pageSubtitle:
+          "Bangun pengetahuan yang dapat digunakan kembali dan hubungkan ke produk di semua toko.",
+        create: "Pengetahuan baru",
+      }),
+    },
+    tutorial: { productKnowledge: enTutorial },
+  },
+  it: {
+    nav: { productKnowledge: "Conoscenza prodotto" },
+    ecommerce: {
+      productKnowledge: locale({
+        pageTitle: "Conoscenza prodotto",
+        pageSubtitle: "Crea conoscenza riutilizzabile e collegala ai prodotti di tutti i negozi.",
+        create: "Nuova conoscenza",
+      }),
+    },
+    tutorial: { productKnowledge: enTutorial },
+  },
+  th: {
+    nav: { productKnowledge: "ความรู้ผลิตภัณฑ์" },
+    ecommerce: {
+      productKnowledge: locale({
+        pageTitle: "ความรู้ผลิตภัณฑ์",
+        pageSubtitle: "สร้างความรู้ที่นำกลับมาใช้ซ้ำและเชื่อมกับสินค้าในทุกร้าน",
+        create: "สร้างความรู้",
+      }),
+    },
+    tutorial: { productKnowledge: enTutorial },
+  },
 } as const;

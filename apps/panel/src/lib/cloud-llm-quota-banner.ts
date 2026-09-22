@@ -43,7 +43,9 @@ export function resolveCloudLlmQuotaBannerState(
   providerKeys: readonly ProviderKeyLike[],
   billingOverview: BillingOverviewLike | null | undefined,
 ): CloudLlmQuotaBannerState | null {
-  const activeCloudKey = providerKeys.find((key) => key.isDefault && key.provider === CLOUD_LLM_PROVIDER_ID);
+  const activeCloudKey = providerKeys.find(
+    (key) => key.isDefault && key.provider === CLOUD_LLM_PROVIDER_ID,
+  );
   if (!activeCloudKey) return null;
 
   const entitlement = billingOverview?.accountLlm?.entitlement;

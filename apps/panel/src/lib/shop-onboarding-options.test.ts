@@ -34,20 +34,18 @@ describe("shop onboarding combinations", () => {
 
   it("derives seller types from the selected platform and market", () => {
     expect(onboardingSellerTypes(apps, "TIKTOK_SHOP", "US")).toEqual(["LOCAL"]);
-    expect(onboardingSellerTypes(apps, "TIKTOK_SHOP", "MX")).toEqual([
-      "LOCAL",
-      "CROSS_BORDER",
-    ]);
+    expect(onboardingSellerTypes(apps, "TIKTOK_SHOP", "MX")).toEqual(["LOCAL", "CROSS_BORDER"]);
     expect(onboardingSellerTypes(apps, "TIKTOK_SHOP", "GB")).toEqual(["LOCAL"]);
   });
 
   it("resolves only the exact three-part selection", () => {
-    expect(platformAppsForOnboardingSelection(apps, "TIKTOK_SHOP", "MX", "CROSS_BORDER"))
-      .toEqual([apps[4]]);
-    expect(platformAppsForOnboardingSelection(apps, "TIKTOK_SHOP", "US", "CROSS_BORDER"))
-      .toEqual([]);
-    expect(platformAppsForOnboardingSelection(apps, "TIKTOK_SHOP", "ROW", "LOCAL"))
-      .toEqual([]);
+    expect(platformAppsForOnboardingSelection(apps, "TIKTOK_SHOP", "MX", "CROSS_BORDER")).toEqual([
+      apps[4],
+    ]);
+    expect(platformAppsForOnboardingSelection(apps, "TIKTOK_SHOP", "US", "CROSS_BORDER")).toEqual(
+      [],
+    );
+    expect(platformAppsForOnboardingSelection(apps, "TIKTOK_SHOP", "ROW", "LOCAL")).toEqual([]);
   });
 
   it("does not expose legacy ROW routing records as real markets", () => {

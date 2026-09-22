@@ -1,5 +1,9 @@
 import type Database from "better-sqlite3";
-import type { KeyModelUsageRecord, KeyUsageQueryParams, KeyUsageDailyBucket } from "@rivonclaw/core";
+import type {
+  KeyModelUsageRecord,
+  KeyUsageQueryParams,
+  KeyUsageDailyBucket,
+} from "@rivonclaw/core";
 
 interface HistoryRow {
   id: number;

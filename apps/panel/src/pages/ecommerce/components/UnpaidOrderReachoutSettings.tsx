@@ -612,13 +612,13 @@ export function UnpaidOrderReachoutSettings({
           <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutHint")}</p>
         </div>
         <TkSwitchControl
-            label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled")}
-            checked={enabled}
-            onChange={(checked) => {
-              onEnabledChange(checked);
-              if (!checked) onEvaluationEnabledChange(false);
-            }}
-          />
+          label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutEnabled")}
+          checked={enabled}
+          onChange={(checked) => {
+            onEnabledChange(checked);
+            if (!checked) onEvaluationEnabledChange(false);
+          }}
+        />
       </div>
 
       <section className="unpaid-console-section">
@@ -668,13 +668,13 @@ export function UnpaidOrderReachoutSettings({
                     </div>
                     <div className="unpaid-stage-actions">
                       <TkSwitchControl
-                          label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutStage", { index: index + 1 })}
-                          checked={stage.enabled}
-                          disabled={!!running}
-                          onChange={(checked) =>
-                            updateStage(index, { enabled: checked })
-                          }
-                        />
+                        label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutStage", {
+                          index: index + 1,
+                        })}
+                        checked={stage.enabled}
+                        disabled={!!running}
+                        onChange={(checked) => updateStage(index, { enabled: checked })}
+                      />
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -773,11 +773,11 @@ export function UnpaidOrderReachoutSettings({
               <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlHint")}</p>
             </div>
             <TkSwitchControl
-                label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlGroup")}
-                checked={evaluationEnabled}
-                disabled={!enabled}
-                onChange={onEvaluationEnabledChange}
-              />
+              label={t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlGroup")}
+              checked={evaluationEnabled}
+              disabled={!enabled}
+              onChange={onEvaluationEnabledChange}
+            />
           </div>
           {evaluationEnabled && (
             <>

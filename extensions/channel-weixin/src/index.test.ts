@@ -71,8 +71,11 @@ describe("channel-weixin QR session bridge", () => {
   it("rejects sendmessage HTTP 200 responses with WeChat business errors", async () => {
     vi.resetModules();
 
-    const mockFetch = vi.fn(async () =>
-      new Response(JSON.stringify({ errcode: -14, errmsg: "context token expired" }), { status: 200 })
+    const mockFetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ errcode: -14, errmsg: "context token expired" }), {
+          status: 200,
+        }),
     );
     globalThis.fetch = mockFetch as typeof fetch;
 
@@ -119,19 +122,23 @@ describe("channel-weixin QR session bridge", () => {
       },
     } as Parameters<typeof plugin.register>[0]);
 
-    await expect(registered.plugin.outbound?.sendText?.({
-      accountId: "acct-1",
-      to: "manager@im.wechat",
-      text: "CS Escalation",
-    })).rejects.toThrow(/WeChat sendmessage business failure: .*errcode=-14.*clientId=client-123.*accountId=acct-1.*to=manager@im\.wechat/);
+    await expect(
+      registered.plugin.outbound?.sendText?.({
+        accountId: "acct-1",
+        to: "manager@im.wechat",
+        text: "CS Escalation",
+      }),
+    ).rejects.toThrow(
+      /WeChat sendmessage business failure: .*errcode=-14.*clientId=client-123.*accountId=acct-1.*to=manager@im\.wechat/,
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("marks the Weixin account unhealthy when sendmessage returns a business failure", async () => {
     vi.resetModules();
 
-    const mockFetch = vi.fn(async () =>
-      new Response(JSON.stringify({ ret: -2, errmsg: "" }), { status: 200 })
+    const mockFetch = vi.fn(
+      async () => new Response(JSON.stringify({ ret: -2, errmsg: "" }), { status: 200 }),
     );
     globalThis.fetch = mockFetch as typeof fetch;
 
@@ -190,19 +197,23 @@ describe("channel-weixin QR session bridge", () => {
       setStatus,
     });
 
-    await expect(registered.plugin.outbound?.sendText?.({
-      accountId: "acct-1",
-      to: "manager@im.wechat",
-      text: "CS Escalation",
-    })).rejects.toThrow(/ret=-2.*accountId=acct-1.*to=manager@im\.wechat/);
+    await expect(
+      registered.plugin.outbound?.sendText?.({
+        accountId: "acct-1",
+        to: "manager@im.wechat",
+        text: "CS Escalation",
+      }),
+    ).rejects.toThrow(/ret=-2.*accountId=acct-1.*to=manager@im\.wechat/);
 
-    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({
-      accountId: "acct-1",
-      healthy: false,
-      healthState: "send-unavailable",
-      lastError: expect.stringContaining("ret=-2"),
-      lastHealthCheckAt: expect.any(Number),
-    }));
+    expect(setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "acct-1",
+        healthy: false,
+        healthState: "send-unavailable",
+        lastError: expect.stringContaining("ret=-2"),
+        lastHealthCheckAt: expect.any(Number),
+      }),
+    );
     const statusUpdate = setStatus.mock.calls.at(-1)?.[0] as Record<string, unknown>;
     expect(statusUpdate.running).toBeUndefined();
     expect(statusUpdate.connected).toBeUndefined();
@@ -253,21 +264,23 @@ describe("channel-weixin QR session bridge", () => {
       setStatus,
     });
 
-    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({
-      accountId: "acct-1",
-      healthy: false,
-      healthState: "send-unavailable",
-      recipientId: "manager@im.wechat",
-      lastError: expect.stringContaining("ret=-2"),
-      lastHealthCheckAt: expect.any(Number),
-    }));
+    expect(setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "acct-1",
+        healthy: false,
+        healthState: "send-unavailable",
+        recipientId: "manager@im.wechat",
+        lastError: expect.stringContaining("ret=-2"),
+        lastHealthCheckAt: expect.any(Number),
+      }),
+    );
   });
 
   it("does not block later Weixin sends after marking health unavailable", async () => {
     vi.resetModules();
 
-    const mockFetch = vi.fn(async () =>
-      new Response(JSON.stringify({ ret: -2, errmsg: "" }), { status: 200 })
+    const mockFetch = vi.fn(
+      async () => new Response(JSON.stringify({ ret: -2, errmsg: "" }), { status: 200 }),
     );
     globalThis.fetch = mockFetch as typeof fetch;
 
@@ -326,11 +339,13 @@ describe("channel-weixin QR session bridge", () => {
     });
 
     for (let idx = 0; idx < 2; idx += 1) {
-      await expect(registered.plugin.outbound?.sendText?.({
-        accountId: "acct-1",
-        to: "manager@im.wechat",
-        text: "CS Escalation",
-      })).rejects.toThrow(/ret=-2/);
+      await expect(
+        registered.plugin.outbound?.sendText?.({
+          accountId: "acct-1",
+          to: "manager@im.wechat",
+          text: "CS Escalation",
+        }),
+      ).rejects.toThrow(/ret=-2/);
     }
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -379,15 +394,17 @@ describe("channel-weixin QR session bridge", () => {
       setStatus,
     });
 
-    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({
-      accountId: "acct-1",
-      running: false,
-      connected: false,
-      healthy: false,
-      healthState: "reauth-required",
-      lastError: expect.stringContaining("session expired"),
-      lastHealthCheckAt: expect.any(Number),
-    }));
+    expect(setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "acct-1",
+        running: false,
+        connected: false,
+        healthy: false,
+        healthState: "reauth-required",
+        lastError: expect.stringContaining("session expired"),
+        lastHealthCheckAt: expect.any(Number),
+      }),
+    );
   });
 
   it("registers RivonClaw QR login gateway methods that call the upstream gateway directly", async () => {
@@ -398,7 +415,11 @@ describe("channel-weixin QR session bridge", () => {
       message: "scan",
       sessionKey: "session-1",
     }));
-    const origWait = vi.fn(async () => ({ connected: true, accountId: "acct-1", message: "connected" }));
+    const origWait = vi.fn(async () => ({
+      connected: true,
+      accountId: "acct-1",
+      message: "connected",
+    }));
 
     vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
       default: {
@@ -416,20 +437,26 @@ describe("channel-weixin QR session bridge", () => {
     }));
 
     const { default: plugin } = await import("./index.js");
-    const handlers = new Map<string, (args: {
-      params: unknown;
-      respond: (ok: boolean, payload?: unknown) => void;
-      context: unknown;
-    }) => Promise<void> | void>();
+    const handlers = new Map<
+      string,
+      (args: {
+        params: unknown;
+        respond: (ok: boolean, payload?: unknown) => void;
+        context: unknown;
+      }) => Promise<void> | void
+    >();
 
     plugin.register({
       registerChannel() {},
       registerGatewayMethod(method: string, handler: unknown) {
-        handlers.set(method, handler as (args: {
-          params: unknown;
-          respond: (ok: boolean, payload?: unknown) => void;
-          context: unknown;
-        }) => Promise<void> | void);
+        handlers.set(
+          method,
+          handler as (args: {
+            params: unknown;
+            respond: (ok: boolean, payload?: unknown) => void;
+            context: unknown;
+          }) => Promise<void> | void,
+        );
       },
     } as Parameters<typeof plugin.register>[0]);
 
@@ -535,15 +562,17 @@ describe("channel-weixin QR session bridge", () => {
       },
     } as Parameters<typeof plugin.register>[0]);
 
-    expect(registered.plugin.reload?.configPrefixes).toEqual([
-      "channels.openclaw-weixin.extra",
-    ]);
+    expect(registered.plugin.reload?.configPrefixes).toEqual(["channels.openclaw-weixin.extra"]);
   });
 
   it("does not start a newly scanned account before desktop has persisted it to config", async () => {
     vi.resetModules();
 
-    const origWait = vi.fn(async () => ({ connected: true, accountId: "new-acct", message: "connected" }));
+    const origWait = vi.fn(async () => ({
+      connected: true,
+      accountId: "new-acct",
+      message: "connected",
+    }));
 
     vi.doMock("@tencent-weixin/openclaw-weixin/index.ts", () => ({
       default: {
@@ -560,20 +589,26 @@ describe("channel-weixin QR session bridge", () => {
     }));
 
     const { default: plugin } = await import("./index.js");
-    const handlers = new Map<string, (args: {
-      params: unknown;
-      respond: (ok: boolean, payload?: unknown) => void;
-      context: unknown;
-    }) => Promise<void> | void>();
+    const handlers = new Map<
+      string,
+      (args: {
+        params: unknown;
+        respond: (ok: boolean, payload?: unknown) => void;
+        context: unknown;
+      }) => Promise<void> | void
+    >();
 
     plugin.register({
       registerChannel() {},
       registerGatewayMethod(method: string, handler: unknown) {
-        handlers.set(method, handler as (args: {
-          params: unknown;
-          respond: (ok: boolean, payload?: unknown) => void;
-          context: unknown;
-        }) => Promise<void> | void);
+        handlers.set(
+          method,
+          handler as (args: {
+            params: unknown;
+            respond: (ok: boolean, payload?: unknown) => void;
+            context: unknown;
+          }) => Promise<void> | void,
+        );
       },
     } as Parameters<typeof plugin.register>[0]);
 
@@ -600,8 +635,12 @@ describe("channel-weixin QR session bridge", () => {
     let resolveFirst!: (value: Record<string, unknown>) => void;
     let resolveSecond!: (value: Record<string, unknown>) => void;
     const startCalls: Array<Promise<Record<string, unknown>>> = [
-      new Promise((resolve) => { resolveFirst = resolve; }),
-      new Promise((resolve) => { resolveSecond = resolve; }),
+      new Promise((resolve) => {
+        resolveFirst = resolve;
+      }),
+      new Promise((resolve) => {
+        resolveSecond = resolve;
+      }),
     ];
     const origStart = vi.fn(() => startCalls.shift()!);
     const origWait = vi.fn(async (params: unknown) => ({

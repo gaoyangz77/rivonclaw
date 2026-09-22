@@ -44,7 +44,10 @@ function extractJwtExpiresAtMs(token: string | undefined): number | null {
   return exp * 1000;
 }
 
-async function resolveOAuthExpiresAt(entry: ProviderKeyEntry, secretStore: SecretStore): Promise<number | null> {
+async function resolveOAuthExpiresAt(
+  entry: ProviderKeyEntry,
+  secretStore: SecretStore,
+): Promise<number | null> {
   if (entry.provider !== "openai-codex" || entry.authType !== "oauth") {
     return entry.oauthExpiresAt ?? null;
   }

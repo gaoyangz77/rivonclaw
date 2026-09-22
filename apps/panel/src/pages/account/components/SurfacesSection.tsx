@@ -89,10 +89,16 @@ export function SurfacesSection({
                     )}
                     {!isSystem && (
                       <div className="acct-item-actions">
-                        <button className="btn btn-secondary btn-sm" onClick={() => onEditSurface(s)}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => onEditSurface(s)}
+                        >
                           {t("surfaces.editSurface")}
                         </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => onDeleteSurface(s.id)}>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => onDeleteSurface(s.id)}
+                        >
                           {t("surfaces.deleteSurface")}
                         </button>
                       </div>
@@ -100,7 +106,9 @@ export function SurfacesSection({
                   </div>
                   <div className="acct-item-meta">
                     {profileCount > 0 && (
-                      <span>{profileCount} {t("surfaces.runProfilesTitle").toLowerCase()}</span>
+                      <span>
+                        {profileCount} {t("surfaces.runProfilesTitle").toLowerCase()}
+                      </span>
                     )}
                     {!isDefault && s.allowedToolIds.length > 0 && (
                       <span>{t("surfaces.toolCount", { count: s.allowedToolIds.length })}</span>

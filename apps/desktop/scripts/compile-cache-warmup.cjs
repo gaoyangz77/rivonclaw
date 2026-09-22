@@ -20,7 +20,9 @@ const electronPath = process.argv[2];
 const openclawMjs = process.argv[3];
 
 if (!electronPath || !openclawMjs) {
-  console.error("[compile-cache-warmup] Usage: node compile-cache-warmup.cjs <electronPath> <openclawMjs> [--startup-timer <path>]");
+  console.error(
+    "[compile-cache-warmup] Usage: node compile-cache-warmup.cjs <electronPath> <openclawMjs> [--startup-timer <path>]",
+  );
   process.exit(0);
 }
 
@@ -43,10 +45,14 @@ let done = false;
 const finish = () => {
   if (done) return;
   done = true;
-  try { child.kill("SIGTERM"); } catch {}
+  try {
+    child.kill("SIGTERM");
+  } catch {}
   // Safety: if SIGTERM doesn't terminate the child within 5s, force-kill and exit.
   setTimeout(() => {
-    try { child.kill("SIGKILL"); } catch {}
+    try {
+      child.kill("SIGKILL");
+    } catch {}
     process.exit(0);
   }, 5000).unref();
 };

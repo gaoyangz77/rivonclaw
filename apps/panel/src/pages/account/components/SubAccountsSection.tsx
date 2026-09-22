@@ -29,10 +29,10 @@ export function SubAccountsSection() {
   const { members, roles } = subAccounts;
   const { ofMember } = useRoleDisplayName(roles);
   const editingMember = editingMemberId
-    ? members.find((member) => member.id === editingMemberId) ?? null
+    ? (members.find((member) => member.id === editingMemberId) ?? null)
     : null;
   const confirmDeleteMember = confirmDeleteMemberId
-    ? members.find((member) => member.id === confirmDeleteMemberId) ?? null
+    ? (members.find((member) => member.id === confirmDeleteMemberId) ?? null)
     : null;
 
   function openCreate() {
@@ -85,7 +85,9 @@ export function SubAccountsSection() {
                 <div className="acct-item-title-row">
                   <span className="acct-item-name">{member.name || member.email}</span>
                   <span className={`badge ${member.disabled ? "badge-muted" : "badge-active"}`}>
-                    {member.disabled ? t("subAccounts.statusDisabled") : t("subAccounts.statusActive")}
+                    {member.disabled
+                      ? t("subAccounts.statusDisabled")
+                      : t("subAccounts.statusActive")}
                   </span>
                   <div className="acct-item-actions">
                     <button

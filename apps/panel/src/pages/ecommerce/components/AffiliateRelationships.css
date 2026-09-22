@@ -619,8 +619,6 @@
   }
 }
 
-
-
 .affiliate-collaboration-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
@@ -1054,8 +1052,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-
-
 
 @media (max-width: 760px) {
   .affiliate-proposal-row-identity {
@@ -2313,7 +2309,11 @@
 
 .affiliate-platform-collaboration-modal-header {
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 48%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary) 7%, transparent),
+      transparent 48%
+    ),
     var(--color-bg);
 }
 
@@ -2359,7 +2359,11 @@
   border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border-light));
   border-radius: var(--tk-v1-radius-4);
   background:
-    linear-gradient(125deg, color-mix(in srgb, var(--color-primary) 7%, var(--color-bg)) 0%, var(--color-bg) 50%),
+    linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--color-primary) 7%, var(--color-bg)) 0%,
+      var(--color-bg) 50%
+    ),
     var(--color-bg);
 }
 
@@ -2562,7 +2566,11 @@
 .affiliate-platform-collaboration-editor {
   border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 4%, var(--color-bg)), var(--color-bg) 120px),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-primary) 4%, var(--color-bg)),
+      var(--color-bg) 120px
+    ),
     var(--color-bg);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 6%, transparent);
 }
@@ -2819,7 +2827,11 @@
   padding: 18px;
   border-right: 1px solid var(--color-border-light);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-alt)), var(--color-bg-alt) 52%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-alt)),
+      var(--color-bg-alt) 52%
+    ),
     var(--color-bg-alt);
 }
 
@@ -3612,7 +3624,6 @@
 }
 
 @media (max-width: 720px) {
-
   .affiliate-relationship-work-current-work,
   .affiliate-relationship-work-current-work-actions,
   .affiliate-relationship-work-overview-strip {

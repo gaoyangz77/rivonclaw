@@ -45,16 +45,33 @@ export function ProductCard({
   const allSkus = sellerSkus.filter(Boolean).join(" · ");
 
   return (
-    <article className={`commerce-product-card${selection?.checked ? " selected" : ""}${selection?.disabled ? " disabled" : ""}${className ? ` ${className}` : ""}`}>
+    <article
+      className={`commerce-product-card${selection?.checked ? " selected" : ""}${selection?.disabled ? " disabled" : ""}${className ? ` ${className}` : ""}`}
+    >
       <div className="commerce-product-card-main">
         <div className="commerce-product-card-media">
           {imageUrl ? (
-            <RemoteMediaImage className="commerce-product-card-image" sourceUrl={imageUrl} alt="" loading="lazy" sensitive />
+            <RemoteMediaImage
+              className="commerce-product-card-image"
+              sourceUrl={imageUrl}
+              alt=""
+              loading="lazy"
+              sensitive
+            />
           ) : (
-            <div className="commerce-product-card-image commerce-product-card-image-empty" aria-hidden="true"><ShopIcon /></div>
+            <div
+              className="commerce-product-card-image commerce-product-card-image-empty"
+              aria-hidden="true"
+            >
+              <ShopIcon />
+            </div>
           )}
           {selection ? (
-            <label className="commerce-product-card-selector" htmlFor={selectionId} title={selection.label}>
+            <label
+              className="commerce-product-card-selector"
+              htmlFor={selectionId}
+              title={selection.label}
+            >
               <input
                 id={selectionId}
                 type="checkbox"
@@ -69,10 +86,16 @@ export function ProductCard({
         </div>
 
         <div className="commerce-product-card-copy">
-          <TkPrivate as="strong" title={title}>{title}</TkPrivate>
+          <TkPrivate as="strong" title={title}>
+            {title}
+          </TkPrivate>
           <div className="commerce-product-card-shop">
-            {normalizedAlias ? <span title={`${aliasLabel}: ${normalizedAlias}`}>{normalizedAlias}</span> : null}
-            <TkPrivate as="small" title={normalizedShopName}>{normalizedShopName}</TkPrivate>
+            {normalizedAlias ? (
+              <span title={`${aliasLabel}: ${normalizedAlias}`}>{normalizedAlias}</span>
+            ) : null}
+            <TkPrivate as="small" title={normalizedShopName}>
+              {normalizedShopName}
+            </TkPrivate>
           </div>
         </div>
       </div>
@@ -85,18 +108,21 @@ export function ProductCard({
               out, so it moves onto the masked node rather than staying on the
               row that also carries the label. */}
           <span>{sellerSkuLabel}</span>
-          <TkPrivate
-            as="div"
-            sensitive={visibleSkus.length > 0}
-            title={allSkus || sellerSkuLabel}
-          >
-            {visibleSkus.length > 0
-              ? visibleSkus.map((sku) => <code key={sku}>{sku}</code>)
-              : <code>—</code>}
+          <TkPrivate as="div" sensitive={visibleSkus.length > 0} title={allSkus || sellerSkuLabel}>
+            {visibleSkus.length > 0 ? (
+              visibleSkus.map((sku) => <code key={sku}>{sku}</code>)
+            ) : (
+              <code>—</code>
+            )}
             {hiddenSkuCount > 0 ? <small>+{hiddenSkuCount}</small> : null}
           </TkPrivate>
         </div>
-        {status || actions ? <div className="commerce-product-card-accessories">{status}{actions}</div> : null}
+        {status || actions ? (
+          <div className="commerce-product-card-accessories">
+            {status}
+            {actions}
+          </div>
+        ) : null}
       </div>
     </article>
   );

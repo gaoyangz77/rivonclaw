@@ -86,21 +86,24 @@ export function ChatInputArea({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
-  const handleFileSelect = useCallback(async (files: FileList | File[]) => {
-    const results: PendingImage[] = [];
-    for (const file of Array.from(files)) {
-      if (!IMAGE_TYPES.includes(file.type)) continue;
-      if (file.size > MAX_IMAGE_ATTACHMENT_BYTES) {
-        alert(t("chat.imageTooLarge"));
-        continue;
+  const handleFileSelect = useCallback(
+    async (files: FileList | File[]) => {
+      const results: PendingImage[] = [];
+      for (const file of Array.from(files)) {
+        if (!IMAGE_TYPES.includes(file.type)) continue;
+        if (file.size > MAX_IMAGE_ATTACHMENT_BYTES) {
+          alert(t("chat.imageTooLarge"));
+          continue;
+        }
+        const pending = await readFileAsPending(file);
+        if (pending) results.push(pending);
       }
-      const pending = await readFileAsPending(file);
-      if (pending) results.push(pending);
-    }
-    if (results.length > 0) {
-      onPendingImagesChange([...pendingImages, ...results]);
-    }
-  }, [pendingImages, onPendingImagesChange, t]);
+      if (results.length > 0) {
+        onPendingImagesChange([...pendingImages, ...results]);
+      }
+    },
+    [pendingImages, onPendingImagesChange, t],
+  );
 
   function handleAttachClick() {
     fileInputRef.current?.click();
@@ -112,9 +115,13 @@ export function ChatInputArea({
 
   function handleFilePathChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files || e.target.files.length === 0) return;
-    const paths = Array.from(e.target.files).map((f) => (f as File & { path?: string }).path ?? f.name);
+    const paths = Array.from(e.target.files).map(
+      (f) => (f as File & { path?: string }).path ?? f.name,
+    );
     const snippet = paths.join(" ");
-    onDraftChange(draft.length > 0 && !draft.endsWith(" ") ? `${draft} ${snippet} ` : `${draft}${snippet} `);
+    onDraftChange(
+      draft.length > 0 && !draft.endsWith(" ") ? `${draft} ${snippet} ` : `${draft}${snippet} `,
+    );
     e.target.value = "";
   }
 
@@ -199,7 +206,16 @@ export function ChatInputArea({
           title={t("chat.attachFile")}
           type="button"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
           </svg>
         </button>
@@ -209,7 +225,16 @@ export function ChatInputArea({
           title={t("chat.attachImage")}
           type="button"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
@@ -222,7 +247,16 @@ export function ChatInputArea({
             title={t("chat.emoji")}
             type="button"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="10" />
               <path d="M8 14s1.5 2 4 2 4-2 4-2" />
               <line x1="9" y1="9" x2="9.01" y2="9" />
@@ -236,7 +270,7 @@ export function ChatInputArea({
             </div>
           )}
         </div>
-        {(isStreaming || canAbort) ? (
+        {isStreaming || canAbort ? (
           <button className="btn btn-danger" onClick={onStop}>
             {t("chat.stop")}
           </button>
@@ -244,7 +278,11 @@ export function ChatInputArea({
           <button
             className="btn btn-primary"
             onClick={onSend}
-            disabled={(!draft.trim() && pendingImages.length === 0) || connectionState !== "connected" || !hasProviderKeys}
+            disabled={
+              (!draft.trim() && pendingImages.length === 0) ||
+              connectionState !== "connected" ||
+              !hasProviderKeys
+            }
             title={!hasProviderKeys ? t("chat.noProviderError") : undefined}
           >
             {t("chat.send")}

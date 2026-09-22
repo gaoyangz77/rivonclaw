@@ -71,7 +71,11 @@ export class ProxyAwareNetwork {
       }
     }
 
-    if (firstPartyFailover && getFirstPartyDomainRoute() === "global" && !this.isAbortError(lastError, init?.signal)) {
+    if (
+      firstPartyFailover &&
+      getFirstPartyDomainRoute() === "global" &&
+      !this.isAbortError(lastError, init?.signal)
+    ) {
       const cnUrl = getCnRelayUrlForGlobalFirstPartyUrl(url);
       if (cnUrl) {
         setFirstPartyDomainRoute("cn-relay");
@@ -141,7 +145,11 @@ export class ProxyAwareNetwork {
 
     // Return a subclass that automatically sets the agent
     return class ProxiedWebSocket extends WebSocket {
-      constructor(url: string | URL, protocols?: string | string[], options?: WebSocket.ClientOptions) {
+      constructor(
+        url: string | URL,
+        protocols?: string | string[],
+        options?: WebSocket.ClientOptions,
+      ) {
         const agent = new HttpsProxyAgent(`http://127.0.0.1:${port}`);
         super(routeFirstPartyUrl(url), protocols, { ...options, agent });
       }

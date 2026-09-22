@@ -49,10 +49,7 @@ vi.mock("../../../store/EntityStoreProvider.js", () => ({
   useEntityStore: () => ({ ecommerceInventory: inventory }),
 }));
 
-function makeDraft(
-  authorizationMode: "AUTHORIZE" | "EXISTING",
-  provider = "JFWMS",
-) {
+function makeDraft(authorizationMode: "AUTHORIZE" | "EXISTING", provider = "JFWMS") {
   return {
     id: null,
     provider,

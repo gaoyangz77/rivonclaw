@@ -56,17 +56,17 @@ Simulate CS bridge connection states to test the global warning banner:
 // In browser DevTools console:
 
 // Simulate disconnected state (shows warning banner)
-__runtimeStatus.simulateCsBridge("disconnected")
+__runtimeStatus.simulateCsBridge("disconnected");
 
 // Simulate reconnecting with attempt count (shows banner with spinner)
-__runtimeStatus.simulateCsBridge("reconnecting", 3)
+__runtimeStatus.simulateCsBridge("reconnecting", 3);
 
 // Restore connected state (hides banner)
-__runtimeStatus.simulateCsBridge("connected")
+__runtimeStatus.simulateCsBridge("connected");
 
 // Inspect current store state
-__runtimeStatus.store.csBridge.state
-__runtimeStatus.store.csBridge.reconnectAttempt
+__runtimeStatus.store.csBridge.state;
+__runtimeStatus.store.csBridge.reconnectAttempt;
 ```
 
 **Prerequisites:** The warning banner only appears when the GLOBAL_ECOMMERCE_SELLER module is enrolled and at least one shop has CS enabled. If you don't see the banner after simulating, verify these conditions are met.

@@ -32,9 +32,11 @@ function runMigrations(db: Database.Database): void {
 
     db.transaction(() => {
       db.exec(migration.sql);
-      db.prepare(
-        "INSERT INTO _migrations (id, name, applied_at) VALUES (?, ?, ?)",
-      ).run(migration.id, migration.name, new Date().toISOString());
+      db.prepare("INSERT INTO _migrations (id, name, applied_at) VALUES (?, ?, ?)").run(
+        migration.id,
+        migration.name,
+        new Date().toISOString(),
+      );
     })();
   }
 }
@@ -44,10 +46,7 @@ export function openDatabase(dbPath?: string): Database.Database {
   const resolvedPath = dbPath ?? defaultPath;
 
   if (resolvedPath !== ":memory:") {
-    const dir =
-      resolvedPath === defaultPath
-        ? resolveRivonClawHome()
-        : dirname(resolvedPath);
+    const dir = resolvedPath === defaultPath ? resolveRivonClawHome() : dirname(resolvedPath);
     mkdirSync(dir, { recursive: true });
   }
 

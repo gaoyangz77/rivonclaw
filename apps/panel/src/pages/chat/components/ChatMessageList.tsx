@@ -7,7 +7,12 @@ import {
   STOP_COMMAND_PLACEHOLDER,
   formatTimestamp,
 } from "../chat-utils.js";
-import { MarkdownMessage, CopyButton, CollapsibleContent, ToolArgsDisplay } from "../ChatMessage.js";
+import {
+  MarkdownMessage,
+  CopyButton,
+  CollapsibleContent,
+  ToolArgsDisplay,
+} from "../ChatMessage.js";
 
 function chatImageSrc(img: { data?: string; url?: string; mimeType: string }): string {
   if (img.url) return img.url;
@@ -54,9 +59,7 @@ export function ChatMessageList({
 
   return (
     <div className="chat-messages" ref={messagesContainerRef} onScroll={onScroll}>
-      {showHistoryEnd && (
-        <div className="chat-history-end">{t("chat.historyEnd")}</div>
-      )}
+      {showHistoryEnd && <div className="chat-history-end">{t("chat.historyEnd")}</div>}
       {visibleMessages.map((msg, i) => {
         if (msg.role === "tool-event") {
           return preserveToolEvents ? (
@@ -82,17 +85,20 @@ export function ChatMessageList({
         // External assistant messages go left with a distinct visual style.
         const isUserRole = msg.role === "user";
         const wrapClass = isUserRole ? "chat-bubble-wrap-user" : "chat-bubble-wrap-assistant";
-        const bubbleClass = isUserRole ? "chat-bubble-user" : msg.isExternal ? "chat-bubble-external" : "chat-bubble-assistant";
+        const bubbleClass = isUserRole
+          ? "chat-bubble-user"
+          : msg.isExternal
+            ? "chat-bubble-external"
+            : "chat-bubble-assistant";
         return (
           <div key={i} className={`chat-bubble-wrap ${wrapClass}`}>
             {msg.timestamp > 0 && (
               <div className="chat-bubble-timestamp">
-                {msg.channel ? `${msg.channel} · ` : ""}{formatTimestamp(msg.timestamp, i18n.language)}
+                {msg.channel ? `${msg.channel} · ` : ""}
+                {formatTimestamp(msg.timestamp, i18n.language)}
               </div>
             )}
-            <div
-              className={`chat-bubble ${bubbleClass}`}
-            >
+            <div className={`chat-bubble ${bubbleClass}`}>
               {hasImages && (
                 <div className="chat-bubble-images">
                   {msg.images!.map((img, j) => (
@@ -105,9 +111,14 @@ export function ChatMessageList({
                   ))}
                 </div>
               )}
-              {cleaned && (msg.role === "assistant"
-                ? <CollapsibleContent defaultCollapsed={collapseMessages}><MarkdownMessage text={cleaned} /></CollapsibleContent>
-                : cleaned)}
+              {cleaned &&
+                (msg.role === "assistant" ? (
+                  <CollapsibleContent defaultCollapsed={collapseMessages}>
+                    <MarkdownMessage text={cleaned} />
+                  </CollapsibleContent>
+                ) : (
+                  cleaned
+                ))}
               {msg.role === "assistant" && cleaned && <CopyButton text={cleaned} />}
             </div>
           </div>
@@ -117,9 +128,9 @@ export function ChatMessageList({
         // Show the thinking bubble only when there's no streaming text.
         // When streaming text is visible, it IS the visual feedback --
         // showing both would cause duplicate/overlapping bubbles.
-        const showThinking = streaming === null && (
-          runId !== null || externalPending || (isRunActive && displayPhase !== "done")
-        );
+        const showThinking =
+          streaming === null &&
+          (runId !== null || externalPending || (isRunActive && displayPhase !== "done"));
         return showThinking ? (
           <div className="chat-bubble chat-bubble-assistant chat-thinking">
             {displayPhase && showAgentEvents ? (
@@ -129,7 +140,11 @@ export function ChatMessageList({
                   : t(`chat.phase_${displayPhase}`)}
               </span>
             ) : null}
-            <span className="chat-thinking-dots"><span /><span /><span /></span>
+            <span className="chat-thinking-dots">
+              <span />
+              <span />
+              <span />
+            </span>
           </div>
         ) : null;
       })()}
@@ -142,7 +157,11 @@ export function ChatMessageList({
           ) : null}
           <div className="chat-bubble-wrap chat-bubble-wrap-assistant">
             <div className="chat-bubble chat-bubble-assistant chat-streaming-cursor">
-              <MarkdownMessage text={cleanMessageText(streaming).replaceAll(IMAGE_PLACEHOLDER, t("chat.imageAttachment")).replaceAll(IMAGE_EXPIRED_PLACEHOLDER, t("chat.imageExpired"))} />
+              <MarkdownMessage
+                text={cleanMessageText(streaming)
+                  .replaceAll(IMAGE_PLACEHOLDER, t("chat.imageAttachment"))
+                  .replaceAll(IMAGE_EXPIRED_PLACEHOLDER, t("chat.imageExpired"))}
+              />
             </div>
           </div>
         </>

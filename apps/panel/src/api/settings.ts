@@ -4,10 +4,16 @@ import { API, clientPath } from "@rivonclaw/core/api-contract";
 // --- Settings ---
 
 export async function fetchSettings(): Promise<Record<string, string>> {
-  return cachedFetch("settings", async () => {
-    const data = await fetchJson<{ settings: Record<string, string> }>(clientPath(API["settings.getAll"]));
-    return data.settings;
-  }, 5000);
+  return cachedFetch(
+    "settings",
+    async () => {
+      const data = await fetchJson<{ settings: Record<string, string> }>(
+        clientPath(API["settings.getAll"]),
+      );
+      return data.settings;
+    },
+    5000,
+  );
 }
 
 export async function updateSettings(settings: Record<string, string>): Promise<void> {
@@ -93,7 +99,9 @@ export async function fetchOpenClawStateDir(): Promise<OpenClawStateDirInfo> {
   return fetchJson<OpenClawStateDirInfo>(clientPath(API["settings.openclawStateDir.get"]));
 }
 
-export async function updateOpenClawStateDir(path: string): Promise<{ ok: boolean; restartRequired: boolean }> {
+export async function updateOpenClawStateDir(
+  path: string,
+): Promise<{ ok: boolean; restartRequired: boolean }> {
   return fetchJson(clientPath(API["settings.openclawStateDir.set"]), {
     method: "PUT",
     body: JSON.stringify({ path }),

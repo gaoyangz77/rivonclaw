@@ -744,7 +744,9 @@
   transition: transform var(--transition-normal);
 }
 
-.affiliate-campaign-funnel-stage.is-interactive:hover .affiliate-campaign-funnel-stage-action > span {
+.affiliate-campaign-funnel-stage.is-interactive:hover
+  .affiliate-campaign-funnel-stage-action
+  > span {
   transform: translateX(3px);
 }
 
@@ -933,7 +935,9 @@
 
 .affiliate-campaign-search-plan-table tbody tr {
   cursor: pointer;
-  transition: background-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .affiliate-campaign-search-plan-table tbody tr:hover {
@@ -1084,8 +1088,6 @@
   color: var(--color-text-secondary);
   line-height: 1.45;
 }
-
-
 
 .affiliate-campaign-state-panel .custom-select {
   min-width: 220px;
@@ -2972,7 +2974,9 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .affiliate-campaign-creator-cell:hover {

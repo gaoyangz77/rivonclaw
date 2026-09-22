@@ -9,23 +9,23 @@ from the private merchant extensions repository in CI/dev environments.
 
 ## Public Extension Inventory
 
-| Extension | Plugin ID | Type | Purpose |
-| --- | --- | --- | --- |
-| `channel-weixin` | `openclaw-weixin` | Channel plugin | Wrapper around the Tencent Weixin channel with RivonClaw compatibility fixes. |
-| `rivonclaw-capability-manager` | `rivonclaw-capability-manager` | Hook/enforcement plugin | Enforces effective tool availability from entitlement, surface, run profile, and session context. |
-| `rivonclaw-event-bridge` | `rivonclaw-event-bridge` | Hook/event plugin | Mirrors selected OpenClaw agent events into the panel event stream. |
-| `rivonclaw-mobile-chat-channel` | `rivonclaw-mobile-chat-channel` | Channel plugin | Mobile chat channel and relay synchronization. |
-| `rivonclaw-search-browser-fallback` | `rivonclaw-search-browser-fallback` | Hook plugin | Guides fallback to browser search when direct web-search credentials are unavailable. |
+| Extension                           | Plugin ID                           | Type                    | Purpose                                                                                           |
+| ----------------------------------- | ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `channel-weixin`                    | `openclaw-weixin`                   | Channel plugin          | Wrapper around the Tencent Weixin channel with RivonClaw compatibility fixes.                     |
+| `rivonclaw-capability-manager`      | `rivonclaw-capability-manager`      | Hook/enforcement plugin | Enforces effective tool availability from entitlement, surface, run profile, and session context. |
+| `rivonclaw-event-bridge`            | `rivonclaw-event-bridge`            | Hook/event plugin       | Mirrors selected OpenClaw agent events into the panel event stream.                               |
+| `rivonclaw-mobile-chat-channel`     | `rivonclaw-mobile-chat-channel`     | Channel plugin          | Mobile chat channel and relay synchronization.                                                    |
+| `rivonclaw-search-browser-fallback` | `rivonclaw-search-browser-fallback` | Hook plugin             | Guides fallback to browser search when direct web-search credentials are unavailable.             |
 
 ## Merchant Extension Inventory
 
 These packages are part of the workspace when `extensions-merchant/` is present:
 
-| Extension | Plugin ID | Purpose |
-| --- | --- | --- |
+| Extension               | Plugin ID               | Purpose                              |
+| ----------------------- | ----------------------- | ------------------------------------ |
 | `rivonclaw-cloud-tools` | `rivonclaw-cloud-tools` | Dynamic backend-defined cloud tools. |
-| `rivonclaw-cs` | `rivonclaw-cs` | Customer-service runtime support. |
-| `rivonclaw-ecom` | `rivonclaw-ecom` | Ecommerce runtime support. |
+| `rivonclaw-cs`          | `rivonclaw-cs`          | Customer-service runtime support.    |
+| `rivonclaw-ecom`        | `rivonclaw-ecom`        | Ecommerce runtime support.           |
 | `rivonclaw-local-tools` | `rivonclaw-local-tools` | RivonClaw-owned local desktop tools. |
 
 ## Loading Model

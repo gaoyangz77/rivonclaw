@@ -1,11 +1,17 @@
 import { types, type Instance } from "mobx-state-tree";
 
 export const SidecarState = types.enumeration("SidecarState", [
-  "unknown", "probing", "ready", "failed",
+  "unknown",
+  "probing",
+  "ready",
+  "failed",
 ]);
 
 export const GatewayProcessState = types.enumeration("GatewayProcessState", [
-  "stopped", "starting", "running", "stopping",
+  "stopped",
+  "starting",
+  "running",
+  "stopping",
 ]);
 
 export const OpenClawConnectorModel = types.model("OpenClawConnector", {

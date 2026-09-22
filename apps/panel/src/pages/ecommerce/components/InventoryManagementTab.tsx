@@ -48,14 +48,22 @@ interface ShopWarehouseRow {
   isReadOnlyMapping: boolean;
 }
 
-export const InventoryManagementTab = observer(function InventoryManagementTab({ shop }: InventoryManagementTabProps) {
+export const InventoryManagementTab = observer(function InventoryManagementTab({
+  shop,
+}: InventoryManagementTabProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const inventory = entityStore.ecommerceInventory;
 
-  const shopWarehouses = entityStore.shopWarehouses.filter((warehouse) => warehouse.shopId === shop.id);
-  const canonicalWarehouses = entityStore.warehouses.filter((warehouse) => warehouse.status === "ACTIVE");
-  const manuallyMappableWarehouses = canonicalWarehouses.filter((warehouse) => warehouse.warehouseType !== "OFFICIAL_PLATFORM");
+  const shopWarehouses = entityStore.shopWarehouses.filter(
+    (warehouse) => warehouse.shopId === shop.id,
+  );
+  const canonicalWarehouses = entityStore.warehouses.filter(
+    (warehouse) => warehouse.status === "ACTIVE",
+  );
+  const manuallyMappableWarehouses = canonicalWarehouses.filter(
+    (warehouse) => warehouse.warehouseType !== "OFFICIAL_PLATFORM",
+  );
   const activeShopWarehouseTab = inventory.getShopWarehouseTab(shop.id);
 
   useEffect(() => {
@@ -64,7 +72,8 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
 
   const shopWarehouseRows: ShopWarehouseRow[] = shopWarehouses.map((shopWarehouse) => {
     const mappedWarehouse = shopWarehouse.warehouseId
-      ? canonicalWarehouses.find((warehouse) => warehouse.id === shopWarehouse.warehouseId) ?? null
+      ? (canonicalWarehouses.find((warehouse) => warehouse.id === shopWarehouse.warehouseId) ??
+        null)
       : null;
     const isOfficialMapping = mappedWarehouse?.warehouseType === "OFFICIAL_PLATFORM";
 
@@ -76,16 +85,22 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
   });
   const readOnlyWarehouseRows = shopWarehouseRows.filter((row) => row.isReadOnlyMapping);
   const editableWarehouseRows = shopWarehouseRows.filter((row) => !row.isReadOnlyMapping);
-  const activeWarehouseRows = activeShopWarehouseTab === "official" ? readOnlyWarehouseRows : editableWarehouseRows;
+  const activeWarehouseRows =
+    activeShopWarehouseTab === "official" ? readOnlyWarehouseRows : editableWarehouseRows;
 
   const warehouseOptions = manuallyMappableWarehouses.map((warehouse) => ({
     value: warehouse.id,
     label: formatWarehouseOption(warehouse),
-    description: t(`ecommerce.inventory.warehouseProviders.${warehouse.provider}`, { defaultValue: warehouse.provider }),
+    description: t(`ecommerce.inventory.warehouseProviders.${warehouse.provider}`, {
+      defaultValue: warehouse.provider,
+    }),
   }));
 
   return (
-    <div id="shop-workspace-warehouseMapping-warehouses" className="shop-detail-section inventory-management-tab shop-workspace-section">
+    <div
+      id="shop-workspace-warehouseMapping-warehouses"
+      className="shop-detail-section inventory-management-tab shop-workspace-section"
+    >
       <div className="inventory-tab-toolbar">
         <div>
           <div className="drawer-section-label">{t("ecommerce.inventory.shopWarehouses")}</div>
@@ -97,7 +112,9 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
           disabled={inventory.isShopSyncing(shop.id)}
         >
           <RefreshIcon className={inventory.isShopSyncing(shop.id) ? "spin" : ""} />
-          {inventory.isShopSyncing(shop.id) ? t("common.loading") : t("ecommerce.inventory.syncShopWarehouses")}
+          {inventory.isShopSyncing(shop.id)
+            ? t("common.loading")
+            : t("ecommerce.inventory.syncShopWarehouses")}
         </button>
       </div>
 
@@ -116,7 +133,9 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
               onClick={() => inventory.syncShopWarehouses(shop.id).catch(() => {})}
               disabled={inventory.isShopSyncing(shop.id)}
             >
-              {inventory.isShopSyncing(shop.id) ? t("common.loading") : t("ecommerce.inventory.syncShopWarehouses")}
+              {inventory.isShopSyncing(shop.id)
+                ? t("common.loading")
+                : t("ecommerce.inventory.syncShopWarehouses")}
             </button>
           }
         />
@@ -156,72 +175,100 @@ export const InventoryManagementTab = observer(function InventoryManagementTab({
                 <span>{t("ecommerce.inventory.canonicalWarehouseColumn")}</span>
               </div>
               {activeWarehouseRows.map(({ shopWarehouse, mappedWarehouse, isReadOnlyMapping }) => {
-            const saving = inventory.isShopWarehouseMappingSaving(shopWarehouse.id);
-            const mappingState = shopWarehouseMappingState(shopWarehouse);
+                const saving = inventory.isShopWarehouseMappingSaving(shopWarehouse.id);
+                const mappingState = shopWarehouseMappingState(shopWarehouse);
 
-            return (
-              <div
-                className={`inventory-mapping-row${isReadOnlyMapping ? " inventory-mapping-row-readonly" : ""}`}
-                key={shopWarehouse.id}
-              >
-                <div className="inventory-shop-warehouse">
-                  <div className="inventory-row-title">
-                    <span>{shopWarehouse.name}</span>
-                    {shopWarehouse.isDefault && (
-                      <span className="inventory-default-mark">{t("ecommerce.inventory.defaultWarehouse")}</span>
-                    )}
-                    <span className={`inventory-role-chip ${shopWarehouseRoleClass(shopWarehouse.warehouseType)}`}>
-                      <span className="inventory-role-arrow">{shopWarehouseRoleDirection(shopWarehouse.warehouseType)}</span>
-                      {t(`ecommerce.inventory.shopWarehouseTypes.${shopWarehouse.warehouseType}`, { defaultValue: shopWarehouse.warehouseType })}
-                    </span>
-                  </div>
-                  <div className="inventory-row-meta">
-                    <span className="inventory-platform-id">{platformWarehouseCode(shopWarehouse)}</span>
-                  </div>
-                </div>
-                <div className="inventory-row-state">
-                  <div className="inventory-status-line">
-                    <span className={shopWarehouse.warehouseId ? "inventory-chip inventory-chip-green" : "inventory-chip inventory-chip-muted"}>
-                      {t(`ecommerce.inventory.mappingState.${mappingState}`, { defaultValue: mappingState })}
-                    </span>
-                  </div>
-                </div>
-                {isReadOnlyMapping ? (
-                  <div className="inventory-readonly-mapping">
-                    <div className="inventory-readonly-mapping-main">
-                      {mappedWarehouse ? formatWarehouseOption(mappedWarehouse) : "\u2014"}
+                return (
+                  <div
+                    className={`inventory-mapping-row${isReadOnlyMapping ? " inventory-mapping-row-readonly" : ""}`}
+                    key={shopWarehouse.id}
+                  >
+                    <div className="inventory-shop-warehouse">
+                      <div className="inventory-row-title">
+                        <span>{shopWarehouse.name}</span>
+                        {shopWarehouse.isDefault && (
+                          <span className="inventory-default-mark">
+                            {t("ecommerce.inventory.defaultWarehouse")}
+                          </span>
+                        )}
+                        <span
+                          className={`inventory-role-chip ${shopWarehouseRoleClass(shopWarehouse.warehouseType)}`}
+                        >
+                          <span className="inventory-role-arrow">
+                            {shopWarehouseRoleDirection(shopWarehouse.warehouseType)}
+                          </span>
+                          {t(
+                            `ecommerce.inventory.shopWarehouseTypes.${shopWarehouse.warehouseType}`,
+                            { defaultValue: shopWarehouse.warehouseType },
+                          )}
+                        </span>
+                      </div>
+                      <div className="inventory-row-meta">
+                        <span className="inventory-platform-id">
+                          {platformWarehouseCode(shopWarehouse)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="td-meta">{t("ecommerce.inventory.managedByPlatform")}</div>
+                    <div className="inventory-row-state">
+                      <div className="inventory-status-line">
+                        <span
+                          className={
+                            shopWarehouse.warehouseId
+                              ? "inventory-chip inventory-chip-green"
+                              : "inventory-chip inventory-chip-muted"
+                          }
+                        >
+                          {t(`ecommerce.inventory.mappingState.${mappingState}`, {
+                            defaultValue: mappingState,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    {isReadOnlyMapping ? (
+                      <div className="inventory-readonly-mapping">
+                        <div className="inventory-readonly-mapping-main">
+                          {mappedWarehouse ? formatWarehouseOption(mappedWarehouse) : "\u2014"}
+                        </div>
+                        <div className="td-meta">{t("ecommerce.inventory.managedByPlatform")}</div>
+                      </div>
+                    ) : (
+                      <div className="inventory-mapping-control">
+                        <Select
+                          value={shopWarehouse.warehouseId ?? ""}
+                          onChange={(warehouseId) => {
+                            inventory
+                              .writeShopWarehouseMapping(
+                                shop.id,
+                                shopWarehouse.id,
+                                warehouseId || null,
+                              )
+                              .catch(() => {});
+                          }}
+                          options={warehouseOptions}
+                          disabled={saving}
+                          searchable
+                          className="input-full"
+                        />
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() =>
+                            inventory
+                              .writeShopWarehouseMapping(shop.id, shopWarehouse.id, null)
+                              .catch(() => {})
+                          }
+                          disabled={saving || !shopWarehouse.warehouseId}
+                        >
+                          {saving ? t("common.loading") : t("ecommerce.inventory.clearMapping")}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="inventory-mapping-control">
-                    <Select
-                      value={shopWarehouse.warehouseId ?? ""}
-                      onChange={(warehouseId) => {
-                        inventory.writeShopWarehouseMapping(shop.id, shopWarehouse.id, warehouseId || null).catch(() => {});
-                      }}
-                      options={warehouseOptions}
-                      disabled={saving}
-                      searchable
-                      className="input-full"
-                    />
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => inventory.writeShopWarehouseMapping(shop.id, shopWarehouse.id, null).catch(() => {})}
-                      disabled={saving || !shopWarehouse.warehouseId}
-                    >
-                      {saving ? t("common.loading") : t("ecommerce.inventory.clearMapping")}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
+                );
               })}
             </>
           )}
         </div>
       )}
-
     </div>
   );
 });

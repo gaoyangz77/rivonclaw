@@ -32,9 +32,10 @@ describe("toMstSnapshot", () => {
   it("uses the Codex refresh token exp instead of a stale stored subscription date", async () => {
     const refreshExpiresAtSec = 1_900_000_000;
     const snapshot = await toMstSnapshot(baseEntry(), {
-      get: async (key: string) => key === "oauth-cred-key-1"
-        ? JSON.stringify({ refresh: buildJwt({ exp: refreshExpiresAtSec }) })
-        : null,
+      get: async (key: string) =>
+        key === "oauth-cred-key-1"
+          ? JSON.stringify({ refresh: buildJwt({ exp: refreshExpiresAtSec }) })
+          : null,
       set: async () => {},
       delete: async () => {},
     } as any);
@@ -44,9 +45,8 @@ describe("toMstSnapshot", () => {
 
   it("clears Codex OAuth expiry when the refresh token has no readable exp", async () => {
     const snapshot = await toMstSnapshot(baseEntry(), {
-      get: async (key: string) => key === "oauth-cred-key-1"
-        ? JSON.stringify({ refresh: "opaque-refresh-token" })
-        : null,
+      get: async (key: string) =>
+        key === "oauth-cred-key-1" ? JSON.stringify({ refresh: "opaque-refresh-token" }) : null,
       set: async () => {},
       delete: async () => {},
     } as any);

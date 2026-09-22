@@ -236,10 +236,16 @@ describe("SceneProjector - the arc of a run", () => {
   // presenter to play.
   it("does not treat a tool result as a new activity", () => {
     const p = projector();
-    p.handleEvent(evt({ runId: "r1", seq: 1, stream: "tool", data: { phase: "start", name: "a" } }));
-    p.handleEvent(evt({ runId: "r1", seq: 2, stream: "tool", data: { phase: "start", name: "b" } }));
+    p.handleEvent(
+      evt({ runId: "r1", seq: 1, stream: "tool", data: { phase: "start", name: "a" } }),
+    );
+    p.handleEvent(
+      evt({ runId: "r1", seq: 2, stream: "tool", data: { phase: "start", name: "b" } }),
+    );
     p.takeCues();
-    p.handleEvent(evt({ runId: "r1", seq: 3, stream: "tool", data: { phase: "result", name: "a" } }));
+    p.handleEvent(
+      evt({ runId: "r1", seq: 3, stream: "tool", data: { phase: "result", name: "a" } }),
+    );
     expect(byId(p, "r1")).toMatchObject({ status: "tooling", activity: "b" });
     expect(p.takeCues()).toEqual([]);
   });
@@ -314,7 +320,9 @@ describe("SceneProjector - the arc of a run", () => {
   it("shows an unrecognised run_status phase as plain working", () => {
     const p = projector();
     p.handleEvent(evt({ runId: "r1", seq: 1 }));
-    p.handleEvent(evt({ runId: "r1", seq: 2, stream: "run_status", data: { phase: "compacting" } }));
+    p.handleEvent(
+      evt({ runId: "r1", seq: 2, stream: "run_status", data: { phase: "compacting" } }),
+    );
     expect(byId(p, "r1")?.status).toBe("working");
   });
 
@@ -334,8 +342,7 @@ describe("SceneProjector - the arc of a run", () => {
 // the whole opening of a run - the part these statuses were added for - is
 // visible ONLY through cues. That makes them load-bearing here, not sugar.
 describe("SceneProjector - status cues", () => {
-  const statusCues = (p: SceneProjector) =>
-    p.takeCues().filter((c) => c.kind === "statusChanged");
+  const statusCues = (p: SceneProjector) => p.takeCues().filter((c) => c.kind === "statusChanged");
 
   it("reports every beat of a setup burst that a single snapshot hides", () => {
     const p = projector();

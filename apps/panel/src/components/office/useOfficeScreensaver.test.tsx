@@ -23,10 +23,9 @@ describe("useOfficeScreensaver", () => {
   beforeEach(() => listeners.clear());
 
   it("keeps a tutorial visible and waits for renewed activity before rearming", () => {
-    const { result, rerender } = renderHook(
-      ({ paused }) => useOfficeScreensaver(paused),
-      { initialProps: { paused: true } },
-    );
+    const { result, rerender } = renderHook(({ paused }) => useOfficeScreensaver(paused), {
+      initialProps: { paused: true },
+    });
     setIdle(true);
     expect(result.current.active).toBe(false);
     rerender({ paused: false });

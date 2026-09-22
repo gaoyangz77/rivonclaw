@@ -41,16 +41,17 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
   }
   const scopeType = parseScopeType(sessionKey);
   const initializedAtStart = rootStore.toolCapability.initialized;
-  const shouldTrace = scopeType === ScopeType.CS_SESSION || scopeType === ScopeType.AFFILIATE_SESSION;
+  const shouldTrace =
+    scopeType === ScopeType.CS_SESSION || scopeType === ScopeType.AFFILIATE_SESSION;
   let rpcWaitMs = 0;
   let catalogWaitMs = 0;
 
   if (shouldTrace) {
     log.info(
       `effective-tools request: session=${sessionKey} scope=${scopeType} ` +
-      `initialized=${initializedAtStart} sessionProfile=${rootStore.toolCapability.getSessionRunProfileId(sessionKey) ?? "null"} ` +
-      `defaultProfile=${rootStore.toolCapability.defaultRunProfileId ?? "null"} ` +
-      `entitled=${rootStore.entitledTools?.length ?? 0} runProfiles=${rootStore.runProfiles?.length ?? 0}`,
+        `initialized=${initializedAtStart} sessionProfile=${rootStore.toolCapability.getSessionRunProfileId(sessionKey) ?? "null"} ` +
+        `defaultProfile=${rootStore.toolCapability.defaultRunProfileId ?? "null"} ` +
+        `entitled=${rootStore.entitledTools?.length ?? 0} runProfiles=${rootStore.runProfiles?.length ?? 0}`,
     );
   }
 
@@ -63,8 +64,13 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
       const rpcDeadline = Date.now() + 15_000;
       const rpcWaitStartedAt = Date.now();
       while (Date.now() < rpcDeadline) {
-        try { openClawConnector.ensureRpcReady(); break; } catch { /* not ready yet */ }
-        await new Promise(r => setTimeout(r, 200));
+        try {
+          openClawConnector.ensureRpcReady();
+          break;
+        } catch {
+          /* not ready yet */
+        }
+        await new Promise((r) => setTimeout(r, 200));
       }
       rpcWaitMs = Date.now() - rpcWaitStartedAt;
       // After gateway is ready, tool catalog init runs asynchronously.
@@ -72,15 +78,17 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
       const deadline = Date.now() + 8_000;
       const catalogWaitStartedAt = Date.now();
       while (!rootStore.toolCapability.initialized && Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 200));
       }
       catalogWaitMs = Date.now() - catalogWaitStartedAt;
-    } catch { /* timeout — fall through to return [] */ }
+    } catch {
+      /* timeout — fall through to return [] */
+    }
     if (!rootStore.toolCapability.initialized) {
       const totalMs = Date.now() - requestStartedAt;
       log.warn(
         `effective-tools unresolved: session=${sessionKey} scope=${scopeType} totalMs=${totalMs} ` +
-        `rpcWaitMs=${rpcWaitMs} catalogWaitMs=${catalogWaitMs}`,
+          `rpcWaitMs=${rpcWaitMs} catalogWaitMs=${catalogWaitMs}`,
       );
       sendJson(res, 200, { effectiveToolIds: [] });
       return;
@@ -88,7 +96,10 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
   }
 
   const computeStartedAt = Date.now();
-  const effectiveToolIds = rootStore.toolCapability.getEffectiveToolsForScope(scopeType, sessionKey);
+  const effectiveToolIds = rootStore.toolCapability.getEffectiveToolsForScope(
+    scopeType,
+    sessionKey,
+  );
   const computeMs = Date.now() - computeStartedAt;
 
   // Log on first resolve or when tool list changes for a session
@@ -101,9 +112,9 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
   if (shouldTrace || totalMs >= SLOW_EFFECTIVE_TOOLS_MS || computeMs >= SLOW_EFFECTIVE_TOOLS_MS) {
     log.info(
       `effective-tools resolved: session=${sessionKey} scope=${scopeType} totalMs=${totalMs} ` +
-      `rpcWaitMs=${rpcWaitMs} catalogWaitMs=${catalogWaitMs} computeMs=${computeMs} ` +
-      `signatureMs=${signatureMs} initializedAtStart=${initializedAtStart} ` +
-      `changed=${changed} result=${effectiveToolIds.length}`,
+        `rpcWaitMs=${rpcWaitMs} catalogWaitMs=${catalogWaitMs} computeMs=${computeMs} ` +
+        `signatureMs=${signatureMs} initializedAtStart=${initializedAtStart} ` +
+        `changed=${changed} result=${effectiveToolIds.length}`,
     );
   }
   if (changed) {
@@ -112,10 +123,10 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
     const defaultProfile = rootStore.toolCapability.defaultRunProfileId;
     log.info(
       `effective-tools ${prev === undefined ? "(first)" : "(changed)"}: ` +
-      `session=${sessionKey} scope=${scopeType} ` +
-      `sessionProfile=${sessionProfile ?? "null"} defaultProfile=${defaultProfile ?? "null"} ` +
-      `entitled=${rootStore.entitledTools?.length ?? 0} runProfiles=${rootStore.runProfiles?.length ?? 0} ` +
-      `result=${effectiveToolIds.length} tools=[${effectiveToolIds.join(", ")}]`,
+        `session=${sessionKey} scope=${scopeType} ` +
+        `sessionProfile=${sessionProfile ?? "null"} defaultProfile=${defaultProfile ?? "null"} ` +
+        `entitled=${rootStore.entitledTools?.length ?? 0} runProfiles=${rootStore.runProfiles?.length ?? 0} ` +
+        `result=${effectiveToolIds.length} tools=[${effectiveToolIds.join(", ")}]`,
     );
   }
 
@@ -123,7 +134,7 @@ const getEffectiveTools: EndpointHandler = async (_req, res, url, _params, _ctx)
 };
 
 const setRunProfile: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  const body = await parseBody(req) as { scopeKey?: string; runProfileId?: string | null };
+  const body = (await parseBody(req)) as { scopeKey?: string; runProfileId?: string | null };
   if (!body.scopeKey) {
     sendJson(res, 400, { error: "Missing scopeKey" });
     return;

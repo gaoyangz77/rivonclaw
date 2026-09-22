@@ -15,9 +15,7 @@ const documents = { ...productKnowledgeDocuments, ...mediaDocuments };
 
 function isDocumentNode(value: unknown): value is DocumentNode {
   return Boolean(
-    value &&
-    typeof value === "object" &&
-    (value as { kind?: string }).kind === "Document",
+    value && typeof value === "object" && (value as { kind?: string }).kind === "Document",
   );
 }
 

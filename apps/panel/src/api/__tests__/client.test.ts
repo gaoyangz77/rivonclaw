@@ -30,9 +30,12 @@ describe("fetchJson", () => {
 
     const data = await fetchJson<{ items: number[] }>("/test");
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/test", expect.objectContaining({
-      headers: { "Content-Type": "application/json" },
-    }));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/test",
+      expect.objectContaining({
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
     expect(data).toEqual({ items: [1, 2] });
   });
 
@@ -90,11 +93,14 @@ describe("fetchVoid", () => {
 
     fetchVoid("/ping", { method: "POST", body: "{}" });
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/ping", expect.objectContaining({
-      method: "POST",
-      body: "{}",
-      headers: { "Content-Type": "application/json" },
-    }));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/ping",
+      expect.objectContaining({
+        method: "POST",
+        body: "{}",
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
   });
 });
 
@@ -152,7 +158,9 @@ describe("cachedFetch", () => {
     let resolve!: (v: { n: number }) => void;
     const fn = () => {
       callCount++;
-      return new Promise<{ n: number }>((r) => { resolve = r; });
+      return new Promise<{ n: number }>((r) => {
+        resolve = r;
+      });
     };
 
     const p1 = cachedFetch("test-key", fn, 5000);

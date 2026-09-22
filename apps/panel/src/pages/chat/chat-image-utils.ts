@@ -1,5 +1,10 @@
 import type { PendingImage } from "./chat-utils.js";
-import { COMPRESS_MAX_DIMENSION, COMPRESS_TARGET_BYTES, COMPRESS_INITIAL_QUALITY, COMPRESS_MIN_QUALITY } from "./chat-utils.js";
+import {
+  COMPRESS_MAX_DIMENSION,
+  COMPRESS_TARGET_BYTES,
+  COMPRESS_INITIAL_QUALITY,
+  COMPRESS_MIN_QUALITY,
+} from "./chat-utils.js";
 
 /**
  * Compress an image (as a data-URL) by resizing and reducing JPEG quality.
@@ -19,7 +24,10 @@ export function compressImage(dataUrl: string): Promise<PendingImage | null> {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(null); return; }
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
       ctx.drawImage(img, 0, 0, width, height);
 
       const mimeType = "image/jpeg";

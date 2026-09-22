@@ -16,14 +16,10 @@ export function createSttProvider(
   switch (config.provider) {
     case "volcengine": {
       if (!config.volcengine) {
-        throw new Error(
-          "Volcengine STT requires volcengine config (appKey, accessKey)",
-        );
+        throw new Error("Volcengine STT requires volcengine config (appKey, accessKey)");
       }
       if (!config.volcengine.appKey || !config.volcengine.accessKey) {
-        throw new Error(
-          "Volcengine STT requires both appKey and accessKey",
-        );
+        throw new Error("Volcengine STT requires both appKey and accessKey");
       }
       return new VolcengineSttProvider(
         config.volcengine.appKey,

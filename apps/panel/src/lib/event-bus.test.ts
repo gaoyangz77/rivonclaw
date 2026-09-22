@@ -154,7 +154,9 @@ describe("createPanelEventBus", () => {
     bus.subscribe("broken", handler);
 
     const source = FakeEventSource.instances[0]!;
-    const set = (source as unknown as { listeners: Map<string, Set<Listener>> }).listeners.get("broken");
+    const set = (source as unknown as { listeners: Map<string, Set<Listener>> }).listeners.get(
+      "broken",
+    );
     const fn = Array.from(set!)[0]!;
     expect(() => fn({ data: "{not-json" } as MessageEvent)).not.toThrow();
     expect(handler).not.toHaveBeenCalled();

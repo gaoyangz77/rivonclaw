@@ -1,6 +1,9 @@
 {
   "name": "@rivonclaw/plugin-sdk",
   "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -10,7 +13,6 @@
       "import": "./dist/index.mjs"
     }
   },
-  "files": ["dist"],
   "scripts": {
     "build": "tsdown",
     "test": "vitest",

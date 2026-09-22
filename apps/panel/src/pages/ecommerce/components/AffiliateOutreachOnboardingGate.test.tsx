@@ -57,7 +57,8 @@ vi.mock("../../../lib/event-bus.js", () => ({
 }));
 
 vi.mock("@apollo/client/react", async () => {
-  const actual = await vi.importActual<typeof import("@apollo/client/react")>("@apollo/client/react");
+  const actual =
+    await vi.importActual<typeof import("@apollo/client/react")>("@apollo/client/react");
   return {
     ...actual,
     useMutation: vi.fn(),
@@ -69,7 +70,9 @@ const mutationSpy = vi.fn();
 const refetchSpy = vi.fn();
 
 function mockMutationHooks() {
-  vi.mocked(useMutation).mockImplementation(() => [mutationSpy, { loading: false, called: false, reset: vi.fn() }] as never);
+  vi.mocked(useMutation).mockImplementation(
+    () => [mutationSpy, { loading: false, called: false, reset: vi.fn() }] as never,
+  );
 }
 
 function renderWhatsAppPanel(
@@ -257,7 +260,9 @@ describe("affiliate outreach connector onboarding gates", () => {
   it("enables WhatsApp QR onboarding after Evolution is ready", () => {
     renderWhatsAppPanel({ ready: true });
 
-    expect((screen.getByRole("button", { name: "Connect WhatsApp" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(
+      (screen.getByRole("button", { name: "Connect WhatsApp" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
     expect((screen.getByRole("button", { name: "QR" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -270,10 +275,13 @@ describe("affiliate outreach connector onboarding gates", () => {
         },
       },
     });
-    renderWhatsAppPanel({ ready: true }, {
-      reconnectBindingId: "wa-1",
-      showAccountList: false,
-    });
+    renderWhatsAppPanel(
+      { ready: true },
+      {
+        reconnectBindingId: "wa-1",
+        showAccountList: false,
+      },
+    );
 
     expect(screen.getByText("Reconnect this WhatsApp account")).toBeTruthy();
     await waitFor(() => {
@@ -333,7 +341,9 @@ describe("affiliate outreach connector onboarding gates", () => {
   it("enables Outlook OAuth onboarding after Microsoft Graph is ready", () => {
     renderEmailPanel({ ready: true });
 
-    expect((screen.getByRole("button", { name: "Connect Outlook" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(
+      (screen.getByRole("button", { name: "Connect Outlook" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 
   it("refreshes Outlook accounts when the desktop reports OAuth completion", async () => {

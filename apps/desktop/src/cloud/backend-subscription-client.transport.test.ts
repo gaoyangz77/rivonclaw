@@ -233,9 +233,10 @@ describe("BackendSubscriptionClient transport recovery (real graphql-ws)", () =>
     // to block the operation permanently.
     const socketCount = FakeWebSocket.instances.length;
     const toolSpecsFrames = () =>
-      FakeWebSocket.instances.at(-1)!.subscribeMessages().filter((m) =>
-        m.payload.query.includes("ToolSpecsChanged"),
-      );
+      FakeWebSocket.instances
+        .at(-1)!
+        .subscribeMessages()
+        .filter((m) => m.payload.query.includes("ToolSpecsChanged"));
     for (let i = 0; i < 6; i += 1) {
       const target = toolSpecsFrames().at(-1)!;
       FakeWebSocket.instances.at(-1)!.serverError(target.id, "Unexpected subscription failure");

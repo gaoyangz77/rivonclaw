@@ -22,7 +22,11 @@ interface ToolListItem extends AvailableTool {
  * Multi-select checkbox list of individual tools, grouped by category.
  * Categories are collapsible and show a source badge (System / Extensions / Cloud).
  */
-export const ToolMultiSelect = observer(function ToolMultiSelect({ selected, onChange, allowedToolIds }: ToolMultiSelectProps) {
+export const ToolMultiSelect = observer(function ToolMultiSelect({
+  selected,
+  onChange,
+  allowedToolIds,
+}: ToolMultiSelectProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const tools = entityStore.availableTools;
@@ -33,7 +37,13 @@ export const ToolMultiSelect = observer(function ToolMultiSelect({ selected, onC
     [allowedToolIds],
   );
 
-  const visibleToolIds = useMemo(() => new Set(tools.filter((tool) => !allowedSet || allowedSet.has(tool.id)).map((tool) => tool.id)), [tools, allowedSet]);
+  const visibleToolIds = useMemo(
+    () =>
+      new Set(
+        tools.filter((tool) => !allowedSet || allowedSet.has(tool.id)).map((tool) => tool.id),
+      ),
+    [tools, allowedSet],
+  );
 
   const grouped = useMemo(() => {
     const map = new Map<string, ToolListItem[]>();
@@ -49,16 +59,18 @@ export const ToolMultiSelect = observer(function ToolMultiSelect({ selected, onC
     for (const toolId of selected) {
       if (visibleToolIds.has(toolId)) continue;
       const existingTool = tools.find((tool) => tool.id === toolId);
-      selectedUnavailable.push(existingTool
-        ? { ...existingTool, unavailable: true }
-        : {
-            id: toolId,
-            displayName: toolId,
-            description: t("tools.selector.unavailableSelectedHint"),
-            category: "__unavailable__",
-            source: "entitled",
-            unavailable: true,
-          });
+      selectedUnavailable.push(
+        existingTool
+          ? { ...existingTool, unavailable: true }
+          : {
+              id: toolId,
+              displayName: toolId,
+              description: t("tools.selector.unavailableSelectedHint"),
+              category: "__unavailable__",
+              source: "entitled",
+              unavailable: true,
+            },
+      );
     }
     if (selectedUnavailable.length > 0) {
       map.set("__unavailable__", selectedUnavailable);
@@ -129,17 +141,20 @@ export const ToolMultiSelect = observer(function ToolMultiSelect({ selected, onC
                 type="checkbox"
                 className="tool-ms-checkbox"
                 checked={allSelected}
-                ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected;
+                }}
                 onChange={() => toggleCategory(catTools)}
               />
-              <span
-                className="tool-ms-group-name"
-                onClick={() => toggleCollapse(category)}
-              >
-                <span className={`tool-ms-chevron${isCollapsed ? "" : " tool-ms-chevron-open"}`}>&#9656;</span>
+              <span className="tool-ms-group-name" onClick={() => toggleCollapse(category)}>
+                <span className={`tool-ms-chevron${isCollapsed ? "" : " tool-ms-chevron-open"}`}>
+                  &#9656;
+                </span>
                 {categoryLabel(category)}
               </span>
-              <span className="tool-ms-group-count">{catTools.filter((tool) => selected.has(tool.id)).length}/{catTools.length}</span>
+              <span className="tool-ms-group-count">
+                {catTools.filter((tool) => selected.has(tool.id)).length}/{catTools.length}
+              </span>
             </div>
             {!isCollapsed && (
               <div className="tool-ms-items">
@@ -155,7 +170,9 @@ export const ToolMultiSelect = observer(function ToolMultiSelect({ selected, onC
                       checked={selected.has(tool.id)}
                       onChange={() => toggle(tool.id)}
                     />
-                    <span className={`tool-ms-item-name${tool.unavailable ? " tool-ms-item-name-unavailable" : ""}`}>
+                    <span
+                      className={`tool-ms-item-name${tool.unavailable ? " tool-ms-item-name-unavailable" : ""}`}
+                    >
                       {toolLabel(tool.id)}
                     </span>
                   </label>

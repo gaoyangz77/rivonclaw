@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { BOOTSTRAP_ORDER, buildBootstrapMessages, type SceneAssetBundle } from "./assetBootstrap.js";
+import {
+  BOOTSTRAP_ORDER,
+  buildBootstrapMessages,
+  type SceneAssetBundle,
+} from "./assetBootstrap.js";
 
 const EMPTY_BUNDLE: SceneAssetBundle = {
   characters: [],

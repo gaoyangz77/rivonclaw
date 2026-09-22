@@ -56,8 +56,9 @@ describe("marketing attribution deep links", () => {
         deepLink({ ...attribution, attributionId: "not-a-random-uuid" }),
       ),
     ).toBeUndefined();
-    expect(parseMarketingAttributionDeepLink(`tkcopilot://attribution?payload=${"a".repeat(7_000)}`))
-      .toBeUndefined();
+    expect(
+      parseMarketingAttributionDeepLink(`tkcopilot://attribution?payload=${"a".repeat(7_000)}`),
+    ).toBeUndefined();
   });
 
   it("removes query strings, control characters, and invalid referrer domains", () => {

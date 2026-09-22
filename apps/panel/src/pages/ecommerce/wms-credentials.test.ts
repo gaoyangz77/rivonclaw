@@ -18,10 +18,7 @@ const empty: WmsCredentialDraft = {
 describe("wmsCredentialIssue", () => {
   it("models static-token and key/secret providers without JSON", () => {
     expect(wmsCredentialFields("YEJOIN", "EXISTING")).toEqual(["apiToken"]);
-    expect(wmsCredentialFields("XLWMS", "EXISTING")).toEqual([
-      "apiKey",
-      "apiSecret",
-    ]);
+    expect(wmsCredentialFields("XLWMS", "EXISTING")).toEqual(["apiKey", "apiSecret"]);
     expect(
       wmsCredentialIssue(
         "XLWMS",
@@ -84,13 +81,8 @@ describe("wmsCredentialIssue", () => {
   });
 
   it("rejects a partial credential replacement", () => {
-    expect(
-      wmsCredentialIssue(
-        "SELLFOX",
-        "EXISTING",
-        { ...empty, apiKey: "only-key" },
-        true,
-      ),
-    ).toBe("missingFields");
+    expect(wmsCredentialIssue("SELLFOX", "EXISTING", { ...empty, apiKey: "only-key" }, true)).toBe(
+      "missingFields",
+    );
   });
 });

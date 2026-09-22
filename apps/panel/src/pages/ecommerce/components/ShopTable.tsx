@@ -194,9 +194,7 @@ export const ShopTable = observer(function ShopTable({
                                   collectionNameSensitive && privacyMode
                                     ? undefined
                                     : `${t(
-                                        isExpanded
-                                          ? "chat.collapseMessage"
-                                          : "chat.expandMessage",
+                                        isExpanded ? "chat.collapseMessage" : "chat.expandMessage",
                                       )} ${collectionName}`
                                 }
                               >

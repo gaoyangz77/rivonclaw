@@ -29,14 +29,17 @@ test.describe("Skills Page", () => {
     expect(realSlug).toBeTruthy();
 
     // --- Install skill via API (downloads from server) ---
-    const installRes = await window.evaluate(async (arg: { base: string; slug: string }) => {
-      const res = await fetch(`${arg.base}/api/skills/install`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: arg.slug }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, slug: realSlug });
+    const installRes = await window.evaluate(
+      async (arg: { base: string; slug: string }) => {
+        const res = await fetch(`${arg.base}/api/skills/install`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: arg.slug }),
+        });
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, slug: realSlug },
+    );
     expect(installRes.status).toBe(200);
 
     expect(installRes.body.ok, installRes.body.error).toBe(true);
@@ -61,18 +64,21 @@ test.describe("Skills Page", () => {
       return { status: res.status, body: await res.json() };
     }, apiBase);
     expect(installedRes.status).toBe(200);
-    const installedSlugs = (installedRes.body.skills as Array<{ slug: string }>).map(s => s.slug);
+    const installedSlugs = (installedRes.body.skills as Array<{ slug: string }>).map((s) => s.slug);
     expect(installedSlugs).toContain(realSlug);
 
     // --- Delete the installed skill via API ---
-    const deleteRes = await window.evaluate(async (arg: { base: string; slug: string }) => {
-      const res = await fetch(`${arg.base}/api/skills/delete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: arg.slug }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, slug: realSlug });
+    const deleteRes = await window.evaluate(
+      async (arg: { base: string; slug: string }) => {
+        const res = await fetch(`${arg.base}/api/skills/delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: arg.slug }),
+        });
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, slug: realSlug },
+    );
     expect(deleteRes.status).toBe(200);
     expect(deleteRes.body.ok).toBe(true);
 
@@ -84,7 +90,7 @@ test.describe("Skills Page", () => {
     // Dismiss any modal(s)
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -123,7 +129,10 @@ test.describe("Skills Page", () => {
     await expect(installedTab).toHaveAttribute("aria-selected", "true");
 
     // Wait for loading
-    await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
+    await window
+      .locator(".text-muted")
+      .waitFor({ state: "hidden", timeout: 10_000 })
+      .catch(() => {});
 
     // --- Verify seeded skill appears ---
     const installedCards = window.locator(".skills-grid .section-card");
@@ -166,7 +175,7 @@ test.describe("Skills Page", () => {
     // Dismiss any modal(s) blocking the UI
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -205,7 +214,7 @@ test.describe("Skills Page", () => {
 
       // Meta section should contain author, stars, downloads (version is in card header)
       const meta = firstCard.locator(".skill-card-meta");
-      await expect(meta).toContainText(/by /);       // author
+      await expect(meta).toContainText(/by /); // author
 
       // --- Verify label badges render with correct classes ---
       // Check if any cards have labels (e.g. "推荐" / Recommended)

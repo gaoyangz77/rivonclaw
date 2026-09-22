@@ -29,13 +29,21 @@ function makeEntry(opts: {
   output_tokens?: number;
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
-  cost?: { total: number; input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
+  cost?: {
+    total: number;
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+  };
 }): string {
   const usage: Record<string, unknown> = {};
   if (opts.input_tokens !== undefined) usage.input_tokens = opts.input_tokens;
   if (opts.output_tokens !== undefined) usage.output_tokens = opts.output_tokens;
-  if (opts.cache_read_input_tokens !== undefined) usage.cache_read_input_tokens = opts.cache_read_input_tokens;
-  if (opts.cache_creation_input_tokens !== undefined) usage.cache_creation_input_tokens = opts.cache_creation_input_tokens;
+  if (opts.cache_read_input_tokens !== undefined)
+    usage.cache_read_input_tokens = opts.cache_read_input_tokens;
+  if (opts.cache_creation_input_tokens !== undefined)
+    usage.cache_creation_input_tokens = opts.cache_creation_input_tokens;
   if (opts.cost) usage.cost = opts.cost;
 
   return jsonlLine({
@@ -74,14 +82,10 @@ afterEach(async () => {
 
 describe("discoverAllSessions", () => {
   it("discovers .jsonl files, extracts sessionId, sorts by mtime desc", async () => {
-    await writeSession("session-aaa", [
-      makeEntry({ role: "user", content: "First question" }),
-    ]);
+    await writeSession("session-aaa", [makeEntry({ role: "user", content: "First question" })]);
     // Ensure different mtime
     await new Promise((r) => setTimeout(r, 50));
-    await writeSession("session-bbb", [
-      makeEntry({ role: "user", content: "Second question" }),
-    ]);
+    await writeSession("session-bbb", [makeEntry({ role: "user", content: "Second question" })]);
 
     const sessions = await discoverAllSessions();
 
@@ -95,9 +99,7 @@ describe("discoverAllSessions", () => {
   });
 
   it("respects startMs filter", async () => {
-    await writeSession("old-session", [
-      makeEntry({ role: "user", content: "Old" }),
-    ]);
+    await writeSession("old-session", [makeEntry({ role: "user", content: "Old" })]);
 
     const futureMs = Date.now() + 100_000;
 
@@ -160,7 +162,13 @@ describe("loadSessionCostSummary", () => {
         model: "claude-sonnet-4-20250514",
         input_tokens: 100,
         output_tokens: 50,
-        cost: { total: 0.001, input: 0.0005, output: 0.0003, cacheRead: 0.0001, cacheWrite: 0.0001 },
+        cost: {
+          total: 0.001,
+          input: 0.0005,
+          output: 0.0003,
+          cacheRead: 0.0001,
+          cacheWrite: 0.0001,
+        },
       }),
       makeEntry({
         role: "assistant",
@@ -250,10 +258,12 @@ describe("loadSessionCostSummary", () => {
       models: {
         providers: {
           anthropic: {
-            models: [{
-              id: "claude-sonnet-4-20250514",
-              cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-            }],
+            models: [
+              {
+                id: "claude-sonnet-4-20250514",
+                cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+              },
+            ],
           },
         },
       },
@@ -273,7 +283,10 @@ describe("loadSessionCostSummary", () => {
 
     // Empty file (no usage entries)
     const filePath = await writeSession("empty-session", [
-      jsonlLine({ timestamp: "2026-03-15T10:00:00Z", message: { role: "system", content: "system prompt" } }),
+      jsonlLine({
+        timestamp: "2026-03-15T10:00:00Z",
+        message: { role: "system", content: "system prompt" },
+      }),
     ]);
     const result2 = await loadSessionCostSummary({ sessionFile: filePath });
     expect(result2).toBeNull();
@@ -389,9 +402,27 @@ describe("loadSessionCostSummary", () => {
 
   it("handles multiple providers/models in one session", async () => {
     const filePath = await writeSession("multi-model", [
-      makeEntry({ role: "assistant", provider: "anthropic", model: "claude-sonnet-4-20250514", input_tokens: 100, output_tokens: 50 }),
-      makeEntry({ role: "assistant", provider: "openai", model: "gpt-4o", input_tokens: 200, output_tokens: 100 }),
-      makeEntry({ role: "assistant", provider: "anthropic", model: "claude-sonnet-4-20250514", input_tokens: 300, output_tokens: 150 }),
+      makeEntry({
+        role: "assistant",
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+        input_tokens: 100,
+        output_tokens: 50,
+      }),
+      makeEntry({
+        role: "assistant",
+        provider: "openai",
+        model: "gpt-4o",
+        input_tokens: 200,
+        output_tokens: 100,
+      }),
+      makeEntry({
+        role: "assistant",
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+        input_tokens: 300,
+        output_tokens: 150,
+      }),
     ]);
 
     const result = await loadSessionCostSummary({ sessionFile: filePath });
@@ -551,7 +582,13 @@ describe("usage normalization", () => {
   it("skips malformed JSONL lines gracefully", async () => {
     const filePath = await writeSession("malformed", [
       "this is not json",
-      makeEntry({ role: "assistant", provider: "anthropic", model: "claude-sonnet-4-20250514", input_tokens: 100, output_tokens: 50 }),
+      makeEntry({
+        role: "assistant",
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+        input_tokens: 100,
+        output_tokens: 50,
+      }),
       "{broken json",
     ]);
 

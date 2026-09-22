@@ -87,11 +87,15 @@ VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}
     await expect(window.getByRole("alert")).not.toBeVisible();
 
     // --- Verify Today's Usage table (section with "Today" title) ---
-    const usageSectionCards = window.locator("[data-tutorial-id='usage-today'], [data-tutorial-id='usage-history']");
+    const usageSectionCards = window.locator(
+      "[data-tutorial-id='usage-today'], [data-tutorial-id='usage-history']",
+    );
     const todaySection = usageSectionCards.first();
     await expect(todaySection).toBeVisible({ timeout: 10_000 });
     // Today's section should have the "Today's Usage" heading
-    await expect(todaySection.getByRole("heading", { level: 3 }).first()).toContainText(/Today|今日/);
+    await expect(todaySection.getByRole("heading", { level: 3 }).first()).toContainText(
+      /Today|今日/,
+    );
 
     // Today's table should contain the active key's data (openai/gpt-4o — has today's record)
     await expect(todaySection.locator(".usage-key-block").first()).toBeVisible();

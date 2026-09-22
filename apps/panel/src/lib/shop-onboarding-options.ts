@@ -17,11 +17,7 @@ function isConcreteMarket(app: OnboardingPlatformApp): boolean {
 }
 
 export function onboardingPlatforms(platformApps: readonly OnboardingPlatformApp[]): string[] {
-  return uniqueValues(
-    platformApps
-      .filter(isConcreteMarket)
-      .map((app) => app.platform),
-  );
+  return uniqueValues(platformApps.filter(isConcreteMarket).map((app) => app.platform));
 }
 
 export function onboardingMarkets(
@@ -62,9 +58,6 @@ export function platformAppsForOnboardingSelection<T extends OnboardingPlatformA
 ): T[] {
   if (!platform || !market || !sellerType || market === GQL.PlatformMarket.Row) return [];
   return platformApps.filter(
-    (app) =>
-      app.platform === platform &&
-      app.market === market &&
-      app.sellerType === sellerType,
+    (app) => app.platform === platform && app.market === market && app.sellerType === sellerType,
   );
 }

@@ -74,13 +74,15 @@ const status: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
           } | null,
         ) => {
           if (status && status.paired && status.accessToken && status.relayUrl) {
-            ctx.mobileManager!.completePairing(status as {
-              accessToken: string;
-              relayUrl: string;
-              pairingId?: string;
-              desktopDeviceId?: string;
-              mobileDeviceId?: string;
-            });
+            ctx.mobileManager!.completePairing(
+              status as {
+                accessToken: string;
+                relayUrl: string;
+                pairingId?: string;
+                desktopDeviceId?: string;
+                mobileDeviceId?: string;
+              },
+            );
           }
         },
       )

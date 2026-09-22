@@ -112,7 +112,10 @@ describe("POST /api/auth/login", () => {
       onAuthChange,
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com", password: "pass123" });
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, {
+      email: "test@example.com",
+      password: "pass123",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -130,15 +133,23 @@ describe("POST /api/auth/login", () => {
       authSession: {
         loginWithCredentials: vi.fn().mockResolvedValue(mockUser),
       },
-      onAuthChange: vi.fn(() => new Promise<void>((resolve) => {
-        finishAuthChange = resolve;
-      })),
+      onAuthChange: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishAuthChange = resolve;
+          }),
+      ),
     } as unknown as ApiContext;
 
-    const dispatchPromise = dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com", password: "pass123" });
+    const dispatchPromise = dispatch("POST", "/api/auth/login", ctx, {
+      email: "test@example.com",
+      password: "pass123",
+    });
     const result = await Promise.race([
       dispatchPromise.then((value) => ({ type: "response" as const, value })),
-      new Promise<{ type: "timeout" }>((resolve) => setTimeout(() => resolve({ type: "timeout" }), 0)),
+      new Promise<{ type: "timeout" }>((resolve) =>
+        setTimeout(() => resolve({ type: "timeout" }), 0),
+      ),
     ]);
 
     expect(result.type).toBe("response");
@@ -157,7 +168,9 @@ describe("POST /api/auth/login", () => {
       authSession: { loginWithCredentials: vi.fn() },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { password: "pass123" });
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, {
+      password: "pass123",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -169,7 +182,9 @@ describe("POST /api/auth/login", () => {
       authSession: { loginWithCredentials: vi.fn() },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com" });
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, {
+      email: "test@example.com",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -183,7 +198,10 @@ describe("POST /api/auth/login", () => {
       },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, { email: "test@example.com", password: "wrong" });
+    const { handled, res } = await dispatch("POST", "/api/auth/login", ctx, {
+      email: "test@example.com",
+      password: "wrong",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -211,7 +229,11 @@ describe("POST /api/auth/register", () => {
       onAuthChange,
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "new@example.com", password: "securepass", name: "New User" });
+    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, {
+      email: "new@example.com",
+      password: "securepass",
+      name: "New User",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -229,7 +251,9 @@ describe("POST /api/auth/register", () => {
       authSession: { registerWithCredentials: vi.fn() },
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "new@example.com" });
+    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, {
+      email: "new@example.com",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -244,7 +268,10 @@ describe("POST /api/auth/register", () => {
       storage: makeStorage(),
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "dup@example.com", password: "pass" });
+    const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, {
+      email: "dup@example.com",
+      password: "pass",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
@@ -456,7 +483,10 @@ describe("backward compatibility", () => {
       onAuthChange: vi.fn().mockResolvedValue(undefined),
     } as unknown as ApiContext;
 
-    const { handled, res } = await dispatch("POST", "/api/auth/store-tokens", ctx, { accessToken: "at", refreshToken: "rt" });
+    const { handled, res } = await dispatch("POST", "/api/auth/store-tokens", ctx, {
+      accessToken: "at",
+      refreshToken: "rt",
+    });
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
@@ -530,11 +560,7 @@ describe("Desktop Google auth routes", () => {
       attribution,
     });
 
-    const status = await dispatch(
-      "GET",
-      "/api/auth/google/status?flowId=flow-1",
-      ctx,
-    );
+    const status = await dispatch("GET", "/api/auth/google/status?flowId=flow-1", ctx);
     expect(status.res._status).toBe(200);
     expect(status.res._body).toEqual({ flowId: "flow-1", status: "pending" });
     expect(JSON.stringify(status.res._body)).not.toContain("token");
@@ -580,13 +606,9 @@ describe("Desktop Google auth routes", () => {
     (req as any).headers.origin = "https://attacker.example";
     const res = makeRes();
     const url = new URL("http://localhost/api/auth/google/start");
-    const handled = await registry.dispatch(
-      req,
-      res,
-      url,
-      url.pathname,
-      { googleAuthCoordinator: { start: vi.fn() } } as unknown as ApiContext,
-    );
+    const handled = await registry.dispatch(req, res, url, url.pathname, {
+      googleAuthCoordinator: { start: vi.fn() },
+    } as unknown as ApiContext);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(403);
@@ -622,33 +644,24 @@ describe("Desktop browser auth routes", () => {
     });
     expect(browserLoginCoordinator.start).toHaveBeenCalledWith({ intent: "REGISTER" });
 
-    const status = await dispatch(
-      "GET",
-      "/api/auth/browser/status?flowId=browser-flow-1",
-      ctx,
-    );
+    const status = await dispatch("GET", "/api/auth/browser/status?flowId=browser-flow-1", ctx);
     expect(status.res._status).toBe(200);
     expect(status.res._body).toEqual({
       flowId: "browser-flow-1",
       status: "pending",
     });
 
-    const cancelled = await dispatch(
-      "POST",
-      "/api/auth/browser/cancel",
-      ctx,
-      { flowId: "browser-flow-1" },
-    );
+    const cancelled = await dispatch("POST", "/api/auth/browser/cancel", ctx, {
+      flowId: "browser-flow-1",
+    });
     expect(cancelled.res._status).toBe(200);
     expect(cancelled.res._body).toEqual({
       flowId: "browser-flow-1",
       status: "cancelled",
     });
-    expect(JSON.stringify([
-      started.res._body,
-      status.res._body,
-      cancelled.res._body,
-    ])).not.toMatch(/accessToken|refreshToken|ticket|code/);
+    expect(JSON.stringify([started.res._body, status.res._body, cancelled.res._body])).not.toMatch(
+      /accessToken|refreshToken|ticket|code/,
+    );
   });
 
   it("rejects an invalid browser authentication intent", async () => {
@@ -673,19 +686,13 @@ describe("Desktop browser auth routes", () => {
     (req as any).headers.origin = "https://attacker.example";
     const res = makeRes();
     const url = new URL(`http://localhost${path}`);
-    const handled = await registry.dispatch(
-      req,
-      res,
-      url,
-      url.pathname,
-      {
-        browserLoginCoordinator: {
-          start: vi.fn(),
-          status: vi.fn(),
-          cancel: vi.fn(),
-        },
-      } as unknown as ApiContext,
-    );
+    const handled = await registry.dispatch(req, res, url, url.pathname, {
+      browserLoginCoordinator: {
+        start: vi.fn(),
+        status: vi.fn(),
+        cancel: vi.fn(),
+      },
+    } as unknown as ApiContext);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(403);
@@ -717,10 +724,10 @@ describe("Desktop authenticated website route", () => {
     expect(result.res._status).toBe(200);
     expect(result.res._body).toEqual({ authenticated: true });
     expect(JSON.stringify(result.res._body)).not.toContain("secret-ticket");
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("createDesktopToWebLogin"),
-      { returnPath: "/", surface: "GLOBAL" },
-    );
+    expect(graphqlFetch).toHaveBeenCalledWith(expect.stringContaining("createDesktopToWebLogin"), {
+      returnPath: "/",
+      surface: "GLOBAL",
+    });
     expect(openExternal).toHaveBeenCalledWith(
       "https://www.tkcopilot.com/account/login?handoff=secret-ticket&returnPath=%2F",
     );
@@ -747,18 +754,12 @@ describe("Desktop authenticated website route", () => {
     (req as any).headers.origin = "https://attacker.example";
     const res = makeRes();
     const url = new URL("http://localhost/api/auth/web/open");
-    const handled = await registry.dispatch(
-      req,
-      res,
-      url,
-      url.pathname,
-      {
-        authSession: {
-          getAccessToken: vi.fn().mockReturnValue("desktop-access-token"),
-        },
-        openExternal: vi.fn(),
-      } as unknown as ApiContext,
-    );
+    const handled = await registry.dispatch(req, res, url, url.pathname, {
+      authSession: {
+        getAccessToken: vi.fn().mockReturnValue("desktop-access-token"),
+      },
+      openExternal: vi.fn(),
+    } as unknown as ApiContext);
 
     expect(handled).toBe(true);
     expect(res._status).toBe(403);

@@ -101,18 +101,22 @@ export const App = observer(function App() {
     return () => window.removeEventListener("rivonclaw:auth-expired", handler);
   }, []);
 
-  const navigate = useCallback((path: string) => {
-    const route = resolveRoute(path);
-    const proceed = () => {
-      if (route !== window.location.pathname) {
-        window.history.pushState(null, "", route);
-      }
-      setCurrentPath(route);
-      trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
-    };
-    if (route !== window.location.pathname && !navigationAllowed(currentPath, route, proceed)) return;
-    proceed();
-  }, [currentPath]);
+  const navigate = useCallback(
+    (path: string) => {
+      const route = resolveRoute(path);
+      const proceed = () => {
+        if (route !== window.location.pathname) {
+          window.history.pushState(null, "", route);
+        }
+        setCurrentPath(route);
+        trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
+      };
+      if (route !== window.location.pathname && !navigationAllowed(currentPath, route, proceed))
+        return;
+      proceed();
+    },
+    [currentPath],
+  );
 
   // Primitives, not the MST node: the user node is replaced on every `me`
   // ingestion, and reading these during render is what makes observer() track
@@ -130,9 +134,11 @@ export const App = observer(function App() {
     const previousUserId = cachedForUserId.current;
     cachedForUserId.current = currentUserId;
     if (previousUserId === null) return;
-    getClient().clearStore().catch((error) => {
-      console.error("Failed to clear the GraphQL cache on account switch", error);
-    });
+    getClient()
+      .clearStore()
+      .catch((error) => {
+        console.error("Failed to clear the GraphQL cache on account switch", error);
+      });
   }, [currentUserId]);
 
   // A member account whose role does not grant CHAT would otherwise sit on a
@@ -144,7 +150,9 @@ export const App = observer(function App() {
     landingRedirectedForUserId.current = currentUserId;
     if (currentPath !== "/") return;
     const scopes = currentUserScopes ? currentUserScopes.split(",") : [];
-    if (canSeeRoute(ROUTE_MAP.get("/")!, { isOwner: currentUserIsOwner, permissionScopes: scopes })) {
+    if (
+      canSeeRoute(ROUTE_MAP.get("/")!, { isOwner: currentUserIsOwner, permissionScopes: scopes })
+    ) {
       return;
     }
     navigate(resolveLandingPath(scopes));

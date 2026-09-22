@@ -42,16 +42,17 @@ export function AffiliateEmailAccountPanel({
 }) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
-  const [mailboxType, setMailboxType] = useState<GQL.EmailMailboxType>(GQL.EmailMailboxType.Personal);
+  const [mailboxType, setMailboxType] = useState<GQL.EmailMailboxType>(
+    GQL.EmailMailboxType.Personal,
+  );
   const [sharedMailboxAddress, setSharedMailboxAddress] = useState("");
 
-  const {
-    data,
-    loading,
-    refetch,
-  } = useQuery<{ emailAccountBindings: EmailAccount[] }>(EMAIL_ACCOUNT_BINDINGS_QUERY, {
-    fetchPolicy: "cache-and-network",
-  });
+  const { data, loading, refetch } = useQuery<{ emailAccountBindings: EmailAccount[] }>(
+    EMAIL_ACCOUNT_BINDINGS_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
   const {
     data: connectorData,
     loading: connectorLoading,
@@ -79,16 +80,20 @@ export function AffiliateEmailAccountPanel({
   const onboardingDisabledReason = connectorStatus
     ? microsoftGraphConnectorStatusText(t, connectorStatus)
     : t("ecommerce.affiliateWorkspace.email.connectorStatusLoading", {
-      defaultValue: "Checking Microsoft Graph connector status.",
-    });
+        defaultValue: "Checking Microsoft Graph connector status.",
+      });
   const mailboxOptions = [
     {
       value: GQL.EmailMailboxType.Personal,
-      label: t("ecommerce.affiliateWorkspace.email.personalMailbox", { defaultValue: "Personal mailbox" }),
+      label: t("ecommerce.affiliateWorkspace.email.personalMailbox", {
+        defaultValue: "Personal mailbox",
+      }),
     },
     {
       value: GQL.EmailMailboxType.Shared,
-      label: t("ecommerce.affiliateWorkspace.email.sharedMailbox", { defaultValue: "Shared mailbox" }),
+      label: t("ecommerce.affiliateWorkspace.email.sharedMailbox", {
+        defaultValue: "Shared mailbox",
+      }),
     },
   ];
 
@@ -133,20 +138,24 @@ export function AffiliateEmailAccountPanel({
           input: {
             businessDeveloperId,
             mailboxType,
-            sharedMailboxAddress: mailboxType === GQL.EmailMailboxType.Shared ? sharedAddress : null,
+            sharedMailboxAddress:
+              mailboxType === GQL.EmailMailboxType.Shared ? sharedAddress : null,
           },
         },
       });
       const url = result.data?.startMicrosoftEmailOAuth.url;
       if (!url) {
-        throw new Error(t("ecommerce.affiliateWorkspace.email.oauthUrlMissing", {
-          defaultValue: "Microsoft sign-in could not be started.",
-        }));
+        throw new Error(
+          t("ecommerce.affiliateWorkspace.email.oauthUrlMissing", {
+            defaultValue: "Microsoft sign-in could not be started.",
+          }),
+        );
       }
       window.open(url, "_blank", "noopener,noreferrer");
       showToast(
         t("ecommerce.affiliateWorkspace.email.oauthStarted", {
-          defaultValue: "Microsoft sign-in opened. This page will refresh after the callback succeeds.",
+          defaultValue:
+            "Microsoft sign-in opened. This page will refresh after the callback succeeds.",
         }),
         "success",
       );
@@ -161,7 +170,9 @@ export function AffiliateEmailAccountPanel({
       await refetch();
       await onAccountsChanged?.();
       showToast(
-        t("ecommerce.affiliateWorkspace.email.revokeSuccess", { defaultValue: "Outlook account revoked." }),
+        t("ecommerce.affiliateWorkspace.email.revokeSuccess", {
+          defaultValue: "Outlook account revoked.",
+        }),
         "success",
       );
     } catch (err) {
@@ -173,10 +184,15 @@ export function AffiliateEmailAccountPanel({
     <div className="affiliate-email-panel">
       <div className="affiliate-whatsapp-head">
         <div>
-          <strong>{t("ecommerce.affiliateWorkspace.email.headline", { defaultValue: "Outlook email accounts" })}</strong>
+          <strong>
+            {t("ecommerce.affiliateWorkspace.email.headline", {
+              defaultValue: "Outlook email accounts",
+            })}
+          </strong>
           <span>
             {t("ecommerce.affiliateWorkspace.email.hint", {
-              defaultValue: "Connect seller-level Microsoft mailboxes for creator outreach and inbound email sync.",
+              defaultValue:
+                "Connect seller-level Microsoft mailboxes for creator outreach and inbound email sync.",
             })}
           </span>
         </div>
@@ -195,7 +211,9 @@ export function AffiliateEmailAccountPanel({
       </div>
 
       {connectorStatus && (
-        <div className={`affiliate-whatsapp-connector affiliate-whatsapp-connector-${connectorStatus.ready ? "ready" : "warning"}`}>
+        <div
+          className={`affiliate-whatsapp-connector affiliate-whatsapp-connector-${connectorStatus.ready ? "ready" : "warning"}`}
+        >
           <div>
             <strong>
               {t("ecommerce.affiliateWorkspace.email.connectorStatus", {
@@ -215,13 +233,21 @@ export function AffiliateEmailAccountPanel({
               {t("ecommerce.affiliateWorkspace.email.activeSubscriptions", {
                 defaultValue: "Active subscriptions",
               })}
-              : {countSubscriptionHealth(connectorStatus, GQL.MicrosoftGraphSubscriptionHealth.Active)}
+              :{" "}
+              {countSubscriptionHealth(
+                connectorStatus,
+                GQL.MicrosoftGraphSubscriptionHealth.Active,
+              )}
             </span>
             <span>
               {t("ecommerce.affiliateWorkspace.email.missingSubscriptions", {
                 defaultValue: "Missing subscriptions",
               })}
-              : {countSubscriptionHealth(connectorStatus, GQL.MicrosoftGraphSubscriptionHealth.Missing)}
+              :{" "}
+              {countSubscriptionHealth(
+                connectorStatus,
+                GQL.MicrosoftGraphSubscriptionHealth.Missing,
+              )}
             </span>
           </div>
         </div>
@@ -229,7 +255,9 @@ export function AffiliateEmailAccountPanel({
 
       <div className="affiliate-email-connect">
         <label>
-          <span>{t("ecommerce.affiliateWorkspace.email.mailboxType", { defaultValue: "Mailbox type" })}</span>
+          <span>
+            {t("ecommerce.affiliateWorkspace.email.mailboxType", { defaultValue: "Mailbox type" })}
+          </span>
           <Select
             value={mailboxType}
             onChange={(value) => setMailboxType(value as GQL.EmailMailboxType)}
@@ -239,7 +267,11 @@ export function AffiliateEmailAccountPanel({
         </label>
         {mailboxType === GQL.EmailMailboxType.Shared && (
           <label>
-            <span>{t("ecommerce.affiliateWorkspace.email.sharedMailboxAddress", { defaultValue: "Shared mailbox" })}</span>
+            <span>
+              {t("ecommerce.affiliateWorkspace.email.sharedMailboxAddress", {
+                defaultValue: "Shared mailbox",
+              })}
+            </span>
             <input
               className="input"
               value={sharedMailboxAddress}
@@ -277,55 +309,70 @@ export function AffiliateEmailAccountPanel({
         </button>
       </div>
 
-      {showAccountList && <div className="affiliate-email-list">
-        {visibleAccounts.length === 0 ? (
-          loading
-            ? <LoadingSpinner variant="inline" />
-            : <div className="affiliate-email-empty">
-                {t("ecommerce.affiliateWorkspace.email.empty", { defaultValue: "No Outlook mailbox connected yet." })}
+      {showAccountList && (
+        <div className="affiliate-email-list">
+          {visibleAccounts.length === 0 ? (
+            loading ? (
+              <LoadingSpinner variant="inline" />
+            ) : (
+              <div className="affiliate-email-empty">
+                {t("ecommerce.affiliateWorkspace.email.empty", {
+                  defaultValue: "No Outlook mailbox connected yet.",
+                })}
               </div>
-        ) : (
-          visibleAccounts.map((account) => (
-            <div className="affiliate-whatsapp-account" key={account.id}>
-              <div className="affiliate-whatsapp-account-main">
-                <strong>{account.displayName || account.emailAddress}</strong>
-                <small>
-                  {account.emailAddress}
-                  {account.sharedMailboxAddress ? ` · ${account.sharedMailboxAddress}` : ""}
-                </small>
-                <span className={`affiliate-whatsapp-status affiliate-whatsapp-status-${account.status.toLowerCase()}`}>
-                  {emailStatusLabel(t, account.status)}
-                </span>
-                {account.lastError ? <em>{account.lastError}</em> : null}
-                <small>
-                  {t("ecommerce.affiliateWorkspace.email.updatedAt", { defaultValue: "Updated" })}:{" "}
-                  {formatDate(account.updatedAt, i18n.resolvedLanguage || i18n.language)}
-                </small>
+            )
+          ) : (
+            visibleAccounts.map((account) => (
+              <div className="affiliate-whatsapp-account" key={account.id}>
+                <div className="affiliate-whatsapp-account-main">
+                  <strong>{account.displayName || account.emailAddress}</strong>
+                  <small>
+                    {account.emailAddress}
+                    {account.sharedMailboxAddress ? ` · ${account.sharedMailboxAddress}` : ""}
+                  </small>
+                  <span
+                    className={`affiliate-whatsapp-status affiliate-whatsapp-status-${account.status.toLowerCase()}`}
+                  >
+                    {emailStatusLabel(t, account.status)}
+                  </span>
+                  {account.lastError ? <em>{account.lastError}</em> : null}
+                  <small>
+                    {t("ecommerce.affiliateWorkspace.email.updatedAt", { defaultValue: "Updated" })}
+                    : {formatDate(account.updatedAt, i18n.resolvedLanguage || i18n.language)}
+                  </small>
+                </div>
+                <div className="affiliate-whatsapp-account-actions">
+                  <button
+                    className="btn btn-danger btn-sm"
+                    type="button"
+                    onClick={() => handleRevoke(account.id)}
+                    disabled={revokingBinding || account.status === GQL.EmailAccountStatus.Revoked}
+                  >
+                    {t("ecommerce.affiliateWorkspace.email.revoke", { defaultValue: "Revoke" })}
+                  </button>
+                </div>
               </div>
-              <div className="affiliate-whatsapp-account-actions">
-                <button
-                  className="btn btn-danger btn-sm"
-                  type="button"
-                  onClick={() => handleRevoke(account.id)}
-                  disabled={revokingBinding || account.status === GQL.EmailAccountStatus.Revoked}
-                >
-                  {t("ecommerce.affiliateWorkspace.email.revoke", { defaultValue: "Revoke" })}
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>}
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function emailStatusLabel(t: ReturnType<typeof useTranslation>["t"], status: GQL.EmailAccountStatus): string {
+function emailStatusLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  status: GQL.EmailAccountStatus,
+): string {
   switch (status) {
     case GQL.EmailAccountStatus.Connected:
-      return t("ecommerce.affiliateWorkspace.email.status.connected", { defaultValue: "Connected" });
+      return t("ecommerce.affiliateWorkspace.email.status.connected", {
+        defaultValue: "Connected",
+      });
     case GQL.EmailAccountStatus.Disconnected:
-      return t("ecommerce.affiliateWorkspace.email.status.disconnected", { defaultValue: "Disconnected" });
+      return t("ecommerce.affiliateWorkspace.email.status.disconnected", {
+        defaultValue: "Disconnected",
+      });
     case GQL.EmailAccountStatus.Error:
       return t("ecommerce.affiliateWorkspace.email.status.error", { defaultValue: "Error" });
     case GQL.EmailAccountStatus.Revoked:

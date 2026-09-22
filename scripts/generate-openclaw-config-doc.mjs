@@ -13,7 +13,9 @@ const schemaChunks = (await readdir(distDir)).filter(
   (name) => name.startsWith("zod-schema-") && /\.(?:mjs|js)$/.test(name),
 );
 if (schemaChunks.length !== 1) {
-  throw new Error(`Expected one OpenClaw Zod schema bundle, found ${schemaChunks.length}; rebuild vendor`);
+  throw new Error(
+    `Expected one OpenClaw Zod schema bundle, found ${schemaChunks.length}; rebuild vendor`,
+  );
 }
 const [schemaChunk] = schemaChunks;
 

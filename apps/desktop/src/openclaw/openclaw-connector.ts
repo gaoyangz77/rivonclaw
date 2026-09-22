@@ -12,11 +12,7 @@ const log = createLogger("openclaw-connector");
 // ---------------------------------------------------------------------------
 
 /** Policy governing what runtime action follows a config mutation. */
-export type ConfigMutationPolicy =
-  | "none"
-  | "reload_config"
-  | "reconnect_rpc"
-  | "restart_process";
+export type ConfigMutationPolicy = "none" | "reload_config" | "reconnect_rpc" | "restart_process";
 
 /** Dependencies for establishing an RPC connection. */
 export interface RpcConnectionDeps {
@@ -208,11 +204,7 @@ export class OpenClawConnector {
    */
   get isReady(): boolean {
     const c = runtimeStatusStore.openClawConnector;
-    return (
-      c.processState === "running" &&
-      c.rpcConnected &&
-      c.sidecarState === "ready"
-    );
+    return c.processState === "running" && c.rpcConnected && c.sidecarState === "ready";
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────
@@ -275,9 +267,19 @@ export class OpenClawConnector {
       if (this.connectGeneration !== generation) return; // stale — bail early
       const ok = await new Promise<boolean>((resolve) => {
         const ws = new WebSocket(url);
-        const timer = setTimeout(() => { ws.terminate(); resolve(false); }, 1000);
-        ws.on("open", () => { clearTimeout(timer); ws.close(); resolve(true); });
-        ws.on("error", () => { clearTimeout(timer); resolve(false); });
+        const timer = setTimeout(() => {
+          ws.terminate();
+          resolve(false);
+        }, 1000);
+        ws.on("open", () => {
+          clearTimeout(timer);
+          ws.close();
+          resolve(true);
+        });
+        ws.on("error", () => {
+          clearTimeout(timer);
+          resolve(false);
+        });
       });
       if (ok) return;
       if (attempt < WS_READY_MAX_ATTEMPTS) {
@@ -397,7 +399,11 @@ export class OpenClawConnector {
 
     for (let attempt = 1; attempt <= SIDECAR_PROBE_MAX_ATTEMPTS; attempt++) {
       try {
-        await this.request(SIDECAR_PROBE_METHOD, SIDECAR_PROBE_PARAMS, SIDECAR_PROBE_REQUEST_TIMEOUT_MS);
+        await this.request(
+          SIDECAR_PROBE_METHOD,
+          SIDECAR_PROBE_PARAMS,
+          SIDECAR_PROBE_REQUEST_TIMEOUT_MS,
+        );
         runtimeStatusStore.setConnectorSidecarState("ready");
         log.info(`Sidecar ready (attempt ${attempt}/${SIDECAR_PROBE_MAX_ATTEMPTS})`);
         return;
@@ -411,7 +417,9 @@ export class OpenClawConnector {
 
         if (isRetryable && attempt < SIDECAR_PROBE_MAX_ATTEMPTS) {
           const reason = isTimeout ? "timeout (event loop blocked)" : (code ?? "unknown");
-          log.debug(`Sidecar probe attempt ${attempt}/${SIDECAR_PROBE_MAX_ATTEMPTS} — not ready yet (${reason})`);
+          log.debug(
+            `Sidecar probe attempt ${attempt}/${SIDECAR_PROBE_MAX_ATTEMPTS} — not ready yet (${reason})`,
+          );
           await new Promise((r) => setTimeout(r, SIDECAR_PROBE_INTERVAL_MS));
           continue;
         }

@@ -157,10 +157,7 @@ describe("Affiliate escalation notification actuator", () => {
       throw new Error(`Unexpected GraphQL operation: ${query}`);
     });
 
-    await catchUpAffiliateEscalationNotifications(
-      { graphqlFetch } as never,
-      "device-001",
-    );
+    await catchUpAffiliateEscalationNotifications({ graphqlFetch } as never, "device-001");
 
     expect(mocks.request).toHaveBeenCalledTimes(1);
     expect(graphqlFetch).toHaveBeenCalledTimes(3);

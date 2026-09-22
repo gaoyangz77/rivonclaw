@@ -8,10 +8,7 @@ import upstreamPlugin from "@tencent-weixin/openclaw-weixin/index.ts";
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
 const RIVONCLAW_WEIXIN_LOGIN_WAIT = "rivonclaw.weixin.login.wait";
-const WEIXIN_DIRECT_FETCH_HOSTS = new Set([
-  "ilinkai.weixin.qq.com",
-  "liteapp.weixin.qq.com",
-]);
+const WEIXIN_DIRECT_FETCH_HOSTS = new Set(["ilinkai.weixin.qq.com", "liteapp.weixin.qq.com"]);
 const POSIX_OPENCLAW_TMP_DIR = "/tmp/openclaw";
 
 // Module-level sessionKey bridge: OpenClaw's web.login.wait gateway handler
@@ -22,12 +19,15 @@ let latestQrStartSeq = 0;
 let weixinDirectFetchShimInstalled = false;
 let weixinLogDirEnsured = false;
 const weixinStatusSinks = new Map<string, (next: Record<string, unknown>) => void>();
-const weixinAccountHealthBlocks = new Map<string, {
-  healthState: "reauth-required" | "send-unavailable";
-  message: string;
-  at: number;
-  to?: string | null;
-}>();
+const weixinAccountHealthBlocks = new Map<
+  string,
+  {
+    healthState: "reauth-required" | "send-unavailable";
+    message: string;
+    at: number;
+    to?: string | null;
+  }
+>();
 
 const weixinSendContext = new AsyncLocalStorage<{
   accountId?: string | null;
@@ -44,9 +44,13 @@ function toLocalISO(now: Date): string {
 
 function writeWeixinLog(level: "INFO" | "WARN" | "ERROR", message: string): void {
   const now = new Date();
-  const logDir = process.platform === "win32"
-    ? join(tmpdir(), typeof process.getuid === "function" ? `openclaw-${process.getuid()}` : "openclaw")
-    : POSIX_OPENCLAW_TMP_DIR;
+  const logDir =
+    process.platform === "win32"
+      ? join(
+          tmpdir(),
+          typeof process.getuid === "function" ? `openclaw-${process.getuid()}` : "openclaw",
+        )
+      : POSIX_OPENCLAW_TMP_DIR;
   const loggerName = "gateway/channels/openclaw-weixin";
   const entry = JSON.stringify({
     "0": loggerName,
@@ -76,7 +80,11 @@ function writeWeixinLog(level: "INFO" | "WARN" | "ERROR", message: string): void
       mkdirSync(logDir, { recursive: true });
       weixinLogDirEnsured = true;
     }
-    appendFileSync(join(logDir, `openclaw-${toLocalISO(now).slice(0, 10)}.log`), `${entry}\n`, "utf-8");
+    appendFileSync(
+      join(logDir, `openclaw-${toLocalISO(now).slice(0, 10)}.log`),
+      `${entry}\n`,
+      "utf-8",
+    );
   } catch {
     // Logging is best-effort; send failures must still propagate from the caller.
   }
@@ -84,11 +92,12 @@ function writeWeixinLog(level: "INFO" | "WARN" | "ERROR", message: string): void
 
 function shouldUseDirectWeixinFetch(input: RequestInfo | URL): boolean {
   try {
-    const url = typeof input === "string"
-      ? new URL(input)
-      : input instanceof URL
-        ? input
-        : new URL(input.url);
+    const url =
+      typeof input === "string"
+        ? new URL(input)
+        : input instanceof URL
+          ? input
+          : new URL(input.url);
     return url.protocol === "https:" && WEIXIN_DIRECT_FETCH_HOSTS.has(url.hostname);
   } catch {
     return false;
@@ -98,11 +107,14 @@ function shouldUseDirectWeixinFetch(input: RequestInfo | URL): boolean {
 function headersToRecord(headers: HeadersInit | undefined): Record<string, string> {
   if (!headers) return {};
   if (headers instanceof Headers) return Object.fromEntries(headers.entries());
-  if (Array.isArray(headers)) return Object.fromEntries(headers.map(([key, value]) => [key, value]));
+  if (Array.isArray(headers))
+    return Object.fromEntries(headers.map(([key, value]) => [key, value]));
   return { ...headers };
 }
 
-function responseHeadersToRecord(headers: typeof import("node:http").IncomingMessage.prototype.headers): Record<string, string> {
+function responseHeadersToRecord(
+  headers: typeof import("node:http").IncomingMessage.prototype.headers,
+): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(headers)) {
     if (typeof value === "string") {
@@ -125,35 +137,37 @@ async function bodyToBuffer(body: BodyInit | null | undefined): Promise<Buffer |
 }
 
 async function directWeixinFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const url = typeof input === "string"
-    ? new URL(input)
-    : input instanceof URL
-      ? input
-      : new URL(input.url);
+  const url =
+    typeof input === "string" ? new URL(input) : input instanceof URL ? input : new URL(input.url);
   const requestBody = await bodyToBuffer(init?.body);
   const headers = headersToRecord(init?.headers);
 
   return await new Promise<Response>((resolve, reject) => {
-    const req = httpsRequest({
-      protocol: url.protocol,
-      hostname: url.hostname,
-      port: url.port || 443,
-      path: `${url.pathname}${url.search}`,
-      method: init?.method ?? "GET",
-      headers,
-    }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk: Buffer | string) => {
-        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-      });
-      res.on("end", () => {
-        resolve(new Response(Buffer.concat(chunks), {
-          status: res.statusCode ?? 200,
-          statusText: res.statusMessage,
-          headers: responseHeadersToRecord(res.headers),
-        }));
-      });
-    });
+    const req = httpsRequest(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: `${url.pathname}${url.search}`,
+        method: init?.method ?? "GET",
+        headers,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer | string) => {
+          chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+        });
+        res.on("end", () => {
+          resolve(
+            new Response(Buffer.concat(chunks), {
+              status: res.statusCode ?? 200,
+              statusText: res.statusMessage,
+              headers: responseHeadersToRecord(res.headers),
+            }),
+          );
+        });
+      },
+    );
 
     req.on("error", reject);
     if (init?.signal) {
@@ -162,10 +176,14 @@ async function directWeixinFetch(input: RequestInfo | URL, init?: RequestInit): 
         reject(new DOMException("The operation was aborted", "AbortError"));
         return;
       }
-      init.signal.addEventListener("abort", () => {
-        req.destroy();
-        reject(new DOMException("The operation was aborted", "AbortError"));
-      }, { once: true });
+      init.signal.addEventListener(
+        "abort",
+        () => {
+          req.destroy();
+          reject(new DOMException("The operation was aborted", "AbortError"));
+        },
+        { once: true },
+      );
     }
     if (requestBody) req.write(requestBody);
     req.end();
@@ -174,11 +192,12 @@ async function directWeixinFetch(input: RequestInfo | URL, init?: RequestInit): 
 
 function shouldValidateWeixinSendMessage(input: RequestInfo | URL): boolean {
   try {
-    const url = typeof input === "string"
-      ? new URL(input)
-      : input instanceof URL
-        ? input
-        : new URL(input.url);
+    const url =
+      typeof input === "string"
+        ? new URL(input)
+        : input instanceof URL
+          ? input
+          : new URL(input.url);
     return url.pathname.endsWith("/ilink/bot/sendmessage");
   } catch {
     return false;
@@ -272,8 +291,7 @@ async function assertWeixinSendMessageAccepted(
   const errcode = status.errcode;
   const errmsg = status.errmsg ?? "";
   const businessFailed =
-    (ret !== undefined && ret !== 0)
-    || (errcode !== undefined && errcode !== 0);
+    (ret !== undefined && ret !== 0) || (errcode !== undefined && errcode !== 0);
   const logLine =
     `sendmessage result status=${res.status} ret=${ret ?? ""} errcode=${errcode ?? ""} errmsg=${errmsg} ` +
     `clientId=${clientId} accountId=${accountId ?? ""} to=${to ?? ""}`;
@@ -343,11 +361,13 @@ function isSessionExpiredMessage(message: string): boolean {
 
 function isWeixinSendBusinessFailure(message: string): boolean {
   const normalized = message.toLowerCase();
-  return normalized.includes("wechat sendmessage business failure")
-    || normalized.includes("sendmessage result status=200 ret=-2")
-    || normalized.includes("ret=-2")
-    || normalized.includes("errcode=-14")
-    || normalized.includes("context token expired");
+  return (
+    normalized.includes("wechat sendmessage business failure") ||
+    normalized.includes("sendmessage result status=200 ret=-2") ||
+    normalized.includes("ret=-2") ||
+    normalized.includes("errcode=-14") ||
+    normalized.includes("context token expired")
+  );
 }
 
 function updateWeixinRuntimeStatus(accountId: string, next: Record<string, unknown>): void {
@@ -378,12 +398,15 @@ function buildWeixinHealthBlockStatus(block: {
   return status;
 }
 
-function recordWeixinAccountHealthBlock(accountId: string, block: {
-  healthState: "reauth-required" | "send-unavailable";
-  message: string;
-  at?: number;
-  to?: string | null;
-}): void {
+function recordWeixinAccountHealthBlock(
+  accountId: string,
+  block: {
+    healthState: "reauth-required" | "send-unavailable";
+    message: string;
+    at?: number;
+    to?: string | null;
+  },
+): void {
   const next = {
     healthState: block.healthState,
     message: block.message,
@@ -453,14 +476,14 @@ function resolveAccountId(params: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function wasChannelRunning(params: {
-  context: unknown;
-  accountId?: string;
-}): boolean {
+function wasChannelRunning(params: { context: unknown; accountId?: string }): boolean {
   const context = params.context as {
     getRuntimeSnapshot?: () => {
       channels?: Record<string, { running?: boolean; accountId?: string } | undefined>;
-      channelAccounts?: Record<string, Record<string, { running?: boolean } | undefined> | undefined>;
+      channelAccounts?: Record<
+        string,
+        Record<string, { running?: boolean } | undefined> | undefined
+      >;
     };
   };
   const runtime = context.getRuntimeSnapshot?.();
@@ -489,69 +512,86 @@ function registerRivonClawQrLoginMethods(params: {
   // - https://github.com/openclaw/openclaw/issues/62120
   // - https://github.com/Tencent/openclaw-weixin/pull/73
   // - https://github.com/netease-youdao/LobsterAI/pull/1592
-  params.api.registerGatewayMethod(RIVONCLAW_WEIXIN_LOGIN_START, async ({ params: requestParams, respond, context }) => {
-    const loginWithQrStart = params.gateway.loginWithQrStart;
-    if (!loginWithQrStart) {
-      respond(false, { error: "WeChat QR login start is not available" });
-      return;
-    }
-
-    try {
-      const accountId = resolveAccountId(requestParams);
-      const wasRunning = wasChannelRunning({ context, accountId });
-      const c = context as {
-        startChannel?: (channelId: string, accountId?: string) => Promise<void>;
-        stopChannel?: (channelId: string, accountId?: string) => Promise<void>;
-      };
-      if (accountId) {
-        await c.stopChannel?.(WEIXIN_CHANNEL_ID, accountId);
+  params.api.registerGatewayMethod(
+    RIVONCLAW_WEIXIN_LOGIN_START,
+    async ({ params: requestParams, respond, context }) => {
+      const loginWithQrStart = params.gateway.loginWithQrStart;
+      if (!loginWithQrStart) {
+        respond(false, { error: "WeChat QR login start is not available" });
+        return;
       }
 
-      const request = requestParams as { force?: unknown; timeoutMs?: unknown; verbose?: unknown };
-      const result = await loginWithQrStart({
-        force: Boolean(request.force),
-        timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
-        verbose: Boolean(request.verbose),
-        accountId,
-      }) as { connected?: boolean; qrDataUrl?: string };
+      try {
+        const accountId = resolveAccountId(requestParams);
+        const wasRunning = wasChannelRunning({ context, accountId });
+        const c = context as {
+          startChannel?: (channelId: string, accountId?: string) => Promise<void>;
+          stopChannel?: (channelId: string, accountId?: string) => Promise<void>;
+        };
+        if (accountId) {
+          await c.stopChannel?.(WEIXIN_CHANNEL_ID, accountId);
+        }
 
-      if (accountId && result.connected) {
-        await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
-      } else if (accountId && wasRunning && !result.qrDataUrl) {
-        await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+        const request = requestParams as {
+          force?: unknown;
+          timeoutMs?: unknown;
+          verbose?: unknown;
+        };
+        const result = (await loginWithQrStart({
+          force: Boolean(request.force),
+          timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
+          verbose: Boolean(request.verbose),
+          accountId,
+        })) as { connected?: boolean; qrDataUrl?: string };
+
+        if (accountId && result.connected) {
+          await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+        } else if (accountId && wasRunning && !result.qrDataUrl) {
+          await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+        }
+        respond(true, result);
+      } catch (err) {
+        respond(false, { error: err instanceof Error ? err.message : String(err) });
       }
-      respond(true, result);
-    } catch (err) {
-      respond(false, { error: err instanceof Error ? err.message : String(err) });
-    }
-  });
+    },
+  );
 
-  params.api.registerGatewayMethod(RIVONCLAW_WEIXIN_LOGIN_WAIT, async ({ params: requestParams, respond, context }) => {
-    const loginWithQrWait = params.gateway.loginWithQrWait;
-    if (!loginWithQrWait) {
-      respond(false, { error: "WeChat QR login wait is not available" });
-      return;
-    }
-
-    try {
-      const accountId = resolveAccountId(requestParams);
-      const request = requestParams as { timeoutMs?: unknown; currentQrDataUrl?: unknown; sessionKey?: unknown };
-      const result = await loginWithQrWait({
-        timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
-        accountId,
-        currentQrDataUrl: typeof request.currentQrDataUrl === "string" ? request.currentQrDataUrl : undefined,
-        sessionKey: typeof request.sessionKey === "string" ? request.sessionKey : undefined,
-      }) as { connected?: boolean; accountId?: string };
-
-      if (accountId && result.connected) {
-        const c = context as { startChannel?: (channelId: string, accountId?: string) => Promise<void> };
-        await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+  params.api.registerGatewayMethod(
+    RIVONCLAW_WEIXIN_LOGIN_WAIT,
+    async ({ params: requestParams, respond, context }) => {
+      const loginWithQrWait = params.gateway.loginWithQrWait;
+      if (!loginWithQrWait) {
+        respond(false, { error: "WeChat QR login wait is not available" });
+        return;
       }
-      respond(true, result);
-    } catch (err) {
-      respond(false, { error: err instanceof Error ? err.message : String(err) });
-    }
-  });
+
+      try {
+        const accountId = resolveAccountId(requestParams);
+        const request = requestParams as {
+          timeoutMs?: unknown;
+          currentQrDataUrl?: unknown;
+          sessionKey?: unknown;
+        };
+        const result = (await loginWithQrWait({
+          timeoutMs: typeof request.timeoutMs === "number" ? request.timeoutMs : undefined,
+          accountId,
+          currentQrDataUrl:
+            typeof request.currentQrDataUrl === "string" ? request.currentQrDataUrl : undefined,
+          sessionKey: typeof request.sessionKey === "string" ? request.sessionKey : undefined,
+        })) as { connected?: boolean; accountId?: string };
+
+        if (accountId && result.connected) {
+          const c = context as {
+            startChannel?: (channelId: string, accountId?: string) => Promise<void>;
+          };
+          await c.startChannel?.(WEIXIN_CHANNEL_ID, accountId);
+        }
+        respond(true, result);
+      } catch (err) {
+        respond(false, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
 }
 
 const plugin = {
@@ -560,7 +600,14 @@ const plugin = {
     installWeixinFetchShim();
     const origRegisterChannel = api.registerChannel!.bind(api);
     let rivonClawQrMethodsRegistered = false;
-    api.registerChannel = (opts: { plugin: { gatewayMethods?: string[]; gateway?: Record<string, unknown>;[k: string]: unknown };[k: string]: unknown }) => {
+    api.registerChannel = (opts: {
+      plugin: {
+        gatewayMethods?: string[];
+        gateway?: Record<string, unknown>;
+        [k: string]: unknown;
+      };
+      [k: string]: unknown;
+    }) => {
       // Compatibility shim: declare gatewayMethods so resolveWebLoginProvider() can discover us.
       // Upstream tracking:
       // - https://github.com/openclaw/openclaw/issues/62120
@@ -569,16 +616,15 @@ const plugin = {
       // Remove this wrapper once @tencent-weixin/openclaw-weixin ships these
       // declarations and our supported version range requires that release.
       if (opts.plugin) {
-        opts.plugin.gatewayMethods = Array.from(new Set([
-          ...(opts.plugin.gatewayMethods ?? []),
-          "web.login.start",
-          "web.login.wait",
-        ]));
-
+        opts.plugin.gatewayMethods = Array.from(
+          new Set([...(opts.plugin.gatewayMethods ?? []), "web.login.start", "web.login.wait"]),
+        );
       }
 
       // Compatibility shim: bridge sessionKey between loginWithQrStart and loginWithQrWait.
-      const gw = opts.plugin.gateway as Record<string, (...args: unknown[]) => Promise<unknown>> | undefined;
+      const gw = opts.plugin.gateway as
+        | Record<string, (...args: unknown[]) => Promise<unknown>>
+        | undefined;
       if (gw) {
         const origStartAccount = gw.startAccount;
         const origStart = gw.loginWithQrStart;
@@ -608,10 +654,13 @@ const plugin = {
                 if (isSessionExpiredMessage(message)) {
                   markWeixinSessionExpired(ctx, message);
                 } else if (isWeixinSendBusinessFailure(message) && accountId) {
-                  markWeixinSendUnavailable({
-                    accountId,
-                    to: extractWeixinSendFailureRecipient(message),
-                  }, message);
+                  markWeixinSendUnavailable(
+                    {
+                      accountId,
+                      to: extractWeixinSendFailureRecipient(message),
+                    },
+                    message,
+                  );
                 }
               },
             };
@@ -631,7 +680,7 @@ const plugin = {
         if (origStart) {
           gw.loginWithQrStart = async (params: unknown) => {
             const seq = ++latestQrStartSeq;
-            const result = await origStart(params) as Record<string, unknown>;
+            const result = (await origStart(params)) as Record<string, unknown>;
             if (seq === latestQrStartSeq && typeof result.sessionKey === "string") {
               lastSessionKey = result.sessionKey;
             }
@@ -645,9 +694,10 @@ const plugin = {
             if (!p.sessionKey && lastSessionKey) {
               p.sessionKey = lastSessionKey;
             }
-            const result = await origWait(p) as { connected?: boolean; accountId?: string };
+            const result = (await origWait(p)) as { connected?: boolean; accountId?: string };
             if (result.connected) {
-              const accountId = result.accountId ?? (typeof p.accountId === "string" ? p.accountId : undefined);
+              const accountId =
+                result.accountId ?? (typeof p.accountId === "string" ? p.accountId : undefined);
               if (accountId) {
                 clearWeixinAccountHealthBlock(accountId);
                 updateWeixinRuntimeStatus(accountId, {
@@ -679,18 +729,24 @@ const plugin = {
       // Reusing the current sessionKey keeps tool-based file sends attached to
       // the conversation the user is already viewing. Explicit accountId sends
       // keep the upstream behavior.
-      const messaging = opts.plugin.messaging as {
-        resolveOutboundSessionRoute?: (params: {
-          target: string;
-          accountId?: string | null;
-          currentSessionKey?: string;
-        }) => unknown | Promise<unknown>;
-      } | undefined;
+      const messaging = opts.plugin.messaging as
+        | {
+            resolveOutboundSessionRoute?: (params: {
+              target: string;
+              accountId?: string | null;
+              currentSessionKey?: string;
+            }) => unknown | Promise<unknown>;
+          }
+        | undefined;
 
       if (messaging) {
         const origResolveOutboundSessionRoute = messaging.resolveOutboundSessionRoute;
         messaging.resolveOutboundSessionRoute = async (params) => {
-          if (!params.accountId && typeof params.currentSessionKey === "string" && params.currentSessionKey.trim()) {
+          if (
+            !params.accountId &&
+            typeof params.currentSessionKey === "string" &&
+            params.currentSessionKey.trim()
+          ) {
             const peerId = normalizeWeixinTarget(params.target);
             if (peerId) {
               return {
@@ -707,10 +763,15 @@ const plugin = {
         };
       }
 
-      const outbound = opts.plugin.outbound as {
-        sendText?: (ctx: { accountId?: string | null; to?: string | null }) => Promise<unknown>;
-        sendMedia?: (ctx: { accountId?: string | null; to?: string | null }) => Promise<unknown>;
-      } | undefined;
+      const outbound = opts.plugin.outbound as
+        | {
+            sendText?: (ctx: { accountId?: string | null; to?: string | null }) => Promise<unknown>;
+            sendMedia?: (ctx: {
+              accountId?: string | null;
+              to?: string | null;
+            }) => Promise<unknown>;
+          }
+        | undefined;
       if (outbound?.sendText) {
         const origSendText = outbound.sendText;
         outbound.sendText = (ctx) => runWithWeixinOutboundHealth(ctx, () => origSendText(ctx));

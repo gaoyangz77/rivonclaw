@@ -70,18 +70,26 @@ function formatMoneyFromMinor(amountMinor: number, currency: string): string {
 
 function cnyPriceLine(plan: BillingPlanDefinition | null): string | null {
   if (!plan) return null;
-  if (plan.priceMonthlyCnyMinor != null) return formatMoneyFromMinor(plan.priceMonthlyCnyMinor, "CNY");
+  if (plan.priceMonthlyCnyMinor != null)
+    return formatMoneyFromMinor(plan.priceMonthlyCnyMinor, "CNY");
   if (plan.priceMonthlyCny) return formatMoneyFromMajor(plan.priceMonthlyCny, "CNY");
   return null;
 }
 
-function checkoutPriceLine(plan: BillingPlanDefinition | null, provider: CheckoutProvider): string | null {
+function checkoutPriceLine(
+  plan: BillingPlanDefinition | null,
+  provider: CheckoutProvider,
+): string | null {
   if (!plan) return null;
-  if (provider === "LAKALA") return cnyPriceLine(plan) ?? formatMoneyFromMajor(plan.priceMonthly, plan.priceCurrency);
+  if (provider === "LAKALA")
+    return cnyPriceLine(plan) ?? formatMoneyFromMajor(plan.priceMonthly, plan.priceCurrency);
   return formatMoneyFromMajor(plan.priceMonthly, plan.priceCurrency);
 }
 
-function planDescription(t: ReturnType<typeof useTranslation>["t"], plan: BillingPlanDefinition): string | null {
+function planDescription(
+  t: ReturnType<typeof useTranslation>["t"],
+  plan: BillingPlanDefinition,
+): string | null {
   const key = `billing.planDescriptions.${plan.planId}`;
   const translated = t(key, { defaultValue: "" });
   return translated || null;
@@ -106,7 +114,7 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const providers = useMemo(
-    () => providerOptions?.length ? [...providerOptions] : checkoutProviderOptions(i18n.language),
+    () => (providerOptions?.length ? [...providerOptions] : checkoutProviderOptions(i18n.language)),
     [i18n.language, providerOptions],
   );
   const defaultProvider = useMemo(
@@ -124,22 +132,23 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
   const targetScopeType = scopeType ?? GQL.BillingScopeType.Shop;
   const targetScopeId = scopeId ?? selectedShop?.shopId ?? "";
   const isAccountScope = targetScopeType === GQL.BillingScopeType.Account;
-  const targetCheckoutActive = !!targetScopeId && (
-    entityStore.checkoutScopeId === targetScopeId
-    || (isAccountScope && entityStore.activeCheckout?.billingScopeType === targetScopeType)
-  );
-  const activeCheckoutId = targetCheckoutActive
-    ? entityStore.activeCheckout?.id ?? null
-    : null;
-  const checkoutError = targetCheckoutActive || (!!targetScopeId && entityStore.checkoutScopeId === targetScopeId)
-    ? entityStore.checkoutError
-    : null;
-  const checkoutNotice = !!targetScopeId && entityStore.checkoutScopeId === targetScopeId
-    ? entityStore.checkoutNotice
-    : null;
-  const showPriceNotice = !!priceNotice
-    && !!selectedPlan
-    && (!priceNoticePlanIds?.length || priceNoticePlanIds.includes(selectedPlan.planId));
+  const targetCheckoutActive =
+    !!targetScopeId &&
+    (entityStore.checkoutScopeId === targetScopeId ||
+      (isAccountScope && entityStore.activeCheckout?.billingScopeType === targetScopeType));
+  const activeCheckoutId = targetCheckoutActive ? (entityStore.activeCheckout?.id ?? null) : null;
+  const checkoutError =
+    targetCheckoutActive || (!!targetScopeId && entityStore.checkoutScopeId === targetScopeId)
+      ? entityStore.checkoutError
+      : null;
+  const checkoutNotice =
+    !!targetScopeId && entityStore.checkoutScopeId === targetScopeId
+      ? entityStore.checkoutNotice
+      : null;
+  const showPriceNotice =
+    !!priceNotice &&
+    !!selectedPlan &&
+    (!priceNoticePlanIds?.length || priceNoticePlanIds.includes(selectedPlan.planId));
   useEffect(() => {
     if (!isOpen) return;
     setSelectedShopId(initialShopId ?? firstShopId);
@@ -164,7 +173,9 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
       <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth={560}>
         <div className="service-checkout-form">
           <div className="service-checkout-field">
-            <span className="service-checkout-label">{planLabel ?? t("billing.chooseShopServicePlan")}</span>
+            <span className="service-checkout-label">
+              {planLabel ?? t("billing.chooseShopServicePlan")}
+            </span>
             <div className="service-checkout-option-list">
               {plans.map((plan) => (
                 <button
@@ -174,9 +185,7 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
                   onClick={() => setSelectedPlanId(plan.planId)}
                 >
                   <span>{billingPlanDisplayName(t, plan)}</span>
-                  {planDescription(t, plan) && (
-                    <small>{planDescription(t, plan)}</small>
-                  )}
+                  {planDescription(t, plan) && <small>{planDescription(t, plan)}</small>}
                 </button>
               ))}
             </div>
@@ -234,14 +243,16 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
           {selectedPlan && (
             <div className="service-checkout-summary">
               <div>
-                <span>{showPriceNotice ? t("billing.monthlyPlanPrice") : t("billing.subscriptionAmount")}</span>
+                <span>
+                  {showPriceNotice
+                    ? t("billing.monthlyPlanPrice")
+                    : t("billing.subscriptionAmount")}
+                </span>
                 <strong>
                   {checkoutPriceLine(selectedPlan, selectedProvider)}
                   <small>/{t("subscription.month")}</small>
                 </strong>
-                {showPriceNotice && (
-                  <p>{priceNotice}</p>
-                )}
+                {showPriceNotice && <p>{priceNotice}</p>}
               </div>
             </div>
           )}
@@ -255,7 +266,9 @@ export const ShopServiceCheckoutModal = observer(function ShopServiceCheckoutMod
             </TkAlert>
           )}
           {checkoutNotice && (
-            <div className="info-box info-box-blue">{t(`billing.subscriptionStartAction.${checkoutNotice}`)}</div>
+            <div className="info-box info-box-blue">
+              {t(`billing.subscriptionStartAction.${checkoutNotice}`)}
+            </div>
           )}
 
           <div className="modal-actions">

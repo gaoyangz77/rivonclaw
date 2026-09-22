@@ -261,11 +261,7 @@ export function TkInfoTip({
       label={label}
       placement={placement}
       trigger={(props) => (
-        <button
-          {...props}
-          className={cx("tk-v1-info-tip", className)}
-          aria-label={label}
-        >
+        <button {...props} className={cx("tk-v1-info-tip", className)} aria-label={label}>
           ?
         </button>
       )}

@@ -3,8 +3,7 @@ import type { SttProvider, SttResult } from "../types.js";
 
 const log = createLogger("stt:groq");
 
-const GROQ_API_URL =
-  "https://api.groq.com/openai/v1/audio/transcriptions";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
 
 const MODEL = "whisper-large-v3-turbo";
 
@@ -32,7 +31,10 @@ export class GroqSttProvider implements SttProvider {
   private readonly apiKey: string;
   private readonly fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response>;
 
-  constructor(apiKey: string, fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response> = fetch) {
+  constructor(
+    apiKey: string,
+    fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response> = fetch,
+  ) {
     this.apiKey = apiKey;
     this.fetchFn = fetchFn;
   }
@@ -70,9 +72,7 @@ export class GroqSttProvider implements SttProvider {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `Groq transcription failed: HTTP ${response.status} — ${text}`,
-      );
+      throw new Error(`Groq transcription failed: HTTP ${response.status} — ${text}`);
     }
 
     const data = (await response.json()) as GroqTranscriptionResponse;

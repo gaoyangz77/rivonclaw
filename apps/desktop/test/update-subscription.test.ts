@@ -2,12 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest
 import { createServer, type Server } from "node:http";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/use/ws";
-import {
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLString,
-  GraphQLNonNull,
-} from "graphql";
+import { GraphQLSchema, GraphQLObjectType, GraphQLString, GraphQLNonNull } from "graphql";
 import { EventEmitter } from "node:events";
 import { setApiBaseUrlOverride } from "@rivonclaw/core";
 import {
@@ -77,8 +72,7 @@ function buildMockServer() {
 
             /* Simple async iterator that yields stored update + listens for pushes */
             const queue: StoredUpdate[] = [];
-            let waiting: ((value: IteratorResult<StoredUpdate>) => void) | null =
-              null;
+            let waiting: ((value: IteratorResult<StoredUpdate>) => void) | null = null;
 
             function enqueue(payload: StoredUpdate) {
               if (waiting) {
@@ -165,32 +159,29 @@ describe("BackendSubscriptionClient", () => {
   let mockServer: ReturnType<typeof buildMockServer>;
   let client: BackendSubscriptionClient | null = null;
 
-  beforeAll(
-    async () => {
-      mockServer = buildMockServer();
+  beforeAll(async () => {
+    mockServer = buildMockServer();
 
-      httpServer = createServer((_req, res) => {
-        res.writeHead(404);
-        res.end();
-      });
+    httpServer = createServer((_req, res) => {
+      res.writeHead(404);
+      res.end();
+    });
 
-      await new Promise<void>((resolve) => {
-        httpServer.listen(0, "127.0.0.1", () => resolve());
-      });
+    await new Promise<void>((resolve) => {
+      httpServer.listen(0, "127.0.0.1", () => resolve());
+    });
 
-      port = (httpServer.address() as { port: number }).port;
+    port = (httpServer.address() as { port: number }).port;
 
-      wsServer = new WebSocketServer({
-        server: httpServer,
-        path: "/graphql",
-      });
+    wsServer = new WebSocketServer({
+      server: httpServer,
+      path: "/graphql",
+    });
 
-      gqlServerCleanup = useServer({ schema: mockServer.schema }, wsServer);
+    gqlServerCleanup = useServer({ schema: mockServer.schema }, wsServer);
 
-      setApiBaseUrlOverride(`http://127.0.0.1:${port}`);
-    },
-    10_000,
-  );
+    setApiBaseUrlOverride(`http://127.0.0.1:${port}`);
+  }, 10_000);
 
   afterEach(() => {
     client?.disconnect();
@@ -272,10 +263,10 @@ describe("BackendSubscriptionClient", () => {
 
     // Auth enablement restarts the transport. Wait for the operation to be
     // registered on the replacement connection before publishing the event.
-    await vi.waitFor(
-      () => expect(mockServer.getSubscribeCount()).toBe(1),
-      { timeout: 3_000, interval: 50 },
-    );
+    await vi.waitFor(() => expect(mockServer.getSubscribeCount()).toBe(1), {
+      timeout: 3_000,
+      interval: 50,
+    });
 
     mockServer.pushUpdate({
       version: "3.0.0",
@@ -303,10 +294,10 @@ describe("BackendSubscriptionClient", () => {
     c.subscribeToUpdates("2.0.0", onUpdate);
     client = c;
 
-    await vi.waitFor(
-      () => expect(mockServer.getSubscribeCount()).toBe(1),
-      { timeout: 3_000, interval: 50 },
-    );
+    await vi.waitFor(() => expect(mockServer.getSubscribeCount()).toBe(1), {
+      timeout: 3_000,
+      interval: 50,
+    });
 
     mockServer.pushUpdate({ version: "1.5.0" });
 

@@ -29,9 +29,9 @@ function getExtensionDirs(): ExtensionDir[] {
   return EXTENSIONS_DIRS.flatMap((extensionsDir) => {
     if (!existsSync(extensionsDir)) return [];
     return readdirSync(extensionsDir, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .filter(d => existsSync(join(extensionsDir, d.name, "openclaw.plugin.json")))
-      .map(d => ({
+      .filter((d) => d.isDirectory())
+      .filter((d) => existsSync(join(extensionsDir, d.name, "openclaw.plugin.json")))
+      .map((d) => ({
         name: d.name,
         path: join(extensionsDir, d.name),
       }));
@@ -58,7 +58,7 @@ describe("extension plugin discovery", () => {
 
       it("is discoverable (auto-discovery entry OR openclaw.extensions in package.json)", () => {
         // Check auto-discovery: root-level index.{ts,js,mjs,cjs}
-        const hasAutoEntry = AUTO_DISCOVERY_ENTRIES.some(entry =>
+        const hasAutoEntry = AUTO_DISCOVERY_ENTRIES.some((entry) =>
           existsSync(join(extPath, entry)),
         );
 
@@ -74,7 +74,7 @@ describe("extension plugin discovery", () => {
         expect(
           hasAutoEntry || hasExplicitDeclaration,
           `${dir}: must have either a root-level index.{ts,js,mjs,cjs} or "openclaw.extensions" in package.json. ` +
-          `Without this, OpenClaw cannot discover the plugin and will log "plugin not found".`,
+            `Without this, OpenClaw cannot discover the plugin and will log "plugin not found".`,
         ).toBe(true);
       });
     });

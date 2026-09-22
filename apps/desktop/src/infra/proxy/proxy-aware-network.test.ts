@@ -47,10 +47,13 @@ describe("ProxyAwareNetwork", () => {
       net.setProxyRouterPort(12345);
       const mockFetch = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("ok"));
       await net.fetch("https://example.com", { method: "POST" });
-      expect(mockFetch).toHaveBeenCalledWith("https://example.com", expect.objectContaining({
-        method: "POST",
-        dispatcher: expect.anything(),
-      }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://example.com",
+        expect.objectContaining({
+          method: "POST",
+          dispatcher: expect.anything(),
+        }),
+      );
     });
 
     it("rewrites first-party URLs when the CN relay route is active", async () => {
@@ -63,26 +66,31 @@ describe("ProxyAwareNetwork", () => {
     });
 
     it("switches to the CN relay and retries after global first-party fetch failures", async () => {
-      const mockFetch = vi.spyOn(globalThis, "fetch")
+      const mockFetch = vi
+        .spyOn(globalThis, "fetch")
         .mockRejectedValueOnce(new Error("fetch failed"))
         .mockRejectedValueOnce(new Error("fetch failed"))
         .mockRejectedValueOnce(new Error("fetch failed"))
         .mockResolvedValueOnce(new Response("ok"));
 
-      await expect(net.fetch("https://api.rivonclaw.com/graphql")).resolves.toBeInstanceOf(Response);
+      await expect(net.fetch("https://api.rivonclaw.com/graphql")).resolves.toBeInstanceOf(
+        Response,
+      );
 
       expect(getFirstPartyDomainRoute()).toBe("cn-relay");
       expect(mockFetch).toHaveBeenLastCalledWith("https://api.zhuazhuaai.cn/graphql");
     });
 
     it("can disable first-party failover for route probes", async () => {
-      const mockFetch = vi.spyOn(globalThis, "fetch")
+      const mockFetch = vi
+        .spyOn(globalThis, "fetch")
         .mockRejectedValueOnce(new Error("fetch failed"))
         .mockRejectedValueOnce(new Error("fetch failed"))
         .mockRejectedValueOnce(new Error("fetch failed"));
 
-      await expect(net.fetch("https://api.rivonclaw.com/graphql", undefined, { firstPartyFailover: false }))
-        .rejects.toThrow("fetch failed");
+      await expect(
+        net.fetch("https://api.rivonclaw.com/graphql", undefined, { firstPartyFailover: false }),
+      ).rejects.toThrow("fetch failed");
 
       expect(getFirstPartyDomainRoute()).toBe("global");
       expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -99,9 +107,13 @@ describe("ProxyAwareNetwork", () => {
       net.setProxyRouterPort(12345);
       net.createWebSocket("wss://example.com");
       expect(HttpsProxyAgent).toHaveBeenCalledWith("http://127.0.0.1:12345");
-      expect(WebSocket).toHaveBeenCalledWith("wss://example.com", undefined, expect.objectContaining({
-        agent: expect.any(Object),
-      }));
+      expect(WebSocket).toHaveBeenCalledWith(
+        "wss://example.com",
+        undefined,
+        expect.objectContaining({
+          agent: expect.any(Object),
+        }),
+      );
     });
 
     it("rewrites first-party WebSocket URLs when the CN relay route is active", () => {
@@ -133,9 +145,13 @@ describe("ProxyAwareNetwork", () => {
 
       new WsClass("wss://api.rivonclaw.com/graphql");
 
-      expect(WebSocket).toHaveBeenCalledWith("wss://api.zhuazhuaai.cn/graphql", undefined, expect.objectContaining({
-        agent: expect.any(Object),
-      }));
+      expect(WebSocket).toHaveBeenCalledWith(
+        "wss://api.zhuazhuaai.cn/graphql",
+        undefined,
+        expect.objectContaining({
+          agent: expect.any(Object),
+        }),
+      );
     });
   });
 

@@ -161,9 +161,7 @@ describe("ExperimentPaymentProgressChart", () => {
     expect(
       curveInterpolationType(GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard),
     ).toBe("monotoneX");
-    expect(curveInterpolationType(GQL.CsExperimentCurveEstimator.AalenJohansen)).toBe(
-      "stepAfter",
-    );
+    expect(curveInterpolationType(GQL.CsExperimentCurveEstimator.AalenJohansen)).toBe("stepAfter");
   });
 
   it("keeps modeled arms visually shared until the first reachout", () => {
@@ -197,9 +195,7 @@ describe("ExperimentPaymentProgressChart", () => {
       series,
       GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
     );
-    const anchor = anchored.find(
-      (row) => row.elapsedMinutes > 2 && row.elapsedMinutes < 3,
-    );
+    const anchor = anchored.find((row) => row.elapsedMinutes > 2 && row.elapsedMinutes < 3);
     expect(anchor?.["CONTROL:uncertain"]).toBe(1.4);
     expect(anchor?.["TREATMENT:reliable"]).toBe(1.4);
     expect(anchor?.points).toEqual({});

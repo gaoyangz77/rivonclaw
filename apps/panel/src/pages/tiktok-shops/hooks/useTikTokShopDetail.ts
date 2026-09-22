@@ -10,10 +10,7 @@ interface UseTikTokShopDetailParams {
   setUpgradePrompt: (v: boolean) => void;
 }
 
-export function useTikTokShopDetail({
-  handleError,
-  setUpgradePrompt,
-}: UseTikTokShopDetailParams) {
+export function useTikTokShopDetail({ handleError, setUpgradePrompt }: UseTikTokShopDetailParams) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const runtimeStatus = useRuntimeStatus();

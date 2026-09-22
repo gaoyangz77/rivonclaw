@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { materializeRuntimeModuleLinks, assertBundledPluginEntries } = createRequire(import.meta.url)("./scripts/vendor-plugin-dependencies.cjs");
+const { materializeRuntimeModuleLinks, assertBundledPluginEntries } = createRequire(
+  import.meta.url,
+)("./scripts/vendor-plugin-dependencies.cjs");
 
 // Separate build configs so Node child processes do NOT share
 // chunks with main.cjs. If rolldown shares a chunk (rolldown's default code-
@@ -26,11 +28,7 @@ export default defineConfig([
       // main process never pays its load cost. Only the worker imports it.
       "jimp",
     ],
-    noExternal: [
-      /^@rivonclaw\//,
-      "https-proxy-agent",
-      "agent-base",
-    ],
+    noExternal: [/^@rivonclaw\//, "https-proxy-agent", "agent-base"],
     treeshake: true,
     inlineOnly: false,
     define: {

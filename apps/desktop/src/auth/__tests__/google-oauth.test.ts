@@ -12,7 +12,7 @@ vi.mock("@rivonclaw/gateway", () => ({
   startLoopbackOAuthCallback: gatewayMocks.startLoopbackOAuthCallback,
 }));
 vi.mock("@rivonclaw/logger", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@rivonclaw/logger")>(),
+  ...(await importOriginal<typeof import("@rivonclaw/logger")>()),
   createLogger: () => ({ warn: loggerMocks.warn }),
 }));
 
@@ -99,11 +99,13 @@ describe("DesktopGoogleAuthCoordinator", () => {
       codeVerifier: expect.stringMatching(/^[A-Za-z0-9_-]{43,128}$/),
       redirectUri: "http://127.0.0.1:53682/oauth/google/callback",
     });
-    expect(authSession.loginWithGoogle).toHaveBeenCalledWith(expect.objectContaining({
-      idToken: "google-id-token",
-      nonce: authorizationUrl.searchParams.get("nonce"),
-      inviteCode: "ABC123",
-    }));
+    expect(authSession.loginWithGoogle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idToken: "google-id-token",
+        nonce: authorizationUrl.searchParams.get("nonce"),
+        inviteCode: "ABC123",
+      }),
+    );
     expect(instance.status(started.flowId)).not.toHaveProperty("idToken");
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
@@ -125,20 +127,24 @@ describe("DesktopGoogleAuthCoordinator", () => {
       expect(instance.status(started.flowId)?.status).toBe("link_required");
     });
 
-    await expect(instance.link({
-      flowId: started.flowId,
-      password: "original-password",
-      captchaToken: "captcha-token",
-      captchaAnswer: "ABCD",
-    })).resolves.toMatchObject({ status: "completed" });
-    expect(authSession.loginWithGoogle).toHaveBeenLastCalledWith(expect.objectContaining({
-      idToken: "google-id-token",
-      link: {
+    await expect(
+      instance.link({
+        flowId: started.flowId,
         password: "original-password",
         captchaToken: "captcha-token",
         captchaAnswer: "ABCD",
-      },
-    }));
+      }),
+    ).resolves.toMatchObject({ status: "completed" });
+    expect(authSession.loginWithGoogle).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        idToken: "google-id-token",
+        link: {
+          password: "original-password",
+          captchaToken: "captcha-token",
+          captchaAnswer: "ABCD",
+        },
+      }),
+    );
   });
 
   it("cancels an active flow and rejects later linking", async () => {
@@ -150,12 +156,14 @@ describe("DesktopGoogleAuthCoordinator", () => {
       status: "cancelled",
       errorCode: "GOOGLE_AUTH_CANCELLED",
     });
-    await expect(instance.link({
-      flowId: started.flowId,
-      password: "password",
-      captchaToken: "captcha",
-      captchaAnswer: "ABCD",
-    })).rejects.toMatchObject({ code: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
+    await expect(
+      instance.link({
+        flowId: started.flowId,
+        password: "password",
+        captchaToken: "captcha",
+        captchaAnswer: "ABCD",
+      }),
+    ).rejects.toMatchObject({ code: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
   });
 
   it("fails closed when the backend disables Desktop Google sign-in", async () => {

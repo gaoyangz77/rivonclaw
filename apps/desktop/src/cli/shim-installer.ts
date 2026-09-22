@@ -27,7 +27,9 @@ function normalizePathList(value: string | undefined): string[] {
 
 function pathContains(dir: string, value = process.env.PATH): boolean {
   const normalizedDir = dir.replace(/[\\/]+$/, "").toLowerCase();
-  return normalizePathList(value).some((entry) => entry.replace(/[\\/]+$/, "").toLowerCase() === normalizedDir);
+  return normalizePathList(value).some(
+    (entry) => entry.replace(/[\\/]+$/, "").toLowerCase() === normalizedDir,
+  );
 }
 
 function writeIfChanged(filePath: string, contents: string): boolean {
@@ -43,23 +45,19 @@ function writeIfChanged(filePath: string, contents: string): boolean {
 function appendPathToShellProfile(profilePath: string, binDir: string): void {
   const markerStart = "# >>> RivonClaw CLI >>>";
   const markerEnd = "# <<< RivonClaw CLI <<<";
-  const pathExpr = binDir.startsWith(homedir())
-    ? binDir.replace(homedir(), "$HOME")
-    : binDir;
-  const block = [
-    "",
-    markerStart,
-    `export PATH="${pathExpr}:$PATH"`,
-    markerEnd,
-    "",
-  ].join("\n");
+  const pathExpr = binDir.startsWith(homedir()) ? binDir.replace(homedir(), "$HOME") : binDir;
+  const block = ["", markerStart, `export PATH="${pathExpr}:$PATH"`, markerEnd, ""].join("\n");
 
   const current = existsSync(profilePath) ? readFileSync(profilePath, "utf-8") : "";
   if (current.includes(markerStart) || current.includes(binDir) || current.includes(pathExpr)) {
     return;
   }
   mkdirSync(dirname(profilePath), { recursive: true });
-  writeFileSync(profilePath, current.endsWith("\n") || current.length === 0 ? current + block : current + "\n" + block, "utf-8");
+  writeFileSync(
+    profilePath,
+    current.endsWith("\n") || current.length === 0 ? current + block : current + "\n" + block,
+    "utf-8",
+  );
 }
 
 function ensurePosixShellPath(binDir: string): void {
@@ -107,7 +105,7 @@ function buildWindowsShim(options: CliShimInstallOptions): string {
   return [
     "@echo off",
     "setlocal",
-    "set \"ELECTRON_RUN_AS_NODE=1\"",
+    'set "ELECTRON_RUN_AS_NODE=1"',
     `set "RIVONCLAW_ELECTRON_BIN=${options.electronBin}"`,
     `set "RIVONCLAW_DESKTOP_USER_DATA=${options.userDataDir}"`,
     `set "RIVONCLAW_OPENCLAW_STATE_DIR=${options.stateDir}"`,
@@ -126,7 +124,9 @@ export function resolveCliShimPath(): string {
   return join(homedir(), ".local", "bin", "openclaw");
 }
 
-export async function ensureOpenClawCliShimInstalled(options: CliShimInstallOptions): Promise<void> {
+export async function ensureOpenClawCliShimInstalled(
+  options: CliShimInstallOptions,
+): Promise<void> {
   const shimPath = resolveCliShimPath();
   const launcherPath = join(options.resourcesPath, "cli", "openclaw-launcher.cjs");
   if (!existsSync(launcherPath)) {
@@ -135,9 +135,10 @@ export async function ensureOpenClawCliShimInstalled(options: CliShimInstallOpti
   }
 
   try {
-    const changed = process.platform === "win32"
-      ? writeIfChanged(shimPath, buildWindowsShim(options))
-      : writeIfChanged(shimPath, buildPosixShim(options));
+    const changed =
+      process.platform === "win32"
+        ? writeIfChanged(shimPath, buildWindowsShim(options))
+        : writeIfChanged(shimPath, buildPosixShim(options));
 
     if (process.platform !== "win32") {
       chmodSync(shimPath, 0o755);

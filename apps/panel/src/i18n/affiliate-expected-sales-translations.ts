@@ -5,8 +5,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "Production model",
         bestAvailableModel: "Expected Sales",
         bestAvailableExplanation: "Predicted sales for affiliate sample applications.",
-        bestAvailableCurrentReview:
-          "Best-available model · used for current sample review",
+        bestAvailableCurrentReview: "Best-available model · used for current sample review",
         bestAvailableNoEvaluation:
           "The best-available model is ready; this version has no backtest report yet.",
         bootstrapModel: "Bootstrap model",
@@ -25,20 +24,30 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceComparisonUnavailable:
           "There is not enough historical data to generate a reliable comparison.",
         intelligenceOutperformanceProbability: "Probability of outperforming historical selection",
-        intelligenceOutperformanceProbabilityTooltip: "How likely the model is to deliver more expected sales than historical staff selections when given the same sample budget. This is a probability, not the size of the expected lift.",
+        intelligenceOutperformanceProbabilityTooltip:
+          "How likely the model is to deliver more expected sales than historical staff selections when given the same sample budget. This is a probability, not the size of the expected lift.",
         intelligencePrimaryRange: "{{level}}% reference range",
-        intelligencePrimaryRangeTooltip: "The range where the estimated sales lift is more likely to fall. A wider range means the size of the lift is less certain.",
+        intelligencePrimaryRangeTooltip:
+          "The range where the estimated sales lift is more likely to fall. A wider range means the size of the lift is less certain.",
         intelligenceDataFoundation: "Data foundation",
-        intelligenceDataFoundationTooltip: "How much representative evaluation data supports this comparison. It describes data coverage, not the probability of success.",
+        intelligenceDataFoundationTooltip:
+          "How much representative evaluation data supports this comparison. It describes data coverage, not the probability of success.",
         intelligenceAutomaticallySelected: "Currently selected automatically",
-        intelligenceDataFoundationLevels: { sufficient: "Sufficient", moderate: "Moderate", limited: "Limited", insufficient: "Insufficient" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "Sufficient",
+          moderate: "Moderate",
+          limited: "Limited",
+          insufficient: "Insufficient",
+        },
         intelligenceConfidenceHighHint: "The historical comparison is highly reliable.",
         intelligenceConfidenceMediumHint: "The historical comparison is moderately reliable.",
         intelligenceConfidenceLowHint: "Use this comparison as a directional reference.",
         evaluationBalancedAccuracy: "Balanced accuracy",
         evaluationTrainedAt: "Trained",
-        bootstrapNoEvaluation: "Bootstrap is available for sample review; this version has no backtest report yet.",
-        productionNoEvaluation: "Production model is ready; this version has no backtest report yet.",
+        bootstrapNoEvaluation:
+          "Bootstrap is available for sample review; this version has no backtest report yet.",
+        productionNoEvaluation:
+          "Production model is ready; this version has no backtest report yet.",
         modelAvailabilityUnavailable: "No READY artifact matches this scope and contract.",
         modelAvailabilityEmpty: "Live model availability could not be loaded.",
         modelReady: "Model ready",
@@ -69,8 +78,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         bestAvailableModel: "预计销量",
         bestAvailableExplanation: "预测达人样品申请可能带来的销量。",
         bestAvailableCurrentReview: "当前最佳模型 · 当前审样使用",
-        bestAvailableNoEvaluation:
-          "当前最佳模型已就绪，当前版本尚无回测报告。",
+        bestAvailableNoEvaluation: "当前最佳模型已就绪，当前版本尚无回测报告。",
         bootstrapModel: "冷启动模型",
         bootstrapApproximation: "使用 CURRENT_STATE_PROXY 特征的冷启动近似。",
         modelDataAccumulating: "数据积累中",
@@ -85,13 +93,21 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceSellerSafeDisclaimer: "基于历史申请与销量数据预测，实际结果可能不同。",
         intelligenceComparisonUnavailable: "历史数据暂不足以生成可靠对比。",
         intelligenceOutperformanceProbability: "优于历史选择的概率",
-        intelligenceOutperformanceProbabilityTooltip: "在相同发样预算下，模型选择预计销量高于历史人工选择的可能性。它表示胜出的概率，不代表预计提升幅度。",
+        intelligenceOutperformanceProbabilityTooltip:
+          "在相同发样预算下，模型选择预计销量高于历史人工选择的可能性。它表示胜出的概率，不代表预计提升幅度。",
         intelligencePrimaryRange: "{{level}}% 参考范围",
-        intelligencePrimaryRangeTooltip: "预计销量提升较可能落入的范围。范围越宽，表示提升幅度的不确定性越高。",
+        intelligencePrimaryRangeTooltip:
+          "预计销量提升较可能落入的范围。范围越宽，表示提升幅度的不确定性越高。",
         intelligenceDataFoundation: "数据基础",
-        intelligenceDataFoundationTooltip: "支撑这次对比的评估数据覆盖程度。它反映数据是否充足，不代表成功概率。",
+        intelligenceDataFoundationTooltip:
+          "支撑这次对比的评估数据覆盖程度。它反映数据是否充足，不代表成功概率。",
         intelligenceAutomaticallySelected: "当前自动采用",
-        intelligenceDataFoundationLevels: { sufficient: "充足", moderate: "中等", limited: "有限", insufficient: "不足" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "充足",
+          moderate: "中等",
+          limited: "有限",
+          insufficient: "不足",
+        },
         intelligenceConfidenceHighHint: "历史对比具有较高可信度。",
         intelligenceConfidenceMediumHint: "历史对比具有中等可信度。",
         intelligenceConfidenceLowHint: "请将该对比作为方向性参考。",
@@ -128,8 +144,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "Produktionsmodell",
         bestAvailableModel: "Erwartete Verkäufe",
         bestAvailableExplanation: "Prognostizierte Verkäufe für Affiliate-Musteranträge.",
-        bestAvailableCurrentReview:
-          "Bestverfügbares Modell · für die aktuelle Prüfung",
+        bestAvailableCurrentReview: "Bestverfügbares Modell · für die aktuelle Prüfung",
         bestAvailableNoEvaluation:
           "Das bestverfügbare Modell ist bereit; für diese Version liegt noch kein Backtest vor.",
         bootstrapModel: "Kaltstartmodell",
@@ -147,21 +162,32 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           "Basierend auf historischen Anträgen und Verkaufsdaten. Tatsächliche Ergebnisse können abweichen.",
         intelligenceComparisonUnavailable:
           "Es liegen nicht genügend historische Daten für einen verlässlichen Vergleich vor.",
-        intelligenceOutperformanceProbability: "Wahrscheinlichkeit, die historische Auswahl zu übertreffen",
-        intelligenceOutperformanceProbabilityTooltip: "Wie wahrscheinlich das Modell bei gleichem Musterbudget mehr erwartete Verkäufe erzielt als die historische Mitarbeiterauswahl. Dies ist eine Wahrscheinlichkeit, nicht die Höhe der erwarteten Steigerung.",
+        intelligenceOutperformanceProbability:
+          "Wahrscheinlichkeit, die historische Auswahl zu übertreffen",
+        intelligenceOutperformanceProbabilityTooltip:
+          "Wie wahrscheinlich das Modell bei gleichem Musterbudget mehr erwartete Verkäufe erzielt als die historische Mitarbeiterauswahl. Dies ist eine Wahrscheinlichkeit, nicht die Höhe der erwarteten Steigerung.",
         intelligencePrimaryRange: "{{level}}-%-Referenzbereich",
-        intelligencePrimaryRangeTooltip: "Der Bereich, in dem die geschätzte Verkaufssteigerung wahrscheinlich liegt. Ein breiterer Bereich bedeutet mehr Unsicherheit über die Höhe der Steigerung.",
+        intelligencePrimaryRangeTooltip:
+          "Der Bereich, in dem die geschätzte Verkaufssteigerung wahrscheinlich liegt. Ein breiterer Bereich bedeutet mehr Unsicherheit über die Höhe der Steigerung.",
         intelligenceDataFoundation: "Datengrundlage",
-        intelligenceDataFoundationTooltip: "Wie viele repräsentative Bewertungsdaten diesen Vergleich stützen. Dies beschreibt die Datenabdeckung, nicht die Erfolgswahrscheinlichkeit.",
+        intelligenceDataFoundationTooltip:
+          "Wie viele repräsentative Bewertungsdaten diesen Vergleich stützen. Dies beschreibt die Datenabdeckung, nicht die Erfolgswahrscheinlichkeit.",
         intelligenceAutomaticallySelected: "Derzeit automatisch ausgewählt",
-        intelligenceDataFoundationLevels: { sufficient: "Ausreichend", moderate: "Mittel", limited: "Begrenzt", insufficient: "Unzureichend" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "Ausreichend",
+          moderate: "Mittel",
+          limited: "Begrenzt",
+          insufficient: "Unzureichend",
+        },
         intelligenceConfidenceHighHint: "Der historische Vergleich ist sehr zuverlässig.",
         intelligenceConfidenceMediumHint: "Der historische Vergleich ist mäßig zuverlässig.",
         intelligenceConfidenceLowHint: "Nutzen Sie den Vergleich als Orientierung.",
         evaluationBalancedAccuracy: "Ausgewogene Genauigkeit",
         evaluationTrainedAt: "Trainiert",
-        bootstrapNoEvaluation: "Das Kaltstartmodell ist für Musterprüfungen verfügbar; für diese Version liegt noch kein Backtest vor.",
-        productionNoEvaluation: "Das Produktionsmodell ist bereit; für diese Version liegt noch kein Backtest vor.",
+        bootstrapNoEvaluation:
+          "Das Kaltstartmodell ist für Musterprüfungen verfügbar; für diese Version liegt noch kein Backtest vor.",
+        productionNoEvaluation:
+          "Das Produktionsmodell ist bereit; für diese Version liegt noch kein Backtest vor.",
         modelAvailabilityUnavailable: "Kein READY-Artefakt entspricht diesem Bereich und Vertrag.",
         modelAvailabilityEmpty: "Die Live-Modellverfügbarkeit konnte nicht geladen werden.",
         modelReady: "Modell bereit",
@@ -191,8 +217,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "Modelo de producción",
         bestAvailableModel: "Ventas previstas",
         bestAvailableExplanation: "Ventas previstas para solicitudes de muestras de afiliados.",
-        bestAvailableCurrentReview:
-          "Mejor modelo disponible · usado en la revisión actual",
+        bestAvailableCurrentReview: "Mejor modelo disponible · usado en la revisión actual",
         bestAvailableNoEvaluation:
           "El mejor modelo disponible está listo; esta versión aún no tiene informe de backtest.",
         bootstrapModel: "Modelo de arranque",
@@ -211,20 +236,30 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceComparisonUnavailable:
           "No hay suficientes datos históricos para generar una comparación fiable.",
         intelligenceOutperformanceProbability: "Probabilidad de superar la selección histórica",
-        intelligenceOutperformanceProbabilityTooltip: "La probabilidad de que el modelo genere más ventas previstas que la selección histórica del equipo con el mismo presupuesto de muestras. Es una probabilidad, no el tamaño de la mejora prevista.",
+        intelligenceOutperformanceProbabilityTooltip:
+          "La probabilidad de que el modelo genere más ventas previstas que la selección histórica del equipo con el mismo presupuesto de muestras. Es una probabilidad, no el tamaño de la mejora prevista.",
         intelligencePrimaryRange: "Rango de referencia del {{level}}%",
-        intelligencePrimaryRangeTooltip: "El rango donde es más probable que se sitúe la mejora estimada de ventas. Un rango más amplio implica mayor incertidumbre sobre la magnitud de la mejora.",
+        intelligencePrimaryRangeTooltip:
+          "El rango donde es más probable que se sitúe la mejora estimada de ventas. Un rango más amplio implica mayor incertidumbre sobre la magnitud de la mejora.",
         intelligenceDataFoundation: "Base de datos",
-        intelligenceDataFoundationTooltip: "Cuántos datos de evaluación representativos respaldan esta comparación. Describe la cobertura de datos, no la probabilidad de éxito.",
+        intelligenceDataFoundationTooltip:
+          "Cuántos datos de evaluación representativos respaldan esta comparación. Describe la cobertura de datos, no la probabilidad de éxito.",
         intelligenceAutomaticallySelected: "Selección automática actual",
-        intelligenceDataFoundationLevels: { sufficient: "Suficiente", moderate: "Media", limited: "Limitada", insufficient: "Insuficiente" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "Suficiente",
+          moderate: "Media",
+          limited: "Limitada",
+          insufficient: "Insuficiente",
+        },
         intelligenceConfidenceHighHint: "La comparación histórica tiene alta fiabilidad.",
         intelligenceConfidenceMediumHint: "La comparación histórica tiene fiabilidad media.",
         intelligenceConfidenceLowHint: "Use esta comparación como referencia orientativa.",
         evaluationBalancedAccuracy: "Exactitud equilibrada",
         evaluationTrainedAt: "Entrenado",
-        bootstrapNoEvaluation: "El modelo de arranque está disponible para revisar muestras; esta versión aún no tiene informe retrospectivo.",
-        productionNoEvaluation: "El modelo de producción está listo; esta versión aún no tiene informe retrospectivo.",
+        bootstrapNoEvaluation:
+          "El modelo de arranque está disponible para revisar muestras; esta versión aún no tiene informe retrospectivo.",
+        productionNoEvaluation:
+          "El modelo de producción está listo; esta versión aún no tiene informe retrospectivo.",
         modelAvailabilityUnavailable: "Ningún artefacto READY coincide con este ámbito y contrato.",
         modelAvailabilityEmpty: "No se pudo cargar la disponibilidad del modelo en vivo.",
         modelReady: "Modelo listo",
@@ -254,12 +289,12 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "Modèle de production",
         bestAvailableModel: "Ventes prévues",
         bestAvailableExplanation: "Ventes prévues pour les demandes d’échantillons affiliés.",
-        bestAvailableCurrentReview:
-          "Meilleur modèle disponible · utilisé pour la revue actuelle",
+        bestAvailableCurrentReview: "Meilleur modèle disponible · utilisé pour la revue actuelle",
         bestAvailableNoEvaluation:
           "Le meilleur modèle disponible est prêt ; cette version n’a pas encore de rapport de backtest.",
         bootstrapModel: "Modèle de démarrage",
-        bootstrapApproximation: "Approximation de démarrage avec des variables CURRENT_STATE_PROXY.",
+        bootstrapApproximation:
+          "Approximation de démarrage avec des variables CURRENT_STATE_PROXY.",
         modelDataAccumulating: "Données en cours d’accumulation",
         productionCurrentReview: "Modèle de production · utilisé pour la revue actuelle",
         bootstrapCurrentReview: "Modèle de démarrage · utilisé pour la revue actuelle",
@@ -274,21 +309,32 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceComparisonUnavailable:
           "Les données historiques sont insuffisantes pour produire une comparaison fiable.",
         intelligenceOutperformanceProbability: "Probabilité de dépasser la sélection historique",
-        intelligenceOutperformanceProbabilityTooltip: "La probabilité que le modèle génère plus de ventes prévues que les sélections historiques de l’équipe avec le même budget d’échantillons. Il s’agit d’une probabilité, pas de l’ampleur du gain prévu.",
+        intelligenceOutperformanceProbabilityTooltip:
+          "La probabilité que le modèle génère plus de ventes prévues que les sélections historiques de l’équipe avec le même budget d’échantillons. Il s’agit d’une probabilité, pas de l’ampleur du gain prévu.",
         intelligencePrimaryRange: "Plage de référence à {{level}} %",
-        intelligencePrimaryRangeTooltip: "La plage dans laquelle la hausse estimée des ventes a le plus de chances de se situer. Une plage plus large indique davantage d’incertitude sur l’ampleur du gain.",
+        intelligencePrimaryRangeTooltip:
+          "La plage dans laquelle la hausse estimée des ventes a le plus de chances de se situer. Une plage plus large indique davantage d’incertitude sur l’ampleur du gain.",
         intelligenceDataFoundation: "Base de données",
-        intelligenceDataFoundationTooltip: "La quantité de données d’évaluation représentatives qui étayent cette comparaison. Elle décrit la couverture des données, pas la probabilité de réussite.",
+        intelligenceDataFoundationTooltip:
+          "La quantité de données d’évaluation représentatives qui étayent cette comparaison. Elle décrit la couverture des données, pas la probabilité de réussite.",
         intelligenceAutomaticallySelected: "Sélection automatique actuelle",
-        intelligenceDataFoundationLevels: { sufficient: "Suffisante", moderate: "Moyenne", limited: "Limitée", insufficient: "Insuffisante" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "Suffisante",
+          moderate: "Moyenne",
+          limited: "Limitée",
+          insufficient: "Insuffisante",
+        },
         intelligenceConfidenceHighHint: "La comparaison historique est très fiable.",
         intelligenceConfidenceMediumHint: "La comparaison historique est moyennement fiable.",
         intelligenceConfidenceLowHint: "Utilisez cette comparaison comme indication.",
         evaluationBalancedAccuracy: "Exactitude équilibrée",
         evaluationTrainedAt: "Entraîné",
-        bootstrapNoEvaluation: "Le modèle de démarrage peut revoir les échantillons ; cette version n’a pas encore de rapport de backtest.",
-        productionNoEvaluation: "Le modèle de production est prêt ; cette version n’a pas encore de rapport de backtest.",
-        modelAvailabilityUnavailable: "Aucun artefact READY ne correspond à ce périmètre et à ce contrat.",
+        bootstrapNoEvaluation:
+          "Le modèle de démarrage peut revoir les échantillons ; cette version n’a pas encore de rapport de backtest.",
+        productionNoEvaluation:
+          "Le modèle de production est prêt ; cette version n’a pas encore de rapport de backtest.",
+        modelAvailabilityUnavailable:
+          "Aucun artefact READY ne correspond à ce périmètre et à ce contrat.",
         modelAvailabilityEmpty: "La disponibilité en direct des modèles n’a pas pu être chargée.",
         modelReady: "Modèle prêt",
         modelFallback: "Utilise {{scope}}",
@@ -317,8 +363,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "Model produksi",
         bestAvailableModel: "Perkiraan penjualan",
         bestAvailableExplanation: "Perkiraan penjualan untuk permohonan sampel afiliasi.",
-        bestAvailableCurrentReview:
-          "Model terbaik yang tersedia · dipakai untuk tinjauan saat ini",
+        bestAvailableCurrentReview: "Model terbaik yang tersedia · dipakai untuk tinjauan saat ini",
         bestAvailableNoEvaluation:
           "Model terbaik yang tersedia sudah siap; versi ini belum memiliki laporan backtest.",
         bootstrapModel: "Model bootstrap",
@@ -337,21 +382,31 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceComparisonUnavailable:
           "Data historis belum cukup untuk membuat perbandingan yang andal.",
         intelligenceOutperformanceProbability: "Peluang mengungguli pilihan historis",
-        intelligenceOutperformanceProbabilityTooltip: "Peluang model menghasilkan perkiraan penjualan lebih tinggi daripada pilihan historis staf dengan anggaran sampel yang sama. Ini adalah peluang, bukan besarnya peningkatan yang diperkirakan.",
+        intelligenceOutperformanceProbabilityTooltip:
+          "Peluang model menghasilkan perkiraan penjualan lebih tinggi daripada pilihan historis staf dengan anggaran sampel yang sama. Ini adalah peluang, bukan besarnya peningkatan yang diperkirakan.",
         intelligencePrimaryRange: "Rentang referensi {{level}}%",
-        intelligencePrimaryRangeTooltip: "Rentang tempat perkiraan peningkatan penjualan kemungkinan besar berada. Rentang yang lebih lebar berarti besarnya peningkatan lebih tidak pasti.",
+        intelligencePrimaryRangeTooltip:
+          "Rentang tempat perkiraan peningkatan penjualan kemungkinan besar berada. Rentang yang lebih lebar berarti besarnya peningkatan lebih tidak pasti.",
         intelligenceDataFoundation: "Dasar data",
-        intelligenceDataFoundationTooltip: "Seberapa banyak data evaluasi representatif yang mendukung perbandingan ini. Ini menjelaskan cakupan data, bukan peluang keberhasilan.",
+        intelligenceDataFoundationTooltip:
+          "Seberapa banyak data evaluasi representatif yang mendukung perbandingan ini. Ini menjelaskan cakupan data, bukan peluang keberhasilan.",
         intelligenceAutomaticallySelected: "Dipilih otomatis saat ini",
-        intelligenceDataFoundationLevels: { sufficient: "Memadai", moderate: "Sedang", limited: "Terbatas", insufficient: "Tidak memadai" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "Memadai",
+          moderate: "Sedang",
+          limited: "Terbatas",
+          insufficient: "Tidak memadai",
+        },
         intelligenceConfidenceHighHint: "Perbandingan historis memiliki keandalan tinggi.",
         intelligenceConfidenceMediumHint: "Perbandingan historis memiliki keandalan sedang.",
         intelligenceConfidenceLowHint: "Gunakan perbandingan ini sebagai acuan arah.",
         evaluationBalancedAccuracy: "Akurasi seimbang",
         evaluationTrainedAt: "Dilatih",
-        bootstrapNoEvaluation: "Model bootstrap tersedia untuk tinjauan sampel; versi ini belum memiliki laporan backtest.",
+        bootstrapNoEvaluation:
+          "Model bootstrap tersedia untuk tinjauan sampel; versi ini belum memiliki laporan backtest.",
         productionNoEvaluation: "Model produksi siap; versi ini belum memiliki laporan backtest.",
-        modelAvailabilityUnavailable: "Tidak ada artefak READY yang cocok dengan cakupan dan kontrak ini.",
+        modelAvailabilityUnavailable:
+          "Tidak ada artefak READY yang cocok dengan cakupan dan kontrak ini.",
         modelAvailabilityEmpty: "Ketersediaan model langsung tidak dapat dimuat.",
         modelReady: "Model siap",
         modelFallback: "Menggunakan {{scope}}",
@@ -380,8 +435,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "Modello di produzione",
         bestAvailableModel: "Vendite previste",
         bestAvailableExplanation: "Vendite previste per le richieste di campioni affiliati.",
-        bestAvailableCurrentReview:
-          "Miglior modello disponibile · usato per la revisione attuale",
+        bestAvailableCurrentReview: "Miglior modello disponibile · usato per la revisione attuale",
         bestAvailableNoEvaluation:
           "Il miglior modello disponibile è pronto; questa versione non ha ancora un report di backtest.",
         bootstrapModel: "Modello di avvio",
@@ -400,21 +454,32 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceComparisonUnavailable:
           "I dati storici non sono ancora sufficienti per un confronto affidabile.",
         intelligenceOutperformanceProbability: "Probabilità di superare la selezione storica",
-        intelligenceOutperformanceProbabilityTooltip: "La probabilità che il modello generi più vendite previste rispetto alle selezioni storiche del personale con lo stesso budget di campioni. È una probabilità, non l’entità dell’aumento previsto.",
+        intelligenceOutperformanceProbabilityTooltip:
+          "La probabilità che il modello generi più vendite previste rispetto alle selezioni storiche del personale con lo stesso budget di campioni. È una probabilità, non l’entità dell’aumento previsto.",
         intelligencePrimaryRange: "Intervallo di riferimento {{level}}%",
-        intelligencePrimaryRangeTooltip: "L’intervallo in cui è più probabile che ricada l’aumento stimato delle vendite. Un intervallo più ampio indica maggiore incertezza sull’entità dell’aumento.",
+        intelligencePrimaryRangeTooltip:
+          "L’intervallo in cui è più probabile che ricada l’aumento stimato delle vendite. Un intervallo più ampio indica maggiore incertezza sull’entità dell’aumento.",
         intelligenceDataFoundation: "Base dati",
-        intelligenceDataFoundationTooltip: "La quantità di dati di valutazione rappresentativi che supporta il confronto. Descrive la copertura dei dati, non la probabilità di successo.",
+        intelligenceDataFoundationTooltip:
+          "La quantità di dati di valutazione rappresentativi che supporta il confronto. Descrive la copertura dei dati, non la probabilità di successo.",
         intelligenceAutomaticallySelected: "Selezionato automaticamente",
-        intelligenceDataFoundationLevels: { sufficient: "Sufficiente", moderate: "Media", limited: "Limitata", insufficient: "Insufficiente" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "Sufficiente",
+          moderate: "Media",
+          limited: "Limitata",
+          insufficient: "Insufficiente",
+        },
         intelligenceConfidenceHighHint: "Il confronto storico ha un’elevata affidabilità.",
         intelligenceConfidenceMediumHint: "Il confronto storico ha un’affidabilità media.",
         intelligenceConfidenceLowHint: "Usa questo confronto come riferimento orientativo.",
         evaluationBalancedAccuracy: "Accuratezza bilanciata",
         evaluationTrainedAt: "Addestrato",
-        bootstrapNoEvaluation: "Il modello di avvio è disponibile per la revisione; questa versione non ha ancora un report di backtest.",
-        productionNoEvaluation: "Il modello di produzione è pronto; questa versione non ha ancora un report di backtest.",
-        modelAvailabilityUnavailable: "Nessun artefatto READY corrisponde a questo ambito e contratto.",
+        bootstrapNoEvaluation:
+          "Il modello di avvio è disponibile per la revisione; questa versione non ha ancora un report di backtest.",
+        productionNoEvaluation:
+          "Il modello di produzione è pronto; questa versione non ha ancora un report di backtest.",
+        modelAvailabilityUnavailable:
+          "Nessun artefatto READY corrisponde a questo ambito e contratto.",
         modelAvailabilityEmpty: "Impossibile caricare la disponibilità live dei modelli.",
         modelReady: "Modello pronto",
         modelFallback: "Usa {{scope}}",
@@ -443,10 +508,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionModel: "โมเดลใช้งานจริง",
         bestAvailableModel: "ยอดขายที่คาดการณ์",
         bestAvailableExplanation: "ยอดขายที่คาดการณ์สำหรับคำขอตัวอย่าง Affiliate",
-        bestAvailableCurrentReview:
-          "โมเดลที่ดีที่สุดในขณะนี้ · ใช้กับการตรวจสอบปัจจุบัน",
-        bestAvailableNoEvaluation:
-          "โมเดลที่ดีที่สุดในขณะนี้พร้อมใช้งาน แต่เวอร์ชันนี้ยังไม่มีรายงาน backtest",
+        bestAvailableCurrentReview: "โมเดลที่ดีที่สุดในขณะนี้ · ใช้กับการตรวจสอบปัจจุบัน",
+        bestAvailableNoEvaluation: "โมเดลที่ดีที่สุดในขณะนี้พร้อมใช้งาน แต่เวอร์ชันนี้ยังไม่มีรายงาน backtest",
         bootstrapModel: "โมเดลเริ่มต้น",
         bootstrapApproximation: "การประมาณช่วงเริ่มต้นด้วยฟีเจอร์ CURRENT_STATE_PROXY",
         modelDataAccumulating: "กำลังสะสมข้อมูล",
@@ -458,18 +521,24 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         intelligenceHistoricalSelectedCount: "จำนวนที่เลือกในอดีต",
         intelligenceModelSelectedCount: "จำนวนที่แนะนำ",
         intelligenceClaimPrecisionTitle: "ยอดขายที่คาดว่าจะเพิ่มขึ้น",
-        intelligenceSellerSafeDisclaimer:
-          "คาดการณ์จากข้อมูลคำขอและยอดขายในอดีต ผลลัพธ์จริงอาจแตกต่างกัน",
-        intelligenceComparisonUnavailable:
-          "ข้อมูลในอดีตยังไม่เพียงพอสำหรับการเปรียบเทียบที่น่าเชื่อถือ",
+        intelligenceSellerSafeDisclaimer: "คาดการณ์จากข้อมูลคำขอและยอดขายในอดีต ผลลัพธ์จริงอาจแตกต่างกัน",
+        intelligenceComparisonUnavailable: "ข้อมูลในอดีตยังไม่เพียงพอสำหรับการเปรียบเทียบที่น่าเชื่อถือ",
         intelligenceOutperformanceProbability: "โอกาสที่จะดีกว่าการเลือกในอดีต",
-        intelligenceOutperformanceProbabilityTooltip: "โอกาสที่โมเดลจะสร้างยอดขายคาดการณ์ได้มากกว่าการเลือกของพนักงานในอดีต เมื่อใช้งบตัวอย่างเท่ากัน ค่านี้เป็นความน่าจะเป็น ไม่ใช่ขนาดของยอดขายที่คาดว่าจะเพิ่มขึ้น",
+        intelligenceOutperformanceProbabilityTooltip:
+          "โอกาสที่โมเดลจะสร้างยอดขายคาดการณ์ได้มากกว่าการเลือกของพนักงานในอดีต เมื่อใช้งบตัวอย่างเท่ากัน ค่านี้เป็นความน่าจะเป็น ไม่ใช่ขนาดของยอดขายที่คาดว่าจะเพิ่มขึ้น",
         intelligencePrimaryRange: "ช่วงอ้างอิง {{level}}%",
-        intelligencePrimaryRangeTooltip: "ช่วงที่ยอดขายที่คาดว่าจะเพิ่มขึ้นมีแนวโน้มอยู่ภายใน ช่วงที่กว้างขึ้นหมายถึงขนาดของการเพิ่มขึ้นมีความไม่แน่นอนมากขึ้น",
+        intelligencePrimaryRangeTooltip:
+          "ช่วงที่ยอดขายที่คาดว่าจะเพิ่มขึ้นมีแนวโน้มอยู่ภายใน ช่วงที่กว้างขึ้นหมายถึงขนาดของการเพิ่มขึ้นมีความไม่แน่นอนมากขึ้น",
         intelligenceDataFoundation: "พื้นฐานข้อมูล",
-        intelligenceDataFoundationTooltip: "ปริมาณข้อมูลประเมินที่เป็นตัวแทนและรองรับการเปรียบเทียบนี้ อธิบายความครอบคลุมของข้อมูล ไม่ใช่โอกาสสำเร็จ",
+        intelligenceDataFoundationTooltip:
+          "ปริมาณข้อมูลประเมินที่เป็นตัวแทนและรองรับการเปรียบเทียบนี้ อธิบายความครอบคลุมของข้อมูล ไม่ใช่โอกาสสำเร็จ",
         intelligenceAutomaticallySelected: "เลือกอัตโนมัติในปัจจุบัน",
-        intelligenceDataFoundationLevels: { sufficient: "เพียงพอ", moderate: "ปานกลาง", limited: "จำกัด", insufficient: "ไม่เพียงพอ" },
+        intelligenceDataFoundationLevels: {
+          sufficient: "เพียงพอ",
+          moderate: "ปานกลาง",
+          limited: "จำกัด",
+          insufficient: "ไม่เพียงพอ",
+        },
         intelligenceConfidenceHighHint: "การเปรียบเทียบในอดีตมีความน่าเชื่อถือสูง",
         intelligenceConfidenceMediumHint: "การเปรียบเทียบในอดีตมีความน่าเชื่อถือปานกลาง",
         intelligenceConfidenceLowHint: "ใช้การเปรียบเทียบนี้เป็นข้อมูลอ้างอิงเชิงทิศทาง",

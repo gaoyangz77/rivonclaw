@@ -117,16 +117,20 @@ describe("refreshCodexOAuthCredentials", () => {
           stored.set(key, value);
         },
       },
-      async () => new Response(JSON.stringify({
-        access_token: buildIdToken({ exp: 1_800_000_000 }),
-        refresh_token: buildIdToken({ exp: refreshExpiresAtSec }),
-        expires_in: 3600,
-        id_token: buildIdToken({
-          "https://api.openai.com/auth": {
-            chatgpt_subscription_active_until: subscriptionExpiresAt,
-          },
-        }),
-      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      async () =>
+        new Response(
+          JSON.stringify({
+            access_token: buildIdToken({ exp: 1_800_000_000 }),
+            refresh_token: buildIdToken({ exp: refreshExpiresAtSec }),
+            expires_in: 3600,
+            id_token: buildIdToken({
+              "https://api.openai.com/auth": {
+                chatgpt_subscription_active_until: subscriptionExpiresAt,
+              },
+            }),
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     );
 
     expect(result.oauthExpiresAt).toBe(refreshExpiresAtSec * 1000);

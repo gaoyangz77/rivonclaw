@@ -15,11 +15,14 @@ export interface CsAgentDispatchRequest extends CsConversationSignalPayload {
   useMessageDelta: boolean;
 }
 
-const CONVERSATION_DISPATCH_PLANS: Record<string, {
-  signalType: CsConversationSignalPayload["type"];
-  dispatchReason: CsAgentDispatchReason;
-  useMessageDelta: boolean;
-}> = {
+const CONVERSATION_DISPATCH_PLANS: Record<
+  string,
+  {
+    signalType: CsConversationSignalPayload["type"];
+    dispatchReason: CsAgentDispatchReason;
+    useMessageDelta: boolean;
+  }
+> = {
   MANUAL_START: {
     signalType: "MANUAL_START",
     dispatchReason: "MANUAL_START",
@@ -47,10 +50,13 @@ const CONVERSATION_DISPATCH_PLANS: Record<string, {
   },
 };
 
-const SIGNAL_DISPATCH_PLANS: Record<string, {
-  dispatchReason: CsAgentDispatchReason;
-  useMessageDelta: boolean;
-}> = {
+const SIGNAL_DISPATCH_PLANS: Record<
+  string,
+  {
+    dispatchReason: CsAgentDispatchReason;
+    useMessageDelta: boolean;
+  }
+> = {
   MANUAL_START: {
     dispatchReason: "MANUAL_START",
     useMessageDelta: false,
@@ -81,11 +87,13 @@ export function resolveCsConversationDispatch(
   const plan = CONVERSATION_DISPATCH_PLANS[String(hint.reason)];
   if (!plan) return null;
 
-  const buyer = conversation.participants?.find((participant) => participant?.role === "BUYER")
-    ?? conversation.participants?.find(Boolean);
-  const eventTime = hint.eventTime != null
-    ? new Date(hint.eventTime * 1000).toISOString()
-    : new Date().toISOString();
+  const buyer =
+    conversation.participants?.find((participant) => participant?.role === "BUYER") ??
+    conversation.participants?.find(Boolean);
+  const eventTime =
+    hint.eventTime != null
+      ? new Date(hint.eventTime * 1000).toISOString()
+      : new Date().toISOString();
   const isPendingBuyerDispatch = plan.dispatchReason === "PENDING_BUYER_MESSAGE";
   const hintMessageId = hint.messageId ?? undefined;
   const hintMessageIndex = hint.messageIndex ?? undefined;
@@ -104,25 +112,32 @@ export function resolveCsConversationDispatch(
     shopId: conversation.shopId ?? shop.id ?? "",
     platformShopId: conversation.platformShopId ?? shop.platformShopId ?? "",
     conversationId: conversation.conversationId,
-    messageId: hintMessageId ?? (isPendingBuyerDispatch ? undefined : conversation.latestMessage?.messageId ?? undefined),
-    messageIndex: hintMessageIndex ?? (isPendingBuyerDispatch ? undefined : conversation.latestMessage?.index ?? undefined),
+    messageId:
+      hintMessageId ??
+      (isPendingBuyerDispatch ? undefined : (conversation.latestMessage?.messageId ?? undefined)),
+    messageIndex:
+      hintMessageIndex ??
+      (isPendingBuyerDispatch ? undefined : (conversation.latestMessage?.index ?? undefined)),
     imUserId: buyer?.imUserId ?? undefined,
     buyerUserId: buyer?.userId ?? undefined,
     orderId: conversation.orderId ?? undefined,
-    messageType: isPendingBuyerDispatch && !localLatestMatchesHint
-      ? undefined
-      : conversation.latestMessage?.type ?? undefined,
+    messageType:
+      isPendingBuyerDispatch && !localLatestMatchesHint
+        ? undefined
+        : (conversation.latestMessage?.type ?? undefined),
     senderRole: isPendingBuyerDispatch
       ? "BUYER"
-      : conversation.latestMessage?.sender?.role ?? undefined,
+      : (conversation.latestMessage?.sender?.role ?? undefined),
     aiEnabled: conversation.aiEnabled ?? true,
-    latestMessagePreview: isPendingBuyerDispatch && !localLatestMatchesHint
-      ? undefined
-      : conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined,
+    latestMessagePreview:
+      isPendingBuyerDispatch && !localLatestMatchesHint
+        ? undefined
+        : (conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined),
     operatorInstruction: hint.operatorInstruction ?? undefined,
-    dispatchEventTime: hint.dispatchEventTime != null
-      ? new Date(hint.dispatchEventTime * 1000).toISOString()
-      : eventTime,
+    dispatchEventTime:
+      hint.dispatchEventTime != null
+        ? new Date(hint.dispatchEventTime * 1000).toISOString()
+        : eventTime,
     eventTime,
   };
 }

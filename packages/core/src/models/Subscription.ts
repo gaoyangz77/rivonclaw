@@ -95,7 +95,9 @@ export const PaymentModel = types.model("Payment", {
 });
 
 export interface BillingUsageStatus extends Instance<typeof BillingUsageStatusModel> {}
-export interface BillingSubscriptionSummary extends Instance<typeof BillingSubscriptionSummaryModel> {}
+export interface BillingSubscriptionSummary extends Instance<
+  typeof BillingSubscriptionSummaryModel
+> {}
 export interface BillingEntitlementStatus extends Instance<typeof BillingEntitlementStatusModel> {}
 export interface AccountLlmBillingStatus extends Instance<typeof AccountLlmBillingStatusModel> {}
 export interface ShopBillingStatus extends Instance<typeof ShopBillingStatusModel> {}

@@ -1,44 +1,44 @@
 {
-    "name": "@rivonclaw/rivonclaw-mobile-chat-channel",
-    "version": "0.0.0",
-    "private": true,
-    "type": "module",
-    "main": "dist/index.mjs",
-    "types": "dist/index.d.mts",
-    "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "types": "./dist/index.d.mts"
-        }
-    },
-    "scripts": {
-        "build": "tsdown",
-        "lint": "oxlint",
-        "test": "vitest run"
-    },
-    "dependencies": {
-        "@rivonclaw/logger": "workspace:*",
-        "@rivonclaw/plugin-sdk": "workspace:*",
-        "ws": "^8.18.0"
-    },
-    "openclaw": {
-        "extensions": [
-            "./dist/plugin.mjs"
-        ],
-        "channel": {
-            "id": "mobile",
-            "label": "ChatClaw",
-            "selectionLabel": "ChatClaw",
-            "blurb": "Chat with your agent on the go from your phone via ChatClaw",
-            "aliases": [
-                "app"
-            ]
-        }
-    },
-    "devDependencies": {
-        "@types/ws": "^8.18.1",
-        "oxlint": "^1.43.0",
-        "tsdown": "^0.20.3",
-        "vitest": "^4.0.18"
+  "name": "@rivonclaw/rivonclaw-mobile-chat-channel",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "oxlint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rivonclaw/logger": "workspace:*",
+    "@rivonclaw/plugin-sdk": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "oxlint": "^1.43.0",
+    "tsdown": "^0.20.3",
+    "vitest": "^4.0.18"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/plugin.mjs"
+    ],
+    "channel": {
+      "id": "mobile",
+      "label": "ChatClaw",
+      "selectionLabel": "ChatClaw",
+      "blurb": "Chat with your agent on the go from your phone via ChatClaw",
+      "aliases": [
+        "app"
+      ]
+    }
+  }
 }

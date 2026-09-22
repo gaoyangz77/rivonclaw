@@ -1,12 +1,12 @@
-import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js";
 
 function ensureCronFormOpen() {
-  if (!findTutorialTarget("crons-form")) clickTutorialTarget("crons-add")
+  if (!findTutorialTarget("crons-form")) clickTutorialTarget("crons-add");
 }
 
 function closeCronForm() {
-  if (findTutorialTarget("crons-form")) clickTutorialTarget("crons-form-cancel")
+  if (findTutorialTarget("crons-form")) clickTutorialTarget("crons-form-cancel");
 }
 
 function pageStep(
@@ -21,7 +21,7 @@ function pageStep(
     titleKey: `tutorial.crons.${key}Title`,
     bodyKey: `tutorial.crons.${key}Body`,
     placement,
-  }
+  };
 }
 
 function formStep(id: string, targetId: string, key: string): TutorialStep {
@@ -31,7 +31,7 @@ function formStep(id: string, targetId: string, key: string): TutorialStep {
     cleanup: closeCronForm,
     lifecycleGroup: "crons-form",
     targetTimeoutMs: 1800,
-  }
+  };
 }
 
 export const cronsSteps: TutorialStep[] = [
@@ -45,4 +45,4 @@ export const cronsSteps: TutorialStep[] = [
   formStep("crons-form-payload", "crons-form-payload", "formPayload"),
   formStep("crons-form-schedule", "crons-form-schedule", "formSchedule"),
   formStep("crons-form-execution", "crons-form-execution", "formExecution"),
-]
+];

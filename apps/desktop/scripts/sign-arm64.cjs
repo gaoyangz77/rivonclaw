@@ -14,6 +14,9 @@ console.log("[sign-arm64] Ad-hoc signing:", appPath);
 execSync(`codesign --force --deep --sign - "${appPath}"`, { stdio: "inherit" });
 
 console.log("[sign-arm64] Recreating DMG:", dmgPath);
-execSync(`hdiutil create -volname "TK Copilot" -srcfolder "${appPath}" -ov -format UDZO "${dmgPath}"`, { stdio: "inherit" });
+execSync(
+  `hdiutil create -volname "TK Copilot" -srcfolder "${appPath}" -ov -format UDZO "${dmgPath}"`,
+  { stdio: "inherit" },
+);
 
 console.log("[sign-arm64] Done.");

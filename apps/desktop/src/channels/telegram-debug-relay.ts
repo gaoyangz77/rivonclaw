@@ -13,9 +13,8 @@ export async function fetchTelegramDebugOperatorUserIds(params: {
     throw new Error(`Telegram debug relay config failed: HTTP ${res.status}`);
   }
 
-  const body = await res.json() as { operatorUserIds?: unknown };
+  const body = (await res.json()) as { operatorUserIds?: unknown };
   return normalizeTelegramDebugOperatorUserIds(
     Array.isArray(body.operatorUserIds) ? body.operatorUserIds : [],
   );
 }
-

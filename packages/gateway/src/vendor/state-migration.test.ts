@@ -491,10 +491,12 @@ describe("inspectVendorStateMigration", () => {
             "SELECT workspace_path, setup_completed_at FROM workspace_setup_state WHERE workspace_path = ?",
           )
           .all(realpathSync(workspaceDir)),
-      ).toEqual([{
-        workspace_path: realpathSync(workspaceDir),
-        setup_completed_at: "2026-08-01T00:00:00.000Z",
-      }]);
+      ).toEqual([
+        {
+          workspace_path: realpathSync(workspaceDir),
+          setup_completed_at: "2026-08-01T00:00:00.000Z",
+        },
+      ]);
     } finally {
       repeatedDatabase.close();
     }
@@ -577,207 +579,214 @@ describe("inspectVendorStateMigration", () => {
     }
   }, 15_000);
 
-  it.each(["group", "direct"])("converges an orphaned %s recovery claim and admits the next turn", async (chatType) => {
-    const fixture = makeFixture();
-    const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
-    await migrateVendorStateBeforeGateway({
-      stateDir: fixture.stateDir,
-      vendorDir: VENDOR_ROOT,
-    });
-
-    const sessionKey = `agent:main:feishu:default:${chatType}:oc_recovery_regression`;
-    const sessionId = "orphaned-running-session";
-    const updatedAt = Date.now();
-    const orphanedEntry = {
-      abortedLastRun: true,
-      chatType,
-      restartRecoveryBeforeAgentReplyState: "admitted",
-      restartRecoveryDeliveryContext: {
-        accountId: "default",
-        channel: "feishu",
-        to: "chat:oc_recovery_regression",
-      },
-      restartRecoveryDeliveryReceiptState: "terminal-pending",
-      restartRecoveryDeliveryRunId: "orphaned-delivery-run",
-      restartRecoveryDeliverySourceRunId: "old-feishu-message",
-      sessionId,
-      status: "running",
-      updatedAt,
-    };
-    const database = new DatabaseSync(databasePath);
-    try {
-      database
-        .prepare(
-          `INSERT INTO session_nodes (
-             session_key, current_session_id, entry_json, entry_valid, updated_at, status
-           ) VALUES (?, ?, ?, 1, ?, 'running')`,
-        )
-        .run(sessionKey, sessionId, JSON.stringify(orphanedEntry), updatedAt);
-      database
-        .prepare(
-          `INSERT INTO session_windows (session_id, session_key, created_at, updated_at, status)
-           VALUES (?, ?, ?, ?, 'running')`,
-        )
-        .run(sessionId, sessionKey, updatedAt, updatedAt);
-    } finally {
-      database.close();
-    }
-
-    // Reproduce the shipped launcher: the Gateway disabled replay, but the
-    // migration child inherited no flag, leaving the interrupted claim active.
-    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", undefined);
-    await migrateVendorStateBeforeGateway({ stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT });
-    const createStuckController = await loadNamedVendorDistFunction<
-      (params: Record<string, unknown>) => {
-        admitUserTurn: (recorder: Record<string, unknown>) => Promise<unknown>;
-      }
-    >("reply-admission-ticket", "createReplyRestartRecoveryClaimController");
-    for (const sourceTurnId of ["first-new-message", "first-new-message", "second-new-message"]) {
-      const controller = createStuckController({
-        getEntry: () => orphanedEntry,
-        getSessionId: () => sessionId,
-        isRestartAbort: () => false,
-        resolveDeliveryContext: () => orphanedEntry.restartRecoveryDeliveryContext,
-        sessionKey,
-        setEntry: vi.fn(),
-        sourceTurnId,
-        storePath: join(fixture.stateDir, "agents", "main", "sessions", "sessions.json"),
+  it.each(["group", "direct"])(
+    "converges an orphaned %s recovery claim and admits the next turn",
+    async (chatType) => {
+      const fixture = makeFixture();
+      const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
+      await migrateVendorStateBeforeGateway({
+        stateDir: fixture.stateDir,
+        vendorDir: VENDOR_ROOT,
       });
-      await expect(controller.admitUserTurn({
-        getPersistedMessage: () => ({ idempotencyKey: sourceTurnId }),
-        hasPersisted: () => false,
-      })).rejects.toThrow("restart recovery claim changed before agent adoption");
-    }
 
-    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", "1");
-    await migrateVendorStateBeforeGateway({
-      stateDir: fixture.stateDir,
-      vendorDir: VENDOR_ROOT,
-    });
-
-    const convergedDatabase = new DatabaseSync(databasePath);
-    let convergedEntry: Record<string, unknown>;
-    try {
-      const node = convergedDatabase
-        .prepare(
-          `SELECT entry_json, status, updated_at
-           FROM session_nodes WHERE session_key = ?`,
-        )
-        .get(sessionKey) as { entry_json: string; status: string; updated_at: number };
-      convergedEntry = JSON.parse(node.entry_json) as Record<string, unknown>;
-      expect(node).toMatchObject({ status: "killed", updated_at: updatedAt });
-      expect(convergedEntry).toMatchObject({
+      const sessionKey = `agent:main:feishu:default:${chatType}:oc_recovery_regression`;
+      const sessionId = "orphaned-running-session";
+      const updatedAt = Date.now();
+      const orphanedEntry = {
         abortedLastRun: true,
+        chatType,
         restartRecoveryBeforeAgentReplyState: "admitted",
+        restartRecoveryDeliveryContext: {
+          accountId: "default",
+          channel: "feishu",
+          to: "chat:oc_recovery_regression",
+        },
         restartRecoveryDeliveryReceiptState: "terminal-pending",
         restartRecoveryDeliveryRunId: "orphaned-delivery-run",
-        status: "killed",
+        restartRecoveryDeliverySourceRunId: "old-feishu-message",
+        sessionId,
+        status: "running",
         updatedAt,
+      };
+      const database = new DatabaseSync(databasePath);
+      try {
+        database
+          .prepare(
+            `INSERT INTO session_nodes (
+             session_key, current_session_id, entry_json, entry_valid, updated_at, status
+           ) VALUES (?, ?, ?, 1, ?, 'running')`,
+          )
+          .run(sessionKey, sessionId, JSON.stringify(orphanedEntry), updatedAt);
+        database
+          .prepare(
+            `INSERT INTO session_windows (session_id, session_key, created_at, updated_at, status)
+           VALUES (?, ?, ?, ?, 'running')`,
+          )
+          .run(sessionId, sessionKey, updatedAt, updatedAt);
+      } finally {
+        database.close();
+      }
+
+      // Reproduce the shipped launcher: the Gateway disabled replay, but the
+      // migration child inherited no flag, leaving the interrupted claim active.
+      vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", undefined);
+      await migrateVendorStateBeforeGateway({ stateDir: fixture.stateDir, vendorDir: VENDOR_ROOT });
+      const createStuckController = await loadNamedVendorDistFunction<
+        (params: Record<string, unknown>) => {
+          admitUserTurn: (recorder: Record<string, unknown>) => Promise<unknown>;
+        }
+      >("reply-admission-ticket", "createReplyRestartRecoveryClaimController");
+      for (const sourceTurnId of ["first-new-message", "first-new-message", "second-new-message"]) {
+        const controller = createStuckController({
+          getEntry: () => orphanedEntry,
+          getSessionId: () => sessionId,
+          isRestartAbort: () => false,
+          resolveDeliveryContext: () => orphanedEntry.restartRecoveryDeliveryContext,
+          sessionKey,
+          setEntry: vi.fn(),
+          sourceTurnId,
+          storePath: join(fixture.stateDir, "agents", "main", "sessions", "sessions.json"),
+        });
+        await expect(
+          controller.admitUserTurn({
+            getPersistedMessage: () => ({ idempotencyKey: sourceTurnId }),
+            hasPersisted: () => false,
+          }),
+        ).rejects.toThrow("restart recovery claim changed before agent adoption");
+      }
+
+      vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", "1");
+      await migrateVendorStateBeforeGateway({
+        stateDir: fixture.stateDir,
+        vendorDir: VENDOR_ROOT,
       });
-      expect(
-        convergedDatabase
-          .prepare("SELECT status, updated_at FROM session_windows WHERE session_id = ?")
-          .get(sessionId),
-      ).toEqual({ status: "killed", updated_at: updatedAt });
-    } finally {
-      convergedDatabase.close();
-    }
 
-    // Exercise the exact recovery and admission implementations from the
-    // patched product dist. Session initialization commits the former before
-    // the latter is asked to adopt the next turn.
-    const recoverTerminalSessionEntryForVisibleTurn = await loadNamedVendorDistFunction<
-      (entry: Record<string, unknown>) => Record<string, unknown>
-    >("terminal-status", "recoverTerminalSessionEntryForVisibleTurn");
-    const recoveredEntry = recoverTerminalSessionEntryForVisibleTurn(convergedEntry);
-    expect(recoveredEntry).toMatchObject({ sessionId, updatedAt });
-    expect(recoveredEntry.status).toBeUndefined();
-    expect(recoveredEntry.abortedLastRun).toBeUndefined();
-    expect(recoveredEntry.restartRecoveryDeliveryRunId).toBeUndefined();
+      const convergedDatabase = new DatabaseSync(databasePath);
+      let convergedEntry: Record<string, unknown>;
+      try {
+        const node = convergedDatabase
+          .prepare(
+            `SELECT entry_json, status, updated_at
+           FROM session_nodes WHERE session_key = ?`,
+          )
+          .get(sessionKey) as { entry_json: string; status: string; updated_at: number };
+        convergedEntry = JSON.parse(node.entry_json) as Record<string, unknown>;
+        expect(node).toMatchObject({ status: "killed", updated_at: updatedAt });
+        expect(convergedEntry).toMatchObject({
+          abortedLastRun: true,
+          restartRecoveryBeforeAgentReplyState: "admitted",
+          restartRecoveryDeliveryReceiptState: "terminal-pending",
+          restartRecoveryDeliveryRunId: "orphaned-delivery-run",
+          status: "killed",
+          updatedAt,
+        });
+        expect(
+          convergedDatabase
+            .prepare("SELECT status, updated_at FROM session_windows WHERE session_id = ?")
+            .get(sessionId),
+        ).toEqual({ status: "killed", updated_at: updatedAt });
+      } finally {
+        convergedDatabase.close();
+      }
 
-    const recoveredDatabase = new DatabaseSync(databasePath);
-    try {
-      recoveredDatabase
-        .prepare("UPDATE session_nodes SET entry_json = ?, status = NULL WHERE session_key = ?")
-        .run(JSON.stringify(recoveredEntry), sessionKey);
-      recoveredDatabase
-        .prepare("UPDATE session_windows SET status = NULL WHERE session_id = ?")
-        .run(sessionId);
-    } finally {
-      recoveredDatabase.close();
-    }
+      // Exercise the exact recovery and admission implementations from the
+      // patched product dist. Session initialization commits the former before
+      // the latter is asked to adopt the next turn.
+      const recoverTerminalSessionEntryForVisibleTurn = await loadNamedVendorDistFunction<
+        (entry: Record<string, unknown>) => Record<string, unknown>
+      >("terminal-status", "recoverTerminalSessionEntryForVisibleTurn");
+      const recoveredEntry = recoverTerminalSessionEntryForVisibleTurn(convergedEntry);
+      expect(recoveredEntry).toMatchObject({ sessionId, updatedAt });
+      expect(recoveredEntry.status).toBeUndefined();
+      expect(recoveredEntry.abortedLastRun).toBeUndefined();
+      expect(recoveredEntry.restartRecoveryDeliveryRunId).toBeUndefined();
 
-    type AdmissionRecorder = {
-      getPersistedMessage: () => { idempotencyKey: string };
-      hasPersisted: () => boolean;
-      persistApproved: (options: {
-        sessionLifecyclePatch?: Record<string, unknown>;
-      }) => Promise<{ sessionEntry: Record<string, unknown> }>;
-    };
-    type AdmissionController = {
-      admitUserTurn: (recorder: AdmissionRecorder) => Promise<"admitted" | "duplicate-source">;
-    };
-    const createReplyRestartRecoveryClaimController = await loadNamedVendorDistFunction<
-      (params: {
-        getEntry: () => Record<string, unknown>;
-        getSessionId: () => string;
-        isRestartAbort: () => boolean;
-        resolveDeliveryContext: () => Record<string, string>;
-        sessionKey: string;
-        setEntry: (entry: Record<string, unknown>) => void;
-        sourceTurnId: string;
-        storePath: string;
-      }) => AdmissionController
-    >("reply-admission-ticket", "createReplyRestartRecoveryClaimController");
-    let activeEntry = recoveredEntry;
-    const controller = createReplyRestartRecoveryClaimController({
-      getEntry: () => activeEntry,
-      getSessionId: () => sessionId,
-      isRestartAbort: () => false,
-      resolveDeliveryContext: () => ({
-        accountId: "default",
-        channel: "feishu",
-        to: "chat:oc_recovery_regression",
-      }),
-      sessionKey,
-      setEntry: (entry) => {
-        activeEntry = entry;
-      },
-      sourceTurnId: "new-feishu-message",
-      storePath: join(fixture.stateDir, "agents", "main", "sessions", "sessions.json"),
-    });
-    const recorder: AdmissionRecorder = {
-      getPersistedMessage: () => ({ idempotencyKey: "new-feishu-message" }),
-      hasPersisted: () => false,
-      persistApproved: async ({ sessionLifecyclePatch }) => {
-        activeEntry = { ...activeEntry, ...sessionLifecyclePatch };
-        const admissionStatus = typeof activeEntry.status === "string" ? activeEntry.status : null;
-        const admissionDatabase = new DatabaseSync(databasePath);
-        try {
-          admissionDatabase
-            .prepare(
-              `UPDATE session_nodes
+      const recoveredDatabase = new DatabaseSync(databasePath);
+      try {
+        recoveredDatabase
+          .prepare("UPDATE session_nodes SET entry_json = ?, status = NULL WHERE session_key = ?")
+          .run(JSON.stringify(recoveredEntry), sessionKey);
+        recoveredDatabase
+          .prepare("UPDATE session_windows SET status = NULL WHERE session_id = ?")
+          .run(sessionId);
+      } finally {
+        recoveredDatabase.close();
+      }
+
+      type AdmissionRecorder = {
+        getPersistedMessage: () => { idempotencyKey: string };
+        hasPersisted: () => boolean;
+        persistApproved: (options: {
+          sessionLifecyclePatch?: Record<string, unknown>;
+        }) => Promise<{ sessionEntry: Record<string, unknown> }>;
+      };
+      type AdmissionController = {
+        admitUserTurn: (recorder: AdmissionRecorder) => Promise<"admitted" | "duplicate-source">;
+      };
+      const createReplyRestartRecoveryClaimController = await loadNamedVendorDistFunction<
+        (params: {
+          getEntry: () => Record<string, unknown>;
+          getSessionId: () => string;
+          isRestartAbort: () => boolean;
+          resolveDeliveryContext: () => Record<string, string>;
+          sessionKey: string;
+          setEntry: (entry: Record<string, unknown>) => void;
+          sourceTurnId: string;
+          storePath: string;
+        }) => AdmissionController
+      >("reply-admission-ticket", "createReplyRestartRecoveryClaimController");
+      let activeEntry = recoveredEntry;
+      const controller = createReplyRestartRecoveryClaimController({
+        getEntry: () => activeEntry,
+        getSessionId: () => sessionId,
+        isRestartAbort: () => false,
+        resolveDeliveryContext: () => ({
+          accountId: "default",
+          channel: "feishu",
+          to: "chat:oc_recovery_regression",
+        }),
+        sessionKey,
+        setEntry: (entry) => {
+          activeEntry = entry;
+        },
+        sourceTurnId: "new-feishu-message",
+        storePath: join(fixture.stateDir, "agents", "main", "sessions", "sessions.json"),
+      });
+      const recorder: AdmissionRecorder = {
+        getPersistedMessage: () => ({ idempotencyKey: "new-feishu-message" }),
+        hasPersisted: () => false,
+        persistApproved: async ({ sessionLifecyclePatch }) => {
+          activeEntry = { ...activeEntry, ...sessionLifecyclePatch };
+          const admissionStatus =
+            typeof activeEntry.status === "string" ? activeEntry.status : null;
+          const admissionDatabase = new DatabaseSync(databasePath);
+          try {
+            admissionDatabase
+              .prepare(
+                `UPDATE session_nodes
                SET entry_json = ?, status = ?
                WHERE session_key = ?`,
-            )
-            .run(JSON.stringify(activeEntry), admissionStatus, sessionKey);
-          admissionDatabase
-            .prepare("UPDATE session_windows SET status = ? WHERE session_id = ?")
-            .run(admissionStatus, sessionId);
-        } finally {
-          admissionDatabase.close();
-        }
-        return { sessionEntry: activeEntry };
-      },
-    };
-    await expect(controller.admitUserTurn(recorder)).resolves.toBe("admitted");
-    expect(activeEntry).toMatchObject({
-      restartRecoveryDeliverySourceRunId: "new-feishu-message",
-      status: "running",
-    });
-    expect(activeEntry.restartRecoveryDeliveryRunId).not.toBe("orphaned-delivery-run");
-    expect(activeEntry.restartRecoveryDeliveryReceiptState).toBeUndefined();
-  }, 15_000);
+              )
+              .run(JSON.stringify(activeEntry), admissionStatus, sessionKey);
+            admissionDatabase
+              .prepare("UPDATE session_windows SET status = ? WHERE session_id = ?")
+              .run(admissionStatus, sessionId);
+          } finally {
+            admissionDatabase.close();
+          }
+          return { sessionEntry: activeEntry };
+        },
+      };
+      await expect(controller.admitUserTurn(recorder)).resolves.toBe("admitted");
+      expect(activeEntry).toMatchObject({
+        restartRecoveryDeliverySourceRunId: "new-feishu-message",
+        status: "running",
+      });
+      expect(activeEntry.restartRecoveryDeliveryRunId).not.toBe("orphaned-delivery-run");
+      expect(activeEntry.restartRecoveryDeliveryReceiptState).toBeUndefined();
+    },
+    15_000,
+  );
 });
 
 describe("migrateVendorAuthProfilesBeforeGateway", () => {

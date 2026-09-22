@@ -31,29 +31,31 @@ function ingestAffiliateShop(input: {
   deviceId?: string | null;
 }): void {
   rootStore.ingestGraphQLResponse({
-    shops: [{
-      id: input.id,
-      platform: "TIKTOK_SHOP",
-      platformAppId: `app-${input.id}`,
-      platformShopId: input.platformShopId,
-      shopName: `Shop ${input.id}`,
-      alias: null,
-      authStatus: "AUTHORIZED",
-      region: "US",
-      accessTokenExpiresAt: null,
-      refreshTokenExpiresAt: null,
-      services: {
-        customerService: null,
-        wms: null,
-        affiliateService: {
-          enabled: input.enabled ?? true,
-          deviceId: input.deviceId ?? null,
-          runProfileId: "AFFILIATE_OPERATOR",
-          businessPrompt: null,
-          decisionThresholds: null,
+    shops: [
+      {
+        id: input.id,
+        platform: "TIKTOK_SHOP",
+        platformAppId: `app-${input.id}`,
+        platformShopId: input.platformShopId,
+        shopName: `Shop ${input.id}`,
+        alias: null,
+        authStatus: "AUTHORIZED",
+        region: "US",
+        accessTokenExpiresAt: null,
+        refreshTokenExpiresAt: null,
+        services: {
+          customerService: null,
+          wms: null,
+          affiliateService: {
+            enabled: input.enabled ?? true,
+            deviceId: input.deviceId ?? null,
+            runProfileId: "AFFILIATE_OPERATOR",
+            businessPrompt: null,
+            decisionThresholds: null,
+          },
         },
       },
-    }],
+    ],
   });
 }
 
@@ -291,10 +293,13 @@ describe("affiliate work item actuator", () => {
       createWorkItem({ shopStateIds: ["shop-001"] }),
     );
 
-    expect(rootStore.affiliateWorkspace.getCreatorRelationship("relationship-001")?.creatorId)
-      .toBe("creator-001");
-    expect(rootStore.affiliateWorkspace.relationshipProjection("relationship-001")?.affiliateCollaborations)
-      .toHaveLength(0);
+    expect(rootStore.affiliateWorkspace.getCreatorRelationship("relationship-001")?.creatorId).toBe(
+      "creator-001",
+    );
+    expect(
+      rootStore.affiliateWorkspace.relationshipProjection("relationship-001")
+        ?.affiliateCollaborations,
+    ).toHaveLength(0);
     expect(mockHandleAffiliateWorkItemChanged).toHaveBeenCalledOnce();
   });
 

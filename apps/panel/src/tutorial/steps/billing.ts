@@ -1,14 +1,19 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.billing.${key}Title`,
     bodyKey: `tutorial.billing.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const billingSteps: TutorialStep[] = [
@@ -19,4 +24,4 @@ export const billingSteps: TutorialStep[] = [
   step("billing-subscribe", "billing-subscribe-flow", "subscribeFlow", "bottom"),
   step("billing-shop-list", "billing-shop-list", "shopList", "bottom"),
   step("billing-payments", "billing-payments", "payments", "top"),
-]
+];

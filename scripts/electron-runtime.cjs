@@ -6,7 +6,9 @@ const { execFileSync } = require("node:child_process");
 const desktopDir = path.resolve(__dirname, "../apps/desktop");
 
 function electronPackageDir(fromDir = desktopDir) {
-  return path.dirname(createRequire(path.join(fromDir, "package.json")).resolve("electron/package.json"));
+  return path.dirname(
+    createRequire(path.join(fromDir, "package.json")).resolve("electron/package.json"),
+  );
 }
 
 // Electron 42's main export can download a binary. Read path.txt instead so
@@ -19,18 +21,25 @@ function resolveElectronPath(packageDir = electronPackageDir()) {
   const relative = fs.readFileSync(marker, "utf8").trim();
   const dist = path.join(packageDir, "dist");
   const binary = path.resolve(dist, relative);
-  if (!relative || path.isAbsolute(relative) || !binary.startsWith(`${dist}${path.sep}`) || !fs.existsSync(binary)) {
+  if (
+    !relative ||
+    path.isAbsolute(relative) ||
+    !binary.startsWith(`${dist}${path.sep}`) ||
+    !fs.existsSync(binary)
+  ) {
     throw new Error(`Invalid or missing Electron binary: ${binary}`);
   }
   return binary;
 }
 
 function readElectronVersions(binary) {
-  return JSON.parse(execFileSync(binary, ["-p", "JSON.stringify(process.versions)"], {
-    encoding: "utf8",
-    timeout: 30_000,
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", NODE_OPTIONS: "", NODE_PATH: "" },
-  }).trim());
+  return JSON.parse(
+    execFileSync(binary, ["-p", "JSON.stringify(process.versions)"], {
+      encoding: "utf8",
+      timeout: 30_000,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", NODE_OPTIONS: "", NODE_PATH: "" },
+    }).trim(),
+  );
 }
 
 module.exports = { desktopDir, electronPackageDir, resolveElectronPath, readElectronVersions };

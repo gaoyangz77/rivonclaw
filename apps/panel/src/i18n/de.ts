@@ -3079,7 +3079,8 @@ export default {
         reviewDescriptions: {
           APPROVE: "TikTok erhält die Genehmigung nach Live-Prüfung.",
           PLATFORM_REJECT: "TikTok erhält die Ablehnung nach Live-Prüfung.",
-          SOFT_REJECT: "Diesen Musterantrag nicht weiter prüfen und natürlich ablaufen lassen, ohne ihn auf TikTok abzulehnen. Vor Ablauf kann er wieder geöffnet werden.",
+          SOFT_REJECT:
+            "Diesen Musterantrag nicht weiter prüfen und natürlich ablaufen lassen, ohne ihn auf TikTok abzulehnen. Vor Ablauf kann er wieder geöffnet werden.",
           REOPEN: "Wieder öffnen, wenn TikTok die Prüfung noch zulässt.",
         },
       },

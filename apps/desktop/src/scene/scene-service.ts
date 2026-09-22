@@ -60,9 +60,7 @@ export function startSceneService(deps: SceneServiceDeps): SceneService {
   const rooms = resolveSceneRooms();
   const projector = new SceneProjector({ rooms, ...(deps.now ? { now: deps.now } : {}) });
 
-  log.info(
-    `Office scene started: ${rooms.map((r) => `${r.id}=${r.capacity}`).join(" ")}`,
-  );
+  log.info(`Office scene started: ${rooms.map((r) => `${r.id}=${r.capacity}`).join(" ")}`);
 
   const now = deps.now ?? Date.now;
 

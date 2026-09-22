@@ -39,23 +39,18 @@ export class ChannelsRepository {
   }
 
   getById(id: string): ChannelConfig | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM channels WHERE id = ?")
-      .get(id) as ChannelRow | undefined;
+    const row = this.db.prepare("SELECT * FROM channels WHERE id = ?").get(id) as
+      | ChannelRow
+      | undefined;
     return row ? rowToChannel(row) : undefined;
   }
 
   getAll(): ChannelConfig[] {
-    const rows = this.db
-      .prepare("SELECT * FROM channels ORDER BY id ASC")
-      .all() as ChannelRow[];
+    const rows = this.db.prepare("SELECT * FROM channels ORDER BY id ASC").all() as ChannelRow[];
     return rows.map(rowToChannel);
   }
 
-  update(
-    id: string,
-    fields: Partial<Omit<ChannelConfig, "id">>,
-  ): ChannelConfig | undefined {
+  update(id: string, fields: Partial<Omit<ChannelConfig, "id">>): ChannelConfig | undefined {
     const existing = this.getById(id);
     if (!existing) return undefined;
 

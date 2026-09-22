@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
-import { fetchChannelStatus, fetchAllowlist, type AllowlistResult, type ChannelsStatusSnapshot } from "../../../api/channels.js";
+import {
+  fetchChannelStatus,
+  fetchAllowlist,
+  type AllowlistResult,
+  type ChannelsStatusSnapshot,
+} from "../../../api/channels.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { buildAccountsList } from "../../../lib/channel-accounts.js";
 import { hasUpgradeRequired } from "../ecommerce-utils.js";
@@ -14,7 +19,7 @@ export function useEscalation(
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const selectedShop = selectedShopId
-    ? entityStore.shops.find((shop) => shop.id === selectedShopId) ?? null
+    ? (entityStore.shops.find((shop) => shop.id === selectedShopId) ?? null)
     : null;
 
   const [channelSnapshot, setChannelSnapshot] = useState<ChannelsStatusSnapshot | null>(null);
@@ -35,7 +40,9 @@ export function useEscalation(
       .catch(() => {
         // Channel status unavailable — MST accounts can still render without runtime state.
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Sync draft escalation fields from shop data when shop selection changes
@@ -44,7 +51,11 @@ export function useEscalation(
     pendingUserChannelSaveRef.current = null;
     setDraftEscalationChannel(cs?.escalationChannelId ?? "");
     setDraftEscalationRecipient(cs?.escalationRecipientId ?? "");
-  }, [selectedShop?.id, selectedShop?.services?.customerService?.escalationChannelId, selectedShop?.services?.customerService?.escalationRecipientId]);
+  }, [
+    selectedShop?.id,
+    selectedShop?.services?.customerService?.escalationChannelId,
+    selectedShop?.services?.customerService?.escalationRecipientId,
+  ]);
 
   function handleError(err: unknown, fallbackKey: string) {
     if (hasUpgradeRequired(err)) {
@@ -136,7 +147,8 @@ export function useEscalation(
         // They also must not overwrite the displayed draft recipient; otherwise
         // every reopened drawer shows the first allowlisted recipient instead of
         // the value stored on the shop.
-        const shouldSaveUserChannelChange = pendingUserChannelSaveRef.current === draftEscalationChannel;
+        const shouldSaveUserChannelChange =
+          pendingUserChannelSaveRef.current === draftEscalationChannel;
         const firstRecipient = data.allowlist[0];
         if (firstRecipient && shouldSaveUserChannelChange) {
           setDraftEscalationRecipient(firstRecipient);
@@ -145,16 +157,21 @@ export function useEscalation(
             pendingUserChannelSaveRef.current = null;
             const shop = entityStore.shops.find((s) => s.id === shopId);
             const cs = shop?.services?.customerService;
-            if (shop && (cs?.escalationChannelId !== draftEscalationChannel || cs?.escalationRecipientId !== firstRecipient)) {
+            if (
+              shop &&
+              (cs?.escalationChannelId !== draftEscalationChannel ||
+                cs?.escalationRecipientId !== firstRecipient)
+            ) {
               setSavingEscalation(true);
-              shop.update({
-                services: {
-                  customerService: {
-                    escalationChannelId: draftEscalationChannel,
-                    escalationRecipientId: firstRecipient,
+              shop
+                .update({
+                  services: {
+                    customerService: {
+                      escalationChannelId: draftEscalationChannel,
+                      escalationRecipientId: firstRecipient,
+                    },
                   },
-                },
-              })
+                })
                 .catch((err: unknown) => handleError(err, "ecommerce.updateFailed"))
                 .finally(() => setSavingEscalation(false));
             }
@@ -167,21 +184,29 @@ export function useEscalation(
         if (!cancelled) setRecipientData(null);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [draftEscalationChannel, selectedShopId]);
 
   // Channel accounts in MST are the source of truth for account existence/name.
   // The gateway snapshot is only a runtime overlay. This mirrors ChannelsPage,
   // preventing stale WeChat runtime accounts from appearing after QR re-login.
-  const availableEscalationAccounts = buildAccountsList(entityStore.channelAccounts, channelSnapshot, t)
-    .map(({ channelId, channelLabel, account }) => ({
-      channelId,
-      account,
-      value: `${channelId}:${account.accountId}`,
-      label: `${channelLabel} - ${account.name || account.accountId}`,
-    }));
+  const availableEscalationAccounts = buildAccountsList(
+    entityStore.channelAccounts,
+    channelSnapshot,
+    t,
+  ).map(({ channelId, channelLabel, account }) => ({
+    channelId,
+    account,
+    value: `${channelId}:${account.accountId}`,
+    label: `${channelLabel} - ${account.name || account.accountId}`,
+  }));
 
-  const escalationChannelOptions = availableEscalationAccounts.map(({ value, label }) => ({ value, label }));
+  const escalationChannelOptions = availableEscalationAccounts.map(({ value, label }) => ({
+    value,
+    label,
+  }));
 
   // Prepend "None" option for escalation channel selector
   const escalationChannelSelectOptions: Array<{ value: string; label: string }> = [
@@ -189,7 +214,10 @@ export function useEscalation(
     ...escalationChannelOptions,
   ];
   // If current draft value is set but not in the options (channel was removed), keep it visible.
-  if (draftEscalationChannel && !escalationChannelSelectOptions.some((o) => o.value === draftEscalationChannel)) {
+  if (
+    draftEscalationChannel &&
+    !escalationChannelSelectOptions.some((o) => o.value === draftEscalationChannel)
+  ) {
     escalationChannelSelectOptions.push({
       value: draftEscalationChannel,
       label: `${draftEscalationChannel} (${t("crons.channelDisconnected")})`,
@@ -208,8 +236,14 @@ export function useEscalation(
     }
   }
   // If current draft value is set but not in the list, keep it visible
-  if (draftEscalationRecipient && !escalationRecipientOptions.some((o) => o.value === draftEscalationRecipient)) {
-    escalationRecipientOptions.push({ value: draftEscalationRecipient, label: draftEscalationRecipient });
+  if (
+    draftEscalationRecipient &&
+    !escalationRecipientOptions.some((o) => o.value === draftEscalationRecipient)
+  ) {
+    escalationRecipientOptions.push({
+      value: draftEscalationRecipient,
+      label: draftEscalationRecipient,
+    });
   }
 
   return {

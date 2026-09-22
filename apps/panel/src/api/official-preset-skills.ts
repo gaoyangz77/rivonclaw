@@ -51,11 +51,13 @@ async function syncOfficialPresetSkillsViaGraphql(
   };
 
   const client = getClient();
-  const manifestResult = await client.query<{ presetSkillManifest: GQL.PresetSkillManifestItem[] }>({
-    query: PRESET_SKILL_MANIFEST_QUERY,
-    variables: { serviceIds: null },
-    fetchPolicy: "network-only",
-  });
+  const manifestResult = await client.query<{ presetSkillManifest: GQL.PresetSkillManifestItem[] }>(
+    {
+      query: PRESET_SKILL_MANIFEST_QUERY,
+      variables: { serviceIds: null },
+      fetchPolicy: "network-only",
+    },
+  );
   const manifest = manifestResult.data?.presetSkillManifest ?? [];
   if (manifest.length === 0) return result;
 
@@ -72,7 +74,9 @@ async function syncOfficialPresetSkillsViaGraphql(
     if (decision === "skip-custom") result.skippedCustom += 1;
   }
 
-  const targets = decisions.filter(({ decision }) => decision === "install" || decision === "update");
+  const targets = decisions.filter(
+    ({ decision }) => decision === "install" || decision === "update",
+  );
   if (targets.length === 0) return result;
 
   const serviceIds = [...new Set(targets.map(({ item }) => item.serviceId))];

@@ -179,12 +179,14 @@ describe("loadGatewayToolCatalogTools", () => {
     const catalogResponses = [
       { groups: [{ tools: [{ id: "read", source: "core" }] }] },
       {
-        groups: [{
-          tools: [
-            { id: "read", source: "core" },
-            { id: "ecom_find_orders", source: "plugin", pluginId: CLOUD_TOOLS_PLUGIN_ID },
-          ],
-        }],
+        groups: [
+          {
+            tools: [
+              { id: "read", source: "core" },
+              { id: "ecom_find_orders", source: "plugin", pluginId: CLOUD_TOOLS_PLUGIN_ID },
+            ],
+          },
+        ],
       },
     ];
     const request = vi.fn(async (method: string) => {

@@ -6,7 +6,7 @@ test.describe("Extra Features Page", () => {
   async function goToExtras(window: import("@playwright/test").Page) {
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -48,7 +48,7 @@ test.describe("Extra Features Page", () => {
 
     // Enable STT
     const checkbox = section.locator("input[type='checkbox']");
-    if (!await checkbox.isChecked()) {
+    if (!(await checkbox.isChecked())) {
       await section.locator(".tk-v1-switch-control").click();
     }
 
@@ -77,7 +77,7 @@ test.describe("Extra Features Page", () => {
 
     // Enable web search
     const checkbox = section.locator("input[type='checkbox']");
-    if (!await checkbox.isChecked()) {
+    if (!(await checkbox.isChecked())) {
       await section.locator(".tk-v1-switch-control").click();
     }
 
@@ -106,7 +106,7 @@ test.describe("Extra Features Page", () => {
 
     // Enable embedding
     const checkbox = section.locator("input[type='checkbox']");
-    if (!await checkbox.isChecked()) {
+    if (!(await checkbox.isChecked())) {
       await section.locator(".tk-v1-switch-control").click();
     }
 
@@ -175,14 +175,17 @@ test.describe("Extra Features Page", () => {
     // PUT valid credentials -> 200 (only if env var is available)
     const braveKey = process.env.BRAVE_SEARCH_KEY;
     if (braveKey) {
-      const putOk = await window.evaluate(async (arg: { base: string; key: string }) => {
-        const res = await fetch(`${arg.base}/api/extras/credentials`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "webSearch", provider: "brave", apiKey: arg.key }),
-        });
-        return { status: res.status, body: await res.json() };
-      }, { base: apiBase, key: braveKey });
+      const putOk = await window.evaluate(
+        async (arg: { base: string; key: string }) => {
+          const res = await fetch(`${arg.base}/api/extras/credentials`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "webSearch", provider: "brave", apiKey: arg.key }),
+          });
+          return { status: res.status, body: await res.json() };
+        },
+        { base: apiBase, key: braveKey },
+      );
       expect(putOk.status).toBe(200);
       expect(putOk.body.ok).toBe(true);
 
@@ -202,7 +205,7 @@ test.describe("Extra Features Page", () => {
 
     // Enable web search
     const checkbox = section.locator("input[type='checkbox']");
-    if (!await checkbox.isChecked()) {
+    if (!(await checkbox.isChecked())) {
       await section.locator(".tk-v1-switch-control").click();
     }
 
@@ -233,7 +236,7 @@ test.describe("Extra Features Page", () => {
 
     // Enable embedding
     const checkbox = section.locator("input[type='checkbox']");
-    if (!await checkbox.isChecked()) {
+    if (!(await checkbox.isChecked())) {
       await section.locator(".tk-v1-switch-control").click();
     }
 
@@ -242,7 +245,9 @@ test.describe("Extra Features Page", () => {
     await window.locator(".custom-select-option", { hasText: "Ollama" }).click();
 
     // Verify the API key help text indicates the key is optional for Ollama
-    await expect(section.locator(".form-help").last()).toContainText(/optional/i, { timeout: 5_000 });
+    await expect(section.locator(".form-help").last()).toContainText(/optional/i, {
+      timeout: 5_000,
+    });
 
     // Ollama key is optional — the password input is still shown but not required
     await expect(section.locator("input[type='password']")).toBeVisible();
@@ -266,7 +271,7 @@ test.describe("Extra Features Page", () => {
     // Verify settings API reflects disabled
     const settingsDisabled = await window.evaluate(async (base) => {
       const res = await fetch(`${base}/api/settings`);
-      const data = await res.json() as { settings: Record<string, string> };
+      const data = (await res.json()) as { settings: Record<string, string> };
       return data.settings;
     }, apiBase);
     expect(settingsDisabled["webSearch.enabled"]).toBe("false");

@@ -1,5 +1,5 @@
-export { TutorialProvider, useTutorial } from "./TutorialProvider.js"
-export { TutorialBubble } from "./components/TutorialBubble.js"
-export { TutorialOverlay } from "./components/TutorialOverlay.js"
-export { tutorialTarget, findTutorialTarget, clickTutorialTarget } from "./targets.js"
-export type { TutorialStep } from "./types.js"
+export { TutorialProvider, useTutorial } from "./TutorialProvider.js";
+export { TutorialBubble } from "./components/TutorialBubble.js";
+export { TutorialOverlay } from "./components/TutorialOverlay.js";
+export { tutorialTarget, findTutorialTarget, clickTutorialTarget } from "./targets.js";
+export type { TutorialStep } from "./types.js";

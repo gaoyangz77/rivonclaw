@@ -17,13 +17,27 @@ export function OAuthProviderForm({
 }) {
   const {
     t,
-    provider, label, setLabel, model, setModel,
-    proxyUrl, setProxyUrl,
-    showAdvanced, setShowAdvanced,
-    saving, validating,
-    oauthLoading, oauthTokenPreview, oauthManualMode,
-    oauthAuthUrl, oauthCallbackUrl, setOauthCallbackUrl, oauthManualLoading,
-    handleOAuth, handleManualOAuthComplete, handleOAuthSave,
+    provider,
+    label,
+    setLabel,
+    model,
+    setModel,
+    proxyUrl,
+    setProxyUrl,
+    showAdvanced,
+    setShowAdvanced,
+    saving,
+    validating,
+    oauthLoading,
+    oauthTokenPreview,
+    oauthManualMode,
+    oauthAuthUrl,
+    oauthCallbackUrl,
+    setOauthCallbackUrl,
+    oauthManualLoading,
+    handleOAuth,
+    handleManualOAuthComplete,
+    handleOAuthSave,
   } = form;
 
   const btnSave = saveButtonLabel || t("common.save");
@@ -70,16 +84,10 @@ export function OAuthProviderForm({
 
       {oauthManualMode ? (
         <div className="mb-sm">
-          <div className="info-box info-box-blue">
-            {t(`providers.oauthManualInfo_${provider}`)}
-          </div>
-          <p className="form-help oauth-waiting">
-            {t("providers.oauthWaitingForBrowser")}
-          </p>
+          <div className="info-box info-box-blue">{t(`providers.oauthManualInfo_${provider}`)}</div>
+          <p className="form-help oauth-waiting">{t("providers.oauthWaitingForBrowser")}</p>
           <div className="mb-sm">
-            <div className="form-label text-secondary">
-              {t("providers.oauthManualUrlLabel")}
-            </div>
+            <div className="form-label text-secondary">{t("providers.oauthManualUrlLabel")}</div>
             <div className="oauth-manual-url-row">
               <input
                 type="text"
@@ -113,32 +121,25 @@ export function OAuthProviderForm({
         </div>
       ) : oauthTokenPreview ? (
         <div className="mb-sm">
-          <div className="form-label text-secondary">
-            {t("providers.oauthTokenLabel")}
-          </div>
+          <div className="form-label text-secondary">{t("providers.oauthTokenLabel")}</div>
           <input
             type="text"
             readOnly
             value={oauthTokenPreview}
             className="input-full input-mono input-readonly"
           />
-          <small className="form-help-sm">
-            {t(`providers.oauthTokenHelp_${provider}`)}
-          </small>
+          <small className="form-help-sm">{t(`providers.oauthTokenHelp_${provider}`)}</small>
         </div>
       ) : (
-        <div className="info-box info-box-green">
-          {t(`providers.oauthInfo_${provider}`)}
-        </div>
+        <div className="info-box info-box-green">{t(`providers.oauthInfo_${provider}`)}</div>
       )}
 
       {!oauthManualMode && (
         <div className="mb-sm">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="advanced-toggle"
-          >
-            <span className={`advanced-chevron${showAdvanced ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>
+          <button onClick={() => setShowAdvanced(!showAdvanced)} className="advanced-toggle">
+            <span className={`advanced-chevron${showAdvanced ? " advanced-chevron-open" : ""}`}>
+              <ChevronRightIcon />
+            </span>
             {t("providers.advancedSettings")}
           </button>
           {showAdvanced && (
@@ -151,9 +152,7 @@ export function OAuthProviderForm({
                 placeholder={t("providers.proxyPlaceholder")}
                 className="input-full input-mono"
               />
-              <small className="form-help-sm">
-                {t("providers.proxyHelp")}
-              </small>
+              <small className="form-help-sm">{t("providers.proxyHelp")}</small>
             </div>
           )}
         </div>
@@ -177,11 +176,7 @@ export function OAuthProviderForm({
             {validating ? btnValidating : saving ? btnSaving : btnSave}
           </button>
         ) : (
-          <button
-            className="btn btn-primary"
-            onClick={handleOAuth}
-            disabled={oauthLoading}
-          >
+          <button className="btn btn-primary" onClick={handleOAuth} disabled={oauthLoading}>
             {oauthLoading ? t("providers.oauthLoading") : t(`providers.oauthSignIn_${provider}`)}
           </button>
         )}

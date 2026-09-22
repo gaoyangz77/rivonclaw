@@ -8,10 +8,9 @@ import { panelEventBus } from "../lib/event-bus.js";
  * Panel AppSettingsModel (which adds client-side save actions).
  * Follows the same override pattern as PanelRootStoreModel in entity-store.ts.
  */
-const PanelRuntimeStatusStoreModel = RuntimeStatusStoreModel
-  .props({
-    appSettings: types.optional(AppSettingsModel, {}),
-  })
+const PanelRuntimeStatusStoreModel = RuntimeStatusStoreModel.props({
+  appSettings: types.optional(AppSettingsModel, {}),
+})
   .volatile(() => ({
     /** True after the first SSE snapshot from Desktop has been applied.
      *  Pages that maintain local draft state should wait for this before
@@ -24,14 +23,19 @@ const PanelRuntimeStatusStoreModel = RuntimeStatusStoreModel
     },
   }));
 
-export type PanelRuntimeStatusStore = Omit<Instance<typeof PanelRuntimeStatusStoreModel>, "appSettings"> & {
+export type PanelRuntimeStatusStore = Omit<
+  Instance<typeof PanelRuntimeStatusStoreModel>,
+  "appSettings"
+> & {
   readonly appSettings: Instance<typeof AppSettingsModel>;
   readonly snapshotReceived: boolean;
   markSnapshotReceived(): void;
 };
 
 /** Singleton runtime status store for the Panel process. */
-export const runtimeStatusStore = PanelRuntimeStatusStoreModel.create({}) as PanelRuntimeStatusStore;
+export const runtimeStatusStore = PanelRuntimeStatusStoreModel.create(
+  {},
+) as PanelRuntimeStatusStore;
 
 let unsubscribeSnapshot: (() => void) | null = null;
 let unsubscribePatch: (() => void) | null = null;

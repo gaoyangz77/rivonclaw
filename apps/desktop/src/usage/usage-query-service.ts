@@ -1,6 +1,11 @@
 import type { Storage } from "@rivonclaw/storage";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
-import type { KeyModelUsageRecord, KeyModelUsageSummary, KeyUsageDailyBucket, KeyUsageQueryParams } from "@rivonclaw/core";
+import type {
+  KeyModelUsageRecord,
+  KeyModelUsageSummary,
+  KeyUsageDailyBucket,
+  KeyUsageQueryParams,
+} from "@rivonclaw/core";
 
 /** Cumulative per-model usage totals (same shape used in snapshot engine). */
 export interface ModelUsageTotals {
@@ -50,7 +55,13 @@ export class UsageQueryService {
     const records = this.storage.keyUsageHistory.queryByWindow(params);
     for (const record of records) {
       const contribution = this.computeContribution(record, params.windowStart);
-      this.addToAccumulator(accumulators, record.keyId, record.provider, record.model, contribution);
+      this.addToAccumulator(
+        accumulators,
+        record.keyId,
+        record.provider,
+        record.model,
+        contribution,
+      );
     }
 
     // --- 2. Active key live deltas ---
@@ -67,7 +78,13 @@ export class UsageQueryService {
   private computeContribution(
     record: KeyModelUsageRecord,
     windowStart: number,
-  ): { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; totalCostUsd: number } {
+  ): {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+    totalCostUsd: number;
+  } {
     if (record.startTime >= windowStart) {
       // Full contribution — the entire record falls within the window
       return {
@@ -82,7 +99,13 @@ export class UsageQueryService {
     // Proportional contribution — record started before window
     const duration = record.endTime - record.startTime;
     if (duration <= 0) {
-      return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalCostUsd: 0 };
+      return {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalCostUsd: 0,
+      };
     }
 
     const overlap = record.endTime - windowStart;
@@ -133,19 +156,40 @@ export class UsageQueryService {
       // Compute delta (current cumulative - last snapshot)
       const deltaInput = Math.max(0, current.inputTokens - (snapshot?.inputTokens ?? 0));
       const deltaOutput = Math.max(0, current.outputTokens - (snapshot?.outputTokens ?? 0));
-      const deltaCacheRead = Math.max(0, current.cacheReadTokens - (snapshot?.cacheReadTokens ?? 0));
-      const deltaCacheWrite = Math.max(0, current.cacheWriteTokens - (snapshot?.cacheWriteTokens ?? 0));
-      const deltaCost = Math.max(0, parseFloat(current.totalCostUsd) - parseFloat(snapshot?.totalCostUsd ?? "0"));
+      const deltaCacheRead = Math.max(
+        0,
+        current.cacheReadTokens - (snapshot?.cacheReadTokens ?? 0),
+      );
+      const deltaCacheWrite = Math.max(
+        0,
+        current.cacheWriteTokens - (snapshot?.cacheWriteTokens ?? 0),
+      );
+      const deltaCost = Math.max(
+        0,
+        parseFloat(current.totalCostUsd) - parseFloat(snapshot?.totalCostUsd ?? "0"),
+      );
 
       // Skip if no actual usage since last snapshot
-      if (deltaInput === 0 && deltaOutput === 0 && deltaCacheRead === 0 && deltaCacheWrite === 0 && deltaCost === 0) {
+      if (
+        deltaInput === 0 &&
+        deltaOutput === 0 &&
+        deltaCacheRead === 0 &&
+        deltaCacheWrite === 0 &&
+        deltaCost === 0
+      ) {
         continue;
       }
 
       // Determine the effective start time of this live delta
       const snapshotTime = snapshot?.snapshotTime ?? 0;
 
-      let contribution: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; totalCostUsd: number };
+      let contribution: {
+        inputTokens: number;
+        outputTokens: number;
+        cacheReadTokens: number;
+        cacheWriteTokens: number;
+        totalCostUsd: number;
+      };
 
       if (snapshotTime >= params.windowStart) {
         // Full contribution
@@ -185,7 +229,13 @@ export class UsageQueryService {
     keyId: string,
     provider: string,
     model: string,
-    contribution: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; totalCostUsd: number },
+    contribution: {
+      inputTokens: number;
+      outputTokens: number;
+      cacheReadTokens: number;
+      cacheWriteTokens: number;
+      totalCostUsd: number;
+    },
   ): void {
     const key = `${keyId}|${model}`;
     const existing = accumulators.get(key);

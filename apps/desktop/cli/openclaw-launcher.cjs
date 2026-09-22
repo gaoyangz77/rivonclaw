@@ -64,7 +64,9 @@ function cleanupStaleRuntimeDirs(runtimeBaseDir, currentVersion) {
 function ensureArchivedRuntime(archiveDir) {
   const manifestPath = path.join(archiveDir, "vendor-runtime-manifest.json");
   if (!fs.existsSync(manifestPath)) {
-    fail(`OpenClaw runtime is missing. Expected ${path.join(archiveDir, ENTRY_FILE)} or ${manifestPath}.`);
+    fail(
+      `OpenClaw runtime is missing. Expected ${path.join(archiveDir, ENTRY_FILE)} or ${manifestPath}.`,
+    );
   }
 
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
@@ -85,7 +87,10 @@ function ensureArchivedRuntime(archiveDir) {
     fail(`OpenClaw runtime archive not found: ${archivePath}`);
   }
 
-  const tempDir = path.join(runtimeBaseDir, `.extracting-${manifest.version}-${process.pid}-${Date.now()}`);
+  const tempDir = path.join(
+    runtimeBaseDir,
+    `.extracting-${manifest.version}-${process.pid}-${Date.now()}`,
+  );
   mkdirp(tempDir);
 
   const tarFlags = manifest.archiveFile.endsWith(".gz") ? "-xzf" : "-xf";
@@ -177,15 +182,21 @@ function main() {
   const args = [entryPath, ...process.argv.slice(2)];
 
   if (process.env.RIVONCLAW_CLI_LAUNCHER_DRY_RUN === "1") {
-    process.stdout.write(JSON.stringify({
-      electronBin,
-      entryPath,
-      vendorDir,
-      stateDir,
-      configPath,
-      bundledPluginsDir: env.OPENCLAW_BUNDLED_PLUGINS_DIR || null,
-      args,
-    }, null, 2) + "\n");
+    process.stdout.write(
+      JSON.stringify(
+        {
+          electronBin,
+          entryPath,
+          vendorDir,
+          stateDir,
+          configPath,
+          bundledPluginsDir: env.OPENCLAW_BUNDLED_PLUGINS_DIR || null,
+          args,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
     return;
   }
 

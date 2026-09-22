@@ -122,7 +122,11 @@ export class UsageSnapshotEngine {
    * For the currently active key: diffs latest snapshot with current usage,
    * inserts historical record for the gap, then fresh snapshot.
    */
-  async reconcileOnStartup(activeKeyId: string, activeProvider: string, activeModel: string): Promise<void> {
+  async reconcileOnStartup(
+    activeKeyId: string,
+    activeProvider: string,
+    activeModel: string,
+  ): Promise<void> {
     const latestSnapshot = this.storage.usageSnapshots.getLatest(activeKeyId, activeModel);
     if (!latestSnapshot) {
       return; // No previous data, nothing to reconcile
@@ -140,7 +144,13 @@ export class UsageSnapshotEngine {
     const deltaCacheWrite = clampZero(current.cacheWriteTokens - latestSnapshot.cacheWriteTokens);
     const deltaCost = subtractCost(current.totalCostUsd, latestSnapshot.totalCostUsd);
 
-    if (deltaInput === 0 && deltaOutput === 0 && deltaCacheRead === 0 && deltaCacheWrite === 0 && deltaCost === "0.000000") {
+    if (
+      deltaInput === 0 &&
+      deltaOutput === 0 &&
+      deltaCacheRead === 0 &&
+      deltaCacheWrite === 0 &&
+      deltaCost === "0.000000"
+    ) {
       return; // No change since last snapshot
     }
 

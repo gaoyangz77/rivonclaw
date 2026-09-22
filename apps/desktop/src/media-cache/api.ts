@@ -1,5 +1,10 @@
 import type { IncomingMessage } from "node:http";
-import { DEFAULTS, getFirstPartyDomainRoute, routeFirstPartyUrl, type FirstPartyDomainRoute } from "@rivonclaw/core";
+import {
+  DEFAULTS,
+  getFirstPartyDomainRoute,
+  routeFirstPartyUrl,
+  type FirstPartyDomainRoute,
+} from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -38,7 +43,10 @@ type GenOrGetCachedProxyUrlResponse = {
 function isFirstPartyObjectStorageUrl(sourceUrl: string): boolean {
   try {
     const parsed = new URL(sourceUrl);
-    return parsed.hostname === DEFAULTS.domains.objectStorage || parsed.hostname === DEFAULTS.domains.objectStorageCn;
+    return (
+      parsed.hostname === DEFAULTS.domains.objectStorage ||
+      parsed.hostname === DEFAULTS.domains.objectStorageCn
+    );
   } catch {
     return false;
   }

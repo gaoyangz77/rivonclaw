@@ -1,8 +1,18 @@
 import { gql } from "@apollo/client/core";
 
 export const ACTIVE_ANNOUNCEMENTS_QUERY = gql`
-  query ActiveAnnouncements($surface: AnnouncementSurface!, $appVersion: String, $locale: String!, $deviceId: String) {
-    activeAnnouncements(surface: $surface, appVersion: $appVersion, locale: $locale, deviceId: $deviceId) {
+  query ActiveAnnouncements(
+    $surface: AnnouncementSurface!
+    $appVersion: String
+    $locale: String!
+    $deviceId: String
+  ) {
+    activeAnnouncements(
+      surface: $surface
+      appVersion: $appVersion
+      locale: $locale
+      deviceId: $deviceId
+    ) {
       id
       key
       surface

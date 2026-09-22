@@ -36,9 +36,9 @@ function escapeHtml(value: string): string {
 
 function htmlPage(title: string, body: string): string {
   return (
-    "<!doctype html><html><head><meta charset=\"utf-8\">" +
+    '<!doctype html><html><head><meta charset="utf-8">' +
     `<title>${escapeHtml(title)}</title>` +
-    "<script>history.replaceState(null,\"\",location.pathname);</script></head><body>" +
+    '<script>history.replaceState(null,"",location.pathname);</script></head><body>' +
     `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(body)}</p>` +
     "</body></html>"
   );

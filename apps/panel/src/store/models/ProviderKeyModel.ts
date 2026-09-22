@@ -5,13 +5,22 @@ import type { ProviderKeyEntry } from "@rivonclaw/core";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 
 export const ProviderKeyModel = ProviderKeyModelBase.actions((self) => ({
-  update: flow(function* (
-    fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string; apiKey?: string },
-  ): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
-    const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(clientPath(API["providerKeys.update"], { id: self.id }), {
-      method: "PUT",
-      body: JSON.stringify(fields),
-    });
+  update: flow(function* (fields: {
+    label?: string;
+    model?: string;
+    proxyUrl?: string;
+    baseUrl?: string;
+    inputModalities?: string[];
+    customModelsJson?: string;
+    apiKey?: string;
+  }): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
+    const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(
+      clientPath(API["providerKeys.update"], { id: self.id }),
+      {
+        method: "PUT",
+        body: JSON.stringify(fields),
+      },
+    );
     invalidateCache("models");
     return result;
   }),
@@ -27,10 +36,17 @@ export const ProviderKeyModel = ProviderKeyModelBase.actions((self) => ({
     // Desktop REST handler removes entity from Desktop MST → SSE patch → Panel auto-updates
   }),
 
-  refreshModels: flow(function* (): Generator<Promise<unknown>, ProviderKeyEntry, ProviderKeyEntry> {
-    const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(clientPath(API["providerKeys.refreshModels"], { id: self.id }), {
-      method: "POST",
-    });
+  refreshModels: flow(function* (): Generator<
+    Promise<unknown>,
+    ProviderKeyEntry,
+    ProviderKeyEntry
+  > {
+    const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(
+      clientPath(API["providerKeys.refreshModels"], { id: self.id }),
+      {
+        method: "POST",
+      },
+    );
     invalidateCache("models");
     const root = getRoot(self) as {
       llmManager?: {
@@ -53,7 +69,9 @@ export const ProviderKeyModel = ProviderKeyModelBase.actions((self) => ({
    * Callers just fire and forget; components read `self.usage` reactively.
    */
   fetchUsage: flow(function* () {
-    yield fetchJson(clientPath(API["providerKeys.fetchUsage"], { id: self.id }), { method: "POST" });
+    yield fetchJson(clientPath(API["providerKeys.fetchUsage"], { id: self.id }), {
+      method: "POST",
+    });
   }),
 
   /**

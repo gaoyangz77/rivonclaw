@@ -38,7 +38,8 @@ const zh = {
 
 const de = {
   projectionSyncing: "Affiliate-Daten werden synchronisiert",
-  projectionHistorySyncing: "Aktuelle Affiliate-Daten sind bereit; historische Daten werden noch synchronisiert",
+  projectionHistorySyncing:
+    "Aktuelle Affiliate-Daten sind bereit; historische Daten werden noch synchronisiert",
   projectionCurrentReady: "Affiliate-Betriebsdaten sind bereit",
   projectionLastSynced: "Letzte Synchronisierung der Betriebsdaten",
   projectionDataset: {
@@ -57,7 +58,8 @@ const de = {
 
 const es = {
   projectionSyncing: "Los datos de afiliados se están sincronizando",
-  projectionHistorySyncing: "Los datos actuales están listos; el historial aún se está sincronizando",
+  projectionHistorySyncing:
+    "Los datos actuales están listos; el historial aún se está sincronizando",
   projectionCurrentReady: "Los datos operativos de afiliados están listos",
   projectionLastSynced: "Última sincronización de datos operativos",
   projectionDataset: {
@@ -76,7 +78,8 @@ const es = {
 
 const fr = {
   projectionSyncing: "Les données Affiliate sont en cours de synchronisation",
-  projectionHistorySyncing: "Les données actuelles sont prêtes ; l’historique est encore en cours de synchronisation",
+  projectionHistorySyncing:
+    "Les données actuelles sont prêtes ; l’historique est encore en cours de synchronisation",
   projectionCurrentReady: "Les données opérationnelles Affiliate sont prêtes",
   projectionLastSynced: "Dernière synchronisation des données opérationnelles",
   projectionDataset: {
@@ -114,7 +117,8 @@ const id = {
 
 const it = {
   projectionSyncing: "I dati Affiliate sono in sincronizzazione",
-  projectionHistorySyncing: "I dati correnti sono pronti; la cronologia è ancora in sincronizzazione",
+  projectionHistorySyncing:
+    "I dati correnti sono pronti; la cronologia è ancora in sincronizzazione",
   projectionCurrentReady: "I dati operativi Affiliate sono pronti",
   projectionLastSynced: "Ultima sincronizzazione dei dati operativi",
   projectionDataset: {

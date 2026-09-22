@@ -115,12 +115,14 @@ function seedShop(
             csDeviceId,
             csProviderOverride: null,
             csModelOverride: null,
-            escalationChannelId: routing.escalationChannelId === undefined
-              ? "telegram:acct_cloud_send"
-              : routing.escalationChannelId,
-            escalationRecipientId: routing.escalationRecipientId === undefined
-              ? "987654321"
-              : routing.escalationRecipientId,
+            escalationChannelId:
+              routing.escalationChannelId === undefined
+                ? "telegram:acct_cloud_send"
+                : routing.escalationChannelId,
+            escalationRecipientId:
+              routing.escalationRecipientId === undefined
+                ? "987654321"
+                : routing.escalationRecipientId,
             runProfileId: null,
           },
         },
@@ -173,11 +175,7 @@ describe("handleCsEscalationEvent", () => {
       throw new Error(`Unexpected GraphQL query: ${query}`);
     });
 
-    await handleCsEscalationEvent(
-      { graphqlFetch } as any,
-      "device-001",
-      delivery,
-    );
+    await handleCsEscalationEvent({ graphqlFetch } as any, "device-001", delivery);
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "send",
@@ -232,11 +230,7 @@ describe("handleCsEscalationEvent", () => {
       throw new Error(`Unexpected GraphQL query: ${query}`);
     });
 
-    await handleCsEscalationEvent(
-      { graphqlFetch } as any,
-      "device-001",
-      delivery,
-    );
+    await handleCsEscalationEvent({ graphqlFetch } as any, "device-001", delivery);
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "send",
@@ -278,11 +272,7 @@ describe("handleCsEscalationEvent", () => {
       throw new Error(`Unexpected GraphQL query: ${query}`);
     });
 
-    await handleCsEscalationEvent(
-      { graphqlFetch } as any,
-      "device-001",
-      delivery,
-    );
+    await handleCsEscalationEvent({ graphqlFetch } as any, "device-001", delivery);
 
     expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
@@ -299,11 +289,7 @@ describe("handleCsEscalationEvent", () => {
 
     const graphqlFetch = vi.fn();
 
-    await handleCsEscalationEvent(
-      { graphqlFetch } as any,
-      "device-001",
-      delivery,
-    );
+    await handleCsEscalationEvent({ graphqlFetch } as any, "device-001", delivery);
 
     expect(graphqlFetch).not.toHaveBeenCalled();
     expect(mockRpcRequest).not.toHaveBeenCalled();

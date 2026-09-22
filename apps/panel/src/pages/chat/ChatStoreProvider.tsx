@@ -33,9 +33,7 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <ChatStoreContext value={storeRef.current}>
-      <ChatControllerContext value={controllerRef.current}>
-        {children}
-      </ChatControllerContext>
+      <ChatControllerContext value={controllerRef.current}>{children}</ChatControllerContext>
     </ChatStoreContext>
   );
 }

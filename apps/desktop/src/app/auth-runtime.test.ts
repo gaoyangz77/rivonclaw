@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@rivonclaw/logger", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@rivonclaw/logger")>(),
+  ...(await importOriginal<typeof import("@rivonclaw/logger")>()),
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -183,18 +183,27 @@ describe("setupAuth backend subscription forwarding", () => {
     const { setupAuth } = await import("./auth-runtime.js");
     await setupAuth({
       secretStore: {
-        get: vi.fn().mockResolvedValue(null), set: vi.fn(), delete: vi.fn(),
+        get: vi.fn().mockResolvedValue(null),
+        set: vi.fn(),
+        delete: vi.fn(),
         listKeys: vi.fn().mockResolvedValue([]),
       },
-      locale: "en-US", getUiLocale: () => "en-US", deviceId: "device-1",
-      appVersion: "1.0.0-test", proxyFetch: vi.fn(), broadcastEvent: vi.fn(),
+      locale: "en-US",
+      getUiLocale: () => "en-US",
+      deviceId: "device-1",
+      appVersion: "1.0.0-test",
+      proxyFetch: vi.fn(),
+      broadcastEvent: vi.fn(),
     });
     const error = new Error("Affiliate dispatch missing agendaItemsSnapshotId");
     mocks.handleAffiliateWorkItemChanged.mockRejectedValueOnce(error);
     mocks.callbacks.affiliateWorkItemChanged({ creatorRelationshipId: "relationship-1" });
-    await vi.waitFor(() => expect(mocks.logError).toHaveBeenCalledWith(
-      "Failed to handle Affiliate dispatch for relationship-1", error,
-    ));
+    await vi.waitFor(() =>
+      expect(mocks.logError).toHaveBeenCalledWith(
+        "Failed to handle Affiliate dispatch for relationship-1",
+        error,
+      ),
+    );
     mocks.callbacks.affiliateWorkItemChanged({ creatorRelationshipId: "relationship-2" });
     expect(mocks.handleAffiliateWorkItemChanged).toHaveBeenCalledTimes(2);
   });

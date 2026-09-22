@@ -18,7 +18,9 @@ function assertWithin(root, target) {
 function resolvePackage(name, fromDir, root) {
   if (!/^(?:@[\w.-]+\/)?[\w.-]+$/.test(name)) throw new Error(`Invalid package name: ${name}`);
   const boundary = root && fs.realpathSync(root);
-  const requireFrom = createRequire(path.join(boundary ? fs.realpathSync(fromDir) : fromDir, "package.json"));
+  const requireFrom = createRequire(
+    path.join(boundary ? fs.realpathSync(fromDir) : fromDir, "package.json"),
+  );
   // A declared npm dependency can share a builtin name (for example buffer/).
   // Query a subpath so Node supplies package paths instead of builtin null.
   for (const parent of requireFrom.resolve.paths(`${name}/package.json`) ?? []) {
@@ -26,7 +28,8 @@ function resolvePackage(name, fromDir, root) {
     // dependencies are not shipped, even when Node can resolve them on CI.
     if (boundary) {
       const relative = path.relative(boundary, parent);
-      if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) continue;
+      if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+        continue;
     }
     const candidate = path.join(parent, name);
     if (fs.existsSync(path.join(candidate, "package.json"))) return fs.realpathSync(candidate);
@@ -35,12 +38,19 @@ function resolvePackage(name, fromDir, root) {
 }
 
 function runtimeDependencies(manifest) {
-  return Object.entries({ ...manifest.peerDependencies, ...manifest.dependencies, ...manifest.optionalDependencies })
+  return Object.entries({
+    ...manifest.peerDependencies,
+    ...manifest.dependencies,
+    ...manifest.optionalDependencies,
+  })
     .filter(([name]) => name !== "openclaw")
     .map(([name, range]) => ({
-      name, range,
-      optional: Object.hasOwn(manifest.optionalDependencies ?? {}, name) ||
-        (!Object.hasOwn(manifest.dependencies ?? {}, name) && manifest.peerDependenciesMeta?.[name]?.optional === true),
+      name,
+      range,
+      optional:
+        Object.hasOwn(manifest.optionalDependencies ?? {}, name) ||
+        (!Object.hasOwn(manifest.dependencies ?? {}, name) &&
+          manifest.peerDependenciesMeta?.[name]?.optional === true),
     }));
 }
 
@@ -65,11 +75,20 @@ function readDependencyLock(vendorDir) {
   // pnpm 11/12 puts its optional bootstrap lock first and the project lock
   // second. Never merge bootstrap resolutions into the runtime graph.
   const locks = documents.map((document) => document.toJS());
-  const isBootstrap = (lock) => lock?.importers?.["."] &&
-    ["configDependencies", "packageManagerDependencies"].some((key) => Object.hasOwn(lock.importers["."], key));
+  const isBootstrap = (lock) =>
+    lock?.importers?.["."] &&
+    ["configDependencies", "packageManagerDependencies"].some((key) =>
+      Object.hasOwn(lock.importers["."], key),
+    );
   const lock = locks.at(-1);
-  if (locks.length < 1 || locks.length > 2 || (locks.length === 2 && !isBootstrap(locks[0])) ||
-    isBootstrap(lock) || !lock?.snapshots || !lock?.importers) {
+  if (
+    locks.length < 1 ||
+    locks.length > 2 ||
+    (locks.length === 2 && !isBootstrap(locks[0])) ||
+    isBootstrap(lock) ||
+    !lock?.snapshots ||
+    !lock?.importers
+  ) {
     throw new Error(`Invalid runtime dependency lockfile: ${file}`);
   }
   return lock;
@@ -79,12 +98,16 @@ function lockedDependencyRange(lock, vendorDir, parent, fromDir, name, range, so
   if (!lock) return range;
   const importer = lock.importers[path.relative(vendorDir, fromDir).replace(/\\/g, "/") || "."];
   const parentKey = `${parent.name}@${parent.version}`;
-  const snapshots = importer ? [importer] : Object.entries(lock.snapshots)
-    .filter(([key]) => key === parentKey || key.startsWith(`${parentKey}(`))
-    .map(([, snapshot]) => snapshot);
+  const snapshots = importer
+    ? [importer]
+    : Object.entries(lock.snapshots)
+        .filter(([key]) => key === parentKey || key.startsWith(`${parentKey}(`))
+        .map(([, snapshot]) => snapshot);
   const references = snapshots.flatMap((snapshot) => {
     const reference = snapshot.optionalDependencies?.[name] ?? snapshot.dependencies?.[name];
-    return reference === undefined ? [] : [typeof reference === "string" ? reference : reference.version];
+    return reference === undefined
+      ? []
+      : [typeof reference === "string" ? reference : reference.version];
   });
   if (!references.length) return range;
 
@@ -92,15 +115,20 @@ function lockedDependencyRange(lock, vendorDir, parent, fromDir, name, range, so
   // Frozen lock edges already encode global/scoped overrides, npm aliases and
   // peer contexts. Validate those exact resolutions, not a second override parser.
   const locators = [installed.version, `${installed.name}@${installed.version}`];
-  const matches = references.map((reference) => typeof reference === "string" &&
-    locators.some((locator) => reference === locator || reference.startsWith(`${locator}(`)));
+  const matches = references.map(
+    (reference) =>
+      typeof reference === "string" &&
+      locators.some((locator) => reference === locator || reference.startsWith(`${locator}(`)),
+  );
   const semver = createRequire(require.resolve("node-abi"))("semver");
   const satisfiesDeclared = semver.validRange(range) && semver.satisfies(installed.version, range);
   // A hoisted package may have several valid peer contexts. A lock-approved
   // version within the declared range needs no override exception. An out-of-
   // range replacement still requires unambiguous agreement across contexts.
   if (!matches.some(Boolean) || (!satisfiesDeclared && !matches.every(Boolean))) {
-    throw new Error(`Locked runtime dependency ${parentKey} > ${name} expects ${references.join(", ")}, found ${installed.name}@${installed.version}`);
+    throw new Error(
+      `Locked runtime dependency ${parentKey} > ${name} expects ${references.join(", ")}, found ${installed.name}@${installed.version}`,
+    );
   }
   return satisfiesDeclared ? range : installed.version;
 }
@@ -116,87 +144,123 @@ function writeEffectiveDependencyRanges(destination, edges) {
       }
     }
   }
-  if (changed) fs.writeFileSync(path.join(destination, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  if (changed)
+    fs.writeFileSync(
+      path.join(destination, "package.json"),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+    );
 }
 
 function selectedPluginDirs(vendorDir, ids = DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS) {
-  return ids.flatMap((id) => ["dist", "dist-runtime"].map((base) => path.join(vendorDir, base, "extensions", id)))
+  return ids
+    .flatMap((id) =>
+      ["dist", "dist-runtime"].map((base) => path.join(vendorDir, base, "extensions", id)),
+    )
     .filter((dir) => fs.existsSync(path.join(dir, "package.json")));
 }
 
 function isSelectedPluginNodeModules(vendorDir, dir, ids = DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS) {
-  const match = /^(?:dist|dist-runtime)\/extensions\/([^/]+)\/node_modules$/.exec(path.relative(vendorDir, dir).replace(/\\/g, "/"));
+  const match = /^(?:dist|dist-runtime)\/extensions\/([^/]+)\/node_modules$/.exec(
+    path.relative(vendorDir, dir).replace(/\\/g, "/"),
+  );
   return !!match && ids.includes(match[1]);
 }
 
-function materializeSelectedPluginDependencies(vendorDir, ids = DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS) {
+function materializeSelectedPluginDependencies(
+  vendorDir,
+  ids = DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
+) {
   const lock = readDependencyLock(vendorDir);
   for (const pluginDir of selectedPluginDirs(vendorDir, ids)) {
     const sourceDir = path.join(vendorDir, "extensions", path.basename(pluginDir));
-    materializePluginDependencies(vendorDir, pluginDir, fs.existsSync(sourceDir) ? sourceDir : pluginDir, { lock });
+    materializePluginDependencies(
+      vendorDir,
+      pluginDir,
+      fs.existsSync(sourceDir) ? sourceDir : pluginDir,
+      { lock },
+    );
   }
 }
 
-function materializePluginDependencies(vendorDir, pluginDir, sourceDir, { lock = null, rootSources = {}, target } = {}) {
-    const id = path.basename(pluginDir);
-    const rootModules = path.join(pluginDir, "node_modules");
-    // Resolve the entire graph before replacing upstream's source-checkout
-    // links. Physical private trees also work on Windows without symlink rights.
-    const graph = new Map();
-    function collect(manifest, fromDir) {
-      return runtimeDependencies(manifest).flatMap(({ name, range, optional }) => {
-        const source = (fromDir === sourceDir && rootSources[name]) || resolvePackage(name, fromDir, vendorDir);
-        if (!source) {
-          if (optional) return [];
-          throw new Error(`Missing runtime dependency ${id}: ${name} from ${fromDir}`);
-        }
-        assertWithin(vendorDir, source);
-        if (optional && target) {
-          const pkg = readManifest(source);
-          const matches = (values, value) => !values || (!values.includes(`!${value}`) &&
-            (!values.some((item) => !item.startsWith("!")) || values.includes(value)));
-          if (!matches(pkg.os, target.platform) || !matches(pkg.cpu, target.arch)) return [];
-        }
-        const effectiveRange = lockedDependencyRange(lock, vendorDir, manifest, fromDir, name, range, source);
-        assertVersion(name, effectiveRange, source);
-        if (!graph.has(source)) {
-          graph.set(source, []);
-          graph.set(source, collect(readManifest(source), source));
-        }
-        return [{ name, source, range: effectiveRange }];
-      });
-    }
-    const roots = collect(readManifest(pluginDir), sourceDir);
-    fs.rmSync(rootModules, { recursive: true, force: true });
-    const placed = new Map();
-    function place(edges, fromDir) {
-      const pending = [];
-      for (const { name, source } of edges) {
-        const existing = resolvePackage(name, fromDir);
-        if (existing && placed.get(existing) === source) continue;
-        const hoisted = path.join(rootModules, name);
-        const dest = fs.existsSync(hoisted) ? path.join(fromDir, "node_modules", name) : hoisted;
-        if (placed.get(dest) === source) continue;
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        fs.cpSync(source, dest, {
-          recursive: true, dereference: true,
-          filter: (file) => {
-            if (["node_modules", ".git"].includes(path.basename(file))) return false;
-            assertWithin(vendorDir, file);
-            return true;
-          },
-        });
-        writeEffectiveDependencyRanges(dest, graph.get(source));
-        placed.set(fs.realpathSync(dest), source);
-        pending.push([graph.get(source), dest]);
+function materializePluginDependencies(
+  vendorDir,
+  pluginDir,
+  sourceDir,
+  { lock = null, rootSources = {}, target } = {},
+) {
+  const id = path.basename(pluginDir);
+  const rootModules = path.join(pluginDir, "node_modules");
+  // Resolve the entire graph before replacing upstream's source-checkout
+  // links. Physical private trees also work on Windows without symlink rights.
+  const graph = new Map();
+  function collect(manifest, fromDir) {
+    return runtimeDependencies(manifest).flatMap(({ name, range, optional }) => {
+      const source =
+        (fromDir === sourceDir && rootSources[name]) || resolvePackage(name, fromDir, vendorDir);
+      if (!source) {
+        if (optional) return [];
+        throw new Error(`Missing runtime dependency ${id}: ${name} from ${fromDir}`);
       }
-      // Reserve siblings before hoisting their children, so a direct dependency
-      // cannot overwrite a different transitive version placed at the same path.
-      for (const [children, dest] of pending) place(children, dest);
+      assertWithin(vendorDir, source);
+      if (optional && target) {
+        const pkg = readManifest(source);
+        const matches = (values, value) =>
+          !values ||
+          (!values.includes(`!${value}`) &&
+            (!values.some((item) => !item.startsWith("!")) || values.includes(value)));
+        if (!matches(pkg.os, target.platform) || !matches(pkg.cpu, target.arch)) return [];
+      }
+      const effectiveRange = lockedDependencyRange(
+        lock,
+        vendorDir,
+        manifest,
+        fromDir,
+        name,
+        range,
+        source,
+      );
+      assertVersion(name, effectiveRange, source);
+      if (!graph.has(source)) {
+        graph.set(source, []);
+        graph.set(source, collect(readManifest(source), source));
+      }
+      return [{ name, source, range: effectiveRange }];
+    });
+  }
+  const roots = collect(readManifest(pluginDir), sourceDir);
+  fs.rmSync(rootModules, { recursive: true, force: true });
+  const placed = new Map();
+  function place(edges, fromDir) {
+    const pending = [];
+    for (const { name, source } of edges) {
+      const existing = resolvePackage(name, fromDir);
+      if (existing && placed.get(existing) === source) continue;
+      const hoisted = path.join(rootModules, name);
+      const dest = fs.existsSync(hoisted) ? path.join(fromDir, "node_modules", name) : hoisted;
+      if (placed.get(dest) === source) continue;
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.cpSync(source, dest, {
+        recursive: true,
+        dereference: true,
+        filter: (file) => {
+          if (["node_modules", ".git"].includes(path.basename(file))) return false;
+          assertWithin(vendorDir, file);
+          return true;
+        },
+      });
+      writeEffectiveDependencyRanges(dest, graph.get(source));
+      placed.set(fs.realpathSync(dest), source);
+      pending.push([graph.get(source), dest]);
     }
-    place(roots, pluginDir);
-    writeEffectiveDependencyRanges(pluginDir, roots);
-    console.log(`[vendor-plugin-dependencies] ${path.relative(vendorDir, pluginDir)}: ${placed.size} packages`);
+    // Reserve siblings before hoisting their children, so a direct dependency
+    // cannot overwrite a different transitive version placed at the same path.
+    for (const [children, dest] of pending) place(children, dest);
+  }
+  place(roots, pluginDir);
+  writeEffectiveDependencyRanges(pluginDir, roots);
+  console.log(
+    `[vendor-plugin-dependencies] ${path.relative(vendorDir, pluginDir)}: ${placed.size} packages`,
+  );
 }
 
 function assertSelectedPluginDependencies(vendorDir, ids = DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS) {
@@ -230,7 +294,8 @@ function materializeSelectedPluginAssets(vendorDir, ids = DESKTOP_REQUIRED_BUNDL
       const file = path.join(dir, entry.name);
       if (entry.isSymbolicLink()) {
         const source = assertWithin(vendorDir, file);
-        if (!fs.statSync(source).isFile()) throw new Error(`Unexpected plugin directory symlink: ${file}`);
+        if (!fs.statSync(source).isFile())
+          throw new Error(`Unexpected plugin directory symlink: ${file}`);
         const bytes = fs.readFileSync(source);
         fs.unlinkSync(file);
         fs.writeFileSync(file, bytes);
@@ -252,7 +317,11 @@ function materializeRuntimeModuleLinks(vendorDir) {
       else if (/\.(?:cjs|mjs)$/.test(entry.name)) {
         assertWithin(vendorDir, source);
         let existing;
-        try { existing = fs.lstatSync(destination); } catch (error) { if (error.code !== "ENOENT") throw error; }
+        try {
+          existing = fs.lstatSync(destination);
+        } catch (error) {
+          if (error.code !== "ENOENT") throw error;
+        }
         if (existing && !existing.isSymbolicLink()) continue;
         if (existing) {
           if (assertWithin(vendorDir, destination) !== fs.realpathSync(source)) {
@@ -282,7 +351,11 @@ function assertBundledPluginEntries(vendorDir) {
       const dir = path.join(root, entry.name);
       if (!entry.isDirectory() || !fs.existsSync(path.join(dir, "package.json"))) continue;
       const metadata = readManifest(dir).openclaw;
-      for (const specifier of [...(metadata?.extensions ?? []), metadata?.setupEntry, metadata?.channel?.configuredState?.specifier].filter(Boolean)) {
+      for (const specifier of [
+        ...(metadata?.extensions ?? []),
+        metadata?.setupEntry,
+        metadata?.channel?.configuredState?.specifier,
+      ].filter(Boolean)) {
         const file = path.resolve(dir, specifier);
         if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
           throw new Error(`Missing retained plugin entry: ${base}/${entry.name}/${specifier}`);
@@ -294,14 +367,23 @@ function assertBundledPluginEntries(vendorDir) {
 }
 
 module.exports = {
-  resolvePackage, runtimeDependencies, selectedPluginDirs, isSelectedPluginNodeModules,
-  materializeSelectedPluginDependencies, assertSelectedPluginDependencies, materializeSelectedPluginAssets,
-  materializePluginDependencies, assertPluginDependencies,
-  materializeRuntimeModuleLinks, assertBundledPluginEntries,
+  resolvePackage,
+  runtimeDependencies,
+  selectedPluginDirs,
+  isSelectedPluginNodeModules,
+  materializeSelectedPluginDependencies,
+  assertSelectedPluginDependencies,
+  materializeSelectedPluginAssets,
+  materializePluginDependencies,
+  assertPluginDependencies,
+  materializeRuntimeModuleLinks,
+  assertBundledPluginEntries,
 };
 
 if (require.main === module) {
-  const vendorDir = path.resolve(process.argv[2] || path.join(__dirname, "../../../vendor/openclaw"));
+  const vendorDir = path.resolve(
+    process.argv[2] || path.join(__dirname, "../../../vendor/openclaw"),
+  );
   materializeRuntimeModuleLinks(vendorDir);
   assertBundledPluginEntries(vendorDir);
   console.log("[vendor-runtime] Built plugin entries verified within their package directories");

@@ -26,7 +26,7 @@ describe("compressImageBuffer", () => {
         const r = Math.floor((x * 255) / 3000);
         const g = Math.floor((y * 255) / 2000);
         const b = Math.floor(((x + y) * 255) / 5000);
-        const rgba = ((r * 0x01000000) + (g << 16) + (b << 8) + 0xff) >>> 0;
+        const rgba = (r * 0x01000000 + (g << 16) + (b << 8) + 0xff) >>> 0;
         img.setPixelColor(rgba, x, y);
       }
     }
@@ -113,10 +113,7 @@ describe("compressImageForAgent — child process lifecycle edge cases", () => {
   });
 
   it("forks the image compressor as an Electron run-as-node child process", async () => {
-    const {
-      compressImageForAgent,
-      __setForkForTests,
-    } = await import("./image-compressor.js");
+    const { compressImageForAgent, __setForkForTests } = await import("./image-compressor.js");
     const fakeChild = new EventEmitter() as EventEmitter & {
       send: ReturnType<typeof vi.fn>;
       kill: ReturnType<typeof vi.fn>;
@@ -168,11 +165,8 @@ describe("compressImageForAgent — child process lifecycle edge cases", () => {
     //      the guard (`w !== child`), A's handler is a no-op.
     //   5. Await B's reply — it must arrive normally, proving the stale
     //      event did not hijack the new child's state.
-    const {
-      compressImageForAgent,
-      __setChildPathForTests,
-      __getCurrentChildForTests,
-    } = await import("./image-compressor.js");
+    const { compressImageForAgent, __setChildPathForTests, __getCurrentChildForTests } =
+      await import("./image-compressor.js");
 
     // Well-behaved child that replies with a smaller JPEG-mimetype buffer after
     // a short delay.
@@ -232,9 +226,7 @@ describe("compressImageForAgent — child process lifecycle edge cases", () => {
     // failure may surface as spawn error or as a non-zero child exit. The
     // pending promise must resolve with the
     // original buffer instead of hanging forever.
-    const { compressImageForAgent, __setChildPathForTests } = await import(
-      "./image-compressor.js"
-    );
+    const { compressImageForAgent, __setChildPathForTests } = await import("./image-compressor.js");
     __setChildPathForTests("/definitely/does/not/exist/worker.cjs");
 
     const original = Buffer.from([9, 8, 7]);
@@ -250,15 +242,11 @@ describe("compressImageForAgent — child process lifecycle edge cases", () => {
   it("drains an entire queued batch when child startup fails (Fix 3)", async () => {
     // When startup fails, handleChildDeath() must fail-open every queued peer
     // too — not just the first one.
-    const { compressImageForAgent, __setChildPathForTests } = await import(
-      "./image-compressor.js"
-    );
+    const { compressImageForAgent, __setChildPathForTests } = await import("./image-compressor.js");
     __setChildPathForTests("/definitely/does/not/exist/worker.cjs");
 
     const inputs = [Buffer.from([1]), Buffer.from([2]), Buffer.from([3])];
-    const results = await Promise.all(
-      inputs.map((buf) => compressImageForAgent(buf, "image/png")),
-    );
+    const results = await Promise.all(inputs.map((buf) => compressImageForAgent(buf, "image/png")));
     for (let i = 0; i < inputs.length; i += 1) {
       expect(results[i].ok).toBe(false);
       expect(results[i].compressed).toBe(false);
@@ -268,29 +256,28 @@ describe("compressImageForAgent — child process lifecycle edge cases", () => {
   }, 10_000);
 
   it("keeps the original image when the child output is not smaller", async () => {
-    const {
-      compressImageForAgent,
-      __setForkForTests,
-    } = await import("./image-compressor.js");
+    const { compressImageForAgent, __setForkForTests } = await import("./image-compressor.js");
     const fakeChild = new EventEmitter() as EventEmitter & {
       send: ReturnType<typeof vi.fn>;
       kill: ReturnType<typeof vi.fn>;
     };
-    __setForkForTests(vi.fn(() => {
-      fakeChild.send = vi.fn((msg: { id: number }) => {
-        setImmediate(() => {
-          fakeChild.emit("message", {
-            id: msg.id,
-            ok: true,
-            buffer: Buffer.from("larger-than-original"),
-            mimeType: "image/jpeg",
+    __setForkForTests(
+      vi.fn(() => {
+        fakeChild.send = vi.fn((msg: { id: number }) => {
+          setImmediate(() => {
+            fakeChild.emit("message", {
+              id: msg.id,
+              ok: true,
+              buffer: Buffer.from("larger-than-original"),
+              mimeType: "image/jpeg",
+            });
           });
+          return true;
         });
-        return true;
-      });
-      fakeChild.kill = vi.fn(() => true);
-      return fakeChild;
-    }) as never);
+        fakeChild.kill = vi.fn(() => true);
+        return fakeChild;
+      }) as never,
+    );
 
     const original = Buffer.from("small");
     const result = await compressImageForAgent(original, "image/png");

@@ -24,5 +24,9 @@ export async function syncCloudProviderKey(
   // Serialize concurrent calls to avoid SQLite write conflicts
   if (syncInFlight) await syncInFlight.catch(() => {});
   syncInFlight = rootStore.llmManager.syncCloud(user);
-  try { await syncInFlight; } finally { syncInFlight = null; }
+  try {
+    await syncInFlight;
+  } finally {
+    syncInFlight = null;
+  }
 }

@@ -37,23 +37,14 @@ export function TikTokShopDetailModal({
 }: TikTokShopDetailModalProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
-  const shop = shopId
-    ? entityStore.shops.find((item) => item.id === shopId) ?? null
-    : null;
+  const shop = shopId ? (entityStore.shops.find((item) => item.id === shopId) ?? null) : null;
 
   return (
-    <Modal
-      isOpen={!!shop}
-      onClose={onClose}
-      title={shop?.shopName ?? ""}
-      maxWidth={680}
-    >
+    <Modal isOpen={!!shop} onClose={onClose} title={shop?.shopName ?? ""} maxWidth={680}>
       {shop && (
         <div className="modal-form-col">
           {upgradePrompt && (
-            <div className="info-box info-box-blue">
-              {t("tiktokShops.upgradeRequired")}
-            </div>
+            <div className="info-box info-box-blue">{t("tiktokShops.upgradeRequired")}</div>
           )}
 
           <TkTabs
@@ -80,13 +71,9 @@ export function TikTokShopDetailModal({
             />
           )}
 
-          {activeTab === "billing" && (
-            <TikTokShopBillingTab shop={shop} />
-          )}
+          {activeTab === "billing" && <TikTokShopBillingTab shop={shop} />}
 
-          {activeTab === "sessions" && (
-            <TikTokShopSessionsTab shop={shop} />
-          )}
+          {activeTab === "sessions" && <TikTokShopSessionsTab shop={shop} />}
         </div>
       )}
     </Modal>

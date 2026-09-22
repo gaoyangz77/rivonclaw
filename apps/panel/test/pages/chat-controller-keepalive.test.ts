@@ -35,7 +35,9 @@ describe("ChatGatewayController keepalive gating", () => {
     const trackEvent = vi.fn();
     const saveImages = vi.fn().mockResolvedValue(undefined);
     const clearImages = vi.fn().mockResolvedValue(undefined);
-    const restoreImages = vi.fn().mockImplementation(async (_sessionKey: string, messages: unknown) => messages);
+    const restoreImages = vi
+      .fn()
+      .mockImplementation(async (_sessionKey: string, messages: unknown) => messages);
 
     const setKeepaliveEnabled = vi.fn();
     const request = vi.fn().mockImplementation(async (method: string) => {
@@ -179,7 +181,9 @@ describe("ChatGatewayController keepalive gating", () => {
     vi.doMock("../../src/pages/chat/image-cache.js", () => ({
       saveImages: vi.fn().mockResolvedValue(undefined),
       clearImages: vi.fn().mockResolvedValue(undefined),
-      restoreImages: vi.fn().mockImplementation(async (_sessionKey: string, messages: unknown) => messages),
+      restoreImages: vi
+        .fn()
+        .mockImplementation(async (_sessionKey: string, messages: unknown) => messages),
     }));
     vi.doMock("../../src/lib/gateway-client.js", () => ({
       GatewayChatClient: class {

@@ -4,11 +4,7 @@ import { test, expect } from "./electron-fixture.js";
 // Helper: send a GraphQL request to the cloud proxy endpoint
 // ---------------------------------------------------------------------------
 
-async function cloudGraphql(
-  apiBase: string,
-  query: string,
-  variables?: Record<string, unknown>,
-) {
+async function cloudGraphql(apiBase: string, query: string, variables?: Record<string, unknown>) {
   return fetch(`${apiBase}/api/cloud/graphql`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,7 +66,6 @@ test.describe("Capability Context — Public Queries", () => {
       expect(tool.serviceCategory).toMatch(/^[A-Z][A-Z0-9_]*$/);
     }
   });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -158,10 +153,7 @@ test.describe("Capability Context — Auth-Gated Queries", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Capability Context — Cloud Proxy Validation", () => {
-  test("empty body returns 200 with missing query error", async ({
-    window: _window,
-    apiBase,
-  }) => {
+  test("empty body returns 200 with missing query error", async ({ window: _window, apiBase }) => {
     const res = await fetch(`${apiBase}/api/cloud/graphql`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

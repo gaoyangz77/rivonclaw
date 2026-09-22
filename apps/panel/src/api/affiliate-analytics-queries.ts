@@ -53,9 +53,20 @@ export const AFFILIATE_OVERVIEW_REACHOUT_QUERY = gql`
       coverage {
         fullCoverageFrom
         shopsSelected
-        limitingShops { shopId shopName coverageFrom }
-        shops { shopId shopName coverageFrom }
-        daily { ds shopsWithData }
+        limitingShops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        shops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        daily {
+          ds
+          shopsWithData
+        }
       }
     }
   }
@@ -91,23 +102,57 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         approvalRate
       }
       byDecisionOrigin {
-        decidedBy applications approved merchantRejected overdueByUs inFlight
-        approvalRate merchantRejectRate overdueRate
+        decidedBy
+        applications
+        approved
+        merchantRejected
+        overdueByUs
+        inFlight
+        approvalRate
+        merchantRejectRate
+        overdueRate
       }
       dailyByDecisionOrigin {
-        cohortDs decidedBy applications approved merchantRejected overdueByUs inFlight
-        approvalRate merchantRejectRate overdueRate
+        cohortDs
+        decidedBy
+        applications
+        approved
+        merchantRejected
+        overdueByUs
+        inFlight
+        approvalRate
+        merchantRejectRate
+        overdueRate
       }
       byAgeAndDecisionOrigin {
-        ageBucket decidedBy applications approved merchantRejected overdueByUs inFlight
-        approvalRate merchantRejectRate overdueRate
+        ageBucket
+        decidedBy
+        applications
+        approved
+        merchantRejected
+        overdueByUs
+        inFlight
+        approvalRate
+        merchantRejectRate
+        overdueRate
       }
       coverage {
         fullCoverageFrom
         shopsSelected
-        limitingShops { shopId shopName coverageFrom }
-        shops { shopId shopName coverageFrom }
-        daily { ds shopsWithData }
+        limitingShops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        shops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        daily {
+          ds
+          shopsWithData
+        }
       }
     }
   }
@@ -134,28 +179,60 @@ export const AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY = gql`
         affiliateUnits
       }
       byDecisionOrigin {
-        decidedBy approvedApplications applicationsWithOrder orderRate
-        actualUnits unitsPerApprovedActual
+        decidedBy
+        approvedApplications
+        applicationsWithOrder
+        orderRate
+        actualUnits
+        unitsPerApprovedActual
       }
       sampleActivityDailyByDecisionOrigin {
-        ds decidedBy contents orders units
+        ds
+        decidedBy
+        contents
+        orders
+        units
       }
       sampleShipmentDailyByDecisionOrigin {
-        ds decidedBy samplesShipped
+        ds
+        decidedBy
+        samplesShipped
       }
       coverage {
         fullCoverageFrom
         shopsSelected
-        limitingShops { shopId shopName coverageFrom }
-        shops { shopId shopName coverageFrom }
-        daily { ds shopsWithData }
+        limitingShops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        shops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        daily {
+          ds
+          shopsWithData
+        }
       }
       shipmentCoverage {
         fullCoverageFrom
         shopsSelected
-        limitingShops { shopId shopName coverageFrom }
-        shops { shopId shopName coverageFrom }
-        daily { ds shopsWithData }
+        limitingShops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        shops {
+          shopId
+          shopName
+          coverageFrom
+        }
+        daily {
+          ds
+          shopsWithData
+        }
       }
     }
   }
@@ -185,13 +262,34 @@ export const AFFILIATE_OVERVIEW_PORTFOLIO_QUERY = gql`
 export const AFFILIATE_BI_CATALOG_QUERY = gql`
   query AffiliateBiCatalog {
     getEcommerceBiCatalog {
-      id label description grain supportedGranularities defaultDimensions defaultMetrics
-      groupingSets { dimensions }
-      dimensions {
-        id label description valueType entity source filterable groupable
-        filterOperators requiredDimensions
+      id
+      label
+      description
+      grain
+      supportedGranularities
+      defaultDimensions
+      defaultMetrics
+      groupingSets {
+        dimensions
       }
-      metrics { id label description valueType }
+      dimensions {
+        id
+        label
+        description
+        valueType
+        entity
+        source
+        filterable
+        groupable
+        filterOperators
+        requiredDimensions
+      }
+      metrics {
+        id
+        label
+        description
+        valueType
+      }
     }
   }
 `;
@@ -211,8 +309,14 @@ export const AFFILIATE_BI_DATA_QUERY = gql`
 export const AFFILIATE_BI_DIMENSION_VALUES_QUERY = gql`
   query AffiliateBiDimensionValues($input: EcomBiDimensionValuesInput!) {
     getEcommerceBiDimensionValues(input: $input) {
-      datasetId dimension hasMore
-      items { value label secondaryLabel }
+      datasetId
+      dimension
+      hasMore
+      items {
+        value
+        label
+        secondaryLabel
+      }
     }
   }
 `;

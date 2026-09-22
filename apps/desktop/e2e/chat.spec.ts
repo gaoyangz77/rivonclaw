@@ -9,7 +9,7 @@ async function dismissModals(window: import("@playwright/test").Page) {
 
   for (let i = 0; i < 5; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
     const closeBtn = backdrop.locator(".modal-close-btn");
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
       await closeBtn.click();
@@ -51,11 +51,14 @@ test.describe("Chat Page — Comprehensive", () => {
 
     // Upsert a test session
     const upsertResult = await window.evaluate(async (base) => {
-      const res = await fetch(`${base}/api/chat-sessions/${encodeURIComponent("test:e2e:session")}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customTitle: "E2E Test Session", pinned: false }),
-      });
+      const res = await fetch(
+        `${base}/api/chat-sessions/${encodeURIComponent("test:e2e:session")}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customTitle: "E2E Test Session", pinned: false }),
+        },
+      );
       return { status: res.status, body: await res.json() };
     }, apiBase);
     expect(upsertResult.status).toBe(200);
@@ -64,9 +67,12 @@ test.describe("Chat Page — Comprehensive", () => {
 
     // Delete the test session
     const deleteResult = await window.evaluate(async (base) => {
-      const res = await fetch(`${base}/api/chat-sessions/${encodeURIComponent("test:e2e:session")}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `${base}/api/chat-sessions/${encodeURIComponent("test:e2e:session")}`,
+        {
+          method: "DELETE",
+        },
+      );
       return { status: res.status, body: await res.json() };
     }, apiBase);
     expect(deleteResult.status).toBe(200);
@@ -181,7 +187,7 @@ test.describe("Chat Page — Comprehensive", () => {
 
     // Expand examples if collapsed
     const exampleGrid = window.locator(".chat-examples-grid");
-    if (!await exampleGrid.isVisible().catch(() => false)) {
+    if (!(await exampleGrid.isVisible().catch(() => false))) {
       await window.locator(".chat-examples-toggle").click();
     }
     await expect(exampleGrid).toBeVisible();
@@ -230,7 +236,9 @@ test.describe("Chat Page — Comprehensive", () => {
     expect(count).toBe(2);
   });
 
-  test("send button is disabled when textarea is empty and enabled when typed", async ({ window }) => {
+  test("send button is disabled when textarea is empty and enabled when typed", async ({
+    window,
+  }) => {
     await dismissModals(window);
     await expect(window.locator(".chat-status-dot-connected")).toBeVisible({ timeout: 30_000 });
 

@@ -82,7 +82,11 @@ async function graphqlRequest<TData>(
   return body.data;
 }
 
-async function storeTokens(apiBase: string, accessToken: string, refreshToken: string): Promise<void> {
+async function storeTokens(
+  apiBase: string,
+  accessToken: string,
+  refreshToken: string,
+): Promise<void> {
   let lastStatus = 0;
   let lastBody = "";
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -138,14 +142,20 @@ async function loginAndNavigateToEcommerce(
 async function dismissModals(window: import("@playwright/test").Page): Promise<void> {
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 2_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 2_000 }).catch(() => false))) break;
     await backdrop.click({ position: { x: 5, y: 5 }, force: true });
     await backdrop.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => {});
   }
 }
 
 async function skipWelcomeIfVisible(window: import("@playwright/test").Page): Promise<void> {
-  if (!await window.locator(".welcome-page").isVisible({ timeout: 2_000 }).catch(() => false)) return;
+  if (
+    !(await window
+      .locator(".welcome-page")
+      .isVisible({ timeout: 2_000 })
+      .catch(() => false))
+  )
+    return;
   await window.locator(".welcome-skip-guest").click();
   await window.waitForSelector(".sidebar-brand", { timeout: 30_000 });
 }
@@ -153,9 +163,15 @@ async function skipWelcomeIfVisible(window: import("@playwright/test").Page): Pr
 // ── New User Defaults ────────────────────────────────────────────────
 
 test.describe("Ecommerce Page — New User Defaults", () => {
-  test.skip(!deterministicCaptchaToken, "STAGING_CAPTCHA_BYPASS_TOKEN is required to register staging users");
+  test.skip(
+    !deterministicCaptchaToken,
+    "STAGING_CAPTCHA_BYPASS_TOKEN is required to register staging users",
+  );
 
-  test("newly registered staging users default to ecommerce and shop operations", async ({ window, apiBase }) => {
+  test("newly registered staging users default to ecommerce and shop operations", async ({
+    window,
+    apiBase,
+  }) => {
     await dismissModals(window);
 
     const unique = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -198,7 +214,11 @@ test.describe("Ecommerce Page — New User Defaults", () => {
     expect(meBody.me.enrolledModules).toContain(ECOMMERCE_MODULE_ID);
     expect(meBody.me.defaultRunProfileId).toBe(SHOP_OPERATIONS_RUN_PROFILE_ID);
 
-    await storeTokens(apiBase, registerBody.register.accessToken, registerBody.register.refreshToken);
+    await storeTokens(
+      apiBase,
+      registerBody.register.accessToken,
+      registerBody.register.refreshToken,
+    );
     await window.reload({ waitUntil: "domcontentloaded" });
     await skipWelcomeIfVisible(window);
     await dismissModals(window);
@@ -236,7 +256,10 @@ test.describe("Ecommerce Page — Auth Gating", () => {
 // ── Authenticated Tests ──────────────────────────────────────────────
 
 test.describe("Ecommerce Page — Authenticated", () => {
-  test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
+  test.skip(
+    !testEmail || !testPassword || !deterministicCaptchaToken,
+    "Staging credentials not configured",
+  );
 
   test("page renders with title, subtitle, and add shop button", async ({ window, apiBase }) => {
     await dismissModals(window);
@@ -249,7 +272,8 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(header.locator(".tk-v1-page-description")).toContainText("Manage connected shops");
 
     // Add Shop button
-    const addBtn = window.locator(".ecommerce-shops-page")
+    const addBtn = window
+      .locator(".ecommerce-shops-page")
       .getByRole("button", { name: "Add Shop", exact: true });
     await expect(addBtn).toBeVisible();
     await expect(addBtn).toBeEnabled();
@@ -315,7 +339,9 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await firstViewBtn.click();
 
     // Drawer should open
-    const drawer = window.getByRole("dialog").filter({ has: window.locator(".drawer-header-title") });
+    const drawer = window
+      .getByRole("dialog")
+      .filter({ has: window.locator(".drawer-header-title") });
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // Drawer header shows the shop name
@@ -329,11 +355,16 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(overviewTab).toContainText("Overview");
 
     // Overview shows shop info section
-    await expect(drawer.locator(".drawer-section-label", { hasText: "Shop Information" })).toBeVisible();
+    await expect(
+      drawer.locator(".drawer-section-label", { hasText: "Shop Information" }),
+    ).toBeVisible();
     await expect(drawer.locator(".shop-info-card").first()).toBeVisible();
 
     // Overview shows CS toggle
-    const csToggleCard = drawer.locator(".shop-toggle-card").filter({ hasText: "AI Customer Service" }).first();
+    const csToggleCard = drawer
+      .locator(".shop-toggle-card")
+      .filter({ hasText: "AI Customer Service" })
+      .first();
     await expect(csToggleCard).toBeVisible();
     await expect(csToggleCard.locator(".tk-v1-switch-control")).toBeVisible();
 
@@ -350,8 +381,13 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(shopTable).toBeVisible({ timeout: 20_000 });
 
     // Open drawer on first shop
-    await shopTable.getByRole("row", { name: /^View / }).first().click();
-    const drawer = window.getByRole("dialog").filter({ has: window.locator(".drawer-header-title") });
+    await shopTable
+      .getByRole("row", { name: /^View / })
+      .first()
+      .click();
+    const drawer = window
+      .getByRole("dialog")
+      .filter({ has: window.locator(".drawer-header-title") });
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // Check if AI CS tab exists (only when CS is enabled for this shop)
@@ -364,19 +400,27 @@ test.describe("Ecommerce Page — Authenticated", () => {
       await expect(aiCsTab).toHaveAttribute("aria-selected", "true");
 
       // AI CS tab shows service status section
-      await expect(drawer.locator(".drawer-section-label", { hasText: "Service Status" })).toBeVisible();
+      await expect(
+        drawer.locator(".drawer-section-label", { hasText: "Service Status" }),
+      ).toBeVisible();
 
       // Shows device binding section
-      await expect(drawer.locator(".drawer-section-label", { hasText: "Handle CS on this device" })).toBeVisible();
+      await expect(
+        drawer.locator(".drawer-section-label", { hasText: "Handle CS on this device" }),
+      ).toBeVisible();
 
       // Shows run profile section
-      await expect(drawer.locator(".drawer-section-label", { hasText: "Agent Permissions" })).toBeVisible();
+      await expect(
+        drawer.locator(".drawer-section-label", { hasText: "Agent Permissions" }),
+      ).toBeVisible();
 
       // Shows CS model section
       await expect(drawer.locator(".drawer-section-label", { hasText: "CS Model" })).toBeVisible();
 
       // Shows business prompt section
-      await expect(drawer.locator(".drawer-section-label", { hasText: "Business Prompt" })).toBeVisible();
+      await expect(
+        drawer.locator(".drawer-section-label", { hasText: "Business Prompt" }),
+      ).toBeVisible();
       await expect(drawer.locator("textarea")).toBeVisible();
 
       // Switch back to overview
@@ -398,13 +442,21 @@ test.describe("Ecommerce Page — Authenticated", () => {
     await expect(shopTable).toBeVisible({ timeout: 20_000 });
 
     // Open drawer
-    await shopTable.getByRole("row", { name: /^View / }).first().click();
-    const drawer = window.getByRole("dialog").filter({ has: window.locator(".drawer-header-title") });
+    await shopTable
+      .getByRole("row", { name: /^View / })
+      .first()
+      .click();
+    const drawer = window
+      .getByRole("dialog")
+      .filter({ has: window.locator(".drawer-header-title") });
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // The checkbox input is visually hidden (CSS toggle pattern), so use
     // the label wrapper for clicks and the input for state checks.
-    const csToggleCard = drawer.locator(".shop-toggle-card").filter({ hasText: "AI Customer Service" }).first();
+    const csToggleCard = drawer
+      .locator(".shop-toggle-card")
+      .filter({ hasText: "AI Customer Service" })
+      .first();
     const toggleInput = csToggleCard.locator("input[type='checkbox']");
     const toggleLabel = csToggleCard.locator(".tk-v1-switch-control");
     await expect(toggleLabel).toBeVisible();

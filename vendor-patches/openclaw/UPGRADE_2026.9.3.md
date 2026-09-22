@@ -117,13 +117,13 @@ The same synthetic 13,000-session payload (about 572 MiB), Node 24.21.0 and
 machine were used for both builds. These are SDK measurements, not Feishu
 latencies, and the host was not otherwise idle.
 
-| Operation | v2026.8.1 | v2026.9.3 |
-| --- | --- | --- |
+| Operation                       | v2026.8.1    | v2026.9.3    |
+| ------------------------------- | ------------ | ------------ |
 | Repeated held-handle exact read | 0.39-0.62 ms | 0.51-0.99 ms |
-| First foreground update | 946 ms | 165 ms |
-| Subsequent foreground update | 512-1,370 ms | 1.81-2.73 ms |
-| Full SDK list | 732 ms | 618 ms |
-| Synthetic schema-17 repair | 1,866 ms | 1,230 ms |
+| First foreground update         | 946 ms       | 165 ms       |
+| Subsequent foreground update    | 512-1,370 ms | 1.81-2.73 ms |
+| Full SDK list                   | 732 ms       | 618 ms       |
+| Synthetic schema-17 repair      | 1,866 ms     | 1,230 ms     |
 
 Deferred work still produced 109-274 ms event-loop delays near the new update
 operations. Independent reads with fresh handle validation did not improve.
@@ -142,24 +142,24 @@ limits are in [the benchmark report](tests/BENCHMARK_2026.9.3.md).
 
 ## Acceptance Matrix
 
-| Check | Result |
-| --- | --- |
-| Baseline build, unit, dev/prod E2E | Build passed; baseline unit/dev failures recorded above; prod not verified |
-| Patch replay in independent workspace | Passed: 20 patches; `tmp/vendor-patched/openclaw` |
-| Pristine tests for retired patches | Passed: 50 tests for 0035/0039/0041 |
-| Generated schema, tool catalog, config reference | Passed; regenerated again against final build |
-| Full build, unit tests, Desktop typecheck | Final root build: 24/24; typecheck passed. Unit: all except 3 pre-existing macOS file-watcher cases pass across full run plus focused retry; see notes below |
-| Dev and packaged prod E2E | Dev: 124 distinct cases passed. Packaged: 123 distinct cases passed; one pre-existing dev-only deterministic-captcha case skipped. Results include focused reruns, not a single clean first pass |
-| Fresh and legacy state migrations, interrupted retry | Passed: 287 related tests, including 17 real-runtime migration cases and 8 readiness cases |
-| 13,000-session synthetic performance comparison | Passed SDK/migration and real Gateway/RPC runs; broad catalog scan remains |
-| Configured model request and compaction budget | Two real API-key chat requests passed; 51 provider/config tests and 195 Gateway catalog/config tests passed. Flagship/near-threshold live compaction still pending |
-| Prepared model catalog mismatch recovery | Five upstream runtime tests passed: metadata ownership, scope isolation, and three mismatch/replacement cases |
-| Plugin runtime loader and empty-PATH packaged startup | Passed with the actual macOS app: 21 plugins, including all 9 external extensions, loaded; Weixin QR RPCs registered; `/readyz` succeeded; no package-manager repair |
-| Feishu message/stream/quote/attachment/automation | Operator confirmed basic reply; advanced attachment/automation matrix remains pending |
-| Backend CS card callback and exactly-once recovery | Operator confirmed CS reply, escalation and resolved-card submission; outage/exactly-once stress remains pending |
-| Weixin and Telegram round trips | Operator confirmed both |
-| Packaged artifact size comparison | macOS measured below; +19.1% unpacked app versus baseline. No retained installer for comparison |
-| Windows native runtime and clean/cache-hit CI | Pending |
+| Check                                                 | Result                                                                                                                                                                                           |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Baseline build, unit, dev/prod E2E                    | Build passed; baseline unit/dev failures recorded above; prod not verified                                                                                                                       |
+| Patch replay in independent workspace                 | Passed: 20 patches; `tmp/vendor-patched/openclaw`                                                                                                                                                |
+| Pristine tests for retired patches                    | Passed: 50 tests for 0035/0039/0041                                                                                                                                                              |
+| Generated schema, tool catalog, config reference      | Passed; regenerated again against final build                                                                                                                                                    |
+| Full build, unit tests, Desktop typecheck             | Final root build: 24/24; typecheck passed. Unit: all except 3 pre-existing macOS file-watcher cases pass across full run plus focused retry; see notes below                                     |
+| Dev and packaged prod E2E                             | Dev: 124 distinct cases passed. Packaged: 123 distinct cases passed; one pre-existing dev-only deterministic-captcha case skipped. Results include focused reruns, not a single clean first pass |
+| Fresh and legacy state migrations, interrupted retry  | Passed: 287 related tests, including 17 real-runtime migration cases and 8 readiness cases                                                                                                       |
+| 13,000-session synthetic performance comparison       | Passed SDK/migration and real Gateway/RPC runs; broad catalog scan remains                                                                                                                       |
+| Configured model request and compaction budget        | Two real API-key chat requests passed; 51 provider/config tests and 195 Gateway catalog/config tests passed. Flagship/near-threshold live compaction still pending                               |
+| Prepared model catalog mismatch recovery              | Five upstream runtime tests passed: metadata ownership, scope isolation, and three mismatch/replacement cases                                                                                    |
+| Plugin runtime loader and empty-PATH packaged startup | Passed with the actual macOS app: 21 plugins, including all 9 external extensions, loaded; Weixin QR RPCs registered; `/readyz` succeeded; no package-manager repair                             |
+| Feishu message/stream/quote/attachment/automation     | Operator confirmed basic reply; advanced attachment/automation matrix remains pending                                                                                                            |
+| Backend CS card callback and exactly-once recovery    | Operator confirmed CS reply, escalation and resolved-card submission; outage/exactly-once stress remains pending                                                                                 |
+| Weixin and Telegram round trips                       | Operator confirmed both                                                                                                                                                                          |
+| Packaged artifact size comparison                     | macOS measured below; +19.1% unpacked app versus baseline. No retained installer for comparison                                                                                                  |
+| Windows native runtime and clean/cache-hit CI         | Pending                                                                                                                                                                                          |
 
 Any unavailable live or platform-specific check remains an explicit release
 gate, not a pass inferred from unit tests.

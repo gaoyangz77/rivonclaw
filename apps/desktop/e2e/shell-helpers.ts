@@ -7,8 +7,9 @@ export function getNavigationButton(window: Page, name: string | RegExp) {
 }
 
 export async function waitForSignedInShell(window: Page): Promise<void> {
-  const avatar = getNavigationButton(window, "Account")
-    .locator(".nav-account-avatar:not(.nav-account-avatar-loading)");
+  const avatar = getNavigationButton(window, "Account").locator(
+    ".nav-account-avatar:not(.nav-account-avatar-loading)",
+  );
   await expect(avatar).toBeVisible({ timeout: 15_000 });
 }
 
@@ -18,8 +19,10 @@ export async function navigateToExtensionPage(window: Page, name: "Skills" | "Pl
     .getByRole("navigation", { name: "Extensions submenu", exact: true })
     .getByRole("button", { name: new RegExp(`^${name}`) })
     .click();
-  await expect(window.getByRole("heading", {
-    name: name === "Skills" ? "Skills Marketplace" : "Plugins",
-    exact: true,
-  })).toBeVisible();
+  await expect(
+    window.getByRole("heading", {
+      name: name === "Skills" ? "Skills Marketplace" : "Plugins",
+      exact: true,
+    }),
+  ).toBeVisible();
 }

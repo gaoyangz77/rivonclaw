@@ -11,15 +11,15 @@ export interface ThemeOptions {
 }
 
 const accentColors: Record<string, { light: string; dark: string }> = {
-  blue:    { light: "#5b7fff", dark: "#6c63ff" },
-  rose:    { light: "#ec4899", dark: "#f472b6" },
-  orange:  { light: "#ff8c42", dark: "#ff9650" },
+  blue: { light: "#5b7fff", dark: "#6c63ff" },
+  rose: { light: "#ec4899", dark: "#f472b6" },
+  orange: { light: "#ff8c42", dark: "#ff9650" },
   emerald: { light: "#10b981", dark: "#34d399" },
-  violet:  { light: "#8b5cf6", dark: "#a78bfa" },
+  violet: { light: "#8b5cf6", dark: "#a78bfa" },
   crimson: { light: "#dc2626", dark: "#f87171" },
-  gold:    { light: "#b8860b", dark: "#d4a017" },
+  gold: { light: "#b8860b", dark: "#d4a017" },
   tiffany: { light: "#0abab5", dark: "#5ce0db" },
-  gray:    { light: "#6b7280", dark: "#9ca3af" },
+  gray: { light: "#6b7280", dark: "#9ca3af" },
 };
 
 const i18n = {
@@ -602,9 +602,7 @@ export function createProvisionerWindow(theme?: ThemeOptions): ProvisionerWindow
       if (allGood) {
         statusMsg = t.allPresent;
       } else {
-        const failedNames = result.failed
-          .map((f) => depDisplayNames[f.dep] ?? f.dep)
-          .join(", ");
+        const failedNames = result.failed.map((f) => depDisplayNames[f.dep] ?? f.dep).join(", ");
         statusMsg = t.failedToInstall(failedNames);
       }
       win.webContents.send("provision-progress", { phase: "done", message: statusMsg });

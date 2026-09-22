@@ -48,7 +48,10 @@ function tabLabel(session: SessionTabInfo, t: (key: string) => string): string {
   if (session.derivedTitle) return session.derivedTitle;
   if (session.isLocal) return t("chat.newSessionTitle");
   if (session.displayName) {
-    if ((channel === "feishu" || channel === "lark") && isRawChannelRecipientId(session.displayName)) {
+    if (
+      (channel === "feishu" || channel === "lark") &&
+      isRawChannelRecipientId(session.displayName)
+    ) {
       return formatRawChannelRecipientId(session.displayName);
     }
     return session.displayName;
@@ -110,12 +113,8 @@ function ChannelBadge({ channel }: { channel: string }) {
   const key = channel.toLowerCase();
   const isKnown = KNOWN_CHANNELS.has(key);
   const suffix = channelI18nSuffix(key);
-  const shortLabel = isKnown
-    ? t(`chat.channel${suffix}`)
-    : channel.slice(0, 2).toUpperCase();
-  const tooltip = isKnown
-    ? t(`chat.channelTooltip${suffix}`)
-    : channel;
+  const shortLabel = isKnown ? t(`chat.channel${suffix}`) : channel.slice(0, 2).toUpperCase();
+  const tooltip = isKnown ? t(`chat.channelTooltip${suffix}`) : channel;
   return (
     <span className="chat-tab-channel-badge" title={tooltip}>
       {shortLabel}
@@ -126,7 +125,17 @@ function ChannelBadge({ channel }: { channel: string }) {
 /** Inline SVG pin icon — small, subtle, no emoji. */
 function PinIcon() {
   return (
-    <svg className="chat-tab-pin-icon" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className="chat-tab-pin-icon"
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M9.828 1.172a2 2 0 0 1 2.828 0L14.828 3.343a2 2 0 0 1 0 2.828l-2.121 2.122L11 12l-3-3-4.243 4.243M6 10l-2.707 2.707" />
       <path d="M7.05 4.929L11.07 8.95" />
     </svg>
@@ -289,7 +298,8 @@ function SwipeableArchivedItem({
 
   useEffect(() => () => clearTimeout(wheelTimerRef.current), []);
 
-  const displayTitle = item.customTitle || item.panelTitle || item.derivedTitle || abbreviateKey(item.key);
+  const displayTitle =
+    item.customTitle || item.panelTitle || item.derivedTitle || abbreviateKey(item.key);
   const revealed = offsetX <= -DELETE_THRESHOLD / 2;
 
   return (
@@ -312,20 +322,20 @@ function SwipeableArchivedItem({
           }}
           title={item.key}
         >
-          <span className="chat-archived-item-title">
-            {displayTitle}
-          </span>
+          <span className="chat-archived-item-title">{displayTitle}</span>
           {item.lastMessagePreview && (
-            <span className="chat-archived-item-preview">
-              {item.lastMessagePreview}
-            </span>
+            <span className="chat-archived-item-preview">{item.lastMessagePreview}</span>
           )}
           <span className="chat-archived-item-meta">
             {item.archivedAt
               ? `${t("chat.archivedAt")} ${formatArchivedTime(item.archivedAt, i18n.language)}`
               : abbreviateKey(item.key)}
-            {item.customTitle && (item.panelTitle || item.derivedTitle) ? ` · ${item.panelTitle || item.derivedTitle}` : ""}
-            {(item.customTitle || item.panelTitle || item.derivedTitle) ? ` · ${abbreviateKey(item.key)}` : ""}
+            {item.customTitle && (item.panelTitle || item.derivedTitle)
+              ? ` · ${item.panelTitle || item.derivedTitle}`
+              : ""}
+            {item.customTitle || item.panelTitle || item.derivedTitle
+              ? ` · ${abbreviateKey(item.key)}`
+              : ""}
           </span>
         </button>
       </div>
@@ -386,23 +396,23 @@ function ArchivedDropdown({
 
   const handleDelete = useCallback((key: string) => {
     setItems((prev) => prev.filter((i) => i.key !== key));
-    deleteChatSession(key).catch(() => { });
+    deleteChatSession(key).catch(() => {});
   }, []);
 
   const lowerQuery = query.toLowerCase();
   const filtered = query
     ? items.filter((item) => {
-      const title = item.customTitle || "";
-      const derived = item.derivedTitle || "";
-      const preview = item.lastMessagePreview || "";
-      const key = item.key;
-      return (
-        title.toLowerCase().includes(lowerQuery) ||
-        derived.toLowerCase().includes(lowerQuery) ||
-        preview.toLowerCase().includes(lowerQuery) ||
-        key.toLowerCase().includes(lowerQuery)
-      );
-    })
+        const title = item.customTitle || "";
+        const derived = item.derivedTitle || "";
+        const preview = item.lastMessagePreview || "";
+        const key = item.key;
+        return (
+          title.toLowerCase().includes(lowerQuery) ||
+          derived.toLowerCase().includes(lowerQuery) ||
+          preview.toLowerCase().includes(lowerQuery) ||
+          key.toLowerCase().includes(lowerQuery)
+        );
+      })
     : items;
 
   return (
@@ -461,8 +471,14 @@ const CHAT_SIDEBAR_MAX = 420;
 const CHAT_SIDEBAR_DEFAULT = 260;
 
 export function SessionTabBar({
-  sessions, activeSessionKey, unreadKeys,
-  onSwitchSession, onNewChat, onArchiveSession, onRenameSession, onRestoreSession,
+  sessions,
+  activeSessionKey,
+  unreadKeys,
+  onSwitchSession,
+  onNewChat,
+  onArchiveSession,
+  onRenameSession,
+  onRestoreSession,
   onReorderSession,
 }: SessionTabBarProps) {
   const { t } = useTranslation();
@@ -493,7 +509,11 @@ export function SessionTabBar({
 
   // Scroll the active tab into view when it changes
   useEffect(() => {
-    activeTabRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    activeTabRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
   }, [activeSessionKey]);
 
   const handleDoubleClick = useCallback((key: string) => {
@@ -501,27 +521,33 @@ export function SessionTabBar({
     setRenamingKey(key);
   }, []);
 
-  const handleRenameConfirm = useCallback((key: string, oldLabel: string, newValue: string) => {
-    setRenamingKey(null);
-    if (newValue !== oldLabel) {
-      onRenameSession(key, newValue);
-    }
-  }, [onRenameSession]);
+  const handleRenameConfirm = useCallback(
+    (key: string, oldLabel: string, newValue: string) => {
+      setRenamingKey(null);
+      if (newValue !== oldLabel) {
+        onRenameSession(key, newValue);
+      }
+    },
+    [onRenameSession],
+  );
 
   const handleRenameCancel = useCallback(() => {
     setRenamingKey(null);
   }, []);
 
-  const handleResizeMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    resizeStartRef.current = {
-      startX: e.clientX,
-      startWidth: sidebarWidth,
-    };
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  }, [sidebarWidth]);
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      resizeStartRef.current = {
+        startX: e.clientX,
+        startWidth: sidebarWidth,
+      };
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [sidebarWidth],
+  );
 
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
@@ -555,16 +581,19 @@ export function SessionTabBar({
   }, []);
 
   // --- Drag-to-reorder pointer handlers ---
-  const handleTabPointerDown = useCallback((e: React.PointerEvent, index: number) => {
-    // Main tab (index 0) cannot be dragged; skip during rename
-    if (index === 0 || renamingKey === sessions[index]?.key) return;
-    dragStartRef.current = {
-      pointerId: e.pointerId,
-      startY: e.clientY,
-      index,
-      button: e.currentTarget as HTMLElement,
-    };
-  }, [renamingKey, sessions]);
+  const handleTabPointerDown = useCallback(
+    (e: React.PointerEvent, index: number) => {
+      // Main tab (index 0) cannot be dragged; skip during rename
+      if (index === 0 || renamingKey === sessions[index]?.key) return;
+      dragStartRef.current = {
+        pointerId: e.pointerId,
+        startY: e.clientY,
+        index,
+        button: e.currentTarget as HTMLElement,
+      };
+    },
+    [renamingKey, sessions],
+  );
 
   const handleTabPointerMove = useCallback((e: React.PointerEvent) => {
     const start = dragStartRef.current;
@@ -594,25 +623,35 @@ export function SessionTabBar({
     }
   }, []);
 
-  const handleTabPointerUp = useCallback((e: React.PointerEvent) => {
-    const start = dragStartRef.current;
-    if (!start || e.pointerId !== start.pointerId) { dragStartRef.current = null; return; }
-
-    if (isDraggingRef.current) {
-      const ds = dragStateRef.current;
-      // Commit reorder
-      if (ds && ds.dragIndex !== ds.currentIndex) {
-        onReorderSession(ds.dragIndex, ds.currentIndex);
-        justDraggedRef.current = true;
-        requestAnimationFrame(() => { justDraggedRef.current = false; });
+  const handleTabPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      const start = dragStartRef.current;
+      if (!start || e.pointerId !== start.pointerId) {
+        dragStartRef.current = null;
+        return;
       }
-      setDragState(null);
-      dragStateRef.current = null;
-      isDraggingRef.current = false;
-      try { start.button.releasePointerCapture(e.pointerId); } catch { }
-    }
-    dragStartRef.current = null;
-  }, [onReorderSession]);
+
+      if (isDraggingRef.current) {
+        const ds = dragStateRef.current;
+        // Commit reorder
+        if (ds && ds.dragIndex !== ds.currentIndex) {
+          onReorderSession(ds.dragIndex, ds.currentIndex);
+          justDraggedRef.current = true;
+          requestAnimationFrame(() => {
+            justDraggedRef.current = false;
+          });
+        }
+        setDragState(null);
+        dragStateRef.current = null;
+        isDraggingRef.current = false;
+        try {
+          start.button.releasePointerCapture(e.pointerId);
+        } catch {}
+      }
+      dragStartRef.current = null;
+    },
+    [onReorderSession],
+  );
 
   const handleTabPointerCancel = useCallback((e: React.PointerEvent) => {
     const start = dragStartRef.current;
@@ -621,7 +660,9 @@ export function SessionTabBar({
       setDragState(null);
       dragStateRef.current = null;
       isDraggingRef.current = false;
-      try { start?.button.releasePointerCapture(e.pointerId); } catch { }
+      try {
+        start?.button.releasePointerCapture(e.pointerId);
+      } catch {}
     }
   }, []);
 
@@ -640,7 +681,15 @@ export function SessionTabBar({
           onClick={onNewChat}
           title={t("chat.newSession")}
         >
-          <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          >
             <path d="M7 2v10M2 7h10" />
           </svg>
           <span>{t("chat.newSession")}</span>
@@ -673,12 +722,16 @@ export function SessionTabBar({
             isUnread ? "chat-session-tab-unread" : "",
             session.pinned ? "chat-session-tab-pinned" : "",
             isDragging ? "chat-session-tab-dragging" : "",
-            (!isDragging && shiftY !== 0) ? "chat-session-tab-shifting" : "",
-          ].filter(Boolean).join(" ");
+            !isDragging && shiftY !== 0 ? "chat-session-tab-shifting" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
 
           const dragTransform = isDragging
             ? `translateY(${dragState!.offsetY}px)`
-            : shiftY !== 0 ? `translateY(${shiftY}px)` : undefined;
+            : shiftY !== 0
+              ? `translateY(${shiftY}px)`
+              : undefined;
 
           return (
             <button
@@ -686,7 +739,9 @@ export function SessionTabBar({
               ref={isActive ? activeTabRef : undefined}
               className={classes}
               style={dragTransform ? { transform: dragTransform } : undefined}
-              onClick={() => { if (!justDraggedRef.current) onSwitchSession(session.key); }}
+              onClick={() => {
+                if (!justDraggedRef.current) onSwitchSession(session.key);
+              }}
               onDoubleClick={() => handleDoubleClick(session.key)}
               onPointerDown={(e) => handleTabPointerDown(e, index)}
               onPointerMove={handleTabPointerMove}
@@ -715,7 +770,15 @@ export function SessionTabBar({
                   }}
                   title={t("chat.archiveSession")}
                 >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  >
                     <path d="M3 3l6 6M9 3l-6 6" />
                   </svg>
                 </span>
@@ -732,7 +795,16 @@ export function SessionTabBar({
             onClick={() => setShowArchived((v) => !v)}
             title={t("chat.archivedSessions")}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect x="1" y="1" width="12" height="4" rx="1" />
               <path d="M2 5v7a1 1 0 001 1h8a1 1 0 001-1V5" />
               <path d="M5.5 8h3" />
@@ -740,10 +812,7 @@ export function SessionTabBar({
             <span>{t("chat.archivedSessions")}</span>
           </button>
           {showArchived && (
-            <ArchivedDropdown
-              onRestore={onRestoreSession}
-              onClose={() => setShowArchived(false)}
-            />
+            <ArchivedDropdown onRestore={onRestoreSession} onClose={() => setShowArchived(false)} />
           )}
         </div>
       </div>

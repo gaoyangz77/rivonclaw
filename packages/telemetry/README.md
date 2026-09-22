@@ -124,15 +124,15 @@ Get the current number of queued events.
 
 The following event types are supported:
 
-| Event Type | Description | Metadata |
-|------------|-------------|----------|
-| `app.started` | Application started | `{ version, platform }` |
-| `app.stopped` | Application stopped | `{ runtimeMs }` |
-| `app.heartbeat` | Periodic heartbeat | `{ uptime }` |
-| `gateway.restarted` | Gateway process restarted | - |
-| `rule.created` | New rule created | `{ artifactType }` |
-| `channel.configured` | Channel configured | `{ channelType }` |
-| `app.error` | Application error | `{ errorMessage, errorStack }` |
+| Event Type           | Description               | Metadata                       |
+| -------------------- | ------------------------- | ------------------------------ |
+| `app.started`        | Application started       | `{ version, platform }`        |
+| `app.stopped`        | Application stopped       | `{ runtimeMs }`                |
+| `app.heartbeat`      | Periodic heartbeat        | `{ uptime }`                   |
+| `gateway.restarted`  | Gateway process restarted | -                              |
+| `rule.created`       | New rule created          | `{ artifactType }`             |
+| `channel.configured` | Channel configured        | `{ channelType }`              |
+| `app.error`          | Application error         | `{ errorMessage, errorStack }` |
 
 ## Usage Examples
 
@@ -165,13 +165,16 @@ app.on("ready", () => {
 });
 
 // Track heartbeat every 5 minutes
-setInterval(() => {
-  if (telemetryClient) {
-    telemetryClient.track("app.heartbeat", {
-      uptime: telemetryClient.getUptime(),
-    });
-  }
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    if (telemetryClient) {
+      telemetryClient.track("app.heartbeat", {
+        uptime: telemetryClient.getUptime(),
+      });
+    }
+  },
+  5 * 60 * 1000,
+);
 
 // Graceful shutdown
 app.on("will-quit", async () => {

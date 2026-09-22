@@ -20,23 +20,27 @@ describe("migrateFeishuBotName", () => {
   it("removes botName from Feishu account configs", () => {
     writeFileSync(
       configPath,
-      JSON.stringify({
-        channels: {
-          feishu: {
-            accounts: {
-              default: {
-                appId: "cli_test",
-                botName: "My Bot",
-                enabled: true,
-              },
-              secondary: {
-                appId: "cli_other",
-                botName: "Other Bot",
+      JSON.stringify(
+        {
+          channels: {
+            feishu: {
+              accounts: {
+                default: {
+                  appId: "cli_test",
+                  botName: "My Bot",
+                  enabled: true,
+                },
+                secondary: {
+                  appId: "cli_other",
+                  botName: "Other Bot",
+                },
               },
             },
           },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
       "utf-8",
     );
 

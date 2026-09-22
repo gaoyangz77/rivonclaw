@@ -9,7 +9,10 @@ import {
   AFFILIATE_OVERVIEW_REACHOUT_QUERY,
 } from "../../../api/affiliate-analytics-queries.js";
 import { defaultAffiliateDateRange } from "../affiliate-analytics.js";
-import { reconcileShopSelection, type AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
+import {
+  reconcileShopSelection,
+  type AffiliateAnalyticsShop,
+} from "../affiliate-analytics-scope.js";
 import {
   AFFILIATE_POST_APPROVAL_WINDOW_DAYS,
   type AffiliateApprovalResult,
@@ -55,7 +58,9 @@ export function useAffiliateOverview(shops: AffiliateAnalyticsShop[]): Affiliate
   const [selection, setSelection] = useState<string[] | null>(null);
   const [windowDays, setWindowDays] = useState<AffiliateWindowDays>(30);
 
-  const shopIds = selection ? reconcileShopSelection(selection, shops) : shops.map((shop) => shop.id);
+  const shopIds = selection
+    ? reconcileShopSelection(selection, shops)
+    : shops.map((shop) => shop.id);
   const skip = shopIds.length === 0;
   const sectionOptions = {
     variables: { input: { shopIds, windowDays } as GQL.AffiliateOverviewInput },
@@ -81,24 +86,27 @@ export function useAffiliateOverview(shops: AffiliateAnalyticsShop[]): Affiliate
   // section's axis need ~90 days to produce anything, so a 30- or 60-day
   // request returns a structurally empty chart. See
   // AFFILIATE_POST_APPROVAL_WINDOW_DAYS for the measurement.
-  const postApprovalQuery = useQuery<AffiliatePostApprovalResult, { input: GQL.AffiliateOverviewInput }>(
-    AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY,
-    {
-      ...sectionOptions,
-      variables: {
-        input: { shopIds, windowDays: AFFILIATE_POST_APPROVAL_WINDOW_DAYS } as GQL.AffiliateOverviewInput,
-      },
+  const postApprovalQuery = useQuery<
+    AffiliatePostApprovalResult,
+    { input: GQL.AffiliateOverviewInput }
+  >(AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY, {
+    ...sectionOptions,
+    variables: {
+      input: {
+        shopIds,
+        windowDays: AFFILIATE_POST_APPROVAL_WINDOW_DAYS,
+      } as GQL.AffiliateOverviewInput,
     },
-  );
-  const portfolioQuery = useQuery<AffiliateOverviewPortfolioResult, { input: GQL.AffiliateAnalyticsOverviewInput }>(
-    AFFILIATE_OVERVIEW_PORTFOLIO_QUERY,
-    {
-      variables: { input: { shopIds, ...portfolioRange } as GQL.AffiliateAnalyticsOverviewInput },
-      skip,
-      fetchPolicy: "cache-and-network",
-      notifyOnNetworkStatusChange: true,
-    },
-  );
+  });
+  const portfolioQuery = useQuery<
+    AffiliateOverviewPortfolioResult,
+    { input: GQL.AffiliateAnalyticsOverviewInput }
+  >(AFFILIATE_OVERVIEW_PORTFOLIO_QUERY, {
+    variables: { input: { shopIds, ...portfolioRange } as GQL.AffiliateAnalyticsOverviewInput },
+    skip,
+    fetchPolicy: "cache-and-network",
+    notifyOnNetworkStatusChange: true,
+  });
 
   const sectionQueries = [reachoutQuery, approvalQuery, postApprovalQuery, portfolioQuery];
 

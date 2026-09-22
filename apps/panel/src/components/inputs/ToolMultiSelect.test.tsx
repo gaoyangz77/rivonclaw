@@ -3,7 +3,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ToolMultiSelect } from "./ToolMultiSelect.js";
 
 const mockStore = {
-  availableTools: [] as Array<{ id: string; displayName: string; description: string; category: string; source: "entitled" }>,
+  availableTools: [] as Array<{
+    id: string;
+    displayName: string;
+    description: string;
+    category: string;
+    source: "entitled";
+  }>,
   allTools: [] as Array<{ id: string; displayName: string; description: string; category: string }>,
 };
 

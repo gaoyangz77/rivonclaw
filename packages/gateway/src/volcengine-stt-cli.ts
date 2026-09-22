@@ -15,10 +15,8 @@ import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
 
-const SUBMIT_URL =
-  "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit";
-const QUERY_URL =
-  "https://openspeech.bytedance.com/api/v3/auc/bigmodel/query";
+const SUBMIT_URL = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit";
+const QUERY_URL = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/query";
 const RESOURCE_ID = "volc.seedasr.auc";
 const MODEL_NAME = "bigmodel";
 
@@ -79,11 +77,7 @@ interface QueryResult {
   utterances?: Array<{ text: string }>;
 }
 
-async function poll(
-  appKey: string,
-  accessKey: string,
-  requestId: string,
-): Promise<string> {
+async function poll(appKey: string, accessKey: string, requestId: string): Promise<string> {
   const deadline = Date.now() + TIMEOUT_MS;
   let interval = INITIAL_POLL_MS;
 

@@ -1,5 +1,11 @@
 import { createLogger } from "@rivonclaw/logger";
-import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, getAnthropicMessagesUrl } from "@rivonclaw/core";
+import {
+  getProviderMeta,
+  getDefaultModelForProvider,
+  providerSecretKey,
+  formatError,
+  getAnthropicMessagesUrl,
+} from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -11,9 +17,11 @@ const log = createLogger("provider-validator");
  * Prefers extraModels (loaded at startup) → falls back to validationModel from meta.
  */
 function resolveValidationModel(provider: LLMProvider, userModel?: string): string | undefined {
-  return userModel
-    ?? getDefaultModelForProvider(provider)?.modelId
-    ?? getProviderMeta(provider)?.validationModel;
+  return (
+    userModel ??
+    getDefaultModelForProvider(provider)?.modelId ??
+    getProviderMeta(provider)?.validationModel
+  );
 }
 
 /**
@@ -35,7 +43,10 @@ export async function validateProviderApiKey(
 
   // OAuth-only providers don't support API key validation.
   if (meta.oauth) {
-    return { valid: false, error: "This provider uses OAuth authentication and cannot be validated with an API key." };
+    return {
+      valid: false,
+      error: "This provider uses OAuth authentication and cannot be validated with an API key.",
+    };
   }
 
   // Amazon Bedrock uses AWS Sig v4 — skip validation
@@ -64,7 +75,9 @@ export async function validateProviderApiKey(
         return { valid: false, error: "No model available for validation" };
       }
 
-      log.info(`Validating ${provider} ${isOAuthToken ? "OAuth token" : "API key"} via Messages API (model: ${model})...`);
+      log.info(
+        `Validating ${provider} ${isOAuthToken ? "OAuth token" : "API key"} via Messages API (model: ${model})...`,
+      );
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -91,9 +104,7 @@ export async function validateProviderApiKey(
         body.system = "You are Claude Code, Anthropic's official CLI for Claude.";
       }
 
-      const endpoint = isNativeAnthropic
-        ? getAnthropicMessagesUrl()
-        : `${baseUrl}/v1/messages`;
+      const endpoint = isNativeAnthropic ? getAnthropicMessagesUrl() : `${baseUrl}/v1/messages`;
 
       res = await fetch(endpoint, {
         method: "POST",
@@ -108,7 +119,9 @@ export async function validateProviderApiKey(
 
       if (model) {
         // Provider has a known model — validate via minimal chat completion
-        log.info(`Validating ${provider} API key via ${baseUrl}/chat/completions (model: ${model})...`);
+        log.info(
+          `Validating ${provider} API key via ${baseUrl}/chat/completions (model: ${model})...`,
+        );
         res = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
@@ -155,7 +168,10 @@ export async function validateProviderApiKey(
       }
 
       // 403 from firewall/proxy — not a key issue, likely network restriction
-      return { valid: false, error: `Provider returned ${res.status} — this may be a network issue (firewall/proxy). Response: ${body.slice(0, 200)}` };
+      return {
+        valid: false,
+        error: `Provider returned ${res.status} — this may be a network issue (firewall/proxy). Response: ${body.slice(0, 200)}`,
+      };
     }
 
     // Any non-2xx response is suspicious — don't accept the key
@@ -247,7 +263,10 @@ export async function validateCustomProviderApiKey(
       if (isRealAuthError) {
         return { valid: false, error: "Invalid API key" };
       }
-      return { valid: false, error: `Provider returned ${res.status} — this may be a network issue. Response: ${body.slice(0, 200)}` };
+      return {
+        valid: false,
+        error: `Provider returned ${res.status} — this may be a network issue. Response: ${body.slice(0, 200)}`,
+      };
     }
 
     if (!res.ok) {
@@ -318,7 +337,7 @@ export async function fetchCustomProviderModels(
       return { error: `Provider returned ${res.status}: ${body.slice(0, 200)}` };
     }
 
-    const json = await res.json() as { data?: CustomProviderModelEntry[] };
+    const json = (await res.json()) as { data?: CustomProviderModelEntry[] };
     if (!json.data || !Array.isArray(json.data)) {
       return { error: "Unexpected response format — expected { data: [...] }" };
     }
@@ -357,7 +376,9 @@ export async function syncActiveKey(
   const activeKey = storage.providerKeys.getByProvider(provider)[0];
   // Custom providers use their slug directly; built-in providers use providerSecretKey()
   const isCustom = activeKey?.authType === "custom";
-  const canonicalKey = isCustom ? `${provider}-api-key` : providerSecretKey(provider as LLMProvider);
+  const canonicalKey = isCustom
+    ? `${provider}-api-key`
+    : providerSecretKey(provider as LLMProvider);
   if (activeKey) {
     const keyValue = await secretStore.get(`provider-key-${activeKey.id}`);
     if (keyValue) {

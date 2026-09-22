@@ -52,9 +52,7 @@ function splitBindSpec(spec: string): { host: string; container: string; options
 
   // Container path may also have a Windows drive letter.
   const containerHasDrive = /^[A-Za-z]:[/\\]/.test(rest);
-  const optStart = containerHasDrive
-    ? rest.indexOf(":", 2)
-    : rest.indexOf(":");
+  const optStart = containerHasDrive ? rest.indexOf(":", 2) : rest.indexOf(":");
 
   if (optStart === -1) {
     return { host, container: rest, options: "" };
@@ -94,7 +92,5 @@ export function normalizeBindSpec(spec: string): string {
  */
 export function sanitizeWindowsBinds(binds: unknown): string[] | undefined {
   if (!Array.isArray(binds)) return undefined;
-  return binds
-    .filter((b): b is string => typeof b === "string")
-    .map(normalizeBindSpec);
+  return binds.filter((b): b is string => typeof b === "string").map(normalizeBindSpec);
 }

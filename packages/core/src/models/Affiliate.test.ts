@@ -72,8 +72,9 @@ describe("AffiliateWorkspaceModel", () => {
     } as any);
 
     expect(workspace.affiliateCollaborations).toHaveLength(1);
-    expect(workspace.getCollaboration("collaboration-1")?.platformCollaborationId)
-      .toBe("platform-collaboration-1");
+    expect(workspace.getCollaboration("collaboration-1")?.platformCollaborationId).toBe(
+      "platform-collaboration-1",
+    );
     expect("collaborationRecords" in workspace).toBe(false);
   });
 
@@ -100,22 +101,24 @@ describe("AffiliateWorkspaceModel", () => {
       creatorProfiles: [{ id: "creator-1", nickname: "Creator", createdAt: NOW, updatedAt: NOW }],
       affiliateCollaborations: [collaboration()],
       sampleApplicationRecords: [sample()],
-      actionProposals: [{
-        id: "proposal-1",
-        userId: "user-1",
-        focusShopId: "shop-1",
-        creatorId: "creator-1",
-        creatorRelationshipId: "relationship-1",
-        affiliateCollaborationId: "collaboration-1",
-        sampleApplicationRecordId: "sample-1",
-        productId: "product-1",
-        type: "REVIEW_SAMPLE_APPLICATION",
-        status: "PENDING",
-        operatorSummary: "Review sample",
-        steps: [],
-        createdAt: NOW,
-        updatedAt: NOW,
-      }],
+      actionProposals: [
+        {
+          id: "proposal-1",
+          userId: "user-1",
+          focusShopId: "shop-1",
+          creatorId: "creator-1",
+          creatorRelationshipId: "relationship-1",
+          affiliateCollaborationId: "collaboration-1",
+          sampleApplicationRecordId: "sample-1",
+          productId: "product-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          status: "PENDING",
+          operatorSummary: "Review sample",
+          steps: [],
+          createdAt: NOW,
+          updatedAt: NOW,
+        },
+      ],
     } as any);
 
     const projection = workspace.proposalProjection("proposal-1");
@@ -174,14 +177,24 @@ describe("AffiliateWorkspaceModel", () => {
 
   it("normalizes BD ownership, operational settings, and outreach accounts", () => {
     const workspace = AffiliateWorkspaceModel.create({});
-    workspace.replaceAffiliateBusinessDevelopers([{
-      id: "bd-1", userId: "user-1", displayName: "Maria Internal",
-      creatorDisplayName: "Maria", regions: ["US"],
-      acceptingCreators: true, agentAssistanceMode: "AI_ASSISTED", configRevision: 2,
-      createdAt: NOW, updatedAt: NOW,
-    }] as any);
+    workspace.replaceAffiliateBusinessDevelopers([
+      {
+        id: "bd-1",
+        userId: "user-1",
+        displayName: "Maria Internal",
+        creatorDisplayName: "Maria",
+        regions: ["US"],
+        acceptingCreators: true,
+        agentAssistanceMode: "AI_ASSISTED",
+        configRevision: 2,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ] as any);
     workspace.setAffiliateOperationalSettings({
-      id: "settings-1", userId: "user-1", onboardingCompletedAt: NOW,
+      id: "settings-1",
+      userId: "user-1",
+      onboardingCompletedAt: NOW,
     } as any);
 
     expect(workspace.getBusinessDeveloper("bd-1")?.displayName).toBe("Maria Internal");
@@ -210,8 +223,9 @@ describe("AffiliateWorkspaceModel", () => {
     } as any);
 
     const projection = workspace.proposalProjection("proposal-1");
-    expect(projection?.proposal.deliveredMessage?.parts?.[0]?.text)
-      .toBe("Hola, gracias por avisarnos.");
+    expect(projection?.proposal.deliveredMessage?.parts?.[0]?.text).toBe(
+      "Hola, gracias por avisarnos.",
+    );
   });
 
   it("keeps every Sample product's stock and the Creator sales metrics on a proposal", () => {
@@ -236,8 +250,10 @@ describe("AffiliateWorkspaceModel", () => {
     } as any);
 
     const projection = workspace.proposalProjection("proposal-1");
-    expect(projection?.proposal.productSummaries.map((product) => product.productId))
-      .toEqual(["product-1", "product-2"]);
+    expect(projection?.proposal.productSummaries.map((product) => product.productId)).toEqual([
+      "product-1",
+      "product-2",
+    ]);
     expect(projection?.proposal.productSummaries[0]?.totalAvailableQuantity).toBe(12);
     expect(projection?.proposal.productSummaries[1]?.totalAvailableQuantity).toBeNull();
     expect(projection?.proposal.creatorGmv?.amount).toBe("1250.5");

@@ -12,17 +12,26 @@ import {
   generateConversationSummary,
   getLocalConversationSummary,
 } from "./cs-conversation-summary-service.js";
-import {
-  emitCsEscalationEvent,
-  emitCsSessionEvent,
-} from "../telemetry/cs-telemetry-ref.js";
+import { emitCsEscalationEvent, emitCsSessionEvent } from "../telemetry/cs-telemetry-ref.js";
 
 type CsEscalateMutationResult = {
-  csEscalate: { ok: boolean; action?: string | null; escalationId?: string | null; status?: string | null; error?: string | null };
+  csEscalate: {
+    ok: boolean;
+    action?: string | null;
+    escalationId?: string | null;
+    status?: string | null;
+    error?: string | null;
+  };
 };
 
 type CsRespondMutationResult = {
-  csRespond: { ok: boolean; escalationId?: string | null; status?: string | null; version?: number | null; error?: string | null };
+  csRespond: {
+    ok: boolean;
+    escalationId?: string | null;
+    status?: string | null;
+    version?: number | null;
+    error?: string | null;
+  };
 };
 
 type CsGetEscalationResultQueryResult = {
@@ -75,8 +84,11 @@ const bindingStatus: EndpointHandler = async (_req, res, _url, _params, _ctx) =>
 // ── POST /api/cs-bridge/unbind ──
 
 const unbind: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  const body = await parseBody(req) as { shopId?: string };
-  if (!body.shopId) { sendJson(res, 400, { error: "Missing shopId" }); return; }
+  const body = (await parseBody(req)) as { shopId?: string };
+  if (!body.shopId) {
+    sendJson(res, 400, { error: "Missing shopId" });
+    return;
+  }
   getCsBridge()?.unbindShop(body.shopId);
   sendJson(res, 200, { ok: true });
 };
@@ -84,11 +96,15 @@ const unbind: EndpointHandler = async (req, res, _url, _params, _ctx) => {
 // ── POST /api/cs-bridge/escalate ──
 
 const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
+  if (!_ctx.authSession) {
+    sendJson(res, 401, { error: "Not authenticated" });
+    return;
+  }
 
-  const body = await parseBody(req) as Record<string, unknown>;
-  const missing = ["shopId", "conversationId", "buyerUserId", "reason"]
-    .filter((f) => !body[f] || typeof body[f] !== "string");
+  const body = (await parseBody(req)) as Record<string, unknown>;
+  const missing = ["shopId", "conversationId", "buyerUserId", "reason"].filter(
+    (f) => !body[f] || typeof body[f] !== "string",
+  );
   if (missing.length > 0) {
     sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
     return;
@@ -96,7 +112,7 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
 
   try {
     const startedAt = Date.now();
-    const result = await _ctx.authSession.graphqlFetch(CS_ESCALATE_MUTATION, {
+    const result = (await _ctx.authSession.graphqlFetch(CS_ESCALATE_MUTATION, {
       shopId: body.shopId as string,
       conversationId: body.conversationId as string,
       buyerUserId: body.buyerUserId as string,
@@ -104,7 +120,7 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
       reason: body.reason as string,
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
       context: typeof body.context === "string" ? body.context : undefined,
-    }) as CsEscalateMutationResult;
+    })) as CsEscalateMutationResult;
     emitCsEscalationEvent({
       shopId: body.shopId as string,
       conversationId: body.conversationId as string,
@@ -137,11 +153,15 @@ const escalate: EndpointHandler = async (req, res, _url, _params, _ctx) => {
 // ── POST /api/cs-bridge/escalation-result ──
 
 const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
+  if (!_ctx.authSession) {
+    sendJson(res, 401, { error: "Not authenticated" });
+    return;
+  }
 
-  const body = await parseBody(req) as Record<string, unknown>;
-  const missing = ["escalationId", "decision"]
-    .filter((f) => !body[f] || typeof body[f] !== "string");
+  const body = (await parseBody(req)) as Record<string, unknown>;
+  const missing = ["escalationId", "decision"].filter(
+    (f) => !body[f] || typeof body[f] !== "string",
+  );
   if (missing.length > 0) {
     sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
     return;
@@ -150,12 +170,12 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
 
   try {
     const startedAt = Date.now();
-    const result = await _ctx.authSession.graphqlFetch(CS_RESPOND_MUTATION, {
+    const result = (await _ctx.authSession.graphqlFetch(CS_RESPOND_MUTATION, {
       escalationId: body.escalationId as string,
       decision: body.decision as string,
       instructions,
       resolved: body.resolved === true,
-    }) as CsRespondMutationResult;
+    })) as CsRespondMutationResult;
     emitCsEscalationEvent({
       escalationId: body.escalationId as string,
       action: body.resolved === true ? "respond_resolve" : "respond_update",
@@ -184,7 +204,10 @@ const escalationResult: EndpointHandler = async (req, res, _url, _params, _ctx) 
 // ── GET /api/cs-bridge/escalation/:id ──
 
 const getEscalation: EndpointHandler = async (_req, res, _url, params, _ctx) => {
-  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
+  if (!_ctx.authSession) {
+    sendJson(res, 401, { error: "Not authenticated" });
+    return;
+  }
 
   const escalationId = params.id!;
   if (!escalationId) {
@@ -193,10 +216,9 @@ const getEscalation: EndpointHandler = async (_req, res, _url, params, _ctx) => 
   }
 
   try {
-    const result = await _ctx.authSession.graphqlFetch(
-      CS_GET_ESCALATION_RESULT_QUERY,
-      { escalationId },
-    ) as CsGetEscalationResultQueryResult;
+    const result = (await _ctx.authSession.graphqlFetch(CS_GET_ESCALATION_RESULT_QUERY, {
+      escalationId,
+    })) as CsGetEscalationResultQueryResult;
     if (!result.csGetEscalationResult) {
       sendJson(res, 404, { error: `Escalation ${escalationId} not found` });
       return;
@@ -211,11 +233,15 @@ const getEscalation: EndpointHandler = async (_req, res, _url, params, _ctx) => 
 
 const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx) => {
   const bridge = getCsBridge();
-  if (!bridge) { sendJson(res, 503, { error: "CS bridge not available" }); return; }
+  if (!bridge) {
+    sendJson(res, 503, { error: "CS bridge not available" });
+    return;
+  }
 
-  const body = await parseBody(req) as Record<string, unknown>;
-  const missing = ["shopId", "conversationId"]
-    .filter((f) => !body[f] || typeof body[f] !== "string");
+  const body = (await parseBody(req)) as Record<string, unknown>;
+  const missing = ["shopId", "conversationId"].filter(
+    (f) => !body[f] || typeof body[f] !== "string",
+  );
   if (missing.length > 0) {
     sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
     return;
@@ -230,9 +256,8 @@ const startConversation: EndpointHandler = async (req, res, _url, _params, _ctx)
       orderId: typeof body.orderId === "string" ? body.orderId : undefined,
       dispatchReason: "MANUAL_START",
       useMessageDelta: false,
-      operatorInstruction: typeof body.operatorInstruction === "string"
-        ? body.operatorInstruction
-        : undefined,
+      operatorInstruction:
+        typeof body.operatorInstruction === "string" ? body.operatorInstruction : undefined,
     });
     emitCsSessionEvent({
       shopId: body.shopId as string,
@@ -282,11 +307,15 @@ const getConversationSummary: EndpointHandler = async (_req, res, url, _params, 
 // ── POST /api/cs-bridge/conversation-summary ──
 
 const createConversationSummary: EndpointHandler = async (req, res, _url, _params, _ctx) => {
-  if (!_ctx.authSession) { sendJson(res, 401, { error: "Not authenticated" }); return; }
+  if (!_ctx.authSession) {
+    sendJson(res, 401, { error: "Not authenticated" });
+    return;
+  }
 
-  const body = await parseBody(req) as Record<string, unknown>;
-  const missing = ["shopId", "conversationId"]
-    .filter((f) => !body[f] || typeof body[f] !== "string");
+  const body = (await parseBody(req)) as Record<string, unknown>;
+  const missing = ["shopId", "conversationId"].filter(
+    (f) => !body[f] || typeof body[f] !== "string",
+  );
   if (missing.length > 0) {
     sendJson(res, 400, { error: `Missing required fields: ${missing.join(", ")}` });
     return;

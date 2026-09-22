@@ -33,7 +33,12 @@ export class ChannelAccountsRepository {
   constructor(private db: Database.Database) {}
 
   /** Insert or update a channel account config (secrets excluded). */
-  upsert(channelId: string, accountId: string, name: string | null, config: Record<string, unknown>): ChannelAccount {
+  upsert(
+    channelId: string,
+    accountId: string,
+    name: string | null,
+    config: Record<string, unknown>,
+  ): ChannelAccount {
     const now = Date.now();
     this.db
       .prepare(

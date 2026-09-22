@@ -31,9 +31,12 @@ export interface UsageSummary {
   >;
 }
 
-export async function fetchUsage(
-  filter?: { since?: string; until?: string; model?: string; provider?: string },
-): Promise<UsageSummary> {
+export async function fetchUsage(filter?: {
+  since?: string;
+  until?: string;
+  model?: string;
+  provider?: string;
+}): Promise<UsageSummary> {
   const params = new URLSearchParams();
   if (filter?.since) params.set("since", filter.since);
   if (filter?.until) params.set("until", filter.until);
@@ -80,7 +83,9 @@ export async function fetchKeyUsage(filter?: {
   if (filter?.provider) params.set("provider", filter.provider);
   if (filter?.model) params.set("model", filter.model);
   const query = params.toString();
-  return fetchJson<KeyModelUsageSummary[]>(clientPath(API["usage.keyUsage"]) + (query ? "?" + query : ""));
+  return fetchJson<KeyModelUsageSummary[]>(
+    clientPath(API["usage.keyUsage"]) + (query ? "?" + query : ""),
+  );
 }
 
 export async function fetchActiveKeyUsage(): Promise<ActiveKeyInfo | null> {
@@ -106,5 +111,7 @@ export async function fetchKeyUsageTimeseries(filter?: {
   if (filter?.windowStart) params.set("windowStart", String(filter.windowStart));
   if (filter?.windowEnd) params.set("windowEnd", String(filter.windowEnd));
   const query = params.toString();
-  return fetchJson<KeyUsageDailyBucket[]>(clientPath(API["usage.timeseries"]) + (query ? "?" + query : ""));
+  return fetchJson<KeyUsageDailyBucket[]>(
+    clientPath(API["usage.timeseries"]) + (query ? "?" + query : ""),
+  );
 }

@@ -1,14 +1,19 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.settings.${key}Title`,
     bodyKey: `tutorial.settings.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const settingsSteps: TutorialStep[] = [
@@ -22,4 +27,4 @@ export const settingsSteps: TutorialStep[] = [
   step("settings-telemetry", "settings-telemetry", "telemetryToggle", "bottom"),
   step("settings-dependencies", "settings-dependencies", "installDeps", "bottom"),
   step("settings-diagnostics", "settings-diagnostics", "diagnostics", "top"),
-]
+];

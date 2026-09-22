@@ -18,9 +18,7 @@ interface AccountProfileCardProps {
   onLogout: () => void;
 }
 
-export function AccountProfileCard({
-  onLogout,
-}: AccountProfileCardProps) {
+export function AccountProfileCard({ onLogout }: AccountProfileCardProps) {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
@@ -42,7 +40,7 @@ export function AccountProfileCard({
     : accountLlm?.entitlement.subscription
       ? entitlementStatusLabel(t, accountLlm.entitlement)
       : t("billing.notSubscribed");
-  const inviteCode = user.agent?.active ? user.agent.inviteCode ?? null : null;
+  const inviteCode = user.agent?.active ? (user.agent.inviteCode ?? null) : null;
 
   async function copyInviteCode() {
     if (!inviteCode) return;
@@ -68,7 +66,11 @@ export function AccountProfileCard({
   }
 
   return (
-    <TkPanel as="section" className="section-card account-profile-card" data-tutorial-id="account-profile">
+    <TkPanel
+      as="section"
+      className="section-card account-profile-card"
+      data-tutorial-id="account-profile"
+    >
       <div className="account-profile-header">
         <div className="account-profile-identity">
           <div className="account-avatar">{initial}</div>
@@ -104,7 +106,10 @@ export function AccountProfileCard({
           </span>
         </div>
         {inviteCode && (
-          <div className="account-info-item account-invite-item" data-tutorial-id="account-invite-code">
+          <div
+            className="account-info-item account-invite-item"
+            data-tutorial-id="account-invite-code"
+          >
             <span className="account-info-label account-invite-label">
               {t("account.inviteCode")}
               <span
@@ -131,7 +136,10 @@ export function AccountProfileCard({
           </div>
         )}
         {llmUsages.length > 0 && (
-          <div className="account-info-item account-info-item-wide quota-weekly account-usage-list" data-tutorial-id="account-quota">
+          <div
+            className="account-info-item account-info-item-wide quota-weekly account-usage-list"
+            data-tutorial-id="account-quota"
+          >
             {llmUsages.map((usage) => {
               const remainingPercent = usage.remainingPercent;
               return (
@@ -144,7 +152,9 @@ export function AccountProfileCard({
                       </span>
                     </span>
                     <span className="quota-refresh-time">
-                      {t("account.quotaRefreshAt", { time: formatShortDateTime(usage.refreshAt, i18n.language) })}
+                      {t("account.quotaRefreshAt", {
+                        time: formatShortDateTime(usage.refreshAt, i18n.language),
+                      })}
                     </span>
                   </div>
                   <div className="quota-bar-wrap">
@@ -154,7 +164,9 @@ export function AccountProfileCard({
                       max={100}
                     />
                     <span className="quota-bar-label">
-                      {t("billing.usageRemainingPercent", { percent: usagePercentLabel(remainingPercent) })}
+                      {t("billing.usageRemainingPercent", {
+                        percent: usagePercentLabel(remainingPercent),
+                      })}
                     </span>
                   </div>
                 </div>

@@ -45,11 +45,11 @@ OpenClaw is the engine; RivonClaw is the desktop cockpit and business layer.
 
 ## Prerequisites
 
-| Tool | Version |
-| --- | --- |
-| Git | any |
-| Node.js | >= 24 |
-| pnpm | 10.6.2 |
+| Tool    | Version |
+| ------- | ------- |
+| Git     | any     |
+| Node.js | >= 24   |
+| pnpm    | 10.6.2  |
 
 ## Quick Start
 
@@ -112,36 +112,36 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`,
 
 ### Apps
 
-| Package | Description |
-| --- | --- |
+| Package              | Description                                                                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@rivonclaw/desktop` | Electron 40 desktop app. Owns app lifecycle, local API routes, gateway startup, config writes, storage, updater, telemetry, and cloud/CS/mobile bridges. |
-| `@rivonclaw/panel` | React 19 + Vite 6 SPA. Implements chat, provider setup, channels, extras, skills, crons, usage, settings, account, billing, and ecommerce surfaces. |
+| `@rivonclaw/panel`   | React 19 + Vite 6 SPA. Implements chat, provider setup, channels, extras, skills, crons, usage, settings, account, billing, and ecommerce surfaces.      |
 
 ### Packages
 
-| Package | Description |
-| --- | --- |
-| `@rivonclaw/core` | Shared defaults, types, API route contract, provider catalog, MST models, generated GraphQL types, and utility helpers. |
-| `@rivonclaw/gateway` | OpenClaw config writer, launcher, OAuth profile sync, channel config writer, model catalog reader, skills reload helper, and vendor helpers. |
-| `@rivonclaw/storage` | SQLite repositories for settings, provider keys, usage, chat sessions, channel accounts/recipients, mobile pairings, tool selections, and CS escalations. |
-| `@rivonclaw/secrets` | Platform-aware secret storage for API keys and OAuth credentials. |
-| `@rivonclaw/proxy-router` | Local HTTP proxy router for provider and first-party network paths. |
-| `@rivonclaw/stt` | STT provider utilities. |
-| `@rivonclaw/telemetry` | Telemetry client with opt-in app events and business telemetry channels. |
-| `@rivonclaw/updater` | Version and manifest utilities used by the desktop updater. |
-| `@rivonclaw/logger` | Shared logger setup. |
-| `@rivonclaw/device-id` | Stable device identity helpers. |
-| `@rivonclaw/plugin-sdk` | Shared helpers for extension packages. |
+| Package                   | Description                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@rivonclaw/core`         | Shared defaults, types, API route contract, provider catalog, MST models, generated GraphQL types, and utility helpers.                                   |
+| `@rivonclaw/gateway`      | OpenClaw config writer, launcher, OAuth profile sync, channel config writer, model catalog reader, skills reload helper, and vendor helpers.              |
+| `@rivonclaw/storage`      | SQLite repositories for settings, provider keys, usage, chat sessions, channel accounts/recipients, mobile pairings, tool selections, and CS escalations. |
+| `@rivonclaw/secrets`      | Platform-aware secret storage for API keys and OAuth credentials.                                                                                         |
+| `@rivonclaw/proxy-router` | Local HTTP proxy router for provider and first-party network paths.                                                                                       |
+| `@rivonclaw/stt`          | STT provider utilities.                                                                                                                                   |
+| `@rivonclaw/telemetry`    | Telemetry client with opt-in app events and business telemetry channels.                                                                                  |
+| `@rivonclaw/updater`      | Version and manifest utilities used by the desktop updater.                                                                                               |
+| `@rivonclaw/logger`       | Shared logger setup.                                                                                                                                      |
+| `@rivonclaw/device-id`    | Stable device identity helpers.                                                                                                                           |
+| `@rivonclaw/plugin-sdk`   | Shared helpers for extension packages.                                                                                                                    |
 
 ### Extensions
 
-| Package | Description |
-| --- | --- |
-| `openclaw-weixin` | Wrapper around the Tencent Weixin OpenClaw channel with RivonClaw compatibility fixes. |
-| `@rivonclaw/rivonclaw-capability-manager` | Enforces effective tool availability for the current run context. |
-| `@rivonclaw/rivonclaw-event-bridge` | Mirrors selected OpenClaw agent events into the panel event stream. |
-| `@rivonclaw/rivonclaw-mobile-chat-channel` | Mobile chat channel plugin and relay synchronization logic. |
-| `@rivonclaw/rivonclaw-search-browser-fallback` | Guides search fallback behavior when direct search credentials are unavailable. |
+| Package                                        | Description                                                                            |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `openclaw-weixin`                              | Wrapper around the Tencent Weixin OpenClaw channel with RivonClaw compatibility fixes. |
+| `@rivonclaw/rivonclaw-capability-manager`      | Enforces effective tool availability for the current run context.                      |
+| `@rivonclaw/rivonclaw-event-bridge`            | Mirrors selected OpenClaw agent events into the panel event stream.                    |
+| `@rivonclaw/rivonclaw-mobile-chat-channel`     | Mobile chat channel plugin and relay synchronization logic.                            |
+| `@rivonclaw/rivonclaw-search-browser-fallback` | Guides search fallback behavior when direct search credentials are unavailable.        |
 
 Merchant-specific plugins live in `extensions-merchant/*` and are checked out by
 CI from the private merchant extensions repository.
@@ -204,16 +204,16 @@ The generated route reference lives at [`docs/API_ROUTES.md`](docs/API_ROUTES.md
 
 Defaults are resolved by [`packages/core/src/node-utils/paths.ts`](packages/core/src/node-utils/paths.ts).
 
-| Path | Purpose |
-| --- | --- |
-| `~/.rivonclaw/db.sqlite` | Desktop SQLite database |
-| `~/.rivonclaw/logs/` | Application logs |
-| `~/.rivonclaw/secrets/` | File-based secret fallback |
-| `~/.rivonclaw/openclaw/` | OpenClaw state directory |
-| `~/.rivonclaw/openclaw/openclaw.json` | Generated gateway config |
-| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw sessions |
-| `~/.rivonclaw/openclaw/skills/` | User-installed skills |
-| `~/.rivonclaw/openclaw/credentials/` | OAuth/channel/mobile credentials |
+| Path                                               | Purpose                          |
+| -------------------------------------------------- | -------------------------------- |
+| `~/.rivonclaw/db.sqlite`                           | Desktop SQLite database          |
+| `~/.rivonclaw/logs/`                               | Application logs                 |
+| `~/.rivonclaw/secrets/`                            | File-based secret fallback       |
+| `~/.rivonclaw/openclaw/`                           | OpenClaw state directory         |
+| `~/.rivonclaw/openclaw/openclaw.json`              | Generated gateway config         |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw sessions                |
+| `~/.rivonclaw/openclaw/skills/`                    | User-installed skills            |
+| `~/.rivonclaw/openclaw/credentials/`               | OAuth/channel/mobile credentials |
 
 ## Releases
 

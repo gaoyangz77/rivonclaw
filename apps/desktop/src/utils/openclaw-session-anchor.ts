@@ -42,12 +42,17 @@ function extractVisibleText(message: ChatHistoryMessage): string | undefined {
  * merchant summaries, aborted drafts, or proposal notes that were not platform
  * messages.
  */
-export async function readLatestUserSessionAnchor(sessionKey: string): Promise<OpenClawSessionAnchor | undefined> {
-  const history = await openClawConnector.request<{ messages?: ChatHistoryMessage[] }>("chat.history", {
-    sessionKey,
-    limit: 20,
-    maxChars: 40_000,
-  });
+export async function readLatestUserSessionAnchor(
+  sessionKey: string,
+): Promise<OpenClawSessionAnchor | undefined> {
+  const history = await openClawConnector.request<{ messages?: ChatHistoryMessage[] }>(
+    "chat.history",
+    {
+      sessionKey,
+      limit: 20,
+      maxChars: 40_000,
+    },
+  );
   const messages = history?.messages ?? [];
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];

@@ -89,14 +89,16 @@ describe("runGatewayStartupCoordinator", () => {
     const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };
     const task = vi.fn();
 
-    await expect(runGatewayStartupCoordinator({
-      rpc,
-      initializeToolCapability: vi.fn(),
-      maxAttempts: 1,
-      retryDelayMs: 0,
-      sleep: vi.fn(async () => undefined),
-      tasks: [{ name: "plain-task", run: task }],
-    })).rejects.toThrow("was not ready");
+    await expect(
+      runGatewayStartupCoordinator({
+        rpc,
+        initializeToolCapability: vi.fn(),
+        maxAttempts: 1,
+        retryDelayMs: 0,
+        sleep: vi.fn(async () => undefined),
+        tasks: [{ name: "plain-task", run: task }],
+      }),
+    ).rejects.toThrow("was not ready");
 
     expect(task).not.toHaveBeenCalled();
   });

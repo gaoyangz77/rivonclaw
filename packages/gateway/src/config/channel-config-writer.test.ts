@@ -84,7 +84,10 @@ describe("migrateSingleAccountChannels", () => {
     const migrated = migrateSingleAccountChannels(config);
 
     expect(migrated).toEqual(["telegram"]);
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     expect(telegram.enabled).toBe(true);
     expect(telegram.botToken).toBeUndefined();
     expect(telegram.dmPolicy).toBeUndefined();
@@ -116,7 +119,10 @@ describe("migrateSingleAccountChannels", () => {
     const migrated = migrateSingleAccountChannels(config);
 
     expect(migrated).toEqual(["telegram"]);
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     expect(telegram.botToken).toBeUndefined();
     expect(telegram.streaming).toBeUndefined();
     const accounts = telegram.accounts as Record<string, unknown>;
@@ -144,7 +150,10 @@ describe("migrateSingleAccountChannels", () => {
     const migrated = migrateSingleAccountChannels(config);
 
     expect(migrated).toEqual([]);
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     // Top-level keys are preserved since default already exists
     expect(telegram.botToken).toBe("top-level-token");
     const accounts = telegram.accounts as Record<string, unknown>;
@@ -164,7 +173,10 @@ describe("migrateSingleAccountChannels", () => {
 
     migrateSingleAccountChannels(config);
 
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     expect(telegram.enabled).toBe(true);
     expect(telegram.botToken).toBeUndefined();
   });
@@ -182,7 +194,10 @@ describe("migrateSingleAccountChannels", () => {
 
     migrateSingleAccountChannels(config);
 
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     expect(telegram.customUnknownKey).toBe("should-stay");
     const accounts = telegram.accounts as Record<string, unknown>;
     const defaultAccount = accounts.default as Record<string, unknown>;
@@ -248,7 +263,10 @@ describe("migrateSingleAccountChannels", () => {
 
     migrateSingleAccountChannels(config);
 
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     const accounts = telegram.accounts as Record<string, unknown>;
     const defaultAccount = accounts.default as Record<string, unknown>;
     // Should be a separate array, not the same reference
@@ -284,7 +302,10 @@ describe("migrateSingleAccountChannels", () => {
 
     migrateSingleAccountChannels(config);
 
-    const telegram = (config.channels as Record<string, unknown>).telegram as Record<string, unknown>;
+    const telegram = (config.channels as Record<string, unknown>).telegram as Record<
+      string,
+      unknown
+    >;
     const accounts = telegram.accounts as Record<string, unknown>;
     const defaultAccount = accounts.default as Record<string, unknown>;
     expect(defaultAccount.streaming).toBe("partial");

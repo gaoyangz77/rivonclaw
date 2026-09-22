@@ -15,28 +15,19 @@ describe("Affiliate Expected Sales translation backfill", () => {
       };
     };
 
-    expect(
-      translation.ecommerce.affiliateWorkspace.predictionComparison.expectedSales,
-    ).toBe("校准后预测销量");
-    expect(
-      translation.ecommerce.affiliateWorkspace.predictionComparison.bootstrapEstimate,
-    ).toBe("冷启动估算");
-    expect(
-      translation.ecommerce.affiliateWorkspace.predictionComparison.humanDecision,
-    ).toBe("人工决策");
+    expect(translation.ecommerce.affiliateWorkspace.predictionComparison.expectedSales).toBe(
+      "校准后预测销量",
+    );
+    expect(translation.ecommerce.affiliateWorkspace.predictionComparison.bootstrapEstimate).toBe(
+      "冷启动估算",
+    );
+    expect(translation.ecommerce.affiliateWorkspace.predictionComparison.humanDecision).toBe(
+      "人工决策",
+    );
   });
 
   it("provides every stage/status key in all eight supported languages", () => {
-    for (const language of [
-      "en",
-      "zh",
-      "de",
-      "es",
-      "fr",
-      "id",
-      "it",
-      "th",
-    ] as const) {
+    for (const language of ["en", "zh", "de", "es", "fr", "id", "it", "th"] as const) {
       const predictionComparison = (
         LANGUAGE_RESOURCES[language].translation as {
           ecommerce: {

@@ -25,9 +25,7 @@ interface SpawnOpts {
 
 /** Env vars that force child processes to emit UTF-8 on Windows (GBK default). */
 const UTF8_ENV: Record<string, string> =
-  process.platform === "win32"
-    ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" }
-    : {};
+  process.platform === "win32" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {};
 
 function spawnAsync(
   cmd: string,
@@ -88,11 +86,7 @@ function spawnAsync(
         resolve();
       } else {
         const details = recentOutput.slice(-5).join(" | ");
-        reject(
-          new Error(
-            `${cmd} exited with code ${code}${details ? `: ${details}` : ""}`,
-          ),
-        );
+        reject(new Error(`${cmd} exited with code ${code}${details ? `: ${details}` : ""}`));
       }
     });
   });
@@ -110,10 +104,7 @@ function getBrewBin(): string {
   return posix.join(getBrewPrefix(), "bin", "brew");
 }
 
-async function ensureHomebrew(
-  region: Region,
-  onOutput: (line: string) => void,
-): Promise<void> {
+async function ensureHomebrew(region: Region, onOutput: (line: string) => void): Promise<void> {
   // Check if brew is already available
   try {
     await spawnAsync(getBrewBin(), ["--version"], onOutput, {
@@ -153,10 +144,7 @@ async function ensureHomebrew(
   } else {
     await spawnAsync(
       "/bin/bash",
-      [
-        "-c",
-        `$(curl -fsSL ${DEFAULTS.installers.homebrew})`,
-      ],
+      ["-c", `$(curl -fsSL ${DEFAULTS.installers.homebrew})`],
       onOutput,
       { env },
     );
@@ -270,8 +258,7 @@ const WINGET_IDS: Record<DepName, string> = {
 
 const GIT_FOR_WINDOWS_CN_RELEASE = "v2.54.0.windows.1";
 const GIT_FOR_WINDOWS_CN_VERSION = "2.54.0";
-const GIT_FOR_WINDOWS_CN_MIRROR_BASE =
-  `https://repo.huaweicloud.com/git-for-windows/${GIT_FOR_WINDOWS_CN_RELEASE}`;
+const GIT_FOR_WINDOWS_CN_MIRROR_BASE = `https://repo.huaweicloud.com/git-for-windows/${GIT_FOR_WINDOWS_CN_RELEASE}`;
 
 const GIT_FOR_WINDOWS_CN_INSTALLERS = {
   x64: {
@@ -285,8 +272,7 @@ const GIT_FOR_WINDOWS_CN_INSTALLERS = {
 } as const;
 
 const NODE_WINDOWS_CN_VERSION = "24.16.0";
-const NODE_WINDOWS_CN_MIRROR_BASE =
-  `https://mirrors.huaweicloud.com/nodejs/v${NODE_WINDOWS_CN_VERSION}`;
+const NODE_WINDOWS_CN_MIRROR_BASE = `https://mirrors.huaweicloud.com/nodejs/v${NODE_WINDOWS_CN_VERSION}`;
 const NODE_WINDOWS_CN_ARCHIVES = {
   x64: {
     fileName: `node-v${NODE_WINDOWS_CN_VERSION}-win-x64.zip`,
@@ -299,8 +285,7 @@ const NODE_WINDOWS_CN_ARCHIVES = {
 } as const;
 
 const PYTHON_WINDOWS_CN_VERSION = "3.13.13";
-const PYTHON_WINDOWS_CN_MIRROR_BASE =
-  `https://mirrors.huaweicloud.com/python/${PYTHON_WINDOWS_CN_VERSION}`;
+const PYTHON_WINDOWS_CN_MIRROR_BASE = `https://mirrors.huaweicloud.com/python/${PYTHON_WINDOWS_CN_VERSION}`;
 
 const PYTHON_WINDOWS_CN_INSTALLERS = {
   x64: {
@@ -323,9 +308,7 @@ function getGitForWindowsCnInstaller(): {
   url: string;
 } {
   const installer =
-    arch() === "arm64"
-      ? GIT_FOR_WINDOWS_CN_INSTALLERS.arm64
-      : GIT_FOR_WINDOWS_CN_INSTALLERS.x64;
+    arch() === "arm64" ? GIT_FOR_WINDOWS_CN_INSTALLERS.arm64 : GIT_FOR_WINDOWS_CN_INSTALLERS.x64;
 
   return {
     ...installer,
@@ -333,9 +316,7 @@ function getGitForWindowsCnInstaller(): {
   };
 }
 
-async function installGitWindowsFromChinaMirror(
-  onOutput: (line: string) => void,
-): Promise<void> {
+async function installGitWindowsFromChinaMirror(onOutput: (line: string) => void): Promise<void> {
   const installer = getGitForWindowsCnInstaller();
   onOutput(`Installing git from China mirror (${installer.fileName})...`);
 
@@ -373,18 +354,14 @@ function getNodeWindowsCnInstaller(): {
   url: string;
 } {
   const archive =
-    arch() === "arm64"
-      ? NODE_WINDOWS_CN_ARCHIVES.arm64
-      : NODE_WINDOWS_CN_ARCHIVES.x64;
+    arch() === "arm64" ? NODE_WINDOWS_CN_ARCHIVES.arm64 : NODE_WINDOWS_CN_ARCHIVES.x64;
   return {
     ...archive,
     url: `${NODE_WINDOWS_CN_MIRROR_BASE}/${archive.fileName}`,
   };
 }
 
-async function installNodeWindowsFromChinaMirror(
-  onOutput: (line: string) => void,
-): Promise<void> {
+async function installNodeWindowsFromChinaMirror(onOutput: (line: string) => void): Promise<void> {
   const installer = getNodeWindowsCnInstaller();
   onOutput(`Installing node from China mirror (${installer.fileName})...`);
 
@@ -470,9 +447,7 @@ function getPythonWindowsCnInstaller(): {
   url: string;
 } {
   const installer =
-    arch() === "arm64"
-      ? PYTHON_WINDOWS_CN_INSTALLERS.arm64
-      : PYTHON_WINDOWS_CN_INSTALLERS.x64;
+    arch() === "arm64" ? PYTHON_WINDOWS_CN_INSTALLERS.arm64 : PYTHON_WINDOWS_CN_INSTALLERS.x64;
 
   return {
     ...installer,
@@ -571,12 +546,7 @@ async function installDepWindows(
       onOutput("Installing uv via PowerShell...");
       await spawnAsync(
         "powershell",
-        [
-          "-ExecutionPolicy",
-          "Bypass",
-          "-Command",
-          `irm ${DEFAULTS.installers.uvWindows} | iex`,
-        ],
+        ["-ExecutionPolicy", "Bypass", "-Command", `irm ${DEFAULTS.installers.uvWindows} | iex`],
         onOutput,
         { shell: true },
       );
@@ -597,33 +567,16 @@ async function installDepWindows(
 
 type PkgManager = "apt-get" | "dnf" | "pacman";
 
-const APT_DISTROS = new Set([
-  "ubuntu",
-  "debian",
-  "linuxmint",
-  "pop",
-]);
-const DNF_DISTROS = new Set([
-  "fedora",
-  "rhel",
-  "centos",
-  "rocky",
-  "alma",
-]);
-const PACMAN_DISTROS = new Set([
-  "arch",
-  "manjaro",
-  "endeavouros",
-]);
+const APT_DISTROS = new Set(["ubuntu", "debian", "linuxmint", "pop"]);
+const DNF_DISTROS = new Set(["fedora", "rhel", "centos", "rocky", "alma"]);
+const PACMAN_DISTROS = new Set(["arch", "manjaro", "endeavouros"]);
 
 async function detectPkgManager(): Promise<PkgManager> {
   let content: string;
   try {
     content = await readFile("/etc/os-release", "utf-8");
   } catch {
-    throw new Error(
-      "Cannot detect Linux distribution: /etc/os-release not found",
-    );
+    throw new Error("Cannot detect Linux distribution: /etc/os-release not found");
   }
 
   const idMatch = content.match(/^ID=["']?([a-z_-]+)["']?/m);
@@ -639,10 +592,7 @@ async function detectPkgManager(): Promise<PkgManager> {
   );
 }
 
-const LINUX_PACKAGES: Record<
-  PkgManager,
-  Record<Exclude<DepName, "uv">, string[]>
-> = {
+const LINUX_PACKAGES: Record<PkgManager, Record<Exclude<DepName, "uv">, string[]>> = {
   "apt-get": {
     git: ["git"],
     python: ["python3"],
@@ -660,9 +610,7 @@ const LINUX_PACKAGES: Record<
   },
 };
 
-async function getSudoPrefix(
-  onOutput: (line: string) => void,
-): Promise<string> {
+async function getSudoPrefix(onOutput: (line: string) => void): Promise<string> {
   // Prefer pkexec for graphical sudo prompt
   try {
     await spawnAsync("which", ["pkexec"], () => {}, { timeout: 5_000 });
@@ -674,10 +622,7 @@ async function getSudoPrefix(
   }
 }
 
-function buildInstallArgs(
-  pkgMgr: PkgManager,
-  packages: string[],
-): string[] {
+function buildInstallArgs(pkgMgr: PkgManager, packages: string[]): string[] {
   switch (pkgMgr) {
     case "apt-get":
       return ["apt-get", "install", "-y", ...packages];

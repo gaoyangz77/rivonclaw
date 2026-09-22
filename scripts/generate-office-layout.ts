@@ -37,7 +37,13 @@ const OUT_FILE = path.join(REPO_ROOT, "assets", "office", "office-layout.json");
  * extractor's output, which reads the layout this script produces.
  */
 const CATALOG_FILE = path.join(
-  REPO_ROOT, "vendor", "pixel-agents", "dist", "webview", "assets", "furniture-catalog.json",
+  REPO_ROOT,
+  "vendor",
+  "pixel-agents",
+  "dist",
+  "webview",
+  "assets",
+  "furniture-catalog.json",
 );
 /**
  * Furniture that is ours rather than upstream's, in the directory layout
@@ -64,7 +70,13 @@ const OUR_FURNITURE_DIR = path.join(REPO_ROOT, "assets", "office", "furniture");
  * against the real folders instead of assumed.
  */
 const PETS_DIR = path.join(
-  REPO_ROOT, "vendor", "pixel-agents", "webview-ui", "public", "assets", "pets",
+  REPO_ROOT,
+  "vendor",
+  "pixel-agents",
+  "webview-ui",
+  "public",
+  "assets",
+  "pets",
 );
 
 // Renderer TileType: 0 = WALL, 1..9 = FLOOR_1..9, 255 = VOID.
@@ -642,7 +654,12 @@ const SEAT_REACH = 1;
 /** Categories the floor-decor pass draws from; wall-mounted pieces are `wall`. */
 const FLOOR_DECOR_CATEGORIES = new Set(["decor", "misc"]);
 
-const ORTHOGONAL = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+const ORTHOGONAL = [
+  [0, -1],
+  [0, 1],
+  [-1, 0],
+  [1, 0],
+];
 
 /**
  * A rug under each workstation, one variant per room.
@@ -686,7 +703,13 @@ const catalog = new Map(
  * the same numbers with an error that names the file.
  */
 const REQUIRED_MANIFEST_FIELDS = [
-  "id", "name", "category", "width", "height", "footprintW", "footprintH",
+  "id",
+  "name",
+  "category",
+  "width",
+  "height",
+  "footprintW",
+  "footprintH",
 ];
 
 if (!existsSync(OUR_FURNITURE_DIR)) {
@@ -1120,7 +1143,16 @@ function seatFacesScreen(seat) {
   for (let depth = 1; depth <= FACING_DEPTH; depth++) {
     const col = seat.col + dc * depth;
     const row = seat.row + dr * depth;
-    const flank = dc !== 0 ? [[col, row - 1], [col, row + 1]] : [[col - 1, row], [col + 1, row]];
+    const flank =
+      dc !== 0
+        ? [
+            [col, row - 1],
+            [col, row + 1],
+          ]
+        : [
+            [col - 1, row],
+            [col + 1, row],
+          ];
     for (const [c, r] of [[col, row], ...flank]) {
       if (screenTiles.has(`${c},${r}`)) return true;
     }

@@ -3,16 +3,7 @@ import { LANGUAGE_RESOURCES } from "./languages.js";
 
 describe("Affiliate proposal translations", () => {
   it("provides the multi-Sample decision bundle copy in every supported language", () => {
-    for (const language of [
-      "en",
-      "zh",
-      "de",
-      "es",
-      "fr",
-      "id",
-      "it",
-      "th",
-    ] as const) {
+    for (const language of ["en", "zh", "de", "es", "fr", "id", "it", "th"] as const) {
       const bundle = (
         LANGUAGE_RESOURCES[language].translation as {
           ecommerce: {
@@ -50,15 +41,17 @@ describe("Affiliate proposal translations", () => {
       ]) {
         expect(bundle[key], `${language}.${key}`).toBeTruthy();
       }
-      expect(bundle.rejectReasons, `${language}.rejectReasons`).toEqual(expect.objectContaining({
-        NOT_MATCH: expect.any(String),
-        OFFLINE: expect.any(String),
-        OUT_OF_STOCK: expect.any(String),
-        LOW_EXPECTED_SALES: expect.any(String),
-        CREATOR_BLACKLISTED: expect.any(String),
-        DUPLICATE_APPLICATION: expect.any(String),
-        OTHER: expect.any(String),
-      }));
+      expect(bundle.rejectReasons, `${language}.rejectReasons`).toEqual(
+        expect.objectContaining({
+          NOT_MATCH: expect.any(String),
+          OFFLINE: expect.any(String),
+          OUT_OF_STOCK: expect.any(String),
+          LOW_EXPECTED_SALES: expect.any(String),
+          CREATOR_BLACKLISTED: expect.any(String),
+          DUPLICATE_APPLICATION: expect.any(String),
+          OTHER: expect.any(String),
+        }),
+      );
     }
   });
 });

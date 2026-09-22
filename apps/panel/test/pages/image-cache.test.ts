@@ -6,7 +6,11 @@
  */
 import { describe, it, expect } from "vitest";
 import { matchCachedImages } from "../../src/pages/chat/image-cache.js";
-import { IMAGE_EXPIRED_PLACEHOLDER, type ChatMessage, type ChatImage } from "../../src/pages/chat/chat-utils.js";
+import {
+  IMAGE_EXPIRED_PLACEHOLDER,
+  type ChatMessage,
+  type ChatImage,
+} from "../../src/pages/chat/chat-utils.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,9 +20,7 @@ function makeImage(label = "img"): ChatImage {
   return { data: `base64-${label}`, mimeType: "image/png" };
 }
 
-function makeUserMsg(
-  overrides: Partial<ChatMessage> & { timestamp: number },
-): ChatMessage {
+function makeUserMsg(overrides: Partial<ChatMessage> & { timestamp: number }): ChatMessage {
   return { role: "user", text: "hello", ...overrides };
 }
 
@@ -81,10 +83,7 @@ describe("matchCachedImages", () => {
       makeCacheRecord({ timestamp: 10_200, images: imgB }),
     ];
     // First message is closer to cache[1], second is closer to cache[0]
-    const msgs = [
-      makeUserMsg({ timestamp: 10_150 }),
-      makeUserMsg({ timestamp: 9_900 }),
-    ];
+    const msgs = [makeUserMsg({ timestamp: 10_150 }), makeUserMsg({ timestamp: 9_900 })];
 
     const result = matchCachedImages(cached, msgs);
     // 10_150 is 150ms from cache[0] and 50ms from cache[1] -> picks cache[1]
@@ -120,9 +119,7 @@ describe("matchCachedImages", () => {
 
   it("skips non-user messages", () => {
     const cached = [makeCacheRecord({ timestamp: 3000 })];
-    const msgs: ChatMessage[] = [
-      { role: "assistant", text: "hi", timestamp: 3000 },
-    ];
+    const msgs: ChatMessage[] = [{ role: "assistant", text: "hi", timestamp: 3000 }];
 
     const result = matchCachedImages(cached, msgs);
     expect(result[0].images).toBeUndefined();

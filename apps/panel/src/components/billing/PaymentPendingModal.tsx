@@ -36,9 +36,8 @@ export const PaymentPendingModal = observer(function PaymentPendingModal({
   const autoCloseTimerRef = useRef<number | null>(null);
   const autoCloseIntervalRef = useRef<number | null>(null);
 
-  const payment = paymentId && entityStore.activeCheckout?.id === paymentId
-    ? entityStore.activeCheckout
-    : null;
+  const payment =
+    paymentId && entityStore.activeCheckout?.id === paymentId ? entityStore.activeCheckout : null;
   const qrSource = payment?.qrCode ?? null;
   const billingScopeId = payment?.billingScopeId ?? null;
   const provider = payment?.provider ?? null;
@@ -62,14 +61,17 @@ export const PaymentPendingModal = observer(function PaymentPendingModal({
     setAutoCloseSeconds(null);
   }, [paymentId]);
 
-  useEffect(() => () => {
-    if (autoCloseTimerRef.current !== null) {
-      window.clearTimeout(autoCloseTimerRef.current);
-    }
-    if (autoCloseIntervalRef.current !== null) {
-      window.clearInterval(autoCloseIntervalRef.current);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (autoCloseTimerRef.current !== null) {
+        window.clearTimeout(autoCloseTimerRef.current);
+      }
+      if (autoCloseIntervalRef.current !== null) {
+        window.clearInterval(autoCloseIntervalRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -144,7 +146,8 @@ export const PaymentPendingModal = observer(function PaymentPendingModal({
         entityStore.setCheckoutError(t("billing.errors.pollingExpired"), billingScopeId);
         return;
       }
-      entityStore.refreshPayment(paymentId)
+      entityStore
+        .refreshPayment(paymentId)
         .then((updated) => {
           if (updated?.status === "SUCCEEDED") {
             return finalizeSuccess();
@@ -154,7 +157,17 @@ export const PaymentPendingModal = observer(function PaymentPendingModal({
         .catch(() => {});
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [billingScopeId, entityStore, finalizeSuccess, isLakala, isStripe, paymentId, pollable, succeeded, t]);
+  }, [
+    billingScopeId,
+    entityStore,
+    finalizeSuccess,
+    isLakala,
+    isStripe,
+    paymentId,
+    pollable,
+    succeeded,
+    t,
+  ]);
 
   return (
     <Modal
@@ -173,23 +186,25 @@ export const PaymentPendingModal = observer(function PaymentPendingModal({
           </div>
 
           {isStripe && (
-            <div className="payment-pending-copy">
-              {t("billing.paymentPending.stripeHelp")}
-            </div>
+            <div className="payment-pending-copy">{t("billing.paymentPending.stripeHelp")}</div>
           )}
 
           {isLakala && (
             <div className="payment-qr-wrap">
               {qrDataUrl ? (
-                <img className="payment-qr-image" src={qrDataUrl} alt={t("billing.paymentPending.qrAlt")} />
+                <img
+                  className="payment-qr-image"
+                  src={qrDataUrl}
+                  alt={t("billing.paymentPending.qrAlt")}
+                />
               ) : qrSource ? (
                 <div className="payment-qr-placeholder">{t("common.loading")}</div>
               ) : (
-                <div className="payment-qr-placeholder">{t("billing.paymentPending.qrUnavailable")}</div>
+                <div className="payment-qr-placeholder">
+                  {t("billing.paymentPending.qrUnavailable")}
+                </div>
               )}
-              {!qrSource && (
-                <TkAlert tone="danger">{t("billing.errors.missingQrCode")}</TkAlert>
-              )}
+              {!qrSource && <TkAlert tone="danger">{t("billing.errors.missingQrCode")}</TkAlert>}
               <div className="payment-pending-copy">{t("billing.paymentPending.lakalaHelp")}</div>
             </div>
           )}

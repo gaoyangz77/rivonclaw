@@ -89,9 +89,7 @@ export function KeyModelSelector({
     const models = catalog[activeProvider] ?? [];
     if (!search.trim()) return models;
     const q = search.trim().toLowerCase();
-    return models.filter(
-      (m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q),
-    );
+    return models.filter((m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
   }, [catalog, activeProvider, search]);
 
   /** Compute dropdown position synchronously from the trigger's bounding rect. */
@@ -173,17 +171,24 @@ export function KeyModelSelector({
   // Resolve display label for the trigger
   // Whether the user has explicitly locked a model (vs following global default).
   // Controls dropdown highlight only — trigger always shows the concrete model.
-  const hasExplicitSelection = isFollowingDefault === true ? false
-    : isFollowingDefault === false ? true
-    : !!(selectedProvider && selectedModel);
+  const hasExplicitSelection =
+    isFollowingDefault === true
+      ? false
+      : isFollowingDefault === false
+        ? true
+        : !!(selectedProvider && selectedModel);
 
   // Trigger always shows the concrete provider/model for clarity
   const hasDisplayValues = !!(selectedProvider && selectedModel);
   const providerLabel = hasDisplayValues
     ? t(`providers.label_${selectedProvider}`, { defaultValue: selectedProvider })
     : "";
-  const modelEntry = hasDisplayValues ? catalog[selectedProvider]?.find((m) => m.id === selectedModel) : undefined;
-  const modelLabel = hasDisplayValues ? (modelEntry?.name ?? selectedModel) : t("chat.globalDefault", { defaultValue: "Global default" });
+  const modelEntry = hasDisplayValues
+    ? catalog[selectedProvider]?.find((m) => m.id === selectedModel)
+    : undefined;
+  const modelLabel = hasDisplayValues
+    ? (modelEntry?.name ?? selectedModel)
+    : t("chat.globalDefault", { defaultValue: "Global default" });
   const dropdownIsModalChild = Boolean(triggerRef.current?.closest('[aria-modal="true"]'));
 
   function handleSelectModel(provider: string, modelId: string) {
@@ -192,7 +197,10 @@ export function KeyModelSelector({
   }
 
   return (
-    <div ref={wrapperRef} className={`key-model-selector${variant === "form" ? " key-model-selector-form" : ""}`}>
+    <div
+      ref={wrapperRef}
+      className={`key-model-selector${variant === "form" ? " key-model-selector-form" : ""}`}
+    >
       <button
         ref={triggerRef}
         type="button"
@@ -215,103 +223,110 @@ export function KeyModelSelector({
               <span className="key-model-selector-sep">/</span>
               {modelLabel}
             </>
-          ) : modelLabel}
+          ) : (
+            modelLabel
+          )}
         </span>
         <span className="key-model-selector-chevron">{open ? "\u25B2" : "\u25BC"}</span>
       </button>
 
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          className={`key-model-selector-dropdown${dropdownIsModalChild ? " tk-v1-overlay-modal-child" : ""}`}
-          style={dropdownStyle}
-        >
-          {/* Search bar */}
-          <div className="key-model-selector-search-wrap">
-            <input
-              ref={searchRef}
-              type="text"
-              className="key-model-selector-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("chat.modelSearchPlaceholder", { defaultValue: "Search models..." })}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-
-          {/* "Follow global default" option — clears the override */}
-          {allowDefault && (
-            <button
-              type="button"
-              className={`key-model-selector-default-option${!hasExplicitSelection ? " key-model-selector-default-option-active" : ""}`}
-              onClick={() => { onChange("", ""); setOpen(false); }}
-            >
-              {t("chat.followGlobalDefault", { defaultValue: "Follow global default" })}
-            </button>
-          )}
-
-          <div className="key-model-selector-columns">
-            {/* Left column: provider keys */}
-            <div className="key-model-selector-keys">
-              {sortedKeys.map((key) => (
-                <button
-                  type="button"
-                  key={key.id}
-                  className={`key-model-selector-key${key.provider === activeProvider && (hoveredProvider !== null || hasExplicitSelection) ? " key-model-selector-key-active" : ""}`}
-                  onMouseEnter={() => setHoveredProvider(key.provider)}
-                  onClick={() => setHoveredProvider(key.provider)}
-                >
-                  <span className="key-model-selector-key-label">
-                    {key.provider === "rivonclaw-pro"
-                      ? t("providers.label_rivonclaw-pro")
-                      : key.label || t(`providers.label_${key.provider}`, { defaultValue: key.provider })}
-                  </span>
-                  {key.isDefault && (
-                    <span className="key-model-selector-key-badge">
-                      {t("chat.defaultBadge", { defaultValue: "default" })}
-                    </span>
-                  )}
-                </button>
-              ))}
-              {sortedKeys.length === 0 && (
-                <div className="key-model-selector-empty">
-                  {t("chat.noProviderKeys", { defaultValue: "No provider keys" })}
-                </div>
-              )}
+      {open &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className={`key-model-selector-dropdown${dropdownIsModalChild ? " tk-v1-overlay-modal-child" : ""}`}
+            style={dropdownStyle}
+          >
+            {/* Search bar */}
+            <div className="key-model-selector-search-wrap">
+              <input
+                ref={searchRef}
+                type="text"
+                className="key-model-selector-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("chat.modelSearchPlaceholder", { defaultValue: "Search models..." })}
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
 
-            {/* Right column: models for active provider */}
-            <div className="key-model-selector-models">
-              {activeModels.map((m) => {
-                const effectiveContext = m.contextTokens ?? m.contextWindow;
-                return (
+            {/* "Follow global default" option — clears the override */}
+            {allowDefault && (
+              <button
+                type="button"
+                className={`key-model-selector-default-option${!hasExplicitSelection ? " key-model-selector-default-option-active" : ""}`}
+                onClick={() => {
+                  onChange("", "");
+                  setOpen(false);
+                }}
+              >
+                {t("chat.followGlobalDefault", { defaultValue: "Follow global default" })}
+              </button>
+            )}
+
+            <div className="key-model-selector-columns">
+              {/* Left column: provider keys */}
+              <div className="key-model-selector-keys">
+                {sortedKeys.map((key) => (
                   <button
                     type="button"
-                    key={m.id}
-                    className={`key-model-selector-model${hasExplicitSelection && m.id === selectedModel && activeProvider === selectedProvider ? " key-model-selector-model-active" : ""}`}
-                    onClick={() => handleSelectModel(activeProvider, m.id)}
+                    key={key.id}
+                    className={`key-model-selector-key${key.provider === activeProvider && (hoveredProvider !== null || hasExplicitSelection) ? " key-model-selector-key-active" : ""}`}
+                    onMouseEnter={() => setHoveredProvider(key.provider)}
+                    onClick={() => setHoveredProvider(key.provider)}
                   >
-                    <span className="key-model-selector-model-name">{m.name}</span>
-                    {effectiveContext != null && effectiveContext > 0 && (
-                      <span className="key-model-selector-model-ctx">
-                        {formatContextWindow(effectiveContext)}
+                    <span className="key-model-selector-key-label">
+                      {key.provider === "rivonclaw-pro"
+                        ? t("providers.label_rivonclaw-pro")
+                        : key.label ||
+                          t(`providers.label_${key.provider}`, { defaultValue: key.provider })}
+                    </span>
+                    {key.isDefault && (
+                      <span className="key-model-selector-key-badge">
+                        {t("chat.defaultBadge", { defaultValue: "default" })}
                       </span>
                     )}
                   </button>
-                );
-              })}
-              {activeModels.length === 0 && (
-                <div className="key-model-selector-empty">
-                  {search.trim()
-                    ? t("chat.noModelsMatch", { defaultValue: "No matching models" })
-                    : t("chat.noModels", { defaultValue: "No models available" })}
-                </div>
-              )}
+                ))}
+                {sortedKeys.length === 0 && (
+                  <div className="key-model-selector-empty">
+                    {t("chat.noProviderKeys", { defaultValue: "No provider keys" })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right column: models for active provider */}
+              <div className="key-model-selector-models">
+                {activeModels.map((m) => {
+                  const effectiveContext = m.contextTokens ?? m.contextWindow;
+                  return (
+                    <button
+                      type="button"
+                      key={m.id}
+                      className={`key-model-selector-model${hasExplicitSelection && m.id === selectedModel && activeProvider === selectedProvider ? " key-model-selector-model-active" : ""}`}
+                      onClick={() => handleSelectModel(activeProvider, m.id)}
+                    >
+                      <span className="key-model-selector-model-name">{m.name}</span>
+                      {effectiveContext != null && effectiveContext > 0 && (
+                        <span className="key-model-selector-model-ctx">
+                          {formatContextWindow(effectiveContext)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                {activeModels.length === 0 && (
+                  <div className="key-model-selector-empty">
+                    {search.trim()
+                      ? t("chat.noModelsMatch", { defaultValue: "No matching models" })
+                      : t("chat.noModels", { defaultValue: "No models available" })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -103,12 +103,7 @@ describe("shop names in a modal title", () => {
   it("marks the visible heading while the dialog's accessible label keeps the name", () => {
     setPrivacyMode(true);
     render(
-      <Modal
-        isOpen
-        onClose={() => {}}
-        title="Windboss Benessere · Customer service"
-        titleSensitive
-      >
+      <Modal isOpen onClose={() => {}} title="Windboss Benessere · Customer service" titleSensitive>
         <p>body</p>
       </Modal>,
     );

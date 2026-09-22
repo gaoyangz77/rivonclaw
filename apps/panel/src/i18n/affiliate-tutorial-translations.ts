@@ -7,87 +7,122 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
     tutorial: {
       ecommerceAffiliateAttention: {
         welcomeTitle: "Agent-Arbeitswarteschlange",
-        welcomeBody: "Prüfen Sie Affiliate-Aktionen, die eine menschliche Entscheidung erfordern, und kontrollieren Sie erledigte Arbeit, ohne die operative Warteschlange zu verlassen.",
+        welcomeBody:
+          "Prüfen Sie Affiliate-Aktionen, die eine menschliche Entscheidung erfordern, und kontrollieren Sie erledigte Arbeit, ohne die operative Warteschlange zu verlassen.",
         scopeTitle: "Fünf Workbench-Ansichten",
-        scopeBody: "Wechseln Sie zwischen ausstehender Agent-Prüfung, Mitarbeiter-Eskalationen, aller Agent-Arbeit, Sample-Anträgen und Creator-Nachrichten. Das Tutorial besucht jede Live-Warteschlange und kehrt anschließend zur ausstehenden Agent-Arbeit zurück.",
+        scopeBody:
+          "Wechseln Sie zwischen ausstehender Agent-Prüfung, Mitarbeiter-Eskalationen, aller Agent-Arbeit, Sample-Anträgen und Creator-Nachrichten. Das Tutorial besucht jede Live-Warteschlange und kehrt anschließend zur ausstehenden Agent-Arbeit zurück.",
         filtersTitle: "Warteschlange eingrenzen",
-        filtersBody: "Filtern Sie nach Business Developer und Aktionstyp oder suchen Sie nach Creator, Shop, Produkt und Vorschlagskontext. Im Modus „Erledigt“ steht zusätzlich ein Statusfilter bereit.",
+        filtersBody:
+          "Filtern Sie nach Business Developer und Aktionstyp oder suchen Sie nach Creator, Shop, Produkt und Vorschlagskontext. Im Modus „Erledigt“ steht zusätzlich ein Statusfilter bereit.",
         queueTitle: "Agent-Arbeit prüfen",
-        queueBody: "Jeder Eintrag bewahrt Empfehlung, Belege, Entwurf und Überarbeitungsverlauf. Öffnen Sie den Beziehungskontext, bevor Sie genehmigen, ablehnen oder Änderungen anfordern.",
+        queueBody:
+          "Jeder Eintrag bewahrt Empfehlung, Belege, Entwurf und Überarbeitungsverlauf. Öffnen Sie den Beziehungskontext, bevor Sie genehmigen, ablehnen oder Änderungen anfordern.",
         escalationsTitle: "Mitarbeiter-Eskalationen",
-        escalationsBody: "Wenn der Agent eine menschliche Antwort benötigt, pausiert die Arbeit hier. Filtern Sie nach Verantwortlichem, prüfen Sie die eingefrorene Frage und den Agenda-Kontext sowie den Zustellstatus der Benachrichtigung.",
+        escalationsBody:
+          "Wenn der Agent eine menschliche Antwort benötigt, pausiert die Arbeit hier. Filtern Sie nach Verantwortlichem, prüfen Sie die eingefrorene Frage und den Agenda-Kontext sowie den Zustellstatus der Benachrichtigung.",
         samplesTitle: "Warteschlange für Sample-Anträge",
-        samplesBody: "Prüfen Sie offene und ignorierte Sample-Anträge shopübergreifend. Shop, Bearbeitungsstatus und Business Developer werden getrennt gefiltert; eine Zeile öffnet den Beziehungsarbeitsbereich für die endgültige Entscheidung.",
+        samplesBody:
+          "Prüfen Sie offene und ignorierte Sample-Anträge shopübergreifend. Shop, Bearbeitungsstatus und Business Developer werden getrennt gefiltert; eine Zeile öffnet den Beziehungsarbeitsbereich für die endgültige Entscheidung.",
         messagesTitle: "Warteschlange für Creator-Nachrichten",
-        messagesBody: "Ordnen Sie wartende Antworten nach TikTok Shop, WhatsApp oder E-Mail. Kanalzahlen, Verantwortliche, Wartezeit, Schutz und Nur-Mensch-Markierungen erklären die Dringlichkeit.",
+        messagesBody:
+          "Ordnen Sie wartende Antworten nach TikTok Shop, WhatsApp oder E-Mail. Kanalzahlen, Verantwortliche, Wartezeit, Schutz und Nur-Mensch-Markierungen erklären die Dringlichkeit.",
       },
       ecommerceAffiliateCreators: {
         welcomeTitle: "Creator",
-        welcomeBody: "Nutzen Sie das Creator-Verzeichnis, um Beziehungsstatus, laufende Kooperationen, Leistungssignale und die nächste Aufgabe shopübergreifend zu verstehen.",
+        welcomeBody:
+          "Nutzen Sie das Creator-Verzeichnis, um Beziehungsstatus, laufende Kooperationen, Leistungssignale und die nächste Aufgabe shopübergreifend zu verstehen.",
         controlsTitle: "Shop-Auswahl und Datenstatus",
-        controlsBody: "Wählen Sie einen Shop und aktualisieren Sie dessen Creator-Daten. Der Synchronisierungshinweis über dem Verzeichnis zeigt, ob aktuelle und historische Daten bereitstehen.",
+        controlsBody:
+          "Wählen Sie einen Shop und aktualisieren Sie dessen Creator-Daten. Der Synchronisierungshinweis über dem Verzeichnis zeigt, ob aktuelle und historische Daten bereitstehen.",
         filtersTitle: "Passende Creator finden",
-        filtersBody: "Kombinieren Sie konto- und shopspezifischen Kooperationsfortschritt mit System- und manuellen Tags, Beliebig/Alle-Abgleich, Identitätssuche und dem Schalter „Aufmerksamkeit erforderlich“.",
+        filtersBody:
+          "Kombinieren Sie konto- und shopspezifischen Kooperationsfortschritt mit System- und manuellen Tags, Beliebig/Alle-Abgleich, Identitätssuche und dem Schalter „Aufmerksamkeit erforderlich“.",
         resultsTitle: "Creator-Beziehungskarten",
-        resultsBody: "Prüfen Sie Shop-Abdeckung, Tags, aktive Samples und Kooperationen, Leistung und offene Aufgaben. Öffnen Sie eine Karte für den vollständigen Beziehungsarbeitsbereich.",
+        resultsBody:
+          "Prüfen Sie Shop-Abdeckung, Tags, aktive Samples und Kooperationen, Leistung und offene Aufgaben. Öffnen Sie eine Karte für den vollständigen Beziehungsarbeitsbereich.",
       },
       ecommerceAffiliateHistory: {
         welcomeTitle: "Kooperationsverlauf",
-        welcomeBody: "Prüfen Sie offene und gezielte Kooperationen über alle Shops hinweg – einschließlich Lebenszyklus, Creator, Produkte, Provision und Plattformkennungen.",
+        welcomeBody:
+          "Prüfen Sie offene und gezielte Kooperationen über alle Shops hinweg – einschließlich Lebenszyklus, Creator, Produkte, Provision und Plattformkennungen.",
         controlsTitle: "Kooperationsaktionen",
-        controlsBody: "Wählen Sie einen Shop, konfigurieren Sie Einstellungen für offene Kooperationen, erstellen Sie eine neue Kooperation oder aktualisieren Sie den neuesten Plattformstatus.",
+        controlsBody:
+          "Wählen Sie einen Shop, konfigurieren Sie Einstellungen für offene Kooperationen, erstellen Sie eine neue Kooperation oder aktualisieren Sie den neuesten Plattformstatus.",
         filtersTitle: "Kooperationen filtern",
-        filtersBody: "Grenzen Sie den Verlauf nach Lebenszyklusstatus, Kooperationstyp oder nach Creator-, Produkt-, Shop- und Plattformkennungen ein.",
+        filtersBody:
+          "Grenzen Sie den Verlauf nach Lebenszyklusstatus, Kooperationstyp oder nach Creator-, Produkt-, Shop- und Plattformkennungen ein.",
         resultsTitle: "Kooperationsdatensätze",
-        resultsBody: "Jede Karte fasst Lebenszyklus und geschäftlichen Umfang zusammen. Öffnen Sie sie, um Creator, Produkte, Samples, Einstellungen und unterstützte Verwaltungsaktionen zu prüfen.",
+        resultsBody:
+          "Jede Karte fasst Lebenszyklus und geschäftlichen Umfang zusammen. Öffnen Sie sie, um Creator, Produkte, Samples, Einstellungen und unterstützte Verwaltungsaktionen zu prüfen.",
       },
       ecommerceAffiliateTeam: {
         welcomeTitle: "Team und Kanäle",
-        welcomeBody: "Legen Sie fest, wer jede Creator-Beziehung betreut und welches WhatsApp- oder Outlook-Konto verwendet wird. Verwalten Sie außerdem Creator-Schutz und Freigaberegeln zentral.",
+        welcomeBody:
+          "Legen Sie fest, wer jede Creator-Beziehung betreut und welches WhatsApp- oder Outlook-Konto verwendet wird. Verwalten Sie außerdem Creator-Schutz und Freigaberegeln zentral.",
         tabsTitle: "Drei Arbeitsbereiche",
-        tabsBody: "Wechseln Sie zwischen Teamabläufen, Creator-Zuweisungen und Sicherheitsfreigaben. Die Zusammenfassungen zeigen Arbeitslast, geschützte Creator und Einrichtungsstatus.",
+        tabsBody:
+          "Wechseln Sie zwischen Teamabläufen, Creator-Zuweisungen und Sicherheitsfreigaben. Die Zusammenfassungen zeigen Arbeitslast, geschützte Creator und Einrichtungsstatus.",
         responsibilitiesTitle: "Verantwortliche und Kontaktkanäle",
-        responsibilitiesBody: "Suchen Sie Business Developer und vergleichen Sie Creator-Last, Annahmestatus, WhatsApp-/Outlook-Zustand und KI-Modus. Die Detailansicht verwaltet außerdem Konten, bevorzugte Absender und Eskalationsbenachrichtigungen.",
+        responsibilitiesBody:
+          "Suchen Sie Business Developer und vergleichen Sie Creator-Last, Annahmestatus, WhatsApp-/Outlook-Zustand und KI-Modus. Die Detailansicht verwaltet außerdem Konten, bevorzugte Absender und Eskalationsbenachrichtigungen.",
         assignmentsTitle: "Schutz der Creator-Zuständigkeit",
-        assignmentsBody: "Importieren Sie CSV- oder Tabellen-Dateien oder fügen Sie Identitäten manuell hinzu. Klären und prüfen Sie Änderungen vor dem Schutz; hier wird auch der kontoübergreifende manuelle Tag-Katalog gepflegt.",
+        assignmentsBody:
+          "Importieren Sie CSV- oder Tabellen-Dateien oder fügen Sie Identitäten manuell hinzu. Klären und prüfen Sie Änderungen vor dem Schutz; hier wird auch der kontoübergreifende manuelle Tag-Katalog gepflegt.",
         safetyTitle: "Sichere Freigaben",
-        safetyBody: "Legen Sie kontoübergreifende Freigaberichtlinien für Affiliate-Aktionen fest. Nachrichtenregeln prüfen den genauen Entwurf, bevor er über einen Anbieter zugestellt wird.",
+        safetyBody:
+          "Legen Sie kontoübergreifende Freigaberichtlinien für Affiliate-Aktionen fest. Nachrichtenregeln prüfen den genauen Entwurf, bevor er über einen Anbieter zugestellt wird.",
       },
       ecommerceAffiliateCampaign: {
         welcomeTitle: "Promotion-Pläne",
-        welcomeBody: "Erstellen und betreiben Sie wiederholbare Creator-Ansprachepläne für ein oder mehrere Produkte – mit klarer Suche, Tageslimits, Nachrichten und Lebenszyklussteuerung.",
+        welcomeBody:
+          "Erstellen und betreiben Sie wiederholbare Creator-Ansprachepläne für ein oder mehrere Produkte – mit klarer Suche, Tageslimits, Nachrichten und Lebenszyklussteuerung.",
         summaryTitle: "Betriebsfenster und Kapazität",
-        summaryBody: "Prüfen Sie vor Kapazitätsänderungen das lokale Versandfenster, aktive Shops, aktive Pläne und das gemeinsame tägliche Kontaktziel.",
+        summaryBody:
+          "Prüfen Sie vor Kapazitätsänderungen das lokale Versandfenster, aktive Shops, aktive Pläne und das gemeinsame tägliche Kontaktziel.",
         directoryTitle: "Planübersicht",
-        directoryBody: "Filtern und öffnen Sie Promotion-Pläne, um Status, Shop, Tagesziel, Auswahlgrenzen und Produkt zu prüfen. Eine leere Übersicht bietet denselben Einstieg für den ersten Plan.",
+        directoryBody:
+          "Filtern und öffnen Sie Promotion-Pläne, um Status, Shop, Tagesziel, Auswahlgrenzen und Produkt zu prüfen. Eine leere Übersicht bietet denselben Einstieg für den ersten Plan.",
         detailOverviewTitle: "Plansteuerung und Live-Status",
-        detailOverviewBody: "Der Kopfbereich bündelt Plan, Shop und Produkt, Auswahlbereitschaft, Provision, erste Nachricht, Lebenszyklusaktionen sowie Live-KPIs für Plan und Shop-Kapazität.",
+        detailOverviewBody:
+          "Der Kopfbereich bündelt Plan, Shop und Produkt, Auswahlbereitschaft, Provision, erste Nachricht, Lebenszyklusaktionen sowie Live-KPIs für Plan und Shop-Kapazität.",
         detailOperationsTitle: "Funnel- und Suchbelege",
-        detailOperationsBody: "Nutzen Sie Quotenstatus, Funnel, Suchplan-Generationen, Creator-Eignung und Zustellergebnisse, um die Leistung vor einem erneuten Versuch oder einer Planänderung zu erklären.",
+        detailOperationsBody:
+          "Nutzen Sie Quotenstatus, Funnel, Suchplan-Generationen, Creator-Eignung und Zustellergebnisse, um die Leistung vor einem erneuten Versuch oder einer Planänderung zu erklären.",
         createTitle: "Promotion-Plan erstellen",
-        createBody: "Legen Sie hier Shop und Produkt, Regeln zur Creator-Suche, die erste Nachricht und die abschließenden Aktivierungseinstellungen fest.",
+        createBody:
+          "Legen Sie hier Shop und Produkt, Regeln zur Creator-Suche, die erste Nachricht und die abschließenden Aktivierungseinstellungen fest.",
         wizardStagesTitle: "Vier geschützte Phasen",
-        wizardStagesBody: "Erstellen Sie das Angebot, legen Sie Suche und Tageskapazität fest, prüfen Sie die erste Nachricht und bestätigen Sie anschließend Autorisierung und Aktivierungsgrenzen.",
+        wizardStagesBody:
+          "Erstellen Sie das Angebot, legen Sie Suche und Tageskapazität fest, prüfen Sie die erste Nachricht und bestätigen Sie anschließend Autorisierung und Aktivierungsgrenzen.",
         wizardTitle: "Einrichtung in vier Phasen",
-        wizardBody: "Benennen Sie den Plan, wählen Sie den Shop und erstellen Sie ein Mehrproduktangebot mit Provision je Produkt. Jedes Produkt muss vor dem Fortfahren als aktueller Snapshot aufgelöst werden; dieses Tutorial speichert nichts.",
+        wizardBody:
+          "Benennen Sie den Plan, wählen Sie den Shop und erstellen Sie ein Mehrproduktangebot mit Provision je Produkt. Jedes Produkt muss vor dem Fortfahren als aktueller Snapshot aufgelöst werden; dieses Tutorial speichert nichts.",
       },
       ecommerceAffiliateIntelligence: {
         welcomeTitle: "Creator-Intelligenz",
-        welcomeBody: "Bewerten Sie, ob das Modell für erwartete Verkäufe die Creator-Auswahl verbessert, und erkennen Sie, welches Konto-, Regions- oder Shop-Modell eine Entscheidung tatsächlich bedient.",
+        welcomeBody:
+          "Bewerten Sie, ob das Modell für erwartete Verkäufe die Creator-Auswahl verbessert, und erkennen Sie, welches Konto-, Regions- oder Shop-Modell eine Entscheidung tatsächlich bedient.",
         refreshTitle: "Modellbelege aktualisieren",
-        refreshBody: "Laden Sie nach Änderungen am Training oder Produktionsmodell den neuesten Verfügbarkeits- und Bewertungsstand neu.",
+        refreshBody:
+          "Laden Sie nach Änderungen am Training oder Produktionsmodell den neuesten Verfügbarkeits- und Bewertungsstand neu.",
         scopesTitle: "Analysebereich wählen",
-        scopesBody: "Beginnen Sie mit dem Kontomodell oder wählen Sie einen aktivierten Shop. Jeder Bereich zeigt, ob ein trainiertes Modell bereit ist, auf einen Ersatz zurückfällt, nicht verfügbar ist oder noch Daten fehlen.",
+        scopesBody:
+          "Beginnen Sie mit dem Kontomodell oder wählen Sie einen aktivierten Shop. Jeder Bereich zeigt, ob ein trainiertes Modell bereit ist, auf einen Ersatz zurückfällt, nicht verfügbar ist oder noch Daten fehlen.",
         analysisTitle: "Modell- und Personalentscheidungen vergleichen",
-        analysisBody: "Lesen Sie die erwartete Umsatzsteigerung bei gleichem Budget zusammen mit Wahrscheinlichkeit, Unsicherheitsbereich und Datengrundlage. Fehlende oder schwache Belege sind ein Grund zu warten, kein Nachweis einer Verbesserung.",
+        analysisBody:
+          "Lesen Sie die erwartete Umsatzsteigerung bei gleichem Budget zusammen mit Wahrscheinlichkeit, Unsicherheitsbereich und Datengrundlage. Fehlende oder schwache Belege sind ein Grund zu warten, kein Nachweis einer Verbesserung.",
       },
       productKnowledge: {
         welcomeTitle: "Wiederverwendbare Produktwahrheit",
-        welcomeBody: "Pflegen Sie Produktanweisungen, freigegebene Antworten und Kreativreferenzen unabhängig von einzelnen Shop-Angeboten.",
+        welcomeBody:
+          "Pflegen Sie Produktanweisungen, freigegebene Antworten und Kreativreferenzen unabhängig von einzelnen Shop-Angeboten.",
         createTitle: "Produktwissen erstellen",
-        createBody: "Legen Sie hier einen wiederverwendbaren Wissenseintrag an. Für die Erstellung genügt ein Name; Anweisungen, Fragen und Antworten, Kreativbeispiele und Produktverknüpfungen werden danach verwaltet.",
+        createBody:
+          "Legen Sie hier einen wiederverwendbaren Wissenseintrag an. Für die Erstellung genügt ein Name; Anweisungen, Fragen und Antworten, Kreativbeispiele und Produktverknüpfungen werden danach verwaltet.",
         libraryTitle: "Wissensbibliothek",
-        libraryBody: "Prüfen Sie in der Tabelle Status, Inhaltsabdeckung, verknüpfte Produkte, Revision und Aktualität, bevor Sie eine Wissensbasis öffnen.",
+        libraryBody:
+          "Prüfen Sie in der Tabelle Status, Inhaltsabdeckung, verknüpfte Produkte, Revision und Aktualität, bevor Sie eine Wissensbasis öffnen.",
       },
     },
   },
@@ -95,87 +130,122 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
     tutorial: {
       ecommerceAffiliateAttention: {
         welcomeTitle: "Cola de trabajo del Agente",
-        welcomeBody: "Revisa las acciones de afiliación que requieren una decisión humana y consulta el trabajo completado sin salir de la cola operativa.",
+        welcomeBody:
+          "Revisa las acciones de afiliación que requieren una decisión humana y consulta el trabajo completado sin salir de la cola operativa.",
         scopeTitle: "Cinco vistas del banco de trabajo",
-        scopeBody: "Cambia entre trabajo del Agent pendiente, escalaciones al personal, todo el historial del Agent, solicitudes de muestra y mensajes de creadores. El tutorial visita cada cola activa y vuelve al trabajo pendiente.",
+        scopeBody:
+          "Cambia entre trabajo del Agent pendiente, escalaciones al personal, todo el historial del Agent, solicitudes de muestra y mensajes de creadores. El tutorial visita cada cola activa y vuelve al trabajo pendiente.",
         filtersTitle: "Acotar la cola",
-        filtersBody: "Filtra por responsable de desarrollo y tipo de acción, o busca por creador, tienda, producto y contexto de la propuesta. El modo completado también añade un filtro de estado.",
+        filtersBody:
+          "Filtra por responsable de desarrollo y tipo de acción, o busca por creador, tienda, producto y contexto de la propuesta. El modo completado también añade un filtro de estado.",
         queueTitle: "Revisar el trabajo del Agente",
-        queueBody: "Cada elemento conserva la recomendación, las pruebas, el borrador y el historial de revisiones. Abre el contexto de la relación antes de aprobar, rechazar o solicitar cambios.",
+        queueBody:
+          "Cada elemento conserva la recomendación, las pruebas, el borrador y el historial de revisiones. Abre el contexto de la relación antes de aprobar, rechazar o solicitar cambios.",
         escalationsTitle: "Escalaciones al personal",
-        escalationsBody: "El Agent pausa aquí cuando necesita una respuesta humana. Filtra por responsable y revisa la pregunta y la agenda congeladas; el estado de notificación indica si llegó a la ruta asignada.",
+        escalationsBody:
+          "El Agent pausa aquí cuando necesita una respuesta humana. Filtra por responsable y revisa la pregunta y la agenda congeladas; el estado de notificación indica si llegó a la ruta asignada.",
         samplesTitle: "Cola de solicitudes de muestra",
-        samplesBody: "Revisa solicitudes abiertas e ignoradas entre tiendas. Tienda, disposición y responsable se filtran por separado; abrir una fila lleva al espacio de la relación para la decisión final.",
+        samplesBody:
+          "Revisa solicitudes abiertas e ignoradas entre tiendas. Tienda, disposición y responsable se filtran por separado; abrir una fila lleva al espacio de la relación para la decisión final.",
         messagesTitle: "Cola de conversaciones con creadores",
-        messagesBody: "Prioriza respuestas pendientes de TikTok Shop, WhatsApp o correo. Los recuentos de canal, responsable, espera, protección y modo solo humano explican la urgencia.",
+        messagesBody:
+          "Prioriza respuestas pendientes de TikTok Shop, WhatsApp o correo. Los recuentos de canal, responsable, espera, protección y modo solo humano explican la urgencia.",
       },
       ecommerceAffiliateCreators: {
         welcomeTitle: "Creadores",
-        welcomeBody: "Usa el directorio de creadores para entender la salud de las relaciones, las colaboraciones activas, las señales de rendimiento y la siguiente acción entre tiendas.",
+        welcomeBody:
+          "Usa el directorio de creadores para entender la salud de las relaciones, las colaboraciones activas, las señales de rendimiento y la siguiente acción entre tiendas.",
         controlsTitle: "Ámbito de tiendas y estado de datos",
-        controlsBody: "Elige una tienda y actualiza sus datos de creadores. El aviso de sincronización sobre el directorio indica si los datos actuales e históricos están listos.",
+        controlsBody:
+          "Elige una tienda y actualiza sus datos de creadores. El aviso de sincronización sobre el directorio indica si los datos actuales e históricos están listos.",
         filtersTitle: "Encontrar a los creadores adecuados",
-        filtersBody: "Combina el progreso global y por tienda con etiquetas del sistema y manuales, coincidencia cualquiera/todas, búsqueda de identidad y el filtro de atención.",
+        filtersBody:
+          "Combina el progreso global y por tienda con etiquetas del sistema y manuales, coincidencia cualquiera/todas, búsqueda de identidad y el filtro de atención.",
         resultsTitle: "Tarjetas de relación con creadores",
-        resultsBody: "Revisa la cobertura de tiendas, etiquetas, muestras y colaboraciones activas, rendimiento y trabajo pendiente. Abre una tarjeta para acceder al espacio de trabajo completo de la relación.",
+        resultsBody:
+          "Revisa la cobertura de tiendas, etiquetas, muestras y colaboraciones activas, rendimiento y trabajo pendiente. Abre una tarjeta para acceder al espacio de trabajo completo de la relación.",
       },
       ecommerceAffiliateHistory: {
         welcomeTitle: "Historial de colaboraciones",
-        welcomeBody: "Revisa colaboraciones abiertas y dirigidas entre tiendas, incluido su ciclo de vida, creadores, productos, comisión e identificadores de plataforma.",
+        welcomeBody:
+          "Revisa colaboraciones abiertas y dirigidas entre tiendas, incluido su ciclo de vida, creadores, productos, comisión e identificadores de plataforma.",
         controlsTitle: "Operaciones de colaboración",
-        controlsBody: "Elige una tienda, configura las colaboraciones abiertas, crea una nueva colaboración o actualiza el estado más reciente de la plataforma desde esta zona.",
+        controlsBody:
+          "Elige una tienda, configura las colaboraciones abiertas, crea una nueva colaboración o actualiza el estado más reciente de la plataforma desde esta zona.",
         filtersTitle: "Filtrar colaboraciones",
-        filtersBody: "Acota el historial por estado del ciclo de vida, tipo de colaboración o identificadores de creador, producto, tienda y plataforma.",
+        filtersBody:
+          "Acota el historial por estado del ciclo de vida, tipo de colaboración o identificadores de creador, producto, tienda y plataforma.",
         resultsTitle: "Registros de colaboración",
-        resultsBody: "Cada tarjeta resume el ciclo de vida y el alcance comercial. Ábrela para revisar creadores, productos, muestras, ajustes y las acciones de gestión disponibles.",
+        resultsBody:
+          "Cada tarjeta resume el ciclo de vida y el alcance comercial. Ábrela para revisar creadores, productos, muestras, ajustes y las acciones de gestión disponibles.",
       },
       ecommerceAffiliateTeam: {
         welcomeTitle: "Equipo y canales",
-        welcomeBody: "Define quién es responsable de cada relación con creadores y qué cuenta de WhatsApp u Outlook utiliza; gestiona además la protección de creadores y las reglas de aprobación en un solo espacio.",
+        welcomeBody:
+          "Define quién es responsable de cada relación con creadores y qué cuenta de WhatsApp u Outlook utiliza; gestiona además la protección de creadores y las reglas de aprobación en un solo espacio.",
         tabsTitle: "Tres áreas operativas",
-        tabsBody: "Cambia entre operaciones del equipo, asignaciones de creadores y aprobaciones de seguridad. Los resúmenes muestran la carga de trabajo, los creadores protegidos y el estado de configuración.",
+        tabsBody:
+          "Cambia entre operaciones del equipo, asignaciones de creadores y aprobaciones de seguridad. Los resúmenes muestran la carga de trabajo, los creadores protegidos y el estado de configuración.",
         responsibilitiesTitle: "Responsables y canales de contacto",
-        responsibilitiesBody: "Busca responsables y compara carga, estado de aceptación, salud de WhatsApp/Outlook y modo de IA. El detalle también gestiona cuentas, remitentes preferidos y rutas de notificación de escalaciones.",
+        responsibilitiesBody:
+          "Busca responsables y compara carga, estado de aceptación, salud de WhatsApp/Outlook y modo de IA. El detalle también gestiona cuentas, remitentes preferidos y rutas de notificación de escalaciones.",
         assignmentsTitle: "Protección de la propiedad del creador",
-        assignmentsBody: "Importa CSV u hojas de cálculo, o añade identidades manualmente; resuelve y previsualiza los cambios antes de protegerlas. Aquí también se mantiene el catálogo global de etiquetas manuales.",
+        assignmentsBody:
+          "Importa CSV u hojas de cálculo, o añade identidades manualmente; resuelve y previsualiza los cambios antes de protegerlas. Aquí también se mantiene el catálogo global de etiquetas manuales.",
         safetyTitle: "Seguridad de las aprobaciones",
-        safetyBody: "Establece políticas de aprobación para toda la cuenta sobre las acciones de afiliación. Las reglas de mensajes revisan el borrador exacto antes de enviarlo mediante un proveedor.",
+        safetyBody:
+          "Establece políticas de aprobación para toda la cuenta sobre las acciones de afiliación. Las reglas de mensajes revisan el borrador exacto antes de enviarlo mediante un proveedor.",
       },
       ecommerceAffiliateCampaign: {
         welcomeTitle: "Planes de promoción",
-        welcomeBody: "Crea y gestiona planes repetibles de contacto con creadores para uno o varios productos, con descubrimiento, límites diarios, mensajes y controles del ciclo de vida explícitos.",
+        welcomeBody:
+          "Crea y gestiona planes repetibles de contacto con creadores para uno o varios productos, con descubrimiento, límites diarios, mensajes y controles del ciclo de vida explícitos.",
         summaryTitle: "Ventana operativa y capacidad",
-        summaryBody: "Antes de cambiar la capacidad, comprueba la ventana de envío local, las tiendas activas, los planes activos y el objetivo diario combinado.",
+        summaryBody:
+          "Antes de cambiar la capacidad, comprueba la ventana de envío local, las tiendas activas, los planes activos y el objetivo diario combinado.",
         directoryTitle: "Cartera de planes",
-        directoryBody: "Filtra y abre planes de promoción para revisar estado, tienda, objetivo diario, límites de selección y producto. Una cartera vacía ofrece el mismo acceso para crear el primer plan.",
+        directoryBody:
+          "Filtra y abre planes de promoción para revisar estado, tienda, objetivo diario, límites de selección y producto. Una cartera vacía ofrece el mismo acceso para crear el primer plan.",
         detailOverviewTitle: "Control y salud en vivo del plan",
-        detailOverviewBody: "La cabecera reúne identidad, tienda y producto, preparación de selección, comisión, primer mensaje, acciones del ciclo de vida y KPI en vivo del plan y de la capacidad de la tienda.",
+        detailOverviewBody:
+          "La cabecera reúne identidad, tienda y producto, preparación de selección, comisión, primer mensaje, acciones del ciclo de vida y KPI en vivo del plan y de la capacidad de la tienda.",
         detailOperationsTitle: "Embudo y pruebas de descubrimiento",
-        detailOperationsBody: "Usa el estado de cuota, el embudo, las generaciones de búsqueda, la elegibilidad de creadores y los resultados de entrega para explicar el rendimiento antes de modificar el plan.",
+        detailOperationsBody:
+          "Usa el estado de cuota, el embudo, las generaciones de búsqueda, la elegibilidad de creadores y los resultados de entrega para explicar el rendimiento antes de modificar el plan.",
         createTitle: "Crear un plan de promoción",
-        createBody: "Define aquí la tienda y el producto, las reglas para descubrir creadores, el primer mensaje y los ajustes finales de activación.",
+        createBody:
+          "Define aquí la tienda y el producto, las reglas para descubrir creadores, el primer mensaje y los ajustes finales de activación.",
         wizardStagesTitle: "Cuatro fases protegidas",
-        wizardStagesBody: "Construye la oferta, configura descubrimiento y capacidad diaria, revisa el primer mensaje y confirma los límites de autorización y activación; cada avance se valida.",
+        wizardStagesBody:
+          "Construye la oferta, configura descubrimiento y capacidad diaria, revisa el primer mensaje y confirma los límites de autorización y activación; cada avance se valida.",
         wizardTitle: "Configuración en cuatro fases",
-        wizardBody: "Nombra el plan, elige la tienda y crea una oferta multiproducto con comisión por producto. Resuelve cada producto a una instantánea actual antes de continuar; el tutorial no guarda nada.",
+        wizardBody:
+          "Nombra el plan, elige la tienda y crea una oferta multiproducto con comisión por producto. Resuelve cada producto a una instantánea actual antes de continuar; el tutorial no guarda nada.",
       },
       ecommerceAffiliateIntelligence: {
         welcomeTitle: "Inteligencia de creadores",
-        welcomeBody: "Evalúa si el modelo de ventas esperadas mejora la selección de creadores y comprueba qué modelo de cuenta, región o tienda atiende realmente cada decisión.",
+        welcomeBody:
+          "Evalúa si el modelo de ventas esperadas mejora la selección de creadores y comprueba qué modelo de cuenta, región o tienda atiende realmente cada decisión.",
         refreshTitle: "Actualizar las pruebas del modelo",
-        refreshBody: "Vuelve a cargar la última instantánea de disponibilidad y evaluación después de cambios en el entrenamiento o en el modelo de producción.",
+        refreshBody:
+          "Vuelve a cargar la última instantánea de disponibilidad y evaluación después de cambios en el entrenamiento o en el modelo de producción.",
         scopesTitle: "Elegir el ámbito de análisis",
-        scopesBody: "Empieza con el modelo de cuenta o elige una tienda habilitada. Cada ámbito indica si hay un modelo entrenado listo, en modo alternativo, no disponible o aún sin datos suficientes.",
+        scopesBody:
+          "Empieza con el modelo de cuenta o elige una tienda habilitada. Cada ámbito indica si hay un modelo entrenado listo, en modo alternativo, no disponible o aún sin datos suficientes.",
         analysisTitle: "Comparar el modelo y las decisiones humanas",
-        analysisBody: "Interpreta el aumento de ventas esperadas con el mismo presupuesto junto con la probabilidad, el intervalo de incertidumbre y la base de datos. Las pruebas ausentes o débiles son motivo para esperar, no una demostración de mejora.",
+        analysisBody:
+          "Interpreta el aumento de ventas esperadas con el mismo presupuesto junto con la probabilidad, el intervalo de incertidumbre y la base de datos. Las pruebas ausentes o débiles son motivo para esperar, no una demostración de mejora.",
       },
       productKnowledge: {
         welcomeTitle: "Una fuente reutilizable de verdad del producto",
-        welcomeBody: "Mantén las instrucciones del producto, las respuestas aprobadas y las referencias creativas independientes de cualquier anuncio de una tienda concreta.",
+        welcomeBody:
+          "Mantén las instrucciones del producto, las respuestas aprobadas y las referencias creativas independientes de cualquier anuncio de una tienda concreta.",
         createTitle: "Crear conocimiento del producto",
-        createBody: "Crea aquí un registro de conocimiento reutilizable. Para empezar solo hace falta un nombre; las instrucciones, preguntas y respuestas, casos creativos y vínculos con productos se gestionan después.",
+        createBody:
+          "Crea aquí un registro de conocimiento reutilizable. Para empezar solo hace falta un nombre; las instrucciones, preguntas y respuestas, casos creativos y vínculos con productos se gestionan después.",
         libraryTitle: "Biblioteca de conocimiento",
-        libraryBody: "Usa la tabla para revisar el estado, la cobertura del contenido, los productos vinculados, la revisión y la actualidad antes de abrir una base de conocimiento.",
+        libraryBody:
+          "Usa la tabla para revisar el estado, la cobertura del contenido, los productos vinculados, la revisión y la actualidad antes de abrir una base de conocimiento.",
       },
     },
   },
@@ -183,87 +253,122 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
     tutorial: {
       ecommerceAffiliateAttention: {
         welcomeTitle: "File de travail de l’Agent",
-        welcomeBody: "Examinez les actions Affiliate qui nécessitent une décision humaine et contrôlez le travail terminé sans quitter la file opérationnelle.",
+        welcomeBody:
+          "Examinez les actions Affiliate qui nécessitent une décision humaine et contrôlez le travail terminé sans quitter la file opérationnelle.",
         scopeTitle: "Cinq vues de l’atelier",
-        scopeBody: "Passez du travail Agent en attente aux escalades vers le personnel, à tout l’historique Agent, aux demandes d’échantillons et aux messages des créateurs. Le tutoriel visite chaque file active puis revient au travail en attente.",
+        scopeBody:
+          "Passez du travail Agent en attente aux escalades vers le personnel, à tout l’historique Agent, aux demandes d’échantillons et aux messages des créateurs. Le tutoriel visite chaque file active puis revient au travail en attente.",
         filtersTitle: "Cibler la file",
-        filtersBody: "Filtrez par responsable commercial et type d’action, ou recherchez un créateur, une boutique, un produit et le contexte d’une proposition. Le mode terminé ajoute également un filtre d’état.",
+        filtersBody:
+          "Filtrez par responsable commercial et type d’action, ou recherchez un créateur, une boutique, un produit et le contexte d’une proposition. Le mode terminé ajoute également un filtre d’état.",
         queueTitle: "Examiner le travail de l’Agent",
-        queueBody: "Chaque élément conserve la recommandation, les preuves, le brouillon et l’historique des révisions. Ouvrez le contexte de la relation avant d’approuver, de rejeter ou de demander des modifications.",
+        queueBody:
+          "Chaque élément conserve la recommandation, les preuves, le brouillon et l’historique des révisions. Ouvrez le contexte de la relation avant d’approuver, de rejeter ou de demander des modifications.",
         escalationsTitle: "Escalades vers le personnel",
-        escalationsBody: "L’Agent s’arrête ici lorsqu’une réponse humaine est requise. Filtrez par responsable, examinez la question et l’agenda figés ; l’état de notification indique si la personne désignée a été jointe.",
+        escalationsBody:
+          "L’Agent s’arrête ici lorsqu’une réponse humaine est requise. Filtrez par responsable, examinez la question et l’agenda figés ; l’état de notification indique si la personne désignée a été jointe.",
         samplesTitle: "File des demandes d’échantillons",
-        samplesBody: "Examinez les demandes ouvertes et ignorées entre boutiques. Boutique, décision et responsable se filtrent séparément ; une ligne ouvre l’espace relationnel pour la décision finale.",
+        samplesBody:
+          "Examinez les demandes ouvertes et ignorées entre boutiques. Boutique, décision et responsable se filtrent séparément ; une ligne ouvre l’espace relationnel pour la décision finale.",
         messagesTitle: "File des conversations créateurs",
-        messagesBody: "Priorisez les réponses en attente sur TikTok Shop, WhatsApp ou e-mail. Les volumes par canal, le responsable, l’attente, la protection et le mode humain expliquent l’urgence.",
+        messagesBody:
+          "Priorisez les réponses en attente sur TikTok Shop, WhatsApp ou e-mail. Les volumes par canal, le responsable, l’attente, la protection et le mode humain expliquent l’urgence.",
       },
       ecommerceAffiliateCreators: {
         welcomeTitle: "Créateurs",
-        welcomeBody: "Utilisez le répertoire des créateurs pour comprendre la santé des relations, les collaborations en cours, les signaux de performance et la prochaine action dans toutes les boutiques.",
+        welcomeBody:
+          "Utilisez le répertoire des créateurs pour comprendre la santé des relations, les collaborations en cours, les signaux de performance et la prochaine action dans toutes les boutiques.",
         controlsTitle: "Périmètre des boutiques et état des données",
-        controlsBody: "Choisissez une boutique et actualisez ses données de créateurs. L’avis de synchronisation au-dessus du répertoire indique si les données actuelles et historiques sont prêtes.",
+        controlsBody:
+          "Choisissez une boutique et actualisez ses données de créateurs. L’avis de synchronisation au-dessus du répertoire indique si les données actuelles et historiques sont prêtes.",
         filtersTitle: "Trouver les bons créateurs",
-        filtersBody: "Combinez la progression globale et par boutique avec les tags système et manuels, la correspondance un/tous, la recherche d’identité et le filtre d’attention.",
+        filtersBody:
+          "Combinez la progression globale et par boutique avec les tags système et manuels, la correspondance un/tous, la recherche d’identité et le filtre d’attention.",
         resultsTitle: "Fiches de relation créateur",
-        resultsBody: "Examinez la couverture des boutiques, les étiquettes, les échantillons et collaborations actifs, les performances et le travail en attente. Ouvrez une fiche pour accéder à l’espace complet de la relation.",
+        resultsBody:
+          "Examinez la couverture des boutiques, les étiquettes, les échantillons et collaborations actifs, les performances et le travail en attente. Ouvrez une fiche pour accéder à l’espace complet de la relation.",
       },
       ecommerceAffiliateHistory: {
         welcomeTitle: "Historique des collaborations",
-        welcomeBody: "Examinez les collaborations ouvertes et ciblées entre boutiques, notamment leur cycle de vie, leurs créateurs, produits, commissions et identifiants de plateforme.",
+        welcomeBody:
+          "Examinez les collaborations ouvertes et ciblées entre boutiques, notamment leur cycle de vie, leurs créateurs, produits, commissions et identifiants de plateforme.",
         controlsTitle: "Opérations de collaboration",
-        controlsBody: "Choisissez une boutique, configurez les collaborations ouvertes, créez une collaboration ou actualisez le dernier état de la plateforme depuis cette zone.",
+        controlsBody:
+          "Choisissez une boutique, configurez les collaborations ouvertes, créez une collaboration ou actualisez le dernier état de la plateforme depuis cette zone.",
         filtersTitle: "Filtrer les collaborations",
-        filtersBody: "Affinez l’historique par état du cycle de vie, type de collaboration ou identifiants de créateur, produit, boutique et plateforme.",
+        filtersBody:
+          "Affinez l’historique par état du cycle de vie, type de collaboration ou identifiants de créateur, produit, boutique et plateforme.",
         resultsTitle: "Dossiers de collaboration",
-        resultsBody: "Chaque fiche résume le cycle de vie et le périmètre commercial. Ouvrez-la pour examiner les créateurs, produits, échantillons, paramètres et actions de gestion disponibles.",
+        resultsBody:
+          "Chaque fiche résume le cycle de vie et le périmètre commercial. Ouvrez-la pour examiner les créateurs, produits, échantillons, paramètres et actions de gestion disponibles.",
       },
       ecommerceAffiliateTeam: {
         welcomeTitle: "Équipe et canaux",
-        welcomeBody: "Définissez le responsable de chaque relation créateur et le compte WhatsApp ou Outlook utilisé, puis gérez les protections des créateurs et les règles d’approbation dans un espace unique.",
+        welcomeBody:
+          "Définissez le responsable de chaque relation créateur et le compte WhatsApp ou Outlook utilisé, puis gérez les protections des créateurs et les règles d’approbation dans un espace unique.",
         tabsTitle: "Trois espaces opérationnels",
-        tabsBody: "Passez des opérations d’équipe aux affectations de créateurs et aux approbations de sécurité. Les résumés indiquent la charge, les créateurs protégés et l’état de préparation.",
+        tabsBody:
+          "Passez des opérations d’équipe aux affectations de créateurs et aux approbations de sécurité. Les résumés indiquent la charge, les créateurs protégés et l’état de préparation.",
         responsibilitiesTitle: "Responsables et canaux de contact",
-        responsibilitiesBody: "Recherchez les responsables et comparez charge, disponibilité, santé WhatsApp/Outlook et mode IA. Le détail gère aussi les comptes, expéditeurs préférés et routes de notification des escalades.",
+        responsibilitiesBody:
+          "Recherchez les responsables et comparez charge, disponibilité, santé WhatsApp/Outlook et mode IA. Le détail gère aussi les comptes, expéditeurs préférés et routes de notification des escalades.",
         assignmentsTitle: "Protection de la responsabilité des créateurs",
-        assignmentsBody: "Importez un CSV ou une feuille de calcul, ou ajoutez des identités manuellement ; résolvez et prévisualisez les changements avant protection. Le catalogue global de tags manuels se gère ici aussi.",
+        assignmentsBody:
+          "Importez un CSV ou une feuille de calcul, ou ajoutez des identités manuellement ; résolvez et prévisualisez les changements avant protection. Le catalogue global de tags manuels se gère ici aussi.",
         safetyTitle: "Sécurité des approbations",
-        safetyBody: "Définissez des politiques d’approbation à l’échelle du compte pour les actions Affiliate. Les règles de message examinent le brouillon exact avant son envoi par un fournisseur.",
+        safetyBody:
+          "Définissez des politiques d’approbation à l’échelle du compte pour les actions Affiliate. Les règles de message examinent le brouillon exact avant son envoi par un fournisseur.",
       },
       ecommerceAffiliateCampaign: {
         welcomeTitle: "Plans de promotion",
-        welcomeBody: "Créez et exploitez des plans reproductibles de prospection pour un ou plusieurs produits, avec découverte, limites quotidiennes, messages et cycle de vie explicites.",
+        welcomeBody:
+          "Créez et exploitez des plans reproductibles de prospection pour un ou plusieurs produits, avec découverte, limites quotidiennes, messages et cycle de vie explicites.",
         summaryTitle: "Fenêtre opérationnelle et capacité",
-        summaryBody: "Avant de modifier la capacité, vérifiez la fenêtre d’envoi locale, les boutiques actives, les plans actifs et l’objectif quotidien cumulé.",
+        summaryBody:
+          "Avant de modifier la capacité, vérifiez la fenêtre d’envoi locale, les boutiques actives, les plans actifs et l’objectif quotidien cumulé.",
         directoryTitle: "Portefeuille de plans",
-        directoryBody: "Filtrez et ouvrez les plans de promotion pour examiner l’état, la boutique, l’objectif quotidien, les limites de sélection et le produit. Un portefeuille vide donne le même accès pour créer le premier plan.",
+        directoryBody:
+          "Filtrez et ouvrez les plans de promotion pour examiner l’état, la boutique, l’objectif quotidien, les limites de sélection et le produit. Un portefeuille vide donne le même accès pour créer le premier plan.",
         detailOverviewTitle: "Contrôles et santé du plan",
-        detailOverviewBody: "L’en-tête réunit identité, boutique et produit, disponibilité de la sélection, commission, premier message, actions de cycle de vie et KPI en direct du plan et de la capacité boutique.",
+        detailOverviewBody:
+          "L’en-tête réunit identité, boutique et produit, disponibilité de la sélection, commission, premier message, actions de cycle de vie et KPI en direct du plan et de la capacité boutique.",
         detailOperationsTitle: "Entonnoir et preuves de découverte",
-        detailOperationsBody: "Utilisez l’état des quotas, l’entonnoir, les générations de recherche, l’éligibilité des créateurs et les résultats de livraison pour expliquer les performances avant de modifier le plan.",
+        detailOperationsBody:
+          "Utilisez l’état des quotas, l’entonnoir, les générations de recherche, l’éligibilité des créateurs et les résultats de livraison pour expliquer les performances avant de modifier le plan.",
         createTitle: "Créer un plan de promotion",
-        createBody: "Définissez ici la boutique et le produit, les règles de découverte des créateurs, le premier message et les paramètres finaux d’activation.",
+        createBody:
+          "Définissez ici la boutique et le produit, les règles de découverte des créateurs, le premier message et les paramètres finaux d’activation.",
         wizardStagesTitle: "Quatre étapes protégées",
-        wizardStagesBody: "Construisez l’offre, réglez la découverte et la capacité quotidienne, vérifiez le premier message, puis confirmez les limites d’autorisation et d’activation. Chaque transition est validée.",
+        wizardStagesBody:
+          "Construisez l’offre, réglez la découverte et la capacité quotidienne, vérifiez le premier message, puis confirmez les limites d’autorisation et d’activation. Chaque transition est validée.",
         wizardTitle: "Configuration en quatre étapes",
-        wizardBody: "Nommez le plan, choisissez la boutique et créez une offre multi-produit avec une commission par produit. Résolvez chaque produit en instantané actuel avant de continuer ; rien n’est enregistré.",
+        wizardBody:
+          "Nommez le plan, choisissez la boutique et créez une offre multi-produit avec une commission par produit. Résolvez chaque produit en instantané actuel avant de continuer ; rien n’est enregistré.",
       },
       ecommerceAffiliateIntelligence: {
         welcomeTitle: "Intelligence créateur",
-        welcomeBody: "Évaluez si le modèle de ventes attendues améliore la sélection des créateurs et identifiez le modèle de compte, de région ou de boutique réellement utilisé pour chaque décision.",
+        welcomeBody:
+          "Évaluez si le modèle de ventes attendues améliore la sélection des créateurs et identifiez le modèle de compte, de région ou de boutique réellement utilisé pour chaque décision.",
         refreshTitle: "Actualiser les preuves du modèle",
-        refreshBody: "Rechargez le dernier état de disponibilité et d’évaluation après une évolution de l’entraînement ou du modèle de production.",
+        refreshBody:
+          "Rechargez le dernier état de disponibilité et d’évaluation après une évolution de l’entraînement ou du modèle de production.",
         scopesTitle: "Choisir un périmètre d’analyse",
-        scopesBody: "Commencez par le modèle du compte ou choisissez une boutique activée. Chaque périmètre indique si un modèle entraîné est prêt, utilise un repli, est indisponible ou manque encore de données.",
+        scopesBody:
+          "Commencez par le modèle du compte ou choisissez une boutique activée. Chaque périmètre indique si un modèle entraîné est prêt, utilise un repli, est indisponible ou manque encore de données.",
         analysisTitle: "Comparer le modèle et les décisions humaines",
-        analysisBody: "Interprétez le gain de ventes attendues à budget égal avec la probabilité, l’intervalle d’incertitude et la qualité des données. Des preuves absentes ou faibles invitent à attendre et ne démontrent pas une amélioration.",
+        analysisBody:
+          "Interprétez le gain de ventes attendues à budget égal avec la probabilité, l’intervalle d’incertitude et la qualité des données. Des preuves absentes ou faibles invitent à attendre et ne démontrent pas une amélioration.",
       },
       productKnowledge: {
         welcomeTitle: "Une source produit réutilisable",
-        welcomeBody: "Conservez les instructions produit, les réponses approuvées et les références créatives indépendamment de toute fiche d’une boutique particulière.",
+        welcomeBody:
+          "Conservez les instructions produit, les réponses approuvées et les références créatives indépendamment de toute fiche d’une boutique particulière.",
         createTitle: "Créer une connaissance produit",
-        createBody: "Créez ici une fiche de connaissance réutilisable. Seul un nom est requis au départ ; les instructions, questions-réponses, exemples créatifs et liaisons produit sont gérés ensuite.",
+        createBody:
+          "Créez ici une fiche de connaissance réutilisable. Seul un nom est requis au départ ; les instructions, questions-réponses, exemples créatifs et liaisons produit sont gérés ensuite.",
         libraryTitle: "Bibliothèque de connaissances",
-        libraryBody: "Utilisez le tableau pour examiner l’état, la couverture du contenu, les produits liés, la révision et l’actualité avant d’ouvrir une base de connaissances.",
+        libraryBody:
+          "Utilisez le tableau pour examiner l’état, la couverture du contenu, les produits liés, la révision et l’actualité avant d’ouvrir une base de connaissances.",
       },
     },
   },
@@ -271,87 +376,122 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
     tutorial: {
       ecommerceAffiliateAttention: {
         welcomeTitle: "Antrean kerja Agent",
-        welcomeBody: "Tinjau tindakan Affiliate yang memerlukan keputusan manusia dan periksa pekerjaan yang sudah selesai tanpa meninggalkan antrean operasional.",
+        welcomeBody:
+          "Tinjau tindakan Affiliate yang memerlukan keputusan manusia dan periksa pekerjaan yang sudah selesai tanpa meninggalkan antrean operasional.",
         scopeTitle: "Lima tampilan workbench",
-        scopeBody: "Beralih antara pekerjaan Agent tertunda, eskalasi staf, seluruh riwayat Agent, permohonan sampel, dan pesan kreator. Tutorial mengunjungi setiap antrean aktif lalu kembali ke pekerjaan Agent tertunda.",
+        scopeBody:
+          "Beralih antara pekerjaan Agent tertunda, eskalasi staf, seluruh riwayat Agent, permohonan sampel, dan pesan kreator. Tutorial mengunjungi setiap antrean aktif lalu kembali ke pekerjaan Agent tertunda.",
         filtersTitle: "Fokuskan antrean",
-        filtersBody: "Filter berdasarkan pengembang bisnis dan jenis tindakan, atau cari kreator, toko, produk, dan konteks proposal. Mode selesai juga menambahkan filter status.",
+        filtersBody:
+          "Filter berdasarkan pengembang bisnis dan jenis tindakan, atau cari kreator, toko, produk, dan konteks proposal. Mode selesai juga menambahkan filter status.",
         queueTitle: "Tinjau pekerjaan Agent",
-        queueBody: "Setiap item menyimpan rekomendasi, bukti, draf, dan riwayat revisi. Buka konteks hubungan sebelum menyetujui, menolak, atau meminta perubahan.",
+        queueBody:
+          "Setiap item menyimpan rekomendasi, bukti, draf, dan riwayat revisi. Buka konteks hubungan sebelum menyetujui, menolak, atau meminta perubahan.",
         escalationsTitle: "Eskalasi staf",
-        escalationsBody: "Agent berhenti di sini saat memerlukan jawaban manusia. Filter menurut penanggung jawab dan tinjau pertanyaan serta agenda yang dibekukan; status notifikasi menunjukkan apakah rute staf tercapai.",
+        escalationsBody:
+          "Agent berhenti di sini saat memerlukan jawaban manusia. Filter menurut penanggung jawab dan tinjau pertanyaan serta agenda yang dibekukan; status notifikasi menunjukkan apakah rute staf tercapai.",
         samplesTitle: "Antrean permohonan sampel",
-        samplesBody: "Tinjau permohonan terbuka dan yang diabaikan lintas toko. Toko, disposisi, dan business developer difilter terpisah; membuka baris membawa Anda ke ruang hubungan untuk keputusan akhir.",
+        samplesBody:
+          "Tinjau permohonan terbuka dan yang diabaikan lintas toko. Toko, disposisi, dan business developer difilter terpisah; membuka baris membawa Anda ke ruang hubungan untuk keputusan akhir.",
         messagesTitle: "Antrean percakapan kreator",
-        messagesBody: "Prioritaskan balasan yang menunggu di TikTok Shop, WhatsApp, atau email. Jumlah kanal, penanggung jawab, waktu tunggu, perlindungan, dan mode manusia menjelaskan urgensinya.",
+        messagesBody:
+          "Prioritaskan balasan yang menunggu di TikTok Shop, WhatsApp, atau email. Jumlah kanal, penanggung jawab, waktu tunggu, perlindungan, dan mode manusia menjelaskan urgensinya.",
       },
       ecommerceAffiliateCreators: {
         welcomeTitle: "Kreator",
-        welcomeBody: "Gunakan daftar kreator untuk memahami kesehatan hubungan, kolaborasi aktif, sinyal performa, dan tindakan berikutnya di seluruh toko.",
+        welcomeBody:
+          "Gunakan daftar kreator untuk memahami kesehatan hubungan, kolaborasi aktif, sinyal performa, dan tindakan berikutnya di seluruh toko.",
         controlsTitle: "Cakupan toko dan status data",
-        controlsBody: "Pilih toko dan segarkan data kreatornya. Pemberitahuan sinkronisasi di atas daftar menunjukkan apakah data saat ini dan data historis sudah siap.",
+        controlsBody:
+          "Pilih toko dan segarkan data kreatornya. Pemberitahuan sinkronisasi di atas daftar menunjukkan apakah data saat ini dan data historis sudah siap.",
         filtersTitle: "Temukan kreator yang tepat",
-        filtersBody: "Gabungkan progres tingkat akun dan toko dengan tag sistem serta manual, pencocokan apa saja/semua, pencarian identitas, dan filter perlu perhatian.",
+        filtersBody:
+          "Gabungkan progres tingkat akun dan toko dengan tag sistem serta manual, pencocokan apa saja/semua, pencarian identitas, dan filter perlu perhatian.",
         resultsTitle: "Kartu hubungan kreator",
-        resultsBody: "Tinjau cakupan toko, tag, sampel dan kolaborasi aktif, performa, serta pekerjaan tertunda. Buka kartu untuk masuk ke ruang kerja hubungan lengkap.",
+        resultsBody:
+          "Tinjau cakupan toko, tag, sampel dan kolaborasi aktif, performa, serta pekerjaan tertunda. Buka kartu untuk masuk ke ruang kerja hubungan lengkap.",
       },
       ecommerceAffiliateHistory: {
         welcomeTitle: "Riwayat kolaborasi",
-        welcomeBody: "Tinjau kolaborasi terbuka dan bertarget di seluruh toko, termasuk siklus hidup, kreator, produk, komisi, dan ID platform.",
+        welcomeBody:
+          "Tinjau kolaborasi terbuka dan bertarget di seluruh toko, termasuk siklus hidup, kreator, produk, komisi, dan ID platform.",
         controlsTitle: "Operasi kolaborasi",
-        controlsBody: "Pilih toko, konfigurasikan kolaborasi terbuka, buat kolaborasi baru, atau segarkan status platform terbaru dari area ini.",
+        controlsBody:
+          "Pilih toko, konfigurasikan kolaborasi terbuka, buat kolaborasi baru, atau segarkan status platform terbaru dari area ini.",
         filtersTitle: "Filter catatan kolaborasi",
-        filtersBody: "Persempit riwayat berdasarkan status siklus hidup, jenis kolaborasi, atau ID kreator, produk, toko, dan platform.",
+        filtersBody:
+          "Persempit riwayat berdasarkan status siklus hidup, jenis kolaborasi, atau ID kreator, produk, toko, dan platform.",
         resultsTitle: "Catatan kolaborasi",
-        resultsBody: "Setiap kartu merangkum siklus hidup dan cakupan komersial. Buka untuk memeriksa kreator, produk, sampel, pengaturan, dan tindakan pengelolaan yang didukung.",
+        resultsBody:
+          "Setiap kartu merangkum siklus hidup dan cakupan komersial. Buka untuk memeriksa kreator, produk, sampel, pengaturan, dan tindakan pengelolaan yang didukung.",
       },
       ecommerceAffiliateTeam: {
         welcomeTitle: "Tim dan saluran",
-        welcomeBody: "Tentukan penanggung jawab setiap hubungan kreator dan akun WhatsApp atau Outlook yang digunakan, lalu kelola perlindungan kreator serta aturan persetujuan dalam satu ruang kerja.",
+        welcomeBody:
+          "Tentukan penanggung jawab setiap hubungan kreator dan akun WhatsApp atau Outlook yang digunakan, lalu kelola perlindungan kreator serta aturan persetujuan dalam satu ruang kerja.",
         tabsTitle: "Tiga area operasional",
-        tabsBody: "Beralih antara operasi tim, penugasan kreator, dan persetujuan keamanan. Ringkasan menampilkan beban kerja, kreator terlindungi, dan kesiapan konfigurasi.",
+        tabsBody:
+          "Beralih antara operasi tim, penugasan kreator, dan persetujuan keamanan. Ringkasan menampilkan beban kerja, kreator terlindungi, dan kesiapan konfigurasi.",
         responsibilitiesTitle: "Penanggung jawab dan saluran jangkauan",
-        responsibilitiesBody: "Cari business developer lalu bandingkan beban, status penerimaan, kesehatan WhatsApp/Outlook, dan mode AI. Detail juga mengelola akun, pengirim utama, serta rute notifikasi eskalasi.",
+        responsibilitiesBody:
+          "Cari business developer lalu bandingkan beban, status penerimaan, kesehatan WhatsApp/Outlook, dan mode AI. Detail juga mengelola akun, pengirim utama, serta rute notifikasi eskalasi.",
         assignmentsTitle: "Perlindungan kepemilikan kreator",
-        assignmentsBody: "Impor CSV atau spreadsheet, atau tambahkan identitas manual; cocokkan dan pratinjau perubahan sebelum perlindungan diterapkan. Katalog tag manual tingkat akun juga dikelola di sini.",
+        assignmentsBody:
+          "Impor CSV atau spreadsheet, atau tambahkan identitas manual; cocokkan dan pratinjau perubahan sebelum perlindungan diterapkan. Katalog tag manual tingkat akun juga dikelola di sini.",
         safetyTitle: "Keamanan persetujuan",
-        safetyBody: "Tetapkan kebijakan persetujuan tingkat akun untuk tindakan Affiliate. Aturan pesan meninjau draf yang persis sebelum dikirim melalui penyedia.",
+        safetyBody:
+          "Tetapkan kebijakan persetujuan tingkat akun untuk tindakan Affiliate. Aturan pesan meninjau draf yang persis sebelum dikirim melalui penyedia.",
       },
       ecommerceAffiliateCampaign: {
         welcomeTitle: "Rencana promosi",
-        welcomeBody: "Buat dan jalankan rencana jangkauan kreator untuk satu atau beberapa produk, dengan penemuan, batas harian, pesan, dan kontrol siklus hidup yang jelas.",
+        welcomeBody:
+          "Buat dan jalankan rencana jangkauan kreator untuk satu atau beberapa produk, dengan penemuan, batas harian, pesan, dan kontrol siklus hidup yang jelas.",
         summaryTitle: "Jendela operasi dan kapasitas",
-        summaryBody: "Sebelum mengubah kapasitas, periksa jendela pengiriman lokal, toko aktif, rencana aktif, dan target jangkauan harian gabungan.",
+        summaryBody:
+          "Sebelum mengubah kapasitas, periksa jendela pengiriman lokal, toko aktif, rencana aktif, dan target jangkauan harian gabungan.",
         directoryTitle: "Portofolio rencana",
-        directoryBody: "Filter dan buka rencana promosi untuk memeriksa status, toko, target harian, batas pemilihan, dan produk. Portofolio kosong menyediakan titik masuk yang sama untuk rencana pertama.",
+        directoryBody:
+          "Filter dan buka rencana promosi untuk memeriksa status, toko, target harian, batas pemilihan, dan produk. Portofolio kosong menyediakan titik masuk yang sama untuk rencana pertama.",
         detailOverviewTitle: "Kontrol dan kesehatan langsung rencana",
-        detailOverviewBody: "Bagian atas menggabungkan identitas, toko dan produk, kesiapan seleksi, komisi, pesan pertama, tindakan siklus hidup, serta KPI langsung rencana dan kapasitas toko.",
+        detailOverviewBody:
+          "Bagian atas menggabungkan identitas, toko dan produk, kesiapan seleksi, komisi, pesan pertama, tindakan siklus hidup, serta KPI langsung rencana dan kapasitas toko.",
         detailOperationsTitle: "Corong dan bukti penemuan",
-        detailOperationsBody: "Gunakan kesehatan kuota, corong, generasi rencana pencarian, kelayakan kreator, dan hasil pengiriman untuk menjelaskan performa sebelum mengubah rencana.",
+        detailOperationsBody:
+          "Gunakan kesehatan kuota, corong, generasi rencana pencarian, kelayakan kreator, dan hasil pengiriman untuk menjelaskan performa sebelum mengubah rencana.",
         createTitle: "Buat rencana promosi",
-        createBody: "Mulai di sini untuk menentukan toko dan produk, aturan penemuan kreator, pesan pertama, serta pengaturan aktivasi akhir.",
+        createBody:
+          "Mulai di sini untuk menentukan toko dan produk, aturan penemuan kreator, pesan pertama, serta pengaturan aktivasi akhir.",
         wizardStagesTitle: "Empat tahap terlindungi",
-        wizardStagesBody: "Bangun penawaran, atur penemuan dan kapasitas harian, tinjau pesan pertama, lalu konfirmasi batas otorisasi dan aktivasi. Setiap perpindahan divalidasi.",
+        wizardStagesBody:
+          "Bangun penawaran, atur penemuan dan kapasitas harian, tinjau pesan pertama, lalu konfirmasi batas otorisasi dan aktivasi. Setiap perpindahan divalidasi.",
         wizardTitle: "Pengaturan empat tahap",
-        wizardBody: "Beri nama rencana, pilih toko, lalu buat penawaran multi-produk dengan komisi per produk. Selesaikan setiap produk menjadi snapshot terbaru sebelum lanjut; tutorial tidak menyimpan apa pun.",
+        wizardBody:
+          "Beri nama rencana, pilih toko, lalu buat penawaran multi-produk dengan komisi per produk. Selesaikan setiap produk menjadi snapshot terbaru sebelum lanjut; tutorial tidak menyimpan apa pun.",
       },
       ecommerceAffiliateIntelligence: {
         welcomeTitle: "Kecerdasan kreator",
-        welcomeBody: "Evaluasi apakah model perkiraan penjualan meningkatkan pemilihan kreator dan pahami model akun, wilayah, atau toko mana yang benar-benar melayani setiap keputusan.",
+        welcomeBody:
+          "Evaluasi apakah model perkiraan penjualan meningkatkan pemilihan kreator dan pahami model akun, wilayah, atau toko mana yang benar-benar melayani setiap keputusan.",
         refreshTitle: "Segarkan bukti model",
-        refreshBody: "Muat ulang snapshot ketersediaan dan evaluasi terbaru setelah perubahan pada pelatihan atau model produksi.",
+        refreshBody:
+          "Muat ulang snapshot ketersediaan dan evaluasi terbaru setelah perubahan pada pelatihan atau model produksi.",
         scopesTitle: "Pilih cakupan analisis",
-        scopesBody: "Mulai dengan model akun atau pilih toko yang aktif. Setiap cakupan menunjukkan apakah model terlatih siap, menggunakan fallback, tidak tersedia, atau masih kekurangan data.",
+        scopesBody:
+          "Mulai dengan model akun atau pilih toko yang aktif. Setiap cakupan menunjukkan apakah model terlatih siap, menggunakan fallback, tidak tersedia, atau masih kekurangan data.",
         analysisTitle: "Bandingkan model dan keputusan manusia",
-        analysisBody: "Baca peningkatan perkiraan penjualan dengan anggaran yang sama bersama probabilitas, rentang ketidakpastian, dan sinyal fondasi data. Bukti yang tidak tersedia atau lemah adalah alasan untuk menunggu, bukan bukti peningkatan.",
+        analysisBody:
+          "Baca peningkatan perkiraan penjualan dengan anggaran yang sama bersama probabilitas, rentang ketidakpastian, dan sinyal fondasi data. Bukti yang tidak tersedia atau lemah adalah alasan untuk menunggu, bukan bukti peningkatan.",
       },
       productKnowledge: {
         welcomeTitle: "Sumber kebenaran produk yang dapat digunakan kembali",
-        welcomeBody: "Kelola petunjuk produk, jawaban yang disetujui, dan referensi kreatif secara terpisah dari daftar produk toko tertentu.",
+        welcomeBody:
+          "Kelola petunjuk produk, jawaban yang disetujui, dan referensi kreatif secara terpisah dari daftar produk toko tertentu.",
         createTitle: "Buat pengetahuan produk",
-        createBody: "Buat catatan pengetahuan yang dapat digunakan kembali di sini. Pembuatan hanya memerlukan nama; petunjuk, tanya jawab, contoh kreatif, dan tautan produk dikelola setelahnya.",
+        createBody:
+          "Buat catatan pengetahuan yang dapat digunakan kembali di sini. Pembuatan hanya memerlukan nama; petunjuk, tanya jawab, contoh kreatif, dan tautan produk dikelola setelahnya.",
         libraryTitle: "Pustaka pengetahuan",
-        libraryBody: "Gunakan tabel untuk meninjau status, cakupan konten, produk tertaut, revisi, dan kebaruan sebelum membuka basis pengetahuan.",
+        libraryBody:
+          "Gunakan tabel untuk meninjau status, cakupan konten, produk tertaut, revisi, dan kebaruan sebelum membuka basis pengetahuan.",
       },
     },
   },
@@ -359,87 +499,122 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
     tutorial: {
       ecommerceAffiliateAttention: {
         welcomeTitle: "Coda di lavoro dell’Agent",
-        welcomeBody: "Esamina le azioni Affiliate che richiedono una decisione umana e controlla il lavoro completato senza uscire dalla coda operativa.",
+        welcomeBody:
+          "Esamina le azioni Affiliate che richiedono una decisione umana e controlla il lavoro completato senza uscire dalla coda operativa.",
         scopeTitle: "Cinque viste del workbench",
-        scopeBody: "Passa tra lavoro Agent in attesa, escalation al personale, cronologia completa dell’Agent, richieste di campioni e messaggi dei creator. Il tutorial visita ogni coda attiva e torna al lavoro in attesa.",
+        scopeBody:
+          "Passa tra lavoro Agent in attesa, escalation al personale, cronologia completa dell’Agent, richieste di campioni e messaggi dei creator. Il tutorial visita ogni coda attiva e torna al lavoro in attesa.",
         filtersTitle: "Restringi la coda",
-        filtersBody: "Filtra per business developer e tipo di azione oppure cerca creator, negozio, prodotto e contesto della proposta. La modalità completata aggiunge anche un filtro di stato.",
+        filtersBody:
+          "Filtra per business developer e tipo di azione oppure cerca creator, negozio, prodotto e contesto della proposta. La modalità completata aggiunge anche un filtro di stato.",
         queueTitle: "Esamina il lavoro dell’Agent",
-        queueBody: "Ogni elemento conserva raccomandazione, prove, bozza e cronologia delle revisioni. Apri il contesto della relazione prima di approvare, rifiutare o richiedere modifiche.",
+        queueBody:
+          "Ogni elemento conserva raccomandazione, prove, bozza e cronologia delle revisioni. Apri il contesto della relazione prima di approvare, rifiutare o richiedere modifiche.",
         escalationsTitle: "Escalation al personale",
-        escalationsBody: "L’Agent si ferma qui quando serve una risposta umana. Filtra per responsabile e controlla domanda e agenda congelate; lo stato di notifica indica se il percorso assegnato è stato raggiunto.",
+        escalationsBody:
+          "L’Agent si ferma qui quando serve una risposta umana. Filtra per responsabile e controlla domanda e agenda congelate; lo stato di notifica indica se il percorso assegnato è stato raggiunto.",
         samplesTitle: "Coda delle richieste di campioni",
-        samplesBody: "Esamina richieste aperte e ignorate tra negozi. Negozio, esito e business developer hanno filtri separati; apri una riga per la decisione finale nell’area della relazione.",
+        samplesBody:
+          "Esamina richieste aperte e ignorate tra negozi. Negozio, esito e business developer hanno filtri separati; apri una riga per la decisione finale nell’area della relazione.",
         messagesTitle: "Coda delle conversazioni creator",
-        messagesBody: "Dai priorità alle risposte in attesa su TikTok Shop, WhatsApp o email. Conteggi per canale, responsabile, attesa, protezione e modalità solo umana spiegano l’urgenza.",
+        messagesBody:
+          "Dai priorità alle risposte in attesa su TikTok Shop, WhatsApp o email. Conteggi per canale, responsabile, attesa, protezione e modalità solo umana spiegano l’urgenza.",
       },
       ecommerceAffiliateCreators: {
         welcomeTitle: "Creator",
-        welcomeBody: "Usa l’elenco dei creator per comprendere lo stato delle relazioni, le collaborazioni attive, i segnali di performance e la prossima azione tra i vari negozi.",
+        welcomeBody:
+          "Usa l’elenco dei creator per comprendere lo stato delle relazioni, le collaborazioni attive, i segnali di performance e la prossima azione tra i vari negozi.",
         controlsTitle: "Ambito dei negozi e stato dei dati",
-        controlsBody: "Scegli un negozio e aggiorna i dati dei creator. L’avviso di sincronizzazione sopra l’elenco indica se i dati attuali e storici sono pronti.",
+        controlsBody:
+          "Scegli un negozio e aggiorna i dati dei creator. L’avviso di sincronizzazione sopra l’elenco indica se i dati attuali e storici sono pronti.",
         filtersTitle: "Trova i creator giusti",
-        filtersBody: "Combina avanzamento globale e per negozio con tag di sistema e manuali, corrispondenza qualsiasi/tutti, ricerca identità e filtro attenzione.",
+        filtersBody:
+          "Combina avanzamento globale e per negozio con tag di sistema e manuali, corrispondenza qualsiasi/tutti, ricerca identità e filtro attenzione.",
         resultsTitle: "Schede delle relazioni con i creator",
-        resultsBody: "Esamina copertura dei negozi, tag, campioni e collaborazioni attive, performance e lavoro in attesa. Apri una scheda per accedere all’area completa della relazione.",
+        resultsBody:
+          "Esamina copertura dei negozi, tag, campioni e collaborazioni attive, performance e lavoro in attesa. Apri una scheda per accedere all’area completa della relazione.",
       },
       ecommerceAffiliateHistory: {
         welcomeTitle: "Cronologia delle collaborazioni",
-        welcomeBody: "Esamina le collaborazioni aperte e mirate tra negozi, inclusi ciclo di vita, creator, prodotti, commissioni e identificativi della piattaforma.",
+        welcomeBody:
+          "Esamina le collaborazioni aperte e mirate tra negozi, inclusi ciclo di vita, creator, prodotti, commissioni e identificativi della piattaforma.",
         controlsTitle: "Operazioni sulle collaborazioni",
-        controlsBody: "Scegli un negozio, configura le collaborazioni aperte, crea una nuova collaborazione o aggiorna lo stato più recente della piattaforma da quest’area.",
+        controlsBody:
+          "Scegli un negozio, configura le collaborazioni aperte, crea una nuova collaborazione o aggiorna lo stato più recente della piattaforma da quest’area.",
         filtersTitle: "Filtra le collaborazioni",
-        filtersBody: "Restringi la cronologia per stato del ciclo di vita, tipo di collaborazione o identificativi di creator, prodotto, negozio e piattaforma.",
+        filtersBody:
+          "Restringi la cronologia per stato del ciclo di vita, tipo di collaborazione o identificativi di creator, prodotto, negozio e piattaforma.",
         resultsTitle: "Record delle collaborazioni",
-        resultsBody: "Ogni scheda riepiloga il ciclo di vita e l’ambito commerciale. Aprila per esaminare creator, prodotti, campioni, impostazioni e azioni di gestione supportate.",
+        resultsBody:
+          "Ogni scheda riepiloga il ciclo di vita e l’ambito commerciale. Aprila per esaminare creator, prodotti, campioni, impostazioni e azioni di gestione supportate.",
       },
       ecommerceAffiliateTeam: {
         welcomeTitle: "Team e canali",
-        welcomeBody: "Definisci chi gestisce ogni relazione con i creator e quale account WhatsApp o Outlook utilizza, quindi mantieni protezioni dei creator e regole di approvazione in un’unica area operativa.",
+        welcomeBody:
+          "Definisci chi gestisce ogni relazione con i creator e quale account WhatsApp o Outlook utilizza, quindi mantieni protezioni dei creator e regole di approvazione in un’unica area operativa.",
         tabsTitle: "Tre aree operative",
-        tabsBody: "Passa tra operazioni del team, assegnazioni dei creator e approvazioni di sicurezza. I riepiloghi mostrano carico di lavoro, creator protetti e stato della configurazione.",
+        tabsBody:
+          "Passa tra operazioni del team, assegnazioni dei creator e approvazioni di sicurezza. I riepiloghi mostrano carico di lavoro, creator protetti e stato della configurazione.",
         responsibilitiesTitle: "Responsabili e canali di contatto",
-        responsibilitiesBody: "Cerca i business developer e confronta carico, disponibilità, stato WhatsApp/Outlook e modalità AI. Il dettaglio gestisce anche account, mittenti preferiti e percorsi di notifica delle escalation.",
+        responsibilitiesBody:
+          "Cerca i business developer e confronta carico, disponibilità, stato WhatsApp/Outlook e modalità AI. Il dettaglio gestisce anche account, mittenti preferiti e percorsi di notifica delle escalation.",
         assignmentsTitle: "Protezione della titolarità dei creator",
-        assignmentsBody: "Importa CSV o fogli di calcolo, oppure aggiungi identità manualmente; risolvi e visualizza le modifiche prima della protezione. Qui si gestisce anche il catalogo globale dei tag manuali.",
+        assignmentsBody:
+          "Importa CSV o fogli di calcolo, oppure aggiungi identità manualmente; risolvi e visualizza le modifiche prima della protezione. Qui si gestisce anche il catalogo globale dei tag manuali.",
         safetyTitle: "Sicurezza delle approvazioni",
-        safetyBody: "Imposta criteri di approvazione a livello di account per le azioni Affiliate. Le regole dei messaggi verificano la bozza esatta prima dell’invio tramite un provider.",
+        safetyBody:
+          "Imposta criteri di approvazione a livello di account per le azioni Affiliate. Le regole dei messaggi verificano la bozza esatta prima dell’invio tramite un provider.",
       },
       ecommerceAffiliateCampaign: {
         welcomeTitle: "Piani promozionali",
-        welcomeBody: "Crea e gestisci piani ripetibili di contatto per uno o più prodotti, con scoperta, limiti giornalieri, messaggi e controlli del ciclo di vita espliciti.",
+        welcomeBody:
+          "Crea e gestisci piani ripetibili di contatto per uno o più prodotti, con scoperta, limiti giornalieri, messaggi e controlli del ciclo di vita espliciti.",
         summaryTitle: "Finestra operativa e capacità",
-        summaryBody: "Prima di modificare la capacità, controlla la finestra di invio locale, i negozi attivi, i piani attivi e l’obiettivo giornaliero complessivo.",
+        summaryBody:
+          "Prima di modificare la capacità, controlla la finestra di invio locale, i negozi attivi, i piani attivi e l’obiettivo giornaliero complessivo.",
         directoryTitle: "Portafoglio dei piani",
-        directoryBody: "Filtra e apri i piani promozionali per esaminare stato, negozio, obiettivo giornaliero, limiti di selezione e prodotto. Un portafoglio vuoto offre lo stesso punto di accesso per il primo piano.",
+        directoryBody:
+          "Filtra e apri i piani promozionali per esaminare stato, negozio, obiettivo giornaliero, limiti di selezione e prodotto. Un portafoglio vuoto offre lo stesso punto di accesso per il primo piano.",
         detailOverviewTitle: "Controlli e salute del piano",
-        detailOverviewBody: "L’intestazione riunisce identità, negozio e prodotto, prontezza della selezione, commissione, primo messaggio, azioni del ciclo di vita e KPI live del piano e della capacità del negozio.",
+        detailOverviewBody:
+          "L’intestazione riunisce identità, negozio e prodotto, prontezza della selezione, commissione, primo messaggio, azioni del ciclo di vita e KPI live del piano e della capacità del negozio.",
         detailOperationsTitle: "Funnel e prove di scoperta",
-        detailOperationsBody: "Usa stato delle quote, funnel, generazioni di ricerca, idoneità dei creator e risultati di consegna per spiegare le prestazioni prima di modificare il piano.",
+        detailOperationsBody:
+          "Usa stato delle quote, funnel, generazioni di ricerca, idoneità dei creator e risultati di consegna per spiegare le prestazioni prima di modificare il piano.",
         createTitle: "Crea un piano promozionale",
-        createBody: "Definisci qui negozio e prodotto, regole di scoperta dei creator, primo messaggio e impostazioni finali di attivazione.",
+        createBody:
+          "Definisci qui negozio e prodotto, regole di scoperta dei creator, primo messaggio e impostazioni finali di attivazione.",
         wizardStagesTitle: "Quattro fasi protette",
-        wizardStagesBody: "Costruisci l’offerta, configura scoperta e capacità giornaliera, verifica il primo messaggio, quindi conferma i limiti di autorizzazione e attivazione. Ogni passaggio viene validato.",
+        wizardStagesBody:
+          "Costruisci l’offerta, configura scoperta e capacità giornaliera, verifica il primo messaggio, quindi conferma i limiti di autorizzazione e attivazione. Ogni passaggio viene validato.",
         wizardTitle: "Configurazione in quattro fasi",
-        wizardBody: "Assegna un nome, scegli il negozio e crea un’offerta multi-prodotto con commissione per prodotto. Risolvi ogni prodotto in uno snapshot corrente prima di continuare; il tutorial non salva nulla.",
+        wizardBody:
+          "Assegna un nome, scegli il negozio e crea un’offerta multi-prodotto con commissione per prodotto. Risolvi ogni prodotto in uno snapshot corrente prima di continuare; il tutorial non salva nulla.",
       },
       ecommerceAffiliateIntelligence: {
         welcomeTitle: "Intelligence sui creator",
-        welcomeBody: "Valuta se il modello delle vendite previste migliora la selezione dei creator e identifica quale modello di account, area o negozio gestisce effettivamente ogni decisione.",
+        welcomeBody:
+          "Valuta se il modello delle vendite previste migliora la selezione dei creator e identifica quale modello di account, area o negozio gestisce effettivamente ogni decisione.",
         refreshTitle: "Aggiorna le prove del modello",
-        refreshBody: "Ricarica l’ultima istantanea di disponibilità e valutazione dopo modifiche all’addestramento o al modello di produzione.",
+        refreshBody:
+          "Ricarica l’ultima istantanea di disponibilità e valutazione dopo modifiche all’addestramento o al modello di produzione.",
         scopesTitle: "Scegli un ambito di analisi",
-        scopesBody: "Inizia dal modello dell’account o scegli un negozio abilitato. Ogni ambito indica se un modello addestrato è pronto, usa un fallback, non è disponibile o non dispone ancora di dati sufficienti.",
+        scopesBody:
+          "Inizia dal modello dell’account o scegli un negozio abilitato. Ogni ambito indica se un modello addestrato è pronto, usa un fallback, non è disponibile o non dispone ancora di dati sufficienti.",
         analysisTitle: "Confronta modello e decisioni umane",
-        analysisBody: "Interpreta l’aumento delle vendite previste a parità di budget insieme a probabilità, intervallo di incertezza e qualità dei dati. Prove assenti o deboli sono un motivo per attendere, non una dimostrazione di miglioramento.",
+        analysisBody:
+          "Interpreta l’aumento delle vendite previste a parità di budget insieme a probabilità, intervallo di incertezza e qualità dei dati. Prove assenti o deboli sono un motivo per attendere, non una dimostrazione di miglioramento.",
       },
       productKnowledge: {
         welcomeTitle: "Una fonte di verità del prodotto riutilizzabile",
-        welcomeBody: "Mantieni istruzioni di prodotto, risposte approvate e riferimenti creativi indipendenti dalla scheda di un singolo negozio.",
+        welcomeBody:
+          "Mantieni istruzioni di prodotto, risposte approvate e riferimenti creativi indipendenti dalla scheda di un singolo negozio.",
         createTitle: "Crea conoscenza del prodotto",
-        createBody: "Crea qui un record di conoscenza riutilizzabile. Per iniziare basta un nome; istruzioni, domande e risposte, esempi creativi e collegamenti ai prodotti vengono gestiti in seguito.",
+        createBody:
+          "Crea qui un record di conoscenza riutilizzabile. Per iniziare basta un nome; istruzioni, domande e risposte, esempi creativi e collegamenti ai prodotti vengono gestiti in seguito.",
         libraryTitle: "Libreria delle conoscenze",
-        libraryBody: "Usa la tabella per controllare stato, copertura dei contenuti, prodotti collegati, revisione e aggiornamento prima di aprire una base di conoscenza.",
+        libraryBody:
+          "Usa la tabella per controllare stato, copertura dei contenuti, prodotti collegati, revisione e aggiornamento prima di aprire una base di conoscenza.",
       },
     },
   },
@@ -447,88 +622,123 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
     tutorial: {
       ecommerceAffiliateAttention: {
         welcomeTitle: "คิวงานของ Agent",
-        welcomeBody: "ตรวจสอบการดำเนินการ Affiliate ที่ต้องใช้การตัดสินใจจากมนุษย์ และทบทวนงานที่เสร็จแล้วได้โดยไม่ต้องออกจากคิวปฏิบัติงาน",
+        welcomeBody:
+          "ตรวจสอบการดำเนินการ Affiliate ที่ต้องใช้การตัดสินใจจากมนุษย์ และทบทวนงานที่เสร็จแล้วได้โดยไม่ต้องออกจากคิวปฏิบัติงาน",
         scopeTitle: "ห้ามุมมองของเวิร์กเบนช์",
-        scopeBody: "สลับระหว่างงาน Agent ที่รออยู่ การส่งต่อให้พนักงาน ประวัติงาน Agent ทั้งหมด คำขอตัวอย่าง และข้อความครีเอเตอร์ บทแนะนำจะเปิดทุกคิวแล้วกลับมายังงาน Agent ที่รออยู่",
+        scopeBody:
+          "สลับระหว่างงาน Agent ที่รออยู่ การส่งต่อให้พนักงาน ประวัติงาน Agent ทั้งหมด คำขอตัวอย่าง และข้อความครีเอเตอร์ บทแนะนำจะเปิดทุกคิวแล้วกลับมายังงาน Agent ที่รออยู่",
         filtersTitle: "เจาะจงคิวงาน",
-        filtersBody: "กรองตามผู้พัฒนาธุรกิจและประเภทการดำเนินการ หรือค้นหาครีเอเตอร์ ร้านค้า สินค้า และบริบทของข้อเสนอ โหมดงานเสร็จแล้วยังมีตัวกรองสถานะเพิ่มเติม",
+        filtersBody:
+          "กรองตามผู้พัฒนาธุรกิจและประเภทการดำเนินการ หรือค้นหาครีเอเตอร์ ร้านค้า สินค้า และบริบทของข้อเสนอ โหมดงานเสร็จแล้วยังมีตัวกรองสถานะเพิ่มเติม",
         queueTitle: "ตรวจสอบงานของ Agent",
-        queueBody: "แต่ละรายการเก็บคำแนะนำ หลักฐาน ร่างข้อความ และประวัติการแก้ไขไว้ เปิดบริบทความสัมพันธ์ก่อนอนุมัติ ปฏิเสธ หรือขอให้แก้ไข",
+        queueBody:
+          "แต่ละรายการเก็บคำแนะนำ หลักฐาน ร่างข้อความ และประวัติการแก้ไขไว้ เปิดบริบทความสัมพันธ์ก่อนอนุมัติ ปฏิเสธ หรือขอให้แก้ไข",
         escalationsTitle: "การส่งต่อให้พนักงาน",
-        escalationsBody: "Agent จะหยุดที่นี่เมื่อต้องการคำตอบจากมนุษย์ กรองตามผู้รับผิดชอบและตรวจคำถามกับ Agenda ที่ถูกเก็บไว้ สถานะการแจ้งเตือนบอกว่าส่งถึงเส้นทางพนักงานแล้วหรือไม่",
+        escalationsBody:
+          "Agent จะหยุดที่นี่เมื่อต้องการคำตอบจากมนุษย์ กรองตามผู้รับผิดชอบและตรวจคำถามกับ Agenda ที่ถูกเก็บไว้ สถานะการแจ้งเตือนบอกว่าส่งถึงเส้นทางพนักงานแล้วหรือไม่",
         samplesTitle: "คิวคำขอตัวอย่าง",
-        samplesBody: "ตรวจสอบคำขอที่เปิดอยู่และที่ละเว้นแล้ว ข้ามร้านค้า ตัวกรองร้านค้า สถานะ และ BD แยกจากกัน เปิดแถวเพื่อเข้าสู่พื้นที่ความสัมพันธ์และตัดสินใจขั้นสุดท้าย",
+        samplesBody:
+          "ตรวจสอบคำขอที่เปิดอยู่และที่ละเว้นแล้ว ข้ามร้านค้า ตัวกรองร้านค้า สถานะ และ BD แยกจากกัน เปิดแถวเพื่อเข้าสู่พื้นที่ความสัมพันธ์และตัดสินใจขั้นสุดท้าย",
         messagesTitle: "คิวสนทนากับครีเอเตอร์",
-        messagesBody: "จัดลำดับผู้ที่รอคำตอบใน TikTok Shop, WhatsApp หรืออีเมล จำนวนตามช่องทาง ผู้รับผิดชอบ เวลารอ สถานะปกป้อง และโหมดมนุษย์ช่วยอธิบายความเร่งด่วน",
+        messagesBody:
+          "จัดลำดับผู้ที่รอคำตอบใน TikTok Shop, WhatsApp หรืออีเมล จำนวนตามช่องทาง ผู้รับผิดชอบ เวลารอ สถานะปกป้อง และโหมดมนุษย์ช่วยอธิบายความเร่งด่วน",
       },
       ecommerceAffiliateCreators: {
         welcomeTitle: "ครีเอเตอร์",
-        welcomeBody: "ใช้รายชื่อครีเอเตอร์เพื่อทำความเข้าใจสถานะความสัมพันธ์ งานร่วมมือปัจจุบัน สัญญาณประสิทธิภาพ และขั้นตอนถัดไปในทุกร้านค้า",
+        welcomeBody:
+          "ใช้รายชื่อครีเอเตอร์เพื่อทำความเข้าใจสถานะความสัมพันธ์ งานร่วมมือปัจจุบัน สัญญาณประสิทธิภาพ และขั้นตอนถัดไปในทุกร้านค้า",
         controlsTitle: "ขอบเขตร้านค้าและสถานะข้อมูล",
-        controlsBody: "เลือกร้านค้าและรีเฟรชข้อมูลครีเอเตอร์ ข้อความการซิงค์เหนือรายชื่อจะแจ้งว่าข้อมูลปัจจุบันและข้อมูลย้อนหลังพร้อมใช้งานหรือไม่",
+        controlsBody:
+          "เลือกร้านค้าและรีเฟรชข้อมูลครีเอเตอร์ ข้อความการซิงค์เหนือรายชื่อจะแจ้งว่าข้อมูลปัจจุบันและข้อมูลย้อนหลังพร้อมใช้งานหรือไม่",
         filtersTitle: "ค้นหาครีเอเตอร์ที่เหมาะสม",
-        filtersBody: "ใช้ความคืบหน้าระดับบัญชีและร้านค้า ร่วมกับแท็กระบบ แท็กกำหนดเอง การจับคู่บางรายการ/ทั้งหมด การค้นหาตัวตน และตัวกรองที่ต้องดำเนินการ",
+        filtersBody:
+          "ใช้ความคืบหน้าระดับบัญชีและร้านค้า ร่วมกับแท็กระบบ แท็กกำหนดเอง การจับคู่บางรายการ/ทั้งหมด การค้นหาตัวตน และตัวกรองที่ต้องดำเนินการ",
         resultsTitle: "การ์ดความสัมพันธ์ครีเอเตอร์",
-        resultsBody: "ตรวจสอบร้านค้าที่เกี่ยวข้อง แท็ก ตัวอย่างและความร่วมมือที่ใช้งานอยู่ ประสิทธิภาพ และงานค้าง เปิดการ์ดเพื่อเข้าสู่พื้นที่ทำงานความสัมพันธ์แบบเต็ม",
+        resultsBody:
+          "ตรวจสอบร้านค้าที่เกี่ยวข้อง แท็ก ตัวอย่างและความร่วมมือที่ใช้งานอยู่ ประสิทธิภาพ และงานค้าง เปิดการ์ดเพื่อเข้าสู่พื้นที่ทำงานความสัมพันธ์แบบเต็ม",
       },
       ecommerceAffiliateHistory: {
         welcomeTitle: "ประวัติความร่วมมือ",
-        welcomeBody: "ตรวจสอบความร่วมมือแบบเปิดและแบบเจาะจงในทุกร้านค้า รวมถึงวงจรชีวิต ครีเอเตอร์ สินค้า ค่าคอมมิชชัน และรหัสแพลตฟอร์ม",
+        welcomeBody:
+          "ตรวจสอบความร่วมมือแบบเปิดและแบบเจาะจงในทุกร้านค้า รวมถึงวงจรชีวิต ครีเอเตอร์ สินค้า ค่าคอมมิชชัน และรหัสแพลตฟอร์ม",
         controlsTitle: "การดำเนินการความร่วมมือ",
-        controlsBody: "เลือกร้านค้า ตั้งค่าความร่วมมือแบบเปิด สร้างความร่วมมือใหม่ หรือรีเฟรชสถานะล่าสุดจากแพลตฟอร์มได้จากบริเวณนี้",
+        controlsBody:
+          "เลือกร้านค้า ตั้งค่าความร่วมมือแบบเปิด สร้างความร่วมมือใหม่ หรือรีเฟรชสถานะล่าสุดจากแพลตฟอร์มได้จากบริเวณนี้",
         filtersTitle: "กรองรายการความร่วมมือ",
-        filtersBody: "จำกัดประวัติตามสถานะวงจรชีวิต ประเภทความร่วมมือ หรือรหัสครีเอเตอร์ สินค้า ร้านค้า และแพลตฟอร์ม",
+        filtersBody:
+          "จำกัดประวัติตามสถานะวงจรชีวิต ประเภทความร่วมมือ หรือรหัสครีเอเตอร์ สินค้า ร้านค้า และแพลตฟอร์ม",
         resultsTitle: "รายการความร่วมมือ",
-        resultsBody: "แต่ละการ์ดสรุปวงจรชีวิตและขอบเขตทางธุรกิจ เปิดเพื่อดูครีเอเตอร์ สินค้า ตัวอย่าง การตั้งค่า และการจัดการที่รองรับ",
+        resultsBody:
+          "แต่ละการ์ดสรุปวงจรชีวิตและขอบเขตทางธุรกิจ เปิดเพื่อดูครีเอเตอร์ สินค้า ตัวอย่าง การตั้งค่า และการจัดการที่รองรับ",
       },
       ecommerceAffiliateTeam: {
         welcomeTitle: "ทีมและช่องทาง",
-        welcomeBody: "กำหนดผู้รับผิดชอบความสัมพันธ์กับครีเอเตอร์แต่ละรายและบัญชี WhatsApp หรือ Outlook ที่ใช้ พร้อมจัดการการปกป้องครีเอเตอร์และกฎการอนุมัติในที่เดียว",
+        welcomeBody:
+          "กำหนดผู้รับผิดชอบความสัมพันธ์กับครีเอเตอร์แต่ละรายและบัญชี WhatsApp หรือ Outlook ที่ใช้ พร้อมจัดการการปกป้องครีเอเตอร์และกฎการอนุมัติในที่เดียว",
         tabsTitle: "พื้นที่ปฏิบัติงานสามส่วน",
-        tabsBody: "สลับระหว่างการทำงานของทีม การมอบหมายครีเอเตอร์ และการอนุมัติด้านความปลอดภัย สรุปจะแสดงภาระงาน ครีเอเตอร์ที่ได้รับการปกป้อง และความพร้อมของการตั้งค่า",
+        tabsBody:
+          "สลับระหว่างการทำงานของทีม การมอบหมายครีเอเตอร์ และการอนุมัติด้านความปลอดภัย สรุปจะแสดงภาระงาน ครีเอเตอร์ที่ได้รับการปกป้อง และความพร้อมของการตั้งค่า",
         responsibilitiesTitle: "ผู้รับผิดชอบและช่องทางติดต่อ",
-        responsibilitiesBody: "ค้นหา BD แล้วเปรียบเทียบภาระงาน สถานะรับงาน สุขภาพ WhatsApp/Outlook และโหมด AI รายละเอียด BD ยังจัดการบัญชี ผู้ส่งหลัก และเส้นทางแจ้งเตือนการส่งต่อ",
+        responsibilitiesBody:
+          "ค้นหา BD แล้วเปรียบเทียบภาระงาน สถานะรับงาน สุขภาพ WhatsApp/Outlook และโหมด AI รายละเอียด BD ยังจัดการบัญชี ผู้ส่งหลัก และเส้นทางแจ้งเตือนการส่งต่อ",
         assignmentsTitle: "การปกป้องผู้ดูแลครีเอเตอร์",
-        assignmentsBody: "นำเข้า CSV หรือสเปรดชีต หรือเพิ่มตัวตนด้วยตนเอง จากนั้นตรวจสอบและดูตัวอย่างก่อนใช้การปกป้อง พื้นที่นี้ยังดูแลแค็ตตาล็อกแท็กกำหนดเองระดับบัญชี",
+        assignmentsBody:
+          "นำเข้า CSV หรือสเปรดชีต หรือเพิ่มตัวตนด้วยตนเอง จากนั้นตรวจสอบและดูตัวอย่างก่อนใช้การปกป้อง พื้นที่นี้ยังดูแลแค็ตตาล็อกแท็กกำหนดเองระดับบัญชี",
         safetyTitle: "ความปลอดภัยในการอนุมัติ",
-        safetyBody: "กำหนดนโยบายอนุมัติระดับบัญชีสำหรับการดำเนินการ Affiliate กฎข้อความจะตรวจสอบร่างจริงก่อนส่งผ่านผู้ให้บริการ",
+        safetyBody:
+          "กำหนดนโยบายอนุมัติระดับบัญชีสำหรับการดำเนินการ Affiliate กฎข้อความจะตรวจสอบร่างจริงก่อนส่งผ่านผู้ให้บริการ",
       },
       ecommerceAffiliateCampaign: {
         welcomeTitle: "แผนโปรโมต",
-        welcomeBody: "สร้างและดำเนินแผนติดต่อครีเอเตอร์สำหรับสินค้าหนึ่งรายการหรือหลายรายการ โดยกำหนดการค้นหา ขีดจำกัดรายวัน ข้อความ และวงจรชีวิตอย่างชัดเจน",
+        welcomeBody:
+          "สร้างและดำเนินแผนติดต่อครีเอเตอร์สำหรับสินค้าหนึ่งรายการหรือหลายรายการ โดยกำหนดการค้นหา ขีดจำกัดรายวัน ข้อความ และวงจรชีวิตอย่างชัดเจน",
         summaryTitle: "ช่วงเวลาทำงานและความจุ",
-        summaryBody: "ก่อนเปลี่ยนความจุ ให้ตรวจสอบช่วงเวลาส่งตามเวลาท้องถิ่น ร้านค้าที่ใช้งาน แผนที่ใช้งาน และเป้าหมายการติดต่อรวมต่อวัน",
+        summaryBody:
+          "ก่อนเปลี่ยนความจุ ให้ตรวจสอบช่วงเวลาส่งตามเวลาท้องถิ่น ร้านค้าที่ใช้งาน แผนที่ใช้งาน และเป้าหมายการติดต่อรวมต่อวัน",
         directoryTitle: "พอร์ตโฟลิโอแผน",
-        directoryBody: "กรองและเปิดแผนโปรโมตเพื่อตรวจสอบสถานะ ร้านค้า เป้าหมายรายวัน ขอบเขตการคัดเลือก และสินค้า หากยังไม่มีแผนก็สามารถเริ่มสร้างแผนแรกจากจุดเดียวกัน",
+        directoryBody:
+          "กรองและเปิดแผนโปรโมตเพื่อตรวจสอบสถานะ ร้านค้า เป้าหมายรายวัน ขอบเขตการคัดเลือก และสินค้า หากยังไม่มีแผนก็สามารถเริ่มสร้างแผนแรกจากจุดเดียวกัน",
         detailOverviewTitle: "การควบคุมและสถานะแผนแบบสด",
-        detailOverviewBody: "ส่วนหัวรวมข้อมูลแผน ร้านค้าและสินค้า ความพร้อมในการคัดเลือก ค่าคอมมิชชัน ข้อความแรก การดำเนินการตามวงจรชีวิต และ KPI แบบสดของแผนกับความจุร้านค้า",
+        detailOverviewBody:
+          "ส่วนหัวรวมข้อมูลแผน ร้านค้าและสินค้า ความพร้อมในการคัดเลือก ค่าคอมมิชชัน ข้อความแรก การดำเนินการตามวงจรชีวิต และ KPI แบบสดของแผนกับความจุร้านค้า",
         detailOperationsTitle: "ฟันเนลและหลักฐานการค้นหา",
-        detailOperationsBody: "ใช้สถานะโควตา ฟันเนล รุ่นของแผนค้นหา คุณสมบัติครีเอเตอร์ และผลการส่ง เพื่ออธิบายประสิทธิภาพก่อนแก้ไขแผน",
+        detailOperationsBody:
+          "ใช้สถานะโควตา ฟันเนล รุ่นของแผนค้นหา คุณสมบัติครีเอเตอร์ และผลการส่ง เพื่ออธิบายประสิทธิภาพก่อนแก้ไขแผน",
         createTitle: "สร้างแผนโปรโมต",
-        createBody: "เริ่มที่นี่เพื่อกำหนดร้านค้าและสินค้า กฎการค้นหาครีเอเตอร์ ข้อความแรก และการตั้งค่าเปิดใช้งานขั้นสุดท้าย",
+        createBody:
+          "เริ่มที่นี่เพื่อกำหนดร้านค้าและสินค้า กฎการค้นหาครีเอเตอร์ ข้อความแรก และการตั้งค่าเปิดใช้งานขั้นสุดท้าย",
         wizardStagesTitle: "สี่ขั้นตอนที่มีการป้องกัน",
-        wizardStagesBody: "สร้างข้อเสนอ ตั้งค่าการค้นหาและความจุรายวัน ตรวจสอบข้อความแรก แล้วจึงยืนยันขอบเขตการอนุญาตและการเปิดใช้งาน โดยทุกขั้นตอนจะผ่านการตรวจสอบ",
+        wizardStagesBody:
+          "สร้างข้อเสนอ ตั้งค่าการค้นหาและความจุรายวัน ตรวจสอบข้อความแรก แล้วจึงยืนยันขอบเขตการอนุญาตและการเปิดใช้งาน โดยทุกขั้นตอนจะผ่านการตรวจสอบ",
         wizardTitle: "การตั้งค่าสี่ขั้นตอน",
-        wizardBody: "ตั้งชื่อแผน เลือกร้านค้า และสร้างข้อเสนอหลายสินค้าพร้อมค่าคอมมิชชันต่อสินค้า ต้องแปลงแต่ละสินค้าเป็น snapshot ล่าสุดก่อนดำเนินการต่อ และบทแนะนำจะไม่บันทึกข้อมูล",
+        wizardBody:
+          "ตั้งชื่อแผน เลือกร้านค้า และสร้างข้อเสนอหลายสินค้าพร้อมค่าคอมมิชชันต่อสินค้า ต้องแปลงแต่ละสินค้าเป็น snapshot ล่าสุดก่อนดำเนินการต่อ และบทแนะนำจะไม่บันทึกข้อมูล",
       },
       ecommerceAffiliateIntelligence: {
         welcomeTitle: "การวิเคราะห์ครีเอเตอร์อัจฉริยะ",
-        welcomeBody: "ประเมินว่าโมเดลยอดขายที่คาดการณ์ช่วยปรับปรุงการเลือกครีเอเตอร์หรือไม่ และดูว่าแต่ละการตัดสินใจใช้โมเดลระดับบัญชี ภูมิภาค หรือร้านค้าใดจริง",
+        welcomeBody:
+          "ประเมินว่าโมเดลยอดขายที่คาดการณ์ช่วยปรับปรุงการเลือกครีเอเตอร์หรือไม่ และดูว่าแต่ละการตัดสินใจใช้โมเดลระดับบัญชี ภูมิภาค หรือร้านค้าใดจริง",
         refreshTitle: "รีเฟรชหลักฐานของโมเดล",
-        refreshBody: "โหลดภาพรวมความพร้อมใช้งานและการประเมินล่าสุดอีกครั้ง หลังมีการเปลี่ยนแปลงการฝึกหรือโมเดลที่ใช้งานจริง",
+        refreshBody:
+          "โหลดภาพรวมความพร้อมใช้งานและการประเมินล่าสุดอีกครั้ง หลังมีการเปลี่ยนแปลงการฝึกหรือโมเดลที่ใช้งานจริง",
         scopesTitle: "เลือกขอบเขตการวิเคราะห์",
-        scopesBody: "เริ่มจากโมเดลระดับบัญชีหรือเลือกร้านค้าที่เปิดใช้งาน แต่ละขอบเขตจะแจ้งว่าโมเดลที่ฝึกแล้วพร้อม ใช้โมเดลสำรอง ไม่พร้อมใช้งาน หรือยังมีข้อมูลไม่เพียงพอ",
+        scopesBody:
+          "เริ่มจากโมเดลระดับบัญชีหรือเลือกร้านค้าที่เปิดใช้งาน แต่ละขอบเขตจะแจ้งว่าโมเดลที่ฝึกแล้วพร้อม ใช้โมเดลสำรอง ไม่พร้อมใช้งาน หรือยังมีข้อมูลไม่เพียงพอ",
         analysisTitle: "เปรียบเทียบโมเดลกับการตัดสินใจของมนุษย์",
-        analysisBody: "อ่านการเพิ่มขึ้นของยอดขายที่คาดการณ์ภายใต้งบประมาณเท่ากันร่วมกับความน่าจะเป็น ช่วงความไม่แน่นอน และคุณภาพของข้อมูล หากไม่มีหลักฐานหรือหลักฐานยังอ่อน ควรรอ ไม่ควรถือว่าเป็นข้อพิสูจน์ว่าโมเดลดีกว่า",
+        analysisBody:
+          "อ่านการเพิ่มขึ้นของยอดขายที่คาดการณ์ภายใต้งบประมาณเท่ากันร่วมกับความน่าจะเป็น ช่วงความไม่แน่นอน และคุณภาพของข้อมูล หากไม่มีหลักฐานหรือหลักฐานยังอ่อน ควรรอ ไม่ควรถือว่าเป็นข้อพิสูจน์ว่าโมเดลดีกว่า",
       },
       productKnowledge: {
         welcomeTitle: "แหล่งข้อมูลจริงของสินค้าที่ใช้ซ้ำได้",
-        welcomeBody: "ดูแลคำแนะนำสินค้า คำตอบที่อนุมัติ และข้อมูลอ้างอิงสำหรับครีเอทีฟแยกจากรายการสินค้าของร้านค้าใดร้านค้าหนึ่ง",
+        welcomeBody:
+          "ดูแลคำแนะนำสินค้า คำตอบที่อนุมัติ และข้อมูลอ้างอิงสำหรับครีเอทีฟแยกจากรายการสินค้าของร้านค้าใดร้านค้าหนึ่ง",
         createTitle: "สร้างความรู้ผลิตภัณฑ์",
-        createBody: "สร้างรายการความรู้ที่ใช้ซ้ำได้จากที่นี่ ตอนสร้างต้องระบุเพียงชื่อ ส่วนคำแนะนำ คำถามและคำตอบ ตัวอย่างครีเอทีฟ และการเชื่อมโยงสินค้าจะจัดการภายหลัง",
+        createBody:
+          "สร้างรายการความรู้ที่ใช้ซ้ำได้จากที่นี่ ตอนสร้างต้องระบุเพียงชื่อ ส่วนคำแนะนำ คำถามและคำตอบ ตัวอย่างครีเอทีฟ และการเชื่อมโยงสินค้าจะจัดการภายหลัง",
         libraryTitle: "คลังความรู้",
-        libraryBody: "ใช้ตารางเพื่อตรวจสอบสถานะ ความครอบคลุมของเนื้อหา สินค้าที่เชื่อมโยง รุ่นแก้ไข และความใหม่ของข้อมูลก่อนเปิดฐานความรู้",
+        libraryBody:
+          "ใช้ตารางเพื่อตรวจสอบสถานะ ความครอบคลุมของเนื้อหา สินค้าที่เชื่อมโยง รุ่นแก้ไข และความใหม่ของข้อมูลก่อนเปิดฐานความรู้",
       },
     },
   },
-} as const
+} as const;

@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { trackEvent, fetchSttCredentials, saveSttCredentials, fetchExtrasCredentials, saveExtrasCredentials } from "../../api/index.js";
+import {
+  trackEvent,
+  fetchSttCredentials,
+  saveSttCredentials,
+  fetchExtrasCredentials,
+  saveExtrasCredentials,
+} from "../../api/index.js";
 import type { SttProvider } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
@@ -59,21 +65,36 @@ export const ExtrasPage = observer(function ExtrasPage() {
     setSttEnabled(runtimeStatus.appSettings.sttEnabled);
     const sp = runtimeStatus.appSettings.sttProvider;
     if (sp) setSttProvider(sp as SttProvider);
-  }, [sttDirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.sttEnabled, runtimeStatus.appSettings.sttProvider]);
+  }, [
+    sttDirty,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.appSettings.sttEnabled,
+    runtimeStatus.appSettings.sttProvider,
+  ]);
 
   useEffect(() => {
     if (webSearchDirty || !runtimeStatus.snapshotReceived) return;
     setWebSearchEnabled(runtimeStatus.appSettings.webSearchEnabled);
     const wp = runtimeStatus.appSettings.webSearchProvider;
     if (wp) setWebSearchProvider(wp as WebSearchProvider);
-  }, [webSearchDirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.webSearchEnabled, runtimeStatus.appSettings.webSearchProvider]);
+  }, [
+    webSearchDirty,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.appSettings.webSearchEnabled,
+    runtimeStatus.appSettings.webSearchProvider,
+  ]);
 
   useEffect(() => {
     if (embeddingDirty || !runtimeStatus.snapshotReceived) return;
     setEmbeddingEnabled(runtimeStatus.appSettings.embeddingEnabled);
     const ep = runtimeStatus.appSettings.embeddingProvider;
     if (ep) setEmbeddingProvider(ep as EmbeddingProvider);
-  }, [embeddingDirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.embeddingEnabled, runtimeStatus.appSettings.embeddingProvider]);
+  }, [
+    embeddingDirty,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.appSettings.embeddingEnabled,
+    runtimeStatus.appSettings.embeddingProvider,
+  ]);
 
   useEffect(() => {
     loadCredentials();
@@ -193,7 +214,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
 
       setWebSearchDirty(false);
       showToast(t("common.saved"), "success");
-      trackEvent("extras.webSearch.saved", { provider: webSearchProvider, enabled: webSearchEnabled });
+      trackEvent("extras.webSearch.saved", {
+        provider: webSearchProvider,
+        enabled: webSearchEnabled,
+      });
     } catch (err) {
       showToast(t("extras.failedToSave") + String(err), "error");
     } finally {
@@ -206,7 +230,12 @@ export const ExtrasPage = observer(function ExtrasPage() {
 
     try {
       // Validate (Ollama key is optional)
-      if (embeddingEnabled && embeddingProvider !== "ollama" && !embeddingApiKey.trim() && !hasEmbeddingKeys[embeddingProvider]) {
+      if (
+        embeddingEnabled &&
+        embeddingProvider !== "ollama" &&
+        !embeddingApiKey.trim() &&
+        !hasEmbeddingKeys[embeddingProvider]
+      ) {
         showToast(t("extras.embeddingApiKeyRequired"), "error");
         setEmbeddingSaving(false);
         return;
@@ -231,7 +260,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
 
       setEmbeddingDirty(false);
       showToast(t("common.saved"), "success");
-      trackEvent("extras.embedding.saved", { provider: embeddingProvider, enabled: embeddingEnabled });
+      trackEvent("extras.embedding.saved", {
+        provider: embeddingProvider,
+        enabled: embeddingEnabled,
+      });
     } catch (err) {
       showToast(t("extras.failedToSave") + String(err), "error");
     } finally {
@@ -254,7 +286,21 @@ export const ExtrasPage = observer(function ExtrasPage() {
         <TkPanel as="section" className="section-card extras-card" data-tutorial-id="extras-stt">
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--stt">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
             </div>
             <div className="extras-card-title-group">
               <h3>{t("extras.sttSection")}</h3>
@@ -263,7 +309,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
             <TkSwitchControl
               label={t("extras.sttSection")}
               checked={sttEnabled}
-              onChange={(checked) => { setSttEnabled(checked); setSttDirty(true); }}
+              onChange={(checked) => {
+                setSttEnabled(checked);
+                setSttDirty(true);
+              }}
             />
           </div>
 
@@ -274,7 +323,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
                   <div className="form-label">{t("stt.provider")}</div>
                   <Select
                     value={sttProvider}
-                    onChange={(v) => { setSttProvider(v as SttProvider); setSttDirty(true); }}
+                    onChange={(v) => {
+                      setSttProvider(v as SttProvider);
+                      setSttDirty(true);
+                    }}
                     options={[
                       { value: "groq", label: t("stt.providerGroq") },
                       { value: "volcengine", label: t("stt.providerVolcengine") },
@@ -287,18 +339,30 @@ export const ExtrasPage = observer(function ExtrasPage() {
                   <div className="form-group">
                     <div className="form-label stt-label-with-badge">
                       {t("stt.groqApiKey")}
-                      {hasGroqKey && !groqApiKey && <span className="badge-saved">{t("stt.keySaved")}</span>}
+                      {hasGroqKey && !groqApiKey && (
+                        <span className="badge-saved">{t("stt.keySaved")}</span>
+                      )}
                     </div>
                     <input
                       type="password"
                       className="input-full input-mono"
                       value={groqApiKey}
                       onChange={(e) => setGroqApiKey(e.target.value)}
-                      placeholder={hasGroqKey ? `${t("stt.groqApiKeyPlaceholder")} (${t("stt.keyNotChanged")})` : t("stt.groqApiKeyPlaceholder")}
+                      placeholder={
+                        hasGroqKey
+                          ? `${t("stt.groqApiKeyPlaceholder")} (${t("stt.keyNotChanged")})`
+                          : t("stt.groqApiKeyPlaceholder")
+                      }
                     />
                     <p className="form-help">
                       {t("stt.groqHelp")}{" "}
-                      <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">console.groq.com/keys</a>
+                      <a
+                        href="https://console.groq.com/keys"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        console.groq.com/keys
+                      </a>
                     </p>
                   </div>
                 )}
@@ -308,7 +372,14 @@ export const ExtrasPage = observer(function ExtrasPage() {
                     <div className="info-box info-box-blue">
                       <div className="stt-free-tier-content">
                         <span>{t("stt.volcengineFreeTier")}</span>
-                        <a href="https://console.volcengine.com/speech/app" target="_blank" rel="noopener noreferrer" className="font-medium">{t("stt.volcentineFreeLink")}</a>
+                        <a
+                          href="https://console.volcengine.com/speech/app"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium"
+                        >
+                          {t("stt.volcentineFreeLink")}
+                        </a>
                         <span className="stt-tooltip-wrapper">
                           <span className="volcengine-help-trigger stt-help-icon">?</span>
                           <div className="volcengine-help-tooltip">
@@ -325,20 +396,48 @@ export const ExtrasPage = observer(function ExtrasPage() {
                       <div className="form-group">
                         <div className="form-label stt-label-with-badge">
                           {t("stt.volcengineAppKey")}
-                          {hasVolcengineKeys && !volcengineAppKey && <span className="badge-saved">{t("stt.keySaved")}</span>}
+                          {hasVolcengineKeys && !volcengineAppKey && (
+                            <span className="badge-saved">{t("stt.keySaved")}</span>
+                          )}
                         </div>
-                        <input type="password" className="input-full input-mono" value={volcengineAppKey} onChange={(e) => setVolcengineAppKey(e.target.value)} placeholder={hasVolcengineKeys ? `${t("stt.volcengineAppKeyPlaceholder")} (${t("stt.keyNotChanged")})` : t("stt.volcengineAppKeyPlaceholder")} />
+                        <input
+                          type="password"
+                          className="input-full input-mono"
+                          value={volcengineAppKey}
+                          onChange={(e) => setVolcengineAppKey(e.target.value)}
+                          placeholder={
+                            hasVolcengineKeys
+                              ? `${t("stt.volcengineAppKeyPlaceholder")} (${t("stt.keyNotChanged")})`
+                              : t("stt.volcengineAppKeyPlaceholder")
+                          }
+                        />
                       </div>
 
                       <div className="form-group">
                         <div className="form-label">{t("stt.volcengineAccessKey")}</div>
-                        <input type="password" className="input-full input-mono" value={volcengineAccessKey} onChange={(e) => setVolcengineAccessKey(e.target.value)} placeholder={hasVolcengineKeys ? `${t("stt.volcengineAccessKeyPlaceholder")} (${t("stt.keyNotChanged")})` : t("stt.volcengineAccessKeyPlaceholder")} />
+                        <input
+                          type="password"
+                          className="input-full input-mono"
+                          value={volcengineAccessKey}
+                          onChange={(e) => setVolcengineAccessKey(e.target.value)}
+                          placeholder={
+                            hasVolcengineKeys
+                              ? `${t("stt.volcengineAccessKeyPlaceholder")} (${t("stt.keyNotChanged")})`
+                              : t("stt.volcengineAccessKeyPlaceholder")
+                          }
+                        />
                       </div>
                     </div>
 
                     <p className="form-help stt-volcengine-help">
                       {t("stt.volcengineHelp")}{" "}
-                      <a href="https://console.volcengine.com/speech/app" target="_blank" rel="noopener noreferrer">console.volcengine.com/speech/app</a>
+                      <a
+                        href="https://console.volcengine.com/speech/app"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        console.volcengine.com/speech/app
+                      </a>
                     </p>
                   </>
                 )}
@@ -347,21 +446,34 @@ export const ExtrasPage = observer(function ExtrasPage() {
           )}
 
           <div className="extras-card-foot">
-            <button className="btn btn-primary btn-action" onClick={handleSaveStt} disabled={sttSaving}>
+            <button
+              className="btn btn-primary btn-action"
+              onClick={handleSaveStt}
+              disabled={sttSaving}
+            >
               {sttSaving ? t("common.loading") : t("common.save")}
             </button>
           </div>
         </TkPanel>
 
         {/* ── Card 2: Web Search ── */}
-        <TkPanel
-          as="section"
-          className="section-card extras-card"
-          data-tutorial-id="extras-search"
-        >
+        <TkPanel as="section" className="section-card extras-card" data-tutorial-id="extras-search">
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--search">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
             </div>
             <div className="extras-card-title-group">
               <h3>{t("extras.webSearchSection")}</h3>
@@ -370,7 +482,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
             <TkSwitchControl
               label={t("extras.webSearchSection")}
               checked={webSearchEnabled}
-              onChange={(checked) => { setWebSearchEnabled(checked); setWebSearchDirty(true); }}
+              onChange={(checked) => {
+                setWebSearchEnabled(checked);
+                setWebSearchDirty(true);
+              }}
             />
           </div>
 
@@ -381,7 +496,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
                   <div className="form-label">{t("extras.webSearchProvider")}</div>
                   <Select
                     value={webSearchProvider}
-                    onChange={(v) => { setWebSearchProvider(v as WebSearchProvider); setWebSearchDirty(true); }}
+                    onChange={(v) => {
+                      setWebSearchProvider(v as WebSearchProvider);
+                      setWebSearchDirty(true);
+                    }}
                     options={[
                       { value: "brave", label: t("extras.webSearchProviderBrave") },
                       { value: "perplexity", label: t("extras.webSearchProviderPerplexity") },
@@ -396,21 +514,78 @@ export const ExtrasPage = observer(function ExtrasPage() {
                 <div className="form-group">
                   <div className="form-label stt-label-with-badge">
                     {t("extras.webSearchApiKey")}
-                    {hasWebSearchKeys[webSearchProvider] && !webSearchApiKey && <span className="badge-saved">{t("extras.keySaved")}</span>}
+                    {hasWebSearchKeys[webSearchProvider] && !webSearchApiKey && (
+                      <span className="badge-saved">{t("extras.keySaved")}</span>
+                    )}
                   </div>
                   <input
                     type="password"
                     className="input-full input-mono"
                     value={webSearchApiKey}
                     onChange={(e) => setWebSearchApiKey(e.target.value)}
-                    placeholder={hasWebSearchKeys[webSearchProvider] ? `${t("extras.webSearchApiKeyPlaceholder")} (${t("extras.keyNotChanged")})` : t("extras.webSearchApiKeyPlaceholder")}
+                    placeholder={
+                      hasWebSearchKeys[webSearchProvider]
+                        ? `${t("extras.webSearchApiKeyPlaceholder")} (${t("extras.keyNotChanged")})`
+                        : t("extras.webSearchApiKeyPlaceholder")
+                    }
                   />
                   <p className="form-help">
-                    {webSearchProvider === "brave" && (<>{t("extras.webSearchBraveHelp")}{" "}<a href="https://brave.com/search/api/" target="_blank" rel="noopener noreferrer">brave.com/search/api</a></>)}
-                    {webSearchProvider === "perplexity" && (<>{t("extras.webSearchPerplexityHelp")}{" "}<a href="https://docs.perplexity.ai/" target="_blank" rel="noopener noreferrer">docs.perplexity.ai</a></>)}
-                    {webSearchProvider === "grok" && (<>{t("extras.webSearchGrokHelp")}{" "}<a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer">console.x.ai</a></>)}
-                    {webSearchProvider === "gemini" && (<>{t("extras.webSearchGeminiHelp")}{" "}<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a></>)}
-                    {webSearchProvider === "kimi" && (<>{t("extras.webSearchKimiHelp")}{" "}<a href="https://platform.moonshot.cn/console/api-keys" target="_blank" rel="noopener noreferrer">platform.moonshot.cn</a></>)}
+                    {webSearchProvider === "brave" && (
+                      <>
+                        {t("extras.webSearchBraveHelp")}{" "}
+                        <a
+                          href="https://brave.com/search/api/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          brave.com/search/api
+                        </a>
+                      </>
+                    )}
+                    {webSearchProvider === "perplexity" && (
+                      <>
+                        {t("extras.webSearchPerplexityHelp")}{" "}
+                        <a
+                          href="https://docs.perplexity.ai/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          docs.perplexity.ai
+                        </a>
+                      </>
+                    )}
+                    {webSearchProvider === "grok" && (
+                      <>
+                        {t("extras.webSearchGrokHelp")}{" "}
+                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer">
+                          console.x.ai
+                        </a>
+                      </>
+                    )}
+                    {webSearchProvider === "gemini" && (
+                      <>
+                        {t("extras.webSearchGeminiHelp")}{" "}
+                        <a
+                          href="https://aistudio.google.com/apikey"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          aistudio.google.com
+                        </a>
+                      </>
+                    )}
+                    {webSearchProvider === "kimi" && (
+                      <>
+                        {t("extras.webSearchKimiHelp")}{" "}
+                        <a
+                          href="https://platform.moonshot.cn/console/api-keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          platform.moonshot.cn
+                        </a>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -418,7 +593,11 @@ export const ExtrasPage = observer(function ExtrasPage() {
           )}
 
           <div className="extras-card-foot">
-            <button className="btn btn-primary btn-action" onClick={handleSaveWebSearch} disabled={webSearchSaving}>
+            <button
+              className="btn btn-primary btn-action"
+              onClick={handleSaveWebSearch}
+              disabled={webSearchSaving}
+            >
               {webSearchSaving ? t("common.loading") : t("common.save")}
             </button>
           </div>
@@ -432,7 +611,20 @@ export const ExtrasPage = observer(function ExtrasPage() {
         >
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--memory">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
             </div>
             <div className="extras-card-title-group">
               <h3>{t("extras.embeddingSection")}</h3>
@@ -441,7 +633,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
             <TkSwitchControl
               label={t("extras.embeddingSection")}
               checked={embeddingEnabled}
-              onChange={(checked) => { setEmbeddingEnabled(checked); setEmbeddingDirty(true); }}
+              onChange={(checked) => {
+                setEmbeddingEnabled(checked);
+                setEmbeddingDirty(true);
+              }}
             />
           </div>
 
@@ -452,7 +647,10 @@ export const ExtrasPage = observer(function ExtrasPage() {
                   <div className="form-label">{t("extras.embeddingProvider")}</div>
                   <Select
                     value={embeddingProvider}
-                    onChange={(v) => { setEmbeddingProvider(v as EmbeddingProvider); setEmbeddingDirty(true); }}
+                    onChange={(v) => {
+                      setEmbeddingProvider(v as EmbeddingProvider);
+                      setEmbeddingDirty(true);
+                    }}
                     options={[
                       { value: "openai", label: t("extras.embeddingProviderOpenai") },
                       { value: "gemini", label: t("extras.embeddingProviderGemini") },
@@ -467,20 +665,70 @@ export const ExtrasPage = observer(function ExtrasPage() {
                 <div className="form-group">
                   <div className="form-label stt-label-with-badge">
                     {t("extras.embeddingApiKey")}
-                    {hasEmbeddingKeys[embeddingProvider] && !embeddingApiKey && <span className="badge-saved">{t("extras.keySaved")}</span>}
+                    {hasEmbeddingKeys[embeddingProvider] && !embeddingApiKey && (
+                      <span className="badge-saved">{t("extras.keySaved")}</span>
+                    )}
                   </div>
                   <input
                     type="password"
                     className="input-full input-mono"
                     value={embeddingApiKey}
                     onChange={(e) => setEmbeddingApiKey(e.target.value)}
-                    placeholder={hasEmbeddingKeys[embeddingProvider] ? `${t("extras.embeddingApiKeyPlaceholder")} (${t("extras.keyNotChanged")})` : t("extras.embeddingApiKeyPlaceholder")}
+                    placeholder={
+                      hasEmbeddingKeys[embeddingProvider]
+                        ? `${t("extras.embeddingApiKeyPlaceholder")} (${t("extras.keyNotChanged")})`
+                        : t("extras.embeddingApiKeyPlaceholder")
+                    }
                   />
                   <p className="form-help">
-                    {embeddingProvider === "openai" && (<>{t("extras.embeddingOpenaiHelp")}{" "}<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com</a></>)}
-                    {embeddingProvider === "gemini" && (<>{t("extras.embeddingGeminiHelp")}{" "}<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a></>)}
-                    {embeddingProvider === "voyage" && (<>{t("extras.embeddingVoyageHelp")}{" "}<a href="https://dash.voyageai.com/api-keys" target="_blank" rel="noopener noreferrer">dash.voyageai.com</a></>)}
-                    {embeddingProvider === "mistral" && (<>{t("extras.embeddingMistralHelp")}{" "}<a href="https://console.mistral.ai/api-keys" target="_blank" rel="noopener noreferrer">console.mistral.ai</a></>)}
+                    {embeddingProvider === "openai" && (
+                      <>
+                        {t("extras.embeddingOpenaiHelp")}{" "}
+                        <a
+                          href="https://platform.openai.com/api-keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          platform.openai.com
+                        </a>
+                      </>
+                    )}
+                    {embeddingProvider === "gemini" && (
+                      <>
+                        {t("extras.embeddingGeminiHelp")}{" "}
+                        <a
+                          href="https://aistudio.google.com/apikey"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          aistudio.google.com
+                        </a>
+                      </>
+                    )}
+                    {embeddingProvider === "voyage" && (
+                      <>
+                        {t("extras.embeddingVoyageHelp")}{" "}
+                        <a
+                          href="https://dash.voyageai.com/api-keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          dash.voyageai.com
+                        </a>
+                      </>
+                    )}
+                    {embeddingProvider === "mistral" && (
+                      <>
+                        {t("extras.embeddingMistralHelp")}{" "}
+                        <a
+                          href="https://console.mistral.ai/api-keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          console.mistral.ai
+                        </a>
+                      </>
+                    )}
                     {embeddingProvider === "ollama" && t("extras.embeddingOllamaHelp")}
                   </p>
                 </div>
@@ -489,7 +737,11 @@ export const ExtrasPage = observer(function ExtrasPage() {
           )}
 
           <div className="extras-card-foot">
-            <button className="btn btn-primary btn-action" onClick={handleSaveEmbedding} disabled={embeddingSaving}>
+            <button
+              className="btn btn-primary btn-action"
+              onClick={handleSaveEmbedding}
+              disabled={embeddingSaving}
+            >
               {embeddingSaving ? t("common.loading") : t("common.save")}
             </button>
           </div>

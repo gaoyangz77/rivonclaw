@@ -8,13 +8,20 @@ interface CloudLlmQuotaBannerProps {
   onNavigate: (path: string) => void;
 }
 
-export const CloudLlmQuotaBanner = observer(function CloudLlmQuotaBanner({ onNavigate }: CloudLlmQuotaBannerProps) {
+export const CloudLlmQuotaBanner = observer(function CloudLlmQuotaBanner({
+  onNavigate,
+}: CloudLlmQuotaBannerProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
-  const isUsingCloudLlm = entityStore.providerKeys.some((key) => key.isDefault && key.provider === "rivonclaw-pro");
-  const banner = resolveCloudLlmQuotaBannerState(entityStore.providerKeys, entityStore.billingOverview);
+  const isUsingCloudLlm = entityStore.providerKeys.some(
+    (key) => key.isDefault && key.provider === "rivonclaw-pro",
+  );
+  const banner = resolveCloudLlmQuotaBannerState(
+    entityStore.providerKeys,
+    entityStore.billingOverview,
+  );
 
   useEffect(() => {
     if (!user || authChecking || !isUsingCloudLlm) return;
@@ -41,19 +48,20 @@ export const CloudLlmQuotaBanner = observer(function CloudLlmQuotaBanner({ onNav
   if (!banner) return null;
 
   return (
-    <div
-      className={`quota-banner quota-banner-${banner.severity}`}
-      role="alert"
-    >
+    <div className={`quota-banner quota-banner-${banner.severity}`} role="alert">
       <span className="quota-banner-title">
-        {t(banner.severity === "error"
-          ? "billing.cloudQuotaExhaustedTitle"
-          : "billing.cloudQuotaLowTitle")}
+        {t(
+          banner.severity === "error"
+            ? "billing.cloudQuotaExhaustedTitle"
+            : "billing.cloudQuotaLowTitle",
+        )}
       </span>
       <span>
-        {t(banner.severity === "error"
-          ? "billing.cloudQuotaExhaustedBody"
-          : "billing.cloudQuotaLowBody")}
+        {t(
+          banner.severity === "error"
+            ? "billing.cloudQuotaExhaustedBody"
+            : "billing.cloudQuotaLowBody",
+        )}
       </span>
       <span className="quota-banner-actions">
         <button

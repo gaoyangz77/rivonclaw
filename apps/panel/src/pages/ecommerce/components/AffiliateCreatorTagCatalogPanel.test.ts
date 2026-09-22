@@ -75,7 +75,7 @@ describe("tag catalog panel state discipline", () => {
   );
 
   it("keeps only ids and primitive drafts in React state", () => {
-    expect(source).toContain('useState<string | null>(null)');
+    expect(source).toContain("useState<string | null>(null)");
     expect(source).not.toContain("useRef");
     expect(source).not.toMatch(/useState<GQL\./);
   });

@@ -42,14 +42,15 @@ function ToastItem({ toast, onDismiss }: { toast: ToastState; onDismiss: (key: n
     };
   }, [toast.key, onDismiss]);
 
-  const typeClass = toast.type === "error" ? "toast-error" : toast.type === "warning" ? "toast-warning" : "toast-success";
+  const typeClass =
+    toast.type === "error"
+      ? "toast-error"
+      : toast.type === "warning"
+        ? "toast-warning"
+        : "toast-success";
   const exitClass = exiting ? " toast-exit" : "";
 
-  return (
-    <div className={`toast ${typeClass}${exitClass}`}>
-      {toast.message}
-    </div>
-  );
+  return <div className={`toast ${typeClass}${exitClass}`}>{toast.message}</div>;
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {

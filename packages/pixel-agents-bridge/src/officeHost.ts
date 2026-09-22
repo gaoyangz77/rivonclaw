@@ -1,5 +1,9 @@
 import type { SceneCue, SceneSnapshot } from "@rivonclaw/scene-contract";
-import { buildBootstrapMessages, type BootstrapOptions, type SceneAssetBundle } from "./assetBootstrap.js";
+import {
+  buildBootstrapMessages,
+  type BootstrapOptions,
+  type SceneAssetBundle,
+} from "./assetBootstrap.js";
 import { ScenePacer, type ScenePacerTiming } from "./scenePacer.js";
 import { PixelAgentsTranslator, type TranslatorOptions } from "./translator.js";
 

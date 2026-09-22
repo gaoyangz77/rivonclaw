@@ -86,7 +86,9 @@ export const ChannelManagerModel = types
     function patchAccountRecipients(
       channelId: string,
       accountId: string | undefined,
-      patch: Partial<NonNullable<ChannelsStatusSnapshot["channelAccounts"][string][number]["recipients"]>>,
+      patch: Partial<
+        NonNullable<ChannelsStatusSnapshot["channelAccounts"][string][number]["recipients"]>
+      >,
     ): void {
       if (!self.statusSnapshot || !accountId) return;
       const accounts = self.statusSnapshot.channelAccounts[channelId];
@@ -124,7 +126,11 @@ export const ChannelManagerModel = types
       }
     }
 
-    const probeChannelStatus = flow(function* (): Generator<Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>, void, { snapshot: ChannelsStatusSnapshot | null; error?: string }> {
+    const probeChannelStatus = flow(function* (): Generator<
+      Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>,
+      void,
+      { snapshot: ChannelsStatusSnapshot | null; error?: string }
+    > {
       try {
         const data = yield fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
           clientPath(API["channels.status"]) + "?probe=true",
@@ -144,7 +150,11 @@ export const ChannelManagerModel = types
     const loadChannelStatus = flow(function* (
       showLoading = true,
       opts?: { probe?: boolean },
-    ): Generator<Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>, ChannelsStatusSnapshot | null, { snapshot: ChannelsStatusSnapshot | null; error?: string }> {
+    ): Generator<
+      Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>,
+      ChannelsStatusSnapshot | null,
+      { snapshot: ChannelsStatusSnapshot | null; error?: string }
+    > {
       if (showLoading) {
         self.statusLoading = true;
         self.statusError = null;
@@ -176,7 +186,11 @@ export const ChannelManagerModel = types
       }
     });
 
-    const retryGatewayStatus = flow(function* (): Generator<Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>, void, { snapshot: ChannelsStatusSnapshot | null; error?: string }> {
+    const retryGatewayStatus = flow(function* (): Generator<
+      Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>,
+      void,
+      { snapshot: ChannelsStatusSnapshot | null; error?: string }
+    > {
       try {
         const data = yield fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
           clientPath(API["channels.status"]) + "?probe=false",
@@ -201,7 +215,11 @@ export const ChannelManagerModel = types
       }
     });
 
-    const pollChannelStatus = flow(function* (): Generator<Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>, void, { snapshot: ChannelsStatusSnapshot | null; error?: string }> {
+    const pollChannelStatus = flow(function* (): Generator<
+      Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>,
+      void,
+      { snapshot: ChannelsStatusSnapshot | null; error?: string }
+    > {
       if (!self.statusPolling) return;
       self.statusRefreshing = true;
       try {
@@ -227,7 +245,13 @@ export const ChannelManagerModel = types
       }
     });
 
-    const retryChannelStatus = flow(function* (attempt = 0): Generator<Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>, void, { snapshot: ChannelsStatusSnapshot | null; error?: string }> {
+    const retryChannelStatus = flow(function* (
+      attempt = 0,
+    ): Generator<
+      Promise<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>,
+      void,
+      { snapshot: ChannelsStatusSnapshot | null; error?: string }
+    > {
       try {
         const data = yield fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
           clientPath(API["channels.status"]) + "?probe=false",
@@ -252,7 +276,9 @@ export const ChannelManagerModel = types
 
     const waitForReadyAndPoll = flow(function* (): Generator<Promise<void>, void, void> {
       cancelReadinessWait();
-      self.readinessWait = when(() => runtimeStatusStore.openClawConnector.sidecarState === "ready");
+      self.readinessWait = when(
+        () => runtimeStatusStore.openClawConnector.sidecarState === "ready",
+      );
       try {
         yield self.readinessWait;
         self.readinessWait = null;
@@ -320,29 +346,26 @@ export const ChannelManagerModel = types
         accountId: string,
         data: { name?: string; config: Record<string, unknown>; secrets?: Record<string, string> },
       ) {
-        yield fetchJson(
-          clientPath(API["channels.accounts.update"], { channelId, accountId }),
-          { method: "PUT", body: JSON.stringify(data) },
-        );
+        yield fetchJson(clientPath(API["channels.accounts.update"], { channelId, accountId }), {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
         broadcast();
         void loadChannelStatus(false, { probe: false });
       }),
 
       /** Delete a channel account. */
       deleteAccount: flow(function* (channelId: string, accountId: string) {
-        yield fetchJson(
-          clientPath(API["channels.accounts.delete"], { channelId, accountId }),
-          { method: "DELETE" },
-        );
+        yield fetchJson(clientPath(API["channels.accounts.delete"], { channelId, accountId }), {
+          method: "DELETE",
+        });
         broadcast();
         void loadChannelStatus(false, { probe: false });
       }),
 
       /** Get full account config (including secrets) from Desktop SQLite. */
       getAccountConfig: flow(function* (channelId: string, accountId: string) {
-        return yield fetchJson(
-          clientPath(API["channels.accounts.get"], { channelId, accountId }),
-        );
+        return yield fetchJson(clientPath(API["channels.accounts.get"], { channelId, accountId }));
       }),
 
       /** Refresh pairing requests. Desktop updates account.recipients in MST. */
@@ -370,7 +393,12 @@ export const ChannelManagerModel = types
       }),
 
       /** Approve a pairing request for a channel account. */
-      approvePairing: flow(function* (channelId: string, code: string, locale?: string, accountId?: string) {
+      approvePairing: flow(function* (
+        channelId: string,
+        code: string,
+        locale?: string,
+        accountId?: string,
+      ) {
         return yield fetchJson(clientPath(API["pairing.approve"]), {
           method: "POST",
           body: JSON.stringify({ channelId, accountId, code, locale }),
@@ -378,29 +406,52 @@ export const ChannelManagerModel = types
       }),
 
       /** Set a recipient alias/label. */
-      setRecipientLabel: flow(function* (channelId: string, recipientId: string, label: string, accountId?: string) {
+      setRecipientLabel: flow(function* (
+        channelId: string,
+        recipientId: string,
+        label: string,
+        accountId?: string,
+      ) {
         const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-        yield fetchJson(clientPath(API["pairing.allowlist.setLabel"], { channelId, recipientId }) + qs, {
-          method: "PUT",
-          body: JSON.stringify({ label }),
-        });
+        yield fetchJson(
+          clientPath(API["pairing.allowlist.setLabel"], { channelId, recipientId }) + qs,
+          {
+            method: "PUT",
+            body: JSON.stringify({ label }),
+          },
+        );
       }),
 
       /** Set or clear recipient owner role. */
-      setRecipientOwner: flow(function* (channelId: string, recipientId: string, isOwner: boolean, accountId?: string) {
+      setRecipientOwner: flow(function* (
+        channelId: string,
+        recipientId: string,
+        isOwner: boolean,
+        accountId?: string,
+      ) {
         const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-        yield fetchJson(clientPath(API["pairing.allowlist.setOwner"], { channelId, recipientId }) + qs, {
-          method: "PUT",
-          body: JSON.stringify({ isOwner }),
-        });
+        yield fetchJson(
+          clientPath(API["pairing.allowlist.setOwner"], { channelId, recipientId }) + qs,
+          {
+            method: "PUT",
+            body: JSON.stringify({ isOwner }),
+          },
+        );
       }),
 
       /** Remove a recipient from the account allowlist. */
-      removeFromAllowlist: flow(function* (channelId: string, recipientId: string, accountId?: string) {
+      removeFromAllowlist: flow(function* (
+        channelId: string,
+        recipientId: string,
+        accountId?: string,
+      ) {
         const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-        yield fetchJson(clientPath(API["pairing.allowlist.remove"], { channelId, recipientId }) + qs, {
-          method: "DELETE",
-        });
+        yield fetchJson(
+          clientPath(API["pairing.allowlist.remove"], { channelId, recipientId }) + qs,
+          {
+            method: "DELETE",
+          },
+        );
       }),
 
       /** Broadcast channel change to all listeners (for cross-page coordination). */

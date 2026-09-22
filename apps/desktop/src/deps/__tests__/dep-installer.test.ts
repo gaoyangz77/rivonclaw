@@ -14,15 +14,13 @@ const {
   mockGetAugmentedEnvironment,
   mockGetMirrorEnv,
 } = vi.hoisted(() => ({
-    mockSpawn: vi.fn(),
-    mockReadFile: vi.fn(),
-    mockArch: vi.fn<() => string>(() => "arm64"),
-    mockHomedir: vi.fn(() => "/Users/testuser"),
-    mockGetAugmentedEnvironment: vi.fn(() => ({ PATH: "/mock/path" })),
-    mockGetMirrorEnv: vi.fn<(region: string) => Record<string, string> | null>(
-      () => null,
-    ),
-  }));
+  mockSpawn: vi.fn(),
+  mockReadFile: vi.fn(),
+  mockArch: vi.fn<() => string>(() => "arm64"),
+  mockHomedir: vi.fn(() => "/Users/testuser"),
+  mockGetAugmentedEnvironment: vi.fn(() => ({ PATH: "/mock/path" })),
+  mockGetMirrorEnv: vi.fn<(region: string) => Record<string, string> | null>(() => null),
+}));
 
 vi.mock("node:child_process", () => ({
   spawn: mockSpawn,
@@ -56,10 +54,7 @@ import { installDep } from "../dep-installer.js";
  * Create a mock child process that emits close with the given exit code.
  * Optionally emits stdout/stderr data before closing.
  */
-function createMockChild(
-  exitCode = 0,
-  output: { stdout?: string; stderr?: string } = {},
-) {
+function createMockChild(exitCode = 0, output: { stdout?: string; stderr?: string } = {}) {
   const handlers: Record<string, Function[]> = {};
 
   const addHandler = (key: string, handler: Function) => {
@@ -111,21 +106,19 @@ let spawnCalls: Array<{ cmd: string; args: string[]; opts: unknown }> = [];
 
 function setupSpawn(exitCodes: Record<string, number> = {}) {
   spawnCalls = [];
-  mockSpawn.mockImplementation(
-    (cmd: string, args: string[], opts: unknown) => {
-      spawnCalls.push({ cmd, args, opts });
-      // Match by first meaningful token in command
-      const key = [cmd, ...args].join(" ");
-      let exitCode = 0;
-      for (const [pattern, code] of Object.entries(exitCodes)) {
-        if (key.includes(pattern)) {
-          exitCode = code;
-          break;
-        }
+  mockSpawn.mockImplementation((cmd: string, args: string[], opts: unknown) => {
+    spawnCalls.push({ cmd, args, opts });
+    // Match by first meaningful token in command
+    const key = [cmd, ...args].join(" ");
+    let exitCode = 0;
+    for (const [pattern, code] of Object.entries(exitCodes)) {
+      if (key.includes(pattern)) {
+        exitCode = code;
+        break;
       }
-      return createMockChild(exitCode);
-    },
-  );
+    }
+    return createMockChild(exitCode);
+  });
 }
 
 const onOutput = vi.fn();
@@ -193,9 +186,7 @@ describe("installDep", () => {
 
       // Should use curl (via /bin/bash -c "curl ... | sh")
       const curlCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "/bin/bash" &&
-          c.args.some((a) => a.includes("astral.sh")),
+        (c) => c.cmd === "/bin/bash" && c.args.some((a) => a.includes("astral.sh")),
       );
       expect(curlCall).toBeDefined();
     });
@@ -324,9 +315,7 @@ describe("installDep", () => {
       await installDep("node", "win32", "cn", onOutput);
 
       const psCall = spawnCalls.find((c) => c.cmd === "powershell");
-      expect(psCall!.args.join(" ")).toContain(
-        "node-v24.16.0-win-arm64.zip",
-      );
+      expect(psCall!.args.join(" ")).toContain("node-v24.16.0-win-arm64.zip");
       expect(psCall!.args.join(" ")).toContain(
         "14834611D4C6B3C06054E7007732B90474C16E0B32F395E05B55A571EF71C6D2",
       );
@@ -339,9 +328,7 @@ describe("installDep", () => {
         }),
       );
 
-      await expect(
-        installDep("node", "win32", "cn", onOutput),
-      ).rejects.toThrow(
+      await expect(installDep("node", "win32", "cn", onOutput)).rejects.toThrow(
         /powershell exited with code 255: Cannot find SHA256 entry for node archive/,
       );
     });
@@ -355,10 +342,7 @@ describe("installDep", () => {
       expect(wingetCall).toBeUndefined();
 
       const pipCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "pip" &&
-          c.args.includes("install") &&
-          c.args.includes("uv"),
+        (c) => c.cmd === "pip" && c.args.includes("install") && c.args.includes("uv"),
       );
       expect(pipCall).toBeDefined();
     });
@@ -370,17 +354,12 @@ describe("installDep", () => {
       await installDep("git", "win32", "global", onOutput);
 
       // Should have called where.exe winget first
-      const whereCall = spawnCalls.find(
-        (c) => c.cmd === "where.exe" && c.args.includes("winget"),
-      );
+      const whereCall = spawnCalls.find((c) => c.cmd === "where.exe" && c.args.includes("winget"));
       expect(whereCall).toBeDefined();
 
       // Then winget install
       const wingetCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "winget" &&
-          c.args.includes("install") &&
-          c.args.includes("Git.Git"),
+        (c) => c.cmd === "winget" && c.args.includes("install") && c.args.includes("Git.Git"),
       );
       expect(wingetCall).toBeDefined();
       expect(wingetCall!.args).toContain("--disable-interactivity");
@@ -395,9 +374,7 @@ describe("installDep", () => {
       await installDep("uv", "win32", "global", onOutput);
 
       const psCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "powershell" &&
-          c.args.some((a) => a.includes("astral.sh")),
+        (c) => c.cmd === "powershell" && c.args.some((a) => a.includes("astral.sh")),
       );
       expect(psCall).toBeDefined();
       const opts = psCall!.opts as { shell?: boolean };
@@ -407,9 +384,9 @@ describe("installDep", () => {
     it("throws helpful error for git when no winget", async () => {
       setupSpawn({ "where.exe winget": 1 });
 
-      await expect(
-        installDep("git", "win32", "global", onOutput),
-      ).rejects.toThrow(/winget is not available/);
+      await expect(installDep("git", "win32", "global", onOutput)).rejects.toThrow(
+        /winget is not available/,
+      );
     });
   });
 
@@ -428,9 +405,7 @@ describe("installDep", () => {
       await installDep("git", "linux", "global", onOutput);
 
       // Should detect apt-get from Ubuntu and call sudo apt-get install -y git
-      const aptCall = spawnCalls.find(
-        (c) => c.args.includes("apt-get") && c.args.includes("git"),
-      );
+      const aptCall = spawnCalls.find((c) => c.args.includes("apt-get") && c.args.includes("git"));
       expect(aptCall).toBeDefined();
       expect(aptCall!.args).toContain("install");
       expect(aptCall!.args).toContain("-y");
@@ -442,9 +417,7 @@ describe("installDep", () => {
 
       await installDep("git", "linux", "global", onOutput);
 
-      const dnfCall = spawnCalls.find(
-        (c) => c.args.includes("dnf") && c.args.includes("git"),
-      );
+      const dnfCall = spawnCalls.find((c) => c.args.includes("dnf") && c.args.includes("git"));
       expect(dnfCall).toBeDefined();
       expect(dnfCall!.args).toContain("install");
       expect(dnfCall!.args).toContain("-y");
@@ -470,10 +443,7 @@ describe("installDep", () => {
       await installDep("uv", "linux", "cn", onOutput);
 
       const pipCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "pip3" &&
-          c.args.includes("install") &&
-          c.args.includes("uv"),
+        (c) => c.cmd === "pip3" && c.args.includes("install") && c.args.includes("uv"),
       );
       expect(pipCall).toBeDefined();
     });
@@ -484,9 +454,7 @@ describe("installDep", () => {
       await installDep("uv", "linux", "global", onOutput);
 
       const curlCall = spawnCalls.find(
-        (c) =>
-          c.cmd === "/bin/bash" &&
-          c.args.some((a) => a.includes("astral.sh")),
+        (c) => c.cmd === "/bin/bash" && c.args.some((a) => a.includes("astral.sh")),
       );
       expect(curlCall).toBeDefined();
     });
@@ -495,9 +463,9 @@ describe("installDep", () => {
       mockReadFile.mockResolvedValue("ID=gentoo\n");
       setupSpawn({ "which pkexec": 1 });
 
-      await expect(
-        installDep("git", "linux", "global", onOutput),
-      ).rejects.toThrow(/Unsupported Linux distribution: gentoo/);
+      await expect(installDep("git", "linux", "global", onOutput)).rejects.toThrow(
+        /Unsupported Linux distribution: gentoo/,
+      );
     });
   });
 

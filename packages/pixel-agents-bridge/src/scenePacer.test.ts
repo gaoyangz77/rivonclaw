@@ -186,7 +186,8 @@ describe("ScenePacer - synthetic thinking", () => {
     });
   });
 
-  const statusOf = (id: string) => presented[presented.length - 1]!.characters.find((c) => c.id === id)?.status;
+  const statusOf = (id: string) =>
+    presented[presented.length - 1]!.characters.find((c) => c.id === id)?.status;
 
   it("moves on from arriving when the run goes quiet", () => {
     pacer.push(scene(1, [character({ id: "lease-1", status: "arriving" })]));
@@ -347,9 +348,7 @@ describe("ScenePacer - coalesced transitions", () => {
   });
 
   it("discards a cue for a character nothing knows about", () => {
-    pacer.push(scene(1, []), [
-      { kind: "statusChanged", characterId: "ghost", status: "working" },
-    ]);
+    pacer.push(scene(1, []), [{ kind: "statusChanged", characterId: "ghost", status: "working" }]);
     expect(presented[presented.length - 1].characters).toEqual([]);
   });
 
@@ -406,7 +405,9 @@ describe("ScenePacer - back-to-back runs on one desk", () => {
   /** Who is at desk cs-0 right now, and what they are doing. */
   const seat = () => {
     const shown = presented[presented.length - 1].characters.find((c) => c.deskId === "cs-0");
-    return shown ? `${shown.id}:${shown.status}${shown.activity ? `/${shown.activity}` : ""}` : null;
+    return shown
+      ? `${shown.id}:${shown.status}${shown.activity ? `/${shown.activity}` : ""}`
+      : null;
   };
 
   it("makes the handover wait its turn instead of flipping inside one frame", () => {
@@ -513,7 +514,8 @@ describe("ScenePacer - departures", () => {
   });
 
   const ids = () => presented[presented.length - 1]!.characters.map((c) => c.id);
-  const statusOf = (id: string) => presented[presented.length - 1]!.characters.find((c) => c.id === id)?.status;
+  const statusOf = (id: string) =>
+    presented[presented.length - 1]!.characters.find((c) => c.id === id)?.status;
 
   it("keeps the character on screen until its queued beats have played", () => {
     pacer.push(scene(1, [character({ id: "lease-1", status: "arriving" })]));
@@ -598,9 +600,7 @@ describe("ScenePacer - the last line of a run", () => {
 
   it("says goodbye for a full dwell before the desk is given up", () => {
     pacer.push(scene(1, [character({ id: "lease-1", status: "replying" })]));
-    pacer.push(scene(2, []), [
-      { kind: "characterExit", characterId: "lease-1", tone: "success" },
-    ]);
+    pacer.push(scene(2, []), [{ kind: "characterExit", characterId: "lease-1", tone: "success" }]);
 
     // Still mid-sentence: the farewell waits its turn like any other beat.
     expect(shown()?.status).toBe("replying");
@@ -660,7 +660,8 @@ describe("ScenePacer - the last line of a run", () => {
     for (let i = 0; i < 8; i++) {
       clock.advance(DWELL);
       const current = presented[presented.length - 1].characters[0];
-      if (current) played.push(`${current.status}${current.activity ? `/${current.activity}` : ""}`);
+      if (current)
+        played.push(`${current.status}${current.activity ? `/${current.activity}` : ""}`);
     }
     expect(played[played.length - 1]).toBe("leaving/phase:leaving-failure");
     expect(presented[presented.length - 1].characters).toEqual([]);

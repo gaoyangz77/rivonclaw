@@ -18,11 +18,18 @@ export function AffiliateAnalyticsPage() {
   // Projected to plain DTOs during render: MST nodes must never be captured in
   // state, memos or closures (`.claude/rules/mst-react-state.md`).
   const allowed = new Set(
-    entityStore.billingOverview?.shops.filter((item) => item.analytics.allowed).map((item) => item.shopId) ?? [],
+    entityStore.billingOverview?.shops
+      .filter((item) => item.analytics.allowed)
+      .map((item) => item.shopId) ?? [],
   );
   const shops: AffiliateAnalyticsShop[] = entityStore.shops
     .filter((shop) => allowed.has(shop.id))
-    .map((shop) => ({ id: shop.id, shopName: shop.shopName, alias: shop.alias, region: shop.region }));
+    .map((shop) => ({
+      id: shop.id,
+      shopName: shop.shopName,
+      alias: shop.alias,
+      region: shop.region,
+    }));
 
   if (!user) {
     return (

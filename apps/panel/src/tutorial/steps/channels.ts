@@ -1,5 +1,5 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
 function step(
   id: string,
@@ -13,7 +13,7 @@ function step(
     titleKey: `tutorial.channels.${key}Title`,
     bodyKey: `tutorial.channels.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const channelsSteps: TutorialStep[] = [
@@ -25,4 +25,4 @@ export const channelsSteps: TutorialStep[] = [
   step("channels-health", "channels-accounts", "healthStatus", "top"),
   step("channels-recipients", "channels-recipients", "recipients", "top"),
   step("channels-updated", "channels-last-updated", "lastUpdated", "top"),
-]
+];

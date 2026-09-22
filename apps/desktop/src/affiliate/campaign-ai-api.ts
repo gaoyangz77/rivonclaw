@@ -2,9 +2,7 @@ import { API } from "@rivonclaw/core/api-contract";
 import type { ApiContext } from "../app/api-context.js";
 import type { EndpointHandler, RouteRegistry } from "../infra/api/route-registry.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
-import {
-  generateCampaignMessageTemplate,
-} from "./affiliate-campaign-ai-service.js";
+import { generateCampaignMessageTemplate } from "./affiliate-campaign-ai-service.js";
 
 const generateMessageTemplate: EndpointHandler = async (
   req,
@@ -66,10 +64,7 @@ function optionalString(value: unknown, field: string): string | undefined {
   return value.trim() || undefined;
 }
 
-function sendCampaignAiError(
-  res: Parameters<typeof sendJson>[0],
-  error: unknown,
-): void {
+function sendCampaignAiError(res: Parameters<typeof sendJson>[0], error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
   sendJson(res, error instanceof CampaignAiRequestError ? 400 : 502, {
     error: message,

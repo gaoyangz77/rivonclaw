@@ -3,6 +3,7 @@
 How to build a channel extension that integrates with OpenClaw's gateway, routing, and delivery systems.
 
 Reference implementations:
+
 - **Telegram** (full-featured, direct): `vendor/openclaw/extensions/telegram/`
 - **Google Chat** (OAuth, direct): `vendor/openclaw/extensions/googlechat/`
 
@@ -33,10 +34,18 @@ const plugin = {
     api.registerChannel({
       plugin: {
         id: "mychannel",
-        meta: { /* ... */ },
-        capabilities: { /* ... */ },
-        config: { /* ... */ },
-        outbound: { /* ... */ },   // needed for agent to know it can reply
+        meta: {
+          /* ... */
+        },
+        capabilities: {
+          /* ... */
+        },
+        config: {
+          /* ... */
+        },
+        outbound: {
+          /* ... */
+        }, // needed for agent to know it can reply
       },
     });
   },
@@ -56,6 +65,7 @@ extensions/mychannel/
 ```
 
 **`package.json`** must declare:
+
 ```json
 {
   "name": "@rivonclaw/mychannel",
@@ -64,6 +74,7 @@ extensions/mychannel/
 ```
 
 **`openclaw.plugin.json`** (declarative fallback):
+
 ```json
 {
   "id": "mychannel",
@@ -80,13 +91,13 @@ extensions/mychannel/
 
 ```ts
 type ChannelMeta = {
-  id: string;              // Channel identifier (e.g. "telegram", "discord")
-  label: string;           // Display name (e.g. "Telegram")
-  selectionLabel: string;  // Shown in channel picker (e.g. "Telegram")
-  docsPath: string;        // Documentation URL path
-  blurb: string;           // Short description
-  aliases?: string[];      // Alternative IDs for backward compatibility
-  order?: number;          // Sort order in UI lists
+  id: string; // Channel identifier (e.g. "telegram", "discord")
+  label: string; // Display name (e.g. "Telegram")
+  selectionLabel: string; // Shown in channel picker (e.g. "Telegram")
+  docsPath: string; // Documentation URL path
+  blurb: string; // Short description
+  aliases?: string[]; // Alternative IDs for backward compatibility
+  order?: number; // Sort order in UI lists
 };
 ```
 
@@ -97,15 +108,15 @@ type ChannelMeta = {
 ```ts
 type ChannelCapabilities = {
   chatTypes: Array<"direct" | "group" | "channel" | "thread">;
-  media?: boolean;           // Supports image/file attachments
-  reactions?: boolean;       // Supports emoji reactions
-  edit?: boolean;            // Supports message editing
-  unsend?: boolean;          // Supports message deletion
-  reply?: boolean;           // Supports reply-to-message
-  threads?: boolean;         // Supports threaded conversations
-  polls?: boolean;           // Supports polls
-  nativeCommands?: boolean;  // Supports slash commands
-  blockStreaming?: boolean;  // Coalesce streaming chunks before delivery
+  media?: boolean; // Supports image/file attachments
+  reactions?: boolean; // Supports emoji reactions
+  edit?: boolean; // Supports message editing
+  unsend?: boolean; // Supports message deletion
+  reply?: boolean; // Supports reply-to-message
+  threads?: boolean; // Supports threaded conversations
+  polls?: boolean; // Supports polls
+  nativeCommands?: boolean; // Supports slash commands
+  blockStreaming?: boolean; // Coalesce streaming chunks before delivery
 };
 ```
 
@@ -114,6 +125,7 @@ type ChannelCapabilities = {
 When `true`, streaming text fragments are buffered and sent as larger blocks instead of individual chunks. This prevents message spam on channels with rate limits.
 
 Configure coalescing defaults via the `streaming` adapter:
+
 ```ts
 streaming: {
   blockStreamingCoalesceDefaults: {
@@ -126,6 +138,7 @@ streaming: {
 ### `media`
 
 Set `media: true` if the channel can send/receive images. This affects:
+
 - Whether the agent includes images in responses
 - Whether the delivery pipeline calls `sendMedia()` instead of `sendText()`
 
@@ -147,6 +160,7 @@ type ChannelConfigAdapter<ResolvedAccount> = {
 ```
 
 For channels with no account management (e.g. relay-based channels):
+
 ```ts
 config: {
   listAccountIds: () => [],
@@ -195,13 +209,13 @@ Parameters passed to `sendText()` and `sendMedia()`:
 ```ts
 type ChannelOutboundContext = {
   cfg: OpenClawConfig;
-  to: string;              // Recipient identifier
-  text: string;            // Message text (may be chunked)
-  mediaUrl?: string;       // URL of media to send (for sendMedia)
-  gifPlayback?: boolean;   // Hint to play as GIF
-  replyToId?: string;      // Message ID to reply to
-  threadId?: string;       // Thread identifier
-  accountId?: string;      // Account sending from
+  to: string; // Recipient identifier
+  text: string; // Message text (may be chunked)
+  mediaUrl?: string; // URL of media to send (for sendMedia)
+  gifPlayback?: boolean; // Hint to play as GIF
+  replyToId?: string; // Message ID to reply to
+  threadId?: string; // Thread identifier
+  accountId?: string; // Account sending from
   deps?: OutboundSendDeps; // Injected dependencies
 };
 ```
@@ -212,19 +226,19 @@ What `sendText()` / `sendMedia()` must return:
 
 ```ts
 type OutboundDeliveryResult = {
-  channel: string;       // Channel ID (e.g. "telegram")
-  messageId: string;     // Sent message ID
-  chatId?: string;       // Chat/conversation ID
+  channel: string; // Channel ID (e.g. "telegram")
+  messageId: string; // Sent message ID
+  chatId?: string; // Chat/conversation ID
 };
 ```
 
 ### Delivery Modes
 
-| Mode | Description | Use When |
-|------|-------------|----------|
-| `"direct"` | Plugin sends messages directly to the platform API | Standard channels (Telegram, Discord) |
-| `"gateway"` | Delivery handled by the gateway/desktop app | Relay-based channels |
-| `"hybrid"` | Can use either path | Channels with both local and remote modes |
+| Mode        | Description                                        | Use When                                  |
+| ----------- | -------------------------------------------------- | ----------------------------------------- |
+| `"direct"`  | Plugin sends messages directly to the platform API | Standard channels (Telegram, Discord)     |
+| `"gateway"` | Delivery handled by the gateway/desktop app        | Relay-based channels                      |
+| `"hybrid"`  | Can use either path                                | Channels with both local and remote modes |
 
 ### Gateway-Mode Outbound (Relay Pattern)
 
@@ -261,10 +275,10 @@ When `deliveryMode` is `"gateway"`, the outbound system calls `callGateway()` wh
 
 The presence of an outbound adapter changes the agent's image-sending strategy:
 
-| Outbound Adapter | Agent Behavior |
-|---|---|
-| **Not registered** | Agent outputs `MEDIA:/path/to/file.jpg` in text. The text appears in chat events. |
-| **Registered** | Agent uses the `message` tool → outbound system → `sendMedia()`. Text response is just a confirmation like "发了". MEDIA: directives do NOT appear in chat event text. |
+| Outbound Adapter   | Agent Behavior                                                                                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Not registered** | Agent outputs `MEDIA:/path/to/file.jpg` in text. The text appears in chat events.                                                                                      |
+| **Registered**     | Agent uses the `message` tool → outbound system → `sendMedia()`. Text response is just a confirmation like "发了". MEDIA: directives do NOT appear in chat event text. |
 
 This means you **cannot** rely on parsing `MEDIA:` directives from chat events when an outbound adapter is registered. You must handle image delivery in `sendMedia()` itself.
 
@@ -317,10 +331,10 @@ function handleChatEvent(payload) {
   // Match by runId to identify which channel user to reply to
   const runId = payload.runId;
   const userId = runIdMap.get(runId);
-  if (!userId) return;  // Not our channel's message
+  if (!userId) return; // Not our channel's message
 
   if (payload.state === "final") {
-    const content = payload.message?.content;  // Array of content blocks
+    const content = payload.message?.content; // Array of content blocks
     // Extract text blocks → send as text
     // Extract image blocks → send as images
   } else if (payload.state === "error") {
@@ -357,10 +371,10 @@ The desktop app acts as a bridge:
 
 ```ts
 await gatewayRpc.request("agent", {
-  sessionKey: "agent:main:main",   // Use main session for ChatPage display
-  channel: "wechat",               // Channel identifier
+  sessionKey: "agent:main:main", // Use main session for ChatPage display
+  channel: "wechat", // Channel identifier
   message: textContent,
-  attachments,                     // Image attachments (see below)
+  attachments, // Image attachments (see below)
   idempotencyKey: messageId,
 });
 ```
@@ -393,13 +407,13 @@ function handleChatEvent(payload) {
 
 Format: `agent:${agentId}:${scope}`
 
-| Scope | Key Pattern | When |
-|-------|-------------|------|
-| Main | `agent:main:main` | Default for all DM channels (recommended) |
-| Per-peer | `agent:main:direct:${peerId}` | `dmScope: "per-peer"` |
-| Per-channel-peer | `agent:main:${channel}:direct:${peerId}` | `dmScope: "per-channel-peer"` |
-| Group | `agent:main:${channel}:group:${groupId}` | Group chats |
-| Thread | `${baseKey}:thread:${threadId}` | Forum threads |
+| Scope            | Key Pattern                              | When                                      |
+| ---------------- | ---------------------------------------- | ----------------------------------------- |
+| Main             | `agent:main:main`                        | Default for all DM channels (recommended) |
+| Per-peer         | `agent:main:direct:${peerId}`            | `dmScope: "per-peer"`                     |
+| Per-channel-peer | `agent:main:${channel}:direct:${peerId}` | `dmScope: "per-channel-peer"`             |
+| Group            | `agent:main:${channel}:group:${groupId}` | Group chats                               |
+| Thread           | `${baseKey}:thread:${threadId}`          | Forum threads                             |
 
 **Key rule**: Only messages on the main session key (`agent:main:main`) appear in the ChatPage UI. If you want your channel's messages visible in the panel chat page, use `agent:main:main`.
 
@@ -425,11 +439,13 @@ await gatewayRpc.request("agent", {
   sessionKey: "agent:main:main",
   channel: "mychannel",
   message: `[用户发来图片，已保存至 ${filePath}]`,
-  attachments: [{
-    type: "image",
-    mimeType: "image/jpeg",       // MIME type
-    content: base64EncodedData,   // Base64 string
-  }],
+  attachments: [
+    {
+      type: "image",
+      mimeType: "image/jpeg", // MIME type
+      content: base64EncodedData, // Base64 string
+    },
+  ],
   idempotencyKey: msgId,
 });
 ```
@@ -437,6 +453,7 @@ await gatewayRpc.request("agent", {
 > **Why save to disk?** The agent sees the image content via the attachment, but when it needs to send the image (e.g. user says "send this back to me"), it calls `sendMedia({ mediaUrl })` which requires a local file path. Without a saved file, the agent has no path to reference and will search old files in the media directory.
 
 The gateway processes attachments via `parseMessageWithAttachments()`:
+
 - Validates base64 content
 - Sniffs MIME type for safety
 - Rejects non-image attachments
@@ -536,7 +553,15 @@ Agent wants to send image
 ```ts
 // Supported STT formats (Groq Whisper):
 const STT_SUPPORTED_FORMATS = new Set([
-  "flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm"
+  "flac",
+  "mp3",
+  "mp4",
+  "mpeg",
+  "mpga",
+  "m4a",
+  "ogg",
+  "wav",
+  "webm",
 ]);
 
 // Convert unsupported formats:
@@ -558,7 +583,7 @@ For channels supporting voice messages (Telegram), set `audioAsVoice: true` in t
 type ReplyPayload = {
   text?: string;
   mediaUrl?: string;
-  audioAsVoice?: boolean;  // Send as voice bubble instead of audio file
+  audioAsVoice?: boolean; // Send as voice bubble instead of audio file
 };
 ```
 
@@ -577,6 +602,7 @@ if (payload.state === "error") {
 ```
 
 Common errors:
+
 - Token/quota exhaustion (`exhausted` in error message)
 - Model unavailable
 - Context length exceeded
@@ -603,14 +629,44 @@ Define typed frames for the relay protocol:
 
 ```ts
 // Gateway → Relay
-interface HelloFrame { type: "hello"; gateway_id: string; auth_token: string; }
-interface ReplyFrame { type: "reply"; id: string; external_user_id: string; content: string; }
-interface ImageReplyFrame { type: "image_reply"; id: string; external_user_id: string; image_data: string; image_mime: string; }
+interface HelloFrame {
+  type: "hello";
+  gateway_id: string;
+  auth_token: string;
+}
+interface ReplyFrame {
+  type: "reply";
+  id: string;
+  external_user_id: string;
+  content: string;
+}
+interface ImageReplyFrame {
+  type: "image_reply";
+  id: string;
+  external_user_id: string;
+  image_data: string;
+  image_mime: string;
+}
 
 // Relay → Gateway
-interface AckFrame { type: "ack"; id: string; }
-interface InboundFrame { type: "inbound"; id: string; external_user_id: string; msg_type: string; content: string; timestamp: number; media_data?: string; media_mime?: string; }
-interface ErrorFrame { type: "error"; message: string; }
+interface AckFrame {
+  type: "ack";
+  id: string;
+}
+interface InboundFrame {
+  type: "inbound";
+  id: string;
+  external_user_id: string;
+  msg_type: string;
+  content: string;
+  timestamp: number;
+  media_data?: string;
+  media_mime?: string;
+}
+interface ErrorFrame {
+  type: "error";
+  message: string;
+}
 ```
 
 ### Relay Responsibilities

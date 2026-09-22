@@ -42,14 +42,31 @@ class FakeWebSocket extends EventEmitter {
 
   /** Deliver the gateway's opening challenge frame. */
   sendChallenge(nonce = "nonce-1"): void {
-    this.emit("message", Buffer.from(JSON.stringify({ type: "event", event: "connect.challenge", payload: { nonce } })));
+    this.emit(
+      "message",
+      Buffer.from(
+        JSON.stringify({ type: "event", event: "connect.challenge", payload: { nonce } }),
+      ),
+    );
   }
 
   /** Answer the pending `connect` request so the handshake completes. */
   ackConnect(): void {
-    const frame = this.sent.map((raw) => JSON.parse(raw) as { id: string; method: string }).find((f) => f.method === "connect");
+    const frame = this.sent
+      .map((raw) => JSON.parse(raw) as { id: string; method: string })
+      .find((f) => f.method === "connect");
     if (!frame) throw new Error("no connect request was sent");
-    this.emit("message", Buffer.from(JSON.stringify({ type: "res", id: frame.id, ok: true, payload: { type: "hello-ok", protocol: 4 } })));
+    this.emit(
+      "message",
+      Buffer.from(
+        JSON.stringify({
+          type: "res",
+          id: frame.id,
+          ok: true,
+          payload: { type: "hello-ok", protocol: 4 },
+        }),
+      ),
+    );
   }
 
   private emitClose(code: number): void {

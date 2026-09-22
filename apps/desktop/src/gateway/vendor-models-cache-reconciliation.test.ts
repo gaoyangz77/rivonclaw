@@ -29,10 +29,7 @@ const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/o
 const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
   ? PATCHED_VENDOR_ROOT
   : resolve(__dirname, "../../../../vendor/openclaw");
-const GATEWAY_STARTUP_FILE = resolve(
-  VENDOR_ROOT,
-  "src/gateway/server-startup-post-attach.ts",
-);
+const GATEWAY_STARTUP_FILE = resolve(VENDOR_ROOT, "src/gateway/server-startup-post-attach.ts");
 
 describe("OpenClaw managed-provider models.json reconciliation", () => {
   it("serializes cache refreshes and replaces models.json atomically", () => {

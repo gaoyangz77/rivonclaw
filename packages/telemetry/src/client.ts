@@ -93,7 +93,7 @@ export class RemoteTelemetryClient {
       try {
         await this.sendBatch(eventsToSend);
         console.log(
-          `[RemoteTelemetryClient] Sent batch of ${eventsToSend.length} events to ${this.config.endpoint} (attempt ${attempt})`
+          `[RemoteTelemetryClient] Sent batch of ${eventsToSend.length} events to ${this.config.endpoint} (attempt ${attempt})`,
         );
         return; // Success
       } catch (error) {
@@ -101,7 +101,7 @@ export class RemoteTelemetryClient {
           // Final attempt failed, log and give up
           console.error(
             `[RemoteTelemetryClient] Failed to send ${eventsToSend.length} events to ${this.config.endpoint} after ${maxAttempts} attempts`,
-            error
+            error,
           );
           return;
         }
@@ -110,7 +110,7 @@ export class RemoteTelemetryClient {
         // just the final give-up).
         console.warn(
           `[RemoteTelemetryClient] Send attempt ${attempt}/${maxAttempts} to ${this.config.endpoint} failed (${eventsToSend.length} events); retrying`,
-          error
+          error,
         );
 
         // Calculate backoff delay: 1s, 2s, 4s
@@ -190,9 +190,7 @@ export class RemoteTelemetryClient {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}: ${response.statusText}`
-      );
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
   }
 

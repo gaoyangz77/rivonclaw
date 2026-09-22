@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
-import { entityStore, connectEntityStore, disconnectEntityStore, type PanelRootStore } from "./entity-store.js";
+import {
+  entityStore,
+  connectEntityStore,
+  disconnectEntityStore,
+  type PanelRootStore,
+} from "./entity-store.js";
 
 const EntityStoreContext = createContext<PanelRootStore>(entityStore);
 
@@ -16,11 +21,7 @@ export function EntityStoreProvider({ children }: { children: ReactNode }) {
     return () => disconnectEntityStore();
   }, []);
 
-  return (
-    <EntityStoreContext value={entityStore}>
-      {children}
-    </EntityStoreContext>
-  );
+  return <EntityStoreContext value={entityStore}>{children}</EntityStoreContext>;
 }
 
 /**

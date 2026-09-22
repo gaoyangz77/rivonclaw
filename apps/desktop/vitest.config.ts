@@ -38,7 +38,7 @@ export default defineConfig({
         __dirname,
         "../../vendor/openclaw/packages/normalization-core/src/record-coerce.ts",
       ),
-      "graphql": graphqlPath,
+      graphql: graphqlPath,
     },
   },
 });

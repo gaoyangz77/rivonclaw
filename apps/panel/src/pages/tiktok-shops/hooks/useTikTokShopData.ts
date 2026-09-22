@@ -5,11 +5,19 @@ export function useTikTokShopData() {
   const entityStore = useEntityStore();
 
   async function fetchPlatformApps() {
-    try { await entityStore.fetchPlatformApps(); } catch { /* ignore */ }
+    try {
+      await entityStore.fetchPlatformApps();
+    } catch {
+      /* ignore */
+    }
   }
 
   async function fetchShops() {
-    try { await entityStore.fetchShops(); } catch { /* ignore */ }
+    try {
+      await entityStore.fetchShops();
+    } catch {
+      /* ignore */
+    }
   }
 
   // Fetch platform apps on mount when user exists

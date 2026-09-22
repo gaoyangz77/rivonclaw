@@ -21,11 +21,7 @@ vi.mock("node:os", () => ({
   homedir: () => mockHomedir(),
 }));
 
-import {
-  detectDeps,
-  getAugmentedPath,
-  syncDetectedDependencyPaths,
-} from "../dep-detector.js";
+import { detectDeps, getAugmentedPath, syncDetectedDependencyPaths } from "../dep-detector.js";
 
 const originalPath = process.env.PATH;
 
@@ -42,9 +38,7 @@ afterEach(() => {
  * Configure mockExecFile to simulate command outcomes.
  * `outcomes` maps "cmd arg1 arg2" -> { stdout, stderr } | Error
  */
-function setupExecFile(
-  outcomes: Record<string, { stdout: string; stderr: string } | Error>,
-) {
+function setupExecFile(outcomes: Record<string, { stdout: string; stderr: string } | Error>) {
   mockExecFile.mockImplementation(
     (
       cmd: string,

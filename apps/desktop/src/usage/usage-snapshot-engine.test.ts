@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createStorage, type Storage } from "@rivonclaw/storage";
-import { UsageSnapshotEngine, type ModelUsageTotals, type CaptureUsageFn } from "./usage-snapshot-engine.js";
+import {
+  UsageSnapshotEngine,
+  type ModelUsageTotals,
+  type CaptureUsageFn,
+} from "./usage-snapshot-engine.js";
 
 let storage: Storage;
 
@@ -176,13 +180,15 @@ describe("UsageSnapshotEngine", () => {
 
       vi.setSystemTime(new Date("2025-06-01T12:00:00Z"));
 
-      const captureFn = vi.fn(makeCaptureFn({
-        "openai/gpt-4o": {
-          inputTokens: 1000,
-          outputTokens: 500,
-          totalCostUsd: "0.040000",
-        },
-      }));
+      const captureFn = vi.fn(
+        makeCaptureFn({
+          "openai/gpt-4o": {
+            inputTokens: 1000,
+            outputTokens: 500,
+            totalCostUsd: "0.040000",
+          },
+        }),
+      );
 
       const engine = new UsageSnapshotEngine(storage, captureFn);
       await engine.recordActivation("key-2", "openai", "gpt-4o");
@@ -257,13 +263,15 @@ describe("UsageSnapshotEngine", () => {
   // ── Test 6: reconcileOnStartup with no snapshot ──
   describe("reconcileOnStartup with no snapshot", () => {
     it("is a no-op when no previous snapshot exists", async () => {
-      const captureFn = vi.fn(makeCaptureFn({
-        "anthropic/claude-sonnet-4-5-20250929": {
-          inputTokens: 1000,
-          outputTokens: 500,
-          totalCostUsd: "0.050000",
-        },
-      }));
+      const captureFn = vi.fn(
+        makeCaptureFn({
+          "anthropic/claude-sonnet-4-5-20250929": {
+            inputTokens: 1000,
+            outputTokens: 500,
+            totalCostUsd: "0.050000",
+          },
+        }),
+      );
 
       const engine = new UsageSnapshotEngine(storage, captureFn);
       await engine.reconcileOnStartup("key-1", "anthropic", "claude-sonnet-4-5-20250929");
@@ -341,11 +349,14 @@ describe("UsageSnapshotEngine", () => {
       const captureFn: CaptureUsageFn = async () => {
         usageTokens += 100;
         const map = new Map<string, ModelUsageTotals>();
-        map.set("anthropic/claude-sonnet-4-5-20250929", makeTotals({
-          inputTokens: usageTokens,
-          outputTokens: usageTokens / 2,
-          totalCostUsd: (usageTokens * 0.0001).toFixed(6),
-        }));
+        map.set(
+          "anthropic/claude-sonnet-4-5-20250929",
+          makeTotals({
+            inputTokens: usageTokens,
+            outputTokens: usageTokens / 2,
+            totalCostUsd: (usageTokens * 0.0001).toFixed(6),
+          }),
+        );
         return map;
       };
 
@@ -358,7 +369,11 @@ describe("UsageSnapshotEngine", () => {
       }
 
       // Only 5 snapshots should remain
-      const snapshots = storage.usageSnapshots.getRecent("key-1", "claude-sonnet-4-5-20250929", 100);
+      const snapshots = storage.usageSnapshots.getRecent(
+        "key-1",
+        "claude-sonnet-4-5-20250929",
+        100,
+      );
       expect(snapshots).toHaveLength(5);
 
       // The most recent snapshot should have the latest usage
@@ -435,7 +450,10 @@ describe("UsageSnapshotEngine", () => {
       expect(opusSnapshot!.snapshotTime).toBe(t1); // Still the original time
 
       // Sonnet should have updated snapshot
-      const sonnetSnapshot = storage.usageSnapshots.getLatest("key-1", "claude-sonnet-4-5-20250929");
+      const sonnetSnapshot = storage.usageSnapshots.getLatest(
+        "key-1",
+        "claude-sonnet-4-5-20250929",
+      );
       expect(sonnetSnapshot).toBeDefined();
       expect(sonnetSnapshot!.inputTokens).toBe(3000);
       expect(sonnetSnapshot!.snapshotTime).toBe(t2);

@@ -122,63 +122,63 @@ export const Layout = observer(function Layout({
           along its lower edge; the office is not mounted until something lifts
           the door, so the canvas renderer costs nothing while people work. */}
       <OfficeShutter shutter={shutter}>
-      <GlobalBannerStack onNavigate={onNavigate} onCurrentVersionChange={setCurrentVersion} />
-      <div className="layout-body">
-        <aside
-          className={`sidebar${collapsed ? " sidebar-collapsed" : ""}`}
-          style={collapsed ? undefined : { width: sidebarWidth, minWidth: sidebarWidth }}
-        >
-          <button
-            className="sidebar-collapse-toggle"
-            onClick={handleToggleCollapse}
-            title={collapsed ? t("nav.expand") : t("nav.collapse")}
+        <GlobalBannerStack onNavigate={onNavigate} onCurrentVersionChange={setCurrentVersion} />
+        <div className="layout-body">
+          <aside
+            className={`sidebar${collapsed ? " sidebar-collapsed" : ""}`}
+            style={collapsed ? undefined : { width: sidebarWidth, minWidth: sidebarWidth }}
           >
-            <MenuIcon />
-          </button>
-          <h2 className="sidebar-brand">
-            <img src="/icon.png" alt="" className="sidebar-brand-logo" />
-            {!collapsed && (
-              <>
-                <span className="sidebar-brand-text">{t("common.brandName")}</span>
-                {currentVersion && <span className="sidebar-version">v{currentVersion}</span>}
-              </>
-            )}
-          </h2>
-          <TkHierarchicalNav
-            items={navigationItems}
-            value={currentPath}
-            onChange={handleNavigationSelect}
-            label={t("nav.mainNavigation")}
-            collapsed={collapsed}
-            className="sidebar-hierarchical-nav"
-          />
-          <BottomActions collapsed={collapsed} />
-          <button
-            type="button"
-            className="office-screensaver-trigger"
-            onClick={shutter.open}
-            title={t("office.openHint")}
-          >
-            {collapsed ? <OfficeIcon /> : t("office.open")}
-          </button>
-          {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
-        </aside>
-        <div className="main-content">
-          <main>
-            <PageErrorBoundary
-              resetKey={currentPath}
-              title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
-              message={t("common.pageErrorMessage", {
-                defaultValue:
-                  "The navigation is still available. Reload this page, or open another section and come back.",
-              })}
-              retryLabel={t("common.reload", { defaultValue: "Reload page" })}
+            <button
+              className="sidebar-collapse-toggle"
+              onClick={handleToggleCollapse}
+              title={collapsed ? t("nav.expand") : t("nav.collapse")}
             >
-              {children}
-            </PageErrorBoundary>
-          </main>
+              <MenuIcon />
+            </button>
+            <h2 className="sidebar-brand">
+              <img src="/icon.png" alt="" className="sidebar-brand-logo" />
+              {!collapsed && (
+                <>
+                  <span className="sidebar-brand-text">{t("common.brandName")}</span>
+                  {currentVersion && <span className="sidebar-version">v{currentVersion}</span>}
+                </>
+              )}
+            </h2>
+            <TkHierarchicalNav
+              items={navigationItems}
+              value={currentPath}
+              onChange={handleNavigationSelect}
+              label={t("nav.mainNavigation")}
+              collapsed={collapsed}
+              className="sidebar-hierarchical-nav"
+            />
+            <BottomActions collapsed={collapsed} />
+            <button
+              type="button"
+              className="office-screensaver-trigger"
+              onClick={shutter.open}
+              title={t("office.openHint")}
+            >
+              {collapsed ? <OfficeIcon /> : t("office.open")}
+            </button>
+            {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
+          </aside>
+          <div className="main-content">
+            <main>
+              <PageErrorBoundary
+                resetKey={currentPath}
+                title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
+                message={t("common.pageErrorMessage", {
+                  defaultValue:
+                    "The navigation is still available. Reload this page, or open another section and come back.",
+                })}
+                retryLabel={t("common.reload", { defaultValue: "Reload page" })}
+              >
+                {children}
+              </PageErrorBoundary>
+            </main>
+          </div>
         </div>
-      </div>
       </OfficeShutter>
       <AuthModal
         isOpen={authModalOpen}

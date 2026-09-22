@@ -80,7 +80,7 @@ export function buildIdentificationSystemPrompt(staffLanguage?: StaffLanguage): 
     "",
     "## What You Are Given",
     "- You are shown every message this sender has sent that no earlier run has read, oldest first. Read all of it before deciding: the sentence that identifies someone is rarely the last one they sent, and asking a question they have already answered spends an attempt for nothing.",
-    "- If that section says INCOMPLETE, older messages of theirs were dropped before you saw them. Then \"I cannot see anything that identifies them\" is a statement about what you were shown, not about what they said, and it is not grounds to conclude they never told us.",
+    '- If that section says INCOMPLETE, older messages of theirs were dropped before you saw them. Then "I cannot see anything that identifies them" is a statement about what you were shown, not about what they said, and it is not grounds to conclude they never told us.',
     "",
     "## What You Are Not",
     "- This run has no Creator Relationship, no shop, no collaboration and no order. You do not have those tools and must not act as if you do.",
@@ -214,9 +214,7 @@ function renderUnreadSpan(work: AffiliateUnknownSenderIdentificationWorkPayload)
     );
   }
   if (!work.unreadMessages.length) {
-    lines.push(
-      "(nothing retained — see above; do not read this as silence)",
-    );
+    lines.push("(nothing retained — see above; do not read this as silence)");
     return lines;
   }
   lines.push("");
@@ -228,5 +226,7 @@ function renderUnreadSpan(work: AffiliateUnknownSenderIdentificationWorkPayload)
 
 /** A message we could not read is still a message. Say which it was. */
 function renderUnreadMessageText(message: AffiliateUnknownSenderUnreadMessagePayload): string {
-  return message.text ?? "(they sent something with no readable text — a photo, sticker or voice note)";
+  return (
+    message.text ?? "(they sent something with no readable text — a photo, sticker or voice note)"
+  );
 }

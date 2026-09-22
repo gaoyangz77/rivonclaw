@@ -97,22 +97,28 @@ export function useChatModelControls({
     // Optimistic UI update -- update provider, model, isOverridden, and contextWindow
     const models = entityStore.llmManager.catalog[provider] ?? [];
     const match = models.find((m) => m.id === model);
-    setActiveModel((prev) => prev ? {
-      ...prev,
-      provider,
-      model,
-      isOverridden: true,
-      contextWindow: match?.contextTokens ?? match?.contextWindow ?? null,
-      contextTokens: match?.contextTokens ?? null,
-    } : null);
+    setActiveModel((prev) =>
+      prev
+        ? {
+            ...prev,
+            provider,
+            model,
+            isOverridden: true,
+            contextWindow: match?.contextTokens ?? match?.contextWindow ?? null,
+            contextTokens: match?.contextTokens ?? null,
+          }
+        : null,
+    );
 
     // Delegate the actual API call to llmManager
-    entityStore.llmManager.switchSessionModel(sessionKeyRef.current, provider, model).catch((err) => {
-      // Rollback entire optimistic state including isOverridden (Bug 2 fix)
-      setActiveModel(oldModel);
-      const errText = formatError(err) || t("chat.unknownError");
-      showToast(errText, "error");
-    });
+    entityStore.llmManager
+      .switchSessionModel(sessionKeyRef.current, provider, model)
+      .catch((err) => {
+        // Rollback entire optimistic state including isOverridden (Bug 2 fix)
+        setActiveModel(oldModel);
+        const errText = formatError(err) || t("chat.unknownError");
+        showToast(errText, "error");
+      });
   }
 
   async function handleKeyModelChange(newProvider: string, newModel: string) {
@@ -121,7 +127,7 @@ export function useChatModelControls({
     // "Follow global default" -- reset session override, refresh to show global default
     if (!newProvider && !newModel) {
       const oldModel = activeModel ? { ...activeModel } : null;
-      setActiveModel((prev) => prev ? { ...prev, isOverridden: false } : null);
+      setActiveModel((prev) => (prev ? { ...prev, isOverridden: false } : null));
       try {
         await entityStore.llmManager.resetSessionModel(sessionKeyRef.current);
         refreshModel(sessionKeyRef.current);
@@ -134,7 +140,12 @@ export function useChatModelControls({
     }
 
     // Skip only if same model AND already explicitly locked (not just following default)
-    if (newProvider === activeModel.provider && newModel === activeModel.model && activeModel.isOverridden) return;
+    if (
+      newProvider === activeModel.provider &&
+      newModel === activeModel.model &&
+      activeModel.isOverridden
+    )
+      return;
 
     // Pre-flight: look up the new model's context window from catalog
     // Bug 1 fix: read currentTokens fresh from sessions to avoid

@@ -179,7 +179,11 @@ describe("panel i18n resources", () => {
     // AffiliateCreatorPerformanceCurrent.sourceType is a plain String in the schema.
     // These values mirror the backend enum AffiliateCreatorPerformanceSourceType in
     // server/backend/src/ecommerce/affiliate/models/AffiliateCreatorPerformanceCurrent.ts.
-    const performanceSourceTypes = ["MARKETPLACE_SEARCH", "PERFORMANCE_DETAIL", "SAMPLE_APPLICATION"];
+    const performanceSourceTypes = [
+      "MARKETPLACE_SEARCH",
+      "PERFORMANCE_DETAIL",
+      "SAMPLE_APPLICATION",
+    ];
     const labelGroups: Record<string, readonly string[]> = {
       "ecommerce.affiliateWorkspace.collaborationTypes": Object.values(
         GQL.AffiliateCollaborationType,

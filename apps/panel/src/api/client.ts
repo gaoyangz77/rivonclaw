@@ -15,14 +15,16 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
     let serverDetail: string | undefined;
     let serverCode: string | undefined;
     try {
-      const body = await res.json() as { error?: string; errorCode?: string; detail?: string };
+      const body = (await res.json()) as { error?: string; errorCode?: string; detail?: string };
       serverMessage = body.error;
       serverCode = body.errorCode;
       serverDetail = body.detail;
     } catch {
       // Response wasn't JSON — fall back to status text
     }
-    const err = new Error(serverMessage || serverCode || `API error: ${res.status} ${res.statusText}`);
+    const err = new Error(
+      serverMessage || serverCode || `API error: ${res.status} ${res.statusText}`,
+    );
     if (serverCode) (err as Error & { code?: string }).code = serverCode;
     if (serverDetail) (err as Error & { detail?: string }).detail = serverDetail;
     throw err;
@@ -47,14 +49,16 @@ export function cachedFetch<T>(key: string, fn: () => Promise<T>, ttl: number): 
   const existing = _inflight.get(key);
   if (existing) return existing as Promise<T>;
 
-  const promise = fn().then((data) => {
-    _cache.set(key, { data, ts: Date.now() });
-    _inflight.delete(key);
-    return data;
-  }).catch((err) => {
-    _inflight.delete(key);
-    throw err;
-  });
+  const promise = fn()
+    .then((data) => {
+      _cache.set(key, { data, ts: Date.now() });
+      _inflight.delete(key);
+      return data;
+    })
+    .catch((err) => {
+      _inflight.delete(key);
+      throw err;
+    });
   _inflight.set(key, promise);
   return promise;
 }

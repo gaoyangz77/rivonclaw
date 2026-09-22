@@ -185,8 +185,7 @@ describe("workbench time-range filter", () => {
     const popup = document.querySelector(".custom-select-dropdown")!;
     fireEvent.click(
       Array.from(popup.querySelectorAll(".custom-select-option")).find(
-        (node) =>
-          node.textContent === i18n.t("ecommerce.affiliateWorkspace.workbench.timeCustom"),
+        (node) => node.textContent === i18n.t("ecommerce.affiliateWorkspace.workbench.timeCustom"),
       )!,
     );
 

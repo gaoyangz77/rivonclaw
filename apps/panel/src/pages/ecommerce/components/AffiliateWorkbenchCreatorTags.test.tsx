@@ -215,12 +215,7 @@ describe.each(["SAMPLES", "MESSAGES"] as const)("%s creator tag column", (tab) =
     // Past the budget, the remainder collapses into one +N chip whose title
     // carries the full set.
     const manualChips = [...overflow.querySelectorAll(".affiliate-workbench-tag-manual")];
-    expect(manualChips.map((chip) => chip.textContent)).toEqual([
-      "高潜",
-      "美妆",
-      "北美",
-      "+2",
-    ]);
+    expect(manualChips.map((chip) => chip.textContent)).toEqual(["高潜", "美妆", "北美", "+2"]);
     const overflowChip = overflow.querySelector(".affiliate-workbench-tag-overflow")!;
     expect(overflowChip.textContent).toBe("+2");
     expect(overflowChip.getAttribute("title")).toBe(MANUAL_TAGS.map((tag) => tag.name).join(", "));

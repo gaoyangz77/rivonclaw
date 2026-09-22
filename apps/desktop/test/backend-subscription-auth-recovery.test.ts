@@ -50,11 +50,14 @@ describe("BackendSubscriptionClient auth recovery", () => {
       return {
         dispose,
         terminate: vi.fn(),
-        subscribe: (request: { query: string }, sink: {
-          next?: (result: unknown) => void;
-          error: (err: unknown) => void;
-          complete: () => void;
-        }) => {
+        subscribe: (
+          request: { query: string },
+          sink: {
+            next?: (result: unknown) => void;
+            error: (err: unknown) => void;
+            complete: () => void;
+          },
+        ) => {
           const unsubscribe = vi.fn();
           subscriptions.push({ query: request.query, sink, unsubscribe });
           return unsubscribe;
@@ -86,7 +89,9 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     expect(createClientMock).toHaveBeenCalledTimes(1);
     expect(sockets.at(-1)?.close).toHaveBeenCalledWith(4205, "Client Restart");
-    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer fresh-token" });
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
+      authorization: "Bearer fresh-token",
+    });
 
     client.disconnect();
   });
@@ -114,7 +119,9 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     expect(createClientMock).toHaveBeenCalledTimes(1);
     expect(subscriptions).toHaveLength(2);
-    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer fresh-token" });
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
+      authorization: "Bearer fresh-token",
+    });
 
     client.disconnect();
   });
@@ -133,7 +140,9 @@ describe("BackendSubscriptionClient auth recovery", () => {
     expect(createClientMock).toHaveBeenCalledTimes(1);
     expect(subscriptions).toHaveLength(1);
     expect(sockets.at(-1)?.close).toHaveBeenCalledWith(4205, "Client Restart");
-    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({ authorization: "Bearer stable-token" });
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
+      authorization: "Bearer stable-token",
+    });
 
     client.disconnect();
   });
@@ -141,12 +150,15 @@ describe("BackendSubscriptionClient auth recovery", () => {
   it("coalesces simultaneous auth errors into one refresh", async () => {
     let token = "expired-token";
     let resolveRefresh!: () => void;
-    const refreshAuth = vi.fn(() => new Promise<void>((resolve) => {
-      resolveRefresh = () => {
-        token = "fresh-token";
-        resolve();
-      };
-    }));
+    const refreshAuth = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRefresh = () => {
+            token = "fresh-token";
+            resolve();
+          };
+        }),
+    );
 
     const client = new BackendSubscriptionClient("en");
     client.connect(() => token, { refreshAuth });
@@ -233,10 +245,12 @@ describe("BackendSubscriptionClient auth recovery", () => {
       client.enableAuthenticatedSubscriptions();
       client.subscribeToCsConversationChanges(vi.fn());
 
-      const validationError = [{
-        message: 'Cannot query field "removedField" on type "CustomerServiceConversation".',
-        extensions: { code: "GRAPHQL_VALIDATION_FAILED" },
-      }];
+      const validationError = [
+        {
+          message: 'Cannot query field "removedField" on type "CustomerServiceConversation".',
+          extensions: { code: "GRAPHQL_VALIDATION_FAILED" },
+        },
+      ];
       subscriptions[0].sink.error(validationError);
       await vi.advanceTimersByTimeAsync(60_000);
 

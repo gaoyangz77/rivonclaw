@@ -40,16 +40,23 @@ const OUT_DIR = path.join(REPO_ROOT, "apps", "desktop", "build", "office");
 const OUT_FILE = path.join(OUT_DIR, "scene-assets.json");
 
 if (!existsSync(ASSETS_DIR)) {
-  throw new Error(`Pixel Agents assets not found at ${ASSETS_DIR}; run setup-pixel-agents.sh first`);
+  throw new Error(
+    `Pixel Agents assets not found at ${ASSETS_DIR}; run setup-pixel-agents.sh first`,
+  );
 }
 
 const { buildAssetIndex, buildFurnitureCatalog } = await import(
-  pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "build.ts")).href,
+  pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "build.ts")).href
 );
-const { decodeAllCarpets, decodeAllCharacters, decodeAllFloors, decodeAllFurniture, decodeAllWalls } =
-  await import(pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "loader.ts")).href);
+const {
+  decodeAllCarpets,
+  decodeAllCharacters,
+  decodeAllFloors,
+  decodeAllFurniture,
+  decodeAllWalls,
+} = await import(pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "loader.ts")).href);
 const { decodePetPng } = await import(
-  pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "pngDecoder.ts")).href,
+  pathToFileURL(path.join(VENDOR_ROOT, "core", "src", "assets", "pngDecoder.ts")).href
 );
 
 // ── Pets ────────────────────────────────────────────────────────────────────
@@ -88,7 +95,9 @@ function assertPetDecoded(dirName: string, frames: PetSpriteFrameSet): void {
       );
     }
     if (!animation.some((frame) => frame.some((row) => row.some((pixel) => pixel !== "")))) {
-      throw new Error(`Pet ${dirName} decoded ${direction} as fully transparent; pet.png is unreadable`);
+      throw new Error(
+        `Pet ${dirName} decoded ${direction} as fully transparent; pet.png is unreadable`,
+      );
     }
   }
 }
@@ -118,7 +127,10 @@ function decodeAllPets(assetsDir: string): { pets: PetSpriteFrameSet[]; petNames
     if (!existsSync(manifestPath) || !existsSync(pngPath)) {
       throw new Error(`Pet ${dirName} is missing manifest.json or pet.png`);
     }
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { id?: string; name?: string };
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      id?: string;
+      name?: string;
+    };
     if (!manifest.id || !manifest.name) {
       throw new Error(`Pet ${dirName} has a manifest without an id or a name`);
     }
@@ -234,7 +246,8 @@ const bundle = {
 if (bundle.characters.length === 0) throw new Error("Decoded zero character sprite sets");
 if (bundle.pets.length === 0) throw new Error("Decoded zero pet sprite sets");
 if (bundle.floors.length === 0) throw new Error("Decoded zero floor tiles");
-if (Object.keys(bundle.furnitureSprites).length === 0) throw new Error("Decoded zero furniture sprites");
+if (Object.keys(bundle.furnitureSprites).length === 0)
+  throw new Error("Decoded zero furniture sprites");
 
 mkdirSync(OUT_DIR, { recursive: true });
 const json = JSON.stringify(bundle);

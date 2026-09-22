@@ -46,11 +46,7 @@ export const AuthGate = observer(function AuthGate({
       <TkPanel className="section-card auth-gate-card" data-testid="auth-gate-login">
         <h3>{t("authGate.loginRequired")}</h3>
         <p className="form-hint">{t("authGate.loginRequiredDesc")}</p>
-        <button
-          className="btn btn-primary"
-          onClick={() => onNavigate(loginPath)}
-          type="button"
-        >
+        <button className="btn btn-primary" onClick={() => onNavigate(loginPath)} type="button">
           {t("auth.login")}
         </button>
       </TkPanel>
@@ -62,11 +58,7 @@ export const AuthGate = observer(function AuthGate({
       <TkPanel className="section-card auth-gate-card" data-testid="auth-gate-upgrade">
         <h3>{t("authGate.subscriptionRequired")}</h3>
         <p className="form-hint">{t("authGate.subscriptionRequiredDesc")}</p>
-        <button
-          className="btn btn-primary"
-          onClick={() => onNavigate(upgradePath)}
-          type="button"
-        >
+        <button className="btn btn-primary" onClick={() => onNavigate(upgradePath)} type="button">
           {t("authGate.upgradeAction")}
         </button>
       </TkPanel>

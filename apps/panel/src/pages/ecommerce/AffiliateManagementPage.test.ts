@@ -55,17 +55,19 @@ describe("Affiliate workbench boundaries", () => {
       "ESCALATIONS",
       "ALL_AGENT",
     ]);
-    expect(affiliateWorkbenchTabs("MANUAL").map(([id]) => id)).toEqual([
-      "SAMPLES",
-      "MESSAGES",
-    ]);
+    expect(affiliateWorkbenchTabs("MANUAL").map(([id]) => id)).toEqual(["SAMPLES", "MESSAGES"]);
   });
 });
 
 describe("AffiliateManagementPage proposal source", () => {
   it("allows authorized shops in manual Creator CRM without Agent activation", () => {
-    const source = readFileSync(resolve(import.meta.dirname, "AffiliateManagementPage.tsx"), "utf8");
-    const shopFilter = source.match(/const affiliateShops = entityStore\.shops\.filter\([\s\S]*?\n  \);/)?.[0];
+    const source = readFileSync(
+      resolve(import.meta.dirname, "AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const shopFilter = source.match(
+      /const affiliateShops = entityStore\.shops\.filter\([\s\S]*?\n  \);/,
+    )?.[0];
     expect(shopFilter).toContain("GQL.ShopAuthStatus.Authorized");
     expect(shopFilter).toContain("GQL.ShopPlatform.TiktokShop");
     expect(shopFilter).not.toContain("affiliateService");
@@ -420,7 +422,9 @@ describe("AffiliateManagementPage proposal source", () => {
 
     expect(page).toContain('const pagedProposalView = agentWorkspaceView === "ALL";');
     expect(page).toContain('workbenchTab === "ALL_AGENT" &&');
-    expect(page).toContain('className="affiliate-workbench-table-footer affiliate-proposal-pagination"');
+    expect(page).toContain(
+      'className="affiliate-workbench-table-footer affiliate-proposal-pagination"',
+    );
     expect(page).toContain("ecommerce.affiliateWorkspace.proposalPagination.pagePosition");
     expect(page).toContain(
       'workbenchTab === "PENDING_AGENT" && (hasMoreProposals || loadingMoreProposals)',
@@ -779,16 +783,18 @@ describe("AffiliateManagementPage proposal source", () => {
   it("lists each SKU's own stock, deduplicating repeated applications only within the same shop", () => {
     const bundle = {
       ...proposal("sku-inventory", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
-      productSummaries: [{
-        productId: "product-1",
-        title: "Gold rope necklace",
-        totalAvailableQuantity: 999,
-        skus: [
-          { skuId: "sku-1", sellerSku: " ROPE-GOLD-18 ", totalAvailableQuantity: 7 },
-          { skuId: "sku-2", sellerSku: "  ", totalAvailableQuantity: 0 },
-          { skuId: "sku-3", totalAvailableQuantity: null },
-        ],
-      }],
+      productSummaries: [
+        {
+          productId: "product-1",
+          title: "Gold rope necklace",
+          totalAvailableQuantity: 999,
+          skus: [
+            { skuId: "sku-1", sellerSku: " ROPE-GOLD-18 ", totalAvailableQuantity: 7 },
+            { skuId: "sku-2", sellerSku: "  ", totalAvailableQuantity: 0 },
+            { skuId: "sku-3", totalAvailableQuantity: null },
+          ],
+        },
+      ],
       steps: ["shop-1", "shop-1", "shop-2"].map((shopId, index) => ({
         stepId: `step-${index}`,
         shopId,
@@ -808,8 +814,12 @@ describe("AffiliateManagementPage proposal source", () => {
     ]);
     expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
     expect(items.map((item) => item.label)).toEqual([
-      "ROPE-GOLD-18", "Gold rope necklace", "Gold rope necklace",
-      "ROPE-GOLD-18", "Gold rope necklace", "Gold rope necklace",
+      "ROPE-GOLD-18",
+      "Gold rope necklace",
+      "Gold rope necklace",
+      "ROPE-GOLD-18",
+      "Gold rope necklace",
+      "Gold rope necklace",
     ]);
   });
 
@@ -997,7 +1007,9 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(proposalSampleReviewRows(softReject)[0]?.executionMode).toBe(
       GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry,
     );
-    expect(proposalSampleDecisionOverrideTarget(softReject)).toBe(GQL.AffiliateSampleReviewDecision.Approve);
+    expect(proposalSampleDecisionOverrideTarget(softReject)).toBe(
+      GQL.AffiliateSampleReviewDecision.Approve,
+    );
   });
 
   it("hides rejection for multi-Sample and mixed-action proposals", () => {
@@ -2301,7 +2313,9 @@ describe("creator tag catalog wiring", () => {
       page.indexOf("export function CreatorRelationshipDetailModal"),
       page.indexOf("function CreatorProfilePanel"),
     );
-    expect(creatorDetail).toContain("UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION");
+    expect(creatorDetail).toContain(
+      "UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION",
+    );
     expect(creatorDetail).toContain('saveSellerMetadata("sellerProvidedUid"');
     expect(creatorDetail).toContain('saveSellerMetadata("sellerNote"');
     expect(creatorDetail).not.toContain("operationalConfigRevision:");

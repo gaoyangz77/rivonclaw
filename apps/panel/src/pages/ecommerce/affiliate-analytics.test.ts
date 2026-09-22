@@ -36,24 +36,31 @@ describe("Affiliate Analytics UI semantics", () => {
   });
 
   it("uses dimensions and filters together for grouping legality", () => {
-    expect(isAffiliateGroupingLegal(["DATE", "CAMPAIGN_NAME"], ["CREATOR_USERNAME"], groupingSets)).toBe(true);
-    expect(isAffiliateGroupingLegal(["CAMPAIGN_ID", "PRODUCT_ID"], ["CREATOR_OPEN_ID"], groupingSets)).toBe(false);
+    expect(
+      isAffiliateGroupingLegal(["DATE", "CAMPAIGN_NAME"], ["CREATOR_USERNAME"], groupingSets),
+    ).toBe(true);
+    expect(
+      isAffiliateGroupingLegal(["CAMPAIGN_ID", "PRODUCT_ID"], ["CREATOR_OPEN_ID"], groupingSets),
+    ).toBe(false);
   });
 
   it("resets incompatible query state when switching contracts", () => {
-    const switched = nextAffiliateDatasetDraft({
-      datasetId: PLATFORM_DATASET,
-      shopIds: ["shop-1"],
-      granularity: "DAILY",
-      startDateGe: "2026-08-01",
-      endDateLt: "2026-09-01",
-      dimensions: ["CAMPAIGN_ID"],
-      metrics: ["AFFILIATE_TARGET_RESPONSE_RATE"],
-      filters: [{ dimension: "CAMPAIGN_ID", operator: "IN", values: ["campaign-1"] }],
-      sortField: "AFFILIATE_TARGET_RESPONSE_RATE",
-      sortDirection: "DESC",
-      limit: 100,
-    }, SAMPLE_DATASET);
+    const switched = nextAffiliateDatasetDraft(
+      {
+        datasetId: PLATFORM_DATASET,
+        shopIds: ["shop-1"],
+        granularity: "DAILY",
+        startDateGe: "2026-08-01",
+        endDateLt: "2026-09-01",
+        dimensions: ["CAMPAIGN_ID"],
+        metrics: ["AFFILIATE_TARGET_RESPONSE_RATE"],
+        filters: [{ dimension: "CAMPAIGN_ID", operator: "IN", values: ["campaign-1"] }],
+        sortField: "AFFILIATE_TARGET_RESPONSE_RATE",
+        sortDirection: "DESC",
+        limit: 100,
+      },
+      SAMPLE_DATASET,
+    );
     expect(switched.dimensions).toEqual(["DATE"]);
     expect(switched.filters).toEqual([]);
     expect(switched.metrics).toContain("AFFILIATE_APPLICATIONS_CREATED");
@@ -66,11 +73,17 @@ describe("Affiliate Analytics UI semantics", () => {
   });
 
   it("pivots a legal two-entity result into additive stacked series", () => {
-    expect(buildAffiliateStackedChartData([
-      { CAMPAIGN_NAME: "Launch", CREATOR_USERNAME: "alice", AFFILIATE_ORDERS: 2 },
-      { CAMPAIGN_NAME: "Launch", CREATOR_USERNAME: "bob", AFFILIATE_ORDERS: 3 },
-      { CAMPAIGN_NAME: "Always on", CREATOR_USERNAME: "alice", AFFILIATE_ORDERS: 4 },
-    ], ["CAMPAIGN_NAME", "CREATOR_USERNAME"], "AFFILIATE_ORDERS")).toEqual({
+    expect(
+      buildAffiliateStackedChartData(
+        [
+          { CAMPAIGN_NAME: "Launch", CREATOR_USERNAME: "alice", AFFILIATE_ORDERS: 2 },
+          { CAMPAIGN_NAME: "Launch", CREATOR_USERNAME: "bob", AFFILIATE_ORDERS: 3 },
+          { CAMPAIGN_NAME: "Always on", CREATOR_USERNAME: "alice", AFFILIATE_ORDERS: 4 },
+        ],
+        ["CAMPAIGN_NAME", "CREATOR_USERNAME"],
+        "AFFILIATE_ORDERS",
+      ),
+    ).toEqual({
       categoryDimension: "CAMPAIGN_NAME",
       rows: [
         { category: "Launch", CAMPAIGN_NAME: "Launch", series_0: 2, series_1: 3 },
@@ -84,20 +97,37 @@ describe("Affiliate Analytics UI semantics", () => {
   });
 
   it("recomputes rates from total components and preserves mixed native currency", () => {
-    expect(summarizeAffiliateRows([
-      { AFFILIATE_TARGET_SAMPLE_RESPONSES: 2, AFFILIATE_TARGET_CREATORS_INVITED: 4, AFFILIATE_TARGET_RESPONSE_RATE: 0.5, AFFILIATE_NET_GMV_NATIVE: 12 },
-      { AFFILIATE_TARGET_SAMPLE_RESPONSES: 1, AFFILIATE_TARGET_CREATORS_INVITED: 6, AFFILIATE_TARGET_RESPONSE_RATE: 1 / 6, AFFILIATE_NET_GMV_NATIVE: null },
-    ], ["AFFILIATE_TARGET_RESPONSE_RATE", "AFFILIATE_NET_GMV_NATIVE"])).toEqual({
+    expect(
+      summarizeAffiliateRows(
+        [
+          {
+            AFFILIATE_TARGET_SAMPLE_RESPONSES: 2,
+            AFFILIATE_TARGET_CREATORS_INVITED: 4,
+            AFFILIATE_TARGET_RESPONSE_RATE: 0.5,
+            AFFILIATE_NET_GMV_NATIVE: 12,
+          },
+          {
+            AFFILIATE_TARGET_SAMPLE_RESPONSES: 1,
+            AFFILIATE_TARGET_CREATORS_INVITED: 6,
+            AFFILIATE_TARGET_RESPONSE_RATE: 1 / 6,
+            AFFILIATE_NET_GMV_NATIVE: null,
+          },
+        ],
+        ["AFFILIATE_TARGET_RESPONSE_RATE", "AFFILIATE_NET_GMV_NATIVE"],
+      ),
+    ).toEqual({
       AFFILIATE_TARGET_RESPONSE_RATE: 0.3,
       AFFILIATE_NET_GMV_NATIVE: null,
     });
   });
 
   it("replaces one dimension filter without duplicating its breadcrumb", () => {
-    expect(upsertAffiliateFilter([
-      { dimension: "CAMPAIGN_ID", operator: "IN", values: ["a"] },
-    ], { dimension: "CAMPAIGN_ID", operator: "NOT_IN", values: ["b"] })).toEqual([
-      { dimension: "CAMPAIGN_ID", operator: "NOT_IN", values: ["b"] },
-    ]);
+    expect(
+      upsertAffiliateFilter([{ dimension: "CAMPAIGN_ID", operator: "IN", values: ["a"] }], {
+        dimension: "CAMPAIGN_ID",
+        operator: "NOT_IN",
+        values: ["b"],
+      }),
+    ).toEqual([{ dimension: "CAMPAIGN_ID", operator: "NOT_IN", values: ["b"] }]);
   });
 });

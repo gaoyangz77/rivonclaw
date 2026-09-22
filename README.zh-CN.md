@@ -37,11 +37,11 @@ OpenClaw 是引擎；RivonClaw 是桌面驾驶舱和业务层。
 
 ## 环境要求
 
-| 工具 | 版本 |
-| --- | --- |
-| Git | 任意 |
-| Node.js | >= 24 |
-| pnpm | 10.6.2 |
+| 工具    | 版本   |
+| ------- | ------ |
+| Git     | 任意   |
+| Node.js | >= 24  |
+| pnpm    | 10.6.2 |
 
 ## 快速开始
 
@@ -103,36 +103,36 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`、
 
 ### 应用
 
-| 包 | 说明 |
-| --- | --- |
+| 包                   | 说明                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `@rivonclaw/desktop` | Electron 40 桌面应用。负责应用生命周期、本地 API、网关启动、配置写入、存储、更新、遥测，以及云端/客服/移动端桥接。 |
-| `@rivonclaw/panel` | React 19 + Vite 6 SPA。实现聊天、服务商配置、通道、扩展能力、技能、定时任务、用量、设置、账号、计费和电商界面。 |
+| `@rivonclaw/panel`   | React 19 + Vite 6 SPA。实现聊天、服务商配置、通道、扩展能力、技能、定时任务、用量、设置、账号、计费和电商界面。    |
 
 ### 包
 
-| 包 | 说明 |
-| --- | --- |
-| `@rivonclaw/core` | 共享默认值、类型、API 路由契约、服务商目录、MST 模型、生成的 GraphQL 类型和工具函数。 |
-| `@rivonclaw/gateway` | OpenClaw 配置写入、启动器、OAuth profile 同步、通道配置写入、模型目录读取、技能刷新 helper 和 vendor helper。 |
-| `@rivonclaw/storage` | SQLite repositories：settings、provider keys、usage、chat sessions、channel accounts/recipients、mobile pairings、tool selections、CS escalations。 |
-| `@rivonclaw/secrets` | 面向 API Key 和 OAuth 凭据的平台密钥存储。 |
-| `@rivonclaw/proxy-router` | 面向服务商和一方域名网络路径的本地 HTTP 代理路由。 |
-| `@rivonclaw/stt` | STT 服务商工具。 |
-| `@rivonclaw/telemetry` | 遥测客户端，包含用户 opt-in 事件和业务遥测通道。 |
-| `@rivonclaw/updater` | 桌面更新器使用的版本和清单工具。 |
-| `@rivonclaw/logger` | 共享日志设置。 |
-| `@rivonclaw/device-id` | 稳定设备身份 helper。 |
-| `@rivonclaw/plugin-sdk` | 扩展包共享 helper。 |
+| 包                        | 说明                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@rivonclaw/core`         | 共享默认值、类型、API 路由契约、服务商目录、MST 模型、生成的 GraphQL 类型和工具函数。                                                               |
+| `@rivonclaw/gateway`      | OpenClaw 配置写入、启动器、OAuth profile 同步、通道配置写入、模型目录读取、技能刷新 helper 和 vendor helper。                                       |
+| `@rivonclaw/storage`      | SQLite repositories：settings、provider keys、usage、chat sessions、channel accounts/recipients、mobile pairings、tool selections、CS escalations。 |
+| `@rivonclaw/secrets`      | 面向 API Key 和 OAuth 凭据的平台密钥存储。                                                                                                          |
+| `@rivonclaw/proxy-router` | 面向服务商和一方域名网络路径的本地 HTTP 代理路由。                                                                                                  |
+| `@rivonclaw/stt`          | STT 服务商工具。                                                                                                                                    |
+| `@rivonclaw/telemetry`    | 遥测客户端，包含用户 opt-in 事件和业务遥测通道。                                                                                                    |
+| `@rivonclaw/updater`      | 桌面更新器使用的版本和清单工具。                                                                                                                    |
+| `@rivonclaw/logger`       | 共享日志设置。                                                                                                                                      |
+| `@rivonclaw/device-id`    | 稳定设备身份 helper。                                                                                                                               |
+| `@rivonclaw/plugin-sdk`   | 扩展包共享 helper。                                                                                                                                 |
 
 ### 扩展
 
-| 包 | 说明 |
-| --- | --- |
-| `openclaw-weixin` | Tencent Weixin OpenClaw 通道包装层，包含 RivonClaw 兼容性修复。 |
-| `@rivonclaw/rivonclaw-capability-manager` | 针对当前运行上下文约束有效工具可见性。 |
-| `@rivonclaw/rivonclaw-event-bridge` | 将部分 OpenClaw agent 事件镜像到面板事件流。 |
-| `@rivonclaw/rivonclaw-mobile-chat-channel` | 移动聊天通道插件和 relay 同步逻辑。 |
-| `@rivonclaw/rivonclaw-search-browser-fallback` | 当缺少直接搜索凭据时，引导搜索 fallback 行为。 |
+| 包                                             | 说明                                                            |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| `openclaw-weixin`                              | Tencent Weixin OpenClaw 通道包装层，包含 RivonClaw 兼容性修复。 |
+| `@rivonclaw/rivonclaw-capability-manager`      | 针对当前运行上下文约束有效工具可见性。                          |
+| `@rivonclaw/rivonclaw-event-bridge`            | 将部分 OpenClaw agent 事件镜像到面板事件流。                    |
+| `@rivonclaw/rivonclaw-mobile-chat-channel`     | 移动聊天通道插件和 relay 同步逻辑。                             |
+| `@rivonclaw/rivonclaw-search-browser-fallback` | 当缺少直接搜索凭据时，引导搜索 fallback 行为。                  |
 
 商家专用插件位于 `extensions-merchant/*`，CI 会从私有 merchant extensions 仓库签出。
 
@@ -194,16 +194,16 @@ OpenClaw Gateway
 
 默认路径由 [`packages/core/src/node-utils/paths.ts`](packages/core/src/node-utils/paths.ts) 解析。
 
-| 路径 | 用途 |
-| --- | --- |
-| `~/.rivonclaw/db.sqlite` | Desktop SQLite 数据库 |
-| `~/.rivonclaw/logs/` | 应用日志 |
-| `~/.rivonclaw/secrets/` | 文件密钥存储回退 |
-| `~/.rivonclaw/openclaw/` | OpenClaw 状态目录 |
-| `~/.rivonclaw/openclaw/openclaw.json` | 生成的网关配置 |
-| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw 会话 |
-| `~/.rivonclaw/openclaw/skills/` | 用户安装的技能 |
-| `~/.rivonclaw/openclaw/credentials/` | OAuth / 通道 / 移动端凭据 |
+| 路径                                               | 用途                      |
+| -------------------------------------------------- | ------------------------- |
+| `~/.rivonclaw/db.sqlite`                           | Desktop SQLite 数据库     |
+| `~/.rivonclaw/logs/`                               | 应用日志                  |
+| `~/.rivonclaw/secrets/`                            | 文件密钥存储回退          |
+| `~/.rivonclaw/openclaw/`                           | OpenClaw 状态目录         |
+| `~/.rivonclaw/openclaw/openclaw.json`              | 生成的网关配置            |
+| `~/.rivonclaw/openclaw/agents/<agentId>/sessions/` | OpenClaw 会话             |
+| `~/.rivonclaw/openclaw/skills/`                    | 用户安装的技能            |
+| `~/.rivonclaw/openclaw/credentials/`               | OAuth / 通道 / 移动端凭据 |
 
 ## 发布
 

@@ -25,18 +25,25 @@ export type PluginToolContext = {
 // Minimal OpenClaw plugin API types (inline to avoid vendor dependency)
 export type PluginApi = {
   id: string;
-  logger: { info: (msg: string) => void; warn: (msg: string) => void; debug?: (msg: string) => void };
+  logger: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    debug?: (msg: string) => void;
+  };
   pluginConfig?: Record<string, unknown>;
   on(event: string, handler: (...args: any[]) => any, opts?: { priority?: number }): void;
   registerTool?(
     tool: ToolDefinition | ((ctx: PluginToolContext) => unknown),
     opts?: { name?: string; names?: string[]; optional?: boolean },
   ): void;
-  registerGatewayMethod?(name: string, handler: (args: {
-    params: Record<string, unknown>;
-    respond: (ok: boolean, payload?: unknown, error?: { code: string; message: string }) => void;
-    context?: { broadcast: (event: string, payload: unknown) => void };
-  }) => void): void;
+  registerGatewayMethod?(
+    name: string,
+    handler: (args: {
+      params: Record<string, unknown>;
+      respond: (ok: boolean, payload?: unknown, error?: { code: string; message: string }) => void;
+      context?: { broadcast: (event: string, payload: unknown) => void };
+    }) => void,
+  ): void;
   registerInteractiveHandler?(registration: {
     channel: string;
     namespace: string;

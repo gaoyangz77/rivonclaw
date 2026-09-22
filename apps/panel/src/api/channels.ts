@@ -9,7 +9,7 @@ export type { ChannelAccountSnapshot, ChannelsStatusSnapshot };
  */
 export async function fetchChannelStatus(probe = false): Promise<ChannelsStatusSnapshot | null> {
   const data = await fetchJson<{ snapshot: ChannelsStatusSnapshot | null; error?: string }>(
-    clientPath(API["channels.status"]) + `?probe=${probe}`
+    clientPath(API["channels.status"]) + `?probe=${probe}`,
   );
   if (data.error) {
     console.warn("Failed to fetch channel status:", data.error);
@@ -23,7 +23,12 @@ export async function fetchChannelStatus(probe = false): Promise<ChannelsStatusS
 export async function getChannelAccountConfig(
   channelId: string,
   accountId: string,
-): Promise<{ channelId: string; accountId: string; name: string | null; config: Record<string, unknown> }> {
+): Promise<{
+  channelId: string;
+  accountId: string;
+  name: string | null;
+  config: Record<string, unknown>;
+}> {
   return fetchJson(clientPath(API["channels.accounts.get"], { channelId, accountId }));
 }
 
@@ -37,9 +42,14 @@ export interface PairingRequest {
   meta?: Record<string, string>;
 }
 
-export async function fetchPairingRequests(channelId: string, accountId?: string): Promise<PairingRequest[]> {
+export async function fetchPairingRequests(
+  channelId: string,
+  accountId?: string,
+): Promise<PairingRequest[]> {
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-  const data = await fetchJson<{ requests: PairingRequest[] }>(clientPath(API["pairing.requests"], { channelId }) + qs);
+  const data = await fetchJson<{ requests: PairingRequest[] }>(
+    clientPath(API["pairing.requests"], { channelId }) + qs,
+  );
   return data.requests;
 }
 
@@ -49,12 +59,20 @@ export interface AllowlistResult {
   owners: Record<string, boolean>;
 }
 
-export async function fetchAllowlist(channelId: string, accountId?: string): Promise<AllowlistResult> {
+export async function fetchAllowlist(
+  channelId: string,
+  accountId?: string,
+): Promise<AllowlistResult> {
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
   return fetchJson<AllowlistResult>(clientPath(API["pairing.allowlist.get"], { channelId }) + qs);
 }
 
-export async function setRecipientLabel(channelId: string, recipientId: string, label: string, accountId?: string): Promise<void> {
+export async function setRecipientLabel(
+  channelId: string,
+  recipientId: string,
+  label: string,
+  accountId?: string,
+): Promise<void> {
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
   await fetchJson(clientPath(API["pairing.allowlist.setLabel"], { channelId, recipientId }) + qs, {
     method: "PUT",
@@ -62,7 +80,12 @@ export async function setRecipientLabel(channelId: string, recipientId: string, 
   });
 }
 
-export async function setRecipientOwner(channelId: string, recipientId: string, isOwner: boolean, accountId?: string): Promise<void> {
+export async function setRecipientOwner(
+  channelId: string,
+  recipientId: string,
+  isOwner: boolean,
+  accountId?: string,
+): Promise<void> {
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
   await fetchJson(clientPath(API["pairing.allowlist.setOwner"], { channelId, recipientId }) + qs, {
     method: "PUT",
@@ -70,7 +93,12 @@ export async function setRecipientOwner(channelId: string, recipientId: string, 
   });
 }
 
-export async function approvePairing(channelId: string, code: string, locale?: string, accountId?: string): Promise<{ id: string }> {
+export async function approvePairing(
+  channelId: string,
+  code: string,
+  locale?: string,
+  accountId?: string,
+): Promise<{ id: string }> {
   const data = await fetchJson<{ id: string }>(clientPath(API["pairing.approve"]), {
     method: "POST",
     body: JSON.stringify({ channelId, accountId, code, locale }),
@@ -78,11 +106,18 @@ export async function approvePairing(channelId: string, code: string, locale?: s
   return data;
 }
 
-export async function removeFromAllowlist(channelId: string, entry: string, accountId?: string): Promise<void> {
+export async function removeFromAllowlist(
+  channelId: string,
+  entry: string,
+  accountId?: string,
+): Promise<void> {
   const qs = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-  await fetchJson(clientPath(API["pairing.allowlist.remove"], { channelId, recipientId: entry }) + qs, {
-    method: "DELETE",
-  });
+  await fetchJson(
+    clientPath(API["pairing.allowlist.remove"], { channelId, recipientId: entry }) + qs,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 // --- QR Login (WeChat) ---
@@ -101,7 +136,10 @@ export interface QrLoginStartResult extends QrLoginResult {
   qrDataUrl?: string;
 }
 
-export async function startQrLogin(accountId?: string, signal?: AbortSignal): Promise<QrLoginStartResult> {
+export async function startQrLogin(
+  accountId?: string,
+  signal?: AbortSignal,
+): Promise<QrLoginStartResult> {
   return fetchJson<QrLoginStartResult>(clientPath(API["channels.qrLogin.start"]), {
     method: "POST",
     body: JSON.stringify({ accountId }),
@@ -109,7 +147,12 @@ export async function startQrLogin(accountId?: string, signal?: AbortSignal): Pr
   });
 }
 
-export async function waitQrLogin(accountId?: string, timeoutMs?: number, signal?: AbortSignal, sessionKey?: string): Promise<QrLoginResult> {
+export async function waitQrLogin(
+  accountId?: string,
+  timeoutMs?: number,
+  signal?: AbortSignal,
+  sessionKey?: string,
+): Promise<QrLoginResult> {
   return fetchJson<QrLoginResult>(clientPath(API["channels.qrLogin.wait"]), {
     method: "POST",
     body: JSON.stringify({ accountId, timeoutMs, sessionKey }),
@@ -150,7 +193,10 @@ export async function startFeishuSetup(signal?: AbortSignal): Promise<FeishuSetu
   });
 }
 
-export async function pollFeishuSetup(sessionKey: string, signal?: AbortSignal): Promise<FeishuSetupPollResult> {
+export async function pollFeishuSetup(
+  sessionKey: string,
+  signal?: AbortSignal,
+): Promise<FeishuSetupPollResult> {
   return fetchJson<FeishuSetupPollResult>(clientPath(API["channels.feishuSetup.poll"]), {
     method: "POST",
     body: JSON.stringify({ sessionKey }),

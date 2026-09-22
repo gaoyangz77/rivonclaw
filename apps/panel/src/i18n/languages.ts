@@ -40,8 +40,7 @@ import {
 } from "./tutorial-catchup-translations.js";
 
 type TranslationResource = object;
-export type SupportedLanguageCode =
-  "en" | "zh" | "de" | "es" | "fr" | "id" | "it" | "th";
+export type SupportedLanguageCode = "en" | "zh" | "de" | "es" | "fr" | "id" | "it" | "th";
 
 type TranslationResourceRecord = Record<string, unknown>;
 
@@ -63,9 +62,7 @@ function mergeTranslationResource<T extends TranslationResourceRecord>(
   for (const [key, value] of Object.entries(backfill)) {
     const existing = merged[key];
     merged[key] =
-      isRecord(existing) && isRecord(value)
-        ? mergeTranslationResource(existing, value)
-        : value;
+      isRecord(existing) && isRecord(value) ? mergeTranslationResource(existing, value) : value;
   }
   return merged as T;
 }
@@ -93,8 +90,7 @@ const AFFILIATE_TIMELINE_EVENT_BACKFILL = {
   CHANNEL_CONTACT_CREATED: "Creator channel contact created",
   CHANNEL_CONTACT_UPDATED: "Creator channel contact updated",
   COLLABORATION_FIRST_OBSERVED: "Platform collaboration first observed",
-  COLLABORATION_TERMINAL_STATE_FIRST_OBSERVED:
-    "Collaboration terminal state first observed",
+  COLLABORATION_TERMINAL_STATE_FIRST_OBSERVED: "Collaboration terminal state first observed",
   CREATOR_PROTECTION_ADDED: "Creator relationship protection added",
   CREATOR_PROTECTION_MERGED: "Creator relationship protection merged",
   CREATOR_PROTECTION_REMOVED: "Creator relationship protection removed",
@@ -102,12 +98,9 @@ const AFFILIATE_TIMELINE_EVENT_BACKFILL = {
   RELATIONSHIP_BD_ASSIGNED: "Creator relationship owner assigned",
   SAMPLE_APPLICATION_FIRST_OBSERVED: "Sample request first observed",
   SAMPLE_APPLICATION_STATE_OBSERVED: "Sample request status updated",
-  SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED:
-    "Sample request terminal state first observed",
-  SAMPLE_COLLABORATION_LINK_CONFLICT_OBSERVED:
-    "Sample collaboration link conflict observed",
-  SAMPLE_COMMISSION_RATE_CONFLICT_OBSERVED:
-    "Sample commission rate conflict observed",
+  SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED: "Sample request terminal state first observed",
+  SAMPLE_COLLABORATION_LINK_CONFLICT_OBSERVED: "Sample collaboration link conflict observed",
+  SAMPLE_COMMISSION_RATE_CONFLICT_OBSERVED: "Sample commission rate conflict observed",
   STAGE_CHANGED: "Creator relationship stage updated",
   WORK_ITEM_REQUEUED: "Agent work requeued",
   WORK_ITEM_RETRY_REQUESTED: "Agent work retry requested",
@@ -118,8 +111,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
     tools: {
       selector: {
         name: {
-          ECOM_GET_CS_UNPAID_ORDER_EVALUATION:
-            "Bewertung unbezahlter Bestellungen abrufen",
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Bewertung unbezahlter Bestellungen abrufen",
           AFFILIATE_LIST_SHOPS: "Affiliate-Shops auflisten",
         },
       },
@@ -144,8 +136,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
     tools: {
       selector: {
         name: {
-          ECOM_GET_CS_UNPAID_ORDER_EVALUATION:
-            "Obtener evaluación de pedidos impagados",
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtener evaluación de pedidos impagados",
           AFFILIATE_LIST_SHOPS: "Listar tiendas de afiliados",
         },
       },
@@ -160,8 +151,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
         timePassedHint:
           "Tiempo transcurrido entre elementos de la cronología; puede haber eventos filtrados.",
         messageComposerTitle: "Responder al creador",
-        messageComposerAttachmentCount:
-          "{{count}} archivo(s) adjunto(s) añadido(s)",
+        messageComposerAttachmentCount: "{{count}} archivo(s) adjunto(s) añadido(s)",
         creatorDetail: { profileFacts: "Resumen del perfil" },
         lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
       },
@@ -171,8 +161,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
     tools: {
       selector: {
         name: {
-          ECOM_GET_CS_UNPAID_ORDER_EVALUATION:
-            "Obtenir l’évaluation des commandes impayées",
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtenir l’évaluation des commandes impayées",
           AFFILIATE_LIST_SHOPS: "Lister les boutiques Affiliate",
         },
       },
@@ -187,8 +176,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
         timePassedHint:
           "Temps écoulé entre les éléments de la chronologie ; des événements filtrés peuvent exister.",
         messageComposerTitle: "Répondre au créateur",
-        messageComposerAttachmentCount:
-          "{{count}} pièce(s) jointe(s) ajoutée(s)",
+        messageComposerAttachmentCount: "{{count}} pièce(s) jointe(s) ajoutée(s)",
         creatorDetail: { profileFacts: "Aperçu du profil" },
         lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL,
       },
@@ -198,8 +186,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
     tools: {
       selector: {
         name: {
-          ECOM_GET_CS_UNPAID_ORDER_EVALUATION:
-            "Dapatkan evaluasi pesanan belum dibayar",
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Dapatkan evaluasi pesanan belum dibayar",
           AFFILIATE_LIST_SHOPS: "Daftar toko Affiliate",
         },
       },
@@ -224,8 +211,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
     tools: {
       selector: {
         name: {
-          ECOM_GET_CS_UNPAID_ORDER_EVALUATION:
-            "Ottieni valutazione ordini non pagati",
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Ottieni valutazione ordini non pagati",
           AFFILIATE_LIST_SHOPS: "Elenca negozi Affiliate",
         },
       },
@@ -250,8 +236,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
     tools: {
       selector: {
         name: {
-          ECOM_GET_CS_UNPAID_ORDER_EVALUATION:
-            "ดูการประเมินคำสั่งซื้อที่ยังไม่ชำระ",
+          ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "ดูการประเมินคำสั่งซื้อที่ยังไม่ชำระ",
           AFFILIATE_LIST_SHOPS: "แสดงร้านค้า Affiliate",
         },
       },
@@ -263,8 +248,7 @@ const AFFILIATE_TIMELINE_TRANSLATIONS = {
         timePassedDaysHours: "{{days}} วัน {{hours}} ชม.",
         timePassedDays: "{{days}} วัน",
         timePassedHours: "{{hours}} ชม.",
-        timePassedHint:
-          "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น",
+        timePassedHint: "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น",
         messageComposerTitle: "ตอบกลับครีเอเตอร์",
         messageComposerAttachmentCount: "เพิ่มไฟล์แนบแล้ว {{count}} ไฟล์",
         creatorDetail: { profileFacts: "ภาพรวมโปรไฟล์" },
@@ -521,22 +505,23 @@ const BASE_LANGUAGE_OPTIONS: readonly LanguageOption[] = [
   },
 ] as const;
 
-export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS.map((language) => ({
-  ...language,
-  resource: mergeTranslationResources(
-    language.resource as TranslationResourceRecord,
-    AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
-    TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
-    TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
-  ),
-}));
+export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS.map(
+  (language) => ({
+    ...language,
+    resource: mergeTranslationResources(
+      language.resource as TranslationResourceRecord,
+      AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
+      TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
+      TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
+    ),
+  }),
+);
 
-export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] =
-  LANGUAGE_OPTIONS.map((language) => language.code);
+export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] = LANGUAGE_OPTIONS.map(
+  (language) => language.code,
+);
 
-export function normalizeLanguageCode(
-  locale: string | undefined | null,
-): SupportedLanguageCode {
+export function normalizeLanguageCode(locale: string | undefined | null): SupportedLanguageCode {
   const language = locale?.trim().toLowerCase().split(/[-_]/)[0];
   return SUPPORTED_LANGUAGE_CODES.includes(language as SupportedLanguageCode)
     ? (language as SupportedLanguageCode)

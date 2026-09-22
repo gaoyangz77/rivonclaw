@@ -34,7 +34,10 @@ export function AffiliateProposalStock({ items }: { items: AffiliateProposalStoc
           {items.map((item) => (
             <tr key={item.id}>
               <td>
-                <TkPrivate className="affiliate-proposal-stock-label" sensitive={Boolean(item.label)}>
+                <TkPrivate
+                  className="affiliate-proposal-stock-label"
+                  sensitive={Boolean(item.label)}
+                >
                   {item.label ?? "—"}
                 </TkPrivate>
               </td>

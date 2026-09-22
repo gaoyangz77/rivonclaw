@@ -156,9 +156,7 @@ export function affiliateWorkbenchTimeSelection(
 export function affiliateWorkbenchTimeBounds(
   selection: AffiliateWorkbenchTimeSelection,
 ): { geIso: string; ltIso: string } | null {
-  return selection.state === "RANGE"
-    ? { geIso: selection.geIso, ltIso: selection.ltIso }
-    : null;
+  return selection.state === "RANGE" ? { geIso: selection.geIso, ltIso: selection.ltIso } : null;
 }
 
 /**

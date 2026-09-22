@@ -17,6 +17,7 @@ plugin. Remove that wrapper patch after upstream ships the declaration and our
 supported `@tencent-weixin/openclaw-weixin` version range requires that release.
 
 **Upstream tracking:**
+
 - Issue: https://github.com/openclaw/openclaw/issues/62120
 - PR: https://github.com/Tencent/openclaw-weixin/pull/73
 - Prior art: https://github.com/netease-youdao/LobsterAI/pull/1592
@@ -40,6 +41,7 @@ and our STT package (`packages/stt`) are not involved -- the quote context is
 already dropped before it reaches any of our code.
 
 **Upstream tracking:**
+
 - Issue: https://github.com/Tencent/openclaw-weixin/issues/48
 - PR: https://github.com/Tencent/openclaw-weixin/pull/49
 

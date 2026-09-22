@@ -166,13 +166,11 @@ export type ToolSessionArgs<T = Record<string, never>> = T & {
 export function resolveToolSessionContext(
   args: ToolSessionArgs<Record<string, unknown>> | undefined,
 ): ToolSessionContext | null {
-  const context = args?.[TOOL_SESSION_KEY]
-    ?? args?.[CS_SESSION_KEY]
-    ?? args?.csSessionContext;
+  const context = args?.[TOOL_SESSION_KEY] ?? args?.[CS_SESSION_KEY] ?? args?.csSessionContext;
   if (
-    isAffiliateContext(context)
-    || isAffiliateIdentificationContext(context)
-    || isCustomerServiceContext(context)
+    isAffiliateContext(context) ||
+    isAffiliateIdentificationContext(context) ||
+    isCustomerServiceContext(context)
   ) {
     return context;
   }
@@ -205,9 +203,7 @@ function isAffiliateIdentificationContext(
 ): value is AffiliateIdentificationSessionContext {
   if (value == null || typeof value !== "object") return false;
   const context = value as Partial<AffiliateIdentificationSessionContext>;
-  return (
-    context.kind === "AFFILIATE_IDENTIFICATION" && Boolean(context.unknownInboundContactId)
-  );
+  return context.kind === "AFFILIATE_IDENTIFICATION" && Boolean(context.unknownInboundContactId);
 }
 
 function isCustomerServiceContext(value: unknown): value is CSSessionContext {

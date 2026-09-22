@@ -37,7 +37,10 @@ describe("migrateWeixinAccountKeys", () => {
     migrateWeixinAccountKeys(configPath);
 
     const after = JSON.parse(readFileSync(configPath, "utf-8")) as typeof before;
-    const accounts = after.channels["openclaw-weixin"].accounts as Record<string, { token?: string; name?: string }>;
+    const accounts = after.channels["openclaw-weixin"].accounts as Record<
+      string,
+      { token?: string; name?: string }
+    >;
     expect(Object.keys(accounts)).toEqual(["abc123-im-bot"]);
     expect(accounts["abc123-im-bot"]).toEqual({ token: "secret-1", name: "abc123@im.bot" });
   });
@@ -152,8 +155,16 @@ describe("migrateWeixinAccountKeys", () => {
   it("renames legacy raw weixin state sidecars to canonical file names", () => {
     const accountsDir = join(dir, "openclaw-weixin", "accounts");
     mkdirSync(accountsDir, { recursive: true });
-    writeFileSync(join(accountsDir, "abc123@im.bot.json"), JSON.stringify({ token: "secret" }), "utf-8");
-    writeFileSync(join(accountsDir, "abc123@im.bot.sync.json"), JSON.stringify({ cursor: 1 }), "utf-8");
+    writeFileSync(
+      join(accountsDir, "abc123@im.bot.json"),
+      JSON.stringify({ token: "secret" }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(accountsDir, "abc123@im.bot.sync.json"),
+      JSON.stringify({ cursor: 1 }),
+      "utf-8",
+    );
     writeFileSync(
       join(accountsDir, "abc123@im.bot.context-tokens.json"),
       JSON.stringify({ "manager@im.wechat": "token-1" }),
@@ -165,9 +176,15 @@ describe("migrateWeixinAccountKeys", () => {
     expect(existsSync(join(accountsDir, "abc123@im.bot.json"))).toBe(false);
     expect(existsSync(join(accountsDir, "abc123@im.bot.sync.json"))).toBe(false);
     expect(existsSync(join(accountsDir, "abc123@im.bot.context-tokens.json"))).toBe(false);
-    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.json"), "utf-8"))).toEqual({ token: "secret" });
-    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.sync.json"), "utf-8"))).toEqual({ cursor: 1 });
-    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.context-tokens.json"), "utf-8"))).toEqual({
+    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.json"), "utf-8"))).toEqual({
+      token: "secret",
+    });
+    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.sync.json"), "utf-8"))).toEqual(
+      { cursor: 1 },
+    );
+    expect(
+      JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.context-tokens.json"), "utf-8")),
+    ).toEqual({
       "manager@im.wechat": "token-1",
     });
   });
@@ -195,7 +212,9 @@ describe("migrateWeixinAccountKeys", () => {
     migrateWeixinAccountKeys(configPath);
 
     expect(existsSync(join(accountsDir, "abc123@im.bot.context-tokens.json"))).toBe(false);
-    expect(JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.context-tokens.json"), "utf-8"))).toEqual({
+    expect(
+      JSON.parse(readFileSync(join(accountsDir, "abc123-im-bot.context-tokens.json"), "utf-8")),
+    ).toEqual({
       "legacy@im.wechat": "legacy-token",
       "current@im.wechat": "current-token",
       "shared@im.wechat": "current-shared-token",

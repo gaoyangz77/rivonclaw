@@ -8,11 +8,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-const {
-  fetchChannelStatus,
-  fetchAllowlist,
-  getRunProfileForScope,
-} = vi.hoisted(() => ({
+const { fetchChannelStatus, fetchAllowlist, getRunProfileForScope } = vi.hoisted(() => ({
   fetchChannelStatus: vi.fn(),
   fetchAllowlist: vi.fn(),
   getRunProfileForScope: vi.fn(),
@@ -29,10 +25,7 @@ vi.mock("../../../api/tool-registry.js", () => ({
 
 vi.mock("../../../store/EntityStoreProvider.js", () => ({
   useEntityStore: () => ({
-    allRunProfiles: [
-      { id: "rp-1" },
-      { id: "rp-2" },
-    ],
+    allRunProfiles: [{ id: "rp-1" }, { id: "rp-2" }],
   }),
 }));
 
@@ -50,22 +43,24 @@ describe("useCronForm", () => {
   it("loads the saved run profile for an existing cron job", async () => {
     getRunProfileForScope.mockResolvedValue("rp-1");
 
-    const { result } = renderHook(() => useCronForm({
-      mode: "edit",
-      initialData: {
-        id: "job-1",
-        name: "Existing job",
-        enabled: true,
-        createdAtMs: 1,
-        updatedAtMs: 1,
-        schedule: { kind: "cron", expr: "0 * * * *" },
-        sessionTarget: "isolated",
-        wakeMode: "now",
-        payload: { kind: "agentTurn", message: "hello" },
-        state: {},
-      },
-      onSubmit: vi.fn(),
-    }));
+    const { result } = renderHook(() =>
+      useCronForm({
+        mode: "edit",
+        initialData: {
+          id: "job-1",
+          name: "Existing job",
+          enabled: true,
+          createdAtMs: 1,
+          updatedAtMs: 1,
+          schedule: { kind: "cron", expr: "0 * * * *" },
+          sessionTarget: "isolated",
+          wakeMode: "now",
+          payload: { kind: "agentTurn", message: "hello" },
+          state: {},
+        },
+        onSubmit: vi.fn(),
+      }),
+    );
 
     await waitFor(() => {
       expect(result.current.selectedRunProfileId).toBe("rp-1");
@@ -77,22 +72,24 @@ describe("useCronForm", () => {
     getRunProfileForScope.mockResolvedValue("rp-1");
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-    const { result } = renderHook(() => useCronForm({
-      mode: "edit",
-      initialData: {
-        id: "job-1",
-        name: "Existing job",
-        enabled: true,
-        createdAtMs: 1,
-        updatedAtMs: 1,
-        schedule: { kind: "cron", expr: "0 * * * *" },
-        sessionTarget: "isolated",
-        wakeMode: "now",
-        payload: { kind: "agentTurn", message: "hello" },
-        state: {},
-      },
-      onSubmit,
-    }));
+    const { result } = renderHook(() =>
+      useCronForm({
+        mode: "edit",
+        initialData: {
+          id: "job-1",
+          name: "Existing job",
+          enabled: true,
+          createdAtMs: 1,
+          updatedAtMs: 1,
+          schedule: { kind: "cron", expr: "0 * * * *" },
+          sessionTarget: "isolated",
+          wakeMode: "now",
+          payload: { kind: "agentTurn", message: "hello" },
+          state: {},
+        },
+        onSubmit,
+      }),
+    );
 
     await waitFor(() => {
       expect(result.current.selectedRunProfileId).toBe("rp-1");

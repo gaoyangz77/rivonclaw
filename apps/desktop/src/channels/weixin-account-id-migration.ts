@@ -1,4 +1,11 @@
-import { existsSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { normalizeWeixinAccountId } from "@rivonclaw/core";
 import { resolveOpenClawStateDir } from "@rivonclaw/core/node";
@@ -8,8 +15,12 @@ import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.
 const log = createLogger("weixin-migration");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 
-function parseLegacyWeixinStateFile(fileName: string): { accountId: string; suffix: string } | null {
-  const match = /^(.+@im\.(?:bot|wechat))(\.context-tokens\.json|\.sync\.json|\.json)$/.exec(fileName);
+function parseLegacyWeixinStateFile(
+  fileName: string,
+): { accountId: string; suffix: string } | null {
+  const match = /^(.+@im\.(?:bot|wechat))(\.context-tokens\.json|\.sync\.json|\.json)$/.exec(
+    fileName,
+  );
   if (!match) return null;
   return { accountId: match[1], suffix: match[2] };
 }
@@ -18,7 +29,7 @@ function readJsonObject(filePath: string): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(readFileSync(filePath, "utf-8"));
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;

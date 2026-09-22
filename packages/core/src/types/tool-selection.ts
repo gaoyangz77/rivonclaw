@@ -1,5 +1,10 @@
 /** Scope types for tool selection — determines what context a tool selection is bound to */
-export type ToolScopeType = "chat_session" | "cron_job" | "cs_session" | "affiliate_session" | "unknown";
+export type ToolScopeType =
+  | "chat_session"
+  | "cron_job"
+  | "cs_session"
+  | "affiliate_session"
+  | "unknown";
 
 /** Enum version of ToolScopeType for runtime validation and switch/case usage. */
 export enum ScopeType {
@@ -16,10 +21,7 @@ export enum ScopeType {
 }
 
 /** Trusted scopes receive the user's default RunProfile when no explicit profile is set. */
-export const TRUSTED_SCOPE_TYPES = new Set<ScopeType>([
-  ScopeType.CHAT_SESSION,
-  ScopeType.CRON_JOB,
-]);
+export const TRUSTED_SCOPE_TYPES = new Set<ScopeType>([ScopeType.CHAT_SESSION, ScopeType.CRON_JOB]);
 
 /** A single tool's selection state */
 export interface ToolSelection {

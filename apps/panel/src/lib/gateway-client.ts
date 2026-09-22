@@ -103,7 +103,11 @@ export class GatewayChatClient {
   }
 
   request<T = unknown>(method: string, params?: unknown, timeoutMs = 30_000): Promise<T> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN || (method !== "connect" && !this.authenticated)) {
+    if (
+      !this.ws ||
+      this.ws.readyState !== WebSocket.OPEN ||
+      (method !== "connect" && !this.authenticated)
+    ) {
       return Promise.reject(new Error("gateway not connected"));
     }
     const id = crypto.randomUUID();

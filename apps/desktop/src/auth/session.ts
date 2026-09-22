@@ -37,9 +37,7 @@ export type CredentialsChangedEvent = {
   state: "available" | "cleared";
   reason: CredentialsChangeReason;
 };
-export type CredentialsChangedListener = (
-  event: CredentialsChangedEvent,
-) => void | Promise<void>;
+export type CredentialsChangedListener = (event: CredentialsChangedEvent) => void | Promise<void>;
 
 interface RefreshOptions {
   clearOnInvalid?: boolean;
@@ -85,12 +83,17 @@ export interface GoogleLoginRequest {
 }
 
 function isRecoverableAuthErrorMessage(message: string): boolean {
-  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
+  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(
+    message,
+  );
 }
 
 function isSessionInvalidErrorMessage(message: string): boolean {
-  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message)
-    || isTerminalRefreshErrorMessage(message);
+  return (
+    /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(
+      message,
+    ) || isTerminalRefreshErrorMessage(message)
+  );
 }
 
 function isTerminalRefreshErrorMessage(message: string): boolean {
@@ -99,9 +102,9 @@ function isTerminalRefreshErrorMessage(message: string): boolean {
 
 function isTerminalRefreshError(error: unknown): boolean {
   return (
-    error instanceof GraphqlRequestError
-    && error.code === "REFRESH_TOKEN_REVOKED"
-  ) || isTerminalRefreshErrorMessage(getErrorMessage(error));
+    (error instanceof GraphqlRequestError && error.code === "REFRESH_TOKEN_REVOKED") ||
+    isTerminalRefreshErrorMessage(getErrorMessage(error))
+  );
 }
 
 class JwtIllegalError extends Error {
@@ -175,7 +178,9 @@ export class AuthSessionManager {
     for (const listener of this.userChangedListeners) {
       try {
         await listener(user);
-      } catch { /* listener errors must not break auth flow */ }
+      } catch {
+        /* listener errors must not break auth flow */
+      }
     }
   }
 
@@ -192,7 +197,9 @@ export class AuthSessionManager {
       this.secureStorageAvailable = false;
       log.error("loadFromKeychain: secure storage unavailable");
     }
-    log.info(`loadFromKeychain: access=${this.accessToken ? "found" : "missing"} refresh=${this.refreshToken ? "found" : "missing"}`);
+    log.info(
+      `loadFromKeychain: access=${this.accessToken ? "found" : "missing"} refresh=${this.refreshToken ? "found" : "missing"}`,
+    );
   }
 
   isSecureStorageAvailable(): boolean {
@@ -270,7 +277,9 @@ export class AuthSessionManager {
     const attemptedRefreshToken = this.refreshToken;
 
     try {
-      const result = await this.graphqlFetch<{ refreshToken: { accessToken: string; refreshToken: string; user: GQL.MeResponse } }>(
+      const result = await this.graphqlFetch<{
+        refreshToken: { accessToken: string; refreshToken: string; user: GQL.MeResponse };
+      }>(
         REFRESH_TOKEN_MUTATION,
         { refreshToken: attemptedRefreshToken },
         { autoRefresh: false, includeAccessToken: false },
@@ -374,7 +383,12 @@ export class AuthSessionManager {
   }
 
   /** Log in with email/password credentials. Desktop calls Cloud, stores tokens, returns user. */
-  async loginWithCredentials(input: { email: string; password: string; captchaToken?: string; captchaAnswer?: string }): Promise<GQL.MeResponse> {
+  async loginWithCredentials(input: {
+    email: string;
+    password: string;
+    captchaToken?: string;
+    captchaAnswer?: string;
+  }): Promise<GQL.MeResponse> {
     const data = await this.graphqlFetch<{ login: GQL.AuthPayload }>(LOGIN_MUTATION, { input });
     await this.storeTokens(data.login.accessToken, data.login.refreshToken);
     await this.setUser(data.login.user);
@@ -391,7 +405,9 @@ export class AuthSessionManager {
     inviteCode?: string | null;
     attribution?: MarketingAttribution;
   }): Promise<GQL.MeResponse> {
-    const data = await this.graphqlFetch<{ register: GQL.AuthPayload }>(REGISTER_MUTATION, { input });
+    const data = await this.graphqlFetch<{ register: GQL.AuthPayload }>(REGISTER_MUTATION, {
+      input,
+    });
     await this.storeTokens(data.register.accessToken, data.register.refreshToken);
     await this.setUser(data.register.user);
     return data.register.user;
@@ -400,11 +416,10 @@ export class AuthSessionManager {
   async getDesktopGoogleAuthConfig(): Promise<DesktopGoogleAuthConfig> {
     const data = await this.graphqlFetch<{
       desktopGoogleAuthConfig: DesktopGoogleAuthConfig;
-    }>(
-      DESKTOP_GOOGLE_AUTH_CONFIG_QUERY,
-      undefined,
-      { autoRefresh: false, includeAccessToken: false },
-    );
+    }>(DESKTOP_GOOGLE_AUTH_CONFIG_QUERY, undefined, {
+      autoRefresh: false,
+      includeAccessToken: false,
+    });
     return data.desktopGoogleAuthConfig;
   }
 
@@ -433,7 +448,9 @@ export class AuthSessionManager {
   }
 
   /** Request a CAPTCHA challenge from the Cloud. */
-  async requestCaptcha(options?: { deterministicToken?: string }): Promise<{ token: string; svg: string }> {
+  async requestCaptcha(options?: {
+    deterministicToken?: string;
+  }): Promise<{ token: string; svg: string }> {
     const variables = options?.deterministicToken
       ? { deterministicToken: options.deterministicToken }
       : undefined;
@@ -471,11 +488,12 @@ export class AuthSessionManager {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
 
-    const doFetch = () => this.fetchFn(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ query, variables, extensions: requestExtensions }),
-    });
+    const doFetch = () =>
+      this.fetchFn(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ query, variables, extensions: requestExtensions }),
+      });
 
     let res = await doFetch();
 
@@ -486,16 +504,16 @@ export class AuthSessionManager {
       res = await doFetch();
     }
 
-    let json = await res.json() as GraphqlResponseEnvelope<T>;
+    let json = (await res.json()) as GraphqlResponseEnvelope<T>;
 
     // Some servers return auth errors as GraphQL errors (HTTP 200) rather than HTTP 401.
     // Attempt a token refresh if we haven't already.
     if (autoRefresh && json.errors?.length && !refreshed && this.refreshToken) {
-      const msg = json.errors.map(e => e.message).join("; ");
+      const msg = json.errors.map((e) => e.message).join("; ");
       if (isRecoverableAuthErrorMessage(msg)) {
         headers["Authorization"] = `Bearer ${await this.refresh()}`;
         res = await doFetch();
-        json = await res.json() as GraphqlResponseEnvelope<T>;
+        json = (await res.json()) as GraphqlResponseEnvelope<T>;
       }
     }
 

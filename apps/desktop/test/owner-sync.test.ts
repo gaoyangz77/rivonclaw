@@ -10,17 +10,28 @@ import {
 } from "../src/channels/telegram-debug-support.js";
 
 function createTestStorage(): Storage {
-  const accounts = new Map<string, { channelId: string; accountId: string; name: string | null; config: Record<string, unknown> }>();
-  const recipients = new Map<string, { channelId: string; recipientId: string; isOwner: boolean }>();
+  const accounts = new Map<
+    string,
+    { channelId: string; accountId: string; name: string | null; config: Record<string, unknown> }
+  >();
+  const recipients = new Map<
+    string,
+    { channelId: string; recipientId: string; isOwner: boolean }
+  >();
   const settings = new Map<string, string>();
   const key = (channelId: string, id: string) => `${channelId}:${id}`;
 
   return {
     channelAccounts: {
-      list: (channelId?: string) => [...accounts.values()]
-        .filter((account) => !channelId || account.channelId === channelId),
+      list: (channelId?: string) =>
+        [...accounts.values()].filter((account) => !channelId || account.channelId === channelId),
       get: (channelId: string, accountId: string) => accounts.get(key(channelId, accountId)),
-      upsert: (channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
+      upsert: (
+        channelId: string,
+        accountId: string,
+        name: string | null,
+        config: Record<string, unknown>,
+      ) => {
         const account = {
           channelId,
           accountId,
@@ -53,9 +64,10 @@ function createTestStorage(): Storage {
           recipients.set(recipientKey, { ...existing, isOwner });
         }
       },
-      getOwners: () => [...recipients.values()]
-        .filter((recipient) => recipient.isOwner)
-        .map(({ channelId, recipientId }) => ({ channelId, recipientId })),
+      getOwners: () =>
+        [...recipients.values()]
+          .filter((recipient) => recipient.isOwner)
+          .map(({ channelId, recipientId }) => ({ channelId, recipientId })),
     },
     settings: {
       get: (settingKey: string) => settings.get(settingKey),
@@ -114,19 +126,24 @@ describe("owner-sync", () => {
       syncOwnerAllowFrom(storage, configPath);
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.commands.ownerAllowFrom).toEqual([
-        "openclaw-control-ui",
-        "telegram:owner1",
-      ]);
+      expect(config.commands.ownerAllowFrom).toEqual(["openclaw-control-ui", "telegram:owner1"]);
     });
 
     it("should preserve existing commands config", () => {
-      writeFileSync(configPath, JSON.stringify({
-        commands: {
-          prefix: "!",
-          enabled: true,
-        },
-      }, null, 2) + "\n", "utf-8");
+      writeFileSync(
+        configPath,
+        JSON.stringify(
+          {
+            commands: {
+              prefix: "!",
+              enabled: true,
+            },
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf-8",
+      );
 
       syncOwnerAllowFrom(storage, configPath);
 
@@ -185,11 +202,7 @@ describe("owner-sync", () => {
       storage.channelRecipients.ensureExists("telegram", "333", false);
 
       const result = buildOwnerAllowFrom(storage);
-      expect(result).toEqual([
-        "openclaw-control-ui",
-        "telegram:111",
-        "whatsapp:222",
-      ]);
+      expect(result).toEqual(["openclaw-control-ui", "telegram:111", "whatsapp:222"]);
     });
 
     it("should inject hidden Telegram debug operators as owners", () => {
@@ -205,11 +218,7 @@ describe("owner-sync", () => {
       );
 
       const result = buildOwnerAllowFrom(storage);
-      expect(result).toEqual([
-        "openclaw-control-ui",
-        "telegram:111",
-        "telegram:222",
-      ]);
+      expect(result).toEqual(["openclaw-control-ui", "telegram:111", "telegram:222"]);
     });
   });
 });

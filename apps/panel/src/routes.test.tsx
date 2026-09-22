@@ -5,9 +5,9 @@ import { canSeeRoute } from "./lib/permission-scope.js";
 
 describe("commerce navigation", () => {
   it("puts Campaign and Team on the first Affiliate row, then the two workbenches", () => {
-    const affiliateChildren = ROUTES
-      .filter((route) => route.parentPath === "/commerce/affiliate")
-      .map((route) => route.path);
+    const affiliateChildren = ROUTES.filter(
+      (route) => route.parentPath === "/commerce/affiliate",
+    ).map((route) => route.path);
 
     expect(affiliateChildren).toEqual([
       "/commerce/affiliate/campaigns",
@@ -69,9 +69,9 @@ describe("design-system review route", () => {
 describe("permission-scope navigation", () => {
   it("gives an AFFILIATE-only member the Affiliate group plus the base pages", () => {
     const bd = { isOwner: false, permissionScopes: [GQL.PermissionScope.Affiliate] };
-    const visible = ROUTES
-      .filter((route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, bd))
-      .map((route) => route.path);
+    const visible = ROUTES.filter(
+      (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, bd),
+    ).map((route) => route.path);
 
     expect(visible).toEqual([
       "/commerce/affiliate",
@@ -96,13 +96,13 @@ describe("permission-scope navigation", () => {
   });
 
   it("lands an AFFILIATE-only member on the campaigns page", () => {
-    expect(resolveLandingPath([GQL.PermissionScope.Affiliate]))
-      .toBe("/commerce/affiliate/campaigns");
+    expect(resolveLandingPath([GQL.PermissionScope.Affiliate])).toBe(
+      "/commerce/affiliate/campaigns",
+    );
   });
 
   it("keeps the chat page for anyone holding CHAT", () => {
-    expect(resolveLandingPath([GQL.PermissionScope.Chat, GQL.PermissionScope.Affiliate]))
-      .toBe("/");
+    expect(resolveLandingPath([GQL.PermissionScope.Chat, GQL.PermissionScope.Affiliate])).toBe("/");
   });
 
   it("points every scope landing path at a real route", () => {

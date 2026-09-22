@@ -1,19 +1,8 @@
-import {
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  unlinkSync,
-  readdirSync,
-} from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, unlinkSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { hostname, userInfo } from "node:os";
 import { resolveSecretsDir } from "@rivonclaw/core/node";
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  scryptSync,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 import type { SecretKey, SecretStore } from "../types.js";
 import { createLogger } from "@rivonclaw/logger";
 
@@ -71,10 +60,7 @@ export class FileSecretStore implements SecretStore {
   private encrypt(plaintext: string): Buffer {
     const iv = randomBytes(IV_LENGTH);
     const cipher = createCipheriv(ALGORITHM, this.encKey, iv);
-    const encrypted = Buffer.concat([
-      cipher.update(plaintext, "utf8"),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
     const authTag = cipher.getAuthTag();
     // Format: [iv (16)] [authTag (16)] [ciphertext (rest)]
     return Buffer.concat([iv, authTag, encrypted]);
@@ -124,9 +110,7 @@ export class FileSecretStore implements SecretStore {
   async listKeys(): Promise<string[]> {
     try {
       const files = readdirSync(this.dir);
-      const keys = files
-        .filter((f) => f.endsWith(".enc"))
-        .map((f) => f.slice(0, -4));
+      const keys = files.filter((f) => f.endsWith(".enc")).map((f) => f.slice(0, -4));
       log.debug("listKeys: count=" + keys.length);
       return keys;
     } catch {

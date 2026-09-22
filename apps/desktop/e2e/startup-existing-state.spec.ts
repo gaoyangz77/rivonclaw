@@ -4,7 +4,10 @@ import { test, expect, getCurrentTempDir } from "./electron-fixture.js";
 
 test.use({ restartWithExistingState: true });
 
-test("restarts with existing SQLite state and reaches Gateway ready", async ({ electronApp, window }) => {
+test("restarts with existing SQLite state and reaches Gateway ready", async ({
+  electronApp,
+  window,
+}) => {
   await expect(window.locator(".chat-status-dot-connected")).toBeVisible();
   expect(await window.title()).toBe("TK Copilot");
   expect(await electronApp.evaluate(() => process.env.ELECTRON_RUN_AS_NODE)).not.toBe("1");

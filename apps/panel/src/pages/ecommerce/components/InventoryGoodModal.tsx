@@ -31,7 +31,11 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
     <Modal
       isOpen={inventory.inventoryGoodModalOpen}
       onClose={() => inventory.closeInventoryGoodModal()}
-      title={isEdit ? t("ecommerce.inventory.editInventoryGood") : t("ecommerce.inventory.addInventoryGood")}
+      title={
+        isEdit
+          ? t("ecommerce.inventory.editInventoryGood")
+          : t("ecommerce.inventory.addInventoryGood")
+      }
       maxWidth={760}
       preventBackdropClose={busy}
     >
@@ -70,21 +74,38 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
           </div>
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.gtin")}</label>
-            <input className="input-full input-mono" value={draft.gtin} onChange={(e) => inventory.updateInventoryGoodDraft({ gtin: e.target.value })} disabled={busy} />
+            <input
+              className="input-full input-mono"
+              value={draft.gtin}
+              onChange={(e) => inventory.updateInventoryGoodDraft({ gtin: e.target.value })}
+              disabled={busy}
+            />
           </div>
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.barcode")}</label>
-            <input className="input-full input-mono" value={draft.barcode} onChange={(e) => inventory.updateInventoryGoodDraft({ barcode: e.target.value })} disabled={busy} />
+            <input
+              className="input-full input-mono"
+              value={draft.barcode}
+              onChange={(e) => inventory.updateInventoryGoodDraft({ barcode: e.target.value })}
+              disabled={busy}
+            />
           </div>
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.hsCode")}</label>
-            <input className="input-full input-mono" value={draft.hsCode} onChange={(e) => inventory.updateInventoryGoodDraft({ hsCode: e.target.value })} disabled={busy} />
+            <input
+              className="input-full input-mono"
+              value={draft.hsCode}
+              onChange={(e) => inventory.updateInventoryGoodDraft({ hsCode: e.target.value })}
+              disabled={busy}
+            />
           </div>
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.countryOfOrigin")}</label>
             <Select
               value={draft.countryOfOrigin}
-              onChange={(countryOfOrigin) => inventory.updateInventoryGoodDraft({ countryOfOrigin })}
+              onChange={(countryOfOrigin) =>
+                inventory.updateInventoryGoodDraft({ countryOfOrigin })
+              }
               className="input-full"
               placeholder={t("common.none")}
               disabled={busy}
@@ -97,7 +118,17 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.weight")}</label>
             <div className="inventory-good-inline-fields">
-              <input type="number" min="0" step="any" className="input-full" value={draft.weightValue} onChange={(e) => inventory.updateInventoryGoodDraft({ weightValue: e.target.value })} disabled={busy} />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="input-full"
+                value={draft.weightValue}
+                onChange={(e) =>
+                  inventory.updateInventoryGoodDraft({ weightValue: e.target.value })
+                }
+                disabled={busy}
+              />
               <Select
                 value={draft.weightUnit}
                 onChange={(weightUnit) => inventory.updateInventoryGoodDraft({ weightUnit })}
@@ -115,9 +146,40 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.dimensions")}</label>
             <div className="inventory-good-inline-fields inventory-good-dimensions-fields">
-              <input type="number" min="0" step="any" className="input-full" value={draft.lengthValue} onChange={(e) => inventory.updateInventoryGoodDraft({ lengthValue: e.target.value })} placeholder="L" disabled={busy} />
-              <input type="number" min="0" step="any" className="input-full" value={draft.widthValue} onChange={(e) => inventory.updateInventoryGoodDraft({ widthValue: e.target.value })} placeholder="W" disabled={busy} />
-              <input type="number" min="0" step="any" className="input-full" value={draft.heightValue} onChange={(e) => inventory.updateInventoryGoodDraft({ heightValue: e.target.value })} placeholder="H" disabled={busy} />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="input-full"
+                value={draft.lengthValue}
+                onChange={(e) =>
+                  inventory.updateInventoryGoodDraft({ lengthValue: e.target.value })
+                }
+                placeholder="L"
+                disabled={busy}
+              />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="input-full"
+                value={draft.widthValue}
+                onChange={(e) => inventory.updateInventoryGoodDraft({ widthValue: e.target.value })}
+                placeholder="W"
+                disabled={busy}
+              />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="input-full"
+                value={draft.heightValue}
+                onChange={(e) =>
+                  inventory.updateInventoryGoodDraft({ heightValue: e.target.value })
+                }
+                placeholder="H"
+                disabled={busy}
+              />
               <Select
                 value={draft.dimensionUnit}
                 onChange={(dimensionUnit) => inventory.updateInventoryGoodDraft({ dimensionUnit })}
@@ -132,13 +194,25 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
           </div>
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.declaredValue")}</label>
-            <input type="number" min="0" step="any" className="input-full" value={draft.declaredValue} onChange={(e) => inventory.updateInventoryGoodDraft({ declaredValue: e.target.value })} disabled={busy} />
+            <input
+              type="number"
+              min="0"
+              step="any"
+              className="input-full"
+              value={draft.declaredValue}
+              onChange={(e) =>
+                inventory.updateInventoryGoodDraft({ declaredValue: e.target.value })
+              }
+              disabled={busy}
+            />
           </div>
           <div>
             <label className="form-label-block">{t("ecommerce.inventory.currency")}</label>
             <Select
               value={draft.declaredValueCurrency}
-              onChange={(declaredValueCurrency) => inventory.updateInventoryGoodDraft({ declaredValueCurrency })}
+              onChange={(declaredValueCurrency) =>
+                inventory.updateInventoryGoodDraft({ declaredValueCurrency })
+              }
               className="input-full"
               placeholder={t("common.none")}
               disabled={busy}
@@ -160,7 +234,9 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
           />
           <div className="inventory-good-image-actions">
             <label className={`btn btn-secondary btn-sm${busy ? " btn-disabled" : ""}`}>
-              {inventory.inventoryGoodUploadingImage ? t("common.loading") : t("ecommerce.inventory.uploadImage")}
+              {inventory.inventoryGoodUploadingImage
+                ? t("common.loading")
+                : t("ecommerce.inventory.uploadImage")}
               <input
                 type="file"
                 accept="image/*"
@@ -214,11 +290,20 @@ export const InventoryGoodModal = observer(function InventoryGoodModal() {
         )}
 
         <div className="modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={() => inventory.closeInventoryGoodModal()} disabled={busy}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => inventory.closeInventoryGoodModal()}
+            disabled={busy}
+          >
             {t("common.cancel")}
           </button>
           <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
-            {busy ? t("common.loading") : isEdit ? t("common.save") : t("ecommerce.inventory.addInventoryGood")}
+            {busy
+              ? t("common.loading")
+              : isEdit
+                ? t("common.save")
+                : t("ecommerce.inventory.addInventoryGood")}
           </button>
         </div>
       </form>

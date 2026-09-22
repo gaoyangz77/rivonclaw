@@ -23,9 +23,7 @@ export type {
   KeyUsageDailyBucket,
   KeyUsageQueryParams,
 } from "./key-usage.js";
-export type {
-  InstalledSkill,
-} from "./skills.js";
+export type { InstalledSkill } from "./skills.js";
 export type {
   CSInboundMessage,
   CSOutboundMessage,
@@ -118,11 +116,5 @@ export type {
   ToolSessionContext,
 } from "./cs-session.js";
 
-export {
-  tiktokTokenLifecycleSchema,
-  tiktokOAuthCallbackSchema,
-} from "./tiktok-oauth.js";
-export type {
-  TikTokTokenLifecycle,
-  TikTokOAuthCallback,
-} from "./tiktok-oauth.js";
+export { tiktokTokenLifecycleSchema, tiktokOAuthCallbackSchema } from "./tiktok-oauth.js";
+export type { TikTokTokenLifecycle, TikTokOAuthCallback } from "./tiktok-oauth.js";

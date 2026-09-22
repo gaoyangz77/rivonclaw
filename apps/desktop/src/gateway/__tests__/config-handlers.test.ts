@@ -58,9 +58,11 @@ describe("createGatewayConfigHandlers", () => {
     deps = createDeps();
     mockBuildGatewayEnv.mockResolvedValue({ SECRET_KEY: "secret-val" });
     // applyConfigMutation: execute the mutator, then record the policy
-    mockApplyConfigMutation.mockImplementation(async (mutator: () => Promise<void> | void, _policy: string) => {
-      await mutator();
-    });
+    mockApplyConfigMutation.mockImplementation(
+      async (mutator: () => Promise<void> | void, _policy: string) => {
+        await mutator();
+      },
+    );
     handlers = createGatewayConfigHandlers(deps);
   });
 
@@ -73,10 +75,9 @@ describe("createGatewayConfigHandlers", () => {
       expect(mockApplyConfigMutation).toHaveBeenCalledWith(expect.any(Function), "restart_process");
       expect(deps.buildFullGatewayConfig).toHaveBeenCalled();
       expect(deps.writeGatewayConfig).toHaveBeenCalledWith({ configKey: "configValue" });
-      expect(mockBuildGatewayEnv).toHaveBeenCalledWith(
-        deps.secretStore,
-        { ELECTRON_RUN_AS_NODE: "1" },
-      );
+      expect(mockBuildGatewayEnv).toHaveBeenCalledWith(deps.secretStore, {
+        ELECTRON_RUN_AS_NODE: "1",
+      });
       expect(deps.launcher.setEnv).toHaveBeenCalledWith({
         SECRET_KEY: "secret-val",
         PROXY_KEY: "proxy-val",

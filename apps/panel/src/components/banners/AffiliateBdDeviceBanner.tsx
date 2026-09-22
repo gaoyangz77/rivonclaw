@@ -32,10 +32,13 @@ export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const skip = !user || authChecking;
 
-  const developersQuery = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
-    AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
-    { variables: { includeArchived: true }, fetchPolicy: "cache-and-network", skip },
-  );
+  const developersQuery = useQuery<{
+    affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[];
+  }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
+    variables: { includeArchived: true },
+    fetchPolicy: "cache-and-network",
+    skip,
+  });
 
   if (skip) return null;
   const missingDeviceNames = (developersQuery.data?.affiliateBusinessDevelopers ?? [])
@@ -48,7 +51,9 @@ export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner
       <span className="customer-service-routing-banner-title">
         {t("ecommerce.affiliateTeam.deviceBannerTitle")}
       </span>
-      <span>{t("ecommerce.affiliateTeam.deviceBannerBody", { names: missingDeviceNames.join(", ") })}</span>
+      <span>
+        {t("ecommerce.affiliateTeam.deviceBannerBody", { names: missingDeviceNames.join(", ") })}
+      </span>
       <span className="quota-banner-actions">
         <button
           type="button"

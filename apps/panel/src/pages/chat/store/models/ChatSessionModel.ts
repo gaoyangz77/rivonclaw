@@ -192,7 +192,8 @@ export const ChatSessionModel = types
       if (self.metadataHydrating) return false;
       const now = params?.now ?? Date.now();
       const ttlMs = params?.ttlMs ?? 30_000;
-      const needsDerivedTitle = params?.includeDerivedTitles === true && !self.metadataDerivedHydrated;
+      const needsDerivedTitle =
+        params?.includeDerivedTitles === true && !self.metadataDerivedHydrated;
       const recentlyHydrated =
         self.metadataLastHydratedAt > 0 && now - self.metadataLastHydratedAt < ttlMs;
       if (!params?.force && !needsDerivedTitle && recentlyHydrated) return false;

@@ -98,7 +98,9 @@ export const ThemeToggle = observer(function ThemeToggle() {
                 className={`theme-menu-option${themePreference === mode ? " theme-menu-option-active" : ""}`}
                 onClick={() => chooseTheme(mode)}
               >
-                <span className="theme-menu-option-icon"><Icon /></span>
+                <span className="theme-menu-option-icon">
+                  <Icon />
+                </span>
                 <span>{t(`theme.${mode}`)}</span>
               </button>
             );

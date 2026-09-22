@@ -7,14 +7,9 @@
   "types": "dist/index.d.mts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.mts"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
-  },
-  "openclaw": {
-    "extensions": [
-      "./dist/index.mjs"
-    ]
   },
   "scripts": {
     "build": "tsdown",
@@ -25,5 +20,10 @@
   },
   "devDependencies": {
     "tsdown": "^0.20.3"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.mjs"
+    ]
   }
 }

@@ -59,7 +59,8 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
         return;
       }
       cleanupOAuthWait();
-      void entityStore.fetchShops()
+      void entityStore
+        .fetchShops()
         .then(() => {
           showToast(t("tiktokShops.oauthSuccess"), "success");
         })

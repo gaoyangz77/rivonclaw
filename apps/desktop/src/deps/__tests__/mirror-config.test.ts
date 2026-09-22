@@ -6,15 +6,21 @@ vi.mock("@rivonclaw/logger", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { mockExecFile, mockExistsSyncFn, mockMkdirSyncFn, mockWriteFileSyncFn, mockPlatform, mockHomedir } =
-  vi.hoisted(() => ({
-    mockExecFile: vi.fn(),
-    mockExistsSyncFn: vi.fn<(path: string) => boolean>(() => false),
-    mockMkdirSyncFn: vi.fn(),
-    mockWriteFileSyncFn: vi.fn(),
-    mockPlatform: vi.fn<() => NodeJS.Platform>(() => "darwin"),
-    mockHomedir: vi.fn(() => "/Users/testuser"),
-  }));
+const {
+  mockExecFile,
+  mockExistsSyncFn,
+  mockMkdirSyncFn,
+  mockWriteFileSyncFn,
+  mockPlatform,
+  mockHomedir,
+} = vi.hoisted(() => ({
+  mockExecFile: vi.fn(),
+  mockExistsSyncFn: vi.fn<(path: string) => boolean>(() => false),
+  mockMkdirSyncFn: vi.fn(),
+  mockWriteFileSyncFn: vi.fn(),
+  mockPlatform: vi.fn<() => NodeJS.Platform>(() => "darwin"),
+  mockHomedir: vi.fn(() => "/Users/testuser"),
+}));
 
 vi.mock("node:child_process", () => ({
   execFile: mockExecFile,
@@ -44,9 +50,7 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function setupExecFile(
-  outcomes: Record<string, { stdout: string; stderr: string } | Error>,
-) {
+function setupExecFile(outcomes: Record<string, { stdout: string; stderr: string } | Error>) {
   mockExecFile.mockImplementation(
     (
       cmd: string,
@@ -94,9 +98,15 @@ describe("getMirrorEnv", () => {
 
     expect(env).not.toBeNull();
     expect(env!.HOMEBREW_BREW_GIT_REMOTE).toBe("https://mirrors.aliyun.com/homebrew/brew.git");
-    expect(env!.HOMEBREW_CORE_GIT_REMOTE).toBe("https://mirrors.aliyun.com/homebrew/homebrew-core.git");
-    expect(env!.HOMEBREW_BOTTLE_DOMAIN).toBe("https://mirrors.aliyun.com/homebrew/homebrew-bottles");
-    expect(env!.HOMEBREW_API_DOMAIN).toBe("https://mirrors.aliyun.com/homebrew/homebrew-bottles/api");
+    expect(env!.HOMEBREW_CORE_GIT_REMOTE).toBe(
+      "https://mirrors.aliyun.com/homebrew/homebrew-core.git",
+    );
+    expect(env!.HOMEBREW_BOTTLE_DOMAIN).toBe(
+      "https://mirrors.aliyun.com/homebrew/homebrew-bottles",
+    );
+    expect(env!.HOMEBREW_API_DOMAIN).toBe(
+      "https://mirrors.aliyun.com/homebrew/homebrew-bottles/api",
+    );
   });
 
   it('returns null for "global" region', () => {
@@ -137,10 +147,7 @@ describe("configureMirrors", () => {
     await configureMirrors("cn");
 
     // Should create pip directory and write config
-    expect(mockMkdirSyncFn).toHaveBeenCalledWith(
-      "/Users/testuser/.pip",
-      { recursive: true },
-    );
+    expect(mockMkdirSyncFn).toHaveBeenCalledWith("/Users/testuser/.pip", { recursive: true });
     expect(mockWriteFileSyncFn).toHaveBeenCalledWith(
       "/Users/testuser/.pip/pip.conf",
       expect.stringContaining("https://mirrors.aliyun.com/pypi/simple"),
@@ -171,10 +178,9 @@ describe("configureMirrors", () => {
 
     // On a non-Windows host, path.join uses "/" so the exact separator
     // may differ. Assert the meaningful parts are present.
-    expect(mockMkdirSyncFn).toHaveBeenCalledWith(
-      expect.stringContaining("AppData"),
-      { recursive: true },
-    );
+    expect(mockMkdirSyncFn).toHaveBeenCalledWith(expect.stringContaining("AppData"), {
+      recursive: true,
+    });
     const mkdirArg = mockMkdirSyncFn.mock.calls[0][0] as string;
     expect(mkdirArg).toContain("pip");
 

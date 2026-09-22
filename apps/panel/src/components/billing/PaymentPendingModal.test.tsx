@@ -87,36 +87,23 @@ describe("PaymentPendingModal", () => {
       checkoutError: null,
     });
 
-    const { rerender } = render(
-      <PaymentPendingModal
-        paymentId="pay_1"
-        onClose={() => {}}
-      />,
-    );
+    const { rerender } = render(<PaymentPendingModal paymentId="pay_1" onClose={() => {}} />);
 
     expect(screen.getByText("Original checkout")).toBeTruthy();
 
-    mockState.store.replaceActiveCheckout(paymentSnapshot({
-      subject: "Replacement checkout",
-      updatedAt: "2026-01-01T00:01:00.000Z",
-      lastProviderEventAt: "2026-01-01T00:01:00.000Z",
-    }));
-    rerender(
-      <PaymentPendingModal
-        paymentId="pay_1"
-        onClose={() => {}}
-      />,
+    mockState.store.replaceActiveCheckout(
+      paymentSnapshot({
+        subject: "Replacement checkout",
+        updatedAt: "2026-01-01T00:01:00.000Z",
+        lastProviderEventAt: "2026-01-01T00:01:00.000Z",
+      }),
     );
+    rerender(<PaymentPendingModal paymentId="pay_1" onClose={() => {}} />);
 
     expect(screen.getByText("Replacement checkout")).toBeTruthy();
 
     mockState.store.replaceActiveCheckout(null);
-    rerender(
-      <PaymentPendingModal
-        paymentId="pay_1"
-        onClose={() => {}}
-      />,
-    );
+    rerender(<PaymentPendingModal paymentId="pay_1" onClose={() => {}} />);
 
     expect(screen.queryByText("Replacement checkout")).toBeNull();
   });

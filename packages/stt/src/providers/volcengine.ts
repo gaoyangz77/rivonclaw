@@ -4,10 +4,8 @@ import type { SttProvider, SttResult } from "../types.js";
 
 const log = createLogger("stt:volcengine");
 
-const SUBMIT_URL =
-  "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit";
-const QUERY_URL =
-  "https://openspeech.bytedance.com/api/v3/auc/bigmodel/query";
+const SUBMIT_URL = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit";
+const QUERY_URL = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/query";
 
 const RESOURCE_ID = "volc.seedasr.auc";
 const MODEL_NAME = "bigmodel";
@@ -36,7 +34,11 @@ export class VolcengineSttProvider implements SttProvider {
   private readonly accessKey: string;
   private readonly fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response>;
 
-  constructor(appKey: string, accessKey: string, fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response> = fetch) {
+  constructor(
+    appKey: string,
+    accessKey: string,
+    fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response> = fetch,
+  ) {
     this.appKey = appKey;
     this.accessKey = accessKey;
     this.fetchFn = fetchFn;
@@ -65,11 +67,7 @@ export class VolcengineSttProvider implements SttProvider {
     };
   }
 
-  private async submit(
-    audio: Buffer,
-    format: string,
-    requestId: string,
-  ): Promise<void> {
+  private async submit(audio: Buffer, format: string, requestId: string): Promise<void> {
     const response = await this.fetchFn(SUBMIT_URL, {
       method: "POST",
       headers: {

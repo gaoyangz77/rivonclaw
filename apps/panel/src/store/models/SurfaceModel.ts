@@ -1,9 +1,6 @@
 import { flow, getEnv } from "mobx-state-tree";
 import { SurfaceModel as SurfaceModelBase } from "@rivonclaw/core/models";
-import {
-  UPDATE_SURFACE_MUTATION,
-  DELETE_SURFACE_MUTATION,
-} from "../../api/surfaces-queries.js";
+import { UPDATE_SURFACE_MUTATION, DELETE_SURFACE_MUTATION } from "../../api/surfaces-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
 export const SurfaceModel = SurfaceModelBase.actions((self) => {

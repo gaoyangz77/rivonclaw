@@ -21,26 +21,18 @@ export class ToolSelectionsRepository {
 
   getForScope(scopeType: ToolScopeType, scopeKey: string): ToolSelection[] {
     const rows = this.db
-      .prepare(
-        "SELECT * FROM tool_selections WHERE scope_type = ? AND scope_key = ?",
-      )
+      .prepare("SELECT * FROM tool_selections WHERE scope_type = ? AND scope_key = ?")
       .all(scopeType, scopeKey) as ToolSelectionRow[];
 
     return rows.map(rowToToolSelection);
   }
 
-  setForScope(
-    scopeType: ToolScopeType,
-    scopeKey: string,
-    selections: ToolSelection[],
-  ): void {
+  setForScope(scopeType: ToolScopeType, scopeKey: string, selections: ToolSelection[]): void {
     const now = Date.now();
 
     const txn = this.db.transaction(() => {
       this.db
-        .prepare(
-          "DELETE FROM tool_selections WHERE scope_type = ? AND scope_key = ?",
-        )
+        .prepare("DELETE FROM tool_selections WHERE scope_type = ? AND scope_key = ?")
         .run(scopeType, scopeKey);
 
       const insert = this.db.prepare(
@@ -58,18 +50,16 @@ export class ToolSelectionsRepository {
 
   deleteForScope(scopeType: ToolScopeType, scopeKey: string): void {
     this.db
-      .prepare(
-        "DELETE FROM tool_selections WHERE scope_type = ? AND scope_key = ?",
-      )
+      .prepare("DELETE FROM tool_selections WHERE scope_type = ? AND scope_key = ?")
       .run(scopeType, scopeKey);
   }
 
   /** List all distinct (scopeType, scopeKey) pairs that have selections. */
   listScopes(): Array<{ scopeType: ToolScopeType; scopeKey: string }> {
-    const rows = this.db.prepare(
-      "SELECT DISTINCT scope_type, scope_key FROM tool_selections",
-    ).all() as Array<{ scope_type: string; scope_key: string }>;
-    return rows.map(r => ({ scopeType: r.scope_type as ToolScopeType, scopeKey: r.scope_key }));
+    const rows = this.db
+      .prepare("SELECT DISTINCT scope_type, scope_key FROM tool_selections")
+      .all() as Array<{ scope_type: string; scope_key: string }>;
+    return rows.map((r) => ({ scopeType: r.scope_type as ToolScopeType, scopeKey: r.scope_key }));
   }
 
   /**
@@ -82,9 +72,7 @@ export class ToolSelectionsRepository {
    */
   getByKey(scopeKey: string): { scopeType: string; selections: ToolSelection[] } | null {
     const rows = this.db
-      .prepare(
-        "SELECT * FROM tool_selections WHERE scope_key = ? ORDER BY scope_type",
-      )
+      .prepare("SELECT * FROM tool_selections WHERE scope_key = ? ORDER BY scope_type")
       .all(scopeKey) as ToolSelectionRow[];
 
     if (rows.length === 0) return null;
@@ -92,9 +80,7 @@ export class ToolSelectionsRepository {
     // All rows for a given key should share the same scope type in practice.
     // Use the first row's scope_type as the resolved type.
     const scopeType = rows[0].scope_type;
-    const selections = rows
-      .filter((r) => r.scope_type === scopeType)
-      .map(rowToToolSelection);
+    const selections = rows.filter((r) => r.scope_type === scopeType).map(rowToToolSelection);
 
     return { scopeType, selections };
   }

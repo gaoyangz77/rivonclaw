@@ -328,9 +328,7 @@ function statusForStream(event: SceneAgentEvent): StatusUpdate | null {
       return { status: "tooling", activity: typeof name === "string" ? name : "tool" };
     }
     case "approval":
-      return event.data?.phase === "requested"
-        ? { status: "waiting" }
-        : { status: "working" };
+      return event.data?.phase === "requested" ? { status: "waiting" } : { status: "working" };
     // One marker per reply burst, not one per token - the gateway plugin
     // collapses the burst before it ever reaches here.
     case "assistant":

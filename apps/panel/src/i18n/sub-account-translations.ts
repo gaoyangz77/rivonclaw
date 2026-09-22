@@ -9,7 +9,8 @@
 const copy = {
   en: {
     title: "Sub-accounts",
-    description: "Create accounts for your team and control which sections each one can open. Sub-accounts sign in with their own email and password.",
+    description:
+      "Create accounts for your team and control which sections each one can open. Sub-accounts sign in with their own email and password.",
     createMember: "New sub-account",
     editMember: "Edit sub-account",
     needRoleFirst: "Create a role first.",
@@ -36,12 +37,14 @@ const copy = {
     roleMemberCount: "{{count}} sub-accounts",
     disabledLabel: "Disable this sub-account",
     deleteMemberTitle: "Delete sub-account",
-    deleteMemberMessage: "Permanently delete {{email}}? This cannot be undone. To block sign-in without losing the account, disable it instead.",
+    deleteMemberMessage:
+      "Permanently delete {{email}}? This cannot be undone. To block sign-in without losing the account, disable it instead.",
     memberCreated: "Sub-account created.",
     memberUpdated: "Sub-account updated.",
     memberDeleted: "Sub-account deleted.",
     rolesTitle: "Roles",
-    rolesDescription: "A role is a named set of sections. Change a role and every sub-account using it follows.",
+    rolesDescription:
+      "A role is a named set of sections. Change a role and every sub-account using it follows.",
     createRole: "New role",
     noRoles: "No roles yet.",
     systemRole: "Built-in",
@@ -50,7 +53,8 @@ const copy = {
       "Business Developer": "Business Developer",
       "Customer Service": "Customer Service",
     },
-    systemRoleNameHint: "A built-in role keeps its name, but you can still change which sections it grants.",
+    systemRoleNameHint:
+      "A built-in role keeps its name, but you can still change which sections it grants.",
     roleNameLabel: "Role name",
     roleNamePlaceholder: "e.g. Business Developer",
     roleScopesLabel: "Sections",
@@ -74,7 +78,8 @@ const copy = {
   },
   zh: {
     title: "子账号管理",
-    description: "为团队成员创建子账号，并控制每个人可以打开哪些板块。子账号使用各自的邮箱和密码登录。",
+    description:
+      "为团队成员创建子账号，并控制每个人可以打开哪些板块。子账号使用各自的邮箱和密码登录。",
     createMember: "新建子账号",
     editMember: "编辑子账号",
     needRoleFirst: "请先创建角色。",
@@ -101,7 +106,8 @@ const copy = {
     roleMemberCount: "{{count}} 个子账号",
     disabledLabel: "停用该子账号",
     deleteMemberTitle: "删除子账号",
-    deleteMemberMessage: "确定永久删除 {{email}}？此操作不可撤销。如果只是想暂时禁止登录，请改用“停用”。",
+    deleteMemberMessage:
+      "确定永久删除 {{email}}？此操作不可撤销。如果只是想暂时禁止登录，请改用“停用”。",
     memberCreated: "子账号已创建。",
     memberUpdated: "子账号已更新。",
     memberDeleted: "子账号已删除。",
@@ -138,7 +144,8 @@ const copy = {
   },
   de: {
     title: "Unterkonten",
-    description: "Legen Sie Konten für Ihr Team an und steuern Sie, welche Bereiche jedes davon öffnen darf. Unterkonten melden sich mit eigener E-Mail und eigenem Passwort an.",
+    description:
+      "Legen Sie Konten für Ihr Team an und steuern Sie, welche Bereiche jedes davon öffnen darf. Unterkonten melden sich mit eigener E-Mail und eigenem Passwort an.",
     createMember: "Neues Unterkonto",
     editMember: "Unterkonto bearbeiten",
     needRoleFirst: "Legen Sie zuerst eine Rolle an.",
@@ -165,12 +172,14 @@ const copy = {
     roleMemberCount: "{{count}} Unterkonten",
     disabledLabel: "Dieses Unterkonto deaktivieren",
     deleteMemberTitle: "Unterkonto löschen",
-    deleteMemberMessage: "{{email}} endgültig löschen? Das lässt sich nicht rückgängig machen. Um nur die Anmeldung zu sperren, deaktivieren Sie das Konto stattdessen.",
+    deleteMemberMessage:
+      "{{email}} endgültig löschen? Das lässt sich nicht rückgängig machen. Um nur die Anmeldung zu sperren, deaktivieren Sie das Konto stattdessen.",
     memberCreated: "Unterkonto angelegt.",
     memberUpdated: "Unterkonto aktualisiert.",
     memberDeleted: "Unterkonto gelöscht.",
     rolesTitle: "Rollen",
-    rolesDescription: "Eine Rolle ist ein benannter Satz von Bereichen. Ändern Sie die Rolle, gilt das sofort für alle Unterkonten mit dieser Rolle.",
+    rolesDescription:
+      "Eine Rolle ist ein benannter Satz von Bereichen. Ändern Sie die Rolle, gilt das sofort für alle Unterkonten mit dieser Rolle.",
     createRole: "Neue Rolle",
     noRoles: "Noch keine Rollen.",
     systemRole: "Vorgegeben",
@@ -178,7 +187,8 @@ const copy = {
       "Business Developer": "Business Developer",
       "Customer Service": "Kundenservice",
     },
-    systemRoleNameHint: "Der Name einer vorgegebenen Rolle bleibt fest, die gewährten Bereiche können Sie dennoch ändern.",
+    systemRoleNameHint:
+      "Der Name einer vorgegebenen Rolle bleibt fest, die gewährten Bereiche können Sie dennoch ändern.",
     roleNameLabel: "Rollenname",
     roleNamePlaceholder: "z. B. Business Developer",
     roleScopesLabel: "Bereiche",
@@ -202,7 +212,8 @@ const copy = {
   },
   es: {
     title: "Subcuentas",
-    description: "Crea cuentas para tu equipo y controla qué secciones puede abrir cada una. Las subcuentas inician sesión con su propio correo y contraseña.",
+    description:
+      "Crea cuentas para tu equipo y controla qué secciones puede abrir cada una. Las subcuentas inician sesión con su propio correo y contraseña.",
     createMember: "Nueva subcuenta",
     editMember: "Editar subcuenta",
     needRoleFirst: "Crea primero un rol.",
@@ -216,7 +227,8 @@ const copy = {
     createdAt: "Creada el {{date}}",
     emailLabel: "Correo",
     emailPlaceholder: "teammate@example.com",
-    emailImmutableHint: "El correo de inicio de sesión no se puede cambiar después de crear la subcuenta.",
+    emailImmutableHint:
+      "El correo de inicio de sesión no se puede cambiar después de crear la subcuenta.",
     nameLabel: "Nombre",
     namePlaceholder: "Nombre visible (opcional)",
     passwordLabel: "Contraseña",
@@ -229,12 +241,14 @@ const copy = {
     roleMemberCount: "{{count}} subcuentas",
     disabledLabel: "Desactivar esta subcuenta",
     deleteMemberTitle: "Eliminar subcuenta",
-    deleteMemberMessage: "¿Eliminar {{email}} de forma permanente? No se puede deshacer. Para bloquear el acceso sin perder la cuenta, desactívala.",
+    deleteMemberMessage:
+      "¿Eliminar {{email}} de forma permanente? No se puede deshacer. Para bloquear el acceso sin perder la cuenta, desactívala.",
     memberCreated: "Subcuenta creada.",
     memberUpdated: "Subcuenta actualizada.",
     memberDeleted: "Subcuenta eliminada.",
     rolesTitle: "Roles",
-    rolesDescription: "Un rol es un conjunto de secciones con nombre. Si cambias el rol, todas las subcuentas que lo usan se actualizan.",
+    rolesDescription:
+      "Un rol es un conjunto de secciones con nombre. Si cambias el rol, todas las subcuentas que lo usan se actualizan.",
     createRole: "Nuevo rol",
     noRoles: "Aún no hay roles.",
     systemRole: "Integrado",
@@ -242,11 +256,13 @@ const copy = {
       "Business Developer": "Desarrollo de negocio",
       "Customer Service": "Servicio al cliente",
     },
-    systemRoleNameHint: "Un rol integrado conserva su nombre, pero puedes cambiar las secciones que concede.",
+    systemRoleNameHint:
+      "Un rol integrado conserva su nombre, pero puedes cambiar las secciones que concede.",
     roleNameLabel: "Nombre del rol",
     roleNamePlaceholder: "p. ej. Business developer",
     roleScopesLabel: "Secciones",
-    roleScopesHint: "Automatización, Conexiones y las páginas de cuenta siguen disponibles para todos.",
+    roleScopesHint:
+      "Automatización, Conexiones y las páginas de cuenta siguen disponibles para todos.",
     roleInUseHint: "Mueve sus subcuentas a otro rol antes de eliminarlo.",
     systemRoleUndeletableHint: "Un rol integrado no se puede eliminar.",
     deleteRoleTitle: "Eliminar rol",
@@ -266,7 +282,8 @@ const copy = {
   },
   fr: {
     title: "Sous-comptes",
-    description: "Créez des comptes pour votre équipe et choisissez les sections que chacun peut ouvrir. Les sous-comptes se connectent avec leur propre e-mail et mot de passe.",
+    description:
+      "Créez des comptes pour votre équipe et choisissez les sections que chacun peut ouvrir. Les sous-comptes se connectent avec leur propre e-mail et mot de passe.",
     createMember: "Nouveau sous-compte",
     editMember: "Modifier le sous-compte",
     needRoleFirst: "Créez d’abord un rôle.",
@@ -280,7 +297,8 @@ const copy = {
     createdAt: "Créé le {{date}}",
     emailLabel: "E-mail",
     emailPlaceholder: "teammate@example.com",
-    emailImmutableHint: "L’e-mail de connexion ne peut plus être modifié après la création du sous-compte.",
+    emailImmutableHint:
+      "L’e-mail de connexion ne peut plus être modifié après la création du sous-compte.",
     nameLabel: "Nom",
     namePlaceholder: "Nom affiché (facultatif)",
     passwordLabel: "Mot de passe",
@@ -293,12 +311,14 @@ const copy = {
     roleMemberCount: "{{count}} sous-comptes",
     disabledLabel: "Désactiver ce sous-compte",
     deleteMemberTitle: "Supprimer le sous-compte",
-    deleteMemberMessage: "Supprimer définitivement {{email}} ? Cette action est irréversible. Pour bloquer la connexion sans perdre le compte, désactivez-le.",
+    deleteMemberMessage:
+      "Supprimer définitivement {{email}} ? Cette action est irréversible. Pour bloquer la connexion sans perdre le compte, désactivez-le.",
     memberCreated: "Sous-compte créé.",
     memberUpdated: "Sous-compte mis à jour.",
     memberDeleted: "Sous-compte supprimé.",
     rolesTitle: "Rôles",
-    rolesDescription: "Un rôle est un ensemble de sections nommé. Modifiez le rôle et tous les sous-comptes qui l’utilisent suivent.",
+    rolesDescription:
+      "Un rôle est un ensemble de sections nommé. Modifiez le rôle et tous les sous-comptes qui l’utilisent suivent.",
     createRole: "Nouveau rôle",
     noRoles: "Aucun rôle pour l’instant.",
     systemRole: "Intégré",
@@ -306,7 +326,8 @@ const copy = {
       "Business Developer": "Business developer",
       "Customer Service": "Service client",
     },
-    systemRoleNameHint: "Un rôle intégré conserve son nom, mais vous pouvez toujours changer les sections qu’il accorde.",
+    systemRoleNameHint:
+      "Un rôle intégré conserve son nom, mais vous pouvez toujours changer les sections qu’il accorde.",
     roleNameLabel: "Nom du rôle",
     roleNamePlaceholder: "ex. Business developer",
     roleScopesLabel: "Sections",
@@ -330,7 +351,8 @@ const copy = {
   },
   id: {
     title: "Subakun",
-    description: "Buat akun untuk tim Anda dan tentukan bagian mana yang boleh dibuka masing-masing. Subakun masuk dengan email dan kata sandi sendiri.",
+    description:
+      "Buat akun untuk tim Anda dan tentukan bagian mana yang boleh dibuka masing-masing. Subakun masuk dengan email dan kata sandi sendiri.",
     createMember: "Subakun baru",
     editMember: "Edit subakun",
     needRoleFirst: "Buat peran terlebih dahulu.",
@@ -357,12 +379,14 @@ const copy = {
     roleMemberCount: "{{count}} subakun",
     disabledLabel: "Nonaktifkan subakun ini",
     deleteMemberTitle: "Hapus subakun",
-    deleteMemberMessage: "Hapus {{email}} secara permanen? Tindakan ini tidak dapat dibatalkan. Untuk memblokir akses tanpa kehilangan akun, nonaktifkan saja.",
+    deleteMemberMessage:
+      "Hapus {{email}} secara permanen? Tindakan ini tidak dapat dibatalkan. Untuk memblokir akses tanpa kehilangan akun, nonaktifkan saja.",
     memberCreated: "Subakun dibuat.",
     memberUpdated: "Subakun diperbarui.",
     memberDeleted: "Subakun dihapus.",
     rolesTitle: "Peran",
-    rolesDescription: "Peran adalah kumpulan bagian yang diberi nama. Ubah perannya, semua subakun yang memakainya ikut berubah.",
+    rolesDescription:
+      "Peran adalah kumpulan bagian yang diberi nama. Ubah perannya, semua subakun yang memakainya ikut berubah.",
     createRole: "Peran baru",
     noRoles: "Belum ada peran.",
     systemRole: "Bawaan",
@@ -370,7 +394,8 @@ const copy = {
       "Business Developer": "Business developer",
       "Customer Service": "Layanan Pelanggan",
     },
-    systemRoleNameHint: "Peran bawaan mempertahankan namanya, tetapi bagian yang diberikan tetap bisa diubah.",
+    systemRoleNameHint:
+      "Peran bawaan mempertahankan namanya, tetapi bagian yang diberikan tetap bisa diubah.",
     roleNameLabel: "Nama peran",
     roleNamePlaceholder: "mis. Business Developer",
     roleScopesLabel: "Bagian",
@@ -394,7 +419,8 @@ const copy = {
   },
   it: {
     title: "Sottoaccount",
-    description: "Crea account per il tuo team e decidi quali sezioni ciascuno può aprire. I sottoaccount accedono con email e password proprie.",
+    description:
+      "Crea account per il tuo team e decidi quali sezioni ciascuno può aprire. I sottoaccount accedono con email e password proprie.",
     createMember: "Nuovo sottoaccount",
     editMember: "Modifica sottoaccount",
     needRoleFirst: "Crea prima un ruolo.",
@@ -408,7 +434,8 @@ const copy = {
     createdAt: "Creato il {{date}}",
     emailLabel: "Email",
     emailPlaceholder: "teammate@example.com",
-    emailImmutableHint: "L’email di accesso non può essere modificata dopo la creazione del sottoaccount.",
+    emailImmutableHint:
+      "L’email di accesso non può essere modificata dopo la creazione del sottoaccount.",
     nameLabel: "Nome",
     namePlaceholder: "Nome visualizzato (facoltativo)",
     passwordLabel: "Password",
@@ -421,12 +448,14 @@ const copy = {
     roleMemberCount: "{{count}} sottoaccount",
     disabledLabel: "Disattiva questo sottoaccount",
     deleteMemberTitle: "Elimina sottoaccount",
-    deleteMemberMessage: "Eliminare definitivamente {{email}}? L’operazione non è reversibile. Per bloccare l’accesso senza perdere l’account, disattivalo.",
+    deleteMemberMessage:
+      "Eliminare definitivamente {{email}}? L’operazione non è reversibile. Per bloccare l’accesso senza perdere l’account, disattivalo.",
     memberCreated: "Sottoaccount creato.",
     memberUpdated: "Sottoaccount aggiornato.",
     memberDeleted: "Sottoaccount eliminato.",
     rolesTitle: "Ruoli",
-    rolesDescription: "Un ruolo è un insieme di sezioni con un nome. Modifica il ruolo e tutti i sottoaccount che lo usano si adeguano.",
+    rolesDescription:
+      "Un ruolo è un insieme di sezioni con un nome. Modifica il ruolo e tutti i sottoaccount che lo usano si adeguano.",
     createRole: "Nuovo ruolo",
     noRoles: "Ancora nessun ruolo.",
     systemRole: "Predefinito",
@@ -434,7 +463,8 @@ const copy = {
       "Business Developer": "Business developer",
       "Customer Service": "Servizio clienti",
     },
-    systemRoleNameHint: "Un ruolo predefinito mantiene il nome, ma puoi comunque cambiare le sezioni che concede.",
+    systemRoleNameHint:
+      "Un ruolo predefinito mantiene il nome, ma puoi comunque cambiare le sezioni che concede.",
     roleNameLabel: "Nome del ruolo",
     roleNamePlaceholder: "es. Business developer",
     roleScopesLabel: "Sezioni",
@@ -458,7 +488,8 @@ const copy = {
   },
   th: {
     title: "บัญชีย่อย",
-    description: "สร้างบัญชีให้ทีมของคุณ และกำหนดว่าแต่ละบัญชีเปิดส่วนไหนได้บ้าง บัญชีย่อยเข้าสู่ระบบด้วยอีเมลและรหัสผ่านของตนเอง",
+    description:
+      "สร้างบัญชีให้ทีมของคุณ และกำหนดว่าแต่ละบัญชีเปิดส่วนไหนได้บ้าง บัญชีย่อยเข้าสู่ระบบด้วยอีเมลและรหัสผ่านของตนเอง",
     createMember: "สร้างบัญชีย่อย",
     editMember: "แก้ไขบัญชีย่อย",
     needRoleFirst: "กรุณาสร้างบทบาทก่อน",
@@ -485,7 +516,8 @@ const copy = {
     roleMemberCount: "{{count}} บัญชีย่อย",
     disabledLabel: "ปิดใช้งานบัญชีย่อยนี้",
     deleteMemberTitle: "ลบบัญชีย่อย",
-    deleteMemberMessage: "ลบ {{email}} อย่างถาวรหรือไม่ การกระทำนี้ย้อนกลับไม่ได้ หากต้องการเพียงระงับการเข้าสู่ระบบโดยไม่ลบบัญชี ให้ใช้การปิดใช้งานแทน",
+    deleteMemberMessage:
+      "ลบ {{email}} อย่างถาวรหรือไม่ การกระทำนี้ย้อนกลับไม่ได้ หากต้องการเพียงระงับการเข้าสู่ระบบโดยไม่ลบบัญชี ให้ใช้การปิดใช้งานแทน",
     memberCreated: "สร้างบัญชีย่อยแล้ว",
     memberUpdated: "อัปเดตบัญชีย่อยแล้ว",
     memberDeleted: "ลบบัญชีย่อยแล้ว",

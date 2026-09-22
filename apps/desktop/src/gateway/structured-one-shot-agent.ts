@@ -11,9 +11,7 @@ const MAX_REPAIR_OUTPUT_CHARS = 60_000;
 const MAX_REPAIR_CONTEXT_CHARS = 40_000;
 
 type ChatHistoryMessage = Record<string, unknown>;
-type TerminalReply =
-  | { disposition: "visible"; text: string }
-  | { disposition: "silent" | "empty" };
+type TerminalReply = { disposition: "visible"; text: string } | { disposition: "silent" | "empty" };
 
 export interface StructuredOneShotAgentRuntime {
   resolveDefaultModel(sessionKey: string): { provider: string; model: string };
@@ -92,8 +90,7 @@ export async function runStructuredOneShotAgent<T>(
   // modelRun + promptMode=raw are what remove tools and the normal system
   // prompt. Using a synthetic id such as "utility" makes the gateway reject
   // the request when no agent with that id is configured.
-  const sessionKey =
-    `agent:${DEFAULT_AGENT_ID}:model-run:${sanitizeNamespace(options.namespace)}:${randomUUID()}`;
+  const sessionKey = `agent:${DEFAULT_AGENT_ID}:model-run:${sanitizeNamespace(options.namespace)}:${randomUUID()}`;
   const repairSessionKey = `${sessionKey}:format-repair`;
   const resolvedModel = runtime.resolveDefaultModel(sessionKey);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;

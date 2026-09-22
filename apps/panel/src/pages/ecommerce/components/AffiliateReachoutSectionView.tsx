@@ -29,9 +29,17 @@ import {
   rateAxisDomain,
   splitCoverageSeries,
 } from "../affiliate-overview.js";
-import type { AffiliateReachoutSection, AffiliateSectionQuery } from "../affiliate-overview-types.js";
+import type {
+  AffiliateReachoutSection,
+  AffiliateSectionQuery,
+} from "../affiliate-overview-types.js";
 import { AffiliateCoverageBand, AffiliateCoverageNotice } from "./AffiliateCoverageBand.js";
-import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateSectionState } from "./AffiliateOverviewParts.js";
+import {
+  AffiliateChartCard,
+  AffiliateMetric,
+  AffiliateSectionHeader,
+  AffiliateSectionState,
+} from "./AffiliateOverviewParts.js";
 
 /** Partial-range series are drawn with this dash so they cannot read as a trend. */
 const PARTIAL_DASH = "4 4";
@@ -43,7 +51,10 @@ const PARTIAL_BAR_OPACITY = 0.35;
  * Section 1 — Reachout. Cohort axis: the real platform invitation date
  * (`start_at`, 100% coverage), never the day a response happened to land.
  */
-export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
+export function AffiliateReachoutSectionView({
+  query,
+  onExcludeShops,
+}: {
   query: AffiliateSectionQuery<AffiliateReachoutSection>;
   onExcludeShops?: (shopIds: string[]) => void;
 }) {
@@ -56,14 +67,30 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
   const [restrictToCovered, setRestrictToCovered] = useState(false);
 
   const body = (() => {
-    if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
+    if (!section)
+      return (
+        <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />
+      );
 
     const coverage = section.coverage;
     const boundary = coverage.fullCoverageFrom ?? null;
     const allRows = buildInviteDailyRows(section.daily);
-    const partialDays = countPartialDays(allRows.map((row) => row.inviteDs), boundary);
-    const windowRows = applyCoverageWindow(allRows, (row) => row.inviteDs, boundary, restrictToCovered);
-    const dailyRows = splitCoverageSeries(windowRows, (row) => row.inviteDs, (row) => row.responseRate, boundary);
+    const partialDays = countPartialDays(
+      allRows.map((row) => row.inviteDs),
+      boundary,
+    );
+    const windowRows = applyCoverageWindow(
+      allRows,
+      (row) => row.inviteDs,
+      boundary,
+      restrictToCovered,
+    );
+    const dailyRows = splitCoverageSeries(
+      windowRows,
+      (row) => row.inviteDs,
+      (row) => row.responseRate,
+      boundary,
+    );
     const basis = coverageBasis(coverage);
 
     const horizonSeries = buildResponseHorizonSeries(section);
@@ -72,7 +99,10 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
     const dailyRateDomain = rateAxisDomain(dailyRows.map((row) => row.responseRate));
     const firstImmatureDay = firstImmatureCohortDay(windowRows);
     const immatureDays = windowRows.filter((row) => !row.mature).length;
-    const boundaryOnChart = coverageBoundaryMark(windowRows.map((row) => row.inviteDs), boundary);
+    const boundaryOnChart = coverageBoundaryMark(
+      windowRows.map((row) => row.inviteDs),
+      boundary,
+    );
     /*
      * The horizon curve and the daily bars describe DIFFERENT date ranges, and
      * the note has to say so. The curve is computed over one fixed cohort — the
@@ -83,21 +113,23 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
     const horizonNote = horizonSeries.cohortTooSmall
       ? t("ecommerce.affiliateAnalytics.reachout.cohortTooSmallNote")
       : [
-        t("ecommerce.affiliateAnalytics.reachout.horizonNote", {
-          count: horizonSeries.cohortSize,
-        }),
-        section.horizonCohortFrom && section.horizonCohortTo
-          ? t("ecommerce.affiliateAnalytics.reachout.horizonCohortRange", {
-            from: formatCohortDay(section.horizonCohortFrom, locale),
-            to: formatCohortDay(section.horizonCohortTo, locale),
-          })
-          : null,
-        horizonSeries.subDaySuppressed
-          ? t("ecommerce.affiliateAnalytics.reachout.subDaySuppressed", {
-            share: formatPercent(horizonSeries.exactShare, locale),
-          })
-          : null,
-      ].filter(Boolean).join(" ");
+          t("ecommerce.affiliateAnalytics.reachout.horizonNote", {
+            count: horizonSeries.cohortSize,
+          }),
+          section.horizonCohortFrom && section.horizonCohortTo
+            ? t("ecommerce.affiliateAnalytics.reachout.horizonCohortRange", {
+                from: formatCohortDay(section.horizonCohortFrom, locale),
+                to: formatCohortDay(section.horizonCohortTo, locale),
+              })
+            : null,
+          horizonSeries.subDaySuppressed
+            ? t("ecommerce.affiliateAnalytics.reachout.subDaySuppressed", {
+                share: formatPercent(horizonSeries.exactShare, locale),
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
     const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
       shops: formatNumber(basis.shopsWithData, locale),
       selected: formatNumber(basis.shopsSelected, locale),
@@ -156,12 +188,18 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
                 <LineChart data={horizonSeries.points}>
                   <CartesianGrid strokeDasharray="3 6" vertical={false} />
                   <XAxis dataKey="horizon" />
-                  <YAxis domain={rateDomain} tickFormatter={(value) => formatPercent(Number(value), locale)} />
+                  <YAxis
+                    domain={rateDomain}
+                    tickFormatter={(value) => formatPercent(Number(value), locale)}
+                  />
                   <Tooltip
                     formatter={(value, _name, item) => [
                       formatPercent(Number(value), locale),
                       t("ecommerce.affiliateAnalytics.reachout.matureBasis", {
-                        count: Number((item?.payload as { matureInvitations?: number } | undefined)?.matureInvitations ?? 0),
+                        count: Number(
+                          (item?.payload as { matureInvitations?: number } | undefined)
+                            ?.matureInvitations ?? 0,
+                        ),
                       }),
                     ]}
                   />
@@ -186,8 +224,16 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={dailyRows}>
                 <CartesianGrid strokeDasharray="3 6" vertical={false} />
-                <XAxis dataKey="inviteDs" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
-                <YAxis yAxisId="invites" domain={inviteDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
+                <XAxis
+                  dataKey="inviteDs"
+                  minTickGap={26}
+                  tickFormatter={(value) => formatCohortDay(String(value), locale)}
+                />
+                <YAxis
+                  yAxisId="invites"
+                  domain={inviteDomain}
+                  tickFormatter={(value) => formatNumber(Number(value), locale, true)}
+                />
                 <YAxis
                   yAxisId="rate"
                   orientation="right"
@@ -196,11 +242,11 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
                 />
                 <Tooltip
                   labelFormatter={(value) => formatCohortDay(String(value), locale)}
-                  formatter={(value, name, item) => (
-                    (item?.dataKey === "coveredValue" || item?.dataKey === "partialValue")
+                  formatter={(value, name, item) =>
+                    item?.dataKey === "coveredValue" || item?.dataKey === "partialValue"
                       ? [formatPercent(Number(value), locale), String(name)]
                       : [formatNumber(Number(value), locale), String(name)]
-                  )}
+                  }
                 />
                 <Legend />
                 {/*
@@ -229,7 +275,11 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
                     x2={dailyRows[dailyRows.length - 1]?.inviteDs}
                     fill="var(--affiliate-immature)"
                     fillOpacity={0.28}
-                    label={{ value: t("ecommerce.affiliateAnalytics.reachout.immatureBand"), position: "insideTop", fontSize: 11 }}
+                    label={{
+                      value: t("ecommerce.affiliateAnalytics.reachout.immatureBand"),
+                      position: "insideTop",
+                      fontSize: 11,
+                    }}
                   />
                 )}
                 <Bar

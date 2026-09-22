@@ -684,11 +684,10 @@ export type AffiliateUnknownSenderIdentificationWorkPayload = IsoDates<
   GQL.AffiliateUnknownSenderIdentificationWorkView,
   "firstSeenAt" | "lastSeenAt"
 > & {
-    candidates: AffiliateUnknownSenderCandidatePayload[];
-    lastIdentificationAttemptAt?: string | null;
-    nextAttemptEligibleAt?: string | null;
-  };
-
+  candidates: AffiliateUnknownSenderCandidatePayload[];
+  lastIdentificationAttemptAt?: string | null;
+  nextAttemptEligibleAt?: string | null;
+};
 
 export interface AffiliateUnknownSenderIdentificationWorkQueryResult {
   affiliateUnknownSenderIdentificationWork: AffiliateUnknownSenderIdentificationWorkPayload[];

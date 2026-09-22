@@ -24,11 +24,7 @@ import {
 import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import {
-  buildSpsMarketChart,
-  buildSpsYAxisDomain,
-  formatSpsValue,
-} from "./sps-analytics.js";
+import { buildSpsMarketChart, buildSpsYAxisDomain, formatSpsValue } from "./sps-analytics.js";
 import "./ShopAnalyticsPage.css";
 
 /**
@@ -92,9 +88,7 @@ function SpsChartTooltip({
       <strong>{formatChartDate(String(label ?? ""), i18n.language)}</strong>
       {payload.map((entry) => (
         <div key={String(entry.dataKey ?? entry.name)}>
-          <TkPrivate
-            sensitive={sensitiveByShopId?.get(String(entry.dataKey)) ?? true}
-          >
+          <TkPrivate sensitive={sensitiveByShopId?.get(String(entry.dataKey)) ?? true}>
             {entry.name}
           </TkPrivate>
           <b>{formatSpsValue(Number(entry.value), unit, i18n.language)}</b>
@@ -153,9 +147,7 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
           <TkPrivate as="h3" sensitive={nameLabel.sensitive}>
             {nameLabel.text}
           </TkPrivate>
-          {shop.shopAlias && (
-            <TkPrivate as="p">{shop.shopName}</TkPrivate>
-          )}
+          {shop.shopAlias && <TkPrivate as="p">{shop.shopName}</TkPrivate>}
         </div>
         <span
           className={`sps-availability sps-availability-${available ? "available" : "unavailable"}`}
@@ -369,9 +361,7 @@ function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
                   width={68}
                 />
                 <Tooltip
-                  content={
-                    <SpsChartTooltip unit={unit} sensitiveByShopId={sensitiveByShopId} />
-                  }
+                  content={<SpsChartTooltip unit={unit} sensitiveByShopId={sensitiveByShopId} />}
                 />
                 {chart.series.map((series, index) => (
                   <Line
@@ -504,10 +494,7 @@ export function ShopAnalyticsPage() {
         }
       />
 
-      <div
-        className="sps-metric-selector"
-        data-tutorial-id="analytics-metrics"
-      >
+      <div className="sps-metric-selector" data-tutorial-id="analytics-metrics">
         <div className="sps-metric-selector-copy">
           <span>{t("shopAnalytics.diagnosisLens")}</span>
           <strong>{t(`shopAnalytics.metrics.${selectedMetric.code}`)}</strong>

@@ -7,14 +7,14 @@ signed NSIS installer and portable executable.
 
 ## Current Azure Resource
 
-| Field | Value |
-| --- | --- |
-| Resource group | `rg-rivonclaw-signing` |
-| Artifact Signing account | `rivonclaw-signing` |
-| Region | `East US` |
-| Endpoint | `https://eus.codesigning.azure.net` |
-| Pricing tier | `Basic (9.99 USD/month)` |
-| Certificate profile expected by CI | `rivonclaw-public-trust` |
+| Field                              | Value                               |
+| ---------------------------------- | ----------------------------------- |
+| Resource group                     | `rg-rivonclaw-signing`              |
+| Artifact Signing account           | `rivonclaw-signing`                 |
+| Region                             | `East US`                           |
+| Endpoint                           | `https://eus.codesigning.azure.net` |
+| Pricing tier                       | `Basic (9.99 USD/month)`            |
+| Certificate profile expected by CI | `rivonclaw-public-trust`            |
 
 ## Azure Setup Still Required
 
@@ -26,11 +26,11 @@ signed NSIS installer and portable executable.
    scoped to the certificate profile or signing account.
 5. Add these GitHub Actions secrets:
 
-| Secret | Value |
-| --- | --- |
-| `AZURE_TENANT_ID` | Microsoft Entra tenant ID |
-| `AZURE_CLIENT_ID` | Application/client ID for the CI signing principal |
-| `AZURE_CLIENT_SECRET` | Client secret for the CI signing principal |
+| Secret                | Value                                              |
+| --------------------- | -------------------------------------------------- |
+| `AZURE_TENANT_ID`     | Microsoft Entra tenant ID                          |
+| `AZURE_CLIENT_ID`     | Application/client ID for the CI signing principal |
+| `AZURE_CLIENT_SECRET` | Client secret for the CI signing principal         |
 
 ## Pipeline Behavior
 

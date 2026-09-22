@@ -144,11 +144,7 @@ export class GatewayRpcClient {
    * @param params - Method parameters
    * @param timeoutMs - Request timeout in milliseconds (default: 30s)
    */
-  async request<T = unknown>(
-    method: string,
-    params?: unknown,
-    timeoutMs = 30000
-  ): Promise<T> {
+  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 30000): Promise<T> {
     // Allow sending "connect" before fully connected (initial handshake)
     if (method !== "connect" && !this.isConnected()) {
       throw new Error("Gateway not connected");
@@ -218,7 +214,9 @@ export class GatewayRpcClient {
       const connectTimeoutMs = this.opts.connectTimeoutMs ?? 20000;
       const deadline = setTimeout(() => {
         if (settled) return;
-        log.warn(`Gateway handshake did not complete within ${connectTimeoutMs}ms; terminating socket`);
+        log.warn(
+          `Gateway handshake did not complete within ${connectTimeoutMs}ms; terminating socket`,
+        );
         // Settle first so the reported failure is the timeout rather than the
         // close it triggers. Terminate rather than close: a stalled gateway
         // will not answer a close handshake either, and a half-open socket
@@ -245,7 +243,11 @@ export class GatewayRpcClient {
         // the nonce.
         if (!settled) {
           try {
-            const frame = JSON.parse(raw) as { type?: string; event?: string; payload?: { nonce?: string } };
+            const frame = JSON.parse(raw) as {
+              type?: string;
+              event?: string;
+              payload?: { nonce?: string };
+            };
             if (frame.type === "event" && frame.event === "connect.challenge") {
               const nonce = frame.payload?.nonce?.trim() ?? "";
               if (!nonce) {
@@ -305,7 +307,7 @@ export class GatewayRpcClient {
   }
 
   private scheduleReconnect(): void {
-    if (this.closed || (this.opts.autoReconnect === false)) {
+    if (this.closed || this.opts.autoReconnect === false) {
       return;
     }
 
@@ -326,12 +328,12 @@ export class GatewayRpcClient {
 
     const baseDelay = this.opts.reconnectDelay ?? 1000;
     const maxDelay = this.opts.maxReconnectDelay ?? 30000;
-    const delay = was503
-      ? 500
-      : Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
+    const delay = was503 ? 500 : Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
     if (!was503) this.reconnectAttempt++;
 
-    log.info(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempt}${was503 ? ", 503 fast-retry" : ""})`);
+    log.info(
+      `Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempt}${was503 ? ", 503 fast-retry" : ""})`,
+    );
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

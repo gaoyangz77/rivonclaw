@@ -11,18 +11,24 @@ export interface LocalModelServer {
 }
 
 export async function detectLocalModels(): Promise<LocalModelServer[]> {
-  const data = await fetchJson<{ servers: LocalModelServer[] }>(clientPath(API["localModels.detect"]));
+  const data = await fetchJson<{ servers: LocalModelServer[] }>(
+    clientPath(API["localModels.detect"]),
+  );
   return data.servers;
 }
 
-export async function fetchLocalModels(baseUrl: string): Promise<Array<{ id: string; name: string }>> {
+export async function fetchLocalModels(
+  baseUrl: string,
+): Promise<Array<{ id: string; name: string }>> {
   const data = await fetchJson<{ models: Array<{ id: string; name: string }> }>(
     clientPath(API["localModels.models"]) + "?baseUrl=" + encodeURIComponent(baseUrl),
   );
   return data.models;
 }
 
-export async function checkLocalModelHealth(baseUrl: string): Promise<{ ok: boolean; version?: string; error?: string }> {
+export async function checkLocalModelHealth(
+  baseUrl: string,
+): Promise<{ ok: boolean; version?: string; error?: string }> {
   return fetchJson<{ ok: boolean; version?: string; error?: string }>(
     clientPath(API["localModels.health"]),
     { method: "POST", body: JSON.stringify({ baseUrl }) },
@@ -59,8 +65,14 @@ export interface CatalogModelEntry {
  * Empty object if models.json doesn't exist yet (gateway not started).
  */
 export async function fetchModelCatalog(): Promise<Record<string, CatalogModelEntry[]>> {
-  return cachedFetch("models", async () => {
-    const data = await fetchJson<{ models: Record<string, CatalogModelEntry[]> }>(clientPath(API["models.catalog"]));
-    return data.models;
-  }, 30000);
+  return cachedFetch(
+    "models",
+    async () => {
+      const data = await fetchJson<{ models: Record<string, CatalogModelEntry[]> }>(
+        clientPath(API["models.catalog"]),
+      );
+      return data.models;
+    },
+    30000,
+  );
 }

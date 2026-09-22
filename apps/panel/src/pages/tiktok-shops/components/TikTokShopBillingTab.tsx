@@ -3,10 +3,7 @@ import { useEffect } from "react";
 import type { Shop } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
-import {
-  billingEnumLabel,
-  usagePercentLabel,
-} from "../../../components/billing/billing-labels.js";
+import { billingEnumLabel, usagePercentLabel } from "../../../components/billing/billing-labels.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
@@ -17,7 +14,9 @@ interface TikTokShopBillingTabProps {
 export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
-  const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
+  const entitlement =
+    entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ??
+    null;
   const shopLabel = shopDisplayLabel(shop);
 
   useEffect(() => {
@@ -41,11 +40,19 @@ export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
             {entitlement.usage.map((usage) => (
               <div key={`${usage.metric}:${usage.window}`} className="acct-item">
                 <div className="acct-item-title-row">
-                  <span className="acct-item-name">{billingEnumLabel(t, "usageMetric", usage.metric)}</span>
-                  <span className="badge badge-muted">{billingEnumLabel(t, "usageWindow", usage.window)}</span>
+                  <span className="acct-item-name">
+                    {billingEnumLabel(t, "usageMetric", usage.metric)}
+                  </span>
+                  <span className="badge badge-muted">
+                    {billingEnumLabel(t, "usageWindow", usage.window)}
+                  </span>
                 </div>
                 <div className="acct-item-meta">
-                  <span>{t("billing.usageUsedPercent", { percent: usagePercentLabel(usage.usedPercent) })}</span>
+                  <span>
+                    {t("billing.usageUsedPercent", {
+                      percent: usagePercentLabel(usage.usedPercent),
+                    })}
+                  </span>
                   <span>{formatLocalizedDateTime(usage.refreshAt, i18n.language)}</span>
                 </div>
               </div>

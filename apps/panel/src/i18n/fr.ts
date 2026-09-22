@@ -3079,7 +3079,8 @@ export default {
         reviewDescriptions: {
           APPROVE: "TikTok recevra l’approbation après validation.",
           PLATFORM_REJECT: "TikTok recevra le refus après validation.",
-          SOFT_REJECT: "Ne plus examiner cette demande et la laisser expirer naturellement, sans la refuser sur TikTok. Vous pouvez la rouvrir avant son expiration.",
+          SOFT_REJECT:
+            "Ne plus examiner cette demande et la laisser expirer naturellement, sans la refuser sur TikTok. Vous pouvez la rouvrir avant son expiration.",
           REOPEN: "Rouvrir si TikTok permet encore la révision.",
         },
       },

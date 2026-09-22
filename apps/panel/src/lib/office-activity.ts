@@ -537,15 +537,12 @@ function phaseOf(rawToolName: string | null | undefined): PhaseCaptionId | null 
  * Total: an absent, blank or wholly unrecognised name still yields a caption,
  * which is what guarantees no identifier reaches the screen.
  */
-export function activityCaptionId(
-  rawToolName: string | null | undefined,
-): ActivityCaptionId {
+export function activityCaptionId(rawToolName: string | null | undefined): ActivityCaptionId {
   if (typeof rawToolName !== "string") return GENERIC_ACTIVITY_CAPTION;
   const trimmed = rawToolName.trim();
   if (trimmed === "") return GENERIC_ACTIVITY_CAPTION;
 
-  const exact =
-    TOOL_ACTIVITY_CAPTIONS[trimmed] ?? TOOL_ACTIVITY_CAPTIONS[trimmed.toUpperCase()];
+  const exact = TOOL_ACTIVITY_CAPTIONS[trimmed] ?? TOOL_ACTIVITY_CAPTIONS[trimmed.toUpperCase()];
   if (exact) return exact;
 
   return VERB_ACTIVITY_CAPTIONS[verbOf(trimmed)] ?? GENERIC_ACTIVITY_CAPTION;

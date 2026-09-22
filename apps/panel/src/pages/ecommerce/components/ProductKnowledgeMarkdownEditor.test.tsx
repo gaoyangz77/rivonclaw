@@ -106,7 +106,9 @@ describe("media URI resolution", () => {
   });
 
   it("skips the round-trip for media that was just uploaded", async () => {
-    rememberMediaAsset(mediaAsset(VIDEO_URI, "https://minio.rivonclaw.com/media/fresh.mp4", "VIDEO"));
+    rememberMediaAsset(
+      mediaAsset(VIDEO_URI, "https://minio.rivonclaw.com/media/fresh.mp4", "VIDEO"),
+    );
     await expect(resolveMediaUrl(VIDEO_URI)).resolves.toBe(
       "https://minio.rivonclaw.com/media/fresh.mp4",
     );
@@ -312,13 +314,18 @@ describe("product knowledge markdown editor", () => {
 
   it("never shows a raw translation placeholder in the toolbar", async () => {
     const { container } = render(
-      <ProductKnowledgeMarkdownEditor onChange={() => {}} placeholder="" readOnly={false} value={""} />,
+      <ProductKnowledgeMarkdownEditor
+        onChange={() => {}}
+        placeholder=""
+        readOnly={false}
+        value={""}
+      />,
     );
 
     // MDXEditor puts toolbar labels on aria-label and shows them in a tooltip.
     const labels = await waitFor(() => {
-      const values = [...container.querySelectorAll("[aria-label], [title]")].map((element) =>
-        element.getAttribute("aria-label") ?? element.getAttribute("title") ?? "",
+      const values = [...container.querySelectorAll("[aria-label], [title]")].map(
+        (element) => element.getAttribute("aria-label") ?? element.getAttribute("title") ?? "",
       );
       expect(values.some((label) => label.startsWith("撤销"))).toBe(true);
       return values;

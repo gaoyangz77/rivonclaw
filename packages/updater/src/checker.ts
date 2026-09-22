@@ -25,9 +25,7 @@ export async function fetchManifest(
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch manifest: HTTP ${response.status} ${response.statusText}`,
-    );
+    throw new Error(`Failed to fetch manifest: HTTP ${response.status} ${response.statusText}`);
   }
 
   const manifest = (await response.json()) as UpdateManifest;
@@ -58,11 +56,15 @@ export function getPlatformKey(): "mac" | "win" {
  */
 export async function checkForUpdate(
   currentVersion: string,
-  options?: { manifestUrl?: string; region?: string; fetchFn?: (url: string | URL, init?: RequestInit) => Promise<Response> },
+  options?: {
+    manifestUrl?: string;
+    region?: string;
+    fetchFn?: (url: string | URL, init?: RequestInit) => Promise<Response>;
+  },
 ): Promise<UpdateCheckResult> {
   try {
-    const manifestUrl = options?.manifestUrl
-      ?? (options?.region === "cn" ? MANIFEST_URLS.cn : MANIFEST_URLS.default);
+    const manifestUrl =
+      options?.manifestUrl ?? (options?.region === "cn" ? MANIFEST_URLS.cn : MANIFEST_URLS.default);
     const manifest = await fetchManifest(manifestUrl, options?.fetchFn);
     const updateAvailable = isNewerVersion(currentVersion, manifest.latestVersion);
 

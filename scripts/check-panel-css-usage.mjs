@@ -49,9 +49,9 @@ function createClassUsage(sourceFiles) {
   return function isClassUsed(className) {
     if (THIRD_PARTY_CLASS_PREFIXES.some((prefix) => className.startsWith(prefix))) return true;
     if ([...dynamicPrefixes].some((prefix) => className.startsWith(prefix))) return true;
-    return new RegExp(
-      `(^|[^_a-zA-Z0-9-])${escapeRegExp(className)}([^_a-zA-Z0-9-]|$)`,
-    ).test(combinedSource);
+    return new RegExp(`(^|[^_a-zA-Z0-9-])${escapeRegExp(className)}([^_a-zA-Z0-9-]|$)`).test(
+      combinedSource,
+    );
   };
 }
 
@@ -118,9 +118,7 @@ function collectUnusedRules(css, isClassUsed, start = 0, end = css.length, resul
     } else if (!prelude.startsWith("@")) {
       const classes = [
         ...new Set(
-          [...prelude.matchAll(/\.(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)/g)].map(
-            (match) => match[1],
-          ),
+          [...prelude.matchAll(/\.(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)/g)].map((match) => match[1]),
         ),
       ];
       if (classes.length > 0 && classes.every((className) => !isClassUsed(className))) {
@@ -156,9 +154,7 @@ for (const cssFile of cssFiles) {
 
   if (FIX) {
     writeFileSync(cssFile, removeRanges(css, unusedRules));
-    console.log(
-      `pruned ${unusedRules.length} unused rule(s) from ${relative(REPO_ROOT, cssFile)}`,
-    );
+    console.log(`pruned ${unusedRules.length} unused rule(s) from ${relative(REPO_ROOT, cssFile)}`);
     continue;
   }
 

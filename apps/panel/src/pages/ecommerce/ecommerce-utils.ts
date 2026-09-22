@@ -24,7 +24,9 @@ export function isBalanceExpired(expiresAt?: string | null): boolean {
 
 export function hasUpgradeRequired(err: unknown): boolean {
   if (err && typeof err === "object" && "graphQLErrors" in err) {
-    const gqlErrors = (err as { graphQLErrors: Array<{ extensions?: { upgradeRequired?: boolean } }> }).graphQLErrors;
+    const gqlErrors = (
+      err as { graphQLErrors: Array<{ extensions?: { upgradeRequired?: boolean } }> }
+    ).graphQLErrors;
     return gqlErrors?.some((e) => e.extensions?.upgradeRequired === true) ?? false;
   }
   return false;
@@ -36,7 +38,11 @@ export function formatBalanceDisplay(
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   if (balance === undefined || balance === null) return "\u2014";
-  if (tier) return t("tiktokShops.balance.of", { balance, tier: t(`tiktokShops.tier.${tier}`, { defaultValue: tier }) });
+  if (tier)
+    return t("tiktokShops.balance.of", {
+      balance,
+      tier: t(`tiktokShops.tier.${tier}`, { defaultValue: tier }),
+    });
   return t("tiktokShops.balance.remaining", { balance });
 }
 

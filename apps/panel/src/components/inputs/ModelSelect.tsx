@@ -1,5 +1,9 @@
 import { useRef, useState, useEffect } from "react";
-import { getDefaultModelForProvider, getProviderMeta, resolveGatewayProvider } from "@rivonclaw/core";
+import {
+  getDefaultModelForProvider,
+  getProviderMeta,
+  resolveGatewayProvider,
+} from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { fetchModelCatalog } from "../../api/index.js";
 import type { CatalogModelEntry } from "../../api/index.js";
@@ -16,9 +20,7 @@ export function ModelSelect({
   onChange: (modelId: string) => void;
   autoSelectLatest?: boolean;
 }) {
-  const [catalog, setCatalog] = useState<Record<string, CatalogModelEntry[]>>(
-    {},
-  );
+  const [catalog, setCatalog] = useState<Record<string, CatalogModelEntry[]>>({});
   const latestDefaultApplied = useRef(false);
 
   useEffect(() => {
@@ -40,7 +42,9 @@ export function ModelSelect({
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const catalogProvider = getProviderMeta(provider as LLMProvider)?.catalogProvider ?? provider;
@@ -48,7 +52,8 @@ export function ModelSelect({
   // Prefer a product-plan catalog when one exists. Its UI model list may be
   // narrower or temporarily supplemented even though inference runs through
   // the shared vendor provider (for example openai-codex -> openai).
-  const catalogEntries = catalog[provider] ?? catalog[catalogProvider] ?? catalog[gatewayProvider] ?? [];
+  const catalogEntries =
+    catalog[provider] ?? catalog[catalogProvider] ?? catalog[gatewayProvider] ?? [];
   const models = catalogEntries.map((m) => ({
     modelId: m.id,
     displayName: m.name,
@@ -81,8 +86,7 @@ export function ModelSelect({
 
     const localDefault = getDefaultModelForProvider(typedProvider)?.modelId;
     const fallbackIds = new Set((meta.fallbackModels ?? []).map((m) => m.modelId));
-    const shouldReplaceFallbackDefault =
-      !value || value === localDefault || fallbackIds.has(value);
+    const shouldReplaceFallbackDefault = !value || value === localDefault || fallbackIds.has(value);
 
     if (shouldReplaceFallbackDefault) {
       latestDefaultApplied.current = true;

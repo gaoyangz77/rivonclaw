@@ -2867,8 +2867,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                         <td>
                           <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
                         </td>
-                        <td>{row.businessDeveloperName || (row.overwrite
-                          ? t("ecommerce.affiliateTeam.creatorOverrideClearBd") : "—")}</td>
+                        <td>
+                          {row.businessDeveloperName ||
+                            (row.overwrite
+                              ? t("ecommerce.affiliateTeam.creatorOverrideClearBd")
+                              : "—")}
+                        </td>
                         <td className="affiliate-creator-update-actions">
                           {[
                             row.sellerProvidedUid
@@ -2883,7 +2887,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                                 : null,
                             row.protect
                               ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
-                              : row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect") : null,
+                              : row.overwrite
+                                ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect")
+                                : null,
                             row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideTags") : null,
                             ...row.manualTagNames.map((name) => `#${name}`),
                           ]

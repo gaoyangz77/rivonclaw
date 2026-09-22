@@ -10,13 +10,17 @@ interface BillingCheckoutStore {
     provider: string;
     successUrl?: string;
     cancelUrl?: string;
-  }): Promise<{
-    action?: string | null;
-    payment?: {
-      checkoutUrl?: string | null;
-      qrCode?: string | null;
-    } | null;
-  } | null | undefined>;
+  }): Promise<
+    | {
+        action?: string | null;
+        payment?: {
+          checkoutUrl?: string | null;
+          qrCode?: string | null;
+        } | null;
+      }
+    | null
+    | undefined
+  >;
   setCheckoutError(message: string | null, scopeId?: string | null): void;
 }
 

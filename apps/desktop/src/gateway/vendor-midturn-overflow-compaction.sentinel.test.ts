@@ -30,10 +30,7 @@ describe("OpenClaw v2026.8.1: settled mid-turn overflow recovery", () => {
 
   it("re-closes replaying recovery after current-transcript compaction", () => {
     const overflowIndex = recovery.indexOf("recoverEmbeddedRunOverflow");
-    const replayFenceIndex = recovery.indexOf(
-      "if (!currentAttemptReplaySafe) {",
-      overflowIndex,
-    );
+    const replayFenceIndex = recovery.indexOf("if (!currentAttemptReplaySafe) {", overflowIndex);
     expect(overflowIndex).toBeGreaterThan(-1);
     expect(replayFenceIndex).toBeGreaterThan(overflowIndex);
   });

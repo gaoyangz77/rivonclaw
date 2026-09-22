@@ -37,14 +37,14 @@ export const ChatStatusBar = observer(function ChatStatusBar({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
 
-  const contextUsageRatio = contextWindow && contextWindow > 0 && totalTokens > 0
-    ? totalTokens / contextWindow
-    : 0;
-  const contextUsageClass = contextUsageRatio >= 1
-    ? "chat-context-critical"
-    : contextUsageRatio >= 0.8
-      ? "chat-context-warning"
-      : "";
+  const contextUsageRatio =
+    contextWindow && contextWindow > 0 && totalTokens > 0 ? totalTokens / contextWindow : 0;
+  const contextUsageClass =
+    contextUsageRatio >= 1
+      ? "chat-context-critical"
+      : contextUsageRatio >= 0.8
+        ? "chat-context-warning"
+        : "";
   const statusKey =
     connectionState === "connected"
       ? "chat.connected"

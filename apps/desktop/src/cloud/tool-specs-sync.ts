@@ -64,7 +64,12 @@ export function computeToolSpecsDigest(specs: readonly unknown[]): string {
 }
 
 export function computeToolNameDigest(specs: readonly Record<string, unknown>[]): string {
-  return sha256(specs.map((spec) => spec.name).filter((name): name is string => typeof name === "string").sort());
+  return sha256(
+    specs
+      .map((spec) => spec.name)
+      .filter((name): name is string => typeof name === "string")
+      .sort(),
+  );
 }
 
 function normalizeToolSpecs(value: unknown): SyncedToolSpec[] {
@@ -113,7 +118,11 @@ export async function syncDesktopToolSpecs(params: {
     throw new Error("Cannot sync ToolSpecs without an authenticated session");
   }
 
-  if (!params.force && toolSpecsCache && Date.now() - toolSpecsCache.syncedAt < TOOL_SPECS_CACHE_TTL_MS) {
+  if (
+    !params.force &&
+    toolSpecsCache &&
+    Date.now() - toolSpecsCache.syncedAt < TOOL_SPECS_CACHE_TTL_MS
+  ) {
     if (params.ingest !== false) params.rootStore?.ingestGraphQLResponse(toolSpecsCache.data);
     return toolSpecsCache;
   }
@@ -129,8 +138,8 @@ export async function syncDesktopToolSpecs(params: {
     const snapshot = buildSnapshot(data);
     toolSpecsCache = snapshot;
     log.info(
-      `Synced ${snapshot.data.toolSpecs.length} ToolSpec(s) from backend`
-        + ` source=${params.source ?? "unknown"} digest=${snapshot.digest.slice(0, 12)}`,
+      `Synced ${snapshot.data.toolSpecs.length} ToolSpec(s) from backend` +
+        ` source=${params.source ?? "unknown"} digest=${snapshot.digest.slice(0, 12)}`,
     );
     return snapshot;
   })();

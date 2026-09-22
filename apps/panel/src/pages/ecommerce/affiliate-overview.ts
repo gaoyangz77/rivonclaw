@@ -32,7 +32,9 @@ export const AFFILIATE_EXACT_SHARE_THRESHOLD = 0.6;
  */
 export const AFFILIATE_HORIZON_MIN_COHORT = 1000;
 
-const HORIZON_ORDER = new Map(AFFILIATE_RESPONSE_HORIZONS.map((horizon, index) => [horizon as string, index]));
+const HORIZON_ORDER = new Map(
+  AFFILIATE_RESPONSE_HORIZONS.map((horizon, index) => [horizon as string, index]),
+);
 
 function isPositiveFinite(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
@@ -46,12 +48,16 @@ export function safeShare(numerator: number, denominator: number): number | null
  * Share of responses whose time came from an EXACT_SUBMISSION_EVENT rather than
  * an observation proxy. `null` when the cohort recorded no response at all.
  */
-export function exactSubmissionShare(section: Pick<GQL.AffiliateReachoutSection, "responsesExact" | "responsesProxy">): number | null {
+export function exactSubmissionShare(
+  section: Pick<GQL.AffiliateReachoutSection, "responsesExact" | "responsesProxy">,
+): number | null {
   return safeShare(section.responsesExact, section.responsesExact + section.responsesProxy);
 }
 
 /** Canonical horizon ordering; unrecognised horizons keep their relative order at the end. */
-export function orderResponseHorizons(horizons: readonly GQL.AffiliateResponseHorizon[]): GQL.AffiliateResponseHorizon[] {
+export function orderResponseHorizons(
+  horizons: readonly GQL.AffiliateResponseHorizon[],
+): GQL.AffiliateResponseHorizon[] {
   return [...horizons].sort((left, right) => {
     const leftIndex = HORIZON_ORDER.get(left.horizon) ?? AFFILIATE_RESPONSE_HORIZONS.length;
     const rightIndex = HORIZON_ORDER.get(right.horizon) ?? AFFILIATE_RESPONSE_HORIZONS.length;
@@ -87,8 +93,8 @@ export interface AffiliateHorizonSeries {
  * Neither zeroes anything. A suppressed point is absent and named as absent.
  */
 export function buildResponseHorizonSeries(
-  section: Pick<GQL.AffiliateReachoutSection, "horizons" | "responsesExact" | "responsesProxy">
-    & AffiliateHorizonCohortFields,
+  section: Pick<GQL.AffiliateReachoutSection, "horizons" | "responsesExact" | "responsesProxy"> &
+    AffiliateHorizonCohortFields,
   threshold = AFFILIATE_EXACT_SHARE_THRESHOLD,
   minCohort = AFFILIATE_HORIZON_MIN_COHORT,
 ): AffiliateHorizonSeries {
@@ -113,7 +119,9 @@ function niceCeiling(value: number): number {
   const exponent = Math.floor(Math.log10(value));
   const base = 10 ** exponent;
   const normalized = value / base;
-  const step = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((candidate) => normalized <= candidate + 1e-9) ?? 10;
+  const step =
+    [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((candidate) => normalized <= candidate + 1e-9) ??
+    10;
   return step * base;
 }
 
@@ -126,15 +134,23 @@ export function rateAxisDomain(
   values: ReadonlyArray<number | null | undefined>,
   cap?: number,
 ): [number, number] {
-  const max = values.reduce<number>((current, value) => (isPositiveFinite(value) && value > current ? value : current), 0);
+  const max = values.reduce<number>(
+    (current, value) => (isPositiveFinite(value) && value > current ? value : current),
+    0,
+  );
   if (max <= 0) return [0, cap ?? 1];
   const upper = niceCeiling(max * 1.08);
   return [0, cap == null ? upper : Math.min(upper, cap)];
 }
 
 /** Data-driven Y domain for a count chart, with the same nice-ceiling rounding. */
-export function countAxisDomain(values: ReadonlyArray<number | null | undefined>): [number, number] {
-  const max = values.reduce<number>((current, value) => (isPositiveFinite(value) && value > current ? value : current), 0);
+export function countAxisDomain(
+  values: ReadonlyArray<number | null | undefined>,
+): [number, number] {
+  const max = values.reduce<number>(
+    (current, value) => (isPositiveFinite(value) && value > current ? value : current),
+    0,
+  );
   return max <= 0 ? [0, 1] : [0, niceCeiling(max * 1.05)];
 }
 
@@ -168,7 +184,9 @@ export interface AffiliateInviteDailyRow {
  * list are absent and early cohorts are undercounted. That fix belongs in
  * acquisition, not in this chart.
  */
-export function buildInviteDailyRows(daily: readonly GQL.AffiliateInviteDailyPoint[]): AffiliateInviteDailyRow[] {
+export function buildInviteDailyRows(
+  daily: readonly GQL.AffiliateInviteDailyPoint[],
+): AffiliateInviteDailyRow[] {
   return daily.map((point) => ({
     inviteDs: point.inviteDs,
     mature: point.mature,
@@ -242,10 +260,13 @@ export function buildShipmentDailyRows(
       ds: point.ds,
       samplesShipped: point.samplesShipped,
       affiliateUnits: point.affiliateUnits,
-      trailingUnitsPerSample: window == null ? null : safeShare(
-        window.reduce((total, day) => total + day.affiliateUnits, 0),
-        window.reduce((total, day) => total + day.samplesShipped, 0),
-      ),
+      trailingUnitsPerSample:
+        window == null
+          ? null
+          : safeShare(
+              window.reduce((total, day) => total + day.affiliateUnits, 0),
+              window.reduce((total, day) => total + day.samplesShipped, 0),
+            ),
     };
   });
 }
@@ -292,7 +313,10 @@ export function buildCoverageBandRows(coverage: GQL.AffiliateCoverage): Affiliat
  * is covered — never the reverse. Reading an absent boundary as "everything is
  * fine" is exactly the silent resolution this layer exists to stop.
  */
-export function isFullyCoveredDay(ds: string, fullCoverageFrom: string | null | undefined): boolean {
+export function isFullyCoveredDay(
+  ds: string,
+  fullCoverageFrom: string | null | undefined,
+): boolean {
   return fullCoverageFrom != null && ds >= fullCoverageFrom;
 }
 

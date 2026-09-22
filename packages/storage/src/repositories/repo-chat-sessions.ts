@@ -37,9 +37,9 @@ export class ChatSessionsRepository {
     key: string,
     fields: Partial<Pick<ChatSession, "customTitle" | "panelTitle" | "pinned" | "archivedAt">>,
   ): ChatSession {
-    const existing = this.db
-      .prepare("SELECT * FROM chat_sessions WHERE key = ?")
-      .get(key) as ChatSessionRow | undefined;
+    const existing = this.db.prepare("SELECT * FROM chat_sessions WHERE key = ?").get(key) as
+      | ChatSessionRow
+      | undefined;
 
     if (existing) {
       const sets: string[] = [];
@@ -64,9 +64,7 @@ export class ChatSessionsRepository {
 
       if (sets.length > 0) {
         values.push(key);
-        this.db
-          .prepare(`UPDATE chat_sessions SET ${sets.join(", ")} WHERE key = ?`)
-          .run(...values);
+        this.db.prepare(`UPDATE chat_sessions SET ${sets.join(", ")} WHERE key = ?`).run(...values);
       }
 
       return this.getByKey(key)!;
@@ -90,9 +88,9 @@ export class ChatSessionsRepository {
   }
 
   getByKey(key: string): ChatSession | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM chat_sessions WHERE key = ?")
-      .get(key) as ChatSessionRow | undefined;
+    const row = this.db.prepare("SELECT * FROM chat_sessions WHERE key = ?").get(key) as
+      | ChatSessionRow
+      | undefined;
     return row ? rowToSession(row) : undefined;
   }
 
@@ -122,9 +120,7 @@ export class ChatSessionsRepository {
   }
 
   delete(key: string): boolean {
-    const result = this.db
-      .prepare("DELETE FROM chat_sessions WHERE key = ?")
-      .run(key);
+    const result = this.db.prepare("DELETE FROM chat_sessions WHERE key = ?").run(key);
     return result.changes > 0;
   }
 }

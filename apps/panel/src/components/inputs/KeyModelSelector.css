@@ -168,7 +168,9 @@
   background: var(--color-bg);
   color: var(--color-text);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .key-model-selector-search:focus {
@@ -194,7 +196,9 @@
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .key-model-selector-default-option:hover {

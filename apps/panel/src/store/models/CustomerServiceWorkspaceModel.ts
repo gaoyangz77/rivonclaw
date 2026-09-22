@@ -21,7 +21,13 @@ export type ConversationStatusFilter = "pending" | "resolved" | "all";
 export type ConversationAiFilter = "all" | "enabled" | "disabled";
 export type ConversationEscalationFilter = "all" | "open" | "none";
 export type ConversationBadReviewFilter = "all" | "hasBadReview";
-export type EscalationStatusFilter = "open" | "pending" | "inProgress" | "resolved" | "closed" | "all";
+export type EscalationStatusFilter =
+  | "open"
+  | "pending"
+  | "inProgress"
+  | "resolved"
+  | "closed"
+  | "all";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
@@ -36,7 +42,9 @@ function emitCsTelemetry(eventType: string, metadata: Record<string, unknown>): 
   });
 }
 
-function conversationTelemetryContext(item: Partial<GQL.CustomerServiceConversationInboxItem> | null | undefined): Record<string, unknown> {
+function conversationTelemetryContext(
+  item: Partial<GQL.CustomerServiceConversationInboxItem> | null | undefined,
+): Record<string, unknown> {
   return {
     shopId: item?.shopId ?? "",
     platformShopId: item?.platformShopId ?? "",
@@ -59,7 +67,11 @@ function normalizedSearch(value: string): string {
 
 function matchesText(search: string, values: Array<string | number | null | undefined>): boolean {
   if (!search) return true;
-  return values.some((value) => String(value ?? "").toLowerCase().includes(search));
+  return values.some((value) =>
+    String(value ?? "")
+      .toLowerCase()
+      .includes(search),
+  );
 }
 
 function normalizedMessageText(message: Record<string, any>): string {
@@ -73,7 +85,10 @@ function isCustomerServiceMessage(message: Record<string, any>): boolean {
   return String(message.sender?.role ?? "").toUpperCase() === "CUSTOMER_SERVICE";
 }
 
-function isRoutineServiceMessage(message: Record<string, any>, seenServiceTexts: Set<string>): boolean {
+function isRoutineServiceMessage(
+  message: Record<string, any>,
+  seenServiceTexts: Set<string>,
+): boolean {
   if (isCustomerServiceRichMessage(message)) return false;
   if (!isCustomerServiceMessage(message)) return false;
   const text = normalizedMessageText(message);
@@ -105,12 +120,14 @@ function isCustomerServiceRichMessage(message: Record<string, any>): boolean {
 
 function isSideAlignedConversationMessage(message: Record<string, any>): boolean {
   const role = String(message.sender?.role ?? "").toUpperCase();
-  return isCustomerServiceRichMessage(message) ||
+  return (
+    isCustomerServiceRichMessage(message) ||
     role === "BUYER" ||
     role === "CUSTOMER_SERVICE" ||
     role === "ROBOT" ||
     role === "SHOP" ||
-    role === "SELLER";
+    role === "SELLER"
+  );
 }
 
 function messageTimeKey(message: Record<string, any>): number {
@@ -141,17 +158,20 @@ function compareOpaqueIndex(a: unknown, b: unknown): number {
 function sortMessagesChronologically(messages: Record<string, any>[]): Record<string, any>[] {
   return messages
     .map((message, originalIndex) => ({ message, originalIndex }))
-    .sort((a, b) => (
-      messageTimeKey(a.message) - messageTimeKey(b.message) ||
-      compareOpaqueIndex(a.message.index, b.message.index) ||
-      Number(Boolean(a.message.isSummaryMessage)) - Number(Boolean(b.message.isSummaryMessage)) ||
-      compareOpaqueIndex(a.message.messageId, b.message.messageId) ||
-      a.originalIndex - b.originalIndex
-    ))
+    .sort(
+      (a, b) =>
+        messageTimeKey(a.message) - messageTimeKey(b.message) ||
+        compareOpaqueIndex(a.message.index, b.message.index) ||
+        Number(Boolean(a.message.isSummaryMessage)) - Number(Boolean(b.message.isSummaryMessage)) ||
+        compareOpaqueIndex(a.message.messageId, b.message.messageId) ||
+        a.originalIndex - b.originalIndex,
+    )
     .map(({ message }) => message);
 }
 
-function summaryToMessage(summary: Record<string, any> | null | undefined): Record<string, any> | null {
+function summaryToMessage(
+  summary: Record<string, any> | null | undefined,
+): Record<string, any> | null {
   if (!summary?.summary) return null;
   return {
     messageId: `summary:${summary.updatedAt ?? summary.messageId ?? ""}`,
@@ -167,7 +187,9 @@ function summaryToMessage(summary: Record<string, any> | null | undefined): Reco
 }
 
 function sortEscalations(items: GQL.CsEscalation[]): GQL.CsEscalation[] {
-  return [...items].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  return [...items].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
 }
 
 function statusesForEscalationFilter(filter: EscalationStatusFilter): GQL.CsEscalationStatus[] {
@@ -193,7 +215,9 @@ function statusesForEscalationFilter(filter: EscalationStatusFilter): GQL.CsEsca
   }
 }
 
-function statusForConversationFilter(filter: ConversationStatusFilter): GQL.CustomerServiceConversationStatus | undefined {
+function statusForConversationFilter(
+  filter: ConversationStatusFilter,
+): GQL.CustomerServiceConversationStatus | undefined {
   if (filter === "pending") return GQL.CustomerServiceConversationStatus.Pending;
   if (filter === "resolved") return GQL.CustomerServiceConversationStatus.Resolved;
   return undefined;
@@ -205,7 +229,9 @@ function aiEnabledForFilter(filter: ConversationAiFilter): boolean | undefined {
   return undefined;
 }
 
-function escalationForConversationFilter(filter: ConversationEscalationFilter): GQL.CustomerServiceConversationEscalationFilter | undefined {
+function escalationForConversationFilter(
+  filter: ConversationEscalationFilter,
+): GQL.CustomerServiceConversationEscalationFilter | undefined {
   if (filter === "open") return GQL.CustomerServiceConversationEscalationFilter.Open;
   if (filter === "none") return GQL.CustomerServiceConversationEscalationFilter.None;
   return undefined;
@@ -225,8 +251,9 @@ function conversationSnapshotToInboxItem(
   conversation: GQL.CustomerServiceConversation,
 ): GQL.CustomerServiceConversationInboxItem | null {
   if (!conversation.shopId || !conversation.replyStatus) return null;
-  const buyer = conversation.participants?.find((participant) => participant?.role === "BUYER")
-    ?? conversation.participants?.find(Boolean);
+  const buyer =
+    conversation.participants?.find((participant) => participant?.role === "BUYER") ??
+    conversation.participants?.find(Boolean);
   return {
     shopId: conversation.shopId,
     platformShopId: conversation.platformShopId ?? null,
@@ -239,12 +266,14 @@ function conversationSnapshotToInboxItem(
     buyerImUserId: buyer?.imUserId ?? null,
     buyerNickname: buyer?.nickname ?? null,
     orderId: conversation.orderId ?? null,
-    latestMessageTime: conversation.latestMessageTime ?? conversation.latestMessage?.createTime ?? null,
+    latestMessageTime:
+      conversation.latestMessageTime ?? conversation.latestMessage?.createTime ?? null,
     latestMessageId: conversation.latestMessage?.messageId ?? null,
     latestMessageIndex: conversation.latestMessage?.index ?? null,
     latestMessageType: conversation.latestMessage?.type ?? null,
     latestSenderRole: conversation.latestMessage?.sender?.role ?? null,
-    latestMessagePreview: conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? null,
+    latestMessagePreview:
+      conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? null,
     lastPendingAt: conversation.lastPendingAt ?? null,
     resolvedAt: conversation.resolvedAt ?? null,
     updatedAt: conversation.updatedAt ?? null,
@@ -258,13 +287,46 @@ function conversationSnapshotToInboxItem(
 
 export const CustomerServiceWorkspaceModel = types
   .model("CustomerServiceWorkspace", {
-    activeTab: types.optional(types.enumeration<CustomerServiceWorkspaceTab>("CustomerServiceWorkspaceTab", ["conversations", "escalations"]), "conversations"),
+    activeTab: types.optional(
+      types.enumeration<CustomerServiceWorkspaceTab>("CustomerServiceWorkspaceTab", [
+        "conversations",
+        "escalations",
+      ]),
+      "conversations",
+    ),
 
     conversationShopId: types.optional(types.string, ""),
-    conversationStatusFilter: types.optional(types.enumeration<ConversationStatusFilter>("ConversationStatusFilter", ["pending", "resolved", "all"]), "all"),
-    conversationAiFilter: types.optional(types.enumeration<ConversationAiFilter>("ConversationAiFilter", ["all", "enabled", "disabled"]), "all"),
-    conversationEscalationFilter: types.optional(types.enumeration<ConversationEscalationFilter>("ConversationEscalationFilter", ["all", "open", "none"]), "all"),
-    conversationBadReviewFilter: types.optional(types.enumeration<ConversationBadReviewFilter>("ConversationBadReviewFilter", ["all", "hasBadReview"]), "all"),
+    conversationStatusFilter: types.optional(
+      types.enumeration<ConversationStatusFilter>("ConversationStatusFilter", [
+        "pending",
+        "resolved",
+        "all",
+      ]),
+      "all",
+    ),
+    conversationAiFilter: types.optional(
+      types.enumeration<ConversationAiFilter>("ConversationAiFilter", [
+        "all",
+        "enabled",
+        "disabled",
+      ]),
+      "all",
+    ),
+    conversationEscalationFilter: types.optional(
+      types.enumeration<ConversationEscalationFilter>("ConversationEscalationFilter", [
+        "all",
+        "open",
+        "none",
+      ]),
+      "all",
+    ),
+    conversationBadReviewFilter: types.optional(
+      types.enumeration<ConversationBadReviewFilter>("ConversationBadReviewFilter", [
+        "all",
+        "hasBadReview",
+      ]),
+      "all",
+    ),
     conversationSearchDraft: types.optional(types.string, ""),
     conversationSearch: types.optional(types.string, ""),
     conversationPage: types.optional(types.number, 1),
@@ -296,7 +358,17 @@ export const CustomerServiceWorkspaceModel = types
     conversationOrderContextErrors: types.optional(types.map(types.string), {}),
 
     escalationShopId: types.optional(types.string, ""),
-    escalationStatusFilter: types.optional(types.enumeration<EscalationStatusFilter>("EscalationStatusFilter", ["open", "pending", "inProgress", "resolved", "closed", "all"]), "open"),
+    escalationStatusFilter: types.optional(
+      types.enumeration<EscalationStatusFilter>("EscalationStatusFilter", [
+        "open",
+        "pending",
+        "inProgress",
+        "resolved",
+        "closed",
+        "all",
+      ]),
+      "open",
+    ),
     escalationSearchDraft: types.optional(types.string, ""),
     escalationSearch: types.optional(types.string, ""),
     escalationPage: types.optional(types.number, 1),
@@ -320,61 +392,80 @@ export const CustomerServiceWorkspaceModel = types
     },
     get filteredConversationItems() {
       const search = normalizedSearch(self.conversationSearch);
-      return self.conversationItems.filter((item) => matchesText(search, [
-        item.conversationId,
-        item.buyerNickname,
-        item.buyerUserId,
-        item.buyerImUserId,
-        item.orderId,
-        item.latestMessagePreview,
-        item.platformShopId,
-      ]));
+      return self.conversationItems.filter((item) =>
+        matchesText(search, [
+          item.conversationId,
+          item.buyerNickname,
+          item.buyerUserId,
+          item.buyerImUserId,
+          item.orderId,
+          item.latestMessagePreview,
+          item.platformShopId,
+        ]),
+      );
     },
     get selectedConversation() {
-      return self.conversationItems.find((item) => (
-        item.conversationId === self.selectedConversationId &&
-        (!self.selectedConversationShopId || item.shopId === self.selectedConversationShopId)
-      )) ?? null;
+      return (
+        self.conversationItems.find(
+          (item) =>
+            item.conversationId === self.selectedConversationId &&
+            (!self.selectedConversationShopId || item.shopId === self.selectedConversationShopId),
+        ) ?? null
+      );
     },
     get selectedConversationOrderContext() {
-      const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      const selected = (self as any)
+        .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
       const key = conversationOrderContextKey(selected);
-      return key ? self.conversationOrderContexts.get(key) ?? null : null;
+      return key ? (self.conversationOrderContexts.get(key) ?? null) : null;
     },
     get selectedConversationOrderContextLoading() {
-      const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      const selected = (self as any)
+        .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
       const key = conversationOrderContextKey(selected);
       return Boolean(key && self.conversationOrderContextLoadingKeys.includes(key));
     },
     get selectedConversationOrderContextError() {
-      const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      const selected = (self as any)
+        .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
       const key = conversationOrderContextKey(selected);
-      return key ? self.conversationOrderContextErrors.get(key) ?? null : null;
+      return key ? (self.conversationOrderContextErrors.get(key) ?? null) : null;
     },
     get displayConversationMessages() {
       const seenServiceTexts = new Set<string>();
-      const summaryMessage = summaryToMessage(self.conversationSummary as Record<string, any> | null);
+      const summaryMessage = summaryToMessage(
+        self.conversationSummary as Record<string, any> | null,
+      );
       const loadedMessages = self.conversationMessages as unknown as Record<string, any>[];
       const messages = summaryMessage ? [...loadedMessages, summaryMessage] : loadedMessages;
       return sortMessagesChronologically(messages).map((message) => ({
         ...message,
         isRoutineServiceMessage: isRoutineServiceMessage(message, seenServiceTexts),
-        isSystemMessage: Boolean(message.isSummaryMessage) || !isSideAlignedConversationMessage(message),
+        isSystemMessage:
+          Boolean(message.isSummaryMessage) || !isSideAlignedConversationMessage(message),
       }));
     },
     get canLoadOlderConversationMessages() {
-      return Boolean(self.conversationMessagesNextPageToken) &&
+      return (
+        Boolean(self.conversationMessagesNextPageToken) &&
         !self.conversationMessagesLoading &&
-        !self.conversationMessagesLoadingMore;
+        !self.conversationMessagesLoadingMore
+      );
     },
     get conversationPageCount() {
       return Math.max(1, Math.ceil(self.conversationTotal / self.conversationPageSize));
     },
     get conversationPageStart() {
-      return self.conversationTotal === 0 ? 0 : (self.conversationPage - 1) * self.conversationPageSize + 1;
+      return self.conversationTotal === 0
+        ? 0
+        : (self.conversationPage - 1) * self.conversationPageSize + 1;
     },
     get conversationPageEnd() {
-      return Math.min(self.conversationTotal, (self.conversationPage - 1) * self.conversationPageSize + (self as any).filteredConversationItems.length);
+      return Math.min(
+        self.conversationTotal,
+        (self.conversationPage - 1) * self.conversationPageSize +
+          (self as any).filteredConversationItems.length,
+      );
     },
     isConversationAiUpdating(conversationId: string) {
       return self.updatingConversationAiIds.includes(conversationId);
@@ -392,14 +483,23 @@ export const CustomerServiceWorkspaceModel = types
       return Math.max(1, Math.ceil(self.escalationTotal / self.escalationPageSize));
     },
     get escalationPageStart() {
-      return self.escalationTotal === 0 ? 0 : (self.escalationPage - 1) * self.escalationPageSize + 1;
+      return self.escalationTotal === 0
+        ? 0
+        : (self.escalationPage - 1) * self.escalationPageSize + 1;
     },
     get escalationPageEnd() {
-      return Math.min(self.escalationTotal, (self.escalationPage - 1) * self.escalationPageSize + self.escalationItems.length);
+      return Math.min(
+        self.escalationTotal,
+        (self.escalationPage - 1) * self.escalationPageSize + self.escalationItems.length,
+      );
     },
     get selectedEscalation() {
-      return self.escalationItems.find((item) => item.id === self.selectedEscalationId) ??
-        ((self.selectedEscalationOverride?.id === self.selectedEscalationId ? self.selectedEscalationOverride : null) as any);
+      return (
+        self.escalationItems.find((item) => item.id === self.selectedEscalationId) ??
+        ((self.selectedEscalationOverride?.id === self.selectedEscalationId
+          ? self.selectedEscalationOverride
+          : null) as any)
+      );
     },
     get selectedEscalationIndex() {
       return self.selectedEscalationId
@@ -453,21 +553,28 @@ export const CustomerServiceWorkspaceModel = types
     }
 
     function replaceConversation(item: GQL.CustomerServiceConversationInboxItem) {
-      const next = self.conversationItems.filter((candidate) => (
-        candidate.shopId !== item.shopId || candidate.conversationId !== item.conversationId
-      ));
+      const next = self.conversationItems.filter(
+        (candidate) =>
+          candidate.shopId !== item.shopId || candidate.conversationId !== item.conversationId,
+      );
       next.unshift(item);
       self.conversationItems.replace(next as any);
     }
 
     function removeConversation(item: GQL.CustomerServiceConversationInboxItem) {
-      self.conversationItems.replace(self.conversationItems.filter((candidate) => (
-        candidate.shopId !== item.shopId || candidate.conversationId !== item.conversationId
-      )) as any);
+      self.conversationItems.replace(
+        self.conversationItems.filter(
+          (candidate) =>
+            candidate.shopId !== item.shopId || candidate.conversationId !== item.conversationId,
+        ) as any,
+      );
     }
 
     function messageIdentity(message: Record<string, any>): string {
-      return String(message.messageId ?? `${message.createTime ?? ""}:${message.index ?? ""}:${message.text ?? ""}`);
+      return String(
+        message.messageId ??
+          `${message.createTime ?? ""}:${message.index ?? ""}:${message.text ?? ""}`,
+      );
     }
 
     function mergeConversationMessages(
@@ -488,8 +595,10 @@ export const CustomerServiceWorkspaceModel = types
       if (status && item.status !== status) return false;
       const aiEnabled = aiEnabledForFilter(self.conversationAiFilter);
       if (aiEnabled != null && item.aiEnabled !== aiEnabled) return false;
-      if (self.conversationEscalationFilter === "open" && !(item.openEscalationCount > 0)) return false;
-      if (self.conversationEscalationFilter === "none" && item.openEscalationCount > 0) return false;
+      if (self.conversationEscalationFilter === "open" && !(item.openEscalationCount > 0))
+        return false;
+      if (self.conversationEscalationFilter === "none" && item.openEscalationCount > 0)
+        return false;
       return matchesText(search, [
         item.conversationId,
         item.buyerNickname,
@@ -558,15 +667,19 @@ export const CustomerServiceWorkspaceModel = types
         const snapshot = readConversationChanged(raw);
         const item = snapshot ? conversationSnapshotToInboxItem(snapshot) : null;
         if (!item) return;
-        const existed = self.conversationItems.some((candidate) => (
-          candidate.shopId === item.shopId && candidate.conversationId === item.conversationId
-        ));
+        const existed = self.conversationItems.some(
+          (candidate) =>
+            candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
+        );
         if (!shouldShowConversation(item)) {
           if (existed) {
             removeConversation(item);
             self.conversationTotal = Math.max(0, self.conversationTotal - 1);
           }
-          if (self.selectedConversationId === item.conversationId && self.selectedConversationShopId === item.shopId) {
+          if (
+            self.selectedConversationId === item.conversationId &&
+            self.selectedConversationShopId === item.shopId
+          ) {
             self.selectedConversationId = null;
             self.selectedConversationShopId = null;
           }
@@ -577,7 +690,11 @@ export const CustomerServiceWorkspaceModel = types
       },
       selectConversation(shopId: string | null, conversationId?: string | null) {
         const nextConversationId = conversationId ?? null;
-        if (self.selectedConversationId === nextConversationId && self.selectedConversationShopId === shopId) return;
+        if (
+          self.selectedConversationId === nextConversationId &&
+          self.selectedConversationShopId === shopId
+        )
+          return;
         self.selectedConversationShopId = shopId;
         self.selectedConversationId = nextConversationId;
         self.conversationMessages.replace([]);
@@ -665,7 +782,10 @@ export const CustomerServiceWorkspaceModel = types
           fetchPolicy: "network-only",
         });
         const page = result.data?.csOpenEscalationsPage as GQL.CsOpenEscalationPage | undefined;
-        const escalation = page?.items?.find((candidate) => candidate.id === escalationId) ?? page?.items?.[0] ?? null;
+        const escalation =
+          page?.items?.find((candidate) => candidate.id === escalationId) ??
+          page?.items?.[0] ??
+          null;
         if (!escalation) return null;
         self.selectedEscalationId = escalation.id;
         self.selectedEscalationOverride = escalation as any;
@@ -713,13 +833,20 @@ export const CustomerServiceWorkspaceModel = types
             },
             fetchPolicy: "network-only",
           });
-          const page = result.data?.ecommerceGetCustomerServiceInbox as GQL.CustomerServiceConversationInboxPage | undefined;
+          const page = result.data?.ecommerceGetCustomerServiceInbox as
+            | GQL.CustomerServiceConversationInboxPage
+            | undefined;
           self.conversationItems.replace((page?.items ?? []) as any);
           self.conversationTotal = page?.totalCount ?? 0;
-          if (self.selectedConversationId && !self.conversationItems.some((item) => (
-            item.conversationId === self.selectedConversationId &&
-            (!self.selectedConversationShopId || item.shopId === self.selectedConversationShopId)
-          ))) {
+          if (
+            self.selectedConversationId &&
+            !self.conversationItems.some(
+              (item) =>
+                item.conversationId === self.selectedConversationId &&
+                (!self.selectedConversationShopId ||
+                  item.shopId === self.selectedConversationShopId),
+            )
+          ) {
             self.selectedConversationId = null;
             self.selectedConversationShopId = null;
           }
@@ -730,7 +857,8 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       fetchConversationMessages: flow(function* (locale?: string) {
-        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         if (!selected) return;
         self.conversationMessagesLoading = true;
         self.conversationMessagesLoadingMore = false;
@@ -747,7 +875,9 @@ export const CustomerServiceWorkspaceModel = types
             },
             fetchPolicy: "network-only",
           });
-          const page = result.data?.ecommerceGetConversationMessages as GQL.CustomerServiceMessageSummaryPage | undefined;
+          const page = result.data?.ecommerceGetConversationMessages as
+            | GQL.CustomerServiceMessageSummaryPage
+            | undefined;
           self.conversationMessages.replace((page?.items ?? []) as any);
           self.conversationMessagesNextPageToken = page?.nextPageToken ?? null;
         } catch (err) {
@@ -757,7 +887,8 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       fetchSelectedConversationOrderContext: flow(function* (force = false) {
-        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         const key = conversationOrderContextKey(selected);
         if (!selected?.orderId || !key) return null;
         if (!force && self.conversationOrderContexts.has(key)) {
@@ -792,9 +923,16 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       fetchOlderConversationMessages: flow(function* (locale?: string) {
-        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         const pageToken = self.conversationMessagesNextPageToken;
-        if (!selected || !pageToken || self.conversationMessagesLoading || self.conversationMessagesLoadingMore) return false;
+        if (
+          !selected ||
+          !pageToken ||
+          self.conversationMessagesLoading ||
+          self.conversationMessagesLoadingMore
+        )
+          return false;
         self.conversationMessagesLoadingMore = true;
         self.conversationMessagesError = null;
         try {
@@ -809,11 +947,15 @@ export const CustomerServiceWorkspaceModel = types
             },
             fetchPolicy: "network-only",
           });
-          const page = result.data?.ecommerceGetConversationMessages as GQL.CustomerServiceMessageSummaryPage | undefined;
-          self.conversationMessages.replace(mergeConversationMessages(
-            self.conversationMessages as unknown as Record<string, any>[],
-            (page?.items ?? []) as Record<string, any>[],
-          ) as any);
+          const page = result.data?.ecommerceGetConversationMessages as
+            | GQL.CustomerServiceMessageSummaryPage
+            | undefined;
+          self.conversationMessages.replace(
+            mergeConversationMessages(
+              self.conversationMessages as unknown as Record<string, any>[],
+              (page?.items ?? []) as Record<string, any>[],
+            ) as any,
+          );
           self.conversationMessagesNextPageToken = page?.nextPageToken ?? null;
           return true;
         } catch (err) {
@@ -824,7 +966,8 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       fetchConversationSummary: flow(function* () {
-        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         if (!selected) return null;
         const shopId = selected.shopId;
         const conversationId = selected.conversationId;
@@ -835,7 +978,10 @@ export const CustomerServiceWorkspaceModel = types
           const result = yield fetchJson<{ summary?: Record<string, any> | null }>(
             `${clientPath(API["csBridge.conversationSummary.get"])}?${query}`,
           );
-          if (self.selectedConversationId === conversationId && self.selectedConversationShopId === shopId) {
+          if (
+            self.selectedConversationId === conversationId &&
+            self.selectedConversationShopId === shopId
+          ) {
             self.conversationSummary = result.summary ?? null;
           }
           return result.summary ?? null;
@@ -847,7 +993,8 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       generateConversationSummary: flow(function* (locale?: string) {
-        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         if (!selected) return null;
         const shopId = selected.shopId;
         const conversationId = selected.conversationId;
@@ -861,7 +1008,10 @@ export const CustomerServiceWorkspaceModel = types
               body: JSON.stringify({ shopId, conversationId, locale }),
             },
           );
-          if (self.selectedConversationId === conversationId && self.selectedConversationShopId === shopId) {
+          if (
+            self.selectedConversationId === conversationId &&
+            self.selectedConversationShopId === shopId
+          ) {
             self.conversationSummary = result.summary ?? null;
           }
           return result.summary ?? null;
@@ -884,7 +1034,9 @@ export const CustomerServiceWorkspaceModel = types
               aiEnabled,
             },
           });
-          const updated = result.data?.ecommerceSetCustomerServiceConversationAiEnabled as GQL.CustomerServiceConversationInboxItem | undefined;
+          const updated = result.data?.ecommerceSetCustomerServiceConversationAiEnabled as
+            | GQL.CustomerServiceConversationInboxItem
+            | undefined;
           if (updated) replaceConversation(updated);
         } finally {
           removeValue(self.updatingConversationAiIds as unknown as string[], item.conversationId);
@@ -894,24 +1046,29 @@ export const CustomerServiceWorkspaceModel = types
       startConversationAiRun: flow(function* (item: any, operatorInstruction?: string) {
         pushUnique(self.startingConversationIds as unknown as string[], item.conversationId);
         try {
-          const result = yield fetchJson<{ ok?: boolean; error?: string }>(clientPath(API["csBridge.startConversation"]), {
-            method: "POST",
-            body: JSON.stringify({
-              shopId: item.shopId,
-              conversationId: item.conversationId,
-              buyerUserId: item.buyerUserId ?? item.buyerImUserId ?? undefined,
-              orderId: item.orderId ?? undefined,
-              operatorInstruction,
-            }),
-          });
-          if (result.ok === false) throw new Error(result.error ?? "Failed to start customer-service run");
+          const result = yield fetchJson<{ ok?: boolean; error?: string }>(
+            clientPath(API["csBridge.startConversation"]),
+            {
+              method: "POST",
+              body: JSON.stringify({
+                shopId: item.shopId,
+                conversationId: item.conversationId,
+                buyerUserId: item.buyerUserId ?? item.buyerImUserId ?? undefined,
+                orderId: item.orderId ?? undefined,
+                operatorInstruction,
+              }),
+            },
+          );
+          if (result.ok === false)
+            throw new Error(result.error ?? "Failed to start customer-service run");
           return result;
         } finally {
           removeValue(self.startingConversationIds as unknown as string[], item.conversationId);
         }
       }),
       sendManualReply: flow(function* (locale?: string) {
-        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         const message = self.manualReplyDraft.trim();
         if (!selected || !message) return null;
         self.sendingManualReply = true;
@@ -986,7 +1143,10 @@ export const CustomerServiceWorkspaceModel = types
           });
           removeConversation(item);
           self.conversationTotal = Math.max(0, self.conversationTotal - 1);
-          if (self.selectedConversationId === item.conversationId && self.selectedConversationShopId === item.shopId) {
+          if (
+            self.selectedConversationId === item.conversationId &&
+            self.selectedConversationShopId === item.shopId
+          ) {
             self.selectedConversationId = null;
             self.selectedConversationShopId = null;
             self.conversationMessages.replace([]);
@@ -1009,7 +1169,10 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       dismissConversationEscalations: flow(function* (item: any) {
-        pushUnique(self.clearingConversationEscalationIds as unknown as string[], item.conversationId);
+        pushUnique(
+          self.clearingConversationEscalationIds as unknown as string[],
+          item.conversationId,
+        );
         try {
           const startedAt = Date.now();
           const result = yield client().mutate({
@@ -1019,7 +1182,9 @@ export const CustomerServiceWorkspaceModel = types
               conversationId: item.conversationId,
             },
           });
-          const updated = result.data?.csDismissConversationEscalations as GQL.CustomerServiceConversationInboxItem | undefined;
+          const updated = result.data?.csDismissConversationEscalations as
+            | GQL.CustomerServiceConversationInboxItem
+            | undefined;
           if (updated) replaceConversation(updated);
           emitCsTelemetry("cs.escalation_event", {
             ...conversationTelemetryContext(item),
@@ -1031,13 +1196,22 @@ export const CustomerServiceWorkspaceModel = types
             count: Number(item.openEscalationCount ?? 0),
             durationMs: Date.now() - startedAt,
           });
-          self.escalationItems.replace(self.escalationItems.filter((candidate) => (
-            candidate.shopId !== item.shopId || candidate.conversationId !== item.conversationId
-          )) as any);
-          self.escalationTotal = Math.max(0, self.escalationTotal - Number(item.openEscalationCount ?? 0));
+          self.escalationItems.replace(
+            self.escalationItems.filter(
+              (candidate) =>
+                candidate.shopId !== item.shopId ||
+                candidate.conversationId !== item.conversationId,
+            ) as any,
+          );
+          self.escalationTotal = Math.max(
+            0,
+            self.escalationTotal - Number(item.openEscalationCount ?? 0),
+          );
           if (
             self.selectedEscalationId &&
-            !(self.escalationItems as unknown as GQL.CsEscalation[]).some((candidate) => candidate.id === self.selectedEscalationId)
+            !(self.escalationItems as unknown as GQL.CsEscalation[]).some(
+              (candidate) => candidate.id === self.selectedEscalationId,
+            )
           ) {
             self.selectedEscalationId = null;
             self.selectedEscalationOverride = null;
@@ -1057,7 +1231,10 @@ export const CustomerServiceWorkspaceModel = types
           });
           throw err;
         } finally {
-          removeValue(self.clearingConversationEscalationIds as unknown as string[], item.conversationId);
+          removeValue(
+            self.clearingConversationEscalationIds as unknown as string[],
+            item.conversationId,
+          );
         }
       }),
       fetchEscalations: flow(function* () {
@@ -1080,7 +1257,10 @@ export const CustomerServiceWorkspaceModel = types
           const page = result.data?.csOpenEscalationsPage as GQL.CsOpenEscalationPage | undefined;
           self.escalationItems.replace(sortEscalations(page?.items ?? []) as any);
           self.escalationTotal = page?.total ?? 0;
-          if (self.selectedEscalationId && !self.escalationItems.some((item) => item.id === self.selectedEscalationId)) {
+          if (
+            self.selectedEscalationId &&
+            !self.escalationItems.some((item) => item.id === self.selectedEscalationId)
+          ) {
             self.selectedEscalationId = null;
             setEscalationDraftFromSelection();
           }
@@ -1096,7 +1276,9 @@ export const CustomerServiceWorkspaceModel = types
         if (self.escalationPage !== 1) return;
         const search = normalizedSearch(self.escalationSearch);
         const matchesShop = !self.escalationShopId || escalation.shopId === self.escalationShopId;
-        const matchesStatus = statusesForEscalationFilter(self.escalationStatusFilter).includes(escalation.status);
+        const matchesStatus = statusesForEscalationFilter(self.escalationStatusFilter).includes(
+          escalation.status,
+        );
         const matchesSearch = matchesText(search, [
           escalation.id,
           escalation.reason,
@@ -1106,9 +1288,13 @@ export const CustomerServiceWorkspaceModel = types
           escalation.buyerNickname,
           escalation.orderId,
         ]);
-        const next = (self.escalationItems as unknown as GQL.CsEscalation[]).filter((item) => item.id !== escalation.id);
+        const next = (self.escalationItems as unknown as GQL.CsEscalation[]).filter(
+          (item) => item.id !== escalation.id,
+        );
         if (matchesShop && matchesStatus && matchesSearch) next.push(escalation);
-        self.escalationItems.replace(sortEscalations(next).slice(0, self.escalationPageSize) as any);
+        self.escalationItems.replace(
+          sortEscalations(next).slice(0, self.escalationPageSize) as any,
+        );
       },
       respondToSelectedEscalation: flow(function* () {
         const selected = (self as any).selectedEscalation as GQL.CsEscalation | null;
@@ -1149,7 +1335,9 @@ export const CustomerServiceWorkspaceModel = types
           });
           if (self.escalationResolved) {
             const nextId = nextEscalationId(selected.id);
-            self.escalationItems.replace(self.escalationItems.filter((item) => item.id !== selected.id) as any);
+            self.escalationItems.replace(
+              self.escalationItems.filter((item) => item.id !== selected.id) as any,
+            );
             self.escalationTotal = Math.max(0, self.escalationTotal - 1);
             self.selectedEscalationId = nextId;
             setEscalationDraftFromSelection();
@@ -1183,10 +1371,12 @@ export const CustomerServiceWorkspaceModel = types
             mutation: CS_DISMISS_ESCALATION_MUTATION,
             variables: { escalationId: selected.id },
           });
-          const payload = result.data?.csDismissEscalation as {
-            ok?: boolean;
-            error?: string | null;
-          } | undefined;
+          const payload = result.data?.csDismissEscalation as
+            | {
+                ok?: boolean;
+                error?: string | null;
+              }
+            | undefined;
           if (!payload?.ok) throw new Error(payload?.error ?? "Escalation dismiss failed");
           emitCsTelemetry("cs.escalation_event", {
             shopId: selected.shopId,
@@ -1200,7 +1390,9 @@ export const CustomerServiceWorkspaceModel = types
             durationMs: Date.now() - startedAt,
           });
           const nextId = nextEscalationId(selected.id);
-          self.escalationItems.replace(self.escalationItems.filter((item) => item.id !== selected.id) as any);
+          self.escalationItems.replace(
+            self.escalationItems.filter((item) => item.id !== selected.id) as any,
+          );
           self.escalationTotal = Math.max(0, self.escalationTotal - 1);
           self.selectedEscalationId = nextId;
           self.selectedEscalationOverride = null;

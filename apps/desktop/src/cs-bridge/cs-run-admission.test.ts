@@ -159,9 +159,9 @@ describe("CsAutomaticRunAdmission", () => {
   it("accepts work again once the bridge resumes after a reset", async () => {
     const admission = new CsAutomaticRunAdmission(1);
     admission.reset("bridge_stopped");
-    await expect(
-      admission.acquire({ conversationId: "conv-retired" }),
-    ).rejects.toBeInstanceOf(CsRunAdmissionCancelledError);
+    await expect(admission.acquire({ conversationId: "conv-retired" })).rejects.toBeInstanceOf(
+      CsRunAdmissionCancelledError,
+    );
 
     admission.resume();
     const lease = await admission.acquire({ conversationId: "conv-after-resume" });

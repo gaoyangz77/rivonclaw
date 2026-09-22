@@ -9,7 +9,6 @@ import { OAuthProviderForm } from "./provider-setup/OAuthProviderForm.js";
 import { CustomProviderForm } from "./provider-setup/CustomProviderForm.js";
 import { TkAlert, TkPanel, TkTabs } from "./design-system/index.js";
 
-
 export interface ProviderSetupFormProps {
   /** Called after a provider key is successfully saved. */
   onSave: (provider: string) => void;
@@ -37,7 +36,18 @@ export function ProviderSetupForm({
   variant = "card",
 }: ProviderSetupFormProps) {
   const form = useProviderForm(onSave);
-  const { t, tab, handleTabChange, provider, handleProviderChange, error, leftCardRef, leftHeight, pricingList, pricingLoading } = form;
+  const {
+    t,
+    tab,
+    handleTabChange,
+    provider,
+    handleProviderChange,
+    error,
+    leftCardRef,
+    leftHeight,
+    pricingList,
+    pricingLoading,
+  } = form;
 
   const providerFilter = tab === "subscription" ? SUBSCRIPTION_PROVIDER_IDS : API_PROVIDER_IDS;
   const isOAuth = !!getProviderMeta(provider as LLMProvider)?.oauth;
@@ -55,7 +65,12 @@ export function ProviderSetupForm({
         {error && (
           <TkAlert tone="danger" title={t(error.key)}>
             {error.detail}
-            {error.hover && <details className="error-details"><summary>{t("providers.errorDetails")}</summary><code>{error.hover}</code></details>}
+            {error.hover && (
+              <details className="error-details">
+                <summary>{t("providers.errorDetails")}</summary>
+                <code>{error.hover}</code>
+              </details>
+            )}
           </TkAlert>
         )}
 
@@ -73,43 +88,66 @@ export function ProviderSetupForm({
         />
 
         {tab === "custom" ? (
-          <CustomProviderForm form={form} saveButtonLabel={saveButtonLabel} validatingLabel={validatingLabel} savingLabel={savingLabel} />
+          <CustomProviderForm
+            form={form}
+            saveButtonLabel={saveButtonLabel}
+            validatingLabel={validatingLabel}
+            savingLabel={savingLabel}
+          />
         ) : tab === "local" ? (
           <LocalModelForm form={form} saveButtonLabel={saveButtonLabel} savingLabel={savingLabel} />
         ) : (
           <>
             <div className="mb-sm" data-tutorial-id="providers-selector">
               <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
-              <ProviderSelect value={provider} onChange={handleProviderChange} providers={providerFilter} />
+              <ProviderSelect
+                value={provider}
+                onChange={handleProviderChange}
+                providers={providerFilter}
+              />
             </div>
 
             {isOAuth ? (
-              <OAuthProviderForm form={form} saveButtonLabel={saveButtonLabel} validatingLabel={validatingLabel} savingLabel={savingLabel} />
+              <OAuthProviderForm
+                form={form}
+                saveButtonLabel={saveButtonLabel}
+                validatingLabel={validatingLabel}
+                savingLabel={savingLabel}
+              />
             ) : (
-              <ApiKeyForm form={form} saveButtonLabel={saveButtonLabel} validatingLabel={validatingLabel} savingLabel={savingLabel} />
+              <ApiKeyForm
+                form={form}
+                saveButtonLabel={saveButtonLabel}
+                validatingLabel={validatingLabel}
+                savingLabel={savingLabel}
+              />
             )}
           </>
         )}
       </TkPanel>
 
       {/* Right: Pricing table / Local info / Custom info */}
-      <div className="page-col-side" style={{ height: leftHeight }} data-tutorial-id="providers-info">
+      <div
+        className="page-col-side"
+        style={{ height: leftHeight }}
+        data-tutorial-id="providers-info"
+      >
         {tab === "custom" ? (
           <TkPanel className="section-card pricing-card provider-info-card">
             <h4 className="pricing-heading">{t("providers.customInfoTitle")}</h4>
-            <div className="provider-info-body">
-              {t("providers.customInfoBody")}
-            </div>
+            <div className="provider-info-body">{t("providers.customInfoBody")}</div>
           </TkPanel>
         ) : tab === "local" ? (
           <TkPanel className="section-card pricing-card provider-info-card">
             <h4 className="pricing-heading">{t("providers.localInfoTitle")}</h4>
-            <div className="provider-info-body">
-              {t("providers.localInfoBody")}
-            </div>
+            <div className="provider-info-body">{t("providers.localInfoBody")}</div>
           </TkPanel>
         ) : tab === "subscription" ? (
-          <SubscriptionPricingTable provider={provider} pricingList={pricingList} loading={pricingLoading} />
+          <SubscriptionPricingTable
+            provider={provider}
+            pricingList={pricingList}
+            loading={pricingLoading}
+          />
         ) : (
           <PricingTable provider={provider} pricingList={pricingList} loading={pricingLoading} />
         )}

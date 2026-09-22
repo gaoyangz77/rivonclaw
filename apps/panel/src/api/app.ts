@@ -63,9 +63,13 @@ export async function fetchChangelog(): Promise<{
   currentVersion: string | null;
   entries: ChangelogEntry[];
 }> {
-  return cachedFetch("changelog", async () => {
-    return fetchJson(clientPath(API["app.changelog"]));
-  }, 86_400_000); // 24h — only changes on app update
+  return cachedFetch(
+    "changelog",
+    async () => {
+      return fetchJson(clientPath(API["app.changelog"]));
+    },
+    86_400_000,
+  ); // 24h — only changes on app update
 }
 
 // --- Gateway Info ---

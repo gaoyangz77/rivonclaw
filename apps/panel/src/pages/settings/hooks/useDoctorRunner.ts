@@ -18,7 +18,9 @@ export function useDoctorRunner() {
   }, [doctorOutput]);
 
   useEffect(() => {
-    return () => { doctorSseRef.current?.close(); };
+    return () => {
+      doctorSseRef.current?.close();
+    };
   }, []);
 
   const handleInstallDeps = useCallback(async () => {
@@ -44,14 +46,14 @@ export function useDoctorRunner() {
     sse.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === "output") {
-        setDoctorOutput(prev => [...prev, data.text]);
+        setDoctorOutput((prev) => [...prev, data.text]);
       } else if (data.type === "done") {
         setDoctorExitCode(data.exitCode);
         setDoctorStatus(data.exitCode === 0 ? "done" : "error");
         sse.close();
         doctorSseRef.current = null;
       } else if (data.type === "error") {
-        setDoctorOutput(prev => [...prev, `ERROR: ${data.message}`]);
+        setDoctorOutput((prev) => [...prev, `ERROR: ${data.message}`]);
         setDoctorStatus("error");
         sse.close();
         doctorSseRef.current = null;

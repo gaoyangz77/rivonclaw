@@ -4,11 +4,11 @@ This directory holds application icons required by electron-builder for packagin
 
 ## Required Icon Files
 
-| File        | Platform | Format / Size                        |
-|-------------|----------|--------------------------------------|
-| `icon.ico`  | Windows  | ICO, 256x256 minimum (multi-size)    |
-| `icon.icns` | macOS    | ICNS, 512x512 + 1024x1024 (Retina)  |
-| `icon.png`  | Linux    | PNG, 512x512                         |
+| File        | Platform | Format / Size                      |
+| ----------- | -------- | ---------------------------------- |
+| `icon.ico`  | Windows  | ICO, 256x256 minimum (multi-size)  |
+| `icon.icns` | macOS    | ICNS, 512x512 + 1024x1024 (Retina) |
+| `icon.png`  | Linux    | PNG, 512x512                       |
 
 ## Notes
 

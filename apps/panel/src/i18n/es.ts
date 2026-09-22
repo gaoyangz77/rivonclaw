@@ -3066,7 +3066,8 @@ export default {
         reviewDescriptions: {
           APPROVE: "TikTok recibirá la aprobación tras la validación.",
           PLATFORM_REJECT: "TikTok recibirá el rechazo tras la validación.",
-          SOFT_REJECT: "Dejar de revisar esta solicitud y esperar a que caduque, sin rechazarla en TikTok. Puedes reabrirla antes de que caduque.",
+          SOFT_REJECT:
+            "Dejar de revisar esta solicitud y esperar a que caduque, sin rechazarla en TikTok. Puedes reabrirla antes de que caduque.",
           REOPEN: "Reabrir si TikTok aún permite revisarla.",
         },
       },

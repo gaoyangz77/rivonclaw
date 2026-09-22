@@ -984,7 +984,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                         />
                         <button
                           className="btn btn-primary"
-                          disabled={splitSellerSkuInput(sellerSku).length === 0 || discovery.loading}
+                          disabled={
+                            splitSellerSkuInput(sellerSku).length === 0 || discovery.loading
+                          }
                           type="submit"
                         >
                           {discovery.loading

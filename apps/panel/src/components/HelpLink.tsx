@@ -5,22 +5,22 @@ import { EXTERNAL_LINKS } from "../lib/external-links.js";
 import { HomeIcon } from "./icons.js";
 
 export function HelpLink() {
-    const { t } = useTranslation();
+  const { t } = useTranslation();
 
-    return (
-        <a
-            className="sidebar-action-trigger sidebar-action-tooltip help-link-trigger"
-            href={EXTERNAL_LINKS.homepage}
-            data-tooltip={t("common.openWebsite")}
-            aria-label={t("common.openWebsite")}
-            onClick={(event) => {
-                event.preventDefault();
-                void fetchJson<{ authenticated: boolean }>(clientPath(API["auth.webOpen"]), {
-                    method: "POST",
-                });
-            }}
-        >
-            <HomeIcon size={18} />
-        </a>
-    );
+  return (
+    <a
+      className="sidebar-action-trigger sidebar-action-tooltip help-link-trigger"
+      href={EXTERNAL_LINKS.homepage}
+      data-tooltip={t("common.openWebsite")}
+      aria-label={t("common.openWebsite")}
+      onClick={(event) => {
+        event.preventDefault();
+        void fetchJson<{ authenticated: boolean }>(clientPath(API["auth.webOpen"]), {
+          method: "POST",
+        });
+      }}
+    >
+      <HomeIcon size={18} />
+    </a>
+  );
 }

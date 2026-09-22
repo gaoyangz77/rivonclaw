@@ -6,7 +6,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "Opening browser…",
       browserLoginDivider: "or use another method",
       browserLoginWaiting: "Finish signing in in your browser",
-      browserLoginWaitingHint: "Allow this desktop sign-in on the secure TK Copilot page. This window will update automatically.",
+      browserLoginWaitingHint:
+        "Allow this desktop sign-in on the secure TK Copilot page. This window will update automatically.",
       browserLoginSuccess: "Desktop signed in from your browser",
       browserLoginTimeout: "The browser login request expired. Please try again.",
       browserLoginError: "Browser login failed. Please try again.",
@@ -32,7 +33,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "Browser wird geöffnet…",
       browserLoginDivider: "oder eine andere Methode verwenden",
       browserLoginWaiting: "Anmeldung im Browser abschließen",
-      browserLoginWaitingHint: "Erlauben Sie die Desktop-Anmeldung auf der sicheren TK Copilot-Seite. Dieses Fenster wird automatisch aktualisiert.",
+      browserLoginWaitingHint:
+        "Erlauben Sie die Desktop-Anmeldung auf der sicheren TK Copilot-Seite. Dieses Fenster wird automatisch aktualisiert.",
       browserLoginSuccess: "Desktop über den Browser angemeldet",
       browserLoginTimeout: "Die Browser-Anfrage ist abgelaufen. Bitte versuchen Sie es erneut.",
       browserLoginError: "Die Browser-Anmeldung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
@@ -45,7 +47,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "Abriendo el navegador…",
       browserLoginDivider: "o usa otro método",
       browserLoginWaiting: "Completa el acceso en el navegador",
-      browserLoginWaitingHint: "Autoriza este inicio de sesión de escritorio en la página segura de TK Copilot. Esta ventana se actualizará automáticamente.",
+      browserLoginWaitingHint:
+        "Autoriza este inicio de sesión de escritorio en la página segura de TK Copilot. Esta ventana se actualizará automáticamente.",
       browserLoginSuccess: "Desktop inició sesión desde el navegador",
       browserLoginTimeout: "La solicitud de acceso del navegador caducó. Inténtalo de nuevo.",
       browserLoginError: "No se pudo iniciar sesión desde el navegador. Inténtalo de nuevo.",
@@ -58,7 +61,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "Ouverture du navigateur…",
       browserLoginDivider: "ou utiliser une autre méthode",
       browserLoginWaiting: "Terminez la connexion dans le navigateur",
-      browserLoginWaitingHint: "Autorisez cette connexion Desktop sur la page sécurisée de TK Copilot. Cette fenêtre se mettra à jour automatiquement.",
+      browserLoginWaitingHint:
+        "Autorisez cette connexion Desktop sur la page sécurisée de TK Copilot. Cette fenêtre se mettra à jour automatiquement.",
       browserLoginSuccess: "Desktop connecté depuis le navigateur",
       browserLoginTimeout: "La demande de connexion a expiré. Veuillez réessayer.",
       browserLoginError: "La connexion depuis le navigateur a échoué. Veuillez réessayer.",
@@ -71,7 +75,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "Membuka browser…",
       browserLoginDivider: "atau gunakan cara lain",
       browserLoginWaiting: "Selesaikan proses masuk di browser",
-      browserLoginWaitingHint: "Izinkan proses masuk Desktop ini di halaman aman TK Copilot. Jendela ini akan diperbarui otomatis.",
+      browserLoginWaitingHint:
+        "Izinkan proses masuk Desktop ini di halaman aman TK Copilot. Jendela ini akan diperbarui otomatis.",
       browserLoginSuccess: "Desktop berhasil masuk dari browser",
       browserLoginTimeout: "Permintaan masuk dari browser telah kedaluwarsa. Coba lagi.",
       browserLoginError: "Proses masuk dari browser gagal. Coba lagi.",
@@ -84,7 +89,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "Apertura del browser…",
       browserLoginDivider: "oppure usa un altro metodo",
       browserLoginWaiting: "Completa l’accesso nel browser",
-      browserLoginWaitingHint: "Autorizza questo accesso Desktop nella pagina sicura di TK Copilot. La finestra si aggiornerà automaticamente.",
+      browserLoginWaitingHint:
+        "Autorizza questo accesso Desktop nella pagina sicura di TK Copilot. La finestra si aggiornerà automaticamente.",
       browserLoginSuccess: "Desktop connesso dal browser",
       browserLoginTimeout: "La richiesta di accesso dal browser è scaduta. Riprova.",
       browserLoginError: "Accesso dal browser non riuscito. Riprova.",
@@ -97,7 +103,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
       browserLoginOpening: "กำลังเปิดเบราว์เซอร์…",
       browserLoginDivider: "หรือใช้วิธีอื่น",
       browserLoginWaiting: "เข้าสู่ระบบให้เสร็จในเบราว์เซอร์",
-      browserLoginWaitingHint: "อนุญาตการเข้าสู่ระบบ Desktop นี้ในหน้า TK Copilot ที่ปลอดภัย หน้าต่างนี้จะอัปเดตอัตโนมัติ",
+      browserLoginWaitingHint:
+        "อนุญาตการเข้าสู่ระบบ Desktop นี้ในหน้า TK Copilot ที่ปลอดภัย หน้าต่างนี้จะอัปเดตอัตโนมัติ",
       browserLoginSuccess: "Desktop เข้าสู่ระบบจากเบราว์เซอร์แล้ว",
       browserLoginTimeout: "คำขอเข้าสู่ระบบจากเบราว์เซอร์หมดอายุ โปรดลองอีกครั้ง",
       browserLoginError: "เข้าสู่ระบบจากเบราว์เซอร์ไม่สำเร็จ โปรดลองอีกครั้ง",

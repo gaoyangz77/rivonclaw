@@ -107,7 +107,11 @@ describe("SessionTabBar", () => {
       <SessionTabBar
         sessions={[
           { key: "agent:main:main" },
-          { key: "agent:main:panel-9137969f", panelTitle: "我的首条消息", derivedTitle: "panel-9137969f" },
+          {
+            key: "agent:main:panel-9137969f",
+            panelTitle: "我的首条消息",
+            derivedTitle: "panel-9137969f",
+          },
         ]}
         activeSessionKey="agent:main:panel-9137969f"
         unreadKeys={new Set()}
@@ -127,10 +131,7 @@ describe("SessionTabBar", () => {
   it("keeps the default label for a blank local session", () => {
     render(
       <SessionTabBar
-        sessions={[
-          { key: "agent:main:main" },
-          { key: "agent:panel:test", isLocal: true },
-        ]}
+        sessions={[{ key: "agent:main:main" }, { key: "agent:panel:test", isLocal: true }]}
         activeSessionKey="agent:panel:test"
         unreadKeys={new Set()}
         onSwitchSession={() => {}}

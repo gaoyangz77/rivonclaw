@@ -24,7 +24,9 @@ export async function refreshShopLifecycle(
     rootStore.ingestGraphQLResponse(data);
     const shopCount = Array.isArray(data.shops) ? data.shops.length : 0;
     const csShopCount = rootStore.customerServiceEnabledShopCount;
-    log.info(`Refreshed shop lifecycle (reason=${reason}, shops=${shopCount}, csEnabled=${csShopCount})`);
+    log.info(
+      `Refreshed shop lifecycle (reason=${reason}, shops=${shopCount}, csEnabled=${csShopCount})`,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     rootStore.markShopRefreshFailed(reason, message);

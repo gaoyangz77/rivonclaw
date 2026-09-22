@@ -90,20 +90,22 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const handledByThisDevice = Boolean(myDeviceId && assignedDeviceId === myDeviceId);
   const affiliateInsightSubjectKey = `shop:${shop.id}`;
   const accountModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "user");
-  const regionModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "region");
+  const regionModelInsight = entityStore.affiliateMlInsightRow(
+    affiliateInsightSubjectKey,
+    "region",
+  );
   const shopModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "shop");
-  const automaticSelection = shopModelInsight?.automaticSelection
-    ?? regionModelInsight?.automaticSelection
-    ?? accountModelInsight?.automaticSelection
-    ?? null;
-  const persistedDailyLimit = shop.services?.affiliateService
-    ?.campaignDailyCreatorOutreachLimit;
+  const automaticSelection =
+    shopModelInsight?.automaticSelection ??
+    regionModelInsight?.automaticSelection ??
+    accountModelInsight?.automaticSelection ??
+    null;
+  const persistedDailyLimit = shop.services?.affiliateService?.campaignDailyCreatorOutreachLimit;
   const [dailyLimit, setDailyLimit] = useState(
     String(resolveDailyCreatorOutreachLimit(persistedDailyLimit)),
   );
   const [savingDailyLimit, setSavingDailyLimit] = useState(false);
-  const persistedPerformanceFollowUp =
-    shop.services?.affiliateService?.samplePerformanceFollowUp;
+  const persistedPerformanceFollowUp = shop.services?.affiliateService?.samplePerformanceFollowUp;
   const [performanceFollowUpEnabled, setPerformanceFollowUpEnabled] = useState(
     persistedPerformanceFollowUp?.enabled ?? false,
   );
@@ -112,12 +114,11 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       ? ""
       : String(persistedPerformanceFollowUp.lowOrderThreshold),
   );
-  const [performanceStages, setPerformanceStages] = useState<SamplePerformanceStageDraft[]>(
-    () =>
-      (persistedPerformanceFollowUp?.stages ?? []).map((stage) => ({
-        id: stage.id,
-        delayDays: String(stage.delayDays),
-      })),
+  const [performanceStages, setPerformanceStages] = useState<SamplePerformanceStageDraft[]>(() =>
+    (persistedPerformanceFollowUp?.stages ?? []).map((stage) => ({
+      id: stage.id,
+      delayDays: String(stage.delayDays),
+    })),
   );
   const [savingPerformanceFollowUp, setSavingPerformanceFollowUp] = useState(false);
 
@@ -177,16 +178,12 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       delayDays: stage.delayDays.trim(),
     })),
   });
-  const performanceFollowUpDirty =
-    persistedPerformanceComparable !== draftPerformanceComparable;
+  const performanceFollowUpDirty = persistedPerformanceComparable !== draftPerformanceComparable;
 
   async function savePerformanceFollowUp() {
     const threshold = Number(performanceLowOrderThreshold);
     const delays = performanceStages.map((stage) => Number(stage.delayDays));
-    if (
-      performanceFollowUpEnabled &&
-      (!Number.isInteger(threshold) || threshold < 1)
-    ) {
+    if (performanceFollowUpEnabled && (!Number.isInteger(threshold) || threshold < 1)) {
       showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpThresholdInvalid"), "error");
       return;
     }
@@ -200,11 +197,12 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     }
     if (
       performanceFollowUpEnabled &&
-      performanceStages.some((_, index) =>
-        !Number.isInteger(delays[index]) ||
-        delays[index]! < 1 ||
-        delays[index]! > 88 ||
-        (index > 0 && delays[index]! - delays[index - 1]! < 3)
+      performanceStages.some(
+        (_, index) =>
+          !Number.isInteger(delays[index]) ||
+          delays[index]! < 1 ||
+          delays[index]! > 88 ||
+          (index > 0 && delays[index]! - delays[index - 1]! < 3),
       )
     ) {
       showToast(t("ecommerce.shopDrawer.affiliate.performanceFollowUpDelayInvalid"), "error");
@@ -237,18 +235,22 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((candidate) => candidate.id === toolId);
-    const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category }) : "";
-    const nameLabel = t(`tools.selector.name.${toolId}`, { defaultValue: tool?.displayName ?? toolId });
+    const catLabel = tool?.category
+      ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category })
+      : "";
+    const nameLabel = t(`tools.selector.name.${toolId}`, {
+      defaultValue: tool?.displayName ?? toolId,
+    });
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   }
 
   useEffect(() => {
     if (
-      !accountModelInsight
-      && !regionModelInsight
-      && !shopModelInsight
-      && !entityStore.affiliateMlInsightsLoading
-      && !entityStore.affiliateMlInsightsError
+      !accountModelInsight &&
+      !regionModelInsight &&
+      !shopModelInsight &&
+      !entityStore.affiliateMlInsightsLoading &&
+      !entityStore.affiliateMlInsightsError
     ) {
       entityStore.fetchAffiliateMlInsights({ shopIds: [shop.id] }).catch(() => {});
     }
@@ -265,7 +267,9 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   return (
     <div className="shop-detail-section">
       <section id="shop-workspace-affiliateManagement-service" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.serviceStatus")}</div>
+        <div className="drawer-section-label">
+          {t("ecommerce.shopDrawer.affiliate.serviceStatus")}
+        </div>
 
         <div className="shop-toggle-card">
           <div className="shop-toggle-card-left">
@@ -285,26 +289,31 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
             )}
           </div>
           <TkSwitchControl
-              label={t("ecommerce.shopDrawer.affiliate.thisDevice")}
-              checked={handledByThisDevice}
-              onChange={() => {
-                if (handledByThisDevice) {
-                  onUnbindDevice(shop.id);
-                } else {
-                  onBindDevice(shop.id);
-                }
-              }}
-              disabled={togglingBindShopId === shop.id || !myDeviceId}
-            />
+            label={t("ecommerce.shopDrawer.affiliate.thisDevice")}
+            checked={handledByThisDevice}
+            onChange={() => {
+              if (handledByThisDevice) {
+                onUnbindDevice(shop.id);
+              } else {
+                onBindDevice(shop.id);
+              }
+            }}
+            disabled={togglingBindShopId === shop.id || !myDeviceId}
+          />
         </div>
         <AffiliateOutreachOpsPanel shopId={shop.id} />
       </section>
 
-      <section id="shop-workspace-affiliateManagement-run-profile" className="shop-workspace-section">
+      <section
+        id="shop-workspace-affiliateManagement-run-profile"
+        className="shop-workspace-section"
+      >
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.runProfile")}</div>
         <div className="shop-info-card">
           <div className="shop-runprofile-row">
-            <label className="form-label-block">{t("ecommerce.shopDrawer.affiliate.runProfileLabel")}</label>
+            <label className="form-label-block">
+              {t("ecommerce.shopDrawer.affiliate.runProfileLabel")}
+            </label>
             <Select
               value={selectedRunProfileId}
               onChange={onRunProfileChange}
@@ -316,24 +325,34 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
           </div>
           {selectedRunProfile ? (
             <div className="shop-runprofile-tools">
-              <div className="form-label-block">{t("ecommerce.shopDrawer.affiliate.availableTools")}</div>
+              <div className="form-label-block">
+                {t("ecommerce.shopDrawer.affiliate.availableTools")}
+              </div>
               <ul className="shop-tool-list">
                 {selectedRunProfile.selectedToolIds.map((toolId) => (
-                  <li key={toolId} className="shop-tool-list-item">{toolDisplayName(toolId)}</li>
+                  <li key={toolId} className="shop-tool-list-item">
+                    {toolDisplayName(toolId)}
+                  </li>
                 ))}
               </ul>
               <div className="shop-tool-count">
-                {t("ecommerce.shopDrawer.affiliate.toolCount", { count: selectedRunProfile.selectedToolIds.length })}
+                {t("ecommerce.shopDrawer.affiliate.toolCount", {
+                  count: selectedRunProfile.selectedToolIds.length,
+                })}
               </div>
             </div>
           ) : (
-            <div className="shop-info-card-hint">{t("ecommerce.shopDrawer.affiliate.runProfileHint")}</div>
+            <div className="shop-info-card-hint">
+              {t("ecommerce.shopDrawer.affiliate.runProfileHint")}
+            </div>
           )}
         </div>
       </section>
 
       <section id="shop-workspace-affiliateManagement-model" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnostics")}</div>
+        <div className="drawer-section-label">
+          {t("ecommerce.shopDrawer.affiliate.modelScopeDiagnostics")}
+        </div>
         <div className="shop-info-card">
           <AffiliateModelScopeDiagnosticsPanel
             loading={entityStore.affiliateMlInsightsLoading}
@@ -342,8 +361,13 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
         </div>
       </section>
 
-      <section id="shop-workspace-affiliateManagement-thresholds" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.decisionThresholds")}</div>
+      <section
+        id="shop-workspace-affiliateManagement-thresholds"
+        className="shop-workspace-section"
+      >
+        <div className="drawer-section-label">
+          {t("ecommerce.shopDrawer.affiliate.decisionThresholds")}
+        </div>
         <div className="shop-info-card">
           <div className="affiliate-threshold-row">
             <div className="affiliate-threshold-copy">
@@ -381,9 +405,7 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
                   Number(dailyLimit) === persistedDailyLimit
                 }
               >
-                {savingDailyLimit
-                  ? t("common.loading")
-                  : t("ecommerce.shopDrawer.overview.save")}
+                {savingDailyLimit ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
               </button>
             </div>
           </div>
@@ -487,9 +509,12 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
                         )
                       }
                       disabled={savingPerformanceFollowUp || !performanceFollowUpEnabled}
-                      aria-label={t("ecommerce.shopDrawer.affiliate.performanceFollowUpRemoveStage", {
-                        index: index + 1,
-                      })}
+                      aria-label={t(
+                        "ecommerce.shopDrawer.affiliate.performanceFollowUpRemoveStage",
+                        {
+                          index: index + 1,
+                        },
+                      )}
                     >
                       {t("common.remove")}
                     </TkButton>
@@ -533,7 +558,9 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       </section>
 
       <section id="shop-workspace-affiliateManagement-prompt" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.businessPrompt")}</div>
+        <div className="drawer-section-label">
+          {t("ecommerce.shopDrawer.affiliate.businessPrompt")}
+        </div>
         <div className="form-hint">{t("ecommerce.shopDrawer.affiliate.businessPromptHint")}</div>
         <div className="shop-prompt-wrapper">
           <textarea
@@ -551,7 +578,10 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
           <button
             className="btn btn-primary btn-sm"
             onClick={onSaveBusinessPrompt}
-            disabled={savingSettings || editBusinessPrompt === (shop.services?.affiliateService?.businessPrompt ?? "")}
+            disabled={
+              savingSettings ||
+              editBusinessPrompt === (shop.services?.affiliateService?.businessPrompt ?? "")
+            }
           >
             {savingSettings ? t("common.loading") : t("ecommerce.shopDrawer.overview.save")}
           </button>
@@ -616,17 +646,17 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
     fetchPolicy: "cache-and-network",
   });
   const status = data?.affiliateOutreachOperationalStatus ?? null;
-  const directSent = countDelivery(status, GQL.AffiliateDeliveryStatus.Sent, GQL.AffiliateMessageChannel.Whatsapp)
-    + countDelivery(status, GQL.AffiliateDeliveryStatus.Sent, GQL.AffiliateMessageChannel.Email);
-  const directInbound = countInbound(status, GQL.AffiliateMessageChannel.Whatsapp)
-    + countInbound(status, GQL.AffiliateMessageChannel.Email);
+  const directSent =
+    countDelivery(status, GQL.AffiliateDeliveryStatus.Sent, GQL.AffiliateMessageChannel.Whatsapp) +
+    countDelivery(status, GQL.AffiliateDeliveryStatus.Sent, GQL.AffiliateMessageChannel.Email);
+  const directInbound =
+    countInbound(status, GQL.AffiliateMessageChannel.Whatsapp) +
+    countInbound(status, GQL.AffiliateMessageChannel.Email);
 
   return (
     <div className="affiliate-whatsapp-connector affiliate-whatsapp-connector-ready">
       <div>
-        <strong>
-          {t("ecommerce.affiliateWorkspace.ops.title")}
-        </strong>
+        <strong>{t("ecommerce.affiliateWorkspace.ops.title")}</strong>
         <span>
           {status
             ? t("ecommerce.affiliateWorkspace.ops.subtitle", {
@@ -653,8 +683,7 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
           {t("ecommerce.affiliateWorkspace.ops.failed")}: {status?.failedDeliveryCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.webhooks")}:{" "}
-          {status?.webhookReceivedCount ?? 0}
+          {t("ecommerce.affiliateWorkspace.ops.webhooks")}: {status?.webhookReceivedCount ?? 0}
         </span>
         <span>
           {t("ecommerce.affiliateWorkspace.ops.ignoredWebhooks")}:{" "}
@@ -665,16 +694,13 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
           {status?.rejectedWebhookCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.mailboxSyncs")}:{" "}
-          {status?.mailboxSyncCount ?? 0}
+          {t("ecommerce.affiliateWorkspace.ops.mailboxSyncs")}: {status?.mailboxSyncCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.syncFailed")}:{" "}
-          {status?.failedMailboxSyncCount ?? 0}
+          {t("ecommerce.affiliateWorkspace.ops.syncFailed")}: {status?.failedMailboxSyncCount ?? 0}
         </span>
         <span>
-          {t("ecommerce.affiliateWorkspace.ops.renewals")}:{" "}
-          {status?.subscriptionRenewalCount ?? 0}
+          {t("ecommerce.affiliateWorkspace.ops.renewals")}: {status?.subscriptionRenewalCount ?? 0}
         </span>
         <span>
           {t("ecommerce.affiliateWorkspace.ops.renewalFailed")}:{" "}
@@ -724,18 +750,22 @@ function countDelivery(
   deliveryStatus: GQL.AffiliateDeliveryStatus,
   channel?: GQL.AffiliateMessageChannel,
 ): number {
-  return status?.deliveryCounts
-    .filter((item) => item.status === deliveryStatus && (!channel || item.channel === channel))
-    .reduce((sum, item) => sum + item.count, 0) ?? 0;
+  return (
+    status?.deliveryCounts
+      .filter((item) => item.status === deliveryStatus && (!channel || item.channel === channel))
+      .reduce((sum, item) => sum + item.count, 0) ?? 0
+  );
 }
 
 function countInbound(
   status: AffiliateOutreachOperationalStatus | null,
   channel: GQL.AffiliateMessageChannel,
 ): number {
-  return status?.inboundCounts
-    .filter((item) => item.channel === channel)
-    .reduce((sum, item) => sum + item.count, 0) ?? 0;
+  return (
+    status?.inboundCounts
+      .filter((item) => item.channel === channel)
+      .reduce((sum, item) => sum + item.count, 0) ?? 0
+  );
 }
 
 function formatCompactDate(value: string, locale: string): string {
@@ -772,27 +802,37 @@ function AffiliateModelScopeDiagnosticsPanel({
   return (
     <div className="affiliate-model-recommendation">
       <div className="affiliate-model-recommendation-head">
-        <strong>{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsLeader", {
-          scope: automaticScopeLabel(t, scope),
-        })}</strong>
-        <span>{basis === "OUTPERFORMANCE_PROBABILITY"
-          ? t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsProbabilityBasis")
-          : t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsInsufficient")}</span>
+        <strong>
+          {t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsLeader", {
+            scope: automaticScopeLabel(t, scope),
+          })}
+        </strong>
+        <span>
+          {basis === "OUTPERFORMANCE_PROBABILITY"
+            ? t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsProbabilityBasis")
+            : t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsInsufficient")}
+        </span>
       </div>
       <p>{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsHint")}</p>
       <div className="affiliate-model-recommendation-metrics">
         <div className="affiliate-model-recommendation-metric">
           <span>{t("ecommerce.shopDrawer.affiliate.outperformanceProbability")}</span>
-          <strong>{probability == null ? "—" : new Intl.NumberFormat(undefined, {
-            style: "percent",
-            maximumFractionDigits: 1,
-          }).format(probability)}</strong>
+          <strong>
+            {probability == null
+              ? "—"
+              : new Intl.NumberFormat(undefined, {
+                  style: "percent",
+                  maximumFractionDigits: 1,
+                }).format(probability)}
+          </strong>
         </div>
         <div className="affiliate-model-recommendation-metric">
           <span>{t("ecommerce.shopDrawer.affiliate.dataFoundation")}</span>
-          <strong>{foundation
-            ? t(`ecommerce.shopDrawer.affiliate.dataFoundationLevels.${foundation.toLowerCase()}`)
-            : "—"}</strong>
+          <strong>
+            {foundation
+              ? t(`ecommerce.shopDrawer.affiliate.dataFoundationLevels.${foundation.toLowerCase()}`)
+              : "—"}
+          </strong>
         </div>
       </div>
     </div>
@@ -806,7 +846,9 @@ function automaticScopeLabel(t: (key: string) => string, scope: string): string 
 }
 
 function objectFromUnknown(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function numberFromUnknown(value: unknown): number | null {

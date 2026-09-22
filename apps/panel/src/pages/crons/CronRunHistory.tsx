@@ -81,11 +81,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
   function deliveryBadge(status?: string) {
     if (!status || status === "not-requested") return null;
     const tone =
-      status === "delivered"
-        ? "success"
-        : status === "not-delivered"
-          ? "danger"
-          : "neutral";
+      status === "delivered" ? "success" : status === "not-delivered" ? "danger" : "neutral";
     return <TkBadge tone={tone}>{status}</TkBadge>;
   }
 

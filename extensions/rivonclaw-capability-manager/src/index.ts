@@ -56,7 +56,7 @@ async function getEffectiveTools(sessionKey: string): Promise<string[] | null> {
       `${PANEL_BASE_URL}/api/tools/effective-tools?sessionKey=${encodeURIComponent(sessionKey)}`,
     );
     if (!res.ok) return null;
-    const data = await res.json() as { effectiveToolIds?: string[] };
+    const data = (await res.json()) as { effectiveToolIds?: string[] };
     return data.effectiveToolIds ?? [];
   } catch {
     return null;
@@ -104,10 +104,7 @@ export default defineRivonClawPlugin({
     // the user has selected via the four-layer model.
     api.on(
       "before_tool_resolve",
-      async (
-        event: { tools: string[] },
-        ctx: { sessionKey?: string },
-      ) => {
+      async (event: { tools: string[] }, ctx: { sessionKey?: string }) => {
         warnIfOpenClawChannelRegistryInvalid("before_tool_resolve", api.logger);
         if (!ctx.sessionKey) return {};
 
@@ -117,8 +114,8 @@ export default defineRivonClawPlugin({
           return { tools: [] };
         }
 
-        const effectiveUpper = new Set(effectiveTools.map(t => t.toUpperCase()));
-        const filtered = event.tools.filter(name => effectiveUpper.has(name.toUpperCase()));
+        const effectiveUpper = new Set(effectiveTools.map((t) => t.toUpperCase()));
+        const filtered = event.tools.filter((name) => effectiveUpper.has(name.toUpperCase()));
         return { tools: filtered };
       },
     );
@@ -142,7 +139,7 @@ export default defineRivonClawPlugin({
         }
 
         const toolUpper = event.toolName.toUpperCase();
-        if (!effectiveTools.some(t => t.toUpperCase() === toolUpper)) {
+        if (!effectiveTools.some((t) => t.toUpperCase() === toolUpper)) {
           return {
             block: true,
             blockReason: `Tool "${event.toolName}" is not permitted in this run. It was excluded by the capability context (entitlement ∩ surface ∩ runProfile). Contact the workspace administrator to adjust permissions.`,

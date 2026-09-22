@@ -13,12 +13,24 @@ export function LocalModelForm({
 }) {
   const {
     t,
-    baseUrl, setBaseUrl, setBaseUrlTouched,
-    modelName, setModelName, label, setLabel,
-    apiKey, setApiKey, saving, healthStatus,
-    detecting, localModels, loadingModels,
-    inputModalities, setInputModalities,
-    showAdvanced, setShowAdvanced,
+    baseUrl,
+    setBaseUrl,
+    setBaseUrlTouched,
+    modelName,
+    setModelName,
+    label,
+    setLabel,
+    apiKey,
+    setApiKey,
+    saving,
+    healthStatus,
+    detecting,
+    localModels,
+    loadingModels,
+    inputModalities,
+    setInputModalities,
+    showAdvanced,
+    setShowAdvanced,
     handleAddLocalKey,
   } = form;
 
@@ -31,7 +43,10 @@ export function LocalModelForm({
           <input
             type="text"
             value={baseUrl}
-            onChange={(e) => { setBaseUrl(e.target.value); setBaseUrlTouched(true); }}
+            onChange={(e) => {
+              setBaseUrl(e.target.value);
+              setBaseUrlTouched(true);
+            }}
             placeholder={t("providers.baseUrlPlaceholder")}
             className="flex-1 input-mono"
           />
@@ -65,7 +80,9 @@ export function LocalModelForm({
           >
             {localModels.length === 0 && <option value="">—</option>}
             {localModels.map((m) => (
-              <option key={m.id} value={m.id}>{m.name || m.id}</option>
+              <option key={m.id} value={m.id}>
+                {m.name || m.id}
+              </option>
             ))}
           </select>
           <small className="form-help-sm">
@@ -74,14 +91,16 @@ export function LocalModelForm({
         </div>
       </div>
 
-      <ModalityCheckboxGroup inputModalities={inputModalities} setInputModalities={setInputModalities} />
+      <ModalityCheckboxGroup
+        inputModalities={inputModalities}
+        setInputModalities={setInputModalities}
+      />
 
       <div className="mb-sm">
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="advanced-toggle"
-        >
-          <span className={`advanced-chevron${showAdvanced ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>
+        <button onClick={() => setShowAdvanced(!showAdvanced)} className="advanced-toggle">
+          <span className={`advanced-chevron${showAdvanced ? " advanced-chevron-open" : ""}`}>
+            <ChevronRightIcon />
+          </span>
           {t("providers.advancedSettings")}
         </button>
         {showAdvanced && (
@@ -107,7 +126,7 @@ export function LocalModelForm({
           onClick={handleAddLocalKey}
           disabled={saving || !modelName.trim()}
         >
-          {saving ? (savingLabel || "...") : (saveButtonLabel || t("common.save"))}
+          {saving ? savingLabel || "..." : saveButtonLabel || t("common.save")}
         </button>
       </div>
     </>

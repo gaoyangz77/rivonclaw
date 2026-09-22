@@ -821,9 +821,7 @@ export async function migrateVendorStateBeforeGateway(
     log.info("OpenClaw agent database migration completed");
   }
 
-  const convergedRunningSessions = convergeOrphanedRunningSessionsBeforeGateway(
-    options.stateDir,
-  );
+  const convergedRunningSessions = convergeOrphanedRunningSessionsBeforeGateway(options.stateDir);
   if (convergedRunningSessions > 0) {
     log.info(
       `Converged ${convergedRunningSessions} orphaned running OpenClaw session(s) to killed`,

@@ -1034,7 +1034,6 @@
 }
 
 @media (max-width: 760px) {
-
   .shop-review-management-head,
   .shop-review-feature-head {
     grid-template-columns: 1fr;

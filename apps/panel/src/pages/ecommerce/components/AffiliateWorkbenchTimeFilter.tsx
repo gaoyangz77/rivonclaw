@@ -48,9 +48,7 @@ export function AffiliateWorkbenchTimeFilter({ value, onChange, selection, class
       <TkChoiceSelect
         label={t("ecommerce.affiliateWorkspace.workbench.timeFilter")}
         value={value.preset}
-        onChange={(next) =>
-          onChange({ ...value, preset: next as AffiliateWorkbenchTimePreset })
-        }
+        onChange={(next) => onChange({ ...value, preset: next as AffiliateWorkbenchTimePreset })}
         options={AFFILIATE_WORKBENCH_TIME_PRESETS.map((preset) => ({
           value: preset,
           label: t(PRESET_LABEL_KEY[preset]),

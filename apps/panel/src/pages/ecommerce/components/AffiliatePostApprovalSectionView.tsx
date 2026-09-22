@@ -14,7 +14,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatCohortDay, formatNumber, formatPercent, formatRatio } from "../affiliate-analytics-format.js";
+import {
+  formatCohortDay,
+  formatNumber,
+  formatPercent,
+  formatRatio,
+} from "../affiliate-analytics-format.js";
 import {
   AFFILIATE_SHIPMENT_TRAILING_DAYS,
   applyCoverageWindow,
@@ -28,7 +33,12 @@ import {
 } from "../affiliate-overview.js";
 import type { AffiliateSectionQuery, AffiliateWindowDays } from "../affiliate-overview-types.js";
 import { AffiliateCoverageBand, AffiliateCoverageNotice } from "./AffiliateCoverageBand.js";
-import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateSectionState } from "./AffiliateOverviewParts.js";
+import {
+  AffiliateChartCard,
+  AffiliateMetric,
+  AffiliateSectionHeader,
+  AffiliateSectionState,
+} from "./AffiliateOverviewParts.js";
 
 /** Partial-range series are drawn with this dash so they cannot read as a trend. */
 const PARTIAL_DASH = "4 4";
@@ -53,7 +63,11 @@ const PARTIAL_BAR_OPACITY = 0.35;
  * GMV is likewise absent — order-line GMV is 98.2% missing at 0–7 days old and
  * keeps a ~17% permanent hole, while units are never missing.
  */
-export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeShops }: {
+export function AffiliatePostApprovalSectionView({
+  query,
+  windowDays,
+  onExcludeShops,
+}: {
   query: AffiliateSectionQuery<GQL.AffiliatePostApprovalSection>;
   /**
    * The window this section actually asked for. It is pinned rather than taken
@@ -71,7 +85,10 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
   const [restrictToCovered, setRestrictToCovered] = useState(false);
 
   const body = (() => {
-    if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
+    if (!section)
+      return (
+        <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />
+      );
 
     /*
      * The chart sits on the shipment basis, so the boundary it is drawn against
@@ -88,25 +105,47 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
     // narrowing the view afterwards hides days without silently rebasing the
     // ratio drawn on the days that remain.
     const allRows = buildShipmentDailyRows(section.daily);
-    const partialDays = countPartialDays(allRows.map((row) => row.ds), shipmentBoundary);
-    const windowRows = applyCoverageWindow(allRows, (row) => row.ds, shipmentBoundary, restrictToCovered);
+    const partialDays = countPartialDays(
+      allRows.map((row) => row.ds),
+      shipmentBoundary,
+    );
+    const windowRows = applyCoverageWindow(
+      allRows,
+      (row) => row.ds,
+      shipmentBoundary,
+      restrictToCovered,
+    );
     const dailyRows = splitCoverageSeries(
       windowRows,
       (row) => row.ds,
       (row) => row.trailingUnitsPerSample,
       shipmentBoundary,
     );
-    const boundaryOnChart = coverageBoundaryMark(windowRows.map((row) => row.ds), shipmentBoundary);
+    const boundaryOnChart = coverageBoundaryMark(
+      windowRows.map((row) => row.ds),
+      shipmentBoundary,
+    );
     const countsDomain = countAxisDomain(
       dailyRows.flatMap((row) => [row.samplesShipped, row.affiliateUnits]),
     );
     const ratioDomain = rateAxisDomain(dailyRows.map((row) => row.trailingUnitsPerSample));
-    const activityByDay = new Map<string, {
-      ds: string; aiOrders: number; notAiOrders: number; aiUnits: number; notAiUnits: number;
-    }>();
+    const activityByDay = new Map<
+      string,
+      {
+        ds: string;
+        aiOrders: number;
+        notAiOrders: number;
+        aiUnits: number;
+        notAiUnits: number;
+      }
+    >();
     for (const point of section.sampleActivityDailyByDecisionOrigin) {
       const row = activityByDay.get(point.ds) ?? {
-        ds: point.ds, aiOrders: 0, notAiOrders: 0, aiUnits: 0, notAiUnits: 0,
+        ds: point.ds,
+        aiOrders: 0,
+        notAiOrders: 0,
+        aiUnits: 0,
+        notAiUnits: 0,
       };
       if (point.decidedBy === "AI") {
         row.aiOrders += point.orders;
@@ -117,20 +156,23 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
       }
       activityByDay.set(point.ds, row);
     }
-    const activityRows = [...activityByDay.values()].sort((left, right) => left.ds.localeCompare(right.ds));
-    const activityDomain = countAxisDomain(activityRows.flatMap((row) => [
-      row.aiOrders, row.notAiOrders, row.aiUnits, row.notAiUnits,
-    ]));
+    const activityRows = [...activityByDay.values()].sort((left, right) =>
+      left.ds.localeCompare(right.ds),
+    );
+    const activityDomain = countAxisDomain(
+      activityRows.flatMap((row) => [row.aiOrders, row.notAiOrders, row.aiUnits, row.notAiUnits]),
+    );
 
     const basis = coverageBasis(coverage);
     const shipmentBasis = coverageBasis(shipmentCoverage);
-    const basisNote = (source: typeof basis) => t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
-      shops: formatNumber(source.shopsWithData, locale),
-      selected: formatNumber(source.shopsSelected, locale),
-      date: source.fullCoverageFrom
-        ? formatCohortDay(source.fullCoverageFrom, locale)
-        : t("ecommerce.affiliateAnalytics.coverage.noDate"),
-    });
+    const basisNote = (source: typeof basis) =>
+      t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
+        shops: formatNumber(source.shopsWithData, locale),
+        selected: formatNumber(source.shopsSelected, locale),
+        date: source.fullCoverageFrom
+          ? formatCohortDay(source.fullCoverageFrom, locale)
+          : t("ecommerce.affiliateAnalytics.coverage.noDate"),
+      });
 
     return (
       <>
@@ -180,24 +222,41 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
         </div>
 
         {/* Design-system exception: this is a variable-axis analytics matrix, not a record table. Affiliate Analytics owns its complete ARIA grid. */}
-        <div className="affiliate-origin-matrix affiliate-origin-post-matrix" role="table" data-tk-table-exception="analytics-matrix" aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.postApprovalTitle")}>
+        <div
+          className="affiliate-origin-matrix affiliate-origin-post-matrix"
+          role="table"
+          data-tk-table-exception="analytics-matrix"
+          aria-label={t("ecommerce.affiliateAnalytics.decisionOrigin.postApprovalTitle")}
+        >
           <div className="affiliate-origin-matrix-head" role="row">
-            <span role="columnheader">{t("ecommerce.affiliateAnalytics.decisionOrigin.metric")}</span>
-            {section.byDecisionOrigin.map((row) => <strong key={row.decidedBy} role="columnheader">{t(`ecommerce.affiliateAnalytics.decisionOrigin.${row.decidedBy}`)}</strong>)}
+            <span role="columnheader">
+              {t("ecommerce.affiliateAnalytics.decisionOrigin.metric")}
+            </span>
+            {section.byDecisionOrigin.map((row) => (
+              <strong key={row.decidedBy} role="columnheader">
+                {t(`ecommerce.affiliateAnalytics.decisionOrigin.${row.decidedBy}`)}
+              </strong>
+            ))}
           </div>
           {[
             ["approvedApplications", "approvedApplications", "number"],
             ["applicationsWithOrder", "applicationsWithOrder", "number"],
             ["orderRate", "orderRate", "percent"],
             ["actualUnits", "actualUnits", "number"],
-          ].map(([key, label, format]) => <div key={key} role="row">
-            <span role="rowheader">{t(`ecommerce.affiliateAnalytics.postApproval.${label}`)}</span>
-            {section.byDecisionOrigin.map((row) => <b key={row.decidedBy} role="cell">
-              {format === "percent"
-                ? formatPercent(row[key as keyof typeof row] as number | null, locale)
-                : formatNumber(row[key as keyof typeof row] as number, locale)}
-            </b>)}
-          </div>)}
+          ].map(([key, label, format]) => (
+            <div key={key} role="row">
+              <span role="rowheader">
+                {t(`ecommerce.affiliateAnalytics.postApproval.${label}`)}
+              </span>
+              {section.byDecisionOrigin.map((row) => (
+                <b key={row.decidedBy} role="cell">
+                  {format === "percent"
+                    ? formatPercent(row[key as keyof typeof row] as number | null, locale)
+                    : formatNumber(row[key as keyof typeof row] as number, locale)}
+                </b>
+              ))}
+            </div>
+          ))}
         </div>
 
         <AffiliateChartCard
@@ -208,14 +267,46 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={activityRows}>
               <CartesianGrid strokeDasharray="3 6" vertical={false} />
-              <XAxis dataKey="ds" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
-              <YAxis domain={activityDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
-              <Tooltip labelFormatter={(value) => formatCohortDay(String(value), locale)} formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]} />
+              <XAxis
+                dataKey="ds"
+                minTickGap={26}
+                tickFormatter={(value) => formatCohortDay(String(value), locale)}
+              />
+              <YAxis
+                domain={activityDomain}
+                tickFormatter={(value) => formatNumber(Number(value), locale, true)}
+              />
+              <Tooltip
+                labelFormatter={(value) => formatCohortDay(String(value), locale)}
+                formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]}
+              />
               <Legend />
-              <Bar dataKey="aiOrders" name={t("ecommerce.affiliateAnalytics.postApproval.aiOrdersSeries")} fill="var(--affiliate-sample)" />
-              <Bar dataKey="notAiOrders" name={t("ecommerce.affiliateAnalytics.postApproval.notAiOrdersSeries")} fill="var(--affiliate-not-ai)" />
-              <Line type="monotone" dataKey="aiUnits" name={t("ecommerce.affiliateAnalytics.postApproval.aiUnitsSeries")} stroke="var(--affiliate-sample-dark)" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="notAiUnits" name={t("ecommerce.affiliateAnalytics.postApproval.notAiUnitsSeries")} stroke="var(--affiliate-not-ai-dark)" strokeWidth={2} dot={false} />
+              <Bar
+                dataKey="aiOrders"
+                name={t("ecommerce.affiliateAnalytics.postApproval.aiOrdersSeries")}
+                fill="var(--affiliate-sample)"
+              />
+              <Bar
+                dataKey="notAiOrders"
+                name={t("ecommerce.affiliateAnalytics.postApproval.notAiOrdersSeries")}
+                fill="var(--affiliate-not-ai)"
+              />
+              <Line
+                type="monotone"
+                dataKey="aiUnits"
+                name={t("ecommerce.affiliateAnalytics.postApproval.aiUnitsSeries")}
+                stroke="var(--affiliate-sample-dark)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="notAiUnits"
+                name={t("ecommerce.affiliateAnalytics.postApproval.notAiUnitsSeries")}
+                stroke="var(--affiliate-not-ai-dark)"
+                strokeWidth={2}
+                dot={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </AffiliateChartCard>
@@ -239,9 +330,11 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
             />
             <AffiliateMetric
               label={t("ecommerce.affiliateAnalytics.postApproval.shipmentBoundary")}
-              value={shipmentBoundary
-                ? formatCohortDay(shipmentBoundary, locale)
-                : t("ecommerce.affiliateAnalytics.coverage.noDate")}
+              value={
+                shipmentBoundary
+                  ? formatCohortDay(shipmentBoundary, locale)
+                  : t("ecommerce.affiliateAnalytics.coverage.noDate")
+              }
               hint={t("ecommerce.affiliateAnalytics.postApproval.shipmentBoundaryHint")}
               tone="muted"
             />
@@ -267,7 +360,11 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={dailyRows}>
               <CartesianGrid strokeDasharray="3 6" vertical={false} />
-              <XAxis dataKey="ds" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
+              <XAxis
+                dataKey="ds"
+                minTickGap={26}
+                tickFormatter={(value) => formatCohortDay(String(value), locale)}
+              />
               <YAxis
                 yAxisId="counts"
                 domain={countsDomain}
@@ -281,11 +378,11 @@ export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeS
               />
               <Tooltip
                 labelFormatter={(value) => formatCohortDay(String(value), locale)}
-                formatter={(value, name, item) => (
-                  (item?.dataKey === "coveredValue" || item?.dataKey === "partialValue")
+                formatter={(value, name, item) =>
+                  item?.dataKey === "coveredValue" || item?.dataKey === "partialValue"
                     ? [formatRatio(Number(value), locale), String(name)]
                     : [formatNumber(Number(value), locale), String(name)]
-                )}
+                }
               />
               <Legend />
               {/*

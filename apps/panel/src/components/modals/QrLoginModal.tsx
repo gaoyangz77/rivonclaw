@@ -97,9 +97,8 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
       completedRef.current = true;
       clearCountdown();
       setPhase("success");
-      const autoCloseMs = channelId === WEIXIN_CHANNEL_ID
-        ? SUCCESS_AUTO_CLOSE_MS_WEIXIN
-        : SUCCESS_AUTO_CLOSE_MS;
+      const autoCloseMs =
+        channelId === WEIXIN_CHANNEL_ID ? SUCCESS_AUTO_CLOSE_MS_WEIXIN : SUCCESS_AUTO_CLOSE_MS;
       setTimeout(() => {
         if (!token.aborted) {
           onSuccessRef.current();
@@ -123,9 +122,10 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
           throw e;
         }
         if (myToken.aborted) return;
-        currentSessionKey = typeof startRes.sessionKey === "string" && startRes.sessionKey.trim()
-          ? startRes.sessionKey.trim()
-          : undefined;
+        currentSessionKey =
+          typeof startRes.sessionKey === "string" && startRes.sessionKey.trim()
+            ? startRes.sessionKey.trim()
+            : undefined;
 
         if (startRes.connected) {
           completeLogin(startRes, myToken);
@@ -212,19 +212,12 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
   }, [startLogin, clearCountdown]);
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title={t("qrLogin.title")}
-      maxWidth={420}
-    >
+    <Modal isOpen onClose={onClose} title={t("qrLogin.title")} maxWidth={420}>
       <div className="modal-form-col">
         {errorMessage && <TkAlert tone="danger">{errorMessage}</TkAlert>}
 
         <div className="qr-login-body">
-          {phase === "loading" && (
-            <TkLoadingState label={t("qrLogin.generating")} />
-          )}
+          {phase === "loading" && <TkLoadingState label={t("qrLogin.generating")} />}
 
           {(phase === "scanning" || phase === "refreshing") && qrImageUrl && (
             <div className="qr-login-scan-view">
@@ -248,9 +241,7 @@ export function QrLoginModal({ channelId, onClose, onSuccess }: QrLoginModalProp
             <div className="qr-login-scan-view">
               <div className="badge badge-success">{t("qrLogin.success")}</div>
               {channelId === WEIXIN_CHANNEL_ID && (
-                <p className="qr-login-hint">
-                  {t("qrLogin.weixinActivationHint")}
-                </p>
+                <p className="qr-login-hint">{t("qrLogin.weixinActivationHint")}</p>
               )}
             </div>
           )}

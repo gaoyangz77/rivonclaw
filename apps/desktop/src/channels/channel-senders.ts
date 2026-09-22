@@ -11,7 +11,9 @@ type ProxiedFetch = (url: string | URL, init?: RequestInit) => Promise<Response>
 /**
  * Resolve the first account config for a given channel from the gateway config.
  */
-export function resolveFirstChannelAccount(channelId: string): { accountId: string; config: Record<string, unknown> } | null {
+export function resolveFirstChannelAccount(
+  channelId: string,
+): { accountId: string; config: Record<string, unknown> } | null {
   try {
     const configPath = resolveOpenClawConfigPath();
     const fullConfig = readExistingConfig(configPath);
@@ -30,7 +32,11 @@ export function resolveFirstChannelAccount(channelId: string): { accountId: stri
 }
 
 // Telegram: POST https://api.telegram.org/bot{token}/sendMessage
-async function sendTelegramMessage(chatId: string, text: string, proxiedFetch: ProxiedFetch): Promise<boolean> {
+async function sendTelegramMessage(
+  chatId: string,
+  text: string,
+  proxiedFetch: ProxiedFetch,
+): Promise<boolean> {
   const account = resolveFirstChannelAccount("telegram");
   const botToken = account?.config.botToken;
   if (!botToken || typeof botToken !== "string") {
@@ -72,7 +78,7 @@ async function sendFeishuMessage(chatId: string, text: string): Promise<boolean>
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         receive_id: chatId,
@@ -93,7 +99,11 @@ async function sendFeishuMessage(chatId: string, text: string): Promise<boolean>
 }
 
 // LINE: POST https://api.line.me/v2/bot/message/push
-async function sendLineMessage(chatId: string, text: string, proxiedFetch: ProxiedFetch): Promise<boolean> {
+async function sendLineMessage(
+  chatId: string,
+  text: string,
+  proxiedFetch: ProxiedFetch,
+): Promise<boolean> {
   const account = resolveFirstChannelAccount("line");
   const token = account?.config.channelAccessToken;
   if (!token || typeof token !== "string") {
@@ -105,7 +115,7 @@ async function sendLineMessage(chatId: string, text: string, proxiedFetch: Proxi
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         to: chatId,
@@ -135,13 +145,13 @@ async function sendMattermostMessage(userId: string, text: string): Promise<bool
   }
   const headers = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${botToken}`,
+    Authorization: `Bearer ${botToken}`,
   };
   try {
     // Get bot's own user ID
     const meRes = await fetch(`${baseUrl}/api/v4/users/me`, { headers });
     if (!meRes.ok) return false;
-    const me = await meRes.json() as { id: string };
+    const me = (await meRes.json()) as { id: string };
 
     // Create/get DM channel
     const dmRes = await fetch(`${baseUrl}/api/v4/channels/direct`, {
@@ -150,7 +160,7 @@ async function sendMattermostMessage(userId: string, text: string): Promise<bool
       body: JSON.stringify([me.id, userId]),
     });
     if (!dmRes.ok) return false;
-    const dm = await dmRes.json() as { id: string };
+    const dm = (await dmRes.json()) as { id: string };
 
     // Post message
     const res = await fetch(`${baseUrl}/api/v4/posts`, {
@@ -174,12 +184,21 @@ async function sendMattermostMessage(userId: string, text: string): Promise<bool
  * Send a message to a user on the given channel.
  * Returns true if successfully sent, false otherwise.
  */
-export async function sendChannelMessage(channelId: string, userId: string, text: string, proxiedFetch: ProxiedFetch): Promise<boolean> {
+export async function sendChannelMessage(
+  channelId: string,
+  userId: string,
+  text: string,
+  proxiedFetch: ProxiedFetch,
+): Promise<boolean> {
   switch (channelId) {
-    case "telegram": return sendTelegramMessage(userId, text, proxiedFetch);
-    case "feishu": return sendFeishuMessage(userId, text);
-    case "line": return sendLineMessage(userId, text, proxiedFetch);
-    case "mattermost": return sendMattermostMessage(userId, text);
+    case "telegram":
+      return sendTelegramMessage(userId, text, proxiedFetch);
+    case "feishu":
+      return sendFeishuMessage(userId, text);
+    case "line":
+      return sendLineMessage(userId, text, proxiedFetch);
+    case "mattermost":
+      return sendMattermostMessage(userId, text);
     default:
       log.info(`Channel ${channelId}: message sending not supported yet`);
       return false;

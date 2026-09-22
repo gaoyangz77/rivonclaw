@@ -241,7 +241,8 @@ export const customerServiceExperimentTranslations = {
     actualAllocationHint:
       "Beobachteter Anteil der zugewiesenen Bestellungen. Die Inkrementalität vergleicht nur die Kontrollgruppe mit der aktuellen Produktionskonfiguration A.",
     actualAssignedOrders: "{{count}} zugewiesene Bestellungen",
-    excludedFromIncrementality: "Wird im Konfigurationstest analysiert und nicht in die Inkrementalität einbezogen",
+    excludedFromIncrementality:
+      "Wird im Konfigurationstest analysiert und nicht in die Inkrementalität einbezogen",
     sampleSize: "Stichprobe {{value}}",
     loadMore: "Mehr laden",
     analysis: "Ergebnissignal",
@@ -307,7 +308,8 @@ export const customerServiceExperimentTranslations = {
     actualAllocationHint:
       "Proporción observada de pedidos asignados. La incrementalidad compara solo el control con la configuración de producción A.",
     actualAssignedOrders: "{{count}} pedidos asignados",
-    excludedFromIncrementality: "Se analiza en la prueba de configuración y se excluye de incrementalidad",
+    excludedFromIncrementality:
+      "Se analiza en la prueba de configuración y se excluye de incrementalidad",
     sampleSize: "Muestra {{value}}",
     loadMore: "Cargar más",
     analysis: "Señal de resultado",
@@ -373,7 +375,8 @@ export const customerServiceExperimentTranslations = {
     actualAllocationHint:
       "Part observée des commandes assignées. L’incrémentalité compare uniquement le contrôle à la configuration de production A.",
     actualAssignedOrders: "{{count}} commandes assignées",
-    excludedFromIncrementality: "Analysé dans le test de configuration et exclu de l’incrémentalité",
+    excludedFromIncrementality:
+      "Analysé dans le test de configuration et exclu de l’incrémentalité",
     sampleSize: "Échantillon {{value}}",
     loadMore: "Charger plus",
     analysis: "Signal de résultat",
@@ -439,7 +442,8 @@ export const customerServiceExperimentTranslations = {
     actualAllocationHint:
       "Porsi aktual pesanan yang ditetapkan. Inkrementalitas hanya membandingkan kontrol dengan konfigurasi produksi A.",
     actualAssignedOrders: "{{count}} pesanan ditetapkan",
-    excludedFromIncrementality: "Dianalisis dalam uji konfigurasi dan dikecualikan dari inkrementalitas",
+    excludedFromIncrementality:
+      "Dianalisis dalam uji konfigurasi dan dikecualikan dari inkrementalitas",
     sampleSize: "Sampel {{value}}",
     loadMore: "Muat lagi",
     analysis: "Sinyal hasil",
@@ -505,7 +509,8 @@ export const customerServiceExperimentTranslations = {
     actualAllocationHint:
       "Quota osservata degli ordini assegnati. L’incrementalità confronta solo il controllo con la configurazione di produzione A.",
     actualAssignedOrders: "{{count}} ordini assegnati",
-    excludedFromIncrementality: "Analizzato nel test di configurazione ed escluso dall’incrementalità",
+    excludedFromIncrementality:
+      "Analizzato nel test di configurazione ed escluso dall’incrementalità",
     sampleSize: "Campione {{value}}",
     loadMore: "Carica altro",
     analysis: "Segnale risultato",

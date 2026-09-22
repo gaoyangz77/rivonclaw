@@ -10,7 +10,9 @@ interface UserAvatarButtonProps {
   onNavigate: (path: string) => void;
 }
 
-export const UserAvatarButton = observer(function UserAvatarButton({ onNavigate }: UserAvatarButtonProps) {
+export const UserAvatarButton = observer(function UserAvatarButton({
+  onNavigate,
+}: UserAvatarButtonProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
@@ -36,11 +38,13 @@ export const UserAvatarButton = observer(function UserAvatarButton({ onNavigate 
         onClick={handleClick}
         title={user ? user.email : authChecking ? t("common.loading") : t("auth.login")}
       >
-        {user
-          ? <span className="user-avatar-circle">{initial}</span>
-          : authChecking
-            ? <span className="user-avatar-circle">...</span>
-            : <UserPlusIcon />}
+        {user ? (
+          <span className="user-avatar-circle">{initial}</span>
+        ) : authChecking ? (
+          <span className="user-avatar-circle">...</span>
+        ) : (
+          <UserPlusIcon />
+        )}
       </button>
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>

@@ -776,9 +776,7 @@ export const EcommercePage = observer(function EcommercePage() {
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
         onSaveAffiliateDailyCreatorOutreachLimit={handleSaveAffiliateDailyCreatorOutreachLimit}
-        onSaveAffiliateSamplePerformanceFollowUp={
-          handleSaveAffiliateSamplePerformanceFollowUp
-        }
+        onSaveAffiliateSamplePerformanceFollowUp={handleSaveAffiliateSamplePerformanceFollowUp}
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}

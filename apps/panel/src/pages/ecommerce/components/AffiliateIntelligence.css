@@ -659,7 +659,9 @@
 }
 
 .affiliate-creator-filter-groups-with-shop-tier {
-  grid-template-columns: fit-content(300px) fit-content(300px) fit-content(240px) minmax(0, 1fr) max-content;
+  grid-template-columns:
+    fit-content(300px) fit-content(300px) fit-content(240px) minmax(0, 1fr)
+    max-content;
 }
 
 /*
@@ -1962,7 +1964,6 @@
 }
 
 @media (max-width: 1040px) {
-
   .affiliate-creator-filter-groups,
   .affiliate-creator-filter-groups-with-shop-tier {
     grid-template-columns: minmax(0, 1fr);
@@ -2276,13 +2277,21 @@
   padding: var(--tk-v1-panel-header-block) var(--tk-v1-panel-header-inline);
   border-bottom: 1px solid var(--color-border-light);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 62%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary) 7%, transparent),
+      transparent 62%
+    ),
     var(--color-bg);
 }
 
 .affiliate-model-stage-card-bootstrap > header {
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 9%, transparent), transparent 62%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-warning) 9%, transparent),
+      transparent 62%
+    ),
     var(--color-bg);
 }
 
@@ -2614,7 +2623,9 @@
   background: transparent;
   color: var(--color-text-muted);
   cursor: help;
-  transition: color 140ms ease, background-color 140ms ease;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
 }
 
 .affiliate-metric-tooltip-trigger:hover,
@@ -2645,8 +2656,12 @@
   transform: translate(0, 4px);
 }
 
-.affiliate-intelligence-evidence-card:first-child .affiliate-metric-tooltip:hover .affiliate-metric-tooltip-content,
-.affiliate-intelligence-evidence-card:first-child .affiliate-metric-tooltip:focus-within .affiliate-metric-tooltip-content {
+.affiliate-intelligence-evidence-card:first-child
+  .affiliate-metric-tooltip:hover
+  .affiliate-metric-tooltip-content,
+.affiliate-intelligence-evidence-card:first-child
+  .affiliate-metric-tooltip:focus-within
+  .affiliate-metric-tooltip-content {
   transform: translate(0, 0);
 }
 
@@ -2656,8 +2671,12 @@
   transform: translate(0, 4px);
 }
 
-.affiliate-intelligence-evidence-card:last-child .affiliate-metric-tooltip:hover .affiliate-metric-tooltip-content,
-.affiliate-intelligence-evidence-card:last-child .affiliate-metric-tooltip:focus-within .affiliate-metric-tooltip-content {
+.affiliate-intelligence-evidence-card:last-child
+  .affiliate-metric-tooltip:hover
+  .affiliate-metric-tooltip-content,
+.affiliate-intelligence-evidence-card:last-child
+  .affiliate-metric-tooltip:focus-within
+  .affiliate-metric-tooltip-content {
   transform: translate(0, 0);
 }
 
@@ -2973,8 +2992,12 @@
     transform: translate(0, 4px);
   }
 
-  .affiliate-intelligence-evidence-card .affiliate-metric-tooltip:hover .affiliate-metric-tooltip-content,
-  .affiliate-intelligence-evidence-card .affiliate-metric-tooltip:focus-within .affiliate-metric-tooltip-content {
+  .affiliate-intelligence-evidence-card
+    .affiliate-metric-tooltip:hover
+    .affiliate-metric-tooltip-content,
+  .affiliate-intelligence-evidence-card
+    .affiliate-metric-tooltip:focus-within
+    .affiliate-metric-tooltip-content {
     transform: translate(0, 0);
   }
 

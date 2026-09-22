@@ -17,10 +17,21 @@ export function ApiKeyForm({
 }) {
   const {
     t,
-    tab, provider, label, setLabel, model, setModel,
-    apiKey, setApiKey, proxyUrl, setProxyUrl,
-    showAdvanced, setShowAdvanced,
-    saving, validating, handleAddKey,
+    tab,
+    provider,
+    label,
+    setLabel,
+    model,
+    setModel,
+    apiKey,
+    setApiKey,
+    proxyUrl,
+    setProxyUrl,
+    showAdvanced,
+    setShowAdvanced,
+    saving,
+    validating,
+    handleAddKey,
   } = form;
 
   const isAnthropicSub = provider === "claude";
@@ -31,9 +42,7 @@ export function ApiKeyForm({
   return (
     <>
       {isAnthropicSub && (
-        <div className="info-box info-box-yellow">
-          {t("providers.anthropicTokenWarning")}
-        </div>
+        <div className="info-box info-box-yellow">{t("providers.anthropicTokenWarning")}</div>
       )}
 
       <div className="form-row mb-sm">
@@ -59,7 +68,8 @@ export function ApiKeyForm({
 
       <div className="mb-sm">
         <div className="form-label text-secondary">
-          {isAnthropicSub ? t("providers.anthropicTokenLabel") : t("providers.apiKeyLabel")} <span className="required">*</span>
+          {isAnthropicSub ? t("providers.anthropicTokenLabel") : t("providers.apiKeyLabel")}{" "}
+          <span className="required">*</span>
         </div>
         <input
           type="password"
@@ -67,52 +77,54 @@ export function ApiKeyForm({
           data-1p-ignore
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={isAnthropicSub ? t("providers.anthropicTokenPlaceholder") : t("providers.apiKeyPlaceholder")}
+          placeholder={
+            isAnthropicSub
+              ? t("providers.anthropicTokenPlaceholder")
+              : t("providers.apiKeyPlaceholder")
+          }
           className="input-full input-mono"
         />
-        {tab === "subscription" ? (
-          getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
-            <div className="form-help-sm provider-links">
-              <a
-                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("providers.getSubscription")} &rarr;
-              </a>
-              {getProviderMeta(provider as LLMProvider)?.apiKeyUrl &&
-                getProviderMeta(provider as LLMProvider)?.apiKeyUrl !== getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
-                  <a
-                    href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t("providers.getApiKey")} &rarr;
-                  </a>
-                )}
-            </div>
-          )
-        ) : (
-          getProviderMeta(provider as LLMProvider)?.apiKeyUrl && (
-            <div className="form-help-sm provider-links">
-              <a
-                href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("providers.getApiKey")} &rarr;
-              </a>
-            </div>
-          )
-        )}
+        {tab === "subscription"
+          ? getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
+              <div className="form-help-sm provider-links">
+                <a
+                  href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("providers.getSubscription")} &rarr;
+                </a>
+                {getProviderMeta(provider as LLMProvider)?.apiKeyUrl &&
+                  getProviderMeta(provider as LLMProvider)?.apiKeyUrl !==
+                    getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
+                    <a
+                      href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("providers.getApiKey")} &rarr;
+                    </a>
+                  )}
+              </div>
+            )
+          : getProviderMeta(provider as LLMProvider)?.apiKeyUrl && (
+              <div className="form-help-sm provider-links">
+                <a
+                  href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("providers.getApiKey")} &rarr;
+                </a>
+              </div>
+            )}
       </div>
 
       <div className="mb-sm">
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="advanced-toggle"
-        >
-          <span className={`advanced-chevron${showAdvanced ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>
+        <button onClick={() => setShowAdvanced(!showAdvanced)} className="advanced-toggle">
+          <span className={`advanced-chevron${showAdvanced ? " advanced-chevron-open" : ""}`}>
+            <ChevronRightIcon />
+          </span>
           {t("providers.advancedSettings")}
         </button>
         {showAdvanced && (
@@ -125,9 +137,7 @@ export function ApiKeyForm({
               placeholder={t("providers.proxyPlaceholder")}
               className="input-full input-mono"
             />
-            <small className="form-help-sm">
-              {t("providers.proxyHelp")}
-            </small>
+            <small className="form-help-sm">{t("providers.proxyHelp")}</small>
           </div>
         )}
       </div>

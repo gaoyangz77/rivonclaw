@@ -33,7 +33,9 @@ export function LangToggle({ popupDirection = "up" }: { popupDirection?: "up" | 
         <GlobeIcon />
       </button>
       {menuOpen && (
-        <div className={`lang-menu-popup ${popupDirection === "down" ? "lang-menu-popup-down" : ""}`}>
+        <div
+          className={`lang-menu-popup ${popupDirection === "down" ? "lang-menu-popup-down" : ""}`}
+        >
           {LANGUAGE_OPTIONS.map((language) => (
             <button
               key={language.code}

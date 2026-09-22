@@ -12,9 +12,7 @@ export function ModalityCheckboxGroup({
   function toggleModality(modality: string, checked: boolean) {
     if (!checked && inputModalities.length <= 1) return;
     setInputModalities(
-      checked
-        ? [...inputModalities, modality]
-        : inputModalities.filter((m) => m !== modality),
+      checked ? [...inputModalities, modality] : inputModalities.filter((m) => m !== modality),
     );
   }
 

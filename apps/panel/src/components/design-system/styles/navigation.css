@@ -137,11 +137,7 @@
   max-height: calc(100vh - 16px);
   padding: var(--tk-v1-space-2);
   overflow-y: auto;
-  border-color: color-mix(
-    in srgb,
-    var(--tk-v1-accent) 14%,
-    var(--tk-v1-border-strong)
-  );
+  border-color: color-mix(in srgb, var(--tk-v1-accent) 14%, var(--tk-v1-border-strong));
   background-color: var(--tk-v1-bg-raised);
   background-image:
     radial-gradient(

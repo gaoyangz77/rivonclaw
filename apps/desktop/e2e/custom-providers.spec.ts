@@ -23,7 +23,7 @@ test.describe("Custom Providers", () => {
     // Dismiss any modal(s) blocking the UI
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -83,7 +83,10 @@ test.describe("Custom Providers", () => {
       await saveBtn.click();
       // Wait for either success (1 key card) or error
       const result = await Promise.race([
-        keyCards.first().waitFor({ state: "visible", timeout: 30_000 }).then(() => "ok" as const),
+        keyCards
+          .first()
+          .waitFor({ state: "visible", timeout: 30_000 })
+          .then(() => "ok" as const),
         errorAlert.waitFor({ state: "visible", timeout: 30_000 }).then(() => "error" as const),
       ]).catch(() => "timeout" as const);
       if (result === "ok") break;
@@ -120,7 +123,7 @@ test.describe("Custom Providers", () => {
     // Dismiss modals
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -142,7 +145,7 @@ test.describe("Custom Providers", () => {
       }),
     });
     expect(baseRes.ok).toBe(true);
-    const baseEntry = await baseRes.json() as { id: string };
+    const baseEntry = (await baseRes.json()) as { id: string };
 
     // Activate the base provider
     const activateRes = await fetch(`${apiBase}/api/provider-keys/${baseEntry.id}/activate`, {

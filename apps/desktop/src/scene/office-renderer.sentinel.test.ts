@@ -42,12 +42,7 @@ const PATCH_MARKERS: Record<string, readonly string[]> = {
 };
 
 /** The calligraphy plaques the layout hangs on each department's wall. */
-const OUR_FURNITURE_IDS = [
-  "PLAQUE_AIPIN",
-  "PLAQUE_NINGJING",
-  "PLAQUE_SHANGSHAN",
-  "PLAQUE_TIANDAO",
-];
+const OUR_FURNITURE_IDS = ["PLAQUE_AIPIN", "PLAQUE_NINGJING", "PLAQUE_SHANGSHAN", "PLAQUE_TIANDAO"];
 
 function requireStaged(relativePath: string): string {
   const absolute = join(STAGE_DIR, relativePath);
@@ -107,7 +102,9 @@ describe("staged office renderer", () => {
   });
 
   it("bakes our own furniture into the scene bundle", () => {
-    const scene = JSON.parse(readFileSync(requireStaged("scene-assets.json"), "utf8")) as SceneAssets;
+    const scene = JSON.parse(
+      readFileSync(requireStaged("scene-assets.json"), "utf8"),
+    ) as SceneAssets;
     const ids = scene.furnitureCatalog.map((entry) => entry.id);
     for (const id of OUR_FURNITURE_IDS) {
       expect(ids).toContain(id);

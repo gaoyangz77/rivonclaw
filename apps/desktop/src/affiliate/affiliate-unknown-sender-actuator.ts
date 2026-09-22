@@ -195,13 +195,16 @@ function scheduleWithheldRowRecheck(
   if (pendingWaitTimer && pendingWaitAtMs != null && pendingWaitAtMs <= earliest) return;
   if (pendingWaitTimer) clearTimeout(pendingWaitTimer);
   pendingWaitAtMs = earliest;
-  pendingWaitTimer = setTimeout(() => {
-    pendingWaitTimer = null;
-    pendingWaitAtMs = null;
-    void reread().catch((error) => {
-      log.warn("Failed to re-read a settled Affiliate unknown sender", error);
-    });
-  }, earliest - now + IDENTIFICATION_WAIT_RECHECK_SLACK_MS);
+  pendingWaitTimer = setTimeout(
+    () => {
+      pendingWaitTimer = null;
+      pendingWaitAtMs = null;
+      void reread().catch((error) => {
+        log.warn("Failed to re-read a settled Affiliate unknown sender", error);
+      });
+    },
+    earliest - now + IDENTIFICATION_WAIT_RECHECK_SLACK_MS,
+  );
 }
 
 /**

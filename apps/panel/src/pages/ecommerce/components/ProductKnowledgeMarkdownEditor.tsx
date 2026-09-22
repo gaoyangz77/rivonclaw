@@ -64,12 +64,11 @@ const ROOT_CONTENT_CLASS = "product-knowledge-rich-editor-content";
  * and lists do not belong.
  */
 function isRootRichTextTarget(target: EventTarget | null): boolean {
-  const element = target instanceof Element
-    ? target
-    : target instanceof Node
-      ? target.parentElement
-      : null;
-  return element?.closest('[contenteditable="true"]')?.classList.contains(ROOT_CONTENT_CLASS) ?? false;
+  const element =
+    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+  return (
+    element?.closest('[contenteditable="true"]')?.classList.contains(ROOT_CONTENT_CLASS) ?? false
+  );
 }
 
 /**
@@ -213,10 +212,7 @@ function MediaCard({ src, name }: { src?: string; name: string }) {
 function MediaDirectiveEditor({ mdastNode }: DirectiveEditorProps) {
   const attributes = mdastNode.attributes ?? {};
   return (
-    <MediaCard
-      name={attributes.name ?? attributes.title ?? ""}
-      src={attributes.src ?? undefined}
-    />
+    <MediaCard name={attributes.name ?? attributes.title ?? ""} src={attributes.src ?? undefined} />
   );
 }
 
@@ -391,10 +387,7 @@ export function ProductKnowledgeMarkdownEditor({
     // one onto an editor that was never focused. Focusing first keeps an
     // existing cursor (replacing any selected text, as a paste would) and
     // otherwise falls back to the end of the document.
-    editor?.focus(
-      () => editor.insertMarkdown(markdown),
-      { defaultSelection: "rootEnd" },
-    );
+    editor?.focus(() => editor.insertMarkdown(markdown), { defaultSelection: "rootEnd" });
   }, []);
 
   const insertMediaFile = useCallback(
@@ -413,7 +406,9 @@ export function ProductKnowledgeMarkdownEditor({
         insertMarkdownAtCursor(markdown);
       } catch (error) {
         setUploadError(
-          error instanceof Error ? error.message : t("ecommerce.productKnowledge.mediaUploadFailed"),
+          error instanceof Error
+            ? error.message
+            : t("ecommerce.productKnowledge.mediaUploadFailed"),
         );
       } finally {
         setUploading(false);
@@ -432,49 +427,52 @@ export function ProductKnowledgeMarkdownEditor({
   const handlersRef = useRef({ previewImage });
   handlersRef.current = { previewImage };
 
-  const plugins = useMemo(() => [
-    headingsPlugin({ allowedHeadingLevels: [2, 3, 4] }),
-    listsPlugin(),
-    quotePlugin(),
-    linkPlugin(),
-    linkDialogPlugin(),
-    // No imageUploadHandler on purpose: with one set, MDXEditor swallows image
-    // drops and pastes and inserts its own `![](…)` node, bypassing the card.
-    // The preview handler stays so Markdown already holding `![](media://…)`
-    // still displays.
-    imagePlugin({
-      imagePreviewHandler: (src) => handlersRef.current.previewImage(src),
-    }),
-    directivesPlugin({
-      directiveDescriptors: [
-        MEDIA_DIRECTIVE_DESCRIPTOR,
-        VIDEO_DIRECTIVE_DESCRIPTOR,
-        UNKNOWN_DIRECTIVE_DESCRIPTOR,
-      ],
-      escapeUnknownTextDirectives: true,
-    }),
-    tablePlugin(),
-    thematicBreakPlugin(),
-    markdownShortcutPlugin(),
-    diffSourcePlugin({ viewMode: "rich-text" }),
-    toolbarPlugin({
-      toolbarContents: () => (
-        <DiffSourceToggleWrapper options={["rich-text", "source"]}>
-          <UndoRedo />
-          <Separator />
-          <BlockTypeSelect />
-          <Separator />
-          <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
-          <Separator />
-          <ListsToggle options={["bullet", "number"]} />
-          <CreateLink />
-          <InsertTable />
-          <InsertImageButton />
-          <InsertVideoButton />
-        </DiffSourceToggleWrapper>
-      ),
-    }),
-  ], []);
+  const plugins = useMemo(
+    () => [
+      headingsPlugin({ allowedHeadingLevels: [2, 3, 4] }),
+      listsPlugin(),
+      quotePlugin(),
+      linkPlugin(),
+      linkDialogPlugin(),
+      // No imageUploadHandler on purpose: with one set, MDXEditor swallows image
+      // drops and pastes and inserts its own `![](…)` node, bypassing the card.
+      // The preview handler stays so Markdown already holding `![](media://…)`
+      // still displays.
+      imagePlugin({
+        imagePreviewHandler: (src) => handlersRef.current.previewImage(src),
+      }),
+      directivesPlugin({
+        directiveDescriptors: [
+          MEDIA_DIRECTIVE_DESCRIPTOR,
+          VIDEO_DIRECTIVE_DESCRIPTOR,
+          UNKNOWN_DIRECTIVE_DESCRIPTOR,
+        ],
+        escapeUnknownTextDirectives: true,
+      }),
+      tablePlugin(),
+      thematicBreakPlugin(),
+      markdownShortcutPlugin(),
+      diffSourcePlugin({ viewMode: "rich-text" }),
+      toolbarPlugin({
+        toolbarContents: () => (
+          <DiffSourceToggleWrapper options={["rich-text", "source"]}>
+            <UndoRedo />
+            <Separator />
+            <BlockTypeSelect />
+            <Separator />
+            <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
+            <Separator />
+            <ListsToggle options={["bullet", "number"]} />
+            <CreateLink />
+            <InsertTable />
+            <InsertImageButton />
+            <InsertVideoButton />
+          </DiffSourceToggleWrapper>
+        ),
+      }),
+    ],
+    [],
+  );
 
   useEffect(() => {
     if (!editorRef.current || editorRef.current.getMarkdown() === value) return;
@@ -504,9 +502,9 @@ export function ProductKnowledgeMarkdownEditor({
         ...(MEDIA_IMAGE_MIME_TYPES as readonly string[]),
         ...(MEDIA_VIDEO_MIME_TYPES as readonly string[]),
       ];
-      if (Array.from(event.dataTransfer?.items ?? []).some((item) =>
-        draggable.includes(item.type),
-      )) {
+      if (
+        Array.from(event.dataTransfer?.items ?? []).some((item) => draggable.includes(item.type))
+      ) {
         event.preventDefault();
       }
     };

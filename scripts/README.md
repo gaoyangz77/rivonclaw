@@ -9,10 +9,12 @@ Validates `better-sqlite3` under both Node.js and Electron, including statement 
 The pinned better-sqlite3 13.0.3 ships portable N-API binaries in `prebuilds/`. No native compilation or extra download is needed on supported Desktop platforms. The compatibility entrypoint calls `rebuild-native.cjs`, which retains the dual-ABI build path for older installations only. Node 24.19+ can abort during statement garbage collection with the older V8-based 12.x bindings; a successful one-query load is not sufficient verification.
 
 **When it runs:**
+
 - Automatically after `pnpm install` via the root `postinstall` hook
 - Manually: `./scripts/rebuild-native.sh`
 
 **Rules:**
+
 - Do not replace or delete the package's `prebuilds/` binaries.
 - Electron 42 is provisioned explicitly by `provision-electron.cjs` before native verification.
 - If native loading fails, run `./scripts/rebuild-native.sh` to check both runtimes.

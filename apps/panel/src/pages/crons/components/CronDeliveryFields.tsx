@@ -15,7 +15,15 @@ interface CronDeliveryFieldsProps {
   onChannelChange: (v: string) => void;
 }
 
-export function CronDeliveryFields({ form, errors, channelOptions, recipientOptions, channelStatusLoading, onUpdate, onChannelChange }: CronDeliveryFieldsProps) {
+export function CronDeliveryFields({
+  form,
+  errors,
+  channelOptions,
+  recipientOptions,
+  channelStatusLoading,
+  onUpdate,
+  onChannelChange,
+}: CronDeliveryFieldsProps) {
   const { t } = useTranslation();
 
   return (
@@ -28,7 +36,7 @@ export function CronDeliveryFields({ form, errors, channelOptions, recipientOpti
         <>
           <Select
             value="none"
-            onChange={() => { }}
+            onChange={() => {}}
             options={[{ value: "none", label: t("crons.deliveryNone") }]}
             disabled
           />
@@ -51,7 +59,7 @@ export function CronDeliveryFields({ form, errors, channelOptions, recipientOpti
                 {channelStatusLoading ? (
                   <Select
                     value=""
-                    onChange={() => { }}
+                    onChange={() => {}}
                     options={[]}
                     placeholder={t("crons.channelStatusLoading")}
                     disabled
@@ -59,7 +67,11 @@ export function CronDeliveryFields({ form, errors, channelOptions, recipientOpti
                 ) : (
                   <>
                     <Select
-                      value={form.deliveryChannel && form.deliveryAccountId ? `${form.deliveryChannel}:${form.deliveryAccountId}` : form.deliveryChannel}
+                      value={
+                        form.deliveryChannel && form.deliveryAccountId
+                          ? `${form.deliveryChannel}:${form.deliveryAccountId}`
+                          : form.deliveryChannel
+                      }
                       onChange={onChannelChange}
                       options={channelOptions}
                       placeholder={t("crons.fieldDeliveryChannel")}
@@ -70,7 +82,9 @@ export function CronDeliveryFields({ form, errors, channelOptions, recipientOpti
                   </>
                 )}
               </div>
-              <div className={`escalation-cascade-col${!form.deliveryChannel ? " escalation-cascade-col-disabled" : ""}`}>
+              <div
+                className={`escalation-cascade-col${!form.deliveryChannel ? " escalation-cascade-col-disabled" : ""}`}
+              >
                 <label className="form-label-block">{t("crons.fieldDeliveryRecipient")}</label>
                 <Select
                   value={form.deliveryTo}
@@ -83,14 +97,18 @@ export function CronDeliveryFields({ form, errors, channelOptions, recipientOpti
           )}
           {form.deliveryMode === "webhook" && (
             <div className="form-group">
-              <label className="form-label-block">{t("crons.fieldDeliveryTo")} <span className="required">*</span></label>
+              <label className="form-label-block">
+                {t("crons.fieldDeliveryTo")} <span className="required">*</span>
+              </label>
               <input
                 className="input-full"
                 value={form.deliveryTo}
                 onChange={(e) => onUpdate("deliveryTo", e.target.value)}
                 placeholder="https://example.com/webhook"
               />
-              {errors.deliveryTo && <div className="crons-field-error">{t(`crons.${errors.deliveryTo}`)}</div>}
+              {errors.deliveryTo && (
+                <div className="crons-field-error">{t(`crons.${errors.deliveryTo}`)}</div>
+              )}
             </div>
           )}
         </>

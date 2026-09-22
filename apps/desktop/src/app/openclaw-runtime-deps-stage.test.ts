@@ -2,10 +2,7 @@ import { mkdtempSync, readlinkSync, rmSync, writeFileSync, mkdirSync, existsSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  ensurePackagedOpenClawRuntimeDepsStage,
-  __test,
-} from "./openclaw-runtime-deps-stage.js";
+import { ensurePackagedOpenClawRuntimeDepsStage, __test } from "./openclaw-runtime-deps-stage.js";
 
 const roots: string[] = [];
 

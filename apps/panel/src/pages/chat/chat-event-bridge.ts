@@ -45,7 +45,12 @@ export interface ChatMirrorSSEPayload {
 
 export type ChatEventBridgeCallbacks = {
   onAction: (action: RunAction) => void;
-  onUserMessage: (msg: { text: string; timestamp: number; channel: string; sessionKey: string }) => void;
+  onUserMessage: (msg: {
+    text: string;
+    timestamp: number;
+    channel: string;
+    sessionKey: string;
+  }) => void;
   onSessionReset?: (sessionKey: string) => void;
   /** Called when a chat-mirror event arrives for a non-webchat channel.
    *  The consumer should feed this into the same handleEvent logic used for

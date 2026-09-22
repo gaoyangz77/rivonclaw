@@ -1931,7 +1931,8 @@ app.whenReady().then(async () => {
   const heapWatchPath = heapSnapshotEnabled ? writeHeapWatchModule(stateDir) : undefined;
   if (heapWatchPath) {
     const thresholdMb =
-      Number(process.env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV]) || GATEWAY_HEAP_SNAPSHOT_DEFAULT_THRESHOLD_MB;
+      Number(process.env[GATEWAY_HEAP_SNAPSHOT_THRESHOLD_ENV]) ||
+      GATEWAY_HEAP_SNAPSHOT_DEFAULT_THRESHOLD_MB;
     log.warn(
       `Gateway heap snapshot is ENABLED (${GATEWAY_HEAP_SNAPSHOT_SETTING_KEY}). ` +
         `Once the Gateway heap crosses ${thresholdMb} MB it will write one .heapsnapshot into ` +
@@ -2293,11 +2294,7 @@ app.whenReady().then(async () => {
       }
 
       // Kill gateway and proxy router.
-      await Promise.all([
-        gatewayStop,
-        openAICodexCompatibilityProxy.stop(),
-        proxyRouter.stop(),
-      ]);
+      await Promise.all([gatewayStop, openAICodexCompatibilityProxy.stop(), proxyRouter.stop()]);
 
       // Vendor auth state is authoritative. Persist refreshed OAuth material
       // back to Keychain as the Desktop secret backup, but do not erase

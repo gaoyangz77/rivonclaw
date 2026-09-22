@@ -1,9 +1,9 @@
-import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { clickTutorialTarget, tutorialTarget } from "../targets.js";
 
 async function selectTeamTab(tab: "team" | "assignments" | "safety") {
-  clickTutorialTarget(`affiliate-team-tab-${tab}`)
-  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+  clickTutorialTarget(`affiliate-team-tab-${tab}`);
+  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }
 
 function step(
@@ -19,12 +19,14 @@ function step(
     titleKey: `tutorial.ecommerceAffiliateTeam.${key}Title`,
     bodyKey: `tutorial.ecommerceAffiliateTeam.${key}Body`,
     placement,
-    ...(tab ? {
-      prepare: () => selectTeamTab(tab),
-      cleanup: () => selectTeamTab("team"),
-      targetTimeoutMs: 1800,
-    } : {}),
-  }
+    ...(tab
+      ? {
+          prepare: () => selectTeamTab(tab),
+          cleanup: () => selectTeamTab("team"),
+          targetTimeoutMs: 1800,
+        }
+      : {}),
+  };
 }
 
 export const ecommerceAffiliateTeamSteps: TutorialStep[] = [
@@ -33,7 +35,18 @@ export const ecommerceAffiliateTeamSteps: TutorialStep[] = [
     prepare: () => selectTeamTab("team"),
   },
   step("affiliate-team-tabs", "affiliate-team-tabs", "tabs", "bottom"),
-  step("affiliate-team-responsibilities", "affiliate-team-responsibilities", "responsibilities", "top"),
-  step("affiliate-team-assignments", "affiliate-team-assignments", "assignments", "top", "assignments"),
+  step(
+    "affiliate-team-responsibilities",
+    "affiliate-team-responsibilities",
+    "responsibilities",
+    "top",
+  ),
+  step(
+    "affiliate-team-assignments",
+    "affiliate-team-assignments",
+    "assignments",
+    "top",
+    "assignments",
+  ),
   step("affiliate-team-safety", "affiliate-team-safety", "safety", "top", "safety"),
-]
+];

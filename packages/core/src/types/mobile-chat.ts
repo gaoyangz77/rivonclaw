@@ -1,20 +1,20 @@
 export interface PairingRequest {
-    pairingCode: string;
-    mobileDeviceId: string;
+  pairingCode: string;
+  mobileDeviceId: string;
 }
 
 export interface PairingResponse {
-    accessToken: string;
-    relayUrl: string;
-    desktopDeviceId: string;
+  accessToken: string;
+  relayUrl: string;
+  desktopDeviceId: string;
 }
 
 export interface RelayAuthRequest {
-    accessToken: string;
+  accessToken: string;
 }
 
 export interface RelayAuthResponse {
-    valid: boolean;
-    desktopDeviceId?: string;
-    mobileDeviceId?: string;
+  valid: boolean;
+  desktopDeviceId?: string;
+  mobileDeviceId?: string;
 }

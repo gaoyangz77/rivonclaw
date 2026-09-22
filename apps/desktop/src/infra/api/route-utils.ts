@@ -45,8 +45,9 @@ export function isTrustedLoopbackOrigin(req: IncomingMessage): boolean {
   if (!origin) return true;
   try {
     const url = new URL(origin);
-    return url.protocol === "http:"
-      && (url.hostname === "127.0.0.1" || url.hostname === "localhost");
+    return (
+      url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost")
+    );
   } catch {
     return false;
   }

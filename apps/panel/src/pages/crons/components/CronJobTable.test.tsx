@@ -8,16 +8,18 @@ import type { CronJob } from "../cron-utils.js";
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) =>
-      ({
-        "common.delete": "Delete",
-        "common.edit": "Edit",
-        "crons.colActions": "Actions",
-        "crons.fieldEnabled": "Enabled",
-        "crons.moreActions": "More",
-        "crons.neverRun": "Never",
-        "crons.runNow": "Run",
-        "crons.viewHistory": "History",
-      } as Record<string, string>)[key] ?? key,
+      (
+        ({
+          "common.delete": "Delete",
+          "common.edit": "Edit",
+          "crons.colActions": "Actions",
+          "crons.fieldEnabled": "Enabled",
+          "crons.moreActions": "More",
+          "crons.neverRun": "Never",
+          "crons.runNow": "Run",
+          "crons.viewHistory": "History",
+        }) as Record<string, string>
+      )[key] ?? key,
     i18n: { language: "en" },
   }),
 }));

@@ -11,7 +11,9 @@ import { describe, expect, it } from "vitest";
 import * as documents from "./affiliate-analytics-queries.js";
 
 function isDocumentNode(value: unknown): value is DocumentNode {
-  return Boolean(value && typeof value === "object" && (value as { kind?: string }).kind === "Document");
+  return Boolean(
+    value && typeof value === "object" && (value as { kind?: string }).kind === "Document",
+  );
 }
 
 describe("Affiliate Analytics GraphQL documents", () => {
@@ -19,9 +21,7 @@ describe("Affiliate Analytics GraphQL documents", () => {
     const backendSchemaPath =
       process.env.EASYCLAW_BACKEND_SCHEMA_PATH ??
       resolve(process.cwd(), "../../server/backend/schema.graphql");
-    const schema = buildSchema(
-      readFileSync(backendSchemaPath, "utf8"),
-    );
+    const schema = buildSchema(readFileSync(backendSchemaPath, "utf8"));
     const failures: string[] = [];
     for (const [name, document] of Object.entries(documents)) {
       if (!isDocumentNode(document)) continue;
@@ -29,7 +29,8 @@ describe("Affiliate Analytics GraphQL documents", () => {
         schema,
         document,
         specifiedRules.filter((rule) => rule !== NoUnusedFragmentsRule),
-      )) failures.push(`${name}: ${error.message}`);
+      ))
+        failures.push(`${name}: ${error.message}`);
     }
     expect(failures).toEqual([]);
   });

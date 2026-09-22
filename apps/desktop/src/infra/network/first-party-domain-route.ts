@@ -28,7 +28,9 @@ function isReachableProbeResponse(res: Response): boolean {
   return res.status >= 200 && res.status < 500;
 }
 
-export async function detectFirstPartyDomainRoute(fetchFn: FetchFn): Promise<FirstPartyDomainRoute> {
+export async function detectFirstPartyDomainRoute(
+  fetchFn: FetchFn,
+): Promise<FirstPartyDomainRoute> {
   const forcedRoute = forcedRouteFromEnv();
   if (forcedRoute) {
     log.info(`Using first-party domain route from env: ${forcedRoute}`);
@@ -47,7 +49,9 @@ export async function detectFirstPartyDomainRoute(fetchFn: FetchFn): Promise<Fir
       signal: controller.signal,
     });
     const route: FirstPartyDomainRoute = isReachableProbeResponse(res) ? "global" : "cn-relay";
-    log.info(`First-party GraphQL probe ${url} returned HTTP ${res.status}; first-party domain route=${route}`);
+    log.info(
+      `First-party GraphQL probe ${url} returned HTTP ${res.status}; first-party domain route=${route}`,
+    );
     return route;
   } catch (err) {
     log.warn(
@@ -59,7 +63,9 @@ export async function detectFirstPartyDomainRoute(fetchFn: FetchFn): Promise<Fir
   }
 }
 
-export async function detectAndApplyFirstPartyDomainRoute(fetchFn: FetchFn): Promise<FirstPartyDomainRoute> {
+export async function detectAndApplyFirstPartyDomainRoute(
+  fetchFn: FetchFn,
+): Promise<FirstPartyDomainRoute> {
   const route = await detectFirstPartyDomainRoute(fetchFn);
   setFirstPartyDomainRoute(route);
   log.info(`First-party domain route active: ${getFirstPartyDomainRoute()}`);

@@ -44,20 +44,17 @@ async function main() {
     throw new Error('Usage: node prod-model-switch-check.mjs <"TK Copilot.exe">');
   }
   const initialReadyBudgetSeconds = Number(
-    process.env.RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS ??
-      DEFAULT_INITIAL_READY_BUDGET_SECONDS,
+    process.env.RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS ?? DEFAULT_INITIAL_READY_BUDGET_SECONDS,
   );
   const modelSwitchBudgetSeconds = parseOptionalPositiveNumber(
     process.env.RIVONCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS,
     DEFAULT_MODEL_SWITCH_BUDGET_SECONDS,
   );
   const initialReadyTimeoutMs = Number(
-    process.env.RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS ??
-      DEFAULT_INITIAL_READY_TIMEOUT_MS,
+    process.env.RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS ?? DEFAULT_INITIAL_READY_TIMEOUT_MS,
   );
   const modelSwitchTimeoutMs = Number(
-    process.env.RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS ??
-      DEFAULT_MODEL_SWITCH_TIMEOUT_MS,
+    process.env.RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS ?? DEFAULT_MODEL_SWITCH_TIMEOUT_MS,
   );
 
   const tempDir = mkdtempSync(path.join(tmpdir(), "rivonclaw-prod-check-"));
@@ -91,7 +88,12 @@ async function main() {
     await window.waitForLoadState("domcontentloaded");
     await window.evaluate(() => localStorage.setItem("telemetry.consentShown", "1"));
     await window.waitForSelector(".onboarding-page, .sidebar-brand", { timeout: 45_000 });
-    if (await window.locator(".onboarding-page").isVisible().catch(() => false)) {
+    if (
+      await window
+        .locator(".onboarding-page")
+        .isVisible()
+        .catch(() => false)
+    ) {
       await window.locator(".btn-ghost").click();
       await window.waitForSelector(".sidebar-brand", { timeout: 45_000 });
     }
@@ -127,23 +129,28 @@ async function main() {
     });
 
     const updatedModel = "qwen2.5-coder:7b";
-    await window.evaluate(async ({ keyId, model }) => {
-      const put = await fetch(`/api/provider-keys/${keyId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model }),
-      });
-      if (!put.ok) {
-        throw new Error(`PUT /api/provider-keys/${keyId} failed: ${put.status}`);
-      }
-    }, { keyId: providerKey.id, model: updatedModel });
+    await window.evaluate(
+      async ({ keyId, model }) => {
+        const put = await fetch(`/api/provider-keys/${keyId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model }),
+        });
+        if (!put.ok) {
+          throw new Error(`PUT /api/provider-keys/${keyId} failed: ${put.status}`);
+        }
+      },
+      { keyId: providerKey.id, model: updatedModel },
+    );
 
     const modelSwitchInfo = await waitFor(() => {
       if (!existsSync(logPath)) return null;
       const logText = readFileSync(logPath, "utf-8");
       const readyTimes = parseReadyTimes(logText);
       if (readyTimes.length < initialReadyCount + 1) return null;
-      const restartMentions = (logText.match(/Config updated, performing full gateway restart for model change/g) || []).length;
+      const restartMentions = (
+        logText.match(/Config updated, performing full gateway restart for model change/g) || []
+      ).length;
       if (restartMentions < 1) return null;
       return {
         modelSwitchReady: readyTimes[initialReadyCount],
@@ -153,43 +160,64 @@ async function main() {
 
     await window.waitForSelector(".chat-status-dot-connected", { timeout: modelSwitchTimeoutMs });
 
-    if (Number.isFinite(initialReadyBudgetSeconds) && initialReadyBudgetSeconds > 0 && initialReady > initialReadyBudgetSeconds) {
+    if (
+      Number.isFinite(initialReadyBudgetSeconds) &&
+      initialReadyBudgetSeconds > 0 &&
+      initialReady > initialReadyBudgetSeconds
+    ) {
       throw new Error(
         `Initial gateway ready time ${initialReady}s exceeded budget ${initialReadyBudgetSeconds}s`,
       );
     }
-    if (modelSwitchBudgetSeconds !== null && modelSwitchInfo.modelSwitchReady > modelSwitchBudgetSeconds) {
+    if (
+      modelSwitchBudgetSeconds !== null &&
+      modelSwitchInfo.modelSwitchReady > modelSwitchBudgetSeconds
+    ) {
       throw new Error(
         `Model-switch gateway ready time ${modelSwitchInfo.modelSwitchReady}s exceeded budget ${modelSwitchBudgetSeconds}s`,
       );
     }
 
-    console.log(JSON.stringify({
-      initialReadySeconds: initialReady,
-      modelSwitchReadySeconds: modelSwitchInfo.modelSwitchReady,
-      initialReadyBudgetSeconds,
-      modelSwitchBudgetSeconds,
-      initialReadyTimeoutMs,
-      modelSwitchTimeoutMs,
-      providerKeyId: providerKey.id,
-      updatedModel,
-      sawBackgroundFeishu: modelSwitchInfo.sawBackgroundFeishu,
-      tempDir,
-      logPath,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          initialReadySeconds: initialReady,
+          modelSwitchReadySeconds: modelSwitchInfo.modelSwitchReady,
+          initialReadyBudgetSeconds,
+          modelSwitchBudgetSeconds,
+          initialReadyTimeoutMs,
+          modelSwitchTimeoutMs,
+          providerKeyId: providerKey.id,
+          updatedModel,
+          sawBackgroundFeishu: modelSwitchInfo.sawBackgroundFeishu,
+          tempDir,
+          logPath,
+        },
+        null,
+        2,
+      ),
+    );
   } catch (err) {
     keepTempDir = true;
     const logText = existsSync(logPath) ? readFileSync(logPath, "utf-8") : "";
     const readyTimes = parseReadyTimes(logText);
-    const restartMentions = (logText.match(/Config updated, performing full gateway restart for model change/g) || []).length;
-    console.error(JSON.stringify({
-      error: String(err),
-      tempDir,
-      logPath,
-      readyTimes,
-      restartMentions,
-      logTail: logText.split(/\r?\n/).slice(-80),
-    }, null, 2));
+    const restartMentions = (
+      logText.match(/Config updated, performing full gateway restart for model change/g) || []
+    ).length;
+    console.error(
+      JSON.stringify(
+        {
+          error: String(err),
+          tempDir,
+          logPath,
+          readyTimes,
+          restartMentions,
+          logTail: logText.split(/\r?\n/).slice(-80),
+        },
+        null,
+        2,
+      ),
+    );
     throw err;
   } finally {
     if (app) {

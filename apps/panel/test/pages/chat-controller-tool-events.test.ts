@@ -61,9 +61,12 @@ describe("ChatGatewayController tool events", () => {
 
     await controller.switchSession(sessionKey);
 
-    expect(request).toHaveBeenCalledWith("chat.history", expect.objectContaining({
-      sessionKey,
-    }));
+    expect(request).toHaveBeenCalledWith(
+      "chat.history",
+      expect.objectContaining({
+        sessionKey,
+      }),
+    );
     expect(session.historyHydrated).toBe(true);
     expect(session.messages.map((msg) => msg.text)).toEqual([
       "older message",
@@ -254,16 +257,20 @@ describe("ChatGatewayController tool events", () => {
       },
     });
 
-    expect(session.messages[0]).toEqual(expect.objectContaining({
-      role: "tool-event",
-      toolName: "search",
-      toolStatus: "failed",
-      toolError: "search backend timeout",
-    }));
-    expect(session.messages[1]).toEqual(expect.objectContaining({
-      role: "assistant",
-      text: "\u26A0 chat.errorTimeout",
-    }));
+    expect(session.messages[0]).toEqual(
+      expect.objectContaining({
+        role: "tool-event",
+        toolName: "search",
+        toolStatus: "failed",
+        toolError: "search backend timeout",
+      }),
+    );
+    expect(session.messages[1]).toEqual(
+      expect.objectContaining({
+        role: "assistant",
+        text: "\u26A0 chat.errorTimeout",
+      }),
+    );
   });
 
   it("shows generation stopped after the truncated assistant text for aborted local runs", () => {

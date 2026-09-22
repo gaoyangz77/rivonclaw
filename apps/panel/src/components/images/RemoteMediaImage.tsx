@@ -45,7 +45,10 @@ function cacheKey(sourceUrl: string, cachePolicy: "auto" | "force"): string {
 function isFirstPartyObjectStorageUrl(sourceUrl: string): boolean {
   try {
     const parsed = new URL(sourceUrl);
-    return parsed.hostname === DEFAULTS.domains.objectStorage || parsed.hostname === DEFAULTS.domains.objectStorageCn;
+    return (
+      parsed.hostname === DEFAULTS.domains.objectStorage ||
+      parsed.hostname === DEFAULTS.domains.objectStorageCn
+    );
   } catch {
     return false;
   }
@@ -101,7 +104,9 @@ export const RemoteMediaImage = observer(function RemoteMediaImage({
   // Primitive, not the MST node: safe to close over in the effect below.
   const masked = sensitive && privacyMode;
   const [src, setSrc] = useState<string | undefined>(
-    () => resolveFirstPartyObjectStorageUrl(sourceUrl) ?? resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy)),
+    () =>
+      resolveFirstPartyObjectStorageUrl(sourceUrl) ??
+      resolvedUrlCache.get(cacheKey(sourceUrl, cachePolicy)),
   );
   const [retrying, setRetrying] = useState(false);
 

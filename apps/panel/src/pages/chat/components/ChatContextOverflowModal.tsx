@@ -25,37 +25,27 @@ export function ChatContextOverflowModal({
   const { t } = useTranslation();
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("chat.contextOverflowTitle")}
-      maxWidth={480}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={t("chat.contextOverflowTitle")} maxWidth={480}>
       {pendingModelSwitch && (
         <>
-          <p>{t("chat.contextOverflowBody", {
-            current: formatTokenCount(pendingModelSwitch.currentTokens),
-            max: formatTokenCount(pendingModelSwitch.newContextWindow),
-          })}</p>
+          <p>
+            {t("chat.contextOverflowBody", {
+              current: formatTokenCount(pendingModelSwitch.currentTokens),
+              max: formatTokenCount(pendingModelSwitch.newContextWindow),
+            })}
+          </p>
           <div className="chat-overflow-actions">
-            <button
-              className="chat-overflow-card chat-overflow-card-primary"
-              onClick={onContinue}
-            >
+            <button className="chat-overflow-card chat-overflow-card-primary" onClick={onContinue}>
               <span className="chat-overflow-card-label">{t("chat.contextOverflowContinue")}</span>
-              <span className="chat-overflow-card-hint">{t("chat.contextOverflowContinueHint")}</span>
+              <span className="chat-overflow-card-hint">
+                {t("chat.contextOverflowContinueHint")}
+              </span>
             </button>
-            <button
-              className="chat-overflow-card"
-              onClick={onClear}
-            >
+            <button className="chat-overflow-card" onClick={onClear}>
               <span className="chat-overflow-card-label">{t("chat.contextOverflowClear")}</span>
               <span className="chat-overflow-card-hint">{t("chat.contextOverflowClearHint")}</span>
             </button>
-            <button
-              className="chat-overflow-cancel"
-              onClick={onClose}
-            >
+            <button className="chat-overflow-cancel" onClick={onClose}>
               {t("common.cancel")}
             </button>
           </div>

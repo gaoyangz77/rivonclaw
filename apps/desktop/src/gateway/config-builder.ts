@@ -478,11 +478,17 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     // Only seed Desktop-only providers that have never been defined. Existing
     // config and providers owned by vendor plugins remain authoritative.
     const existingConfig = readExistingConfig(configPath);
-    const existingProviderDefinitions = (existingConfig.models as {
-      providers?: Record<string, unknown>;
-    } | undefined)?.providers ?? {};
+    const existingProviderDefinitions =
+      (
+        existingConfig.models as
+          | {
+              providers?: Record<string, unknown>;
+            }
+          | undefined
+      )?.providers ?? {};
     const desktopOnlyProviders = buildDesktopOnlyProviderSeeds(
-      storage.providerKeys.getAll(), existingProviderDefinitions,
+      storage.providerKeys.getAll(),
+      existingProviderDefinitions,
     );
 
     // Runtime provider definitions are persistent Vendor config, not a

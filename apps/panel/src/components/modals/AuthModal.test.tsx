@@ -86,12 +86,11 @@ describe("AuthModal Google sign-in", () => {
     const onSuccess = vi.fn();
     render(<AuthModal isOpen onClose={onClose} onSuccess={onSuccess} />);
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "auth.browserLoginContinue" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "auth.browserLoginContinue" }));
     await waitFor(() => {
       const startCall = mocks.fetchJson.mock.calls.find(([path]) =>
-        pathIncludes(path, "/browser/start"));
+        pathIncludes(path, "/browser/start"),
+      );
       expect(JSON.parse(startCall![1].body)).toEqual({ intent: "LOGIN" });
     });
     expect(await screen.findByText("auth.browserLoginWaiting")).toBeTruthy();
@@ -105,13 +104,12 @@ describe("AuthModal Google sign-in", () => {
     render(<AuthModal isOpen onClose={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("tab", { name: "auth.register" }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "auth.browserRegisterContinue" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "auth.browserRegisterContinue" }));
 
     await waitFor(() => {
       const startCall = mocks.fetchJson.mock.calls.find(([path]) =>
-        pathIncludes(path, "/browser/start"));
+        pathIncludes(path, "/browser/start"),
+      );
       expect(JSON.parse(startCall![1].body)).toEqual({ intent: "REGISTER" });
     });
   });
@@ -128,7 +126,8 @@ describe("AuthModal Google sign-in", () => {
 
     await waitFor(() => {
       const starts = mocks.fetchJson.mock.calls.filter(([path]) =>
-        pathIncludes(path, "/google/start"));
+        pathIncludes(path, "/google/start"),
+      );
       expect(starts).toHaveLength(1);
     });
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1), { timeout: 2_000 });
@@ -153,7 +152,8 @@ describe("AuthModal Google sign-in", () => {
 
     await waitFor(() => {
       const linkCall = mocks.fetchJson.mock.calls.find(([path]) =>
-        pathIncludes(path, "/google/link"));
+        pathIncludes(path, "/google/link"),
+      );
       expect(linkCall).toBeDefined();
       expect(JSON.parse(linkCall![1].body)).toEqual({
         flowId: "flow-1",
@@ -189,11 +189,13 @@ describe("AuthModal Google sign-in", () => {
     fireEvent.change(passwordInput, { target: { value: "password" } });
     fireEvent.click(screen.getByRole("button", { name: "auth.loginAction" }));
 
-    await waitFor(() => expect(mocks.login).toHaveBeenCalledWith({
-      email: "user@example.com",
-      password: "password",
-      captchaToken: "captcha-token",
-      captchaAnswer: "ABCD",
-    }));
+    await waitFor(() =>
+      expect(mocks.login).toHaveBeenCalledWith({
+        email: "user@example.com",
+        password: "password",
+        captchaToken: "captcha-token",
+        captchaAnswer: "ABCD",
+      }),
+    );
   });
 });

@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { parseVersion, compareVersions, isNewerVersion } from "./version.js";
-import {
-  fetchManifest,
-  getPlatformKey,
-  checkForUpdate,
-  MANIFEST_URLS,
-} from "./checker.js";
+import { fetchManifest, getPlatformKey, checkForUpdate, MANIFEST_URLS } from "./checker.js";
 import type { UpdateManifest } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -29,9 +24,7 @@ describe("parseVersion", () => {
   });
 
   it("throws on invalid version (non-numeric)", () => {
-    expect(() => parseVersion("1.2.x")).toThrow(
-      'Invalid version string: "1.2.x"',
-    );
+    expect(() => parseVersion("1.2.x")).toThrow('Invalid version string: "1.2.x"');
   });
 
   it("throws on empty string", () => {
@@ -39,9 +32,7 @@ describe("parseVersion", () => {
   });
 
   it("throws on version with pre-release suffix", () => {
-    expect(() => parseVersion("1.2.3-beta")).toThrow(
-      'Invalid version string: "1.2.3-beta"',
-    );
+    expect(() => parseVersion("1.2.3-beta")).toThrow('Invalid version string: "1.2.3-beta"');
   });
 });
 
@@ -161,16 +152,11 @@ describe("fetchManifest", () => {
         statusText: "Not Found",
       }),
     );
-    await expect(fetchManifest()).rejects.toThrow(
-      "Failed to fetch manifest: HTTP 404 Not Found",
-    );
+    await expect(fetchManifest()).rejects.toThrow("Failed to fetch manifest: HTTP 404 Not Found");
   });
 
   it("throws on network error", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("Network error")),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
     await expect(fetchManifest()).rejects.toThrow("Network error");
   });
 });
@@ -261,10 +247,7 @@ describe("checkForUpdate", () => {
   });
 
   it("returns error result on fetch failure (never throws)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("Connection refused")),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Connection refused")));
     const result = await checkForUpdate("1.0.0");
     expect(result.updateAvailable).toBe(false);
     expect(result.currentVersion).toBe("1.0.0");
@@ -297,19 +280,13 @@ describe("checkForUpdate", () => {
   it("uses CN manifest URL when region is cn", async () => {
     expect(MANIFEST_URLS.cn).toBe("https://www.tkjiang.cn/update-manifest-cn.json");
     await checkForUpdate("1.0.0", { region: "cn" });
-    expect(fetch).toHaveBeenCalledWith(
-      MANIFEST_URLS.cn,
-      { signal: expect.any(AbortSignal) },
-    );
+    expect(fetch).toHaveBeenCalledWith(MANIFEST_URLS.cn, { signal: expect.any(AbortSignal) });
   });
 
   it("uses explicit manifestUrl over region", async () => {
     const customUrl = "https://staging.rivonclaw.com/manifest.json";
     await checkForUpdate("1.0.0", { manifestUrl: customUrl, region: "cn" });
-    expect(fetch).toHaveBeenCalledWith(
-      customUrl,
-      { signal: expect.any(AbortSignal) },
-    );
+    expect(fetch).toHaveBeenCalledWith(customUrl, { signal: expect.any(AbortSignal) });
   });
 
   it("handles manifest with no download for current platform", async () => {

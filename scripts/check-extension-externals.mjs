@@ -44,8 +44,11 @@ const SPECIFIER_PATTERNS = {
 const CHANNEL_WEIXIN_OPTIONAL_EXTERNALS = new Set(["qrcode-terminal", "silk-wasm"]);
 
 function isAllowedWorkspaceSpecifier(spec) {
-  return spec === "openclaw/plugin-sdk" || spec.startsWith("openclaw/plugin-sdk/")
-    || CHANNEL_WEIXIN_OPTIONAL_EXTERNALS.has(spec);
+  return (
+    spec === "openclaw/plugin-sdk" ||
+    spec.startsWith("openclaw/plugin-sdk/") ||
+    CHANNEL_WEIXIN_OPTIONAL_EXTERNALS.has(spec)
+  );
 }
 
 function isAllowedSpecifier(spec) {
@@ -58,7 +61,8 @@ function escapeRegex(literal) {
 
 function extractCreateRequireAliases(code) {
   const aliases = new Set();
-  const aliasRe = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:createRequire|module\.createRequire)\(/g;
+  const aliasRe =
+    /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:createRequire|module\.createRequire)\(/g;
   let match;
   while ((match = aliasRe.exec(code)) !== null) {
     aliases.add(match[1]);
@@ -69,9 +73,10 @@ function extractCreateRequireAliases(code) {
 function extractSpecifiers(filePath, mode) {
   const code = readFileSync(filePath, "utf-8");
   const records = [];
-  const activeKinds = mode === "vendor-runtime"
-    ? ["requireCall", "requireResolve", "createRequireCall", "moduleCreateRequireCall"]
-    : ["staticImport", "dynamicImport"];
+  const activeKinds =
+    mode === "vendor-runtime"
+      ? ["requireCall", "requireResolve", "createRequireCall", "moduleCreateRequireCall"]
+      : ["staticImport", "dynamicImport"];
 
   for (const kind of activeKinds) {
     const re = SPECIFIER_PATTERNS[kind];
@@ -84,8 +89,14 @@ function extractSpecifiers(filePath, mode) {
 
   if (mode === "vendor-runtime") {
     for (const alias of extractCreateRequireAliases(code)) {
-      const aliasCallRe = new RegExp(`(?:^|[^\\w$.])${escapeRegex(alias)}\\(\\s*["']([^"']+)["']\\s*\\)`, "g");
-      const aliasResolveRe = new RegExp(`${escapeRegex(alias)}\\.resolve\\(\\s*["']([^"']+)["']\\s*\\)`, "g");
+      const aliasCallRe = new RegExp(
+        `(?:^|[^\\w$.])${escapeRegex(alias)}\\(\\s*["']([^"']+)["']\\s*\\)`,
+        "g",
+      );
+      const aliasResolveRe = new RegExp(
+        `${escapeRegex(alias)}\\.resolve\\(\\s*["']([^"']+)["']\\s*\\)`,
+        "g",
+      );
       for (const [kind, re] of [
         ["createRequireAliasCall", aliasCallRe],
         ["createRequireAliasResolve", aliasResolveRe],
@@ -222,9 +233,9 @@ for (const { label, dir: rootDir, mode } of EXTENSION_ROOTS) {
 if (failed) {
   console.error(
     "\nWorkspace extensions must not leak npm imports from their packaged entry graphs.\n" +
-    "Vendor extensions may use runtime loaders only for packages in the shared\n" +
-    "vendor runtime allowlist. Add genuinely required packages to the shared\n" +
-    "allowlist before bundling/pruning can strip them out.\n"
+      "Vendor extensions may use runtime loaders only for packages in the shared\n" +
+      "vendor runtime allowlist. Add genuinely required packages to the shared\n" +
+      "allowlist before bundling/pruning can strip them out.\n",
   );
   process.exit(1);
 }

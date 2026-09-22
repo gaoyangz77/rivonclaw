@@ -66,11 +66,12 @@ export function computeAffiliateWorkItemDeviceTarget(
   const agendaShopIds = orderedUniqueShopIds(
     (workItem.agentWorkingAgendaItems ?? []).map((item) => item.shopId),
   );
-  const candidateShopIds = agendaShopIds.length > 0
-    ? agendaShopIds
-    : orderedUniqueShopIds(
-        (workItem.creatorRelationship?.shopStates ?? []).map((state) => state.shopId),
-      );
+  const candidateShopIds =
+    agendaShopIds.length > 0
+      ? agendaShopIds
+      : orderedUniqueShopIds(
+          (workItem.creatorRelationship?.shopStates ?? []).map((state) => state.shopId),
+        );
 
   for (const shopId of candidateShopIds) {
     const shop = lookupShop(shopId);
@@ -87,28 +88,28 @@ export async function handleAffiliateWorkItemChanged(
 ): Promise<void> {
   log.info(
     `Affiliate work item received: kind=${workItem.workKind} routes=${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.triggerPlatformShopId} ` +
-    `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
+      `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
   );
 
   const target = computeAffiliateWorkItemDeviceTarget(workItem, lookupAffiliateShopDeviceFacts);
   if (target.kind === "BUSINESS_DEVELOPER_WITHOUT_DEVICE") {
     log.info(
       `Affiliate work item is Business Developer-routed but the developer has no device; ` +
-      `no desktop dispatches and the work waits visibly: relationship=${workItem.creatorRelationshipId}`,
+        `no desktop dispatches and the work waits visibly: relationship=${workItem.creatorRelationshipId}`,
     );
     return;
   }
   if (target.kind === "NO_ELIGIBLE_SHOP") {
     log.info(
       `Affiliate work item has no enabled shop with an affiliate device; no desktop dispatches: ` +
-      `relationship=${workItem.creatorRelationshipId}`,
+        `relationship=${workItem.creatorRelationshipId}`,
     );
     return;
   }
   if (target.deviceId !== deviceId) {
     log.info(
       `Ignoring affiliate work item targeted at another device: ` +
-      `targetKind=${target.kind} targetDevice=${target.deviceId} currentDevice=${deviceId}`,
+        `targetKind=${target.kind} targetDevice=${target.deviceId} currentDevice=${deviceId}`,
     );
     return;
   }

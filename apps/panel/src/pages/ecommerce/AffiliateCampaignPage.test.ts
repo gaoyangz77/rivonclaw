@@ -40,7 +40,9 @@ import {
 describe("Affiliate Campaign presentation contracts", () => {
   it("offers authorized shops without requiring Affiliate Agent activation", () => {
     const source = readFileSync(resolve(import.meta.dirname, "AffiliateCampaignPage.tsx"), "utf8");
-    const shopFilter = source.match(/const shops = \(shopsQuery\.data\?\.shops \?\? \[\]\)\.filter\([\s\S]*?\n  \);/)?.[0];
+    const shopFilter = source.match(
+      /const shops = \(shopsQuery\.data\?\.shops \?\? \[\]\)\.filter\([\s\S]*?\n  \);/,
+    )?.[0];
     expect(shopFilter).toContain("GQL.ShopPlatform.TiktokShop");
     expect(shopFilter).toContain("GQL.ShopAuthStatus.Authorized");
     expect(shopFilter).not.toContain("affiliateService");
@@ -182,20 +184,30 @@ describe("Affiliate Campaign presentation contracts", () => {
       false,
     );
     expect(
-      campaignMessageStepValid({ templateText: "Hi {{creator_name}}", firstTouchMode: directMessage }),
+      campaignMessageStepValid({
+        templateText: "Hi {{creator_name}}",
+        firstTouchMode: directMessage,
+      }),
     ).toBe(true);
     // A collaboration-only Campaign keeps whatever template text the seller
     // drafted, but never needs one to advance.
+    expect(campaignMessageStepValid({ templateText: "", firstTouchMode: collaborationOnly })).toBe(
+      true,
+    );
     expect(
-      campaignMessageStepValid({ templateText: "", firstTouchMode: collaborationOnly }),
-    ).toBe(true);
-    expect(
-      campaignMessageStepValid({ templateText: "Hi {{creator_name}}", firstTouchMode: collaborationOnly }),
+      campaignMessageStepValid({
+        templateText: "Hi {{creator_name}}",
+        firstTouchMode: collaborationOnly,
+      }),
     ).toBe(true);
   });
 
   it("localizes the no-direct-message option in every Campaign locale", () => {
-    for (const key of ["noDirectMessage", "noDirectMessageHint", "firstTouchCollaborationOnly"] as const) {
+    for (const key of [
+      "noDirectMessage",
+      "noDirectMessageHint",
+      "firstTouchCollaborationOnly",
+    ] as const) {
       const messages = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
         (translations) => translations.ecommerce.affiliateCampaign[key],
       );
@@ -294,11 +306,14 @@ describe("Affiliate Campaign presentation contracts", () => {
   });
 
   it("summarizes the Creator response as reply, collaboration, or an open invitation", () => {
-    const { ReachedOut, Replied, Scheduled, Discovered } =
-      GQL.AffiliateCampaignCreatorStateStatus;
+    const { ReachedOut, Replied, Scheduled, Discovered } = GQL.AffiliateCampaignCreatorStateStatus;
     const relationship = (collaborations: number, agent = 0, staff = 0) => ({
       activeAffiliateCollaborationIds: Array.from({ length: collaborations }, (_, i) => `c${i}`),
-      workSummary: { agentRequiredCount: agent, staffRequiredCount: staff, externalWaitingCount: 9 },
+      workSummary: {
+        agentRequiredCount: agent,
+        staffRequiredCount: staff,
+        externalWaitingCount: 9,
+      },
     });
 
     expect(
@@ -328,7 +343,11 @@ describe("Affiliate Campaign presentation contracts", () => {
       }),
     ).toMatchObject({ kind: "awaiting", pendingWorkCount: 3 });
     expect(
-      campaignCreatorResponseSummary({ status: Scheduled, repliedAt: null, creatorRelationship: null }),
+      campaignCreatorResponseSummary({
+        status: Scheduled,
+        repliedAt: null,
+        creatorRelationship: null,
+      }),
     ).toMatchObject({ kind: "none", repliedAt: null, activeCollaborationCount: 0 });
     expect(campaignCreatorResponseSummary({ status: Discovered, repliedAt: null })).toMatchObject({
       kind: "none",
@@ -422,7 +441,9 @@ describe("Affiliate Campaign presentation contracts", () => {
       ] as const) {
         expect(copy[key], `${locale}.${key}`).toBeTruthy();
         expect(copy[key], `${locale}.${key}`).not.toBe(
-          locale === "en" ? "" : AFFILIATE_CAMPAIGN_TRANSLATIONS.en.ecommerce.affiliateCampaign[key],
+          locale === "en"
+            ? ""
+            : AFFILIATE_CAMPAIGN_TRANSLATIONS.en.ecommerce.affiliateCampaign[key],
         );
       }
     }
@@ -657,9 +678,9 @@ describe("Affiliate Campaign targets step validation", () => {
         sellerContactEmail: `${"a".repeat(250)}@b.co`,
       }),
     ).toEqual([{ field: "sellerContactEmail", code: "sellerContactEmailInvalid" }]);
-    expect(campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "x+y@sub.shop.io" })).toEqual(
-      [],
-    );
+    expect(
+      campaignTargetStepIssues({ ...emptyForm, sellerContactEmail: "x+y@sub.shop.io" }),
+    ).toEqual([]);
   });
 
   it("limits search guidance to 500 characters", () => {

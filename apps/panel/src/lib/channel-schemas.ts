@@ -1,19 +1,20 @@
 export interface ChannelFieldConfig {
-  id: string;                    // Field ID (e.g., "appId")
-  label: string;                 // i18n key for label
+  id: string; // Field ID (e.g., "appId")
+  label: string; // i18n key for label
   type: "text" | "password" | "number" | "select" | "textarea" | "tags";
   required: boolean;
-  placeholder?: string;          // i18n key for placeholder
-  hint?: string;                 // i18n key for hint text
-  isSecret?: boolean;            // Store in secrets (vs config)
+  placeholder?: string; // i18n key for placeholder
+  hint?: string; // i18n key for hint text
+  isSecret?: boolean; // Store in secrets (vs config)
   defaultValue?: string | number;
-  options?: Array<{value: string; label: string}>; // For select fields
+  options?: Array<{ value: string; label: string }>; // For select fields
   showWhen?: { field: string; value: string | string[] }; // Conditional visibility
 }
 
 export interface ChannelSchema {
   fields: ChannelFieldConfig[];
-  commonFields?: {               // Common fields like enabled
+  commonFields?: {
+    // Common fields like enabled
     enabled?: boolean;
   };
 }

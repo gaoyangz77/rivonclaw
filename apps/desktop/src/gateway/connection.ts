@@ -103,7 +103,7 @@ async function flushPendingCsDispatches(bridge: CustomerServiceBridge): Promise<
         onError: (dispatch, error) =>
           log.warn(
             `CS bridge replay failed for conv=${dispatch.conversationId} ` +
-            `shop=${dispatch.platformShopId}:`,
+              `shop=${dispatch.platformShopId}:`,
             error,
           ),
       },
@@ -112,9 +112,9 @@ async function flushPendingCsDispatches(bridge: CustomerServiceBridge): Promise<
     if (result.flushed > 0) {
       log.info(
         `CS bridge replayed ${result.flushed} startup dispatch(es) ` +
-        `(maxWaitMs=${result.maxWaitMs} concurrency=${concurrency} ` +
-        `startSpacingMs=${startSpacingMs} failed=${result.failed} ` +
-        `elapsedMs=${Date.now() - startedAt})`,
+          `(maxWaitMs=${result.maxWaitMs} concurrency=${concurrency} ` +
+          `startSpacingMs=${startSpacingMs} failed=${result.failed} ` +
+          `elapsedMs=${Date.now() - startedAt})`,
       );
     }
     if (result.flushed === 0 || getPendingCsDispatchCount() === 0 || _csBridge !== bridge) {

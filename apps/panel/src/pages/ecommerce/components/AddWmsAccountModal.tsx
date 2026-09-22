@@ -1,10 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
-import {
-  TkModal as Modal,
-  TkSegmented,
-} from "../../../components/design-system/index.js";
+import { TkModal as Modal, TkSegmented } from "../../../components/design-system/index.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { HelpCircleIcon } from "../../../components/icons.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
@@ -35,16 +32,8 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
   const isEdit = inventory.isEditingWmsAccount;
 
   const authorizationMode = draft.authorizationMode as WmsCredentialMode;
-  const credentialIssue = wmsCredentialIssue(
-    draft.provider,
-    authorizationMode,
-    draft,
-    isEdit,
-  );
-  const requiredCredentialFields = wmsCredentialFields(
-    draft.provider,
-    authorizationMode,
-  );
+  const credentialIssue = wmsCredentialIssue(draft.provider, authorizationMode, draft, isEdit);
+  const requiredCredentialFields = wmsCredentialFields(draft.provider, authorizationMode);
   const showApiToken = requiredCredentialFields.includes("apiToken");
   const showApiKey = requiredCredentialFields.includes("apiKey");
   const showApiSecret = requiredCredentialFields.includes("apiSecret");
@@ -66,9 +55,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         }
       }}
       title={
-        isEdit
-          ? t("ecommerce.inventory.editWmsAccount")
-          : t("ecommerce.inventory.addWmsAccount")
+        isEdit ? t("ecommerce.inventory.editWmsAccount") : t("ecommerce.inventory.addWmsAccount")
       }
       preventBackdropClose={inventory.addWmsAccountSaving}
     >
@@ -83,8 +70,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         <div>
           <label className="form-label-block inventory-provider-label">
             <span>
-              {t("ecommerce.inventory.provider")}{" "}
-              <span className="required">*</span>
+              {t("ecommerce.inventory.provider")} <span className="required">*</span>
             </span>
             <span
               className="inventory-wms-help-icon inventory-wms-support-tooltip has-tooltip"
@@ -97,9 +83,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
           </label>
           <Select
             value={draft.provider}
-            onChange={(provider) =>
-              inventory.updateAddWmsAccountDraft({ provider })
-            }
+            onChange={(provider) => inventory.updateAddWmsAccountDraft({ provider })}
             className="input-full"
             options={wmsProviderOptions.map((option) => ({
               value: option.value,
@@ -115,9 +99,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
           <input
             className="input-full"
             value={draft.label}
-            onChange={(e) =>
-              inventory.updateAddWmsAccountDraft({ label: e.target.value })
-            }
+            onChange={(e) => inventory.updateAddWmsAccountDraft({ label: e.target.value })}
             placeholder={t("ecommerce.inventory.labelPlaceholder")}
             disabled={inventory.addWmsAccountSaving}
             required
@@ -126,15 +108,12 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
 
         <div>
           <label className="form-label-block">
-            {t("ecommerce.inventory.endpoint")}{" "}
-            <span className="required">*</span>
+            {t("ecommerce.inventory.endpoint")} <span className="required">*</span>
           </label>
           <input
             className="input-full input-mono"
             value={draft.endpoint}
-            onChange={(e) =>
-              inventory.updateAddWmsAccountDraft({ endpoint: e.target.value })
-            }
+            onChange={(e) => inventory.updateAddWmsAccountDraft({ endpoint: e.target.value })}
             placeholder={t("ecommerce.inventory.endpointPlaceholder")}
             disabled={inventory.addWmsAccountSaving}
             required
@@ -143,8 +122,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
 
         <div>
           <label className="form-label-block">
-            {t("ecommerce.inventory.currency")}{" "}
-            <span className="required">*</span>
+            {t("ecommerce.inventory.currency")} <span className="required">*</span>
           </label>
           <Select
             value={draft.declaredValueCurrency}
@@ -163,9 +141,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
 
         {draft.provider === "JFWMS" && (
           <div>
-            <label className="form-label-block">
-              {t("ecommerce.inventory.authorizationMode")}
-            </label>
+            <label className="form-label-block">{t("ecommerce.inventory.authorizationMode")}</label>
             <TkSegmented
               value={authorizationMode}
               label={t("ecommerce.inventory.authorizationMode")}
@@ -190,16 +166,13 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         {showApiToken && (
           <div>
             <label className="form-label-block">
-              {t("ecommerce.inventory.apiToken")}{" "}
-              {!isEdit && <span className="required">*</span>}
+              {t("ecommerce.inventory.apiToken")} {!isEdit && <span className="required">*</span>}
             </label>
             <input
               type="password"
               className="input-full input-mono"
               value={draft.apiToken}
-              onChange={(e) =>
-                inventory.updateAddWmsAccountDraft({ apiToken: e.target.value })
-              }
+              onChange={(e) => inventory.updateAddWmsAccountDraft({ apiToken: e.target.value })}
               placeholder={
                 isEdit
                   ? t("ecommerce.inventory.keepCredentialPlaceholder")
@@ -214,21 +187,14 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         {showApiKey && (
           <div>
             <label className="form-label-block">
-              {t("ecommerce.inventory.apiKey")}{" "}
-              {!isEdit && <span className="required">*</span>}
+              {t("ecommerce.inventory.apiKey")} {!isEdit && <span className="required">*</span>}
             </label>
             <input
               type="password"
               className="input-full input-mono"
               value={draft.apiKey}
-              onChange={(e) =>
-                inventory.updateAddWmsAccountDraft({ apiKey: e.target.value })
-              }
-              placeholder={
-                isEdit
-                  ? t("ecommerce.inventory.keepCredentialPlaceholder")
-                  : ""
-              }
+              onChange={(e) => inventory.updateAddWmsAccountDraft({ apiKey: e.target.value })}
+              placeholder={isEdit ? t("ecommerce.inventory.keepCredentialPlaceholder") : ""}
               disabled={inventory.addWmsAccountSaving}
               required={!isEdit}
             />
@@ -238,8 +204,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         {showApiSecret && (
           <div>
             <label className="form-label-block">
-              {t("ecommerce.inventory.apiSecret")}{" "}
-              {!isEdit && <span className="required">*</span>}
+              {t("ecommerce.inventory.apiSecret")} {!isEdit && <span className="required">*</span>}
             </label>
             <input
               type="password"
@@ -250,11 +215,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
                   apiSecret: e.target.value,
                 })
               }
-              placeholder={
-                isEdit
-                  ? t("ecommerce.inventory.keepCredentialPlaceholder")
-                  : ""
-              }
+              placeholder={isEdit ? t("ecommerce.inventory.keepCredentialPlaceholder") : ""}
               disabled={inventory.addWmsAccountSaving}
               required={!isEdit}
             />
@@ -265,8 +226,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
           <>
             <div>
               <label className="form-label-block">
-                {t("ecommerce.inventory.authorizationUser")}{" "}
-                <span className="required">*</span>
+                {t("ecommerce.inventory.authorizationUser")} <span className="required">*</span>
               </label>
               <input
                 type="email"
@@ -283,8 +243,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
             </div>
             <div>
               <label className="form-label-block">
-                {t("ecommerce.inventory.authorizationToken")}{" "}
-                <span className="required">*</span>
+                {t("ecommerce.inventory.authorizationToken")} <span className="required">*</span>
               </label>
               <input
                 type="password"
@@ -311,9 +270,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
                     authorizationDomain: e.target.value,
                   })
                 }
-                placeholder={t(
-                  "ecommerce.inventory.authorizationDomainPlaceholder",
-                )}
+                placeholder={t("ecommerce.inventory.authorizationDomainPlaceholder")}
                 disabled={inventory.addWmsAccountSaving}
               />
             </div>
@@ -336,11 +293,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
                     refreshToken: e.target.value,
                   })
                 }
-                placeholder={
-                  isEdit
-                    ? t("ecommerce.inventory.keepCredentialPlaceholder")
-                    : ""
-                }
+                placeholder={isEdit ? t("ecommerce.inventory.keepCredentialPlaceholder") : ""}
                 disabled={inventory.addWmsAccountSaving}
                 required={!isEdit}
               />
@@ -358,11 +311,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
                     providerUserId: e.target.value,
                   })
                 }
-                placeholder={
-                  isEdit
-                    ? t("ecommerce.inventory.keepCredentialPlaceholder")
-                    : ""
-                }
+                placeholder={isEdit ? t("ecommerce.inventory.keepCredentialPlaceholder") : ""}
                 disabled={inventory.addWmsAccountSaving}
                 required={!isEdit}
               />
@@ -370,31 +319,23 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
           </>
         )}
 
-        <div className="form-hint">
-          {t("ecommerce.inventory.credentialsWriteOnlyHint")}
-        </div>
+        <div className="form-hint">{t("ecommerce.inventory.credentialsWriteOnlyHint")}</div>
         {credentialIssue && (
           <div className="form-hint form-hint-error">
             {t("ecommerce.inventory.credentialMissingFields", {
               fields: requiredCredentialFields
-                .map((field) =>
-                  t(`ecommerce.inventory.credentialFields.${field}`),
-                )
+                .map((field) => t(`ecommerce.inventory.credentialFields.${field}`))
                 .join(", "),
             })}
           </div>
         )}
 
         <div>
-          <label className="form-label-block">
-            {t("ecommerce.inventory.notes")}
-          </label>
+          <label className="form-label-block">{t("ecommerce.inventory.notes")}</label>
           <textarea
             className="input-full textarea-resize-vertical"
             value={draft.notes}
-            onChange={(e) =>
-              inventory.updateAddWmsAccountDraft({ notes: e.target.value })
-            }
+            onChange={(e) => inventory.updateAddWmsAccountDraft({ notes: e.target.value })}
             placeholder={t("ecommerce.inventory.notesPlaceholder")}
             rows={3}
             disabled={inventory.addWmsAccountSaving}
@@ -402,9 +343,7 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
         </div>
 
         {inventory.addWmsAccountError && (
-          <div className="form-hint form-hint-error">
-            {inventory.addWmsAccountError}
-          </div>
+          <div className="form-hint form-hint-error">{inventory.addWmsAccountError}</div>
         )}
 
         <div className="modal-actions">

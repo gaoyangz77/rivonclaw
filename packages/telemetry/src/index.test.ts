@@ -37,7 +37,7 @@ describe("RemoteTelemetryClient", () => {
       const client = new RemoteTelemetryClient(config);
       expect(client).toBeInstanceOf(RemoteTelemetryClient);
       expect(client.getSessionId()).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
       );
     });
 
@@ -146,7 +146,7 @@ describe("RemoteTelemetryClient", () => {
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-        })
+        }),
       );
 
       // Verify queue is empty after flush
@@ -287,9 +287,7 @@ describe("RemoteTelemetryClient", () => {
       client.track("app.started");
 
       // Suppress console.error during test
-      const consoleErrorSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       await client.flush();
 
@@ -412,9 +410,7 @@ describe("RemoteTelemetryClient", () => {
       const sessionId2 = client.getSessionId();
 
       expect(sessionId1).toBe(sessionId2);
-      expect(sessionId1).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      );
+      expect(sessionId1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
     it("should return correct queue size", () => {

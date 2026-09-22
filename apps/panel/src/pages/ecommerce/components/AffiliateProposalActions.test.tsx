@@ -73,9 +73,7 @@ function messageProposal(): GQL.ActionProposal {
     status: GQL.ActionProposalStatus.Pending,
     type: GQL.ActionProposalType.SendMessage,
     messageIntent,
-    steps: [
-      { stepId: "message-1", type: GQL.ActionProposalType.SendMessage, messageIntent },
-    ],
+    steps: [{ stepId: "message-1", type: GQL.ActionProposalType.SendMessage, messageIntent }],
   } as unknown as GQL.ActionProposal;
 }
 

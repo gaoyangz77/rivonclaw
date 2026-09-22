@@ -11,12 +11,7 @@ export function ChatResetModal({ isOpen, onClose, onConfirm }: ChatResetModalPro
   const { t } = useTranslation();
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("chat.resetCommand")}
-      maxWidth={400}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={t("chat.resetCommand")} maxWidth={400}>
       <p>{t("chat.resetConfirm")}</p>
       <div className="modal-actions">
         <button className="btn btn-secondary" onClick={onClose}>

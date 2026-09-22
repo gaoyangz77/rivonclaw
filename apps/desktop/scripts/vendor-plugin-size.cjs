@@ -10,7 +10,8 @@ function privateFiles(root) {
   const files = [];
   function visit(dir) {
     if (!fs.existsSync(dir)) return;
-    if (fs.lstatSync(dir).isSymbolicLink()) throw new Error(`Private runtime directory is a symlink: ${dir}`);
+    if (fs.lstatSync(dir).isSymbolicLink())
+      throw new Error(`Private runtime directory is a symlink: ${dir}`);
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const file = path.join(dir, entry.name);
       if (entry.isDirectory()) visit(file);
@@ -27,9 +28,19 @@ function stripPrivateSourceMaps(root) {
   for (const file of privateFiles(root)) {
     if (!/\.(?:[cm]?js|[cm]?tsx?)\.map$/.test(file)) continue;
     let map;
-    try { map = JSON.parse(fs.readFileSync(file, "utf8")); } catch { continue; }
-    if (map?.version !== 3 || !(Array.isArray(map.sections) ||
-        (Array.isArray(map.sources) && typeof map.mappings === "string"))) continue;
+    try {
+      map = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      continue;
+    }
+    if (
+      map?.version !== 3 ||
+      !(
+        Array.isArray(map.sections) ||
+        (Array.isArray(map.sources) && typeof map.mappings === "string")
+      )
+    )
+      continue;
     bytes += fs.statSync(file).size;
     fs.unlinkSync(file);
     files++;
@@ -53,7 +64,10 @@ function stripRuntimeDevelopmentFiles(root) {
   for (const file of privateFiles(root)) {
     // Keep executable TS, assets and licenses. Declarations and explicit test
     // modules are not runtime entries, including inside private dependency trees.
-    const cached = path.relative(root, file).split(path.sep).some((part) => BUILD_CACHE_DIRS.has(part));
+    const cached = path
+      .relative(root, file)
+      .split(path.sep)
+      .some((part) => BUILD_CACHE_DIRS.has(part));
     if (!cached && !/(?:\.d\.[cm]?ts|\.(?:test|spec)\.[cm]?[jt]sx?)$/.test(file)) continue;
     bytes += fs.statSync(file).size;
     fs.unlinkSync(file);
@@ -63,8 +77,10 @@ function stripRuntimeDevelopmentFiles(root) {
 }
 
 function deduplicateRuntimeDependencies(vendorDir) {
-  const roots = [path.join(vendorDir, "node_modules"),
-    ...selectedPluginDirs(vendorDir).map((dir) => path.join(dir, "node_modules"))];
+  const roots = [
+    path.join(vendorDir, "node_modules"),
+    ...selectedPluginDirs(vendorDir).map((dir) => path.join(dir, "node_modules")),
+  ];
   const files = roots.flatMap(privateFiles);
   const inodes = new Map();
   const records = files.map((file) => {
@@ -81,22 +97,39 @@ function deduplicateRuntimeDependencies(vendorDir) {
     if (!stat.size) continue;
     // Do not share native binaries that platform signing may modify later.
     if (/\.(?:node|dylib|dll|exe|so|bare|bundle)$/.test(file)) continue;
-    if (stat.nlink !== inodes.get(inode)) { result.skippedExternalLinks++; continue; }
+    if (stat.nlink !== inodes.get(inode)) {
+      result.skippedExternalLinks++;
+      continue;
+    }
     const parts = file.split(path.sep);
     const start = parts.lastIndexOf("node_modules") + 1;
     const end = start + (parts[start]?.startsWith("@") ? 2 : 1);
     const packageDir = parts.slice(0, end).join(path.sep);
     if (!manifests.has(packageDir)) {
       const manifest = path.join(packageDir, "package.json");
-      manifests.set(packageDir, fs.existsSync(manifest) ? JSON.parse(fs.readFileSync(manifest, "utf8")) : null);
+      manifests.set(
+        packageDir,
+        fs.existsSync(manifest) ? JSON.parse(fs.readFileSync(manifest, "utf8")) : null,
+      );
     }
     const manifest = manifests.get(packageDir);
     if (!manifest?.name || !manifest.version) continue;
-    const key = JSON.stringify([manifest.name, manifest.version, parts.slice(end), stat.size,
-      stat.mode, stat.uid, stat.gid]);
+    const key = JSON.stringify([
+      manifest.name,
+      manifest.version,
+      parts.slice(end),
+      stat.size,
+      stat.mode,
+      stat.uid,
+      stat.gid,
+    ]);
     const peers = candidates.get(key) ?? [];
     const source = peers.find((peer) => fs.readFileSync(peer).equals(fs.readFileSync(file)));
-    if (!source) { peers.push(file); candidates.set(key, peers); continue; }
+    if (!source) {
+      peers.push(file);
+      candidates.set(key, peers);
+      continue;
+    }
     const current = fs.statSync(source);
     if (current.dev === stat.dev && current.ino === stat.ino) continue;
     const temporary = `${file}.rivonclaw-hardlink-${randomUUID()}`;
@@ -116,12 +149,24 @@ function deduplicateRuntimeDependencies(vendorDir) {
 }
 
 function deduplicateMirroredPluginDependencies(vendorDir) {
-  const result = { linkedFiles: 0, savedBytes: 0, savedAllocatedBytes: 0, alreadyLinked: 0, skippedMetadata: 0 };
+  const result = {
+    linkedFiles: 0,
+    savedBytes: 0,
+    savedAllocatedBytes: 0,
+    alreadyLinked: 0,
+    skippedMetadata: 0,
+  };
   const canonicalRoot = path.join(vendorDir, "dist", "extensions");
   for (const pluginDir of selectedPluginDirs(vendorDir)) {
     if (path.dirname(pluginDir) !== canonicalRoot) continue;
     const sourceRoot = path.join(pluginDir, "node_modules");
-    const destinationRoot = path.join(vendorDir, "dist-runtime", "extensions", path.basename(pluginDir), "node_modules");
+    const destinationRoot = path.join(
+      vendorDir,
+      "dist-runtime",
+      "extensions",
+      path.basename(pluginDir),
+      "node_modules",
+    );
     if (!fs.existsSync(destinationRoot)) continue;
     // Collect through directory entries, never through symlinks. Sharing is
     // limited to the same plugin and relative path; module resolution is unchanged.
@@ -131,11 +176,20 @@ function deduplicateMirroredPluginDependencies(vendorDir) {
       if (!destinations.has(destination)) continue;
       const a = fs.statSync(source);
       const b = fs.statSync(destination);
-      if (a.dev === b.dev && a.ino === b.ino) { result.alreadyLinked++; continue; }
+      if (a.dev === b.dev && a.ino === b.ino) {
+        result.alreadyLinked++;
+        continue;
+      }
       if (!a.size || a.size !== b.size) continue;
       // Do not change ownership, executable bits, or a pre-existing sharing
       // arrangement outside this pair of immutable packaged dependency trees.
-      if (a.mode !== b.mode || a.uid !== b.uid || a.gid !== b.gid || a.nlink !== 1 || b.nlink !== 1) {
+      if (
+        a.mode !== b.mode ||
+        a.uid !== b.uid ||
+        a.gid !== b.gid ||
+        a.nlink !== 1 ||
+        b.nlink !== 1
+      ) {
         result.skippedMetadata++;
         continue;
       }
@@ -145,7 +199,9 @@ function deduplicateMirroredPluginDependencies(vendorDir) {
         fs.linkSync(source, temporary);
         fs.renameSync(temporary, destination);
       } catch (error) {
-        throw new Error(`Cannot hardlink mirrored runtime file ${destination}: ${error.message}`, { cause: error });
+        throw new Error(`Cannot hardlink mirrored runtime file ${destination}: ${error.message}`, {
+          cause: error,
+        });
       } finally {
         fs.rmSync(temporary, { force: true });
       }
@@ -158,5 +214,11 @@ function deduplicateMirroredPluginDependencies(vendorDir) {
   return result;
 }
 
-module.exports = { stripPrivateSourceMaps, stripSelectedPluginSourceMaps, stripRuntimeDevelopmentFiles,
-  deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies, VENDOR_ARCHIVE_ENV };
+module.exports = {
+  stripPrivateSourceMaps,
+  stripSelectedPluginSourceMaps,
+  stripRuntimeDevelopmentFiles,
+  deduplicateMirroredPluginDependencies,
+  deduplicateRuntimeDependencies,
+  VENDOR_ARCHIVE_ENV,
+};

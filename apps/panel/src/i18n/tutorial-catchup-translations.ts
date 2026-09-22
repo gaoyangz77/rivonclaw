@@ -9,256 +9,352 @@ export const TUTORIAL_NEW_KEYS_EN = {
   tutorial: {
     ecommerceAffiliateAttention: {
       welcomeTitle: "Workbench",
-      welcomeBody: "Run Affiliate exception handling from one queue: review Agent proposals, staff escalations, sample applications, and creator conversations without losing the relationship context.",
+      welcomeBody:
+        "Run Affiliate exception handling from one queue: review Agent proposals, staff escalations, sample applications, and creator conversations without losing the relationship context.",
       scopeTitle: "Five workbench views",
-      scopeBody: "Move between pending Agent work, staff escalations, all Agent history, sample applications, and creator messages. The tutorial visits each live queue and returns you to Pending Agent Work.",
+      scopeBody:
+        "Move between pending Agent work, staff escalations, all Agent history, sample applications, and creator messages. The tutorial visits each live queue and returns you to Pending Agent Work.",
       filtersTitle: "Focus the queue",
-      filtersBody: "Pending and completed Agent work can be narrowed by business developer, action type, and free-text context. The completed view also adds proposal status; escalations use the same owner and search boundary.",
+      filtersBody:
+        "Pending and completed Agent work can be narrowed by business developer, action type, and free-text context. The completed view also adds proposal status; escalations use the same owner and search boundary.",
       queueTitle: "Agent decisions",
-      queueBody: "Each row represents one review boundary. Open it to compare the recommendation with relationship facts, samples or products, message drafts, prediction evidence, and revision history before approving, rejecting, or requesting changes.",
+      queueBody:
+        "Each row represents one review boundary. Open it to compare the recommendation with relationship facts, samples or products, message drafts, prediction evidence, and revision history before approving, rejecting, or requesting changes.",
       escalationsTitle: "Staff escalations",
-      escalationsBody: "The Agent pauses here when it needs a human answer. Filter by owner, search the frozen question and agenda context, and open an escalation to understand why work stopped; notification status shows whether the assigned staff route was reached.",
+      escalationsBody:
+        "The Agent pauses here when it needs a human answer. Filter by owner, search the frozen question and agenda context, and open an escalation to understand why work stopped; notification status shows whether the assigned staff route was reached.",
       samplesTitle: "Sample application queue",
-      samplesBody: "Review open and soft-rejected sample applications across shops. Shop, disposition, and business-developer filters stay separate; opening a row takes you to the relationship workspace where the final platform or soft-reject action is reviewed.",
+      samplesBody:
+        "Review open and soft-rejected sample applications across shops. Shop, disposition, and business-developer filters stay separate; opening a row takes you to the relationship workspace where the final platform or soft-reject action is reviewed.",
       messagesTitle: "Creator conversation queue",
-      messagesBody: "Triage creators waiting for a reply by TikTok Shop, WhatsApp, or email. Channel counts, owner filters, wait time, protection, and human-only badges explain urgency before you open the conversation.",
+      messagesBody:
+        "Triage creators waiting for a reply by TikTok Shop, WhatsApp, or email. Channel counts, owner filters, wait time, protection, and human-only badges explain urgency before you open the conversation.",
     },
     ecommerceAffiliateCreators: {
       welcomeTitle: "Creators",
-      welcomeBody: "Use the creator roster to understand relationship health, current collaboration work, performance signals, and the next action across shops.",
+      welcomeBody:
+        "Use the creator roster to understand relationship health, current collaboration work, performance signals, and the next action across shops.",
       controlsTitle: "Shop scope and projection status",
-      controlsBody: "Choose a shop and refresh its creator projection. The synchronization notice above the roster tells you whether current and historical data are ready.",
+      controlsBody:
+        "Choose a shop and refresh its creator projection. The synchronization notice above the roster tells you whether current and historical data are ready.",
       filtersTitle: "Find the right creators",
-      filtersBody: "Combine seller-wide and shop-specific collaboration progress with system tags, manual tags, any/all matching, identity search, and the needs-attention switch. Shop-specific progress appears only after a shop is selected.",
+      filtersBody:
+        "Combine seller-wide and shop-specific collaboration progress with system tags, manual tags, any/all matching, identity search, and the needs-attention switch. Shop-specific progress appears only after a shop is selected.",
       resultsTitle: "Creator relationship cards",
-      resultsBody: "The compact roster summarizes identity, relationship ownership, progress, tags, performance, and pending work. Open a row for samples, conversations, collaborations, history, and supported manual decisions in one relationship workspace.",
+      resultsBody:
+        "The compact roster summarizes identity, relationship ownership, progress, tags, performance, and pending work. Open a row for samples, conversations, collaborations, history, and supported manual decisions in one relationship workspace.",
     },
     ecommerceAffiliateHistory: {
       welcomeTitle: "Collaboration history",
-      welcomeBody: "Review open and target collaborations across shops, including their lifecycle, creators, products, commission, and platform identifiers.",
+      welcomeBody:
+        "Review open and target collaborations across shops, including their lifecycle, creators, products, commission, and platform identifiers.",
       controlsTitle: "Collaboration operations",
-      controlsBody: "Choose a shop, configure open-collaboration settings, create a new collaboration, or refresh the latest platform state from this control area.",
+      controlsBody:
+        "Choose a shop, configure open-collaboration settings, create a new collaboration, or refresh the latest platform state from this control area.",
       filtersTitle: "Filter collaboration records",
-      filtersBody: "Narrow the history by lifecycle status, collaboration type, or creator, product, shop, and platform identifiers.",
+      filtersBody:
+        "Narrow the history by lifecycle status, collaboration type, or creator, product, shop, and platform identifiers.",
       resultsTitle: "Collaboration records",
-      resultsBody: "Each card summarizes the lifecycle and commercial scope. Open it to inspect creators, products, samples, settings, and supported management actions.",
+      resultsBody:
+        "Each card summarizes the lifecycle and commercial scope. Open it to inspect creators, products, samples, settings, and supported management actions.",
     },
     ecommerceAffiliateTeam: {
       welcomeTitle: "Team and channels",
-      welcomeBody: "Define who owns each creator relationship and which WhatsApp or Outlook account they use, then keep creator protections and approval rules in one operational workspace.",
+      welcomeBody:
+        "Define who owns each creator relationship and which WhatsApp or Outlook account they use, then keep creator protections and approval rules in one operational workspace.",
       tabsTitle: "Three operating areas",
-      tabsBody: "Move between team operations, creator assignments, and safety approvals. The summaries show workload, protected creators, and setup readiness before you open a view.",
+      tabsBody:
+        "Move between team operations, creator assignments, and safety approvals. The summaries show workload, protected creators, and setup readiness before you open a view.",
       responsibilitiesTitle: "Owners and outreach channels",
-      responsibilitiesBody: "Search or page through business developers, then compare creator load, accepting status, WhatsApp and Outlook health, and AI assistance mode. A developer detail owns account connection and transfer, preferred senders, and Affiliate escalation notification routing.",
+      responsibilitiesBody:
+        "Search or page through business developers, then compare creator load, accepting status, WhatsApp and Outlook health, and AI assistance mode. A developer detail owns account connection and transfer, preferred senders, and Affiliate escalation notification routing.",
       assignmentsTitle: "Creator ownership protection",
-      assignmentsBody: "Import CSV or spreadsheet files, or add identities manually, then resolve creators, preview changes, and assign owners before applying protection. The same area maintains the seller-wide manual-tag catalog.",
+      assignmentsBody:
+        "Import CSV or spreadsheet files, or add identities manually, then resolve creators, preview changes, and assign owners before applying protection. The same area maintains the seller-wide manual-tag catalog.",
       safetyTitle: "Approval safety",
-      safetyBody: "Set account-wide approval policies for affiliate actions. Message rules review the exact draft before it is delivered through a provider.",
+      safetyBody:
+        "Set account-wide approval policies for affiliate actions. Message rules review the exact draft before it is delivered through a provider.",
     },
     ecommerceAffiliateCampaign: {
       welcomeTitle: "Promotion plans",
-      welcomeBody: "Create and operate repeatable creator outreach plans across one or more products, with explicit discovery, capacity, messaging, and lifecycle controls.",
+      welcomeBody:
+        "Create and operate repeatable creator outreach plans across one or more products, with explicit discovery, capacity, messaging, and lifecycle controls.",
       summaryTitle: "Operating window and capacity",
-      summaryBody: "Check the market-local sending window, active shop count, active plan count, and combined daily outreach target before changing capacity.",
+      summaryBody:
+        "Check the market-local sending window, active shop count, active plan count, and combined daily outreach target before changing capacity.",
       directoryTitle: "Plan portfolio",
-      directoryBody: "Filter plans by lifecycle, scan shop, target, discovery boundary, and lead product, or open a row for its live operating workspace. Empty portfolios keep the first-plan entry point here.",
+      directoryBody:
+        "Filter plans by lifecycle, scan shop, target, discovery boundary, and lead product, or open a row for its live operating workspace. Empty portfolios keep the first-plan entry point here.",
       detailOverviewTitle: "Plan controls and live health",
-      detailOverviewBody: "The detail header combines plan identity, product and shop context, selection readiness, commission, first-message preview, lifecycle actions, and live campaign and shop-capacity KPIs.",
+      detailOverviewBody:
+        "The detail header combines plan identity, product and shop context, selection readiness, commission, first-message preview, lifecycle actions, and live campaign and shop-capacity KPIs.",
       detailOperationsTitle: "Funnel and discovery evidence",
-      detailOperationsBody: "Use quota health, the campaign funnel, search-plan generations, creator eligibility states, and delivery outcomes to explain performance before retrying, editing, pausing, or archiving a plan.",
+      detailOperationsBody:
+        "Use quota health, the campaign funnel, search-plan generations, creator eligibility states, and delivery outcomes to explain performance before retrying, editing, pausing, or archiving a plan.",
       createTitle: "Create a promotion plan",
-      createBody: "Start a new plan here. The tutorial opens a blank setup and closes it without creating, activating, or saving anything.",
+      createBody:
+        "Start a new plan here. The tutorial opens a blank setup and closes it without creating, activating, or saving anything.",
       wizardStagesTitle: "Four guarded stages",
-      wizardStagesBody: "Build the offer, set discovery and daily capacity, review the first-touch message, then confirm authorization and activation boundaries. Validation protects each transition.",
+      wizardStagesBody:
+        "Build the offer, set discovery and daily capacity, review the first-touch message, then confirm authorization and activation boundaries. Validation protects each transition.",
       wizardTitle: "Offer and product truth",
-      wizardBody: "The first stage names the plan, selects its shop, and builds a multi-product offer with per-product commission. Resolve each product to a current snapshot before continuing; this tutorial leaves the blank setup unsaved.",
+      wizardBody:
+        "The first stage names the plan, selects its shop, and builds a multi-product offer with per-product commission. Resolve each product to a current snapshot before continuing; this tutorial leaves the blank setup unsaved.",
     },
     ecommerceAffiliateIntelligence: {
       welcomeTitle: "Creator intelligence",
-      welcomeBody: "Evaluate whether the expected-sales model improves creator selection, and understand which account, region, or shop model is actually serving each decision.",
+      welcomeBody:
+        "Evaluate whether the expected-sales model improves creator selection, and understand which account, region, or shop model is actually serving each decision.",
       refreshTitle: "Refresh model evidence",
-      refreshBody: "Reload the latest availability and evaluation snapshot after training or production model changes.",
+      refreshBody:
+        "Reload the latest availability and evaluation snapshot after training or production model changes.",
       scopesTitle: "Choose an analysis scope",
-      scopesBody: "Start with the account model or choose an enabled shop. Each scope reports whether a trained model is ready, falling back, unavailable, or still missing data.",
+      scopesBody:
+        "Start with the account model or choose an enabled shop. Each scope reports whether a trained model is ready, falling back, unavailable, or still missing data.",
       analysisTitle: "Compare model and human decisions",
-      analysisBody: "Read same-budget expected-sales lift together with probability, uncertainty range, and data-foundation signals. Treat unavailable or weak evidence as a reason to wait, not as proof of improvement.",
+      analysisBody:
+        "Read same-budget expected-sales lift together with probability, uncertainty range, and data-foundation signals. Treat unavailable or weak evidence as a reason to wait, not as proof of improvement.",
     },
     productKnowledge: {
       createTitle: "Create product knowledge",
-      createBody: "Start a reusable knowledge record here. Creating it only needs a name; instructions, Q&A, creative cases, and product bindings are managed after creation.",
+      createBody:
+        "Start a reusable knowledge record here. Creating it only needs a name; instructions, Q&A, creative cases, and product bindings are managed after creation.",
     },
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "Conversation inbox",
-      conversationsWelcomeBody: "Review buyer conversations across shops, search the inbox, and move between AI and human handling without leaving the workspace.",
+      conversationsWelcomeBody:
+        "Review buyer conversations across shops, search the inbox, and move between AI and human handling without leaving the workspace.",
       escalationsWelcomeTitle: "Escalation queue",
-      escalationsWelcomeBody: "Review conversations that need a manager decision, provide guidance, resolve the case, or dismiss an invalid escalation.",
+      escalationsWelcomeBody:
+        "Review conversations that need a manager decision, provide guidance, resolve the case, or dismiss an invalid escalation.",
       orderContextTitle: "Order context",
-      orderContextBody: "Open the linked order, items, delivery status, and after-sales records before responding to the buyer.",
+      orderContextBody:
+        "Open the linked order, items, delivery status, and after-sales records before responding to the buyer.",
       aiControlTitle: "AI and session controls",
-      aiControlBody: "Pause or resume AI handling, generate a summary, clear escalations, or end the current service session from the conversation header.",
+      aiControlBody:
+        "Pause or resume AI handling, generate a summary, clear escalations, or end the current service session from the conversation header.",
       escalationToolbarTitle: "Queue status",
-      escalationToolbarBody: "See the current workload and refresh the queue before working through manager decisions.",
+      escalationToolbarBody:
+        "See the current workload and refresh the queue before working through manager decisions.",
       escalationFiltersTitle: "Escalation filters",
-      escalationFiltersBody: "Filter by shop, status, and identifiers to focus on the cases that need attention now.",
+      escalationFiltersBody:
+        "Filter by shop, status, and identifiers to focus on the cases that need attention now.",
       escalationDetailTitle: "Decision workspace",
-      escalationDetailBody: "Inspect the escalation reason and context, write manager guidance, mark the final decision, and move to the next case.",
+      escalationDetailBody:
+        "Inspect the escalation reason and context, write manager guidance, mark the final decision, and move to the next case.",
     },
     ecommerceCustomerServicePerformance: {
       welcomeTitle: "Customer service performance",
-      welcomeBody: "Track live service health, historical outcomes, and unpaid-order reachout results across connected shops.",
+      welcomeBody:
+        "Track live service health, historical outcomes, and unpaid-order reachout results across connected shops.",
       tabsTitle: "Performance views",
-      tabsBody: "Switch between realtime operations, historical trends, and unpaid-order performance. Each view uses its own metrics and time semantics.",
+      tabsBody:
+        "Switch between realtime operations, historical trends, and unpaid-order performance. Each view uses its own metrics and time semantics.",
       filtersTitle: "Shop and time filters",
-      filtersBody: "Choose the shop, date range, and aggregation before interpreting KPIs or comparing trends.",
+      filtersBody:
+        "Choose the shop, date range, and aggregation before interpreting KPIs or comparing trends.",
       kpisTitle: "Key performance indicators",
-      kpisBody: "These cards summarize the selected view. Read the labels and tooltips carefully because realtime and historical metrics use different windows.",
+      kpisBody:
+        "These cards summarize the selected view. Read the labels and tooltips carefully because realtime and historical metrics use different windows.",
       unpaidFunnelTitle: "Unpaid-order funnel",
-      unpaidFunnelBody: "Follow eligible orders through reached and associated-payment stages. Associated results are not automatically incremental lift.",
+      unpaidFunnelBody:
+        "Follow eligible orders through reached and associated-payment stages. Associated results are not automatically incremental lift.",
       chartsTitle: "Trends and diagnostics",
-      chartsBody: "Charts show how response, escalation, payment, and value signals change over time for the selected scope.",
+      chartsBody:
+        "Charts show how response, escalation, payment, and value signals change over time for the selected scope.",
       dailyTableTitle: "Daily details and export",
-      dailyTableBody: "Use the daily table for exact values and download the current dataset when you need an external analysis or audit trail.",
+      dailyTableBody:
+        "Use the daily table for exact values and download the current dataset when you need an external analysis or audit trail.",
     },
     ecommerceCustomerServiceExperiments: {
       welcomeTitle: "Customer service experiments",
-      welcomeBody: "Analyze controlled unpaid-order reachout experiments without mixing draft, running, maturing, and final results.",
+      welcomeBody:
+        "Analyze controlled unpaid-order reachout experiments without mixing draft, running, maturing, and final results.",
       tabsTitle: "Experiment status views",
-      tabsBody: "Switch between active, completed, and other experiment states to find the version you want to inspect.",
+      tabsBody:
+        "Switch between active, completed, and other experiment states to find the version you want to inspect.",
       filtersTitle: "Experiment filters",
-      filtersBody: "Narrow the list by shop and status, then refresh to load the latest experiment snapshots.",
+      filtersBody:
+        "Narrow the list by shop and status, then refresh to load the latest experiment snapshots.",
       pickerTitle: "Experiment version",
-      pickerBody: "Select a specific experiment and verify its status, sample window, and version before reading the results.",
+      pickerBody:
+        "Select a specific experiment and verify its status, sample window, and version before reading the results.",
       variantsTitle: "Traffic and variants",
-      variantsBody: "Review holdout and treatment allocation, production variants, enabled stages, delays, and message plans.",
+      variantsBody:
+        "Review holdout and treatment allocation, production variants, enabled stages, delays, and message plans.",
       analysisTitle: "Signal analysis",
-      analysisBody: "Compare payment progress or metric trends, choose the supported estimator, and check data maturity before drawing conclusions.",
+      analysisBody:
+        "Compare payment progress or metric trends, choose the supported estimator, and check data maturity before drawing conclusions.",
       comparisonsTitle: "Variant comparisons",
-      comparisonsBody: "The comparison table shows effect estimates and uncertainty. Excluded or immature variants should not drive a production decision.",
+      comparisonsBody:
+        "The comparison table shows effect estimates and uncertainty. Excluded or immature variants should not drive a production decision.",
     },
     crons: {
       formBasicsTitle: "Job basics",
-      formBasicsBody: "Name the job, choose the payload kind and session target, and add a description that explains its purpose.",
+      formBasicsBody:
+        "Name the job, choose the payload kind and session target, and add a description that explains its purpose.",
       formDeliveryTitle: "Delivery",
-      formDeliveryBody: "Choose whether results stay with the agent or are delivered through a connected channel and recipient.",
+      formDeliveryBody:
+        "Choose whether results stay with the agent or are delivered through a connected channel and recipient.",
       formPayloadTitle: "Task payload",
-      formPayloadBody: "Write the instruction or system event that will run. Keep it complete because scheduled jobs execute without an interactive follow-up.",
+      formPayloadBody:
+        "Write the instruction or system event that will run. Keep it complete because scheduled jobs execute without an interactive follow-up.",
       formScheduleTitle: "Schedule builder",
-      formScheduleBody: "Use cron, interval, or one-time scheduling. Visual presets and raw cron mode share the same expression and timezone.",
+      formScheduleBody:
+        "Use cron, interval, or one-time scheduling. Visual presets and raw cron mode share the same expression and timezone.",
       formExecutionTitle: "Execution controls",
-      formExecutionBody: "Configure enabled state, one-shot cleanup, model, thinking level, timeout, wake mode, and the run profile used by the job.",
+      formExecutionBody:
+        "Configure enabled state, one-shot cleanup, model, thinking level, timeout, wake mode, and the run profile used by the job.",
     },
     channels: {
       healthStatusTitle: "Connection health",
-      healthStatusBody: "Configured and running are separate signals. WeChat can also require activation, reauthorization, or outbound-send recovery even while its process is running.",
+      healthStatusBody:
+        "Configured and running are separate signals. WeChat can also require activation, reauthorization, or outbound-send recovery even while its process is running.",
     },
     ecommerce: {
       shopCollectionsTitle: "Seller collections",
-      shopCollectionsBody: "Related shops can be grouped under one seller collection. Expand a collection to manage each market shop, alias, authorization, and service balance.",
+      shopCollectionsBody:
+        "Related shops can be grouped under one seller collection. Expand a collection to manage each market shop, alias, authorization, and service balance.",
       connectFlowTitle: "Connect a shop",
-      connectFlowBody: "Choose the platform app, market, and seller type before authorization. The matching app determines which OAuth flow is opened.",
+      connectFlowBody:
+        "Choose the platform app, market, and seller type before authorization. The matching app determines which OAuth flow is opened.",
     },
     providers: {
       setupFlowTitle: "Provider-specific setup",
-      setupFlowBody: "The form changes by provider type: subscription sign-in, API key, local endpoint, or a custom compatible API. Complete the fields shown for the selected tab.",
+      setupFlowBody:
+        "The form changes by provider type: subscription sign-in, API key, local endpoint, or a custom compatible API. Complete the fields shown for the selected tab.",
       currentActionsTitle: "Configured model actions",
-      currentActionsBody: "Activate a key from its header. Depending on provider type, the footer can show usage, reauthentication, model refresh, credential update, proxy settings, or removal.",
+      currentActionsBody:
+        "Activate a key from its header. Depending on provider type, the footer can show usage, reauthentication, model refresh, credential update, proxy settings, or removal.",
     },
     adsManagement: {
       accountFiltersTitle: "Search and account status",
-      accountFiltersBody: "Search ad accounts and switch between all, needs-attention, and authorized groups. Sync health is separate from authorization state.",
+      accountFiltersBody:
+        "Search ad accounts and switch between all, needs-attention, and authorized groups. Sync health is separate from authorization state.",
       coverageFiltersTitle: "Coverage diagnosis",
-      coverageFiltersBody: "Filter complete, partial, and missing shop coverage, then expand seller groups to inspect advertiser access and the current GMV Max account.",
+      coverageFiltersBody:
+        "Filter complete, partial, and missing shop coverage, then expand seller groups to inspect advertiser access and the current GMV Max account.",
     },
     account: {
       inviteCodeTitle: "Invitation code",
-      inviteCodeBody: "Copy the account invitation code when onboarding another approved desktop or user. Treat it as account data and share it only through trusted channels.",
+      inviteCodeBody:
+        "Copy the account invitation code when onboarding another approved desktop or user. Treat it as account data and share it only through trusted channels.",
       surfaceActionsTitle: "Surface tools and presets",
-      surfaceActionsBody: "Refresh the tool catalog, create a surface from scratch, or copy a reviewed preset before customizing its allowed tools.",
+      surfaceActionsBody:
+        "Refresh the tool catalog, create a surface from scratch, or copy a reviewed preset before customizing its allowed tools.",
     },
     shopAnalytics: {
       summaryTitle: "Live summary",
-      summaryBody: "These cards summarize supported markets, live shops, average SPS, the latest observation, and the available trend window.",
+      summaryBody:
+        "These cards summarize supported markets, live shops, average SPS, the latest observation, and the available trend window.",
       timelineTitle: "Observation window",
-      timelineBody: "SPS observations come from the platform and may not cover every day or market. Use the displayed time note when comparing trends.",
+      timelineBody:
+        "SPS observations come from the platform and may not cover every day or market. Use the displayed time note when comparing trends.",
       shopDiagnosisTitle: "Shop diagnosis",
-      shopDiagnosisBody: "Each shop card shows availability, score, selected metric, top issues, diagnosis, and the platform calculation method when available.",
+      shopDiagnosisBody:
+        "Each shop card shows availability, score, selected metric, top issues, diagnosis, and the platform calculation method when available.",
     },
     inventoryManagement: {
       welcomeTitle: "Inventory management",
-      welcomeBody: "Manage warehouse connections and a canonical goods catalog used for inventory and fulfillment workflows.",
+      welcomeBody:
+        "Manage warehouse connections and a canonical goods catalog used for inventory and fulfillment workflows.",
       wmsTitle: "Warehouse accounts",
-      wmsBody: "Connect supported WMS providers, inspect synchronized warehouses, and keep account credentials and inventory data current.",
+      wmsBody:
+        "Connect supported WMS providers, inspect synchronized warehouses, and keep account credentials and inventory data current.",
       goodsTitle: "Inventory goods workspace",
-      goodsBody: "Create and maintain canonical goods records that can be shared across shops, warehouses, and fulfillment operations.",
+      goodsBody:
+        "Create and maintain canonical goods records that can be shared across shops, warehouses, and fulfillment operations.",
       actionsTitle: "Inventory actions",
-      actionsBody: "Refresh goods, add a canonical item, or remove selected records. Destructive actions always require confirmation.",
+      actionsBody:
+        "Refresh goods, add a canonical item, or remove selected records. Destructive actions always require confirmation.",
       filtersTitle: "Search and columns",
-      filtersBody: "Search the catalog, reset filters, and choose which identity, measurement, value, and risk columns are visible.",
+      filtersBody:
+        "Search the catalog, reset filters, and choose which identity, measurement, value, and risk columns are visible.",
       tableTitle: "Canonical goods",
-      tableBody: "Review SKU identity, images, barcode or GTIN, dimensions, declared value, battery and hazmat flags, then edit or delete individual goods.",
+      tableBody:
+        "Review SKU identity, images, barcode or GTIN, dimensions, declared value, battery and hazmat flags, then edit or delete individual goods.",
       paginationTitle: "Inventory pages",
-      paginationBody: "Move between result pages or jump directly to a page while preserving the current search and column choices.",
+      paginationBody:
+        "Move between result pages or jump directly to a page while preserving the current search and column choices.",
     },
     settings: {
       appSectionTitle: "Appearance and privacy",
-      appSectionBody: "Choose the accent color and enable privacy mode when screen sharing or recording sensitive desktop content.",
+      appSectionBody:
+        "Choose the accent color and enable privacy mode when screen sharing or recording sensitive desktop content.",
       dataAndLogsTitle: "Data directory and logs",
-      dataAndLogsBody: "Review or change the local state directory, reset an override, and upload diagnostic logs when signed in. Directory changes require a restart.",
+      dataAndLogsBody:
+        "Review or change the local state directory, reset an override, and upload diagnostic logs when signed in. Directory changes require a restart.",
     },
   },
-} as const
+} as const;
 
 export const TUTORIAL_CATCHUP_EN = {
   tutorial: {
     ...TUTORIAL_NEW_KEYS_EN.tutorial,
     channels: {
       ...TUTORIAL_NEW_KEYS_EN.tutorial.channels,
-      welcomeBody: "Connect mobile chat and supported messaging platforms, then monitor each account's configuration, runtime, pairing, and outbound-send health.",
-      channelDropdownBody: "Choose Mobile Chat, Telegram, Discord, Slack, Google Chat, Signal, iMessage, Feishu/Lark, LINE, Matrix, Mattermost, Teams, or WeChat. Setup may use credentials, QR authorization, or device pairing.",
+      welcomeBody:
+        "Connect mobile chat and supported messaging platforms, then monitor each account's configuration, runtime, pairing, and outbound-send health.",
+      channelDropdownBody:
+        "Choose Mobile Chat, Telegram, Discord, Slack, Google Chat, Signal, iMessage, Feishu/Lark, LINE, Matrix, Mattermost, Teams, or WeChat. Setup may use credentials, QR authorization, or device pairing.",
     },
     account: {
       ...TUTORIAL_NEW_KEYS_EN.tutorial.account,
-      welcomeBody: "Manage your identity, plan and quota, invitation code, tool surfaces, and run profiles from this page.",
+      welcomeBody:
+        "Manage your identity, plan and quota, invitation code, tool surfaces, and run profiles from this page.",
     },
     ecommerce: {
       ...TUTORIAL_NEW_KEYS_EN.tutorial.ecommerce,
-      welcomeBody: "Manage connected seller shops, shop services, authorization, and warehouse integrations from one workspace.",
-      drawerBody: "The shop workspace contains overview and service controls, AI customer service configuration, device binding, and warehouse mapping. Affiliate sections are outside this walkthrough.",
+      welcomeBody:
+        "Manage connected seller shops, shop services, authorization, and warehouse integrations from one workspace.",
+      drawerBody:
+        "The shop workspace contains overview and service controls, AI customer service configuration, device binding, and warehouse mapping. Affiliate sections are outside this walkthrough.",
     },
     providers: {
       ...TUTORIAL_NEW_KEYS_EN.tutorial.providers,
-      tabBarBody: "Choose Subscription, API Key, Local, or Custom. Each tab has a different authentication and model-discovery flow.",
+      tabBarBody:
+        "Choose Subscription, API Key, Local, or Custom. Each tab has a different authentication and model-discovery flow.",
     },
   },
-} as const
+} as const;
 
 export const TUTORIAL_CATCHUP_ZH = {
   tutorial: {
     ecommerceAffiliateAttention: {
       welcomeTitle: "工作台",
-      welcomeBody: "在一个工作台处理联盟例外：审核 Agent 提案、员工升级工单、申样申请和达人会话，同时保留完整关系上下文。",
+      welcomeBody:
+        "在一个工作台处理联盟例外：审核 Agent 提案、员工升级工单、申样申请和达人会话，同时保留完整关系上下文。",
       scopeTitle: "工作台的五个视图",
-      scopeBody: "在待审核 Agent 工作、员工升级工单、全部 Agent 历史、申样申请和达人消息之间切换；教程会逐一打开实时队列，结束后回到“待审核 Agent 工作”。",
+      scopeBody:
+        "在待审核 Agent 工作、员工升级工单、全部 Agent 历史、申样申请和达人消息之间切换；教程会逐一打开实时队列，结束后回到“待审核 Agent 工作”。",
       filtersTitle: "聚焦当前队列",
-      filtersBody: "待审核与全部 Agent 工作可按 BD、操作类型和上下文搜索缩小范围；全部工作还可按提案状态筛选，升级工单沿用负责人和搜索边界。",
+      filtersBody:
+        "待审核与全部 Agent 工作可按 BD、操作类型和上下文搜索缩小范围；全部工作还可按提案状态筛选，升级工单沿用负责人和搜索边界。",
       queueTitle: "Agent 决策队列",
-      queueBody: "每一行代表一个审核边界。打开后可对照关系事实、样品或商品、消息草稿、预测证据和修改历史，再批准、拒绝或要求修改。",
+      queueBody:
+        "每一行代表一个审核边界。打开后可对照关系事实、样品或商品、消息草稿、预测证据和修改历史，再批准、拒绝或要求修改。",
       escalationsTitle: "员工升级工单",
-      escalationsBody: "Agent 需要人工回答时会暂停在这里。可按负责人筛选并搜索冻结的问题与 Agenda 上下文；通知状态会说明升级工单是否送达指定员工路由。",
+      escalationsBody:
+        "Agent 需要人工回答时会暂停在这里。可按负责人筛选并搜索冻结的问题与 Agenda 上下文；通知状态会说明升级工单是否送达指定员工路由。",
       samplesTitle: "申样申请队列",
-      samplesBody: "跨店铺查看待处理及软拒绝的申样申请。店铺、处理状态和 BD 分开筛选；打开行后进入关系工作区，审核最终的平台操作或软拒绝动作。",
+      samplesBody:
+        "跨店铺查看待处理及软拒绝的申样申请。店铺、处理状态和 BD 分开筛选；打开行后进入关系工作区，审核最终的平台操作或软拒绝动作。",
       messagesTitle: "达人会话队列",
-      messagesBody: "按 TikTok Shop、WhatsApp 或邮件分流等待回复的达人。渠道数量、负责人、等待时长、保护状态与仅人工标记会共同说明处理优先级。",
+      messagesBody:
+        "按 TikTok Shop、WhatsApp 或邮件分流等待回复的达人。渠道数量、负责人、等待时长、保护状态与仅人工标记会共同说明处理优先级。",
     },
     ecommerceAffiliateCreators: {
       welcomeTitle: "达人",
       welcomeBody: "通过达人名册查看跨店铺关系健康、当前合作、表现信号及下一步工作。",
       controlsTitle: "店铺范围与数据状态",
-      controlsBody: "选择店铺并刷新达人数据；名册上方的同步提示会说明当前数据和历史数据是否已经就绪。",
+      controlsBody:
+        "选择店铺并刷新达人数据；名册上方的同步提示会说明当前数据和历史数据是否已经就绪。",
       filtersTitle: "找到目标达人",
-      filtersBody: "组合使用全账号与单店合作进度、系统标签、手动标签、任一/全部匹配、身份搜索和“需要处理”开关；选择具体店铺后才会显示单店进度。",
+      filtersBody:
+        "组合使用全账号与单店合作进度、系统标签、手动标签、任一/全部匹配、身份搜索和“需要处理”开关；选择具体店铺后才会显示单店进度。",
       resultsTitle: "达人关系卡片",
-      resultsBody: "紧凑名册汇总身份、关系归属、进度、标签、表现和待处理工作；打开一行可在同一关系工作区处理样品、会话、合作、历史及支持的人工决策。",
+      resultsBody:
+        "紧凑名册汇总身份、关系归属、进度、标签、表现和待处理工作；打开一行可在同一关系工作区处理样品、会话、合作、历史及支持的人工决策。",
     },
     ecommerceAffiliateHistory: {
       welcomeTitle: "合作历史",
@@ -268,57 +364,74 @@ export const TUTORIAL_CATCHUP_ZH = {
       filtersTitle: "筛选合作记录",
       filtersBody: "可按生命周期状态、合作类型，或达人、商品、店铺及平台标识筛选历史记录。",
       resultsTitle: "合作记录",
-      resultsBody: "每张卡片汇总合作生命周期与商业范围；打开后可查看达人、商品、样品、设置及支持的管理操作。",
+      resultsBody:
+        "每张卡片汇总合作生命周期与商业范围；打开后可查看达人、商品、样品、设置及支持的管理操作。",
     },
     ecommerceAffiliateTeam: {
       welcomeTitle: "团队与渠道",
-      welcomeBody: "统一管理达人关系负责人及其 WhatsApp、Outlook 发送账号，并维护达人保护范围和审批规则。",
+      welcomeBody:
+        "统一管理达人关系负责人及其 WhatsApp、Outlook 发送账号，并维护达人保护范围和审批规则。",
       tabsTitle: "三个运营区域",
-      tabsBody: "在团队运营、达人分配和安全审批之间切换；摘要会先展示工作量、受保护达人数和设置状态。",
+      tabsBody:
+        "在团队运营、达人分配和安全审批之间切换；摘要会先展示工作量、受保护达人数和设置状态。",
       responsibilitiesTitle: "负责人和触达渠道",
-      responsibilitiesBody: "搜索或翻页查看 BD，并比较达人工作量、接单状态、WhatsApp 与 Outlook 健康及 AI 协作模式；BD 详情还管理账号连接/转移、首选发送账号和联盟升级通知路由。",
+      responsibilitiesBody:
+        "搜索或翻页查看 BD，并比较达人工作量、接单状态、WhatsApp 与 Outlook 健康及 AI 协作模式；BD 详情还管理账号连接/转移、首选发送账号和联盟升级通知路由。",
       assignmentsTitle: "达人归属保护",
-      assignmentsBody: "可导入 CSV/表格或手动添加身份，再解析达人、预览变更并指定负责人后应用保护；同一区域还维护全账号共享的手动标签目录。",
+      assignmentsBody:
+        "可导入 CSV/表格或手动添加身份，再解析达人、预览变更并指定负责人后应用保护；同一区域还维护全账号共享的手动标签目录。",
       safetyTitle: "审批安全",
       safetyBody: "设置联盟操作的账号级审批策略；消息规则会在服务商实际发送前审核完整草稿。",
     },
     ecommerceAffiliateCampaign: {
       welcomeTitle: "推广计划",
-      welcomeBody: "围绕一个或多个商品创建并运营可重复执行的达人触达计划，明确发现策略、容量、消息和生命周期边界。",
+      welcomeBody:
+        "围绕一个或多个商品创建并运营可重复执行的达人触达计划，明确发现策略、容量、消息和生命周期边界。",
       summaryTitle: "运行窗口与容量",
-      summaryBody: "调整容量前，先确认市场本地发送窗口、活跃店铺数、运行中计划数和合计每日触达目标。",
+      summaryBody:
+        "调整容量前，先确认市场本地发送窗口、活跃店铺数、运行中计划数和合计每日触达目标。",
       directoryTitle: "计划组合",
-      directoryBody: "可按生命周期筛选计划，快速查看店铺、目标、发现边界和主商品，或打开一行进入实时运营工作台；空列表也保留首个计划入口。",
+      directoryBody:
+        "可按生命周期筛选计划，快速查看店铺、目标、发现边界和主商品，或打开一行进入实时运营工作台；空列表也保留首个计划入口。",
       detailOverviewTitle: "计划控制与实时健康",
-      detailOverviewBody: "详情顶部集中展示计划身份、商品与店铺、筛选就绪度、佣金、首条消息、生命周期操作，以及计划和店铺容量 KPI。",
+      detailOverviewBody:
+        "详情顶部集中展示计划身份、商品与店铺、筛选就绪度、佣金、首条消息、生命周期操作，以及计划和店铺容量 KPI。",
       detailOperationsTitle: "漏斗与发现证据",
-      detailOperationsBody: "结合配额健康、计划漏斗、搜索计划代次、达人资格状态和投递结果解释表现，再决定是否重试、编辑、暂停或归档。",
+      detailOperationsBody:
+        "结合配额健康、计划漏斗、搜索计划代次、达人资格状态和投递结果解释表现，再决定是否重试、编辑、暂停或归档。",
       createTitle: "创建推广计划",
       createBody: "从这里开始新计划。本教程只会打开空白设置，退出时不会创建、启用或保存任何内容。",
       wizardStagesTitle: "四个受保护阶段",
-      wizardStagesBody: "依次建立商品方案、设置达人发现与每日容量、审核首次触达消息，最后确认授权和启用边界；每次前进都会经过校验。",
+      wizardStagesBody:
+        "依次建立商品方案、设置达人发现与每日容量、审核首次触达消息，最后确认授权和启用边界；每次前进都会经过校验。",
       wizardTitle: "商品方案与事实快照",
-      wizardBody: "第一阶段会命名计划、选择店铺，并按商品分别设置佣金来建立多商品方案；继续前需要把每个商品解析为最新快照。本教程会保留为空白且不保存。",
+      wizardBody:
+        "第一阶段会命名计划、选择店铺，并按商品分别设置佣金来建立多商品方案；继续前需要把每个商品解析为最新快照。本教程会保留为空白且不保存。",
     },
     ecommerceAffiliateIntelligence: {
       welcomeTitle: "智能分析",
-      welcomeBody: "评估预期销量模型能否改善达人选择，并确认每次决策实际使用的是账号、区域还是店铺模型。",
+      welcomeBody:
+        "评估预期销量模型能否改善达人选择，并确认每次决策实际使用的是账号、区域还是店铺模型。",
       refreshTitle: "刷新模型证据",
       refreshBody: "模型训练或生产版本变化后，重新加载最新的可用性与评估快照。",
       scopesTitle: "选择分析范围",
-      scopesBody: "可先查看账号模型，或选择已启用的店铺；每个范围都会显示模型已就绪、回退、不可用或仍缺少数据。",
+      scopesBody:
+        "可先查看账号模型，或选择已启用的店铺；每个范围都会显示模型已就绪、回退、不可用或仍缺少数据。",
       analysisTitle: "比较模型与人工决策",
-      analysisBody: "结合相同预算下的预期销量提升、胜出概率、不确定区间和数据基础解读结果；证据不足时应等待，不应视为模型有效。",
+      analysisBody:
+        "结合相同预算下的预期销量提升、胜出概率、不确定区间和数据基础解读结果；证据不足时应等待，不应视为模型有效。",
     },
     productKnowledge: {
       createTitle: "创建商品知识",
-      createBody: "从这里新建可复用的知识记录；创建时只需填写名称，使用说明、问答、创意案例和商品绑定会在创建后管理。",
+      createBody:
+        "从这里新建可复用的知识记录；创建时只需填写名称，使用说明、问答、创意案例和商品绑定会在创建后管理。",
     },
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "会话收件箱",
       conversationsWelcomeBody: "集中查看跨店铺买家会话、搜索收件箱，并在 AI 与人工处理之间切换。",
       escalationsWelcomeTitle: "升级队列",
-      escalationsWelcomeBody: "处理需要主管决策的会话：查看上下文、填写指导、解决问题或驳回无效升级。",
+      escalationsWelcomeBody:
+        "处理需要主管决策的会话：查看上下文、填写指导、解决问题或驳回无效升级。",
       orderContextTitle: "订单上下文",
       orderContextBody: "回复前查看关联订单、商品、配送状态和售后记录。",
       aiControlTitle: "AI 与会话控制",
@@ -376,34 +489,43 @@ export const TUTORIAL_CATCHUP_ZH = {
     },
     channels: {
       healthStatusTitle: "连接健康",
-      healthStatusBody: "“已配置”和“运行中”是不同信号。微信即使进程运行，也可能需要激活、重新授权或恢复发送能力。",
+      healthStatusBody:
+        "“已配置”和“运行中”是不同信号。微信即使进程运行，也可能需要激活、重新授权或恢复发送能力。",
       welcomeBody: "连接移动聊天和支持的消息平台，并监控各账号的配置、运行、配对和发送健康。",
-      channelDropdownBody: "可选择移动聊天、Telegram、Discord、Slack、Google Chat、Signal、iMessage、飞书/Lark、LINE、Matrix、Mattermost、Teams 或微信；设置方式可能是凭据、扫码授权或设备配对。",
+      channelDropdownBody:
+        "可选择移动聊天、Telegram、Discord、Slack、Google Chat、Signal、iMessage、飞书/Lark、LINE、Matrix、Mattermost、Teams 或微信；设置方式可能是凭据、扫码授权或设备配对。",
     },
     ecommerce: {
       shopCollectionsTitle: "卖家店铺集合",
-      shopCollectionsBody: "关联店铺可按卖家集合分组。展开集合后可分别管理各市场店铺、别名、授权和服务余额。",
+      shopCollectionsBody:
+        "关联店铺可按卖家集合分组。展开集合后可分别管理各市场店铺、别名、授权和服务余额。",
       connectFlowTitle: "连接店铺",
       connectFlowBody: "授权前选择平台应用、市场和卖家类型；匹配到的平台应用决定实际 OAuth 流程。",
       welcomeBody: "在同一工作区管理卖家店铺、店铺服务、授权和仓储集成。",
-      drawerBody: "店铺工作区包含概览与服务控制、AI 客服、设备绑定和仓库映射；联盟部分不在本次导览范围内。",
+      drawerBody:
+        "店铺工作区包含概览与服务控制、AI 客服、设备绑定和仓库映射；联盟部分不在本次导览范围内。",
     },
     providers: {
       setupFlowTitle: "按提供商设置",
-      setupFlowBody: "表单会随类型变化：订阅登录、API Key、本地端点或自定义兼容 API。请完成当前标签页显示的字段。",
+      setupFlowBody:
+        "表单会随类型变化：订阅登录、API Key、本地端点或自定义兼容 API。请完成当前标签页显示的字段。",
       currentActionsTitle: "已配置模型操作",
-      currentActionsBody: "从卡片顶部激活密钥；底部会按类型提供用量、重新授权、刷新模型、更新凭据、代理设置或删除。",
+      currentActionsBody:
+        "从卡片顶部激活密钥；底部会按类型提供用量、重新授权、刷新模型、更新凭据、代理设置或删除。",
       tabBarBody: "选择订阅、API Key、本地或自定义；每种类型都有不同的认证和模型发现流程。",
     },
     adsManagement: {
       accountFiltersTitle: "搜索与账号状态",
-      accountFiltersBody: "搜索广告账号，并在全部、需处理和已授权分组之间切换。同步健康与授权状态是两个独立信号。",
+      accountFiltersBody:
+        "搜索广告账号，并在全部、需处理和已授权分组之间切换。同步健康与授权状态是两个独立信号。",
       coverageFiltersTitle: "覆盖诊断",
-      coverageFiltersBody: "筛选完整、部分或缺失覆盖，再展开卖家集合查看广告账号权限和当前 GMV Max 账号。",
+      coverageFiltersBody:
+        "筛选完整、部分或缺失覆盖，再展开卖家集合查看广告账号权限和当前 GMV Max 账号。",
     },
     account: {
       inviteCodeTitle: "邀请码",
-      inviteCodeBody: "在接入其他获批桌面端或用户时复制邀请码。它属于账号数据，只应通过可信渠道分享。",
+      inviteCodeBody:
+        "在接入其他获批桌面端或用户时复制邀请码。它属于账号数据，只应通过可信渠道分享。",
       surfaceActionsTitle: "场景工具与预设",
       surfaceActionsBody: "刷新工具目录、从头创建场景，或复制已审核预设后再调整允许的工具。",
       welcomeBody: "在此管理身份、套餐与配额、邀请码、工具场景和运行配置。",
@@ -412,7 +534,8 @@ export const TUTORIAL_CATCHUP_ZH = {
       summaryTitle: "实时概览",
       summaryBody: "概览支持的市场、在线店铺、平均 SPS、最新观测时间和可用趋势窗口。",
       timelineTitle: "观测窗口",
-      timelineBody: "SPS 数据来自平台，未必覆盖每一天或每个市场；比较趋势时请结合页面显示的时间说明。",
+      timelineBody:
+        "SPS 数据来自平台，未必覆盖每一天或每个市场；比较趋势时请结合页面显示的时间说明。",
       shopDiagnosisTitle: "店铺诊断",
       shopDiagnosisBody: "每张店铺卡展示可用性、得分、所选指标、主要问题、诊断和平台计算方法。",
     },
@@ -428,7 +551,8 @@ export const TUTORIAL_CATCHUP_ZH = {
       filtersTitle: "搜索与列设置",
       filtersBody: "搜索商品目录、重置筛选，并选择显示身份、尺寸、价值和风险相关列。",
       tableTitle: "标准商品",
-      tableBody: "查看 SKU、图片、条码或 GTIN、尺寸、申报价值、电池和危险品标识，并编辑或删除单条商品。",
+      tableBody:
+        "查看 SKU、图片、条码或 GTIN、尺寸、申报价值、电池和危险品标识，并编辑或删除单条商品。",
       paginationTitle: "库存分页",
       paginationBody: "在保留搜索与列设置的情况下翻页，或直接跳转到指定页。",
     },
@@ -436,7 +560,8 @@ export const TUTORIAL_CATCHUP_ZH = {
       appSectionTitle: "外观与隐私",
       appSectionBody: "选择强调色；在共享屏幕或录制敏感桌面内容时启用隐私模式。",
       dataAndLogsTitle: "数据目录与日志",
-      dataAndLogsBody: "查看或修改本地状态目录、重置自定义路径，并在登录后上传诊断日志。目录变更需要重启。",
+      dataAndLogsBody:
+        "查看或修改本地状态目录、重置自定义路径，并在登录后上传诊断日志。目录变更需要重启。",
     },
   },
-} as const
+} as const;

@@ -1,7 +1,12 @@
 import { useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS, isUsageQueryableProvider, isReauthSupportedProvider } from "@rivonclaw/core";
+import {
+  getDefaultModelForProvider,
+  SUBSCRIPTION_PROVIDER_IDS,
+  isUsageQueryableProvider,
+  isReauthSupportedProvider,
+} from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
 import { trackEvent } from "../../api/index.js";
 import { fetchJson, invalidateCache } from "../../api/client.js";
@@ -103,9 +108,12 @@ export const ProvidersPage = observer(function ProvidersPage() {
         model: prevModel || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
         apiKey: updateApiKey.trim(),
         authType: prevAuthType as "api_key" | "oauth" | "local" | "custom" | undefined,
-        baseUrl: prevAuthType === "custom" ? (prevBaseUrl || undefined) : undefined,
-        customProtocol: prevAuthType === "custom" ? (prevCustomProtocol as "openai" | "anthropic" || undefined) : undefined,
-        customModelsJson: prevAuthType === "custom" ? (prevCustomModelsJson || undefined) : undefined,
+        baseUrl: prevAuthType === "custom" ? prevBaseUrl || undefined : undefined,
+        customProtocol:
+          prevAuthType === "custom"
+            ? (prevCustomProtocol as "openai" | "anthropic") || undefined
+            : undefined,
+        customModelsJson: prevAuthType === "custom" ? prevCustomModelsJson || undefined : undefined,
       });
 
       if (wasDefault) {
@@ -115,7 +123,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
         if (newKey) {
           await newKey.activate();
         } else {
-          await fetchJson(clientPath(API["providerKeys.activate"], { id: entry.id }), { method: "POST" });
+          await fetchJson(clientPath(API["providerKeys.activate"], { id: entry.id }), {
+            method: "POST",
+          });
           invalidateCache("models");
         }
       }
@@ -156,11 +166,12 @@ export const ProvidersPage = observer(function ProvidersPage() {
     try {
       const { contextWarning } = await store.llmManager.switchModel(keyId, model);
       if (contextWarning) {
-        const fmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+        const fmt = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
         // Scenario A (exceeded) vs B (approaching): differentiate severity
-        const severity = contextWarning.currentTokens > contextWarning.newContextWindow
-          ? "error" as const
-          : "warning" as const;
+        const severity =
+          contextWarning.currentTokens > contextWarning.newContextWindow
+            ? ("error" as const)
+            : ("warning" as const);
         showToast(
           t("chat.contextWindowWarning", {
             currentTokens: fmt(contextWarning.currentTokens),
@@ -179,7 +190,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
     try {
       const key = store.providerKeys.find((k) => k.id === keyId);
       if (!key) throw new Error(`Provider key ${keyId} not found`);
-      await key.update({ proxyUrl: proxyUrl || null as any });
+      await key.update({ proxyUrl: proxyUrl || (null as any) });
       showToast(t("common.saved"), "success");
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
@@ -193,7 +204,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
     try {
       const key = store.providerKeys.find((k) => k.id === keyId);
       if (!key) throw new Error(`Provider key ${keyId} not found`);
-      await key.update({ baseUrl: newBaseUrl || null as any });
+      await key.update({ baseUrl: newBaseUrl || (null as any) });
       showToast(t("common.saved"), "success");
     } catch (err) {
       showToast(t("providers.failedToSave") + String(err), "error");
@@ -235,7 +246,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
 
       {/* Section A: Add Key */}
       <ProviderSetupForm
-        onSave={() => { /* MST auto-updates via SSE */ }}
+        onSave={() => {
+          /* MST auto-updates via SSE */
+        }}
         title={t("providers.addTitle")}
       />
 
@@ -243,9 +256,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
       <TkPanel as="section" className="section-card" data-tutorial-id="providers-configured">
         <h3>{t("providers.configuredKeysTitle")}</h3>
         {keys.length === 0 ? (
-          <div className="empty-cell">
-            {t("providers.noKeys")}
-          </div>
+          <div className="empty-cell">{t("providers.noKeys")}</div>
         ) : (
           <div className="pk-grid" data-tutorial-id="providers-keys">
             {keys.map((k) => {
@@ -263,39 +274,67 @@ export const ProvidersPage = observer(function ProvidersPage() {
                       else is administrative and lives in the footer. */}
                   <div className="key-header">
                     <div className="key-meta">
-                        <strong className="text-sm">
-                          {k.provider === "rivonclaw-pro" && (
-                            <span className="provider-crown" aria-label="Premium">👑</span>
-                          )}
-                          {k.provider === "rivonclaw-pro"
-                            ? t("providers.label_rivonclaw-pro")
-                            : k.authType === "custom"
-                              ? k.label
-                              : t(`providers.label_${k.provider}`)}
-                        </strong>
-                        {k.provider !== "rivonclaw-pro" && (
-                          <span className="badge badge-muted">
-                            {k.authType === "custom"
-                              ? t("providers.authTypeCustom")
-                              : k.authType === "local"
-                                ? t("providers.badgeLocal")
-                                : k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
-                                  ? t("providers.authTypeSubscription")
-                                  : t("providers.authTypeApiKey")}
+                      <strong className="text-sm">
+                        {k.provider === "rivonclaw-pro" && (
+                          <span className="provider-crown" aria-label="Premium">
+                            👑
                           </span>
                         )}
-                        {k.proxyUrl && (
-                          <span className="has-tooltip inline-flex-center" data-tooltip={t("providers.proxyTooltip")}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="3" y="11" width="18" height="11" rx="2" fill="#f5d060" stroke="#b8860b" strokeWidth="2" />
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#b8860b" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                          </span>
-                        )}
-                        {(k.authType === "local" || k.authType === "custom") && k.baseUrl && k.provider !== "rivonclaw-pro" && (
+                        {k.provider === "rivonclaw-pro"
+                          ? t("providers.label_rivonclaw-pro")
+                          : k.authType === "custom"
+                            ? k.label
+                            : t(`providers.label_${k.provider}`)}
+                      </strong>
+                      {k.provider !== "rivonclaw-pro" && (
+                        <span className="badge badge-muted">
+                          {k.authType === "custom"
+                            ? t("providers.authTypeCustom")
+                            : k.authType === "local"
+                              ? t("providers.badgeLocal")
+                              : k.authType === "oauth" ||
+                                  SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
+                                ? t("providers.authTypeSubscription")
+                                : t("providers.authTypeApiKey")}
+                        </span>
+                      )}
+                      {k.proxyUrl && (
+                        <span
+                          className="has-tooltip inline-flex-center"
+                          data-tooltip={t("providers.proxyTooltip")}
+                        >
+                          <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect
+                              x="3"
+                              y="11"
+                              width="18"
+                              height="11"
+                              rx="2"
+                              fill="#f5d060"
+                              stroke="#b8860b"
+                              strokeWidth="2"
+                            />
+                            <path
+                              d="M7 11V7a5 5 0 0 1 10 0v4"
+                              stroke="#b8860b"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </span>
+                      )}
+                      {(k.authType === "local" || k.authType === "custom") &&
+                        k.baseUrl &&
+                        k.provider !== "rivonclaw-pro" && (
                           <span className="text-secondary text-sm">{k.baseUrl}</span>
                         )}
-                        {renderExpiry(k.oauthExpiresAt, t, i18n.language)}
+                      {renderExpiry(k.oauthExpiresAt, t, i18n.language)}
                     </div>
                     {!isActive && (
                       <button
@@ -307,59 +346,64 @@ export const ProvidersPage = observer(function ProvidersPage() {
                     )}
                   </div>
                   <div className="key-details">
-                        {k.provider === "rivonclaw-pro" ? (
-                          <span className="key-label">
-                            {t("providers.label_rivonclaw-pro")}
-                          </span>
-                        ) : editingLabelId === k.id ? (
-                          <input
-                            className="key-label-input"
-                            value={editLabelValue}
-                            onChange={(e) => setEditLabelValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleLabelSave(k.id);
-                              if (e.key === "Escape") setEditingLabelId(null);
-                            }}
-                            onBlur={() => handleLabelSave(k.id)}
-                            autoFocus
-                          />
-                        ) : (
-                          <span className="key-label">
-                            {k.label}
-                            <button
-                              className="key-label-edit-btn"
-                              onClick={() => {
-                                setEditingLabelId(k.id);
-                                setEditLabelValue(k.label);
-                              }}
-                              title={t("common.edit")}
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                              </svg>
-                            </button>
-                          </span>
-                        )}
-                        {k.provider === "rivonclaw-pro" ? (
-                          <div className="cloud-model-name">Flagship</div>
-                        ) : k.authType === "custom" && k.customModelsJson ? (
-                          <Select
-                            value={k.model}
-                            onChange={(model) => handleModelChange(k.id, model)}
-                            options={
-                              (JSON.parse(k.customModelsJson) as Array<string | { id: string }>)
-                                .map((m) => typeof m === "string" ? m : m.id)
-                                .sort((a, b) => b.localeCompare(a))
-                                .map((m) => ({ value: m, label: m }))
-                            }
-                          />
-                        ) : (
-                          <ModelSelect
-                            provider={k.provider}
-                            value={k.model}
-                            onChange={(model) => handleModelChange(k.id, model)}
-                          />
-                        )}
+                    {k.provider === "rivonclaw-pro" ? (
+                      <span className="key-label">{t("providers.label_rivonclaw-pro")}</span>
+                    ) : editingLabelId === k.id ? (
+                      <input
+                        className="key-label-input"
+                        value={editLabelValue}
+                        onChange={(e) => setEditLabelValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleLabelSave(k.id);
+                          if (e.key === "Escape") setEditingLabelId(null);
+                        }}
+                        onBlur={() => handleLabelSave(k.id)}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="key-label">
+                        {k.label}
+                        <button
+                          className="key-label-edit-btn"
+                          onClick={() => {
+                            setEditingLabelId(k.id);
+                            setEditLabelValue(k.label);
+                          }}
+                          title={t("common.edit")}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                    {k.provider === "rivonclaw-pro" ? (
+                      <div className="cloud-model-name">Flagship</div>
+                    ) : k.authType === "custom" && k.customModelsJson ? (
+                      <Select
+                        value={k.model}
+                        onChange={(model) => handleModelChange(k.id, model)}
+                        options={(JSON.parse(k.customModelsJson) as Array<string | { id: string }>)
+                          .map((m) => (typeof m === "string" ? m : m.id))
+                          .sort((a, b) => b.localeCompare(a))
+                          .map((m) => ({ value: m, label: m }))}
+                      />
+                    ) : (
+                      <ModelSelect
+                        provider={k.provider}
+                        value={k.model}
+                        onChange={(model) => handleModelChange(k.id, model)}
+                      />
+                    )}
                   </div>
 
                   {/* Footer: administrative actions, right-aligned. Activate
@@ -372,7 +416,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
                         onClick={() => handleRefreshModels(k.id)}
                         disabled={refreshingModelsId === k.id}
                       >
-                        {refreshingModelsId === k.id ? t("providers.fetchingModels") : t("providers.refreshModels")}
+                        {refreshingModelsId === k.id
+                          ? t("providers.fetchingModels")
+                          : t("providers.refreshModels")}
                       </button>
                     )}
                     {isUsageQueryableProvider(k.provider as LLMProvider) && (
@@ -383,14 +429,15 @@ export const ProvidersPage = observer(function ProvidersPage() {
                         {t("providers.usage")}
                       </button>
                     )}
-                    {k.authType === "oauth" && isReauthSupportedProvider(k.provider as LLMProvider) && (
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => setReauthKeyId(k.id)}
-                      >
-                        {t("providers.reauthenticate")}
-                      </button>
-                    )}
+                    {k.authType === "oauth" &&
+                      isReauthSupportedProvider(k.provider as LLMProvider) && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setReauthKeyId(k.id)}
+                        >
+                          {t("providers.reauthenticate")}
+                        </button>
+                      )}
                     {k.provider !== "rivonclaw-pro" && (
                       <button
                         className="btn btn-secondary btn-sm"
@@ -401,11 +448,18 @@ export const ProvidersPage = observer(function ProvidersPage() {
                           setEditBaseUrl(k.baseUrl || "");
                         }}
                       >
-                        {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
+                        {k.authType === "local"
+                          ? t("providers.updateUrl")
+                          : k.authType === "custom"
+                            ? t("providers.updateKey")
+                            : t("providers.updateKey")}
                       </button>
                     )}
                     {k.provider !== "rivonclaw-pro" && (
-                      <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleRemoveKey(k.id)}
+                      >
                         {t("providers.removeKey")}
                       </button>
                     )}
@@ -451,12 +505,18 @@ export const ProvidersPage = observer(function ProvidersPage() {
                               onClick={() => handleUpdateKey(k.id, k.provider)}
                               disabled={saving || validating || !updateApiKey.trim()}
                             >
-                              {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
+                              {validating
+                                ? t("providers.validating")
+                                : saving
+                                  ? "..."
+                                  : t("common.save")}
                             </button>
                           </div>
                           <small className="form-help-sm">{t("providers.apiKeyHelp")}</small>
                           <div className="key-section-border">
-                            <div className="form-label text-secondary">{t("providers.customEndpointLabel")}</div>
+                            <div className="form-label text-secondary">
+                              {t("providers.customEndpointLabel")}
+                            </div>
                             <div className="form-row">
                               <input
                                 type="text"
@@ -475,14 +535,17 @@ export const ProvidersPage = observer(function ProvidersPage() {
                             </div>
                           </div>
                         </>
-                      ) : k.authType === "oauth" && isReauthSupportedProvider(k.provider as LLMProvider) ? (
+                      ) : k.authType === "oauth" &&
+                        isReauthSupportedProvider(k.provider as LLMProvider) ? (
                         // Codex OAuth: Update panel collapses to proxy-only.
                         // Token rotation happens via the dedicated "Re-authenticate"
                         // button, NOT through an API key input (the key is OAuth, not
                         // a paste-in token). Anthropic-claude keeps the token input
                         // because `claude setup-token` IS a pasteable long-lived token.
                         <>
-                          <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
+                          <div className="form-label text-secondary">
+                            {t("providers.proxyLabel")}
+                          </div>
                           <div className="form-row">
                             <input
                               type="text"
@@ -510,7 +573,11 @@ export const ProvidersPage = observer(function ProvidersPage() {
                               data-1p-ignore
                               value={updateApiKey}
                               onChange={(e) => setUpdateApiKey(e.target.value)}
-                              placeholder={k.provider === "anthropic" || k.provider === "claude" ? t("providers.anthropicUpdatePlaceholder") : t("providers.updateKeyPlaceholder")}
+                              placeholder={
+                                k.provider === "anthropic" || k.provider === "claude"
+                                  ? t("providers.anthropicUpdatePlaceholder")
+                                  : t("providers.updateKeyPlaceholder")
+                              }
                               className="flex-1 input-mono"
                             />
                             <button
@@ -518,7 +585,11 @@ export const ProvidersPage = observer(function ProvidersPage() {
                               onClick={() => handleUpdateKey(k.id, k.provider)}
                               disabled={saving || validating || !updateApiKey.trim()}
                             >
-                              {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
+                              {validating
+                                ? t("providers.validating")
+                                : saving
+                                  ? "..."
+                                  : t("common.save")}
                             </button>
                           </div>
                           <small className="form-help-sm">{t("providers.apiKeyHelp")}</small>
@@ -528,7 +599,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
                             </div>
                           )}
                           <div className="key-section-border">
-                            <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
+                            <div className="form-label text-secondary">
+                              {t("providers.proxyLabel")}
+                            </div>
                             <div className="form-row">
                               <input
                                 type="text"

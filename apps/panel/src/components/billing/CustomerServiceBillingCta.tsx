@@ -86,17 +86,22 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
   const [portalPending, setPortalPending] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
   const showRenewalReminder = shouldShowRenewalReminder(entitlement);
-  const canResumeSubscription = !!subscription
-    && subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid
-    && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
-  const canCancelSubscription = !!subscription
-    && subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews
-    && !subscription.cancelAtPeriodEnd;
+  const canResumeSubscription =
+    !!subscription &&
+    subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid &&
+    (subscription.cancelAtPeriodEnd ||
+      subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
+  const canCancelSubscription =
+    !!subscription &&
+    subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews &&
+    !subscription.cancelAtPeriodEnd;
   const canManagePaymentMethod = canCancelSubscription;
-  const canExtendPrepaid = !!subscription
-    && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid;
-  const isEndingAtPeriodEnd = !!subscription
-    && (subscription.cancelAtPeriodEnd || subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
+  const canExtendPrepaid =
+    !!subscription && subscription.renewalMode === GQL.BillingRenewalMode.Prepaid;
+  const isEndingAtPeriodEnd =
+    !!subscription &&
+    (subscription.cancelAtPeriodEnd ||
+      subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
 
   useEffect(() => {
     entityStore.refreshPlanDefinitions().catch(() => {});
@@ -173,7 +178,10 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
               })}
             </div>
           )}
-          {(canExtendPrepaid || showRenewalReminder || canResumeSubscription || canCancelSubscription) && (
+          {(canExtendPrepaid ||
+            showRenewalReminder ||
+            canResumeSubscription ||
+            canCancelSubscription) && (
             <div className="cs-billing-payment-actions cs-billing-access-actions">
               {canResumeSubscription && (
                 <button
@@ -245,12 +253,20 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
           <ShopServiceCheckoutModal
             isOpen={checkoutModalOpen}
             onClose={() => setCheckoutModalOpen(false)}
-            title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
+            title={
+              prepaidCheckout
+                ? t("billing.extendPrepaidTitle")
+                : t("billing.subscribeCustomerService")
+            }
             plans={plan ? [plan] : []}
             shops={checkoutShops}
             initialShopId={shopId}
             initialPlanId={plan?.planId}
-            initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
+            initialProvider={
+              prepaidCheckout
+                ? checkoutProviderFromBillingProvider(subscription?.provider)
+                : undefined
+            }
           />
         </div>
         <ConfirmDialog
@@ -274,12 +290,16 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
     <ShopServiceCheckoutModal
       isOpen={checkoutModalOpen}
       onClose={() => setCheckoutModalOpen(false)}
-      title={prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")}
+      title={
+        prepaidCheckout ? t("billing.extendPrepaidTitle") : t("billing.subscribeCustomerService")
+      }
       plans={plan ? [plan] : []}
       shops={checkoutShops}
       initialShopId={shopId}
       initialPlanId={plan?.planId}
-      initialProvider={prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined}
+      initialProvider={
+        prepaidCheckout ? checkoutProviderFromBillingProvider(subscription?.provider) : undefined
+      }
     />
   );
 
@@ -288,7 +308,9 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
       <>
         <div className="cs-billing-inline">
           <div className="cs-billing-inline-head">
-            <span>{plan ? billingPlanDisplayName(t, plan) : t("billing.customerServiceUnlimited")}</span>
+            <span>
+              {plan ? billingPlanDisplayName(t, plan) : t("billing.customerServiceUnlimited")}
+            </span>
             <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
           </div>
           <p className="cs-billing-access-copy">
@@ -296,9 +318,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
               price: planPriceLine(plan, monthLabel),
             })}
           </p>
-          {!plan && (
-            <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>
-          )}
+          {!plan && <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>}
           <div className="cs-billing-payment-actions cs-billing-payment-actions-inline">
             <button
               className="btn btn-primary btn-sm"
@@ -321,7 +341,9 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
     <>
       <div className="cs-billing-access-card">
         <div className="cs-billing-access-head">
-          <span>{plan ? billingPlanDisplayName(t, plan) : t("billing.customerServiceUnlimited")}</span>
+          <span>
+            {plan ? billingPlanDisplayName(t, plan) : t("billing.customerServiceUnlimited")}
+          </span>
           <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
         </div>
         <p className="cs-billing-access-copy">
@@ -329,9 +351,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
             price: planPriceLine(plan, monthLabel),
           })}
         </p>
-        {!plan && (
-          <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>
-        )}
+        {!plan && <TkAlert tone="danger">{t("billing.planDefinitionsUnavailable")}</TkAlert>}
         <div className="cs-billing-payment-actions">
           <button
             className="btn btn-primary"

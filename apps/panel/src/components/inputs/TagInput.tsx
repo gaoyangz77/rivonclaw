@@ -36,7 +36,9 @@ export function TagInput({ tags, onChange, placeholder }: TagInputProps) {
       {tags.map((tag, i) => (
         <span key={tag} className="tag-pill">
           {tag}
-          <button type="button" className="tag-pill-remove" onClick={() => removeTag(i)}>&times;</button>
+          <button type="button" className="tag-pill-remove" onClick={() => removeTag(i)}>
+            &times;
+          </button>
         </span>
       ))}
       <input
@@ -45,7 +47,9 @@ export function TagInput({ tags, onChange, placeholder }: TagInputProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={() => { if (input.trim()) addTag(input); }}
+        onBlur={() => {
+          if (input.trim()) addTag(input);
+        }}
         placeholder={tags.length === 0 ? placeholder : ""}
       />
     </div>

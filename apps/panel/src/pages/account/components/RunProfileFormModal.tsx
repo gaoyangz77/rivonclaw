@@ -46,9 +46,7 @@ export function RunProfileFormModal({
       <div className="modal-form-col">
         {!editingProfileId && (
           <div>
-            <label className="form-label-block">
-              {t("surfaces.surfacesTitle")}
-            </label>
+            <label className="form-label-block">{t("surfaces.surfacesTitle")}</label>
             <Select
               value={profileSurfaceId}
               onChange={onSurfaceIdChange}
@@ -61,9 +59,7 @@ export function RunProfileFormModal({
           </div>
         )}
         <div>
-          <label className="form-label-block">
-            {t("surfaces.profileName")}
-          </label>
+          <label className="form-label-block">{t("surfaces.profileName")}</label>
           <input
             type="text"
             value={profileName}
@@ -73,9 +69,7 @@ export function RunProfileFormModal({
           />
         </div>
         <div>
-          <label className="form-label-block">
-            {t("surfaces.selectedToolIds")}
-          </label>
+          <label className="form-label-block">{t("surfaces.selectedToolIds")}</label>
           <div className="form-hint">{t("surfaces.selectedToolIdsHint")}</div>
           <ToolMultiSelect
             selected={profileToolIds}

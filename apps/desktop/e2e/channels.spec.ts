@@ -4,7 +4,7 @@ import { test, expect } from "./electron-fixture.js";
 async function dismissModals(window: import("@playwright/test").Page) {
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
     await backdrop.click({ position: { x: 5, y: 5 }, force: true });
     await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
   }
@@ -33,10 +33,7 @@ async function navigateToChannels(window: import("@playwright/test").Page) {
  * Uses the custom Select dropdown in the add-account section, picks the
  * channel option, then clicks the "Connect" button.
  */
-async function openAddAccountModal(
-  window: import("@playwright/test").Page,
-  channelLabel: string,
-) {
+async function openAddAccountModal(window: import("@playwright/test").Page, channelLabel: string) {
   const addSection = window.locator(".channel-add-section").first();
   await expect(addSection).toBeVisible();
 
@@ -127,11 +124,11 @@ test.describe("Channels Page", () => {
 
     // Telegram schema: Display Name, Bot Token, Webhook URL, DM Policy, Group Policy.
     // groupAllowFrom is hidden by default (groupPolicy defaults to "open").
-    expect(labelTexts.some(t => /display name/i.test(t))).toBe(true);
-    expect(labelTexts.some(t => /bot token/i.test(t))).toBe(true);
-    expect(labelTexts.some(t => /webhook/i.test(t))).toBe(true);
-    expect(labelTexts.some(t => /dm policy/i.test(t))).toBe(true);
-    expect(labelTexts.some(t => /group policy/i.test(t))).toBe(true);
+    expect(labelTexts.some((t) => /display name/i.test(t))).toBe(true);
+    expect(labelTexts.some((t) => /bot token/i.test(t))).toBe(true);
+    expect(labelTexts.some((t) => /webhook/i.test(t))).toBe(true);
+    expect(labelTexts.some((t) => /dm policy/i.test(t))).toBe(true);
+    expect(labelTexts.some((t) => /group policy/i.test(t))).toBe(true);
 
     // Verify the enabled checkbox is present and checked by default
     const enabledCheckbox = modal.locator("#enabled");
@@ -169,11 +166,13 @@ test.describe("Channels Page", () => {
 
     // Verify the "Allowed Senders in Groups" label appeared
     const allLabels = await modal.locator(".form-label-block").allTextContents();
-    expect(allLabels.some(t => /allow.*from|allowed.*sender/i.test(t))).toBe(true);
+    expect(allLabels.some((t) => /allow.*from|allowed.*sender/i.test(t))).toBe(true);
 
     // Verify a hint is shown for the groupAllowFrom field
     // The hint appears after the TagInput as a .form-hint in the same parent div.
-    const groupAllowFromLabel = modal.locator(".form-label-block", { hasText: /allow.*from|allowed.*sender/i });
+    const groupAllowFromLabel = modal.locator(".form-label-block", {
+      hasText: /allow.*from|allowed.*sender/i,
+    });
     const groupAllowFromSection = groupAllowFromLabel.locator("..");
     await expect(groupAllowFromSection.locator(".form-hint")).toBeVisible();
 
@@ -182,7 +181,9 @@ test.describe("Channels Page", () => {
     await modal.waitFor({ state: "hidden", timeout: 3_000 });
   });
 
-  test("hides groupAllowFrom field when groupPolicy is changed from allowlist", async ({ window }) => {
+  test("hides groupAllowFrom field when groupPolicy is changed from allowlist", async ({
+    window,
+  }) => {
     await dismissModals(window);
     await navigateToChannels(window);
 

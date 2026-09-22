@@ -150,24 +150,29 @@ describe("Vendor provider runtime projection", () => {
     const entry = { ...metadata("glm", "zhipu", "api_key"), model: "glm-4-flash" };
     writeVendorProviderDefinition({ configPath, entry });
     const config = JSON.parse(readFileSync(configPath, "utf8"));
-    expect(config.models.providers.zhipu.models).toContainEqual(expect.objectContaining({
-      id: "glm-4-flash", contextWindow: 128000,
-    }));
+    expect(config.models.providers.zhipu.models).toContainEqual(
+      expect.objectContaining({
+        id: "glm-4-flash",
+        contextWindow: 128000,
+      }),
+    );
     expect(config.agents.defaults.model.primary).toBe("openai/gpt-5.6-terra");
 
     config.models.providers.zhipu.baseUrl = "https://user.example/v1";
     writeFileSync(configPath, JSON.stringify(config));
     writeVendorProviderDefinition({ configPath, entry });
     writeVendorProviderDefinition({ configPath, entry, remove: true });
-    expect(JSON.parse(readFileSync(configPath, "utf8")).models.providers.zhipu.baseUrl)
-      .toBe("https://user.example/v1");
+    expect(JSON.parse(readFileSync(configPath, "utf8")).models.providers.zhipu.baseUrl).toBe(
+      "https://user.example/v1",
+    );
   });
 
   it("does not materialize native vendor providers from Desktop's supplemental catalog", () => {
     const { configPath } = setup(["openai:active"]);
     const before = readFileSync(configPath, "utf8");
     writeVendorProviderDefinition({
-      configPath, entry: { ...metadata("deepseek", "deepseek", "api_key"), model: "deepseek-chat" },
+      configPath,
+      entry: { ...metadata("deepseek", "deepseek", "api_key"), model: "deepseek-chat" },
     });
     expect(readFileSync(configPath, "utf8")).toBe(before);
   });

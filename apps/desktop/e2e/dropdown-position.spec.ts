@@ -20,7 +20,7 @@ test.describe("Dropdown positioning", () => {
     // Dismiss any modal(s) blocking the UI
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -56,7 +56,7 @@ test.describe("Dropdown positioning", () => {
     // and reopen to force a fresh position calculation.
     const dropdown = window.locator(".custom-select-dropdown");
     await expect(async () => {
-      if (!await dropdown.isVisible().catch(() => false)) {
+      if (!(await dropdown.isVisible().catch(() => false))) {
         await trigger.click();
         await expect(dropdown).toBeVisible({ timeout: 3_000 });
       }
@@ -75,7 +75,7 @@ test.describe("Dropdown positioning", () => {
       expect(
         horizontalOffset,
         `Dropdown left edge (${dropdownBox!.x}) is ${horizontalOffset}px away from trigger left edge (${triggerBox!.x}). ` +
-        `This likely means a CSS transform/filter on an ancestor is breaking position:fixed.`,
+          `This likely means a CSS transform/filter on an ancestor is breaking position:fixed.`,
       ).toBeLessThan(20);
 
       const gap = 8;
@@ -84,12 +84,11 @@ test.describe("Dropdown positioning", () => {
       expect(
         isBelow || isAbove,
         `Dropdown (y=${dropdownBox!.y}, h=${dropdownBox!.height}) is not adjacent to trigger ` +
-        `(y=${triggerBox!.y}, h=${triggerBox!.height}). Expected dropdown directly above or below.`,
+          `(y=${triggerBox!.y}, h=${triggerBox!.height}). Expected dropdown directly above or below.`,
       ).toBe(true);
     }).toPass({ timeout: 10_000 });
 
     // Close dropdown
     await trigger.click();
   });
-
 });

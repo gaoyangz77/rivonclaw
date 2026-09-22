@@ -340,23 +340,25 @@ export function extractImages(content: unknown): ChatImage[] {
   if (!Array.isArray(content)) return [];
   return content
     .filter((b: { type?: string }) => b.type === "image")
-    .map((b: {
-      data?: string;
-      url?: string;
-      openUrl?: string;
-      alt?: string;
-      mimeType?: string;
-      width?: number;
-      height?: number;
-    }) => ({
-      data: b.data ?? "",
-      url: b.url,
-      openUrl: b.openUrl,
-      alt: b.alt,
-      mimeType: b.mimeType ?? "image/jpeg",
-      width: b.width,
-      height: b.height,
-    }))
+    .map(
+      (b: {
+        data?: string;
+        url?: string;
+        openUrl?: string;
+        alt?: string;
+        mimeType?: string;
+        width?: number;
+        height?: number;
+      }) => ({
+        data: b.data ?? "",
+        url: b.url,
+        openUrl: b.openUrl,
+        alt: b.alt,
+        mimeType: b.mimeType ?? "image/jpeg",
+        width: b.width,
+        height: b.height,
+      }),
+    )
     .filter((img) => img.data || img.url);
 }
 
@@ -550,14 +552,7 @@ export function extractToolCallName(block: Record<string, unknown>): string | un
 
 /** Extract the stable tool-call identity shared by live events and chat history. */
 export function extractToolCallId(block: Record<string, unknown>): string | undefined {
-  for (const field of [
-    "toolCallId",
-    "tool_call_id",
-    "toolUseId",
-    "tool_use_id",
-    "callId",
-    "id",
-  ]) {
+  for (const field of ["toolCallId", "tool_call_id", "toolUseId", "tool_use_id", "callId", "id"]) {
     const val = block[field];
     if (typeof val === "string" && val.trim()) {
       return val.trim();
@@ -1026,10 +1021,7 @@ function isDuplicateImageMessage(a: ChatMessage, b: ChatMessage): boolean {
 function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
   if (isToolMessage(a) || isToolMessage(b)) {
     return (
-      isToolMessage(a) &&
-      isToolMessage(b) &&
-      Boolean(a.toolCallId) &&
-      a.toolCallId === b.toolCallId
+      isToolMessage(a) && isToolMessage(b) && Boolean(a.toolCallId) && a.toolCallId === b.toolCallId
     );
   }
   if (a.role !== b.role) return false;

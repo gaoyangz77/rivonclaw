@@ -56,11 +56,18 @@ function buildTelegramDebugOwnerEntries(storage: Storage): string[] {
   return readTelegramDebugOperatorUserIds(storage).map((id) => `${TELEGRAM_CHANNEL_ID}:${id}`);
 }
 
-function filterActiveOwnerRecipients(storage: Storage): Array<{ channelId: string; recipientId: string }> {
-  const activeChannelIds = new Set(storage.channelAccounts.list().map((account) => account.channelId));
+function filterActiveOwnerRecipients(
+  storage: Storage,
+): Array<{ channelId: string; recipientId: string }> {
+  const activeChannelIds = new Set(
+    storage.channelAccounts.list().map((account) => account.channelId),
+  );
   activeChannelIds.add("mobile");
 
-  return storage.channelRecipients.getOwners().filter(({ channelId, recipientId }) => (
-    activeChannelIds.has(channelId) && !recipientId.startsWith(`${channelId}:`)
-  ));
+  return storage.channelRecipients
+    .getOwners()
+    .filter(
+      ({ channelId, recipientId }) =>
+        activeChannelIds.has(channelId) && !recipientId.startsWith(`${channelId}:`),
+    );
 }

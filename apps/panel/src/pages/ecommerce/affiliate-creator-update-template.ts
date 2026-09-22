@@ -161,17 +161,20 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
   // With no tags there is nothing to list, and a list pointing at an empty range
   // is not enforced by Excel. A formula that only holds for an empty cell keeps
   // the column strict while still allowing blank.
-  const manualTagValidation = (column: string) => tagNames.length > 0
-    ? strictValidation(errorTitle, {
-      type: "list",
-      formulae: [`${AFFILIATE_CREATOR_UPDATE_TEMPLATE_TAG_SHEET_NAME}!$A$1:$A$${tagNames.length}`],
-      error: t("ecommerce.affiliateTeam.templateManualTagInvalid"),
-    })
-    : strictValidation(errorTitle, {
-      type: "custom",
-      formulae: [`LEN(${column}2)=0`],
-      error: t("ecommerce.affiliateTeam.templateNoManualTags"),
-    });
+  const manualTagValidation = (column: string) =>
+    tagNames.length > 0
+      ? strictValidation(errorTitle, {
+          type: "list",
+          formulae: [
+            `${AFFILIATE_CREATOR_UPDATE_TEMPLATE_TAG_SHEET_NAME}!$A$1:$A$${tagNames.length}`,
+          ],
+          error: t("ecommerce.affiliateTeam.templateManualTagInvalid"),
+        })
+      : strictValidation(errorTitle, {
+          type: "custom",
+          formulae: [`LEN(${column}2)=0`],
+          error: t("ecommerce.affiliateTeam.templateNoManualTags"),
+        });
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.forEach((header, index) => {
     const column = data.getColumn(index + 1).letter;
     if (header === "protection_action") {
@@ -189,10 +192,14 @@ function strictValidation(
   validation: Pick<DataValidation, "type" | "formulae" | "error">,
 ): DataValidation {
   if (errorTitle.length > EXCEL_ERROR_TITLE_MAX_LENGTH) {
-    throw new Error(`Template validation title exceeds Excel's ${EXCEL_ERROR_TITLE_MAX_LENGTH}-character limit: ${errorTitle}`);
+    throw new Error(
+      `Template validation title exceeds Excel's ${EXCEL_ERROR_TITLE_MAX_LENGTH}-character limit: ${errorTitle}`,
+    );
   }
   if ((validation.error ?? "").length > EXCEL_ERROR_MESSAGE_MAX_LENGTH) {
-    throw new Error(`Template validation message exceeds Excel's ${EXCEL_ERROR_MESSAGE_MAX_LENGTH}-character limit: ${validation.error}`);
+    throw new Error(
+      `Template validation message exceeds Excel's ${EXCEL_ERROR_MESSAGE_MAX_LENGTH}-character limit: ${validation.error}`,
+    );
   }
   return {
     ...validation,

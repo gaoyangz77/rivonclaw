@@ -6,8 +6,7 @@ const MAX_PAYLOAD_LENGTH = 6_144;
 const MAX_CAMPAIGN_LENGTH = 128;
 const MAX_PATH_LENGTH = 512;
 const MAX_DOMAIN_LENGTH = 255;
-const ATTRIBUTION_ID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ATTRIBUTION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface MarketingTouch {
   source: string;
@@ -54,7 +53,11 @@ function cleanPath(value: unknown): string {
 function cleanDomain(value: unknown): string | undefined {
   const domain = cleanText(value, MAX_DOMAIN_LENGTH).toLowerCase();
   if (!domain) return undefined;
-  if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(domain)) {
+  if (
+    !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(
+      domain,
+    )
+  ) {
     return undefined;
   }
   return domain;
@@ -102,12 +105,7 @@ export function normalizeMarketingAttribution(value: unknown): MarketingAttribut
   const attributionId = cleanText(input.attributionId, 36);
   const firstTouch = normalizeTouch(input.firstTouch);
   const lastTouch = normalizeTouch(input.lastTouch);
-  if (
-    input.version !== 1 ||
-    !ATTRIBUTION_ID_RE.test(attributionId) ||
-    !firstTouch ||
-    !lastTouch
-  ) {
+  if (input.version !== 1 || !ATTRIBUTION_ID_RE.test(attributionId) || !firstTouch || !lastTouch) {
     return undefined;
   }
   return {
@@ -118,7 +116,9 @@ export function normalizeMarketingAttribution(value: unknown): MarketingAttribut
   };
 }
 
-export function parseMarketingAttributionDeepLink(rawUrl: string): MarketingAttribution | undefined {
+export function parseMarketingAttributionDeepLink(
+  rawUrl: string,
+): MarketingAttribution | undefined {
   if (!rawUrl || rawUrl.length > MAX_DEEP_LINK_LENGTH) return undefined;
   let parsed: URL;
   try {

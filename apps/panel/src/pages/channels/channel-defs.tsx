@@ -8,32 +8,43 @@ export {
   type MstChannelAccountLike,
 } from "../../lib/channel-accounts.js";
 
-type DisplayStatus = boolean | null | undefined | "activation-required" | "reauth-required" | "send-unavailable";
+type DisplayStatus =
+  | boolean
+  | null
+  | undefined
+  | "activation-required"
+  | "reauth-required"
+  | "send-unavailable";
 
 export function StatusBadge({ status, t }: { status: DisplayStatus; t: (key: string) => string }) {
-  const tone: TkBadgeTone = status === true
-    ? "success"
-    : status === false || status === "activation-required" || status === "reauth-required"
-      ? "danger"
-      : "warning";
-  const text = status === true
-    ? t("channels.statusYes")
-    : status === false
-      ? t("channels.statusNo")
-      : status === "activation-required"
-        ? t("channels.statusWeChatActivationRequired")
-        : status === "reauth-required"
-          ? t("channels.statusWeChatReauthRequired")
-          : status === "send-unavailable"
-            ? t("channels.statusWeChatSendUnavailable")
-            : t("channels.statusUnknown");
+  const tone: TkBadgeTone =
+    status === true
+      ? "success"
+      : status === false || status === "activation-required" || status === "reauth-required"
+        ? "danger"
+        : "warning";
+  const text =
+    status === true
+      ? t("channels.statusYes")
+      : status === false
+        ? t("channels.statusNo")
+        : status === "activation-required"
+          ? t("channels.statusWeChatActivationRequired")
+          : status === "reauth-required"
+            ? t("channels.statusWeChatReauthRequired")
+            : status === "send-unavailable"
+              ? t("channels.statusWeChatSendUnavailable")
+              : t("channels.statusUnknown");
 
   return <TkBadge tone={tone}>{text}</TkBadge>;
 }
 
 export function resolveDisplayedRunningStatus(
   channelId: string,
-  account: Pick<ChannelAccountSnapshot, "running" | "connected" | "healthy" | "healthState" | "contextTokenReady">,
+  account: Pick<
+    ChannelAccountSnapshot,
+    "running" | "connected" | "healthy" | "healthState" | "contextTokenReady"
+  >,
 ): DisplayStatus {
   if (channelId !== "openclaw-weixin") {
     return account.running;
@@ -47,11 +58,7 @@ export function resolveDisplayedRunningStatus(
   if (account.contextTokenReady === false) {
     return "activation-required";
   }
-  if (
-    account.running === false ||
-    account.connected === false ||
-    account.healthy === false
-  ) {
+  if (account.running === false || account.connected === false || account.healthy === false) {
     return false;
   }
   if (account.contextTokenReady === true) {

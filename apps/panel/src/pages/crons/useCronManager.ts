@@ -25,7 +25,13 @@ export interface CronManager {
   removeJob: (id: string) => Promise<void>;
   runJob: (id: string, mode?: "due" | "force") => Promise<unknown>;
   toggleEnabled: (id: string, enabled: boolean) => Promise<CronJob>;
-  fetchRuns: (params: { id?: string; scope?: "job" | "all"; limit?: number; offset?: number; sortDir?: "asc" | "desc" }) => Promise<CronRunsResult>;
+  fetchRuns: (params: {
+    id?: string;
+    scope?: "job" | "all";
+    limit?: number;
+    offset?: number;
+    sortDir?: "asc" | "desc";
+  }) => Promise<CronRunsResult>;
   fetchStatus: () => Promise<CronStatus>;
 }
 
@@ -50,7 +56,13 @@ export function useCronManager(): CronManager {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const listParamsRef = useRef<CronListParams>({ limit: 100, offset: 0, enabled: "all", sortBy: "nextRunAtMs", sortDir: "asc" });
+  const listParamsRef = useRef<CronListParams>({
+    limit: 100,
+    offset: 0,
+    enabled: "all",
+    sortBy: "nextRunAtMs",
+    sortDir: "asc",
+  });
 
   const refreshJobs = useCallback(async (client: GatewayChatClient) => {
     try {
@@ -114,11 +126,14 @@ export function useCronManager(): CronManager {
     };
   }, [refreshJobs]);
 
-  const fetchJobs = useCallback(async (params?: CronListParams) => {
-    if (params) listParamsRef.current = { ...listParamsRef.current, ...params };
-    if (!clientRef.current) return;
-    await refreshJobs(clientRef.current);
-  }, [refreshJobs]);
+  const fetchJobs = useCallback(
+    async (params?: CronListParams) => {
+      if (params) listParamsRef.current = { ...listParamsRef.current, ...params };
+      if (!clientRef.current) return;
+      await refreshJobs(clientRef.current);
+    },
+    [refreshJobs],
+  );
 
   const addJob = useCallback(async (params: Record<string, unknown>): Promise<CronJob> => {
     if (!clientRef.current) throw new Error("Not connected");
@@ -126,31 +141,46 @@ export function useCronManager(): CronManager {
     return job;
   }, []);
 
-  const updateJob = useCallback(async (id: string, patch: Record<string, unknown>): Promise<CronJob> => {
-    if (!clientRef.current) throw new Error("Not connected");
-    const job = await clientRef.current.request<CronJob>("cron.update", { id, patch });
-    return job;
-  }, []);
+  const updateJob = useCallback(
+    async (id: string, patch: Record<string, unknown>): Promise<CronJob> => {
+      if (!clientRef.current) throw new Error("Not connected");
+      const job = await clientRef.current.request<CronJob>("cron.update", { id, patch });
+      return job;
+    },
+    [],
+  );
 
   const removeJob = useCallback(async (id: string): Promise<void> => {
     if (!clientRef.current) throw new Error("Not connected");
     await clientRef.current.request("cron.remove", { id });
   }, []);
 
-  const runJob = useCallback(async (id: string, mode: "due" | "force" = "force"): Promise<unknown> => {
-    if (!clientRef.current) throw new Error("Not connected");
-    return clientRef.current.request("cron.run", { id, mode });
-  }, []);
+  const runJob = useCallback(
+    async (id: string, mode: "due" | "force" = "force"): Promise<unknown> => {
+      if (!clientRef.current) throw new Error("Not connected");
+      return clientRef.current.request("cron.run", { id, mode });
+    },
+    [],
+  );
 
   const toggleEnabled = useCallback(async (id: string, enabled: boolean): Promise<CronJob> => {
     if (!clientRef.current) throw new Error("Not connected");
     return clientRef.current.request<CronJob>("cron.update", { id, patch: { enabled } });
   }, []);
 
-  const fetchRuns = useCallback(async (params: { id?: string; scope?: "job" | "all"; limit?: number; offset?: number; sortDir?: "asc" | "desc" }): Promise<CronRunsResult> => {
-    if (!clientRef.current) throw new Error("Not connected");
-    return clientRef.current.request<CronRunsResult>("cron.runs", params);
-  }, []);
+  const fetchRuns = useCallback(
+    async (params: {
+      id?: string;
+      scope?: "job" | "all";
+      limit?: number;
+      offset?: number;
+      sortDir?: "asc" | "desc";
+    }): Promise<CronRunsResult> => {
+      if (!clientRef.current) throw new Error("Not connected");
+      return clientRef.current.request<CronRunsResult>("cron.runs", params);
+    },
+    [],
+  );
 
   const fetchStatus = useCallback(async (): Promise<CronStatus> => {
     if (!clientRef.current) throw new Error("Not connected");

@@ -93,9 +93,9 @@ export class CsEscalationsRepository {
 
   /** Get a single escalation by ID. */
   getById(id: string): CsEscalation | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM cs_escalations WHERE id = ?")
-      .get(id) as CsEscalationRow | undefined;
+    const row = this.db.prepare("SELECT * FROM cs_escalations WHERE id = ?").get(id) as
+      | CsEscalationRow
+      | undefined;
     return row ? rowToEscalation(row) : undefined;
   }
 

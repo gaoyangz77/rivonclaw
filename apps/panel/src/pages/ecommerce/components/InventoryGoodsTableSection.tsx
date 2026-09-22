@@ -278,11 +278,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                               >
                                 {good.name}
                               </TkPrivate>
-                              <TkPrivate
-                                as="div"
-                                className="td-meta input-mono"
-                                title={good.sku}
-                              >
+                              <TkPrivate as="div" className="td-meta input-mono" title={good.sku}>
                                 {good.sku}
                               </TkPrivate>
                             </div>

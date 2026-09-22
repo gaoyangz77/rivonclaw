@@ -11,8 +11,12 @@ test.describe("RivonClaw Welcome Flow", () => {
     await expect(window.locator(".welcome-card")).toBeVisible();
 
     await expect(window.locator("h1", { hasText: /seller account/i })).toBeVisible();
-    await expect(window.locator(".welcome-choice-button", { hasText: /New user registration/i })).toBeVisible();
-    await expect(window.locator(".welcome-choice-button", { hasText: /Existing user login/i })).toBeVisible();
+    await expect(
+      window.locator(".welcome-choice-button", { hasText: /New user registration/i }),
+    ).toBeVisible();
+    await expect(
+      window.locator(".welcome-choice-button", { hasText: /Existing user login/i }),
+    ).toBeVisible();
   });
 
   test("fresh user can open register and login auth flows", async ({ window }) => {
@@ -45,7 +49,10 @@ test.describe("RivonClaw Welcome Flow", () => {
       Boolean(process.env.E2E_EXECUTABLE_PATH),
       "Packaged production builds intentionally disable deterministic captcha mode",
     );
-    test.skip(!testEmail || !testPassword || !captchaToken, "Staging credentials and captcha token are required");
+    test.skip(
+      !testEmail || !testPassword || !captchaToken,
+      "Staging credentials and captcha token are required",
+    );
 
     await expect(window.locator(".welcome-page")).toBeVisible();
     await window.locator(".welcome-choice-button", { hasText: /Existing user login/i }).click();

@@ -30,9 +30,7 @@ type PluginRegistryStateLike = {
 
 export type OpenClawChannelRegistryIssue = {
   channelId: string;
-  reason:
-    | "ACTIVE_HAS_OUTBOUND_CHANNEL_MISSING_OUTBOUND"
-    | "REQUIRED_CHANNEL_MISSING_OUTBOUND";
+  reason: "ACTIVE_HAS_OUTBOUND_CHANNEL_MISSING_OUTBOUND" | "REQUIRED_CHANNEL_MISSING_OUTBOUND";
 };
 
 export type OpenClawChannelRegistryInspection = {
@@ -46,9 +44,11 @@ const PLUGIN_REGISTRY_STATE = Symbol.for("openclaw.pluginRegistryState");
 const DEFAULT_REQUIRED_OUTBOUND_CHANNELS = ["openclaw-weixin", "telegram"];
 
 function getRegistryState(): PluginRegistryStateLike | undefined {
-  return (globalThis as typeof globalThis & {
-    [PLUGIN_REGISTRY_STATE]?: PluginRegistryStateLike;
-  })[PLUGIN_REGISTRY_STATE];
+  return (
+    globalThis as typeof globalThis & {
+      [PLUGIN_REGISTRY_STATE]?: PluginRegistryStateLike;
+    }
+  )[PLUGIN_REGISTRY_STATE];
 }
 
 function getChannelId(entry: ChannelEntry): string | null {
@@ -141,9 +141,7 @@ export function warnIfOpenClawChannelRegistryInvalid(
   return true;
 }
 
-export function assertOpenClawChannelRegistryValid(
-  requiredOutboundChannelIds?: string[],
-): void {
+export function assertOpenClawChannelRegistryValid(requiredOutboundChannelIds?: string[]): void {
   const inspection = inspectOpenClawChannelRegistry(requiredOutboundChannelIds);
   if (inspection.issues.length === 0) {
     return;

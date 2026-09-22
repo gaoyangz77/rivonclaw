@@ -81,11 +81,7 @@ try {
   const configPath = path.join(tmpDir, "openclaw.json");
   fs.writeFileSync(
     configPath,
-    JSON.stringify(
-      { gateway: { port: 0, auth: { mode: "none" } } },
-      null,
-      2,
-    ),
+    JSON.stringify({ gateway: { port: 0, auth: { mode: "none" } } }, null, 2),
     "utf-8",
   );
 
@@ -96,9 +92,7 @@ try {
   const childEnv = Object.assign({}, process.env, {
     OPENCLAW_CONFIG_PATH: configPath,
     OPENCLAW_STATE_DIR: tmpDir,
-    OPENCLAW_BUNDLED_PLUGINS_DIR: fs.existsSync(bundledPluginsDir)
-      ? bundledPluginsDir
-      : "",
+    OPENCLAW_BUNDLED_PLUGINS_DIR: fs.existsSync(bundledPluginsDir) ? bundledPluginsDir : "",
     NODE_COMPILE_CACHE: compileCacheDir,
     OPENCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
     OPENCLAW_NO_RESPAWN: "1",
@@ -127,15 +121,9 @@ try {
 
   // ── Write .version marker ──
 
-  const pkgJson = JSON.parse(
-    fs.readFileSync(path.join(desktopDir, "package.json"), "utf-8"),
-  );
+  const pkgJson = JSON.parse(fs.readFileSync(path.join(desktopDir, "package.json"), "utf-8"));
   const version = pkgJson.version || "unknown";
-  fs.writeFileSync(
-    path.join(compileCacheDir, ".version"),
-    version + "\n",
-    "utf-8",
-  );
+  fs.writeFileSync(path.join(compileCacheDir, ".version"), version + "\n", "utf-8");
 
   // ── Count cache entries ──
 
@@ -149,9 +137,7 @@ try {
     `${TAG} Compile cache warmed successfully (${entryCount} entries, version ${version})`,
   );
 } catch (err) {
-  console.warn(
-    `${TAG} Warmup failed (non-fatal): ${err instanceof Error ? err.message : err}`,
-  );
+  console.warn(`${TAG} Warmup failed (non-fatal): ${err instanceof Error ? err.message : err}`);
 } finally {
   cleanup();
 }

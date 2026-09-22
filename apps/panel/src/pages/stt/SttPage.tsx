@@ -39,7 +39,12 @@ export const SttPage = observer(function SttPage() {
     setEnabled(runtimeStatus.appSettings.sttEnabled);
     const storeProvider = runtimeStatus.appSettings.sttProvider;
     if (storeProvider) setProvider(storeProvider as SttProvider);
-  }, [dirty, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.sttEnabled, runtimeStatus.appSettings.sttProvider]);
+  }, [
+    dirty,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.appSettings.sttEnabled,
+    runtimeStatus.appSettings.sttProvider,
+  ]);
 
   useEffect(() => {
     loadCredentials();
@@ -120,9 +125,7 @@ export const SttPage = observer(function SttPage() {
     <TkPageFrame>
       <TkPageHeader title={t("stt.title")} description={t("stt.description")} />
 
-      {loadError && (
-        <TkAlert tone="danger">{loadError}</TkAlert>
-      )}
+      {loadError && <TkAlert tone="danger">{loadError}</TkAlert>}
 
       <TkPanel as="section" className="section-card stt-section">
         {/* Enable toggle */}
@@ -131,7 +134,10 @@ export const SttPage = observer(function SttPage() {
             <input
               type="checkbox"
               checked={enabled}
-              onChange={(e) => { setEnabled(e.target.checked); setDirty(true); }}
+              onChange={(e) => {
+                setEnabled(e.target.checked);
+                setDirty(true);
+              }}
             />
             <span className="stt-enable-text">{t("stt.enableStt")}</span>
           </label>
@@ -145,7 +151,10 @@ export const SttPage = observer(function SttPage() {
               <div className="form-label">{t("stt.provider")}</div>
               <Select
                 value={provider}
-                onChange={(v) => { setProvider(v as SttProvider); setDirty(true); }}
+                onChange={(v) => {
+                  setProvider(v as SttProvider);
+                  setDirty(true);
+                }}
                 options={[
                   { value: "groq", label: "Groq (Whisper)" },
                   { value: "volcengine", label: "Volcengine (\u706B\u5C71\u5F15\u64CE)" },
@@ -160,9 +169,7 @@ export const SttPage = observer(function SttPage() {
                 <div className="form-label stt-label-with-badge">
                   {t("stt.groqApiKey")}
                   {hasGroqKey && !groqApiKey && (
-                    <span className="badge-saved">
-                      ✓ {t("stt.keySaved")}
-                    </span>
+                    <span className="badge-saved">✓ {t("stt.keySaved")}</span>
                   )}
                 </div>
                 <input
@@ -170,15 +177,15 @@ export const SttPage = observer(function SttPage() {
                   className="input-full input-mono"
                   value={groqApiKey}
                   onChange={(e) => setGroqApiKey(e.target.value)}
-                  placeholder={hasGroqKey ? `${t("stt.groqApiKeyPlaceholder")} (${t("stt.keyNotChanged")})` : t("stt.groqApiKeyPlaceholder")}
+                  placeholder={
+                    hasGroqKey
+                      ? `${t("stt.groqApiKeyPlaceholder")} (${t("stt.keyNotChanged")})`
+                      : t("stt.groqApiKeyPlaceholder")
+                  }
                 />
                 <p className="form-help">
                   {t("stt.groqHelp")}{" "}
-                  <a
-                    href="https://console.groq.com/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
                     console.groq.com/keys
                   </a>
                 </p>
@@ -200,11 +207,7 @@ export const SttPage = observer(function SttPage() {
                       {t("stt.volcentineFreeLink")}
                     </a>
                     <span className="stt-tooltip-wrapper">
-                      <span
-                        className="volcengine-help-trigger stt-help-icon"
-                      >
-                        ?
-                      </span>
+                      <span className="volcengine-help-trigger stt-help-icon">?</span>
                       <div className="volcengine-help-tooltip">
                         <div className="stt-tooltip-title">{t("stt.volcengineStepsTitle")}</div>
                         <div>{t("stt.volcengineStep1")}</div>
@@ -219,9 +222,7 @@ export const SttPage = observer(function SttPage() {
                   <div className="form-label stt-label-with-badge">
                     {t("stt.volcengineAppKey")}
                     {hasVolcengineKeys && !volcengineAppKey && (
-                      <span className="badge-saved">
-                        ✓ {t("stt.keySaved")}
-                      </span>
+                      <span className="badge-saved">✓ {t("stt.keySaved")}</span>
                     )}
                   </div>
                   <input
@@ -229,7 +230,11 @@ export const SttPage = observer(function SttPage() {
                     className="input-full input-mono"
                     value={volcengineAppKey}
                     onChange={(e) => setVolcengineAppKey(e.target.value)}
-                    placeholder={hasVolcengineKeys ? `${t("stt.volcengineAppKeyPlaceholder")} (${t("stt.keyNotChanged")})` : t("stt.volcengineAppKeyPlaceholder")}
+                    placeholder={
+                      hasVolcengineKeys
+                        ? `${t("stt.volcengineAppKeyPlaceholder")} (${t("stt.keyNotChanged")})`
+                        : t("stt.volcengineAppKeyPlaceholder")
+                    }
                   />
                 </div>
 
@@ -240,7 +245,11 @@ export const SttPage = observer(function SttPage() {
                     className="input-full input-mono"
                     value={volcengineAccessKey}
                     onChange={(e) => setVolcengineAccessKey(e.target.value)}
-                    placeholder={hasVolcengineKeys ? `${t("stt.volcengineAccessKeyPlaceholder")} (${t("stt.keyNotChanged")})` : t("stt.volcengineAccessKeyPlaceholder")}
+                    placeholder={
+                      hasVolcengineKeys
+                        ? `${t("stt.volcengineAccessKeyPlaceholder")} (${t("stt.keyNotChanged")})`
+                        : t("stt.volcengineAccessKeyPlaceholder")
+                    }
                   />
                 </div>
 
@@ -267,11 +276,13 @@ export const SttPage = observer(function SttPage() {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? t("common.loading") : (
-              (enabled && ((provider === "groq" && hasGroqKey) || (provider === "volcengine" && hasVolcengineKeys)))
+            {saving
+              ? t("common.loading")
+              : enabled &&
+                  ((provider === "groq" && hasGroqKey) ||
+                    (provider === "volcengine" && hasVolcengineKeys))
                 ? t("stt.update")
-                : t("common.save")
-            )}
+                : t("common.save")}
           </TkButton>
         </div>
       </TkPanel>

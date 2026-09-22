@@ -1835,9 +1835,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     )}
                   </span>
                   {campaignSkipsDirectMessage(selectedCampaign.firstTouchMode) ? (
-                    <span
-                      className="affiliate-campaign-modal-commission affiliate-campaign-modal-first-touch"
-                    >
+                    <span className="affiliate-campaign-modal-commission affiliate-campaign-modal-first-touch">
                       {t("ecommerce.affiliateCampaign.noDirectMessage")}
                     </span>
                   ) : (
@@ -1924,20 +1922,20 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
                 {messageTemplateOpen &&
                   !campaignSkipsDirectMessage(selectedCampaign.firstTouchMode) && (
-                  <div
-                    className="affiliate-campaign-modal-template data-card-hover"
-                    role="region"
-                    aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
-                  >
-                    <div className="affiliate-campaign-modal-template-heading">
-                      <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
-                      <button type="button" onClick={() => void copyFirstMessage()}>
-                        {t("ecommerce.affiliateCampaign.copyFirstMessage")}
-                      </button>
+                    <div
+                      className="affiliate-campaign-modal-template data-card-hover"
+                      role="region"
+                      aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
+                    >
+                      <div className="affiliate-campaign-modal-template-heading">
+                        <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
+                        <button type="button" onClick={() => void copyFirstMessage()}>
+                          {t("ecommerce.affiliateCampaign.copyFirstMessage")}
+                        </button>
+                      </div>
+                      <p>{selectedCampaign.messageTemplateText}</p>
                     </div>
-                    <p>{selectedCampaign.messageTemplateText}</p>
-                  </div>
-                )}
+                  )}
               </section>
 
               <section className="affiliate-campaign-kpi-strip data-card-hover">
@@ -2393,21 +2391,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(creatorStatesQuery.data?.affiliateCampaignCreatorStates?.items ?? []).map(
-                            (state) => (
-                              <CampaignCreatorStateRow
-                                key={state.id}
-                                state={state}
-                                t={t}
-                                waitingForTargetCollaborationQuota={Boolean(
-                                  targetCollaborationQuota?.active,
-                                )}
-                                onOpen={() =>
-                                  setSelectedCreatorDetail(campaignCreatorDetailItem(state))
-                                }
-                              />
-                            ),
-                          )}
+                          {(
+                            creatorStatesQuery.data?.affiliateCampaignCreatorStates?.items ?? []
+                          ).map((state) => (
+                            <CampaignCreatorStateRow
+                              key={state.id}
+                              state={state}
+                              t={t}
+                              waitingForTargetCollaborationQuota={Boolean(
+                                targetCollaborationQuota?.active,
+                              )}
+                              onOpen={() =>
+                                setSelectedCreatorDetail(campaignCreatorDetailItem(state))
+                              }
+                            />
+                          ))}
                         </tbody>
                         {creatorStatesNextCursor && (
                           <tfoot>
@@ -3504,7 +3502,9 @@ function CampaignCreatorStateRow({
         <span className={`affiliate-campaign-disposition is-${disposition}`}>
           {t(`ecommerce.affiliateCampaign.disposition.${disposition}`)}
         </span>
-        {outreachReason && <small title={state.decisionReason ?? undefined}>{outreachReason}</small>}
+        {outreachReason && (
+          <small title={state.decisionReason ?? undefined}>{outreachReason}</small>
+        )}
       </td>
       <td className="affiliate-campaign-sent-at">
         {state.reachedOutAt ? (

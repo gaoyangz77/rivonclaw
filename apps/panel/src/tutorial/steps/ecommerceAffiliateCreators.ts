@@ -1,5 +1,5 @@
-import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { tutorialTarget } from "../targets.js";
 
 function step(
   id: string,
@@ -15,7 +15,7 @@ function step(
     bodyKey: `tutorial.ecommerceAffiliateCreators.${key}Body`,
     placement,
     targetTimeoutMs,
-  }
+  };
 }
 
 export const ecommerceAffiliateCreatorsSteps: TutorialStep[] = [
@@ -23,4 +23,4 @@ export const ecommerceAffiliateCreatorsSteps: TutorialStep[] = [
   step("affiliate-creators-controls", "affiliate-creators-controls", "controls", "bottom"),
   step("affiliate-creators-filters", "affiliate-creators-filters", "filters", "top"),
   step("affiliate-creators-results", "affiliate-creators-results", "results", "top", 5000),
-]
+];

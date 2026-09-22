@@ -94,11 +94,7 @@ export async function loadGatewayToolCatalogTools(
     }
 
     if (attempt === maxAttempts) {
-      const error = new CloudToolsNotReadyError(
-        maxAttempts,
-        status.toolCount,
-        catalogToolCount,
-      );
+      const error = new CloudToolsNotReadyError(maxAttempts, status.toolCount, catalogToolCount);
       options.logger?.warn(
         `${error.message}; refusing to initialize ToolCapability with an incomplete catalog`,
         error,
@@ -129,9 +125,8 @@ function flattenGatewayCatalog(catalog: GatewayCatalog): GatewayCatalogTool[] {
 }
 
 function countCloudTools(tools: readonly GatewayCatalogTool[]): number {
-  return tools.filter(
-    (tool) => tool.source === "plugin" && tool.pluginId === CLOUD_TOOLS_PLUGIN_ID,
-  ).length;
+  return tools.filter((tool) => tool.source === "plugin" && tool.pluginId === CLOUD_TOOLS_PLUGIN_ID)
+    .length;
 }
 
 async function getCloudToolsStatus(

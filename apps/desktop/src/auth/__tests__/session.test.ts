@@ -11,8 +11,12 @@ function makeSecretStore(): SecretStore {
   const store = new Map<string, string>();
   return {
     get: vi.fn(async (key: string) => store.get(key)),
-    set: vi.fn(async (key: string, value: string) => { store.set(key, value); }),
-    delete: vi.fn(async (key: string) => { store.delete(key); }),
+    set: vi.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
+    delete: vi.fn(async (key: string) => {
+      store.delete(key);
+    }),
   } as unknown as SecretStore;
 }
 
@@ -44,11 +48,7 @@ describe("AuthSessionManager secure storage", () => {
 
   it("marks secure storage healthy after tokens are persisted", async () => {
     const secretStore = makeSecretStore();
-    const manager = new AuthSessionManager(
-      secretStore,
-      "en",
-      vi.fn() as unknown as typeof fetch,
-    );
+    const manager = new AuthSessionManager(secretStore, "en", vi.fn() as unknown as typeof fetch);
 
     await manager.storeTokens("access", "refresh");
     expect(manager.isSecureStorageAvailable()).toBe(true);
@@ -60,11 +60,7 @@ describe("AuthSessionManager secure storage", () => {
 
   it("emits credentials changes once per actual token change and supports unsubscribe", async () => {
     const secretStore = makeSecretStore();
-    const manager = new AuthSessionManager(
-      secretStore,
-      "en",
-      vi.fn() as unknown as typeof fetch,
-    );
+    const manager = new AuthSessionManager(secretStore, "en", vi.fn() as unknown as typeof fetch);
     const listener = vi.fn();
     const unsubscribe = manager.onCredentialsChanged(listener);
 
@@ -84,11 +80,7 @@ describe("AuthSessionManager secure storage", () => {
 
   it("emits cleared before secure storage deletion failures", async () => {
     const secretStore = makeSecretStore();
-    const manager = new AuthSessionManager(
-      secretStore,
-      "en",
-      vi.fn() as unknown as typeof fetch,
-    );
+    const manager = new AuthSessionManager(secretStore, "en", vi.fn() as unknown as typeof fetch);
     await manager.storeTokens("access", "refresh");
     const listener = vi.fn();
     manager.onCredentialsChanged(listener);
@@ -104,11 +96,7 @@ describe("AuthSessionManager secure storage", () => {
 
   it("does not let credential listener failures interrupt token storage", async () => {
     const secretStore = makeSecretStore();
-    const manager = new AuthSessionManager(
-      secretStore,
-      "en",
-      vi.fn() as unknown as typeof fetch,
-    );
+    const manager = new AuthSessionManager(secretStore, "en", vi.fn() as unknown as typeof fetch);
     manager.onCredentialsChanged(async () => {
       throw new Error("listener failed");
     });
@@ -200,25 +188,33 @@ describe("AuthSessionManager Google sign-in", () => {
       vi.fn().mockResolvedValue({
         status: 200,
         json: async () => ({
-          errors: [{
-            message: "Link required",
-            extensions: { code: "GOOGLE_ACCOUNT_LINK_REQUIRED" },
-          }],
+          errors: [
+            {
+              message: "Link required",
+              extensions: { code: "GOOGLE_ACCOUNT_LINK_REQUIRED" },
+            },
+          ],
         }),
       }) as unknown as typeof fetch,
     );
 
-    await expect(manager.loginWithGoogle({
-      idToken: "google-id-token",
-      nonce: "nonce",
-    })).rejects.toEqual(expect.objectContaining({
-      name: "GraphqlRequestError",
-      code: "GOOGLE_ACCOUNT_LINK_REQUIRED",
-    }));
-    await expect(manager.loginWithGoogle({
-      idToken: "google-id-token",
-      nonce: "nonce",
-    })).rejects.toBeInstanceOf(GraphqlRequestError);
+    await expect(
+      manager.loginWithGoogle({
+        idToken: "google-id-token",
+        nonce: "nonce",
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: "GraphqlRequestError",
+        code: "GOOGLE_ACCOUNT_LINK_REQUIRED",
+      }),
+    );
+    await expect(
+      manager.loginWithGoogle({
+        idToken: "google-id-token",
+        nonce: "nonce",
+      }),
+    ).rejects.toBeInstanceOf(GraphqlRequestError);
   });
 
   it("stores only the TK Copilot token pair returned by googleLogin", async () => {
@@ -235,22 +231,17 @@ describe("AuthSessionManager Google sign-in", () => {
         },
       }),
     });
-    const manager = new AuthSessionManager(
-      secretStore,
-      "en",
-      fetchFn as unknown as typeof fetch,
-    );
+    const manager = new AuthSessionManager(secretStore, "en", fetchFn as unknown as typeof fetch);
 
-    await expect(manager.loginWithGoogle({
-      idToken: "google-id-token",
-      nonce: "desktop-nonce",
-    })).resolves.toEqual(mockUser);
+    await expect(
+      manager.loginWithGoogle({
+        idToken: "google-id-token",
+        nonce: "desktop-nonce",
+      }),
+    ).resolves.toEqual(mockUser);
     expect(secretStore.set).toHaveBeenCalledWith("auth.accessToken", "tk-access");
     expect(secretStore.set).toHaveBeenCalledWith("auth.refreshToken", "tk-refresh");
-    expect(secretStore.set).not.toHaveBeenCalledWith(
-      expect.any(String),
-      "google-id-token",
-    );
+    expect(secretStore.set).not.toHaveBeenCalledWith(expect.any(String), "google-id-token");
   });
 });
 
@@ -435,7 +426,9 @@ describe("AuthSessionManager.refresh", () => {
       }),
     });
 
-    await expect(manager.refresh({ clearOnInvalid: true })).rejects.toThrow("Authentication required");
+    await expect(manager.refresh({ clearOnInvalid: true })).rejects.toThrow(
+      "Authentication required",
+    );
 
     expect(manager.getAccessToken()).toBe("stale-at");
     expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
@@ -470,10 +463,12 @@ describe("AuthSessionManager.refresh", () => {
     fetchFn.mockResolvedValueOnce({
       status: 200,
       json: async () => ({
-        errors: [{
-          message: "invalid signature",
-          extensions: { code: "REFRESH_TOKEN_REVOKED" },
-        }],
+        errors: [
+          {
+            message: "invalid signature",
+            extensions: { code: "REFRESH_TOKEN_REVOKED" },
+          },
+        ],
       }),
     });
 
@@ -562,9 +557,9 @@ describe("AuthSessionManager.refresh", () => {
         }),
       });
 
-    await expect(
-      manager.graphqlFetch("query CreateCsSession { shops { id } }"),
-    ).rejects.toThrow("invalid signature");
+    await expect(manager.graphqlFetch("query CreateCsSession { shops { id } }")).rejects.toThrow(
+      "invalid signature",
+    );
 
     expect(manager.getAccessToken()).toBe("stale-at");
     expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
@@ -588,7 +583,9 @@ describe("AuthSessionManager.refresh", () => {
       });
 
     await expect(
-      manager.graphqlFetch("query ValidateMe { me { userId } }", undefined, { clearOnInvalidRefresh: true }),
+      manager.graphqlFetch("query ValidateMe { me { userId } }", undefined, {
+        clearOnInvalidRefresh: true,
+      }),
     ).rejects.toThrow("invalid signature");
 
     expect(manager.getAccessToken()).toBe("stale-at");

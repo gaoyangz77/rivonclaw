@@ -25,9 +25,7 @@ const AUTH_ERROR_MAP: Record<string, string> = {
 };
 
 /** Error messages that indicate the email is not registered — triggers auto-register. */
-const AUTO_REGISTER_ERRORS = new Set([
-  "Email not registered",
-]);
+const AUTO_REGISTER_ERRORS = new Set(["Email not registered"]);
 
 function translateAuthError(err: unknown, t: TFunction): string {
   const raw = formatError(err);
@@ -56,9 +54,10 @@ interface BrowserAuthFlow {
 }
 
 function translateGoogleError(error: unknown, t: TFunction): string {
-  const code = (error as { code?: string; errorCode?: string } | null)?.code
-    ?? (error as { errorCode?: string } | null)?.errorCode
-    ?? formatError(error);
+  const code =
+    (error as { code?: string; errorCode?: string } | null)?.code ??
+    (error as { errorCode?: string } | null)?.errorCode ??
+    formatError(error);
   if (code === "GOOGLE_AUTH_TIMEOUT") return t("auth.googleTimeout");
   if (code === "GOOGLE_AUTH_UNAVAILABLE") return t("auth.googleUnavailable");
   return t("auth.googleError");
@@ -67,10 +66,22 @@ function translateGoogleError(error: unknown, t: TFunction): string {
 function GoogleMark() {
   return (
     <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
-      <path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.482h4.844a4.14 4.14 0 0 1-1.797 2.715v2.258h2.909c1.702-1.567 2.684-3.875 2.684-6.614Z" />
-      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.181l-2.91-2.258c-.805.54-1.835.86-3.046.86-2.344 0-4.328-1.585-5.037-3.714H.955v2.332A9 9 0 0 0 9 18Z" />
-      <path fill="#FBBC05" d="M3.963 10.707A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.168.281-1.707V4.961H.955A9 9 0 0 0 0 9c0 1.452.347 2.827.955 4.039l3.008-2.332Z" />
-      <path fill="#EA4335" d="M9 3.58c1.322 0 2.508.454 3.441 1.346l2.582-2.582C13.463.892 11.426 0 9 0A9 9 0 0 0 .955 4.961l3.008 2.332C4.672 5.164 6.656 3.58 9 3.58Z" />
+      <path
+        fill="#4285F4"
+        d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.482h4.844a4.14 4.14 0 0 1-1.797 2.715v2.258h2.909c1.702-1.567 2.684-3.875 2.684-6.614Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.467-.806 5.956-2.181l-2.91-2.258c-.805.54-1.835.86-3.046.86-2.344 0-4.328-1.585-5.037-3.714H.955v2.332A9 9 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.963 10.707A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.168.281-1.707V4.961H.955A9 9 0 0 0 0 9c0 1.452.347 2.827.955 4.039l3.008-2.332Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.322 0 2.508.454 3.441 1.346l2.582-2.582C13.463.892 11.426 0 9 0A9 9 0 0 0 .955 4.961l3.008 2.332C4.672 5.164 6.656 3.58 9 3.58Z"
+      />
     </svg>
   );
 }
@@ -116,7 +127,13 @@ function getPasswordChecks(pw: string) {
   };
 }
 
-export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = "tabs", onSuccess }: AuthModalProps) {
+export function AuthModal({
+  isOpen,
+  onClose,
+  initialTab = "login",
+  modeSwitch = "tabs",
+  onSuccess,
+}: AuthModalProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const login = entityStore.login;
@@ -162,9 +179,12 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     setCaptchaAnswer("");
     setCaptchaError(false);
     try {
-      const data = await fetchJson<{ token: string; svg: string }>(clientPath(API["auth.requestCaptcha"]), {
-        method: "POST",
-      });
+      const data = await fetchJson<{ token: string; svg: string }>(
+        clientPath(API["auth.requestCaptcha"]),
+        {
+          method: "POST",
+        },
+      );
       if (data) {
         setCaptchaToken(data.token);
         setCaptchaSvg(data.svg);
@@ -202,9 +222,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
       const flow = await fetchJson<GoogleAuthFlow>(clientPath(API["auth.googleStart"]), {
         method: "POST",
         body: JSON.stringify({
-          inviteCode: activeTab === "register"
-            ? inviteCode.trim().toUpperCase() || null
-            : null,
+          inviteCode: activeTab === "register" ? inviteCode.trim().toUpperCase() || null : null,
         }),
       });
       setGoogleFlow(flow);
@@ -465,30 +483,35 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
               : t("auth.subtitleRegister")}
         </p>
 
-        {!googlePending && !browserPending && !googleLinkRequired && (compactModeSwitch ? (
-          <p className="auth-inline-switch">
-            <span>
-              {activeTab === "login" ? t("auth.switchToRegisterPrompt") : t("auth.switchToLoginPrompt")}
-            </span>
-            <button
-              type="button"
-              className="auth-inline-switch-btn"
-              onClick={() => switchTab(activeTab === "login" ? "register" : "login")}
-            >
-              {activeTab === "login" ? t("auth.register") : t("auth.login")}
-            </button>
-          </p>
-        ) : (
-          <TkTabs
-            items={[
-              { id: "login", label: t("auth.login") },
-              { id: "register", label: t("auth.register") },
-            ]}
-            value={activeTab}
-            onChange={(value) => switchTab(value as "login" | "register")}
-            label={modalTitle}
-          />
-        ))}
+        {!googlePending &&
+          !browserPending &&
+          !googleLinkRequired &&
+          (compactModeSwitch ? (
+            <p className="auth-inline-switch">
+              <span>
+                {activeTab === "login"
+                  ? t("auth.switchToRegisterPrompt")
+                  : t("auth.switchToLoginPrompt")}
+              </span>
+              <button
+                type="button"
+                className="auth-inline-switch-btn"
+                onClick={() => switchTab(activeTab === "login" ? "register" : "login")}
+              >
+                {activeTab === "login" ? t("auth.register") : t("auth.login")}
+              </button>
+            </p>
+          ) : (
+            <TkTabs
+              items={[
+                { id: "login", label: t("auth.login") },
+                { id: "register", label: t("auth.register") },
+              ]}
+              value={activeTab}
+              onChange={(value) => switchTab(value as "login" | "register")}
+              label={modalTitle}
+            />
+          ))}
 
         {error && <TkAlert tone="danger">{error}</TkAlert>}
 
@@ -531,10 +554,20 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
             <strong>{t("auth.googleWaiting")}</strong>
             <p>{t("auth.googleWaitingHint")}</p>
             <div className="google-auth-waiting-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => void cancelGoogleFlow(googleFlow.flowId).then(() => setGoogleFlow(null))}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() =>
+                  void cancelGoogleFlow(googleFlow.flowId).then(() => setGoogleFlow(null))
+                }
+              >
                 {t("auth.googleCancel")}
               </button>
-              <button type="button" className="btn btn-primary" onClick={() => void retryGoogleFlow()}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void retryGoogleFlow()}
+              >
                 {t("auth.googleRetry")}
               </button>
             </div>
@@ -588,7 +621,12 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
                     {captchaError ? "!" : "..."}
                   </div>
                 )}
-                <button type="button" className="captcha-row-refresh" onClick={refreshCaptcha} aria-label={t("auth.captchaRefresh")}>
+                <button
+                  type="button"
+                  className="captcha-row-refresh"
+                  onClick={refreshCaptcha}
+                  aria-label={t("auth.captchaRefresh")}
+                >
                   <RefreshIcon />
                 </button>
               </div>
@@ -596,7 +634,13 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
             <button type="submit" className="btn btn-primary auth-submit-btn" disabled={submitting}>
               {submitting ? t("common.loading") : t("auth.googleLinkAction")}
             </button>
-            <button type="button" className="google-link-cancel" onClick={() => void cancelGoogleFlow(googleFlow.flowId).then(() => setGoogleFlow(null))}>
+            <button
+              type="button"
+              className="google-link-cancel"
+              onClick={() =>
+                void cancelGoogleFlow(googleFlow.flowId).then(() => setGoogleFlow(null))
+              }
+            >
               {t("auth.googleCancel")}
             </button>
           </form>
@@ -608,7 +652,9 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
               onClick={() => void startBrowserFlow()}
               disabled={browserStarting}
             >
-              <span className="google-auth-mark"><BrowserMark /></span>
+              <span className="google-auth-mark">
+                <BrowserMark />
+              </span>
               <span>
                 {browserStarting
                   ? t("auth.browserLoginOpening")
@@ -628,8 +674,12 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
                   onClick={() => void startGoogleFlow()}
                   disabled={googleStarting}
                 >
-                  <span className="google-auth-mark"><GoogleMark /></span>
-                  <span>{googleStarting ? t("auth.googleOpeningBrowser") : t("auth.googleContinue")}</span>
+                  <span className="google-auth-mark">
+                    <GoogleMark />
+                  </span>
+                  <span>
+                    {googleStarting ? t("auth.googleOpeningBrowser") : t("auth.googleContinue")}
+                  </span>
                 </button>
                 <div className="google-auth-divider">
                   <span>{t("auth.googleDivider")}</span>
@@ -637,135 +687,161 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
               </>
             )}
             <form onSubmit={handleSubmit} className="auth-form">
-          <label className="form-label-block">
-            {t("auth.email")}
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              maxLength={254}
-              autoComplete="email"
-              className="auth-input"
-            />
-          </label>
+              <label className="form-label-block">
+                {t("auth.email")}
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  maxLength={254}
+                  autoComplete="email"
+                  className="auth-input"
+                />
+              </label>
 
-          <div className="auth-password-field">
-            <div className="auth-password-header">
-              <span className="form-label-block">{t("auth.password")}</span>
-              {activeTab === "login" && (
-                <button type="button" className="auth-forgot-link" tabIndex={-1} onClick={() => showToast(t("auth.forgotPasswordHint"))}>
-                  {t("auth.forgotPassword")}
-                </button>
+              <div className="auth-password-field">
+                <div className="auth-password-header">
+                  <span className="form-label-block">{t("auth.password")}</span>
+                  {activeTab === "login" && (
+                    <button
+                      type="button"
+                      className="auth-forgot-link"
+                      tabIndex={-1}
+                      onClick={() => showToast(t("auth.forgotPasswordHint"))}
+                    >
+                      {t("auth.forgotPassword")}
+                    </button>
+                  )}
+                </div>
+                <div className="auth-input-wrap">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    maxLength={72}
+                    autoComplete={activeTab === "login" ? "current-password" : "new-password"}
+                    className="auth-input auth-input--has-toggle"
+                  />
+                  <button
+                    type="button"
+                    className="auth-pw-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={t("auth.showPassword")}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+                {activeTab === "register" && password.length > 0 && (
+                  <div className="auth-strength">
+                    <div className="auth-strength-bar">
+                      <div
+                        className={`auth-strength-fill auth-strength--${pwStrength <= 1 ? "weak" : pwStrength <= 2 ? "fair" : pwStrength <= 3 ? "good" : "strong"}`}
+                        style={{ width: `${(pwStrength / 4) * 100}%` }}
+                      />
+                    </div>
+                    <span
+                      className={`auth-strength-label auth-strength--${pwStrength <= 1 ? "weak" : pwStrength <= 2 ? "fair" : pwStrength <= 3 ? "good" : "strong"}`}
+                    >
+                      {t(
+                        `auth.strength${pwStrength <= 1 ? "Weak" : pwStrength <= 2 ? "Fair" : pwStrength <= 3 ? "Good" : "Strong"}`,
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {activeTab === "register" && (
+                <label className="form-label-block">
+                  {t("auth.inviteCode")}
+                  <input
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) =>
+                      setInviteCode(
+                        e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9]/g, "")
+                          .slice(0, 6),
+                      )
+                    }
+                    maxLength={6}
+                    autoComplete="off"
+                    placeholder={t("auth.inviteCodePlaceholder")}
+                    className="auth-input auth-input-code"
+                  />
+                  <span className="form-hint">{t("auth.inviteCodeHint")}</span>
+                </label>
               )}
-            </div>
-            <div className="auth-input-wrap">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                maxLength={72}
-                autoComplete={activeTab === "login" ? "current-password" : "new-password"}
-                className="auth-input auth-input--has-toggle"
-              />
-              <button
-                type="button"
-                className="auth-pw-toggle"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={t("auth.showPassword")}
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
-            </div>
-            {activeTab === "register" && password.length > 0 && (
-              <div className="auth-strength">
-                <div className="auth-strength-bar">
-                  <div
-                    className={`auth-strength-fill auth-strength--${pwStrength <= 1 ? "weak" : pwStrength <= 2 ? "fair" : pwStrength <= 3 ? "good" : "strong"}`}
-                    style={{ width: `${(pwStrength / 4) * 100}%` }}
+
+              <div className="captcha-row">
+                <div className="captcha-row-input">
+                  <input
+                    type="text"
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    required
+                    maxLength={4}
+                    placeholder={t("auth.captchaPlaceholder")}
+                    className="auth-input"
+                    autoComplete="off"
                   />
                 </div>
-                <span className={`auth-strength-label auth-strength--${pwStrength <= 1 ? "weak" : pwStrength <= 2 ? "fair" : pwStrength <= 3 ? "good" : "strong"}`}>
-                  {t(`auth.strength${pwStrength <= 1 ? "Weak" : pwStrength <= 2 ? "Fair" : pwStrength <= 3 ? "Good" : "Strong"}`)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {activeTab === "register" && (
-            <label className="form-label-block">
-              {t("auth.inviteCode")}
-              <input
-                type="text"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
-                maxLength={6}
-                autoComplete="off"
-                placeholder={t("auth.inviteCodePlaceholder")}
-                className="auth-input auth-input-code"
-              />
-              <span className="form-hint">{t("auth.inviteCodeHint")}</span>
-            </label>
-          )}
-
-          <div className="captcha-row">
-            <div className="captcha-row-input">
-              <input
-                type="text"
-                value={captchaAnswer}
-                onChange={(e) => setCaptchaAnswer(e.target.value)}
-                required
-                maxLength={4}
-                placeholder={t("auth.captchaPlaceholder")}
-                className="auth-input"
-                autoComplete="off"
-              />
-            </div>
-            <div className="captcha-row-image">
-              {captchaSvg ? (
-                <div className="captcha-svg" dangerouslySetInnerHTML={{ __html: captchaSvg }} />
-              ) : (
-                <div className="captcha-svg captcha-placeholder" onClick={refreshCaptcha}>
-                  {captchaError ? "!" : "..."}
+                <div className="captcha-row-image">
+                  {captchaSvg ? (
+                    <div className="captcha-svg" dangerouslySetInnerHTML={{ __html: captchaSvg }} />
+                  ) : (
+                    <div className="captcha-svg captcha-placeholder" onClick={refreshCaptcha}>
+                      {captchaError ? "!" : "..."}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="captcha-row-refresh"
+                    onClick={refreshCaptcha}
+                    aria-label={t("auth.captchaRefresh")}
+                  >
+                    <RefreshIcon />
+                  </button>
                 </div>
+              </div>
+
+              {activeTab === "register" && (
+                <label className="auth-agreement-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={acceptedUserAgreement}
+                    onChange={(e) => setAcceptedUserAgreement(e.target.checked)}
+                    required
+                  />
+                  <span>
+                    {t("auth.agreeUserAgreementPrefix")}
+                    <a
+                      href={EXTERNAL_LINKS.termsOfService}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="auth-terms-link"
+                    >
+                      {t("auth.userAgreement")}
+                    </a>
+                    {t("auth.agreeUserAgreementSuffix")}
+                  </span>
+                </label>
               )}
-              <button type="button" className="captcha-row-refresh" onClick={refreshCaptcha} aria-label={t("auth.captchaRefresh")}>
-                <RefreshIcon />
+
+              <button
+                type="submit"
+                className="btn btn-primary auth-submit-btn"
+                disabled={submitting}
+              >
+                {submitting
+                  ? t("common.loading")
+                  : activeTab === "login"
+                    ? t("auth.loginAction")
+                    : t("auth.registerAction")}
               </button>
-            </div>
-          </div>
-
-          {activeTab === "register" && (
-            <label className="auth-agreement-checkbox">
-              <input
-                type="checkbox"
-                checked={acceptedUserAgreement}
-                onChange={(e) => setAcceptedUserAgreement(e.target.checked)}
-                required
-              />
-              <span>
-                {t("auth.agreeUserAgreementPrefix")}
-                <a href={EXTERNAL_LINKS.termsOfService} target="_blank" rel="noopener noreferrer" className="auth-terms-link">
-                  {t("auth.userAgreement")}
-                </a>
-                {t("auth.agreeUserAgreementSuffix")}
-              </span>
-            </label>
-          )}
-
-          <button
-            type="submit"
-            className="btn btn-primary auth-submit-btn"
-            disabled={submitting}
-          >
-            {submitting
-              ? t("common.loading")
-              : activeTab === "login"
-                ? t("auth.loginAction")
-                : t("auth.registerAction")}
-          </button>
             </form>
           </>
         )}

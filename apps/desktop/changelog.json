@@ -53,9 +53,7 @@
     "en": [
       "Restore archived customer-service sessions before retrying dispatch, so interrupted conversations can resume normally"
     ],
-    "zh": [
-      "客服会话重试派发前自动从归档状态恢复，确保中断会话能够正常继续"
-    ]
+    "zh": ["客服会话重试派发前自动从归档状态恢复，确保中断会话能够正常继续"]
   },
   {
     "version": "1.9.14",
@@ -312,12 +310,8 @@
   {
     "version": "1.8.114",
     "date": "2026-08-22",
-    "en": [
-      "Fix Windows scheduled and manual cron runs blocked by durable process fencing"
-    ],
-    "zh": [
-      "修复 Windows 上因持久进程锁导致定时与手动 Cron 任务无法运行的问题"
-    ]
+    "en": ["Fix Windows scheduled and manual cron runs blocked by durable process fencing"],
+    "zh": ["修复 Windows 上因持久进程锁导致定时与手动 Cron 任务无法运行的问题"]
   },
   {
     "version": "1.8.113",
@@ -325,29 +319,19 @@
     "en": [
       "Restore channel owner bindings automatically and recover stalled backend subscriptions"
     ],
-    "zh": [
-      "自动修复渠道归属绑定，并恢复卡住的后端订阅连接"
-    ]
+    "zh": ["自动修复渠道归属绑定，并恢复卡住的后端订阅连接"]
   },
   {
     "version": "1.8.112",
     "date": "2026-08-22",
-    "en": [
-      "Activate Feishu customer-service card callbacks through the backend"
-    ],
-    "zh": [
-      "通过后端激活飞书客服卡片回调"
-    ]
+    "en": ["Activate Feishu customer-service card callbacks through the backend"],
+    "zh": ["通过后端激活飞书客服卡片回调"]
   },
   {
     "version": "1.8.111",
     "date": "2026-08-22",
-    "en": [
-      "Add stage-aware D+3, D+7, and D+12 Affiliate sample content follow-up context"
-    ],
-    "zh": [
-      "新增按 D+3、D+7、D+12 分阶段的达人样品内容跟进上下文"
-    ]
+    "en": ["Add stage-aware D+3, D+7, and D+12 Affiliate sample content follow-up context"],
+    "zh": ["新增按 D+3、D+7、D+12 分阶段的达人样品内容跟进上下文"]
   },
   {
     "version": "1.8.110",
@@ -362,22 +346,14 @@
   {
     "version": "1.8.109",
     "date": "2026-08-21",
-    "en": [
-      "Acknowledge Feishu customer-service cards without requiring a chat lookup"
-    ],
-    "zh": [
-      "无需查询会话即可确认飞书客服卡片"
-    ]
+    "en": ["Acknowledge Feishu customer-service cards without requiring a chat lookup"],
+    "zh": ["无需查询会话即可确认飞书客服卡片"]
   },
   {
     "version": "1.8.108",
     "date": "2026-08-20",
-    "en": [
-      "Restore reliable Feishu delivery custody for visible messages"
-    ],
-    "zh": [
-      "恢复飞书可见消息的可靠发送托管"
-    ]
+    "en": ["Restore reliable Feishu delivery custody for visible messages"],
+    "zh": ["恢复飞书可见消息的可靠发送托管"]
   },
   {
     "version": "1.8.107",
@@ -395,29 +371,19 @@
     "en": [
       "Make Affiliate campaign plan generation resilient to partial data and generation failures"
     ],
-    "zh": [
-      "提升达人 Campaign 计划生成对数据缺失与生成异常的容错能力"
-    ]
+    "zh": ["提升达人 Campaign 计划生成对数据缺失与生成异常的容错能力"]
   },
   {
     "version": "1.8.105",
     "date": "2026-08-20",
-    "en": [
-      "Filter Affiliate Agent work by Business Developer across pending and complete work"
-    ],
-    "zh": [
-      "支持按商务开发人员筛选达人 Agent 的待审核与全部工作"
-    ]
+    "en": ["Filter Affiliate Agent work by Business Developer across pending and complete work"],
+    "zh": ["支持按商务开发人员筛选达人 Agent 的待审核与全部工作"]
   },
   {
     "version": "1.8.104",
     "date": "2026-08-19",
-    "en": [
-      "Upgrade the bundled OpenClaw runtime and clarify Affiliate campaign product conflicts"
-    ],
-    "zh": [
-      "升级内置 OpenClaw runtime，并优化达人 Campaign 商品冲突说明"
-    ]
+    "en": ["Upgrade the bundled OpenClaw runtime and clarify Affiliate campaign product conflicts"],
+    "zh": ["升级内置 OpenClaw runtime，并优化达人 Campaign 商品冲突说明"]
   },
   {
     "version": "1.8.103",
@@ -425,9 +391,7 @@
     "en": [
       "Improve Feishu final replies, gateway session recovery, and Affiliate collaboration consistency"
     ],
-    "zh": [
-      "改善飞书最终回复、Gateway 会话恢复与达人协作状态一致性"
-    ]
+    "zh": ["改善飞书最终回复、Gateway 会话恢复与达人协作状态一致性"]
   },
   {
     "version": "1.8.102",
@@ -435,9 +399,7 @@
     "en": [
       "Improve differential update reliability, Feishu connection stability, Affiliate offer editing, and gateway execution approvals"
     ],
-    "zh": [
-      "改善增量更新可靠性、飞书连接稳定性、达人报价编辑与 Gateway 执行审批"
-    ]
+    "zh": ["改善增量更新可靠性、飞书连接稳定性、达人报价编辑与 Gateway 执行审批"]
   },
   {
     "version": "1.8.101",
@@ -455,9 +417,7 @@
     "en": [
       "Expand Affiliate collaboration workflows, bind outreach devices to Business Developers, and improve bundled Desktop plugin support"
     ],
-    "zh": [
-      "扩展达人协作工作流，支持将外联设备绑定至商务开发人员，并改善桌面端内置插件支持"
-    ]
+    "zh": ["扩展达人协作工作流，支持将外联设备绑定至商务开发人员，并改善桌面端内置插件支持"]
   },
   {
     "version": "1.8.99",
@@ -465,9 +425,7 @@
     "en": [
       "Attribute cloud LLM usage by device and improve Affiliate and Product Knowledge form safeguards"
     ],
-    "zh": [
-      "支持按设备归因云端 LLM 用量，并改善达人管理与产品知识表单保护"
-    ]
+    "zh": ["支持按设备归因云端 LLM 用量，并改善达人管理与产品知识表单保护"]
   },
   {
     "version": "1.8.98",
@@ -475,59 +433,37 @@
     "en": [
       "Add Product Knowledge support and exact per-agenda product context for Affiliate workflows"
     ],
-    "zh": [
-      "为达人工作流新增产品知识支持与准确的 Agenda 级商品上下文"
-    ]
+    "zh": ["为达人工作流新增产品知识支持与准确的 Agenda 级商品上下文"]
   },
   {
     "version": "1.8.97",
     "date": "2026-08-10",
-    "en": [
-      "Add updated Desktop and affiliate workflow tutorials"
-    ],
-    "zh": [
-      "新增更新后的桌面端与达人工作流教程"
-    ]
+    "en": ["Add updated Desktop and affiliate workflow tutorials"],
+    "zh": ["新增更新后的桌面端与达人工作流教程"]
   },
   {
     "version": "1.8.96",
     "date": "2026-08-10",
-    "en": [
-      "Improve customer-service session startup and affiliate task retry reliability"
-    ],
-    "zh": [
-      "提升客服会话启动与达人任务重试的可靠性"
-    ]
+    "en": ["Improve customer-service session startup and affiliate task retry reliability"],
+    "zh": ["提升客服会话启动与达人任务重试的可靠性"]
   },
   {
     "version": "1.8.95",
     "date": "2026-08-09",
-    "en": [
-      "Stabilize Gateway startup and channel connection state"
-    ],
-    "zh": [
-      "提升 Gateway 启动与渠道连接状态的稳定性"
-    ]
+    "en": ["Stabilize Gateway startup and channel connection state"],
+    "zh": ["提升 Gateway 启动与渠道连接状态的稳定性"]
   },
   {
     "version": "1.8.94",
     "date": "2026-08-09",
-    "en": [
-      "Update the bundled OpenClaw runtime and add the Groq provider"
-    ],
-    "zh": [
-      "升级内置 OpenClaw runtime，并新增 Groq Provider"
-    ]
+    "en": ["Update the bundled OpenClaw runtime and add the Groq provider"],
+    "zh": ["升级内置 OpenClaw runtime，并新增 Groq Provider"]
   },
   {
     "version": "1.8.93",
     "date": "2026-08-08",
-    "en": [
-      "Recover accepted customer-service runs reliably after Gateway reconnects"
-    ],
-    "zh": [
-      "在 Gateway 重连后可靠恢复已接受的客服任务"
-    ]
+    "en": ["Recover accepted customer-service runs reliably after Gateway reconnects"],
+    "zh": ["在 Gateway 重连后可靠恢复已接受的客服任务"]
   },
   {
     "version": "1.8.92",
@@ -544,22 +480,14 @@
   {
     "version": "1.8.91",
     "date": "2026-08-08",
-    "en": [
-      "Automatically migrate legacy agent workspace state before Gateway startup"
-    ],
-    "zh": [
-      "在 Gateway 启动前自动迁移旧版智能体 workspace 状态"
-    ]
+    "en": ["Automatically migrate legacy agent workspace state before Gateway startup"],
+    "zh": ["在 Gateway 启动前自动迁移旧版智能体 workspace 状态"]
   },
   {
     "version": "1.8.90",
     "date": "2026-08-08",
-    "en": [
-      "Restore Feishu message recipients and escalation card updates"
-    ],
-    "zh": [
-      "恢复飞书消息收件人和升级卡片更新"
-    ]
+    "en": ["Restore Feishu message recipients and escalation card updates"],
+    "zh": ["恢复飞书消息收件人和升级卡片更新"]
   },
   {
     "version": "1.8.89",
@@ -568,10 +496,7 @@
       "Upgrade the bundled OpenClaw runtime with SQLite session improvements",
       "Stabilize the Desktop baseline and gateway startup behavior"
     ],
-    "zh": [
-      "升级内置 OpenClaw runtime，改进 SQLite 会话能力",
-      "增强桌面端基线和 gateway 启动稳定性"
-    ]
+    "zh": ["升级内置 OpenClaw runtime，改进 SQLite 会话能力", "增强桌面端基线和 gateway 启动稳定性"]
   },
   {
     "version": "1.8.88",
@@ -592,10 +517,7 @@
       "Improve affiliate collaboration workflows, creator message handling, and dispatch reliability",
       "Remove the retired Gemini OAuth integration from Desktop"
     ],
-    "zh": [
-      "优化达人协作流程、达人消息处理和派发稳定性",
-      "从桌面端移除已停用的 Gemini OAuth 集成"
-    ]
+    "zh": ["优化达人协作流程、达人消息处理和派发稳定性", "从桌面端移除已停用的 Gemini OAuth 集成"]
   },
   {
     "version": "1.8.86",
@@ -604,20 +526,13 @@
       "Improve affiliate model selection, predicted-sales insights, and comparison workflows",
       "Improve Desktop cloud subscriptions and cold-start recovery"
     ],
-    "zh": [
-      "优化达人模型选择、预估销售洞察和对比工作流",
-      "优化桌面端云端订阅与冷启动恢复"
-    ]
+    "zh": ["优化达人模型选择、预估销售洞察和对比工作流", "优化桌面端云端订阅与冷启动恢复"]
   },
   {
     "version": "1.8.85",
     "date": "2026-08-02",
-    "en": [
-      "Keep Desktop affiliate workflows aligned with the latest GraphQL input requirements"
-    ],
-    "zh": [
-      "让桌面端达人工作流与最新 GraphQL 输入要求保持一致"
-    ]
+    "en": ["Keep Desktop affiliate workflows aligned with the latest GraphQL input requirements"],
+    "zh": ["让桌面端达人工作流与最新 GraphQL 输入要求保持一致"]
   },
   {
     "version": "1.8.84",
@@ -680,40 +595,25 @@
       "Refine affiliate team workflows and protected creator imports",
       "Route desktop website links to the new TK domains"
     ],
-    "zh": [
-      "优化达人团队工作流和受保护达人导入流程",
-      "将桌面端官网链接切换至新的 TK 域名"
-    ]
+    "zh": ["优化达人团队工作流和受保护达人导入流程", "将桌面端官网链接切换至新的 TK 域名"]
   },
   {
     "version": "1.8.79",
     "date": "2026-07-21",
-    "en": [
-      "Refine store onboarding selection for a clearer setup flow"
-    ],
-    "zh": [
-      "优化店铺 onboarding 选择流程，让配置更清晰顺畅"
-    ]
+    "en": ["Refine store onboarding selection for a clearer setup flow"],
+    "zh": ["优化店铺 onboarding 选择流程，让配置更清晰顺畅"]
   },
   {
     "version": "1.8.78",
     "date": "2026-07-21",
-    "en": [
-      "Capture gateway performance diagnostics for faster startup troubleshooting"
-    ],
-    "zh": [
-      "新增 gateway 性能诊断采集，帮助更快排查启动问题"
-    ]
+    "en": ["Capture gateway performance diagnostics for faster startup troubleshooting"],
+    "zh": ["新增 gateway 性能诊断采集，帮助更快排查启动问题"]
   },
   {
     "version": "1.8.77",
     "date": "2026-07-20",
-    "en": [
-      "Strengthen safeguards around merchant external imports"
-    ],
-    "zh": [
-      "加强商家外部导入流程的安全防护"
-    ]
+    "en": ["Strengthen safeguards around merchant external imports"],
+    "zh": ["加强商家外部导入流程的安全防护"]
   },
   {
     "version": "1.8.76",
@@ -760,12 +660,8 @@
   {
     "version": "1.8.73",
     "date": "2026-07-15",
-    "en": [
-      "Prioritize resolved manager instructions in customer-service sessions"
-    ],
-    "zh": [
-      "在客服会话中优先使用已解析的 manager 指令"
-    ]
+    "en": ["Prioritize resolved manager instructions in customer-service sessions"],
+    "zh": ["在客服会话中优先使用已解析的 manager 指令"]
   },
   {
     "version": "1.8.72",
@@ -816,10 +712,7 @@
       "Add realtime and historical analysis for customer service experiments",
       "Reduce the bundled runtime by excluding unused GitHub Copilot components"
     ],
-    "zh": [
-      "新增客服实验的实时与历史分析页面",
-      "移除未使用的 GitHub Copilot 组件以缩减内置运行时"
-    ]
+    "zh": ["新增客服实验的实时与历史分析页面", "移除未使用的 GitHub Copilot 组件以缩减内置运行时"]
   },
   {
     "version": "1.8.68",
@@ -836,12 +729,8 @@
   {
     "version": "1.8.67",
     "date": "2026-07-11",
-    "en": [
-      "Deduplicate directly sent block media in OpenClaw conversations"
-    ],
-    "zh": [
-      "去重 OpenClaw 对话中直接发送的区块媒体"
-    ]
+    "en": ["Deduplicate directly sent block media in OpenClaw conversations"],
+    "zh": ["去重 OpenClaw 对话中直接发送的区块媒体"]
   },
   {
     "version": "1.8.66",
@@ -850,20 +739,13 @@
       "Add multi-stage unpaid order reachout",
       "Allow verified ZIP attachments in media delivery"
     ],
-    "zh": [
-      "新增未付款订单多阶段触达",
-      "支持已校验 ZIP 附件的媒体发送"
-    ]
+    "zh": ["新增未付款订单多阶段触达", "支持已校验 ZIP 附件的媒体发送"]
   },
   {
     "version": "1.8.65",
     "date": "2026-07-11",
-    "en": [
-      "Make Feishu attachment delivery more reliable"
-    ],
-    "zh": [
-      "提升飞书附件发送的可靠性"
-    ]
+    "en": ["Make Feishu attachment delivery more reliable"],
+    "zh": ["提升飞书附件发送的可靠性"]
   },
   {
     "version": "1.8.64",
@@ -886,20 +768,13 @@
       "Add GPT-5.6 models and harden secure auth storage",
       "Show seven-day average guided GMV in customer-service performance views"
     ],
-    "zh": [
-      "新增 GPT-5.6 模型，并加固安全认证存储",
-      "在客服绩效视图展示七日平均引导 GMV"
-    ]
+    "zh": ["新增 GPT-5.6 模型，并加固安全认证存储", "在客服绩效视图展示七日平均引导 GMV"]
   },
   {
     "version": "1.8.62",
     "date": "2026-07-10",
-    "en": [
-      "Harden Windows Node provisioning for China network environments"
-    ],
-    "zh": [
-      "增强 Windows 在中国网络环境下的 Node provisioning 稳定性"
-    ]
+    "en": ["Harden Windows Node provisioning for China network environments"],
+    "zh": ["增强 Windows 在中国网络环境下的 Node provisioning 稳定性"]
   },
   {
     "version": "1.8.61",
@@ -922,20 +797,13 @@
       "Preserve quoted Feishu card content during message updates",
       "Clarify agent shop blank-field documentation"
     ],
-    "zh": [
-      "在消息更新时保留飞书引用卡片内容",
-      "完善 agent 店铺空字段文档说明"
-    ]
+    "zh": ["在消息更新时保留飞书引用卡片内容", "完善 agent 店铺空字段文档说明"]
   },
   {
     "version": "1.8.59",
     "date": "2026-07-09",
-    "en": [
-      "Preserve escalation recipient drafts while editing customer-service routing"
-    ],
-    "zh": [
-      "编辑客服升级路由时保留接收人草稿"
-    ]
+    "en": ["Preserve escalation recipient drafts while editing customer-service routing"],
+    "zh": ["编辑客服升级路由时保留接收人草稿"]
   },
   {
     "version": "1.8.58",
@@ -998,10 +866,7 @@
       "Refresh the production desktop build from the latest main branch",
       "Supersede the 1.8.53 rollout with updated production release metadata"
     ],
-    "zh": [
-      "基于最新 main 分支刷新生产桌面端构建",
-      "使用新的生产发布元数据替代 1.8.53 rollout"
-    ]
+    "zh": ["基于最新 main 分支刷新生产桌面端构建", "使用新的生产发布元数据替代 1.8.53 rollout"]
   },
   {
     "version": "1.8.53",
@@ -1884,20 +1749,13 @@
       "Fix provider key cleanup on logout and serialize cloud key sync",
       "Reload provider keys after logout to prevent stale state"
     ],
-    "zh": [
-      "修复登出后模型服务密钥未清理的问题",
-      "修复登出后密钥状态残留导致的异常"
-    ]
+    "zh": ["修复登出后模型服务密钥未清理的问题", "修复登出后密钥状态残留导致的异常"]
   },
   {
     "version": "1.7.4",
     "date": "2026-03-21",
-    "en": [
-      "Fix provider key loading for non-logged-in users"
-    ],
-    "zh": [
-      "修复未登录用户无法加载模型服务密钥的问题"
-    ]
+    "en": ["Fix provider key loading for non-logged-in users"],
+    "zh": ["修复未登录用户无法加载模型服务密钥的问题"]
   },
   {
     "version": "1.7.3",
@@ -2046,20 +1904,13 @@
       "Fix Windows console UTF-8 encoding for non-ASCII filenames in exec",
       "Bundle volcengine-stt-cli into packaged app"
     ],
-    "zh": [
-      "修复 Windows 控制台中文文件名乱码问题",
-      "修复火山引擎语音识别组件未打包的问题"
-    ]
+    "zh": ["修复 Windows 控制台中文文件名乱码问题", "修复火山引擎语音识别组件未打包的问题"]
   },
   {
     "version": "1.6.4",
     "date": "2026-03-10",
-    "en": [
-      "Split mobile install and pairing into two-step flow for Safari PWA compatibility"
-    ],
-    "zh": [
-      "手机端安装和配对拆分为两步流程，兼容 Safari PWA"
-    ]
+    "en": ["Split mobile install and pairing into two-step flow for Safari PWA compatibility"],
+    "zh": ["手机端安装和配对拆分为两步流程，兼容 Safari PWA"]
   },
   {
     "version": "1.6.3",
@@ -2112,12 +1963,8 @@
   {
     "version": "1.6.1",
     "date": "2026-03-06",
-    "en": [
-      "Fix mobile chat plugin failing to load in packaged builds (missing ws dependency)"
-    ],
-    "zh": [
-      "修复打包后手机聊天插件无法加载的问题"
-    ]
+    "en": ["Fix mobile chat plugin failing to load in packaged builds (missing ws dependency)"],
+    "zh": ["修复打包后手机聊天插件无法加载的问题"]
   },
   {
     "version": "1.6.0",
@@ -2172,10 +2019,7 @@
       "Fix import wizard showing for existing users",
       "Add data directory setting in Settings page"
     ],
-    "zh": [
-      "修复导入向导对老用户重复显示的问题",
-      "设置页面新增数据目录配置"
-    ]
+    "zh": ["修复导入向导对老用户重复显示的问题", "设置页面新增数据目录配置"]
   },
   {
     "version": "1.5.14",
@@ -2218,14 +2062,8 @@
   {
     "version": "1.5.12",
     "date": "2026-02-27",
-    "en": [
-      "Fix NSIS installer killing itself during upgrade",
-      "Upgrade core engine to v2026.2.26"
-    ],
-    "zh": [
-      "修复安装程序升级时意外终止自身的问题",
-      "升级核心引擎至 v2026.2.26"
-    ]
+    "en": ["Fix NSIS installer killing itself during upgrade", "Upgrade core engine to v2026.2.26"],
+    "zh": ["修复安装程序升级时意外终止自身的问题", "升级核心引擎至 v2026.2.26"]
   },
   {
     "version": "1.5.11",
@@ -2248,12 +2086,8 @@
   {
     "version": "1.5.10",
     "date": "2026-02-26",
-    "en": [
-      "Fix dropdown menu positioning issue on certain pages"
-    ],
-    "zh": [
-      "修复部分页面下拉菜单位置异常"
-    ]
+    "en": ["Fix dropdown menu positioning issue on certain pages"],
+    "zh": ["修复部分页面下拉菜单位置异常"]
   },
   {
     "version": "1.5.9",
@@ -2308,10 +2142,7 @@
       "Chat bubbles now render Markdown with syntax highlighting and copy button",
       "Improved model validation with dynamic provider resolution"
     ],
-    "zh": [
-      "聊天气泡支持 Markdown 渲染，含语法高亮和复制按钮",
-      "改进模型验证，支持动态服务商解析"
-    ]
+    "zh": ["聊天气泡支持 Markdown 渲染，含语法高亮和复制按钮", "改进模型验证，支持动态服务商解析"]
   },
   {
     "version": "1.5.5",
@@ -2488,12 +2319,8 @@
   {
     "version": "1.4.4",
     "date": "2026-02-19",
-    "en": [
-      "Fixed Kimi Coding 404 error, subscription badge display, and activate persistence"
-    ],
-    "zh": [
-      "修复 Kimi Coding 404 错误、订阅标识显示和激活持久化问题"
-    ]
+    "en": ["Fixed Kimi Coding 404 error, subscription badge display, and activate persistence"],
+    "zh": ["修复 Kimi Coding 404 错误、订阅标识显示和激活持久化问题"]
   },
   {
     "version": "1.4.3",
@@ -2616,22 +2443,14 @@
   {
     "version": "1.2.10",
     "date": "2026-02-15",
-    "en": [
-      "Robust update ready state, Windows compatibility, and banner UI cleanup"
-    ],
-    "zh": [
-      "更新就绪状态更可靠、Windows 兼容性改进、更新横幅 UI 优化"
-    ]
+    "en": ["Robust update ready state, Windows compatibility, and banner UI cleanup"],
+    "zh": ["更新就绪状态更可靠、Windows 兼容性改进、更新横幅 UI 优化"]
   },
   {
     "version": "1.2.9",
     "date": "2026-02-15",
-    "en": [
-      "Fixed stale extensionsDir paths across installs and Windows compatibility"
-    ],
-    "zh": [
-      "修复跨安装的扩展目录路径残留和 Windows 兼容性问题"
-    ]
+    "en": ["Fixed stale extensionsDir paths across installs and Windows compatibility"],
+    "zh": ["修复跨安装的扩展目录路径残留和 Windows 兼容性问题"]
   },
   {
     "version": "1.2.8",
@@ -2640,10 +2459,7 @@
       "Unified extension loading via single extensionsDir path",
       "Fixed search-browser-fallback plugin path in packaged app"
     ],
-    "zh": [
-      "统一扩展加载路径（单一 extensionsDir）",
-      "修复打包后搜索浏览器回退插件路径问题"
-    ]
+    "zh": ["统一扩展加载路径（单一 extensionsDir）", "修复打包后搜索浏览器回退插件路径问题"]
   },
   {
     "version": "1.2.7",
@@ -2652,10 +2468,7 @@
       "Compress chat images client-side to fit WebSocket 512KB frame limit",
       "Delay update check to avoid startup race condition"
     ],
-    "zh": [
-      "客户端压缩聊天图片以适应 WebSocket 512KB 帧限制",
-      "延迟更新检查以避免启动时竞态条件"
-    ]
+    "zh": ["客户端压缩聊天图片以适应 WebSocket 512KB 帧限制", "延迟更新检查以避免启动时竞态条件"]
   },
   {
     "version": "1.2.6",
@@ -2678,12 +2491,8 @@
   {
     "version": "1.2.5",
     "date": "2026-02-14",
-    "en": [
-      "Fixed Windows auto-update failing due to file locks during installation"
-    ],
-    "zh": [
-      "修复 Windows 自动更新因文件锁导致安装失败的问题"
-    ]
+    "en": ["Fixed Windows auto-update failing due to file locks during installation"],
+    "zh": ["修复 Windows 自动更新因文件锁导致安装失败的问题"]
   },
   {
     "version": "1.2.4",
@@ -2802,12 +2611,8 @@
   {
     "version": "1.1.8",
     "date": "2026-02-12",
-    "en": [
-      "Add GLM-5 and GLM-5-Code model support with pricing"
-    ],
-    "zh": [
-      "新增 GLM-5 和 GLM-5-Code 模型支持及定价"
-    ]
+    "en": ["Add GLM-5 and GLM-5-Code model support with pricing"],
+    "zh": ["新增 GLM-5 和 GLM-5-Code 模型支持及定价"]
   },
   {
     "version": "1.1.7",
@@ -2878,10 +2683,7 @@
       "Fixed Mac dock icon: prevent child processes from showing extra dock icons",
       "Minor UI polish for What's New dialog"
     ],
-    "zh": [
-      "修复 Mac Dock 图标问题：阻止子进程显示多余的 Dock 图标",
-      "「新功能」弹窗 UI 微调"
-    ]
+    "zh": ["修复 Mac Dock 图标问题：阻止子进程显示多余的 Dock 图标", "「新功能」弹窗 UI 微调"]
   },
   {
     "version": "1.1.2",

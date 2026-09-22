@@ -25,9 +25,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const graphqlPath = join(root, "packages/core/src/generated/graphql.ts");
 const graphqlTs = readFileSync(graphqlPath, "utf8");
 
-const toolIdBlockMatch = graphqlTs.match(
-  /export\s+const\s+ToolId\s*=\s*\{([^}]+)\}\s*as\s+const/s,
-);
+const toolIdBlockMatch = graphqlTs.match(/export\s+const\s+ToolId\s*=\s*\{([^}]+)\}\s*as\s+const/s);
 if (!toolIdBlockMatch) {
   console.error("ERROR: Could not find ToolId const in generated/graphql.ts");
   process.exit(1);
@@ -47,17 +45,12 @@ console.log(`Found ${generatedToolIds.size} ToolId values in generated/graphql.t
 // 2. Parse backend ToolId enum from server/backend/src/tools/tool-enums.ts
 // ---------------------------------------------------------------------------
 
-const backendEnumPath = join(
-  root,
-  "server/backend/src/tools/tool-enums.ts",
-);
+const backendEnumPath = join(root, "server/backend/src/tools/tool-enums.ts");
 const backendToolIds = new Set();
 
 if (existsSync(backendEnumPath)) {
   const backendTs = readFileSync(backendEnumPath, "utf8");
-  const enumBlockMatch = backendTs.match(
-    /export\s+enum\s+ToolId\s*\{([^}]+)\}/s,
-  );
+  const enumBlockMatch = backendTs.match(/export\s+enum\s+ToolId\s*\{([^}]+)\}/s);
   if (enumBlockMatch) {
     const enumValuePattern = /=\s*["']([A-Z_]+)["']/g;
     let em;
@@ -65,9 +58,7 @@ if (existsSync(backendEnumPath)) {
       backendToolIds.add(em[1]);
     }
   }
-  console.log(
-    `Found ${backendToolIds.size} ToolId values in backend tool-enums.ts`,
-  );
+  console.log(`Found ${backendToolIds.size} ToolId values in backend tool-enums.ts`);
 }
 
 // ---------------------------------------------------------------------------
@@ -100,15 +91,12 @@ for (const extParent of extDirs) {
     // For toolName(CoreGQL.ToolId.Xxx) or toolName(ToolId.Xxx):
     // These resolve to the ToolId value lowercased. Extract the PascalCase key
     // and look it up in the generated ToolId block.
-    const derivedPattern =
-      /name:\s*toolName\(\s*(?:CoreGQL|GQL)\.ToolId\.(\w+)\s*\)/g;
+    const derivedPattern = /name:\s*toolName\(\s*(?:CoreGQL|GQL)\.ToolId\.(\w+)\s*\)/g;
     let dm;
     while ((dm = derivedPattern.exec(toolsSrc)) !== null) {
       // Find the UPPER_CASE value for this PascalCase key in the generated block
       const pascalKey = dm[1];
-      const keyValuePattern = new RegExp(
-        `${pascalKey}:\\s*['"]([A-Z_]+)['"]`,
-      );
+      const keyValuePattern = new RegExp(`${pascalKey}:\\s*['"]([A-Z_]+)['"]`);
       const kv = toolIdBlockMatch[1].match(keyValuePattern);
       if (kv) {
         extensionTools.push({
@@ -125,9 +113,7 @@ for (const extParent of extDirs) {
   }
 }
 
-console.log(
-  `Found ${extensionTools.length} tool definitions across extensions`,
-);
+console.log(`Found ${extensionTools.length} tool definitions across extensions`);
 
 // ---------------------------------------------------------------------------
 // 4. Parse i18n files for tool name entries
@@ -212,9 +198,7 @@ if (backendToolIds.size > 0) {
   }
   for (const genId of generatedToolIds) {
     if (!backendToolIds.has(genId)) {
-      console.error(
-        `  ERROR: Generated ToolId '${genId}' not in backend enum — stale or removed`,
-      );
+      console.error(`  ERROR: Generated ToolId '${genId}' not in backend enum — stale or removed`);
       errors++;
       codegenDrift++;
     }

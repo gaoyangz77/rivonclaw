@@ -2,7 +2,11 @@ import { DEFAULTS } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveOpenClawConfigPath, readExistingConfig } from "@rivonclaw/gateway";
-import { loadCostUsageSummary, discoverAllSessions, loadSessionCostSummary } from "./session-usage.js";
+import {
+  loadCostUsageSummary,
+  discoverAllSessions,
+  loadSessionCostSummary,
+} from "./session-usage.js";
 import type { CostUsageSummary, SessionCostSummary } from "./session-usage.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -18,20 +22,26 @@ interface UsageSummary {
   totalTokens: number;
   totalEstimatedCostUsd: number;
   recordCount: number;
-  byModel: Record<string, {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-    estimatedCostUsd: number;
-    count: number;
-  }>;
-  byProvider: Record<string, {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-    estimatedCostUsd: number;
-    count: number;
-  }>;
+  byModel: Record<
+    string,
+    {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      count: number;
+    }
+  >;
+  byProvider: Record<
+    string,
+    {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      count: number;
+    }
+  >;
 }
 
 interface UsageFilter {
@@ -60,23 +70,29 @@ function setCachedUsage(cacheKey: string, data: UsageSummary): void {
 
 function transformToUsageSummary(
   costSummary: CostUsageSummary,
-  sessionSummaries: SessionCostSummary[]
+  sessionSummaries: SessionCostSummary[],
 ): UsageSummary {
-  const byModelMap = new Map<string, {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-    estimatedCostUsd: number;
-    count: number;
-  }>();
+  const byModelMap = new Map<
+    string,
+    {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      count: number;
+    }
+  >();
 
-  const byProviderMap = new Map<string, {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-    estimatedCostUsd: number;
-    count: number;
-  }>();
+  const byProviderMap = new Map<
+    string,
+    {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      count: number;
+    }
+  >();
 
   for (const session of sessionSummaries) {
     if (!session.modelUsage) continue;
@@ -87,7 +103,11 @@ function transformToUsageSummary(
 
       const modelKey = `${provider}/${model}`;
       const modelEntry = byModelMap.get(modelKey) || {
-        inputTokens: 0, outputTokens: 0, totalTokens: 0, estimatedCostUsd: 0, count: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        estimatedCostUsd: 0,
+        count: 0,
       };
       modelEntry.inputTokens += modelUsage.totals.input;
       modelEntry.outputTokens += modelUsage.totals.output;
@@ -97,7 +117,11 @@ function transformToUsageSummary(
       byModelMap.set(modelKey, modelEntry);
 
       const providerEntry = byProviderMap.get(provider) || {
-        inputTokens: 0, outputTokens: 0, totalTokens: 0, estimatedCostUsd: 0, count: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        estimatedCostUsd: 0,
+        count: 0,
       };
       providerEntry.inputTokens += modelUsage.totals.input;
       providerEntry.outputTokens += modelUsage.totals.output;
@@ -121,9 +145,13 @@ function transformToUsageSummary(
 
 function emptyUsageSummary(): UsageSummary {
   return {
-    totalInputTokens: 0, totalOutputTokens: 0, totalTokens: 0,
-    totalEstimatedCostUsd: 0, recordCount: 0,
-    byModel: {}, byProvider: {},
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalTokens: 0,
+    totalEstimatedCostUsd: 0,
+    recordCount: 0,
+    byModel: {},
+    byProvider: {},
   };
 }
 
@@ -202,7 +230,19 @@ const getActiveKey: EndpointHandler = async (_req, res, _url, _params, ctx: ApiC
   const { storage } = ctx;
   try {
     const activeKey = storage.providerKeys.getActive();
-    sendJson(res, 200, activeKey ? { keyId: activeKey.id, keyLabel: activeKey.label, provider: activeKey.provider, model: activeKey.model, authType: activeKey.authType ?? "api_key" } : null);
+    sendJson(
+      res,
+      200,
+      activeKey
+        ? {
+            keyId: activeKey.id,
+            keyLabel: activeKey.label,
+            provider: activeKey.provider,
+            model: activeKey.model,
+            authType: activeKey.authType ?? "api_key",
+          }
+        : null,
+    );
   } catch (err) {
     log.error("Failed to get active key:", err);
     sendJson(res, 500, { error: "Failed to get active key" });

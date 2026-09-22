@@ -1,14 +1,19 @@
-import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { clickTutorialTarget, tutorialTarget } from "../targets.js";
 
-function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+function step(
+  id: string,
+  targetId: string,
+  key: string,
+  placement: TutorialStep["placement"],
+): TutorialStep {
   return {
     id,
     target: tutorialTarget(targetId),
     titleKey: `tutorial.skills.${key}Title`,
     bodyKey: `tutorial.skills.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const skillsSteps: TutorialStep[] = [
@@ -20,8 +25,12 @@ export const skillsSteps: TutorialStep[] = [
   step("skills-pagination", "skills-pagination", "pagination", "top"),
   {
     ...step("skills-installed", "skills-installed-header", "installedTab", "bottom"),
-    prepare: () => { clickTutorialTarget("skills-installed-tab") },
-    cleanup: () => { clickTutorialTarget("skills-market-tab") },
+    prepare: () => {
+      clickTutorialTarget("skills-installed-tab");
+    },
+    cleanup: () => {
+      clickTutorialTarget("skills-market-tab");
+    },
     targetTimeoutMs: 1200,
   },
-]
+];

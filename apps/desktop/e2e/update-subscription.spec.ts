@@ -66,7 +66,10 @@ interface UpdatePayload {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function loginToStaging(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
+async function loginToStaging(
+  email: string,
+  password: string,
+): Promise<{ accessToken: string; refreshToken: string }> {
   const captchaRes = await fetch(STAGING_GRAPHQL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -80,7 +83,9 @@ async function loginToStaging(email: string, password: string): Promise<{ access
     errors?: Array<{ message: string }>;
   };
   if (captchaBody.errors?.length || !captchaBody.data?.requestCaptcha) {
-    throw new Error(`Captcha request failed: ${captchaBody.errors?.[0]?.message ?? captchaRes.statusText}`);
+    throw new Error(
+      `Captcha request failed: ${captchaBody.errors?.[0]?.message ?? captchaRes.statusText}`,
+    );
   }
   expect(captchaBody.data.requestCaptcha.svg).toContain("0000");
 
@@ -191,7 +196,10 @@ async function callPublishUpdate(
 // ---------------------------------------------------------------------------
 
 rawTest.describe("Update Subscription — protocol level", () => {
-  rawTest.skip(!adminEmail || !adminPassword || !deterministicCaptchaToken, "Staging admin credentials not configured");
+  rawTest.skip(
+    !adminEmail || !adminPassword || !deterministicCaptchaToken,
+    "Staging admin credentials not configured",
+  );
 
   let adminToken: string;
 
@@ -259,7 +267,10 @@ rawTest.describe("Update Subscription — protocol level", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Update Subscription — full app E2E", () => {
-  test.skip(!adminEmail || !adminPassword || !deterministicCaptchaToken, "Staging admin credentials not configured");
+  test.skip(
+    !adminEmail || !adminPassword || !deterministicCaptchaToken,
+    "Staging admin credentials not configured",
+  );
 
   let adminToken: string;
 

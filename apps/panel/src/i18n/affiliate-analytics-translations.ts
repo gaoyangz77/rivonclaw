@@ -4,10 +4,15 @@ function merge(base: TranslationTree, override: TranslationTree): TranslationTre
   const result: TranslationTree = { ...base };
   for (const [key, value] of Object.entries(override)) {
     const current = result[key];
-    result[key] = current && typeof current === "object" && !Array.isArray(current)
-      && value && typeof value === "object" && !Array.isArray(value)
-      ? merge(current as TranslationTree, value as TranslationTree)
-      : value;
+    result[key] =
+      current &&
+      typeof current === "object" &&
+      !Array.isArray(current) &&
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+        ? merge(current as TranslationTree, value as TranslationTree)
+        : value;
   }
   return result;
 }
@@ -20,7 +25,8 @@ function merge(base: TranslationTree, override: TranslationTree): TranslationTre
 const englishAnalytics = {
   eyebrow: "Affiliate operations intelligence",
   title: "Affiliate Analytics",
-  subtitle: "Three cohort sections, each on its own time axis: reachout, sample approval, and post-approval units.",
+  subtitle:
+    "Three cohort sections, each on its own time axis: reachout, sample approval, and post-approval units.",
   overview: "Overview",
   region: "Shop region",
   allRegions: "All regions",
@@ -47,9 +53,11 @@ const englishAnalytics = {
     metric: "Metric",
     AI: "AI",
     NOT_AI: "Non-AI",
-    notAiDisclosure: "Non-AI includes direct human, platform/system, and applications still in flight. An effective AI decision moves the application's full history to AI automatically.",
+    notAiDisclosure:
+      "Non-AI includes direct human, platform/system, and applications still in flight. An effective AI decision moves the application's full history to AI automatically.",
     postApprovalTitle: "Post-approval by decision origin",
-    activityDisclosure: "Orders and units here are Sample-attributed activity. The whole-channel Affiliate units below cannot be split by decision origin.",
+    activityDisclosure:
+      "Orders and units here are Sample-attributed activity. The whole-channel Affiliate units below cannot be split by decision origin.",
   },
   portfolio: {
     caption: "Current values · unaffected by the window",
@@ -59,7 +67,8 @@ const englishAnalytics = {
   },
   sectionErrorTitle: "This section could not load",
   sectionUnavailableTitle: "This section is unavailable",
-  sectionUnavailableBody: "The server returned nothing for this section. The other sections are unaffected.",
+  sectionUnavailableBody:
+    "The server returned nothing for this section. The other sections are unaffected.",
   /*
    * Data-coverage boundary. Shops onboard on different days, so a day before
    * the last of them started was measured over a smaller shop set than the day
@@ -69,17 +78,21 @@ const englishAnalytics = {
   coverage: {
     bandSeries: "Shops with data",
     bandTooltip: "{{withData}} of {{selected}} shops had data",
-    bandCaption: "Data coverage — the filled height is how many of the {{count}} selected shops had started producing data that day.",
+    bandCaption:
+      "Data coverage — the filled height is how many of the {{count}} selected shops had started producing data that day.",
     noneTitle: "No selected shop has data for this section",
-    noneBody: "Not one of the {{count}} selected shops has produced a row this section can read, so there is no comparable window to draw. Widen the shop scope or the cohort window.",
-    boundary: "All {{shops}} shops with data were present from {{date}} — marked on the charts. Earlier days are still plotted, but were measured over fewer shops, so they are not comparable with later ones.",
+    noneBody:
+      "Not one of the {{count}} selected shops has produced a row this section can read, so there is no comparable window to draw. Widen the shop scope or the cohort window.",
+    boundary:
+      "All {{shops}} shops with data were present from {{date}} — marked on the charts. Earlier days are still plotted, but were measured over fewer shops, so they are not comparable with later ones.",
     partialDays: "{{count}} earlier days in this window each cover only part of the shop set.",
     restrictToCovered: "Narrow to the fully-covered range",
     showFullRange: "Show the full range",
     boundaryMark: "Full coverage",
     excludeLimiting: "Exclude the {{count}} latest-starting shops",
     limitingShops: "Latest to start: {{shops}}",
-    dashedNote: "Earlier days are shown, drawn dashed and faint, with the first fully-covered day marked. Their shop set changes from day to day, so they record what was collected — read them as history, not as a trend to compare.",
+    dashedNote:
+      "Earlier days are shown, drawn dashed and faint, with the first fully-covered day marked. Their shop set changes from day to day, so they record what was collected — read them as history, not as a trend to compare.",
     partialSeries: "Partial range",
     metricBasis: "Computed over {{shops}} of {{selected}} shops · fully covered from {{date}}",
     noDate: "no fully-covered day",
@@ -90,25 +103,33 @@ const englishAnalytics = {
     invitations: "TARGET creators invited",
     responded: "Submitted a sample application",
     cohortResponseRate: "Cohort response rate",
-    cohortResponseRateHint: "Responses to date from the invitations inside this window — one cohort, not two different ones.",
+    cohortResponseRateHint:
+      "Responses to date from the invitations inside this window — one cohort, not two different ones.",
     immatureShare: "Not yet mature",
-    immatureShareHint: "Share of invitations younger than 30 days; their responses are still arriving.",
+    immatureShareHint:
+      "Share of invitations younger than 30 days; their responses are still arriving.",
     horizonTitle: "Response rate by horizon",
-    horizonNote: "One fixed cohort of {{count}} invitations — those old enough to be judged at 30 days — measured at every horizon, so the curve is genuinely cumulative and cannot fall.",
-    horizonCohortRange: "That cohort was invited between {{from}} and {{to}}, an earlier period than the daily bars beside it.",
-    cohortTooSmall: "Only {{count}} invitations in this window are old enough to be judged at 30 days. A response rate over so few would be noise, so the curve is withheld rather than drawn — at least {{minimum}} are needed.",
+    horizonNote:
+      "One fixed cohort of {{count}} invitations — those old enough to be judged at 30 days — measured at every horizon, so the curve is genuinely cumulative and cannot fall.",
+    horizonCohortRange:
+      "That cohort was invited between {{from}} and {{to}}, an earlier period than the daily bars beside it.",
+    cohortTooSmall:
+      "Only {{count}} invitations in this window are old enough to be judged at 30 days. A response rate over so few would be noise, so the curve is withheld rather than drawn — at least {{minimum}} are needed.",
     cohortTooSmallNote: "Not enough mature invitations to plot a curve.",
-    subDaySuppressed: "3h / 12h / 24h are withheld: only {{share}} of response times are exact platform submissions, so a short-horizon point would be a proxy artefact rather than a rate.",
+    subDaySuppressed:
+      "3h / 12h / 24h are withheld: only {{share}} of response times are exact platform submissions, so a short-horizon point would be a proxy artefact rather than a rate.",
     matureBasis: "Mature invitations: {{count}}",
     responseRateSeries: "Response rate",
     dailyTitle: "Invitations by cohort day",
-    dailyNote: "{{count}} trailing cohorts are still accruing responses and are drawn in grey — a short bar there is unfinished, not weak.",
+    dailyNote:
+      "{{count}} trailing cohorts are still accruing responses and are drawn in grey — a short bar there is unfinished, not weak.",
     inviteSeries: "Invitations",
     immatureBand: "Still accruing",
     exactResponses: "Exact submission time",
     proxyResponses: "Observation proxy",
     exactShare: "Exact share",
-    timeBasisDisclosure: "Invitation time is a real platform timestamp with full coverage. Response time prefers the real submission time and falls back to an observation proxy; back-computed times count as proxy.",
+    timeBasisDisclosure:
+      "Invitation time is a real platform timestamp with full coverage. Response time prefers the real submission time and falls back to an observation proxy; back-computed times count as proxy.",
   },
   approval: {
     title: "Sample approval",
@@ -123,17 +144,22 @@ const englishAnalytics = {
     overdueRate: "Overdue rate",
     overdueRateHint: "Our own failure to decide inside the review window.",
     dailyTitle: "Outcome mix by cohort day",
-    dailyNote: "Recent cohorts carry a large in-flight band simply because they have not been decided yet.",
-    originDailyNote: "AI and non-AI use the same scale. In-flight remains explicit; current non-AI rows may later move to AI after an effective AI decision.",
+    dailyNote:
+      "Recent cohorts carry a large in-flight band simply because they have not been decided yet.",
+    originDailyNote:
+      "AI and non-AI use the same scale. In-flight remains explicit; current non-AI rows may later move to AI after an effective AI decision.",
     byAgeTitle: "Outcome mix by application age",
     byAgeNote: "How the outcome mix resolves as a cohort ages.",
-    originAgeNote: "Current outcomes by application age, split by present decision origin. This is not a survival estimate.",
+    originAgeNote:
+      "Current outcomes by application age, split by present decision origin. This is not a survival estimate.",
   },
   postApproval: {
     title: "Post-approval performance",
     axis: "Two bases: approved applications on the application date · samples and units on the calendar day",
-    pinnedWindow: "Always measured over {{count}} days, whatever the window control says: orders lag approval by 60–90 days, so a shorter window would show a near-empty result for a seller who is selling.",
-    twoBases: "The two bases start on different days. Applications are covered from {{applicationDate}}; shipment observation only begins {{shipmentDate}}, because a ship date is our own observation rather than a platform fact and no earlier day can ever gain one. Days before that show no samples beside real units — that is the record, not a drop in sales.",
+    pinnedWindow:
+      "Always measured over {{count}} days, whatever the window control says: orders lag approval by 60–90 days, so a shorter window would show a near-empty result for a seller who is selling.",
+    twoBases:
+      "The two bases start on different days. Applications are covered from {{applicationDate}}; shipment observation only begins {{shipmentDate}}, because a ship date is our own observation rather than a platform fact and no earlier day can ever gain one. Days before that show no samples beside real units — that is the record, not a drop in sales.",
     approvalBasisTitle: "On the application date",
     shipmentBasisTitle: "On the calendar day",
     approvedApplications: "Approved applications",
@@ -145,16 +171,20 @@ const englishAnalytics = {
     samplesShipped: "Free samples shipped",
     affiliateUnits: "Affiliate units sold",
     unitsPerSampleShipped: "Units per sample shipped",
-    unitsPerSampleShippedHint: "Affiliate units over the window divided by samples shipped over the same window. Both are counts.",
+    unitsPerSampleShippedHint:
+      "Affiliate units over the window divided by samples shipped over the same window. Both are counts.",
     shipmentBoundary: "Shipment data starts",
-    shipmentBoundaryHint: "A ship date is our own observation, not a platform fact, so no earlier day can carry one.",
+    shipmentBoundaryHint:
+      "A ship date is our own observation, not a platform fact, so no earlier day can carry one.",
     shipmentTitle: "Samples shipped against affiliate units, by day",
-    shipmentNote: "Two counts per day: the free samples we shipped, and the units the affiliate channel sold that same day. The line on the right axis is the trailing {{count}}-day ratio — units summed over {{count}} days divided by samples summed over the same {{count}} days. It is a ratio of two counts, never a forecast, and it is absent until a full {{count}}-day window has passed and on any day whose trailing sample count is zero.",
+    shipmentNote:
+      "Two counts per day: the free samples we shipped, and the units the affiliate channel sold that same day. The line on the right axis is the trailing {{count}}-day ratio — units summed over {{count}} days divided by samples summed over the same {{count}} days. It is a ratio of two counts, never a forecast, and it is absent until a full {{count}}-day window has passed and on any day whose trailing sample count is zero.",
     samplesShippedSeries: "Samples shipped",
     affiliateUnitsSeries: "Affiliate units",
     trailingRatioSeries: "Units per sample · {{count}}-day trailing",
     originActivityTitle: "Sample-attributed orders and units by activity day",
-    originActivityNote: "Activity is dated on the day the content or order occurred, not on the application cohort day.",
+    originActivityNote:
+      "Activity is dated on the day the content or order occurred, not on the application cohort day.",
     aiOrdersSeries: "AI · orders",
     notAiOrdersSeries: "Non-AI · orders",
     aiUnitsSeries: "AI · units",
@@ -173,8 +203,13 @@ const englishAnalytics = {
   running: "Running…",
   loadMore: "Load more",
   groupPresets: {
-    DATE: "Date", SHOP: "Shop", REGION: "Region", CAMPAIGN: "Campaign",
-    COLLABORATION: "Collaboration", CREATOR: "Creator", PRODUCT: "Product",
+    DATE: "Date",
+    SHOP: "Shop",
+    REGION: "Region",
+    CAMPAIGN: "Campaign",
+    COLLABORATION: "Collaboration",
+    CREATOR: "Creator",
+    PRODUCT: "Product",
     DECISION_ORIGIN: "Decision origin",
   },
   chartModes: { AUTO: "Auto", LINE: "Line", BAR: "Bar", STACKED: "Stacked", TABLE: "Table" },
@@ -231,39 +266,58 @@ const englishAnalytics = {
     },
   },
   explore: {
-    title: "Explore", contract: "Contract", chooseContract: "Choose one contract",
-    metrics: "Metrics", groupBy: "Group by", filters: "Dimension filters",
-    filterDimension: "Filter dimension", filterOperator: "Filter operator",
+    title: "Explore",
+    contract: "Contract",
+    chooseContract: "Choose one contract",
+    metrics: "Metrics",
+    groupBy: "Group by",
+    filters: "Dimension filters",
+    filterDimension: "Filter dimension",
+    filterOperator: "Filter operator",
     operators: { IN: "Is one of", NOT_IN: "Is not one of" },
     directions: { DESC: "Descending", ASC: "Ascending" },
     invalidGrouping: "This combination has no physical Aggregate contract.",
-    searchValues: "Search authorized values", exactValue: "Or enter an exact value",
-    sort: "Sort", direction: "Direction", limit: "Row limit", notRun: "Edits not run yet",
-    rows: "{{count}} rows", mixedCurrency: "Mixed currencies — use USD metrics.",
-    visualization: "Visualization", detail: "Query detail", resultTable: "Result table",
+    searchValues: "Search authorized values",
+    exactValue: "Or enter an exact value",
+    sort: "Sort",
+    direction: "Direction",
+    limit: "Row limit",
+    notRun: "Edits not run yet",
+    rows: "{{count}} rows",
+    mixedCurrency: "Mixed currencies — use USD metrics.",
+    visualization: "Visualization",
+    detail: "Query detail",
+    resultTable: "Result table",
     rateTooltip: "Derived from {{numerator}} / {{denominator}}; row rates are never averaged.",
   },
 } as const;
 
 const englishTutorial = {
   welcomeTitle: "Three cohorts, three time axes",
-  welcomeBody: "The Overview follows one journey in three stages. Each stage states the cohort date it is counted against, because those dates are not interchangeable.",
+  welcomeBody:
+    "The Overview follows one journey in three stages. Each stage states the cohort date it is counted against, because those dates are not interchangeable.",
   scopeTitle: "Choose the business scope",
-  scopeBody: "Pick authorized shops and a 30 / 60 / 90 day cohort window. The portfolio counts on the right are current values and do not move with the window.",
+  scopeBody:
+    "Pick authorized shops and a 30 / 60 / 90 day cohort window. The portfolio counts on the right are current values and do not move with the window.",
   reachoutTitle: "Reachout, counted on the invitation date",
-  reachoutBody: "Response rates are plotted per horizon because raw response counts are gated on invitation maturity. Trailing cohorts are drawn in grey while their responses are still arriving.",
+  reachoutBody:
+    "Response rates are plotted per horizon because raw response counts are gated on invitation maturity. Trailing cohorts are drawn in grey while their responses are still arriving.",
   approvalTitle: "Sample approval, counted on the application date",
-  approvalBody: "Every application resolves into approved, merchant-rejected, overdue on our side, or still in flight. The overdue share is ours to fix.",
+  approvalBody:
+    "Every application resolves into approved, merchant-rejected, overdue on our side, or still in flight. The overdue share is ours to fix.",
   postApprovalTitle: "Post-approval performance, measured in units",
-  postApprovalBody: "Units never go missing, so this stage uses units rather than GMV. Beside them it sets the free samples shipped on a day against the affiliate units sold that same day, with the trailing 7-day ratio of the two on the right axis.",
+  postApprovalBody:
+    "Units never go missing, so this stage uses units rather than GMV. Beside them it sets the free samples shipped on a day against the affiliate units sold that same day, with the trailing 7-day ratio of the two on the right axis.",
   exploreTitle: "Compose a contract-safe query",
-  exploreBody: "Choose one contract, metrics, dimensions and filters. Unsupported physical Aggregate combinations are disabled before you run.",
+  exploreBody:
+    "Choose one contract, metrics, dimensions and filters. Unsupported physical Aggregate combinations are disabled before you run.",
   resultsTitle: "Drill without changing semantics",
-  resultsBody: "Charts and tables use the same rows. Click an entity to add a filter; rates are always recomputed from total numerator and denominator.",
+  resultsBody:
+    "Charts and tables use the same rows. Click an entity to add a filter; rates are always recomputed from total numerator and denominator.",
 } as const;
 
 const CUSTOM_SHOP_SCOPE_BY_TITLE: Record<string, string> = {
-  "联盟数据分析": "自定义店铺范围",
+  联盟数据分析: "自定义店铺范围",
   "Affiliate-Analysen": "Benutzerdefinierter Shop-Bereich",
   "Analítica de afiliados": "Ámbito de tiendas personalizado",
   "Analytique Affiliate": "Périmètre de boutiques personnalisé",
@@ -273,200 +327,600 @@ const CUSTOM_SHOP_SCOPE_BY_TITLE: Record<string, string> = {
 };
 
 function resource(analytics: TranslationTree, tutorial: TranslationTree, navLabel: string) {
-  const localizedCustomScope = typeof analytics.title === "string" ? CUSTOM_SHOP_SCOPE_BY_TITLE[analytics.title] : undefined;
+  const localizedCustomScope =
+    typeof analytics.title === "string" ? CUSTOM_SHOP_SCOPE_BY_TITLE[analytics.title] : undefined;
   return {
     nav: { affiliateAnalytics: navLabel },
-    ecommerce: { affiliateAnalytics: merge(englishAnalytics, localizedCustomScope ? merge({ customShopScope: localizedCustomScope }, analytics) : analytics) },
+    ecommerce: {
+      affiliateAnalytics: merge(
+        englishAnalytics,
+        localizedCustomScope
+          ? merge({ customShopScope: localizedCustomScope }, analytics)
+          : analytics,
+      ),
+    },
     tutorial: { ecommerceAffiliateAnalytics: merge(englishTutorial, tutorial) },
   };
 }
 
 export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   en: resource({}, {}, "Analytics"),
-  zh: resource({
-    eyebrow: "联盟经营洞察", title: "联盟数据分析",
-    subtitle: "三段队列视图，各自声明时间口径：定邀触达、申样通过、通过后表现。",
-    overview: "概览", region: "店铺区域", allRegions: "全部区域", customShopScope: "自定义店铺范围", selectedShops: "已选 {{count}} 家店铺", selectAll: "全选",
-    startDate: "开始日期", endDate: "结束日期", none: "无",
-    window: "队列时间窗", windowDays: "近 {{count}} 天",
-    granularity: "时间粒度", granularities: { DAILY: "按日", WEEKLY: "按周", MONTHLY: "按月" }, refresh: "刷新", refreshing: "刷新中…",
-    retry: "重试", loading: "正在加载联盟数据分析", stale: "数据滞后", materialized: "已物化",
-    platformTitle: "平台业绩", sampleTitle: "申样转化",
-    decisionOrigin: {
-      title: "决策来源", metric: "指标", AI: "AI", NOT_AI: "非 AI",
-      notAiDisclosure: "“非 AI”包含人工直接操作、平台/系统动作和仍在途的申请；有效 AI 决策生效后，该申请的全部历史会自动迁移到 AI。",
-      postApprovalTitle: "按决策来源对比通过后表现",
-      activityDisclosure: "这里的订单与件数只统计可归属到申样的活动；下方联盟全渠道件数不能按决策来源拆分。",
-    },
-    portfolio: { caption: "当前值 · 不随时间窗变化", campaigns: "在营 Campaign", target: "在营 TARGET", open: "在营 OPEN" },
-    sectionErrorTitle: "该板块加载失败",
-    sectionUnavailableTitle: "该板块暂不可用",
-    sectionUnavailableBody: "服务端未返回该板块数据，其余板块不受影响。",
-    coverage: {
-      bandSeries: "有数据的店铺",
-      bandTooltip: "所选 {{selected}} 家中，当天有数据的为 {{withData}} 家",
-      bandCaption: "数据覆盖——填充高度表示当天已开始产生数据的店铺数，满格为所选的 {{count}} 家。",
-      noneTitle: "所选店铺在这一段没有任何数据",
-      noneBody: "所选的 {{count}} 家店铺没有一条本段可读取的记录，因此画不出可比的时间窗。请扩大店铺范围或队列时间窗。",
-      boundary: "有数据的 {{shops}} 家店铺自 {{date}} 起全部到齐，图上已标出该位置。更早的日子仍然照常绘制，但只统计到其中一部分店铺，与后面的日子不可比。",
-      partialDays: "该时间窗内还有 {{count}} 天，每天都只覆盖了部分店铺。",
-      restrictToCovered: "只看完整覆盖区间",
-      showFullRange: "显示完整区间",
-      boundaryMark: "完整覆盖起点",
-      excludeLimiting: "排除最晚开始的 {{count}} 家店铺",
-      limitingShops: "最晚开始的店铺：{{shops}}",
-      dashedNote: "更早的日子照常绘制，只是用虚线、浅色表示，并标出完整覆盖的第一天。它们的店铺集合逐日变化，只说明当时采到了什么，可以作为历史查看，但不能当作趋势比较。",
-      partialSeries: "不完整区间",
-      metricBasis: "统计口径：{{selected}} 家中的 {{shops}} 家 · 自 {{date}} 起完整覆盖",
-      noDate: "无完整覆盖日",
-    },
-    reachout: {
-      title: "定邀触达",
-      axis: "队列口径：真实定邀日期",
-      invitations: "已定邀达人数",
-      responded: "其中已提交申样",
-      cohortResponseRate: "队列回应率",
-      cohortResponseRateHint: "本时间窗内定邀的达人，截至今天的回应比例；同一批人，不是两批人相除。",
-      immatureShare: "尚未成熟占比",
-      immatureShareHint: "距今不足 30 天的定邀占比，这部分的回应还在陆续到达。",
-      horizonTitle: "各时长的回应率",
-      horizonNote: "固定同一批 {{count}} 条定邀（已满 30 天、可在最长时长上判定），在每个时长上分别统计，因此曲线真正是累计的，不会下降。",
-      horizonCohortRange: "这批定邀的发出时间在 {{from}} 至 {{to}} 之间，比旁边的每日柱状图更早。",
-      cohortTooSmall: "本时间窗内只有 {{count}} 条定邀已满 30 天。在这么少的样本上算回应率只是噪声，因此不绘制该曲线——至少需要 {{minimum}} 条。",
-      cohortTooSmallNote: "已成熟的定邀太少，无法绘制曲线。",
-      subDaySuppressed: "已隐藏 3h / 12h / 24h：仅 {{share}} 的回应时间来自平台真实提交时间，短时长的点只会是代理时间造成的假象。",
-      matureBasis: "已成熟定邀：{{count}}",
-      responseRateSeries: "回应率",
-      dailyTitle: "按定邀日的定邀量",
-      dailyNote: "末尾 {{count}} 个队列的回应仍在累积，以灰色绘制；这里的矮柱是没走完，不是表现差。",
-      inviteSeries: "定邀量",
-      immatureBand: "回应仍在累积",
-      exactResponses: "精确提交时间",
-      proxyResponses: "观测代理时间",
-      exactShare: "精确占比",
-      timeBasisDisclosure: "定邀时间为平台真实时间戳，覆盖完整；回应时间优先取平台真实提交时间，缺失时退化为观测代理，反推时间计入代理。",
-    },
-    approval: {
-      title: "申样通过",
-      axis: "队列口径：申请提交日期",
-      applications: "申样数",
-      approved: "已通过",
-      merchantRejected: "商家拒绝",
-      overdueByUs: "我方超时未处理",
-      inFlight: "处理中",
-      approvalRate: "通过率",
-      merchantRejectRate: "商家拒绝率",
-      overdueRate: "超时率",
-      overdueRateHint: "我方未在审核时限内做出决定的比例。",
-      dailyTitle: "按申请日的结果构成",
-      dailyNote: "近期队列「处理中」占比高，只是因为尚未出结果。",
-      originDailyNote: "AI 与非 AI 使用相同坐标轴；“处理中”独立展示，当前非 AI 申请之后可能因有效 AI 决策迁移到 AI。",
-      byAgeTitle: "按申请年龄的结果构成",
-      byAgeNote: "随着队列变老，结果构成如何收敛。",
-      originAgeNote: "按申请年龄展示当前结果并区分现时决策来源；这不是生存分析或最终结果预测。",
-    },
-    postApproval: {
-      title: "通过后表现",
-      axis: "两套口径：已通过申请按申请日期 · 寄样与件数按自然日",
-      pinnedWindow: "无论上方选择哪个时间窗，本板块一律按 {{count}} 天统计：出单比审批晚 60–90 天，时间窗更短会让正常出货的商家看起来几乎没有成交。",
-      twoBases: "两套口径的起点不同：申请数据自 {{applicationDate}} 起覆盖，寄样观测则要到 {{shipmentDate}} 才开始——寄出日期是我们自己观测到的，不是平台事实，更早的日子永远不可能补上。因此在那之前的日子只有真实件数、没有寄样量，这是记录如此，不是销量下滑。",
-      approvalBasisTitle: "按申请日期",
-      shipmentBasisTitle: "按自然日",
-      approvedApplications: "已通过申请数",
-      applicationsWithOrder: "产生订单的申请数",
-      orderRate: "出单率",
-      orderRateHint: "已通过申请中有 {{count}} 个至少产生了一笔订单。",
-      actualUnits: "截至今天的件数",
-      unitsPerApprovedActual: "每个已通过申请 {{value}} 件",
-      samplesShipped: "已寄出免费样品",
-      affiliateUnits: "联盟渠道成交件数",
-      unitsPerSampleShipped: "每寄出一件样品的成交件数",
-      unitsPerSampleShippedHint: "时间窗内联盟件数除以同一时间窗内的寄样量，两者都是实际计数。",
-      shipmentBoundary: "寄样数据起始日",
-      shipmentBoundaryHint: "寄出日期是我们自己的观测，不是平台事实，更早的日子不可能有这个字段。",
-      shipmentTitle: "按日对比寄样量与联盟件数",
-      shipmentNote: "每天两个计数：当天寄出的免费样品，以及当天联盟渠道卖出的件数。右轴的折线是滚动 {{count}} 天比值——{{count}} 天件数之和除以同 {{count}} 天寄样量之和。它是两个计数的比值，不是任何预测；在滚动窗口凑满 {{count}} 天之前、以及滚动寄样量为 0 的日子，该点不存在。",
-      samplesShippedSeries: "寄样量",
-      affiliateUnitsSeries: "联盟件数",
-      trailingRatioSeries: "每样品件数 · 滚动 {{count}} 天",
-      originActivityTitle: "按活动日的申样归属订单与件数",
-      originActivityNote: "按内容或订单实际发生日统计，不是按申请 cohort 日期统计。",
-      aiOrdersSeries: "AI · 订单", notAiOrdersSeries: "非 AI · 订单",
-      aiUnitsSeries: "AI · 件数", notAiUnitsSeries: "非 AI · 件数",
-    },
-    noDataTitle: "该范围暂无数据", noDataBody: "请换一个更长的时间窗或其他授权店铺。",
-    errorTitle: "联盟数据分析加载失败",
-    noEntitlementTitle: "尚未开通数据分析", noEntitlementBody: "当前账号下没有已开通数据分析的授权店铺。",
-    signInTitle: "登录后查看联盟数据分析", signInBody: "授权店铺范围由你的账号解析得出。",
-    add: "添加", search: "搜索", run: "运行", running: "运行中…", loadMore: "加载更多",
-    groupPresets: { DATE: "日期", SHOP: "店铺", REGION: "区域", CAMPAIGN: "Campaign", COLLABORATION: "合作", CREATOR: "达人", PRODUCT: "商品", DECISION_ORIGIN: "决策来源" },
-    chartModes: { AUTO: "自动", LINE: "折线", BAR: "柱状", STACKED: "堆叠", TABLE: "表格" },
-    catalog: {
-      dimensions: {
-        DATE: "日期", SHOP_ID: "店铺 ID", SHOP_NAME: "店铺", SHOP_REGION: "店铺区域",
-        CAMPAIGN_ID: "Campaign ID", CAMPAIGN_NAME: "Campaign",
-        AFFILIATE_COLLABORATION_ID: "合作 ID", AFFILIATE_COLLABORATION_NAME: "合作", AFFILIATE_COLLABORATION_TYPE: "合作类型",
-        AFFILIATE_DECIDED_BY: "决策来源",
-        CREATOR_OPEN_ID: "达人 ID", CREATOR_USERNAME: "达人",
-        PRODUCT_ID: "商品 ID", PRODUCT_NAME: "商品",
+  zh: resource(
+    {
+      eyebrow: "联盟经营洞察",
+      title: "联盟数据分析",
+      subtitle: "三段队列视图，各自声明时间口径：定邀触达、申样通过、通过后表现。",
+      overview: "概览",
+      region: "店铺区域",
+      allRegions: "全部区域",
+      customShopScope: "自定义店铺范围",
+      selectedShops: "已选 {{count}} 家店铺",
+      selectAll: "全选",
+      startDate: "开始日期",
+      endDate: "结束日期",
+      none: "无",
+      window: "队列时间窗",
+      windowDays: "近 {{count}} 天",
+      granularity: "时间粒度",
+      granularities: { DAILY: "按日", WEEKLY: "按周", MONTHLY: "按月" },
+      refresh: "刷新",
+      refreshing: "刷新中…",
+      retry: "重试",
+      loading: "正在加载联盟数据分析",
+      stale: "数据滞后",
+      materialized: "已物化",
+      platformTitle: "平台业绩",
+      sampleTitle: "申样转化",
+      decisionOrigin: {
+        title: "决策来源",
+        metric: "指标",
+        AI: "AI",
+        NOT_AI: "非 AI",
+        notAiDisclosure:
+          "“非 AI”包含人工直接操作、平台/系统动作和仍在途的申请；有效 AI 决策生效后，该申请的全部历史会自动迁移到 AI。",
+        postApprovalTitle: "按决策来源对比通过后表现",
+        activityDisclosure:
+          "这里的订单与件数只统计可归属到申样的活动；下方联盟全渠道件数不能按决策来源拆分。",
       },
-      metrics: {
-        AFFILIATE_GROSS_GMV_USD: "GMV（未扣退款，USD）", AFFILIATE_NET_GMV_USD: "净 GMV（USD）",
-        AFFILIATE_ORDERS: "订单数", AFFILIATE_UNITS: "件数",
-        AFFILIATE_ESTIMATED_COMMISSION_USD: "预估佣金（USD）", AFFILIATE_ACTUAL_COMMISSION_USD: "实际佣金（USD）",
-        AFFILIATE_TARGET_CREATORS_INVITED: "已定邀达人数", AFFILIATE_TARGET_SAMPLE_RESPONSES: "定邀申样回应数",
-        AFFILIATE_TARGET_RESPONSE_RATE: "定邀回应率",
-        AFFILIATE_SENT: "已发送", AFFILIATE_REPLIED: "已回复", AFFILIATE_CAMPAIGN_REPLY_RATE: "Campaign 回复率",
-        AFFILIATE_APPLICATIONS_CREATED: "申样数", AFFILIATE_CURRENTLY_APPROVED: "已通过",
-        AFFILIATE_SHIPPED_OBSERVED_CURRENT: "已发货（观测）", AFFILIATE_CURRENTLY_COMPLETED: "已完成",
-        AFFILIATE_APPROVAL_RATE: "通过率", AFFILIATE_FULFILLMENT_OBSERVED_RATE: "已发货 / 已通过", AFFILIATE_COMPLETION_RATE: "完成率",
-        AFFILIATE_APPLICATION_TIME_EXACT: "精确申请时间数", AFFILIATE_APPLICATION_TIME_EXACT_RATE: "精确申请时间占比",
-        AFFILIATE_TARGET_MAPPED_APPLICATIONS: "可归因到 TARGET 的申样", AFFILIATE_TARGET_MAPPING_RATE: "TARGET 归因率",
-        AFFILIATE_CAMPAIGN_MAPPED_APPLICATIONS: "可归因到 Campaign 的申样", AFFILIATE_CAMPAIGN_MAPPING_RATE: "Campaign 归因率",
-        AFFILIATE_CREATOR_IDENTITY_RESOLVED: "已解析达人身份", AFFILIATE_CREATOR_IDENTITY_ELIGIBLE: "可解析达人身份",
-        AFFILIATE_CREATOR_IDENTITY_ROW_COVERAGE: "达人身份行覆盖率",
+      portfolio: {
+        caption: "当前值 · 不随时间窗变化",
+        campaigns: "在营 Campaign",
+        target: "在营 TARGET",
+        open: "在营 OPEN",
+      },
+      sectionErrorTitle: "该板块加载失败",
+      sectionUnavailableTitle: "该板块暂不可用",
+      sectionUnavailableBody: "服务端未返回该板块数据，其余板块不受影响。",
+      coverage: {
+        bandSeries: "有数据的店铺",
+        bandTooltip: "所选 {{selected}} 家中，当天有数据的为 {{withData}} 家",
+        bandCaption:
+          "数据覆盖——填充高度表示当天已开始产生数据的店铺数，满格为所选的 {{count}} 家。",
+        noneTitle: "所选店铺在这一段没有任何数据",
+        noneBody:
+          "所选的 {{count}} 家店铺没有一条本段可读取的记录，因此画不出可比的时间窗。请扩大店铺范围或队列时间窗。",
+        boundary:
+          "有数据的 {{shops}} 家店铺自 {{date}} 起全部到齐，图上已标出该位置。更早的日子仍然照常绘制，但只统计到其中一部分店铺，与后面的日子不可比。",
+        partialDays: "该时间窗内还有 {{count}} 天，每天都只覆盖了部分店铺。",
+        restrictToCovered: "只看完整覆盖区间",
+        showFullRange: "显示完整区间",
+        boundaryMark: "完整覆盖起点",
+        excludeLimiting: "排除最晚开始的 {{count}} 家店铺",
+        limitingShops: "最晚开始的店铺：{{shops}}",
+        dashedNote:
+          "更早的日子照常绘制，只是用虚线、浅色表示，并标出完整覆盖的第一天。它们的店铺集合逐日变化，只说明当时采到了什么，可以作为历史查看，但不能当作趋势比较。",
+        partialSeries: "不完整区间",
+        metricBasis: "统计口径：{{selected}} 家中的 {{shops}} 家 · 自 {{date}} 起完整覆盖",
+        noDate: "无完整覆盖日",
+      },
+      reachout: {
+        title: "定邀触达",
+        axis: "队列口径：真实定邀日期",
+        invitations: "已定邀达人数",
+        responded: "其中已提交申样",
+        cohortResponseRate: "队列回应率",
+        cohortResponseRateHint:
+          "本时间窗内定邀的达人，截至今天的回应比例；同一批人，不是两批人相除。",
+        immatureShare: "尚未成熟占比",
+        immatureShareHint: "距今不足 30 天的定邀占比，这部分的回应还在陆续到达。",
+        horizonTitle: "各时长的回应率",
+        horizonNote:
+          "固定同一批 {{count}} 条定邀（已满 30 天、可在最长时长上判定），在每个时长上分别统计，因此曲线真正是累计的，不会下降。",
+        horizonCohortRange:
+          "这批定邀的发出时间在 {{from}} 至 {{to}} 之间，比旁边的每日柱状图更早。",
+        cohortTooSmall:
+          "本时间窗内只有 {{count}} 条定邀已满 30 天。在这么少的样本上算回应率只是噪声，因此不绘制该曲线——至少需要 {{minimum}} 条。",
+        cohortTooSmallNote: "已成熟的定邀太少，无法绘制曲线。",
+        subDaySuppressed:
+          "已隐藏 3h / 12h / 24h：仅 {{share}} 的回应时间来自平台真实提交时间，短时长的点只会是代理时间造成的假象。",
+        matureBasis: "已成熟定邀：{{count}}",
+        responseRateSeries: "回应率",
+        dailyTitle: "按定邀日的定邀量",
+        dailyNote:
+          "末尾 {{count}} 个队列的回应仍在累积，以灰色绘制；这里的矮柱是没走完，不是表现差。",
+        inviteSeries: "定邀量",
+        immatureBand: "回应仍在累积",
+        exactResponses: "精确提交时间",
+        proxyResponses: "观测代理时间",
+        exactShare: "精确占比",
+        timeBasisDisclosure:
+          "定邀时间为平台真实时间戳，覆盖完整；回应时间优先取平台真实提交时间，缺失时退化为观测代理，反推时间计入代理。",
+      },
+      approval: {
+        title: "申样通过",
+        axis: "队列口径：申请提交日期",
+        applications: "申样数",
+        approved: "已通过",
+        merchantRejected: "商家拒绝",
+        overdueByUs: "我方超时未处理",
+        inFlight: "处理中",
+        approvalRate: "通过率",
+        merchantRejectRate: "商家拒绝率",
+        overdueRate: "超时率",
+        overdueRateHint: "我方未在审核时限内做出决定的比例。",
+        dailyTitle: "按申请日的结果构成",
+        dailyNote: "近期队列「处理中」占比高，只是因为尚未出结果。",
+        originDailyNote:
+          "AI 与非 AI 使用相同坐标轴；“处理中”独立展示，当前非 AI 申请之后可能因有效 AI 决策迁移到 AI。",
+        byAgeTitle: "按申请年龄的结果构成",
+        byAgeNote: "随着队列变老，结果构成如何收敛。",
+        originAgeNote: "按申请年龄展示当前结果并区分现时决策来源；这不是生存分析或最终结果预测。",
+      },
+      postApproval: {
+        title: "通过后表现",
+        axis: "两套口径：已通过申请按申请日期 · 寄样与件数按自然日",
+        pinnedWindow:
+          "无论上方选择哪个时间窗，本板块一律按 {{count}} 天统计：出单比审批晚 60–90 天，时间窗更短会让正常出货的商家看起来几乎没有成交。",
+        twoBases:
+          "两套口径的起点不同：申请数据自 {{applicationDate}} 起覆盖，寄样观测则要到 {{shipmentDate}} 才开始——寄出日期是我们自己观测到的，不是平台事实，更早的日子永远不可能补上。因此在那之前的日子只有真实件数、没有寄样量，这是记录如此，不是销量下滑。",
+        approvalBasisTitle: "按申请日期",
+        shipmentBasisTitle: "按自然日",
+        approvedApplications: "已通过申请数",
+        applicationsWithOrder: "产生订单的申请数",
+        orderRate: "出单率",
+        orderRateHint: "已通过申请中有 {{count}} 个至少产生了一笔订单。",
+        actualUnits: "截至今天的件数",
+        unitsPerApprovedActual: "每个已通过申请 {{value}} 件",
+        samplesShipped: "已寄出免费样品",
+        affiliateUnits: "联盟渠道成交件数",
+        unitsPerSampleShipped: "每寄出一件样品的成交件数",
+        unitsPerSampleShippedHint: "时间窗内联盟件数除以同一时间窗内的寄样量，两者都是实际计数。",
+        shipmentBoundary: "寄样数据起始日",
+        shipmentBoundaryHint:
+          "寄出日期是我们自己的观测，不是平台事实，更早的日子不可能有这个字段。",
+        shipmentTitle: "按日对比寄样量与联盟件数",
+        shipmentNote:
+          "每天两个计数：当天寄出的免费样品，以及当天联盟渠道卖出的件数。右轴的折线是滚动 {{count}} 天比值——{{count}} 天件数之和除以同 {{count}} 天寄样量之和。它是两个计数的比值，不是任何预测；在滚动窗口凑满 {{count}} 天之前、以及滚动寄样量为 0 的日子，该点不存在。",
+        samplesShippedSeries: "寄样量",
+        affiliateUnitsSeries: "联盟件数",
+        trailingRatioSeries: "每样品件数 · 滚动 {{count}} 天",
+        originActivityTitle: "按活动日的申样归属订单与件数",
+        originActivityNote: "按内容或订单实际发生日统计，不是按申请 cohort 日期统计。",
+        aiOrdersSeries: "AI · 订单",
+        notAiOrdersSeries: "非 AI · 订单",
+        aiUnitsSeries: "AI · 件数",
+        notAiUnitsSeries: "非 AI · 件数",
+      },
+      noDataTitle: "该范围暂无数据",
+      noDataBody: "请换一个更长的时间窗或其他授权店铺。",
+      errorTitle: "联盟数据分析加载失败",
+      noEntitlementTitle: "尚未开通数据分析",
+      noEntitlementBody: "当前账号下没有已开通数据分析的授权店铺。",
+      signInTitle: "登录后查看联盟数据分析",
+      signInBody: "授权店铺范围由你的账号解析得出。",
+      add: "添加",
+      search: "搜索",
+      run: "运行",
+      running: "运行中…",
+      loadMore: "加载更多",
+      groupPresets: {
+        DATE: "日期",
+        SHOP: "店铺",
+        REGION: "区域",
+        CAMPAIGN: "Campaign",
+        COLLABORATION: "合作",
+        CREATOR: "达人",
+        PRODUCT: "商品",
+        DECISION_ORIGIN: "决策来源",
+      },
+      chartModes: { AUTO: "自动", LINE: "折线", BAR: "柱状", STACKED: "堆叠", TABLE: "表格" },
+      catalog: {
+        dimensions: {
+          DATE: "日期",
+          SHOP_ID: "店铺 ID",
+          SHOP_NAME: "店铺",
+          SHOP_REGION: "店铺区域",
+          CAMPAIGN_ID: "Campaign ID",
+          CAMPAIGN_NAME: "Campaign",
+          AFFILIATE_COLLABORATION_ID: "合作 ID",
+          AFFILIATE_COLLABORATION_NAME: "合作",
+          AFFILIATE_COLLABORATION_TYPE: "合作类型",
+          AFFILIATE_DECIDED_BY: "决策来源",
+          CREATOR_OPEN_ID: "达人 ID",
+          CREATOR_USERNAME: "达人",
+          PRODUCT_ID: "商品 ID",
+          PRODUCT_NAME: "商品",
+        },
+        metrics: {
+          AFFILIATE_GROSS_GMV_USD: "GMV（未扣退款，USD）",
+          AFFILIATE_NET_GMV_USD: "净 GMV（USD）",
+          AFFILIATE_ORDERS: "订单数",
+          AFFILIATE_UNITS: "件数",
+          AFFILIATE_ESTIMATED_COMMISSION_USD: "预估佣金（USD）",
+          AFFILIATE_ACTUAL_COMMISSION_USD: "实际佣金（USD）",
+          AFFILIATE_TARGET_CREATORS_INVITED: "已定邀达人数",
+          AFFILIATE_TARGET_SAMPLE_RESPONSES: "定邀申样回应数",
+          AFFILIATE_TARGET_RESPONSE_RATE: "定邀回应率",
+          AFFILIATE_SENT: "已发送",
+          AFFILIATE_REPLIED: "已回复",
+          AFFILIATE_CAMPAIGN_REPLY_RATE: "Campaign 回复率",
+          AFFILIATE_APPLICATIONS_CREATED: "申样数",
+          AFFILIATE_CURRENTLY_APPROVED: "已通过",
+          AFFILIATE_SHIPPED_OBSERVED_CURRENT: "已发货（观测）",
+          AFFILIATE_CURRENTLY_COMPLETED: "已完成",
+          AFFILIATE_APPROVAL_RATE: "通过率",
+          AFFILIATE_FULFILLMENT_OBSERVED_RATE: "已发货 / 已通过",
+          AFFILIATE_COMPLETION_RATE: "完成率",
+          AFFILIATE_APPLICATION_TIME_EXACT: "精确申请时间数",
+          AFFILIATE_APPLICATION_TIME_EXACT_RATE: "精确申请时间占比",
+          AFFILIATE_TARGET_MAPPED_APPLICATIONS: "可归因到 TARGET 的申样",
+          AFFILIATE_TARGET_MAPPING_RATE: "TARGET 归因率",
+          AFFILIATE_CAMPAIGN_MAPPED_APPLICATIONS: "可归因到 Campaign 的申样",
+          AFFILIATE_CAMPAIGN_MAPPING_RATE: "Campaign 归因率",
+          AFFILIATE_CREATOR_IDENTITY_RESOLVED: "已解析达人身份",
+          AFFILIATE_CREATOR_IDENTITY_ELIGIBLE: "可解析达人身份",
+          AFFILIATE_CREATOR_IDENTITY_ROW_COVERAGE: "达人身份行覆盖率",
+        },
+      },
+      explore: {
+        title: "探索",
+        contract: "数据合同",
+        chooseContract: "选择一套合同",
+        metrics: "指标",
+        groupBy: "分组维度",
+        filters: "维度筛选",
+        filterDimension: "筛选维度",
+        filterOperator: "筛选方式",
+        operators: { IN: "属于", NOT_IN: "不属于" },
+        directions: { DESC: "从高到低", ASC: "从低到高" },
+        invalidGrouping: "该组合没有对应的物理汇总合同。",
+        searchValues: "搜索授权范围内的值",
+        exactValue: "或输入精确值",
+        sort: "排序",
+        direction: "方向",
+        limit: "行数上限",
+        notRun: "修改尚未运行",
+        rows: "{{count}} 行",
+        mixedCurrency: "包含多种币种，请使用 USD 指标。",
+        visualization: "可视化",
+        detail: "查询明细",
+        resultTable: "结果表",
+        rateTooltip: "由 {{numerator}} / {{denominator}} 推导；行级 Rate 绝不做平均。",
       },
     },
-    explore: {
-      title: "探索", contract: "数据合同", chooseContract: "选择一套合同", metrics: "指标", groupBy: "分组维度", filters: "维度筛选",
-      filterDimension: "筛选维度", filterOperator: "筛选方式",
-      operators: { IN: "属于", NOT_IN: "不属于" },
-      directions: { DESC: "从高到低", ASC: "从低到高" },
-      invalidGrouping: "该组合没有对应的物理汇总合同。", searchValues: "搜索授权范围内的值", exactValue: "或输入精确值",
-      sort: "排序", direction: "方向", limit: "行数上限", notRun: "修改尚未运行", rows: "{{count}} 行",
-      mixedCurrency: "包含多种币种，请使用 USD 指标。", visualization: "可视化", detail: "查询明细", resultTable: "结果表",
-      rateTooltip: "由 {{numerator}} / {{denominator}} 推导；行级 Rate 绝不做平均。",
+    {
+      welcomeTitle: "三段队列，三条时间轴",
+      welcomeBody:
+        "概览把同一条经营链路拆成三段，每段都写明自己按哪个队列日期统计——这三个日期不能互换。",
+      scopeTitle: "选择业务范围",
+      scopeBody:
+        "选择授权店铺和 30 / 60 / 90 天的队列时间窗。右侧的存量计数是当前值，不随时间窗变化。",
+      reachoutTitle: "定邀触达：按定邀日统计",
+      reachoutBody:
+        "回应按各时长的回应率呈现，因为原始回应数受定邀成熟度限制。末尾队列以灰色绘制，表示回应仍在到达。",
+      approvalTitle: "申样通过：按申请日统计",
+      approvalBody:
+        "每个申请最终落到已通过、商家拒绝、我方超时或仍在处理中。超时的那部分是我们自己要解决的。",
+      postApprovalTitle: "通过后表现：以件数计量",
+      postApprovalBody:
+        "件数不会缺失，因此这一段用件数而非 GMV。旁边把当天寄出的免费样品与当天联盟渠道卖出的件数放在一起，右轴给出两者的滚动 7 天比值。",
+      exploreTitle: "组合符合合同的查询",
+      exploreBody:
+        "一次选择一套合同、指标、维度和筛选；不受物理 Aggregate 支持的组合会在运行前禁用。",
+      resultsTitle: "不改变语义地钻取",
+      resultsBody: "图表和表格共用查询结果；点击实体即可筛选，Rate 始终用总分子和总分母重算。",
     },
-  }, {
-    welcomeTitle: "三段队列，三条时间轴",
-    welcomeBody: "概览把同一条经营链路拆成三段，每段都写明自己按哪个队列日期统计——这三个日期不能互换。",
-    scopeTitle: "选择业务范围",
-    scopeBody: "选择授权店铺和 30 / 60 / 90 天的队列时间窗。右侧的存量计数是当前值，不随时间窗变化。",
-    reachoutTitle: "定邀触达：按定邀日统计",
-    reachoutBody: "回应按各时长的回应率呈现，因为原始回应数受定邀成熟度限制。末尾队列以灰色绘制，表示回应仍在到达。",
-    approvalTitle: "申样通过：按申请日统计",
-    approvalBody: "每个申请最终落到已通过、商家拒绝、我方超时或仍在处理中。超时的那部分是我们自己要解决的。",
-    postApprovalTitle: "通过后表现：以件数计量",
-    postApprovalBody: "件数不会缺失，因此这一段用件数而非 GMV。旁边把当天寄出的免费样品与当天联盟渠道卖出的件数放在一起，右轴给出两者的滚动 7 天比值。",
-    exploreTitle: "组合符合合同的查询", exploreBody: "一次选择一套合同、指标、维度和筛选；不受物理 Aggregate 支持的组合会在运行前禁用。",
-    resultsTitle: "不改变语义地钻取", resultsBody: "图表和表格共用查询结果；点击实体即可筛选，Rate 始终用总分子和总分母重算。",
-  }, "数据分析"),
-  de: resource({ title: "Affiliate-Analysen", subtitle: "Drei Kohortenabschnitte mit jeweils eigener Zeitachse: Reachout, Sample-Freigabe und Einheiten nach der Freigabe.", overview: "Übersicht", region: "Shop-Region", allRegions: "Alle Regionen", selectedShops: "{{count}} Shops ausgewählt", startDate: "Startdatum", endDate: "Enddatum", window: "Kohortenfenster", windowDays: "Letzte {{count}} T", granularity: "Granularität", refresh: "Aktualisieren", platformTitle: "Plattformleistung", sampleTitle: "Sample-Konversion", explore: { title: "Erkunden", contract: "Vertrag", chooseContract: "Einen Vertrag wählen", metrics: "Kennzahlen", groupBy: "Gruppieren nach", filters: "Dimensionsfilter", resultTable: "Ergebnistabelle" } }, {
-    welcomeTitle: "Drei Kohorten, drei Zeitachsen", welcomeBody: "Die Übersicht zeigt einen Ablauf in drei Stufen; jede nennt das Kohortendatum, gegen das sie zählt.", scopeTitle: "Geschäftsbereich wählen", scopeBody: "Autorisierte Shops und ein Fenster von 30 / 60 / 90 Tagen wählen; die Bestandszahlen bleiben davon unberührt.", reachoutTitle: "Reachout nach Einladungsdatum", reachoutBody: "Nur Raten sind über Zeithorizonte vergleichbar; junge Kohorten erscheinen grau, solange Antworten eintreffen.", approvalTitle: "Sample-Freigabe nach Antragsdatum", approvalBody: "Jeder Antrag endet als freigegeben, abgelehnt, überfällig auf unserer Seite oder noch offen.", postApprovalTitle: "Nach der Freigabe, gemessen in Einheiten", postApprovalBody: "Einheiten fehlen nie, deshalb ersetzen sie hier den GMV; daneben stehen die an einem Tag versandten Gratismuster den am selben Tag verkauften Affiliate-Einheiten gegenüber, mit dem gleitenden 7-Tage-Verhältnis auf der rechten Achse.", exploreTitle: "Vertragssichere Abfrage erstellen", exploreBody: "Nicht unterstützte Aggregate-Kombinationen werden vor dem Start deaktiviert.", resultsTitle: "Mit stabiler Semantik aufschlüsseln", resultsBody: "Diagramm und Tabelle nutzen dieselben Zeilen; Raten werden aus Gesamtzähler und -nenner berechnet."
-  }, "Analysen"),
-  es: resource({ title: "Analítica de afiliados", subtitle: "Tres secciones de cohorte, cada una con su propio eje temporal: contacto, aprobación de muestras y unidades tras la aprobación.", overview: "Resumen", region: "Región de tienda", allRegions: "Todas las regiones", selectedShops: "{{count}} tiendas seleccionadas", startDate: "Fecha inicial", endDate: "Fecha final", window: "Ventana de cohorte", windowDays: "Últimos {{count}} d", granularity: "Granularidad", refresh: "Actualizar", platformTitle: "Rendimiento de plataforma", sampleTitle: "Conversión de muestras", explore: { title: "Explorar", contract: "Contrato", chooseContract: "Elige un contrato", metrics: "Métricas", groupBy: "Agrupar por", filters: "Filtros de dimensión", resultTable: "Tabla de resultados" } }, {
-    welcomeTitle: "Tres cohortes, tres ejes temporales", welcomeBody: "El resumen sigue un mismo recorrido en tres etapas; cada una declara la fecha de cohorte con la que cuenta.", scopeTitle: "Elige el alcance", scopeBody: "Selecciona tiendas autorizadas y una ventana de 30 / 60 / 90 días; los recuentos de cartera no cambian con ella.", reachoutTitle: "Contacto, por fecha de invitación", reachoutBody: "Solo las tasas son comparables entre horizontes; las cohortes recientes se dibujan en gris mientras llegan respuestas.", approvalTitle: "Aprobación, por fecha de solicitud", approvalBody: "Cada solicitud acaba aprobada, rechazada por el comerciante, vencida por nuestra parte o aún en curso.", postApprovalTitle: "Tras la aprobación, medido en unidades", postApprovalBody: "Las unidades nunca faltan, por eso sustituyen al GMV; junto a ellas se comparan las muestras gratuitas enviadas un día con las unidades de afiliados vendidas ese mismo día, con la razón móvil de 7 días en el eje derecho.", exploreTitle: "Compón una consulta segura", exploreBody: "Las combinaciones Aggregate no admitidas se desactivan antes de ejecutar.", resultsTitle: "Profundiza sin cambiar la semántica", resultsBody: "Gráfico y tabla comparten filas; las tasas se recalculan con numerador y denominador totales."
-  }, "Analítica"),
-  fr: resource({ title: "Analytique Affiliate", subtitle: "Trois sections de cohorte, chacune avec son axe temporel : prise de contact, validation d’échantillon et unités après validation.", overview: "Vue d’ensemble", region: "Région boutique", allRegions: "Toutes les régions", selectedShops: "{{count}} boutiques sélectionnées", startDate: "Date de début", endDate: "Date de fin", window: "Fenêtre de cohorte", windowDays: "{{count}} derniers jours", granularity: "Granularité", refresh: "Actualiser", platformTitle: "Performance plateforme", sampleTitle: "Conversion échantillons", explore: { title: "Explorer", contract: "Contrat", chooseContract: "Choisir un contrat", metrics: "Indicateurs", groupBy: "Regrouper par", filters: "Filtres de dimension", resultTable: "Tableau de résultats" } }, {
-    welcomeTitle: "Trois cohortes, trois axes temporels", welcomeBody: "La vue d’ensemble suit un même parcours en trois étapes ; chacune annonce la date de cohorte qu’elle utilise.", scopeTitle: "Choisir le périmètre", scopeBody: "Sélectionnez des boutiques autorisées et une fenêtre de 30 / 60 / 90 jours ; les compteurs de portefeuille n’en dépendent pas.", reachoutTitle: "Prise de contact, à la date d’invitation", reachoutBody: "Seuls les taux se comparent entre horizons ; les cohortes récentes restent grises tant que les réponses arrivent.", approvalTitle: "Validation, à la date de demande", approvalBody: "Chaque demande finit validée, refusée par le marchand, en retard de notre côté ou encore en cours.", postApprovalTitle: "Après validation, mesuré en unités", postApprovalBody: "Les unités ne manquent jamais ; elles remplacent donc le GMV, et à côté les échantillons gratuits expédiés un jour sont comparés aux unités Affiliate vendues le même jour, avec le rapport glissant sur 7 jours sur l’axe de droite.", exploreTitle: "Composer une requête conforme", exploreBody: "Les combinaisons Aggregate non prises en charge sont désactivées avant exécution.", resultsTitle: "Explorer sans changer la sémantique", resultsBody: "Graphique et tableau partagent les lignes ; les taux sont recalculés depuis les totaux."
-  }, "Analytique"),
-  id: resource({ title: "Analitik Affiliate", subtitle: "Tiga bagian kohor dengan sumbu waktunya masing-masing: penjangkauan, persetujuan sampel, dan unit setelah disetujui.", overview: "Ringkasan", region: "Wilayah toko", allRegions: "Semua wilayah", selectedShops: "{{count}} toko dipilih", startDate: "Tanggal mulai", endDate: "Tanggal akhir", window: "Jendela kohor", windowDays: "{{count}} hari terakhir", granularity: "Granularitas", refresh: "Segarkan", platformTitle: "Kinerja platform", sampleTitle: "Konversi sampel", explore: { title: "Jelajahi", contract: "Kontrak", chooseContract: "Pilih satu kontrak", metrics: "Metrik", groupBy: "Kelompokkan", filters: "Filter dimensi", resultTable: "Tabel hasil" } }, {
-    welcomeTitle: "Tiga kohor, tiga sumbu waktu", welcomeBody: "Ringkasan mengikuti satu alur dalam tiga tahap; tiap tahap menyebut tanggal kohor yang dipakainya.", scopeTitle: "Pilih cakupan bisnis", scopeBody: "Pilih toko yang diizinkan dan jendela 30 / 60 / 90 hari; angka portofolio tidak ikut berubah.", reachoutTitle: "Penjangkauan, per tanggal undangan", reachoutBody: "Hanya rate yang bisa dibandingkan antar horizon; kohor terbaru berwarna abu-abu selama respons masih masuk.", approvalTitle: "Persetujuan, per tanggal pengajuan", approvalBody: "Setiap pengajuan berakhir disetujui, ditolak penjual, terlambat di pihak kami, atau masih berjalan.", postApprovalTitle: "Setelah disetujui, diukur dalam unit", postApprovalBody: "Unit tidak pernah hilang sehingga menggantikan GMV; di sampingnya sampel gratis yang dikirim pada suatu hari dibandingkan dengan unit affiliate yang terjual pada hari yang sama, dengan rasio bergulir 7 hari pada sumbu kanan.", exploreTitle: "Susun kueri yang aman", exploreBody: "Kombinasi Aggregate yang tidak didukung dinonaktifkan sebelum dijalankan.", resultsTitle: "Telusuri tanpa mengubah semantik", resultsBody: "Grafik dan tabel memakai baris yang sama; rate dihitung dari total pembilang dan penyebut."
-  }, "Analitik"),
-  it: resource({ title: "Analytics Affiliate", subtitle: "Tre sezioni di coorte, ognuna con il proprio asse temporale: contatto, approvazione campioni e unità dopo l’approvazione.", overview: "Panoramica", region: "Regione negozio", allRegions: "Tutte le regioni", selectedShops: "{{count}} negozi selezionati", startDate: "Data iniziale", endDate: "Data finale", window: "Finestra di coorte", windowDays: "Ultimi {{count}} g", granularity: "Granularità", refresh: "Aggiorna", platformTitle: "Performance piattaforma", sampleTitle: "Conversione campioni", explore: { title: "Esplora", contract: "Contratto", chooseContract: "Scegli un contratto", metrics: "Metriche", groupBy: "Raggruppa per", filters: "Filtri dimensionali", resultTable: "Tabella risultati" } }, {
-    welcomeTitle: "Tre coorti, tre assi temporali", welcomeBody: "La panoramica segue un unico percorso in tre fasi; ogni fase dichiara la data di coorte con cui conta.", scopeTitle: "Scegli l’ambito", scopeBody: "Seleziona i negozi autorizzati e una finestra di 30 / 60 / 90 giorni; i conteggi di portafoglio non cambiano.", reachoutTitle: "Contatto, alla data dell’invito", reachoutBody: "Solo i tassi sono confrontabili tra orizzonti; le coorti recenti restano grigie finché arrivano risposte.", approvalTitle: "Approvazione, alla data della richiesta", approvalBody: "Ogni richiesta finisce approvata, rifiutata dal merchant, scaduta da parte nostra o ancora in corso.", postApprovalTitle: "Dopo l’approvazione, misurato in unità", postApprovalBody: "Le unità non mancano mai e sostituiscono il GMV; accanto, i campioni gratuiti spediti in un giorno vengono confrontati con le unità Affiliate vendute lo stesso giorno, con il rapporto mobile a 7 giorni sull’asse destro.", exploreTitle: "Componi una query sicura", exploreBody: "Le combinazioni Aggregate non supportate vengono disabilitate prima dell’esecuzione.", resultsTitle: "Approfondisci senza cambiare semantica", resultsBody: "Grafico e tabella condividono le righe; i tassi sono ricalcolati dai totali."
-  }, "Analytics"),
-  th: resource({ title: "การวิเคราะห์ Affiliate", subtitle: "สามส่วนแบบคอฮอร์ต แต่ละส่วนมีแกนเวลาของตนเอง: การเชิญ การอนุมัติตัวอย่าง และจำนวนชิ้นหลังอนุมัติ", overview: "ภาพรวม", region: "ภูมิภาคร้าน", allRegions: "ทุกภูมิภาค", selectedShops: "เลือก {{count}} ร้าน", startDate: "วันที่เริ่ม", endDate: "วันที่สิ้นสุด", window: "ช่วงคอฮอร์ต", windowDays: "{{count}} วันล่าสุด", granularity: "ความละเอียดเวลา", refresh: "รีเฟรช", platformTitle: "ผลงานแพลตฟอร์ม", sampleTitle: "การแปลงตัวอย่าง", explore: { title: "สำรวจ", contract: "สัญญา", chooseContract: "เลือกหนึ่งสัญญา", metrics: "เมตริก", groupBy: "จัดกลุ่มตาม", filters: "ตัวกรองมิติ", resultTable: "ตารางผลลัพธ์" } }, {
-    welcomeTitle: "สามคอฮอร์ต สามแกนเวลา", welcomeBody: "ภาพรวมติดตามเส้นทางเดียวกันในสามช่วง แต่ละช่วงระบุวันที่คอฮอร์ตที่ใช้นับ", scopeTitle: "เลือกขอบเขตธุรกิจ", scopeBody: "เลือกร้านที่ได้รับอนุญาตและช่วง 30 / 60 / 90 วัน ตัวเลขพอร์ตทางขวาไม่เปลี่ยนตามช่วงเวลา", reachoutTitle: "การเชิญ นับตามวันที่เชิญ", reachoutBody: "เทียบข้ามช่วงเวลาได้เฉพาะอัตราเท่านั้น คอฮอร์ตล่าสุดจะเป็นสีเทาระหว่างที่การตอบกลับยังทยอยเข้ามา", approvalTitle: "การอนุมัติ นับตามวันที่ยื่นคำขอ", approvalBody: "ทุกคำขอจะจบลงที่อนุมัติ ผู้ขายปฏิเสธ เกินกำหนดฝั่งเรา หรือยังดำเนินการอยู่", postApprovalTitle: "หลังอนุมัติ วัดเป็นจำนวนชิ้น", postApprovalBody: "จำนวนชิ้นไม่เคยขาดหาย จึงใช้แทน GMV และข้างกันจะเทียบตัวอย่างฟรีที่ส่งออกในแต่ละวันกับจำนวนชิ้นที่ช่อง Affiliate ขายได้ในวันเดียวกัน พร้อมอัตราส่วนเฉลี่ยย้อนหลัง 7 วันบนแกนขวา", exploreTitle: "สร้างคำค้นที่ตรงตามสัญญา", exploreBody: "ระบบจะปิดชุด Aggregate ที่ไม่รองรับก่อนสั่งรัน", resultsTitle: "เจาะลึกโดยไม่เปลี่ยนความหมาย", resultsBody: "กราฟและตารางใช้ข้อมูลเดียวกัน และคำนวณอัตราจากตัวตั้งกับตัวหารรวม"
-  }, "การวิเคราะห์"),
+    "数据分析",
+  ),
+  de: resource(
+    {
+      title: "Affiliate-Analysen",
+      subtitle:
+        "Drei Kohortenabschnitte mit jeweils eigener Zeitachse: Reachout, Sample-Freigabe und Einheiten nach der Freigabe.",
+      overview: "Übersicht",
+      region: "Shop-Region",
+      allRegions: "Alle Regionen",
+      selectedShops: "{{count}} Shops ausgewählt",
+      startDate: "Startdatum",
+      endDate: "Enddatum",
+      window: "Kohortenfenster",
+      windowDays: "Letzte {{count}} T",
+      granularity: "Granularität",
+      refresh: "Aktualisieren",
+      platformTitle: "Plattformleistung",
+      sampleTitle: "Sample-Konversion",
+      explore: {
+        title: "Erkunden",
+        contract: "Vertrag",
+        chooseContract: "Einen Vertrag wählen",
+        metrics: "Kennzahlen",
+        groupBy: "Gruppieren nach",
+        filters: "Dimensionsfilter",
+        resultTable: "Ergebnistabelle",
+      },
+    },
+    {
+      welcomeTitle: "Drei Kohorten, drei Zeitachsen",
+      welcomeBody:
+        "Die Übersicht zeigt einen Ablauf in drei Stufen; jede nennt das Kohortendatum, gegen das sie zählt.",
+      scopeTitle: "Geschäftsbereich wählen",
+      scopeBody:
+        "Autorisierte Shops und ein Fenster von 30 / 60 / 90 Tagen wählen; die Bestandszahlen bleiben davon unberührt.",
+      reachoutTitle: "Reachout nach Einladungsdatum",
+      reachoutBody:
+        "Nur Raten sind über Zeithorizonte vergleichbar; junge Kohorten erscheinen grau, solange Antworten eintreffen.",
+      approvalTitle: "Sample-Freigabe nach Antragsdatum",
+      approvalBody:
+        "Jeder Antrag endet als freigegeben, abgelehnt, überfällig auf unserer Seite oder noch offen.",
+      postApprovalTitle: "Nach der Freigabe, gemessen in Einheiten",
+      postApprovalBody:
+        "Einheiten fehlen nie, deshalb ersetzen sie hier den GMV; daneben stehen die an einem Tag versandten Gratismuster den am selben Tag verkauften Affiliate-Einheiten gegenüber, mit dem gleitenden 7-Tage-Verhältnis auf der rechten Achse.",
+      exploreTitle: "Vertragssichere Abfrage erstellen",
+      exploreBody: "Nicht unterstützte Aggregate-Kombinationen werden vor dem Start deaktiviert.",
+      resultsTitle: "Mit stabiler Semantik aufschlüsseln",
+      resultsBody:
+        "Diagramm und Tabelle nutzen dieselben Zeilen; Raten werden aus Gesamtzähler und -nenner berechnet.",
+    },
+    "Analysen",
+  ),
+  es: resource(
+    {
+      title: "Analítica de afiliados",
+      subtitle:
+        "Tres secciones de cohorte, cada una con su propio eje temporal: contacto, aprobación de muestras y unidades tras la aprobación.",
+      overview: "Resumen",
+      region: "Región de tienda",
+      allRegions: "Todas las regiones",
+      selectedShops: "{{count}} tiendas seleccionadas",
+      startDate: "Fecha inicial",
+      endDate: "Fecha final",
+      window: "Ventana de cohorte",
+      windowDays: "Últimos {{count}} d",
+      granularity: "Granularidad",
+      refresh: "Actualizar",
+      platformTitle: "Rendimiento de plataforma",
+      sampleTitle: "Conversión de muestras",
+      explore: {
+        title: "Explorar",
+        contract: "Contrato",
+        chooseContract: "Elige un contrato",
+        metrics: "Métricas",
+        groupBy: "Agrupar por",
+        filters: "Filtros de dimensión",
+        resultTable: "Tabla de resultados",
+      },
+    },
+    {
+      welcomeTitle: "Tres cohortes, tres ejes temporales",
+      welcomeBody:
+        "El resumen sigue un mismo recorrido en tres etapas; cada una declara la fecha de cohorte con la que cuenta.",
+      scopeTitle: "Elige el alcance",
+      scopeBody:
+        "Selecciona tiendas autorizadas y una ventana de 30 / 60 / 90 días; los recuentos de cartera no cambian con ella.",
+      reachoutTitle: "Contacto, por fecha de invitación",
+      reachoutBody:
+        "Solo las tasas son comparables entre horizontes; las cohortes recientes se dibujan en gris mientras llegan respuestas.",
+      approvalTitle: "Aprobación, por fecha de solicitud",
+      approvalBody:
+        "Cada solicitud acaba aprobada, rechazada por el comerciante, vencida por nuestra parte o aún en curso.",
+      postApprovalTitle: "Tras la aprobación, medido en unidades",
+      postApprovalBody:
+        "Las unidades nunca faltan, por eso sustituyen al GMV; junto a ellas se comparan las muestras gratuitas enviadas un día con las unidades de afiliados vendidas ese mismo día, con la razón móvil de 7 días en el eje derecho.",
+      exploreTitle: "Compón una consulta segura",
+      exploreBody: "Las combinaciones Aggregate no admitidas se desactivan antes de ejecutar.",
+      resultsTitle: "Profundiza sin cambiar la semántica",
+      resultsBody:
+        "Gráfico y tabla comparten filas; las tasas se recalculan con numerador y denominador totales.",
+    },
+    "Analítica",
+  ),
+  fr: resource(
+    {
+      title: "Analytique Affiliate",
+      subtitle:
+        "Trois sections de cohorte, chacune avec son axe temporel : prise de contact, validation d’échantillon et unités après validation.",
+      overview: "Vue d’ensemble",
+      region: "Région boutique",
+      allRegions: "Toutes les régions",
+      selectedShops: "{{count}} boutiques sélectionnées",
+      startDate: "Date de début",
+      endDate: "Date de fin",
+      window: "Fenêtre de cohorte",
+      windowDays: "{{count}} derniers jours",
+      granularity: "Granularité",
+      refresh: "Actualiser",
+      platformTitle: "Performance plateforme",
+      sampleTitle: "Conversion échantillons",
+      explore: {
+        title: "Explorer",
+        contract: "Contrat",
+        chooseContract: "Choisir un contrat",
+        metrics: "Indicateurs",
+        groupBy: "Regrouper par",
+        filters: "Filtres de dimension",
+        resultTable: "Tableau de résultats",
+      },
+    },
+    {
+      welcomeTitle: "Trois cohortes, trois axes temporels",
+      welcomeBody:
+        "La vue d’ensemble suit un même parcours en trois étapes ; chacune annonce la date de cohorte qu’elle utilise.",
+      scopeTitle: "Choisir le périmètre",
+      scopeBody:
+        "Sélectionnez des boutiques autorisées et une fenêtre de 30 / 60 / 90 jours ; les compteurs de portefeuille n’en dépendent pas.",
+      reachoutTitle: "Prise de contact, à la date d’invitation",
+      reachoutBody:
+        "Seuls les taux se comparent entre horizons ; les cohortes récentes restent grises tant que les réponses arrivent.",
+      approvalTitle: "Validation, à la date de demande",
+      approvalBody:
+        "Chaque demande finit validée, refusée par le marchand, en retard de notre côté ou encore en cours.",
+      postApprovalTitle: "Après validation, mesuré en unités",
+      postApprovalBody:
+        "Les unités ne manquent jamais ; elles remplacent donc le GMV, et à côté les échantillons gratuits expédiés un jour sont comparés aux unités Affiliate vendues le même jour, avec le rapport glissant sur 7 jours sur l’axe de droite.",
+      exploreTitle: "Composer une requête conforme",
+      exploreBody:
+        "Les combinaisons Aggregate non prises en charge sont désactivées avant exécution.",
+      resultsTitle: "Explorer sans changer la sémantique",
+      resultsBody:
+        "Graphique et tableau partagent les lignes ; les taux sont recalculés depuis les totaux.",
+    },
+    "Analytique",
+  ),
+  id: resource(
+    {
+      title: "Analitik Affiliate",
+      subtitle:
+        "Tiga bagian kohor dengan sumbu waktunya masing-masing: penjangkauan, persetujuan sampel, dan unit setelah disetujui.",
+      overview: "Ringkasan",
+      region: "Wilayah toko",
+      allRegions: "Semua wilayah",
+      selectedShops: "{{count}} toko dipilih",
+      startDate: "Tanggal mulai",
+      endDate: "Tanggal akhir",
+      window: "Jendela kohor",
+      windowDays: "{{count}} hari terakhir",
+      granularity: "Granularitas",
+      refresh: "Segarkan",
+      platformTitle: "Kinerja platform",
+      sampleTitle: "Konversi sampel",
+      explore: {
+        title: "Jelajahi",
+        contract: "Kontrak",
+        chooseContract: "Pilih satu kontrak",
+        metrics: "Metrik",
+        groupBy: "Kelompokkan",
+        filters: "Filter dimensi",
+        resultTable: "Tabel hasil",
+      },
+    },
+    {
+      welcomeTitle: "Tiga kohor, tiga sumbu waktu",
+      welcomeBody:
+        "Ringkasan mengikuti satu alur dalam tiga tahap; tiap tahap menyebut tanggal kohor yang dipakainya.",
+      scopeTitle: "Pilih cakupan bisnis",
+      scopeBody:
+        "Pilih toko yang diizinkan dan jendela 30 / 60 / 90 hari; angka portofolio tidak ikut berubah.",
+      reachoutTitle: "Penjangkauan, per tanggal undangan",
+      reachoutBody:
+        "Hanya rate yang bisa dibandingkan antar horizon; kohor terbaru berwarna abu-abu selama respons masih masuk.",
+      approvalTitle: "Persetujuan, per tanggal pengajuan",
+      approvalBody:
+        "Setiap pengajuan berakhir disetujui, ditolak penjual, terlambat di pihak kami, atau masih berjalan.",
+      postApprovalTitle: "Setelah disetujui, diukur dalam unit",
+      postApprovalBody:
+        "Unit tidak pernah hilang sehingga menggantikan GMV; di sampingnya sampel gratis yang dikirim pada suatu hari dibandingkan dengan unit affiliate yang terjual pada hari yang sama, dengan rasio bergulir 7 hari pada sumbu kanan.",
+      exploreTitle: "Susun kueri yang aman",
+      exploreBody: "Kombinasi Aggregate yang tidak didukung dinonaktifkan sebelum dijalankan.",
+      resultsTitle: "Telusuri tanpa mengubah semantik",
+      resultsBody:
+        "Grafik dan tabel memakai baris yang sama; rate dihitung dari total pembilang dan penyebut.",
+    },
+    "Analitik",
+  ),
+  it: resource(
+    {
+      title: "Analytics Affiliate",
+      subtitle:
+        "Tre sezioni di coorte, ognuna con il proprio asse temporale: contatto, approvazione campioni e unità dopo l’approvazione.",
+      overview: "Panoramica",
+      region: "Regione negozio",
+      allRegions: "Tutte le regioni",
+      selectedShops: "{{count}} negozi selezionati",
+      startDate: "Data iniziale",
+      endDate: "Data finale",
+      window: "Finestra di coorte",
+      windowDays: "Ultimi {{count}} g",
+      granularity: "Granularità",
+      refresh: "Aggiorna",
+      platformTitle: "Performance piattaforma",
+      sampleTitle: "Conversione campioni",
+      explore: {
+        title: "Esplora",
+        contract: "Contratto",
+        chooseContract: "Scegli un contratto",
+        metrics: "Metriche",
+        groupBy: "Raggruppa per",
+        filters: "Filtri dimensionali",
+        resultTable: "Tabella risultati",
+      },
+    },
+    {
+      welcomeTitle: "Tre coorti, tre assi temporali",
+      welcomeBody:
+        "La panoramica segue un unico percorso in tre fasi; ogni fase dichiara la data di coorte con cui conta.",
+      scopeTitle: "Scegli l’ambito",
+      scopeBody:
+        "Seleziona i negozi autorizzati e una finestra di 30 / 60 / 90 giorni; i conteggi di portafoglio non cambiano.",
+      reachoutTitle: "Contatto, alla data dell’invito",
+      reachoutBody:
+        "Solo i tassi sono confrontabili tra orizzonti; le coorti recenti restano grigie finché arrivano risposte.",
+      approvalTitle: "Approvazione, alla data della richiesta",
+      approvalBody:
+        "Ogni richiesta finisce approvata, rifiutata dal merchant, scaduta da parte nostra o ancora in corso.",
+      postApprovalTitle: "Dopo l’approvazione, misurato in unità",
+      postApprovalBody:
+        "Le unità non mancano mai e sostituiscono il GMV; accanto, i campioni gratuiti spediti in un giorno vengono confrontati con le unità Affiliate vendute lo stesso giorno, con il rapporto mobile a 7 giorni sull’asse destro.",
+      exploreTitle: "Componi una query sicura",
+      exploreBody:
+        "Le combinazioni Aggregate non supportate vengono disabilitate prima dell’esecuzione.",
+      resultsTitle: "Approfondisci senza cambiare semantica",
+      resultsBody: "Grafico e tabella condividono le righe; i tassi sono ricalcolati dai totali.",
+    },
+    "Analytics",
+  ),
+  th: resource(
+    {
+      title: "การวิเคราะห์ Affiliate",
+      subtitle: "สามส่วนแบบคอฮอร์ต แต่ละส่วนมีแกนเวลาของตนเอง: การเชิญ การอนุมัติตัวอย่าง และจำนวนชิ้นหลังอนุมัติ",
+      overview: "ภาพรวม",
+      region: "ภูมิภาคร้าน",
+      allRegions: "ทุกภูมิภาค",
+      selectedShops: "เลือก {{count}} ร้าน",
+      startDate: "วันที่เริ่ม",
+      endDate: "วันที่สิ้นสุด",
+      window: "ช่วงคอฮอร์ต",
+      windowDays: "{{count}} วันล่าสุด",
+      granularity: "ความละเอียดเวลา",
+      refresh: "รีเฟรช",
+      platformTitle: "ผลงานแพลตฟอร์ม",
+      sampleTitle: "การแปลงตัวอย่าง",
+      explore: {
+        title: "สำรวจ",
+        contract: "สัญญา",
+        chooseContract: "เลือกหนึ่งสัญญา",
+        metrics: "เมตริก",
+        groupBy: "จัดกลุ่มตาม",
+        filters: "ตัวกรองมิติ",
+        resultTable: "ตารางผลลัพธ์",
+      },
+    },
+    {
+      welcomeTitle: "สามคอฮอร์ต สามแกนเวลา",
+      welcomeBody: "ภาพรวมติดตามเส้นทางเดียวกันในสามช่วง แต่ละช่วงระบุวันที่คอฮอร์ตที่ใช้นับ",
+      scopeTitle: "เลือกขอบเขตธุรกิจ",
+      scopeBody: "เลือกร้านที่ได้รับอนุญาตและช่วง 30 / 60 / 90 วัน ตัวเลขพอร์ตทางขวาไม่เปลี่ยนตามช่วงเวลา",
+      reachoutTitle: "การเชิญ นับตามวันที่เชิญ",
+      reachoutBody: "เทียบข้ามช่วงเวลาได้เฉพาะอัตราเท่านั้น คอฮอร์ตล่าสุดจะเป็นสีเทาระหว่างที่การตอบกลับยังทยอยเข้ามา",
+      approvalTitle: "การอนุมัติ นับตามวันที่ยื่นคำขอ",
+      approvalBody: "ทุกคำขอจะจบลงที่อนุมัติ ผู้ขายปฏิเสธ เกินกำหนดฝั่งเรา หรือยังดำเนินการอยู่",
+      postApprovalTitle: "หลังอนุมัติ วัดเป็นจำนวนชิ้น",
+      postApprovalBody:
+        "จำนวนชิ้นไม่เคยขาดหาย จึงใช้แทน GMV และข้างกันจะเทียบตัวอย่างฟรีที่ส่งออกในแต่ละวันกับจำนวนชิ้นที่ช่อง Affiliate ขายได้ในวันเดียวกัน พร้อมอัตราส่วนเฉลี่ยย้อนหลัง 7 วันบนแกนขวา",
+      exploreTitle: "สร้างคำค้นที่ตรงตามสัญญา",
+      exploreBody: "ระบบจะปิดชุด Aggregate ที่ไม่รองรับก่อนสั่งรัน",
+      resultsTitle: "เจาะลึกโดยไม่เปลี่ยนความหมาย",
+      resultsBody: "กราฟและตารางใช้ข้อมูลเดียวกัน และคำนวณอัตราจากตัวตั้งกับตัวหารรวม",
+    },
+    "การวิเคราะห์",
+  ),
 } as const;

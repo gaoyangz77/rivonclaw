@@ -12,7 +12,9 @@ const provisionDeps: EndpointHandler = async (_req, res, _url, _params, ctx: Api
 
   // Fire-and-forget: the provisioner opens its own BrowserWindow
   import("./index.js")
-    .then(({ runDepsProvisioner }) => runDepsProvisioner({ storage: ctx.storage, showAlways: true }))
+    .then(({ runDepsProvisioner }) =>
+      runDepsProvisioner({ storage: ctx.storage, showAlways: true }),
+    )
     .catch((err) => log.error("Failed to run deps provisioner:", err));
 
   sendJson(res, 200, { ok: true });

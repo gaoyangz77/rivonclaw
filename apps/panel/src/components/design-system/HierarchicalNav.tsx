@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ChevronRightIcon } from "../icons.js";
 import { TkPopover } from "./Overlays.js";
 
@@ -60,7 +54,7 @@ export function TkHierarchicalNav({
   const initialOpenItem = items.some(
     (item) => item.id === defaultOpenItemId && item.children?.length,
   )
-    ? defaultOpenItemId ?? null
+    ? (defaultOpenItemId ?? null)
     : null;
   const [openItemId, setOpenItemId] = useState<string | null>(initialOpenItem);
   const [pinnedItemId, setPinnedItemId] = useState<string | null>(initialOpenItem);
@@ -170,16 +164,19 @@ export function TkHierarchicalNav({
 
   function handleFlyoutKeyDown(event: KeyboardEvent<HTMLDivElement>, itemId: string) {
     const children = Array.from(
-      flyoutRefs.current
-        .get(itemId)
-        ?.querySelectorAll<HTMLButtonElement>("[data-tk-nav-child]") ?? [],
+      flyoutRefs.current.get(itemId)?.querySelectorAll<HTMLButtonElement>("[data-tk-nav-child]") ??
+        [],
     );
     if (!children.length) return;
     const currentIndex = children.indexOf(document.activeElement as HTMLButtonElement);
     let nextIndex: number | null = null;
-    if (event.key === "ArrowDown") nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % children.length;
+    if (event.key === "ArrowDown")
+      nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % children.length;
     if (event.key === "ArrowUp")
-      nextIndex = currentIndex < 0 ? children.length - 1 : (currentIndex - 1 + children.length) % children.length;
+      nextIndex =
+        currentIndex < 0
+          ? children.length - 1
+          : (currentIndex - 1 + children.length) % children.length;
     if (event.key === "Home") nextIndex = 0;
     if (event.key === "End") nextIndex = children.length - 1;
     if (event.key === "ArrowLeft" || event.key === "Escape") {
@@ -213,17 +210,15 @@ export function TkHierarchicalNav({
           const usesCompactGrid = (item.children?.length ?? 0) >= 6;
           const isOpen = openItemId === item.id;
           const isCurrent = value === item.id;
-          const isActivePath = isCurrent || Boolean(item.children?.some((child) => child.id === value));
+          const isActivePath =
+            isCurrent || Boolean(item.children?.some((child) => child.id === value));
 
           if (!hasChildren) {
             return (
               <li key={item.id} className="tk-v1-hierarchical-nav-item">
                 <button
                   type="button"
-                  className={cx(
-                    "tk-v1-hierarchical-nav-trigger",
-                    isCurrent && "is-current",
-                  )}
+                  className={cx("tk-v1-hierarchical-nav-trigger", isCurrent && "is-current")}
                   aria-label={item.label}
                   aria-current={isCurrent ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
@@ -261,10 +256,7 @@ export function TkHierarchicalNav({
                   else close(item.id);
                 }}
                 role="navigation"
-                className={cx(
-                  "tk-v1-nav-flyout",
-                  usesCompactGrid && "tk-v1-nav-flyout-grid",
-                )}
+                className={cx("tk-v1-nav-flyout", usesCompactGrid && "tk-v1-nav-flyout-grid")}
                 contentRef={(node) => {
                   if (node) flyoutRefs.current.set(item.id, node);
                   else flyoutRefs.current.delete(item.id);
@@ -316,7 +308,8 @@ export function TkHierarchicalNav({
                   )}
                   <div className="tk-v1-nav-flyout-list">
                     {item.children?.map((child, index) => {
-                      const previousGroup = index > 0 ? item.children?.[index - 1]?.group : undefined;
+                      const previousGroup =
+                        index > 0 ? item.children?.[index - 1]?.group : undefined;
                       const showGroup = Boolean(child.group && child.group !== previousGroup);
                       const childIsCurrent = child.id === value;
                       return (
@@ -325,10 +318,7 @@ export function TkHierarchicalNav({
                           <button
                             type="button"
                             data-tk-nav-child
-                            className={cx(
-                              "tk-v1-nav-flyout-link",
-                              childIsCurrent && "is-current",
-                            )}
+                            className={cx("tk-v1-nav-flyout-link", childIsCurrent && "is-current")}
                             aria-current={childIsCurrent ? "page" : undefined}
                             onClick={() => selectChild(item.id, child.id)}
                           >

@@ -21,13 +21,13 @@ e2e/
 Each test runs with a **fresh, isolated temp directory**. Environment overrides
 redirect persistent state, including the packaged CLI installer:
 
-| Env Var | Points to | Isolates |
-|---------|-----------|----------|
-| `RIVONCLAW_DB_PATH` | `<tempdir>/db.sqlite` | SQLite database |
-| `RIVONCLAW_SECRETS_DIR` | `<tempdir>/secrets/` | API keys (bypasses macOS Keychain) |
-| `OPENCLAW_STATE_DIR` | `<tempdir>/openclaw/` | Gateway state files |
-| `HOME`, `USERPROFILE` | `<tempdir>/` | CLI shim and shell profile writes |
-| `APPDATA`, `LOCALAPPDATA`, `XDG_CONFIG_HOME` | Subdirectories of `<tempdir>/` | Platform-specific configuration |
+| Env Var                                      | Points to                      | Isolates                           |
+| -------------------------------------------- | ------------------------------ | ---------------------------------- |
+| `RIVONCLAW_DB_PATH`                          | `<tempdir>/db.sqlite`          | SQLite database                    |
+| `RIVONCLAW_SECRETS_DIR`                      | `<tempdir>/secrets/`           | API keys (bypasses macOS Keychain) |
+| `OPENCLAW_STATE_DIR`                         | `<tempdir>/openclaw/`          | Gateway state files                |
+| `HOME`, `USERPROFILE`                        | `<tempdir>/`                   | CLI shim and shell profile writes  |
+| `APPDATA`, `LOCALAPPDATA`, `XDG_CONFIG_HOME` | Subdirectories of `<tempdir>/` | Platform-specific configuration    |
 
 The isolated CLI bin directory is included in the child PATH before launch,
 so Windows CLI installation does not update the real user's PATH registry.
@@ -36,10 +36,10 @@ The temp directory is deleted after each test via `rmSync`, ensuring tests are *
 
 ## Two Fixtures, Two User Flows
 
-| Fixture | Import | Simulates | Entry Point |
-|---------|--------|-----------|-------------|
-| `test` | `import { test } from "./electron-fixture.js"` | Returning user (has a provider key) | Main page with sidebar |
-| `freshTest` | `import { freshTest as test } from "./electron-fixture.js"` | Brand-new user (empty database) | Welcome page |
+| Fixture     | Import                                                      | Simulates                           | Entry Point            |
+| ----------- | ----------------------------------------------------------- | ----------------------------------- | ---------------------- |
+| `test`      | `import { test } from "./electron-fixture.js"`              | Returning user (has a provider key) | Main page with sidebar |
+| `freshTest` | `import { freshTest as test } from "./electron-fixture.js"` | Brand-new user (empty database)     | Welcome page           |
 
 **Main-page user (`test`)**: Skips welcome by clicking "Use as guest" to reach the main page. No API keys required. Despite the historical "returning user" name, this fixture starts with an empty profile, not an existing installation.
 
@@ -60,23 +60,23 @@ only fresh-profile smoke tests does not verify an installed user's next boot.
 
 Uses the `freshTest` fixture (empty database, lands on welcome page).
 
-| # | Test | Steps | Requires API Key |
-|---|------|-------|-----------------|
-| 1 | Fresh user sees account entry actions | Verify the seller-account welcome page, registration action, and login action render | No |
-| 2 | Fresh user can open register and login auth flows | Open registration modal -> verify Register tab -> close -> open login modal -> verify Login tab | No |
-| 3 | Fresh user can continue as guest | Click "Use as guest" -> Verify sidebar loads | No |
+| #   | Test                                              | Steps                                                                                           | Requires API Key |
+| --- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | Fresh user sees account entry actions             | Verify the seller-account welcome page, registration action, and login action render            | No               |
+| 2   | Fresh user can open register and login auth flows | Open registration modal -> verify Register tab -> close -> open login modal -> verify Login tab | No               |
+| 3   | Fresh user can continue as guest                  | Click "Use as guest" -> Verify sidebar loads                                                    | No               |
 
 ### `smoke.spec.ts` — Returning User Smoke Tests (5 tests)
 
 Uses the `test` fixture (skips welcome, lands on main page).
 
-| # | Test | Steps | Requires API Key |
-|---|------|-------|-----------------|
-| 1 | App launches and window is visible | Verify 1 window exists -> Check title is "RivonClaw" | No |
-| 2 | Panel renders with sidebar navigation | Verify `.sidebar-brand-text` visible -> Verify >= 5 nav buttons | No |
-| 3 | Chat page is default and gateway connects | Verify first nav has `nav-active` -> Wait for `.chat-status-dot-connected` -> Verify stable for 3s | No |
-| 4 | LLM Providers page: dropdowns and pricing | Dismiss modals -> Navigate to LLM Providers -> Verify Subscription tab active -> Open provider dropdown (2-3 options) -> Verify pricing card -> Switch to API tab -> Open provider dropdown (10-18 options) -> Verify pricing table | No |
-| 5 | Window has correct web preferences | Verify `nodeIntegration: false` and `contextIsolation: true` | No |
+| #   | Test                                      | Steps                                                                                                                                                                                                                               | Requires API Key |
+| --- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | App launches and window is visible        | Verify 1 window exists -> Check title is "RivonClaw"                                                                                                                                                                                | No               |
+| 2   | Panel renders with sidebar navigation     | Verify `.sidebar-brand-text` visible -> Verify >= 5 nav buttons                                                                                                                                                                     | No               |
+| 3   | Chat page is default and gateway connects | Verify first nav has `nav-active` -> Wait for `.chat-status-dot-connected` -> Verify stable for 3s                                                                                                                                  | No               |
+| 4   | LLM Providers page: dropdowns and pricing | Dismiss modals -> Navigate to LLM Providers -> Verify Subscription tab active -> Open provider dropdown (2-3 options) -> Verify pricing card -> Switch to API tab -> Open provider dropdown (10-18 options) -> Verify pricing table | No               |
+| 5   | Window has correct web preferences        | Verify `nodeIntegration: false` and `contextIsolation: true`                                                                                                                                                                        | No               |
 
 ## API Keys
 
@@ -94,14 +94,15 @@ E2E_ZHIPU_API_KEY=your-zhipu-key-here
 
 The same test suite runs against **two modes**:
 
-| Mode | What it launches | When to use |
-|------|-----------------|-------------|
-| **Dev** | `node_modules/.../Electron` + `dist/main.cjs` | Before packaging — validates compiled code |
-| **Prod** | Packaged `RivonClaw.app` or `RivonClaw.exe` | After packaging — validates the installer build |
+| Mode     | What it launches                              | When to use                                     |
+| -------- | --------------------------------------------- | ----------------------------------------------- |
+| **Dev**  | `node_modules/.../Electron` + `dist/main.cjs` | Before packaging — validates compiled code      |
+| **Prod** | Packaged `RivonClaw.app` or `RivonClaw.exe`   | After packaging — validates the installer build |
 
 ## Prerequisites
 
 1. **Build all packages** (from repo root):
+
    ```bash
    pnpm run build
    ```
@@ -172,9 +173,9 @@ test("description of what you're testing", async ({ window }) => {
 
 ### Available fixtures
 
-| Fixture | Type | Use for |
-|---------|------|---------|
-| `window` | `Page` | UI interactions — click, type, assert elements |
+| Fixture       | Type                  | Use for                                         |
+| ------------- | --------------------- | ----------------------------------------------- |
+| `window`      | `Page`                | UI interactions — click, type, assert elements  |
 | `electronApp` | `ElectronApplication` | Main process — evaluate BrowserWindow, app APIs |
 
 ### Tips
@@ -185,7 +186,7 @@ test("description of what you're testing", async ({ window }) => {
   ```typescript
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
     await backdrop.click({ position: { x: 5, y: 5 }, force: true });
     await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
   }
@@ -207,18 +208,23 @@ test("description of what you're testing", async ({ window }) => {
 ### "Process failed to launch!"
 
 Check if `ELECTRON_RUN_AS_NODE` is set in your terminal:
+
 ```bash
 echo $ELECTRON_RUN_AS_NODE
 ```
+
 If it's `1`, unset it before running tests:
+
 ```bash
 ELECTRON_RUN_AS_NODE= pnpm run test:e2e:dev
 ```
+
 The fixture already strips this variable, but the Playwright runner itself may be affected if it's set in the parent shell.
 
 ### Tests hang or time out at "waiting for .sidebar-brand"
 
 The gateway process failed to start, so the panel never loads. Check:
+
 - Is another RivonClaw instance already running? (`pkill -x RivonClaw`)
 - Are vendor dependencies present? (`ls vendor/openclaw/openclaw.mjs`)
 - Run `pnpm run dev` manually to see if the app starts at all.

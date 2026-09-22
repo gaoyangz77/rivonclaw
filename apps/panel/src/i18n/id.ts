@@ -3029,7 +3029,8 @@ export default {
         reviewDescriptions: {
           APPROVE: "TikTok akan menerima persetujuan setelah validasi.",
           PLATFORM_REJECT: "TikTok akan menerima penolakan setelah validasi.",
-          SOFT_REJECT: "Hentikan peninjauan permohonan ini dan biarkan kedaluwarsa secara alami, tanpa menolaknya di TikTok. Anda dapat membukanya kembali sebelum kedaluwarsa.",
+          SOFT_REJECT:
+            "Hentikan peninjauan permohonan ini dan biarkan kedaluwarsa secara alami, tanpa menolaknya di TikTok. Anda dapat membukanya kembali sebelum kedaluwarsa.",
           REOPEN: "Buka kembali jika TikTok masih mengizinkan ulasan.",
         },
       },

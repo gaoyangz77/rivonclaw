@@ -107,11 +107,14 @@ function ensureChild(): ChildProcess {
         mimeType: msg.mimeType,
       });
       if (output.byteLength >= pending.buffer.byteLength) {
-        log.info("Image compression kept original buffer because compressed output was not smaller", {
-          inputBytes: pending.buffer.byteLength,
-          outputBytes: output.byteLength,
-          mimeType: pending.mimeType,
-        });
+        log.info(
+          "Image compression kept original buffer because compressed output was not smaller",
+          {
+            inputBytes: pending.buffer.byteLength,
+            outputBytes: output.byteLength,
+            mimeType: pending.mimeType,
+          },
+        );
         pending.resolve({
           ok: true,
           compressed: false,
@@ -220,10 +223,7 @@ function pumpQueue(): void {
  *     are the original inputs (fail-open) and `error` is a short description
  *     for observability.
  */
-export function compressImageForAgent(
-  buffer: Buffer,
-  mimeType: string,
-): Promise<CompressResult> {
+export function compressImageForAgent(buffer: Buffer, mimeType: string): Promise<CompressResult> {
   return new Promise((resolve) => {
     const pending: PendingRequest = {
       id: nextId++,

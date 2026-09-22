@@ -11,7 +11,9 @@ import { detectRegion } from "./region-detector.js";
 const log = createLogger("deps-provisioner");
 
 export async function runDepsProvisioner(opts: {
-  storage: { settings: { get(key: string): string | undefined; set(key: string, value: string): void } };
+  storage: {
+    settings: { get(key: string): string | undefined; set(key: string, value: string): void };
+  };
   /** When true, always show the UI even if all deps are present (for manual re-trigger from Settings). */
   showAlways?: boolean;
 }): Promise<void> {
@@ -30,9 +32,12 @@ export async function runDepsProvisioner(opts: {
 
   // 3. Read panel theme from storage, fall back to OS theme
   const panelTheme = storage.settings.get("panel_theme");
-  const themeMode = panelTheme === "light" || panelTheme === "dark"
-    ? panelTheme
-    : (nativeTheme.shouldUseDarkColors ? "dark" : "light");
+  const themeMode =
+    panelTheme === "light" || panelTheme === "dark"
+      ? panelTheme
+      : nativeTheme.shouldUseDarkColors
+        ? "dark"
+        : "light";
   const panelAccent = storage.settings.get("panel_accent") || "blue";
 
   const win = createProvisionerWindow({ mode: themeMode, accent: panelAccent });
@@ -116,7 +121,14 @@ export async function runDepsProvisioner(opts: {
 
     // Build result for this round
     result.failed = currentFailed;
-    result.skipped = statuses.filter((s) => !s.available && !result.installed.includes(s.name) && !currentFailed.some((f) => f.dep === s.name)).map((s) => s.name);
+    result.skipped = statuses
+      .filter(
+        (s) =>
+          !s.available &&
+          !result.installed.includes(s.name) &&
+          !currentFailed.some((f) => f.dep === s.name),
+      )
+      .map((s) => s.name);
 
     // Show result and wait for user decision
     win.updateProgress({ phase: "done", message: "Setup complete" });

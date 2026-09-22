@@ -17,7 +17,11 @@ interface RunProfileSelectorProps {
  * Shows all available RunProfiles (system + user).
  * Empty selection means baseline tools only (system + extension).
  */
-export const RunProfileSelector = observer(function RunProfileSelector({ value, onChange, className }: RunProfileSelectorProps) {
+export const RunProfileSelector = observer(function RunProfileSelector({
+  value,
+  onChange,
+  className,
+}: RunProfileSelectorProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const profiles = entityStore.allRunProfiles;

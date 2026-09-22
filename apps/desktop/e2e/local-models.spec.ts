@@ -93,12 +93,14 @@ test.describe("Local Models E2E", () => {
   async function navigateToModels(window: import("@playwright/test").Page) {
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
 
-    const connectionsGroup = window.locator(".nav-group-toggle", { hasText: "Connections & Models" });
+    const connectionsGroup = window.locator(".nav-group-toggle", {
+      hasText: "Connections & Models",
+    });
     if (await connectionsGroup.isVisible().catch(() => false)) {
       const expanded = await connectionsGroup.getAttribute("aria-expanded");
       if (expanded !== "true") {
@@ -208,28 +210,36 @@ test.describe("Local Models E2E", () => {
 
   test("seeded local key displays correctly with Local badge", async ({ window, apiBase }) => {
     // Seed a local key via the panel API (goes through the Electron process's storage)
-    const createRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
-      const res = await fetch(`${base}/api/provider-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: "ollama",
-          label: "Seeded Ollama",
-          model: "deepseek-r1:latest",
-          authType: "local",
-          baseUrl: `http://127.0.0.1:${port}`,
-        }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, port: mockOllamaPort });
+    const createRes = await window.evaluate(
+      async ({ base, port }: { base: string; port: number }) => {
+        const res = await fetch(`${base}/api/provider-keys`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "ollama",
+            label: "Seeded Ollama",
+            model: "deepseek-r1:latest",
+            authType: "local",
+            baseUrl: `http://127.0.0.1:${port}`,
+          }),
+        });
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, port: mockOllamaPort },
+    );
     expect(createRes.status).toBe(201);
     const keyId = createRes.body.id as string;
 
     // Activate the key and set it as the default provider
-    const activated = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
-      const response = await fetch(`${base}/api/provider-keys/${id}/activate`, { method: "POST" });
-      return response.ok;
-    }, { base: apiBase, id: keyId });
+    const activated = await window.evaluate(
+      async ({ base, id }: { base: string; id: string }) => {
+        const response = await fetch(`${base}/api/provider-keys/${id}/activate`, {
+          method: "POST",
+        });
+        return response.ok;
+      },
+      { base: apiBase, id: keyId },
+    );
     expect(activated).toBe(true);
 
     // Creating a key + activating triggers gateway restarts. Wait for
@@ -282,12 +292,15 @@ test.describe("Local Models E2E", () => {
     expect(Array.isArray(detectRes.body.servers)).toBe(true);
 
     // Test model fetching from mock Ollama
-    const modelsRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
-      const res = await fetch(
-        `${base}/api/local-models/models?baseUrl=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
-      );
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, port: mockOllamaPort });
+    const modelsRes = await window.evaluate(
+      async ({ base, port }: { base: string; port: number }) => {
+        const res = await fetch(
+          `${base}/api/local-models/models?baseUrl=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
+        );
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, port: mockOllamaPort },
+    );
     expect(modelsRes.status).toBe(200);
     expect(modelsRes.body.models).toHaveLength(3);
     expect(modelsRes.body.models[0].id).toBe("llama3.2:latest");
@@ -302,14 +315,17 @@ test.describe("Local Models E2E", () => {
     expect(noUrlRes.status).toBe(400);
 
     // Test health check — reachable mock
-    const healthOkRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
-      const res = await fetch(`${base}/api/local-models/health`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: `http://127.0.0.1:${port}` }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, port: mockOllamaPort });
+    const healthOkRes = await window.evaluate(
+      async ({ base, port }: { base: string; port: number }) => {
+        const res = await fetch(`${base}/api/local-models/health`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ baseUrl: `http://127.0.0.1:${port}` }),
+        });
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, port: mockOllamaPort },
+    );
     expect(healthOkRes.status).toBe(200);
     expect(healthOkRes.body.ok).toBe(true);
     expect(healthOkRes.body.version).toBe(MOCK_VERSION);
@@ -328,20 +344,23 @@ test.describe("Local Models E2E", () => {
 
     // Test provider key CRUD via API
     // Create a local key
-    const createRes = await window.evaluate(async ({ base, port }: { base: string; port: number }) => {
-      const res = await fetch(`${base}/api/provider-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: "ollama",
-          label: "API Test Ollama",
-          model: "llama3.2:latest",
-          authType: "local",
-          baseUrl: `http://127.0.0.1:${port}`,
-        }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, port: mockOllamaPort });
+    const createRes = await window.evaluate(
+      async ({ base, port }: { base: string; port: number }) => {
+        const res = await fetch(`${base}/api/provider-keys`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "ollama",
+            label: "API Test Ollama",
+            model: "llama3.2:latest",
+            authType: "local",
+            baseUrl: `http://127.0.0.1:${port}`,
+          }),
+        });
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, port: mockOllamaPort },
+    );
     expect(createRes.status).toBe(201);
     expect(createRes.body.provider).toBe("ollama");
     expect(createRes.body.authType).toBe("local");
@@ -361,24 +380,30 @@ test.describe("Local Models E2E", () => {
     expect(localKey.baseUrl).toBe(`http://127.0.0.1:${mockOllamaPort}/v1`);
 
     // Update base URL
-    const updateRes = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
-      const res = await fetch(`${base}/api/provider-keys/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl: "http://192.168.1.50:11434" }),
-      });
-      return { status: res.status, body: await res.json() };
-    }, { base: apiBase, id: keyId });
+    const updateRes = await window.evaluate(
+      async ({ base, id }: { base: string; id: string }) => {
+        const res = await fetch(`${base}/api/provider-keys/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ baseUrl: "http://192.168.1.50:11434" }),
+        });
+        return { status: res.status, body: await res.json() };
+      },
+      { base: apiBase, id: keyId },
+    );
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.baseUrl).toBe("http://192.168.1.50:11434");
 
     // Delete the key
-    const deleteRes = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
-      const res = await fetch(`${base}/api/provider-keys/${id}`, {
-        method: "DELETE",
-      });
-      return { status: res.status };
-    }, { base: apiBase, id: keyId });
+    const deleteRes = await window.evaluate(
+      async ({ base, id }: { base: string; id: string }) => {
+        const res = await fetch(`${base}/api/provider-keys/${id}`, {
+          method: "DELETE",
+        });
+        return { status: res.status };
+      },
+      { base: apiBase, id: keyId },
+    );
     expect(deleteRes.status).toBe(200);
 
     // Verify key is gone

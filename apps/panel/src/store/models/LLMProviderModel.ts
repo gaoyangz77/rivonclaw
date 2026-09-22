@@ -46,7 +46,10 @@ export const LLMProviderModel = types
     function onConfigChanged(): void {
       // Fire-and-forget: re-fetch catalog when provider config changes
       fetchModelCatalog()
-        .then((data) => { self.catalog = data; self.catalogReady = true; })
+        .then((data) => {
+          self.catalog = data;
+          self.catalogReady = true;
+        })
         .catch(() => {});
     }
 
@@ -118,7 +121,9 @@ export const LLMProviderModel = types
         sessionKey: string,
       ): Generator<Promise<unknown>, SessionModelInfo | null, any> {
         const info: { provider: string; model: string; isOverridden: boolean } | null =
-          yield fetchJson(clientPath(API["sessionModel.get"]) + `?sessionKey=${encodeURIComponent(sessionKey)}`);
+          yield fetchJson(
+            clientPath(API["sessionModel.get"]) + `?sessionKey=${encodeURIComponent(sessionKey)}`,
+          );
         if (!info?.provider) return null;
 
         // Catalog lookup stays client-side (display name + effective context budget).

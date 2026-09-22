@@ -10,9 +10,7 @@ export interface ChatSessionMeta {
   createdAt: number;
 }
 
-export async function fetchChatSessions(opts?: {
-  archived?: boolean;
-}): Promise<ChatSessionMeta[]> {
+export async function fetchChatSessions(opts?: { archived?: boolean }): Promise<ChatSessionMeta[]> {
   const params = new URLSearchParams();
   if (opts?.archived != null) params.set("archived", String(opts.archived));
   const qs = params.toString();

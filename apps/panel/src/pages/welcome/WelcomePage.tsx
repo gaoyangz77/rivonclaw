@@ -7,11 +7,7 @@ import { AccountIcon, EcommerceIcon, UserPlusIcon } from "../../components/icons
 
 const WELCOME_PAGE_COMPLETED_KEY = "welcome_page_completed";
 
-export function WelcomePage({
-  onComplete,
-}: {
-  onComplete: () => void;
-}) {
+export function WelcomePage({ onComplete }: { onComplete: () => void }) {
   const { t, i18n } = useTranslation();
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("register");
@@ -68,21 +64,20 @@ export function WelcomePage({
             className="welcome-choice-button welcome-choice-button-primary"
             onClick={() => openAuth("register")}
           >
-            <span className="welcome-choice-icon"><UserPlusIcon size={24} /></span>
+            <span className="welcome-choice-icon">
+              <UserPlusIcon size={24} />
+            </span>
             <strong>{t("welcome.createAccountTitle")}</strong>
             <span>{t("welcome.createAccountDesc")}</span>
           </button>
-          <button
-            type="button"
-            className="welcome-choice-button"
-            onClick={() => openAuth("login")}
-          >
-            <span className="welcome-choice-icon"><AccountIcon size={24} /></span>
+          <button type="button" className="welcome-choice-button" onClick={() => openAuth("login")}>
+            <span className="welcome-choice-icon">
+              <AccountIcon size={24} />
+            </span>
             <strong>{t("welcome.loginTitle")}</strong>
             <span>{t("welcome.loginDesc")}</span>
           </button>
         </div>
-
       </main>
 
       <AuthModal

@@ -4,9 +4,7 @@ import {
 } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
-import {
-  GQL,
-} from "@rivonclaw/core";
+import { GQL } from "@rivonclaw/core";
 import {
   AffiliateSession,
   AffiliateTriggerKind,
@@ -26,8 +24,7 @@ import { getAuthSession } from "../auth/session-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { resolveSampleApplicationRecordId } from "./affiliate-agent-run-factory.js";
 
-const AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV =
-  "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS";
+const AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV = "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS";
 const log = createLogger("affiliate-inbound");
 const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = resolveMaxActiveAffiliateAgentRuns();
 const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
@@ -184,11 +181,13 @@ export class AffiliateInbound {
   }
 
   handleAgentEvent(evt: GatewayEventFrame): boolean {
-    const payload = evt.payload as {
-      runId?: string;
-      stream?: string;
-      data?: Record<string, unknown>;
-    } | undefined;
+    const payload = evt.payload as
+      | {
+          runId?: string;
+          stream?: string;
+          data?: Record<string, unknown>;
+        }
+      | undefined;
     if (!payload?.runId) return false;
     const sessionKey = this.runIndex.get(payload.runId);
     if (!sessionKey) return false;
@@ -203,13 +202,15 @@ export class AffiliateInbound {
     ) {
       log.warn(
         `Ignoring Affiliate work item outside the exact live-test cohort: ` +
-        `relationship=${workItem.creatorRelationshipId} kind=${workItem.workKind}`,
+          `relationship=${workItem.creatorRelationshipId} kind=${workItem.workKind}`,
       );
       return true;
     }
     const shouldDispatchToLocalAgent = shouldDispatchWorkItemToLocalAgent(workItem);
     if (!shouldDispatchToLocalAgent) {
-      log.info(`Ignoring affiliate work item that is not locally agent-actionable: id=${workItem.id} kind=${workItem.workKind}`);
+      log.info(
+        `Ignoring affiliate work item that is not locally agent-actionable: id=${workItem.id} kind=${workItem.workKind}`,
+      );
       return true;
     }
 
@@ -223,9 +224,11 @@ export class AffiliateInbound {
     }
 
     const activeOrPendingWork = this.runIndex.size + this.pendingDispatchCount;
-    if (this.activeRelationships.has(workItem.creatorRelationshipId) ||
-        activeOrPendingWork >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS ||
-        this.pendingWorkItems.has(workItem.creatorRelationshipId)) {
+    if (
+      this.activeRelationships.has(workItem.creatorRelationshipId) ||
+      activeOrPendingWork >= MAX_ACTIVE_AFFILIATE_AGENT_RUNS ||
+      this.pendingWorkItems.has(workItem.creatorRelationshipId)
+    ) {
       this.enqueueWorkItem(workItem);
       this.drainWorkItemQueue();
       return true;
@@ -234,9 +237,7 @@ export class AffiliateInbound {
     return await this.dispatchWorkItem(workItem);
   }
 
-  private async dispatchWorkItem(
-    workItem: AffiliateWorkItemPayload,
-  ): Promise<boolean> {
+  private async dispatchWorkItem(workItem: AffiliateWorkItemPayload): Promise<boolean> {
     const shop = this.findRoutedShopContext(workItem);
     if (!shop) {
       log.error(
@@ -247,7 +248,9 @@ export class AffiliateInbound {
 
     const context = this.buildContextFromWorkItem(shop, workItem);
     if (context == null) {
-      log.warn(`Affiliate work item missing stable trigger context: id=${workItem.id} kind=${workItem.workKind}`);
+      log.warn(
+        `Affiliate work item missing stable trigger context: id=${workItem.id} kind=${workItem.workKind}`,
+      );
       return false;
     }
 
@@ -305,7 +308,7 @@ export class AffiliateInbound {
         if (oldest) this.acceptedDispatchIds.delete(this.dispatchId(oldest));
         log.warn(
           `Dropping oldest queued affiliate work item because queue is full: ` +
-          `id=${oldest?.id ?? oldestKey} kind=${oldest?.workKind ?? "UNKNOWN"} limit=${MAX_QUEUED_AFFILIATE_WORK_ITEMS}`,
+            `id=${oldest?.id ?? oldestKey} kind=${oldest?.workKind ?? "UNKNOWN"} limit=${MAX_QUEUED_AFFILIATE_WORK_ITEMS}`,
         );
       }
     }
@@ -314,8 +317,8 @@ export class AffiliateInbound {
     this.pendingWorkItems.set(relationshipId, workItem);
     log.info(
       `Queued affiliate work item until local affiliate capacity is available: ` +
-      `active=${this.runIndex.size} pending=${this.pendingDispatchCount} queued=${this.pendingWorkItems.size} ` +
-      `limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} id=${workItem.id} kind=${workItem.workKind}`,
+        `active=${this.runIndex.size} pending=${this.pendingDispatchCount} queued=${this.pendingWorkItems.size} ` +
+        `limit=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS} id=${workItem.id} kind=${workItem.workKind}`,
     );
   }
 
@@ -357,9 +360,13 @@ export class AffiliateInbound {
       try {
         authoritativeWorkItem = await this.refreshQueuedWorkItem(workItem);
       } catch (err) {
-        if (!this.pendingWorkItems.has(relationshipId)) this.pendingWorkItems.set(relationshipId, workItem);
+        if (!this.pendingWorkItems.has(relationshipId))
+          this.pendingWorkItems.set(relationshipId, workItem);
         this.activeRelationships.delete(relationshipId);
-        log.error(`Failed to refresh queued affiliate work item ${workItem.id}; leaving it queued:`, err);
+        log.error(
+          `Failed to refresh queued affiliate work item ${workItem.id}; leaving it queued:`,
+          err,
+        );
         return false;
       } finally {
         this.pendingDispatchCount = Math.max(0, this.pendingDispatchCount - 1);
@@ -371,7 +378,9 @@ export class AffiliateInbound {
       try {
         await this.dispatchWorkItem(authoritativeWorkItem);
       } finally {
-        if (![...this.runDispatches.values()].some((run) => run.relationshipId === relationshipId)) {
+        if (
+          ![...this.runDispatches.values()].some((run) => run.relationshipId === relationshipId)
+        ) {
           this.activeRelationships.delete(relationshipId);
         }
       }
@@ -390,7 +399,7 @@ export class AffiliateInbound {
     if (!shop) {
       log.warn(
         `Dropping queued affiliate work item because no routed shop remains: ` +
-        `id=${queuedWorkItem.id} kind=${queuedWorkItem.workKind}`,
+          `id=${queuedWorkItem.id} kind=${queuedWorkItem.workKind}`,
       );
       return null;
     }
@@ -414,7 +423,7 @@ export class AffiliateInbound {
     if (!authoritativeWorkItem || !shouldDispatchWorkItemToLocalAgent(authoritativeWorkItem)) {
       log.info(
         `Dropping queued affiliate work item that is no longer agent-actionable: ` +
-        `id=${queuedWorkItem.id} kind=${queuedWorkItem.workKind}`,
+          `id=${queuedWorkItem.id} kind=${queuedWorkItem.workKind}`,
       );
       return null;
     }
@@ -431,7 +440,10 @@ export class AffiliateInbound {
     return id;
   }
 
-  private getOrCreateSession(shop: AffiliateShopContext, params: AffiliateContext): AffiliateSession {
+  private getOrCreateSession(
+    shop: AffiliateShopContext,
+    params: AffiliateContext,
+  ): AffiliateSession {
     const platform = shop.platform ?? normalizePlatform("TIKTOK_SHOP");
     const sessionKey = AffiliateSession.buildScopeKey(platform, params);
     const existing = this.sessions.get(sessionKey);
@@ -446,7 +458,9 @@ export class AffiliateInbound {
     return session;
   }
 
-  private findRoutedShopContext(workItem: AffiliateWorkItemPayload): AffiliateShopContext | undefined {
+  private findRoutedShopContext(
+    workItem: AffiliateWorkItemPayload,
+  ): AffiliateShopContext | undefined {
     const triggerPlatformShopId = workItem.triggerPlatformShopId?.trim();
     if (!triggerPlatformShopId) return undefined;
     const shop = this.shopContexts.get(triggerPlatformShopId);
@@ -462,7 +476,10 @@ export class AffiliateInbound {
     const creatorProfile = workItem.context?.creatorProfile ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
     if (!creatorRelationshipId) return null;
-    if (shop.objectId !== workItem.triggerShopId || shop.platformShopId !== workItem.triggerPlatformShopId) {
+    if (
+      shop.objectId !== workItem.triggerShopId ||
+      shop.platformShopId !== workItem.triggerPlatformShopId
+    ) {
       return null;
     }
     const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
@@ -512,7 +529,9 @@ export class AffiliateInbound {
   ): string {
     const workItemUserId = (workItem as { userId?: string | null }).userId?.trim();
     const relationshipUserId = workItem.creatorRelationship?.userId?.trim();
-    return workItemUserId || relationshipUserId || shop.userId || rootStore.currentUser?.userId || "";
+    return (
+      workItemUserId || relationshipUserId || shop.userId || rootStore.currentUser?.userId || ""
+    );
   }
 
   private buildContextFromWorkKindFallback(
@@ -556,7 +575,8 @@ export class AffiliateInbound {
       a.shopName === b.shopName &&
       a.runProfileId === b.runProfileId &&
       (a.businessPrompt ?? "") === (b.businessPrompt ?? "") &&
-      (a.decisionThresholds?.minExpectedSalesUnits ?? null) === (b.decisionThresholds?.minExpectedSalesUnits ?? null) &&
+      (a.decisionThresholds?.minExpectedSalesUnits ?? null) ===
+        (b.decisionThresholds?.minExpectedSalesUnits ?? null) &&
       a.staffLanguage === b.staffLanguage
     );
   }
@@ -630,9 +650,7 @@ function getControlledLiveTestRelationshipIds(): Set<string> | null {
  * a controlled test serialize work that production would run in parallel — so
  * the test measured a concurrency the product never uses.
  */
-export function resolveMaxActiveAffiliateAgentRuns(
-  env: NodeJS.ProcessEnv = process.env,
-): number {
+export function resolveMaxActiveAffiliateAgentRuns(env: NodeJS.ProcessEnv = process.env): number {
   const explicit = parseOptionalPositiveInteger(env[AFFILIATE_MAX_CONCURRENT_ENV]);
   if (explicit != null) return explicit;
   return DEFAULT_AFFILIATE_MAX_CONCURRENT;
@@ -661,9 +679,7 @@ function collectFrozenAgendaProductShopPairs(
     }
     const turns = [
       ...(item.conversationWindow?.creatorTurns ?? []),
-      ...(item.conversationWindow?.sellerAnchor
-        ? [item.conversationWindow.sellerAnchor]
-        : []),
+      ...(item.conversationWindow?.sellerAnchor ? [item.conversationWindow.sellerAnchor] : []),
     ];
     for (const part of turns.flatMap((turn) => turn.parts ?? [])) {
       if (!part.productId || !part.shopId) continue;

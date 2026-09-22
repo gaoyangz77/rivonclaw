@@ -18,12 +18,16 @@ interface CronJobFormProps {
 
 const PAYLOAD_KINDS: PayloadKind[] = ["agentTurn", "systemEvent"];
 
-export const CronJobForm = observer(function CronJobForm({ mode, initialData, onSubmit, onCancel }: CronJobFormProps) {
+export const CronJobForm = observer(function CronJobForm({
+  mode,
+  initialData,
+  onSubmit,
+  onCancel,
+}: CronJobFormProps) {
   const { t } = useTranslation();
   const cronForm = useCronForm({ mode, initialData, onSubmit });
-  const payloadLabel = cronForm.form.payloadKind === "agentTurn"
-    ? t("crons.fieldMessage")
-    : t("crons.fieldText");
+  const payloadLabel =
+    cronForm.form.payloadKind === "agentTurn" ? t("crons.fieldMessage") : t("crons.fieldText");
 
   return (
     <Modal
@@ -40,14 +44,18 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
             <div className="crons-form-section-title">{t("crons.sectionBasics")}</div>
             <div className="crons-form-two-col">
               <div className="form-group crons-form-span-2">
-                <label className="form-label-block">{t("crons.fieldName")} <span className="required">*</span></label>
+                <label className="form-label-block">
+                  {t("crons.fieldName")} <span className="required">*</span>
+                </label>
                 <input
                   className="input-full"
                   value={cronForm.form.name}
                   onChange={(e) => cronForm.update("name", e.target.value)}
                   placeholder={t("crons.fieldName")}
                 />
-                {cronForm.errors.name && <div className="crons-field-error">{t(`crons.${cronForm.errors.name}`)}</div>}
+                {cronForm.errors.name && (
+                  <div className="crons-field-error">{t(`crons.${cronForm.errors.name}`)}</div>
+                )}
               </div>
 
               <div className="form-group">
@@ -66,8 +74,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
                 <div className="form-hint">
                   {cronForm.form.payloadKind === "agentTurn"
                     ? t("crons.sessionTargetIsolated")
-                    : t("crons.sessionTargetMain")
-                  }
+                    : t("crons.sessionTargetMain")}
                 </div>
               </div>
 
@@ -96,7 +103,10 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
             />
           </section>
 
-          <section className="crons-form-card crons-form-card-span-2" data-tutorial-id="crons-form-payload">
+          <section
+            className="crons-form-card crons-form-card-span-2"
+            data-tutorial-id="crons-form-payload"
+          >
             <div className="crons-form-section-title">{t("crons.sectionPayload")}</div>
             {cronForm.form.payloadKind === "agentTurn" ? (
               <div className="form-group">
@@ -111,7 +121,9 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
                   onChange={(e) => cronForm.update("message", e.target.value)}
                   placeholder={payloadLabel}
                 />
-                {cronForm.errors.message && <div className="crons-field-error">{t(`crons.${cronForm.errors.message}`)}</div>}
+                {cronForm.errors.message && (
+                  <div className="crons-field-error">{t(`crons.${cronForm.errors.message}`)}</div>
+                )}
               </div>
             ) : (
               <div className="form-group">
@@ -126,7 +138,9 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
                   onChange={(e) => cronForm.update("text", e.target.value)}
                   placeholder={payloadLabel}
                 />
-                {cronForm.errors.text && <div className="crons-field-error">{t(`crons.${cronForm.errors.text}`)}</div>}
+                {cronForm.errors.text && (
+                  <div className="crons-field-error">{t(`crons.${cronForm.errors.text}`)}</div>
+                )}
               </div>
             )}
           </section>
@@ -180,11 +194,24 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
       </div>
 
       <div className="modal-actions" data-tutorial-id="crons-form-actions">
-        <button className="btn btn-secondary" data-tutorial-id="crons-form-cancel" onClick={onCancel} disabled={cronForm.saving}>
+        <button
+          className="btn btn-secondary"
+          data-tutorial-id="crons-form-cancel"
+          onClick={onCancel}
+          disabled={cronForm.saving}
+        >
           {t("common.cancel")}
         </button>
-        <button className="btn btn-primary" onClick={cronForm.handleSubmit} disabled={cronForm.saving}>
-          {cronForm.saving ? t("common.loading") : mode === "create" ? t("crons.addJob") : t("common.save")}
+        <button
+          className="btn btn-primary"
+          onClick={cronForm.handleSubmit}
+          disabled={cronForm.saving}
+        >
+          {cronForm.saving
+            ? t("common.loading")
+            : mode === "create"
+              ? t("crons.addJob")
+              : t("common.save")}
         </button>
       </div>
     </Modal>

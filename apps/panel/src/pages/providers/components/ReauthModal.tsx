@@ -79,7 +79,9 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
             } else if (status.status === "failed") {
               stopPolling();
               showToast(
-                status.error || t("providers.oauthFailed") || "Browser callback did not complete. Paste the redirect URL to continue.",
+                status.error ||
+                  t("providers.oauthFailed") ||
+                  "Browser callback did not complete. Paste the redirect URL to continue.",
                 "error",
               );
             }
@@ -149,7 +151,9 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
   // Tolerate missing i18n keys for unexpected providers (TypeScript doesn't
   // enforce the supported provider here; the endpoint does).
   const signInLabel = key
-    ? t(`providers.reauthModal.signIn_${key.provider}`, { defaultValue: t("providers.reauthenticate") })
+    ? t(`providers.reauthModal.signIn_${key.provider}`, {
+        defaultValue: t("providers.reauthenticate"),
+      })
     : "";
   const callbackHelp = key
     ? t(`providers.reauthModal.callbackHelp_${key.provider}`, { defaultValue: "" })
@@ -166,11 +170,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
 
       {!authUrl && !tokenReady && (
         <div className="form-actions">
-          <button
-            className="btn btn-primary"
-            onClick={handleStartOAuth}
-            disabled={starting}
-          >
+          <button className="btn btn-primary" onClick={handleStartOAuth} disabled={starting}>
             {starting ? t("providers.reauthModal.starting") : signInLabel}
           </button>
           <button className="btn btn-secondary" onClick={handleClose}>
@@ -181,9 +181,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
 
       {authUrl && !tokenReady && (
         <div className="mb-sm">
-          <p className="form-help oauth-waiting">
-            {t("providers.reauthModal.waitingForBrowser")}
-          </p>
+          <p className="form-help oauth-waiting">{t("providers.reauthModal.waitingForBrowser")}</p>
           <div className="mb-sm">
             <div className="form-label text-secondary">
               {t("providers.reauthModal.authUrlLabel")}
@@ -214,9 +212,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
               placeholder={t("providers.reauthModal.callbackPlaceholder")}
               className="input-full input-mono"
             />
-            {callbackHelp && (
-              <small className="form-help-sm">{callbackHelp}</small>
-            )}
+            {callbackHelp && <small className="form-help-sm">{callbackHelp}</small>}
           </div>
           <div className="form-actions">
             <button
@@ -224,7 +220,9 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
               onClick={handleManualComplete}
               disabled={manualLoading || !callbackUrl.trim()}
             >
-              {manualLoading ? t("providers.oauthLoading") : t("providers.reauthModal.completeSignIn")}
+              {manualLoading
+                ? t("providers.oauthLoading")
+                : t("providers.reauthModal.completeSignIn")}
             </button>
             <button className="btn btn-secondary" onClick={handleClose}>
               {t("providers.reauthModal.cancel")}
@@ -237,15 +235,14 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
         <div className="mb-sm">
           <div className="info-box info-box-green">
             {submitting
-              ? t("providers.reauthModal.autoSaving", { defaultValue: t("providers.reauthModal.rotating") })
+              ? t("providers.reauthModal.autoSaving", {
+                  defaultValue: t("providers.reauthModal.rotating"),
+                })
               : t("providers.reauthModal.tokenReady")}
           </div>
           {!submitting && (
             <div className="form-actions">
-              <button
-                className="btn btn-primary"
-                onClick={handleConfirm}
-              >
+              <button className="btn btn-primary" onClick={handleConfirm}>
                 {t("providers.reauthModal.confirm")}
               </button>
               <button className="btn btn-secondary" onClick={handleClose}>

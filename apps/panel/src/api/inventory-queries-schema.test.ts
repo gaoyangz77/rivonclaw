@@ -12,19 +12,14 @@ import * as documents from "./inventory-queries.js";
 
 function isDocumentNode(value: unknown): value is DocumentNode {
   return Boolean(
-    value &&
-    typeof value === "object" &&
-    (value as { kind?: string }).kind === "Document",
+    value && typeof value === "object" && (value as { kind?: string }).kind === "Document",
   );
 }
 
 describe("Inventory GraphQL documents", () => {
   it("validate against the current Backend schema", () => {
     const schema = buildSchema(
-      readFileSync(
-        resolve(process.cwd(), "../../server/backend/schema.graphql"),
-        "utf8",
-      ),
+      readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"),
     );
     const failures: string[] = [];
 

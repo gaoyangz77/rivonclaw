@@ -25,7 +25,10 @@ const uploadLog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiCont
       sendJson(res, err.status, err.body ?? { error: err.message });
     } else {
       const message = err instanceof Error ? err.message : "Log upload failed";
-      log.error("Log upload failed", { error: message, stack: err instanceof Error ? err.stack : undefined });
+      log.error("Log upload failed", {
+        error: message,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       sendJson(res, 500, { error: message });
     }
   }

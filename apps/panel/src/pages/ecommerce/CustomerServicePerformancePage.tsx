@@ -1022,12 +1022,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             </ResponsiveContainer>
           </ChartPanel>
 
-          <TkPanel
-            as="section"
-            padding="none"
-            clip
-            data-tutorial-id="cs-performance-daily-table"
-          >
+          <TkPanel as="section" padding="none" clip data-tutorial-id="cs-performance-daily-table">
             <TkPanelHeader
               title={t("ecommerce.customerServicePerformance.dailyTable")}
               description={t("ecommerce.customerServicePerformance.scopeSummary", {

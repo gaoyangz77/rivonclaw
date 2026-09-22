@@ -60,7 +60,7 @@ export function emitCsTelemetry(
     if (droppedCount === 1 || droppedCount % 50 === 0) {
       log.warn(
         `CS telemetry client not initialized — dropping event (${eventType}); ` +
-        `total drops this session: ${droppedCount}`,
+          `total drops this session: ${droppedCount}`,
       );
     }
     return;
@@ -137,33 +137,31 @@ export function emitCsDeliveryRecovery(
   });
 }
 
-export function emitCsDispatchEvent(
-  fields: {
-    shopId?: string;
-    platformShopId?: string;
-    conversationId?: string;
-    buyerUserId?: string;
-    imUserId?: string;
-    orderId?: string | null;
-    platform?: string;
-    signalType?: string;
-    source?: string;
-    dispatchReason?: string;
-    outcome: string;
-    reason?: string;
-    messageId?: string;
-    messageIndex?: string;
-    messageType?: string;
-    senderRole?: string;
-    idempotencyKey?: string;
-    runId?: string;
-    durationMs?: number;
-    promptChars?: number;
-    messageChars?: number;
-    attachmentCount?: number;
-    errorMessage?: unknown;
-  },
-): void {
+export function emitCsDispatchEvent(fields: {
+  shopId?: string;
+  platformShopId?: string;
+  conversationId?: string;
+  buyerUserId?: string;
+  imUserId?: string;
+  orderId?: string | null;
+  platform?: string;
+  signalType?: string;
+  source?: string;
+  dispatchReason?: string;
+  outcome: string;
+  reason?: string;
+  messageId?: string;
+  messageIndex?: string;
+  messageType?: string;
+  senderRole?: string;
+  idempotencyKey?: string;
+  runId?: string;
+  durationMs?: number;
+  promptChars?: number;
+  messageChars?: number;
+  attachmentCount?: number;
+  errorMessage?: unknown;
+}): void {
   emitCsTelemetry("cs.dispatch_event", {
     shopId: fields.shopId ?? "",
     platformShopId: fields.platformShopId ?? "",
@@ -191,27 +189,25 @@ export function emitCsDispatchEvent(
   });
 }
 
-export function emitCsEscalationEvent(
-  fields: {
-    shopId?: string;
-    platformShopId?: string;
-    conversationId?: string;
-    buyerUserId?: string;
-    orderId?: string | null;
-    platform?: string;
-    escalationId?: string;
-    action: string;
-    source?: string;
-    outcome: string;
-    reason?: string;
-    status?: string | null;
-    resolved?: boolean;
-    version?: number | null;
-    count?: number;
-    durationMs?: number;
-    errorMessage?: unknown;
-  },
-): void {
+export function emitCsEscalationEvent(fields: {
+  shopId?: string;
+  platformShopId?: string;
+  conversationId?: string;
+  buyerUserId?: string;
+  orderId?: string | null;
+  platform?: string;
+  escalationId?: string;
+  action: string;
+  source?: string;
+  outcome: string;
+  reason?: string;
+  status?: string | null;
+  resolved?: boolean;
+  version?: number | null;
+  count?: number;
+  durationMs?: number;
+  errorMessage?: unknown;
+}): void {
   emitCsTelemetry("cs.escalation_event", {
     shopId: fields.shopId ?? "",
     platformShopId: fields.platformShopId ?? "",
@@ -233,26 +229,24 @@ export function emitCsEscalationEvent(
   });
 }
 
-export function emitCsSessionEvent(
-  fields: {
-    shopId?: string;
-    platformShopId?: string;
-    conversationId?: string;
-    buyerUserId?: string;
-    orderId?: string | null;
-    platform?: string;
-    action: string;
-    source?: string;
-    outcome: string;
-    reason?: string;
-    messageId?: string;
-    runId?: string;
-    durationMs?: number;
-    textLength?: number;
-    messageCount?: number;
-    errorMessage?: unknown;
-  },
-): void {
+export function emitCsSessionEvent(fields: {
+  shopId?: string;
+  platformShopId?: string;
+  conversationId?: string;
+  buyerUserId?: string;
+  orderId?: string | null;
+  platform?: string;
+  action: string;
+  source?: string;
+  outcome: string;
+  reason?: string;
+  messageId?: string;
+  runId?: string;
+  durationMs?: number;
+  textLength?: number;
+  messageCount?: number;
+  errorMessage?: unknown;
+}): void {
   emitCsTelemetry("cs.session_event", {
     shopId: fields.shopId ?? "",
     platformShopId: fields.platformShopId ?? "",

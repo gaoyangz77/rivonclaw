@@ -77,13 +77,14 @@ export function ConnectShopModal({
 
   const selectedPlatformAppId = matchedApps.length === 1 ? matchedApps[0].id : "";
 
-  const matchError = !selectedMarket || !selectedSellerType || !selectedPlatform
-    ? null
-    : matchedApps.length === 0
-      ? t("ecommerce.addShopModal.noMatch")
-      : matchedApps.length > 1
-        ? t("ecommerce.addShopModal.multipleMatch")
-        : null;
+  const matchError =
+    !selectedMarket || !selectedSellerType || !selectedPlatform
+      ? null
+      : matchedApps.length === 0
+        ? t("ecommerce.addShopModal.noMatch")
+        : matchedApps.length > 1
+          ? t("ecommerce.addShopModal.multipleMatch")
+          : null;
 
   return (
     <Modal
@@ -132,11 +133,7 @@ export function ConnectShopModal({
                 value={selectedMarket}
                 onChange={(value) => {
                   setSelectedMarket(value);
-                  const sellerTypes = onboardingSellerTypes(
-                    platformApps,
-                    selectedPlatform,
-                    value,
-                  );
+                  const sellerTypes = onboardingSellerTypes(platformApps, selectedPlatform, value);
                   setSelectedSellerType(sellerTypes[0] ?? "");
                 }}
                 className="input-full"
@@ -168,9 +165,7 @@ export function ConnectShopModal({
                 }))}
               />
             </div>
-            {matchError && (
-              <div className="form-hint form-hint-error">{matchError}</div>
-            )}
+            {matchError && <div className="form-hint form-hint-error">{matchError}</div>}
             <div className="modal-actions" data-tutorial-id="shops-connect-actions">
               <button
                 className="btn btn-secondary"
@@ -215,7 +210,9 @@ export function ConnectShopModal({
 
             <div className="oauth-flow-step">
               <span className="oauth-flow-step-num">2</span>
-              <span className="oauth-flow-step-text">{t("ecommerce.addShopModal.waitingAuth")}</span>
+              <span className="oauth-flow-step-text">
+                {t("ecommerce.addShopModal.waitingAuth")}
+              </span>
             </div>
             <div className="oauth-waiting-indicator">
               <span className="oauth-waiting-spinner" />
@@ -223,10 +220,7 @@ export function ConnectShopModal({
             </div>
 
             <div className="oauth-flow-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={onCancelOAuth}
-              >
+              <button className="btn btn-secondary" onClick={onCancelOAuth}>
                 {t("common.cancel")}
               </button>
             </div>

@@ -2,6 +2,9 @@
   "name": "@rivonclaw/rivonclaw-capability-manager",
   "version": "0.0.1",
   "description": "Unified tool enforcement manager based on four-layer capability context",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,14 +14,6 @@
       "import": "./dist/index.js"
     }
   },
-  "openclaw": {
-    "extensions": [
-      "./dist/rivonclaw-capability-manager.mjs"
-    ]
-  },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsdown",
     "test": "vitest",
@@ -33,5 +28,10 @@
     "tsdown": "^0.20.3",
     "typescript": "^5.8.2",
     "vitest": "^4.0.18"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/rivonclaw-capability-manager.mjs"
+    ]
   }
 }

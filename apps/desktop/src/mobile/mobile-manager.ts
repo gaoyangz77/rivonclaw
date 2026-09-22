@@ -295,11 +295,13 @@ export const MobileManagerModel = types
         // Stop sync engine
         const rpcClient = getRpcClient();
         if (rpcClient?.isConnected()) {
-          rpcClient.request("mobile_chat_stop_sync", {
-            pairingId: allowlistKey,
-          }).catch((err: any) => {
-            log.error("Failed to stop mobile sync via RPC:", err);
-          });
+          rpcClient
+            .request("mobile_chat_stop_sync", {
+              pairingId: allowlistKey,
+            })
+            .catch((err: any) => {
+              log.error("Failed to stop mobile sync via RPC:", err);
+            });
         }
 
         log.info("Mobile pairing disconnected:", id);
@@ -310,20 +312,22 @@ export const MobileManagerModel = types
         const { storage, getRpcClient, stateDir } = getEnv();
 
         // Read allowlist entries before clearing (for channel_recipients cleanup)
-        const cleanupAllowlist = readMobileAllowlist(stateDir).then(async (allowlist) => {
-          try {
-            for (const entry of allowlist) {
-              storage.channelRecipients.delete("mobile", entry);
+        const cleanupAllowlist = readMobileAllowlist(stateDir)
+          .then(async (allowlist) => {
+            try {
+              for (const entry of allowlist) {
+                storage.channelRecipients.delete("mobile", entry);
+              }
+              await writeMobileAllowlist([], stateDir);
+              const configPath = resolveMobileConfigPath(stateDir);
+              syncOwnerAllowFrom(storage, configPath);
+            } catch (err: any) {
+              log.error("Failed to cleanup allowlist after disconnectAll:", err);
             }
-            await writeMobileAllowlist([], stateDir);
-            const configPath = resolveMobileConfigPath(stateDir);
-            syncOwnerAllowFrom(storage, configPath);
-          } catch (err: any) {
-            log.error("Failed to cleanup allowlist after disconnectAll:", err);
-          }
-        }).catch((err) => {
-          log.error("Failed to read allowlist for disconnectAll cleanup:", err);
-        });
+          })
+          .catch((err) => {
+            log.error("Failed to read allowlist for disconnectAll cleanup:", err);
+          });
 
         // Clear SQLite
         storage.mobilePairings.clearPairing();
@@ -337,11 +341,13 @@ export const MobileManagerModel = types
         // Stop all sync engines
         const rpcClient = getRpcClient();
         if (rpcClient?.isConnected()) {
-          rpcClient.request("mobile_chat_stop_sync", {
-            pairingId: undefined,
-          }).catch((err: any) => {
-            log.error("Failed to stop mobile sync via RPC:", err);
-          });
+          rpcClient
+            .request("mobile_chat_stop_sync", {
+              pairingId: undefined,
+            })
+            .catch((err: any) => {
+              log.error("Failed to stop mobile sync via RPC:", err);
+            });
         }
 
         log.info("All mobile pairings disconnected");
@@ -355,7 +361,10 @@ export const MobileManagerModel = types
         const pairing = self.root.mobilePairings.find((p: any) => p.id === id);
         if (pairing) {
           // Use applySnapshot to modify a node owned by a sibling branch
-          applySnapshot(pairing, { ...(getSnapshot(pairing) as Record<string, unknown>), status: "stale" });
+          applySnapshot(pairing, {
+            ...(getSnapshot(pairing) as Record<string, unknown>),
+            status: "stale",
+          });
         }
       },
 
@@ -466,17 +475,21 @@ export const MobileManagerModel = types
           log.info("Skipping legacy mobile relay sync; service is disabled:", status.relayUrl);
         } else if (rpcClient?.isConnected()) {
           log.info("Sending mobile_chat_start_sync RPC. relayUrl:", status.relayUrl);
-          rpcClient.request("mobile_chat_start_sync", {
-            pairingId: newPairing.pairingId || newPairing.id,
-            accessToken: status.accessToken,
-            relayUrl: status.relayUrl,
-            desktopDeviceId: newPairing.deviceId,
-            mobileDeviceId: newPairing.mobileDeviceId || newPairing.id,
-          }).catch((err: any) => {
-            log.error("Failed to start mobile sync via RPC:", err);
-          });
+          rpcClient
+            .request("mobile_chat_start_sync", {
+              pairingId: newPairing.pairingId || newPairing.id,
+              accessToken: status.accessToken,
+              relayUrl: status.relayUrl,
+              desktopDeviceId: newPairing.deviceId,
+              mobileDeviceId: newPairing.mobileDeviceId || newPairing.id,
+            })
+            .catch((err: any) => {
+              log.error("Failed to start mobile sync via RPC:", err);
+            });
         } else {
-          log.warn("RPC client not connected -- cannot start sync engine. It will start on next gateway reconnect.");
+          log.warn(
+            "RPC client not connected -- cannot start sync engine. It will start on next gateway reconnect.",
+          );
         }
 
         log.info("Pairing completed:", recipientId);

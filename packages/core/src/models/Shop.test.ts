@@ -23,9 +23,7 @@ describe("ShopModel customer-service device assignment", () => {
     expect(createShop("device-1").customerServiceDeviceAssignment("device-1")).toBe(
       "current_device",
     );
-    expect(createShop("device-2").customerServiceDeviceAssignment("device-1")).toBe(
-      "other_device",
-    );
+    expect(createShop("device-2").customerServiceDeviceAssignment("device-1")).toBe("other_device");
     expect(createShop("device-2").customerServiceDeviceAssignment(null)).toBe("other_device");
   });
 });

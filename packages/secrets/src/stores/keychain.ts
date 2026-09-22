@@ -48,8 +48,10 @@ export class KeychainSecretStore implements SecretStore {
     try {
       const { stdout } = await this.runSecurity([
         "find-generic-password",
-        "-a", ACCOUNT,
-        "-s", serviceName(key),
+        "-a",
+        ACCOUNT,
+        "-s",
+        serviceName(key),
         "-w",
       ]);
       log.debug("get secret: key=" + key + " found=true");
@@ -68,9 +70,12 @@ export class KeychainSecretStore implements SecretStore {
     try {
       await this.runSecurity([
         "add-generic-password",
-        "-a", ACCOUNT,
-        "-s", serviceName(key),
-        "-w", value,
+        "-a",
+        ACCOUNT,
+        "-s",
+        serviceName(key),
+        "-w",
+        value,
         "-U",
       ]);
       log.debug("set secret: key=" + key);
@@ -84,11 +89,7 @@ export class KeychainSecretStore implements SecretStore {
 
   async delete(key: SecretKey): Promise<boolean> {
     try {
-      await this.runSecurity([
-        "delete-generic-password",
-        "-a", ACCOUNT,
-        "-s", serviceName(key),
-      ]);
+      await this.runSecurity(["delete-generic-password", "-a", ACCOUNT, "-s", serviceName(key)]);
       log.debug("delete secret: key=" + key + " existed=true");
       return true;
     } catch (error) {

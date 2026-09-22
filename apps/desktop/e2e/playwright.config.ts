@@ -8,7 +8,10 @@ dotenv.config({ path: resolve(__dirname, ".env") });
 
 const workersEnv = process.env.E2E_WORKERS;
 const workers = workersEnv === undefined ? 6 : Number(workersEnv);
-if (workersEnv !== undefined && (!/^[1-9]\d*$/.test(workersEnv) || !Number.isSafeInteger(workers))) {
+if (
+  workersEnv !== undefined &&
+  (!/^[1-9]\d*$/.test(workersEnv) || !Number.isSafeInteger(workers))
+) {
   throw new Error("E2E_WORKERS must be a positive integer");
 }
 

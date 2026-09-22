@@ -12,8 +12,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Review Action Proposals, handle Agent Escalations, and inspect all Agent work.",
           manualTitle: "Manual Workbench",
-          manualSubtitle:
-            "Process Sample Applications and Creator messages that belong to staff.",
+          manualSubtitle: "Process Sample Applications and Creator messages that belong to staff.",
           tabs: { pendingEscalations: "Pending" },
         },
         escalations: {
@@ -22,8 +21,10 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "Copy escalation ID",
           copyRelationshipId: "Copy relationship ID",
           answerLabel: "Your answer for the Agent",
-          answerPlaceholder: "e.g. Approved for reshipment. Ask the creator for the recipient's name, address and phone, and share the tracking number once it ships.",
-          answerHint: "Once submitted, the Agent immediately follows up with the creator based on this answer.",
+          answerPlaceholder:
+            "e.g. Approved for reshipment. Ask the creator for the recipient's name, address and phone, and share the tracking number once it ships.",
+          answerHint:
+            "Once submitted, the Agent immediately follows up with the creator based on this answer.",
           submit: "Submit",
           resolveSuccess: "Decision sent. The Agent will follow up with the Creator.",
           empty: "No Affiliate escalations are waiting for staff.",
@@ -77,7 +78,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "复制工单 ID",
           copyRelationshipId: "复制关系 ID",
           answerLabel: "给 Agent 的处理意见",
-          answerPlaceholder: "例如：同意补发。让达人提供收件人姓名、地址和电话，发出后把单号告诉他。",
+          answerPlaceholder:
+            "例如：同意补发。让达人提供收件人姓名、地址和电话，发出后把单号告诉他。",
           answerHint: "提交后 Agent 会立刻按这段话继续跟进达人。",
           submit: "提交",
           resolveSuccess: "决定已提交，Agent 将跟进达人。",
@@ -133,8 +135,10 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "Ticket-ID kopieren",
           copyRelationshipId: "Beziehungs-ID kopieren",
           answerLabel: "Deine Antwort für den Agenten",
-          answerPlaceholder: "z. B. Erneuter Versand genehmigt. Bitte den Creator um Empfängername, Adresse und Telefonnummer und teile die Sendungsnummer mit, sobald das Paket unterwegs ist.",
-          answerHint: "Nach dem Absenden folgt der Agent dem Creator sofort auf Basis dieser Antwort nach.",
+          answerPlaceholder:
+            "z. B. Erneuter Versand genehmigt. Bitte den Creator um Empfängername, Adresse und Telefonnummer und teile die Sendungsnummer mit, sobald das Paket unterwegs ist.",
+          answerHint:
+            "Nach dem Absenden folgt der Agent dem Creator sofort auf Basis dieser Antwort nach.",
           submit: "Absenden",
           resolveSuccess: "Entscheidung gesendet. Der Agent meldet sich beim Creator.",
           empty: "Keine Affiliate-Eskalationen warten auf Mitarbeitende.",
@@ -189,8 +193,10 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "Copiar ID del ticket",
           copyRelationshipId: "Copiar ID de relación",
           answerLabel: "Tu respuesta para el Agente",
-          answerPlaceholder: "p. ej. Reenvío aprobado. Pide al creador el nombre, la dirección y el teléfono del destinatario, y comparte el número de seguimiento cuando se envíe.",
-          answerHint: "Al enviar, el Agente hará seguimiento con el creador de inmediato según esta respuesta.",
+          answerPlaceholder:
+            "p. ej. Reenvío aprobado. Pide al creador el nombre, la dirección y el teléfono del destinatario, y comparte el número de seguimiento cuando se envíe.",
+          answerHint:
+            "Al enviar, el Agente hará seguimiento con el creador de inmediato según esta respuesta.",
           submit: "Enviar",
           resolveSuccess: "Decisión enviada. El Agente hará seguimiento con el creador.",
           empty: "No hay escalaciones de Affiliate pendientes de personal.",
@@ -245,8 +251,10 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "Copier l'ID du ticket",
           copyRelationshipId: "Copier l'ID de relation",
           answerLabel: "Votre réponse pour l'Agent",
-          answerPlaceholder: "ex. Réexpédition approuvée. Demandez au créateur le nom, l'adresse et le téléphone du destinataire, puis communiquez le numéro de suivi dès l'envoi.",
-          answerHint: "Dès l'envoi, l'Agent relance immédiatement le créateur sur la base de cette réponse.",
+          answerPlaceholder:
+            "ex. Réexpédition approuvée. Demandez au créateur le nom, l'adresse et le téléphone du destinataire, puis communiquez le numéro de suivi dès l'envoi.",
+          answerHint:
+            "Dès l'envoi, l'Agent relance immédiatement le créateur sur la base de cette réponse.",
           submit: "Envoyer",
           resolveSuccess: "Décision envoyée. L'Agent fera le suivi avec le créateur.",
           empty: "Aucune escalade Affiliate n’attend l’équipe.",
@@ -301,8 +309,10 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "Salin ID tiket",
           copyRelationshipId: "Salin ID relasi",
           answerLabel: "Jawaban Anda untuk Agent",
-          answerPlaceholder: "mis. Kirim ulang disetujui. Minta kreator memberikan nama, alamat, dan nomor telepon penerima, lalu bagikan nomor resi setelah dikirim.",
-          answerHint: "Begitu dikirim, Agent langsung menindaklanjuti kreator berdasarkan jawaban ini.",
+          answerPlaceholder:
+            "mis. Kirim ulang disetujui. Minta kreator memberikan nama, alamat, dan nomor telepon penerima, lalu bagikan nomor resi setelah dikirim.",
+          answerHint:
+            "Begitu dikirim, Agent langsung menindaklanjuti kreator berdasarkan jawaban ini.",
           submit: "Kirim",
           resolveSuccess: "Keputusan terkirim. Agent akan menindaklanjuti kreator.",
           empty: "Tidak ada eskalasi Affiliate yang menunggu staf.",
@@ -357,8 +367,10 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "Copia ID ticket",
           copyRelationshipId: "Copia ID relazione",
           answerLabel: "La tua risposta per l'Agente",
-          answerPlaceholder: "es. Rispedizione approvata. Chiedi al creator nome, indirizzo e telefono del destinatario e comunica il numero di tracciamento appena spedito.",
-          answerHint: "Appena invii, l'Agente ricontatta subito il creator in base a questa risposta.",
+          answerPlaceholder:
+            "es. Rispedizione approvata. Chiedi al creator nome, indirizzo e telefono del destinatario e comunica il numero di tracciamento appena spedito.",
+          answerHint:
+            "Appena invii, l'Agente ricontatta subito il creator in base a questa risposta.",
           submit: "Invia",
           resolveSuccess: "Decisione inviata. L'Agente ricontatterà il creator.",
           empty: "Nessuna escalation Affiliate in attesa dello staff.",
@@ -401,11 +413,9 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           agentTitle: "พื้นที่ทำงาน Agent",
-          agentSubtitle:
-            "ตรวจสอบข้อเสนอการดำเนินการ จัดการงานที่ Agent ส่งต่อ และดูงาน Agent ทั้งหมด",
+          agentSubtitle: "ตรวจสอบข้อเสนอการดำเนินการ จัดการงานที่ Agent ส่งต่อ และดูงาน Agent ทั้งหมด",
           manualTitle: "พื้นที่ทำงานของเจ้าหน้าที่",
-          manualSubtitle:
-            "จัดการคำขอตัวอย่างและข้อความครีเอเตอร์ที่เจ้าหน้าที่เป็นผู้รับผิดชอบ",
+          manualSubtitle: "จัดการคำขอตัวอย่างและข้อความครีเอเตอร์ที่เจ้าหน้าที่เป็นผู้รับผิดชอบ",
           tabs: { pendingEscalations: "รอดำเนินการ" },
         },
         escalations: {
@@ -414,7 +424,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           copyEscalationId: "คัดลอกรหัสตั๋ว",
           copyRelationshipId: "คัดลอกรหัสความสัมพันธ์",
           answerLabel: "คำตอบของคุณสำหรับ Agent",
-          answerPlaceholder: "เช่น อนุมัติส่งซ้ำ ให้ครีเอเตอร์แจ้งชื่อ ที่อยู่ และเบอร์โทรผู้รับ แล้วแจ้งหมายเลขพัสดุเมื่อจัดส่งแล้ว",
+          answerPlaceholder:
+            "เช่น อนุมัติส่งซ้ำ ให้ครีเอเตอร์แจ้งชื่อ ที่อยู่ และเบอร์โทรผู้รับ แล้วแจ้งหมายเลขพัสดุเมื่อจัดส่งแล้ว",
           answerHint: "เมื่อส่งแล้ว Agent จะติดตามครีเอเตอร์ต่อทันทีตามคำตอบนี้",
           submit: "ส่ง",
           resolveSuccess: "ส่งการตัดสินใจแล้ว Agent จะติดตามครีเอเตอร์ต่อ",

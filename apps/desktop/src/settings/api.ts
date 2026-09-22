@@ -78,8 +78,7 @@ const getAll: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
     const secretKey = `${provider}-api-key`;
     const legacyKey = await secretStore.get(secretKey);
     const hasLegacyKey = legacyKey !== null && legacyKey !== "";
-    const hasProviderKey = storage.providerKeys.getAll()
-      .some((k) => k.provider === provider);
+    const hasProviderKey = storage.providerKeys.getAll().some((k) => k.provider === provider);
     if (hasLegacyKey || hasProviderKey) {
       masked[secretKey] = "configured";
     }
@@ -132,12 +131,23 @@ const updateSettings: EndpointHandler = async (req, res, _url, _params, ctx: Api
 
 const validateKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const { validateProviderApiKey } = await import("../providers/provider-validator.js");
-  const body = (await parseBody(req)) as { provider?: string; apiKey?: string; proxyUrl?: string; model?: string };
+  const body = (await parseBody(req)) as {
+    provider?: string;
+    apiKey?: string;
+    proxyUrl?: string;
+    model?: string;
+  };
   if (!body.provider || !body.apiKey) {
     sendJson(res, 400, { valid: false, error: "Missing provider or apiKey" });
     return;
   }
-  const result = await validateProviderApiKey(body.provider, body.apiKey, ctx.proxyRouterPort, body.proxyUrl || undefined, body.model || undefined);
+  const result = await validateProviderApiKey(
+    body.provider,
+    body.apiKey,
+    ctx.proxyRouterPort,
+    body.proxyUrl || undefined,
+    body.model || undefined,
+  );
   sendJson(res, 200, result);
 };
 
@@ -145,13 +155,22 @@ const validateKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
 
 const validateCustomKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const { validateCustomProviderApiKey } = await import("../providers/provider-validator.js");
-  const body = (await parseBody(req)) as { baseUrl?: string; apiKey?: string; protocol?: string; model?: string };
+  const body = (await parseBody(req)) as {
+    baseUrl?: string;
+    apiKey?: string;
+    protocol?: string;
+    model?: string;
+  };
   if (!body.baseUrl || !body.apiKey || !body.protocol || !body.model) {
     sendJson(res, 400, { valid: false, error: "Missing required fields" });
     return;
   }
   const result = await validateCustomProviderApiKey(
-    body.baseUrl, body.apiKey, body.protocol as "openai" | "anthropic", body.model, ctx.proxyRouterPort,
+    body.baseUrl,
+    body.apiKey,
+    body.protocol as "openai" | "anthropic",
+    body.model,
+    ctx.proxyRouterPort,
   );
   sendJson(res, 200, result);
 };
@@ -291,9 +310,7 @@ const CS_EVENT_ALLOWLIST = new Set([
 const telemetryCsTrack: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   const body = (await parseBody(req)) as { eventType?: string; metadata?: Record<string, unknown> };
   if (!body.eventType || !CS_EVENT_ALLOWLIST.has(body.eventType)) {
-    log.warn(
-      `cs-track: rejecting event with unknown eventType=${body.eventType ?? "<missing>"}`,
-    );
+    log.warn(`cs-track: rejecting event with unknown eventType=${body.eventType ?? "<missing>"}`);
     res.writeHead(204);
     res.end();
     return;
@@ -333,9 +350,10 @@ const setAgentSettings: EndpointHandler = async (req, res, _url, _params, ctx: A
     const configPath = resolveOpenClawConfigPath();
 
     mutateDesktopOpenClawConfig(configPath, "agent settings", (fullConfig) => {
-      const existingSession = typeof fullConfig.session === "object" && fullConfig.session !== null
-        ? (fullConfig.session as Record<string, unknown>)
-        : {};
+      const existingSession =
+        typeof fullConfig.session === "object" && fullConfig.session !== null
+          ? (fullConfig.session as Record<string, unknown>)
+          : {};
 
       existingSession.dmScope = FIXED_DM_SCOPE;
 
@@ -554,7 +572,13 @@ const setOpenclawStateDir: EndpointHandler = async (req, res, _url, _params, ctx
 
 // ── DELETE /api/settings/openclaw-state-dir ──
 
-const deleteOpenclawStateDir: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
+const deleteOpenclawStateDir: EndpointHandler = async (
+  _req,
+  res,
+  _url,
+  _params,
+  ctx: ApiContext,
+) => {
   ctx.storage.settings.delete("openclaw_state_dir_override");
   ctx.storage.settings.delete("openclaw_import_checked");
   log.info("OpenClaw state dir override cleared (restart required)");

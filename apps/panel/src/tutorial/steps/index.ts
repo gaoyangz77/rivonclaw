@@ -1,36 +1,36 @@
-import type { TutorialStep } from "../types.js"
-import { chatSteps } from "./chat.js"
-import { channelsSteps } from "./channels.js"
-import { providersSteps } from "./providers.js"
-import { skillsSteps } from "./skills.js"
-import { cronsSteps } from "./crons.js"
-import { extrasSteps } from "./extras.js"
-import { usageSteps } from "./usage.js"
-import { settingsSteps } from "./settings.js"
-import { accountSteps } from "./account.js"
-import { billingSteps } from "./billing.js"
-import { ecommerceSteps } from "./ecommerce.js"
-import { adsManagementSteps } from "./adsManagement.js"
+import type { TutorialStep } from "../types.js";
+import { chatSteps } from "./chat.js";
+import { channelsSteps } from "./channels.js";
+import { providersSteps } from "./providers.js";
+import { skillsSteps } from "./skills.js";
+import { cronsSteps } from "./crons.js";
+import { extrasSteps } from "./extras.js";
+import { usageSteps } from "./usage.js";
+import { settingsSteps } from "./settings.js";
+import { accountSteps } from "./account.js";
+import { billingSteps } from "./billing.js";
+import { ecommerceSteps } from "./ecommerce.js";
+import { adsManagementSteps } from "./adsManagement.js";
 import {
   customerServiceWorkspaceSteps,
   customerServiceConversationsSteps,
   customerServiceEscalationsSteps,
   customerServicePerformanceSteps,
   customerServiceExperimentsSteps,
-} from "./ecommerceCustomerService.js"
+} from "./ecommerceCustomerService.js";
 import {
   ecommerceAffiliateAttentionSteps,
   ecommerceAffiliateManualWorkbenchSteps,
-} from "./ecommerceAffiliateAttention.js"
-import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js"
-import { ecommerceAffiliateAnalyticsSteps } from "./ecommerceAffiliateAnalytics.js"
-import { ecommerceAffiliateCreatorsSteps } from "./ecommerceAffiliateCreators.js"
-import { ecommerceAffiliateHistorySteps } from "./ecommerceAffiliateHistory.js"
-import { ecommerceAffiliateIntelligenceSteps } from "./ecommerceAffiliateIntelligence.js"
-import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js"
-import { inventoryManagementSteps } from "./inventoryManagement.js"
-import { shopAnalyticsSteps } from "./shopAnalytics.js"
-import { productKnowledgeSteps } from "./productKnowledge.js"
+} from "./ecommerceAffiliateAttention.js";
+import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js";
+import { ecommerceAffiliateAnalyticsSteps } from "./ecommerceAffiliateAnalytics.js";
+import { ecommerceAffiliateCreatorsSteps } from "./ecommerceAffiliateCreators.js";
+import { ecommerceAffiliateHistorySteps } from "./ecommerceAffiliateHistory.js";
+import { ecommerceAffiliateIntelligenceSteps } from "./ecommerceAffiliateIntelligence.js";
+import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js";
+import { inventoryManagementSteps } from "./inventoryManagement.js";
+import { shopAnalyticsSteps } from "./shopAnalytics.js";
+import { productKnowledgeSteps } from "./productKnowledge.js";
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
@@ -62,8 +62,8 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/account/billing": billingSteps,
   "/account/profile": accountSteps,
   "/account/settings": settingsSteps,
-}
+};
 
 export function getStepsForRoute(route: string): TutorialStep[] {
-  return stepRegistry[route] ?? []
+  return stepRegistry[route] ?? [];
 }

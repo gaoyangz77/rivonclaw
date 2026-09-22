@@ -13,19 +13,13 @@ const execFile = promisify(execFileCb);
 // Mirror URL constants
 // ---------------------------------------------------------------------------
 
-export const HOMEBREW_BREW_GIT_REMOTE =
-  "https://mirrors.aliyun.com/homebrew/brew.git";
-export const HOMEBREW_CORE_GIT_REMOTE =
-  "https://mirrors.aliyun.com/homebrew/homebrew-core.git";
-export const HOMEBREW_BOTTLE_DOMAIN =
-  "https://mirrors.aliyun.com/homebrew/homebrew-bottles";
-export const HOMEBREW_API_DOMAIN =
-  "https://mirrors.aliyun.com/homebrew/homebrew-bottles/api";
+export const HOMEBREW_BREW_GIT_REMOTE = "https://mirrors.aliyun.com/homebrew/brew.git";
+export const HOMEBREW_CORE_GIT_REMOTE = "https://mirrors.aliyun.com/homebrew/homebrew-core.git";
+export const HOMEBREW_BOTTLE_DOMAIN = "https://mirrors.aliyun.com/homebrew/homebrew-bottles";
+export const HOMEBREW_API_DOMAIN = "https://mirrors.aliyun.com/homebrew/homebrew-bottles/api";
 
-export const PYPI_MIRROR_URL =
-  "https://mirrors.aliyun.com/pypi/simple";
-export const NPM_MIRROR_URL =
-  "https://registry.npmmirror.com";
+export const PYPI_MIRROR_URL = "https://mirrors.aliyun.com/pypi/simple";
+export const NPM_MIRROR_URL = "https://registry.npmmirror.com";
 
 // ---------------------------------------------------------------------------
 // Homebrew mirror env
@@ -35,9 +29,7 @@ export const NPM_MIRROR_URL =
  * Return Homebrew mirror environment variables for China region,
  * or `null` for global region.
  */
-export function getMirrorEnv(
-  region: Region,
-): Record<string, string> | null {
+export function getMirrorEnv(region: Region): Record<string, string> | null {
   if (region !== "cn") return null;
 
   return {

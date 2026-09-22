@@ -20,9 +20,10 @@ vi.mock("../gateway/connection.js", () => ({
 vi.mock("../app/store/desktop-store.js", () => ({
   rootStore: {
     findShopByObjectOrPlatformId: (shopId?: string | null, platformShopId?: string | null) =>
-      state.shops.find((shop: any) =>
-        (!!shopId && shop.id === shopId) ||
-        (!!platformShopId && shop.platformShopId === platformShopId),
+      state.shops.find(
+        (shop: any) =>
+          (!!shopId && shop.id === shopId) ||
+          (!!platformShopId && shop.platformShopId === platformShopId),
       ),
   },
 }));
@@ -49,12 +50,14 @@ function makeConversation(reason: string): CsConversationChangedPayload {
     aiEnabled: true,
     latestMessagePreview: "hello",
     orderId: "order-1",
-    participants: [{
-      role: "BUYER",
-      userId: "buyer-1",
-      imUserId: "im-1",
-      nickname: "buyer",
-    }],
+    participants: [
+      {
+        role: "BUYER",
+        userId: "buyer-1",
+        imUserId: "im-1",
+        nickname: "buyer",
+      },
+    ],
     latestMessage: {
       messageId: "msg-1",
       index: "idx-1",
@@ -140,38 +143,50 @@ describe("handleCsConversationChanged", () => {
   it("dispatches recognized pending buyer message hints", async () => {
     await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
 
-    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
-      type: "UNREAD_DETECTED",
-      dispatchReason: "PENDING_BUYER_MESSAGE",
-      useMessageDelta: true,
-      source: "AIRFLOW",
-      shopId: "shop-1",
-      platformShopId: "platform-shop-1",
-      conversationId: "conv-1",
-      operatorInstruction: "follow up with the buyer",
-    }));
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "UNREAD_DETECTED",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        useMessageDelta: true,
+        source: "AIRFLOW",
+        shopId: "shop-1",
+        platformShopId: "platform-shop-1",
+        conversationId: "conv-1",
+        operatorInstruction: "follow up with the buyer",
+      }),
+    );
   });
 
   it("dispatches recognized session-expiring hints", async () => {
-    await handleCsConversationChanged("device-1", makeConversation("SESSION_EXPIRING_ESCALATION_FOLLOW_UP"));
+    await handleCsConversationChanged(
+      "device-1",
+      makeConversation("SESSION_EXPIRING_ESCALATION_FOLLOW_UP"),
+    );
 
-    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
-      type: "UNREAD_DETECTED",
-      dispatchReason: "SESSION_EXPIRING_ESCALATION_FOLLOW_UP",
-      useMessageDelta: false,
-      conversationId: "conv-1",
-    }));
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "UNREAD_DETECTED",
+        dispatchReason: "SESSION_EXPIRING_ESCALATION_FOLLOW_UP",
+        useMessageDelta: false,
+        conversationId: "conv-1",
+      }),
+    );
   });
 
   it("uses close-out instructions without conversation delta for session-expiring customer follow-ups", async () => {
-    await handleCsConversationChanged("device-1", makeConversation("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"));
+    await handleCsConversationChanged(
+      "device-1",
+      makeConversation("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"),
+    );
 
-    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
-      type: "UNREAD_DETECTED",
-      dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
-      useMessageDelta: false,
-      conversationId: "conv-1",
-    }));
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "UNREAD_DETECTED",
+        dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
+        useMessageDelta: false,
+        conversationId: "conv-1",
+      }),
+    );
   });
 
   it("ignores unknown dispatch hints instead of defaulting to an agent run", async () => {
@@ -195,14 +210,16 @@ describe("handleCsConversationChanged", () => {
   it("dispatches pending buyer hints anchored by message id without local latest fallback", async () => {
     await handleCsConversationChanged("device-1", makeConversationWithMessageIdOnlyHint());
 
-    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
-      dispatchReason: "PENDING_BUYER_MESSAGE",
-      messageId: "msg-id-only",
-      messageIndex: undefined,
-      messageType: undefined,
-      senderRole: "BUYER",
-      latestMessagePreview: undefined,
-    }));
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        messageId: "msg-id-only",
+        messageIndex: undefined,
+        messageType: undefined,
+        senderRole: "BUYER",
+        latestMessagePreview: undefined,
+      }),
+    );
   });
 
   it("ignores dispatch when the shop is not present in the MST shop lifecycle cache", async () => {
@@ -220,10 +237,12 @@ describe("handleCsConversationChanged", () => {
     await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
     await flushCsDispatchesAfterBridgeReady(handle);
 
-    expect(handle).toHaveBeenCalledWith(expect.objectContaining({
-      conversationId: "conv-1",
-      messageId: "msg-1",
-      dispatchReason: "PENDING_BUYER_MESSAGE",
-    }));
+    expect(handle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: "conv-1",
+        messageId: "msg-1",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+      }),
+    );
   });
 });

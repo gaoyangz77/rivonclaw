@@ -111,7 +111,7 @@ describe("FileSecretStore", () => {
   });
 
   it("should handle special characters in values", async () => {
-    const specialValue = "sk-key!@#$%^&*()_+-={}[]|\\:\";<>?,./~`";
+    const specialValue = 'sk-key!@#$%^&*()_+-={}[]|\\:";<>?,./~`';
     await store.set("llm-api-key", specialValue);
     const value = await store.get("llm-api-key");
     expect(value).toBe(specialValue);
@@ -128,7 +128,10 @@ describe("FileSecretStore", () => {
 describe("KeychainSecretStore", () => {
   it("returns null only when the keychain item is missing", async () => {
     const store = new KeychainSecretStore(async () => {
-      throw { stderr: "security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain." };
+      throw {
+        stderr:
+          "security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain.",
+      };
     });
 
     await expect(store.get("missing")).resolves.toBeNull();

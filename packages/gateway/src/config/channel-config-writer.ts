@@ -124,7 +124,11 @@ export function removeChannelAccount(options: RemoveChannelAccountOptions): void
         const keys = Object.keys(accounts);
         const matchByName = keys.find((k) => {
           const acct = accounts[k];
-          return typeof acct === "object" && acct !== null && (acct as Record<string, unknown>).name === accountId;
+          return (
+            typeof acct === "object" &&
+            acct !== null &&
+            (acct as Record<string, unknown>).name === accountId
+          );
         });
 
         if (matchByName) {
@@ -134,7 +138,9 @@ export function removeChannelAccount(options: RemoveChannelAccountOptions): void
           log.info(`Account key "${accountId}" not found, removing sole account: "${keys[0]}"`);
           delete accounts[keys[0]];
         } else {
-          log.warn(`Account "${accountId}" not found in ${channelId} accounts: [${keys.join(", ")}]`);
+          log.warn(
+            `Account "${accountId}" not found in ${channelId} accounts: [${keys.join(", ")}]`,
+          );
         }
       }
 
@@ -169,9 +175,10 @@ function enableChannelPlugin(config: Record<string, unknown>, channelId: string)
   }
   const entries = plugins.entries as Record<string, unknown>;
 
-  const existing = typeof entries[channelId] === "object" && entries[channelId] !== null
-    ? (entries[channelId] as Record<string, unknown>)
-    : {};
+  const existing =
+    typeof entries[channelId] === "object" && entries[channelId] !== null
+      ? (entries[channelId] as Record<string, unknown>)
+      : {};
   entries[channelId] = { ...existing, enabled: true };
 
   log.info(`Enabled channel plugin: ${channelId}`);
@@ -182,13 +189,16 @@ function enableChannelPlugin(config: Record<string, unknown>, channelId: string)
  * from non-default accounts to the default agent without doctor warnings.
  */
 function ensureWildcardBinding(config: Record<string, unknown>, channelId: string): void {
-  const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<Record<string, unknown>>;
+  const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<
+    Record<string, unknown>
+  >;
   const channelLower = channelId.toLowerCase();
 
-  const hasCovering = bindings.some(b => {
+  const hasCovering = bindings.some((b) => {
     const match = b.match as Record<string, unknown> | undefined;
     if (!match) return false;
-    const matchChannel = typeof match.channel === "string" ? match.channel.trim().toLowerCase() : "";
+    const matchChannel =
+      typeof match.channel === "string" ? match.channel.trim().toLowerCase() : "";
     if (matchChannel !== channelLower) return false;
     const matchAccountId = typeof match.accountId === "string" ? match.accountId.trim() : "";
     return matchAccountId === "*";
@@ -303,9 +313,7 @@ export function migrateSingleAccountChannels(config: Record<string, unknown>): s
         ? (channel.accounts as Record<string, unknown>)
         : {};
 
-    const hasDefault = Object.keys(accounts).some(
-      (key) => key.trim().toLowerCase() === "default",
-    );
+    const hasDefault = Object.keys(accounts).some((key) => key.trim().toLowerCase() === "default");
 
     if (hasDefault) {
       // Default account already exists — don't overwrite it
@@ -316,8 +324,7 @@ export function migrateSingleAccountChannels(config: Record<string, unknown>): s
     const defaultAccount: Record<string, unknown> = {};
     for (const key of keysToMove) {
       const value = channel[key];
-      defaultAccount[key] =
-        value && typeof value === "object" ? structuredClone(value) : value;
+      defaultAccount[key] = value && typeof value === "object" ? structuredClone(value) : value;
     }
 
     // Remove migrated keys from channel top-level
@@ -339,10 +346,7 @@ export function migrateSingleAccountChannels(config: Record<string, unknown>): s
 /**
  * Get all account IDs for a specific channel from config.
  */
-export function listChannelAccounts(
-  configPath: string,
-  channelId: string
-): string[] {
+export function listChannelAccounts(configPath: string, channelId: string): string[] {
   if (!existsSync(configPath)) {
     return [];
   }

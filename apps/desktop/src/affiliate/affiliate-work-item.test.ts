@@ -154,7 +154,9 @@ describe("affiliate session identity", () => {
     expect(rendered).not.toContain("425");
     expect(rendered).not.toContain("mia@example.com");
     expect(rendered).not.toContain("Holylegend");
-    expect(rendered).toContain("- WhatsApp: available (call affiliate_get_bd_contact to obtain it)");
+    expect(rendered).toContain(
+      "- WhatsApp: available (call affiliate_get_bd_contact to obtain it)",
+    );
     expect(rendered).toContain("- Email: available (call affiliate_get_bd_contact to obtain it)");
     expect(rendered).toContain("Never reuse a contact from an earlier turn.");
     expect(rendered).toContain(
@@ -1070,14 +1072,21 @@ describe("affiliate work item dispatch", () => {
 
   function setupDispatchTest() {
     const inbound = new AffiliateInbound("en");
-    inbound.syncFromShops([{
-      id: "shop-001", userId: "user-001", platform: "tiktok",
-      platformShopId: "platform-shop-001", shopName: "Affiliate Test Shop",
-    }]);
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
     let runCount = 0;
     const session = {
       scopeKey: "affiliate-session-001",
-      handleWorkItem: vi.fn(async (_item: GQL.AffiliateWorkItem) => ({ runId: `test-run-${++runCount}` })),
+      handleWorkItem: vi.fn(async (_item: GQL.AffiliateWorkItem) => ({
+        runId: `test-run-${++runCount}`,
+      })),
       onRunCompleted: vi.fn(async () => {}),
     };
     vi.spyOn(inbound as any, "getOrCreateSession").mockReturnValue(session);
@@ -1109,11 +1118,25 @@ describe("affiliate work item dispatch", () => {
     const { inbound, session } = setupDispatchTest();
     let finishPreparation!: (value: { runId: string }) => void;
     let finishCheckpoint!: () => void;
-    session.handleWorkItem.mockImplementationOnce(() => new Promise((resolve) => { finishPreparation = resolve; }));
-    session.onRunCompleted.mockImplementationOnce(() => new Promise<void>((resolve) => { finishCheckpoint = resolve; }));
+    session.handleWorkItem.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishPreparation = resolve;
+        }),
+    );
+    session.onRunCompleted.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCheckpoint = resolve;
+        }),
+    );
     const first = createSampleReviewWorkItem();
     const second = { ...first, agendaItemsSnapshotId: "snapshot-second" };
-    const refreshed = { ...second, agendaItemsSnapshotId: "snapshot-refreshed", versionKey: "new-facts" };
+    const refreshed = {
+      ...second,
+      agendaItemsSnapshotId: "snapshot-refreshed",
+      versionKey: "new-facts",
+    };
     const graphqlFetch = vi.fn(async () => ({ affiliateWorkItems: [refreshed] }));
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
 
@@ -1156,23 +1179,33 @@ describe("affiliate work item dispatch", () => {
     expect(graphqlFetch).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["final", "error"])("handles an early %s frame before the agent RPC returns its run id", async (state) => {
-    const { inbound, session } = setupDispatchTest();
-    let finishPreparation!: (value: { runId: string }) => void;
-    session.handleWorkItem.mockImplementationOnce(() => new Promise((resolve) => { finishPreparation = resolve; }));
-    const work = createSampleReviewWorkItem();
-    const preparing = inbound.handleWorkItem(work);
-    inbound.handleGatewayEvent({ payload: { runId: "early-run", state } } as any);
-    inbound.handleGatewayEvent({ payload: { runId: "early-run", state } } as any);
-    finishPreparation({ runId: "early-run" });
-    await preparing;
-    await waitForCondition(() => (inbound as any).runIndex.size === 0);
-    expect(session.onRunCompleted).toHaveBeenCalledExactlyOnceWith("early-run", { errored: state === "error" });
-    expect((inbound as any).activeRelationships.size).toBe(0);
-    expect((inbound as any).earlyTerminalStates.size).toBe(0);
-    await inbound.handleWorkItem({ ...work, agendaItemsSnapshotId: "after-early-final" });
-    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
-  });
+  it.each(["final", "error"])(
+    "handles an early %s frame before the agent RPC returns its run id",
+    async (state) => {
+      const { inbound, session } = setupDispatchTest();
+      let finishPreparation!: (value: { runId: string }) => void;
+      session.handleWorkItem.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishPreparation = resolve;
+          }),
+      );
+      const work = createSampleReviewWorkItem();
+      const preparing = inbound.handleWorkItem(work);
+      inbound.handleGatewayEvent({ payload: { runId: "early-run", state } } as any);
+      inbound.handleGatewayEvent({ payload: { runId: "early-run", state } } as any);
+      finishPreparation({ runId: "early-run" });
+      await preparing;
+      await waitForCondition(() => (inbound as any).runIndex.size === 0);
+      expect(session.onRunCompleted).toHaveBeenCalledExactlyOnceWith("early-run", {
+        errored: state === "error",
+      });
+      expect((inbound as any).activeRelationships.size).toBe(0);
+      expect((inbound as any).earlyTerminalStates.size).toBe(0);
+      await inbound.handleWorkItem({ ...work, agendaItemsSnapshotId: "after-early-final" });
+      expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it("releases a preparation failure for retry instead of leaving a permanent reservation", async () => {
     const { inbound, session } = setupDispatchTest();
@@ -1188,14 +1221,22 @@ describe("affiliate work item dispatch", () => {
     const first = createSampleReviewWorkItem();
     await inbound.handleWorkItem(first);
     await inbound.handleWorkItem({ ...first, agendaItemsSnapshotId: "same-relationship-queued" });
-    const other = { ...first, creatorRelationshipId: "relationship-002", agendaItemsSnapshotId: "other-queued" };
+    const other = {
+      ...first,
+      creatorRelationshipId: "relationship-002",
+      agendaItemsSnapshotId: "other-queued",
+    };
     (inbound as any).enqueueWorkItem(other);
     mockGetAuthSession.mockReturnValue({
-      graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [{ ...other, agendaItemsSnapshotId: "other-refreshed" }] })),
+      graphqlFetch: vi.fn(async () => ({
+        affiliateWorkItems: [{ ...other, agendaItemsSnapshotId: "other-refreshed" }],
+      })),
     });
     (inbound as any).drainWorkItemQueue();
     await waitForCondition(() => session.handleWorkItem.mock.calls.length === 2);
-    expect(session.handleWorkItem).toHaveBeenLastCalledWith(expect.objectContaining({ creatorRelationshipId: "relationship-002" }));
+    expect(session.handleWorkItem).toHaveBeenLastCalledWith(
+      expect.objectContaining({ creatorRelationshipId: "relationship-002" }),
+    );
     expect((inbound as any).pendingWorkItems.has("relationship-001")).toBe(true);
   });
 
@@ -1204,12 +1245,18 @@ describe("affiliate work item dispatch", () => {
     const original = createSampleReviewWorkItem();
     const queued = { ...original, agendaItemsSnapshotId: "queued-before-error" };
     const refreshed = { ...original, agendaItemsSnapshotId: "refresh-before-error" };
-    mockGetAuthSession.mockReturnValue({ graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [refreshed] })) });
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [refreshed] })),
+    });
     await inbound.handleWorkItem(original);
     await inbound.handleWorkItem(queued);
     session.handleWorkItem.mockRejectedValueOnce(new Error("gateway unavailable"));
     inbound.handleGatewayEvent({ payload: { runId: "test-run-1", state: "final" } } as any);
-    await waitForCondition(() => session.handleWorkItem.mock.calls.length === 2 && !(inbound as any).activeRelationships.size);
+    await waitForCondition(
+      () =>
+        session.handleWorkItem.mock.calls.length === 2 &&
+        !(inbound as any).activeRelationships.size,
+    );
     await inbound.handleWorkItem(queued);
     expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
     await inbound.handleWorkItem(refreshed);
@@ -1218,8 +1265,9 @@ describe("affiliate work item dispatch", () => {
 
   it("rejects actionable commands without a snapshot instead of falling back to business version", async () => {
     const { inbound, session } = setupDispatchTest();
-    await expect(inbound.handleWorkItem(createSampleReviewWorkItem({ agendaItemsSnapshotId: null })))
-      .rejects.toThrow("missing agendaItemsSnapshotId");
+    await expect(
+      inbound.handleWorkItem(createSampleReviewWorkItem({ agendaItemsSnapshotId: null })),
+    ).rejects.toThrow("missing agendaItemsSnapshotId");
     expect(session.handleWorkItem).not.toHaveBeenCalled();
   });
 
@@ -1304,9 +1352,11 @@ describe("affiliate work item dispatch", () => {
       },
     ]);
     const workItem = createSampleReviewWorkItem({ id: "relationship-refresh-failure" });
-    const graphqlFetch = vi.fn(async (): Promise<{ affiliateWorkItems: GQL.AffiliateWorkItem[] }> => {
-      throw new Error("temporary backend failure");
-    });
+    const graphqlFetch = vi.fn(
+      async (): Promise<{ affiliateWorkItems: GQL.AffiliateWorkItem[] }> => {
+        throw new Error("temporary backend failure");
+      },
+    );
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
     fillAffiliateCapacity(inbound);
     const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
@@ -1320,9 +1370,11 @@ describe("affiliate work item dispatch", () => {
     expect((inbound as any).pendingWorkItems.size).toBe(1);
     expect(dispatchSpy).not.toHaveBeenCalled();
 
-    graphqlFetch.mockImplementation(async () => ({ affiliateWorkItems: [
-      { ...workItem, agendaItemsSnapshotId: "snapshot-after-refresh-recovery" },
-    ] }));
+    graphqlFetch.mockImplementation(async () => ({
+      affiliateWorkItems: [
+        { ...workItem, agendaItemsSnapshotId: "snapshot-after-refresh-recovery" },
+      ],
+    }));
     await inbound.handleWorkItem(workItem);
     await waitForCondition(() => dispatchSpy.mock.calls.length === 1);
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
@@ -4178,25 +4230,23 @@ describe("affiliate work item dispatch", () => {
         GQL.ActionProposalType.SendMessage,
         GQL.ActionProposalType.NoActionNeeded,
       ],
-      agentWorkingAgendaItems: createCreatorReplyWorkItem().agentWorkingAgendaItems.map(
-        (item) => ({
-          ...item,
-          workKind: GQL.AffiliateWorkKind.SamplePerformanceFollowUp,
-          requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
-          reasons: [GQL.AffiliateWorkProcessReason.SamplePerformanceFollowUpDue],
-          sampleApplicationRecordId: "sample-performance-record-1",
-          predictionEvidence: null,
-          samplePerformanceFollowUpStage: "SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1",
-          samplePerformanceFollowUpStageId: "stage-7d",
-          samplePerformanceConfigRevision: 4,
-          samplePerformanceFollowUpDelayDays: 7,
-          samplePerformanceFollowUpAnchorAt: "2026-08-01T00:00:00.000Z",
-          samplePerformanceFollowUpExpiresAt: "2026-08-10T00:00:00.000Z",
-          samplePerformanceLowOrderThreshold: 3,
-          samplePerformanceAttributedOrderCount: 1,
-          samplePerformanceSnapshotHash: "a".repeat(64),
-        }),
-      ),
+      agentWorkingAgendaItems: createCreatorReplyWorkItem().agentWorkingAgendaItems.map((item) => ({
+        ...item,
+        workKind: GQL.AffiliateWorkKind.SamplePerformanceFollowUp,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+        reasons: [GQL.AffiliateWorkProcessReason.SamplePerformanceFollowUpDue],
+        sampleApplicationRecordId: "sample-performance-record-1",
+        predictionEvidence: null,
+        samplePerformanceFollowUpStage: "SAMPLE_PERFORMANCE_FOLLOW_UP_STAGE_1",
+        samplePerformanceFollowUpStageId: "stage-7d",
+        samplePerformanceConfigRevision: 4,
+        samplePerformanceFollowUpDelayDays: 7,
+        samplePerformanceFollowUpAnchorAt: "2026-08-01T00:00:00.000Z",
+        samplePerformanceFollowUpExpiresAt: "2026-08-10T00:00:00.000Z",
+        samplePerformanceLowOrderThreshold: 3,
+        samplePerformanceAttributedOrderCount: 1,
+        samplePerformanceSnapshotHash: "a".repeat(64),
+      })),
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
         agendaItems: [],
@@ -4517,30 +4567,38 @@ describe("Target Collaboration coverage is absent from the Working Agenda", () =
  * rather than a blank to fill in.
  */
 describe("Escalation resolution in the Working Agenda", () => {
-  function renderResolution(overrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {}): () => string {
+  function renderResolution(
+    overrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {},
+  ): () => string {
     const base = createCreatorReplyWorkItem();
-    const agendaItem = (base.creatorRelationship?.agendaItems ?? [])[0] as
-      GQL.AffiliateRelationshipAgendaItem;
-    return () => buildAffiliateAgentRunRequest({
-      workItem: createCreatorReplyWorkItem({
-        agentWorkingAgendaItems: [{
-          ...agendaItem,
-          key: "affiliate-escalation:esc-001:resolution",
-          workKind: GQL.AffiliateWorkKind.EscalationResolution,
-          requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleEscalationResolution,
-          sampleApplicationRecordId: null,
-          productId: null,
-          predictionEvidence: null,
-          escalationQuestion: "Please confirm whether the replacement necklace has shipped and give a tracking number.",
-          escalationContext: "Creator reported the first parcel never arrived; recipient details were collected.",
-          escalationDecision: "Reshipped",
-          escalationInstructions: "Shipped 2026-08-30 via USPS, tracking 9400 1111 2222 3333 4444 55. Tell the Creator.",
-          escalationResolvedAt: "2026-08-30T09:12:00.000Z" as unknown as Date,
-          ...overrides,
-        }],
-      }),
-      platform: "tiktok",
-    })?.message ?? "";
+    const agendaItem = (base.creatorRelationship?.agendaItems ??
+      [])[0] as GQL.AffiliateRelationshipAgendaItem;
+    return () =>
+      buildAffiliateAgentRunRequest({
+        workItem: createCreatorReplyWorkItem({
+          agentWorkingAgendaItems: [
+            {
+              ...agendaItem,
+              key: "affiliate-escalation:esc-001:resolution",
+              workKind: GQL.AffiliateWorkKind.EscalationResolution,
+              requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleEscalationResolution,
+              sampleApplicationRecordId: null,
+              productId: null,
+              predictionEvidence: null,
+              escalationQuestion:
+                "Please confirm whether the replacement necklace has shipped and give a tracking number.",
+              escalationContext:
+                "Creator reported the first parcel never arrived; recipient details were collected.",
+              escalationDecision: "Reshipped",
+              escalationInstructions:
+                "Shipped 2026-08-30 via USPS, tracking 9400 1111 2222 3333 4444 55. Tell the Creator.",
+              escalationResolvedAt: "2026-08-30T09:12:00.000Z" as unknown as Date,
+              ...overrides,
+            },
+          ],
+        }),
+        platform: "tiktok",
+      })?.message ?? "";
   }
 
   it("renders the staff decision and instructions on the item", () => {
@@ -4548,7 +4606,9 @@ describe("Escalation resolution in the Working Agenda", () => {
 
     expect(message).toContain("Staff Decision: Reshipped");
     expect(message).toContain("Staff Instructions: Shipped 2026-08-30 via USPS");
-    expect(message).toContain("the question you asked staff: Please confirm whether the replacement");
+    expect(message).toContain(
+      "the question you asked staff: Please confirm whether the replacement",
+    );
     expect(message).toContain("tell the Creator the outcome");
   });
 

@@ -1,7 +1,12 @@
 import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 import { session } from "electron";
 import type { ProxyRouterConfig } from "@rivonclaw/proxy-router";
-import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, CHANNEL_NO_PROXY_DOMAINS } from "@rivonclaw/core";
+import {
+  ALL_PROVIDERS,
+  getProviderMeta,
+  reconstructProxyUrl,
+  CHANNEL_NO_PROXY_DOMAINS,
+} from "@rivonclaw/core";
 import { resolveProxyRouterConfigPath } from "@rivonclaw/core/node";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -27,7 +32,9 @@ export const DOMAIN_TO_PROVIDER: Record<string, string> = (() => {
     try {
       const domain = new URL(meta.baseUrl).hostname;
       if (!map[domain]) map[domain] = p; // first (root) provider wins for shared domains
-    } catch { /* skip invalid URLs */ }
+    } catch {
+      /* skip invalid URLs */
+    }
   }
   // Amazon Bedrock regional endpoints (only us-east-1 is derived from baseUrl)
   Object.assign(map, {
@@ -130,7 +137,9 @@ export async function writeProxyRouterConfig(
   const dir = dirname(configPath);
   mkdirSync(dir, { recursive: true });
   writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
-  log.debug(`Proxy router config written: ${Object.keys(config.activeKeys).length} providers configured`);
+  log.debug(
+    `Proxy router config written: ${Object.keys(config.activeKeys).length} providers configured`,
+  );
 }
 
 /**

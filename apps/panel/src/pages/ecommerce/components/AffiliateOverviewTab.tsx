@@ -2,7 +2,10 @@ import { useTranslation } from "react-i18next";
 import { RefreshIcon } from "../../../components/icons.js";
 import { formatNumber } from "../affiliate-analytics-format.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
-import { AFFILIATE_WINDOW_DAYS, type AffiliateOverviewPortfolio } from "../affiliate-overview-types.js";
+import {
+  AFFILIATE_WINDOW_DAYS,
+  type AffiliateOverviewPortfolio,
+} from "../affiliate-overview-types.js";
 import { useAffiliateOverview } from "../hooks/useAffiliateOverview.js";
 import { AffiliateApprovalSectionView } from "./AffiliateApprovalSectionView.js";
 import { AffiliatePostApprovalSectionView } from "./AffiliatePostApprovalSectionView.js";
@@ -25,7 +28,9 @@ function AffiliatePortfolioStrip({ portfolio }: { portfolio: AffiliateOverviewPo
 
   return (
     <div className="affiliate-portfolio-current">
-      <span className="affiliate-portfolio-caption">{t("ecommerce.affiliateAnalytics.portfolio.caption")}</span>
+      <span className="affiliate-portfolio-caption">
+        {t("ecommerce.affiliateAnalytics.portfolio.caption")}
+      </span>
       {entries.map(([key, value]) => (
         <div key={key}>
           <span>{t(`ecommerce.affiliateAnalytics.portfolio.${key}`)}</span>
@@ -43,7 +48,11 @@ export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[
   return (
     <div className="affiliate-overview">
       <section className="affiliate-control-bar" data-tutorial-id="affiliate-analytics-controls">
-        <AffiliateShopScopeControl shops={shops} selected={state.shopIds} onChange={state.setShopIds} />
+        <AffiliateShopScopeControl
+          shops={shops}
+          selected={state.shopIds}
+          onChange={state.setShopIds}
+        />
         <div className="affiliate-window-control">
           <span>{t("ecommerce.affiliateAnalytics.window")}</span>
           <TkSegmented
@@ -53,7 +62,9 @@ export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[
               label: t("ecommerce.affiliateAnalytics.windowDays", { count: days }),
             }))}
             value={String(state.windowDays)}
-            onChange={(value) => state.setWindowDays(Number(value) as (typeof AFFILIATE_WINDOW_DAYS)[number])}
+            onChange={(value) =>
+              state.setWindowDays(Number(value) as (typeof AFFILIATE_WINDOW_DAYS)[number])
+            }
             label={t("ecommerce.affiliateAnalytics.window")}
           />
         </div>
@@ -64,7 +75,9 @@ export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[
           disabled={state.refreshing || state.shopIds.length === 0}
         >
           <RefreshIcon aria-hidden="true" />
-          {state.refreshing ? t("ecommerce.affiliateAnalytics.refreshing") : t("ecommerce.affiliateAnalytics.refresh")}
+          {state.refreshing
+            ? t("ecommerce.affiliateAnalytics.refreshing")
+            : t("ecommerce.affiliateAnalytics.refresh")}
         </button>
         <AffiliatePortfolioStrip portfolio={state.portfolio} />
       </section>

@@ -1,6 +1,6 @@
-import { act, render, waitFor } from "@testing-library/react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { TutorialStep } from "../types.js"
+import { act, render, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { TutorialStep } from "../types.js";
 
 const tutorial = vi.hoisted(() => ({
   isPlaying: true,
@@ -9,30 +9,30 @@ const tutorial = vi.hoisted(() => ({
   next: vi.fn(),
   prev: vi.fn(),
   stop: vi.fn(),
-}))
+}));
 
 vi.mock("../TutorialProvider.js", () => ({
   useTutorial: () => tutorial,
-}))
+}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
-}))
+}));
 
-import { TutorialOverlay } from "./TutorialOverlay.js"
+import { TutorialOverlay } from "./TutorialOverlay.js";
 
 beforeEach(() => {
-  tutorial.isPlaying = true
-  tutorial.currentStepIndex = 0
-  tutorial.next.mockReset()
-  tutorial.prev.mockReset()
-  tutorial.stop.mockReset()
-  HTMLElement.prototype.scrollIntoView = vi.fn()
-})
+  tutorial.isPlaying = true;
+  tutorial.currentStepIndex = 0;
+  tutorial.next.mockReset();
+  tutorial.prev.mockReset();
+  tutorial.stop.mockReset();
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+});
 
 afterEach(() => {
-  document.body.replaceChildren()
-})
+  document.body.replaceChildren();
+});
 
 describe("TutorialOverlay step lifecycle", () => {
   it("remeasures when an async queue replaces its loading target", async () => {
@@ -72,33 +72,44 @@ describe("TutorialOverlay step lifecycle", () => {
   });
 
   it("applies measured geometry when the spotlight first mounts", async () => {
-    const target = document.createElement("div")
-    target.dataset.tutorialId = "measured"
+    const target = document.createElement("div");
+    target.dataset.tutorialId = "measured";
     target.getBoundingClientRect = () => ({
-      top: 100, left: 80, width: 300, height: 120,
-      bottom: 220, right: 380, x: 80, y: 100, toJSON: () => ({}),
-    })
-    document.body.append(target)
-    tutorial.steps = [{
-      id: "measured", target: '[data-tutorial-id="measured"]',
-      titleKey: "tutorial.measured.title", bodyKey: "tutorial.measured.body",
-    }]
-    const view = render(<TutorialOverlay />)
+      top: 100,
+      left: 80,
+      width: 300,
+      height: 120,
+      bottom: 220,
+      right: 380,
+      x: 80,
+      y: 100,
+      toJSON: () => ({}),
+    });
+    document.body.append(target);
+    tutorial.steps = [
+      {
+        id: "measured",
+        target: '[data-tutorial-id="measured"]',
+        titleKey: "tutorial.measured.title",
+        bodyKey: "tutorial.measured.body",
+      },
+    ];
+    const view = render(<TutorialOverlay />);
     await waitFor(() => {
-      const spotlight = view.container.querySelector<HTMLElement>(".tutorial-spotlight")
-      expect(spotlight?.style.width).toBe("312px")
-      expect(spotlight?.style.height).toBe("132px")
-      expect(spotlight?.style.top).toBe("94px")
-      expect(spotlight?.style.left).toBe("74px")
-    })
-    view.unmount()
-  })
+      const spotlight = view.container.querySelector<HTMLElement>(".tutorial-spotlight");
+      expect(spotlight?.style.width).toBe("312px");
+      expect(spotlight?.style.height).toBe("132px");
+      expect(spotlight?.style.top).toBe("94px");
+      expect(spotlight?.style.left).toBe("74px");
+    });
+    view.unmount();
+  });
 
   it("prepares once, only repositions on resize, and cleans up when leaving", async () => {
-    const firstPrepare = vi.fn()
-    const firstCleanup = vi.fn()
-    const secondPrepare = vi.fn()
-    const secondCleanup = vi.fn()
+    const firstPrepare = vi.fn();
+    const firstCleanup = vi.fn();
+    const secondPrepare = vi.fn();
+    const secondCleanup = vi.fn();
     tutorial.steps = [
       {
         id: "first",
@@ -116,33 +127,33 @@ describe("TutorialOverlay step lifecycle", () => {
         prepare: secondPrepare,
         cleanup: secondCleanup,
       },
-    ]
+    ];
 
-    const firstTarget = document.createElement("div")
-    firstTarget.dataset.tutorialId = "first"
-    const secondTarget = document.createElement("div")
-    secondTarget.dataset.tutorialId = "second"
-    document.body.append(firstTarget, secondTarget)
+    const firstTarget = document.createElement("div");
+    firstTarget.dataset.tutorialId = "first";
+    const secondTarget = document.createElement("div");
+    secondTarget.dataset.tutorialId = "second";
+    document.body.append(firstTarget, secondTarget);
 
-    const view = render(<TutorialOverlay />)
-    await waitFor(() => expect(firstPrepare).toHaveBeenCalledTimes(1))
+    const view = render(<TutorialOverlay />);
+    await waitFor(() => expect(firstPrepare).toHaveBeenCalledTimes(1));
 
-    act(() => window.dispatchEvent(new Event("resize")))
-    expect(firstPrepare).toHaveBeenCalledTimes(1)
-    expect(firstCleanup).not.toHaveBeenCalled()
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(firstPrepare).toHaveBeenCalledTimes(1);
+    expect(firstCleanup).not.toHaveBeenCalled();
 
-    tutorial.currentStepIndex = 1
-    view.rerender(<TutorialOverlay />)
-    await waitFor(() => expect(secondPrepare).toHaveBeenCalledTimes(1))
-    expect(firstCleanup).toHaveBeenCalledTimes(1)
+    tutorial.currentStepIndex = 1;
+    view.rerender(<TutorialOverlay />);
+    await waitFor(() => expect(secondPrepare).toHaveBeenCalledTimes(1));
+    expect(firstCleanup).toHaveBeenCalledTimes(1);
 
-    view.unmount()
-    expect(secondCleanup).toHaveBeenCalledTimes(1)
-  })
+    view.unmount();
+    expect(secondCleanup).toHaveBeenCalledTimes(1);
+  });
 
   it("keeps a shared lifecycle active across adjacent grouped steps", async () => {
-    const prepare = vi.fn()
-    const cleanup = vi.fn()
+    const prepare = vi.fn();
+    const cleanup = vi.fn();
     tutorial.steps = [
       {
         id: "form-overview",
@@ -162,25 +173,25 @@ describe("TutorialOverlay step lifecycle", () => {
         prepare,
         cleanup,
       },
-    ]
+    ];
 
-    const firstTarget = document.createElement("div")
-    firstTarget.dataset.tutorialId = "first"
-    const secondTarget = document.createElement("div")
-    secondTarget.dataset.tutorialId = "second"
-    document.body.append(firstTarget, secondTarget)
+    const firstTarget = document.createElement("div");
+    firstTarget.dataset.tutorialId = "first";
+    const secondTarget = document.createElement("div");
+    secondTarget.dataset.tutorialId = "second";
+    document.body.append(firstTarget, secondTarget);
 
-    const view = render(<TutorialOverlay />)
-    await waitFor(() => expect(prepare).toHaveBeenCalledTimes(1))
+    const view = render(<TutorialOverlay />);
+    await waitFor(() => expect(prepare).toHaveBeenCalledTimes(1));
 
-    tutorial.currentStepIndex = 1
-    view.rerender(<TutorialOverlay />)
-    await waitFor(() => expect(secondTarget.scrollIntoView).toHaveBeenCalled)
-    expect(prepare).toHaveBeenCalledTimes(1)
-    expect(cleanup).not.toHaveBeenCalled()
+    tutorial.currentStepIndex = 1;
+    view.rerender(<TutorialOverlay />);
+    await waitFor(() => expect(secondTarget.scrollIntoView).toHaveBeenCalled);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(cleanup).not.toHaveBeenCalled();
 
-    tutorial.isPlaying = false
-    view.rerender(<TutorialOverlay />)
-    await waitFor(() => expect(cleanup).toHaveBeenCalledTimes(1))
-  })
-})
+    tutorial.isPlaying = false;
+    view.rerender(<TutorialOverlay />);
+    await waitFor(() => expect(cleanup).toHaveBeenCalledTimes(1));
+  });
+});

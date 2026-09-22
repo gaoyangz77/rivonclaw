@@ -1,4 +1,14 @@
-import { applySnapshot, applyPatch, flow, getEnv, types, type IAnyModelType, type Instance, type IJsonPatch, type IStateTreeNode } from "mobx-state-tree";
+import {
+  applySnapshot,
+  applyPatch,
+  flow,
+  getEnv,
+  types,
+  type IAnyModelType,
+  type Instance,
+  type IJsonPatch,
+  type IStateTreeNode,
+} from "mobx-state-tree";
 import { RootStoreModel } from "@rivonclaw/core/models";
 import {
   UserModel,
@@ -41,7 +51,11 @@ import {
   READ_WAREHOUSES_QUERY,
   READ_INVENTORY_GOODS_QUERY,
 } from "../api/inventory-queries.js";
-import { GENERATE_PAIRING_CODE, WAIT_FOR_PAIRING, GET_INSTALL_URL } from "../api/pairing-queries.js";
+import {
+  GENERATE_PAIRING_CODE,
+  WAIT_FOR_PAIRING,
+  GET_INSTALL_URL,
+} from "../api/pairing-queries.js";
 import {
   BILLING_OVERVIEW_QUERY,
   BILLING_PLAN_DEFINITIONS_QUERY,
@@ -68,11 +82,57 @@ import type { PanelStoreEnv } from "./types.js";
 const TOOL_SPECS_SYNC_QUERY = gql`
   query ToolSpecsSync {
     toolSpecs {
-      id name category displayName description supportsPersistResult resultSchema resultMode surfaces runProfiles
-      graphqlOperation operationType
-      parameters { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList children { name type description graphqlVar required defaultValue enumValues isList } } }
-      contextBindings { paramName contextField }
-      restMethod restEndpoint restContentType supportedPlatforms prune
+      id
+      name
+      category
+      displayName
+      description
+      supportsPersistResult
+      resultSchema
+      resultMode
+      surfaces
+      runProfiles
+      graphqlOperation
+      operationType
+      parameters {
+        name
+        type
+        description
+        graphqlVar
+        required
+        defaultValue
+        enumValues
+        isList
+        children {
+          name
+          type
+          description
+          graphqlVar
+          required
+          defaultValue
+          enumValues
+          isList
+          children {
+            name
+            type
+            description
+            graphqlVar
+            required
+            defaultValue
+            enumValues
+            isList
+          }
+        }
+      }
+      contextBindings {
+        paramName
+        contextField
+      }
+      restMethod
+      restEndpoint
+      restContentType
+      supportedPlatforms
+      prune
     }
   }
 `;
@@ -112,16 +172,20 @@ function cleanRecipientLookupPart(value: string): string {
 }
 
 function recipientAliasFromAccount(
-  account: {
-    channelId?: string;
-    accountId?: string;
-    recipients?: { labels?: Record<string, string> } | null;
-  } | null | undefined,
+  account:
+    | {
+        channelId?: string;
+        accountId?: string;
+        recipients?: { labels?: Record<string, string> } | null;
+      }
+    | null
+    | undefined,
   channelId: string,
   accountId: string,
   recipientId: string,
 ): string | null {
-  if (account?.channelId !== undefined && cleanRecipientLookupPart(account.channelId) !== channelId) return null;
+  if (account?.channelId !== undefined && cleanRecipientLookupPart(account.channelId) !== channelId)
+    return null;
   if (cleanRecipientLookupPart(account?.accountId ?? "") !== accountId) return null;
   const label = account?.recipients?.labels?.[recipientId]?.trim();
   return label || null;
@@ -165,503 +229,596 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   affiliateMlInsightsLoading: types.optional(types.boolean, false),
   affiliateMlInsightsError: types.maybeNull(types.string),
   affiliateMlInsightsLoadedAt: types.maybeNull(types.number),
-}).views((self) => {
-  function channelRecipientAlias(channelIdRaw: string, accountIdRaw: string, recipientIdRaw: string): string | null {
-    const channelId = cleanRecipientLookupPart(channelIdRaw);
-    const accountId = cleanRecipientLookupPart(accountIdRaw);
-    const recipientId = cleanRecipientLookupPart(recipientIdRaw);
-    if (!channelId || !accountId || !recipientId) return null;
+})
+  .views((self) => {
+    function channelRecipientAlias(
+      channelIdRaw: string,
+      accountIdRaw: string,
+      recipientIdRaw: string,
+    ): string | null {
+      const channelId = cleanRecipientLookupPart(channelIdRaw);
+      const accountId = cleanRecipientLookupPart(accountIdRaw);
+      const recipientId = cleanRecipientLookupPart(recipientIdRaw);
+      if (!channelId || !accountId || !recipientId) return null;
 
-    for (const account of self.channelAccounts) {
-      const alias = recipientAliasFromAccount(account, channelId, accountId, recipientId);
-      if (alias) return alias;
-    }
-
-    const snapshotAccounts = self.channelManager.statusSnapshot?.channelAccounts?.[channelId] ?? [];
-    for (const account of snapshotAccounts) {
-      const alias = recipientAliasFromAccount({ ...account, channelId }, channelId, accountId, recipientId);
-      if (alias) return alias;
-    }
-
-    return null;
-  }
-
-  return {
-    affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope) {
-      return self.affiliateMlInsightRows.find((row) => row.subjectKey === subjectKey && row.modelScope === modelScope) ?? null;
-    },
-    affiliateMlInsightRowsForSubject(subjectKey: string) {
-      return self.affiliateMlInsightRows.filter((row) => row.subjectKey === subjectKey);
-    },
-    channelRecipientAlias,
-    sessionTabsWithRecipientAliases<T extends SessionTabAliasTarget>(sessions: readonly T[]): T[] {
-      return sessions.map((session) => {
-        const recipient = parseChannelSessionRecipient(session.key);
-        if (!recipient) return session;
-        const alias = channelRecipientAlias(
-          recipient.channelId,
-          recipient.accountId,
-          recipient.recipientId,
-        );
-        return alias ? { ...session, recipientAlias: alias } : session;
-      });
-    },
-  };
-}).actions((self) => {
-  const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
-
-  return {
-    // ── Auth actions ──
-
-    /** Initialize the session: check Desktop auth state, validate via ME query if needed, trigger entity sync. */
-    initSession: flow(function* () {
-      try {
-        const session: { authenticated: boolean; tokenPresent?: boolean } = yield fetchJson(clientPath(API["auth.session"]));
-        if (session.authenticated || session.tokenPresent) {
-          yield Promise.all([
-            client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: BILLING_PLAN_DEFINITIONS_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: READ_PAYMENTS_QUERY, fetchPolicy: "network-only" }),
-          ]).catch(() => {});
-          yield Promise.all([
-            client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: ADS_STORE_ACCESSES_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
-            client().query({ query: READ_WMS_ACCOUNTS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
-            client().query({ query: READ_WAREHOUSES_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
-            client().query({ query: READ_INVENTORY_GOODS_QUERY, variables: { input: {} }, fetchPolicy: "network-only" }),
-          ]).catch(() => {});
-          yield (self as any).fetchShops().catch(() => {});
-          yield syncOfficialPresetSkills("safe").catch(() => {});
-          return;
-        }
-      } catch {
-        // Desktop unreachable
+      for (const account of self.channelAccounts) {
+        const alias = recipientAliasFromAccount(account, channelId, accountId, recipientId);
+        if (alias) return alias;
       }
-    }),
 
-    login: flow(function* (input: { email: string; password: string; captchaToken?: string; captchaAnswer?: string }) {
-      yield fetchJson(clientPath(API["auth.login"]), {
-        method: "POST",
-        body: JSON.stringify(input),
-      });
-      yield syncOfficialPresetSkills("safe").catch(() => {});
-      trackEvent("auth.login");
-    }),
-
-    register: flow(function* (input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null }) {
-      yield fetchJson(clientPath(API["auth.register"]), {
-        method: "POST",
-        body: JSON.stringify(input),
-      });
-      yield syncOfficialPresetSkills("safe").catch(() => {});
-      trackEvent("auth.register");
-    }),
-
-    logout: flow(function* () {
-      yield fetch(API["auth.logout"].path, { method: "POST" }).catch(() => {});
-      trackEvent("auth.logout");
-      // Desktop clears user in MST -> SSE -> Panel auto-updates
-    }),
-
-    clearAuth() {
-      // Called when auth-expired event fires (401 from API)
-      // Desktop will have already cleared the user via SSE, but clear locally for safety
-      (self as any).currentUser = null;
-      self.affiliateMlInsightRows.clear();
-      self.affiliateMlInsightsLoading = false;
-      self.affiliateMlInsightsError = null;
-      self.affiliateMlInsightsLoadedAt = null;
-    },
-
-    // ── Provider key mutations (REST to Desktop) ──
-
-    createProviderKey: flow(function* (data: {
-      provider: string;
-      label: string;
-      model: string;
-      apiKey?: string;
-      proxyUrl?: string;
-      authType?: ProviderKeyAuthType;
-      baseUrl?: string;
-      customProtocol?: "openai" | "anthropic";
-      customModelsJson?: string;
-      inputModalities?: string[];
-    }): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
-      const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(clientPath(API["providerKeys.create"]), {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      invalidateCache("models");
-      return result;
-    }),
-
-    // ── OAuth flow mutations (REST to Desktop) ──
-
-    startOAuthFlow: flow(function* (provider: string) {
-      const result: { ok: boolean; email?: string; tokenPreview?: string; providerKeyId?: string; provider?: string; manualMode?: boolean; authUrl?: string; flowId?: string } =
-        yield fetchJson<{ ok: boolean; email?: string; tokenPreview?: string; providerKeyId?: string; provider?: string; manualMode?: boolean; authUrl?: string; flowId?: string }>(
-          clientPath(API["oauth.start"]),
-          { method: "POST", body: JSON.stringify({ provider }) },
+      const snapshotAccounts =
+        self.channelManager.statusSnapshot?.channelAccounts?.[channelId] ?? [];
+      for (const account of snapshotAccounts) {
+        const alias = recipientAliasFromAccount(
+          { ...account, channelId },
+          channelId,
+          accountId,
+          recipientId,
         );
-      return result;
-    }),
+        if (alias) return alias;
+      }
 
-    completeManualOAuth: flow(function* (provider: string, callbackUrl: string) {
-      const result: { email?: string; tokenPreview?: string } =
-        yield fetchJson<{ email?: string; tokenPreview?: string }>(clientPath(API["oauth.manualComplete"]), {
+      return null;
+    }
+
+    return {
+      affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope) {
+        return (
+          self.affiliateMlInsightRows.find(
+            (row) => row.subjectKey === subjectKey && row.modelScope === modelScope,
+          ) ?? null
+        );
+      },
+      affiliateMlInsightRowsForSubject(subjectKey: string) {
+        return self.affiliateMlInsightRows.filter((row) => row.subjectKey === subjectKey);
+      },
+      channelRecipientAlias,
+      sessionTabsWithRecipientAliases<T extends SessionTabAliasTarget>(
+        sessions: readonly T[],
+      ): T[] {
+        return sessions.map((session) => {
+          const recipient = parseChannelSessionRecipient(session.key);
+          if (!recipient) return session;
+          const alias = channelRecipientAlias(
+            recipient.channelId,
+            recipient.accountId,
+            recipient.recipientId,
+          );
+          return alias ? { ...session, recipientAlias: alias } : session;
+        });
+      },
+    };
+  })
+  .actions((self) => {
+    const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
+
+    return {
+      // ── Auth actions ──
+
+      /** Initialize the session: check Desktop auth state, validate via ME query if needed, trigger entity sync. */
+      initSession: flow(function* () {
+        try {
+          const session: { authenticated: boolean; tokenPresent?: boolean } = yield fetchJson(
+            clientPath(API["auth.session"]),
+          );
+          if (session.authenticated || session.tokenPresent) {
+            yield Promise.all([
+              client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
+              client().query({
+                query: BILLING_PLAN_DEFINITIONS_QUERY,
+                fetchPolicy: "network-only",
+              }),
+              client().query({ query: READ_PAYMENTS_QUERY, fetchPolicy: "network-only" }),
+            ]).catch(() => {});
+            yield Promise.all([
+              client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" }),
+              client().query({ query: ADS_STORE_ACCESSES_QUERY, fetchPolicy: "network-only" }),
+              client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" }),
+              client().query({
+                query: READ_WMS_ACCOUNTS_QUERY,
+                variables: { input: {} },
+                fetchPolicy: "network-only",
+              }),
+              client().query({
+                query: READ_WAREHOUSES_QUERY,
+                variables: { input: {} },
+                fetchPolicy: "network-only",
+              }),
+              client().query({
+                query: READ_INVENTORY_GOODS_QUERY,
+                variables: { input: {} },
+                fetchPolicy: "network-only",
+              }),
+            ]).catch(() => {});
+            yield (self as any).fetchShops().catch(() => {});
+            yield syncOfficialPresetSkills("safe").catch(() => {});
+            return;
+          }
+        } catch {
+          // Desktop unreachable
+        }
+      }),
+
+      login: flow(function* (input: {
+        email: string;
+        password: string;
+        captchaToken?: string;
+        captchaAnswer?: string;
+      }) {
+        yield fetchJson(clientPath(API["auth.login"]), {
+          method: "POST",
+          body: JSON.stringify(input),
+        });
+        yield syncOfficialPresetSkills("safe").catch(() => {});
+        trackEvent("auth.login");
+      }),
+
+      register: flow(function* (input: {
+        email: string;
+        password: string;
+        name?: string | null;
+        captchaToken?: string;
+        captchaAnswer?: string;
+        inviteCode?: string | null;
+      }) {
+        yield fetchJson(clientPath(API["auth.register"]), {
+          method: "POST",
+          body: JSON.stringify(input),
+        });
+        yield syncOfficialPresetSkills("safe").catch(() => {});
+        trackEvent("auth.register");
+      }),
+
+      logout: flow(function* () {
+        yield fetch(API["auth.logout"].path, { method: "POST" }).catch(() => {});
+        trackEvent("auth.logout");
+        // Desktop clears user in MST -> SSE -> Panel auto-updates
+      }),
+
+      clearAuth() {
+        // Called when auth-expired event fires (401 from API)
+        // Desktop will have already cleared the user via SSE, but clear locally for safety
+        (self as any).currentUser = null;
+        self.affiliateMlInsightRows.clear();
+        self.affiliateMlInsightsLoading = false;
+        self.affiliateMlInsightsError = null;
+        self.affiliateMlInsightsLoadedAt = null;
+      },
+
+      // ── Provider key mutations (REST to Desktop) ──
+
+      createProviderKey: flow(function* (data: {
+        provider: string;
+        label: string;
+        model: string;
+        apiKey?: string;
+        proxyUrl?: string;
+        authType?: ProviderKeyAuthType;
+        baseUrl?: string;
+        customProtocol?: "openai" | "anthropic";
+        customModelsJson?: string;
+        inputModalities?: string[];
+      }): Generator<Promise<ProviderKeyEntry>, ProviderKeyEntry, ProviderKeyEntry> {
+        const result: ProviderKeyEntry = yield fetchJson<ProviderKeyEntry>(
+          clientPath(API["providerKeys.create"]),
+          {
+            method: "POST",
+            body: JSON.stringify(data),
+          },
+        );
+        invalidateCache("models");
+        return result;
+      }),
+
+      // ── OAuth flow mutations (REST to Desktop) ──
+
+      startOAuthFlow: flow(function* (provider: string) {
+        const result: {
+          ok: boolean;
+          email?: string;
+          tokenPreview?: string;
+          providerKeyId?: string;
+          provider?: string;
+          manualMode?: boolean;
+          authUrl?: string;
+          flowId?: string;
+        } = yield fetchJson<{
+          ok: boolean;
+          email?: string;
+          tokenPreview?: string;
+          providerKeyId?: string;
+          provider?: string;
+          manualMode?: boolean;
+          authUrl?: string;
+          flowId?: string;
+        }>(clientPath(API["oauth.start"]), { method: "POST", body: JSON.stringify({ provider }) });
+        return result;
+      }),
+
+      completeManualOAuth: flow(function* (provider: string, callbackUrl: string) {
+        const result: { email?: string; tokenPreview?: string } = yield fetchJson<{
+          email?: string;
+          tokenPreview?: string;
+        }>(clientPath(API["oauth.manualComplete"]), {
           method: "POST",
           body: JSON.stringify({ provider, callbackUrl }),
         });
-      return result;
-    }),
+        return result;
+      }),
 
-    pollOAuthStatus: flow(function* (flowId: string) {
-      const result: { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string } =
-        yield fetchJson<{ status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string }>(
-          clientPath(API["oauth.status"]) + `?flowId=${encodeURIComponent(flowId)}`,
-          { method: "GET" },
+      pollOAuthStatus: flow(function* (flowId: string) {
+        const result: {
+          status: "pending" | "completed" | "failed";
+          tokenPreview?: string;
+          email?: string;
+          error?: string;
+        } = yield fetchJson<{
+          status: "pending" | "completed" | "failed";
+          tokenPreview?: string;
+          email?: string;
+          error?: string;
+        }>(clientPath(API["oauth.status"]) + `?flowId=${encodeURIComponent(flowId)}`, {
+          method: "GET",
+        });
+        return result;
+      }),
+
+      saveOAuthFlow: flow(function* (
+        provider: string,
+        options: { proxyUrl?: string; label?: string; model?: string },
+      ) {
+        const result: { providerKeyId: string; email?: string; provider: string } =
+          yield fetchJson<{ ok: boolean; providerKeyId: string; email?: string; provider: string }>(
+            clientPath(API["oauth.save"]),
+            { method: "POST", body: JSON.stringify({ provider, ...options }) },
+          );
+        invalidateCache("models");
+        return result;
+      }),
+
+      // ── Shops / ecommerce mutations ──
+
+      initiateTikTokOAuth: flow(function* (platformAppId: string) {
+        const result = yield client().mutate({
+          mutation: INITIATE_TIKTOK_OAUTH_MUTATION,
+          variables: { platformAppId },
+        });
+        return result.data!.initiateTikTokOAuth as { authUrl: string; state: string };
+      }),
+
+      initiateTikTokAdsOAuth: flow(function* () {
+        const result = yield client().mutate({
+          mutation: INITIATE_TIKTOK_ADS_OAUTH_MUTATION,
+        });
+        return result.data!.initiateTikTokAdsOAuth as { authUrl: string; state: string };
+      }),
+
+      /** Fetch the authoritative shop list and replace the Panel cache. */
+      fetchShops: flow(function* () {
+        const result = yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
+        applySnapshot(self.shops, stripTypename(result.data?.shops ?? []) as any);
+      }),
+
+      fetchAffiliateMlInsights: flow(function* (input?: { shopIds?: string[] }) {
+        if (!(self as any).currentUser) {
+          self.affiliateMlInsightRows.clear();
+          self.affiliateMlInsightsError = null;
+          self.affiliateMlInsightsLoadedAt = null;
+          return;
+        }
+
+        const shopIds = Array.from(
+          new Set(
+            (
+              input?.shopIds ??
+              self.shops
+                .filter((shop) => shop.services?.affiliateService?.enabled === true)
+                .map((shop) => shop.id)
+            )
+              .map((shopId) => shopId.trim())
+              .filter(Boolean),
+          ),
         );
-      return result;
-    }),
-
-    saveOAuthFlow: flow(function* (
-      provider: string,
-      options: { proxyUrl?: string; label?: string; model?: string },
-    ) {
-      const result: { providerKeyId: string; email?: string; provider: string } =
-        yield fetchJson<{ ok: boolean; providerKeyId: string; email?: string; provider: string }>(
-          clientPath(API["oauth.save"]),
-          { method: "POST", body: JSON.stringify({ provider, ...options }) },
-        );
-      invalidateCache("models");
-      return result;
-    }),
-
-    // ── Shops / ecommerce mutations ──
-
-    initiateTikTokOAuth: flow(function* (platformAppId: string) {
-      const result = yield client().mutate({
-        mutation: INITIATE_TIKTOK_OAUTH_MUTATION,
-        variables: { platformAppId },
-      });
-      return result.data!.initiateTikTokOAuth as { authUrl: string; state: string };
-    }),
-
-    initiateTikTokAdsOAuth: flow(function* () {
-      const result = yield client().mutate({
-        mutation: INITIATE_TIKTOK_ADS_OAUTH_MUTATION,
-      });
-      return result.data!.initiateTikTokAdsOAuth as { authUrl: string; state: string };
-    }),
-
-    /** Fetch the authoritative shop list and replace the Panel cache. */
-    fetchShops: flow(function* () {
-      const result = yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
-      applySnapshot(self.shops, stripTypename(result.data?.shops ?? []) as any);
-    }),
-
-    fetchAffiliateMlInsights: flow(function* (input?: { shopIds?: string[] }) {
-      if (!(self as any).currentUser) {
-        self.affiliateMlInsightRows.clear();
+        self.affiliateMlInsightsLoading = true;
         self.affiliateMlInsightsError = null;
-        self.affiliateMlInsightsLoadedAt = null;
-        return;
-      }
+        try {
+          const result = yield client().query({
+            query: AFFILIATE_ML_INSIGHTS_BULK_QUERY,
+            variables: { input: { shopIds } },
+            fetchPolicy: "network-only",
+          });
+          const rows = (result.data?.affiliateMlInsightsBulk?.items ?? []).map(
+            (item: {
+              shopId?: string | null;
+              modelScope: string;
+              modelAvailability?: unknown[] | null;
+              automaticExpectedSalesSelection?: unknown | null;
+            }) => {
+              const modelScope = item.modelScope.toLowerCase() as AffiliateMlInsightModelScope;
+              const shopId = item.shopId ?? undefined;
+              return {
+                key: `${affiliateMlInsightSubjectKey(shopId)}:${modelScope}`,
+                subjectKey: affiliateMlInsightSubjectKey(shopId),
+                kind: shopId ? ("shop" as const) : ("user" as const),
+                shopId,
+                modelScope,
+                availability: stripTypename(item.modelAvailability ?? []),
+                automaticSelection: stripTypename(item.automaticExpectedSalesSelection ?? null),
+                failed: false,
+              };
+            },
+          );
+          self.affiliateMlInsightRows.replace(rows);
+          self.affiliateMlInsightsLoadedAt = Date.now();
+        } catch (err) {
+          self.affiliateMlInsightsError = err instanceof Error ? err.message : String(err);
+          throw err;
+        } finally {
+          self.affiliateMlInsightsLoading = false;
+        }
+      }),
 
-      const shopIds = Array.from(
-        new Set(
-          (input?.shopIds
-            ?? self.shops
-              .filter((shop) => shop.services?.affiliateService?.enabled === true)
-              .map((shop) => shop.id))
-            .map((shopId) => shopId.trim())
-            .filter(Boolean),
-        ),
-      );
-      self.affiliateMlInsightsLoading = true;
-      self.affiliateMlInsightsError = null;
-      try {
-        const result = yield client().query({
-          query: AFFILIATE_ML_INSIGHTS_BULK_QUERY,
-          variables: { input: { shopIds } },
+      /** Fire ads advertisers query to populate MST via Desktop proxy. */
+      fetchAdsAdvertisers: flow(function* () {
+        yield client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" });
+      }),
+
+      /** Fire ads store access query to populate MST via Desktop proxy. */
+      fetchAdsStoreAccesses: flow(function* () {
+        yield client().query({
+          query: ADS_STORE_ACCESSES_QUERY,
           fetchPolicy: "network-only",
         });
-        const rows = (result.data?.affiliateMlInsightsBulk?.items ?? []).map(
-          (item: {
-            shopId?: string | null;
-            modelScope: string;
-            modelAvailability?: unknown[] | null;
-            automaticExpectedSalesSelection?: unknown | null;
-          }) => {
-          const modelScope = item.modelScope.toLowerCase() as AffiliateMlInsightModelScope;
-          const shopId = item.shopId ?? undefined;
-          return {
-            key: `${affiliateMlInsightSubjectKey(shopId)}:${modelScope}`,
-            subjectKey: affiliateMlInsightSubjectKey(shopId),
-            kind: shopId ? "shop" as const : "user" as const,
-            shopId,
-            modelScope,
-            availability: stripTypename(item.modelAvailability ?? []),
-            automaticSelection: stripTypename(item.automaticExpectedSalesSelection ?? null),
-            failed: false,
-          };
+      }),
+
+      /** Fire single shop query to refresh one shop via Desktop proxy. */
+      fetchShop: flow(function* (shopId: string) {
+        yield client().query({
+          query: SHOP_QUERY,
+          variables: { id: shopId },
+          fetchPolicy: "network-only",
         });
-        self.affiliateMlInsightRows.replace(rows);
-        self.affiliateMlInsightsLoadedAt = Date.now();
-      } catch (err) {
-        self.affiliateMlInsightsError = err instanceof Error ? err.message : String(err);
-        throw err;
-      } finally {
-        self.affiliateMlInsightsLoading = false;
-      }
-    }),
+      }),
 
-    /** Fire ads advertisers query to populate MST via Desktop proxy. */
-    fetchAdsAdvertisers: flow(function* () {
-      yield client().query({ query: ADS_ADVERTISERS_QUERY, fetchPolicy: "network-only" });
-    }),
+      /** Fire platform apps query to populate MST via Desktop proxy. */
+      fetchPlatformApps: flow(function* () {
+        yield client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" });
+      }),
 
-    /** Fire ads store access query to populate MST via Desktop proxy. */
-    fetchAdsStoreAccesses: flow(function* () {
-      yield client().query({
-        query: ADS_STORE_ACCESSES_QUERY,
-        fetchPolicy: "network-only",
-      });
-    }),
+      // ── Tool specs refresh ──
 
-    /** Fire single shop query to refresh one shop via Desktop proxy. */
-    fetchShop: flow(function* (shopId: string) {
-      yield client().query({ query: SHOP_QUERY, variables: { id: shopId }, fetchPolicy: "network-only" });
-    }),
+      /** Re-fetch toolSpecs from backend via Desktop proxy. */
+      refreshToolSpecs: flow(function* () {
+        yield client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" });
+      }),
 
-    /** Fire platform apps query to populate MST via Desktop proxy. */
-    fetchPlatformApps: flow(function* () {
-      yield client().query({ query: PLATFORM_APPS_QUERY, fetchPolicy: "network-only" });
-    }),
+      /**
+       * Re-fetch account/shop billing overview from backend via Desktop proxy.
+       * Usage changes whenever the user makes LLM or CS calls, so Panel surfaces
+       * that display it (e.g. Account page) should call this on mount and on
+       * window visibility changes to keep the user-visible numbers fresh.
+       */
+      refreshBilling: flow(function* () {
+        yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" });
+      }),
 
-    // ── Tool specs refresh ──
+      refreshPlanDefinitions: flow(function* () {
+        yield client().query({
+          query: BILLING_PLAN_DEFINITIONS_QUERY,
+          fetchPolicy: "network-only",
+        });
+      }),
 
-    /** Re-fetch toolSpecs from backend via Desktop proxy. */
-    refreshToolSpecs: flow(function* () {
-      yield client().query({ query: TOOL_SPECS_SYNC_QUERY, fetchPolicy: "network-only" });
-    }),
+      readPayments: flow(function* (input?: { id?: string; merchantOrderId?: string }) {
+        yield client().query({
+          query: READ_PAYMENTS_QUERY,
+          variables: input ? { input } : {},
+          fetchPolicy: "network-only",
+        });
+      }),
 
-    /**
-     * Re-fetch account/shop billing overview from backend via Desktop proxy.
-     * Usage changes whenever the user makes LLM or CS calls, so Panel surfaces
-     * that display it (e.g. Account page) should call this on mount and on
-     * window visibility changes to keep the user-visible numbers fresh.
-     */
-    refreshBilling: flow(function* () {
-      yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" });
-    }),
+      /**
+       * Canonical follow-up after a payment/subscription state transition.
+       * Payment success changes both entitlement decisions and payment history;
+       * keep this paired so checkout surfaces do not forget one side.
+       */
+      refreshBillingAfterPayment: flow(function* () {
+        yield Promise.all([
+          client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
+          client().query({
+            query: READ_PAYMENTS_QUERY,
+            variables: {},
+            fetchPolicy: "network-only",
+          }),
+        ]);
+      }),
 
-    refreshPlanDefinitions: flow(function* () {
-      yield client().query({ query: BILLING_PLAN_DEFINITIONS_QUERY, fetchPolicy: "network-only" });
-    }),
+      startBillingSubscription: flow(function* (input: {
+        planId: string;
+        scopeType: string;
+        scopeId: string;
+        provider: string;
+        successUrl?: string;
+        cancelUrl?: string;
+      }) {
+        self.paymentInFlight = true;
+        self.activeCheckout = null;
+        self.checkoutScopeId = input.scopeId;
+        self.checkoutError = null;
+        self.checkoutNotice = null;
+        try {
+          const result = yield client().mutate({
+            mutation: START_BILLING_SUBSCRIPTION_MUTATION,
+            variables: { input },
+          });
+          const subscriptionResult = result.data?.startBillingSubscription;
+          const payment = subscriptionResult?.payment;
+          self.activeCheckout = payment ? stripTypename(payment) : null;
+          self.checkoutScopeId = input.scopeId;
+          if (
+            subscriptionResult?.action === "SUBSCRIPTION_RESUMED" ||
+            subscriptionResult?.action === "ALREADY_ACTIVE"
+          ) {
+            self.checkoutNotice = subscriptionResult.action;
+            yield (self as any).refreshBillingAfterPayment();
+          }
+          return subscriptionResult;
+        } catch (err) {
+          self.checkoutError = err instanceof Error ? err.message : String(err);
+          throw err;
+        } finally {
+          self.paymentInFlight = false;
+        }
+      }),
 
-    readPayments: flow(function* (input?: { id?: string; merchantOrderId?: string }) {
-      yield client().query({
-        query: READ_PAYMENTS_QUERY,
-        variables: input ? { input } : {},
-        fetchPolicy: "network-only",
-      });
-    }),
+      refreshPayment: flow(function* (paymentId: string) {
+        self.checkoutError = null;
+        try {
+          const result = yield client().mutate({
+            mutation: REFRESH_PAYMENT_MUTATION,
+            variables: { paymentId },
+          });
+          const payment = result.data?.refreshPayment;
+          if (payment && self.activeCheckout?.id === payment.id) {
+            self.activeCheckout = stripTypename(payment);
+          }
+          return payment;
+        } catch (err) {
+          self.checkoutError = err instanceof Error ? err.message : String(err);
+          throw err;
+        }
+      }),
 
-    /**
-     * Canonical follow-up after a payment/subscription state transition.
-     * Payment success changes both entitlement decisions and payment history;
-     * keep this paired so checkout surfaces do not forget one side.
-     */
-    refreshBillingAfterPayment: flow(function* () {
-      yield Promise.all([
-        client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" }),
-        client().query({ query: READ_PAYMENTS_QUERY, variables: {}, fetchPolicy: "network-only" }),
-      ]);
-    }),
-
-    startBillingSubscription: flow(function* (input: {
-      planId: string;
-      scopeType: string;
-      scopeId: string;
-      provider: string;
-      successUrl?: string;
-      cancelUrl?: string;
-    }) {
-      self.paymentInFlight = true;
-      self.activeCheckout = null;
-      self.checkoutScopeId = input.scopeId;
-      self.checkoutError = null;
-      self.checkoutNotice = null;
-      try {
-        const result = yield client().mutate({
-          mutation: START_BILLING_SUBSCRIPTION_MUTATION,
+      cancelBillingSubscriptionAtPeriodEnd: flow(function* (input: {
+        product: string;
+        scopeType: string;
+        scopeId: string;
+      }) {
+        yield client().mutate({
+          mutation: CANCEL_BILLING_SUBSCRIPTION_MUTATION,
           variables: { input },
         });
-        const subscriptionResult = result.data?.startBillingSubscription;
-        const payment = subscriptionResult?.payment;
-        self.activeCheckout = payment ? stripTypename(payment) : null;
-        self.checkoutScopeId = input.scopeId;
-        if (subscriptionResult?.action === "SUBSCRIPTION_RESUMED" || subscriptionResult?.action === "ALREADY_ACTIVE") {
-          self.checkoutNotice = subscriptionResult.action;
-          yield (self as any).refreshBillingAfterPayment();
-        }
-        return subscriptionResult;
-      } catch (err) {
-        self.checkoutError = err instanceof Error ? err.message : String(err);
-        throw err;
-      } finally {
-        self.paymentInFlight = false;
-      }
-    }),
+        yield (self as any).refreshBillingAfterPayment();
+      }),
 
-    refreshPayment: flow(function* (paymentId: string) {
-      self.checkoutError = null;
-      try {
+      createStripeBillingPortalSession: flow(function* (input: {
+        product: string;
+        scopeType: string;
+        scopeId: string;
+      }) {
         const result = yield client().mutate({
-          mutation: REFRESH_PAYMENT_MUTATION,
-          variables: { paymentId },
+          mutation: CREATE_STRIPE_BILLING_PORTAL_SESSION_MUTATION,
+          variables: { input },
         });
-        const payment = result.data?.refreshPayment;
-        if (payment && self.activeCheckout?.id === payment.id) {
-          self.activeCheckout = stripTypename(payment);
-        }
-        return payment;
-      } catch (err) {
-        self.checkoutError = err instanceof Error ? err.message : String(err);
-        throw err;
-      }
-    }),
+        return result.data?.createStripeBillingPortalSession?.url ?? null;
+      }),
 
-    cancelBillingSubscriptionAtPeriodEnd: flow(function* (input: {
-      product: string;
-      scopeType: string;
-      scopeId: string;
-    }) {
-      yield client().mutate({
-        mutation: CANCEL_BILLING_SUBSCRIPTION_MUTATION,
-        variables: { input },
-      });
-      yield (self as any).refreshBillingAfterPayment();
-    }),
+      setCheckoutError(message: string | null, scopeId?: string | null) {
+        if (scopeId !== undefined) self.checkoutScopeId = scopeId;
+        self.checkoutError = message;
+      },
 
-    createStripeBillingPortalSession: flow(function* (input: {
-      product: string;
-      scopeType: string;
-      scopeId: string;
-    }) {
-      const result = yield client().mutate({
-        mutation: CREATE_STRIPE_BILLING_PORTAL_SESSION_MUTATION,
-        variables: { input },
-      });
-      return result.data?.createStripeBillingPortalSession?.url ?? null;
-    }),
+      setCheckoutNotice(message: string | null, scopeId?: string | null) {
+        if (scopeId !== undefined) self.checkoutScopeId = scopeId;
+        self.checkoutNotice = message;
+      },
 
-    setCheckoutError(message: string | null, scopeId?: string | null) {
-      if (scopeId !== undefined) self.checkoutScopeId = scopeId;
-      self.checkoutError = message;
-    },
+      clearActiveCheckout() {
+        self.activeCheckout = null;
+        self.checkoutScopeId = null;
+        self.checkoutError = null;
+        self.checkoutNotice = null;
+      },
 
-    setCheckoutNotice(message: string | null, scopeId?: string | null) {
-      if (scopeId !== undefined) self.checkoutScopeId = scopeId;
-      self.checkoutNotice = message;
-    },
+      // ── Surface mutations ──
 
-    clearActiveCheckout() {
-      self.activeCheckout = null;
-      self.checkoutScopeId = null;
-      self.checkoutError = null;
-      self.checkoutNotice = null;
-    },
+      createSurface: flow(function* (input: {
+        name: string;
+        description?: string;
+        allowedToolIds: string[];
+      }) {
+        const result = yield client().mutate({
+          mutation: CREATE_SURFACE_MUTATION,
+          variables: { input },
+        });
+        return result.data!.createSurface;
+      }),
 
-    // ── Surface mutations ──
+      // ── RunProfile mutations ──
 
-    createSurface: flow(function* (input: {
-      name: string;
-      description?: string;
-      allowedToolIds: string[];
-    }) {
-      const result = yield client().mutate({
-        mutation: CREATE_SURFACE_MUTATION,
-        variables: { input },
-      });
-      return result.data!.createSurface;
-    }),
+      createRunProfile: flow(function* (input: {
+        name: string;
+        selectedToolIds: string[];
+        surfaceId: string;
+      }) {
+        const result = yield client().mutate({
+          mutation: CREATE_RUN_PROFILE_MUTATION,
+          variables: { input },
+        });
+        return result.data!.createRunProfile;
+      }),
 
-    // ── RunProfile mutations ──
+      // ── Preset skills ──
 
-    createRunProfile: flow(function* (input: {
-      name: string;
-      selectedToolIds: string[];
-      surfaceId: string;
-    }) {
-      const result = yield client().mutate({
-        mutation: CREATE_RUN_PROFILE_MUTATION,
-        variables: { input },
-      });
-      return result.data!.createRunProfile;
-    }),
+      /** Fetch preset skills from backend. Returns { key: contentOrZipUrl } map or null. */
+      fetchPresetSkills: flow(function* (serviceIds: string[]) {
+        const result = yield client().query({
+          query: PRESET_SKILLS_QUERY,
+          variables: { serviceIds },
+          fetchPolicy: "network-only",
+        });
+        const raw = result.data?.presetSkills as string | null;
+        if (!raw) return null;
+        return JSON.parse(raw) as Record<string, string>;
+      }),
 
-    // ── Preset skills ──
+      // ── Mobile pairing mutations (temporary data, not stored in MST) ──
 
-    /** Fetch preset skills from backend. Returns { key: contentOrZipUrl } map or null. */
-    fetchPresetSkills: flow(function* (serviceIds: string[]) {
-      const result = yield client().query({
-        query: PRESET_SKILLS_QUERY,
-        variables: { serviceIds },
-        fetchPolicy: "network-only",
-      });
-      const raw = result.data?.presetSkills as string | null;
-      if (!raw) return null;
-      return JSON.parse(raw) as Record<string, string>;
-    }),
+      generateMobilePairingCode: flow(function* (desktopDeviceId: string) {
+        const result = yield client().mutate({
+          mutation: GENERATE_PAIRING_CODE,
+          variables: { desktopDeviceId },
+        });
+        const data = result.data?.generatePairingCode;
+        return { code: data?.code, qrUrl: data?.qrUrl } as { code?: string; qrUrl?: string };
+      }),
 
-    // ── Mobile pairing mutations (temporary data, not stored in MST) ──
+      waitForPairing: flow(function* (code: string) {
+        const result = yield client().query({
+          query: WAIT_FOR_PAIRING,
+          variables: { code },
+          fetchPolicy: "network-only",
+        });
+        return (result.data?.waitForPairing ?? { paired: false }) as {
+          paired: boolean;
+          pairingId?: string;
+          accessToken?: string;
+          relayUrl?: string;
+          desktopDeviceId?: string;
+          mobileDeviceId?: string;
+          reason?: string;
+        };
+      }),
 
-    generateMobilePairingCode: flow(function* (desktopDeviceId: string) {
-      const result = yield client().mutate({
-        mutation: GENERATE_PAIRING_CODE,
-        variables: { desktopDeviceId },
-      });
-      const data = result.data?.generatePairingCode;
-      return { code: data?.code, qrUrl: data?.qrUrl } as { code?: string; qrUrl?: string };
-    }),
+      getInstallUrl: flow(function* () {
+        const result = yield client().query({
+          query: GET_INSTALL_URL,
+          fetchPolicy: "network-only",
+        });
+        return { installUrl: result.data?.mobileInstallUrl } as { installUrl?: string };
+      }),
 
-    waitForPairing: flow(function* (code: string) {
-      const result = yield client().query({
-        query: WAIT_FOR_PAIRING,
-        variables: { code },
-        fetchPolicy: "network-only",
-      });
-      return (result.data?.waitForPairing ?? { paired: false }) as {
-        paired: boolean;
+      registerMobilePairing: flow(function* (body: {
         pairingId?: string;
-        accessToken?: string;
-        relayUrl?: string;
-        desktopDeviceId?: string;
+        desktopDeviceId: string;
+        accessToken: string;
+        relayUrl: string;
         mobileDeviceId?: string;
-        reason?: string;
-      };
-    }),
-
-    getInstallUrl: flow(function* () {
-      const result = yield client().query({
-        query: GET_INSTALL_URL,
-        fetchPolicy: "network-only",
-      });
-      return { installUrl: result.data?.mobileInstallUrl } as { installUrl?: string };
-    }),
-
-    registerMobilePairing: flow(function* (body: {
-      pairingId?: string;
-      desktopDeviceId: string;
-      accessToken: string;
-      relayUrl: string;
-      mobileDeviceId?: string;
-    }) {
-      const response: { data?: { registerPairing: { success: boolean; pairingId: string } } | null; errors?: Array<{ message: string }> } =
-        yield fetchJson(clientPath(API["mobile.graphql"]), {
+      }) {
+        const response: {
+          data?: { registerPairing: { success: boolean; pairingId: string } } | null;
+          errors?: Array<{ message: string }>;
+        } = yield fetchJson(clientPath(API["mobile.graphql"]), {
           method: "POST",
           body: JSON.stringify({
             query: `mutation RegisterPairing($input: RegisterPairingInput!) {
@@ -673,14 +830,16 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
             variables: { input: body },
           }),
         });
-      if (response.errors?.length) {
-        return { error: response.errors[0]!.message } as { success?: boolean; error?: string };
-      }
-      return { success: response.data?.registerPairing?.success } as { success?: boolean; error?: string };
-    }),
-
-  };
-});
+        if (response.errors?.length) {
+          return { error: response.errors[0]!.message } as { success?: boolean; error?: string };
+        }
+        return { success: response.data?.registerPairing?.success } as {
+          success?: boolean;
+          error?: string;
+        };
+      }),
+    };
+  });
 
 // MST's .props() override doesn't propagate to Instance<> type inference.
 // Explicitly declare Panel-extended entity types so pages see the actions.
@@ -712,8 +871,13 @@ interface PanelEntityOverrides {
   readonly affiliateMlInsightsLoading: boolean;
   readonly affiliateMlInsightsError: string | null;
   readonly affiliateMlInsightsLoadedAt: number | null;
-  affiliateMlInsightRow(subjectKey: string, modelScope: AffiliateMlInsightModelScope): Instance<typeof AffiliateMlInsightRowModel> | null;
-  affiliateMlInsightRowsForSubject(subjectKey: string): Instance<typeof AffiliateMlInsightRowModel>[];
+  affiliateMlInsightRow(
+    subjectKey: string,
+    modelScope: AffiliateMlInsightModelScope,
+  ): Instance<typeof AffiliateMlInsightRowModel> | null;
+  affiliateMlInsightRowsForSubject(
+    subjectKey: string,
+  ): Instance<typeof AffiliateMlInsightRowModel>[];
   channelRecipientAlias(channelId: string, accountId: string, recipientId: string): string | null;
   sessionTabsWithRecipientAliases<T extends SessionTabAliasTarget>(sessions: readonly T[]): T[];
   fetchAffiliateMlInsights(input?: { shopIds?: string[] }): Promise<void>;
@@ -726,8 +890,16 @@ interface PanelEntityOverrides {
     cancelUrl?: string;
   }): Promise<{ action: string; payment?: Instance<typeof PaymentModel> | null } | null>;
   refreshBillingAfterPayment(): Promise<void>;
-  cancelBillingSubscriptionAtPeriodEnd(input: { product: string; scopeType: string; scopeId: string }): Promise<void>;
-  createStripeBillingPortalSession(input: { product: string; scopeType: string; scopeId: string }): Promise<string | null>;
+  cancelBillingSubscriptionAtPeriodEnd(input: {
+    product: string;
+    scopeType: string;
+    scopeId: string;
+  }): Promise<void>;
+  createStripeBillingPortalSession(input: {
+    product: string;
+    scopeType: string;
+    scopeId: string;
+  }): Promise<string | null>;
   initiateTikTokAdsOAuth(): Promise<{ authUrl: string; state: string }>;
   fetchAdsAdvertisers(): Promise<void>;
   fetchAdsStoreAccesses(): Promise<void>;
@@ -735,8 +907,20 @@ interface PanelEntityOverrides {
 
 interface PanelRootActions {
   initSession(): Promise<void>;
-  login(input: { email: string; password: string; captchaToken?: string; captchaAnswer?: string }): Promise<void>;
-  register(input: { email: string; password: string; name?: string | null; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null }): Promise<void>;
+  login(input: {
+    email: string;
+    password: string;
+    captchaToken?: string;
+    captchaAnswer?: string;
+  }): Promise<void>;
+  register(input: {
+    email: string;
+    password: string;
+    name?: string | null;
+    captchaToken?: string;
+    captchaAnswer?: string;
+    inviteCode?: string | null;
+  }): Promise<void>;
   logout(): Promise<void>;
   clearAuth(): void;
   fetchShops(): Promise<void>;
@@ -763,8 +947,7 @@ interface PanelRootActions {
   createSurface(input: unknown): Promise<unknown>;
 }
 
-export type PanelRootStore =
-  Omit<Instance<typeof RootStoreModel>, keyof PanelEntityOverrides> &
+export type PanelRootStore = Omit<Instance<typeof RootStoreModel>, keyof PanelEntityOverrides> &
   PanelEntityOverrides &
   PanelRootActions &
   IStateTreeNode;

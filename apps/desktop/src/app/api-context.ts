@@ -29,9 +29,20 @@ export interface ApiContext {
   onBrowserChange?: () => void;
   onAutoLaunchChange?: (enabled: boolean) => void;
   onChannelConfigured?: (channelId: string) => void;
-  onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
-  onOAuthAcquire?: (provider: string) => Promise<{ email?: string; tokenPreview: string; manualMode?: boolean; authUrl?: string; flowId?: string }>;
-  onOAuthSave?: (provider: string, options: { proxyUrl?: string; label?: string; model?: string }) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
+  onOAuthFlow?: (
+    provider: string,
+  ) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
+  onOAuthAcquire?: (provider: string) => Promise<{
+    email?: string;
+    tokenPreview: string;
+    manualMode?: boolean;
+    authUrl?: string;
+    flowId?: string;
+  }>;
+  onOAuthSave?: (
+    provider: string,
+    options: { proxyUrl?: string; label?: string; model?: string },
+  ) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
   /**
    * Re-authenticate an existing OAuth provider key: consume the most recently
    * completed OAuth flow for the key's provider, overwrite the stored credential
@@ -45,8 +56,16 @@ export interface ApiContext {
    * to warn the user about a narrow OAuth server-side rotation race.
    */
   onOAuthReauth?: (keyId: string) => Promise<{ ok: true; idTokenCaptureFailed: boolean }>;
-  onOAuthManualComplete?: (provider: string, callbackUrl: string) => Promise<{ email?: string; tokenPreview: string }>;
-  onOAuthPoll?: (flowId: string) => { status: "pending" | "completed" | "failed"; tokenPreview?: string; email?: string; error?: string };
+  onOAuthManualComplete?: (
+    provider: string,
+    callbackUrl: string,
+  ) => Promise<{ email?: string; tokenPreview: string }>;
+  onOAuthPoll?: (flowId: string) => {
+    status: "pending" | "completed" | "failed";
+    tokenPreview?: string;
+    email?: string;
+    error?: string;
+  };
   onTelemetryTrack?: (eventType: string, metadata?: Record<string, unknown>) => void;
   /**
    * Emit a Customer Service business-telemetry event. Routed through a

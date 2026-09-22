@@ -13,12 +13,12 @@ notices travel with every build.
 
 The pixel-art office renders every on-screen label in this font.
 
-| | |
-|---|---|
+|            |                                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------------- |
 | Bundled as | `panel-dist/office/fonts/FSPixelSansUnicode-Regular.ttf` (served by the Panel at `/office/fonts/`) |
-| Designer | NZWStudios2024 — <https://fontstruct.com/fontstructors/show/2431873/nzwstudios2024> |
-| Source | <https://fontstruct.com/fontstructions/show/2606508/fs-pixel-sans-unicode-regular> |
-| Licence | SIL Open Font License, Version 1.1 |
+| Designer   | NZWStudios2024 — <https://fontstruct.com/fontstructors/show/2431873/nzwstudios2024>                |
+| Source     | <https://fontstruct.com/fontstructions/show/2606508/fs-pixel-sans-unicode-regular>                 |
+| Licence    | SIL Open Font License, Version 1.1                                                                 |
 
 The font is distributed unmodified. Its `name` table declares the licence in
 name ID 13 (License Description) as `Open Font License`; it carries no
@@ -145,11 +145,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 The pixel-art office renderer. Built from the upstream sources and staged into
 the Panel's static assets.
 
-| | |
-|---|---|
+|            |                                                          |
+| ---------- | -------------------------------------------------------- |
 | Bundled as | `panel-dist/office/` (the built renderer and its assets) |
-| Source | <https://github.com/pixel-agents-hq/pixel-agents> |
-| Licence | MIT |
+| Source     | <https://github.com/pixel-agents-hq/pixel-agents>        |
+| Licence    | MIT                                                      |
 
 ```
 MIT License
@@ -183,13 +183,13 @@ The character sprites the office draws its agents with. Pixel Agents credits
 this pack as the basis for its characters; the sprites reach the app through the
 Pixel Agents build.
 
-| | |
-|---|---|
+|            |                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Bundled as | character sprites encoded in `panel-dist/office/scene-assets.json`, and the character strip `panel-dist/office/characters.png` |
-| Author | JIK-A-4 |
-| Source | <https://jik-a-4.itch.io/metrocity-free-topdown-character-pack> |
-| Retrieved | 2026-09-01 |
-| Licence | Creative Commons Zero v1.0 Universal (CC0 1.0) |
+| Author     | JIK-A-4                                                                                                                        |
+| Source     | <https://jik-a-4.itch.io/metrocity-free-topdown-character-pack>                                                                |
+| Retrieved  | 2026-09-01                                                                                                                     |
+| Licence    | Creative Commons Zero v1.0 Universal (CC0 1.0)                                                                                 |
 
 Evidence recorded from the source page on 2026-09-01, quoted as it appears there:
 

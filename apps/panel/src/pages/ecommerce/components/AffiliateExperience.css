@@ -122,7 +122,9 @@
   line-height: 1.55;
 }
 
-.affiliate-page-shell .affiliate-page-hero :is(
+.affiliate-page-shell
+  .affiliate-page-hero
+  :is(
     .affiliate-intelligence-kicker,
     .affiliate-team-eyebrow,
     .affiliate-campaign-eyebrow,
@@ -145,7 +147,8 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 4%, transparent);
 }
 
-.affiliate-page-shell :is(
+.affiliate-page-shell
+  :is(
     .affiliate-workbench-panel,
     .product-knowledge-catalog,
     .affiliate-team-overview,
@@ -207,7 +210,8 @@
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-primary) 66%, transparent);
 }
 
-.affiliate-page-shell :is(
+.affiliate-page-shell
+  :is(
     .affiliate-summary-tile,
     .affiliate-team-overview > div,
     .affiliate-model-stage-card,
@@ -221,7 +225,8 @@
     transform 180ms ease;
 }
 
-.affiliate-page-shell :is(
+.affiliate-page-shell
+  :is(
     .affiliate-summary-tile,
     .affiliate-team-overview > div,
     .affiliate-model-stage-card,
@@ -291,11 +296,7 @@
   min-height: 76px;
   align-items: center;
   padding: var(--tk-v1-space-3) var(--tk-v1-space-5);
-  border-bottom-color: color-mix(
-    in srgb,
-    var(--color-border-light) 82%,
-    var(--color-primary) 18%
-  );
+  border-bottom-color: color-mix(in srgb, var(--color-border-light) 82%, var(--color-primary) 18%);
   background:
     linear-gradient(
       112deg,
@@ -663,8 +664,7 @@
   margin: 12px 14px 0;
 }
 
-.affiliate-collaboration-sample-card.affiliate-entity-card
-  > .affiliate-collaboration-sample-grid {
+.affiliate-collaboration-sample-card.affiliate-entity-card > .affiliate-collaboration-sample-grid {
   gap: 8px;
   padding: 12px 14px;
 }

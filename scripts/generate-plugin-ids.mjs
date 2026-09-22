@@ -12,10 +12,7 @@ const outputDir = join(repoRoot, "apps/desktop/src/generated");
 const outputPath = join(outputDir, "our-plugin-ids.ts");
 
 // Scan both public and private extension directories.
-const extensionDirs = [
-  join(repoRoot, "extensions"),
-  join(repoRoot, "extensions-merchant"),
-];
+const extensionDirs = [join(repoRoot, "extensions"), join(repoRoot, "extensions-merchant")];
 
 const pluginIds = [];
 

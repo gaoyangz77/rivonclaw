@@ -52,11 +52,13 @@ function zipXml(bytes: Uint8Array, path: string): Document {
 
 /** Resolves a sheet name to its worksheet XML through workbook.xml and its relationships. */
 function worksheetXml(bytes: Uint8Array, sheetName: string): Document {
-  const sheet = [...zipXml(bytes, "xl/workbook.xml").getElementsByTagName("sheet")]
-    .find((candidate) => candidate.getAttribute("name") === sheetName);
+  const sheet = [...zipXml(bytes, "xl/workbook.xml").getElementsByTagName("sheet")].find(
+    (candidate) => candidate.getAttribute("name") === sheetName,
+  );
   if (!sheet) throw new Error(`Missing sheet ${sheetName}`);
-  const relationship = [...zipXml(bytes, "xl/_rels/workbook.xml.rels").getElementsByTagName("Relationship")]
-    .find((candidate) => candidate.getAttribute("Id") === sheet.getAttribute("r:id"));
+  const relationship = [
+    ...zipXml(bytes, "xl/_rels/workbook.xml.rels").getElementsByTagName("Relationship"),
+  ].find((candidate) => candidate.getAttribute("Id") === sheet.getAttribute("r:id"));
   const target = relationship?.getAttribute("Target")?.replace(/^\/?(xl\/)?/u, "");
   if (!target) throw new Error(`Missing relationship for ${sheetName}`);
   return zipXml(bytes, `xl/${target}`);
@@ -64,18 +66,20 @@ function worksheetXml(bytes: Uint8Array, sheetName: string): Document {
 
 function validationsBySqref(bytes: Uint8Array) {
   const sheet = worksheetXml(bytes, AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME);
-  return new Map([...sheet.getElementsByTagName("dataValidation")].map((node) => [
-    node.getAttribute("sqref"),
-    {
-      type: node.getAttribute("type"),
-      allowBlank: node.getAttribute("allowBlank"),
-      showErrorMessage: node.getAttribute("showErrorMessage"),
-      errorStyle: node.getAttribute("errorStyle"),
-      errorTitle: node.getAttribute("errorTitle"),
-      error: node.getAttribute("error"),
-      formula: node.getElementsByTagName("formula1")[0]?.textContent,
-    },
-  ]));
+  return new Map(
+    [...sheet.getElementsByTagName("dataValidation")].map((node) => [
+      node.getAttribute("sqref"),
+      {
+        type: node.getAttribute("type"),
+        allowBlank: node.getAttribute("allowBlank"),
+        showErrorMessage: node.getAttribute("showErrorMessage"),
+        errorStyle: node.getAttribute("errorStyle"),
+        errorTitle: node.getAttribute("errorTitle"),
+        error: node.getAttribute("error"),
+        formula: node.getElementsByTagName("formula1")[0]?.textContent,
+      },
+    ]),
+  );
 }
 
 function readWithImporter(bytes: Uint8Array) {
@@ -103,13 +107,20 @@ describe("Creator bulk-update template", () => {
         const cell = data[XLSX.utils.encode_cell({ r: 0, c: column })]!;
         expect(cell.v).toBe(header);
         const note = cell.c?.[0]?.t ?? "";
-        const expected = header === "creator_username" ? copy.templateIdentityHint
-          : header === "creator_uid_note" ? copy.templateCreatorUidHint
-            : header === "creator_note" ? copy.templateCreatorNoteHint
-              : header === "bd_name" ? copy.templateDeveloperHint
-                : header === "protection_action" ? copy.templateProtectionActionHint
-                  : header === "protection_note" ? copy.templateProtectionNoteHint
-                    : copy.templateManualTagHint;
+        const expected =
+          header === "creator_username"
+            ? copy.templateIdentityHint
+            : header === "creator_uid_note"
+              ? copy.templateCreatorUidHint
+              : header === "creator_note"
+                ? copy.templateCreatorNoteHint
+                : header === "bd_name"
+                  ? copy.templateDeveloperHint
+                  : header === "protection_action"
+                    ? copy.templateProtectionActionHint
+                    : header === "protection_note"
+                      ? copy.templateProtectionNoteHint
+                      : copy.templateManualTagHint;
         expect(note).toContain(header);
         expect(note).toContain(expected);
       });
@@ -141,7 +152,7 @@ describe("Creator bulk-update template", () => {
         errorStyle: "stop",
         errorTitle: copy.templateInvalidValueTitle,
         error: copy.templateProtectionActionInvalid,
-        formula: "\"PROTECT,UNPROTECT\"",
+        formula: '"PROTECT,UNPROTECT"',
       });
     });
 
@@ -166,7 +177,9 @@ describe("Creator bulk-update template", () => {
         { header: 1, blankrows: true },
       );
       expect(listed).toHaveLength(TAG_NAMES.length);
-      expect(listed.map((row) => row.length === 1 ? row[0] : row).sort()).toEqual([...TAG_NAMES].sort());
+      expect(listed.map((row) => (row.length === 1 ? row[0] : row)).sort()).toEqual(
+        [...TAG_NAMES].sort(),
+      );
     });
 
     it(`keeps manual tag columns strict and blank-only when no tags exist in ${locale}`, async () => {
@@ -183,7 +196,8 @@ describe("Creator bulk-update template", () => {
           formula: `LEN(${column}2)=0`,
         });
       }
-      const tagSheet = readWithImporter(bytes).Sheets[AFFILIATE_CREATOR_UPDATE_TEMPLATE_TAG_SHEET_NAME]!;
+      const tagSheet =
+        readWithImporter(bytes).Sheets[AFFILIATE_CREATOR_UPDATE_TEMPLATE_TAG_SHEET_NAME]!;
       expect(XLSX.utils.sheet_to_json(tagSheet, { header: 1, blankrows: false })).toEqual([]);
     });
 
@@ -200,10 +214,13 @@ describe("Creator bulk-update template", () => {
 
     it(`shows examples in the guide sheet for every field except manual tags in ${locale}`, async () => {
       const book = readWithImporter(await templateBytes(locale, TAG_NAMES));
-      const guide = XLSX.utils.sheet_to_json<string[]>(book.Sheets[copy.templateInstructionsSheetName]!, {
-        header: 1,
-        defval: "",
-      });
+      const guide = XLSX.utils.sheet_to_json<string[]>(
+        book.Sheets[copy.templateInstructionsSheetName]!,
+        {
+          header: 1,
+          defval: "",
+        },
+      );
       expect(guide[0]).toEqual([
         copy.templateField,
         copy.templateRequirement,
@@ -221,17 +238,21 @@ describe("Creator bulk-update template", () => {
     });
 
     it(`names every unknown manual tag in the preview row error in ${locale}`, async () => {
-      const t = (await translatorFor(locale)) as (key: string, options?: Record<string, unknown>) => string;
-      expect(t("ecommerce.affiliateTeam.creatorUpdateUnknownManualTags", { names: "Gold, tier, Retired" }))
-        .toContain("Gold, tier, Retired");
+      const t = (await translatorFor(locale)) as (
+        key: string,
+        options?: Record<string, unknown>,
+      ) => string;
+      expect(
+        t("ecommerce.affiliateTeam.creatorUpdateUnknownManualTags", {
+          names: "Gold, tier, Retired",
+        }),
+      ).toContain("Gold, tier, Retired");
     });
   }
 
   it("refuses a blank tag name instead of writing a hole into the dropdown source", async () => {
-    expect(() => buildAffiliateCreatorUpdateTemplateWorkbook(
-      ExcelJS,
-      (key) => key,
-      ["VIP", " "],
-    )).toThrow("must not be blank");
+    expect(() =>
+      buildAffiliateCreatorUpdateTemplateWorkbook(ExcelJS, (key) => key, ["VIP", " "]),
+    ).toThrow("must not be blank");
   });
 });

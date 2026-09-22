@@ -42,22 +42,40 @@ const ENTITY_BY_DIMENSION: Record<string, string | undefined> = {
 };
 
 export const RATE_COMPONENTS: Record<string, readonly [string, string]> = {
-  AFFILIATE_TARGET_RESPONSE_RATE: ["AFFILIATE_TARGET_SAMPLE_RESPONSES", "AFFILIATE_TARGET_CREATORS_INVITED"],
+  AFFILIATE_TARGET_RESPONSE_RATE: [
+    "AFFILIATE_TARGET_SAMPLE_RESPONSES",
+    "AFFILIATE_TARGET_CREATORS_INVITED",
+  ],
   AFFILIATE_CAMPAIGN_REPLY_RATE: ["AFFILIATE_REPLIED", "AFFILIATE_SENT"],
-  AFFILIATE_CREATOR_IDENTITY_ROW_COVERAGE: ["AFFILIATE_CREATOR_IDENTITY_RESOLVED", "AFFILIATE_CREATOR_IDENTITY_ELIGIBLE"],
-  AFFILIATE_CAMPAIGN_MAPPING_ROW_COVERAGE: ["AFFILIATE_CAMPAIGN_MAPPING_RESOLVED", "AFFILIATE_CAMPAIGN_MAPPING_ELIGIBLE"],
+  AFFILIATE_CREATOR_IDENTITY_ROW_COVERAGE: [
+    "AFFILIATE_CREATOR_IDENTITY_RESOLVED",
+    "AFFILIATE_CREATOR_IDENTITY_ELIGIBLE",
+  ],
+  AFFILIATE_CAMPAIGN_MAPPING_ROW_COVERAGE: [
+    "AFFILIATE_CAMPAIGN_MAPPING_RESOLVED",
+    "AFFILIATE_CAMPAIGN_MAPPING_ELIGIBLE",
+  ],
   AFFILIATE_APPROVAL_RATE: ["AFFILIATE_CURRENTLY_APPROVED", "AFFILIATE_APPLICATIONS_CREATED"],
-  AFFILIATE_FULFILLMENT_OBSERVED_RATE: ["AFFILIATE_SHIPPED_OBSERVED_CURRENT", "AFFILIATE_CURRENTLY_APPROVED"],
+  AFFILIATE_FULFILLMENT_OBSERVED_RATE: [
+    "AFFILIATE_SHIPPED_OBSERVED_CURRENT",
+    "AFFILIATE_CURRENTLY_APPROVED",
+  ],
   AFFILIATE_COMPLETION_RATE: ["AFFILIATE_CURRENTLY_COMPLETED", "AFFILIATE_CURRENTLY_APPROVED"],
-  AFFILIATE_APPLICATION_TIME_EXACT_RATE: ["AFFILIATE_APPLICATION_TIME_EXACT", "AFFILIATE_APPLICATIONS_CREATED"],
-  AFFILIATE_TARGET_MAPPING_RATE: ["AFFILIATE_TARGET_MAPPED_APPLICATIONS", "AFFILIATE_APPLICATIONS_CREATED"],
-  AFFILIATE_CAMPAIGN_MAPPING_RATE: ["AFFILIATE_CAMPAIGN_MAPPED_APPLICATIONS", "AFFILIATE_APPLICATIONS_CREATED"],
+  AFFILIATE_APPLICATION_TIME_EXACT_RATE: [
+    "AFFILIATE_APPLICATION_TIME_EXACT",
+    "AFFILIATE_APPLICATIONS_CREATED",
+  ],
+  AFFILIATE_TARGET_MAPPING_RATE: [
+    "AFFILIATE_TARGET_MAPPED_APPLICATIONS",
+    "AFFILIATE_APPLICATIONS_CREATED",
+  ],
+  AFFILIATE_CAMPAIGN_MAPPING_RATE: [
+    "AFFILIATE_CAMPAIGN_MAPPED_APPLICATIONS",
+    "AFFILIATE_APPLICATIONS_CREATED",
+  ],
 };
 
-const PLATFORM_DEFAULT_METRICS = [
-  "AFFILIATE_NET_GMV_USD",
-  "AFFILIATE_ORDERS",
-];
+const PLATFORM_DEFAULT_METRICS = ["AFFILIATE_NET_GMV_USD", "AFFILIATE_ORDERS"];
 
 const SAMPLE_DEFAULT_METRICS = [
   "AFFILIATE_APPLICATIONS_CREATED",
@@ -95,13 +113,20 @@ export function safeRatio(numerator: number, denominator: number): number | null
   return denominator ? numerator / denominator : null;
 }
 
-export function relativeDelta(current: number, comparison: number | null | undefined): number | null {
+export function relativeDelta(
+  current: number,
+  comparison: number | null | undefined,
+): number | null {
   if (comparison == null || comparison === 0) return null;
   return (current - comparison) / Math.abs(comparison);
 }
 
 export function affiliateEntitySet(dimensions: readonly string[]): string[] {
-  return [...new Set(dimensions.map((dimension) => ENTITY_BY_DIMENSION[dimension]).filter(Boolean) as string[])].sort();
+  return [
+    ...new Set(
+      dimensions.map((dimension) => ENTITY_BY_DIMENSION[dimension]).filter(Boolean) as string[],
+    ),
+  ].sort();
 }
 
 function canonicalSetKey(dimensions: readonly string[]): string {
@@ -125,14 +150,17 @@ export function nextAffiliateDatasetDraft(
     ...draft,
     datasetId,
     dimensions: ["DATE"],
-    metrics: datasetId === PLATFORM_DATASET ? [...PLATFORM_DEFAULT_METRICS] : [...SAMPLE_DEFAULT_METRICS],
+    metrics:
+      datasetId === PLATFORM_DATASET ? [...PLATFORM_DEFAULT_METRICS] : [...SAMPLE_DEFAULT_METRICS],
     filters: [],
     sortField: "",
     sortDirection: "DESC",
   };
 }
 
-export function automaticAffiliateChartMode(dimensions: readonly string[]): Exclude<AffiliateChartMode, "AUTO"> {
+export function automaticAffiliateChartMode(
+  dimensions: readonly string[],
+): Exclude<AffiliateChartMode, "AUTO"> {
   if (dimensions.includes("DATE")) return "LINE";
   const entities = affiliateEntitySet(dimensions);
   if (entities.length === 1) return "BAR";
@@ -200,10 +228,10 @@ export function summarizeAffiliateRows(
       continue;
     }
     const values = rows.map((row) => row[metric]);
-    result[metric] = values.some((value) => value == null)
-      && metric.endsWith("_NATIVE")
-      ? null
-      : values.reduce<number>((sum, value) => sum + numeric(value), 0);
+    result[metric] =
+      values.some((value) => value == null) && metric.endsWith("_NATIVE")
+        ? null
+        : values.reduce<number>((sum, value) => sum + numeric(value), 0);
   }
   return result;
 }

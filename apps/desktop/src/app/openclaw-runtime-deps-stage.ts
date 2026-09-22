@@ -1,12 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 
@@ -25,9 +18,7 @@ function readPackageVersion(packageRoot: string): string {
     const raw = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf-8")) as {
       version?: unknown;
     };
-    return typeof raw.version === "string" && raw.version.trim()
-      ? raw.version.trim()
-      : "unknown";
+    return typeof raw.version === "string" && raw.version.trim() ? raw.version.trim() : "unknown";
   } catch {
     return "unknown";
   }
@@ -78,7 +69,11 @@ export function ensurePackagedOpenClawRuntimeDepsStage(params: {
   try {
     mkdirSync(stageRoot, { recursive: true });
     rmSync(stageNodeModules, { recursive: true, force: true });
-    symlinkSync(vendorNodeModules, stageNodeModules, process.platform === "win32" ? "junction" : "dir");
+    symlinkSync(
+      vendorNodeModules,
+      stageNodeModules,
+      process.platform === "win32" ? "junction" : "dir",
+    );
     writeFileSync(
       join(stageRoot, "package.json"),
       JSON.stringify({ name: "openclaw-runtime-deps-install", private: true }, null, 2),

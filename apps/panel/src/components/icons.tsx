@@ -3,29 +3,29 @@ import type { SVGProps, ReactNode } from "react";
 // ---- Base Icon component — single source of truth for defaults ----
 
 interface IconBaseProps extends SVGProps<SVGSVGElement> {
-    /** Icon size in px (width & height). @default 18 */
-    size?: number;
-    /** SVG stroke width. @default 1.8 */
-    strokeWidth?: number;
-    children: ReactNode;
+  /** Icon size in px (width & height). @default 18 */
+  size?: number;
+  /** SVG stroke width. @default 1.8 */
+  strokeWidth?: number;
+  children: ReactNode;
 }
 
 function Icon({ size = 18, strokeWidth = 1.8, children, ...rest }: IconBaseProps) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            {...rest}
-        >
-            {children}
-        </svg>
-    );
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...rest}
+    >
+      {children}
+    </svg>
+  );
 }
 
 /** Props accepted by every exported icon component. */
@@ -34,139 +34,139 @@ export type IconProps = Omit<IconBaseProps, "children">;
 // ---- Navigation icons ----
 
 export function ChatIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </Icon>
+  );
 }
 
 export function ProvidersIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </Icon>
+  );
 }
 
 export function ChannelsIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
-            <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
-            <circle cx="12" cy="12" r="2" />
-            <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
-            <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+      <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+      <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+    </Icon>
+  );
 }
 
 export function ExtrasIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.611a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.315 8.685a.98.98 0 0 1 .837-.276c.47.07.802.48.968.925a2.501 2.501 0 1 0 3.214-3.214c-.446-.166-.855-.497-.925-.968a.979.979 0 0 1 .276-.837l1.611-1.611a2.404 2.404 0 0 1 1.704-.706c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.968 1.02z" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.611a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.315 8.685a.98.98 0 0 1 .837-.276c.47.07.802.48.968.925a2.501 2.501 0 1 0 3.214-3.214c-.446-.166-.855-.497-.925-.968a.979.979 0 0 1 .276-.837l1.611-1.611a2.404 2.404 0 0 1 1.704-.706c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.968 1.02z" />
+    </Icon>
+  );
 }
 
 export function UsageIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </Icon>
+  );
 }
 
 export function SkillsIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </Icon>
+  );
 }
 
 export function SurfacesIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </Icon>
+  );
 }
 
 export function CronsIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </Icon>
+  );
 }
 
 export function SettingsIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </Icon>
+  );
 }
 
 export function BillingIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-            <path d="M7 15h3" />
-            <path d="M14 15h3" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M7 15h3" />
+      <path d="M14 15h3" />
+    </Icon>
+  );
 }
 
 export function AccountIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </Icon>
+  );
 }
 
 export function AuthIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-            <polyline points="10 17 15 12 10 7" />
-            <line x1="15" y1="12" x2="3" y2="12" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+      <polyline points="10 17 15 12 10 7" />
+      <line x1="15" y1="12" x2="3" y2="12" />
+    </Icon>
+  );
 }
 
 // ---- Bottom actions icons ----
 
 /** Theme toggle menu icons use a smaller default size (16px) and thicker stroke. */
 export function MonitorIcon(props: IconProps) {
-    return (
-        <Icon size={16} strokeWidth={2} {...props}>
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} strokeWidth={2} {...props}>
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </Icon>
+  );
 }
 
 export function HomeIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M3 11 12 3l9 8" />
-            <path d="M5 10v10h14V10" />
-            <path d="M9 20v-6h6v6" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M3 11 12 3l9 8" />
+      <path d="M5 10v10h14V10" />
+      <path d="M9 20v-6h6v6" />
+    </Icon>
+  );
 }
 
 /**
@@ -177,266 +177,265 @@ export function HomeIcon(props: IconProps) {
  * apart is worse than drawing a second one.
  */
 export function OfficeIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M3 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17" />
-            <path d="M14 10h6a1 1 0 0 1 1 1v10" />
-            <path d="M2 21h20" />
-            <path d="M7 7h3" />
-            <path d="M7 11h3" />
-            <path d="M17 15h1" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M3 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17" />
+      <path d="M14 10h6a1 1 0 0 1 1 1v10" />
+      <path d="M2 21h20" />
+      <path d="M7 7h3" />
+      <path d="M7 11h3" />
+      <path d="M17 15h1" />
+    </Icon>
+  );
 }
 
 export function SunIcon(props: IconProps) {
-    return (
-        <Icon size={16} strokeWidth={2} {...props}>
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} strokeWidth={2} {...props}>
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </Icon>
+  );
 }
 
 export function MoonIcon(props: IconProps) {
-    return (
-        <Icon size={16} strokeWidth={2} {...props}>
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} strokeWidth={2} {...props}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </Icon>
+  );
 }
 
 export function GlobeIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <circle cx="12" cy="12" r="10" />
-            <ellipse cx="12" cy="12" rx="4" ry="10" />
-            <path d="M2 12h20" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <ellipse cx="12" cy="12" rx="4" ry="10" />
+      <path d="M2 12h20" />
+    </Icon>
+  );
 }
 
 export function HelpCircleIcon(props: IconProps) {
-    return (
-        <Icon strokeWidth={1.5} {...props}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-        </Icon>
-    );
+  return (
+    <Icon strokeWidth={1.5} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </Icon>
+  );
 }
 
 export function UserIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </Icon>
+  );
 }
 
 export function UserPlusIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="8.5" cy="7" r="4" />
-            <line x1="20" y1="8" x2="20" y2="14" />
-            <line x1="23" y1="11" x2="17" y2="11" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="4" />
+      <line x1="20" y1="8" x2="20" y2="14" />
+      <line x1="23" y1="11" x2="17" y2="11" />
+    </Icon>
+  );
 }
 
 // ---- Sidebar chrome ----
 
 export function MenuIcon(props: IconProps) {
-    return (
-        <Icon size={16} strokeWidth={2} {...props}>
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} strokeWidth={2} {...props}>
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </Icon>
+  );
 }
 
 /** Collapsible section chevron — rotates 90° when open. */
 export function ChevronRightIcon(props: IconProps) {
-    return (
-        <Icon size={12} strokeWidth={2} {...props}>
-            <polyline points="9 18 15 12 9 6" />
-        </Icon>
-    );
+  return (
+    <Icon size={12} strokeWidth={2} {...props}>
+      <polyline points="9 18 15 12 9 6" />
+    </Icon>
+  );
 }
 
 export function EyeIcon(props: IconProps) {
-    return (
-        <Icon size={16} strokeWidth={1.8} {...props}>
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} strokeWidth={1.8} {...props}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </Icon>
+  );
 }
 
 export function EyeOffIcon(props: IconProps) {
-    return (
-        <Icon size={16} strokeWidth={1.8} {...props}>
-            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-            <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-            <line x1="1" y1="1" x2="23" y2="23" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} strokeWidth={1.8} {...props}>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </Icon>
+  );
 }
 
 export function ShopIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M3 9l1.5-5h15L21 9" />
-            <path d="M3 9h18v1a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9z" />
-            <path d="M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
-            <path d="M10 17h4v4h-4z" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M3 9l1.5-5h15L21 9" />
+      <path d="M3 9h18v1a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9z" />
+      <path d="M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+      <path d="M10 17h4v4h-4z" />
+    </Icon>
+  );
 }
 
 export function RefreshIcon(props: IconProps) {
-    return (
-        <Icon size={14} strokeWidth={2} {...props}>
-            <polyline points="23 4 23 10 17 10" />
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-        </Icon>
-    );
+  return (
+    <Icon size={14} strokeWidth={2} {...props}>
+      <polyline points="23 4 23 10 17 10" />
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+    </Icon>
+  );
 }
 
-
 export function ExternalLinkIcon(props: IconProps) {
-    return (
-        <Icon size={14} {...props}>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-        </Icon>
-    );
+  return (
+    <Icon size={14} {...props}>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </Icon>
+  );
 }
 
 export function LogOutIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </Icon>
+  );
 }
 
 /** Globe with a shopping bag — Global E-commerce icon */
 export function EcommerceIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M2 12h20" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <path d="M9 17h6l1-4H8l1 4z" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      <path d="M9 17h6l1-4H8l1 4z" />
+    </Icon>
+  );
 }
 
 export function AdsIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M4 13V7a2 2 0 0 1 2-2h3l8-3v18l-8-3H6a2 2 0 0 1-2-2v-2z" />
-            <path d="M9 5v12" />
-            <path d="M17 8a4 4 0 0 1 0 6" />
-            <path d="M6 17l1 4h3l-1-4" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M4 13V7a2 2 0 0 1 2-2h3l8-3v18l-8-3H6a2 2 0 0 1-2-2v-2z" />
+      <path d="M9 5v12" />
+      <path d="M17 8a4 4 0 0 1 0 6" />
+      <path d="M6 17l1 4h3l-1-4" />
+    </Icon>
+  );
 }
 
 /** X mark for close buttons */
 export function CloseIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </Icon>
+  );
 }
 
 /** Copy icon */
 export function CopyIcon(props: IconProps) {
-    return (
-        <Icon size={16} {...props}>
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} {...props}>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </Icon>
+  );
 }
 
 /** Check/success icon */
 export function CheckIcon(props: IconProps) {
-    return (
-        <Icon size={16} {...props}>
-            <polyline points="20 6 9 17 4 12" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} {...props}>
+      <polyline points="20 6 9 17 4 12" />
+    </Icon>
+  );
 }
 
 /** Info circle icon */
 export function InfoIcon(props: IconProps) {
-    return (
-        <Icon size={16} {...props}>
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </Icon>
+  );
 }
 
 export function DownloadIcon(props: IconProps) {
-    return (
-        <Icon size={16} {...props}>
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </Icon>
+  );
 }
 
 /** Package/Module icon */
 export function ModuleIcon(props: IconProps) {
-    return (
-        <Icon {...props}>
-            <path d="M16.5 9.4l-9-5.19" />
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-            <line x1="12" y1="22.08" x2="12" y2="12" />
-        </Icon>
-    );
+  return (
+    <Icon {...props}>
+      <path d="M16.5 9.4l-9-5.19" />
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </Icon>
+  );
 }
 
 /** Picture / photo icon */
 export function ImageIcon(props: IconProps) {
-    return (
-        <Icon size={16} {...props}>
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="M21 15l-5-5L5 21" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="M21 15l-5-5L5 21" />
+    </Icon>
+  );
 }
 
 /** Video / film clip icon */
 export function VideoIcon(props: IconProps) {
-    return (
-        <Icon size={16} {...props}>
-            <rect x="2" y="5" width="14" height="14" rx="2" />
-            <path d="M16 10.5l5-3v9l-5-3z" />
-        </Icon>
-    );
+  return (
+    <Icon size={16} {...props}>
+      <rect x="2" y="5" width="14" height="14" rx="2" />
+      <path d="M16 10.5l5-3v9l-5-3z" />
+    </Icon>
+  );
 }

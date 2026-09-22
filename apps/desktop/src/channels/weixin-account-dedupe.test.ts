@@ -70,7 +70,9 @@ describe("readWeixinContextTokenRecipientIds", () => {
       ).resolves.toBe(false);
 
       await clearWeixinContextTokenFiles(stateDir, "abc123-im-bot");
-      await expect(readWeixinContextTokenRecipientIds(stateDir, "abc123-im-bot")).resolves.toEqual([]);
+      await expect(readWeixinContextTokenRecipientIds(stateDir, "abc123-im-bot")).resolves.toEqual(
+        [],
+      );
     } finally {
       await rm(stateDir, { recursive: true, force: true });
     }

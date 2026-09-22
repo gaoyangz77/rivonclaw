@@ -52,7 +52,11 @@ const TestStore = RootStoreModel.props({
 }));
 
 /** A payment exactly as Desktop's `onPatch` serializes it: every nullable field present as null. */
-function payment(id: string, subject: string, overrides: Partial<PaymentSnapshot> = {}): PaymentSnapshot {
+function payment(
+  id: string,
+  subject: string,
+  overrides: Partial<PaymentSnapshot> = {},
+): PaymentSnapshot {
   return {
     id,
     userId: "user_1",
@@ -123,7 +127,10 @@ describe("AccountBillingSection payment records", () => {
   it("shows a payment once a field-level patch moves it from pending to succeeded", () => {
     const store = renderSection();
     act(() => {
-      applyPatch(store, addPatches([payment("pay_1", "Awaiting card", { status: "PENDING", paidAt: null })]));
+      applyPatch(
+        store,
+        addPatches([payment("pay_1", "Awaiting card", { status: "PENDING", paidAt: null })]),
+      );
     });
     // A pending payment is not a completed record and must stay out of the table.
     expect(screen.getByText("billing.noCompletedPayments")).toBeTruthy();

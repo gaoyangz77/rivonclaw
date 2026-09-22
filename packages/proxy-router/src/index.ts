@@ -212,8 +212,9 @@ export class ProxyRouter {
       const targetPort = parseInt(targetPortStr ?? "443", 10);
 
       clientSocket.off("data", onData);
-      this.handleConnect(clientSocket, targetHost ?? "", targetPort)
-        .catch((err) => { log.error("CONNECT handler failed", err); });
+      this.handleConnect(clientSocket, targetHost ?? "", targetPort).catch((err) => {
+        log.error("CONNECT handler failed", err);
+      });
     };
 
     clientSocket.on("data", onData);
@@ -231,7 +232,9 @@ export class ProxyRouter {
     targetPort: number,
   ): Promise<void> {
     this.activeSockets.add(clientSocket);
-    const cleanup = () => { this.activeSockets.delete(clientSocket); };
+    const cleanup = () => {
+      this.activeSockets.delete(clientSocket);
+    };
     clientSocket.on("close", cleanup);
 
     try {
@@ -280,7 +283,9 @@ export class ProxyRouter {
       return null;
     }
 
-    log.debug(`Routing ${targetHost} → ${provider} → key ${activeKeyId} → ${proxyUrl.replace(/\/\/[^:]+:[^@]+@/, '//*****:*****@')}`);
+    log.debug(
+      `Routing ${targetHost} → ${provider} → key ${activeKeyId} → ${proxyUrl.replace(/\/\/[^:]+:[^@]+@/, "//*****:*****@")}`,
+    );
     return proxyUrl;
   }
 
@@ -325,7 +330,7 @@ export class ProxyRouter {
 
     socket.write(
       `CONNECT ${targetHost}:${targetPort} HTTP/1.1\r\n` +
-      `Host: ${targetHost}:${targetPort}\r\n\r\n`,
+        `Host: ${targetHost}:${targetPort}\r\n\r\n`,
     );
 
     await new Promise<void>((resolve, reject) => {
@@ -338,9 +343,11 @@ export class ProxyRouter {
         socket.off("data", onData);
         socket.off("error", onError);
         socket.destroy();
-        reject(new Error(
-          `HTTP CONNECT handshake to ${proxyHost}:${proxyPort} for ${targetHost}:${targetPort} timed out after ${HANDSHAKE_TIMEOUT_MS}ms`,
-        ));
+        reject(
+          new Error(
+            `HTTP CONNECT handshake to ${proxyHost}:${proxyPort} for ${targetHost}:${targetPort} timed out after ${HANDSHAKE_TIMEOUT_MS}ms`,
+          ),
+        );
       }, HANDSHAKE_TIMEOUT_MS);
 
       const onData = (chunk: Buffer) => {
@@ -443,9 +450,7 @@ export class ProxyRouter {
     const proxyUrl = new URL(upstreamProxyUrl);
     const proxyHost = proxyUrl.hostname;
     const proxyPort = parseInt(proxyUrl.port || "8080", 10);
-    const proxyAuth = proxyUrl.username
-      ? `${proxyUrl.username}:${proxyUrl.password}`
-      : null;
+    const proxyAuth = proxyUrl.username ? `${proxyUrl.username}:${proxyUrl.password}` : null;
 
     // Connect to per-key proxy (routed through system proxy if configured)
     const proxySocket = await this.connectToHost(proxyHost, proxyPort);
@@ -472,9 +477,11 @@ export class ProxyRouter {
         proxySocket.off("data", onData);
         proxySocket.off("error", onError);
         proxySocket.destroy();
-        reject(new Error(
-          `Upstream proxy ${proxyHost}:${proxyPort} CONNECT handshake for ${targetHost}:${targetPort} timed out after ${HANDSHAKE_TIMEOUT_MS}ms`,
-        ));
+        reject(
+          new Error(
+            `Upstream proxy ${proxyHost}:${proxyPort} CONNECT handshake for ${targetHost}:${targetPort} timed out after ${HANDSHAKE_TIMEOUT_MS}ms`,
+          ),
+        );
       }, HANDSHAKE_TIMEOUT_MS);
 
       const onData = (chunk: Buffer) => {

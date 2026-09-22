@@ -50,7 +50,7 @@ export function AddChannelAccountModal({
     setEnabled((existingAccount?.config.enabled as boolean) ?? true);
 
     const initialData: Record<string, any> = {};
-    schema.fields.forEach(field => {
+    schema.fields.forEach((field) => {
       if (existingAccount?.config[field.id] !== undefined) {
         const raw = existingAccount.config[field.id];
         if (field.type === "tags" && Array.isArray(raw)) {
@@ -145,7 +145,7 @@ export function AddChannelAccountModal({
         config.enabled = enabled;
       }
 
-      schema.fields.forEach(field => {
+      schema.fields.forEach((field) => {
         // Skip fields hidden by showWhen
         if (field.showWhen) {
           const depValue = formData[field.showWhen.field];
@@ -232,10 +232,7 @@ export function AddChannelAccountModal({
         >
           <div>
             <p>{t("channels.errorChannelNotSupported", { channelId })}</p>
-            <button
-              className="btn btn-primary"
-              onClick={handleCancel}
-            >
+            <button className="btn btn-primary" onClick={handleCancel}>
               {t("channels.buttonCancel")}
             </button>
           </div>
@@ -264,12 +261,14 @@ export function AddChannelAccountModal({
               className="input-full"
               placeholder={t("channels.fieldDisplayNamePlaceholder")}
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           {error && <TkAlert tone="danger">{error}</TkAlert>}
           <div className="modal-actions">
-            <button className="btn btn-secondary" onClick={handleCancel}>{t("channels.buttonCancel")}</button>
+            <button className="btn btn-secondary" onClick={handleCancel}>
+              {t("channels.buttonCancel")}
+            </button>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
               {saving ? t("channels.buttonSaving") : t("channels.buttonUpdate")}
             </button>
@@ -283,7 +282,11 @@ export function AddChannelAccountModal({
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      title={isEdit ? t("channels.modalTitleEdit", { channel: channelLabel }) : t("channels.modalTitleAdd", { channel: channelLabel })}
+      title={
+        isEdit
+          ? t("channels.modalTitleEdit", { channel: channelLabel })
+          : t("channels.modalTitleAdd", { channel: channelLabel })
+      }
       maxWidth={600}
     >
       <div className="modal-form-col modal-form-relative">
@@ -295,9 +298,7 @@ export function AddChannelAccountModal({
         )}
         {/* Display Name */}
         <div>
-          <label className="form-label-block">
-            {t("channels.fieldDisplayName")}
-          </label>
+          <label className="form-label-block">{t("channels.fieldDisplayName")}</label>
           <input
             type="text"
             name="displayName"
@@ -307,72 +308,69 @@ export function AddChannelAccountModal({
             placeholder={t("channels.fieldDisplayNamePlaceholder")}
             className="input-full"
           />
-          <div className="form-hint">
-            {t("channels.fieldDisplayNameHint")}
-          </div>
+          <div className="form-hint">{t("channels.fieldDisplayNameHint")}</div>
         </div>
 
         {/* Dynamic channel-specific fields */}
-        {schema.fields.filter(field => {
-          if (!field.showWhen) return true;
-          const depValue = formData[field.showWhen.field];
-          if (Array.isArray(field.showWhen.value)) {
-            return field.showWhen.value.includes(depValue);
-          }
-          return depValue === field.showWhen.value;
-        }).map(field => (
-          <div key={field.id}>
-            <label className="form-label-block">
-              {t(field.label)}{field.required && !isEdit && " *"}
-              {field.required && isEdit && field.isSecret && ""}
-            </label>
-            {field.type === "select" ? (
-              <Select
-                value={formData[field.id] || ""}
-                onChange={(v) => setFormData({...formData, [field.id]: v})}
-                options={(field.options ?? []).map(opt => ({
-                  value: opt.value,
-                  label: opt.label.startsWith("channels.") ? t(opt.label) : opt.label,
-                }))}
-              />
-            ) : field.type === "tags" ? (
-              <TagInput
-                tags={Array.isArray(formData[field.id]) ? formData[field.id] as string[] : []}
-                onChange={(tags) => setFormData({...formData, [field.id]: tags})}
-                placeholder={field.placeholder ? t(field.placeholder) : ""}
-              />
-            ) : field.type === "textarea" ? (
-              <textarea
-                value={formData[field.id] || ""}
-                onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
-                placeholder={field.placeholder ? t(field.placeholder) : ""}
-                rows={4}
-                className="input-full textarea-resize-vertical"
-              />
-            ) : (
-              <input
-                type={field.type}
-                name={field.id}
-                autoComplete={field.type === "password" ? "off" : undefined}
-                value={formData[field.id] || ""}
-                onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
-                placeholder={
-                  field.placeholder
-                    ? t(field.placeholder)
-                    : isEdit && field.isSecret
-                    ? t("channels.fieldBotTokenPlaceholderEdit")
-                    : ""
-                }
-                className={`input-full${field.type === "password" ? " input-mono" : ""}`}
-              />
-            )}
-            {field.hint && (
-              <div className="form-hint">
-                {t(field.hint)}
-              </div>
-            )}
-          </div>
-        ))}
+        {schema.fields
+          .filter((field) => {
+            if (!field.showWhen) return true;
+            const depValue = formData[field.showWhen.field];
+            if (Array.isArray(field.showWhen.value)) {
+              return field.showWhen.value.includes(depValue);
+            }
+            return depValue === field.showWhen.value;
+          })
+          .map((field) => (
+            <div key={field.id}>
+              <label className="form-label-block">
+                {t(field.label)}
+                {field.required && !isEdit && " *"}
+                {field.required && isEdit && field.isSecret && ""}
+              </label>
+              {field.type === "select" ? (
+                <Select
+                  value={formData[field.id] || ""}
+                  onChange={(v) => setFormData({ ...formData, [field.id]: v })}
+                  options={(field.options ?? []).map((opt) => ({
+                    value: opt.value,
+                    label: opt.label.startsWith("channels.") ? t(opt.label) : opt.label,
+                  }))}
+                />
+              ) : field.type === "tags" ? (
+                <TagInput
+                  tags={Array.isArray(formData[field.id]) ? (formData[field.id] as string[]) : []}
+                  onChange={(tags) => setFormData({ ...formData, [field.id]: tags })}
+                  placeholder={field.placeholder ? t(field.placeholder) : ""}
+                />
+              ) : field.type === "textarea" ? (
+                <textarea
+                  value={formData[field.id] || ""}
+                  onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                  placeholder={field.placeholder ? t(field.placeholder) : ""}
+                  rows={4}
+                  className="input-full textarea-resize-vertical"
+                />
+              ) : (
+                <input
+                  type={field.type}
+                  name={field.id}
+                  autoComplete={field.type === "password" ? "off" : undefined}
+                  value={formData[field.id] || ""}
+                  onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                  placeholder={
+                    field.placeholder
+                      ? t(field.placeholder)
+                      : isEdit && field.isSecret
+                        ? t("channels.fieldBotTokenPlaceholderEdit")
+                        : ""
+                  }
+                  className={`input-full${field.type === "password" ? " input-mono" : ""}`}
+                />
+              )}
+              {field.hint && <div className="form-hint">{t(field.hint)}</div>}
+            </div>
+          ))}
 
         {/* Enabled Toggle (if supported by channel) */}
         {schema.commonFields?.enabled && (
@@ -399,19 +397,15 @@ export function AddChannelAccountModal({
 
         {/* Action Buttons */}
         <div className="modal-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={handleCancel}
-            disabled={saving}
-          >
+          <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
             {t("channels.buttonCancel")}
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? t("channels.buttonSaving") : isEdit ? t("channels.buttonUpdate") : t("channels.buttonCreate")}
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving
+              ? t("channels.buttonSaving")
+              : isEdit
+                ? t("channels.buttonUpdate")
+                : t("channels.buttonCreate")}
           </button>
         </div>
       </div>

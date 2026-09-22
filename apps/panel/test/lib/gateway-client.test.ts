@@ -16,14 +16,22 @@ class TestSocket {
   readyState = 0;
   frames: Array<{ id: string; method: string; params: Record<string, unknown> }> = [];
   listeners = new Map<string, (event: { data?: string }) => void>();
-  close = vi.fn(() => { this.readyState = 3; });
+  close = vi.fn(() => {
+    this.readyState = 3;
+  });
 
-  constructor() { TestSocket.instances.push(this); }
+  constructor() {
+    TestSocket.instances.push(this);
+  }
   addEventListener(name: string, handler: (event: { data?: string }) => void) {
     this.listeners.set(name, handler);
   }
-  send(raw: string) { this.frames.push(JSON.parse(raw)); }
-  message(frame: unknown) { this.listeners.get("message")?.({ data: JSON.stringify(frame) }); }
+  send(raw: string) {
+    this.frames.push(JSON.parse(raw));
+  }
+  message(frame: unknown) {
+    this.listeners.get("message")?.({ data: JSON.stringify(frame) });
+  }
   open(nonce = "nonce") {
     this.readyState = TestSocket.OPEN;
     this.message({ type: "event", event: "connect.challenge", payload: { nonce } });
@@ -34,14 +42,23 @@ class TestSocket {
   }
   accept() {
     const connect = this.frames.find((frame) => frame.method === "connect")!;
-    this.message({ type: "res", id: connect.id, ok: true, payload: { type: "hello-ok", protocol: 4 } });
+    this.message({
+      type: "res",
+      id: connect.id,
+      ok: true,
+      payload: { type: "hello-ok", protocol: 4 },
+    });
   }
 }
 
 describe("GatewayChatClient handshake lifecycle", () => {
   const clients: GatewayChatClient[] = [];
   function createClient(options: Partial<ConstructorParameters<typeof GatewayChatClient>[0]> = {}) {
-    const client = new GatewayChatClient({ url: "ws://test.invalid", autoStartKeepalive: false, ...options });
+    const client = new GatewayChatClient({
+      url: "ws://test.invalid",
+      autoStartKeepalive: false,
+      ...options,
+    });
     clients.push(client);
     client.start();
     return client;
@@ -51,7 +68,9 @@ describe("GatewayChatClient handshake lifecycle", () => {
     TestSocket.instances = [];
     vi.stubGlobal("WebSocket", TestSocket);
     vi.stubGlobal("navigator", { platform: "test", language: "en", userAgent: "test" });
-    identityMocks.load.mockReset().mockResolvedValue({ deviceId: "device", publicKey: "public", sign: identityMocks.sign });
+    identityMocks.load
+      .mockReset()
+      .mockResolvedValue({ deviceId: "device", publicKey: "public", sign: identityMocks.sign });
     identityMocks.sign.mockReset().mockResolvedValue("signature");
   });
   afterEach(() => {
@@ -67,7 +86,9 @@ describe("GatewayChatClient handshake lifecycle", () => {
     const ws = TestSocket.instances[0];
     ws.open();
     expect(client.connected).toBe(false);
-    await expect(client.request("chat.history", { sessionKey: "main" })).rejects.toThrow("gateway not connected");
+    await expect(client.request("chat.history", { sessionKey: "main" })).rejects.toThrow(
+      "gateway not connected",
+    );
     await vi.advanceTimersByTimeAsync(0);
     expect(ws.frames.map((frame) => frame.method)).toEqual(["connect"]);
     expect(client.connected).toBe(false);
@@ -96,7 +117,12 @@ describe("GatewayChatClient handshake lifecycle", () => {
 
   it("ignores a previous socket's delayed signature and late close after reconnect", async () => {
     let resolveSignature!: (value: string) => void;
-    identityMocks.sign.mockImplementationOnce(() => new Promise<string>((resolve) => { resolveSignature = resolve; }));
+    identityMocks.sign.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveSignature = resolve;
+        }),
+    );
     const client = createClient();
     const old = TestSocket.instances[0];
     old.open("old");

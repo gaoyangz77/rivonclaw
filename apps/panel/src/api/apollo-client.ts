@@ -47,7 +47,9 @@ export function createApolloClient() {
  */
 export function getClient(): ApolloClient {
   if (!_client) {
-    throw new Error("Apollo client not initialised — getClient() called before createApolloClient()");
+    throw new Error(
+      "Apollo client not initialised — getClient() called before createApolloClient()",
+    );
   }
   return _client;
 }

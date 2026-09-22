@@ -1,13 +1,7 @@
 import { InfoIcon } from "../../../components/icons.js";
 import { TkTooltip } from "../../../components/design-system/index.js";
 
-export function AffiliateMetricLabel({
-  label,
-  tooltip,
-}: {
-  label: string;
-  tooltip: string;
-}) {
+export function AffiliateMetricLabel({ label, tooltip }: { label: string; tooltip: string }) {
   return (
     <span className="affiliate-metric-label">
       <span>{label}</span>

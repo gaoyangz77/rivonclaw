@@ -14,10 +14,10 @@ import { IMAGE_EXPIRED_PLACEHOLDER, type ChatImage, type ChatMessage } from "./c
 
 interface CachedImageRecord {
   sessionKey: string;
-  idempotencyKey: string;  // unique per send — primary matching key
-  timestamp: number;       // fallback for old records without idempotencyKey
+  idempotencyKey: string; // unique per send — primary matching key
+  timestamp: number; // fallback for old records without idempotencyKey
   images: ChatImage[];
-  savedAt: number;         // for 7-day expiry
+  savedAt: number; // for 7-day expiry
 }
 
 const DB_NAME = "rivonclaw-image-cache";
@@ -68,8 +68,14 @@ export async function saveImages(
     savedAt: Date.now(),
   } satisfies CachedImageRecord);
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => { db.close(); resolve(); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }
 
@@ -102,7 +108,11 @@ export function matchCachedImages(
       const idx = byKey.get(msg.idempotencyKey);
       if (idx !== undefined && !used.has(idx)) {
         used.add(idx);
-        return { ...msg, images: cached[idx].images, text: msg.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim() };
+        return {
+          ...msg,
+          images: cached[idx].images,
+          text: msg.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim(),
+        };
       }
     }
 
@@ -119,7 +129,11 @@ export function matchCachedImages(
     }
     if (bestIdx !== -1) {
       used.add(bestIdx);
-      return { ...msg, images: cached[bestIdx].images, text: msg.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim() };
+      return {
+        ...msg,
+        images: cached[bestIdx].images,
+        text: msg.text.replaceAll(IMAGE_EXPIRED_PLACEHOLDER, "").trim(),
+      };
     }
 
     return msg;
@@ -147,7 +161,10 @@ export async function restoreImages(
       db.close();
       resolve(matchCachedImages(req.result, messages));
     };
-    req.onerror = () => { db.close(); reject(req.error); };
+    req.onerror = () => {
+      db.close();
+      reject(req.error);
+    };
   });
 }
 
@@ -166,7 +183,10 @@ export async function clearImages(sessionKey?: string): Promise<void> {
     const cursorReq = idx.openCursor(sessionKey);
     cursorReq.onsuccess = () => {
       const cursor = cursorReq.result;
-      if (cursor) { cursor.delete(); cursor.continue(); }
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+      }
     };
   } else {
     const cutoff = Date.now() - MAX_AGE_MS;
@@ -174,12 +194,21 @@ export async function clearImages(sessionKey?: string): Promise<void> {
     const cursorReq = idx.openCursor(IDBKeyRange.upperBound(cutoff));
     cursorReq.onsuccess = () => {
       const cursor = cursorReq.result;
-      if (cursor) { cursor.delete(); cursor.continue(); }
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+      }
     };
   }
 
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => { db.close(); resolve(); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }

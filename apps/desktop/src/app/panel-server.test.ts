@@ -11,7 +11,10 @@ let server: Server;
 let storage: Storage;
 let baseUrl: string;
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<{ status: number; body: T }> {
+async function fetchJson<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<{ status: number; body: T }> {
   const res = await fetch(baseUrl + path, {
     headers: { "Content-Type": "application/json" },
     ...init,
@@ -58,7 +61,9 @@ describe("panel-server API", () => {
   // --- Settings ---
   describe("Settings", () => {
     it("GET /api/settings returns default settings initially", async () => {
-      const { status, body } = await fetchJson<{ settings: Record<string, string> }>("/api/settings");
+      const { status, body } = await fetchJson<{ settings: Record<string, string> }>(
+        "/api/settings",
+      );
       expect(status).toBe(200);
       expect(body.settings).toEqual({});
     });

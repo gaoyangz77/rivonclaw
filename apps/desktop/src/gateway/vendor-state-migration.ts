@@ -13,7 +13,10 @@ export async function migrateVendorStateInChild(
   options: VendorStateMigrationOptions,
 ): Promise<void> {
   const startedAt = Date.now();
-  const workerPath = join(dirname(fileURLToPath(import.meta.url)), "vendor-state-migration-worker.cjs");
+  const workerPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "vendor-state-migration-worker.cjs",
+  );
   log.info("Starting vendor state migration in Node child process");
 
   await new Promise<void>((resolve, reject) => {
@@ -32,9 +35,13 @@ export async function migrateVendorStateInChild(
     errors.on("line", (line) => log.warn(line));
 
     const progress = setInterval(() => {
-      log.info(`Vendor state migration still running (${Math.round((Date.now() - startedAt) / 1000)}s)`);
+      log.info(
+        `Vendor state migration still running (${Math.round((Date.now() - startedAt) / 1000)}s)`,
+      );
     }, 10_000);
-    const stopChild = () => { child.kill(); };
+    const stopChild = () => {
+      child.kill();
+    };
     process.once("exit", stopChild);
     child.on("message", (message: unknown) => {
       if (!message || typeof message !== "object") return;
@@ -42,7 +49,9 @@ export async function migrateVendorStateInChild(
       if (result.ok === true) completed = true;
       if (result.ok === false && typeof result.error === "string") failure = result.error;
     });
-    child.once("error", (error) => { failure = error.message; });
+    child.once("error", (error) => {
+      failure = error.message;
+    });
     child.once("close", (code, signal) => {
       clearInterval(progress);
       process.removeListener("exit", stopChild);

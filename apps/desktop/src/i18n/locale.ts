@@ -25,7 +25,7 @@ const STAFF_LANGUAGE_BY_LOCALE: Record<AppLocale, StaffLanguage> = {
 
 export function normalizeAppLocale(locale: string | undefined | null): AppLocale {
   const language = locale?.trim().toLowerCase().split(/[-_]/)[0];
-  return SUPPORTED_LOCALES.includes(language as AppLocale) ? language as AppLocale : "en";
+  return SUPPORTED_LOCALES.includes(language as AppLocale) ? (language as AppLocale) : "en";
 }
 
 export function getSystemLocale(): AppLocale {

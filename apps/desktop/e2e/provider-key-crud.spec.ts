@@ -13,7 +13,7 @@ import { getNavigationButton } from "./shell-helpers.js";
 async function dismissModals(window: import("@playwright/test").Page) {
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
     await backdrop.click({ position: { x: 5, y: 5 }, force: true });
     await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
   }
@@ -43,9 +43,15 @@ async function navigateToModels(window: import("@playwright/test").Page) {
   await expect(btn).toHaveAttribute("aria-current", "page");
 }
 
-async function seedKey(apiBase: string, opts: {
-  provider: string; label: string; models: string[]; apiKey: string;
-}) {
+async function seedKey(
+  apiBase: string,
+  opts: {
+    provider: string;
+    label: string;
+    models: string[];
+    apiKey: string;
+  },
+) {
   const res = await fetch(`${apiBase}/api/provider-keys`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -69,7 +75,6 @@ async function deleteKey(apiBase: string, id: string) {
 }
 
 test.describe("Provider Key CRUD — UI rendering", () => {
-
   test("create via API → key card appears on page load", async ({ window, apiBase }) => {
     const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
     test.skip(!zhipuKey, "E2E_ZHIPU_API_KEY required");

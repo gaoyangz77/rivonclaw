@@ -161,15 +161,9 @@ describe("syncOfficialPresetSkills", () => {
     const zip = new AdmZip();
     zip.addFile(
       "affiliate-workflow/SKILL.md",
-      Buffer.from(
-        "---\nname: affiliate-workflow\nversion: 1.0.0\n---\n",
-        "utf-8",
-      ),
+      Buffer.from("---\nname: affiliate-workflow\nversion: 1.0.0\n---\n", "utf-8"),
     );
-    zip.addFile(
-      "affiliate-workflow/../../outside.txt",
-      Buffer.from("must not escape", "utf-8"),
-    );
+    zip.addFile("affiliate-workflow/../../outside.txt", Buffer.from("must not escape", "utf-8"));
     mocks.fetch.mockImplementation(async (url: string | URL) => {
       const href = url.toString();
       if (href.endsWith("/skills/manifest.json")) {

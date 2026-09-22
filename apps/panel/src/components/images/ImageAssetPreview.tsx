@@ -17,7 +17,9 @@ export function ImageAssetPreview({
   failedLabel,
   labelMode = "visible",
 }: ImageAssetPreviewProps) {
-  const [status, setStatus] = useState<"empty" | "loading" | "loaded" | "failed">(src ? "loading" : "empty");
+  const [status, setStatus] = useState<"empty" | "loading" | "loaded" | "failed">(
+    src ? "loading" : "empty",
+  );
 
   useEffect(() => {
     setStatus(src ? "loading" : "empty");
@@ -39,9 +41,7 @@ export function ImageAssetPreview({
         />
       )}
       {label && status !== "loaded" && (
-        <span className={labelMode === "hidden" ? "sr-only" : undefined}>
-          {label}
-        </span>
+        <span className={labelMode === "hidden" ? "sr-only" : undefined}>{label}</span>
       )}
     </div>
   );

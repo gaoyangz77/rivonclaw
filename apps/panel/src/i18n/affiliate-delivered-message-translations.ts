@@ -74,8 +74,7 @@ export const AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS = {
       affiliateWorkspace: {
         proposalExecutionDescriptions: {
           SEND_MESSAGE_EXECUTED: "Sistem sudah mengirim pesan ini ke kreator.",
-          SEND_MESSAGE_NOT_SENT:
-            "Proposal ini berakhir tanpa ada pesan yang sampai ke kreator.",
+          SEND_MESSAGE_NOT_SENT: "Proposal ini berakhir tanpa ada pesan yang sampai ke kreator.",
           SEND_MESSAGE_CONTENT_CLEARED:
             "Proposal ini dibuat sebelum pesan mulai disimpan, jadi teksnya tidak tersimpan dan tidak bisa ditampilkan.",
         },
@@ -100,8 +99,7 @@ export const AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS = {
       affiliateWorkspace: {
         proposalExecutionDescriptions: {
           SEND_MESSAGE_EXECUTED: "ระบบส่งข้อความนี้ให้ครีเอเตอร์แล้ว",
-          SEND_MESSAGE_NOT_SENT:
-            "ข้อเสนอนี้สิ้นสุดลงโดยไม่มีข้อความส่งถึงครีเอเตอร์",
+          SEND_MESSAGE_NOT_SENT: "ข้อเสนอนี้สิ้นสุดลงโดยไม่มีข้อความส่งถึงครีเอเตอร์",
           SEND_MESSAGE_CONTENT_CLEARED:
             "ข้อเสนอนี้เกิดขึ้นก่อนที่ระบบจะเก็บเนื้อหาข้อความ จึงไม่มีข้อความต้นฉบับให้แสดง",
         },

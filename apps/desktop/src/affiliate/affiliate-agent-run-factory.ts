@@ -37,11 +37,12 @@ export function buildAffiliateAgentRunRequest(
   assertFormalSampleAgendaHasPredictionEvidence(workItem);
 
   const idempotencySuffix = isSampleReviewWorkItem(workItem)
-    ? resolveSampleApplicationRecordId(workItem) ??
+    ? (resolveSampleApplicationRecordId(workItem) ??
       workItem.affiliateCollaborationId ??
-      workItem.creatorRelationshipId
+      workItem.creatorRelationshipId)
     : workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
-      ? workItem.creatorRelationship?.lastInboundLifecycleEventId ?? workItem.creatorRelationshipId
+      ? (workItem.creatorRelationship?.lastInboundLifecycleEventId ??
+        workItem.creatorRelationshipId)
       : null;
 
   return {
@@ -54,15 +55,15 @@ export function buildAffiliateAgentRunRequest(
       workItem.id,
       idempotencySuffix,
       workItem.versionAt,
-    ].filter(Boolean).join(":"),
+    ]
+      .filter(Boolean)
+      .join(":"),
     abortActive: false,
     predictionCacheIds: collectWorkingAgendaPredictionCacheIds(workItem),
   };
 }
 
-function assertFormalSampleAgendaHasPredictionEvidence(
-  workItem: GQL.AffiliateWorkItem,
-): void {
+function assertFormalSampleAgendaHasPredictionEvidence(workItem: GQL.AffiliateWorkItem): void {
   const missingEvidence = resolveOpenAgentAgenda(workItem).find((item) => {
     if (item.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected) {
       return false;
@@ -80,14 +81,14 @@ function assertFormalSampleAgendaHasPredictionEvidence(
   }
 }
 
-export function resolveSampleApplicationRecordId(
-  workItem: GQL.AffiliateWorkItem,
-): string | null {
-  return workItem.sampleApplicationRecord?.id ??
+export function resolveSampleApplicationRecordId(workItem: GQL.AffiliateWorkItem): string | null {
+  return (
+    workItem.sampleApplicationRecord?.id ??
     workItem.context?.primarySampleApplication?.id ??
     workItem.agentWorkingAgendaItems?.find((item) => item.sampleApplicationRecordId)
       ?.sampleApplicationRecordId ??
-    null;
+    null
+  );
 }
 
 /**
@@ -256,50 +257,42 @@ const SAMPLE_TERMINAL_CAUSE_PROSE: Record<
    * this Creator — is the part the Creator is owed, and it holds on every path.
    */
   [GQL.AffiliateSampleTerminalCause.PlatformForcedRejection]: {
-    fact:
-      "The platform refused the review call for this application itself, so the decision could not be carried out and the application was closed as a rejection on those grounds. This records a platform failure, not a judgement: nobody on our side decided against this Creator, this product, or this application. The frozen record does not say which decision was blocked, so do not tell the Creator we had approved them.",
+    fact: "The platform refused the review call for this application itself, so the decision could not be carried out and the application was closed as a rejection on those grounds. This records a platform failure, not a judgement: nobody on our side decided against this Creator, this product, or this application. The frozen record does not say which decision was blocked, so do not tell the Creator we had approved them.",
     suggestedNextStep:
       "Contact the Creator. This is the one ending they have no way to find out about, and they are owed the honest fact that the application could not be completed because of an error on our side rather than because we were unwilling. Do not quote the platform error code or request id.",
   },
   [GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired]: {
-    fact:
-      "Nobody reviewed this application before its approval window lapsed, so the platform closed it. It was never judged at all — the Creator applied and was left waiting on an answer that never came, and the lapse is ours, not theirs.",
+    fact: "Nobody reviewed this application before its approval window lapsed, so the platform closed it. It was never judged at all — the Creator applied and was left waiting on an answer that never came, and the lapse is ours, not theirs.",
     suggestedNextStep:
       "Contact the Creator and acknowledge the lapse plainly, without blaming them or the platform. If the seller still wants this Creator, say what happens next.",
   },
   [GQL.AffiliateSampleTerminalCause.CreatorWithdrew]: {
-    fact:
-      "The Creator withdrew this application themselves, before anyone on our side approved or rejected it. It was their own decision and they already know they made it.",
+    fact: "The Creator withdrew this application themselves, before anyone on our side approved or rejected it. It was their own decision and they already know they made it.",
     suggestedNextStep:
       "No outreach about this application. Telling a Creator what they themselves just did is noise, and asking them to reconsider is worse. Reply only if separate live business in this relationship still needs an answer, and then answer that business rather than the withdrawal.",
   },
   [GQL.AffiliateSampleTerminalCause.ContentObligationUnfulfilled]: {
-    fact:
-      "The Creator received the sample and the content they committed to did not arrive within the agreed timeframe, so the platform closed the application. The record carries that outcome and nothing at all about why it happened.",
+    fact: "The Creator received the sample and the content they committed to did not arrive within the agreed timeframe, so the platform closed the application. The record carries that outcome and nothing at all about why it happened.",
     suggestedNextStep:
       "No outreach is owed. A reprimand or a demand for an explanation would assert bad faith we have no evidence of. If the seller wants to keep this relationship, a factual, non-accusatory check-in is the most to propose; otherwise leave it to the seller's own tagging and protection rules.",
   },
   [GQL.AffiliateSampleTerminalCause.SellerDidNotShip]: {
-    fact:
-      "The seller approved this application and then did not ship the sample within the platform's required timeframe, so the platform cancelled it. The Creator was waiting on us throughout, and the miss is ours.",
+    fact: "The seller approved this application and then did not ship the sample within the platform's required timeframe, so the platform cancelled it. The Creator was waiting on us throughout, and the miss is ours.",
     suggestedNextStep:
       "Contact the Creator and own the miss plainly. Do not blame the platform, do not blame them, and do not invent a shipping reason the record does not carry. If the seller still wants the collaboration, say what happens next.",
   },
   [GQL.AffiliateSampleTerminalCause.Unfulfillable]: {
-    fact:
-      "The platform cancelled this application because producing the content had become impossible for reasons outside the Creator's control. The platform establishes that much and does not tell us which reason.",
+    fact: "The platform cancelled this application because producing the content had become impossible for reasons outside the Creator's control. The platform establishes that much and does not tell us which reason.",
     suggestedNextStep:
       "Contact the Creator to make clear this was not a judgement about them, and give no specific reason — we do not have one. If the specific reason decides what happens next, request human review instead of guessing.",
   },
   [GQL.AffiliateSampleTerminalCause.PlatformOperationsClosed]: {
-    fact:
-      "TikTok operations staff closed this application themselves, cancelling it or marking it failed. Neither the seller nor the Creator decided it, and the platform does not tell us why.",
+    fact: "TikTok operations staff closed this application themselves, cancelling it or marking it failed. Neither the seller nor the Creator decided it, and the platform does not tell us why.",
     suggestedNextStep:
       "Contact the Creator only if this relationship warrants it, and then say only what is known — that the platform closed the application. Never suggest a policy violation or an account problem; an unfounded hint at either damages the Creator far more than silence.",
   },
   [GQL.AffiliateSampleTerminalCause.Undetermined]: {
-    fact:
-      "This application reached a terminal state and the transition the platform recorded names no ending we can read. We do not know why it ended.",
+    fact: "This application reached a terminal state and the transition the platform recorded names no ending we can read. We do not know why it ended.",
     suggestedNextStep:
       "No outreach on the strength of this alone. If contact is warranted by other live business in this relationship, confine yourself to the fact that the application is closed. If a reason is genuinely needed to decide what happens next, request human review and say the cause was undetermined.",
   },
@@ -359,16 +352,18 @@ function renderEscalationResolution(item: GQL.AffiliateRelationshipAgendaItem): 
   return [
     `   Escalation Resolved At: ${item.escalationResolvedAt ?? "(unavailable)"}`,
     `   Escalation — the question you asked staff: ${item.escalationQuestion ?? "(unavailable)"}`,
-    ...(item.escalationContext?.trim() ? [`   Escalation — the context you gave staff: ${item.escalationContext}`] : []),
+    ...(item.escalationContext?.trim()
+      ? [`   Escalation — the context you gave staff: ${item.escalationContext}`]
+      : []),
     `   Staff Decision: ${item.escalationDecision}`,
-    ...(item.escalationInstructions?.trim() ? [`   Staff Instructions: ${item.escalationInstructions}`] : []),
+    ...(item.escalationInstructions?.trim()
+      ? [`   Staff Instructions: ${item.escalationInstructions}`]
+      : []),
     "   This is staff's final answer to the escalation you raised on this Relationship. Act on it now: tell the Creator the outcome in the conversation where the matter was raised, then continue the original work it unblocked. Do not ask staff the same question again.",
   ];
 }
 
-function renderSampleTerminalState(
-  terminal: GQL.AffiliateSampleTerminalStateContext,
-): string[] {
+function renderSampleTerminalState(terminal: GQL.AffiliateSampleTerminalStateContext): string[] {
   const prose = SAMPLE_TERMINAL_CAUSE_PROSE[terminal.cause];
   if (!prose) {
     throw new Error(
@@ -389,7 +384,6 @@ function renderSampleTerminalState(
   lines.push(`   Sample Terminal Suggested Next Step: ${prose.suggestedNextStep}`);
   return lines;
 }
-
 
 /**
  * Deliberately absent: the Working Agenda no longer tells the Agent whether an
@@ -430,9 +424,7 @@ function renderSampleTerminalState(
  * Resolved per item rather than per Relationship because a Relationship
  * routinely spans several shops, each with its own reference.
  */
-function renderMinExpectedSalesReference(
-  item: GQL.AffiliateRelationshipAgendaItem,
-): string[] {
+function renderMinExpectedSalesReference(item: GQL.AffiliateRelationshipAgendaItem): string[] {
   if (item.requiredAction !== GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication) {
     return [];
   }
@@ -478,9 +470,7 @@ function renderMinExpectedSalesReference(
  * retryability verdict is producer-side and frozen; Desktop renders it verbatim
  * and never derives one from the error text.
  */
-function renderLastFailedExecution(
-  failure: GQL.AffiliateFailedExecutionContext,
-): string[] {
+function renderLastFailedExecution(failure: GQL.AffiliateFailedExecutionContext): string[] {
   return [
     "   Previous Attempt On This Boundary: FAILED",
     `   Previous Attempt Proposal ID: ${failure.proposalId}`,
@@ -502,17 +492,13 @@ function renderLastFailedExecution(
  * Backend measures the run inside a bounded scan, and a run that fills the scan
  * is only known to be at least that long.
  */
-function renderConsecutiveFailureCount(
-  failure: GQL.AffiliateFailedExecutionContext,
-): string {
+function renderConsecutiveFailureCount(failure: GQL.AffiliateFailedExecutionContext): string {
   const count = failure.consecutiveFailureCount;
   if (typeof count !== "number") return "(attempt count unavailable)";
   return failure.consecutiveFailureCountTruncated ? `at least ${count}` : String(count);
 }
 
-function renderConversationWindow(
-  window: GQL.AffiliateConversationWindow,
-): string[] {
+function renderConversationWindow(window: GQL.AffiliateConversationWindow): string[] {
   const lines = [
     `   Conversation Window Coverage: ${window.coverage}`,
     `   Conversation Window Boundary: (${window.resolvedThroughRelationshipSequence}, ${window.lastPendingRelationshipSequence}]`,
@@ -587,8 +573,7 @@ const CANONICAL_PREDICTION_EVIDENCE_MODES = [
   "MODEL_SIGNAL_ERROR",
 ] as const;
 
-type CanonicalPredictionEvidenceMode =
-  (typeof CANONICAL_PREDICTION_EVIDENCE_MODES)[number];
+type CanonicalPredictionEvidenceMode = (typeof CANONICAL_PREDICTION_EVIDENCE_MODES)[number];
 
 type WorkingAgendaPredictionEvidenceMode =
   | CanonicalPredictionEvidenceMode
@@ -613,11 +598,13 @@ function renderWorkingAgendaPredictionEvidence(
   if (evidence.status !== GQL.AffiliatePredictionStatus.Ok) {
     return [
       "   Backend Prediction Evidence: " +
-        JSON.stringify(compactRecord({
-          ...snapshotSubjectContext(evidence),
-          predictedAt: evidence.predictedAt,
-          message: evidence.message,
-        })),
+        JSON.stringify(
+          compactRecord({
+            ...snapshotSubjectContext(evidence),
+            predictedAt: evidence.predictedAt,
+            message: evidence.message,
+          }),
+        ),
       `   Prediction Semantics: ${PREDICTION_SEMANTICS_BY_MODE.DATA_PATH_PASSTHROUGH}`,
     ];
   }
@@ -657,8 +644,7 @@ function snapshotSubjectContext(
       evidence.subject.sampleApplicationRecordId ??
       evidence.resolvedContext?.sampleApplicationRecordId ??
       null,
-    productId:
-      evidence.subject.productId ?? evidence.resolvedContext?.productId ?? null,
+    productId: evidence.subject.productId ?? evidence.resolvedContext?.productId ?? null,
   };
 }
 
@@ -747,7 +733,9 @@ function compactCanonicalPredictionEvidence(
   }
 }
 
-function canonicalFamilyError(family: Record<string, unknown>): Record<string, unknown> | undefined {
+function canonicalFamilyError(
+  family: Record<string, unknown>,
+): Record<string, unknown> | undefined {
   const error = asRecord(family.error);
   if (Object.keys(error).length === 0) return undefined;
   return compactRecord({ code: error.code, message: error.message });
@@ -798,16 +786,14 @@ function compactCanonicalSelectionIdentity(
   const compacted = compactRecord({
     effectiveScope: record.effectiveScope,
     modelVersion:
-      typeof modelVersion === "string"
-        ? modelVersion
-        : asRecord(modelVersion).modelVersionKey,
+      typeof modelVersion === "string" ? modelVersion : asRecord(modelVersion).modelVersionKey,
   });
   return Object.keys(compacted).length > 0 ? compacted : undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -816,7 +802,6 @@ function compactRecord(value: Record<string, unknown>): Record<string, unknown> 
     Object.entries(value).filter(([, child]) => child !== undefined && child !== null),
   );
 }
-
 
 function frozenRevisionIntent(
   proposal: GQL.AffiliateRevisionRequestedProposalContext,
@@ -832,11 +817,9 @@ function frozenRevisionIntent(
 function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
     workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision ||
-    (
-      workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask &&
-      workItem.processReasons?.includes(
-        GQL.AffiliateWorkProcessReason.SamplePendingReview,
-      ) === true
-    )
+    (workItem.requiredAction ===
+      GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask &&
+      workItem.processReasons?.includes(GQL.AffiliateWorkProcessReason.SamplePendingReview) ===
+        true)
   );
 }

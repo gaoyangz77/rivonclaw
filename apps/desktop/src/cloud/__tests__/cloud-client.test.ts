@@ -61,9 +61,7 @@ describe("CloudClient", () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const [, init] = mockFetch.mock.calls[0];
-      expect(init.headers).toEqual(
-        expect.objectContaining({ Authorization: "Bearer test-token" }),
-      );
+      expect(init.headers).toEqual(expect.objectContaining({ Authorization: "Bearer test-token" }));
     });
 
     it("retries on 401 after refresh", async () => {

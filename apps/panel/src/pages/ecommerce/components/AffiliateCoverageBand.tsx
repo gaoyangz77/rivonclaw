@@ -24,7 +24,10 @@ const AXIS_GUTTER = 60;
  * boundary, so the reader can see that earlier data exists and is merely
  * partial rather than absent.
  */
-export function AffiliateCoverageBand({ coverage, reserveRightGutter = false }: {
+export function AffiliateCoverageBand({
+  coverage,
+  reserveRightGutter = false,
+}: {
   coverage: GQL.AffiliateCoverage;
   /** Set on charts that carry a right-hand axis, so both gutters match. */
   reserveRightGutter?: boolean;
@@ -127,7 +130,9 @@ export function AffiliateCoverageNotice({
     return (
       <div className="affiliate-coverage-notice is-empty" role="note">
         <strong>{t("ecommerce.affiliateAnalytics.coverage.noneTitle")}</strong>
-        <p>{t("ecommerce.affiliateAnalytics.coverage.noneBody", { count: coverage.shopsSelected })}</p>
+        <p>
+          {t("ecommerce.affiliateAnalytics.coverage.noneBody", { count: coverage.shopsSelected })}
+        </p>
       </div>
     );
   }
@@ -135,7 +140,8 @@ export function AffiliateCoverageNotice({
   const limiting = coverage.limitingShops;
   // Excluding every shop that has data would leave nothing to measure, so the
   // action is only offered while at least one covered shop would remain.
-  const canExclude = Boolean(onExcludeShops) && limiting.length > 0 && shopsWithData > limiting.length;
+  const canExclude =
+    Boolean(onExcludeShops) && limiting.length > 0 && shopsWithData > limiting.length;
   const remaining = coverage.shops
     .filter((shop) => !limiting.some((limit) => limit.shopId === shop.shopId))
     .map((shop) => shop.shopId);
@@ -167,7 +173,11 @@ export function AffiliateCoverageNotice({
           </button>
         ) : null}
         {canExclude ? (
-          <button className="btn btn-secondary" type="button" onClick={() => onExcludeShops?.(remaining)}>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => onExcludeShops?.(remaining)}
+          >
             {t("ecommerce.affiliateAnalytics.coverage.excludeLimiting", { count: limiting.length })}
           </button>
         ) : null}
@@ -180,7 +190,9 @@ export function AffiliateCoverageNotice({
         </p>
       ) : null}
       {restrictToCovered ? null : (
-        <p className="affiliate-coverage-dashed">{t("ecommerce.affiliateAnalytics.coverage.dashedNote")}</p>
+        <p className="affiliate-coverage-dashed">
+          {t("ecommerce.affiliateAnalytics.coverage.dashedNote")}
+        </p>
       )}
     </div>
   );

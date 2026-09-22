@@ -36,17 +36,16 @@ function setRegistryState(params: {
   channelRegistry: TestRegistry;
   pinned?: boolean;
 }): void {
-  (globalThis as typeof globalThis & { [PLUGIN_REGISTRY_STATE]?: unknown })[
-    PLUGIN_REGISTRY_STATE
-  ] = {
-    activeRegistry: params.activeRegistry,
-    activeVersion: 1,
-    channel: {
-      registry: params.channelRegistry,
-      pinned: params.pinned ?? true,
-      version: 1,
-    },
-  };
+  (globalThis as typeof globalThis & { [PLUGIN_REGISTRY_STATE]?: unknown })[PLUGIN_REGISTRY_STATE] =
+    {
+      activeRegistry: params.activeRegistry,
+      activeVersion: 1,
+      channel: {
+        registry: params.channelRegistry,
+        pinned: params.pinned ?? true,
+        version: 1,
+      },
+    };
 }
 
 describe("OpenClaw channel registry diagnostics", () => {
@@ -91,9 +90,9 @@ describe("OpenClaw channel registry diagnostics", () => {
     });
 
     expect(inspectOpenClawChannelRegistry(["openclaw-weixin"]).issues).toEqual([]);
-    expect(warnIfOpenClawChannelRegistryInvalid("unit test", { warn: vi.fn() }, [
-      "openclaw-weixin",
-    ])).toBe(false);
+    expect(
+      warnIfOpenClawChannelRegistryInvalid("unit test", { warn: vi.fn() }, ["openclaw-weixin"]),
+    ).toBe(false);
     expect(() => assertOpenClawChannelRegistryValid(["openclaw-weixin"])).not.toThrow();
   });
 });

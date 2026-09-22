@@ -73,7 +73,11 @@ const campaigns = [
     resolvedTimeZone: "America/Los_Angeles",
     dailyOutreachTarget: 40,
     products: [
-      { productId: "product-serum", commissionRatePercent: "15", shopAdsCommissionRatePercent: "5" },
+      {
+        productId: "product-serum",
+        commissionRatePercent: "15",
+        shopAdsCommissionRatePercent: "5",
+      },
     ],
     endDays: 30,
     isSampleApprovalExempt: false,
@@ -132,7 +136,11 @@ const campaigns = [
     resolvedTimeZone: "America/Los_Angeles",
     dailyOutreachTarget: 24,
     products: [
-      { productId: "product-cleanser", commissionRatePercent: "12", shopAdsCommissionRatePercent: "0" },
+      {
+        productId: "product-cleanser",
+        commissionRatePercent: "12",
+        shopAdsCommissionRatePercent: "0",
+      },
     ],
     endDays: 45,
     isSampleApprovalExempt: false,

@@ -1,11 +1,11 @@
-import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { clickTutorialTarget, tutorialTarget } from "../targets.js";
 
-type WorkbenchTab = "pending-agent" | "all-agent" | "escalations" | "samples" | "messages"
+type WorkbenchTab = "pending-agent" | "all-agent" | "escalations" | "samples" | "messages";
 
 async function selectWorkbenchTab(tab: WorkbenchTab) {
-  clickTutorialTarget(`affiliate-workbench-tab-${tab}`)
-  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+  clickTutorialTarget(`affiliate-workbench-tab-${tab}`);
+  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }
 
 function workbenchStep(
@@ -20,7 +20,7 @@ function workbenchStep(
     ...step(id, targetId, key, placement, 5000),
     prepare: () => selectWorkbenchTab(tab),
     cleanup: () => selectWorkbenchTab(returnTab),
-  }
+  };
 }
 
 function step(
@@ -37,7 +37,7 @@ function step(
     bodyKey: `tutorial.ecommerceAffiliateAttention.${key}Body`,
     placement,
     targetTimeoutMs,
-  }
+  };
 }
 
 export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
@@ -63,7 +63,7 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
     "top",
     "escalations",
   ),
-]
+];
 
 export const ecommerceAffiliateManualWorkbenchSteps: TutorialStep[] = [
   {
@@ -108,4 +108,4 @@ export const ecommerceAffiliateManualWorkbenchSteps: TutorialStep[] = [
     "messages",
     "samples",
   ),
-]
+];

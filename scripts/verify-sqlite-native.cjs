@@ -3,7 +3,10 @@ const path = require("node:path");
 const { createRequire } = require("node:module");
 
 const sqliteDir = process.argv[2];
-if (!sqliteDir) throw new Error("Usage: node --expose-gc scripts/verify-sqlite-native.cjs <better-sqlite3 directory>");
+if (!sqliteDir)
+  throw new Error(
+    "Usage: node --expose-gc scripts/verify-sqlite-native.cjs <better-sqlite3 directory>",
+  );
 const fromSqlite = createRequire(path.join(sqliteDir, "package.json"));
 const Database = fromSqlite(sqliteDir);
 const version = fromSqlite(path.join(sqliteDir, "package.json")).version;
@@ -21,4 +24,6 @@ for (let pass = 0; pass < 30; pass++) {
   db.close();
   global.gc?.();
 }
-console.log(`[verify-sqlite-native] better-sqlite3 ${version}, ${process.versions.electron ? `Electron ${process.versions.electron}` : `Node ${process.versions.node}`}, N-API ${process.versions.napi}: bindings and GC passed`);
+console.log(
+  `[verify-sqlite-native] better-sqlite3 ${version}, ${process.versions.electron ? `Electron ${process.versions.electron}` : `Node ${process.versions.node}`}, N-API ${process.versions.napi}: bindings and GC passed`,
+);

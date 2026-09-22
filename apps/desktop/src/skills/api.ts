@@ -46,8 +46,7 @@ function isSafeOfficialZipEntry(entryName: string, localSlug: string): boolean {
   if (normalized.startsWith("/")) return false;
   const segments = normalized.split("/").filter(Boolean);
   return (
-    segments[0] === localSlug &&
-    segments.every((segment) => segment !== "." && segment !== "..")
+    segments[0] === localSlug && segments.every((segment) => segment !== "." && segment !== "..")
   );
 }
 

@@ -65,12 +65,18 @@ function createStore() {
     ingestGraphQLResponse: vi.fn((data: Record<string, unknown>) => {
       if (data.me) state.currentUser = data.me as Record<string, unknown>;
       if (data.shops) state.shops = data.shops as Array<Record<string, unknown>>;
-      if (data.platformApps) state.platformApps = data.platformApps as Array<Record<string, unknown>>;
-      if (data.adsAdvertisers) state.adsAdvertisers = data.adsAdvertisers as Array<Record<string, unknown>>;
-      if (data.billingOverview) state.billingOverview = data.billingOverview as Record<string, unknown>;
-      if (data.readWmsAccounts) state.wmsAccounts = data.readWmsAccounts as Array<Record<string, unknown>>;
-      if (data.readWarehouses) state.warehouses = data.readWarehouses as Array<Record<string, unknown>>;
-      if (data.readInventoryGoods) state.inventoryGoods = data.readInventoryGoods as Array<Record<string, unknown>>;
+      if (data.platformApps)
+        state.platformApps = data.platformApps as Array<Record<string, unknown>>;
+      if (data.adsAdvertisers)
+        state.adsAdvertisers = data.adsAdvertisers as Array<Record<string, unknown>>;
+      if (data.billingOverview)
+        state.billingOverview = data.billingOverview as Record<string, unknown>;
+      if (data.readWmsAccounts)
+        state.wmsAccounts = data.readWmsAccounts as Array<Record<string, unknown>>;
+      if (data.readWarehouses)
+        state.warehouses = data.readWarehouses as Array<Record<string, unknown>>;
+      if (data.readInventoryGoods)
+        state.inventoryGoods = data.readInventoryGoods as Array<Record<string, unknown>>;
       if (data.runProfiles) state.runProfiles = data.runProfiles as Array<Record<string, unknown>>;
       if (data.surfaces) state.surfaces = data.surfaces as Array<Record<string, unknown>>;
       if (data.toolSpecs) state.entitledTools = data.toolSpecs as Array<Record<string, unknown>>;
@@ -93,15 +99,167 @@ describe("bootstrapDesktopAuthState", () => {
     const store = createStore();
     const queryResults = new Map<string, Record<string, unknown>>([
       [TOOL_SPECS_SYNC_QUERY, { toolSpecs: [{ id: "tool-1" }] }],
-      [INIT_SURFACES_QUERY, { surfaces: [{ id: "surface-1", name: "Surface", userId: "u1", allowedToolIds: [], createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
-      [INIT_RUN_PROFILES_QUERY, { runProfiles: [{ id: "profile-1", name: "Profile", userId: "u1", surfaceId: "surface-1", selectedToolIds: [] }] }],
-      [INIT_SHOPS_QUERY, { shops: [{ id: "shop-1", platform: "tiktok", platformAppId: "app-1", platformShopId: "p-shop-1", shopName: "Shop 1", authStatus: "ok", region: "US", accessTokenExpiresAt: null, refreshTokenExpiresAt: null, services: null }] }],
-      [INIT_ADS_ADVERTISERS_QUERY, { adsAdvertisers: [{ id: "advertiser-1", platform: "tiktok", platformAppId: "app-1", advertiserId: "tt-advertiser-1", advertiserName: "Advertiser 1", authStatus: "AUTHORIZED", businessCenterId: null, currency: "USD", timezone: "America/Los_Angeles", countryCode: "US", role: "ADMIN", accessTokenExpiresAt: null, refreshTokenExpiresAt: null, metadata: null, createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
-      [INIT_PLATFORM_APPS_QUERY, { platformApps: [{ id: "app-1", platform: "tiktok", market: "US", sellerType: "LOCAL", status: "ACTIVE", label: "TikTok US", apiBaseUrl: "https://example.com", authLinkUrl: "https://example.com/auth" }] }],
-      [INIT_BILLING_OVERVIEW_QUERY, { billingOverview: { accountLlm: { planId: null, entitlement: { scopeType: "ACCOUNT", scopeId: "u1", product: "LLM_USAGE", allowed: false, code: "PAYMENT_REQUIRED", source: null, validUntil: null, usage: [] } }, shops: [] } }],
-      [INIT_WMS_ACCOUNTS_QUERY, { readWmsAccounts: [{ id: "wms-1", label: "WMS 1", provider: "YEJOIN", endpoint: "https://wms.example.com", status: "ACTIVE", userId: "u1", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
-      [INIT_WAREHOUSES_QUERY, { readWarehouses: [{ id: "warehouse-1", name: "Warehouse 1", provider: "YEJOIN", warehouseType: "THIRD_PARTY_WMS", status: "ACTIVE", userId: "u1", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
-      [INIT_INVENTORY_GOODS_QUERY, { readInventoryGoods: [{ id: "good-1", userId: "u1", sku: "SKU-1", name: "Good 1", status: "ACTIVE", createdAt: "2026-04-22", updatedAt: "2026-04-22" }] }],
+      [
+        INIT_SURFACES_QUERY,
+        {
+          surfaces: [
+            {
+              id: "surface-1",
+              name: "Surface",
+              userId: "u1",
+              allowedToolIds: [],
+              createdAt: "2026-04-22",
+              updatedAt: "2026-04-22",
+            },
+          ],
+        },
+      ],
+      [
+        INIT_RUN_PROFILES_QUERY,
+        {
+          runProfiles: [
+            {
+              id: "profile-1",
+              name: "Profile",
+              userId: "u1",
+              surfaceId: "surface-1",
+              selectedToolIds: [],
+            },
+          ],
+        },
+      ],
+      [
+        INIT_SHOPS_QUERY,
+        {
+          shops: [
+            {
+              id: "shop-1",
+              platform: "tiktok",
+              platformAppId: "app-1",
+              platformShopId: "p-shop-1",
+              shopName: "Shop 1",
+              authStatus: "ok",
+              region: "US",
+              accessTokenExpiresAt: null,
+              refreshTokenExpiresAt: null,
+              services: null,
+            },
+          ],
+        },
+      ],
+      [
+        INIT_ADS_ADVERTISERS_QUERY,
+        {
+          adsAdvertisers: [
+            {
+              id: "advertiser-1",
+              platform: "tiktok",
+              platformAppId: "app-1",
+              advertiserId: "tt-advertiser-1",
+              advertiserName: "Advertiser 1",
+              authStatus: "AUTHORIZED",
+              businessCenterId: null,
+              currency: "USD",
+              timezone: "America/Los_Angeles",
+              countryCode: "US",
+              role: "ADMIN",
+              accessTokenExpiresAt: null,
+              refreshTokenExpiresAt: null,
+              metadata: null,
+              createdAt: "2026-04-22",
+              updatedAt: "2026-04-22",
+            },
+          ],
+        },
+      ],
+      [
+        INIT_PLATFORM_APPS_QUERY,
+        {
+          platformApps: [
+            {
+              id: "app-1",
+              platform: "tiktok",
+              market: "US",
+              sellerType: "LOCAL",
+              status: "ACTIVE",
+              label: "TikTok US",
+              apiBaseUrl: "https://example.com",
+              authLinkUrl: "https://example.com/auth",
+            },
+          ],
+        },
+      ],
+      [
+        INIT_BILLING_OVERVIEW_QUERY,
+        {
+          billingOverview: {
+            accountLlm: {
+              planId: null,
+              entitlement: {
+                scopeType: "ACCOUNT",
+                scopeId: "u1",
+                product: "LLM_USAGE",
+                allowed: false,
+                code: "PAYMENT_REQUIRED",
+                source: null,
+                validUntil: null,
+                usage: [],
+              },
+            },
+            shops: [],
+          },
+        },
+      ],
+      [
+        INIT_WMS_ACCOUNTS_QUERY,
+        {
+          readWmsAccounts: [
+            {
+              id: "wms-1",
+              label: "WMS 1",
+              provider: "YEJOIN",
+              endpoint: "https://wms.example.com",
+              status: "ACTIVE",
+              userId: "u1",
+              createdAt: "2026-04-22",
+              updatedAt: "2026-04-22",
+            },
+          ],
+        },
+      ],
+      [
+        INIT_WAREHOUSES_QUERY,
+        {
+          readWarehouses: [
+            {
+              id: "warehouse-1",
+              name: "Warehouse 1",
+              provider: "YEJOIN",
+              warehouseType: "THIRD_PARTY_WMS",
+              status: "ACTIVE",
+              userId: "u1",
+              createdAt: "2026-04-22",
+              updatedAt: "2026-04-22",
+            },
+          ],
+        },
+      ],
+      [
+        INIT_INVENTORY_GOODS_QUERY,
+        {
+          readInventoryGoods: [
+            {
+              id: "good-1",
+              userId: "u1",
+              sku: "SKU-1",
+              name: "Good 1",
+              status: "ACTIVE",
+              createdAt: "2026-04-22",
+              updatedAt: "2026-04-22",
+            },
+          ],
+        },
+      ],
     ]);
 
     const authSession = {
@@ -130,12 +288,22 @@ describe("bootstrapDesktopAuthState", () => {
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_WAREHOUSES_QUERY);
     expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_INVENTORY_GOODS_QUERY);
     expect(store.state.shops).toEqual(queryResults.get(INIT_SHOPS_QUERY)?.shops);
-    expect(store.state.adsAdvertisers).toEqual(queryResults.get(INIT_ADS_ADVERTISERS_QUERY)?.adsAdvertisers);
-    expect(store.state.platformApps).toEqual(queryResults.get(INIT_PLATFORM_APPS_QUERY)?.platformApps);
-    expect(store.state.billingOverview).toEqual(queryResults.get(INIT_BILLING_OVERVIEW_QUERY)?.billingOverview);
-    expect(store.state.wmsAccounts).toEqual(queryResults.get(INIT_WMS_ACCOUNTS_QUERY)?.readWmsAccounts);
+    expect(store.state.adsAdvertisers).toEqual(
+      queryResults.get(INIT_ADS_ADVERTISERS_QUERY)?.adsAdvertisers,
+    );
+    expect(store.state.platformApps).toEqual(
+      queryResults.get(INIT_PLATFORM_APPS_QUERY)?.platformApps,
+    );
+    expect(store.state.billingOverview).toEqual(
+      queryResults.get(INIT_BILLING_OVERVIEW_QUERY)?.billingOverview,
+    );
+    expect(store.state.wmsAccounts).toEqual(
+      queryResults.get(INIT_WMS_ACCOUNTS_QUERY)?.readWmsAccounts,
+    );
     expect(store.state.warehouses).toEqual(queryResults.get(INIT_WAREHOUSES_QUERY)?.readWarehouses);
-    expect(store.state.inventoryGoods).toEqual(queryResults.get(INIT_INVENTORY_GOODS_QUERY)?.readInventoryGoods);
+    expect(store.state.inventoryGoods).toEqual(
+      queryResults.get(INIT_INVENTORY_GOODS_QUERY)?.readInventoryGoods,
+    );
     expect(store.state.authBootstrap).toEqual({ status: "ready", error: null });
   });
 
@@ -176,7 +344,8 @@ describe("bootstrapDesktopAuthState", () => {
         if (query === INIT_SURFACES_QUERY) return { surfaces: [] };
         if (query === INIT_RUN_PROFILES_QUERY) return { runProfiles: [] };
         if (query === INIT_PLATFORM_APPS_QUERY) return { platformApps: [] };
-        if (query === INIT_BILLING_OVERVIEW_QUERY) return { billingOverview: { accountLlm: null, shops: [] } };
+        if (query === INIT_BILLING_OVERVIEW_QUERY)
+          return { billingOverview: { accountLlm: null, shops: [] } };
         throw new Error(`Unexpected query: ${query}`);
       }),
     };

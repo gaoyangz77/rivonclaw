@@ -1,13 +1,6 @@
 import { DEFAULTS } from "@rivonclaw/core";
 import { Logger } from "tslog";
-import {
-  mkdirSync,
-  appendFileSync,
-  statSync,
-  renameSync,
-  existsSync,
-  unlinkSync,
-} from "node:fs";
+import { mkdirSync, appendFileSync, statSync, renameSync, existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { resolveLogDir } from "@rivonclaw/core/node";
 import { isDebugFlagEnabled } from "./debug-flags.js";
@@ -106,9 +99,7 @@ function writeToFile(line: string): void {
 }
 
 function formatLogLine(logObj: Record<string, unknown>): string {
-  const meta = logObj._meta as
-    | { date?: Date; logLevelName?: string; name?: string }
-    | undefined;
+  const meta = logObj._meta as { date?: Date; logLevelName?: string; name?: string } | undefined;
   const ts = (meta?.date ?? new Date()).toISOString();
   const level = (meta?.logLevelName ?? "INFO").padEnd(5);
   const name = meta?.name ?? "";
@@ -133,15 +124,11 @@ export interface CreateLoggerOptions {
   minLevel?: number;
 }
 
-export function createLogger(
-  name: string,
-  options?: CreateLoggerOptions,
-): Logger<unknown> {
+export function createLogger(name: string, options?: CreateLoggerOptions): Logger<unknown> {
   const logger = new Logger({
     name,
     type: "pretty",
-    minLevel:
-      options?.minLevel ?? (process.env.NODE_ENV === "production" ? 3 : 0),
+    minLevel: options?.minLevel ?? (process.env.NODE_ENV === "production" ? 3 : 0),
   });
 
   registeredLoggers.push(logger);
@@ -157,10 +144,7 @@ export function createLogger(
  * Create a logger that stays at INFO+ unless the named DEBUG_* env var is "1".
  * Use for chatty modules that you only want to hear from when troubleshooting.
  */
-export function createQuietLogger(
-  name: string,
-  debugEnvVar: string,
-): Logger<unknown> {
+export function createQuietLogger(name: string, debugEnvVar: string): Logger<unknown> {
   return createLogger(name, {
     minLevel: isDebugFlagEnabled(debugEnvVar) ? undefined : 3,
   });

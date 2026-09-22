@@ -59,7 +59,11 @@ async function graphqlRequest<TData>(
   return body.data;
 }
 
-async function storeTokens(apiBase: string, accessToken: string, refreshToken: string): Promise<void> {
+async function storeTokens(
+  apiBase: string,
+  accessToken: string,
+  refreshToken: string,
+): Promise<void> {
   let lastStatus = 0;
   let lastBody = "";
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -105,7 +109,7 @@ async function login(window: import("@playwright/test").Page, apiBase: string): 
 async function dismissModals(window: import("@playwright/test").Page): Promise<void> {
   for (let i = 0; i < 3; i += 1) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 2_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 2_000 }).catch(() => false))) break;
     await backdrop.click({ position: { x: 5, y: 5 }, force: true });
     await backdrop.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => {});
   }
@@ -132,7 +136,7 @@ async function expectAffiliatePage(
 
   if (!optionalCardSelector) return;
   const firstCard = window.locator(optionalCardSelector).first();
-  if (!await firstCard.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+  if (!(await firstCard.isVisible({ timeout: 5_000 }).catch(() => false))) return;
   await firstCard.click();
   const dialog = window.getByRole("dialog");
   await expect(dialog).toBeVisible({ timeout: 10_000 });
@@ -141,9 +145,15 @@ async function expectAffiliatePage(
 }
 
 test.describe("Affiliate workspace entity pages", () => {
-  test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
+  test.skip(
+    !testEmail || !testPassword || !deterministicCaptchaToken,
+    "Staging credentials not configured",
+  );
 
-  test("renders the split Affiliate workbenches and opens relationship context when data exists", async ({ window, apiBase }) => {
+  test("renders the split Affiliate workbenches and opens relationship context when data exists", async ({
+    window,
+    apiBase,
+  }) => {
     await dismissModals(window);
     await login(window, apiBase);
 
@@ -159,16 +169,13 @@ test.describe("Affiliate workspace entity pages", () => {
       "Agent Workbench",
       ".affiliate-action-proposal-card-row",
     );
+    await expectAffiliatePage(window, "/commerce/affiliate/manual-workbench", "Manual Workbench");
     await expectAffiliatePage(
       window,
-      "/commerce/affiliate/manual-workbench",
-      "Manual Workbench",
+      "/commerce/affiliate/history",
+      "Platform collaborations",
+      ".affiliate-collaboration-record-card",
     );
-    await expectAffiliatePage(window, "/commerce/affiliate/history", "Platform collaborations", ".affiliate-collaboration-record-card");
-    await expectAffiliatePage(
-      window,
-      "/commerce/affiliate/intelligence",
-      "Affiliate Intelligence",
-    );
+    await expectAffiliatePage(window, "/commerce/affiliate/intelligence", "Affiliate Intelligence");
   });
 });

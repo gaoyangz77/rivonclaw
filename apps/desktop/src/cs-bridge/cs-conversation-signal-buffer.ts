@@ -127,9 +127,7 @@ export async function flushCsDispatchesAfterBridgeReady(
     }
   };
 
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, entries.length) }, () => worker()),
-  );
+  await Promise.all(Array.from({ length: Math.min(concurrency, entries.length) }, () => worker()));
 
   return { flushed: entries.length, failed, maxWaitMs };
 }

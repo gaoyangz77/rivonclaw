@@ -23,7 +23,10 @@ import { buildTemporaryOpenAICodexProviderOverride } from "./config-builder.js";
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const VENDOR_DEFAULTS_FILE = resolve(__dirname, "../../../../vendor/openclaw/src/agents/defaults.ts");
+const VENDOR_DEFAULTS_FILE = resolve(
+  __dirname,
+  "../../../../vendor/openclaw/src/agents/defaults.ts",
+);
 const VENDOR_FALLBACK_FILE = resolve(
   __dirname,
   "../../../../vendor/openclaw/src/agents/configured-provider-fallback.ts",
@@ -147,10 +150,12 @@ describe("resolveGatewayModelParts", () => {
   });
 
   it("strips an already-qualified model id instead of double-prefixing it", () => {
-    expect(resolveGatewayModelParts({ provider: "openai-codex", model: "openai/gpt-5.6" })).toEqual({
-      provider: "openai",
-      modelId: "gpt-5.6",
-    });
+    expect(resolveGatewayModelParts({ provider: "openai-codex", model: "openai/gpt-5.6" })).toEqual(
+      {
+        provider: "openai",
+        modelId: "gpt-5.6",
+      },
+    );
   });
 
   it("leaves custom providers unmapped", () => {

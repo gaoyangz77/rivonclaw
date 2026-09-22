@@ -8,17 +8,26 @@
 
 const fs = require("fs");
 const path = require("path");
-const { selectedPluginDirs, assertSelectedPluginDependencies } = require("./vendor-plugin-dependencies.cjs");
+const {
+  selectedPluginDirs,
+  assertSelectedPluginDependencies,
+} = require("./vendor-plugin-dependencies.cjs");
 const { packageExternalPlugins } = require("./package-external-plugins.cjs");
-const { deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies } = require("./vendor-plugin-size.cjs");
+const {
+  deduplicateMirroredPluginDependencies,
+  deduplicateRuntimeDependencies,
+} = require("./vendor-plugin-size.cjs");
 
 function shouldCopyVendorNative(file) {
   if (![".node", ".dylib"].includes(path.extname(file))) return true;
-  return /[\\/]@img[\\/]sharp-/.test(file) || /[\\/]koffi[\\/]/.test(file) ||
+  return (
+    /[\\/]@img[\\/]sharp-/.test(file) ||
+    /[\\/]koffi[\\/]/.test(file) ||
     /[\\/]@koromix[\\/]koffi-win32-/.test(file) ||
     /[\\/]@snazzah[\\/]davey-/.test(file) ||
     /[\\/]fs-safe-(?:darwin|linux|win32)-[^\\/]+[\\/]/.test(file) ||
-    /[\\/]sqlite-vec-[^\\/]+[\\/]/.test(file);
+    /[\\/]sqlite-vec-[^\\/]+[\\/]/.test(file)
+  );
 }
 
 function copySelectedPluginDependencies(vendorSrcDir, vendorDestDir) {
@@ -29,7 +38,8 @@ function copySelectedPluginDependencies(vendorSrcDir, vendorDestDir) {
     fs.rmSync(destination, { recursive: true, force: true });
     fs.cpSync(source, destination, {
       recursive: true,
-      filter: (file) => ![".git", ".bin"].includes(path.basename(file)) && shouldCopyVendorNative(file),
+      filter: (file) =>
+        ![".git", ".bin"].includes(path.basename(file)) && shouldCopyVendorNative(file),
     });
   }
   assertSelectedPluginDependencies(vendorDestDir);
@@ -40,24 +50,43 @@ function copySelectedPluginDependencies(vendorSrcDir, vendorDestDir) {
 }
 
 function verifyPackagedRuntime(context, resourcesDir) {
-  const arch = require("node:module").createRequire(require.resolve("electron-builder"))("builder-util").Arch[context.arch];
+  const arch = require("node:module").createRequire(require.resolve("electron-builder"))(
+    "builder-util",
+  ).Arch[context.arch];
   if (context.electronPlatformName !== process.platform || arch !== process.arch) {
-    console.log("[copy-vendor-deps] Cross-target runtime contract must run on the target host; not executed here.");
+    console.log(
+      "[copy-vendor-deps] Cross-target runtime contract must run on the target host; not executed here.",
+    );
     return;
   }
   const product = context.packager.appInfo.productFilename;
-  const runtime = context.electronPlatformName === "darwin"
-    ? path.join(context.appOutDir, `${product}.app`, "Contents", "MacOS", product)
-    : path.join(context.appOutDir, context.electronPlatformName === "win32" ? `${product}.exe` : context.packager.executableName);
+  const runtime =
+    context.electronPlatformName === "darwin"
+      ? path.join(context.appOutDir, `${product}.app`, "Contents", "MacOS", product)
+      : path.join(
+          context.appOutDir,
+          context.electronPlatformName === "win32"
+            ? `${product}.exe`
+            : context.packager.executableName,
+        );
   const vendor = path.join(resourcesDir, "vendor", "openclaw");
-  const args = context.electronPlatformName === "darwin"
-    ? ["--archive", path.join(vendor, "vendor-runtime.tar")]
-    : ["--vendor", vendor];
-  require("node:child_process").execFileSync(process.execPath, [
-    path.join(__dirname, "verify-vendor-runtime-contract.cjs"), ...args, "--runtime", runtime, "--resources", resourcesDir,
-  ], { stdio: "inherit", timeout: 600_000 });
+  const args =
+    context.electronPlatformName === "darwin"
+      ? ["--archive", path.join(vendor, "vendor-runtime.tar")]
+      : ["--vendor", vendor];
+  require("node:child_process").execFileSync(
+    process.execPath,
+    [
+      path.join(__dirname, "verify-vendor-runtime-contract.cjs"),
+      ...args,
+      "--runtime",
+      runtime,
+      "--resources",
+      resourcesDir,
+    ],
+    { stdio: "inherit", timeout: 600_000 },
+  );
 }
-
 
 /** Recursively count files in a directory. */
 function countFiles(/** @type {string} */ dir) {
@@ -90,7 +119,8 @@ exports.default = async function copyVendorDeps(context) {
 
   packageExternalPlugins(resourcesDir, path.resolve(__dirname, "../../.."), {
     platform: electronPlatformName,
-    arch: require("node:module").createRequire(require.resolve("electron-builder"))("builder-util").Arch[context.arch],
+    arch: require("node:module").createRequire(require.resolve("electron-builder"))("builder-util")
+      .Arch[context.arch],
   });
 
   // ─── macOS: archive-based vendor runtime ───
@@ -107,13 +137,13 @@ exports.default = async function copyVendorDeps(context) {
     if (!fs.existsSync(archiveFile)) {
       throw new Error(
         `[copy-vendor-deps] FAIL: vendor-runtime.tar not found at ${archiveFile}. ` +
-        `Run archive-vendor-runtime.cjs before electron-builder.`
+          `Run archive-vendor-runtime.cjs before electron-builder.`,
       );
     }
     if (!fs.existsSync(manifestFile)) {
       throw new Error(
         `[copy-vendor-deps] FAIL: vendor-runtime-manifest.json not found at ${manifestFile}. ` +
-        `Run archive-vendor-runtime.cjs before electron-builder.`
+          `Run archive-vendor-runtime.cjs before electron-builder.`,
       );
     }
 
@@ -133,7 +163,9 @@ exports.default = async function copyVendorDeps(context) {
 
     const archiveSize = fs.statSync(archiveFile).size;
     const archiveSizeMB = (archiveSize / 1024 / 1024).toFixed(1);
-    console.log(`[copy-vendor-deps] macOS archive mode: kept archive (${archiveSizeMB}MB) + manifest, removed ${removedCount} other entries.`);
+    console.log(
+      `[copy-vendor-deps] macOS archive mode: kept archive (${archiveSizeMB}MB) + manifest, removed ${removedCount} other entries.`,
+    );
     verifyPackagedRuntime(context, resourcesDir);
     return;
   }
@@ -143,7 +175,9 @@ exports.default = async function copyVendorDeps(context) {
   const vendorSrc = path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw", "node_modules");
 
   if (!fs.existsSync(vendorSrc)) {
-    console.log(`[copy-vendor-deps] vendor/openclaw/node_modules not found at ${vendorSrc}, skipping.`);
+    console.log(
+      `[copy-vendor-deps] vendor/openclaw/node_modules not found at ${vendorSrc}, skipping.`,
+    );
     return;
   }
 
@@ -217,12 +251,16 @@ exports.default = async function copyVendorDeps(context) {
       fs.symlinkSync(target, dest);
       symlinkCount++;
     } catch (err) {
-      console.log(`[copy-vendor-deps] Warning: failed to create symlink ${path.relative(vendorDest, dest)} -> ${target}: ${err instanceof Error ? err.message : err}`);
+      console.log(
+        `[copy-vendor-deps] Warning: failed to create symlink ${path.relative(vendorDest, dest)} -> ${target}: ${err instanceof Error ? err.message : err}`,
+      );
     }
   }
 
   const filesCopied = countFiles(vendorDest);
-  console.log(`[copy-vendor-deps] Done — ${filesCopied} files copied, ${symlinkCount} symlinks recreated, ${skippedCount} entries skipped.`);
+  console.log(
+    `[copy-vendor-deps] Done — ${filesCopied} files copied, ${symlinkCount} symlinks recreated, ${skippedCount} entries skipped.`,
+  );
   copySelectedPluginDependencies(path.dirname(vendorSrc), path.dirname(vendorDest));
   verifyPackagedRuntime(context, resourcesDir);
 };

@@ -74,9 +74,11 @@ describe("startLoopbackOAuthCallback", () => {
     });
 
     let settled = false;
-    callback.waitForCallback.finally(() => {
-      settled = true;
-    }).catch(() => {});
+    callback.waitForCallback
+      .finally(() => {
+        settled = true;
+      })
+      .catch(() => {});
 
     const staleResponse = await fetch(`${callback.redirectUri}?code=old&state=stale`);
     expect(staleResponse.status).toBe(200);
@@ -85,9 +87,7 @@ describe("startLoopbackOAuthCallback", () => {
 
     const validResponse = await fetch(`${callback.redirectUri}?code=new&state=current`);
     expect(validResponse.status).toBe(200);
-    expect(await validResponse.text()).toContain(
-      'history.replaceState(null,"",location.pathname)',
-    );
+    expect(await validResponse.text()).toContain('history.replaceState(null,"",location.pathname)');
     await expect(callback.waitForCallback).resolves.toEqual({ code: "new", state: "current" });
   });
 

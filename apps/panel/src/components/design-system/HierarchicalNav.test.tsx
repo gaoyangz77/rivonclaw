@@ -36,14 +36,7 @@ afterEach(() => {
 describe("TkHierarchicalNav", () => {
   it("navigates leaf items directly and exposes the current page", () => {
     const onChange = vi.fn();
-    render(
-      <TkHierarchicalNav
-        items={ITEMS}
-        value="chat"
-        onChange={onChange}
-        label="主导航"
-      />,
-    );
+    render(<TkHierarchicalNav items={ITEMS} value="chat" onChange={onChange} label="主导航" />);
 
     const chat = screen.getByRole("button", { name: "对话" });
     expect(chat.getAttribute("aria-current")).toBe("page");
@@ -77,14 +70,7 @@ describe("TkHierarchicalNav", () => {
 
   it("opens, traverses and closes a flyout from the keyboard after focus disclosure settles", async () => {
     const onChange = vi.fn();
-    render(
-      <TkHierarchicalNav
-        items={ITEMS}
-        value="chat"
-        onChange={onChange}
-        label="主导航"
-      />,
-    );
+    render(<TkHierarchicalNav items={ITEMS} value="chat" onChange={onChange} label="主导航" />);
 
     const affiliate = screen.getByRole("button", { name: "达人联盟" });
     affiliate.focus();
@@ -116,9 +102,7 @@ describe("TkHierarchicalNav", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "达人联盟" }).getAttribute("title")).toBe(
-      "达人联盟",
-    );
+    expect(screen.getByRole("button", { name: "达人联盟" }).getAttribute("title")).toBe("达人联盟");
     expect(screen.getByRole("button", { name: "工作台" }).getAttribute("aria-current")).toBe(
       "page",
     );

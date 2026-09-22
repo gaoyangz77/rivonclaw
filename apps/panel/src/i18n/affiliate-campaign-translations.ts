@@ -901,8 +901,7 @@ const zh = {
   preApprovalScore: "预审概率 {{probability}} · 模型门槛 {{cutoff}}",
   preApprovalModel: "模型 {{model}}",
   preApprovalObservedAt: "达人数据读取于 {{date}}",
-  preApprovalDisclaimer:
-    "预审通过只代表该达人值得发送第一条邀请，不代表样品申请会被批准。",
+  preApprovalDisclaimer: "预审通过只代表该达人值得发送第一条邀请，不代表样品申请会被批准。",
   performancePending: "表现数据待补齐",
   disposition: {
     reached: "已触达",
@@ -1271,7 +1270,8 @@ const operationalCopy = {
     searchConditionsUsedToday: "Heute wurden {{count}} Suchbedingungsgruppen verwendet",
     viewBreakdown: "Aufschlüsselung anzeigen",
     creatorStatesForSearchPlan: "Creator aus Suchbedingungen #{{generation}} · {{phrase}}.",
-    creatorStatesForAllSearchPlans: "Alle Creator, die diese Kampagne über sämtliche Suchbedingungen bewertet hat.",
+    creatorStatesForAllSearchPlans:
+      "Alle Creator, die diese Kampagne über sämtliche Suchbedingungen bewertet hat.",
     searchPlanPerformance: "Suchbedingungen",
     searchPlanPerformanceDescription:
       "Vergleiche die Bedingungsgruppen und öffne eine für die Creator-Details.",
@@ -1476,7 +1476,8 @@ const operationalCopy = {
     viewBreakdown: "Ver desglose",
     creatorStatesForSearchPlan:
       "Creadores evaluados por las condiciones #{{generation}} · {{phrase}}.",
-    creatorStatesForAllSearchPlans: "Todos los creadores que esta campaña evaluó en todas las condiciones de búsqueda.",
+    creatorStatesForAllSearchPlans:
+      "Todos los creadores que esta campaña evaluó en todas las condiciones de búsqueda.",
     searchPlanPerformance: "Condiciones de búsqueda",
     searchPlanPerformanceDescription:
       "Compara los grupos de condiciones y abre uno para ver sus creadores.",
@@ -1578,7 +1579,8 @@ const operationalCopy = {
     sellerContactEmailHint: "Se muestra a los creators en la colaboración. TikTok lo exige.",
     sellerContactEmailPrefilled: "Tomado de la campaña anterior de esta tienda.",
     dailyTargetInvalid: "Introduce un objetivo diario entero de 1 o más.",
-    endDaysInvalid: "La duración de la colaboración debe ser un número entero de días entre 1 y 365.",
+    endDaysInvalid:
+      "La duración de la colaboración debe ser un número entero de días entre 1 y 365.",
     sellerContactEmailRequired: "Introduce el correo de contacto del vendedor.",
     sellerContactEmailInvalid: "Introduce un correo válido, por ejemplo name@example.com.",
     searchPlanGuidanceTooLong: "La orientación de búsqueda admite como máximo 500 caracteres.",
@@ -1680,7 +1682,8 @@ const operationalCopy = {
     viewBreakdown: "Voir le détail",
     creatorStatesForSearchPlan:
       "Créateurs évalués par les conditions #{{generation}} · {{phrase}}.",
-    creatorStatesForAllSearchPlans: "Tous les créateurs évalués par cette campagne, toutes conditions de recherche confondues.",
+    creatorStatesForAllSearchPlans:
+      "Tous les créateurs évalués par cette campagne, toutes conditions de recherche confondues.",
     searchPlanPerformance: "Conditions de recherche",
     searchPlanPerformanceDescription:
       "Comparez les groupes de conditions puis ouvrez-en un pour voir ses Creators.",
@@ -1887,7 +1890,8 @@ const operationalCopy = {
     viewBreakdown: "Lihat rincian",
     creatorStatesForSearchPlan:
       "Creator yang dinilai oleh kondisi pencarian #{{generation}} · {{phrase}}.",
-    creatorStatesForAllSearchPlans: "Semua creator yang dievaluasi kampanye ini di seluruh kondisi pencarian.",
+    creatorStatesForAllSearchPlans:
+      "Semua creator yang dievaluasi kampanye ini di seluruh kondisi pencarian.",
     searchPlanPerformance: "Kondisi pencarian",
     searchPlanPerformanceDescription:
       "Bandingkan setiap kelompok kondisi lalu buka satu untuk melihat creatornya.",
@@ -2086,7 +2090,8 @@ const operationalCopy = {
     searchConditionsUsedToday: "Oggi sono stati usati {{count}} gruppi di condizioni di ricerca",
     viewBreakdown: "Mostra dettaglio",
     creatorStatesForSearchPlan: "Creator valutati dalle condizioni #{{generation}} · {{phrase}}.",
-    creatorStatesForAllSearchPlans: "Tutti i creator valutati da questa campagna in tutte le condizioni di ricerca.",
+    creatorStatesForAllSearchPlans:
+      "Tutti i creator valutati da questa campagna in tutte le condizioni di ricerca.",
     searchPlanPerformance: "Condizioni di ricerca",
     searchPlanPerformanceDescription:
       "Confronta i gruppi di condizioni e aprine uno per vedere i creator.",
@@ -2187,10 +2192,12 @@ const operationalCopy = {
     sellerContactEmailHint: "Mostrata ai creator sulla collaborazione. TikTok la richiede.",
     sellerContactEmailPrefilled: "Ripresa dalla campagna precedente di questo negozio.",
     dailyTargetInvalid: "Inserisci un obiettivo giornaliero intero pari ad almeno 1.",
-    endDaysInvalid: "La durata della collaborazione deve essere un numero intero di giorni da 1 a 365.",
+    endDaysInvalid:
+      "La durata della collaborazione deve essere un numero intero di giorni da 1 a 365.",
     sellerContactEmailRequired: "Inserisci l'email di contatto del venditore.",
     sellerContactEmailInvalid: "Inserisci un indirizzo email valido, ad esempio name@example.com.",
-    searchPlanGuidanceTooLong: "Le indicazioni di ricerca possono contenere al massimo 500 caratteri.",
+    searchPlanGuidanceTooLong:
+      "Le indicazioni di ricerca possono contenere al massimo 500 caratteri.",
     sampleApprovalExempt: "Salta l'approvazione dei campioni",
     sampleApprovalExemptHint:
       "Lascialo disattivato se non serve davvero. Con l'approvazione attiva le tue decisioni continuano ad addestrare la preselezione.",

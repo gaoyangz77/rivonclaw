@@ -1434,7 +1434,13 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       if (!creatorRelationshipId) {
         throw new Error(t("ecommerce.affiliateWorkspace.copyFailed"));
       }
-      const decisionNote = actionProposalDecisionNote(t, proposal, status, note, sampleReviewOverride);
+      const decisionNote = actionProposalDecisionNote(
+        t,
+        proposal,
+        status,
+        note,
+        sampleReviewOverride,
+      );
       const decidedAt = new Date().toISOString();
       const optimisticProposal = {
         ...proposal,
@@ -1495,7 +1501,10 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
               },
         );
       }
-      showToast(actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride), "success");
+      showToast(
+        actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride),
+        "success",
+      );
       return true;
     } catch (err) {
       if (optimisticApplied) {
@@ -1813,7 +1822,9 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
           onClose={() => setSelectedAgentWorkBundle(null)}
           onOpenCreator={() => openCreatorDetail(selectedAgentWorkBundle.proposal)}
           onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
-          onReject={(item, override) => decideProposal(item, GQL.ActionProposalStatus.Rejected, undefined, override)}
+          onReject={(item, override) =>
+            decideProposal(item, GQL.ActionProposalStatus.Rejected, undefined, override)
+          }
           onRequestRevision={(item, revisionNote) =>
             decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)
           }
@@ -7342,7 +7353,9 @@ function renderAgentWorkRecommendationTitle(
   const sampleReviewRows = proposalSampleReviewRows(proposal);
   if (sampleReviewRows.length <= 1) return renderProposalRecommendationTitle(proposal, t);
   const summary = summarizeSampleProposalReviewRows(sampleReviewRows);
-  const ignoreCount = sampleReviewRows.filter((row) => sampleReviewDisposition(row) === "IGNORE").length;
+  const ignoreCount = sampleReviewRows.filter(
+    (row) => sampleReviewDisposition(row) === "IGNORE",
+  ).length;
   return t("ecommerce.affiliateWorkspace.sampleReviewActions.summary", {
     count: sampleReviewRows.length,
     approveCount: summary.approveCount,
@@ -7620,7 +7633,10 @@ function AgentWorkBundleDetailModal({
   onClose: () => void;
   onOpenCreator: (profile: GQL.AffiliateCreatorIdentity) => void;
   onApprove: (proposal: GQL.ActionProposal) => Promise<boolean>;
-  onReject: (proposal: GQL.ActionProposal, override: GQL.ActionProposalSampleReviewOverrideInput) => Promise<boolean>;
+  onReject: (
+    proposal: GQL.ActionProposal,
+    override: GQL.ActionProposalSampleReviewOverrideInput,
+  ) => Promise<boolean>;
   onRequestRevision: (proposal: GQL.ActionProposal, note: string) => Promise<boolean>;
   onIgnore: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
@@ -8008,7 +8024,10 @@ export function AgentWorkBundleCard({
   onOpenRelationshipWork?: (item: CreatorRelationshipWorkItem) => void;
   onOpenCreator?: (profile: GQL.AffiliateCreatorIdentity) => void;
   onApprove?: (proposal: GQL.ActionProposal) => Promise<boolean>;
-  onReject?: (proposal: GQL.ActionProposal, override: GQL.ActionProposalSampleReviewOverrideInput) => Promise<boolean>;
+  onReject?: (
+    proposal: GQL.ActionProposal,
+    override: GQL.ActionProposalSampleReviewOverrideInput,
+  ) => Promise<boolean>;
   onRequestRevision?: (proposal: GQL.ActionProposal, note: string) => Promise<boolean>;
   onIgnore?: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
@@ -8061,7 +8080,9 @@ export function AgentWorkBundleCard({
   const canRejectOverride = canDecide && Boolean(onReject && sampleDecisionOverrideTarget);
   const approveActionLabel =
     sampleReviewRows.length === 1 && sampleDecisionOverrideTarget != null
-      ? t(`ecommerce.affiliateWorkspace.sampleReviewActions.confirm.${sampleReviewDisposition(sampleReviewRows[0]!)}`)
+      ? t(
+          `ecommerce.affiliateWorkspace.sampleReviewActions.confirm.${sampleReviewDisposition(sampleReviewRows[0]!)}`,
+        )
       : sampleReviewRows.length > 0
         ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approveBundle")
         : proposal.type === GQL.ActionProposalType.NoActionNeeded
@@ -8117,7 +8138,10 @@ export function AgentWorkBundleCard({
     ) : null;
   const ignoreConfirmPanel =
     canIgnore && ignoreOpen ? (
-      <TkAlert tone="warning" title={t("ecommerce.shopDrawer.affiliate.proposalIgnoreConfirmTitle")}>
+      <TkAlert
+        tone="warning"
+        title={t("ecommerce.shopDrawer.affiliate.proposalIgnoreConfirmTitle")}
+      >
         {t("ecommerce.shopDrawer.affiliate.proposalIgnoreConfirmHint")}
       </TkAlert>
     ) : null;
@@ -8733,13 +8757,17 @@ function actionProposalDecisionNote(
       ? t("ecommerce.shopDrawer.affiliate.proposalApprovedNote")
       : status === GQL.ActionProposalStatus.Ignored
         ? t("ecommerce.shopDrawer.affiliate.proposalIgnoredNote")
-      : status === GQL.ActionProposalStatus.RevisionRequested
-        ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestedNote")
-        : proposalSampleDecisionOverrideTarget(proposal) != null
-          ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideNote", {
-              action: override ? t(`ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(override)}`) : "",
-            })
-          : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote"))
+        : status === GQL.ActionProposalStatus.RevisionRequested
+          ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestedNote")
+          : proposalSampleDecisionOverrideTarget(proposal) != null
+            ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideNote", {
+                action: override
+                  ? t(
+                      `ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(override)}`,
+                    )
+                  : "",
+              })
+            : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote"))
   );
 }
 
@@ -8753,13 +8781,17 @@ function actionProposalDecisionSuccessMessage(
     ? t("ecommerce.shopDrawer.affiliate.proposalApproveSuccess")
     : status === GQL.ActionProposalStatus.Ignored
       ? t("ecommerce.shopDrawer.affiliate.proposalIgnoreSuccess")
-    : status === GQL.ActionProposalStatus.RevisionRequested
-      ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestSuccess")
-      : proposalSampleDecisionOverrideTarget(proposal) != null
-        ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideSuccess", {
-            action: override ? t(`ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(override)}`) : "",
-          })
-        : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess");
+      : status === GQL.ActionProposalStatus.RevisionRequested
+        ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestSuccess")
+        : proposalSampleDecisionOverrideTarget(proposal) != null
+          ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideSuccess", {
+              action: override
+                ? t(
+                    `ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(override)}`,
+                  )
+                : "",
+            })
+          : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess");
 }
 
 function isPureSampleReviewProposalSource(source: {
@@ -9061,7 +9093,9 @@ export const ProposalSampleDecisionBundle = observer(function ProposalSampleDeci
             {t("ecommerce.affiliateWorkspace.sampleReviewActions.summary", {
               count: rows.length,
               approveCount: summary.approveCount,
-              rejectCount: summary.rejectCount - rows.filter((row) => sampleReviewDisposition(row) === "IGNORE").length,
+              rejectCount:
+                summary.rejectCount -
+                rows.filter((row) => sampleReviewDisposition(row) === "IGNORE").length,
               ignoreCount: rows.filter((row) => sampleReviewDisposition(row) === "IGNORE").length,
             })}
           </strong>
@@ -9113,7 +9147,9 @@ export const ProposalSampleDecisionBundle = observer(function ProposalSampleDeci
                 },
               )
             : null;
-          const decisionLabel = t(`ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(row)}`);
+          const decisionLabel = t(
+            `ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(row)}`,
+          );
           return (
             <article className="affiliate-sample-decision-row" key={row.stepId}>
               <div className="affiliate-sample-decision-identity">
@@ -9184,7 +9220,17 @@ export const ProposalSampleDecisionBundle = observer(function ProposalSampleDeci
               <div className="affiliate-sample-decision-metric">
                 <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision")}</span>
                 <div>
-                  <TkBadge tone={approves ? "success" : sampleReviewDisposition(row) === "IGNORE" ? "neutral" : "danger"}>{decisionLabel}</TkBadge>
+                  <TkBadge
+                    tone={
+                      approves
+                        ? "success"
+                        : sampleReviewDisposition(row) === "IGNORE"
+                          ? "neutral"
+                          : "danger"
+                    }
+                  >
+                    {decisionLabel}
+                  </TkBadge>
                 </div>
                 <small>
                   {t(
@@ -10902,7 +10948,10 @@ function CreatorRelationshipDetailContent({
         if (updatedProposal) {
           affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal);
         }
-        showToast(actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride), "success");
+        showToast(
+          actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride),
+          "success",
+        );
       }
 
       await Promise.allSettled([
@@ -11164,7 +11213,9 @@ function CreatorRelationshipDetailContent({
     if (!relationshipId || updateSellerMetadataState.loading) return;
     try {
       await updateSellerMetadata({
-        variables: { input: { creatorRelationshipId: relationshipId, [field]: value.trim() || null } },
+        variables: {
+          input: { creatorRelationshipId: relationshipId, [field]: value.trim() || null },
+        },
       });
       await refetchRelationshipDetail();
       if (field === "sellerProvidedUid") setSellerUidEditing(false);
@@ -11283,7 +11334,11 @@ function CreatorRelationshipDetailContent({
                         autoFocus
                         aria-label={t("ecommerce.affiliateWorkspace.sellerProvidedUid")}
                       />
-                      <button className="btn btn-primary btn-sm" type="submit" disabled={updateSellerMetadataState.loading}>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        type="submit"
+                        disabled={updateSellerMetadataState.loading}
+                      >
                         {t("common.save")}
                       </button>
                       <button
@@ -11303,7 +11358,8 @@ function CreatorRelationshipDetailContent({
                       type="button"
                       onClick={() => setSellerUidEditing(true)}
                     >
-                      {relationship?.sellerProvidedUid || t("ecommerce.affiliateWorkspace.addSellerProvidedUid")}
+                      {relationship?.sellerProvidedUid ||
+                        t("ecommerce.affiliateWorkspace.addSellerProvidedUid")}
                     </button>
                   )}
                 </div>
@@ -11512,7 +11568,9 @@ function CreatorRelationshipDetailContent({
                     </div>
                   </div>
                 ) : relationship?.sellerNote ? (
-                  <p className="affiliate-relationship-seller-note-text">{relationship.sellerNote}</p>
+                  <p className="affiliate-relationship-seller-note-text">
+                    {relationship.sellerNote}
+                  </p>
                 ) : (
                   <p className="affiliate-relationship-seller-note-empty">
                     {t("ecommerce.affiliateWorkspace.sellerNoteEmpty")}
@@ -11809,7 +11867,12 @@ function CreatorRelationshipDetailContent({
                                 decideRelationshipProposal(item, GQL.ActionProposalStatus.Approved)
                               }
                               onReject={(item, override) =>
-                                decideRelationshipProposal(item, GQL.ActionProposalStatus.Rejected, undefined, override)
+                                decideRelationshipProposal(
+                                  item,
+                                  GQL.ActionProposalStatus.Rejected,
+                                  undefined,
+                                  override,
+                                )
                               }
                               onRequestRevision={(item, revisionNote) =>
                                 decideRelationshipProposal(
@@ -13160,7 +13223,9 @@ function renderProposalRecommendationTitle(
     const source = proposal.steps?.length ? proposal.steps[0] : proposal;
     if (source?.sampleReviewIntent?.decision) {
       return t("ecommerce.affiliateWorkspace.sampleReviewActions.suggestion", {
-        action: t(`ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(source.sampleReviewIntent)}`),
+        action: t(
+          `ecommerce.affiliateWorkspace.sampleReviewActions.label.${sampleReviewDisposition(source.sampleReviewIntent)}`,
+        ),
       });
     }
     return t("ecommerce.shopDrawer.affiliate.proposalTypes.REVIEW_SAMPLE_APPLICATION");

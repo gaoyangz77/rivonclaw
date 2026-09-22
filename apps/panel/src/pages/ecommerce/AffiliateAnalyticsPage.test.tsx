@@ -12,8 +12,11 @@ const mocks = vi.hoisted(() => ({
   valuesQuery: vi.fn(),
 }));
 
-function operationName(document: { definitions?: Array<{ kind?: string; name?: { value?: string } }> }): string | undefined {
-  return document.definitions?.find((definition) => definition.kind === "OperationDefinition")?.name?.value;
+function operationName(document: {
+  definitions?: Array<{ kind?: string; name?: { value?: string } }>;
+}): string | undefined {
+  return document.definitions?.find((definition) => definition.kind === "OperationDefinition")?.name
+    ?.value;
 }
 
 vi.mock("../../store/EntityStoreProvider.js", () => ({
@@ -21,7 +24,10 @@ vi.mock("../../store/EntityStoreProvider.js", () => ({
 }));
 
 vi.mock("@apollo/client/react", () => ({
-  useQuery: (document: Parameters<typeof operationName>[0], options?: { variables?: Record<string, unknown> }) => {
+  useQuery: (
+    document: Parameters<typeof operationName>[0],
+    options?: { variables?: Record<string, unknown> },
+  ) => {
     const operation = operationName(document);
     mocks.queryCalls.push({ operation, variables: options?.variables });
     if (operation && operation in mocks.sections) return mocks.sections[operation];
@@ -59,9 +65,10 @@ vi.mock("@apollo/client/react", () => ({
       },
     };
   },
-  useLazyQuery: (document: Parameters<typeof operationName>[0]) => operationName(document) === "AffiliateBiData"
-    ? [mocks.dataQuery, { loading: false, error: undefined, data: undefined }]
-    : [mocks.valuesQuery, { loading: false, error: undefined, data: undefined }],
+  useLazyQuery: (document: Parameters<typeof operationName>[0]) =>
+    operationName(document) === "AffiliateBiData"
+      ? [mocks.dataQuery, { loading: false, error: undefined, data: undefined }]
+      : [mocks.valuesQuery, { loading: false, error: undefined, data: undefined }],
 }));
 
 /**
@@ -72,9 +79,13 @@ vi.mock("@apollo/client/react", () => ({
 vi.mock("recharts", () => {
   const Container = ({ children }: { children?: unknown }) => <div>{children as never}</div>;
   const Element = () => <span />;
-  const chart = (kind: string) => ({ children, data }: { children?: unknown; data?: unknown[] }) => (
-    <div data-chart={kind} data-rows={String(data?.length ?? 0)}>{children as never}</div>
-  );
+  const chart =
+    (kind: string) =>
+    ({ children, data }: { children?: unknown; data?: unknown[] }) => (
+      <div data-chart={kind} data-rows={String(data?.length ?? 0)}>
+        {children as never}
+      </div>
+    );
   return {
     ResponsiveContainer: Container,
     LineChart: chart("line"),
@@ -122,13 +133,15 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.approval.axis": "Cohort axis: the application submission date",
   "ecommerce.affiliateAnalytics.approval.overdueRate": "Overdue rate",
   "ecommerce.affiliateAnalytics.postApproval.title": "Post-approval performance",
-  "ecommerce.affiliateAnalytics.postApproval.axis": "Two bases: the application date and the calendar day",
+  "ecommerce.affiliateAnalytics.postApproval.axis":
+    "Two bases: the application date and the calendar day",
   "ecommerce.affiliateAnalytics.postApproval.actualUnits": "Units to date",
   "ecommerce.affiliateAnalytics.postApproval.samplesShipped": "Free samples shipped",
   "ecommerce.affiliateAnalytics.postApproval.affiliateUnits": "Affiliate units sold",
   "ecommerce.affiliateAnalytics.postApproval.unitsPerSampleShipped": "Units per sample shipped",
   "ecommerce.affiliateAnalytics.postApproval.shipmentBoundary": "Shipment data starts",
-  "ecommerce.affiliateAnalytics.postApproval.twoBases": "Applications from {{applicationDate}}; shipment observation from {{shipmentDate}}.",
+  "ecommerce.affiliateAnalytics.postApproval.twoBases":
+    "Applications from {{applicationDate}}; shipment observation from {{shipmentDate}}.",
   "ecommerce.affiliateAnalytics.explore.operators.IN": "Is one of",
   "ecommerce.affiliateAnalytics.explore.directions.DESC": "Descending",
   "ecommerce.affiliateAnalytics.catalog.dimensions.DATE": "Date",
@@ -137,19 +150,26 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.decisionOrigin.AI": "AI",
   "ecommerce.affiliateAnalytics.decisionOrigin.NOT_AI": "Non-AI",
   "ecommerce.affiliateAnalytics.catalog.metrics.AFFILIATE_APPLICATIONS_CREATED": "Applications",
-  "ecommerce.affiliateAnalytics.coverage.boundary": "Series start on {{date}} · {{shops}} shops with data",
+  "ecommerce.affiliateAnalytics.coverage.boundary":
+    "Series start on {{date}} · {{shops}} shops with data",
   "ecommerce.affiliateAnalytics.coverage.partialDays": "{{count}} earlier partial days",
   "ecommerce.affiliateAnalytics.coverage.restrictToCovered": "Narrow to the fully-covered range",
   "ecommerce.affiliateAnalytics.coverage.showFullRange": "Show the full range",
   "ecommerce.affiliateAnalytics.coverage.boundaryMark": "Full coverage",
-  "ecommerce.affiliateAnalytics.postApproval.pinnedWindow": "Always measured over {{count}} days, whatever the window control says.",
-  "ecommerce.affiliateAnalytics.reachout.cohortTooSmall": "Only {{count}} invitations are mature; at least {{minimum}} are needed.",
-  "ecommerce.affiliateAnalytics.reachout.cohortTooSmallNote": "Not enough mature invitations to plot a curve.",
-  "ecommerce.affiliateAnalytics.reachout.horizonCohortRange": "Cohort invited between {{from}} and {{to}}.",
-  "ecommerce.affiliateAnalytics.coverage.excludeLimiting": "Exclude the {{count}} latest-starting shops",
+  "ecommerce.affiliateAnalytics.postApproval.pinnedWindow":
+    "Always measured over {{count}} days, whatever the window control says.",
+  "ecommerce.affiliateAnalytics.reachout.cohortTooSmall":
+    "Only {{count}} invitations are mature; at least {{minimum}} are needed.",
+  "ecommerce.affiliateAnalytics.reachout.cohortTooSmallNote":
+    "Not enough mature invitations to plot a curve.",
+  "ecommerce.affiliateAnalytics.reachout.horizonCohortRange":
+    "Cohort invited between {{from}} and {{to}}.",
+  "ecommerce.affiliateAnalytics.coverage.excludeLimiting":
+    "Exclude the {{count}} latest-starting shops",
   "ecommerce.affiliateAnalytics.coverage.limitingShops": "Latest to start: {{shops}}",
   "ecommerce.affiliateAnalytics.coverage.noneTitle": "No selected shop has data for this section",
-  "ecommerce.affiliateAnalytics.coverage.metricBasis": "Computed over {{shops}} of {{selected}} shops · fully covered from {{date}}",
+  "ecommerce.affiliateAnalytics.coverage.metricBasis":
+    "Computed over {{shops}} of {{selected}} shops · fully covered from {{date}}",
   "ecommerce.affiliateAnalytics.coverage.bandCaption": "Data coverage over {{count}} shops",
 };
 
@@ -158,9 +178,13 @@ vi.mock("react-i18next", () => ({
     i18n: { language: "en-US" },
     t: (key: string, values?: Record<string, unknown>) => {
       const copy = COPY[key];
-      if (copy) return copy.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => String(values?.[name] ?? ""));
+      if (copy)
+        return copy.replace(/\{\{(\w+)\}\}/g, (_match, name: string) =>
+          String(values?.[name] ?? ""),
+        );
       if (key === "ecommerce.affiliateAnalytics.windowDays") return `Last ${values?.count}d`;
-      if (key === "ecommerce.affiliateAnalytics.selectedShops") return `${values?.count ?? 0} shops selected`;
+      if (key === "ecommerce.affiliateAnalytics.selectedShops")
+        return `${values?.count ?? 0} shops selected`;
       return key;
     },
   }),
@@ -204,9 +228,24 @@ function reachoutFixture() {
     responsesExact: 92,
     responsesProxy: 8,
     horizons: [
-      { horizon: "3h", matureInvitations: 620_000, responsesWithinHorizon: 210, responseRate: 0.00034 },
-      { horizon: "72h", matureInvitations: 540_000, responsesWithinHorizon: 749, responseRate: 0.00139 },
-      { horizon: "7d", matureInvitations: 480_000, responsesWithinHorizon: 627, responseRate: 0.00131 },
+      {
+        horizon: "3h",
+        matureInvitations: 620_000,
+        responsesWithinHorizon: 210,
+        responseRate: 0.00034,
+      },
+      {
+        horizon: "72h",
+        matureInvitations: 540_000,
+        responsesWithinHorizon: 749,
+        responseRate: 0.00139,
+      },
+      {
+        horizon: "7d",
+        matureInvitations: 480_000,
+        responsesWithinHorizon: 627,
+        responseRate: 0.00131,
+      },
     ],
     daily: [
       { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true },
@@ -218,12 +257,28 @@ function reachoutFixture() {
 
 function approvalFixture() {
   const byDecisionOrigin = [
-    { decidedBy: "AI", applications: 120, approved: 100, merchantRejected: 10,
-      overdueByUs: 2, inFlight: 8, approvalRate: 100 / 120,
-      merchantRejectRate: 10 / 120, overdueRate: 2 / 120 },
-    { decidedBy: "NOT_AI", applications: 300, approved: 200, merchantRejected: 50,
-      overdueByUs: 18, inFlight: 32, approvalRate: 2 / 3,
-      merchantRejectRate: 1 / 6, overdueRate: 0.06 },
+    {
+      decidedBy: "AI",
+      applications: 120,
+      approved: 100,
+      merchantRejected: 10,
+      overdueByUs: 2,
+      inFlight: 8,
+      approvalRate: 100 / 120,
+      merchantRejectRate: 10 / 120,
+      overdueRate: 2 / 120,
+    },
+    {
+      decidedBy: "NOT_AI",
+      applications: 300,
+      approved: 200,
+      merchantRejected: 50,
+      overdueByUs: 18,
+      inFlight: 32,
+      approvalRate: 2 / 3,
+      merchantRejectRate: 1 / 6,
+      overdueRate: 0.06,
+    },
   ];
   return {
     applications: 420,
@@ -234,8 +289,26 @@ function approvalFixture() {
     approvalRate: 0.714,
     merchantRejectRate: 0.143,
     overdueRate: 0.048,
-    daily: [{ cohortDs: "2026-08-01", applications: 40, approved: 30, merchantRejected: 5, overdueByUs: 2, inFlight: 3 }],
-    byAge: [{ ageBucket: "0–1d", applications: 40, approved: 20, merchantRejected: 4, overdueByUs: 1, inFlight: 15 }],
+    daily: [
+      {
+        cohortDs: "2026-08-01",
+        applications: 40,
+        approved: 30,
+        merchantRejected: 5,
+        overdueByUs: 2,
+        inFlight: 3,
+      },
+    ],
+    byAge: [
+      {
+        ageBucket: "0–1d",
+        applications: 40,
+        approved: 20,
+        merchantRejected: 4,
+        overdueByUs: 1,
+        inFlight: 15,
+      },
+    ],
     byDecisionOrigin,
     dailyByDecisionOrigin: byDecisionOrigin.map((row) => ({ ...row, cohortDs: "2026-08-01" })),
     byAgeAndDecisionOrigin: byDecisionOrigin.map((row) => ({ ...row, ageBucket: "0–1d" })),
@@ -260,10 +333,22 @@ function postApprovalFixture() {
       { ds: "2026-08-18", samplesShipped: 1_940, affiliateUnits: 9_408 },
     ],
     byDecisionOrigin: [
-      { decidedBy: "AI", approvedApplications: 100, applicationsWithOrder: 40,
-        orderRate: 0.4, actualUnits: 300, unitsPerApprovedActual: 3 },
-      { decidedBy: "NOT_AI", approvedApplications: 200, applicationsWithOrder: 56,
-        orderRate: 0.28, actualUnits: 512, unitsPerApprovedActual: 2.56 },
+      {
+        decidedBy: "AI",
+        approvedApplications: 100,
+        applicationsWithOrder: 40,
+        orderRate: 0.4,
+        actualUnits: 300,
+        unitsPerApprovedActual: 3,
+      },
+      {
+        decidedBy: "NOT_AI",
+        approvedApplications: 200,
+        applicationsWithOrder: 56,
+        orderRate: 0.28,
+        actualUnits: 512,
+        unitsPerApprovedActual: 2.56,
+      },
     ],
     sampleActivityDailyByDecisionOrigin: [
       { ds: "2026-08-18", decidedBy: "AI", contents: 8, orders: 4, units: 30 },
@@ -287,9 +372,16 @@ beforeEach(() => {
   mocks.sections = {
     AffiliateOverviewReachout: sectionResult("getAffiliateOverviewReachout", reachoutFixture()),
     AffiliateOverviewApproval: sectionResult("getAffiliateOverviewApproval", approvalFixture()),
-    AffiliateOverviewPostApproval: sectionResult("getAffiliateOverviewPostApproval", postApprovalFixture()),
+    AffiliateOverviewPostApproval: sectionResult(
+      "getAffiliateOverviewPostApproval",
+      postApprovalFixture(),
+    ),
     AffiliateOverviewPortfolio: sectionResult("getAffiliateAnalyticsOverviewCore", {
-      portfolio: { activeCampaigns: 7, activeTargetCollaborations: 11, activeOpenCollaborations: 3 },
+      portfolio: {
+        activeCampaigns: 7,
+        activeTargetCollaborations: 11,
+        activeOpenCollaborations: 3,
+      },
     }),
   };
   mocks.queryCalls = [];
@@ -304,7 +396,12 @@ beforeEach(() => {
         rows: [{ DATE: "2026-08-23", AFFILIATE_NET_GMV_USD: 125, AFFILIATE_ORDERS: 5 }],
         columns: [
           { key: "DATE", label: "Date", dimension: "DATE", metric: null },
-          { key: "AFFILIATE_NET_GMV_USD", label: "Net GMV USD", dimension: null, metric: "AFFILIATE_NET_GMV_USD" },
+          {
+            key: "AFFILIATE_NET_GMV_USD",
+            label: "Net GMV USD",
+            dimension: null,
+            metric: "AFFILIATE_NET_GMV_USD",
+          },
           { key: "AFFILIATE_ORDERS", label: "Orders", dimension: null, metric: "AFFILIATE_ORDERS" },
         ],
         pageInfo: { hasMore: false },
@@ -340,7 +437,9 @@ describe("AffiliateAnalyticsPage Overview", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Reachout" })).toBeTruthy();
     expect(screen.getByRole("heading", { level: 2, name: "Sample approval" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 2, name: "Post-approval performance" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Post-approval performance" }),
+    ).toBeTruthy();
     expect(screen.getByText("Cohort axis: the real invitation date")).toBeTruthy();
     expect(screen.getByText("Cohort axis: the application submission date")).toBeTruthy();
     expect(screen.getByText("Two bases: the application date and the calendar day")).toBeTruthy();
@@ -375,17 +474,24 @@ describe("AffiliateAnalyticsPage Overview", () => {
 
   it("says on the section that its window is pinned rather than inherited", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
-    const postApproval = container
-      .querySelector('[data-tutorial-id="affiliate-analytics-post-approval"]') as HTMLElement;
+    const postApproval = container.querySelector(
+      '[data-tutorial-id="affiliate-analytics-post-approval"]',
+    ) as HTMLElement;
 
-    expect(within(postApproval).getByText("Always measured over 90 days", { exact: false })).toBeTruthy();
+    expect(
+      within(postApproval).getByText("Always measured over 90 days", { exact: false }),
+    ).toBeTruthy();
   });
 
   it("labels the portfolio counts as current values that the window does not move", () => {
     render(<AffiliateAnalyticsPage />);
 
     expect(screen.getByText("Current values · unaffected by the window")).toBeTruthy();
-    for (const [label, value] of [["Active campaigns", "7"], ["Active TARGET", "11"], ["Active OPEN", "3"]]) {
+    for (const [label, value] of [
+      ["Active campaigns", "7"],
+      ["Active TARGET", "11"],
+      ["Active OPEN", "3"],
+    ]) {
       expect(screen.getByText(label).parentElement?.textContent).toContain(value);
     }
   });
@@ -404,7 +510,7 @@ describe("AffiliateAnalyticsPage Overview", () => {
   it("drops the comparison selector and the free date range from the Overview controls", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
 
-    expect(container.querySelector(".affiliate-overview input[type=\"date\"]")).toBeNull();
+    expect(container.querySelector('.affiliate-overview input[type="date"]')).toBeNull();
     expect(screen.queryByText("ecommerce.affiliateAnalytics.comparison")).toBeNull();
   });
 
@@ -441,7 +547,9 @@ describe("AffiliateAnalyticsPage Overview", () => {
     render(<AffiliateAnalyticsPage />);
 
     expect(screen.getByText("Analytics access is not enabled")).toBeTruthy();
-    expect(mocks.queryCalls.some((call) => call.operation?.startsWith("AffiliateOverview"))).toBe(false);
+    expect(mocks.queryCalls.some((call) => call.operation?.startsWith("AffiliateOverview"))).toBe(
+      false,
+    );
   });
 
   it("narrows the queried shop scope to the chosen region", async () => {
@@ -463,11 +571,16 @@ describe("AffiliateAnalyticsPage Overview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Shop region" }));
     fireEvent.click(await screen.findByRole("button", { name: "DE" }));
 
-    await waitFor(() => expect(overviewInputs().some((input) => input.shopIds?.length === 1 && input.shopIds[0] === "shop-2")).toBe(true));
+    await waitFor(() =>
+      expect(
+        overviewInputs().some(
+          (input) => input.shopIds?.length === 1 && input.shopIds[0] === "shop-2",
+        ),
+      ).toBe(true),
+    );
     expect(screen.getByText("1 shops selected")).toBeTruthy();
   });
 });
-
 
 describe("AffiliateAnalyticsPage Overview data coverage", () => {
   function section(container: HTMLElement, id: string): HTMLElement {
@@ -475,8 +588,9 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
   }
 
   function chartRows(scope: HTMLElement, kind: string): number[] {
-    return [...scope.querySelectorAll(`[data-chart="${kind}"]`)]
-      .map((node) => Number(node.getAttribute("data-rows")));
+    return [...scope.querySelectorAll(`[data-chart="${kind}"]`)].map((node) =>
+      Number(node.getAttribute("data-rows")),
+    );
   }
 
   it("states the boundary and names the shops that set it", () => {
@@ -502,7 +616,9 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
     const reachout = section(container, "reachout");
 
-    fireEvent.click(within(reachout).getByRole("button", { name: "Narrow to the fully-covered range" }));
+    fireEvent.click(
+      within(reachout).getByRole("button", { name: "Narrow to the fully-covered range" }),
+    );
 
     expect(chartRows(reachout, "composed")).toEqual([1]);
     expect(within(reachout).getByRole("button", { name: "Show the full range" })).toBeTruthy();
@@ -523,18 +639,19 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
   it("shows AI and non-AI without relabeling non-AI as human", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
     const approval = section(container, "approval");
-    expect(within(approval).getAllByText("AI").length)
-      .toBeGreaterThan(0);
-    expect(within(approval).getAllByText("Non-AI").length)
-      .toBeGreaterThan(0);
+    expect(within(approval).getAllByText("AI").length).toBeGreaterThan(0);
+    expect(within(approval).getAllByText("Non-AI").length).toBeGreaterThan(0);
     expect(approval.textContent).not.toContain("Human");
   });
 
   it("discloses the shop basis next to the rate it was computed over", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
 
-    expect(within(section(container, "reachout"))
-      .getByText("Computed over 2 of 3 shops · fully covered from Aug 19")).toBeTruthy();
+    expect(
+      within(section(container, "reachout")).getByText(
+        "Computed over 2 of 3 shops · fully covered from Aug 19",
+      ),
+    ).toBeTruthy();
   });
 
   it("narrows the page shop scope when the limiting shops are excluded", async () => {
@@ -556,8 +673,11 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
     expect(overviewInputs().at(0)?.shopIds).toEqual(["shop-1", "shop-2", "shop-3"]);
 
-    fireEvent.click(within(section(container, "reachout"))
-      .getByRole("button", { name: "Exclude the 1 latest-starting shops" }));
+    fireEvent.click(
+      within(section(container, "reachout")).getByRole("button", {
+        name: "Exclude the 1 latest-starting shops",
+      }),
+    );
 
     await waitFor(() => expect(overviewInputs().at(-1)?.shopIds).toEqual(["shop-1", "shop-3"]));
   });

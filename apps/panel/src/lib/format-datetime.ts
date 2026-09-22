@@ -128,10 +128,7 @@ export function formatLocalizedRelativeTime(
 }
 
 /** Compact date + 24h time embedded in sentence copy. */
-export function formatShortDateTime(
-  value: LocalizedDateTimeValue,
-  panelLocale: string,
-): string {
+export function formatShortDateTime(value: LocalizedDateTimeValue, panelLocale: string): string {
   return formatLocalizedDateTime(value, panelLocale, {
     month: "short",
     day: "numeric",

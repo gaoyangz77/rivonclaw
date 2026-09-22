@@ -173,7 +173,6 @@
     width: 100%;
     justify-content: flex-start;
   }
-
 }
 
 .tk-v1-button {
@@ -655,7 +654,8 @@
   box-shadow: var(--tk-v1-focus);
 }
 
-.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control) .custom-select-trigger:disabled {
+.custom-select:is(.tk-v1-select-root, .tk-v1-choice-select-control)
+  .custom-select-trigger:disabled {
   border-color: var(--tk-v1-border-subtle);
   background: var(--tk-v1-bg-subtle);
   color: var(--tk-v1-fg-disabled);

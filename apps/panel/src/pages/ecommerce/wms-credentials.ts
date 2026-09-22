@@ -47,9 +47,6 @@ export function wmsCredentialIssue(
 ): "missingFields" | null {
   const required = wmsCredentialFields(provider, mode);
   const enteredAny = required.some((field) => draft[field].trim());
-  if (isEdit && !enteredAny && !(provider === "JFWMS" && mode === "AUTHORIZE"))
-    return null;
-  return required.every((field) => draft[field].trim())
-    ? null
-    : "missingFields";
+  if (isEdit && !enteredAny && !(provider === "JFWMS" && mode === "AUTHORIZE")) return null;
+  return required.every((field) => draft[field].trim()) ? null : "missingFields";
 }

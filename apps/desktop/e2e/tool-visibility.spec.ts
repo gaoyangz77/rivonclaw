@@ -22,9 +22,7 @@ test.describe("Tool Visibility — Capability Resolver", () => {
   }) => {
     // Any session key defaults to CHAT_SESSION (trusted scope).
     // No session profile, no default profile → trusted fallback returns system tools.
-    const res = await fetch(
-      `${apiBase}/api/tools/effective-tools?sessionKey=test-no-selection`,
-    );
+    const res = await fetch(`${apiBase}/api/tools/effective-tools?sessionKey=test-no-selection`);
     expect(res.ok).toBe(true);
 
     const body = (await res.json()) as { effectiveToolIds: string[] };
@@ -46,9 +44,7 @@ test.describe("Tool Visibility — Capability Resolver", () => {
     // all system tools (read, write, exec, edit, web_search, ...).
     const sessionKey = "agent:test-trusted-scope";
 
-    const res = await fetch(
-      `${apiBase}/api/tools/effective-tools?sessionKey=${sessionKey}`,
-    );
+    const res = await fetch(`${apiBase}/api/tools/effective-tools?sessionKey=${sessionKey}`);
     expect(res.ok).toBe(true);
 
     const body = (await res.json()) as { effectiveToolIds: string[] };
@@ -80,9 +76,7 @@ test.describe("Tool Visibility — Capability Resolver", () => {
     expect(putRes.ok).toBe(true);
 
     // Verify the binding was stored
-    const getProfileRes = await fetch(
-      `${apiBase}/api/tools/run-profile?scopeKey=${sessionKey}`,
-    );
+    const getProfileRes = await fetch(`${apiBase}/api/tools/run-profile?scopeKey=${sessionKey}`);
     expect(getProfileRes.ok).toBe(true);
     const profileBody = (await getProfileRes.json()) as { runProfileId: string | null };
     expect(profileBody.runProfileId).toBe("nonexistent-profile-id");
@@ -90,9 +84,7 @@ test.describe("Tool Visibility — Capability Resolver", () => {
     // Query effective tools for this trusted scope with bound profile.
     // computeEffectiveTools finds no matching RunProfile → effectiveToolIds = [].
     // But CHAT_SESSION is trusted → system tools are merged in.
-    const res = await fetch(
-      `${apiBase}/api/tools/effective-tools?sessionKey=${sessionKey}`,
-    );
+    const res = await fetch(`${apiBase}/api/tools/effective-tools?sessionKey=${sessionKey}`);
     expect(res.ok).toBe(true);
 
     const body = (await res.json()) as { effectiveToolIds: string[] };

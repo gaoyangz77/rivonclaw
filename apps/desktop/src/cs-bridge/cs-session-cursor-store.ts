@@ -54,12 +54,15 @@ function conversationKey(shopId: string, conversationId: string): string {
   return `${shopId}:${conversationId}`;
 }
 
-function normalizeCursor(cursor: CustomerServiceMessageCursor): CustomerServiceMessageCursor | null {
+function normalizeCursor(
+  cursor: CustomerServiceMessageCursor,
+): CustomerServiceMessageCursor | null {
   const messageId = cursor.messageId?.trim() || undefined;
   const messageIndex = cursor.messageIndex?.trim() || undefined;
-  const createTime = typeof cursor.createTime === "number" && Number.isFinite(cursor.createTime)
-    ? cursor.createTime
-    : undefined;
+  const createTime =
+    typeof cursor.createTime === "number" && Number.isFinite(cursor.createTime)
+      ? cursor.createTime
+      : undefined;
   if (!messageId && !messageIndex && createTime == null) return null;
   return { messageId, messageIndex, createTime };
 }
@@ -107,8 +110,14 @@ export function compareMessageCursor(
     return compareNumericString(leftIndex, rightIndex);
   }
 
-  const leftTime = typeof left.createTime === "number" && Number.isFinite(left.createTime) ? left.createTime : undefined;
-  const rightTime = typeof right.createTime === "number" && Number.isFinite(right.createTime) ? right.createTime : undefined;
+  const leftTime =
+    typeof left.createTime === "number" && Number.isFinite(left.createTime)
+      ? left.createTime
+      : undefined;
+  const rightTime =
+    typeof right.createTime === "number" && Number.isFinite(right.createTime)
+      ? right.createTime
+      : undefined;
   if (leftTime != null && rightTime != null && leftTime !== rightTime) {
     return leftTime - rightTime;
   }
@@ -132,9 +141,10 @@ async function loadStoreFromDisk(): Promise<CursorStoreFile> {
     const parsed = JSON.parse(raw) as Partial<CursorStoreFile>;
     const store: CursorStoreFile = {
       version: 1,
-      conversations: parsed.conversations && typeof parsed.conversations === "object"
-        ? parsed.conversations
-        : {},
+      conversations:
+        parsed.conversations && typeof parsed.conversations === "object"
+          ? parsed.conversations
+          : {},
     };
     lastPruneAt = Date.now();
     if (pruneExpiredStore(store, lastPruneAt)) {

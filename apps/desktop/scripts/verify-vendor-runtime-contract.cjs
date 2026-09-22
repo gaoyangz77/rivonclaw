@@ -15,7 +15,10 @@ const path = require("path");
 const { createRequire } = require("module");
 const { pathToFileURL } = require("url");
 const { resolveElectronPath } = require("../../../scripts/electron-runtime.cjs");
-const { assertSelectedPluginDependencies, assertBundledPluginEntries } = require("./vendor-plugin-dependencies.cjs");
+const {
+  assertSelectedPluginDependencies,
+  assertBundledPluginEntries,
+} = require("./vendor-plugin-dependencies.cjs");
 const {
   DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
   STAGED_VENDOR_SOURCE_PLUGINS,
@@ -61,7 +64,10 @@ const SQLITE_VEC_PLATFORM_PACKAGE =
     : "";
 if (SQLITE_VEC_PLATFORM_PACKAGE) REQUIRED_PATHS.push(SQLITE_VEC_PLATFORM_PACKAGE);
 if (process.platform === "win32") {
-  REQUIRED_PATHS.push("node_modules/koffi/package.json", `node_modules/@koromix/koffi-win32-${process.arch}/package.json`);
+  REQUIRED_PATHS.push(
+    "node_modules/koffi/package.json",
+    `node_modules/@koromix/koffi-win32-${process.arch}/package.json`,
+  );
 }
 
 const PRUNED_FORBIDDEN_PATHS = [
@@ -145,8 +151,14 @@ function parseArgs(argv) {
       args.runtime = path.resolve(argv[++index]);
       continue;
     }
-    if (arg === "--runtime-child") { args.runtimeChild = true; continue; }
-    if (arg === "--static-only") { args.staticOnly = true; continue; }
+    if (arg === "--runtime-child") {
+      args.runtimeChild = true;
+      continue;
+    }
+    if (arg === "--static-only") {
+      args.staticOnly = true;
+      continue;
+    }
     if (arg === "--vendor") {
       args.vendorDir = path.resolve(argv[++index] ?? "");
       continue;
@@ -306,7 +318,9 @@ async function runSqliteVecRuntimeSmoke(vendorDir) {
   }
 
   if (sqliteVecRuntimeArch !== process.arch) {
-    throw new Error(`Cannot execute ${sqliteVecRuntimeArch} runtime checks using ${process.arch}; pass the target Electron executable`);
+    throw new Error(
+      `Cannot execute ${sqliteVecRuntimeArch} runtime checks using ${process.arch}; pass the target Electron executable`,
+    );
   }
 
   const requireFromVendor = createRequire(path.join(vendorDir, "package.json"));
@@ -316,8 +330,11 @@ async function runSqliteVecRuntimeSmoke(vendorDir) {
     const kernel32 = koffi.load("kernel32.dll");
     try {
       const getCurrentProcessId = kernel32.func("uint32_t __stdcall GetCurrentProcessId(void)");
-      if (getCurrentProcessId() !== process.pid) throw new Error("Koffi Windows native runtime check failed");
-    } finally { kernel32.unload(); }
+      if (getCurrentProcessId() !== process.pid)
+        throw new Error("Koffi Windows native runtime check failed");
+    } finally {
+      kernel32.unload();
+    }
   }
   const sqliteVec = await import(pathToFileURL(sqliteVecPath).href);
   if (typeof sqliteVec.getLoadablePath !== "function") {
@@ -330,25 +347,48 @@ async function runSqliteVecRuntimeSmoke(vendorDir) {
   const { DatabaseSync } = require("node:sqlite");
   const db = new DatabaseSync(":memory:");
   try {
-    const omitted = db.prepare("SELECT sqlite_compileoption_used('OMIT_LOAD_EXTENSION') AS omitted").get().omitted;
+    const omitted = db
+      .prepare("SELECT sqlite_compileoption_used('OMIT_LOAD_EXTENSION') AS omitted")
+      .get().omitted;
     if (omitted === 0) {
       const extensionDb = new DatabaseSync(":memory:", { allowExtension: true });
       try {
         extensionDb.loadExtension(extensionPath);
         extensionDb.prepare("SELECT vec_version() AS version").get();
-      } finally { extensionDb.close(); }
+      } finally {
+        extensionDb.close();
+      }
     } else {
-      console.log("[verify-vendor-runtime] SQLite extension loading disabled by Electron; using OpenClaw fallback");
+      console.log(
+        "[verify-vendor-runtime] SQLite extension loading disabled by Electron; using OpenClaw fallback",
+      );
     }
-  } finally { db.close(); }
+  } finally {
+    db.close();
+  }
 }
 
 function isolatedEnvironment(env = process.env) {
-  return Object.fromEntries(Object.entries(env).filter(([name]) => {
-    const key = name.toUpperCase();
-    return !key.startsWith("OPENCLAW_") && !key.startsWith("FS_SAFE_") &&
-      !["PATH", "NODE_OPTIONS", "NODE_PATH", "NODE_COMPILE_CACHE", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "XDG_CONFIG_HOME"].includes(key);
-  }));
+  return Object.fromEntries(
+    Object.entries(env).filter(([name]) => {
+      const key = name.toUpperCase();
+      return (
+        !key.startsWith("OPENCLAW_") &&
+        !key.startsWith("FS_SAFE_") &&
+        ![
+          "PATH",
+          "NODE_OPTIONS",
+          "NODE_PATH",
+          "NODE_COMPILE_CACHE",
+          "HOME",
+          "USERPROFILE",
+          "APPDATA",
+          "LOCALAPPDATA",
+          "XDG_CONFIG_HOME",
+        ].includes(key)
+      );
+    }),
+  );
 }
 
 function assertNoLifecycleMarkers(vendorDir) {
@@ -358,11 +398,16 @@ function assertNoLifecycleMarkers(vendorDir) {
 }
 
 async function runNodeRuntimeSmoke(vendorDir) {
-  if (!process.versions.electron) throw new Error("Runtime contract must execute under Electron, not host Node");
+  if (!process.versions.electron)
+    throw new Error("Runtime contract must execute under Electron, not host Node");
   const contract = await import(pathToFileURL(path.join(vendorDir, "node-version.mjs")).href);
-  if (typeof contract.isSupportedOpenClawNodeVersion !== "function" ||
-      !contract.isSupportedOpenClawNodeVersion(process.versions.node)) {
-    throw new Error(`Electron ${process.versions.electron} embeds unsupported Node ${process.versions.node}: ${contract.SUPPORTED_NODE_VERSIONS}`);
+  if (
+    typeof contract.isSupportedOpenClawNodeVersion !== "function" ||
+    !contract.isSupportedOpenClawNodeVersion(process.versions.node)
+  ) {
+    throw new Error(
+      `Electron ${process.versions.electron} embeds unsupported Node ${process.versions.node}: ${contract.SUPPORTED_NODE_VERSIONS}`,
+    );
   }
   const { DatabaseSync } = require("node:sqlite");
   const db = new DatabaseSync(":memory:");
@@ -373,24 +418,37 @@ async function runNodeRuntimeSmoke(vendorDir) {
       throw new Error(`Unsafe SQLite WAL runtime: ${version}`);
     }
     const value = "text-\u4e2d\ud83d\ude80\u0000tail";
-    if (db.prepare("SELECT ? AS value").get(value).value !== value) throw new Error("node:sqlite TEXT roundtrip is lossy");
-    console.log(`[verify-vendor-runtime] Electron ${process.versions.electron}, Node ${process.versions.node}, ABI ${process.versions.modules}, SQLite ${version}`);
-  } finally { db.close(); }
+    if (db.prepare("SELECT ? AS value").get(value).value !== value)
+      throw new Error("node:sqlite TEXT roundtrip is lossy");
+    console.log(
+      `[verify-vendor-runtime] Electron ${process.versions.electron}, Node ${process.versions.node}, ABI ${process.versions.modules}, SQLite ${version}`,
+    );
+  } finally {
+    db.close();
+  }
 }
 
 const PACKAGE_MANAGER_ATTEMPT = /spawn\s+(?:npm(?:\.cmd)?|npx(?:\.cmd)?|pnpm(?:\.cmd)?)\b/iu;
 
 function probeGatewayReady(port) {
   return new Promise((resolve) => {
-    const request = http.get({ host: "127.0.0.1", port, path: "/readyz", timeout: 1000 }, (response) => {
-      let body = "";
-      response.setEncoding("utf8");
-      response.on("data", (chunk) => { body += chunk; });
-      response.on("end", () => {
-        try { resolve(response.statusCode === 200 && JSON.parse(body).ready === true); }
-        catch { resolve(false); }
-      });
-    });
+    const request = http.get(
+      { host: "127.0.0.1", port, path: "/readyz", timeout: 1000 },
+      (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+        response.on("end", () => {
+          try {
+            resolve(response.statusCode === 200 && JSON.parse(body).ready === true);
+          } catch {
+            resolve(false);
+          }
+        });
+      },
+    );
     request.on("timeout", () => request.destroy());
     request.on("error", () => resolve(false));
   });
@@ -402,13 +460,32 @@ async function runGatewayStartupSmoke(vendorDir, smokeRoot, env, timeout) {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
       const assigned = server.address().port;
-      server.close((error) => error ? reject(error) : resolve(assigned));
+      server.close((error) => (error ? reject(error) : resolve(assigned)));
     });
   });
-  const child = spawn(process.execPath, [path.join(vendorDir, "openclaw.mjs"), "gateway", "run", "--port", String(port), "--bind", "loopback"], {
-    cwd: smokeRoot, stdio: ["ignore", "pipe", "pipe"],
-    env: { ...env, OPENCLAW_NO_RESPAWN: "1", OPENCLAW_SKIP_CHANNELS: "1", OPENCLAW_DISABLE_BONJOUR: "1", OPENCLAW_SKIP_BROWSER_CONTROL_SERVER: "1" },
-  });
+  const child = spawn(
+    process.execPath,
+    [
+      path.join(vendorDir, "openclaw.mjs"),
+      "gateway",
+      "run",
+      "--port",
+      String(port),
+      "--bind",
+      "loopback",
+    ],
+    {
+      cwd: smokeRoot,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...env,
+        OPENCLAW_NO_RESPAWN: "1",
+        OPENCLAW_SKIP_CHANNELS: "1",
+        OPENCLAW_DISABLE_BONJOUR: "1",
+        OPENCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
+      },
+    },
+  );
   let output = "";
   let spawnError;
   let exited = false;
@@ -420,22 +497,38 @@ async function runGatewayStartupSmoke(vendorDir, smokeRoot, env, timeout) {
   };
   child.stdout.on("data", capture);
   child.stderr.on("data", capture);
-  child.once("error", (error) => { spawnError = error; });
-  const closed = new Promise((resolve) => child.once("close", () => { exited = true; resolve(); }));
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  const waitForClose = (ms) => new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    closed.then(() => { clearTimeout(timer); resolve(); });
+  child.once("error", (error) => {
+    spawnError = error;
   });
+  const closed = new Promise((resolve) =>
+    child.once("close", () => {
+      exited = true;
+      resolve();
+    }),
+  );
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const waitForClose = (ms) =>
+    new Promise((resolve) => {
+      const timer = setTimeout(resolve, ms);
+      closed.then(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
   try {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       if (spawnError) throw spawnError;
-      if (exited) throw new Error(`Gateway exited before readiness (${child.exitCode}):\n${output}`);
-      if (packageManagerAttempt) throw new Error(`Gateway attempted a host package manager:\n${output}`);
+      if (exited)
+        throw new Error(`Gateway exited before readiness (${child.exitCode}):\n${output}`);
+      if (packageManagerAttempt)
+        throw new Error(`Gateway attempted a host package manager:\n${output}`);
       if (await probeGatewayReady(port)) {
-        if (packageManagerAttempt || exited) throw new Error(`Gateway failed while becoming ready:\n${output}`);
-        console.log(`[verify-vendor-runtime] Gateway /readyz ready with empty PATH on port ${port}`);
+        if (packageManagerAttempt || exited)
+          throw new Error(`Gateway failed while becoming ready:\n${output}`);
+        console.log(
+          `[verify-vendor-runtime] Gateway /readyz ready with empty PATH on port ${port}`,
+        );
         return;
       }
       await delay(200);
@@ -454,13 +547,22 @@ async function runGatewayStartupSmoke(vendorDir, smokeRoot, env, timeout) {
 
 function packagedPluginInventory(resourcesDir) {
   if (!resourcesDir) return { ids: [], roots: [] };
-  const roots = ["extensions", "extensions-merchant"].map((name) => path.join(resourcesDir, name))
+  const roots = ["extensions", "extensions-merchant"]
+    .map((name) => path.join(resourcesDir, name))
     .filter((root) => fs.existsSync(root));
-  const ids = roots.flatMap((root) => fs.readdirSync(root).flatMap((name) => {
-    const file = path.join(root, name, "openclaw.plugin.json");
-    return fs.existsSync(file) ? [JSON.parse(fs.readFileSync(file, "utf8")).id] : [];
-  }));
-  for (const id of ["openclaw-weixin", "rivonclaw-event-bridge", "rivonclaw-capability-manager", "rivonclaw-mobile-chat-channel", "rivonclaw-search-browser-fallback"]) {
+  const ids = roots.flatMap((root) =>
+    fs.readdirSync(root).flatMap((name) => {
+      const file = path.join(root, name, "openclaw.plugin.json");
+      return fs.existsSync(file) ? [JSON.parse(fs.readFileSync(file, "utf8")).id] : [];
+    }),
+  );
+  for (const id of [
+    "openclaw-weixin",
+    "rivonclaw-event-bridge",
+    "rivonclaw-capability-manager",
+    "rivonclaw-mobile-chat-channel",
+    "rivonclaw-search-browser-fallback",
+  ]) {
     if (!ids.includes(id)) throw new Error(`Missing packaged external plugin ${id}`);
   }
   if (new Set(ids).size !== ids.length) throw new Error("Duplicate packaged external plugin IDs");
@@ -471,11 +573,15 @@ function assertLoadedPluginInventory(inventory, ids, verifyWeixin = false) {
   const plugins = Array.isArray(inventory)
     ? inventory.map((entry) => ({ ...entry.plugin, gatewayMethods: entry.gatewayMethods }))
     : inventory.plugins;
-  if (!Array.isArray(plugins)) throw new Error("OpenClaw plugin inventory returned unexpected JSON");
+  if (!Array.isArray(plugins))
+    throw new Error("OpenClaw plugin inventory returned unexpected JSON");
   for (const id of ids) {
     const plugin = plugins.find((entry) => entry?.id === id);
     if (!plugin) throw new Error(`OpenClaw did not discover required plugin ${id}`);
-    if (plugin.status !== "loaded") throw new Error(`OpenClaw failed to load required plugin ${id}: ${plugin.error ?? "unknown error"}`);
+    if (plugin.status !== "loaded")
+      throw new Error(
+        `OpenClaw failed to load required plugin ${id}: ${plugin.error ?? "unknown error"}`,
+      );
   }
   if (verifyWeixin) {
     const methods = plugins.find((entry) => entry.id === "openclaw-weixin")?.gatewayMethods ?? [];
@@ -494,7 +600,10 @@ function runExternalNativeRuntimeSmoke(resourcesDir) {
   assertPluginDependencies(pluginDir, [pluginDir]);
   const canvasDir = resolvePackage("@napi-rs/canvas", pluginDir, pluginDir);
   if (!canvasDir) throw new Error("Missing packaged Canvas runtime");
-  if (process.platform === "darwin" && !resolvePackage(`@napi-rs/canvas-darwin-${process.arch}`, canvasDir, pluginDir)) {
+  if (
+    process.platform === "darwin" &&
+    !resolvePackage(`@napi-rs/canvas-darwin-${process.arch}`, canvasDir, pluginDir)
+  ) {
     throw new Error(`Missing packaged Canvas native runtime for darwin-${process.arch}`);
   }
   const { createCanvas } = createRequire(manifestPath)("@napi-rs/canvas");
@@ -518,10 +627,17 @@ async function runNoHostPackageManagerStartupSmoke(vendorDir, resourcesDir = "")
   fs.mkdirSync(smokeStateDir, { recursive: true });
   fs.mkdirSync(emptyBinDir, { recursive: true });
   const env = {
-    ...isolatedEnvironment(), CI: "1", HOME: smokeRoot, USERPROFILE: smokeRoot,
-    APPDATA: smokeRoot, LOCALAPPDATA: smokeRoot, XDG_CONFIG_HOME: smokeRoot,
-    PATH: emptyBinDir, ELECTRON_RUN_AS_NODE: "1",
-    OPENCLAW_STATE_DIR: smokeStateDir, OPENCLAW_CONFIG_PATH: configPath,
+    ...isolatedEnvironment(),
+    CI: "1",
+    HOME: smokeRoot,
+    USERPROFILE: smokeRoot,
+    APPDATA: smokeRoot,
+    LOCALAPPDATA: smokeRoot,
+    XDG_CONFIG_HOME: smokeRoot,
+    PATH: emptyBinDir,
+    ELECTRON_RUN_AS_NODE: "1",
+    OPENCLAW_STATE_DIR: smokeStateDir,
+    OPENCLAW_CONFIG_PATH: configPath,
     OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(vendorDir, "dist-runtime", "extensions"),
     RIVONCLAW_PANEL_PORT: "1",
   };
@@ -545,7 +661,10 @@ async function runNoHostPackageManagerStartupSmoke(vendorDir, resourcesDir = "")
           allow: requiredIds,
           load: { paths: external.roots },
           entries: Object.fromEntries(
-            requiredIds.map((pluginId) => [pluginId, { enabled: true, hooks: { allowConversationAccess: true } }]),
+            requiredIds.map((pluginId) => [
+              pluginId,
+              { enabled: true, hooks: { allowConversationAccess: true } },
+            ]),
           ),
         },
       },
@@ -592,7 +711,8 @@ async function runNoHostPackageManagerStartupSmoke(vendorDir, resourcesDir = "")
       },
     );
     const listOutput = `${listResult.stdout ?? ""}\n${listResult.stderr ?? ""}`;
-    if (PACKAGE_MANAGER_ATTEMPT.test(listOutput)) throw new Error(`Plugin inspection attempted a host package manager:\n${listOutput}`);
+    if (PACKAGE_MANAGER_ATTEMPT.test(listOutput))
+      throw new Error(`Plugin inspection attempted a host package manager:\n${listOutput}`);
     if (listResult.error) throw listResult.error;
     if (listResult.status !== 0) {
       throw new Error(
@@ -602,7 +722,9 @@ async function runNoHostPackageManagerStartupSmoke(vendorDir, resourcesDir = "")
     }
     const inventory = JSON.parse(listResult.stdout || "{}");
     assertLoadedPluginInventory(inventory, requiredIds, external.ids.includes("openclaw-weixin"));
-    console.log(`[verify-vendor-runtime] Loaded ${requiredIds.length} plugins (${external.ids.length} packaged external); Weixin QR RPCs ${external.ids.length ? "verified" : "not requested"}`);
+    console.log(
+      `[verify-vendor-runtime] Loaded ${requiredIds.length} plugins (${external.ids.length} packaged external); Weixin QR RPCs ${external.ids.length ? "verified" : "not requested"}`,
+    );
     await runGatewayStartupSmoke(vendorDir, smokeRoot, env, timeout);
   } finally {
     removeTempDirBestEffort(smokeRoot);
@@ -612,12 +734,18 @@ async function runNoHostPackageManagerStartupSmoke(vendorDir, resourcesDir = "")
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.staticOnly && !args.runtimeChild) {
-    const result = spawnSync(args.runtime || resolveElectronPath(), [__filename, ...process.argv.slice(2), "--runtime-child"], {
-      stdio: "inherit", env: { ...isolatedEnvironment(), ELECTRON_RUN_AS_NODE: "1" },
-      timeout: 600_000,
-    });
+    const result = spawnSync(
+      args.runtime || resolveElectronPath(),
+      [__filename, ...process.argv.slice(2), "--runtime-child"],
+      {
+        stdio: "inherit",
+        env: { ...isolatedEnvironment(), ELECTRON_RUN_AS_NODE: "1" },
+        timeout: 600_000,
+      },
+    );
     if (result.error) throw result.error;
-    if (result.status !== 0) throw new Error(`Electron runtime contract failed (exit ${result.status})`);
+    if (result.status !== 0)
+      throw new Error(`Electron runtime contract failed (exit ${result.status})`);
     return;
   }
   const extractedDir = args.archivePath ? extractArchive(args.archivePath) : "";
@@ -694,4 +822,15 @@ if (require.main === module) {
   });
 }
 
-module.exports = { removeTempDirBestEffort, findWorkspaceBundles, isolatedEnvironment, assertNoLifecycleMarkers, runNodeRuntimeSmoke, runGatewayStartupSmoke, runNoHostPackageManagerStartupSmoke, runExternalNativeRuntimeSmoke, packagedPluginInventory, assertLoadedPluginInventory };
+module.exports = {
+  removeTempDirBestEffort,
+  findWorkspaceBundles,
+  isolatedEnvironment,
+  assertNoLifecycleMarkers,
+  runNodeRuntimeSmoke,
+  runGatewayStartupSmoke,
+  runNoHostPackageManagerStartupSmoke,
+  runExternalNativeRuntimeSmoke,
+  packagedPluginInventory,
+  assertLoadedPluginInventory,
+};

@@ -10,10 +10,17 @@ const { execSync, execFileSync } = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const { resolveElectronPath, readElectronVersions } = require("../../../scripts/electron-runtime.cjs");
+const {
+  resolveElectronPath,
+  readElectronVersions,
+} = require("../../../scripts/electron-runtime.cjs");
 const { assertNoLifecycleMarkers } = require("./verify-vendor-runtime-contract.cjs");
 const { VENDOR_PRUNE_INPUTS } = require("./vendor-runtime-cache.cjs");
-const { deduplicateMirroredPluginDependencies, deduplicateRuntimeDependencies, VENDOR_ARCHIVE_ENV } = require("./vendor-plugin-size.cjs");
+const {
+  deduplicateMirroredPluginDependencies,
+  deduplicateRuntimeDependencies,
+  VENDOR_ARCHIVE_ENV,
+} = require("./vendor-plugin-size.cjs");
 
 const isMacOS = process.platform === "darwin";
 const forceArchive = process.env.ARCHIVE_VENDOR_RUNTIME === "1";
@@ -44,7 +51,13 @@ const hash = crypto.createHash("sha256");
 const electronPath = resolveElectronPath();
 const electronVersions = readElectronVersions(electronPath);
 const targetArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH || process.arch;
-hash.update(JSON.stringify({ electron: electronVersions.electron, node: electronVersions.node, arch: targetArch }));
+hash.update(
+  JSON.stringify({
+    electron: electronVersions.electron,
+    node: electronVersions.node,
+    arch: targetArch,
+  }),
+);
 
 // 1. .openclaw-version
 const openclawVersionPath = path.join(repoRoot, ".openclaw-version");
@@ -95,8 +108,15 @@ const RUNTIME_INCLUDES = [
 ];
 
 assertNoLifecycleMarkers(vendorDir);
-for (const required of ["openclaw.mjs", "node-version.mjs", "dist", "dist-runtime", "node_modules"]) {
-  if (!fs.existsSync(path.join(vendorDir, required))) throw new Error(`Missing runtime payload: ${required}`);
+for (const required of [
+  "openclaw.mjs",
+  "node-version.mjs",
+  "dist",
+  "dist-runtime",
+  "node_modules",
+]) {
+  if (!fs.existsSync(path.join(vendorDir, required)))
+    throw new Error(`Missing runtime payload: ${required}`);
 }
 
 function shellQuote(value) {
@@ -355,8 +375,12 @@ console.log("[archive-vendor-runtime] Archive verification passed (workspace tem
 console.log("[archive-vendor-runtime] Running packaged runtime contract...");
 execFileSync(
   process.execPath,
-  [path.join(__dirname, "verify-vendor-runtime-contract.cjs"), "--archive", archivePath,
-    ...(targetArch === process.arch ? ["--runtime", electronPath] : ["--static-only"])],
+  [
+    path.join(__dirname, "verify-vendor-runtime-contract.cjs"),
+    "--archive",
+    archivePath,
+    ...(targetArch === process.arch ? ["--runtime", electronPath] : ["--static-only"]),
+  ],
   { stdio: "inherit", timeout: 600_000 },
 );
 

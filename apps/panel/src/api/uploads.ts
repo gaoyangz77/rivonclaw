@@ -88,7 +88,12 @@ export interface UploadedMediaResult {
 }
 
 /** Mirrors the media store's accepted types; keep in sync with the backend. */
-export const MEDIA_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+export const MEDIA_IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+] as const;
 export const MEDIA_VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
 export const MEDIA_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 export const MEDIA_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
@@ -140,7 +145,7 @@ export async function uploadProductKnowledgeMedia(file: File): Promise<UploadedM
   if (!res.ok) {
     let message = `Media upload failed: ${res.status} ${res.statusText}`;
     try {
-      const json = await res.json() as { error?: string };
+      const json = (await res.json()) as { error?: string };
       if (json.error) message = json.error;
     } catch {
       // Non-JSON response.
@@ -148,7 +153,7 @@ export async function uploadProductKnowledgeMedia(file: File): Promise<UploadedM
     throw new Error(message);
   }
 
-  return await res.json() as UploadedMediaResult;
+  return (await res.json()) as UploadedMediaResult;
 }
 
 export async function uploadInventoryGoodImage(file: File): Promise<UploadedImageResult> {
@@ -168,7 +173,7 @@ export async function uploadInventoryGoodImage(file: File): Promise<UploadedImag
   if (!res.ok) {
     let message = `Image upload failed: ${res.status} ${res.statusText}`;
     try {
-      const json = await res.json() as { error?: string };
+      const json = (await res.json()) as { error?: string };
       if (json.error) message = json.error;
     } catch {
       // Non-JSON response.
@@ -176,7 +181,7 @@ export async function uploadInventoryGoodImage(file: File): Promise<UploadedImag
     throw new Error(message);
   }
 
-  const uploaded = await res.json() as UploadedImageResult;
+  const uploaded = (await res.json()) as UploadedImageResult;
   return {
     ...uploaded,
     previewUrl: URL.createObjectURL(uploadFile),

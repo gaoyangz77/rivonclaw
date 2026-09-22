@@ -12,14 +12,14 @@ import {
 } from "./heap-snapshot-setting.js";
 
 describe("gateway heap snapshot setting", () => {
-  it("stays off unless the setting is exactly \"true\"", () => {
+  it('stays off unless the setting is exactly "true"', () => {
     const cases = [undefined, "", "false", "0", "1", "yes", "TRUE", " true"];
     for (const value of cases) {
       expect(isGatewayHeapSnapshotEnabled(() => value)).toBe(false);
     }
   });
 
-  it("turns on for \"true\", and reads the documented key", () => {
+  it('turns on for "true", and reads the documented key', () => {
     let askedFor: string | undefined;
     const enabled = isGatewayHeapSnapshotEnabled((key) => {
       askedFor = key;

@@ -1,6 +1,13 @@
 import { useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
 import { CHART_COLORS, formatTokens } from "./usage-utils.js";
 import { TkPanel } from "../../components/design-system/index.js";
@@ -19,9 +26,7 @@ export function UsageChart({
   /** Solo mode: click shows only that series; click again restores all. */
   function handleLegendClick(dataKey: string) {
     setHiddenSeries((prev) => {
-      const allOthersHidden = seriesKeys.every(
-        (k) => k === dataKey || prev.has(k),
-      );
+      const allOthersHidden = seriesKeys.every((k) => k === dataKey || prev.has(k));
       if (allOthersHidden) {
         return new Set();
       }

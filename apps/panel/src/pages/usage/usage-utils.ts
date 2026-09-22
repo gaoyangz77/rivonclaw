@@ -110,10 +110,15 @@ export function buildGroups(
     if (!keyMap.has(row.keyId)) {
       keyMap.set(row.keyId, []);
     }
-    const isActive = activeKey !== null
-      && row.keyId === activeKey.keyId
-      && row.model === activeKey.model;
-    const cost = computeCost(row.inputTokens, row.outputTokens, row.provider, row.model, pricingMap);
+    const isActive =
+      activeKey !== null && row.keyId === activeKey.keyId && row.model === activeKey.model;
+    const cost = computeCost(
+      row.inputTokens,
+      row.outputTokens,
+      row.provider,
+      row.model,
+      pricingMap,
+    );
     keyMap.get(row.keyId)!.push({ row, isActive, cost });
   }
 
@@ -147,9 +152,7 @@ export function ensureActiveKey(
 ): KeyModelUsageSummary[] {
   const allRows = [...rows];
   if (activeKey) {
-    const found = allRows.some(
-      (r) => r.keyId === activeKey.keyId && r.model === activeKey.model,
-    );
+    const found = allRows.some((r) => r.keyId === activeKey.keyId && r.model === activeKey.model);
     if (!found) {
       allRows.push({
         keyId: activeKey.keyId,

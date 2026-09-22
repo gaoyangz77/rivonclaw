@@ -22,7 +22,9 @@ function formatError(err: unknown): string {
   return String(err ?? "unknown_error");
 }
 
-function getMissingEscalationRoutingReason(delivery: CsEscalationEventDeliveryPayload): string | null {
+function getMissingEscalationRoutingReason(
+  delivery: CsEscalationEventDeliveryPayload,
+): string | null {
   if (delivery.event.type !== "ESCALATION_CREATED") return null;
   const shop = findEscalationShop(delivery);
   const cs = shop?.services?.customerService;
@@ -80,21 +82,25 @@ export async function handleCsEscalationEvent(
   const shop = findEscalationShop(delivery);
   const cs = shop?.services?.customerService;
   if (!shop || !cs?.enabled) {
-    log.info(`Ignoring CS escalation event ${event.id} for unavailable/disabled shop ${delivery.escalation.shopId}`);
+    log.info(
+      `Ignoring CS escalation event ${event.id} for unavailable/disabled shop ${delivery.escalation.shopId}`,
+    );
     return;
   }
 
   if (!shop.handlesCustomerServiceOnDevice(deviceId)) {
     log.info(
       `Ignoring CS escalation event ${event.id} for shop ${shop.platformShopId ?? delivery.escalation.shopId}: ` +
-      `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,
+        `assignedDevice=${cs.csDeviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }
 
   const bridge = getCsBridge();
   if (!bridge) {
-    log.info(`CS escalation event ${event.id} arrived before CS bridge was ready; retrying locally`);
+    log.info(
+      `CS escalation event ${event.id} arrived before CS bridge was ready; retrying locally`,
+    );
     scheduleLocalRetry(authSession, deviceId, delivery);
     return;
   }
@@ -116,7 +122,7 @@ export async function handleCsEscalationEvent(
       });
       log.info(
         `Skipped CS escalation channel notification ${claimed.event.id} (${missingRoutingReason}); ` +
-        "escalation remains available in the Customer Service app",
+          "escalation remains available in the Customer Service app",
       );
       return;
     }

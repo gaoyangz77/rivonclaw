@@ -185,9 +185,7 @@ function canonicalizeAgentRoster(config: Record<string, unknown>): void {
  * default-agent fallback still resolves those and pinning an owner would be
  * noise.
  */
-export function resolveChannelOwnerAgentId(
-  config: Record<string, unknown>,
-): string | undefined {
+export function resolveChannelOwnerAgentId(config: Record<string, unknown>): string | undefined {
   const agents =
     config.agents && typeof config.agents === "object" && !Array.isArray(config.agents)
       ? (config.agents as Record<string, unknown>)
@@ -226,9 +224,7 @@ export function resolveChannelOwnerAgentId(
  * re-derived from a local guess.
  */
 export function readChannelOwnerAgentId(configPath?: string): string | undefined {
-  return resolveChannelOwnerAgentId(
-    readExistingConfig(configPath ?? resolveOpenClawConfigPath()),
-  );
+  return resolveChannelOwnerAgentId(readExistingConfig(configPath ?? resolveOpenClawConfigPath()));
 }
 
 /**

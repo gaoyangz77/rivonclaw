@@ -1,27 +1,27 @@
-import type { TutorialStep } from "../types.js"
-import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js"
+import type { TutorialStep } from "../types.js";
+import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js";
 
 function ensureCampaignWizardOpen() {
   if (!findTutorialTarget("affiliate-campaign-wizard")) {
-    clickTutorialTarget("affiliate-campaign-create")
+    clickTutorialTarget("affiliate-campaign-create");
   }
 }
 
 function closeCampaignWizard() {
   if (findTutorialTarget("affiliate-campaign-wizard")) {
-    clickTutorialTarget("affiliate-campaign-wizard-cancel")
+    clickTutorialTarget("affiliate-campaign-wizard-cancel");
   }
 }
 
 function openFirstCampaignDetail() {
   if (!findTutorialTarget("affiliate-campaign-detail-overview")) {
-    clickTutorialTarget("affiliate-campaign-item")
+    clickTutorialTarget("affiliate-campaign-item");
   }
 }
 
 function closeCampaignDetail() {
   if (findTutorialTarget("affiliate-campaign-detail-overview")) {
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   }
 }
 
@@ -37,7 +37,7 @@ function step(
     titleKey: `tutorial.ecommerceAffiliateCampaign.${key}Title`,
     bodyKey: `tutorial.ecommerceAffiliateCampaign.${key}Body`,
     placement,
-  }
+  };
 }
 
 export const ecommerceAffiliateCampaignSteps: TutorialStep[] = [
@@ -84,4 +84,4 @@ export const ecommerceAffiliateCampaignSteps: TutorialStep[] = [
     lifecycleGroup: "affiliate-campaign-wizard",
     targetTimeoutMs: 1800,
   },
-]
+];

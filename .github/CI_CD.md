@@ -15,6 +15,7 @@ Trigger the "Build & Release" workflow via GitHub Actions `workflow_dispatch`.
 This builds Mac DMG/ZIP (separate arm64 + x64) + Windows EXE along with blockmap files and electron-updater manifests (`latest.yml`, `arm64-mac.yml`, `x64-mac.yml`), then creates a **draft** GitHub Release with all artifacts attached.
 
 **Local (on developer machine):**
+
 ```bash
 ./scripts/test-local.sh           # full pipeline: build + unit tests + e2e dev + pack + e2e prod
 ./scripts/test-local.sh --skip-tests  # build + pack only
@@ -38,6 +39,7 @@ This validates the draft has at least 13 artifacts (arm64.dmg, x64.dmg, arm64.zi
 Follow `docs/release-flow.md` for the full production promotion checklist.
 
 In short:
+
 1. Update `server/website/site/index.html`
 2. Update `server/website/site/update-manifest.json`
 3. Update `server/website/site/update-manifest-cn.json`
@@ -59,33 +61,33 @@ If local tests fail, delete the draft release on GitHub and fix the issues.
 
 ## GitHub Actions Workflows
 
-| File | Trigger | Purpose |
-|------|---------|---------|
-| `test-build.yml` | Push to `main` or PR | Verify builds compile on Windows + macOS (unsigned, no tests) |
-| `build.yml` | Manual (`workflow_dispatch`) | Build signed installers + create draft GitHub Release |
+| File             | Trigger                      | Purpose                                                       |
+| ---------------- | ---------------------------- | ------------------------------------------------------------- |
+| `test-build.yml` | Push to `main` or PR         | Verify builds compile on Windows + macOS (unsigned, no tests) |
+| `build.yml`      | Manual (`workflow_dispatch`) | Build signed installers + create draft GitHub Release         |
 
 ## Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `scripts/test-local.sh` | Local build + full test suite (unit, e2e dev, e2e prod) |
+| Script                       | Purpose                                                    |
+| ---------------------------- | ---------------------------------------------------------- |
+| `scripts/test-local.sh`      | Local build + full test suite (unit, e2e dev, e2e prod)    |
 | `scripts/publish-release.sh` | Publish a draft GitHub Release after CI + local tests pass |
-| `scripts/rebuild-native.sh` | Prebuild better-sqlite3 for Node.js + Electron |
+| `scripts/rebuild-native.sh`  | Prebuild better-sqlite3 for Node.js + Electron             |
 
 ## File Structure
 
-| File | Description |
-|------|-------------|
-| `RELEASE_BODY.md` | Template body appended to GitHub Releases |
+| File                              | Description                                       |
+| --------------------------------- | ------------------------------------------------- |
+| `RELEASE_BODY.md`                 | Template body appended to GitHub Releases         |
 | `AZURE_ARTIFACT_SIGNING_SETUP.md` | Azure Artifact Signing setup for Windows releases |
-| `CI_CD.md` | This file |
+| `CI_CD.md`                        | This file                                         |
 
 ## Code Signing Status
 
-| Platform | Signing | Status |
-|----------|---------|--------|
-| **macOS** | Developer ID Application + notarization | Requires GitHub secrets: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
-| **Windows** | Azure Artifact Signing Basic | Account created; identity validation, certificate profile, and CI principal still need setup (see `AZURE_ARTIFACT_SIGNING_SETUP.md`) |
+| Platform    | Signing                                 | Status                                                                                                                                                 |
+| ----------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **macOS**   | Developer ID Application + notarization | Requires GitHub secrets: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
+| **Windows** | Azure Artifact Signing Basic            | Account created; identity validation, certificate profile, and CI principal still need setup (see `AZURE_ARTIFACT_SIGNING_SETUP.md`)                   |
 
 ## Vendor Pruning
 

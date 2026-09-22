@@ -38,7 +38,10 @@ export type WorkerPorts = {
 async function isPortInUse(port: number): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const sock = createConnection({ port, host: "127.0.0.1" });
-    sock.once("connect", () => { sock.destroy(); resolve(true); });
+    sock.once("connect", () => {
+      sock.destroy();
+      resolve(true);
+    });
     sock.once("error", () => resolve(false));
   });
 }
@@ -54,7 +57,11 @@ async function isPortInUse(port: number): Promise<boolean> {
 function getListeningPids(port: number): string[] {
   if (process.platform === "win32") {
     try {
-      const out = execSync("netstat -ano", { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"], shell: "cmd.exe" });
+      const out = execSync("netstat -ano", {
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+        shell: "cmd.exe",
+      });
       const pids = new Set<string>();
       for (const line of out.split("\n")) {
         if (line.includes(`:${port}`) && line.includes("LISTENING")) {
@@ -64,13 +71,19 @@ function getListeningPids(port: number): string[] {
         }
       }
       return [...pids];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
   try {
     // -sTCP:LISTEN → only server/listening sockets, never client connections
     return execSync(`lsof -ti :${port} -sTCP:LISTEN 2>/dev/null`, { encoding: "utf-8" })
-      .trim().split("\n").filter(Boolean);
-  } catch { return []; }
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -85,41 +98,47 @@ function getListeningPids(port: number): string[] {
  */
 async function ensurePortFree(port: number): Promise<void> {
   // Quick check — skip the lsof/kill overhead if already free
-  if (!await isPortInUse(port)) return;
+  if (!(await isPortInUse(port))) return;
 
   const pids = getListeningPids(port);
   if (pids.length === 0) {
     // Port in use but no listener found (transient state) — wait briefly
     await new Promise((r) => setTimeout(r, 500));
-    if (!await isPortInUse(port)) return;
+    if (!(await isPortInUse(port))) return;
   }
 
   if (process.platform === "win32") {
     for (const pid of pids) {
-      try { execSync(`taskkill /T /F /PID ${pid}`, { stdio: "ignore", shell: "cmd.exe" }); } catch {}
+      try {
+        execSync(`taskkill /T /F /PID ${pid}`, { stdio: "ignore", shell: "cmd.exe" });
+      } catch {}
     }
   } else {
     // Phase 1: SIGTERM (graceful shutdown — lets gateway close sockets cleanly)
     for (const pid of pids) {
-      try { process.kill(Number(pid), "SIGTERM"); } catch {}
+      try {
+        process.kill(Number(pid), "SIGTERM");
+      } catch {}
     }
 
     // Wait up to 3s for graceful exit
     for (let i = 0; i < 30; i++) {
-      if (!await isPortInUse(port)) return;
+      if (!(await isPortInUse(port))) return;
       await new Promise((r) => setTimeout(r, 100));
     }
 
     // Phase 2: SIGKILL (force — only if SIGTERM didn't work)
     const remaining = getListeningPids(port);
     for (const pid of remaining) {
-      try { process.kill(Number(pid), "SIGKILL"); } catch {}
+      try {
+        process.kill(Number(pid), "SIGKILL");
+      } catch {}
     }
   }
 
   // Wait until the port is actually free (up to 5s)
   for (let i = 0; i < 50; i++) {
-    if (!await isPortInUse(port)) return;
+    if (!(await isPortInUse(port))) return;
     await new Promise((r) => setTimeout(r, 100));
   }
 }
@@ -139,7 +158,10 @@ async function waitForPort(port: number, timeoutMs: number): Promise<void> {
   while (Date.now() < deadline) {
     const listening = await new Promise<boolean>((resolve) => {
       const sock = createConnection({ port, host: "127.0.0.1" });
-      sock.once("connect", () => { sock.destroy(); resolve(true); });
+      sock.once("connect", () => {
+        sock.destroy();
+        resolve(true);
+      });
       sock.once("error", () => resolve(false));
     });
     if (listening) return;
@@ -196,7 +218,6 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   env.RIVONCLAW_PANEL_PORT = String(ports.panel);
   env.RIVONCLAW_PROXY_ROUTER_PORT = String(ports.proxy);
 
-
   // Skip the file-based gateway lock (acquireGatewayLock).  The lock uses
   // os.tmpdir()/openclaw-<uid>/gateway.<hash>.lock — a shared directory.
   // On macOS the stale-lock check only calls isPidAlive (no argv verification),
@@ -215,9 +236,10 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
 
   // Prevent the packaged CLI installer from editing the real Windows user
   // PATH registry; its isolated bin directory is already in the child PATH.
-  const cliBin = process.platform === "win32"
-    ? path.join(env.LOCALAPPDATA, "RivonClaw", "bin")
-    : path.join(tempDir, ".local", "bin");
+  const cliBin =
+    process.platform === "win32"
+      ? path.join(env.LOCALAPPDATA, "RivonClaw", "bin")
+      : path.join(tempDir, ".local", "bin");
   mkdirSync(cliBin, { recursive: true });
   return normalizePathEnvironment(env, {
     homeDir: tempDir,
@@ -244,10 +266,7 @@ export function getCurrentTempDir(): string | null {
 
 /** Dump Desktop logs from the isolated per-test log directory. */
 /** Attach Desktop logs to the Playwright test report on failure. */
-async function attachDesktopLogs(
-  tempDir: string,
-  testInfo: TestInfo,
-): Promise<void> {
+async function attachDesktopLogs(tempDir: string, testInfo: TestInfo): Promise<void> {
   // Always attach logs — testInfo.status may not be set yet during fixture
   // teardown. The HTML report will show them for all tests; the cost is minimal.
 
@@ -340,7 +359,8 @@ async function launchElectronApp(
       await app.firstWindow({ timeout: 45_000 });
       await waitForPort(ports.gateway, 45_000);
       const stateDatabase = path.join(env.OPENCLAW_STATE_DIR, "state", "openclaw.sqlite");
-      if (!existsSync(stateDatabase)) throw new Error(`Missing SQLite restart fixture: ${stateDatabase}`);
+      if (!existsSync(stateDatabase))
+        throw new Error(`Missing SQLite restart fixture: ${stateDatabase}`);
       await app.close();
       await ensurePortFree(ports.gateway);
       await ensurePortFree(ports.panel);
@@ -411,12 +431,14 @@ async function setE2ePanelPreferences(apiBase: string): Promise<void> {
 async function dismissBlockingModals(window: Page): Promise<void> {
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop").first();
-    if (!await backdrop.isVisible({ timeout: 500 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 500 }).catch(() => false))) break;
     const closeBtn = backdrop.locator(".modal-close-btn");
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
       await closeBtn.click();
     } else {
-      const fallbackBtn = backdrop.locator("button", { hasText: /Disagree|Cancel|Close|关闭|取消/i }).first();
+      const fallbackBtn = backdrop
+        .locator("button", { hasText: /Disagree|Cancel|Close|关闭|取消/i })
+        .first();
       if (await fallbackBtn.isVisible({ timeout: 500 }).catch(() => false)) {
         await fallbackBtn.click();
       }
@@ -424,7 +446,6 @@ async function dismissBlockingModals(window: Page): Promise<void> {
     await backdrop.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => {});
   }
 }
-
 
 /**
  * Main-page fixture: skips welcome, but starts with fresh disk state by default.

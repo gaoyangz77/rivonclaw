@@ -100,14 +100,17 @@ async function loginAndNavigateToAccount(
 async function dismissModals(window: import("@playwright/test").Page): Promise<void> {
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 2_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 2_000 }).catch(() => false))) break;
     await backdrop.click({ position: { x: 5, y: 5 }, force: true });
     await backdrop.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => {});
   }
 }
 
 test.describe("Account Page — Surfaces & RunProfiles", () => {
-  test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
+  test.skip(
+    !testEmail || !testPassword || !deterministicCaptchaToken,
+    "Staging credentials not configured",
+  );
 
   test("full Surface & RunProfile CRUD lifecycle", async ({ window, apiBase }) => {
     // Use unique names per run to avoid "name already exists" from leftover Cloud data
@@ -120,7 +123,9 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     await loginAndNavigateToAccount(window, apiBase);
 
     const surfaceSection = window.locator(".section-card").filter({ hasText: /场景|Surfaces/ });
-    const profileSection = window.locator(".section-card").filter({ hasText: /运行配置|Run Profiles/ });
+    const profileSection = window
+      .locator(".section-card")
+      .filter({ hasText: /运行配置|Run Profiles/ });
 
     // ── 1. System surfaces are visible and non-editable ──
     const systemSurface = surfaceSection.locator(".acct-item-system").first();
@@ -233,10 +238,14 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     await editProfileModal.waitFor({ state: "hidden", timeout: 10_000 });
 
     // Verify updated name
-    await expect(profileSection.locator(".acct-item-name", { hasText: profileNameUpdated })).toBeVisible({ timeout: 5_000 });
+    await expect(
+      profileSection.locator(".acct-item-name", { hasText: profileNameUpdated }),
+    ).toBeVisible({ timeout: 5_000 });
 
     // ── 6. Delete RunProfile ──
-    const updatedProfileItem = profileSection.locator(".acct-item", { hasText: profileNameUpdated });
+    const updatedProfileItem = profileSection.locator(".acct-item", {
+      hasText: profileNameUpdated,
+    });
     await updatedProfileItem.locator(".btn-danger", { hasText: /Delete|删除/ }).click();
     // Confirm via custom ConfirmDialog modal
     const confirmModal = window.locator(".modal-content");
@@ -264,7 +273,7 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
 
     // Click "From Preset" button
     const presetBtn = surfaceSection.locator(".btn-secondary", { hasText: /From Preset|预设/ });
-    if (!await presetBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    if (!(await presetBtn.isVisible({ timeout: 3_000 }).catch(() => false))) {
       // No surfaces exist yet → "from preset" button might be hidden
       return;
     }
@@ -299,11 +308,13 @@ test.describe("Account Page — Surfaces & RunProfiles", () => {
     await dismissModals(window);
     await loginAndNavigateToAccount(window, apiBase);
 
-    const profileSection = window.locator(".section-card").filter({ hasText: /运行配置|Run Profiles/ });
+    const profileSection = window
+      .locator(".section-card")
+      .filter({ hasText: /运行配置|Run Profiles/ });
 
     // System profiles should have the system badge
     const systemProfile = profileSection.locator(".acct-item-system").first();
-    if (!await systemProfile.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    if (!(await systemProfile.isVisible({ timeout: 5_000 }).catch(() => false))) {
       // No system profiles seeded in this environment — skip
       return;
     }

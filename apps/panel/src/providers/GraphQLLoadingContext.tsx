@@ -21,7 +21,11 @@ export function GraphQLLoadingProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     registerLoadingCallbacks(startLoading, stopLoading);
-    return () => registerLoadingCallbacks(() => {}, () => {});
+    return () =>
+      registerLoadingCallbacks(
+        () => {},
+        () => {},
+      );
   }, [startLoading, stopLoading]);
 
   const value = useMemo(

@@ -62,10 +62,10 @@ function getMacHardwareId(): string {
  * Windows: Read MachineGuid from the Cryptography registry key.
  */
 function getWindowsHardwareId(): string {
-  const output = execSync(
-    'reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid',
-    { encoding: "utf-8", timeout: 5000 },
-  );
+  const output = execSync('reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid', {
+    encoding: "utf-8",
+    timeout: 5000,
+  });
 
   const match = output.match(/MachineGuid\s+REG_SZ\s+(\S+)/);
   if (!match?.[1]) {
@@ -87,7 +87,5 @@ function getLinuxHardwareId(): string {
       // Try next path
     }
   }
-  throw new Error(
-    "Failed to read machine-id from /etc/machine-id or /var/lib/dbus/machine-id",
-  );
+  throw new Error("Failed to read machine-id from /etc/machine-id or /var/lib/dbus/machine-id");
 }

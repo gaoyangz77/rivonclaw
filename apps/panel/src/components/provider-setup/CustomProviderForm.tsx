@@ -18,13 +18,20 @@ export function CustomProviderForm({
 }) {
   const {
     t,
-    customName, setCustomName,
-    customProtocol, setCustomProtocol,
-    customEndpoint, setCustomEndpoint,
-    apiKey, setApiKey,
-    customModels, setCustomModels,
-    inputModalities, setInputModalities,
-    saving, validating,
+    customName,
+    setCustomName,
+    customProtocol,
+    setCustomProtocol,
+    customEndpoint,
+    setCustomEndpoint,
+    apiKey,
+    setApiKey,
+    customModels,
+    setCustomModels,
+    inputModalities,
+    setInputModalities,
+    saving,
+    validating,
     handleAddCustomProvider,
   } = form;
 
@@ -40,7 +47,9 @@ export function CustomProviderForm({
     setFetchModelsError(null);
     try {
       const models = await fetchCustomProviderModels(
-        customEndpoint.trim(), apiKey.trim(), customProtocol,
+        customEndpoint.trim(),
+        apiKey.trim(),
+        customProtocol,
       );
       setCustomModels(models);
     } catch (err) {
@@ -118,13 +127,14 @@ export function CustomProviderForm({
           onChange={setCustomModels}
           placeholder={t("providers.customModelsPlaceholder")}
         />
-        {fetchModelsError && (
-          <small className="form-error-sm">{fetchModelsError}</small>
-        )}
+        {fetchModelsError && <small className="form-error-sm">{fetchModelsError}</small>}
         <small className="form-help-sm">{t("providers.customModelsHelp")}</small>
       </div>
 
-      <ModalityCheckboxGroup inputModalities={inputModalities} setInputModalities={setInputModalities} />
+      <ModalityCheckboxGroup
+        inputModalities={inputModalities}
+        setInputModalities={setInputModalities}
+      />
 
       <div className="form-actions">
         <button
@@ -133,10 +143,10 @@ export function CustomProviderForm({
           disabled={saving || validating || !canSave}
         >
           {validating
-            ? (validatingLabel || t("providers.validating"))
+            ? validatingLabel || t("providers.validating")
             : saving
-              ? (savingLabel || "...")
-              : (saveButtonLabel || t("common.save"))}
+              ? savingLabel || "..."
+              : saveButtonLabel || t("common.save")}
         </button>
       </div>
     </>

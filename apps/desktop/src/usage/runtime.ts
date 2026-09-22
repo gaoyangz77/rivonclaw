@@ -23,7 +23,10 @@ export function createUsageRuntime(storage: Storage): {
       const ocConfig = readExistingConfig(ocConfigPath);
       const sessions = await discoverAllSessions({ config: ocConfig });
       for (const s of sessions) {
-        const summary = await loadSessionCostSummary({ sessionFile: s.sessionFile, config: ocConfig });
+        const summary = await loadSessionCostSummary({
+          sessionFile: s.sessionFile,
+          config: ocConfig,
+        });
         if (!summary?.modelUsage) continue;
         for (const mu of summary.modelUsage) {
           const key = `${mu.provider ?? "unknown"}/${mu.model ?? "unknown"}`;
@@ -33,7 +36,9 @@ export function createUsageRuntime(storage: Storage): {
             existing.outputTokens += mu.totals.output;
             existing.cacheReadTokens += mu.totals.cacheRead;
             existing.cacheWriteTokens += mu.totals.cacheWrite;
-            existing.totalCostUsd = (parseFloat(existing.totalCostUsd) + mu.totals.totalCost).toFixed(6);
+            existing.totalCostUsd = (
+              parseFloat(existing.totalCostUsd) + mu.totals.totalCost
+            ).toFixed(6);
           } else {
             result.set(key, {
               inputTokens: mu.totals.input,

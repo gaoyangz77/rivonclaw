@@ -10,10 +10,7 @@ import {
   type AffiliateWorkbenchTimeFilter,
 } from "./affiliate-workbench-time-filter.js";
 
-function custom(
-  customStartDate: string,
-  customEndDate: string,
-): AffiliateWorkbenchTimeFilter {
+function custom(customStartDate: string, customEndDate: string): AffiliateWorkbenchTimeFilter {
   return { preset: "CUSTOM", customStartDate, customEndDate };
 }
 
@@ -126,7 +123,10 @@ describe("workbench time filter", () => {
     );
     expect(affiliateWorkbenchTimeFilterKey(today)).not.toBe(
       affiliateWorkbenchTimeFilterKey(
-        affiliateWorkbenchTimeSelection({ ...ALL_TIME_WORKBENCH_FILTER, preset: "LAST_7_DAYS" }, NOW),
+        affiliateWorkbenchTimeSelection(
+          { ...ALL_TIME_WORKBENCH_FILTER, preset: "LAST_7_DAYS" },
+          NOW,
+        ),
       ),
     );
   });

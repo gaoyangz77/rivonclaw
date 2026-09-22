@@ -30,9 +30,7 @@ export function TelemetryConsentModal({
       title={t("settings.telemetry.consent.title")}
       maxWidth={420}
     >
-      <p className="consent-description">
-        {t("settings.telemetry.consent.description")}
-      </p>
+      <p className="consent-description">{t("settings.telemetry.consent.description")}</p>
 
       <div className="consent-info-box">
         <strong>{t("settings.telemetry.consent.collectLabel")}</strong>{" "}
@@ -40,16 +38,10 @@ export function TelemetryConsentModal({
       </div>
 
       <div className="flex-row-end">
-        <button
-          onClick={() => dismiss(false)}
-          className="btn-ghost"
-        >
+        <button onClick={() => dismiss(false)} className="btn-ghost">
           {t("settings.telemetry.consent.disagree")}
         </button>
-        <button
-          onClick={() => dismiss(true)}
-          className="btn btn-primary"
-        >
+        <button onClick={() => dismiss(true)} className="btn btn-primary">
           {t("settings.telemetry.consent.agree")}
         </button>
       </div>

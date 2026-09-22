@@ -6,7 +6,6 @@ import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { app } from "electron";
 import { createLogger } from "@rivonclaw/logger";
 
-
 const log = createLogger("main");
 
 /**
@@ -43,7 +42,10 @@ export function cleanupGatewayLock(gatewayConfigPath: string): void {
     if (typeof ownerPid !== "number" || ownerPid <= 0 || ownerPid === process.pid) return;
 
     let alive = false;
-    try { process.kill(ownerPid, 0); alive = true; } catch {}
+    try {
+      process.kill(ownerPid, 0);
+      alive = true;
+    } catch {}
 
     if (alive) {
       log.info(`Stale gateway lock found (PID ${ownerPid}), killing process`);
@@ -78,4 +80,3 @@ export function applyAutoLaunch(enabled: boolean): void {
     log.error("Failed to set login item settings:", err);
   }
 }
-

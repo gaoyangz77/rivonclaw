@@ -25,13 +25,11 @@ vi.mock("electron", () => ({
       // Reset handlers for each new request
       mockRequestHandlers.onResponse = undefined;
       mockRequestHandlers.onError = undefined;
-      mockRequest.on.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "response") mockRequestHandlers.onResponse = handler;
-          if (event === "error") mockRequestHandlers.onError = handler;
-          return mockRequest;
-        },
-      );
+      mockRequest.on.mockImplementation((event: string, handler: () => void) => {
+        if (event === "response") mockRequestHandlers.onResponse = handler;
+        if (event === "error") mockRequestHandlers.onError = handler;
+        return mockRequest;
+      });
       return mockRequest;
     }),
   },

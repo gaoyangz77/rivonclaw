@@ -68,18 +68,19 @@ export function SkillsPage() {
   }, [searchQuery]);
 
   // Apollo query for market skills
-  const { data: marketData, loading, error: gqlError } = useQuery<{ skills: GQL.SkillConnection }>(
-    SKILLS_QUERY,
-    {
-      variables: {
-        query: debouncedQuery || undefined,
-        category: selectedCategory || undefined,
-        page,
-        pageSize: PAGE_SIZE,
-        chinaAvailable: isCN ? true : undefined,
-      },
+  const {
+    data: marketData,
+    loading,
+    error: gqlError,
+  } = useQuery<{ skills: GQL.SkillConnection }>(SKILLS_QUERY, {
+    variables: {
+      query: debouncedQuery || undefined,
+      category: selectedCategory || undefined,
+      page,
+      pageSize: PAGE_SIZE,
+      chinaAvailable: isCN ? true : undefined,
     },
-  );
+  });
 
   const marketSkills = marketData?.skills.skills ?? [];
   const total = marketData?.skills.total ?? 0;
@@ -113,7 +114,9 @@ export function SkillsPage() {
   // Also load installed on mount so installedSlugs is populated for market tab
   useEffect(() => {
     loadInstalled();
-    fetchBundledSlugs().then(setBundledSlugs).catch(() => { });
+    fetchBundledSlugs()
+      .then(setBundledSlugs)
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle install
@@ -189,9 +192,7 @@ export function SkillsPage() {
       />
 
       {loadError && (
-        <TkAlert tone="danger">
-          {t(loadError.key, { error: loadError.detail ?? "" })}
-        </TkAlert>
+        <TkAlert tone="danger">{t(loadError.key, { error: loadError.detail ?? "" })}</TkAlert>
       )}
 
       <TkTabs
@@ -308,7 +309,9 @@ export function SkillsPage() {
                 }
                 return pages.map((p) =>
                   typeof p === "string" ? (
-                    <span key={p} className="pagination-ellipsis">...</span>
+                    <span key={p} className="pagination-ellipsis">
+                      ...
+                    </span>
                   ) : (
                     <button
                       key={p}
@@ -336,17 +339,12 @@ export function SkillsPage() {
       {activeTab === "installed" && (
         <>
           <div className="skills-installed-header" data-tutorial-id="skills-installed-header">
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => openSkillsFolder()}
-            >
+            <button className="btn btn-secondary btn-sm" onClick={() => openSkillsFolder()}>
               {t("skills.openFolder")}
             </button>
           </div>
 
-          {installedLoading && (
-            <TkLoadingState label={t("common.loading")} />
-          )}
+          {installedLoading && <TkLoadingState label={t("common.loading")} />}
 
           {!installedLoading && installedSkills.length === 0 && (
             <TkEmptyState title={t("skills.emptyInstalled")} />
@@ -369,7 +367,7 @@ export function SkillsPage() {
                   isBundled={false}
                   isInstalled={true}
                   isInstalling={false}
-                  onInstall={() => { }}
+                  onInstall={() => {}}
                   variant="installed"
                   isDeleting={deletingSlug === skill.slug}
                   onDelete={() => setConfirmDelete(skill.slug)}

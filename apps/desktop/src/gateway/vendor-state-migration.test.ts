@@ -20,16 +20,24 @@ describe("vendor state migration Node boundary", () => {
     vendorDir: "D:\\Program Files\\TK Copilot\\resources\\vendor\\openclaw",
     configPath: "C:\\Users\\Test User\\.rivonclaw\\openclaw\\openclaw.json",
   };
-  let child: EventEmitter & { stdout: PassThrough; stderr: PassThrough; kill: ReturnType<typeof vi.fn> };
+  let child: EventEmitter & {
+    stdout: PassThrough;
+    stderr: PassThrough;
+    kill: ReturnType<typeof vi.fn>;
+  };
   let exitListeners: number;
 
   beforeEach(() => {
     vi.useFakeTimers();
     exitListeners = process.listenerCount("exit");
     child = Object.assign(new EventEmitter(), {
-      stdout: new PassThrough(), stderr: new PassThrough(), kill: vi.fn(),
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+      kill: vi.fn(),
     });
-    vi.mocked(fork).mockReset().mockReturnValue(child as unknown as ReturnType<typeof fork>);
+    vi.mocked(fork)
+      .mockReset()
+      .mockReturnValue(child as unknown as ReturnType<typeof fork>);
   });
   afterEach(() => {
     expect(process.listenerCount("exit")).toBe(exitListeners);
@@ -45,7 +53,8 @@ describe("vendor state migration Node boundary", () => {
       expect.stringMatching(/vendor-state-migration-worker\.cjs$/),
       [JSON.stringify(options)],
       expect.objectContaining({
-        execArgv: [], windowsHide: true,
+        execArgv: [],
+        windowsHide: true,
         env: expect.objectContaining({ ELECTRON_RUN_AS_NODE: "1" }),
         stdio: ["ignore", "pipe", "pipe", "ipc"],
       }),
@@ -56,19 +65,22 @@ describe("vendor state migration Node boundary", () => {
     await promise;
   });
 
-  it.each([undefined, "0"])("passes the Desktop restart policy even when the parent has %s", async (inherited) => {
-    vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", inherited);
-    vi.stubEnv("OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY", inherited);
-    const promise = migrateVendorStateInChild(options);
-    const env = vi.mocked(fork).mock.calls[0][2]?.env;
-    child.emit("message", { ok: true });
-    child.emit("close", 0, null);
-    await promise;
+  it.each([undefined, "0"])(
+    "passes the Desktop restart policy even when the parent has %s",
+    async (inherited) => {
+      vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", inherited);
+      vi.stubEnv("OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY", inherited);
+      const promise = migrateVendorStateInChild(options);
+      const env = vi.mocked(fork).mock.calls[0][2]?.env;
+      child.emit("message", { ok: true });
+      child.emit("close", 0, null);
+      await promise;
 
-    expect(env?.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY).toBe("1");
-    expect(env?.OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY).toBe("1");
-    expect(process.env.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY).toBe(inherited);
-  });
+      expect(env?.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY).toBe("1");
+      expect(env?.OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY).toBe("1");
+      expect(process.env.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY).toBe(inherited);
+    },
+  );
 
   it("actually converges orphaned sessions with the fork environment, without losing history or model selection", async () => {
     vi.stubEnv("OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY", undefined);
@@ -77,9 +89,13 @@ describe("vendor state migration Node boundary", () => {
     mkdirSync(agentDir, { recursive: true });
     const database = new DatabaseSync(join(agentDir, "openclaw-agent.sqlite"));
     const entry = {
-      sessionId: "existing-session", status: "running", updatedAt: 123,
-      abortedLastRun: true, restartRecoveryDeliveryRunId: "interrupted-run",
-      restartRecoveryDeliveryReceiptState: "terminal-pending", modelOverride: "rivonclaw-flagship",
+      sessionId: "existing-session",
+      status: "running",
+      updatedAt: 123,
+      abortedLastRun: true,
+      restartRecoveryDeliveryRunId: "interrupted-run",
+      restartRecoveryDeliveryReceiptState: "terminal-pending",
+      modelOverride: "rivonclaw-flagship",
     };
     try {
       database.exec(`
@@ -90,7 +106,12 @@ describe("vendor state migration Node boundary", () => {
         INSERT INTO transcript_events VALUES ('existing-session', 'previous conversation');
       `);
       const insert = database.prepare("INSERT INTO session_nodes VALUES (?, ?, ?, ?)");
-      insert.run("agent:main:feishu:default:direct:ou_fixture", entry.sessionId, JSON.stringify(entry), "running");
+      insert.run(
+        "agent:main:feishu:default:direct:ou_fixture",
+        entry.sessionId,
+        JSON.stringify(entry),
+        "running",
+      );
       insert.run("agent:main:main", "finished-session", '{"status":"done"}', "done");
       // This is the old launcher's environment: the same database stays stuck.
       expect(convergeOrphanedRunningSessionsBeforeGateway(stateDir)).toBe(0);
@@ -103,7 +124,8 @@ describe("vendor state migration Node boundary", () => {
       expect(convergeOrphanedRunningSessionsBeforeGateway(stateDir, env)).toBe(1);
       expect(convergeOrphanedRunningSessionsBeforeGateway(stateDir, env)).toBe(0);
 
-      const row = database.prepare("SELECT entry_json FROM session_nodes WHERE current_session_id = ?")
+      const row = database
+        .prepare("SELECT entry_json FROM session_nodes WHERE current_session_id = ?")
         .get(entry.sessionId) as { entry_json: string };
       expect(JSON.parse(row.entry_json)).toEqual({ ...entry, status: "killed" });
       expect(database.prepare("SELECT * FROM session_windows ORDER BY session_id").all()).toEqual([
@@ -139,7 +161,12 @@ describe("vendor state migration Node boundary", () => {
   it.each([
     { message: undefined, code: 0, signal: null, error: "completed=false" },
     { message: { ok: true }, code: 1, signal: null, error: "exit=1" },
-    { message: { ok: false, error: "database migration failed" }, code: 1, signal: null, error: "database migration failed" },
+    {
+      message: { ok: false, error: "database migration failed" },
+      code: 1,
+      signal: null,
+      error: "database migration failed",
+    },
     { message: undefined, code: null, signal: "SIGKILL", error: "signal=SIGKILL" },
   ])("rejects incomplete or failed children: $error", async ({ message, code, signal, error }) => {
     const promise = migrateVendorStateInChild(options);
@@ -159,7 +186,9 @@ describe("vendor state migration Node boundary", () => {
   });
 
   it("propagates synchronous fork failures without leaving timers", async () => {
-    vi.mocked(fork).mockImplementation(() => { throw new Error("fork failed"); });
+    vi.mocked(fork).mockImplementation(() => {
+      throw new Error("fork failed");
+    });
     await expect(migrateVendorStateInChild(options)).rejects.toThrow("fork failed");
   });
 

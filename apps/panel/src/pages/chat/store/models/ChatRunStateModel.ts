@@ -5,37 +5,42 @@ import type { RunSource, RunPhase } from "../../run-tracker.js";
 // Active phase set — phases that represent an in-progress run
 // ---------------------------------------------------------------------------
 
-const ACTIVE_PHASES = new Set<RunPhase>(["queued", "processing", "awaiting_llm", "tooling", "generating"]);
+const ACTIVE_PHASES = new Set<RunPhase>([
+  "queued",
+  "processing",
+  "awaiting_llm",
+  "tooling",
+  "generating",
+]);
 
 // ---------------------------------------------------------------------------
 // RunEntryModel — per-run mutable state within the MST tree
 // ---------------------------------------------------------------------------
 
-export const RunEntryModel = types
-  .model("RunEntry", {
-    runId: types.identifier,
-    source: types.string,     // RunSource
-    sessionKey: types.string,
-    phase: types.string,      // RunPhase
-    toolName: types.maybeNull(types.string),
-    streaming: types.maybeNull(types.string),
-    /**
-     * Cumulative character offset of streaming text that has been flushed
-     * (committed as a message bubble) across tool-call boundaries.
-     * When the gateway sends accumulated text across an entire agent turn,
-     * this offset is used to slice off already-committed content so that
-     * the streaming bubble and final commit only show new text.
-     */
-    flushedOffset: 0,
-    startedAt: types.number,
-    /**
-     * True for runs whose terminal event arrives via mirror SSE (non-webchat
-     * channels like Telegram, Feishu, Mobile).  The controller should NOT
-     * start a FINAL_FALLBACK timer for these runs — their lifecycle.end is
-     * converted into a synthetic chat.final by the mirror handler.
-     */
-    expectsMirrorFinal: false,
-  });
+export const RunEntryModel = types.model("RunEntry", {
+  runId: types.identifier,
+  source: types.string, // RunSource
+  sessionKey: types.string,
+  phase: types.string, // RunPhase
+  toolName: types.maybeNull(types.string),
+  streaming: types.maybeNull(types.string),
+  /**
+   * Cumulative character offset of streaming text that has been flushed
+   * (committed as a message bubble) across tool-call boundaries.
+   * When the gateway sends accumulated text across an entire agent turn,
+   * this offset is used to slice off already-committed content so that
+   * the streaming bubble and final commit only show new text.
+   */
+  flushedOffset: 0,
+  startedAt: types.number,
+  /**
+   * True for runs whose terminal event arrives via mirror SSE (non-webchat
+   * channels like Telegram, Feishu, Mobile).  The controller should NOT
+   * start a FINAL_FALLBACK timer for these runs — their lifecycle.end is
+   * converted into a synthetic chat.final by the mirror handler.
+   */
+  expectsMirrorFinal: false,
+});
 
 export type IRunEntry = Instance<typeof RunEntryModel>;
 
@@ -182,7 +187,12 @@ export const ChatRunStateModel = types
       });
     },
 
-    beginExternalRun(runId: string, sessionKey: string, source: RunSource, expectsMirrorFinal = false) {
+    beginExternalRun(
+      runId: string,
+      sessionKey: string,
+      source: RunSource,
+      expectsMirrorFinal = false,
+    ) {
       self.runs.put({
         runId,
         source,

@@ -8,13 +8,19 @@ import { getNavigationButton } from "./shell-helpers.js";
  * Setting localStorage prevents it from appearing if the React useEffect hasn't
  * fired yet; the close-button loop handles dialogs that are already visible.
  */
-async function dismissModals(window: Awaited<ReturnType<typeof import("@playwright/test")["Page"]["prototype"]["waitForLoadState"]>> extends void ? never : import("@playwright/test").Page) {
+async function dismissModals(
+  window: Awaited<
+    ReturnType<(typeof import("@playwright/test"))["Page"]["prototype"]["waitForLoadState"]>
+  > extends void
+    ? never
+    : import("@playwright/test").Page,
+) {
   // Mark telemetry consent as shown so it won't appear (or reappear) later.
   await window.evaluate(() => localStorage.setItem("telemetry.consentShown", "1"));
 
   for (let i = 0; i < 5; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
     // Prefer the × close button — more reliable than clicking a backdrop coordinate.
     const closeBtn = backdrop.locator(".modal-close-btn");
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -27,7 +33,6 @@ async function dismissModals(window: Awaited<ReturnType<typeof import("@playwrig
 }
 
 test.describe("Chat Agent Events & Settings", () => {
-
   // ──────────────────────────────────────────────────────────────────
   // 1. End-to-end chat flow tests (most error-prone — require API key)
   // ──────────────────────────────────────────────────────────────────
@@ -41,19 +46,30 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Seed GLM provider and activate it
-    await window.evaluate(async ({ base, key }) => {
-      const created = await fetch(`${base}/api/provider-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "zhipu", label: "E2E GLM", model: "glm-4-flash", apiKey: key }),
-      });
-      if (!created.ok) throw new Error(`Provider creation failed: HTTP ${created.status}`);
-      const entry = await created.json() as { id: string };
-      const activated = await fetch(`${base}/api/provider-keys/${encodeURIComponent(entry.id)}/activate`, {
-        method: "POST",
-      });
-      if (!activated.ok) throw new Error(`Provider activation failed: HTTP ${activated.status}`);
-    }, { base: apiBase, key: apiKey! });
+    await window.evaluate(
+      async ({ base, key }) => {
+        const created = await fetch(`${base}/api/provider-keys`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "zhipu",
+            label: "E2E GLM",
+            model: "glm-4-flash",
+            apiKey: key,
+          }),
+        });
+        if (!created.ok) throw new Error(`Provider creation failed: HTTP ${created.status}`);
+        const entry = (await created.json()) as { id: string };
+        const activated = await fetch(
+          `${base}/api/provider-keys/${encodeURIComponent(entry.id)}/activate`,
+          {
+            method: "POST",
+          },
+        );
+        if (!activated.ok) throw new Error(`Provider activation failed: HTTP ${activated.status}`);
+      },
+      { base: apiBase, key: apiKey! },
+    );
 
     // Provider activation triggers a full gateway stop+start. Reload the page
     // to force a fresh WebSocket connection — without this, the existing
@@ -88,13 +104,19 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Thinking indicator should appear while waiting for response
     // (it appears briefly between send and first delta)
-    const thinkingOrResponse = window.locator(".chat-thinking, .chat-bubble-assistant:not(.chat-thinking)");
+    const thinkingOrResponse = window.locator(
+      ".chat-thinking, .chat-bubble-assistant:not(.chat-thinking)",
+    );
     await expect(thinkingOrResponse.first()).toBeVisible({ timeout: 30_000 });
 
     // Eventually, an assistant response should arrive
-    const assistantBubble = window.locator(".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)");
+    const assistantBubble = window.locator(
+      ".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)",
+    );
     await expect(assistantBubble.last()).toBeVisible({ timeout: 60_000 });
-    await expect(assistantBubble.last()).toContainText(/\b(?:hello|hi|hey)\b|你好/i, { timeout: 60_000 });
+    await expect(assistantBubble.last()).toContainText(/\b(?:hello|hi|hey)\b|你好/i, {
+      timeout: 60_000,
+    });
 
     // Thinking indicator should disappear after response.
     // Allow up to 20s: if chat.final is lost, LIFECYCLE_END + 5s FORCE_DONE fallback clears it.
@@ -102,7 +124,10 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(thinkingBubble).not.toBeVisible({ timeout: 20_000 });
   });
 
-  test("Chat agent phase shows processing status when events enabled", async ({ window, apiBase }) => {
+  test("Chat agent phase shows processing status when events enabled", async ({
+    window,
+    apiBase,
+  }) => {
     // Fixture setup ~40s + gateway restart after provider switch ~30s + LLM response ~30s.
     test.setTimeout(120_000);
     const apiKey = process.env.E2E_ZHIPU_API_KEY;
@@ -111,19 +136,30 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
 
     // Seed GLM provider and activate it
-    await window.evaluate(async ({ base, key }) => {
-      const created = await fetch(`${base}/api/provider-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "zhipu", label: "E2E GLM", model: "glm-4-flash", apiKey: key }),
-      });
-      if (!created.ok) throw new Error(`Provider creation failed: HTTP ${created.status}`);
-      const entry = await created.json() as { id: string };
-      const activated = await fetch(`${base}/api/provider-keys/${encodeURIComponent(entry.id)}/activate`, {
-        method: "POST",
-      });
-      if (!activated.ok) throw new Error(`Provider activation failed: HTTP ${activated.status}`);
-    }, { base: apiBase, key: apiKey! });
+    await window.evaluate(
+      async ({ base, key }) => {
+        const created = await fetch(`${base}/api/provider-keys`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "zhipu",
+            label: "E2E GLM",
+            model: "glm-4-flash",
+            apiKey: key,
+          }),
+        });
+        if (!created.ok) throw new Error(`Provider creation failed: HTTP ${created.status}`);
+        const entry = (await created.json()) as { id: string };
+        const activated = await fetch(
+          `${base}/api/provider-keys/${encodeURIComponent(entry.id)}/activate`,
+          {
+            method: "POST",
+          },
+        );
+        if (!activated.ok) throw new Error(`Provider activation failed: HTTP ${activated.status}`);
+      },
+      { base: apiBase, key: apiKey! },
+    );
 
     // Reload to force a fresh WebSocket connection after provider switch
     // (see first test in this block for detailed explanation).
@@ -151,9 +187,14 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Wait for a response (or thinking indicator)
     // The agent phase indicator may flash briefly — we check that the flow completes
-    const assistantBubble = window.locator(".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)");
+    const assistantBubble = window.locator(
+      ".chat-bubble-assistant:not(.chat-thinking):not(.chat-streaming-cursor)",
+    );
     await expect(assistantBubble.last()).toBeVisible({ timeout: 60_000 });
-    await expect(assistantBubble.last()).toHaveText(/^\s*(?:4[.!。]?|2\s*\+\s*2\s*=\s*4[.!。]?|four[.!。]?|四[。！]?)\s*$/i, { timeout: 60_000 });
+    await expect(assistantBubble.last()).toHaveText(
+      /^\s*(?:4[.!。]?|2\s*\+\s*2\s*=\s*4[.!。]?|four[.!。]?|四[。！]?)\s*$/i,
+      { timeout: 60_000 },
+    );
 
     // After completion, no thinking indicator should remain.
     // Allow up to 20s: if chat.final is lost, LIFECYCLE_END + 5s FORCE_DONE fallback clears it.
@@ -174,7 +215,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     const toggleInput = chatSection.locator("input[type='checkbox']").first();
     const toggleTrack = chatSection.locator(".tk-v1-switch-track").first();
 
@@ -252,7 +295,10 @@ test.describe("Chat Agent Events & Settings", () => {
     expect(readTrue).toBe("true");
   });
 
-  test("Settings API: chat_show_agent_events defaults to true when absent", async ({ window, apiBase }) => {
+  test("Settings API: chat_show_agent_events defaults to true when absent", async ({
+    window,
+    apiBase,
+  }) => {
     // Before any toggle, the key may or may not exist.
     // When absent, fetchChatShowAgentEvents should return true (default ON).
     // We test this by removing the key and checking the API behavior.
@@ -287,7 +333,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Wait for settings to load
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     await expect(chatSection).toBeVisible({ timeout: 10_000 });
     const toggleInput = chatSection.locator("input[type='checkbox']").first();
     const toggleTrack = chatSection.locator(".tk-v1-switch-track").first();
@@ -325,7 +373,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     const toggleInput = chatSection.locator("input[type='checkbox']").nth(1);
     const toggleTrack = chatSection.locator(".tk-v1-switch-track").nth(1);
 
@@ -359,10 +409,15 @@ test.describe("Chat Agent Events & Settings", () => {
     expect(offResult).toBe("false");
   });
 
-  test("Settings API: can write and read chat_preserve_tool_events", async ({ electronApp: _app, apiBase }) => {
+  test("Settings API: can write and read chat_preserve_tool_events", async ({
+    electronApp: _app,
+    apiBase,
+  }) => {
     // Wait for panel server to be ready
     for (let i = 0; i < 30; i++) {
-      const ok = await fetch(`${apiBase}/api/settings`).then(() => true).catch(() => false);
+      const ok = await fetch(`${apiBase}/api/settings`)
+        .then(() => true)
+        .catch(() => false);
       if (ok) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
@@ -377,7 +432,9 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Read back
     const readRes1 = await fetch(`${apiBase}/api/settings`);
-    const readData1 = (await readRes1.json()) as { settings?: { chat_preserve_tool_events?: string } };
+    const readData1 = (await readRes1.json()) as {
+      settings?: { chat_preserve_tool_events?: string };
+    };
     expect(readData1.settings?.chat_preserve_tool_events).toBe("true");
 
     // Write "false"
@@ -390,7 +447,9 @@ test.describe("Chat Agent Events & Settings", () => {
 
     // Read back
     const readRes2 = await fetch(`${apiBase}/api/settings`);
-    const readData2 = (await readRes2.json()) as { settings?: { chat_preserve_tool_events?: string } };
+    const readData2 = (await readRes2.json()) as {
+      settings?: { chat_preserve_tool_events?: string };
+    };
     expect(readData2.settings?.chat_preserve_tool_events).toBe("false");
   });
 
@@ -437,7 +496,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(sendBtn).toBeVisible();
   });
 
-  test("Chat page: connection status shows connected after gateway connects", async ({ window }) => {
+  test("Chat page: connection status shows connected after gateway connects", async ({
+    window,
+  }) => {
     await dismissModals(window);
 
     // Chat is default page, verify status
@@ -465,7 +526,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Find the Chat Settings section by its heading (wait for Settings page to finish loading)
-    const chatSection = window.locator(".tk-settings-section:visible", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section:visible", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     await expect(chatSection).toBeVisible({ timeout: 10_000 });
 
     // Verify all three sections exist: Agent, Chat, Telemetry
@@ -493,14 +556,18 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
     // Find the Chat Settings toggle (first checkbox = show agent events)
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     const toggle = chatSection.locator("input[type='checkbox']").first();
 
     // Should be checked by default (fresh install → key doesn't exist → defaults to ON)
     await expect(toggle).toBeChecked();
   });
 
-  test("Settings page sections are in correct order: Agent → Chat → App → Tutorial → Startup → Data Directory → Telemetry", async ({ window }) => {
+  test("Settings page sections are in correct order: Agent → Chat → App → Tutorial → Startup → Data Directory → Telemetry", async ({
+    window,
+  }) => {
     await dismissModals(window);
 
     const settingsBtn = getNavigationButton(window, "Settings");
@@ -579,7 +646,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     await expect(chatSection).toBeVisible();
 
     // Should have three toggle switches: agent events + preserve tool events + collapse messages
@@ -598,7 +667,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveAttribute("aria-current", "page");
 
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     const toggleInputs = chatSection.locator("input[type='checkbox']");
 
     // Second toggle (preserve tool events) should be unchecked by default
@@ -695,7 +766,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
 
     // The Chat Settings section title should appear translated
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     await expect(chatSection).toBeVisible();
   });
 
@@ -751,7 +824,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await dismissModals(window);
     const settingsBtn = getNavigationButton(window, "Settings");
     await settingsBtn.click();
-    const chatSection = window.locator(".tk-settings-section", { hasText: /Chat Settings|聊天设置/ });
+    const chatSection = window.locator(".tk-settings-section", {
+      hasText: /Chat Settings|聊天设置/,
+    });
     await expect(chatSection).toContainText(/Preserve tool call records|保留工具调用记录/);
   });
 

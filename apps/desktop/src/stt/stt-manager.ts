@@ -31,7 +31,9 @@ export class SttManager {
     try {
       // Read STT settings
       const enabledSetting = this.storage.settings.get("stt.enabled");
-      const providerSetting = this.storage.settings.get("stt.provider") as SttProviderType | undefined;
+      const providerSetting = this.storage.settings.get("stt.provider") as
+        | SttProviderType
+        | undefined;
 
       this.enabled = enabledSetting === "true";
 

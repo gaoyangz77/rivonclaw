@@ -27,9 +27,7 @@ function buildFullRegistry(): RouteRegistry {
 
 describe("API contract ↔ route registry coverage", () => {
   const registry = buildFullRegistry();
-  const registeredPaths = new Set(
-    registry.listRoutes().map((r) => `${r.method}:${r.path}`),
-  );
+  const registeredPaths = new Set(registry.listRoutes().map((r) => `${r.method}:${r.path}`));
 
   it("every API contract entry is either registered or in the closure allowlist", () => {
     const missing: string[] = [];

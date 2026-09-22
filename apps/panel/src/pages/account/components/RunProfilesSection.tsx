@@ -113,10 +113,16 @@ export function RunProfilesSection({
                     {isSystem && <span className="acct-badge-system">{t("surfaces.system")}</span>}
                     {!isSystem && (
                       <div className="acct-item-actions">
-                        <button className="btn btn-secondary btn-sm" onClick={() => onEditProfile(p)}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => onEditProfile(p)}
+                        >
                           {t("surfaces.editRunProfile")}
                         </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => onDeleteProfile(p.id)}>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => onDeleteProfile(p.id)}
+                        >
                           {t("surfaces.deleteRunProfile")}
                         </button>
                       </div>
@@ -126,28 +132,31 @@ export function RunProfilesSection({
                     <span>{surfName}</span>
                     <span>{t("surfaces.toolCount", { count: p.selectedToolIds.length })}</span>
                   </div>
-                  {p.selectedToolIds.length > 0 && (() => {
-                    const parentSurface = surfaces.find((s) => s.id === p.surfaceId);
-                    const restricted = parentSurface && parentSurface.allowedToolIds.length > 0;
-                    const allowedSet = restricted ? new Set(parentSurface.allowedToolIds) : null;
-                    return (
-                      <div className="acct-tool-chips">
-                        {p.selectedToolIds.map((toolId) => {
-                          const outOfScope = allowedSet && !allowedSet.has(toolId);
-                          return (
-                            <span
-                              key={toolId}
-                              className={`acct-tool-chip${outOfScope ? " acct-tool-chip-warn" : ""}`}
-                              title={outOfScope ? t("surfaces.toolOutOfScope") : undefined}
-                            >
-                              {toolDisplayLabel(toolId)}
-                              {outOfScope && <span className="acct-tool-chip-icon">{"\u26A0"}</span>}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                  {p.selectedToolIds.length > 0 &&
+                    (() => {
+                      const parentSurface = surfaces.find((s) => s.id === p.surfaceId);
+                      const restricted = parentSurface && parentSurface.allowedToolIds.length > 0;
+                      const allowedSet = restricted ? new Set(parentSurface.allowedToolIds) : null;
+                      return (
+                        <div className="acct-tool-chips">
+                          {p.selectedToolIds.map((toolId) => {
+                            const outOfScope = allowedSet && !allowedSet.has(toolId);
+                            return (
+                              <span
+                                key={toolId}
+                                className={`acct-tool-chip${outOfScope ? " acct-tool-chip-warn" : ""}`}
+                                title={outOfScope ? t("surfaces.toolOutOfScope") : undefined}
+                              >
+                                {toolDisplayLabel(toolId)}
+                                {outOfScope && (
+                                  <span className="acct-tool-chip-icon">{"\u26A0"}</span>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                 </div>
               );
             })}

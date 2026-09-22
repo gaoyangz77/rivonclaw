@@ -162,17 +162,17 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
             )}
           </div>
           <TkSwitchControl
-              label={t("ecommerce.shopDrawer.aiCS.csThisDevice")}
-              checked={shop.handlesCustomerServiceOnDevice(myDeviceId)}
-              onChange={() => {
-                if (shop.handlesCustomerServiceOnDevice(myDeviceId)) {
-                  onUnbindDevice(shop.id);
-                } else {
-                  onBindDevice(shop.id);
-                }
-              }}
-              disabled={togglingBindShopId === shop.id || !myDeviceId}
-            />
+            label={t("ecommerce.shopDrawer.aiCS.csThisDevice")}
+            checked={shop.handlesCustomerServiceOnDevice(myDeviceId)}
+            onChange={() => {
+              if (shop.handlesCustomerServiceOnDevice(myDeviceId)) {
+                onUnbindDevice(shop.id);
+              } else {
+                onBindDevice(shop.id);
+              }
+            }}
+            disabled={togglingBindShopId === shop.id || !myDeviceId}
+          />
         </div>
       </section>
 
@@ -285,11 +285,11 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                 </span>
               </div>
               <TkSwitchControl
-                  label={t("ecommerce.shopDrawer.aiCS.reviewOptimizationEnabled")}
-                  checked={draftReviewOptimizationEnabled}
-                  onChange={onToggleReviewOptimizationEnabled}
-                  disabled={savingReviewOptimizationSettings}
-                />
+                label={t("ecommerce.shopDrawer.aiCS.reviewOptimizationEnabled")}
+                checked={draftReviewOptimizationEnabled}
+                onChange={onToggleReviewOptimizationEnabled}
+                disabled={savingReviewOptimizationSettings}
+              />
             </div>
 
             <div
@@ -306,11 +306,11 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                   </span>
                 </div>
                 <TkSwitchControl
-                    label={t("ecommerce.shopDrawer.aiCS.badReviewReachoutTitle")}
-                    checked={draftBadReviewReachoutEnabled}
-                    onChange={onToggleBadReviewReachoutEnabled}
-                    disabled={!draftReviewOptimizationEnabled || savingReviewOptimizationSettings}
-                  />
+                  label={t("ecommerce.shopDrawer.aiCS.badReviewReachoutTitle")}
+                  checked={draftBadReviewReachoutEnabled}
+                  onChange={onToggleBadReviewReachoutEnabled}
+                  disabled={!draftReviewOptimizationEnabled || savingReviewOptimizationSettings}
+                />
               </div>
 
               <div className="shop-review-feature-settings">

@@ -488,9 +488,13 @@ describe("gateway config builder", () => {
         channelRecipients: { getOwners: () => [] },
       } as never,
       secretStore: { get: async () => null } as never,
-      locale: "en", configPath, stateDir,
-      extensionsDir: "/tmp/extensions", sttCliPath: "/tmp/stt.js",
-      channelPluginEntries: () => ({}), channelConfigAccounts: () => [],
+      locale: "en",
+      configPath,
+      stateDir,
+      extensionsDir: "/tmp/extensions",
+      sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}),
+      channelConfigAccounts: () => [],
     });
     try {
       const first = await builder.buildFullGatewayConfig(18789);
@@ -498,15 +502,24 @@ describe("gateway config builder", () => {
         baseUrl: "https://open.bigmodel.cn/api/paas/v4",
         api: "openai-completions",
       });
-      expect(first.extraProviders?.zhipu?.models).toContainEqual(expect.objectContaining({
-        id: "glm-4-flash", contextWindow: 128000,
-      }));
+      expect(first.extraProviders?.zhipu?.models).toContainEqual(
+        expect.objectContaining({
+          id: "glm-4-flash",
+          contextWindow: 128000,
+        }),
+      );
       expect(first.extraProviders?.["zhipu-coding"]).toBeUndefined();
-      writeGatewayConfig({ ...first, extraProviders: {
-        ...first.extraProviders,
-        zhipu: { baseUrl: "https://user.example/v1", api: "openai-completions",
-          models: [{ id: "custom-model", name: "Custom Model", contextWindow: 64000 }] },
-      } });
+      writeGatewayConfig({
+        ...first,
+        extraProviders: {
+          ...first.extraProviders,
+          zhipu: {
+            baseUrl: "https://user.example/v1",
+            api: "openai-completions",
+            models: [{ id: "custom-model", name: "Custom Model", contextWindow: 64000 }],
+          },
+        },
+      });
       const next = await builder.buildFullGatewayConfig(18789);
       expect(next.extraProviders?.zhipu).toBeUndefined();
       writeGatewayConfig(next);

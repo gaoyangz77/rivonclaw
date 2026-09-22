@@ -1,6 +1,10 @@
 import type { TFunction } from "i18next";
 import { GQL } from "@rivonclaw/core";
-import type { BillingEntitlementStatus, BillingPlanDefinition, BillingUsageStatus } from "@rivonclaw/core/models";
+import type {
+  BillingEntitlementStatus,
+  BillingPlanDefinition,
+  BillingUsageStatus,
+} from "@rivonclaw/core/models";
 
 export type CheckoutProvider = "STRIPE" | "LAKALA";
 
@@ -24,14 +28,22 @@ function humanizeEnum(value: string): string {
     .join(" ");
 }
 
-export function billingEnumLabel(t: TFunction, group: BillingEnumGroup, value?: string | null): string {
+export function billingEnumLabel(
+  t: TFunction,
+  group: BillingEnumGroup,
+  value?: string | null,
+): string {
   if (!value) return "-";
   return t(`billing.enums.${group}.${value}`, { defaultValue: humanizeEnum(value) });
 }
 
-export function entitlementStatusLabel(t: TFunction, entitlement: BillingEntitlementStatus | null): string {
+export function entitlementStatusLabel(
+  t: TFunction,
+  entitlement: BillingEntitlementStatus | null,
+): string {
   if (entitlement?.allowed) return t("billing.allowed");
-  if (entitlement?.code === GQL.EntitlementDecisionCode.PaymentRequired) return t("billing.needsActivation");
+  if (entitlement?.code === GQL.EntitlementDecisionCode.PaymentRequired)
+    return t("billing.needsActivation");
   return billingEnumLabel(t, "entitlementCode", entitlement?.code);
 }
 
@@ -69,10 +81,14 @@ export function findPlanDefinition(
   return productPlans.length === 1 ? productPlans[0] : null;
 }
 
-export function customerServicePlan(plans: readonly BillingPlanDefinition[]): BillingPlanDefinition | null {
-  return plans.find((plan) => plan.planId === GQL.BillingPlanId.EcomCustomerServiceUnlimitedMonthly)
-    ?? plans.find((plan) => plan.product === GQL.BillableProduct.EcomCustomerService)
-    ?? null;
+export function customerServicePlan(
+  plans: readonly BillingPlanDefinition[],
+): BillingPlanDefinition | null {
+  return (
+    plans.find((plan) => plan.planId === GQL.BillingPlanId.EcomCustomerServiceUnlimitedMonthly) ??
+    plans.find((plan) => plan.product === GQL.BillableProduct.EcomCustomerService) ??
+    null
+  );
 }
 
 const CHECKOUT_PROVIDER_OPTIONS: readonly CheckoutProvider[] = ["STRIPE", "LAKALA"];
@@ -81,16 +97,21 @@ export function checkoutProviderOptions(_language: string): CheckoutProvider[] {
   return [...CHECKOUT_PROVIDER_OPTIONS];
 }
 
-export function preferredCheckoutProvider(language: string, providers: readonly CheckoutProvider[] = checkoutProviderOptions(language)): CheckoutProvider {
+export function preferredCheckoutProvider(
+  language: string,
+  providers: readonly CheckoutProvider[] = checkoutProviderOptions(language),
+): CheckoutProvider {
   const preferred = language.startsWith("zh") ? "LAKALA" : "STRIPE";
-  return providers.includes(preferred) ? preferred : providers[0] ?? "STRIPE";
+  return providers.includes(preferred) ? preferred : (providers[0] ?? "STRIPE");
 }
 
 export function checkoutProviderLabelKey(provider: CheckoutProvider): string {
   return provider === "STRIPE" ? "billing.payByCard" : "billing.payByWechatAlipay";
 }
 
-export function checkoutProviderFromBillingProvider(provider?: string | null): CheckoutProvider | undefined {
+export function checkoutProviderFromBillingProvider(
+  provider?: string | null,
+): CheckoutProvider | undefined {
   return provider === "STRIPE" || provider === "LAKALA" ? provider : undefined;
 }
 
@@ -101,12 +122,17 @@ export function shouldShowRenewalReminder(
   if (!entitlement?.allowed) return false;
   const subscription = entitlement.subscription;
   if (!subscription) return false;
-  if (subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews && !subscription.cancelAtPeriodEnd) return false;
   if (
-    subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid
-    && subscription.renewalMode !== GQL.BillingRenewalMode.NonRenewing
-    && !subscription.cancelAtPeriodEnd
-  ) return false;
+    subscription.renewalMode === GQL.BillingRenewalMode.AutoRenews &&
+    !subscription.cancelAtPeriodEnd
+  )
+    return false;
+  if (
+    subscription.renewalMode !== GQL.BillingRenewalMode.Prepaid &&
+    subscription.renewalMode !== GQL.BillingRenewalMode.NonRenewing &&
+    !subscription.cancelAtPeriodEnd
+  )
+    return false;
   const expiresAt = new Date(subscription.currentPeriodEnd).getTime();
   if (!Number.isFinite(expiresAt)) return false;
   const remainingMs = expiresAt - Date.now();

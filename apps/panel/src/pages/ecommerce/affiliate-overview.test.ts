@@ -87,8 +87,15 @@ describe("exactSubmissionShare", () => {
 
 describe("orderResponseHorizons", () => {
   it("restores the canonical 3h → 30d order regardless of server order", () => {
-    expect(orderResponseHorizons(PRODUCTION_HORIZONS).map((point) => point.horizon))
-      .toEqual(["3h", "12h", "24h", "72h", "7d", "14d", "30d"]);
+    expect(orderResponseHorizons(PRODUCTION_HORIZONS).map((point) => point.horizon)).toEqual([
+      "3h",
+      "12h",
+      "24h",
+      "72h",
+      "7d",
+      "14d",
+      "30d",
+    ]);
   });
 
   it("keeps an unrecognised horizon at the end rather than dropping it", () => {
@@ -107,8 +114,15 @@ describe("buildResponseHorizonSeries", () => {
     });
 
     expect(series.subDaySuppressed).toBe(false);
-    expect(series.points.map((point) => point.horizon))
-      .toEqual(["3h", "12h", "24h", "72h", "7d", "14d", "30d"]);
+    expect(series.points.map((point) => point.horizon)).toEqual([
+      "3h",
+      "12h",
+      "24h",
+      "72h",
+      "7d",
+      "14d",
+      "30d",
+    ]);
     expect(series.exactShare).toBeCloseTo(0.92);
   });
 
@@ -218,7 +232,10 @@ describe("buildResponseHorizonSeries", () => {
       horizonCohortFrom: null,
       horizonCohortTo: null,
       horizons: PRODUCTION_HORIZONS.map((point) => ({
-        ...point, matureInvitations: 0, responsesWithinHorizon: 0, responseRate: null,
+        ...point,
+        matureInvitations: 0,
+        responsesWithinHorizon: 0,
+        responseRate: null,
       })),
       responsesExact: 0,
       responsesProxy: 0,
@@ -280,8 +297,20 @@ describe("buildInviteDailyRows", () => {
 
   it("keeps invitations in one series and derives the response rate", () => {
     expect(buildInviteDailyRows(daily)).toEqual([
-      { inviteDs: "2026-06-01", mature: true, invitations: 8_000, responded: 9, responseRate: 9 / 8_000 },
-      { inviteDs: "2026-08-20", mature: false, invitations: 6_400, responded: 1, responseRate: 1 / 6_400 },
+      {
+        inviteDs: "2026-06-01",
+        mature: true,
+        invitations: 8_000,
+        responded: 9,
+        responseRate: 9 / 8_000,
+      },
+      {
+        inviteDs: "2026-08-20",
+        mature: false,
+        invitations: 6_400,
+        responded: 1,
+        responseRate: 1 / 6_400,
+      },
     ]);
   });
 
@@ -299,7 +328,12 @@ describe("buildInviteDailyRows", () => {
 
   it("reports null response rate rather than zero when a day had no invitations", () => {
     const [row] = buildInviteDailyRows([
-      { inviteDs: "2026-07-04", invitations: 0, responded: 0, mature: true } as GQL.AffiliateInviteDailyPoint,
+      {
+        inviteDs: "2026-07-04",
+        invitations: 0,
+        responded: 0,
+        mature: true,
+      } as GQL.AffiliateInviteDailyPoint,
     ]);
     expect(row.responseRate).toBeNull();
   });
@@ -309,7 +343,12 @@ describe("buildInviteDailyRows", () => {
   // masking it here would disguise incomplete data as small-sample noise.
   it("reports the real rate for a tiny cohort instead of hiding it", () => {
     const [row] = buildInviteDailyRows([
-      { inviteDs: "2026-06-05", invitations: 3, responded: 2, mature: true } as GQL.AffiliateInviteDailyPoint,
+      {
+        inviteDs: "2026-06-05",
+        invitations: 3,
+        responded: 2,
+        mature: true,
+      } as GQL.AffiliateInviteDailyPoint,
     ]);
     expect(row.responseRate).toBeCloseTo(2 / 3);
   });
@@ -327,14 +366,23 @@ describe("firstImmatureCohortDay", () => {
 
   it("returns null when every day in the window is mature", () => {
     const rows = buildInviteDailyRows([
-      { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true } as GQL.AffiliateInviteDailyPoint,
+      {
+        inviteDs: "2026-06-01",
+        invitations: 800,
+        responded: 9,
+        mature: true,
+      } as GQL.AffiliateInviteDailyPoint,
     ]);
     expect(firstImmatureCohortDay(rows)).toBeNull();
   });
 });
 
 describe("buildShipmentDailyRows", () => {
-  function day(ds: string, samplesShipped: number, affiliateUnits: number): GQL.AffiliateShipmentDailyPoint {
+  function day(
+    ds: string,
+    samplesShipped: number,
+    affiliateUnits: number,
+  ): GQL.AffiliateShipmentDailyPoint {
     return { ds, samplesShipped, affiliateUnits };
   }
 
@@ -360,8 +408,12 @@ describe("buildShipmentDailyRows", () => {
     const rows = buildShipmentDailyRows(RAMP_UP);
 
     expect(rows.map((row) => row.ds)).toEqual(RAMP_UP.map((point) => point.ds));
-    expect(rows.map((row) => row.samplesShipped)).toEqual(RAMP_UP.map((point) => point.samplesShipped));
-    expect(rows.map((row) => row.affiliateUnits)).toEqual(RAMP_UP.map((point) => point.affiliateUnits));
+    expect(rows.map((row) => row.samplesShipped)).toEqual(
+      RAMP_UP.map((point) => point.samplesShipped),
+    );
+    expect(rows.map((row) => row.affiliateUnits)).toEqual(
+      RAMP_UP.map((point) => point.affiliateUnits),
+    );
   });
 
   // The boundary is stated by shipmentCoverage, not enforced by dropping days.
@@ -388,7 +440,9 @@ describe("buildShipmentDailyRows", () => {
     const units = window.reduce((total, point) => total + point.affiliateUnits, 0);
     const samples = window.reduce((total, point) => total + point.samplesShipped, 0);
 
-    expect(rows[AFFILIATE_SHIPMENT_TRAILING_DAYS - 1].trailingUnitsPerSample).toBeCloseTo(units / samples);
+    expect(rows[AFFILIATE_SHIPMENT_TRAILING_DAYS - 1].trailingUnitsPerSample).toBeCloseTo(
+      units / samples,
+    );
   });
 
   /*
@@ -409,21 +463,19 @@ describe("buildShipmentDailyRows", () => {
   });
 
   it("reports no ratio, never a zero, when the trailing window shipped nothing", () => {
-    const rows = buildShipmentDailyRows([
-      day("2026-07-15", 0, 4_100),
-      day("2026-07-16", 0, 4_250),
-      day("2026-07-17", 0, 3_980),
-    ], 2);
+    const rows = buildShipmentDailyRows(
+      [day("2026-07-15", 0, 4_100), day("2026-07-16", 0, 4_250), day("2026-07-17", 0, 3_980)],
+      2,
+    );
 
     expect(rows.map((row) => row.trailingUnitsPerSample)).toEqual([null, null, null]);
   });
 
   it("uses only the trailing window, not the whole series to date", () => {
-    const rows = buildShipmentDailyRows([
-      day("2026-08-01", 100, 100),
-      day("2026-08-02", 100, 100),
-      day("2026-08-03", 10, 100),
-    ], 2);
+    const rows = buildShipmentDailyRows(
+      [day("2026-08-01", 100, 100), day("2026-08-02", 100, 100), day("2026-08-03", 10, 100)],
+      2,
+    );
 
     // Last two days: (100 + 100) / (100 + 10) — the first day is outside it.
     expect(rows[2].trailingUnitsPerSample).toBeCloseTo(200 / 110);
@@ -470,11 +522,16 @@ describe("coverage boundary shaping", () => {
     const rows = [{ ds: "2026-07-30" }, { ds: "2026-08-01" }, { ds: "2026-08-02" }];
     const dsOf = (row: { ds: string }) => row.ds;
 
-    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", false).map(dsOf))
-      .toEqual(["2026-07-30", "2026-08-01", "2026-08-02"]);
+    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", false).map(dsOf)).toEqual([
+      "2026-07-30",
+      "2026-08-01",
+      "2026-08-02",
+    ]);
     // Narrowing is opt-in, and still available.
-    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", true).map(dsOf))
-      .toEqual(["2026-08-01", "2026-08-02"]);
+    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", true).map(dsOf)).toEqual([
+      "2026-08-01",
+      "2026-08-02",
+    ]);
     expect(applyCoverageWindow(rows, dsOf, null, false)).toHaveLength(3);
     expect(applyCoverageWindow(rows, dsOf, null, true)).toHaveLength(3);
   });
@@ -516,7 +573,12 @@ describe("coverage boundary shaping", () => {
       { ds: "2026-08-01", rate: 0.2 },
       { ds: "2026-08-02", rate: 0.3 },
     ];
-    const split = splitCoverageSeries(rows, (row) => row.ds, (row) => row.rate, "2026-08-01");
+    const split = splitCoverageSeries(
+      rows,
+      (row) => row.ds,
+      (row) => row.rate,
+      "2026-08-01",
+    );
 
     expect(split.map((row) => [row.coveredValue, row.partialValue])).toEqual([
       [null, 0.1],

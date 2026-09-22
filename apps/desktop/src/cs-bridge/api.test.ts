@@ -21,8 +21,10 @@ vi.mock("../gateway/connection.js", () => ({
 }));
 
 vi.mock("./cs-conversation-summary-service.js", () => ({
-  getLocalConversationSummary: (...args: unknown[]) => bridgeState.summary.getLocalConversationSummary(...args),
-  generateConversationSummary: (...args: unknown[]) => bridgeState.summary.generateConversationSummary(...args),
+  getLocalConversationSummary: (...args: unknown[]) =>
+    bridgeState.summary.getLocalConversationSummary(...args),
+  generateConversationSummary: (...args: unknown[]) =>
+    bridgeState.summary.generateConversationSummary(...args),
 }));
 
 let registry: RouteRegistry;
@@ -36,7 +38,12 @@ beforeEach(() => {
   bridgeState.summary.generateConversationSummary.mockReset();
 });
 
-async function dispatch(method: string, path: string, body?: unknown, ctx: Partial<ApiContext> = {}) {
+async function dispatch(
+  method: string,
+  path: string,
+  body?: unknown,
+  ctx: Partial<ApiContext> = {},
+) {
   const req = makeReq(method, body);
   const res = makeRes();
   const url = new URL(`http://localhost${path}`);
@@ -119,7 +126,8 @@ describe("POST /api/cs-bridge/start-conversation", () => {
     const { handled, res } = await dispatch("POST", "/api/cs-bridge/start-conversation", {
       shopId: "shop-1",
       conversationId: "conv-1",
-      operatorInstruction: "This refund request looks suspicious. Review carefully before offering any compensation.",
+      operatorInstruction:
+        "This refund request looks suspicious. Review carefully before offering any compensation.",
     });
 
     expect(handled).toBe(true);
@@ -131,7 +139,8 @@ describe("POST /api/cs-bridge/start-conversation", () => {
       orderId: undefined,
       dispatchReason: "MANUAL_START",
       useMessageDelta: false,
-      operatorInstruction: "This refund request looks suspicious. Review carefully before offering any compensation.",
+      operatorInstruction:
+        "This refund request looks suspicious. Review carefully before offering any compensation.",
     });
   });
 });

@@ -6,9 +6,28 @@ const SRC_ROOT = resolve(__dirname, "../../..");
 
 /** Domain directories — not app/ and not infra/ */
 const DOMAIN_DIRS = new Set([
-  "auth", "settings", "providers", "channels", "cs-bridge", "affiliate", "ecommerce-relay",
-  "mobile", "chat", "skills", "usage", "cloud", "deps", "doctor", "gateway",
-  "updater", "stt", "telemetry", "tray", "i18n", "utils", "generated",
+  "auth",
+  "settings",
+  "providers",
+  "channels",
+  "cs-bridge",
+  "affiliate",
+  "ecommerce-relay",
+  "mobile",
+  "chat",
+  "skills",
+  "usage",
+  "cloud",
+  "deps",
+  "doctor",
+  "gateway",
+  "updater",
+  "stt",
+  "telemetry",
+  "tray",
+  "i18n",
+  "utils",
+  "generated",
 ]);
 
 /** Recursively find all .ts files under a directory. */
@@ -19,7 +38,11 @@ function findTsFiles(dir: string): string[] {
     if (entry.isDirectory()) {
       if (entry.name === "node_modules") continue;
       results.push(...findTsFiles(full));
-    } else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.") && !entry.name.includes(".spec.")) {
+    } else if (
+      entry.name.endsWith(".ts") &&
+      !entry.name.includes(".test.") &&
+      !entry.name.includes(".spec.")
+    ) {
       // Skip test files and __tests__ directories
       if (!full.includes("__tests__")) results.push(full);
     }
@@ -51,7 +74,10 @@ const APP_SHARED_PATHS = new Set([
 ]);
 
 /** Resolve a relative import to a top-level directory category under src/. */
-function resolveCategory(fromFile: string, importPath: string): { topDir: string; relPath: string } | null {
+function resolveCategory(
+  fromFile: string,
+  importPath: string,
+): { topDir: string; relPath: string } | null {
   const fromDir = dirname(fromFile);
   const resolved = resolve(fromDir, importPath.replace(/\.js$/, ".ts"));
   const rel = relative(SRC_ROOT, resolved);
@@ -84,7 +110,11 @@ describe("Layer boundary enforcement", () => {
 
     for (const domain of DOMAIN_DIRS) {
       const domainDir = join(SRC_ROOT, domain);
-      try { statSync(domainDir); } catch { continue; }
+      try {
+        statSync(domainDir);
+      } catch {
+        continue;
+      }
 
       const files = findTsFiles(domainDir);
       for (const file of files) {
@@ -92,7 +122,9 @@ describe("Layer boundary enforcement", () => {
         for (const imp of extractRelativeImports(file)) {
           const target = resolveCategory(file, imp);
           if (target && target.topDir === "app" && !APP_SHARED_PATHS.has(target.relPath)) {
-            violations.push(`${rel} imports from app/ (${imp}) — only app/store/* and app/storage-ref are allowed`);
+            violations.push(
+              `${rel} imports from app/ (${imp}) — only app/store/* and app/storage-ref are allowed`,
+            );
           }
         }
       }

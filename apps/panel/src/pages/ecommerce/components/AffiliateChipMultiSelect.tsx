@@ -80,7 +80,9 @@ export function AffiliateChipMultiSelect<T extends string>({
         <small>
           {selectedIds.length === 0
             ? emptyLabel
-            : t("ecommerce.affiliateWorkspace.policies.selectedCount", { count: selectedIds.length })}
+            : t("ecommerce.affiliateWorkspace.policies.selectedCount", {
+                count: selectedIds.length,
+              })}
         </small>
       ) : null}
       {unknownSelectedIds.length > 0 ? (

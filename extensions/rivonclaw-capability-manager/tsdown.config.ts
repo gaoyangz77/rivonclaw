@@ -16,7 +16,7 @@ export default defineConfig({
     const { join } = await import("node:path");
     copyFileSync(
       join(process.cwd(), "openclaw.plugin.json"),
-      join(process.cwd(), "dist", "openclaw.plugin.json")
+      join(process.cwd(), "dist", "openclaw.plugin.json"),
     );
   },
 });

@@ -72,10 +72,7 @@ describe("buildSidebarNavigationItems", () => {
       { translate: (key) => key },
     );
 
-    expect(items.map((item) => item.id)).toEqual([
-      "nav-group:nav.group.automation",
-      "/inventory",
-    ]);
+    expect(items.map((item) => item.id)).toEqual(["nav-group:nav.group.automation", "/inventory"]);
     expect(items[0]?.children?.map((child) => child.id)).toEqual([
       "/automation/skills",
       "/automation/crons",

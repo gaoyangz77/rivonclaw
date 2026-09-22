@@ -31,7 +31,7 @@ export function useRoleDisplayName(roles: AccountRole[]) {
      */
     ofMember: (member: AccountMember): string => {
       const role = roles.find((candidate) => candidate.id === member.roleId);
-      return role ? translate(role.name, role.isSystem) : member.roleName ?? "";
+      return role ? translate(role.name, role.isSystem) : (member.roleName ?? "");
     },
   };
 }

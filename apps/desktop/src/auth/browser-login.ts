@@ -1,9 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { hostname } from "node:os";
-import {
-  startLoopbackOAuthCallback,
-  type LoopbackOAuthCallback,
-} from "@rivonclaw/gateway";
+import { startLoopbackOAuthCallback, type LoopbackOAuthCallback } from "@rivonclaw/gateway";
 import { getFirstPartyDomainRoute } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import {
@@ -95,8 +92,7 @@ export class DesktopBrowserLoginCoordinator {
             state,
             codeChallenge: challenge,
             deviceName: this.options.deviceName ?? hostname() ?? "TK Copilot Desktop",
-            surface:
-              getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
+            surface: getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
             intent: input.intent ?? "LOGIN",
           },
         },

@@ -32,12 +32,12 @@ function isProductionBuildOrMode(): boolean {
 function isDeterministicCaptchaMode(): boolean {
   if (isProductionBuildOrMode()) return false;
   return (
-    truthyEnv(process.env.RIVONCLAW_STAGING)
-    || truthyEnv(process.env.RIVONCLAW_E2E)
-    || truthyEnv(process.env.RIVONCLAW_TUTORIAL)
-    || truthyEnv(process.env.RIVONCLAW_DEV_AUTH_TEST)
-    || process.env.NODE_ENV === "test"
-    || process.env.NODE_ENV === "development"
+    truthyEnv(process.env.RIVONCLAW_STAGING) ||
+    truthyEnv(process.env.RIVONCLAW_E2E) ||
+    truthyEnv(process.env.RIVONCLAW_TUTORIAL) ||
+    truthyEnv(process.env.RIVONCLAW_DEV_AUTH_TEST) ||
+    process.env.NODE_ENV === "test" ||
+    process.env.NODE_ENV === "development"
   );
 }
 
@@ -73,7 +73,10 @@ function runAuthChangeInBackground(ctx: ApiContext, action: string): void {
 }
 
 const getSession: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
-  const authBootstrap = (rootStore as any).authBootstrap as { status: string; error: string | null };
+  const authBootstrap = (rootStore as any).authBootstrap as {
+    status: string;
+    error: string | null;
+  };
   if (!ctx.authSession) {
     sendJson(res, 200, {
       authenticated: false,
@@ -95,7 +98,12 @@ const login: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) 
     sendJson(res, 501, { error: "Auth not available" });
     return;
   }
-  const body = await parseBody(req) as { email: string; password: string; captchaToken?: string; captchaAnswer?: string };
+  const body = (await parseBody(req)) as {
+    email: string;
+    password: string;
+    captchaToken?: string;
+    captchaAnswer?: string;
+  };
   if (!body.email || !body.password) {
     sendJson(res, 400, { error: "Missing email or password" });
     return;
@@ -114,7 +122,14 @@ const register: EndpointHandler = async (req, res, _url, _params, ctx: ApiContex
     sendJson(res, 501, { error: "Auth not available" });
     return;
   }
-  const body = await parseBody(req) as { email: string; password: string; name?: string; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null };
+  const body = (await parseBody(req)) as {
+    email: string;
+    password: string;
+    name?: string;
+    captchaToken?: string;
+    captchaAnswer?: string;
+    inviteCode?: string | null;
+  };
   if (!body.email || !body.password) {
     sendJson(res, 400, { error: "Missing email or password" });
     return;
@@ -154,7 +169,7 @@ const storeTokens: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
     sendJson(res, 501, { error: "Auth not available" });
     return;
   }
-  const body = await parseBody(req) as { accessToken?: string; refreshToken?: string };
+  const body = (await parseBody(req)) as { accessToken?: string; refreshToken?: string };
   if (!body.accessToken || !body.refreshToken) {
     sendJson(res, 400, { error: "Missing accessToken or refreshToken" });
     return;
@@ -166,7 +181,8 @@ const storeTokens: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
   if (!user) {
     const payload = decodeJwtPayload(body.accessToken);
     if (payload && typeof payload.email === "string") {
-      const actorId = typeof payload.userId === "string" ? payload.userId : ((payload.sub as string) ?? "");
+      const actorId =
+        typeof payload.userId === "string" ? payload.userId : ((payload.sub as string) ?? "");
       // The token carries its owning account; a token issued before sub-accounts
       // existed has none, which means the signer was a main account.
       const accountId = typeof payload.accountId === "string" ? payload.accountId : "";
@@ -218,9 +234,7 @@ const logout: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
 };
 
 function googleErrorCode(error: unknown): string {
-  return error instanceof GraphqlRequestError && error.code
-    ? error.code
-    : "GOOGLE_AUTH_FAILED";
+  return error instanceof GraphqlRequestError && error.code ? error.code : "GOOGLE_AUTH_FAILED";
 }
 
 function rejectUntrustedGoogleRequest(
@@ -243,7 +257,7 @@ const googleStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
     sendJson(res, 501, { errorCode: "GOOGLE_AUTH_UNAVAILABLE" });
     return;
   }
-  const body = await parseBody(req) as { inviteCode?: string | null };
+  const body = (await parseBody(req)) as { inviteCode?: string | null };
   try {
     const flow = await ctx.googleAuthCoordinator.start({
       inviteCode: body.inviteCode?.trim().toUpperCase() || null,
@@ -275,7 +289,7 @@ const googleLink: EndpointHandler = async (req, res, _url, _params, ctx: ApiCont
     sendJson(res, 501, { errorCode: "GOOGLE_AUTH_UNAVAILABLE" });
     return;
   }
-  const body = await parseBody(req) as {
+  const body = (await parseBody(req)) as {
     flowId?: string;
     password?: string;
     captchaToken?: string;
@@ -300,7 +314,7 @@ const googleLink: EndpointHandler = async (req, res, _url, _params, ctx: ApiCont
 
 const googleCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   if (rejectUntrustedGoogleRequest(req, res)) return;
-  const body = await parseBody(req) as { flowId?: string };
+  const body = (await parseBody(req)) as { flowId?: string };
   if (!body.flowId || !ctx.googleAuthCoordinator) {
     sendJson(res, 404, { errorCode: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
     return;
@@ -323,7 +337,7 @@ const browserStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     return;
   }
   try {
-    const body = await parseBody(req) as { intent?: unknown };
+    const body = (await parseBody(req)) as { intent?: unknown };
     if (body.intent !== undefined && body.intent !== "LOGIN" && body.intent !== "REGISTER") {
       sendJson(res, 400, { errorCode: "BROWSER_AUTH_INVALID_INTENT" });
       return;
@@ -363,7 +377,7 @@ const browserCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
     sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
     return;
   }
-  const body = await parseBody(req) as { flowId?: string };
+  const body = (await parseBody(req)) as { flowId?: string };
   if (!body.flowId || !ctx.browserLoginCoordinator) {
     sendJson(res, 404, { errorCode: "BROWSER_AUTH_FLOW_NOT_FOUND" });
     return;

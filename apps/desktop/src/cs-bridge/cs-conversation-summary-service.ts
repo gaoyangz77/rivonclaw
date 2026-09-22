@@ -42,15 +42,20 @@ function compareOpaqueIndex(a: unknown, b: unknown): number {
   return left.localeCompare(right);
 }
 
-function sortMessages(messages: GQL.CustomerServiceMessageSummary[]): GQL.CustomerServiceMessageSummary[] {
-  return [...messages].sort((a, b) => (
-    messageTimeKey(a) - messageTimeKey(b) ||
-    compareOpaqueIndex(a.index, b.index) ||
-    compareOpaqueIndex(a.messageId, b.messageId)
-  ));
+function sortMessages(
+  messages: GQL.CustomerServiceMessageSummary[],
+): GQL.CustomerServiceMessageSummary[] {
+  return [...messages].sort(
+    (a, b) =>
+      messageTimeKey(a) - messageTimeKey(b) ||
+      compareOpaqueIndex(a.index, b.index) ||
+      compareOpaqueIndex(a.messageId, b.messageId),
+  );
 }
 
-function messageCursor(message: GQL.CustomerServiceMessageSummary | undefined): CustomerServiceMessageCursor | null {
+function messageCursor(
+  message: GQL.CustomerServiceMessageSummary | undefined,
+): CustomerServiceMessageCursor | null {
   if (!message) return null;
   const cursor: CustomerServiceMessageCursor = {
     messageId: message.messageId ?? undefined,
@@ -111,7 +116,9 @@ async function fetchAllConversationMessages(input: {
     );
     const messagePage = result.ecommerceGetConversationMessages;
     for (const message of messagePage?.items ?? []) {
-      const key = message.messageId ?? `${message.createTime ?? ""}:${message.index ?? ""}:${message.text ?? ""}`;
+      const key =
+        message.messageId ??
+        `${message.createTime ?? ""}:${message.index ?? ""}:${message.text ?? ""}`;
       byKey.set(key, message);
     }
     pageToken = messagePage?.nextPageToken ?? undefined;
@@ -198,7 +205,8 @@ export async function generateConversationSummary(input: {
     provider: resolvedModel.provider,
     model: resolvedModel.model,
     message: prompt,
-    extraSystemPrompt: "You are a one-shot customer-service summarizer. Do not call tools. Return only the operator-facing summary.",
+    extraSystemPrompt:
+      "You are a one-shot customer-service summarizer. Do not call tools. Return only the operator-facing summary.",
     modelRun: true,
     promptMode: "raw",
     deliver: false,
@@ -208,18 +216,28 @@ export async function generateConversationSummary(input: {
   if (!runId) throw new Error("Summary agent run was not accepted");
 
   try {
-    const wait = await openClawConnector.request<{ status?: string; error?: unknown }>("agent.wait", {
-      runId,
-      timeoutMs: 120_000,
-    });
+    const wait = await openClawConnector.request<{ status?: string; error?: unknown }>(
+      "agent.wait",
+      {
+        runId,
+        timeoutMs: 120_000,
+      },
+    );
     if (wait?.status !== "ok") {
-      throw new Error(wait?.status === "timeout" ? "Summary generation timed out" : `Summary generation ended with status ${wait?.status ?? "unknown"}`);
+      throw new Error(
+        wait?.status === "timeout"
+          ? "Summary generation timed out"
+          : `Summary generation ended with status ${wait?.status ?? "unknown"}`,
+      );
     }
-    const history = await openClawConnector.request<{ messages?: ChatHistoryMessage[] }>("chat.history", {
-      sessionKey,
-      limit: 20,
-      maxChars: 40_000,
-    });
+    const history = await openClawConnector.request<{ messages?: ChatHistoryMessage[] }>(
+      "chat.history",
+      {
+        sessionKey,
+        limit: 20,
+        maxChars: 40_000,
+      },
+    );
     const summary = latestAssistantText(history?.messages ?? []);
     if (!summary) throw new Error("Summary agent produced no visible summary");
     const stored = await writeConversationSummary({
@@ -234,15 +252,17 @@ export async function generateConversationSummary(input: {
     if (!stored) throw new Error("Failed to store generated summary");
     return stored;
   } finally {
-    openClawConnector.request("sessions.delete", {
-      key: sessionKey,
-      deleteTranscript: true,
-      emitLifecycleHooks: false,
-    }).catch((err) => {
-      log.warn("Failed to delete temporary CS summary session", {
-        sessionKey,
-        error: err instanceof Error ? err.message : String(err),
+    openClawConnector
+      .request("sessions.delete", {
+        key: sessionKey,
+        deleteTranscript: true,
+        emitLifecycleHooks: false,
+      })
+      .catch((err) => {
+        log.warn("Failed to delete temporary CS summary session", {
+          sessionKey,
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
-    });
   }
 }

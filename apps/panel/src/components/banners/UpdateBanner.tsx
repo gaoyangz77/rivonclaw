@@ -119,10 +119,7 @@ export function UpdateBanner({ onCurrentVersionChange }: UpdateBannerProps) {
         {ds.status === "idle" && (
           <>
             {t("update.bannerText", { version: updateInfo.latestVersion })}
-            <button
-              className="update-banner-action"
-              onClick={handleDownload}
-            >
+            <button className="update-banner-action" onClick={handleDownload}>
               {t("update.download")}
             </button>
           </>
@@ -131,10 +128,7 @@ export function UpdateBanner({ onCurrentVersionChange }: UpdateBannerProps) {
           <>
             {t("update.downloading", { percent: ds.percent ?? 0 })}
             <span className="update-progress-bar">
-              <span
-                className="update-progress-fill"
-                style={{ width: `${ds.percent ?? 0}%` }}
-              />
+              <span className="update-progress-fill" style={{ width: `${ds.percent ?? 0}%` }} />
             </span>
             <button className="update-banner-action" onClick={handleCancel}>
               {t("update.cancel")}
@@ -157,10 +151,7 @@ export function UpdateBanner({ onCurrentVersionChange }: UpdateBannerProps) {
         {ds.status === "error" && (
           <>
             {t("update.error", { message: ds.message ?? "" })}{" "}
-            <button
-              className="update-banner-action"
-              onClick={handleDownload}
-            >
+            <button className="update-banner-action" onClick={handleDownload}>
               {t("update.retry")}
             </button>
           </>

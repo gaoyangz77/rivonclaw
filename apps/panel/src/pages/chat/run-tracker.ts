@@ -22,7 +22,13 @@ export type RunPhase =
   | "error"
   | "aborted";
 
-export const ACTIVE_PHASES = new Set<RunPhase>(["queued", "processing", "awaiting_llm", "tooling", "generating"]);
+export const ACTIVE_PHASES = new Set<RunPhase>([
+  "queued",
+  "processing",
+  "awaiting_llm",
+  "tooling",
+  "generating",
+]);
 
 export type RunSource = "local" | "wechat" | "telegram" | "unknown";
 
@@ -32,8 +38,7 @@ export type RunSource = "local" | "wechat" | "telegram" | "unknown";
 
 export type RunAction =
   // SSE bridge (panel-server -> chat page)
-  | { type: "TOOL_START"; runId: string; toolName: string }
-  | { type: "TOOL_RESULT"; runId: string };
+  { type: "TOOL_START"; runId: string; toolName: string } | { type: "TOOL_RESULT"; runId: string };
 
 // ---------------------------------------------------------------------------
 // Constants

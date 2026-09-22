@@ -55,9 +55,7 @@ describe("createSttProvider", () => {
 
   it("throws when groq config is missing", () => {
     const config: SttConfig = { provider: "groq" };
-    expect(() => createSttProvider(config)).toThrow(
-      "Groq STT requires groq config",
-    );
+    expect(() => createSttProvider(config)).toThrow("Groq STT requires groq config");
   });
 
   it("throws when groq apiKey is empty", () => {
@@ -65,16 +63,12 @@ describe("createSttProvider", () => {
       provider: "groq",
       groq: { apiKey: "" },
     };
-    expect(() => createSttProvider(config)).toThrow(
-      "Groq STT requires an apiKey",
-    );
+    expect(() => createSttProvider(config)).toThrow("Groq STT requires an apiKey");
   });
 
   it("throws when volcengine config is missing", () => {
     const config: SttConfig = { provider: "volcengine" };
-    expect(() => createSttProvider(config)).toThrow(
-      "Volcengine STT requires volcengine config",
-    );
+    expect(() => createSttProvider(config)).toThrow("Volcengine STT requires volcengine config");
   });
 
   it("throws when volcengine appKey is empty", () => {
@@ -136,9 +130,9 @@ describe("GroqSttProvider", () => {
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.groq.com/openai/v1/audio/transcriptions");
     expect(options.method).toBe("POST");
-    expect(
-      (options.headers as Record<string, string>)["Authorization"],
-    ).toBe("Bearer test-api-key");
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe(
+      "Bearer test-api-key",
+    );
 
     // Verify body is FormData
     expect(options.body).toBeInstanceOf(FormData);
@@ -159,9 +153,7 @@ describe("GroqSttProvider", () => {
   it("throws when audio file exceeds 25 MB", async () => {
     const provider = new GroqSttProvider("test-api-key");
     const bigAudio = Buffer.alloc(26 * 1024 * 1024); // 26 MB
-    await expect(provider.transcribe(bigAudio, "wav")).rejects.toThrow(
-      "Audio file too large",
-    );
+    await expect(provider.transcribe(bigAudio, "wav")).rejects.toThrow("Audio file too large");
   });
 
   it("throws on HTTP error from Groq API", async () => {
@@ -197,10 +189,8 @@ describe("VolcengineSttProvider", () => {
     text?: string;
   }): Response {
     const headers = new Headers();
-    if (opts.statusCode !== undefined)
-      headers.set("x-api-status-code", opts.statusCode);
-    if (opts.message !== undefined)
-      headers.set("x-api-message", opts.message);
+    if (opts.statusCode !== undefined) headers.set("x-api-status-code", opts.statusCode);
+    if (opts.message !== undefined) headers.set("x-api-message", opts.message);
     return {
       ok: opts.ok,
       status: opts.status,
@@ -263,9 +253,7 @@ describe("VolcengineSttProvider", () => {
     // Verify submit call
     expect(fetchMock).toHaveBeenCalledTimes(3); // submit + 2 queries
     const [submitUrl, submitOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(submitUrl).toBe(
-      "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit",
-    );
+    expect(submitUrl).toBe("https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit");
     expect(submitOptions.method).toBe("POST");
     const submitHeaders = submitOptions.headers as Record<string, string>;
     expect(submitHeaders["X-Api-App-Key"]).toBe("app-key");
@@ -321,9 +309,9 @@ describe("VolcengineSttProvider", () => {
     );
 
     const provider = new VolcengineSttProvider("app", "key");
-    await expect(
-      provider.transcribe(Buffer.from("audio"), "wav"),
-    ).rejects.toThrow("Volcengine submit failed: HTTP 500");
+    await expect(provider.transcribe(Buffer.from("audio"), "wav")).rejects.toThrow(
+      "Volcengine submit failed: HTTP 500",
+    );
   });
 
   it("throws on submit API error (bad status code)", async () => {
@@ -338,9 +326,9 @@ describe("VolcengineSttProvider", () => {
     );
 
     const provider = new VolcengineSttProvider("app", "key");
-    await expect(
-      provider.transcribe(Buffer.from("audio"), "wav"),
-    ).rejects.toThrow("Volcengine submit failed: HTTP 200");
+    await expect(provider.transcribe(Buffer.from("audio"), "wav")).rejects.toThrow(
+      "Volcengine submit failed: HTTP 200",
+    );
   });
 
   it("throws on query HTTP error", async () => {
@@ -367,9 +355,9 @@ describe("VolcengineSttProvider", () => {
     });
 
     const provider = new VolcengineSttProvider("app", "key");
-    await expect(
-      provider.transcribe(Buffer.from("audio"), "wav"),
-    ).rejects.toThrow("Volcengine query failed: HTTP 503");
+    await expect(provider.transcribe(Buffer.from("audio"), "wav")).rejects.toThrow(
+      "Volcengine query failed: HTTP 503",
+    );
   });
 
   it("throws on query API error (unexpected status code)", async () => {
@@ -394,9 +382,8 @@ describe("VolcengineSttProvider", () => {
     });
 
     const provider = new VolcengineSttProvider("app", "key");
-    await expect(
-      provider.transcribe(Buffer.from("audio"), "wav"),
-    ).rejects.toThrow("Volcengine query failed: HTTP 200");
+    await expect(provider.transcribe(Buffer.from("audio"), "wav")).rejects.toThrow(
+      "Volcengine query failed: HTTP 200",
+    );
   });
 });
-

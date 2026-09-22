@@ -13,11 +13,7 @@ interface ModulesSectionProps {
   onToggle: () => void;
 }
 
-export function ModulesSection({
-  isEnrolled,
-  moduleToggling,
-  onToggle,
-}: ModulesSectionProps) {
+export function ModulesSection({ isEnrolled, moduleToggling, onToggle }: ModulesSectionProps) {
   const { t } = useTranslation();
 
   return (

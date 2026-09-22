@@ -7,43 +7,43 @@
   "types": "dist/index.d.mts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs",
-      "types": "./dist/index.d.mts"
+      "default": "./dist/index.mjs"
     },
     "./node": {
-      "import": "./dist/node.mjs",
-      "types": "./dist/node.d.mts"
+      "types": "./dist/node.d.mts",
+      "import": "./dist/node.mjs"
     },
     "./extension-client": {
-      "import": "./dist/extension-client.mjs",
-      "types": "./dist/extension-client.d.mts"
+      "types": "./dist/extension-client.d.mts",
+      "import": "./dist/extension-client.mjs"
     },
     "./models": {
-      "import": "./dist/mst-models.mjs",
-      "types": "./dist/mst-models.d.mts"
+      "types": "./dist/mst-models.d.mts",
+      "import": "./dist/mst-models.mjs"
     },
     "./client-tools": {
-      "import": "./dist/client-tools.mjs",
-      "types": "./dist/client-tools.d.mts"
+      "types": "./dist/client-tools.d.mts",
+      "import": "./dist/client-tools.mjs"
     },
     "./cs-session": {
-      "import": "./dist/types/cs-session.mjs",
-      "types": "./dist/types/cs-session.d.mts"
+      "types": "./dist/types/cs-session.d.mts",
+      "import": "./dist/types/cs-session.mjs"
     },
     "./endpoints": {
-      "import": "./dist/endpoints.mjs",
-      "types": "./dist/endpoints.d.mts"
+      "types": "./dist/endpoints.d.mts",
+      "import": "./dist/endpoints.mjs"
     },
     "./defaults": {
+      "types": "./dist/defaults.d.mts",
       "import": "./dist/defaults.mjs",
-      "default": "./dist/defaults.mjs",
-      "types": "./dist/defaults.d.mts"
+      "default": "./dist/defaults.mjs"
     },
     "./api-contract": {
+      "types": "./dist/api-contract.d.mts",
       "import": "./dist/api-contract.mjs",
-      "default": "./dist/api-contract.mjs",
-      "types": "./dist/api-contract.d.mts"
+      "default": "./dist/api-contract.mjs"
     }
   },
   "scripts": {

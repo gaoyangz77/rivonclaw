@@ -98,7 +98,12 @@
   cursor: pointer;
   text-align: left;
   flex-shrink: 0;
-  transition: color 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .chat-session-tab:hover {
@@ -214,7 +219,10 @@
   color: var(--color-text-muted);
   cursor: pointer;
   opacity: 0.28;
-  transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    opacity var(--transition-fast),
+    color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .chat-session-tab:hover .chat-session-tab-close {
@@ -276,7 +284,10 @@
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
-  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .chat-session-tab-new-btn:hover {
@@ -312,7 +323,9 @@
   font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 500;
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .chat-session-tab-action-btn:hover {
@@ -524,7 +537,9 @@
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-sm);
-  transition: opacity var(--transition-fast), background var(--transition-fast);
+  transition:
+    opacity var(--transition-fast),
+    background var(--transition-fast);
   opacity: 0.8;
   z-index: 10;
 }
@@ -581,7 +596,9 @@
   background: linear-gradient(180deg, #fdfeff 0%, #f6f8fb 100%);
   border: 1px solid rgba(15, 23, 42, 0.06);
   color: var(--color-text);
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .chat-bubble-external {
@@ -589,7 +606,9 @@
   border: 1px solid rgba(15, 23, 42, 0.06);
   border-left: 3px solid var(--color-primary);
   color: var(--color-text);
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   white-space: pre-wrap;
 }
 
@@ -640,7 +659,9 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, background-color 0.15s;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
 }
 
 .chat-code-block-wrap:hover .chat-code-copy {
@@ -824,7 +845,9 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, background-color 0.15s;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
 }
 
 .chat-bubble-assistant:hover .chat-bubble-copy {
@@ -906,7 +929,6 @@
 
 /* ===== Tool Args Collapsible ===== */
 
-
 .chat-tool-args-toggle {
   display: inline-flex;
   align-items: center;
@@ -922,7 +944,9 @@
   top: 1px;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .chat-tool-args-toggle:hover {
@@ -956,7 +980,6 @@
   flex-basis: 100%;
 }
 
-
 .chat-thinking-dots {
   display: inline-flex;
   gap: 4px;
@@ -980,7 +1003,6 @@
 }
 
 @keyframes thinking-bounce {
-
   0%,
   60%,
   100% {
@@ -1171,7 +1193,9 @@
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .chat-emoji-btn:hover {
@@ -1219,7 +1243,6 @@
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -1326,7 +1349,9 @@
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .chat-example-card:hover .chat-example-edit {
@@ -1428,7 +1453,9 @@
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .chat-attach-btn:hover {
@@ -1464,14 +1491,18 @@
 [data-theme="dark"] .chat-bubble-assistant {
   background: linear-gradient(180deg, #1a1f2b 0%, #161a23 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 [data-theme="dark"] .chat-bubble-external {
   background: linear-gradient(180deg, #1a1f2b 0%, #161a23 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 3px solid var(--color-primary);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 [data-theme="dark"] .chat-bubble-user pre,
@@ -1510,7 +1541,9 @@
 [data-theme="dark"] .chat-example-card {
   background: linear-gradient(180deg, #1a1f2b 0%, #151920 100%);
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 [data-theme="dark"] .chat-example-card:hover {
@@ -1666,7 +1699,9 @@
   background: var(--color-bg-alt);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .chat-overflow-card:hover:not(:disabled) {
@@ -1711,7 +1746,9 @@
   font-size: 13px;
   cursor: pointer;
   border-radius: 6px;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .chat-overflow-cancel:hover:not(:disabled) {

@@ -1,22 +1,21 @@
 import { types, type Instance } from "mobx-state-tree";
 import { assembleCsPrompt } from "../prompts/cs-prompt.js";
 
-export type CustomerServiceDeviceAssignment =
-  | "unassigned"
-  | "current_device"
-  | "other_device";
+export type CustomerServiceDeviceAssignment = "unassigned" | "current_device" | "other_device";
 
 export const CustomerServiceConfigModel = types
   .model("CustomerServiceConfig", {
     enabled: types.optional(types.boolean, false),
     unpaidOrderReachoutEnabled: types.optional(types.boolean, false),
     unpaidOrderReachoutStages: types.optional(
-      types.array(types.model("UnpaidOrderReachoutStage", {
-        id: types.identifier,
-        enabled: types.optional(types.boolean, true),
-        delayMinutes: types.number,
-        messageTemplate: types.string,
-      })),
+      types.array(
+        types.model("UnpaidOrderReachoutStage", {
+          id: types.identifier,
+          enabled: types.optional(types.boolean, true),
+          delayMinutes: types.number,
+          messageTemplate: types.string,
+        }),
+      ),
       [],
     ),
     unpaidOrderReachoutExperiment: types.optional(
@@ -84,9 +83,12 @@ export const WmsSettingsModel = types.model("WmsSettings", {
   enabled: types.optional(types.boolean, false),
 });
 
-export const AffiliateDecisionThresholdsConfigModel = types.model("AffiliateDecisionThresholdsConfig", {
-  minExpectedSalesUnits: types.maybeNull(types.number),
-});
+export const AffiliateDecisionThresholdsConfigModel = types.model(
+  "AffiliateDecisionThresholdsConfig",
+  {
+    minExpectedSalesUnits: types.maybeNull(types.number),
+  },
+);
 
 export const AffiliateSamplePerformanceFollowUpStageConfigModel = types.model(
   "AffiliateSamplePerformanceFollowUpStageConfig",
@@ -125,44 +127,52 @@ export const ShopServiceConfigModel = types.model("ShopServiceConfig", {
   affiliateService: types.optional(types.maybeNull(AffiliateServiceConfigModel), null),
 });
 
-export const ShopModel = types.model("Shop", {
-  id: types.identifier,
-  userId: types.optional(types.string, ""),
-  platform: types.string,
-  platformAppId: types.optional(types.string, ""),
-  platformShopId: types.string,
-  collectionKey: types.optional(types.string, ""),
-  shopName: types.string,
-  alias: types.optional(types.maybeNull(types.string), null),
-  authStatus: types.optional(types.string, ""),
-  region: types.optional(types.maybeNull(types.string), null),
-  accessTokenExpiresAt: types.maybeNull(types.string),
-  refreshTokenExpiresAt: types.maybeNull(types.string),
-  services: types.maybeNull(ShopServiceConfigModel),
-}).views((self) => ({
-  customerServiceDeviceAssignment(
-    deviceId: string | null | undefined,
-  ): CustomerServiceDeviceAssignment {
-    const assignedDeviceId = self.services?.customerService?.csDeviceId?.trim();
-    if (!assignedDeviceId) return "unassigned";
+export const ShopModel = types
+  .model("Shop", {
+    id: types.identifier,
+    userId: types.optional(types.string, ""),
+    platform: types.string,
+    platformAppId: types.optional(types.string, ""),
+    platformShopId: types.string,
+    collectionKey: types.optional(types.string, ""),
+    shopName: types.string,
+    alias: types.optional(types.maybeNull(types.string), null),
+    authStatus: types.optional(types.string, ""),
+    region: types.optional(types.maybeNull(types.string), null),
+    accessTokenExpiresAt: types.maybeNull(types.string),
+    refreshTokenExpiresAt: types.maybeNull(types.string),
+    services: types.maybeNull(ShopServiceConfigModel),
+  })
+  .views((self) => ({
+    customerServiceDeviceAssignment(
+      deviceId: string | null | undefined,
+    ): CustomerServiceDeviceAssignment {
+      const assignedDeviceId = self.services?.customerService?.csDeviceId?.trim();
+      if (!assignedDeviceId) return "unassigned";
 
-    const currentDeviceId = deviceId?.trim();
-    return currentDeviceId && assignedDeviceId === currentDeviceId
-      ? "current_device"
-      : "other_device";
-  },
-  handlesCustomerServiceOnDevice(deviceId: string | null | undefined): boolean {
-    if (!deviceId) return false;
-    const cs = self.services?.customerService;
-    return !!(cs?.enabled && cs.csDeviceId === deviceId);
-  },
-}));
+      const currentDeviceId = deviceId?.trim();
+      return currentDeviceId && assignedDeviceId === currentDeviceId
+        ? "current_device"
+        : "other_device";
+    },
+    handlesCustomerServiceOnDevice(deviceId: string | null | undefined): boolean {
+      if (!deviceId) return false;
+      const cs = self.services?.customerService;
+      return !!(cs?.enabled && cs.csDeviceId === deviceId);
+    },
+  }));
 
 export interface Shop extends Instance<typeof ShopModel> {}
 export interface CustomerServiceConfig extends Instance<typeof CustomerServiceConfigModel> {}
 export interface WmsSettings extends Instance<typeof WmsSettingsModel> {}
-export interface AffiliateDecisionThresholdsConfig extends Instance<typeof AffiliateDecisionThresholdsConfigModel> {}
-export interface AffiliateSamplePerformanceFollowUpStageConfig extends Instance<typeof AffiliateSamplePerformanceFollowUpStageConfigModel> {}
-export interface AffiliateSamplePerformanceFollowUpConfig extends Instance<typeof AffiliateSamplePerformanceFollowUpConfigModel> {}
+export interface AffiliateDecisionThresholdsConfig extends Instance<
+  typeof AffiliateDecisionThresholdsConfigModel
+> {}
+export interface AffiliateSamplePerformanceFollowUpStageConfig extends Instance<
+  typeof AffiliateSamplePerformanceFollowUpStageConfigModel
+> {}
+export interface AffiliateSamplePerformanceFollowUpConfig extends Instance<
+  typeof AffiliateSamplePerformanceFollowUpConfigModel
+> {}
 export interface AffiliateServiceConfig extends Instance<typeof AffiliateServiceConfigModel> {}
 export interface ShopServiceConfig extends Instance<typeof ShopServiceConfigModel> {}

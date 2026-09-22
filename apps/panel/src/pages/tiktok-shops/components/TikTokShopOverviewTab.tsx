@@ -65,24 +65,21 @@ export function TikTokShopOverviewTab({
       {/* Service Toggle */}
       <div className="shop-services-row">
         <div className="shop-service-toggle">
-          <span className="shop-service-label">
-            {t("tiktokShops.customerServiceLabel")}
-          </span>
+          <span className="shop-service-label">{t("tiktokShops.customerServiceLabel")}</span>
           <TkSwitchControl
-              label={t("tiktokShops.customerServiceLabel")}
-              checked={shop.services?.customerService?.enabled ?? false}
-              onChange={() =>
-                onToggleCustomerService(
-                  shop.id,
-                  shop.services?.customerService?.enabled ?? false,
-                )
-              }
-              disabled={togglingServiceId === shop.id}
-            />
-          <span className={shop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"}>
-            {shop.services?.customerService?.enabled
-              ? t("common.enabled")
-              : t("common.disabled")}
+            label={t("tiktokShops.customerServiceLabel")}
+            checked={shop.services?.customerService?.enabled ?? false}
+            onChange={() =>
+              onToggleCustomerService(shop.id, shop.services?.customerService?.enabled ?? false)
+            }
+            disabled={togglingServiceId === shop.id}
+          />
+          <span
+            className={
+              shop.services?.customerService?.enabled ? "badge badge-active" : "badge badge-muted"
+            }
+          >
+            {shop.services?.customerService?.enabled ? t("common.enabled") : t("common.disabled")}
           </span>
         </div>
       </div>
@@ -90,9 +87,7 @@ export function TikTokShopOverviewTab({
       {/* Business Prompt */}
       {shop.services?.customerService?.enabled && (
         <div>
-          <label className="form-label-block">
-            {t("tiktokShops.detail.businessPrompt")}
-          </label>
+          <label className="form-label-block">{t("tiktokShops.detail.businessPrompt")}</label>
           <div className="form-hint">{t("tiktokShops.detail.businessPromptHint")}</div>
           <textarea
             className="input-full textarea-resize-vertical shop-prompt-textarea"

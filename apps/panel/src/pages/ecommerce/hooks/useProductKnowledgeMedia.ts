@@ -42,7 +42,12 @@ type MediaAssetInput = Omit<MediaAssetRef, "width" | "height"> & {
   height?: number | null;
 };
 
-function toResolvedAsset({ publicUrl, width, height, ...asset }: MediaAssetInput): ResolvedMediaAsset {
+function toResolvedAsset({
+  publicUrl,
+  width,
+  height,
+  ...asset
+}: MediaAssetInput): ResolvedMediaAsset {
   return {
     ...asset,
     width: width ?? null,
@@ -80,9 +85,7 @@ async function flushPending(): Promise<void> {
         query: MEDIA_ASSETS_BY_URI_QUERY,
         variables: { uris: chunk },
       });
-      const found = new Map(
-        (data?.mediaAssetsByUri ?? []).map((asset) => [asset.uri, asset]),
-      );
+      const found = new Map((data?.mediaAssetsByUri ?? []).map((asset) => [asset.uri, asset]));
       for (const uri of chunk) {
         const asset = found.get(uri);
         const value = asset ? toResolvedAsset(asset) : null;
@@ -139,7 +142,7 @@ export function useMediaAsset(uri: string | undefined): {
   asset: ResolvedMediaAsset | null;
   state: MediaUrlState;
 } {
-  const cached = uri && resolved.has(uri) ? resolved.get(uri) ?? null : undefined;
+  const cached = uri && resolved.has(uri) ? (resolved.get(uri) ?? null) : undefined;
   const [asset, setAsset] = useState<ResolvedMediaAsset | null>(cached ?? null);
   const [state, setState] = useState<MediaUrlState>(() => {
     if (!uri || !isMediaUri(uri)) return "unavailable";
@@ -155,7 +158,7 @@ export function useMediaAsset(uri: string | undefined): {
     }
 
     let cancelled = false;
-    const known = resolved.has(uri) ? resolved.get(uri) ?? null : undefined;
+    const known = resolved.has(uri) ? (resolved.get(uri) ?? null) : undefined;
     setAsset(known ?? null);
     setState(known === undefined ? "resolving" : known ? "ready" : "unavailable");
     if (known !== undefined) return;

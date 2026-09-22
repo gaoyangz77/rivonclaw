@@ -6,8 +6,16 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { resolveCdpDataDir } from "@rivonclaw/core/node";
 import {
-  existsSync, readFileSync, lstatSync, readlinkSync,
-  readdirSync, unlinkSync, rmSync, mkdirSync, symlinkSync, copyFileSync,
+  existsSync,
+  readFileSync,
+  lstatSync,
+  readlinkSync,
+  readdirSync,
+  unlinkSync,
+  rmSync,
+  mkdirSync,
+  symlinkSync,
+  copyFileSync,
 } from "node:fs";
 import { execSync, spawn } from "node:child_process";
 
@@ -35,7 +43,10 @@ function probeCdp(port: number): Promise<boolean> {
       resolve(res.statusCode === 200);
     });
     req.on("error", () => resolve(false));
-    req.setTimeout(1500, () => { req.destroy(); resolve(false); });
+    req.setTimeout(1500, () => {
+      req.destroy();
+      resolve(false);
+    });
   });
 }
 
@@ -43,7 +54,10 @@ function probeCdp(port: number): Promise<boolean> {
 function isPortInUse(port: number): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const sock = createConnection({ port, host: "127.0.0.1" });
-    sock.once("connect", () => { sock.destroy(); resolve(true); });
+    sock.once("connect", () => {
+      sock.destroy();
+      resolve(true);
+    });
     sock.once("error", () => resolve(false));
   });
 }
@@ -55,13 +69,16 @@ function isPortInUse(port: number): Promise<boolean> {
 function resolveChromeUserDataDir(chromePath: string): string | null {
   const home = homedir();
   if (process.platform === "darwin") {
-    if (chromePath.includes("Microsoft Edge")) return join(home, "Library", "Application Support", "Microsoft Edge");
-    if (chromePath.includes("Chromium")) return join(home, "Library", "Application Support", "Chromium");
+    if (chromePath.includes("Microsoft Edge"))
+      return join(home, "Library", "Application Support", "Microsoft Edge");
+    if (chromePath.includes("Chromium"))
+      return join(home, "Library", "Application Support", "Chromium");
     return join(home, "Library", "Application Support", "Google", "Chrome");
   }
   if (process.platform === "win32") {
     const localAppData = process.env.LOCALAPPDATA ?? join(home, "AppData", "Local");
-    if (chromePath.toLowerCase().includes("edge")) return join(localAppData, "Microsoft", "Edge", "User Data");
+    if (chromePath.toLowerCase().includes("edge"))
+      return join(localAppData, "Microsoft", "Edge", "User Data");
     return join(localAppData, "Google", "Chrome", "User Data");
   }
   // Linux
@@ -190,10 +207,17 @@ export function createCdpManager(deps: CdpManagerDeps) {
       chromePath = candidates.find((p) => existsSync(p)) ?? null;
     } else {
       // Linux
-      const candidates = ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser"];
+      const candidates = [
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+      ];
       chromePath = candidates.find((p) => existsSync(p)) ?? null;
       if (!chromePath) {
-        try { chromePath = execSync("which google-chrome", { encoding: "utf-8" }).trim() || null; } catch {}
+        try {
+          chromePath = execSync("which google-chrome", { encoding: "utf-8" }).trim() || null;
+        } catch {}
       }
     }
 
@@ -213,15 +237,23 @@ export function createCdpManager(deps: CdpManagerDeps) {
       try {
         if (process.platform === "win32") {
           const exeName = chromePath!.toLowerCase().includes("edge") ? "msedge.exe" : "chrome.exe";
-          execSync(`taskkill /f /im ${exeName} 2>nul & exit /b 0`, { stdio: "ignore", shell: "cmd.exe" });
+          execSync(`taskkill /f /im ${exeName} 2>nul & exit /b 0`, {
+            stdio: "ignore",
+            shell: "cmd.exe",
+          });
         } else {
-          const name = chromePath!.includes("Chromium") ? "Chromium" :
-                       chromePath!.includes("Edge") ? "Microsoft Edge" : "Google Chrome";
+          const name = chromePath!.includes("Chromium")
+            ? "Chromium"
+            : chromePath!.includes("Edge")
+              ? "Microsoft Edge"
+              : "Google Chrome";
           // Use killall (~10ms) instead of pkill which can take 20-50s on macOS
           // due to slow proc_info kernel calls when many processes are running.
           execSync(`killall -9 '${name}' 2>/dev/null || true`, { stdio: "ignore" });
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     killChrome();
     // Wait for process cleanup — Chrome with many tabs needs more time

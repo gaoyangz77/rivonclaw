@@ -211,11 +211,14 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
   });
 
   it("accepts an omitted guidance interpretation when Campaign guidance is empty", () => {
-    const result = validateGeneratedPlan({
-      keyword: "automotive accessory creators",
-      explanation: "寻找适合汽车配件推广的达人。",
-      rules: {},
-    }, generationContext("") as never);
+    const result = validateGeneratedPlan(
+      {
+        keyword: "automotive accessory creators",
+        explanation: "寻找适合汽车配件推广的达人。",
+        rules: {},
+      },
+      generationContext("") as never,
+    );
 
     expect(result.guidanceInterpretation).toEqual({
       softDirections: [],
@@ -225,16 +228,19 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
   });
 
   it("ignores model-invented guidance interpretation when Campaign guidance is empty", () => {
-    const result = validateGeneratedPlan({
-      keyword: "automotive accessory creators",
-      explanation: "寻找适合汽车配件推广的达人。",
-      rules: {},
-      guidanceInterpretation: {
-        softDirections: ["优先寻找汽车用品达人"],
-        hardConstraints: { minimumFollowers: 10_000 },
-        unsupportedHardConstraints: ["Creator must own a sports car"],
+    const result = validateGeneratedPlan(
+      {
+        keyword: "automotive accessory creators",
+        explanation: "寻找适合汽车配件推广的达人。",
+        rules: {},
+        guidanceInterpretation: {
+          softDirections: ["优先寻找汽车用品达人"],
+          hardConstraints: { minimumFollowers: 10_000 },
+          unsupportedHardConstraints: ["Creator must own a sports car"],
+        },
       },
-    }, generationContext("") as never);
+      generationContext("") as never,
+    );
 
     expect(result.guidanceInterpretation).toEqual({
       softDirections: [],
@@ -245,84 +251,110 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
 
   it("requires explicit hard guidance to be applied to provider rules", () => {
     const context = generationContext("Creators must have at least 10,000 followers");
-    expect(() => validateGeneratedPlan({
-      keyword: "automotive accessory creators",
-      explanation: "寻找适合汽车配件推广的达人。",
-      rules: { minimumFollowers: 1_000 },
-      guidanceInterpretation: {
-        softDirections: [],
-        hardConstraints: { minimumFollowers: 10_000 },
-        unsupportedHardConstraints: [],
-      },
-    }, context as never)).toThrow("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_NOT_APPLIED");
+    expect(() =>
+      validateGeneratedPlan(
+        {
+          keyword: "automotive accessory creators",
+          explanation: "寻找适合汽车配件推广的达人。",
+          rules: { minimumFollowers: 1_000 },
+          guidanceInterpretation: {
+            softDirections: [],
+            hardConstraints: { minimumFollowers: 10_000 },
+            unsupportedHardConstraints: [],
+          },
+        },
+        context as never,
+      ),
+    ).toThrow("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_NOT_APPLIED");
 
-    expect(validateGeneratedPlan({
-      keyword: "automotive accessory creators",
-      explanation: "寻找适合汽车配件推广的达人。",
-      rules: { minimumFollowers: 10_000 },
-      guidanceInterpretation: {
-        softDirections: [],
-        hardConstraints: { minimumFollowers: 10_000 },
-        unsupportedHardConstraints: [],
-      },
-    }, context as never).rules.minimumFollowers).toBe(10_000);
+    expect(
+      validateGeneratedPlan(
+        {
+          keyword: "automotive accessory creators",
+          explanation: "寻找适合汽车配件推广的达人。",
+          rules: { minimumFollowers: 10_000 },
+          guidanceInterpretation: {
+            softDirections: [],
+            hardConstraints: { minimumFollowers: 10_000 },
+            unsupportedHardConstraints: [],
+          },
+        },
+        context as never,
+      ).rules.minimumFollowers,
+    ).toBe(10_000);
   });
 
   it("fails closed instead of silently weakening unsupported hard guidance", () => {
     const context = generationContext("Only creators who own a red convertible");
-    expect(() => validateGeneratedPlan({
-      keyword: "convertible lifestyle creators",
-      explanation: "寻找跑车生活方式达人。",
-      rules: {},
-      guidanceInterpretation: {
-        softDirections: [],
-        hardConstraints: {},
-        unsupportedHardConstraints: ["Creator must own a red convertible"],
-      },
-    }, context as never)).toThrow("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
+    expect(() =>
+      validateGeneratedPlan(
+        {
+          keyword: "convertible lifestyle creators",
+          explanation: "寻找跑车生活方式达人。",
+          rules: {},
+          guidanceInterpretation: {
+            softDirections: [],
+            hardConstraints: {},
+            unsupportedHardConstraints: ["Creator must own a red convertible"],
+          },
+        },
+        context as never,
+      ),
+    ).toThrow("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
   });
 
   it("treats descriptive preferences as soft guidance", () => {
-    expect(guidanceAppearsToContainHardConstraint("Prefer practical automotive content")).toBe(false);
-    const result = validateGeneratedPlan({
-      keyword: "practical car accessory creators",
-      explanation: "寻找擅长讲解实用汽车用品的达人。",
-      rules: {},
-      guidanceInterpretation: {
-        softDirections: ["实用汽车内容"],
-        hardConstraints: {},
-        unsupportedHardConstraints: [],
+    expect(guidanceAppearsToContainHardConstraint("Prefer practical automotive content")).toBe(
+      false,
+    );
+    const result = validateGeneratedPlan(
+      {
+        keyword: "practical car accessory creators",
+        explanation: "寻找擅长讲解实用汽车用品的达人。",
+        rules: {},
+        guidanceInterpretation: {
+          softDirections: ["实用汽车内容"],
+          hardConstraints: {},
+          unsupportedHardConstraints: [],
+        },
       },
-    }, generationContext("Prefer practical automotive content") as never);
+      generationContext("Prefer practical automotive content") as never,
+    );
     expect(result.guidanceInterpretation.softDirections).toEqual(["实用汽车内容"]);
   });
 
   it("normalizes a localized singleton soft direction from model output", () => {
-    const result = validateGeneratedPlan({
-      keyword: "practical car accessory creators",
-      explanation: "寻找擅长讲解实用汽车用品的达人。",
-      rules: {},
-      guidanceInterpretation: {
-        softDirections: "实用汽车内容",
-        hardConstraints: {},
-        unsupportedHardConstraints: [],
+    const result = validateGeneratedPlan(
+      {
+        keyword: "practical car accessory creators",
+        explanation: "寻找擅长讲解实用汽车用品的达人。",
+        rules: {},
+        guidanceInterpretation: {
+          softDirections: "实用汽车内容",
+          hardConstraints: {},
+          unsupportedHardConstraints: [],
+        },
       },
-    }, generationContext("Prefer practical automotive content") as never);
+      generationContext("Prefer practical automotive content") as never,
+    );
 
     expect(result.guidanceInterpretation.softDirections).toEqual(["实用汽车内容"]);
   });
 
   it("uses the localized explanation when soft-guidance audit output has the wrong locale", () => {
-    const result = validateGeneratedPlan({
-      keyword: "practical car accessory creators",
-      explanation: "寻找擅长讲解实用汽车用品的达人。",
-      rules: {},
-      guidanceInterpretation: {
-        softDirections: ["practical automotive creators"],
-        hardConstraints: {},
-        unsupportedHardConstraints: [],
+    const result = validateGeneratedPlan(
+      {
+        keyword: "practical car accessory creators",
+        explanation: "寻找擅长讲解实用汽车用品的达人。",
+        rules: {},
+        guidanceInterpretation: {
+          softDirections: ["practical automotive creators"],
+          hardConstraints: {},
+          unsupportedHardConstraints: [],
+        },
       },
-    }, generationContext("Prefer practical automotive content") as never);
+      generationContext("Prefer practical automotive content") as never,
+    );
 
     expect(result.guidanceInterpretation.softDirections).toEqual([
       "寻找擅长讲解实用汽车用品的达人。",
@@ -330,11 +362,14 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
   });
 
   it("uses the localized explanation when a pure-soft interpretation is omitted", () => {
-    const result = validateGeneratedPlan({
-      keyword: "practical car accessory creators",
-      explanation: "寻找擅长讲解实用汽车用品的达人。",
-      rules: {},
-    }, generationContext("Prefer practical automotive content") as never);
+    const result = validateGeneratedPlan(
+      {
+        keyword: "practical car accessory creators",
+        explanation: "寻找擅长讲解实用汽车用品的达人。",
+        rules: {},
+      },
+      generationContext("Prefer practical automotive content") as never,
+    );
 
     expect(result.guidanceInterpretation.softDirections).toEqual([
       "寻找擅长讲解实用汽车用品的达人。",
@@ -343,18 +378,21 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
   });
 
   it("does not use the localized soft-guidance fallback for hard guidance", () => {
-    expect(() => validateGeneratedPlan({
-      keyword: "automotive accessory creators",
-      explanation: "寻找适合汽车配件推广的达人。",
-      rules: {},
-      guidanceInterpretation: {
-        softDirections: { locale: "zh-CN", values: ["汽车配件达人"] },
-        hardConstraints: {},
-        unsupportedHardConstraints: [],
-      },
-    }, generationContext("Creators must have at least 10,000 followers") as never)).toThrow(
-      "SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_INVALID",
-    );
+    expect(() =>
+      validateGeneratedPlan(
+        {
+          keyword: "automotive accessory creators",
+          explanation: "寻找适合汽车配件推广的达人。",
+          rules: {},
+          guidanceInterpretation: {
+            softDirections: { locale: "zh-CN", values: ["汽车配件达人"] },
+            hardConstraints: {},
+            unsupportedHardConstraints: [],
+          },
+        },
+        generationContext("Creators must have at least 10,000 followers") as never,
+      ),
+    ).toThrow("SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_INVALID");
   });
 });
 

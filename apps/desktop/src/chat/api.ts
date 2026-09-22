@@ -8,9 +8,7 @@ const listChatSessions: EndpointHandler = async (req, res, _url, _params, ctx: A
   const { storage } = ctx;
   const url = new URL(req.url ?? "", "http://localhost");
   const archivedParam = url.searchParams.get("archived");
-  const opts = archivedParam != null
-    ? { archived: archivedParam === "true" }
-    : undefined;
+  const opts = archivedParam != null ? { archived: archivedParam === "true" } : undefined;
   const sessions = storage.chatSessions.list(opts);
   sendJson(res, 200, { sessions });
 };

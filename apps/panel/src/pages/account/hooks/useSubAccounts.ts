@@ -83,22 +83,13 @@ export function useSubAccounts() {
     deletingRole: deleteRoleState.loading,
 
     createMember: (input: GQL.CreateAccountMemberInput) =>
-      run(
-        () => createMemberMutation({ variables: { input } }),
-        t("subAccounts.memberCreated"),
-      ),
+      run(() => createMemberMutation({ variables: { input } }), t("subAccounts.memberCreated")),
 
     updateMember: (input: GQL.UpdateAccountMemberInput) =>
-      run(
-        () => updateMemberMutation({ variables: { input } }),
-        t("subAccounts.memberUpdated"),
-      ),
+      run(() => updateMemberMutation({ variables: { input } }), t("subAccounts.memberUpdated")),
 
     deleteMember: (memberId: string) =>
-      run(
-        () => deleteMemberMutation({ variables: { memberId } }),
-        t("subAccounts.memberDeleted"),
-      ),
+      run(() => deleteMemberMutation({ variables: { memberId } }), t("subAccounts.memberDeleted")),
 
     writeRole: (input: GQL.WriteAccountRoleInput) =>
       run(() => writeRoleMutation({ variables: { input } }), t("subAccounts.roleSaved")),

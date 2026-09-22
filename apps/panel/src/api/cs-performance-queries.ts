@@ -1,15 +1,75 @@
 import { gql } from "@apollo/client/core";
 
 export const ECOMMERCE_GET_CS_UNPAID_REACHOUT_PERFORMANCE_QUERY = gql`
-  query EcommerceGetCSUnpaidOrderReachoutPerformance($shopId: String, $startTime: String, $endTime: String) {
-    ecommerceGetCSUnpaidOrderReachoutPerformance(shopId: $shopId, startTime: $startTime, endTime: $endTime) {
-      startDate endDate semanticsNotice
-      summary { eligible reached sentMessages associatedPaidOrders associatedSalesUnits associatedConversionRate associatedGmv { currency amount } }
-      byDate { cohortDate eligible reached sentMessages associatedPaidOrders associatedSalesUnits associatedConversionRate associatedGmv { currency amount } }
-      byStage { stageId stageIndex delayMinutes eligible sent associatedPayments associatedSalesUnits associatedGmv { currency amount } }
+  query EcommerceGetCSUnpaidOrderReachoutPerformance(
+    $shopId: String
+    $startTime: String
+    $endTime: String
+  ) {
+    ecommerceGetCSUnpaidOrderReachoutPerformance(
+      shopId: $shopId
+      startTime: $startTime
+      endTime: $endTime
+    ) {
+      startDate
+      endDate
+      semanticsNotice
+      summary {
+        eligible
+        reached
+        sentMessages
+        associatedPaidOrders
+        associatedSalesUnits
+        associatedConversionRate
+        associatedGmv {
+          currency
+          amount
+        }
+      }
+      byDate {
+        cohortDate
+        eligible
+        reached
+        sentMessages
+        associatedPaidOrders
+        associatedSalesUnits
+        associatedConversionRate
+        associatedGmv {
+          currency
+          amount
+        }
+      }
+      byStage {
+        stageId
+        stageIndex
+        delayMinutes
+        eligible
+        sent
+        associatedPayments
+        associatedSalesUnits
+        associatedGmv {
+          currency
+          amount
+        }
+      }
       experiment {
-        experimentId insufficientSample absolutePaymentRateDifference relativePaymentRateDifference confidenceIntervalLow confidenceIntervalHigh
-        arms { assignment eligible paidOrders paymentRate gmvPerEligible { currency amount } unitsPerEligible }
+        experimentId
+        insufficientSample
+        absolutePaymentRateDifference
+        relativePaymentRateDifference
+        confidenceIntervalLow
+        confidenceIntervalHigh
+        arms {
+          assignment
+          eligible
+          paidOrders
+          paymentRate
+          gmvPerEligible {
+            currency
+            amount
+          }
+          unitsPerEligible
+        }
       }
     }
   }

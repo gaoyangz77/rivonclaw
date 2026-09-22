@@ -49,9 +49,7 @@ describe("trusted tool policy", () => {
   it("declares and registers the affiliate checkpoint policy contract", () => {
     const { api } = activatePlugin();
 
-    expect(manifest.contracts.trustedToolPolicies).toContain(
-      "affiliate-checkpoint-injection",
-    );
+    expect(manifest.contracts.trustedToolPolicies).toContain("affiliate-checkpoint-injection");
     expect(api.registerTrustedToolPolicy).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "affiliate-checkpoint-injection",
@@ -121,10 +119,7 @@ describe("before_tool_call enforcement", () => {
     const { handlers } = activatePlugin();
     const hook = handlers["before_tool_call"];
 
-    const result = await hook(
-      { toolName: "ecom_get_conversations", params: {} },
-      {},
-    );
+    const result = await hook({ toolName: "ecom_get_conversations", params: {} }, {});
 
     expect(result).toBeUndefined();
   });
@@ -151,10 +146,7 @@ describe("before_tool_resolve", () => {
 
     mockFetchFailure();
 
-    const result = await hook(
-      { tools: ["tool_a"] },
-      { sessionKey: "session-1" },
-    );
+    const result = await hook({ tools: ["tool_a"] }, { sessionKey: "session-1" });
 
     expect(result).toEqual({ tools: [] });
   });
@@ -178,16 +170,10 @@ describe("no caching — always fetches fresh", () => {
     mockEffectiveToolsResponse(["ECOM_GET_CONVERSATIONS"]);
 
     // First call
-    await hook(
-      { toolName: "ecom_get_conversations", params: {} },
-      { sessionKey: "session-1" },
-    );
+    await hook({ toolName: "ecom_get_conversations", params: {} }, { sessionKey: "session-1" });
 
     // Second call — should also fetch (no cache)
-    await hook(
-      { toolName: "ecom_get_conversations", params: {} },
-      { sessionKey: "session-1" },
-    );
+    await hook({ toolName: "ecom_get_conversations", params: {} }, { sessionKey: "session-1" });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });

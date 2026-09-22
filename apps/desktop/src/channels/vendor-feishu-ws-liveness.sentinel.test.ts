@@ -15,10 +15,7 @@ const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
   ? PATCHED_VENDOR_ROOT
   : resolve(__dirname, "../../../../vendor/openclaw");
 
-const VENDOR_CLIENT = resolve(
-  VENDOR_ROOT,
-  "extensions/feishu/src/client.ts",
-);
+const VENDOR_CLIENT = resolve(VENDOR_ROOT, "extensions/feishu/src/client.ts");
 
 function readPingTimeout(source: string): number | null {
   const match = /const FEISHU_WS_CONFIG = \{\s*pingTimeout: (\d+),/.exec(source);

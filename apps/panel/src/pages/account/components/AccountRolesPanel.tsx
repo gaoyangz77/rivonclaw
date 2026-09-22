@@ -80,7 +80,7 @@ export function AccountRolesPanel({
   }
 
   const confirmDeleteRole = confirmDeleteRoleId
-    ? roles.find((role) => role.id === confirmDeleteRoleId) ?? null
+    ? (roles.find((role) => role.id === confirmDeleteRoleId) ?? null)
     : null;
 
   /** @param role the role being edited, or null for the create form. */

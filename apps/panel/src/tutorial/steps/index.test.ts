@@ -1,12 +1,12 @@
-import { describe, expect, it } from "vitest"
-import { readFileSync, readdirSync } from "node:fs"
-import { extname, join, resolve } from "node:path"
-import { ROUTES } from "../../routes.js"
-import { LANGUAGE_OPTIONS, LANGUAGE_RESOURCES } from "../../i18n/languages.js"
-import { getStepsForRoute } from "./index.js"
+import { describe, expect, it } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { extname, join, resolve } from "node:path";
+import { ROUTES } from "../../routes.js";
+import { LANGUAGE_OPTIONS, LANGUAGE_RESOURCES } from "../../i18n/languages.js";
+import { getStepsForRoute } from "./index.js";
 
-const SRC_ROOT = resolve(__dirname, "../..")
-const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/
+const SRC_ROOT = resolve(__dirname, "../..");
+const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/;
 const AFFILIATE_TUTORIAL_ROUTES = [
   "/commerce/affiliate/attention",
   "/commerce/affiliate/manual-workbench",
@@ -17,34 +17,34 @@ const AFFILIATE_TUTORIAL_ROUTES = [
   "/commerce/affiliate/creators",
   "/commerce/affiliate/history",
   "/commerce/affiliate/intelligence",
-] as const
+] as const;
 
 function walkSource(directory: string, files: string[] = []): string[] {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name)
-    if (entry.isDirectory()) walkSource(path, files)
-    else if ([".ts", ".tsx"].includes(extname(entry.name))) files.push(path)
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) walkSource(path, files);
+    else if ([".ts", ".tsx"].includes(extname(entry.name))) files.push(path);
   }
-  return files
+  return files;
 }
 
 function hasTranslation(resource: object, key: string): boolean {
-  return getTranslation(resource, key) !== undefined
+  return getTranslation(resource, key) !== undefined;
 }
 
 function getTranslation(resource: object, key: string): string | undefined {
-  let value: unknown = resource
+  let value: unknown = resource;
   for (const segment of key.split(".")) {
-    if (!value || typeof value !== "object" || !(segment in value)) return undefined
-    value = (value as Record<string, unknown>)[segment]
+    if (!value || typeof value !== "object" || !(segment in value)) return undefined;
+    value = (value as Record<string, unknown>)[segment];
   }
-  return typeof value === "string" && value.length > 0 ? value : undefined
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 const renderedSource = ["pages", "components"]
   .flatMap((directory) => walkSource(join(SRC_ROOT, directory)))
   .map((file) => readFileSync(file, "utf8"))
-  .join("\n")
+  .join("\n");
 
 describe("tutorial step registry", () => {
   it("keeps the audited Affiliate tutorials at their intended coverage", () => {
@@ -58,70 +58,68 @@ describe("tutorial step registry", () => {
       "/commerce/affiliate/creators": 4,
       "/commerce/affiliate/history": 4,
       "/commerce/affiliate/intelligence": 4,
-    }
+    };
 
     for (const [route, expectedCount] of Object.entries(expectedStepCounts)) {
-      expect(getStepsForRoute(route), `${route} tutorial step count`).toHaveLength(expectedCount)
+      expect(getStepsForRoute(route), `${route} tutorial step count`).toHaveLength(expectedCount);
     }
 
     expect(getStepsForRoute("/commerce/affiliate")).toBe(
       getStepsForRoute("/commerce/affiliate/creators"),
-    )
-  })
+    );
+  });
 
   it("covers every sidebar route with a tutorial", () => {
-    const sidebarRoutes = ROUTES.filter((route) =>
-      route.navLabelKey &&
-      !route.navHidden &&
-      !route.internal
-    )
+    const sidebarRoutes = ROUTES.filter(
+      (route) => route.navLabelKey && !route.navHidden && !route.internal,
+    );
 
     for (const route of sidebarRoutes) {
-      expect(getStepsForRoute(route.path), `${route.path} tutorial`).not.toHaveLength(0)
+      expect(getStepsForRoute(route.path), `${route.path} tutorial`).not.toHaveLength(0);
     }
-  })
+  });
 
   it("keeps all registered steps structurally usable", () => {
-    const routesWithTutorials = ROUTES
-      .filter((route) => !route.internal)
-      .map((route) => route.path)
+    const routesWithTutorials = ROUTES.filter((route) => !route.internal).map(
+      (route) => route.path,
+    );
 
     for (const route of routesWithTutorials) {
       for (const step of getStepsForRoute(route)) {
-        expect(step.target, `${route} target`).toMatch(/\S/)
-        expect(step.titleKey, `${route} title key`).toMatch(/^tutorial\./)
-        expect(step.bodyKey, `${route} body key`).toMatch(/^tutorial\./)
+        expect(step.target, `${route} target`).toMatch(/\S/);
+        expect(step.titleKey, `${route} title key`).toMatch(/^tutorial\./);
+        expect(step.bodyKey, `${route} body key`).toMatch(/^tutorial\./);
       }
     }
-  })
+  });
 
   it("uses stable, rendered targets for every audited tutorial", () => {
-    const auditedRoutes = ROUTES.filter((route) => !route.internal)
+    const auditedRoutes = ROUTES.filter((route) => !route.internal);
 
     for (const route of auditedRoutes) {
-      const stepIds = new Set<string>()
+      const stepIds = new Set<string>();
       for (const step of getStepsForRoute(route.path)) {
-        expect(step.id, `${route.path} step id`).toMatch(/\S/)
-        expect(stepIds.has(step.id!), `${route.path} duplicate step id ${step.id}`).toBe(false)
-        stepIds.add(step.id!)
+        expect(step.id, `${route.path} step id`).toMatch(/\S/);
+        expect(stepIds.has(step.id!), `${route.path} duplicate step id ${step.id}`).toBe(false);
+        stepIds.add(step.id!);
 
-        const targetId = step.target.match(TARGET_SELECTOR)?.[1]
-        expect(targetId, `${route.path} stable target for ${step.id}`).toBeDefined()
+        const targetId = step.target.match(TARGET_SELECTOR)?.[1];
+        expect(targetId, `${route.path} stable target for ${step.id}`).toBeDefined();
         expect(
           renderedSource.includes(`data-tutorial-id="${targetId}"`),
           `${route.path} rendered target ${targetId}`,
-        ).toBe(true)
+        ).toBe(true);
       }
     }
-  })
+  });
 
   it("provides English and Chinese copy for every audited step", () => {
-    const english = LANGUAGE_OPTIONS.find((language) => language.code === "en")
-    const chinese = LANGUAGE_OPTIONS.find((language) => language.code === "zh")
-    expect(english).toBeDefined()
-    expect(chinese).toBeDefined()
+    const english = LANGUAGE_OPTIONS.find((language) => language.code === "en");
+    const chinese = LANGUAGE_OPTIONS.find((language) => language.code === "zh");
+    expect(english).toBeDefined();
+    expect(chinese).toBeDefined();
 
-    const missing: string[] = []
+    const missing: string[] = [];
     for (const route of ROUTES.filter((entry) => !entry.internal)) {
       for (const step of getStepsForRoute(route.path)) {
         for (const language of [english!, chinese!]) {
@@ -133,28 +131,28 @@ describe("tutorial step registry", () => {
         }
       }
     }
-    expect(missing).toEqual([])
-  })
+    expect(missing).toEqual([]);
+  });
 
   it("provides dedicated translations for every Affiliate tutorial locale", () => {
-    const english = LANGUAGE_OPTIONS.find((language) => language.code === "en")
-    expect(english).toBeDefined()
+    const english = LANGUAGE_OPTIONS.find((language) => language.code === "en");
+    expect(english).toBeDefined();
 
-    const missingOrFallback: string[] = []
+    const missingOrFallback: string[] = [];
     for (const route of AFFILIATE_TUTORIAL_ROUTES) {
       for (const step of getStepsForRoute(route)) {
         for (const language of LANGUAGE_OPTIONS.filter((entry) => entry.code !== "en")) {
           for (const key of [step.titleKey, step.bodyKey]) {
-            const localized = getTranslation(LANGUAGE_RESOURCES[language.code].translation, key)
-            const source = getTranslation(LANGUAGE_RESOURCES.en.translation, key)
+            const localized = getTranslation(LANGUAGE_RESOURCES[language.code].translation, key);
+            const source = getTranslation(LANGUAGE_RESOURCES.en.translation, key);
             if (!localized || localized === source) {
-              missingOrFallback.push(`${language.code} ${key}`)
+              missingOrFallback.push(`${language.code} ${key}`);
             }
           }
         }
       }
     }
 
-    expect(missingOrFallback).toEqual([])
-  })
-})
+    expect(missingOrFallback).toEqual([]);
+  });
+});

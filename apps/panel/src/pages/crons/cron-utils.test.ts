@@ -287,7 +287,12 @@ describe("formDataToCreateParams", () => {
       timeoutSeconds: "60",
     });
     const params = formDataToCreateParams(form);
-    const payload = params.payload as { kind: string; model?: string; thinking?: string; timeoutSeconds?: number };
+    const payload = params.payload as {
+      kind: string;
+      model?: string;
+      thinking?: string;
+      timeoutSeconds?: number;
+    };
     expect(payload.model).toBe("sonnet");
     expect(payload.thinking).toBe("low");
     expect(payload.timeoutSeconds).toBe(60);

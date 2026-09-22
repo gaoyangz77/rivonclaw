@@ -8,7 +8,10 @@ function readErrorCode(err: unknown): string | undefined {
   return undefined;
 }
 
-export function formatDetailedErrorMessage(err: unknown, maxLen = DEFAULT_MAX_ERROR_MESSAGE_LEN): string {
+export function formatDetailedErrorMessage(
+  err: unknown,
+  maxLen = DEFAULT_MAX_ERROR_MESSAGE_LEN,
+): string {
   if (!err) return "";
 
   let formatted: string;

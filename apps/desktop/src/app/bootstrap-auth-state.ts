@@ -73,15 +73,9 @@ export async function bootstrapDesktopAuthState(
       throw new Error("Failed to load account profile");
     }
 
-    const queries = [
-      INIT_SURFACES_QUERY,
-      INIT_RUN_PROFILES_QUERY,
-    ];
+    const queries = [INIT_SURFACES_QUERY, INIT_RUN_PROFILES_QUERY];
 
-    queries.push(
-      INIT_PLATFORM_APPS_QUERY,
-      INIT_BILLING_OVERVIEW_QUERY,
-    );
+    queries.push(INIT_PLATFORM_APPS_QUERY, INIT_BILLING_OVERVIEW_QUERY);
 
     const hasEcommerceModule = me.enrolledModules?.includes(ECOMMERCE_MODULE_ID) ?? false;
     if (hasEcommerceModule) {

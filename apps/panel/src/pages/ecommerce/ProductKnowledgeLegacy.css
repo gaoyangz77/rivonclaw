@@ -152,7 +152,9 @@
 .product-knowledge-table tbody tr {
   outline: none;
   cursor: pointer;
-  transition: background-color 120ms ease, box-shadow 120ms ease;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .product-knowledge-table tbody tr:last-child td {
@@ -475,7 +477,11 @@
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
 .product-knowledge-content-sections nav button:hover {
@@ -487,7 +493,9 @@
 .product-knowledge-content-sections nav button.active {
   border-color: var(--color-primary);
   background: var(--color-bg);
-  box-shadow: inset 0 3px 0 var(--color-primary), var(--shadow-sm);
+  box-shadow:
+    inset 0 3px 0 var(--color-primary),
+    var(--shadow-sm);
 }
 
 .product-knowledge-content-number {
@@ -748,7 +756,10 @@
   border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-text) 4%, transparent);
-  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 .commerce-product-card:hover {
@@ -759,7 +770,9 @@
 
 .commerce-product-card.selected {
   border-color: var(--color-primary);
-  box-shadow: inset 0 0 0 1px var(--color-primary), var(--shadow-sm);
+  box-shadow:
+    inset 0 0 0 1px var(--color-primary),
+    var(--shadow-sm);
 }
 
 .commerce-product-card.disabled {
