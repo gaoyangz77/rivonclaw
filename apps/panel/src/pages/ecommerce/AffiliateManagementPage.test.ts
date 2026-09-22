@@ -119,6 +119,51 @@ describe("AffiliateManagementPage proposal source", () => {
     ).toEqual(["proposal-1", "proposal-2", "proposal-3"]);
   });
 
+  it("advances the pending stream beyond the second 20-item page", () => {
+    const queryKey = affiliateProposalPageQueryKey({
+      userId: "user-1",
+      status: GQL.ActionProposalStatus.Pending,
+    });
+    const proposalRange = (start: number, end: number) =>
+      Array.from({ length: end - start + 1 }, (_, index) =>
+        proposal(`proposal-${start + index}`, "PENDING"),
+      );
+
+    const firstPage = replaceAffiliateProposalPageBuffer(queryKey, {
+      items: proposalRange(1, 20),
+      nextCursor: "cursor-after-20",
+      hasMore: true,
+    });
+    const secondPage = appendAffiliateProposalPageBuffer(firstPage, queryKey, {
+      items: proposalRange(21, 40),
+      nextCursor: "cursor-after-40",
+      hasMore: true,
+    });
+    const thirdPage = appendAffiliateProposalPageBuffer(secondPage, queryKey, {
+      items: proposalRange(41, 60),
+      nextCursor: "cursor-after-60",
+      hasMore: true,
+    });
+
+    expect(secondPage.nextCursor).toBe("cursor-after-40");
+    expect(thirdPage.items).toHaveLength(60);
+    expect(thirdPage.items.at(-1)?.id).toBe("proposal-60");
+    expect(thirdPage.nextCursor).toBe("cursor-after-60");
+  });
+
+  it("does not reset the pending cursor when fetch-more loading state changes", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const basePageEffect = source.match(
+      /useEffect\(\(\) => \{\n    const page = proposalData\?\.affiliateActionProposalPage[\s\S]*?\n  \}, \[[^\]]*\]\);/,
+    )?.[0];
+
+    expect(basePageEffect).toBeDefined();
+    expect(basePageEffect).not.toContain("proposalsLoading");
+  });
+
   it("places Creator and operator activity on opposite timeline lanes", () => {
     const timelineItem = (
       overrides: Partial<GQL.AffiliateRelationshipTimelineItem>,

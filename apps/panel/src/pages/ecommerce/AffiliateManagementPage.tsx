@@ -1285,12 +1285,11 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       | undefined;
     if (!page) return;
     replaceProposalPage(proposalQueryKey, page);
-  }, [
-    proposalData?.affiliateActionProposalPage,
-    proposalQueryKey,
-    proposalsLoading,
-    replaceProposalPage,
-  ]);
+    // `fetchMore` owns appending subsequent pending pages below. Do not depend
+    // on Apollo's loading flag here: its fetch-more transitions reuse the
+    // original first-page result and would replace the advanced cursor with
+    // page 1 again after every click.
+  }, [proposalData?.affiliateActionProposalPage, proposalQueryKey, replaceProposalPage]);
 
   const loadMoreProposals = useCallback(async () => {
     // Load-more belongs to the pending stream only; the paged view navigates
