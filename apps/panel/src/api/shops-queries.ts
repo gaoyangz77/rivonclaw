@@ -402,6 +402,18 @@ export const AFFILIATE_CAMPAIGNS_QUERY = gql`
   }
 `;
 
+// Independent query: an older Backend must not break the existing daily funnel.
+export const AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY = gql`
+  query AffiliateCampaignScreeningBreakdown($campaignId: ID!) {
+    affiliateCampaignScreeningBreakdown(campaignId: $campaignId) {
+      marketLocalDate
+      aiRejectedCount
+      otherRejectedCount
+      unattributedRejectedCount
+    }
+  }
+`;
+
 export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
   ${AFFILIATE_CAMPAIGN_EXECUTION_FIELDS}
   query AffiliateCampaignSummary($campaignId: ID!) {

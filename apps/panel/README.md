@@ -20,6 +20,32 @@ pnpm test
 
 ## Manual Testing (Dev Mode)
 
+### Campaign qualification funnel
+
+Open an existing Campaign detail from **Affiliate → Campaigns**. The daily funnel shows
+scan → qualification passed → scheduled → invitations sent. Qualification failures are an
+always-visible branch, separate from duplicate/protection/cadence exclusions and Provider refusals.
+The pass rate is `qualified / (qualified + qualificationFailed)`; pending evaluations and technical
+retries are not inferred to be rejected. No completed decisions or legacy unrecorded outcomes
+display `—`, not a fabricated 0%.
+
+The mode description identifies the execution's current screening strategy. Daily counters can
+include both strategies after a same-day mode switch, so metric labels remain mode-neutral and the
+scope note explicitly disclaims exclusive AI attribution.
+
+The separate `affiliateCampaignScreeningBreakdown` read query attributes today's latest per-Creator
+rejections from stored decision evidence: AI requires AI_PRE_APPROVAL + OK + preApproved=false +
+PRE_APPROVAL_REJECTED; explicit failed filters are other conditions; unknown historical decisions
+remain unattributed. This is a unique-Creator snapshot, not the cumulative attempt counter; never
+subtract it from `qualificationFailed` to invent an "other" count. Technical failures are excluded.
+An unavailable breakdown displays `—` and an explicit message, never zero or a mode-based estimate.
+Ship the Backend query and `campaign_creator_screening_day` index before releasing the Panel.
+
+For visual QA, run `pnpm dev` from the repository root using an already signed-in account; inspect
+both smart and Marketplace-rules Campaigns without editing their configuration. Check light/dark,
+long translations, and zoomed layouts. `CampaignFunnel.test.tsx` covers rendering, denominator,
+legacy/empty states, mode wording, and eight-language copy completeness.
+
 The Panel exposes dev helpers on `window` when running in development mode (`import.meta.env.DEV`). These are stripped from production builds.
 
 ### Runtime Status

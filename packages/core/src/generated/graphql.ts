@@ -1652,6 +1652,13 @@ export interface AffiliateCampaignSalesPerformanceRulesInput {
   unitsSoldRanges?: InputMaybe<Array<AffiliateMarketplaceUnitsSoldRange>>;
 }
 
+export interface AffiliateCampaignScreeningBreakdown {
+  aiRejectedCount: Scalars['Int']['output'];
+  marketLocalDate: Scalars['String']['output'];
+  otherRejectedCount: Scalars['Int']['output'];
+  unattributedRejectedCount: Scalars['Int']['output'];
+}
+
 export interface AffiliateCampaignSearchPhraseCandidateInput {
   discoveryRules?: InputMaybe<AffiliateCampaignDiscoveryRulesInput>;
   explanation: Scalars['String']['input'];
@@ -12797,6 +12804,8 @@ export interface Query {
   affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
   /** Fetch and normalize one owned-shop product for Campaign review without creating persistent draft state. */
   affiliateCampaignProductPreview: AffiliateCampaignProductPreview;
+  /** Today's latest per-Creator rejection decisions, attributed by recorded evidence, not current Campaign mode. Not cumulative execution attempts. */
+  affiliateCampaignScreeningBreakdown: AffiliateCampaignScreeningBreakdown;
   /** Cursor-paginated Creator decisions attributed to one SearchPlan in an owned Campaign. */
   affiliateCampaignSearchPlanCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read SearchPlan-level discovery, qualification, and first-touch outcomes for one Campaign. */
@@ -13193,6 +13202,11 @@ export interface QueryAffiliateCampaignDailyExecutionsArgs {
 
 export interface QueryAffiliateCampaignProductPreviewArgs {
   input: ResolveAffiliateCampaignProductInput;
+}
+
+
+export interface QueryAffiliateCampaignScreeningBreakdownArgs {
+  campaignId: Scalars['ID']['input'];
 }
 
 

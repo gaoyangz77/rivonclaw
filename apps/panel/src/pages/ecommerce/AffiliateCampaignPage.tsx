@@ -48,6 +48,7 @@ import {
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
+  AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY,
   AFFILIATE_PRODUCT_SUMMARIES_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
@@ -588,6 +589,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       pollInterval: selectedCampaignId ? 15_000 : 0,
     },
   );
+  const screeningQuery = useQuery<{
+    affiliateCampaignScreeningBreakdown: GQL.AffiliateCampaignScreeningBreakdown;
+  }>(AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY, {
+    variables: { campaignId: selectedCampaignId },
+    skip: !selectedCampaignId,
+    pollInterval: selectedCampaignId ? 60_000 : 0,
+    skipPollAttempt: () => document.visibilityState === "hidden",
+  });
   // Campaign-wide by default; a selected search plan narrows the same query.
   const creatorStatesQuery = useQuery<{
     affiliateCampaignCreatorStates: CampaignCreatorStatePage;
@@ -2072,7 +2081,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               )}
 
             <CampaignFunnel
+              screeningBreakdown={
+                screeningQuery.error
+                  ? undefined
+                  : screeningQuery.data?.affiliateCampaignScreeningBreakdown
+              }
+              screeningUnavailable={Boolean(screeningQuery.error)}
               counters={summary?.counters}
+              selectionStrategy={latestExecution?.selectionStrategy}
               counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 3}
               deliveryFailureReasons={summary?.deliveryFailureReasons ?? []}
               searchPlanCount={latestExecution?.searchPlanExecutions?.length ?? 0}
@@ -3896,8 +3912,19 @@ export function campaignAiReadinessNote(
     : t("ecommerce.affiliateCampaign.strategyMlNotConfigured");
 }
 
-function CampaignFunnel({
+export function campaignScreeningPassRate(
+  qualified: number | null,
+  rejected: number | null,
+): number | null {
+  if (qualified == null || rejected == null || qualified + rejected === 0) return null;
+  return (qualified / (qualified + rejected)) * 100;
+}
+
+export function CampaignFunnel({
   counters,
+  screeningBreakdown,
+  screeningUnavailable = false,
+  selectionStrategy,
   counterSchemaVersion,
   deliveryFailureReasons,
   searchPlanCount,
@@ -3905,6 +3932,9 @@ function CampaignFunnel({
   t,
 }: {
   counters?: GQL.AffiliateCampaignExecutionCounters;
+  screeningBreakdown?: GQL.AffiliateCampaignScreeningBreakdown;
+  screeningUnavailable?: boolean;
+  selectionStrategy?: GQL.AffiliateCampaignSelectionStrategy;
   counterSchemaVersion: number;
   deliveryFailureReasons: GQL.AffiliateCampaignDeliveryFailureReason[];
   searchPlanCount: number;
@@ -3933,7 +3963,13 @@ function CampaignFunnel({
     introducedInVersion: 2,
     value: counters?.qualificationFailed ?? 0,
   });
-  const ineligibleValues = [duplicate, protectedCount, outreachPolicyCount, qualificationCount];
+  const qualifiedCount = campaignFunnelCounterValue({
+    counterSchemaVersion,
+    introducedInVersion: 2,
+    value: counters?.qualified ?? 0,
+  });
+  const passRate = campaignScreeningPassRate(qualifiedCount, qualificationCount);
+  const ineligibleValues = [duplicate, protectedCount, outreachPolicyCount];
   const ineligibleTotal = ineligibleValues.some((value) => value == null)
     ? null
     : ineligibleValues.reduce<number>((sum, value) => sum + (value ?? 0), 0);
@@ -3967,6 +4003,26 @@ function CampaignFunnel({
           <span className="affiliate-campaign-funnel-connector" aria-hidden="true" />
           <CampaignFunnelStage
             index="02"
+            label={t("ecommerce.affiliateCampaign.screening.passed")}
+            value={qualifiedCount}
+            tone="primary"
+            details={[
+              {
+                label: t("ecommerce.affiliateCampaign.screening.evaluated"),
+                value: counters?.evaluated ?? 0,
+                tooltip: t("ecommerce.affiliateCampaign.screening.evaluatedHint"),
+              },
+              {
+                label: t("ecommerce.affiliateCampaign.screening.passRate"),
+                value: passRate,
+                suffix: "%",
+                tooltip: t("ecommerce.affiliateCampaign.screening.rateHint"),
+              },
+            ]}
+          />
+          <span className="affiliate-campaign-funnel-connector" aria-hidden="true" />
+          <CampaignFunnelStage
+            index="03"
             label={t("ecommerce.affiliateCampaign.funnel.scheduledToday")}
             value={counters?.scheduled ?? 0}
             tone="primary"
@@ -3974,7 +4030,7 @@ function CampaignFunnel({
           />
           <span className="affiliate-campaign-funnel-connector" aria-hidden="true" />
           <CampaignFunnelStage
-            index="03"
+            index="04"
             label={t("ecommerce.affiliateCampaign.funnel.targetInvitationsSent")}
             value={counters?.sent ?? 0}
             tone="success"
@@ -3988,7 +4044,7 @@ function CampaignFunnel({
             <span aria-hidden="true" />
             <CampaignFunnelStage
               index="01A"
-              label={t("ecommerce.affiliateCampaign.funnel.ineligible")}
+              label={t("ecommerce.affiliateCampaign.screening.beforeScreening")}
               value={ineligibleTotal}
               tone="warning"
               details={[
@@ -4007,20 +4063,40 @@ function CampaignFunnel({
                   value: outreachPolicyCount,
                   tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.outreachPolicyBlocked"),
                 },
-                {
-                  label: t("ecommerce.affiliateCampaign.funnel.qualificationFailed"),
-                  value: qualificationCount,
-                  tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.qualificationFailed"),
-                },
               ]}
               collapsibleDetails
               detailsLabel={t("ecommerce.affiliateCampaign.viewBreakdown")}
             />
           </div>
-          <div className="affiliate-campaign-funnel-branch is-failed">
+          <div className="affiliate-campaign-funnel-branch is-screened">
             <span aria-hidden="true" />
             <CampaignFunnelStage
               index="02A"
+              label={t("ecommerce.affiliateCampaign.screening.aiFiltered")}
+              value={screeningBreakdown?.aiRejectedCount ?? null}
+              tone="warning"
+              details={[
+                {
+                  label: t("ecommerce.affiliateCampaign.screening.otherFiltered"),
+                  value: screeningBreakdown?.otherRejectedCount ?? null,
+                  tooltip: t("ecommerce.affiliateCampaign.screening.breakdownHint"),
+                },
+                ...(screeningBreakdown?.unattributedRejectedCount
+                  ? [
+                      {
+                        label: t("ecommerce.affiliateCampaign.screening.unattributed"),
+                        value: screeningBreakdown.unattributedRejectedCount,
+                        tooltip: t("ecommerce.affiliateCampaign.screening.breakdownHint"),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </div>
+          <div className="affiliate-campaign-funnel-branch is-failed">
+            <span aria-hidden="true" />
+            <CampaignFunnelStage
+              index="03A"
               label={t("ecommerce.affiliateCampaign.funnel.deliveryFailed")}
               value={counters?.failed ?? 0}
               tone="danger"
@@ -4035,6 +4111,34 @@ function CampaignFunnel({
             />
           </div>
         </div>
+      </div>
+      <div className="affiliate-campaign-screening-context">
+        <strong>
+          {t(
+            `ecommerce.affiliateCampaign.screening.${
+              selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval
+                ? "aiMode"
+                : selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules
+                  ? "rulesMode"
+                  : "modeUnknown"
+            }`,
+          )}
+        </strong>
+        <p>
+          {t(
+            `ecommerce.affiliateCampaign.screening.${
+              selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval
+                ? "aiHint"
+                : "rulesHint"
+            }`,
+          )}
+        </p>
+        <small>
+          {t(
+            `ecommerce.affiliateCampaign.screening.${screeningUnavailable ? "unavailable" : "breakdownHint"}`,
+          )}
+        </small>
+        <small>{t("ecommerce.affiliateCampaign.screening.scopeHint")}</small>
       </div>
     </section>
   );
@@ -4082,6 +4186,7 @@ type CampaignFunnelDetail = {
   label: string;
   value: number | null;
   tooltip: string;
+  suffix?: "%";
 };
 
 function CampaignFunnelStage({
@@ -4115,7 +4220,13 @@ function CampaignFunnelStage({
       {details.map((detail) => (
         <div key={detail.label}>
           <AffiliateMetricLabel label={detail.label} tooltip={detail.tooltip} />
-          <strong>{detail.value == null ? "—" : formatNumber(detail.value)}</strong>
+          <strong>
+            {detail.value == null
+              ? "—"
+              : detail.suffix === "%"
+                ? `${detail.value.toFixed(1)}%`
+                : formatNumber(detail.value)}
+          </strong>
         </div>
       ))}
     </div>
