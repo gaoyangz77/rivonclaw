@@ -1,6 +1,6 @@
 import { GQL } from "@rivonclaw/core";
 import { createInstance } from "i18next";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import { CampaignFunnel, campaignScreeningPassRate } from "./AffiliateCampaignPage.js";
@@ -74,11 +74,15 @@ describe("Campaign qualification funnel", () => {
     expect(screen.getByText(/AI 筛除单独按实际决策归因/)).toBeTruthy();
   });
 
-  it("uses rules-mode explanation without claiming AI screening", async () => {
+  it("keeps the AI card at zero in Marketplace mode and explains why", async () => {
     await showFunnel(GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules);
     expect(screen.getByText("当前模式 · 达人广场规则")).toBeTruthy();
     expect(screen.queryByText("当前模式 · 智能筛选")).toBeNull();
     expect(screen.queryByText(/智能模式使用预审模型/)).toBeNull();
+    const aiCard = screen.getByText("AI 模型筛除").closest("article")!;
+    expect(aiCard.querySelector(".affiliate-campaign-funnel-stage-value")?.textContent).toBe("0");
+    expect(aiCard.textContent).toContain("当前 Campaign 使用达人广场模式");
+    expect(aiCard.textContent).not.toContain("其他条件筛除");
   });
 
   it("does not infer AI rejection counts from legacy totals or current mode", async () => {
@@ -87,14 +91,14 @@ describe("Campaign qualification funnel", () => {
     expect(screen.queryByText("32.4%")).toBeNull();
   });
 
-  it("retains real AI rejections after switching to rules mode", async () => {
-    await showFunnel(GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules);
-    expect(
-      screen
-        .getByText("AI 模型筛除")
-        .closest("article")
-        ?.querySelector(".affiliate-campaign-funnel-stage-value")?.textContent,
-    ).toBe("600");
+  it("explains the AI model tradeoff from the funnel card", async () => {
+    await showFunnel();
+    const tooltipTrigger = screen.getByRole("button", {
+      name: /AI 模型筛除: AI 模式使用机器学习/,
+    });
+    fireEvent.focus(tooltipTrigger);
+    expect(screen.getByRole("tooltip").textContent).toContain("减少可触达达人数量");
+    expect(screen.getByRole("tooltip").textContent).toContain("提高触达达人的平均质量");
   });
 
   it("shows missing attribution as unavailable, never as all qualification failures or zero", async () => {

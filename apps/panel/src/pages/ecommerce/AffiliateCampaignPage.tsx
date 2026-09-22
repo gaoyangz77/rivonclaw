@@ -21,6 +21,7 @@ import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
 import {
   TkButton,
+  TkInfoTip,
   TkInteractiveTableRow,
   TkPanel,
   TkPanelHeader,
@@ -2731,41 +2732,52 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </section>
               <section className="affiliate-campaign-wizard-fields">
                 <div className="affiliate-campaign-strategy-picker">
-                  <button
-                    type="button"
-                    data-selected={
-                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ||
-                      undefined
-                    }
-                    onClick={() =>
-                      updateForm(
-                        "strategy",
-                        GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
-                      )
-                    }
-                  >
-                    <span>{t("ecommerce.affiliateCampaign.strategyRuleKicker")}</span>
-                    <strong>{t("ecommerce.affiliateCampaign.strategyRuleTitle")}</strong>
-                    <small>{t("ecommerce.affiliateCampaign.strategyRuleDescription")}</small>
-                    <i>{t("ecommerce.affiliateCampaign.strategyRuleOrder")}</i>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!aiReadiness?.ready}
-                    aria-disabled={!aiReadiness?.ready || undefined}
-                    data-selected={
-                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval ||
-                      undefined
-                    }
-                    onClick={() =>
-                      updateForm("strategy", GQL.AffiliateCampaignSelectionStrategy.AiPreApproval)
-                    }
-                  >
-                    <span>{t("ecommerce.affiliateCampaign.strategyMlKicker")}</span>
-                    <strong>{t("ecommerce.affiliateCampaign.strategyMlTitle")}</strong>
-                    <small>{t("ecommerce.affiliateCampaign.strategyMlDescription")}</small>
-                    <i>{campaignAiReadinessNote(aiReadiness, aiReadinessLoading, t)}</i>
-                  </button>
+                  <div className="affiliate-campaign-strategy-option">
+                    <button
+                      type="button"
+                      className="affiliate-campaign-strategy-choice"
+                      data-selected={
+                        form.strategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ||
+                        undefined
+                      }
+                      onClick={() =>
+                        updateForm(
+                          "strategy",
+                          GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
+                        )
+                      }
+                    >
+                      <span>{t("ecommerce.affiliateCampaign.strategyRuleKicker")}</span>
+                      <strong>{t("ecommerce.affiliateCampaign.strategyRuleTitle")}</strong>
+                      <small>{t("ecommerce.affiliateCampaign.strategyRuleDescription")}</small>
+                      <i>{t("ecommerce.affiliateCampaign.strategyRuleOrder")}</i>
+                    </button>
+                  </div>
+                  <div className="affiliate-campaign-strategy-option">
+                    <button
+                      type="button"
+                      className="affiliate-campaign-strategy-choice"
+                      disabled={!aiReadiness?.ready}
+                      aria-disabled={!aiReadiness?.ready || undefined}
+                      data-selected={
+                        form.strategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval ||
+                        undefined
+                      }
+                      onClick={() =>
+                        updateForm("strategy", GQL.AffiliateCampaignSelectionStrategy.AiPreApproval)
+                      }
+                    >
+                      <span>{t("ecommerce.affiliateCampaign.strategyMlKicker")}</span>
+                      <strong>{t("ecommerce.affiliateCampaign.strategyMlTitle")}</strong>
+                      <small>{t("ecommerce.affiliateCampaign.strategyMlDescription")}</small>
+                      <i>{campaignAiReadinessNote(aiReadiness, aiReadinessLoading, t)}</i>
+                    </button>
+                    <TkInfoTip
+                      className="affiliate-campaign-strategy-info"
+                      placement="bottom"
+                      label={t("ecommerce.affiliateCampaign.screening.aiModeTooltip")}
+                    />
+                  </div>
                 </div>
                 <div className="affiliate-campaign-capability-note">
                   <strong>
@@ -3982,6 +3994,9 @@ export function CampaignFunnel({
     deliveryFailureReasons,
     counters?.failed ?? 0,
   );
+  const marketplaceRulesMode =
+    selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules;
+  const aiRejectedCount = marketplaceRulesMode ? 0 : (screeningBreakdown?.aiRejectedCount ?? null);
   return (
     <section className="affiliate-campaign-funnel">
       <div className="affiliate-campaign-section-heading">
@@ -4078,24 +4093,34 @@ export function CampaignFunnel({
             <CampaignFunnelStage
               index="02A"
               label={t("ecommerce.affiliateCampaign.screening.aiFiltered")}
-              value={screeningBreakdown?.aiRejectedCount ?? null}
+              labelTooltip={t("ecommerce.affiliateCampaign.screening.aiModeTooltip")}
+              value={aiRejectedCount}
               tone="warning"
-              details={[
-                {
-                  label: t("ecommerce.affiliateCampaign.screening.otherFiltered"),
-                  value: screeningBreakdown?.otherRejectedCount ?? null,
-                  tooltip: t("ecommerce.affiliateCampaign.screening.breakdownHint"),
-                },
-                ...(screeningBreakdown?.unattributedRejectedCount
+              note={
+                marketplaceRulesMode
+                  ? t("ecommerce.affiliateCampaign.screening.marketplaceModeZero")
+                  : undefined
+              }
+              details={
+                !marketplaceRulesMode
                   ? [
                       {
-                        label: t("ecommerce.affiliateCampaign.screening.unattributed"),
-                        value: screeningBreakdown.unattributedRejectedCount,
+                        label: t("ecommerce.affiliateCampaign.screening.otherFiltered"),
+                        value: screeningBreakdown?.otherRejectedCount ?? null,
                         tooltip: t("ecommerce.affiliateCampaign.screening.breakdownHint"),
                       },
+                      ...(screeningBreakdown?.unattributedRejectedCount
+                        ? [
+                            {
+                              label: t("ecommerce.affiliateCampaign.screening.unattributed"),
+                              value: screeningBreakdown.unattributedRejectedCount,
+                              tooltip: t("ecommerce.affiliateCampaign.screening.breakdownHint"),
+                            },
+                          ]
+                        : []),
                     ]
-                  : []),
-              ]}
+                  : []
+              }
             />
           </div>
           <div className="affiliate-campaign-funnel-branch is-failed">
@@ -4140,7 +4165,7 @@ export function CampaignFunnel({
         </p>
         <small>
           {t(
-            `ecommerce.affiliateCampaign.screening.${screeningUnavailable ? "unavailable" : "breakdownHint"}`,
+            `ecommerce.affiliateCampaign.screening.${screeningUnavailable && !marketplaceRulesMode ? "unavailable" : "breakdownHint"}`,
           )}
         </small>
         <small>{t("ecommerce.affiliateCampaign.screening.scopeHint")}</small>
@@ -4197,6 +4222,7 @@ type CampaignFunnelDetail = {
 function CampaignFunnelStage({
   index,
   label,
+  labelTooltip,
   value,
   tone,
   details = [],
@@ -4209,6 +4235,7 @@ function CampaignFunnelStage({
 }: {
   index: string;
   label: string;
+  labelTooltip?: string;
   value: number | null;
   tone: "neutral" | "warning" | "primary" | "danger" | "success";
   details?: CampaignFunnelDetail[];
@@ -4244,7 +4271,9 @@ function CampaignFunnelStage({
     >
       <header>
         <span>{index}</span>
-        <strong>{label}</strong>
+        <strong>
+          {labelTooltip ? <AffiliateMetricLabel label={label} tooltip={labelTooltip} /> : label}
+        </strong>
       </header>
       <div className="affiliate-campaign-funnel-stage-value">
         {value == null ? "—" : formatNumber(value)}

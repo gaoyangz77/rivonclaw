@@ -1669,8 +1669,14 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.affiliate-campaign-strategy-picker > button {
+.affiliate-campaign-strategy-option {
+  position: relative;
   display: flex;
+}
+
+.affiliate-campaign-strategy-choice {
+  display: flex;
+  width: 100%;
   min-height: 150px;
   flex-direction: column;
   align-items: flex-start;
@@ -1685,15 +1691,15 @@
     box-shadow 0.16s ease,
     transform 0.16s ease;
 }
-.affiliate-campaign-strategy-picker > button:not(:disabled):hover {
+.affiliate-campaign-strategy-choice:not(:disabled):hover {
   border-color: var(--color-primary);
   transform: translateY(-1px);
 }
-.affiliate-campaign-strategy-picker > button[data-selected] {
+.affiliate-campaign-strategy-choice[data-selected] {
   border-color: var(--campaign-green);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
-.affiliate-campaign-strategy-picker > button:disabled {
+.affiliate-campaign-strategy-choice:disabled {
   cursor: not-allowed;
   background: var(--color-bg-alt);
   color: var(--color-text-muted);
@@ -1719,6 +1725,12 @@
   font-size: 10px;
   font-style: normal;
   font-weight: 700;
+}
+
+.affiliate-campaign-strategy-info {
+  position: absolute;
+  top: var(--tk-v1-space-3);
+  right: var(--tk-v1-space-3);
 }
 .affiliate-campaign-capability-note {
   display: flex;

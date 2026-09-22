@@ -18,6 +18,10 @@ export const campaignScreeningCopy = {
     modeUnknown: "Qualification screening",
     aiHint:
       "Smart screening uses the pre-approval model to select creators before scheduling outreach. It is not a sales guarantee.",
+    aiModeTooltip:
+      "AI mode uses machine learning to learn patterns from your historical staff decisions. It prioritizes creators your team would be more likely to approve for samples. This reduces the number of reachable creators but raises their average quality, making it a better fit when daily outreach opportunities are limited.",
+    marketplaceModeZero:
+      "This campaign currently uses Marketplace rules, so the AI model does not screen creators and this value is 0.",
     rulesHint:
       "Creators are screened before scheduling outreach; qualification and delivery outcomes are shown separately.",
     evaluatedHint:
@@ -44,6 +48,9 @@ export const campaignScreeningCopy = {
     rulesMode: "当前模式 · 达人广场规则",
     modeUnknown: "资格筛选",
     aiHint: "智能模式使用预审模型，在安排触达前筛选达人；筛选结果不代表销量保证。",
+    aiModeTooltip:
+      "AI 模式使用机器学习，从历史员工审核决策中学习判断规律，优先选择更可能被员工审核通过并批准寄样的达人。它会减少可触达达人数量，但提高触达达人的平均质量；当商家的每日可触达次数有限时，这个模式更合适。",
+    marketplaceModeZero: "当前 Campaign 使用达人广场模式，不运行 AI 模型筛选，因此这里为 0。",
     rulesHint: "达人通过资格筛选后才安排触达；筛选结果与投递结果分开统计。",
     evaluatedHint: "进入资格评估的达人，包括尚待决策或技术重试的达人。",
     rateHint: "通过人数 ÷（通过人数 + 筛除人数）。待定和技术异常不算筛除。",
@@ -68,6 +75,10 @@ export const campaignScreeningCopy = {
     modeUnknown: "Eignungsprüfung",
     aiHint:
       "Die intelligente Prüfung wählt Creator vor der Kontaktplanung mit dem Vorprüfungsmodell aus. Sie garantiert keine Verkäufe.",
+    aiModeTooltip:
+      "Der KI-Modus lernt mit maschinellem Lernen aus früheren Entscheidungen Ihrer Mitarbeiter. Er bevorzugt Creator, die Ihr Team eher für Produktmuster freigeben würde. Dadurch sinkt die Zahl erreichbarer Creator, ihre durchschnittliche Qualität steigt jedoch. Der Modus eignet sich besonders, wenn die täglichen Kontaktmöglichkeiten begrenzt sind.",
+    marketplaceModeZero:
+      "Diese Kampagne verwendet derzeit Marketplace-Regeln. Das KI-Modell prüft daher keine Creator und der Wert ist 0.",
     rulesHint:
       "Die Eignung wird vor der Kontaktplanung geprüft. Prüfungs- und Zustellergebnisse werden getrennt ausgewiesen.",
     evaluatedHint:
@@ -95,6 +106,10 @@ export const campaignScreeningCopy = {
     modeUnknown: "Evaluación de elegibilidad",
     aiHint:
       "El filtro inteligente usa el modelo de preaprobación para seleccionar creadores antes de programar el contacto. No garantiza ventas.",
+    aiModeTooltip:
+      "El modo IA usa aprendizaje automático para aprender de las decisiones históricas de tu equipo. Prioriza a los creadores que el personal tendría más probabilidades de aprobar para recibir muestras. Reduce la cantidad de creadores contactables, pero aumenta su calidad media; es una mejor opción cuando las oportunidades diarias de contacto son limitadas.",
+    marketplaceModeZero:
+      "Esta campaña usa actualmente las reglas de Marketplace, por lo que el modelo de IA no filtra creadores y este valor es 0.",
     rulesHint:
       "La elegibilidad se evalúa antes de programar el contacto; los resultados de evaluación y entrega se muestran por separado.",
     evaluatedHint:
@@ -122,6 +137,10 @@ export const campaignScreeningCopy = {
     modeUnknown: "Évaluation d’éligibilité",
     aiHint:
       "La sélection intelligente utilise le modèle de préapprobation avant de planifier le contact. Elle ne garantit pas les ventes.",
+    aiModeTooltip:
+      "Le mode IA utilise l’apprentissage automatique pour apprendre des décisions historiques de votre équipe. Il privilégie les créateurs que vos employés seraient plus susceptibles d’approuver pour recevoir des échantillons. Il réduit le nombre de créateurs joignables mais améliore leur qualité moyenne ; il convient mieux lorsque les possibilités de contact quotidiennes sont limitées.",
+    marketplaceModeZero:
+      "Cette campagne utilise actuellement les règles Marketplace. Le modèle IA ne filtre donc aucun créateur et cette valeur est 0.",
     rulesHint:
       "L’éligibilité est vérifiée avant la planification ; les résultats de sélection et d’envoi sont séparés.",
     evaluatedHint:
@@ -149,6 +168,10 @@ export const campaignScreeningCopy = {
     modeUnknown: "Penyaringan kelayakan",
     aiHint:
       "Penyaringan cerdas menggunakan model prapersetujuan sebelum menjadwalkan kontak. Hasilnya bukan jaminan penjualan.",
+    aiModeTooltip:
+      "Mode AI memakai machine learning untuk mempelajari pola dari keputusan historis staf Anda. Mode ini memprioritaskan kreator yang lebih mungkin disetujui tim untuk menerima sampel. Jumlah kreator yang dapat dijangkau berkurang, tetapi kualitas rata-ratanya meningkat; mode ini lebih cocok bila peluang kontak harian terbatas.",
+    marketplaceModeZero:
+      "Campaign ini sedang memakai aturan Marketplace, jadi model AI tidak menyaring kreator dan nilainya 0.",
     rulesHint:
       "Kelayakan diperiksa sebelum penjadwalan kontak; hasil penyaringan dan pengiriman ditampilkan terpisah.",
     evaluatedHint:
@@ -176,6 +199,10 @@ export const campaignScreeningCopy = {
     modeUnknown: "Valutazione di idoneità",
     aiHint:
       "La selezione intelligente usa il modello di preapprovazione prima di pianificare il contatto. Non garantisce vendite.",
+    aiModeTooltip:
+      "La modalità IA usa il machine learning per apprendere dalle decisioni storiche del personale. Privilegia i creator che il team approverebbe più probabilmente per ricevere campioni. Riduce il numero di creator contattabili ma ne aumenta la qualità media; è più adatta quando le opportunità di contatto giornaliere sono limitate.",
+    marketplaceModeZero:
+      "Questa campagna usa attualmente le regole Marketplace, quindi il modello IA non filtra i creator e il valore è 0.",
     rulesHint:
       "L’idoneità viene verificata prima di pianificare il contatto; selezione e invio hanno risultati separati.",
     evaluatedHint:
@@ -202,6 +229,9 @@ export const campaignScreeningCopy = {
     rulesMode: "โหมดปัจจุบัน · กฎ Marketplace",
     modeUnknown: "การประเมินคุณสมบัติ",
     aiHint: "โหมดอัจฉริยะใช้โมเดลประเมินเบื้องต้นเพื่อคัดเลือกครีเอเตอร์ก่อนกำหนดเวลาติดต่อ ไม่ใช่การรับประกันยอดขาย",
+    aiModeTooltip:
+      "โหมด AI ใช้แมชชีนเลิร์นนิงเรียนรู้รูปแบบจากการตัดสินใจเดิมของพนักงาน และให้ความสำคัญกับครีเอเตอร์ที่ทีมมีแนวโน้มจะอนุมัติให้รับตัวอย่างมากกว่า จำนวนครีเอเตอร์ที่ติดต่อได้จะลดลง แต่คุณภาพเฉลี่ยจะสูงขึ้น จึงเหมาะกว่าเมื่อโอกาสในการติดต่อรายวันมีจำกัด",
+    marketplaceModeZero: "Campaign นี้กำลังใช้กฎ Marketplace จึงไม่มีการคัดกรองด้วยโมเดล AI และค่านี้เป็น 0",
     rulesHint: "ตรวจสอบคุณสมบัติก่อนกำหนดเวลาติดต่อ โดยแยกผลการคัดกรองออกจากผลการส่ง",
     evaluatedHint: "ครีเอเตอร์ที่เข้าสู่การประเมิน รวมถึงผู้ที่รอผลหรือรอลองใหม่จากปัญหาทางเทคนิค",
     rateHint: "ผ่าน ÷ (ผ่าน + ไม่ผ่าน) ไม่นับรายการรอผลหรือข้อผิดพลาดทางเทคนิคเป็นการคัดออก",
