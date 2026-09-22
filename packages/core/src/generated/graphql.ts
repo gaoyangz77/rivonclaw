@@ -5304,10 +5304,13 @@ export interface AffiliateWorkbenchSamplePageInput {
   products?: InputMaybe<Array<AffiliateWorkbenchProductFilterInput>>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
   protected?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** @deprecated Use statusFilter. Kept for older desktop clients. */
   reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Order the page by Sample application time. ASC, the default, returns the oldest application first; DESC returns the newest first. A cursor is bound to the order that minted it. */
   sortOrder?: InputMaybe<EcomSortOrder>;
+  /** Filter by the manual-workbench Sample view. Omit for the legacy pending-review view. */
+  statusFilter?: InputMaybe<AffiliateWorkbenchSampleStatusFilter>;
 }
 
 export interface AffiliateWorkbenchSampleRow {
@@ -5331,6 +5334,20 @@ export interface AffiliateWorkbenchSampleRow {
   systemTags: Array<AffiliateCreatorSystemTag>;
 }
 
+/** User-facing Sample Application status view for the Affiliate manual workbench. */
+export const AffiliateWorkbenchSampleStatusFilter = {
+  All: "ALL",
+  Approved: "APPROVED",
+  Cancelled: "CANCELLED",
+  Expired: "EXPIRED",
+  Ignored: "IGNORED",
+  PendingReview: "PENDING_REVIEW",
+  Rejected: "REJECTED",
+  SyncIssue: "SYNC_ISSUE",
+} as const;
+
+export type AffiliateWorkbenchSampleStatusFilter =
+  (typeof AffiliateWorkbenchSampleStatusFilter)[keyof typeof AffiliateWorkbenchSampleStatusFilter];
 export interface AffiliateWorkspaceInput {
   campaignId?: InputMaybe<Scalars["ID"]["input"]>;
   candidateStatus?: InputMaybe<CreatorCandidateStatus>;

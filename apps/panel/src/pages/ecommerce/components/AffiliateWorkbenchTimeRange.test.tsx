@@ -50,7 +50,7 @@ describe("workbench time-range filter", () => {
         protected: null,
         sortOrder: "ASC",
         limit: 25,
-        ...(samples ? { reviewDisposition: "OPEN" } : { channel: null }),
+        ...(samples ? { statusFilter: "PENDING_REVIEW" } : { channel: null }),
       };
       const counts = samples
         ? { openCount: 0, expiringSoonCount: 0 }
@@ -137,7 +137,7 @@ describe("workbench time-range filter", () => {
       shopId: null,
       businessDeveloperId: null,
       protected: null,
-      reviewDisposition: "OPEN",
+      statusFilter: "PENDING_REVIEW",
       sortOrder: "ASC",
       limit: 25,
       cursor: null,

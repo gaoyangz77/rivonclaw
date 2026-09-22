@@ -41,7 +41,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       protected: null,
       sortOrder: "ASC",
       limit: 25,
-      ...(samples ? { reviewDisposition: "OPEN" } : { channel: null }),
+      ...(samples ? { statusFilter: "PENDING_REVIEW" } : { channel: null }),
     };
     const counts = samples
       ? { openCount: 0, expiringSoonCount: 0 }

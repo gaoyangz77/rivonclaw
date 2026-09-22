@@ -193,8 +193,8 @@ function AffiliateWorkbenchSampleList({
 }: Omit<Props, "tab">) {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  const [disposition, setDisposition] = useState<GQL.AffiliateSampleReviewDisposition>(
-    GQL.AffiliateSampleReviewDisposition.Open,
+  const [statusFilter, setStatusFilter] = useState<GQL.AffiliateWorkbenchSampleStatusFilter>(
+    GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview,
   );
   const [protection, setProtection] = useState("ALL");
   const [creatorSearch, setCreatorSearch] = useState("");
@@ -222,7 +222,7 @@ function AffiliateWorkbenchSampleList({
     creatorSearch,
     JSON.stringify(products),
     protection,
-    disposition,
+    statusFilter,
     sortOrder,
     affiliateWorkbenchTimeFilterKey(timeSelection),
     selectedShopId,
@@ -248,7 +248,7 @@ function AffiliateWorkbenchSampleList({
         shopId: selectedShopId || null,
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
-        reviewDisposition: disposition,
+        statusFilter,
         sortOrder,
         ...(creatorSearch ? { creatorSearch } : {}),
         ...(products.length ? { products } : {}),
@@ -265,7 +265,8 @@ function AffiliateWorkbenchSampleList({
     { input: GQL.ReopenSoftRejectedAffiliateSampleApplicationInput }
   >(REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION);
   const page = data?.affiliateWorkbenchSamplePage;
-  const softRejectedView = disposition === GQL.AffiliateSampleReviewDisposition.SoftRejected;
+  const ignoredView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.Ignored;
+  const pendingReviewView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview;
 
   useEffect(() => {
     if (!page) return;
@@ -285,7 +286,7 @@ function AffiliateWorkbenchSampleList({
           shopId: selectedShopId || null,
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
-          reviewDisposition: disposition,
+          statusFilter,
           sortOrder,
           ...(creatorSearch ? { creatorSearch } : {}),
           ...(products.length ? { products } : {}),
@@ -313,7 +314,7 @@ function AffiliateWorkbenchSampleList({
   }, [
     creatorSearch,
     products,
-    disposition,
+    statusFilter,
     fetchMore,
     filterKey,
     firstObservedAtGe,
@@ -363,7 +364,7 @@ function AffiliateWorkbenchSampleList({
     rowCount: items.length,
     completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
   });
-  const tableVariant = softRejectedView
+  const tableVariant = ignoredView
     ? "affiliate-workbench-table-samples-rejected"
     : "affiliate-workbench-table-samples-open";
 
@@ -391,16 +392,40 @@ function AffiliateWorkbenchSampleList({
           />
           <TkChoiceSelect
             label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
-            value={disposition}
-            onChange={(value) => setDisposition(value as GQL.AffiliateSampleReviewDisposition)}
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as GQL.AffiliateWorkbenchSampleStatusFilter)}
             options={[
               {
-                value: GQL.AffiliateSampleReviewDisposition.Open,
-                label: t("ecommerce.affiliateWorkspace.workbench.sampleOpen"),
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.All,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusAll"),
               },
               {
-                value: GQL.AffiliateSampleReviewDisposition.SoftRejected,
-                label: t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected"),
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusPendingReview"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.Ignored,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusIgnored"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.Approved,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusApproved"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.Rejected,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusRejected"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.Cancelled,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusCancelled"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.Expired,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusExpired"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchSampleStatusFilter.SyncIssue,
+                label: t("ecommerce.affiliateWorkspace.workbench.sampleStatusSyncIssue"),
               },
             ]}
             className="affiliate-workbench-filter-select"
@@ -456,11 +481,11 @@ function AffiliateWorkbenchSampleList({
               className="affiliate-workbench-filter-select"
             />
           </div>
-          {softRejectedView ? (
+          {ignoredView ? (
             <span className="affiliate-workbench-entity-summary">
               {t("ecommerce.affiliateWorkspace.workbench.softRejectedHint")}
             </span>
-          ) : page ? (
+          ) : pendingReviewView && page ? (
             <span className="affiliate-workbench-entity-summary">
               {t("ecommerce.affiliateWorkspace.workbench.summaryOpenCount", {
                 count: page.openCount,
@@ -488,9 +513,11 @@ function AffiliateWorkbenchSampleList({
       ) : viewState === "empty" ? (
         <WorkbenchEmpty>
           {t(
-            softRejectedView
+            ignoredView
               ? "ecommerce.affiliateWorkspace.workbench.noSoftRejectedSamples"
-              : "ecommerce.affiliateWorkspace.workbench.noSamples",
+              : pendingReviewView
+                ? "ecommerce.affiliateWorkspace.workbench.noSamples"
+                : "ecommerce.affiliateWorkspace.workbench.noSamplesForStatus",
           )}
         </WorkbenchEmpty>
       ) : (
@@ -513,7 +540,7 @@ function AffiliateWorkbenchSampleList({
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colShop")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colProduct")}</th>
-                {softRejectedView ? (
+                {ignoredView ? (
                   <>
                     <th>{t("ecommerce.affiliateWorkspace.workbench.colHandler")}</th>
                     <th>{t("ecommerce.affiliateWorkspace.workbench.colPlatformExpiry")}</th>
@@ -574,7 +601,7 @@ function AffiliateWorkbenchSampleList({
                       ) : null}
                     </div>
                   </td>
-                  {softRejectedView ? (
+                  {ignoredView ? (
                     <>
                       <td>
                         <SoftRejectHandlerCell sampleApplication={row.sampleApplication} />
@@ -594,16 +621,23 @@ function AffiliateWorkbenchSampleList({
                       </td>
                       <td>
                         <div className="affiliate-workbench-cell-actions">
-                          <button
-                            className="btn btn-secondary"
-                            type="button"
-                            disabled={reopeningRowId === row.id}
-                            onClick={() => void reopenRow(row)}
-                          >
-                            {reopeningRowId === row.id
-                              ? t("common.loading")
-                              : t("ecommerce.affiliateWorkspace.workbench.reopen")}
-                          </button>
+                          {row.sampleApplication.sampleWorkStatus ===
+                          GQL.SampleWorkStatus.RequestPendingReview ? (
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              disabled={reopeningRowId === row.id}
+                              onClick={() => void reopenRow(row)}
+                            >
+                              {reopeningRowId === row.id
+                                ? t("common.loading")
+                                : t("ecommerce.affiliateWorkspace.workbench.reopen")}
+                            </button>
+                          ) : (
+                            <span className="affiliate-workbench-cell-chevron" aria-hidden="true">
+                              ›
+                            </span>
+                          )}
                         </div>
                       </td>
                     </>
@@ -645,9 +679,11 @@ function AffiliateWorkbenchSampleList({
                 <tr>
                   <td className="affiliate-workbench-table-footer" colSpan={8}>
                     {t(
-                      softRejectedView
+                      ignoredView
                         ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedSoftRejected"
-                        : "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedOpen",
+                        : pendingReviewView
+                          ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedOpen"
+                          : "ecommerce.affiliateWorkspace.workbench.allSamplesLoaded",
                       { count: items.length },
                     )}
                   </td>
@@ -1356,6 +1392,20 @@ function SampleStateBadge({
   sampleApplication: GQL.SampleApplicationRecord;
 }) {
   const { t } = useTranslation();
+  if (sampleApplication.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected) {
+    return (
+      <span className="affiliate-workbench-badge">
+        {t("ecommerce.affiliateWorkspace.workbench.sampleStatusIgnored")}
+      </span>
+    );
+  }
+  if (sampleApplication.platformStatus === "REJECT_CANCELLED") {
+    return (
+      <span className="affiliate-workbench-badge">
+        {t("ecommerce.affiliateWorkspace.workbench.sampleStatusRejected")}
+      </span>
+    );
+  }
   if (sampleApplication.sampleWorkStatus === GQL.SampleWorkStatus.PlatformStatusUnknown) {
     return (
       <span className="affiliate-workbench-badge affiliate-workbench-badge-sync">
@@ -1365,7 +1415,10 @@ function SampleStateBadge({
   }
   return (
     <span className="affiliate-workbench-badge">
-      {t("ecommerce.affiliateWorkspace.workbench.sampleOpen")}
+      {t(
+        `ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`,
+        { defaultValue: sampleApplication.sampleWorkStatus },
+      )}
     </span>
   );
 }

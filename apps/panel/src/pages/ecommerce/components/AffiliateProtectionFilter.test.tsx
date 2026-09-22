@@ -57,7 +57,7 @@ describe("workbench protection filter", () => {
         businessDeveloperId: "bd-1",
         sortOrder: "ASC",
         limit: 25,
-        ...(samples ? { reviewDisposition: "OPEN" } : { channel: null }),
+        ...(samples ? { statusFilter: "PENDING_REVIEW" } : { channel: null }),
       };
       const counts = samples
         ? { openCount: 0, expiringSoonCount: 0 }

@@ -34,7 +34,7 @@ describe("workbench time-order control", () => {
         businessDeveloperId: null,
         protected: null,
         limit: 25,
-        ...(samples ? { reviewDisposition: "OPEN" } : { channel: null }),
+        ...(samples ? { statusFilter: "PENDING_REVIEW" } : { channel: null }),
       };
       const counts = samples
         ? { openCount: 0, expiringSoonCount: 0 }
