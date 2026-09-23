@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.22",
+    "date": "2026-09-24",
+    "en": [
+      "Keep desktop workspace tabs across restarts and restore the authorization recovery contract",
+      "Improve Affiliate sample filtering and human message handling, and make product identity and selection controls clearer"
+    ],
+    "zh": [
+      "桌面工作区标签可在重启后保留，并修复授权恢复流程",
+      "改进达人联盟样品筛选与人工消息处理，统一商品标识展示并优化选择控件"
+    ]
+  },
+  {
     "version": "1.9.21",
     "date": "2026-09-23",
     "en": [
