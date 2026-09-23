@@ -691,6 +691,12 @@ describe("affiliate system-tag run context", () => {
     expect(session.extraSystemPrompt).toContain(
       "explicit, unwithdrawn Campaign opt-out is durable Relationship state",
     );
+    expect(session.extraSystemPrompt).toContain(
+      "default to Ignore: set action.sampleReviewDecision=REJECT and action.sampleReviewExecutionMode=ALLOW_PLATFORM_EXPIRY",
+    );
+    expect(session.extraSystemPrompt).toContain(
+      "Use PLATFORM_ACTION for REJECT only when an applicable seller or assigned BD instruction explicitly requires a TikTok rejection",
+    );
   });
 });
 

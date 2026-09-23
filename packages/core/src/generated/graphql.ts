@@ -14359,7 +14359,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleApplicationRecordId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE for approval. REJECT means Reject with PLATFORM_ACTION, or Ignore with ALLOW_PLATFORM_EXPIRY. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Omit for PLATFORM_ACTION; use ALLOW_PLATFORM_EXPIRY only with REJECT to Ignore the application and let it expire naturally without rejecting it on TikTok. */
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. For REJECT, omit or use ALLOW_PLATFORM_EXPIRY to Ignore the application locally and let it expire naturally. Set PLATFORM_ACTION explicitly only when an applicable seller or assigned BD instruction requires rejection on TikTok. */
   sampleReviewExecutionMode?: InputMaybe<AffiliateSampleReviewExecutionMode>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
