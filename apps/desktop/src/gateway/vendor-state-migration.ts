@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { createLogger } from "@rivonclaw/logger";
 import type { VendorStateMigrationOptions } from "@rivonclaw/gateway";
-import { DESKTOP_RESTART_RECOVERY_ENV } from "./restart-recovery-policy.js";
+import { DESKTOP_RESTART_RECOVERY_ENV } from "../infra/restart-recovery-policy.js";
 
 const log = createLogger("vendor-state-migration");
 

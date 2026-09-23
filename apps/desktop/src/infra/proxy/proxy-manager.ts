@@ -12,7 +12,7 @@ import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { join, dirname } from "node:path";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { DESKTOP_RESTART_RECOVERY_ENV } from "../../gateway/restart-recovery-policy.js";
+import { DESKTOP_RESTART_RECOVERY_ENV } from "../restart-recovery-policy.js";
 
 const log = createQuietLogger("proxy-manager", DEBUG_FLAGS.PROXY);
 

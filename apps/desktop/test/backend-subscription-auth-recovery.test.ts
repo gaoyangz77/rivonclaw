@@ -10,6 +10,9 @@ vi.mock("graphql-ws/client", () => ({
 
 import { BackendSubscriptionClient } from "../src/cloud/backend-subscription-client.js";
 
+const REFRESHED_CREDENTIALS = { state: "available", reason: "refresh" } as const;
+const SIGNED_IN_CREDENTIALS = { state: "available", reason: "sign_in" } as const;
+
 describe("BackendSubscriptionClient auth recovery", () => {
   const disposes: Array<ReturnType<typeof vi.fn>> = [];
   const clientOptions: Array<{
@@ -508,7 +511,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     expect(subscriptions).toHaveLength(2);
 
     token = "rotated-token";
-    await client.handleCredentialsChanged();
+    await client.handleCredentialsChanged(REFRESHED_CREDENTIALS);
 
     expect(subscriptions).toHaveLength(5);
     expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
@@ -539,7 +542,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     expect(subscriptions).toHaveLength(1);
 
     token = "rotated-token";
-    await client.handleCredentialsChanged();
+    await client.handleCredentialsChanged(REFRESHED_CREDENTIALS);
 
     expect(subscriptions).toHaveLength(3);
     expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
@@ -553,7 +556,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     let client!: BackendSubscriptionClient;
     const refreshAuth = vi.fn(async () => {
       token = "fresh-token";
-      await client.handleCredentialsChanged();
+      await client.handleCredentialsChanged(REFRESHED_CREDENTIALS);
     });
 
     client = new BackendSubscriptionClient("en");
@@ -584,7 +587,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.subscribeToCsConversationChanges(vi.fn());
 
     token = "bootstrap-token";
-    await client.handleCredentialsChanged();
+    await client.handleCredentialsChanged(SIGNED_IN_CREDENTIALS);
 
     expect(subscriptions).toHaveLength(0);
 
@@ -601,7 +604,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
     sockets.at(-1)?.close.mockClear();
 
-    await client.handleCredentialsChanged();
+    await client.handleCredentialsChanged(REFRESHED_CREDENTIALS);
 
     expect(subscriptions).toHaveLength(1);
     expect(sockets.at(-1)?.close).not.toHaveBeenCalled();
