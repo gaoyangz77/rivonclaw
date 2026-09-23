@@ -260,6 +260,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           status: "Status",
           actions: {
             rejectSample: "Musterantrag ablehnen",
+            ignoreSample: "Musterantrag ignorieren",
             approveSample: "Musterantrag genehmigen",
             sendMessage: "Creator anschreiben",
             noAction: "Keine Aktion",
@@ -430,6 +431,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           status: "Estado",
           actions: {
             rejectSample: "Rechazar solicitud de muestra",
+            ignoreSample: "Ignorar solicitud de muestra",
             approveSample: "Aprobar solicitud de muestra",
             sendMessage: "Enviar mensaje al creador",
             noAction: "Sin acción",
@@ -601,6 +603,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           status: "Statut",
           actions: {
             rejectSample: "Refuser la demande d’échantillon",
+            ignoreSample: "Ignorer la demande d’échantillon",
             approveSample: "Approuver la demande d’échantillon",
             sendMessage: "Envoyer un message au créateur",
             noAction: "Aucune action",
@@ -772,6 +775,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           status: "Status",
           actions: {
             rejectSample: "Tolak permohonan sampel",
+            ignoreSample: "Abaikan permohonan sampel",
             approveSample: "Setujui permohonan sampel",
             sendMessage: "Kirim pesan ke kreator",
             noAction: "Tidak ada tindakan",
@@ -940,6 +944,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           status: "Stato",
           actions: {
             rejectSample: "Rifiuta richiesta di campione",
+            ignoreSample: "Ignora richiesta di campione",
             approveSample: "Approva richiesta di campione",
             sendMessage: "Invia messaggio al creator",
             noAction: "Nessuna azione",
@@ -1111,6 +1116,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           status: "สถานะ",
           actions: {
             rejectSample: "ปฏิเสธคำขอตัวอย่าง",
+            ignoreSample: "ละเว้นคำขอตัวอย่าง",
             approveSample: "อนุมัติคำขอตัวอย่าง",
             sendMessage: "ส่งข้อความถึงครีเอเตอร์",
             noAction: "ไม่ต้องดำเนินการ",

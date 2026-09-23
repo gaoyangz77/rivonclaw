@@ -3568,6 +3568,7 @@ export default {
         status: "状态",
         actions: {
           rejectSample: "拒绝样品申请",
+          ignoreSample: "忽略样品申请",
           approveSample: "批准样品申请",
           sendMessage: "向达人发送消息",
           noAction: "无需操作",

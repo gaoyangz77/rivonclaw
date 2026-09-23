@@ -7460,17 +7460,24 @@ function proposalHasMessageIntent(proposal: GQL.ActionProposal): boolean {
   );
 }
 
-function agentWorkTableActions(
+export function agentWorkTableActions(
   proposal: GQL.ActionProposal,
   t: ReturnType<typeof useTranslation>["t"],
 ): AgentWorkTableAction[] {
   const sampleRows = proposalSampleReviewRows(proposal);
   const actions: AgentWorkTableAction[] = [];
-  if (sampleRows.some((row) => row.decision === GQL.AffiliateSampleReviewDecision.Reject)) {
+  if (sampleRows.some((row) => sampleReviewDisposition(row) === "REJECT")) {
     actions.push({
       key: "reject-sample",
       label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.rejectSample"),
       tone: "reject",
+    });
+  }
+  if (sampleRows.some((row) => sampleReviewDisposition(row) === "IGNORE")) {
+    actions.push({
+      key: "ignore-sample",
+      label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.ignoreSample"),
+      tone: "neutral",
     });
   }
   if (sampleRows.some((row) => row.decision === GQL.AffiliateSampleReviewDecision.Approve)) {

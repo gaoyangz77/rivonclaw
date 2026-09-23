@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { GQL } from "@rivonclaw/core";
+import i18n from "../../i18n/index.js";
 import {
+  agentWorkTableActions,
   advanceAffiliateProposalPageCursorStack,
   affiliateProposalPageCursor,
   affiliateProposalPagedQueryKey,
@@ -1055,6 +1057,45 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(proposalSampleDecisionOverrideTarget(softReject)).toBe(
       GQL.AffiliateSampleReviewDecision.Approve,
     );
+  });
+
+  it("labels ignored and platform-rejected sample work separately in the pending table", () => {
+    const review = (
+      id: string,
+      decision: GQL.AffiliateSampleReviewDecision,
+      executionMode: GQL.AffiliateSampleReviewExecutionMode,
+    ) =>
+      ({
+        ...proposal(id, "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+        sampleReviewIntent: {
+          sampleApplicationRecordId: id,
+          platformApplicationId: id,
+          decision,
+          executionMode,
+        },
+      }) as GQL.ActionProposal;
+    const t = i18n.getFixedT("zh");
+
+    expect(
+      agentWorkTableActions(
+        review(
+          "ignored",
+          GQL.AffiliateSampleReviewDecision.Reject,
+          GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry,
+        ),
+        t,
+      ).map((action) => action.label),
+    ).toEqual(["忽略样品申请"]);
+    expect(
+      agentWorkTableActions(
+        review(
+          "rejected",
+          GQL.AffiliateSampleReviewDecision.Reject,
+          GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
+        ),
+        t,
+      ).map((action) => action.label),
+    ).toEqual(["拒绝样品申请"]);
   });
 
   it("hides rejection for multi-Sample and mixed-action proposals", () => {

@@ -3745,6 +3745,7 @@ export default {
         status: "Status",
         actions: {
           rejectSample: "Reject sample application",
+          ignoreSample: "Ignore sample application",
           approveSample: "Approve sample application",
           sendMessage: "Message Creator",
           noAction: "No action",
