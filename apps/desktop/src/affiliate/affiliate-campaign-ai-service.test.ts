@@ -69,6 +69,11 @@ describe("affiliate Campaign Desktop AI service", () => {
 
     expect(result).toEqual(backendResult);
     expect(calls).toHaveBeenCalledTimes(1);
+    const systemPrompt = calls.mock.calls[0]?.[0].systemPrompt ?? "";
+    expect(systemPrompt).toContain("immutable protocol syntax");
+    expect(systemPrompt).toContain("MUST remain in English ASCII");
+    expect(systemPrompt).toContain("double curly braces exactly as written");
+    expect(systemPrompt).toContain("exact token {{creator_name}}");
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
     expect(graphqlFetch.mock.calls[1]?.[1]).toEqual({
       input: {
@@ -79,5 +84,117 @@ describe("affiliate Campaign Desktop AI service", () => {
         previousDraft: null,
       },
     });
+  });
+
+  it("rejects a localized creator placeholder and accepts the repaired output", async () => {
+    const valid = {
+      text: "¡Hola, {{creator_name}}! Nos encantaría colaborar contigo.",
+      productShortName: "producto de bienestar",
+      source: "AI_GENERATED" as const,
+    };
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("AffiliateCampaignMessageProductPreview")) {
+        return {
+          affiliateCampaignProductPreview: {
+            productId: "product-1",
+            title: "Producto",
+            description: "Descripción",
+            status: "ACTIVE",
+            originalCurrency: "MXN",
+            minimumPriceUsdAmount: 10,
+            maximumPriceUsdAmount: 10,
+            categoryPathIds: ["wellness"],
+            categoryPathNames: ["Wellness"],
+            brandId: null,
+            brandName: "Brand",
+            observedAt: "2026-09-24T00:00:00.000Z",
+            snapshotHash: "product-hash",
+          },
+        };
+      }
+      if (query.includes("ValidateAffiliateCampaignMessageTemplateSuggestion")) {
+        return { validateAffiliateCampaignMessageTemplateSuggestion: valid };
+      }
+      throw new Error("Unexpected GraphQL operation");
+    });
+    const runner: StructuredRunner = async <T>(options: StructuredOneShotAgentOptions<T>) => {
+      expect(() =>
+        options.validate({
+          text: "¡Hola, [Nombre]! Nos encantaría colaborar contigo.",
+          productShortName: "producto de bienestar",
+        }),
+      ).toThrow("exact {{creator_name}}");
+      return {
+        value: options.validate({
+          text: valid.text,
+          productShortName: valid.productShortName,
+        }),
+        provider: "user-provider",
+        model: "user-model",
+        runIds: ["run-1", "run-2"],
+        repaired: true,
+        durationMs: 20,
+      };
+    };
+
+    await expect(
+      generateCampaignMessageTemplate({
+        authSession: { graphqlFetch } as never,
+        shopId: "shop-5",
+        productId: "product-1",
+        uiLocale: "es-MX",
+        mode: "INITIAL",
+        runStructured: runner,
+      }),
+    ).resolves.toEqual(valid);
+  });
+
+  it("returns the last structured draft for human correction when repair is still invalid", async () => {
+    const invalidDraft = {
+      text: "¡Hola, [Nombre]! Nos encantaría colaborar contigo.",
+      productShortName: "producto de bienestar",
+    };
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("AffiliateCampaignMessageProductPreview")) {
+        return {
+          affiliateCampaignProductPreview: {
+            productId: "product-1",
+            title: "Producto",
+            description: "Descripción",
+            status: "ACTIVE",
+            originalCurrency: "MXN",
+            minimumPriceUsdAmount: 10,
+            maximumPriceUsdAmount: 10,
+            categoryPathIds: ["wellness"],
+            categoryPathNames: ["Wellness"],
+            brandId: null,
+            brandName: "Brand",
+            observedAt: "2026-09-24T00:00:00.000Z",
+            snapshotHash: "product-hash",
+          },
+        };
+      }
+      throw new Error("Invalid drafts must not reach Backend validation");
+    });
+    const runner: StructuredRunner = async <T>(options: StructuredOneShotAgentOptions<T>) => ({
+      value: options.validate(invalidDraft),
+      provider: "user-provider",
+      model: "user-model",
+      runIds: ["run-1", "run-2"],
+      repaired: true,
+      durationMs: 20,
+    });
+
+    await expect(
+      generateCampaignMessageTemplate({
+        authSession: { graphqlFetch } as never,
+        shopId: "shop-5",
+        productId: "product-1",
+        uiLocale: "es-MX",
+        mode: "INITIAL",
+        runStructured: runner,
+      }),
+    ).resolves.toEqual({ ...invalidDraft, source: "AI_GENERATED" });
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
   });
 });

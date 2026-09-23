@@ -360,6 +360,10 @@ export function unsupportedAffiliateCampaignTemplateVariables(value: string): st
   return [...unsupported];
 }
 
+export function affiliateCampaignAiTemplateMissingCreatorPlaceholder(value: string): boolean {
+  return !value.includes("{{creator_name}}");
+}
+
 export function campaignSkipsDirectMessage(mode: GQL.AffiliateCampaignFirstTouchMode): boolean {
   return mode === GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly;
 }
@@ -947,6 +951,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const unsupportedTemplateVariables = unsupportedAffiliateCampaignTemplateVariables(
     form.templateText,
   );
+  const aiTemplateMissingCreatorPlaceholder =
+    form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated &&
+    affiliateCampaignAiTemplateMissingCreatorPlaceholder(form.templateText);
 
   const targetStepIssues = campaignTargetStepIssues(form);
   const targetFieldIssue = (field: CampaignTargetStepField) =>
@@ -994,7 +1001,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.templateRequired"), "error");
       return false;
     }
-    if (wizardStep >= 3 && unsupportedTemplateVariables.length > 0) return false;
+    if (
+      wizardStep >= 3 &&
+      (unsupportedTemplateVariables.length > 0 || aiTemplateMissingCreatorPlaceholder)
+    ) {
+      return false;
+    }
     return true;
   };
 
@@ -1119,7 +1131,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         messageProductName: suggestion.productShortName,
         templateSource: GQL.AffiliateCampaignMessageTemplateSource.AiGenerated,
       }));
-      showToast(t("ecommerce.affiliateCampaign.templateReady"), "success");
+      const requiresPlaceholderRepair = affiliateCampaignAiTemplateMissingCreatorPlaceholder(
+        suggestion.text,
+      );
+      showToast(
+        t(
+          requiresPlaceholderRepair
+            ? "ecommerce.affiliateCampaign.templatePlaceholderRepairRequired"
+            : "ecommerce.affiliateCampaign.templateReady",
+        ),
+        requiresPlaceholderRepair ? "error" : "success",
+      );
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
     } finally {
@@ -3229,18 +3251,28 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     maxLength={2000}
                     value={form.templateText}
                     disabled={skipDirectMessage}
-                    aria-invalid={unsupportedTemplateVariables.length > 0}
+                    aria-invalid={
+                      unsupportedTemplateVariables.length > 0 || aiTemplateMissingCreatorPlaceholder
+                    }
                     aria-describedby={
                       unsupportedTemplateVariables.length > 0
                         ? "affiliate-campaign-template-variable-error"
-                        : undefined
+                        : aiTemplateMissingCreatorPlaceholder
+                          ? "affiliate-campaign-template-placeholder-error"
+                          : undefined
                     }
                     onChange={(event) => {
-                      updateForm("templateText", event.target.value);
-                      updateForm(
-                        "templateSource",
-                        GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
-                      );
+                      const nextText = event.target.value;
+                      setForm((current) => ({
+                        ...current,
+                        templateText: nextText,
+                        templateSource:
+                          current.templateSource ===
+                            GQL.AffiliateCampaignMessageTemplateSource.AiGenerated &&
+                          affiliateCampaignAiTemplateMissingCreatorPlaceholder(nextText)
+                            ? GQL.AffiliateCampaignMessageTemplateSource.AiGenerated
+                            : GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
+                      }));
                     }}
                     placeholder={t("ecommerce.affiliateCampaign.messagePlaceholder")}
                   />
@@ -3257,6 +3289,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       })}
                     </small>
                   )}
+                  {unsupportedTemplateVariables.length === 0 &&
+                    aiTemplateMissingCreatorPlaceholder && (
+                      <small
+                        id="affiliate-campaign-template-placeholder-error"
+                        className="affiliate-campaign-template-error"
+                        role="alert"
+                      >
+                        {t("ecommerce.affiliateCampaign.templatePlaceholderRepairRequired")}
+                        {" {{creator_name}}"}
+                      </small>
+                    )}
                   <small>
                     {form.templateText.length}/2000 ·{" "}
                     {form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated

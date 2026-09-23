@@ -449,6 +449,8 @@ const en = {
     "Hi {{creator_name}}, we'd love to invite you to feature {{product_name}} from {{shop_name}}.",
   templateUnsupportedVariables:
     "Unsupported template variables: {{variables}}. Use only the supported variables shown above.",
+  templatePlaceholderRepairRequired:
+    "The AI draft is missing the exact creator placeholder. Add the creator token shown above before continuing.",
   userAuthored: "User-authored template",
   aiDraftReviewRequired: "AI draft — review before publishing",
   preview: "Rendered preview",
@@ -1049,6 +1051,8 @@ const zh = {
   messageTemplate: "首信模板",
   messagePlaceholder: "你好 {{creator_name}}，我们想邀请你推广 {{shop_name}} 的 {{product_name}}。",
   templateUnsupportedVariables: "不支持的模板变量：{{variables}}。请只使用上方列出的变量。",
+  templatePlaceholderRepairRequired:
+    "AI 草稿缺少准确的达人姓名占位符。请先加入上方显示的达人变量，再继续操作。",
   userAuthored: "用户编写",
   aiDraftReviewRequired: "AI 草稿 · 发布前必须人工确认",
   preview: "发送预览",
@@ -1349,6 +1353,8 @@ const operationalCopy = {
     updated: "Kampagnenkonfiguration aktualisiert.",
     templateUnsupportedVariables:
       "Nicht unterstützte Vorlagenvariablen: {{variables}}. Verwende nur die oben aufgeführten Variablen.",
+    templatePlaceholderRepairRequired:
+      "Im KI-Entwurf fehlt der exakte Creator-Platzhalter. Füge das oben angezeigte Creator-Token ein, bevor du fortfährst.",
     authorizationBody:
       "Nach der Aktivierung darf das Backend qualifizierte Creator mit der neuesten veröffentlichten Vorlage kontaktieren. Eine Pause stoppt neue Sendungen; kritische Produkt- oder Qualifikationsänderungen machen betroffene Warteschlangenaufträge ungültig.",
     searchPlanGuidanceHint:
@@ -1556,6 +1562,8 @@ const operationalCopy = {
     updated: "Configuración de la campaña actualizada.",
     templateUnsupportedVariables:
       "Variables de plantilla no compatibles: {{variables}}. Usa solo las variables indicadas arriba.",
+    templatePlaceholderRepairRequired:
+      "Al borrador de IA le falta el marcador exacto del creador. Añade el token mostrado arriba antes de continuar.",
     authorizationBody:
       "Tras activarla, el backend puede contactar a creators cualificados con la última plantilla publicada. Pausar detiene los nuevos envíos; los cambios críticos de producto o cualificación invalidan las tareas afectadas en cola.",
     searchPlanGuidanceHint:
@@ -1761,6 +1769,8 @@ const operationalCopy = {
     updated: "Configuration de la campagne mise à jour.",
     templateUnsupportedVariables:
       "Variables de modèle non prises en charge : {{variables}}. Utilisez uniquement les variables indiquées ci-dessus.",
+    templatePlaceholderRepairRequired:
+      "Le brouillon IA ne contient pas le paramètre exact du créateur. Ajoutez le jeton affiché ci-dessus avant de continuer.",
     authorizationBody:
       "Après activation, le backend peut contacter les créateurs qualifiés avec le dernier modèle publié. La pause arrête les nouveaux envois ; les changements critiques de produit ou de qualification invalident les tâches concernées en file d’attente.",
     searchPlanGuidanceHint:
@@ -1968,6 +1978,8 @@ const operationalCopy = {
     updated: "Konfigurasi kampanye diperbarui.",
     templateUnsupportedVariables:
       "Variabel template tidak didukung: {{variables}}. Gunakan hanya variabel yang ditampilkan di atas.",
+    templatePlaceholderRepairRequired:
+      "Draf AI tidak memiliki placeholder kreator yang tepat. Tambahkan token kreator yang ditampilkan di atas sebelum melanjutkan.",
     authorizationBody:
       "Setelah diaktifkan, backend dapat menghubungi kreator yang memenuhi syarat dengan template terbaru yang dipublikasikan. Menjeda menghentikan pengiriman baru; perubahan penting pada produk atau kualifikasi membatalkan tugas antrean yang terdampak.",
     searchPlanGuidanceHint:
@@ -2169,6 +2181,8 @@ const operationalCopy = {
     updated: "Configurazione della campagna aggiornata.",
     templateUnsupportedVariables:
       "Variabili del modello non supportate: {{variables}}. Usa solo le variabili indicate sopra.",
+    templatePlaceholderRepairRequired:
+      "Nella bozza AI manca il segnaposto esatto del creator. Aggiungi il token mostrato sopra prima di continuare.",
     authorizationBody:
       "Dopo l’attivazione, il backend può contattare i creator idonei con l’ultimo modello pubblicato. La pausa interrompe i nuovi invii; le modifiche critiche al prodotto o alla qualifica invalidano le attività in coda interessate.",
     searchPlanGuidanceHint:
@@ -2364,6 +2378,8 @@ const operationalCopy = {
     },
     updated: "อัปเดตการตั้งค่าแคมเปญแล้ว",
     templateUnsupportedVariables: "ตัวแปรเทมเพลตที่ไม่รองรับ: {{variables}} โปรดใช้เฉพาะตัวแปรที่แสดงด้านบน",
+    templatePlaceholderRepairRequired:
+      "ฉบับร่างจาก AI ไม่มีตัวยึดตำแหน่งชื่อครีเอเตอร์ที่ถูกต้อง โปรดเพิ่มโทเคนที่แสดงด้านบนก่อนดำเนินการต่อ",
     authorizationBody:
       "หลังเปิดใช้งาน Backend สามารถติดต่อครีเอเตอร์ที่ผ่านเกณฑ์ด้วยเทมเพลตล่าสุดที่เผยแพร่ได้ การหยุดชั่วคราวจะหยุดการส่งใหม่ ส่วนการเปลี่ยนแปลงสำคัญของสินค้าหรือเกณฑ์คัดเลือกจะยกเลิกงานในคิวที่ได้รับผลกระทบ",
     searchPlanGuidanceHint:

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import {
   applySentCreatorStatePreset,
+  affiliateCampaignAiTemplateMissingCreatorPlaceholder,
   campaignCreatorResponseSummary,
   campaignDecisionReasonLabel,
   campaignOutreachReasonLabel,
@@ -169,6 +170,17 @@ describe("Affiliate Campaign presentation contracts", () => {
         "Hi {{creator_name}}, meet {{product_name}} from {{shop_name}}.",
       ),
     ).toEqual([]);
+  });
+
+  it("keeps an AI draft missing the canonical placeholder editable but blocks publication", () => {
+    for (const value of ["¡Hola, [Nombre]!", "สวัสดี [ชื่อ]!", "Hi creator!"]) {
+      expect(affiliateCampaignAiTemplateMissingCreatorPlaceholder(value)).toBe(true);
+    }
+    expect(
+      affiliateCampaignAiTemplateMissingCreatorPlaceholder(
+        "¡Hola, {{creator_name}}! 任意语言和 [任意括号文本] 都不影响协议判断。",
+      ),
+    ).toBe(false);
   });
 
   it("requires a template only when the Campaign sends a direct message", () => {

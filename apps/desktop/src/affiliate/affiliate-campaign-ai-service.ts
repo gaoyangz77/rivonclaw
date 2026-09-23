@@ -83,37 +83,55 @@ export async function generateCampaignMessageTemplate(input: {
     input: { shopId: input.shopId, productId: input.productId },
   });
   const product = preview.affiliateCampaignProductPreview;
-  const generated = await (input.runStructured ?? runStructuredOneShotAgent)({
-    namespace: "affiliate-campaign-first-touch-template",
-    systemPrompt: [
-      "Write one concise, friendly TikTok Shop first-touch message from a merchant to a creator.",
-      "Use the product description, category, brand, and price context—not only the raw title.",
-      "Create a short conversational product name instead of copying a long marketplace title.",
-      "The message may use only {{creator_name}}, {{product_name}}, and {{shop_name}} placeholders.",
-      "Do not include URLs, HTML, unsupported claims, private identifiers, or an invented discount.",
-      `The user's interface locale is ${input.uiLocale}; the actual outreach message should remain natural for the product's target market.`,
-      input.mode === "ALTERNATIVE"
-        ? "Make this materially different in wording and angle from the previous draft."
-        : "Prefer a natural collaboration invitation with a clear reason the creator may care.",
-    ].join(" "),
-    userPrompt: JSON.stringify({
-      task: "Generate one campaign first-touch message template and one conversational product name.",
-      product,
-      optionalUserGuidance: cleanOptionalText(input.guidance),
-      mode: input.mode,
-      previousDraft: input.mode === "ALTERNATIVE" ? cleanOptionalText(input.previousDraft) : null,
-    }),
-    jsonSchema: {
-      type: "object",
-      additionalProperties: false,
-      required: ["text", "productShortName"],
-      properties: {
-        text: { type: "string", minLength: 1, maxLength: 2_000 },
-        productShortName: { type: "string", minLength: 1, maxLength: 80 },
+  let latestDraft: { text: string; productShortName: string } | undefined;
+  let generated: StructuredOneShotAgentResult<{ text: string; productShortName: string }>;
+  try {
+    generated = await (input.runStructured ?? runStructuredOneShotAgent)({
+      namespace: "affiliate-campaign-first-touch-template",
+      systemPrompt: [
+        "Write one concise, friendly TikTok Shop first-touch message from a merchant to a creator.",
+        "Use the product description, category, brand, and price context—not only the raw title.",
+        "Create a short conversational product name instead of copying a long marketplace title.",
+        "Placeholder tokens are immutable protocol syntax, not natural-language text.",
+        "They MUST remain in English ASCII with the original variable names and double curly braces exactly as written: {{creator_name}}, {{product_name}}, and {{shop_name}}.",
+        "The text must contain the exact token {{creator_name}}. Never translate, localize, rename, or reformat any placeholder.",
+        "Do not include URLs, HTML, unsupported claims, private identifiers, or an invented discount.",
+        `The user's interface locale is ${input.uiLocale}; the actual outreach message should remain natural for the product's target market.`,
+        input.mode === "ALTERNATIVE"
+          ? "Make this materially different in wording and angle from the previous draft."
+          : "Prefer a natural collaboration invitation with a clear reason the creator may care.",
+      ].join(" "),
+      userPrompt: JSON.stringify({
+        task: "Generate one campaign first-touch message template and one conversational product name.",
+        product,
+        optionalUserGuidance: cleanOptionalText(input.guidance),
+        mode: input.mode,
+        previousDraft: input.mode === "ALTERNATIVE" ? cleanOptionalText(input.previousDraft) : null,
+      }),
+      jsonSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["text", "productShortName"],
+        properties: {
+          text: { type: "string", minLength: 1, maxLength: 2_000 },
+          productShortName: { type: "string", minLength: 1, maxLength: 80 },
+        },
       },
-    },
-    validate: validateTemplateDraft,
-  });
+      validate(value) {
+        const draft = validateTemplateDraft(value);
+        latestDraft = draft;
+        validateAiTemplatePlaceholders(draft.text);
+        return draft;
+      },
+    });
+  } catch (error) {
+    // The structured runner has already used its one repair turn. Preserve a
+    // structurally valid draft for human correction instead of discarding it.
+    if (latestDraft && aiTemplateMissingCreatorPlaceholder(latestDraft.text)) {
+      return { ...latestDraft, source: "AI_GENERATED" };
+    }
+    throw error;
+  }
 
   const validated = await input.authSession.graphqlFetch<{
     validateAffiliateCampaignMessageTemplateSuggestion: CampaignMessageTemplateSuggestion;
@@ -141,10 +159,23 @@ function validateTemplateDraft(value: unknown): {
   if (keys.some((key) => key !== "text" && key !== "productShortName")) {
     throw new Error("template result contains unsupported fields");
   }
+  const text = requiredString(record.text, "text", 2_000);
   return {
-    text: requiredString(record.text, "text", 2_000),
+    text,
     productShortName: requiredString(record.productShortName, "productShortName", 80),
   };
+}
+
+function aiTemplateMissingCreatorPlaceholder(text: string): boolean {
+  return !text.includes("{{creator_name}}");
+}
+
+function validateAiTemplatePlaceholders(text: string): void {
+  if (aiTemplateMissingCreatorPlaceholder(text)) {
+    throw new Error(
+      "AI template must contain the exact {{creator_name}} placeholder copied byte-for-byte",
+    );
+  }
 }
 
 function requiredString(value: unknown, field: string, maxLength: number): string {
