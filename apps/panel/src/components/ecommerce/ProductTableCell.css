@@ -1,0 +1,73 @@
+.commerce-product-table-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.commerce-product-table-cell-media {
+  display: flex;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+}
+
+.commerce-product-table-cell-media > img,
+.commerce-product-table-cell-media > .image-asset-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.commerce-product-table-cell-media > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.commerce-product-table-cell-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.commerce-product-table-cell-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.commerce-product-table-cell-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.commerce-product-table-cell-label {
+  flex: none;
+}
+
+.commerce-product-table-cell-sku {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

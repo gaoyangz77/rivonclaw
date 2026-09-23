@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MockedProvider } from "@apollo/client/testing/react";
 import { GQL } from "@rivonclaw/core";
 import i18n from "../../../i18n/index.js";
 import { ToastProvider } from "../../../components/Toast.js";
 import {
+  AFFILIATE_PRODUCT_SUMMARIES_QUERY,
   AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY,
   AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
 } from "../../../api/shops-queries.js";
@@ -64,6 +65,9 @@ function sampleRow(index: number) {
       creatorId: `creator-${index}`,
       creatorOpenId: `open-${index}`,
       productId: "product-1",
+      skuId: null,
+      skuName: null,
+      skuImageUrl: null,
       sampleWorkStatus: null,
       reviewDisposition: "OPEN",
       reviewDispositionRevision: 1,
@@ -154,6 +158,28 @@ function renderTab(tab: "SAMPLES" | "MESSAGES") {
           },
           delay: 0,
         },
+        ...(samples ? [{
+          request: {
+            query: AFFILIATE_PRODUCT_SUMMARIES_QUERY,
+            variables: { input: { refs: [{ shopId: "shop-1", productId: "product-1" }] } },
+          },
+          result: {
+            data: {
+              affiliateProductSummaries: [{
+                shopId: "shop-1",
+                product: {
+                  productId: "product-1",
+                  title: "Product",
+                  coverImage: null,
+                  status: null,
+                  priceMin: null,
+                  priceMax: null,
+                  skus: [{ skuId: "sku-1", skuName: null, sellerSku: "SELLER-1", price: null, currency: null }],
+                },
+              }],
+            },
+          },
+        }] : []),
       ]}
     >
       <ToastProvider>
@@ -189,6 +215,10 @@ describe.each(["SAMPLES", "MESSAGES"] as const)("%s creator tag column", (tab) =
 
     const cells = [...document.querySelectorAll(".affiliate-workbench-cell-tags")];
     expect(cells).toHaveLength(3);
+    if (tab === "SAMPLES") {
+      await waitFor(() => expect(screen.getAllByText("SELLER-1")).toHaveLength(3));
+      expect(document.querySelectorAll(".commerce-product-table-cell-media")).toHaveLength(3);
+    }
     // Each tags cell is its own <td>, immediately after the Creator cell.
     for (const cell of cells) {
       const td = cell.closest("td")!;

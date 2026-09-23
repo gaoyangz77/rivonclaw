@@ -104,7 +104,6 @@ export const EcommerceInventoryModel = types
     inventoryGoodsPage: types.optional(types.number, 1),
     inventoryGoodsPageSize: types.optional(types.number, 20),
     inventoryGoodsVisibleColumns: types.optional(types.array(types.string), [
-      "image",
       "good",
       "measurements",
       "declaredValue",

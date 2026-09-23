@@ -1116,6 +1116,13 @@
 .affiliate-result-section td {
   white-space: nowrap;
 }
+.affiliate-result-section td .commerce-product-table-cell {
+  width: min(32vw, 280px);
+  text-align: left;
+}
+.affiliate-result-section td .commerce-product-table-cell-title {
+  white-space: normal;
+}
 .affiliate-load-more {
   display: block;
   margin: 14px auto;

@@ -4,12 +4,12 @@ import { useTranslation } from "react-i18next";
 import type { InventoryGood } from "@rivonclaw/core/models";
 import { RefreshIcon } from "../../../components/icons.js";
 import { ImageAssetPreview } from "../../../components/images/ImageAssetPreview.js";
+import { ProductTableCell } from "../../../components/ecommerce/ProductTableCell.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
 import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
-  TkPrivate,
   TkTableFrame,
   usePrivacyMode,
 } from "../../../components/design-system/index.js";
@@ -57,7 +57,6 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
     goods.length > 0 && goods.every((good) => inventory.isInventoryGoodSelected(good.id));
   const hasInventoryGoodsFilters = inventory.inventoryGoodsSearch.trim() !== "";
   const columnOptions = [
-    { key: "image", label: t("ecommerce.inventory.image") },
     { key: "good", label: t("ecommerce.inventory.inventoryGoodColumn") },
     { key: "barcodeGtin", label: t("ecommerce.inventory.barcodeGtin") },
     { key: "measurements", label: t("ecommerce.inventory.measurements") },
@@ -205,11 +204,6 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                         aria-label={t("ecommerce.inventory.selectAllInventoryGoods")}
                       />
                     </th>
-                    {showColumn("image") && (
-                      <th className="inventory-goods-image-cell">
-                        {t("ecommerce.inventory.image")}
-                      </th>
-                    )}
                     {showColumn("good") && (
                       <th className="inventory-goods-good-cell">
                         {t("ecommerce.inventory.inventoryGoodColumn")}
@@ -256,32 +250,23 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
                             })}
                           />
                         </td>
-                        {showColumn("image") && (
-                          <td className="inventory-goods-image-cell">
-                            <ImageAssetPreview
-                              src={src}
-                              alt={privacyMode ? "" : good.name}
-                              className="inventory-good-thumb"
-                              emptyLabel={t("ecommerce.inventory.noImage")}
-                              failedLabel={t("ecommerce.inventory.imageLoadFailed")}
-                              labelMode="hidden"
-                            />
-                          </td>
-                        )}
                         {showColumn("good") && (
                           <td className="inventory-goods-good-cell">
-                            <div className="inventory-good-main">
-                              <TkPrivate
-                                as="div"
-                                className="tk-v1-table-record-name"
-                                title={good.name}
-                              >
-                                {good.name}
-                              </TkPrivate>
-                              <TkPrivate as="div" className="td-meta input-mono" title={good.sku}>
-                                {good.sku}
-                              </TkPrivate>
-                            </div>
+                            <ProductTableCell
+                              title={good.name}
+                              image={
+                                <ImageAssetPreview
+                                  src={src}
+                                  alt={privacyMode ? "" : good.name}
+                                  className="inventory-good-thumb"
+                                  emptyLabel={t("ecommerce.inventory.noImage")}
+                                  failedLabel={t("ecommerce.inventory.imageLoadFailed")}
+                                  labelMode="hidden"
+                                />
+                              }
+                              skus={[good.sku]}
+                              skuLabel={t("ecommerce.inventory.sku")}
+                            />
                           </td>
                         )}
                         {showColumn("barcodeGtin") && (

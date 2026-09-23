@@ -94,7 +94,7 @@ describe("InventoryGoodsTableSection privacy masking", () => {
 
     const sku = screen.getByText("SKU-1");
     expect(sku.getAttribute("data-tk-private")).toBe("text");
-    expect(sku.className).toBe("td-meta input-mono");
+    expect(sku.className).toBe("commerce-product-table-cell-sku");
     expect(sku.getAttribute("title")).toBe("SKU-1");
 
     act(() => setPrivacyMode(true));

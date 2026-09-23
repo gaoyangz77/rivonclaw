@@ -16,6 +16,7 @@ import {
 import { Select } from "../../components/inputs/Select.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
+import { ProductTableCell } from "../../components/ecommerce/ProductTableCell.js";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkModal as Modal } from "../../components/design-system/index.js";
 import { useToast } from "../../components/Toast.js";
@@ -1629,7 +1630,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
                   const campaignShopLabel = campaignShopDisplayName(campaignShop, campaign.shopId);
                   const campaignProductTitle = campaign.productSnapshot?.title?.trim() ?? "";
-                  const campaignProductRef = campaignProductReference(campaign, t, privacyMode);
                   return (
                     <TkInteractiveTableRow
                       key={campaign.id}
@@ -1678,16 +1678,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <small>{campaignRuleSummary(campaign, t)}</small>
                       </td>
                       <td>
-                        <div className="affiliate-campaign-directory-product">
-                          <TkPrivate
-                            as="strong"
-                            sensitive={campaignProductTitle !== ""}
-                            title={campaign.productSnapshot?.title ?? undefined}
-                          >
-                            {campaignProductTitle || campaignLeadProductId(campaign)}
-                          </TkPrivate>
-                          <small title={campaignProductRef}>{campaignProductRef}</small>
-                        </div>
+                        <ProductTableCell
+                          title={campaignProductTitle}
+                          imageUrl={campaign.productSnapshot?.coverImage}
+                          skus={campaign.productSnapshot?.sellerSkus}
+                          skuLabel={t("ecommerce.affiliateCampaign.skuLabel")}
+                          productId={campaignLeadProductId(campaign)}
+                          productIdLabel={t("ecommerce.affiliateCampaign.productIdLabel")}
+                        />
                       </td>
                       <td>
                         <ChevronRightIcon />

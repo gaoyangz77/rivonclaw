@@ -2366,30 +2366,6 @@
   font-size: 10px;
 }
 
-.affiliate-campaign-directory-product {
-  min-width: 0;
-}
-
-.affiliate-campaign-directory-product strong,
-.affiliate-campaign-directory-product small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.affiliate-campaign-directory-product strong {
-  color: var(--campaign-ink);
-  font-weight: 720;
-}
-
-.affiliate-campaign-directory-product small {
-  margin-top: 4px;
-  color: var(--campaign-muted);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
 .affiliate-campaign-directory-table td:last-child {
   color: var(--color-text-muted);
   text-align: right;

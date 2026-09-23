@@ -20,6 +20,7 @@ import {
   AFFILIATE_BI_DIMENSION_VALUES_QUERY,
 } from "../../../api/affiliate-analytics-queries.js";
 import { Select } from "../../../components/inputs/Select.js";
+import { ProductTableCell } from "../../../components/ecommerce/ProductTableCell.js";
 import { TkSegmented, TkTableFrame } from "../../../components/design-system/index.js";
 import {
   PLATFORM_DATASET,
@@ -837,15 +838,18 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
                       <tr key={rowIndex}>
                         {displayedColumns.map((column) => (
                           <td key={column.key}>
-                            {column.dimension && row[column.key] != null ? (
+                            {column.dimension && (row[column.key] != null ||
+                              (column.key === "PRODUCT_NAME" && row.PRODUCT_ID != null)) ? (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const value = String(row[column.key]);
+                                  const missingProductName = column.key === "PRODUCT_NAME" && row[column.key] == null;
+                                  const dimension = missingProductName ? "PRODUCT_ID" : column.dimension!;
+                                  const value = String(missingProductName ? row.PRODUCT_ID : row[column.key]);
                                   const next = {
                                     ...executed,
                                     filters: upsertAffiliateFilter(executed.filters, {
-                                      dimension: column.dimension!,
+                                      dimension,
                                       operator: "IN",
                                       values: [value],
                                       labels: { [value]: value },
@@ -855,7 +859,21 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
                                   void execute(next);
                                 }}
                               >
-                                {String(row[column.key])}
+                                {(column.key === "PRODUCT_NAME" ||
+                                  (column.key === "PRODUCT_ID" &&
+                                    !displayedColumns.some((item) => item.key === "PRODUCT_NAME"))) ? (
+                                  <ProductTableCell
+                                    title={row.PRODUCT_NAME == null ? null : String(row.PRODUCT_NAME)}
+                                    imageUrl={row.PRODUCT_IMAGE_URL == null ? null : String(row.PRODUCT_IMAGE_URL)}
+                                    skus={row.PRODUCT_SELLER_SKU == null ? [] : [String(row.PRODUCT_SELLER_SKU)]}
+                                    extraSkuCount={Math.max(0, Number(row.PRODUCT_SELLER_SKU_COUNT ?? 0) - 1)}
+                                    skuLabel={t("ecommerce.affiliateCampaign.skuLabel")}
+                                    productId={row.PRODUCT_ID == null
+                                      ? row.PRODUCT_REF_ID == null ? null : String(row.PRODUCT_REF_ID)
+                                      : String(row.PRODUCT_ID)}
+                                    productIdLabel={t("ecommerce.affiliateCampaign.productIdLabel")}
+                                  />
+                                ) : String(row[column.key])}
                               </button>
                             ) : (
                               metricDisplay(
