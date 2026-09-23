@@ -2323,6 +2323,7 @@ describe("creator tag catalog wiring", () => {
     const english = readFileSync(resolve(process.cwd(), "src/i18n/en.ts"), "utf8");
 
     expect(page).toContain('className="affiliate-creator-compact-list"');
+    expect(page).toContain('className="affiliate-creator-compact-list-header"');
     expect(page).not.toContain('className="affiliate-creator-table"');
     expect(creatorCard).toContain("affiliate-creator-compact-card");
     expect(creatorCard).toContain("affiliate-creator-compact-metrics");
@@ -2330,6 +2331,9 @@ describe("creator tag catalog wiring", () => {
     expect(creatorCard).toContain("affiliate-creator-compact-status");
     expect(creatorCard).toContain('t("ecommerce.affiliateTeam.businessDeveloper")');
     expect(creatorCard).toContain("businessDeveloperLabel");
+    expect(creatorCard).toContain('className="affiliate-creator-owner-link"');
+    expect(creatorCard).toContain("onOpenBusinessDeveloper(businessDeveloper.id)");
+    expect(creatorCard).toContain("onKeyDown={(event) => event.stopPropagation()}");
     expect(creatorCard).not.toContain("affiliate-creator-compact-next");
     expect(creatorCard).not.toContain("affiliateWorkspace.labels.nextStep");
     expect(creatorCard).not.toContain("affiliate-creator-card-stat-strip");

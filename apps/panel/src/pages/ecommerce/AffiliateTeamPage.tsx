@@ -266,7 +266,13 @@ function readTeamPageTab(): TeamPageTab {
   return "TEAM";
 }
 
-export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
+export const AffiliateTeamPage = observer(function AffiliateTeamPage({
+  detailOnlyDeveloper,
+  onDetailClose,
+}: {
+  detailOnlyDeveloper?: GQL.AffiliateBusinessDeveloper;
+  onDetailClose?: () => void;
+} = {}) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const apolloClient = useApolloClient();
@@ -328,6 +334,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deferredDeveloperSearch = useDeferredValue(developerSearch.trim());
   const deferredProtectionSearch = useDeferredValue(protectionSearch.trim());
+  const developerPageSize = detailOnlyDeveloper ? 100 : DEVELOPER_PAGE_SIZE;
 
   useEffect(() => {
     let cancelled = false;
@@ -415,21 +422,25 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   >(AFFILIATE_BUSINESS_DEVELOPER_PAGE_QUERY, {
     variables: {
       input: {
-        offset: developerPage * DEVELOPER_PAGE_SIZE,
-        limit: DEVELOPER_PAGE_SIZE,
-        search: deferredDeveloperSearch || null,
-        includeArchived: showArchivedDevelopers,
+        offset: developerPage * developerPageSize,
+        limit: developerPageSize,
+        search: detailOnlyDeveloper?.displayName ?? (deferredDeveloperSearch || null),
+        includeArchived: Boolean(detailOnlyDeveloper) || showArchivedDevelopers,
       },
     },
     fetchPolicy: "cache-and-network",
   });
   const settingsQuery = useQuery<{
     affiliateOperationalSettings: GQL.AffiliateOperationalSettings;
-  }>(AFFILIATE_OPERATIONAL_SETTINGS_QUERY, { fetchPolicy: "cache-and-network" });
+  }>(AFFILIATE_OPERATIONAL_SETTINGS_QUERY, {
+    skip: Boolean(detailOnlyDeveloper),
+    fetchPolicy: "cache-and-network",
+  });
   const protectionQuery = useQuery<
     { affiliateCreatorProtections: GQL.AffiliateCreatorProtectionPage },
     { input: GQL.AffiliateCreatorProtectionPageInput }
   >(AFFILIATE_CREATOR_PROTECTIONS_QUERY, {
+    skip: Boolean(detailOnlyDeveloper),
     variables: {
       input: {
         offset: protectionPage * PROTECTION_PAGE_SIZE,
@@ -445,6 +456,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     { creatorManualTags: GQL.CreatorManualTag[] },
     { input: GQL.ReadCreatorManualTagsInput }
   >(CREATOR_MANUAL_TAGS_QUERY, {
+    skip: Boolean(detailOnlyDeveloper),
     variables: { input: {} },
     fetchPolicy: "cache-and-network",
   });
@@ -545,7 +557,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const developerPageData = developerPageQuery.data?.affiliateBusinessDeveloperPage;
   const developerSummaries = developerPageData?.items ?? [];
   const developerTotalCount = developerPageData?.totalCount ?? 0;
-  const developerTotalPages = Math.max(1, Math.ceil(developerTotalCount / DEVELOPER_PAGE_SIZE));
+  const developerTotalPages = Math.max(1, Math.ceil(developerTotalCount / developerPageSize));
   const detailDeveloper = detailSummary
     ? (workspace.getBusinessDeveloper(detailSummary.developer.id) ?? detailSummary.developer)
     : null;
@@ -661,6 +673,36 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration;
 
   useEffect(() => {
+    if (!detailOnlyDeveloper || detailSummary || developerPageQuery.loading) return;
+    const summary = developerSummaries.find((item) => item.developer.id === detailOnlyDeveloper.id);
+    if (summary) {
+      openDeveloperDetail(summary);
+    } else if (developerPageQuery.data && developerPage + 1 < developerTotalPages) {
+      setDeveloperPage((page) => page + 1);
+    } else if (developerPageQuery.data || developerPageQuery.error) {
+      showToast(
+        t("common.operationFailed", {
+          message: developerPageQuery.error?.message ?? detailOnlyDeveloper.displayName,
+        }),
+        "error",
+      );
+      onDetailClose?.();
+    }
+  }, [
+    detailOnlyDeveloper,
+    detailSummary,
+    developerPageQuery.data,
+    developerPageQuery.error,
+    developerPageQuery.loading,
+    developerPage,
+    developerSummaries,
+    developerTotalPages,
+    onDetailClose,
+    showToast,
+    t,
+  ]);
+
+  useEffect(() => {
     if (developerPage > 0 && developerPage >= developerTotalPages) {
       setDeveloperPage(developerTotalPages - 1);
     }
@@ -752,6 +794,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setPendingAccountTransfer(null);
     setTransferTargetId("");
     setDetailTab("CHANNELS");
+    onDetailClose?.();
   }
 
   function closeDeveloperDetail() {
@@ -1638,7 +1681,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   ];
 
   return (
-    <AffiliatePageFrame className="affiliate-team-page">
+    <AffiliatePageFrame
+      className={`affiliate-team-page${detailOnlyDeveloper ? " is-detail-only" : ""}`}
+    >
       <AffiliatePageHeader
         className="affiliate-team-header"
         data-tutorial-id="affiliate-team-header"
@@ -1745,14 +1790,18 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             <span>{t("ecommerce.affiliateTeam.connectedChannels")}</span>
             <strong>{totalChannelCount}</strong>
             <small>
-              {t("ecommerce.affiliateTeam.unassignedChannels", { count: unassignedChannelCount })}
+              {t("ecommerce.affiliateTeam.unassignedChannels", {
+                count: unassignedChannelCount,
+              })}
             </small>
           </div>
           <div>
             <span>{t("ecommerce.affiliateTeam.protectedCreators")}</span>
             <strong>{protectedCreatorCount}</strong>
             <small>
-              {t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}
+              {t("ecommerce.affiliateTeam.appliedProtections", {
+                count: appliedProtectionCount,
+              })}
             </small>
           </div>
         </section>
@@ -1798,7 +1847,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                     onChange={(event) => setShowArchivedDevelopers(event.target.checked)}
                   />
                   <span>
-                    {t("ecommerce.affiliateTeam.showArchived", { defaultValue: "Show archived" })}
+                    {t("ecommerce.affiliateTeam.showArchived", {
+                      defaultValue: "Show archived",
+                    })}
                   </span>
                 </label>
                 <button
@@ -1956,7 +2007,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                         setDeveloperPage((page) => Math.min(developerTotalPages - 1, page + 1))
                       }
                       disabled={developerPage + 1 >= developerTotalPages}
-                      title={t("ecommerce.affiliateTeam.nextPage", { defaultValue: "Next page" })}
+                      title={t("ecommerce.affiliateTeam.nextPage", {
+                        defaultValue: "Next page",
+                      })}
                       aria-label={t("ecommerce.affiliateTeam.nextPage", {
                         defaultValue: "Next page",
                       })}
@@ -2089,7 +2142,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   options={[
                     {
                       value: "",
-                      label: t("ecommerce.affiliateTeam.allDevelopers", { defaultValue: "All BD" }),
+                      label: t("ecommerce.affiliateTeam.allDevelopers", {
+                        defaultValue: "All BD",
+                      }),
                     },
                     ...activeDevelopers.map((developer) => ({
                       value: developer.id,
@@ -2324,7 +2379,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           </div>
         </section>
       </div>
-
       <Modal
         isOpen={protectionImportOpen}
         onClose={closeProtectionImport}
@@ -3022,9 +3076,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       </Modal>
 
       <Modal
-        isOpen={Boolean(detailDeveloper && detailSummary)}
+        isOpen={Boolean(detailOnlyDeveloper || (detailDeveloper && detailSummary))}
         onClose={closeDeveloperDetail}
-        title={detailDeveloper?.displayName ?? t("ecommerce.affiliateTeam.businessDeveloper")}
+        title={
+          detailDeveloper?.displayName ??
+          detailOnlyDeveloper?.displayName ??
+          t("ecommerce.affiliateTeam.businessDeveloper")
+        }
         maxWidth={1180}
         className="affiliate-bd-detail-modal"
         padding="none"
@@ -3032,6 +3090,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         preventBackdropClose={writeState.loading}
         portal
       >
+        {detailOnlyDeveloper && !detailSummary && <LoadingSpinner variant="inline" />}
         {detailDeveloper && detailSummary && (
           <>
             <div className="affiliate-bd-command-header">

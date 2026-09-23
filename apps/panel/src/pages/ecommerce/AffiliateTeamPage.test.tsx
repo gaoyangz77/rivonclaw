@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { GQL } from "@rivonclaw/core";
 import { describe, expect, it, vi } from "vitest";
@@ -92,6 +94,31 @@ describe("Affiliate business developer region editor", () => {
     expect(screen.getAllByRole("checkbox")).toHaveLength(SHOP_REGIONS.length + 2);
     expect(screen.getByDisplayValue("Regional BD")).toBeTruthy();
     expect(screen.getByDisplayValue("Creator-facing BD")).toBeTruthy();
+  });
+});
+
+describe("Affiliate business developer detail from creators", () => {
+  it("reuses the existing detail modal in place without changing routes", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateTeamPage.tsx"),
+      "utf8",
+    );
+    const creatorsSource = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(creatorsSource).toContain("<AffiliateTeamPage");
+    expect(creatorsSource).toContain(
+      "detailOnlyDeveloper={businessDeveloperById.get(detailBusinessDeveloperId)!}",
+    );
+    expect(creatorsSource).toContain("onDetailClose={() => setDetailBusinessDeveloperId(null)}");
+    expect(creatorsSource).not.toContain('params.set("developerId"');
+    expect(source).toContain(
+      "if (!detailOnlyDeveloper || detailSummary || developerPageQuery.loading) return;",
+    );
+    expect(source).toContain("openDeveloperDetail(summary)");
+    expect(source).toContain('className="affiliate-bd-detail-modal"');
   });
 });
 

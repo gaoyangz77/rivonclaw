@@ -69,6 +69,7 @@ import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleShopIdentity,
 } from "./components/AffiliateSampleReview.js";
+import { AffiliateTeamPage } from "./AffiliateTeamPage.js";
 import { sortAffiliateSamplesPendingFirst } from "./affiliate-sample-order.js";
 import {
   CreatorDetailScopeControl,
@@ -3390,6 +3391,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const [creatorPage, setCreatorPage] = useState(1);
   const [selectedRelationship, setSelectedRelationship] =
     useState<CreatorRelationshipDetailItem | null>(null);
+  const [detailBusinessDeveloperId, setDetailBusinessDeveloperId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -3724,6 +3726,13 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             className="affiliate-creator-compact-list"
             aria-label={t("ecommerce.affiliateWorkspace.creatorsTitle")}
           >
+            <div className="affiliate-creator-compact-list-header" aria-hidden="true">
+              <span>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</span>
+              <span>{t("ecommerce.affiliateWorkspace.creatorCooperationShops")}</span>
+              <span>{t("ecommerce.affiliateWorkspace.creatorDetail.profileFacts")}</span>
+              <span>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</span>
+              <span>{t("ecommerce.affiliateTeam.businessDeveloper")}</span>
+            </div>
             {creatorItems.map((item) => (
               <CreatorRelationshipCompactCard
                 key={item.creatorId}
@@ -3734,6 +3743,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                     ? (businessDeveloperById.get(item.creatorRelation.businessDeveloperId) ?? null)
                     : null
                 }
+                onOpenBusinessDeveloper={setDetailBusinessDeveloperId}
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
               />
             ))}
@@ -3777,6 +3787,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
+      {detailBusinessDeveloperId && businessDeveloperById.get(detailBusinessDeveloperId) ? (
+        <AffiliateTeamPage
+          detailOnlyDeveloper={businessDeveloperById.get(detailBusinessDeveloperId)!}
+          onDetailClose={() => setDetailBusinessDeveloperId(null)}
+        />
+      ) : null}
     </AffiliatePageFrame>
   );
 });
@@ -3785,11 +3801,13 @@ function CreatorRelationshipCompactCard({
   item,
   shopLabel,
   businessDeveloper,
+  onOpenBusinessDeveloper,
   onOpenRelationship,
 }: {
   item: AffiliateCreatorManagementItem;
   shopLabel: (shopId: string) => ShopDisplayLabel;
   businessDeveloper: GQL.AffiliateBusinessDeveloper | null;
+  onOpenBusinessDeveloper: (businessDeveloperId: string) => void;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
 }) {
   const { t } = useTranslation();
@@ -4019,11 +4037,31 @@ function CreatorRelationshipCompactCard({
               {item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}
             </dd>
           </div>
-          <div>
-            <dt>{t("ecommerce.affiliateTeam.businessDeveloper")}</dt>
-            <dd title={businessDeveloperLabel}>{businessDeveloperLabel}</dd>
-          </div>
         </dl>
+      </section>
+
+      <section className="affiliate-creator-compact-owner">
+        <span className="affiliate-creator-compact-owner-label">
+          {t("ecommerce.affiliateTeam.businessDeveloper")}
+        </span>
+        {businessDeveloper ? (
+          <button
+            className="affiliate-creator-owner-link"
+            type="button"
+            title={businessDeveloperLabel}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenBusinessDeveloper(businessDeveloper.id);
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            {businessDeveloperLabel}
+          </button>
+        ) : (
+          <span className="affiliate-creator-owner-value" title={businessDeveloperLabel}>
+            {businessDeveloperLabel}
+          </span>
+        )}
       </section>
     </article>
   );
