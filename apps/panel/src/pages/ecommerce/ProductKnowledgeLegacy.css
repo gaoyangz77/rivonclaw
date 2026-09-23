@@ -330,6 +330,35 @@
   background: var(--color-bg);
 }
 
+.product-knowledge-merchant-pid-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-5);
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.product-knowledge-merchant-pid-field label {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.product-knowledge-merchant-pid-field input {
+  width: min(250px, 100%);
+  padding: var(--tk-v1-space-2);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.product-knowledge-merchant-pid-field [role="alert"] {
+  color: var(--color-danger);
+}
+
 .product-knowledge-detail-empty {
   min-height: 480px;
   flex-direction: column;

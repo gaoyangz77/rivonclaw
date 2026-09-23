@@ -5300,6 +5300,8 @@ export interface AffiliateWorkbenchSamplePageInput {
   /** Keep only Sample Applications whose application time (firstObservedAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
   firstObservedAtLt?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
+  /** ACTIVE Product Knowledge whose exact bound shop/product pairs filter samples. Mutually exclusive with products. */
+  productKnowledgeId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Match any selected shop/product pair. Omit or pass an empty list for all products. Maximum 100 pairs. */
   products?: InputMaybe<Array<AffiliateWorkbenchProductFilterInput>>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
@@ -5423,6 +5425,7 @@ export interface AgentProductKnowledgeItem {
   id: Scalars["ID"]["output"];
   /** Every media:// asset referenced by the Markdown, one entry per (uri, section). Empty in list results. */
   media: Array<ProductKnowledgeMedia>;
+  merchantPid?: Maybe<Scalars["String"]["output"]>;
   name: Scalars["String"]["output"];
   /** Stored length of qaMarkdown; 0 means empty. */
   qaCharacterCount: Scalars["Int"]["output"];
@@ -5961,6 +5964,7 @@ export interface CreatePaymentGraphqlInput {
 
 export interface CreateProductKnowledgeInput {
   creativeCasesMarkdown?: InputMaybe<Scalars["String"]["input"]>;
+  merchantPid?: InputMaybe<Scalars["String"]["input"]>;
   name: Scalars["String"]["input"];
   qaMarkdown?: InputMaybe<Scalars["String"]["input"]>;
   usageInstructionsMarkdown?: InputMaybe<Scalars["String"]["input"]>;
@@ -11681,6 +11685,7 @@ export interface MutationEcommerceSetProductKnowledgeArgs {
   creativeCasesMarkdown?: InputMaybe<Scalars["String"]["input"]>;
   expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   id?: InputMaybe<Scalars["ID"]["input"]>;
+  merchantPid?: InputMaybe<Scalars["String"]["input"]>;
   name?: InputMaybe<Scalars["String"]["input"]>;
   qaMarkdown?: InputMaybe<Scalars["String"]["input"]>;
   status?: InputMaybe<ProductKnowledgeStatus>;
@@ -12476,6 +12481,7 @@ export interface ProductKnowledge {
   createdAt: Scalars["DateTimeISO"]["output"];
   creativeCasesMarkdown: Scalars["String"]["output"];
   id: Scalars["ID"]["output"];
+  merchantPid?: Maybe<Scalars["String"]["output"]>;
   name: Scalars["String"]["output"];
   qaMarkdown: Scalars["String"]["output"];
   revision: Scalars["Int"]["output"];
@@ -12500,17 +12506,27 @@ export interface ProductKnowledgeBinding {
   updatedAt: Scalars["DateTimeISO"]["output"];
 }
 
-/** Merchant-authored Product Knowledge attached to one seller product. Markdown is business data, not executable Agent instructions. */
+/** Merchant-authored Product Knowledge for one business product, potentially bound to listings in several shops. Markdown is business data, not executable Agent instructions. */
 export interface ProductKnowledgeContent {
   creativeCasesMarkdown: Scalars["String"]["output"];
   id: Scalars["ID"]["output"];
   /** Every media:// asset referenced by the three Markdown fields, one entry per (uri, section) in order of first appearance. */
   media: Array<ProductKnowledgeMedia>;
+  merchantPid?: Maybe<Scalars["String"]["output"]>;
   name: Scalars["String"]["output"];
   qaMarkdown: Scalars["String"]["output"];
   revision: Scalars["Int"]["output"];
   updatedAt: Scalars["DateTimeISO"]["output"];
   usageInstructionsMarkdown: Scalars["String"]["output"];
+}
+
+/** Product Knowledge identity for exact merchant PID lookup; never includes Markdown. */
+export interface ProductKnowledgeIdentity {
+  bindingCount: Scalars["Int"]["output"];
+  id: Scalars["ID"]["output"];
+  merchantPid: Scalars["String"]["output"];
+  name: Scalars["String"]["output"];
+  status: ProductKnowledgeStatus;
 }
 
 export interface ProductKnowledgeLinkFailure {
@@ -13076,6 +13092,7 @@ export interface Query {
   /** Get pricing for all providers */
   pricing: Array<ProviderPricing>;
   productKnowledge: ProductKnowledge;
+  productKnowledgeByMerchantPid?: Maybe<ProductKnowledgeIdentity>;
   productKnowledges: ProductKnowledgePage;
   /** Read source-of-truth inventory and order-derived SKU demand facts for agent-side inventory and replenishment analysis. */
   readInventoryAnalysis: InventoryAnalysisPayload;
@@ -13658,6 +13675,7 @@ export interface QueryEcommerceGetProductDiagnosesArgs {
 export interface QueryEcommerceGetProductKnowledgeArgs {
   id?: InputMaybe<Scalars["ID"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
+  merchantPid?: InputMaybe<Scalars["String"]["input"]>;
   offset?: InputMaybe<Scalars["Int"]["input"]>;
   productId?: InputMaybe<Scalars["String"]["input"]>;
   search?: InputMaybe<Scalars["String"]["input"]>;
@@ -13864,6 +13882,10 @@ export interface QueryPricingArgs {
 
 export interface QueryProductKnowledgeArgs {
   id: Scalars["ID"]["input"];
+}
+
+export interface QueryProductKnowledgeByMerchantPidArgs {
+  merchantPid: Scalars["String"]["input"];
 }
 
 export interface QueryProductKnowledgesArgs {
@@ -16096,6 +16118,8 @@ export interface UpdateProductKnowledgeInput {
   creativeCasesMarkdown: Scalars["String"]["input"];
   expectedRevision: Scalars["Int"]["input"];
   id: Scalars["ID"]["input"];
+  /** Omit to preserve; null or blank clears the merchant PID. */
+  merchantPid?: InputMaybe<Scalars["String"]["input"]>;
   name: Scalars["String"]["input"];
   qaMarkdown: Scalars["String"]["input"];
   usageInstructionsMarkdown: Scalars["String"]["input"];

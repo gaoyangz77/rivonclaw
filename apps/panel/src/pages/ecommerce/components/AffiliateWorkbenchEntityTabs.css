@@ -126,3 +126,14 @@
 .affiliate-workbench-tag-overflow {
   border-style: dashed;
 }
+.affiliate-workbench-product-mode {
+  display: flex;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-workbench-product-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}

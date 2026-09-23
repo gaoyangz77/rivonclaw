@@ -4,6 +4,7 @@ export const PRODUCT_KNOWLEDGE_SUMMARY_FIELDS = gql`
   fragment ProductKnowledgeSummaryFields on ProductKnowledge {
     id
     name
+    merchantPid
     status
     revision
     bindingCount
@@ -13,6 +14,18 @@ export const PRODUCT_KNOWLEDGE_SUMMARY_FIELDS = gql`
     archivedAt
     createdAt
     updatedAt
+  }
+`;
+
+export const PRODUCT_KNOWLEDGE_BY_MERCHANT_PID_QUERY = gql`
+  query ProductKnowledgeByMerchantPid($merchantPid: String!) {
+    productKnowledgeByMerchantPid(merchantPid: $merchantPid) {
+      id
+      name
+      merchantPid
+      status
+      bindingCount
+    }
   }
 `;
 

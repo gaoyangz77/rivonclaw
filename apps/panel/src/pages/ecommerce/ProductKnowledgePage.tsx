@@ -47,6 +47,7 @@ const PAGE_SIZE = 25;
 type KnowledgeSummary = Omit<GQL.ProductKnowledge, "bindings">;
 type KnowledgeDraft = {
   name: string;
+  merchantPid: string;
   usageInstructionsMarkdown: string;
   qaMarkdown: string;
   creativeCasesMarkdown: string;
@@ -62,6 +63,7 @@ type Confirmation =
 function draftFromKnowledge(knowledge: GQL.ProductKnowledge): KnowledgeDraft {
   return {
     name: knowledge.name,
+    merchantPid: knowledge.merchantPid ?? "",
     usageInstructionsMarkdown: knowledge.usageInstructionsMarkdown,
     qaMarkdown: knowledge.qaMarkdown,
     creativeCasesMarkdown: knowledge.creativeCasesMarkdown,
@@ -72,6 +74,7 @@ function draftIsDirty(draft: KnowledgeDraft | null, knowledge?: GQL.ProductKnowl
   if (!draft || !knowledge) return false;
   return (
     draft.name !== knowledge.name ||
+    draft.merchantPid !== (knowledge.merchantPid ?? "") ||
     draft.usageInstructionsMarkdown !== knowledge.usageInstructionsMarkdown ||
     draft.qaMarkdown !== knowledge.qaMarkdown ||
     draft.creativeCasesMarkdown !== knowledge.creativeCasesMarkdown
@@ -117,6 +120,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const [activeTab, setActiveTab] = useState<ContentTab>("usage");
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
+  const [createPid, setCreatePid] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const pendingNavigationRef = useRef<(() => void) | null>(null);
   const [sellerSku, setSellerSku] = useState("");
@@ -167,6 +171,8 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const totalCount = listQuery.data?.productKnowledges.totalCount ?? 0;
   const knowledge = detailQuery.data?.productKnowledge;
   const dirty = draftIsDirty(draft, knowledge);
+  const pidIsValid = (value: string) =>
+    !value.trim() || (value.trim().length <= 64 && /^[A-Za-z0-9._-]+$/.test(value.trim()));
   const isArchived = knowledge?.status === GQL.ProductKnowledgeStatus.Archived;
   const discoveryPayload =
     discoveryKnowledgeId === selectedId ? discovery.data?.discoverProductsBySellerSku : undefined;
@@ -234,7 +240,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   }
 
   async function handleCreate() {
-    if (!createName.trim()) return;
+    if (!createName.trim() || !pidIsValid(createPid)) return;
     if (dirty) {
       setConfirmation({ kind: "discard", action: "create" });
       return;
@@ -244,7 +250,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
   async function createKnowledgeNow() {
     try {
-      const result = await createKnowledge({ variables: { input: { name: createName } } });
+      const result = await createKnowledge({
+        variables: { input: { name: createName, merchantPid: createPid.trim() || null } },
+      });
       const created = result.data?.createProductKnowledge;
       if (!created) throw new Error(t("ecommerce.productKnowledge.createFailed"));
       setStatus(GQL.ProductKnowledgeStatus.Active);
@@ -253,6 +261,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
       setOffset(0);
       setCreateOpen(false);
       setCreateName("");
+      setCreatePid("");
       await listQuery.refetch({
         input: {
           status: GQL.ProductKnowledgeStatus.Active,
@@ -265,7 +274,12 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
       setSelectedId(created.id);
       showToast(t("ecommerce.productKnowledge.created"));
     } catch (error) {
-      showToast(t("common.operationFailed", { message: errorMessage(error) }), "error");
+      showToast(
+        errorCode(error) === "PRODUCT_KNOWLEDGE_PID_ALREADY_EXISTS"
+          ? t("ecommerce.productKnowledge.merchantPidDuplicate")
+          : t("common.operationFailed", { message: errorMessage(error) }),
+        "error",
+      );
     }
   }
 
@@ -297,6 +311,10 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
         setStaleConflict(true);
         await detailQuery.refetch();
         showToast(t("ecommerce.productKnowledge.staleConflict"), "warning");
+        return;
+      }
+      if (errorCode(error) === "PRODUCT_KNOWLEDGE_PID_ALREADY_EXISTS") {
+        showToast(t("ecommerce.productKnowledge.merchantPidDuplicate"), "error");
         return;
       }
       showToast(t("common.operationFailed", { message: errorMessage(error) }), "error");
@@ -638,6 +656,11 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                       <td>
                         <span className="product-knowledge-table-name">{item.name}</span>
                         <span className="product-knowledge-table-meta">
+                          {item.merchantPid ? (
+                            <>
+                              <TkPrivate>{item.merchantPid}</TkPrivate> ·{" "}
+                            </>
+                          ) : null}
                           {t("ecommerce.productKnowledge.characters", { count: characters })}
                         </span>
                       </td>
@@ -759,7 +782,11 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                     <button
                       className="btn btn-primary"
                       disabled={
-                        !dirty || updateState.loading || !draft.name.trim() || contentOverLimit
+                        !dirty ||
+                        updateState.loading ||
+                        !draft.name.trim() ||
+                        contentOverLimit ||
+                        !pidIsValid(draft.merchantPid)
                       }
                       onClick={handleSave}
                     >
@@ -817,6 +844,25 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                   </div>
                 </div>
               ) : null}
+
+              <div className="product-knowledge-merchant-pid-field">
+                <label htmlFor="product-knowledge-merchant-pid">
+                  {t("ecommerce.productKnowledge.merchantPid")}
+                </label>
+                <input
+                  id="product-knowledge-merchant-pid"
+                  value={draft.merchantPid}
+                  readOnly={isArchived}
+                  onChange={(event) => setDraft({ ...draft, merchantPid: event.target.value })}
+                  placeholder={t("ecommerce.productKnowledge.merchantPidPlaceholder")}
+                  aria-invalid={!pidIsValid(draft.merchantPid)}
+                />
+                {!pidIsValid(draft.merchantPid) ? (
+                  <span role="alert">{t("ecommerce.productKnowledge.merchantPidInvalid")}</span>
+                ) : (
+                  <span>{t("ecommerce.productKnowledge.merchantPidHint")}</span>
+                )}
+              </div>
 
               <section
                 className="product-knowledge-content-studio"
@@ -1173,6 +1219,18 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
             placeholder={t("ecommerce.productKnowledge.namePlaceholder")}
           />
         </label>
+        <label className="form-label-block">
+          <span>{t("ecommerce.productKnowledge.merchantPid")}</span>
+          <input
+            value={createPid}
+            onChange={(event) => setCreatePid(event.target.value)}
+            placeholder={t("ecommerce.productKnowledge.merchantPidPlaceholder")}
+            aria-invalid={!pidIsValid(createPid)}
+          />
+        </label>
+        {!pidIsValid(createPid) ? (
+          <p role="alert">{t("ecommerce.productKnowledge.merchantPidInvalid")}</p>
+        ) : null}
         <p className="form-hint">{t("ecommerce.productKnowledge.createHint")}</p>
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={() => setCreateOpen(false)}>
@@ -1180,7 +1238,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
           </button>
           <button
             className="btn btn-primary"
-            disabled={!createName.trim() || createState.loading}
+            disabled={!createName.trim() || !pidIsValid(createPid) || createState.loading}
             onClick={handleCreate}
           >
             {createState.loading ? t("common.saving") : t("ecommerce.productKnowledge.create")}

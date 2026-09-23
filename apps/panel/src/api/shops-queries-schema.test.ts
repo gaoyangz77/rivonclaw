@@ -9,6 +9,7 @@ import {
 } from "graphql";
 import { describe, expect, it } from "vitest";
 import * as documents from "./shops-queries.js";
+import * as knowledgeDocuments from "./product-knowledge-queries.js";
 
 function isDocumentNode(value: unknown): value is DocumentNode {
   return Boolean(
@@ -33,7 +34,7 @@ describe("Panel shop GraphQL documents", () => {
     );
     const failures: string[] = [];
 
-    for (const [name, document] of Object.entries(documents)) {
+    for (const [name, document] of Object.entries({ ...documents, ...knowledgeDocuments })) {
       if (!isDocumentNode(document)) continue;
       for (const error of validate(
         schema,

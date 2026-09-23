@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
 import {
   AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY,
   AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+  AFFILIATE_PRODUCT_SUMMARIES_QUERY,
   REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
 } from "../../../api/shops-queries.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
+import { ProductTableCell } from "../../../components/ecommerce/ProductTableCell.js";
 import {
   TkButton,
   TkChoiceSelect,
@@ -27,6 +29,7 @@ import {
   ProductFilter,
   type ProductFilterValue,
 } from "../../../components/ecommerce/ProductFilter.js";
+import { MerchantPidFilter, type MerchantPidSelection } from "./MerchantPidFilter.js";
 import { WorkbenchCreatorSearch } from "./WorkbenchCreatorSearch.js";
 import { AffiliateWorkbenchTimeFilter } from "./AffiliateWorkbenchTimeFilter.js";
 import {
@@ -48,6 +51,16 @@ import {
 const PAGE_SIZE = 25;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
+
+function workbenchGraphqlCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const value = error as {
+    graphQLErrors?: Array<{ extensions?: { code?: unknown } }>;
+    errors?: Array<{ extensions?: { code?: unknown } }>;
+  };
+  const code = value.graphQLErrors?.[0]?.extensions?.code ?? value.errors?.[0]?.extensions?.code;
+  return typeof code === "string" ? code : null;
+}
 
 /*
  * The same chip budget the Creators page spends, so one Creator reads the same
@@ -218,10 +231,18 @@ function AffiliateWorkbenchSampleList({
     scope: string;
     values: ProductFilterValue[];
   }>({ scope: selectedShopId, values: [] });
-  const products = productSelection.scope === selectedShopId ? productSelection.values : [];
+  const [productFilterMode, setProductFilterMode] = useState<"catalog" | "knowledge">("catalog");
+  const [knowledgeSelection, setKnowledgeSelection] = useState<MerchantPidSelection | null>(null);
+  const products =
+    productFilterMode === "catalog" && productSelection.scope === selectedShopId
+      ? productSelection.values
+      : [];
+  const productKnowledgeId = productFilterMode === "knowledge" ? knowledgeSelection?.id : null;
   const filterKey = workbenchFilterKey([
     creatorSearch,
     JSON.stringify(products),
+    productFilterMode,
+    productKnowledgeId,
     protection,
     statusFilter,
     sortOrder,
@@ -237,27 +258,55 @@ function AffiliateWorkbenchSampleList({
       ? buffer
       : emptyWorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>(filterKey);
   const items = activeBuffer.items;
+  const productRefs = useMemo(
+    () =>
+      [...new Map(
+        items.flatMap((row) => {
+          const productId = row.sampleApplication.productId;
+          return productId
+            ? [[`${row.sampleApplication.shopId}:${productId}`, {
+                shopId: row.sampleApplication.shopId,
+                productId,
+              }] as const]
+            : [];
+        }),
+      ).values()],
+    [items],
+  );
+  const { data: productData } = useQuery<
+    { affiliateProductSummaries: GQL.AffiliateRelationshipProductSummary[] },
+    { input: GQL.AffiliateProductSummaryBatchInput }
+  >(AFFILIATE_PRODUCT_SUMMARIES_QUERY, {
+    variables: { input: { refs: productRefs } },
+    skip: productRefs.length === 0,
+    fetchPolicy: "cache-first",
+  });
+  const productSummaries = new Map(
+    (productData?.affiliateProductSummaries ?? []).map((entry) => [
+      `${entry.shopId}:${entry.product.productId}`,
+      entry.product,
+    ]),
+  );
   const nextCursor = activeBuffer.nextCursor;
   const hasMore = activeBuffer.hasMore;
   const [reopeningRowId, setReopeningRowId] = useState<string | null>(null);
+  const sampleFilterInput: GQL.AffiliateWorkbenchSamplePageInput = {
+    shopId: selectedShopId || null,
+    businessDeveloperId: selectedBusinessDeveloperId || null,
+    protected: workbenchProtectionValue(protection),
+    statusFilter,
+    sortOrder,
+    ...(creatorSearch ? { creatorSearch } : {}),
+    ...(productKnowledgeId ? { productKnowledgeId } : {}),
+    ...(products.length ? { products } : {}),
+    ...timeArgs,
+    limit: PAGE_SIZE,
+  };
   const { data, loading, error, fetchMore, refetch } = useQuery<
     SamplePageData,
     { input: GQL.AffiliateWorkbenchSamplePageInput }
   >(AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, {
-    variables: {
-      input: {
-        shopId: selectedShopId || null,
-        businessDeveloperId: selectedBusinessDeveloperId || null,
-        protected: workbenchProtectionValue(protection),
-        statusFilter,
-        sortOrder,
-        ...(creatorSearch ? { creatorSearch } : {}),
-        ...(products.length ? { products } : {}),
-        ...timeArgs,
-        limit: PAGE_SIZE,
-        cursor: null,
-      },
-    },
+    variables: { input: { ...sampleFilterInput, cursor: null } },
     fetchPolicy: "cache-and-network",
     notifyOnNetworkStatusChange: true,
   });
@@ -281,25 +330,27 @@ function AffiliateWorkbenchSampleList({
   const loadMore = useCallback(async () => {
     if (!hasMore || !nextCursor) return;
     const requestFilterKey = filterKey;
-    const result = await fetchMore({
-      variables: {
-        input: {
-          shopId: selectedShopId || null,
-          businessDeveloperId: selectedBusinessDeveloperId || null,
-          protected: workbenchProtectionValue(protection),
-          statusFilter,
-          sortOrder,
-          ...(creatorSearch ? { creatorSearch } : {}),
-          ...(products.length ? { products } : {}),
-          ...(firstObservedAtGe && firstObservedAtLt
-            ? { firstObservedAtGe, firstObservedAtLt }
-            : {}),
-          limit: PAGE_SIZE,
-          cursor: nextCursor,
-        },
-      },
-      updateQuery: (current) => current,
-    });
+    let result;
+    try {
+      result = await fetchMore({
+        variables: { input: { ...sampleFilterInput, cursor: nextCursor } },
+        updateQuery: (current) => current,
+      });
+    } catch (loadError) {
+      const graphQLError = loadError as {
+        graphQLErrors?: Array<{ extensions?: { code?: string } }>;
+        errors?: Array<{ extensions?: { code?: string } }>;
+      };
+      const codes = [...(graphQLError.graphQLErrors ?? []), ...(graphQLError.errors ?? [])];
+      if (codes.some((entry) => entry.extensions?.code === "SAMPLE_FILTER_CURSOR_STALE")) {
+        setBuffer(emptyWorkbenchPageBuffer(filterKey));
+        await refetch({ input: { ...sampleFilterInput, cursor: null } });
+        showToast(t("ecommerce.affiliateWorkspace.workbench.merchantPidCursorReset"), "warning");
+        return;
+      }
+      showToast(loadError instanceof Error ? loadError.message : String(loadError), "error");
+      return;
+    }
     const next = result.data?.affiliateWorkbenchSamplePage;
     if (!next) return;
     setBuffer((current) => {
@@ -312,21 +363,7 @@ function AffiliateWorkbenchSampleList({
         hasMore: next.hasMore,
       };
     });
-  }, [
-    creatorSearch,
-    products,
-    statusFilter,
-    fetchMore,
-    filterKey,
-    firstObservedAtGe,
-    firstObservedAtLt,
-    protection,
-    hasMore,
-    nextCursor,
-    selectedBusinessDeveloperId,
-    selectedShopId,
-    sortOrder,
-  ]);
+  }, [fetchMore, filterKey, hasMore, nextCursor, refetch, sampleFilterInput, showToast, t]);
 
   async function reopenRow(row: GQL.AffiliateWorkbenchSampleRow): Promise<void> {
     setReopeningRowId(row.id);
@@ -359,12 +396,15 @@ function AffiliateWorkbenchSampleList({
   }
 
   const nowMs = Date.now();
-  const viewState = workbenchListViewState({
-    loading,
-    hasError: Boolean(error),
-    rowCount: items.length,
-    completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
-  });
+  const viewState =
+    productKnowledgeId && error
+      ? "error"
+      : workbenchListViewState({
+          loading,
+          hasError: Boolean(error),
+          rowCount: items.length,
+          completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
+        });
   const tableVariant = ignoredView
     ? "affiliate-workbench-table-samples-rejected"
     : "affiliate-workbench-table-samples-open";
@@ -445,12 +485,44 @@ function AffiliateWorkbenchSampleList({
             <span className="tk-v1-label">
               {t("ecommerce.affiliateWorkspace.workbench.colProduct")}
             </span>
-            <ProductFilter
-              key={selectedShopId}
-              shopId={selectedShopId || undefined}
-              value={products}
-              onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
-            />
+            <div className="affiliate-workbench-product-controls">
+              <div className="affiliate-workbench-product-mode">
+                <TkButton
+                  size="sm"
+                  variant={productFilterMode === "catalog" ? "secondary" : "ghost"}
+                  onClick={() => {
+                    setProductFilterMode("catalog");
+                    setKnowledgeSelection(null);
+                  }}
+                >
+                  {t("ecommerce.affiliateWorkspace.workbench.catalogProducts")}
+                </TkButton>
+                <TkButton
+                  size="sm"
+                  variant={productFilterMode === "knowledge" ? "secondary" : "ghost"}
+                  onClick={() => {
+                    setProductFilterMode("knowledge");
+                    setProductSelection({ scope: selectedShopId, values: [] });
+                  }}
+                >
+                  {t("ecommerce.affiliateWorkspace.workbench.merchantPidMode")}
+                </TkButton>
+              </div>
+              {productFilterMode === "catalog" ? (
+                <ProductFilter
+                  key={selectedShopId}
+                  shopId={selectedShopId || undefined}
+                  value={products}
+                  onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
+                />
+              ) : (
+                <MerchantPidFilter
+                  value={knowledgeSelection}
+                  onChange={setKnowledgeSelection}
+                  shopScoped={Boolean(selectedShopId)}
+                />
+              )}
+            </div>
           </div>
           <AffiliateWorkbenchTimeFilter
             value={timeFilter}
@@ -510,7 +582,21 @@ function AffiliateWorkbenchSampleList({
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />
       ) : viewState === "error" ? (
-        <WorkbenchError message={error?.message ?? ""} onRetry={() => void refetch()} />
+        <WorkbenchError
+          message={
+            workbenchGraphqlCode(error) === "PRODUCT_KNOWLEDGE_ARCHIVED"
+              ? t("ecommerce.affiliateWorkspace.workbench.merchantPidArchived")
+              : workbenchGraphqlCode(error) === "PRODUCT_KNOWLEDGE_NOT_FOUND"
+                ? t("ecommerce.affiliateWorkspace.workbench.merchantPidNotFound")
+                : workbenchGraphqlCode(error) === "PRODUCT_KNOWLEDGE_BINDING_SHOP_UNAVAILABLE"
+                  ? t("ecommerce.affiliateWorkspace.workbench.merchantPidStaleShop")
+                  : workbenchGraphqlCode(error) === "SAMPLE_PRODUCT_FILTER_TOO_LARGE"
+                    ? t("ecommerce.affiliateWorkspace.workbench.merchantPidTooMany")
+                    : (error?.message ?? "")
+          }
+          onRetry={() => void refetch()}
+          onClear={productKnowledgeId ? () => setKnowledgeSelection(null) : undefined}
+        />
       ) : viewState === "empty" ? (
         <WorkbenchEmpty>
           {t(
@@ -593,14 +679,12 @@ function AffiliateWorkbenchSampleList({
                     </TkPrivate>
                   </td>
                   <td>
-                    <div className="affiliate-workbench-cell-product">
-                      <TkPrivate as="strong" sensitive={Boolean(row.productTitle)}>
-                        {row.productTitle || row.sampleApplication.productId || t("common.unknown")}
-                      </TkPrivate>
-                      {row.productTitle && row.sampleApplication.productId ? (
-                        <span>{row.sampleApplication.productId}</span>
-                      ) : null}
-                    </div>
+                    <SampleProductCell
+                      row={row}
+                      summary={productSummaries.get(
+                        `${row.sampleApplication.shopId}:${row.sampleApplication.productId}`,
+                      )}
+                    />
                   </td>
                   {ignoredView ? (
                     <>
@@ -705,6 +789,28 @@ function AffiliateWorkbenchSampleList({
         </button>
       ) : null}
     </section>
+  );
+}
+
+function SampleProductCell({
+  row,
+  summary,
+}: {
+  row: GQL.AffiliateWorkbenchSampleRow;
+  summary?: GQL.EcomProductSummary;
+}) {
+  const { t } = useTranslation();
+  const selectedSku = summary?.skus?.find((sku) => sku.skuId === row.sampleApplication.skuId);
+  return (
+    <ProductTableCell
+      title={row.productTitle || summary?.title}
+      imageUrl={summary?.coverImage || row.sampleApplication.skuImageUrl}
+      skus={selectedSku ? [selectedSku.sellerSku] : summary?.skus?.map((sku) => sku.sellerSku)}
+      skuLabel={t("ecommerce.affiliateCampaign.skuLabel")}
+      productId={row.sampleApplication.productId}
+      productIdLabel={t("ecommerce.affiliateCampaign.productIdLabel")}
+      emptyTitle={t("common.unknown")}
+    />
   );
 }
 
@@ -1479,7 +1585,15 @@ function WorkbenchEmpty({ children }: { children: string }) {
   return <div className="affiliate-proposal-empty">{children}</div>;
 }
 
-function WorkbenchError({ message, onRetry }: { message: string; onRetry: () => void }) {
+function WorkbenchError({
+  message,
+  onRetry,
+  onClear,
+}: {
+  message: string;
+  onRetry: () => void;
+  onClear?: () => void;
+}) {
   const { t } = useTranslation();
   return (
     <div className="affiliate-proposal-empty affiliate-workbench-entity-error">
@@ -1487,6 +1601,11 @@ function WorkbenchError({ message, onRetry }: { message: string; onRetry: () => 
       <button className="btn btn-secondary" type="button" onClick={onRetry}>
         {t("common.refresh")}
       </button>
+      {onClear ? (
+        <button className="btn btn-secondary" type="button" onClick={onClear}>
+          {t("ecommerce.affiliateWorkspace.workbench.clearProducts")}
+        </button>
+      ) : null}
     </div>
   );
 }

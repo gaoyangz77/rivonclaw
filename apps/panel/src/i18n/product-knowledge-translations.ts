@@ -8,6 +8,12 @@ const en = {
   createFailed: "Product Knowledge was not created.",
   created: "Product Knowledge created.",
   name: "Knowledge name",
+  merchantPid: "Internal product code (optional)",
+  merchantPidPlaceholder: "e.g. BLENDER-CORE",
+  merchantPidHint: "Use one code for the same product across shops; Seller SKUs may differ.",
+  merchantPidInvalid: "Use 1–64 letters, numbers, dots, underscores or hyphens.",
+  merchantPidDuplicate:
+    "This internal product code is already used by another knowledge base, including archived records.",
   namePlaceholder: "e.g. Portable blender · core product brief",
   searchPlaceholder: "Search knowledge…",
   search: "Search",
@@ -177,6 +183,11 @@ const zh = {
   createFailed: "产品知识创建失败。",
   created: "产品知识已创建。",
   name: "知识库名称",
+  merchantPid: "内部商品编号（选填）",
+  merchantPidPlaceholder: "例如 BLENDER-CORE",
+  merchantPidHint: "同一款产品跨店共用此编号；各店 Seller SKU 可以不同。",
+  merchantPidInvalid: "请输入 1–64 位英文字母、数字、点、下划线或连字符。",
+  merchantPidDuplicate: "该内部商品编号已被其他产品知识使用（包括已归档记录）。",
   namePlaceholder: "例如：便携榨汁机 · 核心产品资料",
   searchPlaceholder: "搜索产品知识…",
   search: "搜索",
@@ -336,24 +347,26 @@ const enTutorial = {
     "Keep product instructions, approved answers, and creative references independent from any one shop listing.",
   libraryTitle: "Knowledge library",
   libraryBody:
-    "Use the table to scan status, content coverage, linked products, revision, and freshness before opening a knowledge base.",
+    "Use the table to scan internal product codes, status, content coverage, linked products, and freshness before opening a knowledge base.",
   editorTitle: "Markdown knowledge editor",
   editorBody:
     "Edit and preview the three business-owned knowledge sections, then save them with revision protection.",
   bindingsTitle: "Connect shop products",
   bindingsBody:
-    "Discover exact Seller SKU matches across shops and confirm the Product IDs that belong to this knowledge.",
+    "Discover products by each shop's Seller SKU and confirm their Product IDs. One internal product code then identifies the knowledge across shops.",
 };
 
 const zhTutorial = {
   welcomeTitle: "可复用的产品事实层",
   welcomeBody: "把使用说明、已确认问答和创作参考独立于任何单一店铺商品进行维护。",
   libraryTitle: "产品知识库",
-  libraryBody: "通过表格快速查看状态、内容覆盖、已连接商品、版本和更新时间，再进入知识详情。",
+  libraryBody:
+    "通过表格快速查看内部商品编号、状态、内容覆盖、已连接商品和更新时间，再进入知识详情。",
   editorTitle: "Markdown 知识编辑器",
   editorBody: "编辑并预览三个业务知识区块，通过 revision 保护后显式保存。",
   bindingsTitle: "连接店铺商品",
-  bindingsBody: "跨店铺发现 Seller SKU 精确匹配，由你确认哪些 Product ID 属于这份知识。",
+  bindingsBody:
+    "分别用各店铺的 Seller SKU 发现商品，确认属于这份知识的 Product ID；内部商品编号可跨店定位它们。",
 };
 
 function locale(overrides: Partial<typeof en>) {
@@ -378,6 +391,13 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
         pageTitle: "Produktwissen",
         pageSubtitle: "Produktwissen einmal pflegen und mit Angeboten in allen Shops verbinden.",
         create: "Neues Wissen",
+        merchantPid: "Interner Produktcode (optional)",
+        merchantPidPlaceholder: "z. B. BLENDER-CORE",
+        merchantPidHint:
+          "Ein Code für dasselbe Produkt in mehreren Shops; Seller SKUs können abweichen.",
+        merchantPidInvalid: "1–64 Buchstaben, Ziffern, Punkte, Unterstriche oder Bindestriche.",
+        merchantPidDuplicate:
+          "Dieser interne Produktcode wird bereits verwendet, auch in archivierten Einträgen.",
       }),
     },
     tutorial: { productKnowledge: enTutorial },
@@ -390,6 +410,12 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
         pageSubtitle:
           "Crea conocimiento reutilizable y conéctalo con productos de todas tus tiendas.",
         create: "Nuevo conocimiento",
+        merchantPid: "Código interno de producto (opcional)",
+        merchantPidPlaceholder: "p. ej. BLENDER-CORE",
+        merchantPidHint:
+          "Usa un código para el mismo producto en varias tiendas; los Seller SKU pueden variar.",
+        merchantPidInvalid: "Usa 1–64 letras, números, puntos, guiones bajos o guiones.",
+        merchantPidDuplicate: "Este código ya se usa en otro registro, incluso archivado.",
       }),
     },
     tutorial: { productKnowledge: enTutorial },
@@ -402,6 +428,12 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
         pageSubtitle:
           "Créez une base réutilisable et reliez-la aux produits de toutes vos boutiques.",
         create: "Nouvelle connaissance",
+        merchantPid: "Code produit interne (facultatif)",
+        merchantPidPlaceholder: "ex. BLENDER-CORE",
+        merchantPidHint:
+          "Un code pour le même produit entre boutiques ; les Seller SKU peuvent varier.",
+        merchantPidInvalid: "Utilisez 1 à 64 lettres, chiffres, points, tirets bas ou tirets.",
+        merchantPidDuplicate: "Ce code est déjà utilisé par une fiche, même archivée.",
       }),
     },
     tutorial: { productKnowledge: enTutorial },
@@ -414,6 +446,12 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
         pageSubtitle:
           "Bangun pengetahuan yang dapat digunakan kembali dan hubungkan ke produk di semua toko.",
         create: "Pengetahuan baru",
+        merchantPid: "Kode produk internal (opsional)",
+        merchantPidPlaceholder: "mis. BLENDER-CORE",
+        merchantPidHint:
+          "Satu kode untuk produk yang sama di banyak toko; Seller SKU bisa berbeda.",
+        merchantPidInvalid: "Gunakan 1–64 huruf, angka, titik, garis bawah, atau tanda hubung.",
+        merchantPidDuplicate: "Kode ini sudah dipakai, termasuk oleh catatan yang diarsipkan.",
       }),
     },
     tutorial: { productKnowledge: enTutorial },
@@ -425,6 +463,12 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
         pageTitle: "Conoscenza prodotto",
         pageSubtitle: "Crea conoscenza riutilizzabile e collegala ai prodotti di tutti i negozi.",
         create: "Nuova conoscenza",
+        merchantPid: "Codice prodotto interno (facoltativo)",
+        merchantPidPlaceholder: "es. BLENDER-CORE",
+        merchantPidHint:
+          "Un codice per lo stesso prodotto tra negozi; i Seller SKU possono variare.",
+        merchantPidInvalid: "Usa 1–64 lettere, numeri, punti, trattini bassi o trattini.",
+        merchantPidDuplicate: "Questo codice è già usato da un'altra scheda, anche archiviata.",
       }),
     },
     tutorial: { productKnowledge: enTutorial },
@@ -436,6 +480,11 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
         pageTitle: "ความรู้ผลิตภัณฑ์",
         pageSubtitle: "สร้างความรู้ที่นำกลับมาใช้ซ้ำและเชื่อมกับสินค้าในทุกร้าน",
         create: "สร้างความรู้",
+        merchantPid: "รหัสสินค้าภายใน (ไม่บังคับ)",
+        merchantPidPlaceholder: "เช่น BLENDER-CORE",
+        merchantPidHint: "ใช้รหัสเดียวสำหรับสินค้าเดียวกันข้ามร้าน โดย Seller SKU อาจต่างกัน",
+        merchantPidInvalid: "ใช้ตัวอักษร ตัวเลข จุด ขีดล่าง หรือขีดกลาง 1–64 ตัว",
+        merchantPidDuplicate: "รหัสนี้ถูกใช้แล้ว รวมถึงรายการที่เก็บถาวร",
       }),
     },
     tutorial: { productKnowledge: enTutorial },

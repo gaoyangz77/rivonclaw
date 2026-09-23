@@ -20,6 +20,17 @@ vi.mock("../../../components/ecommerce/ProductFilter.js", () => ({
     </button>
   ),
 }));
+vi.mock("./MerchantPidFilter.js", () => ({
+  MerchantPidFilter: ({ onChange }: { onChange: (value: unknown) => void }) => (
+    <button
+      onClick={() =>
+        onChange({ id: "knowledge-1", merchantPid: "BLENDER-1", name: "Blender", bindingCount: 2 })
+      }
+    >
+      Choose internal code
+    </button>
+  ),
+}));
 beforeEach(async () => {
   await i18n.changeLanguage("zh");
 });
@@ -173,3 +184,96 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
     await waitFor(() => expect(results.at(-1)).toHaveBeenCalledOnce());
   },
 );
+
+it("passes selected Product Knowledge to both the first and next sample pages", async () => {
+  const base = {
+    shopId: null,
+    businessDeveloperId: null,
+    protected: null,
+    statusFilter: "PENDING_REVIEW",
+    sortOrder: "ASC",
+    limit: 25,
+  };
+  const initial = vi.fn(() => ({
+    data: {
+      affiliateWorkbenchSamplePage: {
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+        openCount: 0,
+        expiringSoonCount: 0,
+      },
+    },
+  }));
+  const filtered = vi.fn(() => ({
+    data: {
+      affiliateWorkbenchSamplePage: {
+        items: [],
+        hasMore: true,
+        nextCursor: "next",
+        openCount: 1,
+        expiringSoonCount: 0,
+      },
+    },
+  }));
+  const next = vi.fn(() => ({
+    data: {
+      affiliateWorkbenchSamplePage: {
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+        openCount: 1,
+        expiringSoonCount: 0,
+      },
+    },
+  }));
+  render(
+    <MockedProvider
+      mocks={[
+        {
+          request: {
+            query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+            variables: { input: { ...base, cursor: null } },
+          },
+          result: initial,
+        },
+        {
+          request: {
+            query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+            variables: { input: { ...base, productKnowledgeId: "knowledge-1", cursor: null } },
+          },
+          result: filtered,
+        },
+        {
+          request: {
+            query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+            variables: { input: { ...base, productKnowledgeId: "knowledge-1", cursor: "next" } },
+          },
+          result: next,
+        },
+      ]}
+    >
+      <ToastProvider>
+        <AffiliateWorkbenchEntityTabs
+          tab="SAMPLES"
+          selectedShopId=""
+          shopOptions={[{ value: "", label: "全部店铺" }]}
+          onSelectShop={vi.fn()}
+          businessDeveloperOptions={[]}
+          selectedBusinessDeveloperId=""
+          onSelectBusinessDeveloper={vi.fn()}
+          refreshRevision={0}
+          onOpen={vi.fn()}
+        />
+      </ToastProvider>
+    </MockedProvider>,
+  );
+  await waitFor(() => expect(initial).toHaveBeenCalledOnce());
+  fireEvent.click(screen.getByRole("button", { name: "内部编号" }));
+  fireEvent.click(screen.getByText("Choose internal code"));
+  await waitFor(() => expect(filtered).toHaveBeenCalledOnce());
+  fireEvent.click(
+    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.loadMoreProposals") }),
+  );
+  await waitFor(() => expect(next).toHaveBeenCalledOnce());
+});
