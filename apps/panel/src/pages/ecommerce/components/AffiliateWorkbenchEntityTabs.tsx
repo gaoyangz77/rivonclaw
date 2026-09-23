@@ -64,6 +64,7 @@ export interface AffiliateWorkbenchEntityOpenTarget {
   selectedShopId?: string;
   initialTab: "samples" | "conversation";
   replyToLifecycleEventId?: string;
+  hasPendingProposal?: boolean;
 }
 
 interface FilterOption {
@@ -1023,6 +1024,7 @@ function AffiliateWorkbenchMessageList({
                     selectedShopId: row.sourceShopId ?? undefined,
                     initialTab: "conversation",
                     replyToLifecycleEventId: row.replyToLifecycleEventId,
+                    hasPendingProposal: Boolean(row.proposal),
                   });
                 return (
                   <TkInteractiveTableRow

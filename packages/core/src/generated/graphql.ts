@@ -10655,6 +10655,12 @@ export interface ManageAffiliateTargetCollaborationInput {
   updateProducts?: InputMaybe<Array<AffiliateTargetCollaborationUpdateProductInput>>;
 }
 
+export interface MarkAffiliateConversationHandledInput {
+  creatorRelationshipId: Scalars["ID"]["input"];
+  /** Exact pending Creator message observed in the workbench. */
+  lifecycleEventId: Scalars["ID"]["input"];
+}
+
 /** Anonymous first-party attribution captured by the public website and transferred through the desktop deep link. */
 export interface MarketingAttributionInput {
   attributionId: Scalars["String"]["input"];
@@ -11036,6 +11042,8 @@ export interface Mutation {
   logout: Scalars["Boolean"]["output"];
   manageAffiliateOpenCollaboration: AffiliateShopOperationResultPayload;
   manageAffiliateTargetCollaboration: AffiliateShopOperationResultPayload;
+  /** Mark one exact pending Affiliate Creator message as handled without sending a reply. */
+  markAffiliateConversationHandled: Scalars["Boolean"]["output"];
   /** Promote a temporary uploaded image into permanent object storage and link it to an entity. Pass the assetId returned by POST /api/uploads/images; imageUri is accepted as a fallback. */
   promoteImageAsset: ImageAsset;
   protectAffiliateCreatorRelationship: AffiliateCreatorProtection;
@@ -11807,6 +11815,10 @@ export interface MutationManageAffiliateOpenCollaborationArgs {
 
 export interface MutationManageAffiliateTargetCollaborationArgs {
   input: ManageAffiliateTargetCollaborationInput;
+}
+
+export interface MutationMarkAffiliateConversationHandledArgs {
+  input: MarkAffiliateConversationHandledInput;
 }
 
 export interface MutationPromoteImageAssetArgs {

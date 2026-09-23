@@ -2222,8 +2222,17 @@
 
 .affiliate-relationship-work-modal .affiliate-message-composer-footer {
   min-height: 28px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.affiliate-message-composer-footer-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--tk-v1-space-2);
 }
 
 .affiliate-message-composer-footer-tools {

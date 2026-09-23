@@ -7,6 +7,10 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   en: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "No reply needed · Mark handled",
+        manualMessageHandled: "Conversation marked as handled without a reply.",
+        manualMessageProposalHint:
+          "Decide the pending proposal first to handle this message without a reply.",
         policyActions: {
           NO_ACTION_NEEDED: "Decide no action is needed",
         },
@@ -31,6 +35,9 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   zh: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "无需回复 · 标记已处理",
+        manualMessageHandled: "已标记为处理完成，未发送消息。",
+        manualMessageProposalHint: "请先处理待审批提案；忽略提案可在不回复的情况下结束这条消息。",
         policyActions: {
           NO_ACTION_NEEDED: "判定无需处理",
         },
@@ -53,6 +60,10 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   de: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "Keine Antwort nötig · Als erledigt markieren",
+        manualMessageHandled: "Konversation ohne Antwort als erledigt markiert.",
+        manualMessageProposalHint:
+          "Entscheide zuerst über den ausstehenden Vorschlag, um diese Nachricht ohne Antwort abzuschließen.",
         policyActions: {
           NO_ACTION_NEEDED: "Entscheiden, dass keine Aktion nötig ist",
         },
@@ -77,6 +88,10 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   es: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "No hace falta responder · Marcar como atendido",
+        manualMessageHandled: "Conversación marcada como atendida sin responder.",
+        manualMessageProposalHint:
+          "Decide primero sobre la propuesta pendiente para atender este mensaje sin responder.",
         policyActions: {
           NO_ACTION_NEEDED: "Decidir que no se necesita ninguna acción",
         },
@@ -101,6 +116,10 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   fr: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "Aucune réponse nécessaire · Marquer comme traité",
+        manualMessageHandled: "Conversation marquée comme traitée sans réponse.",
+        manualMessageProposalHint:
+          "Décidez d’abord de la proposition en attente pour traiter ce message sans réponse.",
         policyActions: {
           NO_ACTION_NEEDED: "Décider qu’aucune action n’est requise",
         },
@@ -125,6 +144,10 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   id: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "Tidak perlu balasan · Tandai selesai",
+        manualMessageHandled: "Percakapan ditandai selesai tanpa balasan.",
+        manualMessageProposalHint:
+          "Putuskan proposal tertunda terlebih dahulu untuk menangani pesan ini tanpa balasan.",
         policyActions: {
           NO_ACTION_NEEDED: "Memutuskan tidak perlu tindakan",
         },
@@ -149,6 +172,10 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   it: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "Nessuna risposta necessaria · Segna come gestita",
+        manualMessageHandled: "Conversazione segnata come gestita senza risposta.",
+        manualMessageProposalHint:
+          "Decidi prima sulla proposta in sospeso per gestire questo messaggio senza risposta.",
         policyActions: {
           NO_ACTION_NEEDED: "Decidere che non serve alcuna azione",
         },
@@ -173,6 +200,9 @@ export const AFFILIATE_NO_ACTION_GATE_TRANSLATIONS = {
   th: {
     ecommerce: {
       affiliateWorkspace: {
+        manualMessageNoReplyNeeded: "ไม่ต้องตอบ · ทำเครื่องหมายว่าจัดการแล้ว",
+        manualMessageHandled: "ทำเครื่องหมายว่าจัดการบทสนทนาแล้วโดยไม่ส่งคำตอบ",
+        manualMessageProposalHint: "จัดการข้อเสนอที่รออนุมัติก่อนเพื่อปิดข้อความนี้โดยไม่ตอบกลับ",
         policyActions: {
           NO_ACTION_NEEDED: "ตัดสินว่าไม่ต้องดำเนินการ",
         },

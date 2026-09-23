@@ -115,6 +115,7 @@ import {
   REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
   REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
   SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
+  MARK_AFFILIATE_CONVERSATION_HANDLED_MUTATION,
   SET_AFFILIATE_CREATOR_EMAIL_MUTATION,
   SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION,
   PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
@@ -1860,6 +1861,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
           selectedShopId={selectedEntityTarget.selectedShopId ?? selectedShopId}
           initialTab={selectedEntityTarget.initialTab}
           replyToLifecycleEventId={selectedEntityTarget.replyToLifecycleEventId}
+          hasPendingProposal={selectedEntityTarget.hasPendingProposal}
           onWorkbenchEntityChanged={() => {
             setWorkbenchEntityRefreshRevision((revision) => revision + 1);
           }}
@@ -10327,6 +10329,7 @@ function CreatorRelationshipDetailContent({
   selectedShopId,
   initialTab = "overview",
   replyToLifecycleEventId,
+  hasPendingProposal = false,
   onWorkbenchEntityChanged,
   onDecideProposal,
   onClose,
@@ -10336,6 +10339,7 @@ function CreatorRelationshipDetailContent({
   selectedShopId: string;
   initialTab?: "profile" | "overview" | "samples" | "platform" | "conversation" | "activity";
   replyToLifecycleEventId?: string;
+  hasPendingProposal?: boolean;
   onWorkbenchEntityChanged?: () => void;
   onDecideProposal?: (
     proposal: GQL.ActionProposal,
@@ -10377,6 +10381,7 @@ function CreatorRelationshipDetailContent({
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [markingConversationHandled, setMarkingConversationHandled] = useState(false);
   const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] =
     useState(replyToLifecycleEventId);
   const [sampleReviewCommand, setSampleReviewCommand] = useState<{
@@ -10643,6 +10648,10 @@ function CreatorRelationshipDetailContent({
     { sendAffiliateCreatorMessage: GQL.SendAffiliateCreatorMessagePayload },
     { input: GQL.SendAffiliateCreatorMessageInput }
   >(SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION);
+  const [markAffiliateConversationHandled] = useMutation<
+    { markAffiliateConversationHandled: boolean },
+    { input: GQL.MarkAffiliateConversationHandledInput }
+  >(MARK_AFFILIATE_CONVERSATION_HANDLED_MUTATION);
   const [reviewAffiliateSampleApplication, reviewSampleState] = useMutation<
     { reviewAffiliateSampleApplication: GQL.AffiliateWorkbenchSampleRow },
     { input: GQL.ReviewAffiliateSampleApplicationInput }
@@ -10910,6 +10919,32 @@ function CreatorRelationshipDetailContent({
       showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       setSendingMessage(false);
+    }
+  }
+
+  async function markConversationHandled(): Promise<void> {
+    if (!relationshipId || !pendingReplyToLifecycleEventId) return;
+    setMarkingConversationHandled(true);
+    try {
+      const result = await markAffiliateConversationHandled({
+        variables: {
+          input: {
+            creatorRelationshipId: relationshipId,
+            lifecycleEventId: pendingReplyToLifecycleEventId,
+          },
+        },
+      });
+      if (result.data?.markAffiliateConversationHandled !== true) {
+        throw new Error("The conversation was not marked as handled.");
+      }
+      setPendingReplyToLifecycleEventId(undefined);
+      onWorkbenchEntityChanged?.();
+      showToast(t("ecommerce.affiliateWorkspace.manualMessageHandled"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+      onWorkbenchEntityChanged?.();
+    } finally {
+      setMarkingConversationHandled(false);
     }
   }
 
@@ -12388,19 +12423,40 @@ function CreatorRelationshipDetailContent({
                           })}
                         </span>
                       </div>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        type="button"
-                        disabled={
-                          !composerShopId ||
-                          sendingMessage ||
-                          uploadingAttachments ||
-                          (!composerText.trim() && stagedAttachments.length === 0)
-                        }
-                        onClick={() => void submitComposerMessage()}
-                      >
-                        {sendingMessage ? t("common.loading") : t("chat.send")}
-                      </button>
+                      <div className="affiliate-message-composer-footer-actions">
+                        {pendingReplyToLifecycleEventId && hasPendingProposal ? (
+                          <span className="form-hint">
+                            {t("ecommerce.affiliateWorkspace.manualMessageProposalHint")}
+                          </span>
+                        ) : pendingReplyToLifecycleEventId ? (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            type="button"
+                            disabled={
+                              markingConversationHandled || sendingMessage || uploadingAttachments
+                            }
+                            onClick={() => void markConversationHandled()}
+                          >
+                            {markingConversationHandled
+                              ? t("common.loading")
+                              : t("ecommerce.affiliateWorkspace.manualMessageNoReplyNeeded")}
+                          </button>
+                        ) : null}
+                        <button
+                          className="btn btn-primary btn-sm"
+                          type="button"
+                          disabled={
+                            !composerShopId ||
+                            sendingMessage ||
+                            markingConversationHandled ||
+                            uploadingAttachments ||
+                            (!composerText.trim() && stagedAttachments.length === 0)
+                          }
+                          onClick={() => void submitComposerMessage()}
+                        >
+                          {sendingMessage ? t("common.loading") : t("chat.send")}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

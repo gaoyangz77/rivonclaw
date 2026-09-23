@@ -4210,6 +4210,12 @@ export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
   }
 `;
 
+export const MARK_AFFILIATE_CONVERSATION_HANDLED_MUTATION = gql`
+  mutation MarkAffiliateConversationHandled($input: MarkAffiliateConversationHandledInput!) {
+    markAffiliateConversationHandled(input: $input)
+  }
+`;
+
 export const WHATSAPP_ACCOUNT_FIELDS_FRAGMENT = gql`
   fragment WhatsAppAccountFields on WhatsAppAccountBinding {
     id
