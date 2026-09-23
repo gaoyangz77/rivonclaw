@@ -433,6 +433,35 @@ function portfolioInputs(): Array<Record<string, unknown>> {
 }
 
 describe("AffiliateAnalyticsPage Overview", () => {
+  it("keeps the shop picker open while selecting and closes it on an outside press", () => {
+    mocks.entityStore = {
+      ...mocks.entityStore,
+      shops: [
+        { id: "shop-1", shopName: "North Shop", alias: "North", region: "US" },
+        { id: "shop-2", shopName: "Berlin Shop", alias: "Berlin", region: "DE" },
+      ],
+      billingOverview: {
+        shops: [
+          { shopId: "shop-1", analytics: { allowed: true } },
+          { shopId: "shop-2", analytics: { allowed: true } },
+        ],
+      },
+    };
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const picker = container.querySelector<HTMLDetailsElement>(".affiliate-shop-picker")!;
+
+    fireEvent.click(picker.querySelector("summary")!);
+    expect(picker.open).toBe(true);
+    const berlin = within(picker).getByRole("checkbox", { name: /Berlin/ });
+    fireEvent.pointerDown(berlin);
+    fireEvent.click(berlin);
+    expect(picker.open).toBe(true);
+    expect(overviewInputs().at(-1)?.shopIds).toEqual(["shop-1"]);
+
+    fireEvent.pointerDown(document.body);
+    expect(picker.open).toBe(false);
+  });
+
   it("renders the three cohort sections, each declaring its own time axis", () => {
     render(<AffiliateAnalyticsPage />);
 

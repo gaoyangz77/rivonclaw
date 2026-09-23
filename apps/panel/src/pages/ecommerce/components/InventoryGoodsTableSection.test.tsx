@@ -128,3 +128,26 @@ describe("InventoryGoodsTableSection privacy masking", () => {
     expect(screen.getByText("Merino wool base layer").getAttribute("title")).toBeNull();
   });
 });
+
+describe("InventoryGoodsTableSection column picker", () => {
+  it("stays open for column choices and closes on an outside press or Escape", () => {
+    render(<InventoryGoodsTableSection />);
+    const picker = document.querySelector<HTMLDetailsElement>(".inventory-goods-column-selector")!;
+    const summary = picker.querySelector("summary")!;
+
+    fireEvent.click(summary);
+    expect(picker.open).toBe(true);
+    const checkbox = picker.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    fireEvent.pointerDown(checkbox);
+    fireEvent.click(checkbox);
+    expect(picker.open).toBe(true);
+
+    fireEvent.pointerDown(screen.getByText("ecommerce.inventory.inventoryGoods"));
+    expect(picker.open).toBe(false);
+
+    fireEvent.click(summary);
+    expect(picker.open).toBe(true);
+    fireEvent.keyDown(summary, { key: "Escape" });
+    expect(picker.open).toBe(false);
+  });
+});

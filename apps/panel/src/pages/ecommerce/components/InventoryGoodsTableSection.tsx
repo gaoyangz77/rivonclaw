@@ -16,6 +16,7 @@ import {
 import { MASKED_NAME_PLACEHOLDER } from "../../../lib/privacy-placeholder.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { inventoryGoodImageUrl } from "../../../store/models/InventoryGoodModel.js";
+import { useDismissibleDetails } from "../../../hooks/useDismissibleDetails.js";
 
 function imageUrl(good: InventoryGood) {
   return inventoryGoodImageUrl(good.imageUri);
@@ -49,6 +50,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
   const [deleteOneId, setDeleteOneId] = useState<string | null>(null);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [pageInput, setPageInput] = useState(String(inventory.inventoryGoodsPage));
+  const columnSelectorRef = useDismissibleDetails();
   const deleteOne = deleteOneId ? goods.find((good) => good.id === deleteOneId) : null;
   // `ConfirmDialog` takes a plain `string` message, so the SKU cannot carry the
   // masking marker; substituting it keeps the question itself readable.
@@ -149,7 +151,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
               >
                 {t("ecommerce.inventory.resetInventoryGoodsFilters")}
               </button>
-              <details className="inventory-goods-column-selector">
+              <details ref={columnSelectorRef} className="inventory-goods-column-selector">
                 <summary className="btn btn-secondary btn-sm">
                   {t("ecommerce.inventory.columns")}
                 </summary>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
 import { TkPrivate } from "../../../components/design-system/index.js";
 import { shopDisplayLabel, shopSelectSearchTerms } from "../../../lib/shop-display.js";
+import { useDismissibleDetails } from "../../../hooks/useDismissibleDetails.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
 const CUSTOM_SCOPE = "__CUSTOM__";
@@ -17,6 +18,7 @@ export function AffiliateShopScopeControl({
   onChange: (next: string[]) => void;
 }) {
   const { t } = useTranslation();
+  const pickerRef = useDismissibleDetails();
   const [shopSearch, setShopSearch] = useState("");
   const normalizedShopSearch = shopSearch.trim().toLocaleLowerCase();
   const visibleShops = normalizedShopSearch
@@ -70,7 +72,7 @@ export function AffiliateShopScopeControl({
           }}
         />
       </label>
-      <details className="affiliate-shop-picker">
+      <details ref={pickerRef} className="affiliate-shop-picker">
         <summary>
           {t("ecommerce.affiliateAnalytics.selectedShops", { count: selected.length })}
         </summary>
