@@ -71,6 +71,8 @@ export interface RouteEntry {
   authRequired?: boolean;
   /** Always mounted, shown/hidden via CSS toggle (preserves component state) */
   keepMounted?: boolean;
+  /** Query parameters owned by this page and safe to restore across Desktop restarts. */
+  viewParams?: readonly string[];
   /** Temporarily hidden from sidebar nav (route still resolves) */
   navHidden?: boolean;
   /** Only show in nav after the user is signed in */
@@ -176,6 +178,7 @@ export const ROUTES: RouteEntry[] = [
     path: "/commerce/customer-service/experiments",
     pageKey: "ecommerce-customer-service-experiments",
     component: CustomerServiceExperimentsPage,
+    viewParams: ["view", "experimentId", "metric", "range"],
     icon: <ChannelsIcon />,
     navLabelKey: "nav.customerServiceExperiments",
     authRequired: true,
@@ -206,6 +209,7 @@ export const ROUTES: RouteEntry[] = [
     path: "/commerce/affiliate/team",
     pageKey: "ecommerce-affiliate-team",
     component: AffiliateTeamPage,
+    viewParams: ["view"],
     icon: <ChannelsIcon />,
     navLabelKey: "nav.affiliateTeam",
     authRequired: true,

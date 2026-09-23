@@ -1,4 +1,7 @@
+import { workspaceTabsTranslations } from "./workspace-tabs-translations.js";
+
 export default {
+  workspace: workspaceTabsTranslations.zh,
   office: {
     title: "Agent 办公室",
     exit: "退出",

@@ -36,6 +36,15 @@ export interface PrefixRouteEntry {
   readonly desc?: string;
 }
 
+/** Desktop-local Panel workspace metadata. Unsaved page drafts never enter this payload. */
+export interface WorkspaceDescriptor {
+  version: 1;
+  tabs: Array<{ id: string; path: string; view: Record<string, string> }>;
+  activeTabId: string;
+}
+
+export const MAX_WORKSPACE_TABS = 8;
+
 // ---------------------------------------------------------------------------
 // Contract
 // ---------------------------------------------------------------------------
@@ -146,6 +155,16 @@ export const API = {
   // ── Settings ──
   "settings.getAll": { method: "GET", path: "/api/settings", desc: "Get all app settings" },
   "settings.update": { method: "PUT", path: "/api/settings", desc: "Update multiple settings" },
+  "settings.workspace.get": {
+    method: "GET",
+    path: "/api/settings/workspace",
+    desc: "Get account-scoped Panel workspace tabs",
+  },
+  "settings.workspace.set": {
+    method: "PUT",
+    path: "/api/settings/workspace",
+    desc: "Save account-scoped Panel workspace tabs",
+  },
   "settings.validateKey": {
     method: "POST",
     path: "/api/settings/validate-key",

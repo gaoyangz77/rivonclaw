@@ -1094,7 +1094,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const { data: businessDeveloperData, loading: businessDevelopersLoading } = useQuery<{
     affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[];
   }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
-    variables: { includeArchived: false },
+    variables: { includeArchived: true },
     fetchPolicy: "cache-and-network",
     skip: !user,
   });
@@ -10527,7 +10527,7 @@ function CreatorRelationshipDetailContent({
   const { data: developerData } = useQuery<{
     affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[];
   }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
-    variables: { includeArchived: false },
+    variables: { includeArchived: true },
     fetchPolicy: "cache-and-network",
   });
   useEffect(() => {

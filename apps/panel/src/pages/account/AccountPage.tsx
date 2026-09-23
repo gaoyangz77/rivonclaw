@@ -26,8 +26,10 @@ function useSystemName() {
 
 export const AccountPage = observer(function AccountPage({
   onNavigate,
+  onRequestLogout,
 }: {
   onNavigate: (path: string) => void;
+  onRequestLogout?: () => void;
 }) {
   const { t } = useTranslation();
   const resolveSystemName = useSystemName();
@@ -85,8 +87,11 @@ export const AccountPage = observer(function AccountPage({
   }
 
   function handleLogout() {
-    entityStore.logout();
-    onNavigate("/");
+    if (onRequestLogout) onRequestLogout();
+    else {
+      entityStore.logout();
+      onNavigate("/");
+    }
   }
 
   if (authChecking) {

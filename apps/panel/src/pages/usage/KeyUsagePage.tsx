@@ -23,6 +23,7 @@ import {
 import { UsageTable } from "./UsageTable.js";
 import { UsageChart } from "./UsageChart.js";
 import { formatLocalizedTime } from "../../lib/format-datetime.js";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import {
   TkAlert,
   TkEmptyState,
@@ -35,6 +36,7 @@ import {
 } from "../../components/design-system/index.js";
 
 export function KeyUsagePage() {
+  const workspaceTab = useWorkspaceTab();
   const { t, i18n } = useTranslation();
   const isCN = i18n.language === "zh";
   const [rows, setRows] = useState<KeyModelUsageSummary[]>([]);
@@ -177,11 +179,12 @@ export function KeyUsagePage() {
 
   // Auto-refresh every 60 seconds
   useEffect(() => {
+    if (!workspaceTab.active) return;
     const interval = setInterval(() => {
       loadAll();
     }, 60_000);
     return () => clearInterval(interval);
-  }, [loadAll]);
+  }, [loadAll, workspaceTab.active]);
 
   // Group rows for historical table (with active key injected)
   const grouped = useMemo(

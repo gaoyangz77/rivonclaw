@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import panelI18n from "../../i18n/index.js";
 import { formatShortDateTime } from "../../lib/format-datetime.js";
 import { GQL } from "@rivonclaw/core";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -502,6 +503,7 @@ export function paginateCampaigns<T>(
 }
 
 export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
+  const workspaceTab = useWorkspaceTab();
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const privacyMode = usePrivacyMode();
@@ -599,7 +601,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     {
       variables: { campaignId: selectedCampaignId },
       skip: !selectedCampaignId,
-      pollInterval: selectedCampaignId ? 15_000 : 0,
+      pollInterval: workspaceTab.active && selectedCampaignId ? 15_000 : 0,
     },
   );
   const screeningQuery = useQuery<{
@@ -607,8 +609,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   }>(AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY, {
     variables: { campaignId: selectedCampaignId },
     skip: !selectedCampaignId,
-    pollInterval: selectedCampaignId ? 60_000 : 0,
-    skipPollAttempt: () => document.visibilityState === "hidden",
+    pollInterval: workspaceTab.active && selectedCampaignId ? 60_000 : 0,
+    skipPollAttempt: () => !workspaceTab.active || document.visibilityState === "hidden",
   });
   // Campaign-wide by default; a selected search plan narrows the same query.
   const creatorStatesQuery = useQuery<{
@@ -643,7 +645,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     // Search-plan history is an operator view, not a dispatch control loop.
     // Mutations still refetch immediately; the background refresh can be
     // slower and should stop entirely while the page is not visible.
-    pollInterval: selectedCampaignId ? 60_000 : 0,
+    pollInterval: workspaceTab.active && selectedCampaignId ? 60_000 : 0,
     skipPollAttempt: () => document.visibilityState === "hidden",
   });
   const searchPlanPageQueryKey = selectedCampaignId;
@@ -3639,10 +3641,18 @@ function CampaignStateFilterGroup<T extends string>({
   onToggle: (value: T) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const workspaceTab = useWorkspaceTab();
   const rootRef = useRef<HTMLDetailsElement | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!workspaceTab.active) {
+      rootRef.current?.removeAttribute("open");
+      setOpen(false);
+    }
+  }, [workspaceTab.active]);
+
+  useEffect(() => {
+    if (!open || !workspaceTab.active) return;
     const closeOnOutsidePress = (event: PointerEvent) => {
       const root = rootRef.current;
       if (root && event.target instanceof Node && !root.contains(event.target)) {
@@ -3662,7 +3672,7 @@ function CampaignStateFilterGroup<T extends string>({
       document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape, true);
     };
-  }, [open]);
+  }, [open, workspaceTab.active]);
 
   return (
     <details

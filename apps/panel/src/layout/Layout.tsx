@@ -12,7 +12,7 @@ import { AuthModal } from "../components/modals/AuthModal.js";
 import { getUserInitial } from "../lib/user-manager.js";
 import { canSeeRoute } from "../lib/permission-scope.js";
 import { TkHierarchicalNav } from "../components/design-system/index.js";
-import { PageErrorBoundary } from "../components/PageErrorBoundary.js";
+import { TkWorkspaceTabs, type TkWorkspaceTabItem } from "../components/design-system/index.js";
 import { buildSidebarNavigationItems } from "./sidebar-navigation.js";
 import { OfficeShutter } from "../components/office/OfficeShutter.js";
 import { useOfficeShutter } from "../components/office/useOfficeShutter.js";
@@ -26,10 +26,24 @@ export const Layout = observer(function Layout({
   children,
   currentPath,
   onNavigate,
+  workspaceTabs,
+  activeTabId,
+  onActivateTab,
+  onCloseTab,
+  onReorderTab,
+  onAuthSuccess,
+  showWorkspaceTabs,
 }: {
   children: ReactNode;
   currentPath: string;
   onNavigate: (path: string) => void;
+  workspaceTabs: TkWorkspaceTabItem[];
+  activeTabId: string;
+  onActivateTab: (id: string) => void;
+  onCloseTab: (id: string) => void;
+  onReorderTab: (id: string, targetIndex: number) => void;
+  onAuthSuccess: (path: string) => void;
+  showWorkspaceTabs: boolean;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -83,6 +97,16 @@ export const Layout = observer(function Layout({
   const navRoutes = ROUTES.filter(
     (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
   );
+
+  useEffect(() => {
+    const onAuthRequired = (event: Event) => {
+      const path = (event as CustomEvent<{ path: string }>).detail.path;
+      setPendingAuthPath(path);
+      setAuthModalOpen(true);
+    };
+    window.addEventListener("rivonclaw:open-auth", onAuthRequired);
+    return () => window.removeEventListener("rivonclaw:open-auth", onAuthRequired);
+  }, []);
 
   function renderNavIcon(route: RouteEntry) {
     if (route.pageKey !== "account") return route.icon;
@@ -164,19 +188,17 @@ export const Layout = observer(function Layout({
             {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
           </aside>
           <div className="main-content">
-            <main>
-              <PageErrorBoundary
-                resetKey={currentPath}
-                title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
-                message={t("common.pageErrorMessage", {
-                  defaultValue:
-                    "The navigation is still available. Reload this page, or open another section and come back.",
-                })}
-                retryLabel={t("common.reload", { defaultValue: "Reload page" })}
-              >
-                {children}
-              </PageErrorBoundary>
-            </main>
+            {showWorkspaceTabs && <TkWorkspaceTabs
+              items={workspaceTabs}
+              value={activeTabId}
+              onChange={onActivateTab}
+              onClose={onCloseTab}
+              onReorder={onReorderTab}
+              label={t("workspace.tabs")}
+              closeLabel={t("workspace.closeTab")}
+              dirtyLabel={t("workspace.unsaved")}
+            />}
+            <main>{children}</main>
           </div>
         </div>
       </OfficeShutter>
@@ -187,7 +209,7 @@ export const Layout = observer(function Layout({
           setPendingAuthPath(null);
         }}
         onSuccess={() => {
-          if (pendingAuthPath) onNavigate(pendingAuthPath);
+          if (pendingAuthPath) onAuthSuccess(pendingAuthPath);
         }}
       />
     </div>

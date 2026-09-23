@@ -79,3 +79,62 @@ describe("POST /api/app/open-in-browser", () => {
     expect(openExternal).not.toHaveBeenCalled();
   });
 });
+
+describe("account-scoped workspace API", () => {
+  async function requestWorkspace(
+    method: "GET" | "PUT",
+    values: Map<string, string>,
+    userId: string | null,
+    body?: unknown,
+  ) {
+    const request = new Readable({ read() {} }) as IncomingMessage;
+    request.method = method;
+    request.headers = {};
+    if (body) request.push(JSON.stringify(body));
+    request.push(null);
+    const response = makeResponse();
+    const url = new URL(`http://localhost/api/settings/workspace?userId=${userId ?? ""}`);
+    const context = {
+      storage: {
+        settings: {
+          get: (key: string) => values.get(key),
+          set: (key: string, value: string) => values.set(key, value),
+        },
+      },
+      authSession: {
+        getAccessToken: () => userId ? "token" : null,
+        getCachedUser: () => userId ? { userId } : null,
+      },
+    } as unknown as ApiContext;
+    await registry.dispatch(request, response, url, url.pathname, context);
+    return response;
+  }
+
+  it("isolates descriptors by account and excludes unsaved form fields", async () => {
+    const values = new Map<string, string>();
+    const workspace = {
+      version: 1,
+      tabs: [{ id: "chat", path: "/", view: {} }],
+      activeTabId: "chat",
+    };
+    expect((await requestWorkspace("PUT", values, "alice", { userId: "alice", workspace })).status).toBe(200);
+    expect((await requestWorkspace("GET", values, "bob")).body).toEqual({ workspace: null });
+    expect((await requestWorkspace("GET", values, "alice")).body).toEqual({ workspace });
+    expect((await requestWorkspace("PUT", values, "alice", {
+      userId: "alice",
+      workspace: { ...workspace, tabs: [{ ...workspace.tabs[0], draft: "private text" }] },
+    })).status).toBe(400);
+  });
+
+  it("rejects stale-account writes and malformed tab sets", async () => {
+    const values = new Map<string, string>();
+    const workspace = {
+      version: 1,
+      tabs: [{ id: "one", path: "/", view: {} }, { id: "two", path: "/", view: {} }],
+      activeTabId: "one",
+    };
+    expect((await requestWorkspace("PUT", values, "alice", { userId: "bob", workspace })).status).toBe(409);
+    expect((await requestWorkspace("PUT", values, "alice", { userId: "alice", workspace })).status).toBe(400);
+    expect(values.size).toBe(0);
+  });
+});

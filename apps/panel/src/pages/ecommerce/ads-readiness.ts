@@ -95,9 +95,7 @@ export function readinessBadgeTone(status: ShopAdsReadinessStatus | "partial"): 
 }
 
 export function navigateToAdsManagement() {
-  const path = "/commerce/ads";
-  if (window.location.pathname !== path) {
-    window.history.pushState(null, "", path);
-  }
-  window.dispatchEvent(new PopStateEvent("popstate"));
+  window.dispatchEvent(new CustomEvent("rivonclaw:open-route", {
+    detail: { path: "/commerce/ads" },
+  }));
 }

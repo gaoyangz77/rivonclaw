@@ -3,7 +3,11 @@ import { createLogger } from "@rivonclaw/logger";
 import { getApiBaseUrl } from "@rivonclaw/core";
 import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
 import { resolveOpenClawConfigPath, resolveOpenClawStateDir } from "@rivonclaw/gateway";
-import { API } from "@rivonclaw/core/api-contract";
+import {
+  API,
+  MAX_WORKSPACE_TABS,
+  type WorkspaceDescriptor,
+} from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { isTrustedLoopbackOrigin, sendJson, parseBody } from "../infra/api/route-utils.js";
@@ -13,6 +17,42 @@ import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation
 
 const log = createLogger("settings-routes");
 const FIXED_DM_SCOPE = "per-account-channel-peer";
+const WORKSPACE_KEY_PREFIX = "_internal.panel-workspace.v1.";
+
+function workspaceStorageKey(ctx: ApiContext): string | null {
+  const session = ctx.authSession;
+  if (session?.getAccessToken() && !session.getCachedUser()) return null;
+  const userId = session?.getCachedUser()?.userId ?? "guest";
+  return `${WORKSPACE_KEY_PREFIX}${encodeURIComponent(userId)}`;
+}
+
+function isWorkspaceDescriptor(value: unknown): value is WorkspaceDescriptor {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<WorkspaceDescriptor>;
+  if (Object.keys(candidate).some((key) => !["version", "tabs", "activeTabId"].includes(key)))
+    return false;
+  if (candidate.version !== 1 || !Array.isArray(candidate.tabs)) return false;
+  if (candidate.tabs.length < 1 || candidate.tabs.length > MAX_WORKSPACE_TABS) return false;
+  if (typeof candidate.activeTabId !== "string") return false;
+  const ids = new Set<string>();
+  const paths = new Set<string>();
+  for (const tab of candidate.tabs) {
+    if (!tab || typeof tab !== "object") return false;
+    if (Object.keys(tab).some((key) => !["id", "path", "view"].includes(key))) return false;
+    if (typeof tab.id !== "string" || tab.id.length < 1 || tab.id.length > 80) return false;
+    if (typeof tab.path !== "string" || !tab.path.startsWith("/") || tab.path.length > 180)
+      return false;
+    if (!tab.view || typeof tab.view !== "object" || Array.isArray(tab.view)) return false;
+    const entries = Object.entries(tab.view);
+    if (entries.length > 12) return false;
+    if (entries.some(([key, item]) => key.length > 60 || typeof item !== "string" || item.length > 256))
+      return false;
+    if (ids.has(tab.id) || paths.has(tab.path)) return false;
+    ids.add(tab.id);
+    paths.add(tab.path);
+  }
+  return ids.has(candidate.activeTabId);
+}
 
 // ── GET /api/status ──
 
@@ -85,6 +125,49 @@ const getAll: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
   }
 
   sendJson(res, 200, { settings: masked });
+};
+
+const getWorkspace: EndpointHandler = async (_req, res, url, _params, ctx: ApiContext) => {
+  if (url.searchParams.get("userId") !== (ctx.authSession?.getCachedUser()?.userId ?? "")) {
+    sendJson(res, 409, { error: "Workspace account changed" });
+    return;
+  }
+  const key = workspaceStorageKey(ctx);
+  if (!key) {
+    sendJson(res, 503, { error: "Account session is still loading" });
+    return;
+  }
+  const raw = ctx.storage.settings.get(key);
+  if (!raw) {
+    sendJson(res, 200, { workspace: null });
+    return;
+  }
+  try {
+    const workspace: unknown = JSON.parse(raw);
+    sendJson(res, 200, { workspace: isWorkspaceDescriptor(workspace) ? workspace : null });
+  } catch {
+    log.warn("Stored workspace descriptor is invalid");
+    sendJson(res, 200, { workspace: null });
+  }
+};
+
+const setWorkspace: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  const key = workspaceStorageKey(ctx);
+  if (!key) {
+    sendJson(res, 503, { error: "Account session is still loading" });
+    return;
+  }
+  const body = (await parseBody(req)) as { userId?: unknown; workspace?: unknown };
+  if (body?.userId !== (ctx.authSession?.getCachedUser()?.userId ?? null)) {
+    sendJson(res, 409, { error: "Workspace account changed" });
+    return;
+  }
+  if (!isWorkspaceDescriptor(body?.workspace)) {
+    sendJson(res, 400, { error: "Invalid workspace descriptor" });
+    return;
+  }
+  ctx.storage.settings.set(key, JSON.stringify(body.workspace));
+  sendJson(res, 200, { ok: true });
 };
 
 // ── PUT /api/settings ──
@@ -609,6 +692,8 @@ export function registerSettingsHandlers(registry: RouteRegistry): void {
   // Settings
   registry.register(API["settings.getAll"], getAll);
   registry.register(API["settings.update"], updateSettings);
+  registry.register(API["settings.workspace.get"], getWorkspace);
+  registry.register(API["settings.workspace.set"], setWorkspace);
   registry.register(API["settings.validateKey"], validateKey);
   registry.register(API["settings.validateCustomKey"], validateCustomKey);
 

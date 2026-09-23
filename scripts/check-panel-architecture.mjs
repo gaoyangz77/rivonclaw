@@ -27,6 +27,7 @@
  *  18. css-ownership-contract — CSS manifests stay import-only and no monolith can regrow
  *  19. control-boundary       — Legacy focus bridges cannot override Design System controls
  *  20. scroll-axis-contract   — Horizontal navigation declares and suppresses vertical overflow
+ *  21. workspace-url-contract — Pages delegate URL navigation to the workspace controller
  *
  * Exit 0 = PASS
  * Exit 1 = FAIL
@@ -239,6 +240,13 @@ for (const filePath of files) {
   const content = readFileSync(filePath, "utf-8");
   const imports = extractImports(content);
 
+  if (relPath.startsWith("pages/") && !relPath.includes(".test.") &&
+      /window\.history\.(?:pushState|replaceState)|window\.location\.(?:pathname|search)/.test(content)) {
+    violations.push(
+      `FAIL [workspace-url-contract] ${relPath} writes or reads the global route URL. Use the workspace tab view or route event.`,
+    );
+  }
+
   // Rule 1: no-root-page — no files directly under pages/
   if (/^pages\/[^/]+$/.test(relPath)) {
     const fileName = relPath.replace("pages/", "");
@@ -353,6 +361,7 @@ for (const filePath of files) {
 
     if (
       relPath !== "components/design-system/Primitives.tsx" &&
+      relPath !== "components/design-system/WorkspaceTabs.tsx" &&
       content.includes('role="tablist"')
     ) {
       violations.push(
@@ -489,7 +498,8 @@ if (existsSync(layoutSourcePath)) {
       "FAIL [shell-layout-contract] Sidebar navigation must use the shared two-level navigation.",
     );
   }
-  if (!layoutSource.includes("<PageErrorBoundary")) {
+  const appSource = readFileSync(join(SRC_ROOT, "App.tsx"), "utf-8");
+  if (!layoutSource.includes("<PageErrorBoundary") && !appSource.includes("<PageErrorBoundary")) {
     violations.push(
       "FAIL [shell-layout-contract] A page render failure can erase the application shell.",
     );

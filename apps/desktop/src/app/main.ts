@@ -2205,12 +2205,63 @@ app.whenReady().then(async () => {
 
   log.info("TK Copilot desktop ready");
 
+  let quitApproved = false;
+  let quitCheckPending = false;
+  async function confirmWorkspaceQuit(): Promise<boolean> {
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return true;
+    let check: { dirtyCount: number; saveFailed: boolean; uncertain?: boolean } = {
+      dirtyCount: 0, saveFailed: false,
+    };
+    try {
+      check = await Promise.race([
+        mainWindow.webContents.executeJavaScript(
+          "window.__rivonclawWorkspaceBeforeQuit?.() ?? { dirtyCount: 0, saveFailed: false }",
+        ) as Promise<{ dirtyCount: number; saveFailed: boolean }>,
+        new Promise<{ dirtyCount: number; saveFailed: boolean; uncertain: boolean }>((resolve) =>
+          setTimeout(() => resolve({ dirtyCount: 0, saveFailed: false, uncertain: true }), 2_000)),
+      ]);
+    } catch {
+      check = { dirtyCount: 0, saveFailed: false, uncertain: true };
+    }
+    if (check.dirtyCount <= 0 && !check.saveFailed && !check.uncertain) return true;
+    const isZh = systemLocale === "zh";
+    try {
+      mainWindow.show();
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: "warning",
+        buttons: isZh ? ["继续编辑", "放弃修改并退出"] : ["Keep editing", "Discard and quit"],
+        defaultId: 0,
+        cancelId: 0,
+        message: check.dirtyCount > 0
+          ? (isZh
+            ? `有 ${check.dirtyCount} 个页面包含未保存的修改`
+            : `${check.dirtyCount} page${check.dirtyCount === 1 ? " has" : "s have"} unsaved changes`)
+          : (isZh ? "无法确认页面布局已保存" : "Could not confirm the page layout was saved"),
+        detail: check.dirtyCount > 0
+          ? (isZh
+            ? "退出或安装更新后，这些未保存的修改无法恢复。"
+            : "These unsaved changes cannot be recovered after quitting or installing an update.")
+          : (isZh
+            ? "退出后，打开的页面可能无法恢复。"
+            : "Open pages may not be restored after quitting."),
+      });
+      return response === 1;
+    } catch (error) {
+      log.warn("Could not confirm unsaved workspace changes:", error);
+      return false;
+    }
+  }
+
   // Register full cleanup for auto-updater — defined here (after all timers)
   // so the closure has access to every dependency. The auto-updater calls this
   // BEFORE quitAndInstall(), eliminating the race condition where NSIS starts
   // overwriting files while the app is still running async cleanup.
   updater.setRunFullCleanup(async () => {
-    if (cleanupDone) return;
+    if (cleanupDone) return true;
+    if (!quitApproved) {
+      if (!(await confirmWorkspaceQuit())) return false;
+      quitApproved = true;
+    }
 
     isQuitting = true;
 
@@ -2249,6 +2300,7 @@ app.whenReady().then(async () => {
 
     storage.close();
     cleanupDone = true;
+    return true;
   });
 
   // Cleanup on quit — Electron does NOT await async before-quit callbacks,
@@ -2256,10 +2308,24 @@ app.whenReady().then(async () => {
   // NOTE: When auto-updater calls install(), runFullCleanup runs first and sets
   // cleanupDone=true, so this handler skips and the app exits immediately.
   app.on("before-quit", (event) => {
-    isQuitting = true;
-
     if (cleanupDone) return; // Already cleaned up (e.g. by auto-updater), let the quit proceed
     event.preventDefault(); // Pause quit until async cleanup finishes
+    if (!quitApproved) {
+      if (!quitCheckPending) {
+        quitCheckPending = true;
+        void confirmWorkspaceQuit().then((confirmed) => {
+          quitCheckPending = false;
+          if (confirmed) {
+            quitApproved = true;
+            app.quit();
+          } else {
+            isQuitting = false;
+          }
+        });
+      }
+      return;
+    }
+    isQuitting = true;
 
     // Stop all periodic timers so they don't keep the event loop alive
     clearInterval(proxyPollTimer);

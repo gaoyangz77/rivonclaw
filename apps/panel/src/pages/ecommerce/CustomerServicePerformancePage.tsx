@@ -22,6 +22,7 @@ import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { shopDisplayLabel, shopSelectSearchTerms } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedTime } from "../../lib/format-datetime.js";
 import {
@@ -144,6 +145,7 @@ function csvCell(value: string | number): string {
 }
 
 export const CustomerServicePerformancePage = observer(function CustomerServicePerformancePage() {
+  const workspaceTab = useWorkspaceTab();
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
@@ -187,7 +189,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     },
     skip: !user || activeTab !== "realtime",
     fetchPolicy: "cache-and-network",
-    pollInterval: activeTab === "realtime" ? 60_000 : 0,
+    pollInterval: workspaceTab.active && activeTab === "realtime" ? 60_000 : 0,
   });
 
   const unpaidQuery = useQuery<{ ecommerceGetCSUnpaidOrderReachoutPerformance: any }>(

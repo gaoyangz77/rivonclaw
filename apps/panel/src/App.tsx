@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Layout } from "./layout/Layout.js";
-import { VALID_PATHS, ROUTE_MAP, resolveLandingPath } from "./routes.js";
+import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import {
@@ -30,8 +30,13 @@ import {
 } from "./api/announcement-queries.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { normalizeLanguageCode } from "./i18n/languages.js";
-import { navigationAllowed } from "./lib/navigation-guard.js";
 import { canSeeRoute } from "./lib/permission-scope.js";
+import { useWorkspaceTabs } from "./hooks/useWorkspaceTabs.js";
+import { activeWorkspaceTab } from "./lib/workspace-tabs.js";
+import { WorkspaceTabProvider } from "./lib/workspace-tab-context.js";
+import { PageErrorBoundary } from "./components/PageErrorBoundary.js";
+import { TkConfirmDialog } from "./components/design-system/index.js";
+import { useToast } from "./components/Toast.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -46,9 +51,12 @@ const WELCOME_PAGE_COMPLETED_KEY = "welcome_page_completed";
 const LEGACY_ONBOARDING_ACCOUNT_ENTRY_COMPLETED_KEY = "onboarding_account_entry_completed";
 
 export const App = observer(function App() {
+  // The staged production rollout is opt-in; development exercises the full tab host.
+  const workspaceTabsEnabled = import.meta.env.VITE_WORKSPACE_TABS === "1" ||
+    (import.meta.env.DEV && import.meta.env.VITE_WORKSPACE_TABS !== "0");
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
   const runtimeStatus = useRuntimeStatus();
-  const [currentPath, setCurrentPath] = useState(() => resolveRoute(window.location.pathname));
 
   // Sync <html lang="..."> so CSS :lang() / [lang] selectors work
   useEffect(() => {
@@ -72,51 +80,19 @@ export const App = observer(function App() {
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);
   const [currentVersion, setCurrentVersion] = useState("");
   const impressedAnnouncementKeys = useRef(new Set<string>());
-  const landingRedirectedForUserId = useRef<string | null>(null);
-  const cachedForUserId = useRef<string | null>(null);
-
-  // Keep state in sync when user presses browser Back / Forward
-  useEffect(() => {
-    function onPopState() {
-      const nextPath = resolveRoute(window.location.pathname);
-      const proceed = () => {
-        window.history.pushState(null, "", nextPath);
-        setCurrentPath(nextPath);
-        trackEvent("panel.page_viewed", { page: pageNameFromRoute(nextPath) });
-      };
-      if (nextPath !== currentPath && !navigationAllowed(currentPath, nextPath, proceed)) {
-        window.history.pushState(null, "", currentPath);
-        return;
-      }
-      setCurrentPath(nextPath);
-    }
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [currentPath]);
+  const dirtyTabsRef = useRef<Set<string>>(new Set());
+  const lostDraftsRef = useRef(0);
+  const voluntaryLogoutRef = useRef(false);
 
   // Clear auth state when any API call returns 401
   useEffect(() => {
-    const handler = () => entityStore.clearAuth();
+    const handler = () => {
+      if (!voluntaryLogoutRef.current) lostDraftsRef.current = dirtyTabsRef.current.size;
+      entityStore.clearAuth();
+    };
     window.addEventListener("rivonclaw:auth-expired", handler);
     return () => window.removeEventListener("rivonclaw:auth-expired", handler);
   }, []);
-
-  const navigate = useCallback(
-    (path: string) => {
-      const route = resolveRoute(path);
-      const proceed = () => {
-        if (route !== window.location.pathname) {
-          window.history.pushState(null, "", route);
-        }
-        setCurrentPath(route);
-        trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
-      };
-      if (route !== window.location.pathname && !navigationAllowed(currentPath, route, proceed))
-        return;
-      proceed();
-    },
-    [currentPath],
-  );
 
   // Primitives, not the MST node: the user node is replaced on every `me`
   // ingestion, and reading these during render is what makes observer() track
@@ -125,45 +101,129 @@ export const App = observer(function App() {
   const currentUserId = entityStore.currentUser?.userId ?? null;
   const currentUserIsOwner = entityStore.currentUser?.isOwner ?? true;
   const currentUserScopes = entityStore.currentUser?.permissionScopes.join(",") ?? "";
+  const workspaceController = useWorkspaceTabs({
+    userId: currentUserId,
+    isOwner: currentUserIsOwner,
+    scopeSignature: currentUserScopes,
+    bootstrapReady: showWelcome === false && (!workspaceTabsEnabled ||
+      (runtimeStatus.snapshotReceived && !authBootstrapLoading)),
+    tabsEnabled: workspaceTabsEnabled,
+  });
+  const { workspace } = workspaceController;
+  const activeTab = activeWorkspaceTab(workspace);
+  const currentPath = activeTab.path;
+  const [dirtyTabs, setDirtyTabs] = useState<Set<string>>(() => new Set());
+  dirtyTabsRef.current = dirtyTabs;
+  const [visitedTabs, setVisitedTabs] = useState<{ userId: string | null; ids: Set<string> }>(
+    () => ({ userId: null, ids: new Set() }),
+  );
+  const [pendingCloseId, setPendingCloseId] = useState<string | null>(null);
+  const [pendingLogout, setPendingLogout] = useState(false);
+  const [pendingLegacyPath, setPendingLegacyPath] = useState<string | null>(null);
+  const [authDestination, setAuthDestination] = useState<string | null>(null);
+  const initialProtectedPath = useRef(
+    ROUTE_MAP.get(window.location.pathname)?.authRequired ? window.location.pathname : null,
+  );
 
-  // Apollo's cache lives for the lifetime of the Panel, but the signed-in
-  // account does not. Without this, signing in as a member after the owner
-  // would serve the owner's cached results — the account switch has to wipe it.
+  const navigate = useCallback(
+    (path: string) => {
+      const route = resolveRoute(path);
+      if (!workspaceTabsEnabled && route !== currentPath && dirtyTabs.has(activeTab.id)) {
+        setPendingLegacyPath(route);
+        return;
+      }
+      const result = workspaceController.openRoute(route);
+      if (result === "limit") {
+        showToast(t("workspace.limit"), "warning");
+      } else if (result === "forbidden" && ROUTE_MAP.get(route)?.authRequired && !currentUserId) {
+        window.dispatchEvent(new CustomEvent("rivonclaw:open-auth", { detail: { path: route } }));
+      } else if (result === "opened") {
+        trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
+      }
+    },
+    [workspaceTabsEnabled, currentPath, dirtyTabs, activeTab.id, workspaceController.openRoute, currentUserId, showToast, t],
+  );
+
   useEffect(() => {
-    if (cachedForUserId.current === currentUserId) return;
-    const previousUserId = cachedForUserId.current;
-    cachedForUserId.current = currentUserId;
-    if (previousUserId === null) return;
-    getClient()
-      .clearStore()
-      .catch((error) => {
-        console.error("Failed to clear the GraphQL cache on account switch", error);
-      });
+    const onOpenRoute = (event: Event) => {
+      navigate((event as CustomEvent<{ path: string }>).detail.path);
+    };
+    window.addEventListener("rivonclaw:open-route", onOpenRoute);
+    return () => window.removeEventListener("rivonclaw:open-route", onOpenRoute);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!workspaceController.ready || currentUserId || !initialProtectedPath.current) return;
+    const path = initialProtectedPath.current;
+    initialProtectedPath.current = null;
+    window.dispatchEvent(new CustomEvent("rivonclaw:open-auth", { detail: { path } }));
+  }, [workspaceController.ready, currentUserId]);
+
+  useEffect(() => {
+    if (!workspaceController.ready || !currentUserId || !authDestination) return;
+    navigate(authDestination);
+    setAuthDestination(null);
+  }, [workspaceController.ready, currentUserId, authDestination, navigate]);
+
+  const markTabDirty = useCallback((id: string, dirty: boolean) => {
+    setDirtyTabs((previous) => {
+      if (previous.has(id) === dirty) return previous;
+      const next = new Set(previous);
+      if (dirty) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    setDirtyTabs(new Set());
   }, [currentUserId]);
 
-  // A member account whose role does not grant CHAT would otherwise sit on a
-  // page its sidebar no longer offers. Send it to the first page its role does
-  // unlock — once per signed-in user, so a later deliberate navigation stands.
   useEffect(() => {
-    if (authBootstrapLoading || !currentUserId) return;
-    if (landingRedirectedForUserId.current === currentUserId) return;
-    landingRedirectedForUserId.current = currentUserId;
-    if (currentPath !== "/") return;
-    const scopes = currentUserScopes ? currentUserScopes.split(",") : [];
-    if (
-      canSeeRoute(ROUTE_MAP.get("/")!, { isOwner: currentUserIsOwner, permissionScopes: scopes })
-    ) {
-      return;
+    if (!currentUserId) return;
+    voluntaryLogoutRef.current = false;
+    if (lostDraftsRef.current > 0) {
+      lostDraftsRef.current = 0;
+      showToast(t("workspace.draftsLost"), "warning");
     }
-    navigate(resolveLandingPath(scopes));
-  }, [
-    authBootstrapLoading,
-    currentUserId,
-    currentUserIsOwner,
-    currentUserScopes,
-    currentPath,
-    navigate,
-  ]);
+  }, [currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!workspaceController.ready) return;
+    setVisitedTabs((previous) => {
+      const ids = previous.userId === currentUserId ? new Set(previous.ids) : new Set<string>();
+      if (ids.has(workspace.activeTabId)) return previous;
+      ids.add(workspace.activeTabId);
+      return { userId: currentUserId, ids };
+    });
+  }, [workspaceController.ready, workspace.activeTabId, currentUserId]);
+
+  useEffect(() => {
+    const getDirtyCount = () => dirtyTabs.size;
+    const beforeQuit = async () => {
+      let saveFailed = false;
+      if (workspaceController.ready) {
+        try {
+          await workspaceController.flush();
+        } catch {
+          saveFailed = true;
+        }
+      }
+      return { dirtyCount: getDirtyCount(), saveFailed };
+    };
+    Object.assign(window, {
+      __rivonclawWorkspaceDirtyCount: getDirtyCount,
+      __rivonclawWorkspaceBeforeQuit: beforeQuit,
+    });
+    return () => {
+      const globalWindow = window as Window & {
+        __rivonclawWorkspaceDirtyCount?: () => number;
+        __rivonclawWorkspaceBeforeQuit?: () => Promise<{ dirtyCount: number; saveFailed: boolean }>;
+      };
+      delete globalWindow.__rivonclawWorkspaceDirtyCount;
+      delete globalWindow.__rivonclawWorkspaceBeforeQuit;
+    };
+  }, [dirtyTabs, workspaceController.ready, workspaceController.flush]);
 
   useEffect(() => {
     if (import.meta.env.VITE_FORCE_WELCOME === "1") {
@@ -308,10 +368,10 @@ export const App = observer(function App() {
 
   // Track initial page view when main app mounts (not during the welcome page)
   useEffect(() => {
-    if (showWelcome === false) {
+    if (workspaceController.ready) {
       trackEvent("panel.page_viewed", { page: pageNameFromRoute(currentPath) });
     }
-  }, [showWelcome === false]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workspaceController.ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleWelcomeComplete() {
     setShowWelcome(false);
@@ -407,27 +467,204 @@ export const App = observer(function App() {
     return <WelcomeComponent onComplete={handleWelcomeComplete} />;
   }
 
+  if (!workspaceController.ready) {
+    return <div className="app-loading">{t("common.loading")}</div>;
+  }
+
   const ChatComponent = ROUTE_MAP.get("/")!.component;
-  const currentRoute = ROUTE_MAP.get(currentPath);
-  const isKeepMounted = currentRoute?.keepMounted;
-  const isAccount = currentPath === "/account/profile";
-  const StandardPage =
-    currentRoute?.component && !isKeepMounted && !isAccount ? currentRoute.component : null;
+  const chatTab = workspace.tabs.find((tab) => tab.path === "/");
+  const chatAllowed = canSeeRoute(
+    ROUTE_MAP.get("/")!,
+    currentUserId
+      ? { isOwner: currentUserIsOwner, permissionScopes: currentUserScopes.split(",") }
+      : null,
+  );
+  const tabItems = workspace.tabs.map((tab) => {
+    const route = ROUTE_MAP.get(tab.path)!;
+    return {
+      id: tab.id,
+      label: route.navLabelKey ? t(route.navLabelKey) : route.pageKey,
+      icon: route.icon,
+      dirty: dirtyTabs.has(tab.id),
+    };
+  });
+
+  function tabSwitchAllowed(): boolean {
+    return !document.querySelector('[role="dialog"][aria-modal="true"]');
+  }
+
+  function closeTab(id: string) {
+    if (!tabSwitchAllowed()) return;
+    if (dirtyTabs.has(id)) {
+      setPendingCloseId(id);
+      return;
+    }
+    workspaceController.closeTab(id);
+  }
+
+  function confirmCloseTab() {
+    if (!pendingCloseId) return;
+    workspaceController.closeTab(pendingCloseId);
+    markTabDirty(pendingCloseId, false);
+    setPendingCloseId(null);
+  }
+
+  function requestLogout() {
+    if (dirtyTabs.size > 0) {
+      setPendingLogout(true);
+      return;
+    }
+    voluntaryLogoutRef.current = true;
+    void entityStore.logout();
+  }
+
+  function confirmLogout() {
+    setPendingLogout(false);
+    voluntaryLogoutRef.current = true;
+    void entityStore.logout();
+  }
 
   return (
     <TutorialProvider currentPath={currentPath}>
-      <Layout currentPath={currentPath} onNavigate={navigate}>
+      <Layout
+        currentPath={currentPath}
+        onNavigate={navigate}
+        workspaceTabs={tabItems}
+        activeTabId={workspace.activeTabId}
+        onActivateTab={(id) => {
+          if (!tabSwitchAllowed()) return;
+          workspaceController.activateTab(id);
+          const route = workspace.tabs.find((tab) => tab.id === id);
+          if (route) trackEvent("panel.page_viewed", { page: pageNameFromRoute(route.path) });
+        }}
+        onCloseTab={closeTab}
+        onReorderTab={(id, index) => {
+          if (tabSwitchAllowed()) workspaceController.reorderTab(id, index);
+        }}
+        onAuthSuccess={setAuthDestination}
+        showWorkspaceTabs={workspaceTabsEnabled}
+      >
+        {workspaceController.loadError && (
+          <div className="workspace-save-error" role="status">
+            {t("workspace.loadFailed")}
+          </div>
+        )}
+        {workspaceController.saveError && (
+          <div className="workspace-save-error" role="status">
+            {t("workspace.saveFailed")}
+          </div>
+        )}
         {/* Keep ChatPage always mounted so its WebSocket connection and pending
             message state survive navigation to other pages (e.g. ProvidersPage). */}
-        <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
-          <ChatComponent />
+        <div
+          className="workspace-page"
+          id={chatTab ? `workspace-panel-${chatTab.id}` : undefined}
+          role="tabpanel"
+          aria-labelledby={chatTab ? `workspace-tab-${chatTab.id}` : undefined}
+          hidden={!chatTab || currentPath !== "/"}
+          inert={!chatTab || currentPath !== "/"}
+        >
+          {chatAllowed && (
+            <WorkspaceTabProvider
+              value={{
+                tabId: chatTab?.id ?? "chat-suspended",
+                active: currentPath === "/",
+                view: chatTab?.view ?? {},
+                setView: (view) => chatTab && workspaceController.setTabView(chatTab.id, view),
+                setDirty: (dirty) => chatTab && markTabDirty(chatTab.id, dirty),
+              }}
+            >
+              <PageErrorBoundary
+                resetKey={chatTab?.id ?? "chat-suspended"}
+                title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
+                message={t("common.pageErrorMessage", {
+                  defaultValue: "The navigation is still available. Retry this page or open another section.",
+                })}
+                retryLabel={t("common.reload")}
+              >
+                <ChatComponent />
+              </PageErrorBoundary>
+            </WorkspaceTabProvider>
+          )}
         </div>
-        {isAccount &&
-          (() => {
-            const AccountComponent = currentRoute!.component;
-            return <AccountComponent onNavigate={navigate} />;
-          })()}
-        {StandardPage && <StandardPage />}
+        {workspace.tabs
+          .filter((tab) => tab.path !== "/")
+          .map((tab) => {
+            const route = ROUTE_MAP.get(tab.path)!;
+            const Page = route.component;
+            const active = workspace.activeTabId === tab.id;
+            return (
+              <div
+                className="workspace-page"
+                id={`workspace-panel-${tab.id}`}
+                role="tabpanel"
+                aria-labelledby={`workspace-tab-${tab.id}`}
+                hidden={!active}
+                inert={!active}
+                key={tab.id}
+              >
+                <WorkspaceTabProvider
+                  value={{
+                    tabId: tab.id,
+                    active,
+                    view: tab.view,
+                    setView: (view) => workspaceController.setTabView(tab.id, view),
+                    setDirty: (dirty) => markTabDirty(tab.id, dirty),
+                  }}
+                >
+                  <PageErrorBoundary
+                    resetKey={tab.id}
+                    title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
+                    message={t("common.pageErrorMessage", {
+                      defaultValue: "The navigation is still available. Retry this page or open another section.",
+                    })}
+                    retryLabel={t("common.reload")}
+                  >
+                    {(active || (visitedTabs.userId === currentUserId && visitedTabs.ids.has(tab.id))) &&
+                      (tab.path === "/account/profile" ? (
+                        <Page onNavigate={navigate} onRequestLogout={requestLogout} />
+                      ) : (
+                        <Page />
+                      ))}
+                  </PageErrorBoundary>
+                </WorkspaceTabProvider>
+              </div>
+            );
+          })}
+        <TkConfirmDialog
+          isOpen={pendingLegacyPath !== null}
+          onConfirm={() => {
+            const path = pendingLegacyPath;
+            setPendingLegacyPath(null);
+            if (path) {
+              workspaceController.openRoute(path);
+              trackEvent("panel.page_viewed", { page: pageNameFromRoute(path) });
+            }
+          }}
+          onCancel={() => setPendingLegacyPath(null)}
+          title={t("workspace.closeDirtyTitle")}
+          message={t("workspace.closeDirtyBody")}
+          confirmLabel={t("workspace.discard")}
+          cancelLabel={t("workspace.stay")}
+        />
+        <TkConfirmDialog
+          isOpen={pendingLogout}
+          onConfirm={confirmLogout}
+          onCancel={() => setPendingLogout(false)}
+          title={t("workspace.logoutDirtyTitle")}
+          message={t("workspace.logoutDirtyBody")}
+          confirmLabel={t("workspace.discardAndLogout")}
+          cancelLabel={t("workspace.stay")}
+        />
+        <TkConfirmDialog
+          isOpen={pendingCloseId !== null}
+          onConfirm={confirmCloseTab}
+          onCancel={() => setPendingCloseId(null)}
+          title={t("workspace.closeDirtyTitle")}
+          message={t("workspace.closeDirtyBody")}
+          confirmLabel={t("workspace.discard")}
+          cancelLabel={t("workspace.stay")}
+        />
         <WhatsNewModal
           isOpen={showWhatsNew}
           onClose={() => setShowWhatsNew(false)}

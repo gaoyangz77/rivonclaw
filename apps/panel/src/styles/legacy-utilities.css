@@ -78,14 +78,6 @@
   align-items: center;
 }
 
-.contents-toggle {
-  display: contents;
-}
-
-.hidden-toggle {
-  display: none;
-}
-
 /* Spacing utilities */
 .mt-sm {
   margin-top: 6px;

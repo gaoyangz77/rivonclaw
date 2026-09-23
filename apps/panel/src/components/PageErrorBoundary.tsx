@@ -41,7 +41,7 @@ export class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErr
         <button
           type="button"
           className="tk-v1-button tk-v1-button-secondary tk-v1-button-md"
-          onClick={() => window.location.reload()}
+          onClick={() => this.setState({ error: null })}
         >
           {this.props.retryLabel}
         </button>

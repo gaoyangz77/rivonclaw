@@ -61,6 +61,13 @@ describe("Layout branding", () => {
     const LegacyLayout = Layout as unknown as React.ComponentType<{
       currentPath: string;
       onNavigate: (path: string) => void;
+      workspaceTabs: Array<{ id: string; label: string }>;
+      activeTabId: string;
+      onActivateTab: (id: string) => void;
+      onCloseTab: (id: string) => void;
+      onReorderTab: (id: string, index: number) => void;
+      onAuthSuccess: (path: string) => void;
+      showWorkspaceTabs: boolean;
       agentName?: string;
       children: React.ReactNode;
     }>;
@@ -68,6 +75,13 @@ describe("Layout branding", () => {
       React.createElement(LegacyLayout, {
         currentPath: "/",
         onNavigate: () => {},
+        workspaceTabs: [{ id: "chat", label: "Chat" }],
+        activeTabId: "chat",
+        onActivateTab: () => {},
+        onCloseTab: () => {},
+        onReorderTab: () => {},
+        onAuthSuccess: () => {},
+        showWorkspaceTabs: true,
         agentName: "Customer Named Agent",
         children: <div>content</div>,
       }),

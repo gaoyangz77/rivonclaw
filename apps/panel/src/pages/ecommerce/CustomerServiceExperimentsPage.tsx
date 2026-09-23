@@ -33,6 +33,7 @@ import {
   TkToolbar,
 } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart.js";
 import { formatLocalizedDate, formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
@@ -76,8 +77,7 @@ const SERIES_COLORS = [
   "#2b7a9b",
 ];
 
-function readUrlState() {
-  const params = new URLSearchParams(window.location.search);
+function readUrlState(params: URLSearchParams) {
   const view: View = params.get("view") === "history" ? "HISTORY" : "REALTIME";
   return {
     view,
@@ -89,13 +89,14 @@ function readUrlState() {
   };
 }
 
-function usePageVisibility(): boolean {
-  const [visible, setVisible] = useState(!document.hidden);
+function usePageVisibility(active: boolean): boolean {
+  const [visible, setVisible] = useState(active && !document.hidden);
   useEffect(() => {
-    const update = () => setVisible(!document.hidden);
+    const update = () => setVisible(active && !document.hidden);
+    update();
     document.addEventListener("visibilitychange", update);
     return () => document.removeEventListener("visibilitychange", update);
-  }, []);
+  }, [active]);
   return visible;
 }
 
@@ -125,13 +126,26 @@ function formatLift(value?: number | null): string {
 
 export const CustomerServiceExperimentsPage = observer(function CustomerServiceExperimentsPage() {
   const { t, i18n } = useTranslation();
+  const workspaceTab = useWorkspaceTab();
   const locale = i18n.resolvedLanguage || i18n.language;
   const entityStore = useEntityStore();
-  const initial = useMemo(readUrlState, []);
+  const initial = useMemo(() => readUrlState(new URLSearchParams(workspaceTab.view)), []);
   const [view, setView] = useState<View>(initial.view);
   const [experimentId, setExperimentId] = useState(initial.experimentId);
   const [metric, setMetric] = useState<GQL.CsExperimentMetricKey>(initial.metric);
   const [range, setRange] = useState(initial.range);
+  useEffect(() => {
+    const next = readUrlState(new URLSearchParams(workspaceTab.view));
+    setView(next.view);
+    setExperimentId(next.experimentId);
+    setMetric(next.metric);
+    setRange(next.range);
+  }, [
+    workspaceTab.view.view,
+    workspaceTab.view.experimentId,
+    workspaceTab.view.metric,
+    workspaceTab.view.range,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
   const [typeFilter, setTypeFilter] = useState("");
   const [shopId, setShopId] = useState("");
   const [signalView, setSignalView] = useState<SignalView>("PAYMENT_PROGRESS");
@@ -144,7 +158,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     emptyCursorPageBuffer<GQL.CsExperimentListItemView>(experimentPageQueryKey),
   );
   const loadMoreExperimentsInFlightRef = useRef(false);
-  const visible = usePageVisibility();
+  const visible = usePageVisibility(workspaceTab.active);
   const variantDisplayLabel = (variantKey: string, label?: string | null): string => {
     const key = variantKey.trim().toUpperCase();
     const normalizedLabel = label?.trim().toUpperCase();
@@ -190,13 +204,8 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   }, [entityStore, entityStore.currentUser]);
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    params.set("view", view.toLowerCase());
-    if (experimentId) params.set("experimentId", experimentId);
-    params.set("metric", metric);
-    params.set("range", range);
-    window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
-  }, [view, experimentId, metric, range]);
+    workspaceTab.setView({ view: view.toLowerCase(), experimentId, metric, range });
+  }, [view, experimentId, metric, range, workspaceTab.tabId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pageQuery = useQuery<{ ecommerceGetCSExperimentPage: GQL.CsExperimentPageResult }>(
     ECOMMERCE_GET_CS_EXPERIMENT_PAGE,

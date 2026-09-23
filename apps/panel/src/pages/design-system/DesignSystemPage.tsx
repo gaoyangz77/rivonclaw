@@ -39,6 +39,7 @@ import {
   TkInteractiveTableRow,
   TkTableFrame,
   TkTabs,
+  TkWorkspaceTabs,
   type TkHierarchicalNavItem,
 } from "../../components/design-system/index.js";
 import "./DesignSystemPage.css";
@@ -220,6 +221,12 @@ const COMPONENT_CONTRACTS = [
 
 export function DesignSystemPage() {
   const [activeTab, setActiveTab] = useState("attention");
+  const [workspaceDemoTabs, setWorkspaceDemoTabs] = useState([
+    { id: "chat", label: "Chat" },
+    { id: "team", label: "Team", dirty: true },
+    { id: "settings", label: "Settings" },
+  ]);
+  const [workspaceDemoActive, setWorkspaceDemoActive] = useState("team");
   const [assignment, setAssignment] = useState("agent");
   const [agentEvents, setAgentEvents] = useState(true);
   const [compactRows, setCompactRows] = useState(false);
@@ -505,6 +512,27 @@ export function DesignSystemPage() {
                 description="Tabs are rails; pills remain status-only."
                 variant="raised"
               >
+                <TkWorkspaceTabs
+                  items={workspaceDemoTabs}
+                  value={workspaceDemoActive}
+                  onChange={setWorkspaceDemoActive}
+                  onClose={(id) => {
+                    const next = workspaceDemoTabs.filter((tab) => tab.id !== id);
+                    setWorkspaceDemoTabs(next);
+                    if (workspaceDemoActive === id) setWorkspaceDemoActive(next[0]?.id ?? "");
+                  }}
+                  onReorder={(id, index) => {
+                    const next = [...workspaceDemoTabs];
+                    const previous = next.findIndex((tab) => tab.id === id);
+                    if (previous < 0) return;
+                    const [tab] = next.splice(previous, 1);
+                    next.splice(index, 0, tab!);
+                    setWorkspaceDemoTabs(next);
+                  }}
+                  label="Open pages"
+                  closeLabel="Close page"
+                  dirtyLabel="Unsaved changes"
+                />
                 <TkTabs
                   items={TAB_ITEMS}
                   value={activeTab}

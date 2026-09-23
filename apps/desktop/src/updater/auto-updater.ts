@@ -229,7 +229,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   let latestUpdateInfo: UpdateInfo | null = null;
   let backendUpdateInfo: ClientUpdatePayload | null = null;
   let updateDownloadState: UpdateDownloadState = { status: "idle" };
-  let runFullCleanup: (() => Promise<void>) | null = null;
+  let runFullCleanup: (() => Promise<boolean>) | null = null;
 
   // Configure update feed URL (staging/production resolved centrally).
   const updateFeedUrl = getReleaseFeedUrl(deps.locale);
@@ -369,21 +369,21 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       throw new Error("No downloaded update ready to install");
     }
 
+    // Run ALL cleanup before launching the installer.
+    if (runFullCleanup) {
+      try {
+        if (!(await runFullCleanup())) return;
+      } catch (err) {
+        log.error("Pre-update cleanup failed (proceeding anyway):", err);
+      }
+    }
+
     const installerPath = updateDownloadState.filePath;
     updateDownloadState = { status: "installing" };
 
     deps.telemetryTrack?.("app.update_installing", {
       version: backendUpdateInfo?.version,
     });
-
-    // Run ALL cleanup before launching the installer.
-    if (runFullCleanup) {
-      try {
-        await runFullCleanup();
-      } catch (err) {
-        log.error("Pre-update cleanup failed (proceeding anyway):", err);
-      }
-    }
 
     // Write a marker file so that if the user manually opens the app while
     // the NSIS installer is still running, the new instance can detect it
@@ -439,7 +439,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     setDownloadState: (state: UpdateDownloadState) => {
       updateDownloadState = state;
     },
-    setRunFullCleanup: (fn: () => Promise<void>) => {
+    setRunFullCleanup: (fn: () => Promise<boolean>) => {
       runFullCleanup = fn;
     },
     setUpdateInfo: (info: GQL.UpdatePayload) => {

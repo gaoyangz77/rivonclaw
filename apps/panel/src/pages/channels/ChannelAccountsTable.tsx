@@ -4,6 +4,7 @@ import { retryFeishuCallbackSetup, type ChannelAccountSnapshot } from "../../api
 import { ChevronRightIcon } from "../../components/icons.js";
 import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import {
   TkAlert,
   TkConfirmDialog as ConfirmDialog,
@@ -90,6 +91,7 @@ export function ChannelAccountsTable({
   onDelete: (channelId: string, accountId: string) => void;
 }) {
   const entityStore = useEntityStore();
+  const workspaceTab = useWorkspaceTab();
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const [recipientUiState, setRecipientUiState] = useState<Record<string, RecipientUiState>>({});
   const [recipientData, setRecipientData] = useState<Record<string, RecipientSnapshot>>({});
@@ -127,7 +129,7 @@ export function ChannelAccountsTable({
   // Poll mobile device status and fetch pairings while any mobile account is expanded
   const hasMobileExpanded = Array.from(expandedAccounts).some((key) => key.startsWith("mobile:"));
   useEffect(() => {
-    if (!hasMobileExpanded) return;
+    if (!workspaceTab.active || !hasMobileExpanded) return;
 
     let cancelled = false;
     async function poll() {
@@ -150,7 +152,7 @@ export function ChannelAccountsTable({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [hasMobileExpanded]);
+  }, [hasMobileExpanded, workspaceTab.active]);
 
   // Background refresh: Desktop channelManager updates account.recipients in MST;
   // Panel only keeps loading/error state. Mobile remains local because mobile
@@ -185,7 +187,7 @@ export function ChannelAccountsTable({
     const nonMobileExpanded = Array.from(expandedAccounts).filter(
       (key) => !key.startsWith("mobile:"),
     );
-    if (nonMobileExpanded.length === 0) return;
+    if (!workspaceTab.active || nonMobileExpanded.length === 0) return;
 
     const unsubscribe = panelEventBus.subscribe("recipient-added", (raw) => {
       const { channelId, accountId } = raw as { channelId: string; accountId?: string };
@@ -200,13 +202,13 @@ export function ChannelAccountsTable({
     });
 
     return () => unsubscribe();
-  }, [expandedAccounts]);
+  }, [expandedAccounts, workspaceTab.active]);
 
   useEffect(() => {
     const nonMobileExpanded = Array.from(expandedAccounts).filter(
       (key) => !key.startsWith("mobile:"),
     );
-    if (nonMobileExpanded.length === 0) return;
+    if (!workspaceTab.active || nonMobileExpanded.length === 0) return;
 
     let cancelled = false;
     async function poll() {
@@ -224,7 +226,7 @@ export function ChannelAccountsTable({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [expandedAccounts]);
+  }, [expandedAccounts, workspaceTab.active]);
 
   async function loadRecipientData(channelId: string, account: ChannelAccountSnapshot) {
     const accountId = account.accountId;

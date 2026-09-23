@@ -1,4 +1,7 @@
+import { workspaceTabsTranslations } from "./workspace-tabs-translations.js";
+
 export default {
+  workspace: workspaceTabsTranslations.en,
   office: {
     title: "Agent Office",
     exit: "Exit",

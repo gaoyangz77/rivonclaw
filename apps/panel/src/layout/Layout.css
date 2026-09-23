@@ -386,12 +386,34 @@
   width: 100%;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
+}
+
+.workspace-save-error {
+  flex: 0 0 auto;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-4);
+  border-bottom: 1px solid var(--tk-v1-border-default);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-secondary);
+}
+
+.workspace-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
   padding: 28px 48px 48px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.main-content > main:has(.cs-workspace-page) {
+.workspace-page[hidden] {
+  display: none;
+}
+
+.workspace-page:has(.cs-workspace-page) {
   padding-bottom: 16px;
 }
 

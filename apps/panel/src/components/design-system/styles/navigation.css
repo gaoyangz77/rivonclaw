@@ -1,5 +1,108 @@
 /* CSS ownership: Design System hierarchical navigation, tabs, and segmented navigation. */
 
+.tk-v1-workspace-tabs {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--tk-v1-border-default);
+  background: var(--tk-v1-bg-raised);
+}
+
+.tk-v1-workspace-tab {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 144px;
+  max-width: 220px;
+  border-right: 1px solid var(--tk-v1-border-default);
+  border-bottom: 2px solid transparent;
+  color: var(--tk-v1-fg-secondary);
+}
+
+.tk-v1-workspace-tab.is-active {
+  border-bottom-color: var(--tk-v1-accent);
+  color: var(--tk-v1-fg-default);
+  background: var(--tk-v1-bg-surface);
+}
+
+.tk-v1-workspace-tab-trigger,
+.tk-v1-workspace-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tk-v1-workspace-tab-trigger {
+  width: 100%;
+  gap: var(--tk-v1-space-2);
+  justify-content: flex-start;
+  min-width: 0;
+  padding: 0 40px 0 var(--tk-v1-space-3);
+  font: 540 var(--tk-v1-type-control) / 1 var(--tk-v1-font-sans);
+}
+
+.tk-v1-workspace-tab-trigger:focus-visible,
+.tk-v1-workspace-tab-close:focus-visible {
+  outline: 2px solid var(--tk-v1-accent);
+  outline-offset: -2px;
+}
+
+.tk-v1-workspace-tab-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.tk-v1-workspace-tab-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tk-v1-workspace-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-v1-workspace-tab-dirty {
+  color: var(--tk-v1-signal-optical);
+}
+
+.tk-v1-workspace-tab-close {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 7px;
+  margin-block: auto;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  padding: 0;
+  font-size: 18px;
+  opacity: 0.65;
+}
+
+.tk-v1-workspace-tab-trigger:hover {
+  background: color-mix(in srgb, var(--tk-v1-fg-default) 5%, transparent);
+}
+
+.tk-v1-workspace-tab-close:hover,
+.tk-v1-workspace-tab-close:focus-visible {
+  font-size: 21px;
+  opacity: 1;
+}
+
+.tk-v1-workspace-tabs button:hover:not(:disabled),
+.tk-v1-workspace-tabs button:active:not(:disabled) {
+  transform: none;
+}
+
 .tk-v1-hierarchical-nav {
   width: 100%;
   min-width: 0;

@@ -41,6 +41,7 @@ import {
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 import { formatLocalizedDate } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import {
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPER_PAGE_QUERY,
@@ -259,8 +260,7 @@ export function writeDeveloperInputFrom(
   };
 }
 
-function readTeamPageTab(): TeamPageTab {
-  const view = new URLSearchParams(window.location.search).get("view");
+function readTeamPageTab(view?: string): TeamPageTab {
   if (view === "assignments") return "ASSIGNMENTS";
   if (view === "safety") return "SAFETY";
   return "TEAM";
@@ -278,13 +278,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const apolloClient = useApolloClient();
   const entityStore = useEntityStore();
   const workspace = entityStore.affiliateWorkspace;
+  const workspaceTab = useWorkspaceTab();
   const [escalationChannelSnapshot, setEscalationChannelSnapshot] =
     useState<ChannelsStatusSnapshot | null>(null);
   const [escalationRecipientOptions, setEscalationRecipientOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
   const myDeviceId = useMyDeviceId();
-  const [pageTab, setPageTab] = useState<TeamPageTab>(readTeamPageTab);
+  const [pageTab, setPageTab] = useState<TeamPageTab>(() => readTeamPageTab(workspaceTab.view.view));
   const [developerPage, setDeveloperPage] = useState(0);
   const [developerSearch, setDeveloperSearch] = useState("");
   const [showArchivedDevelopers, setShowArchivedDevelopers] = useState(false);
@@ -512,10 +513,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     setDeveloperPage(0);
   }, [deferredDeveloperSearch, showArchivedDevelopers]);
   useEffect(() => {
-    const syncTabFromUrl = () => setPageTab(readTeamPageTab());
-    window.addEventListener("popstate", syncTabFromUrl);
-    return () => window.removeEventListener("popstate", syncTabFromUrl);
-  }, []);
+    if (!detailOnlyDeveloper) setPageTab(readTeamPageTab(workspaceTab.view.view));
+  }, [detailOnlyDeveloper, workspaceTab.view.view]);
 
   const [writeDeveloper, writeState] = useMutation<
     { writeAffiliateBusinessDeveloper: GQL.AffiliateBusinessDeveloper },
@@ -668,6 +667,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const detailFormDirty = Boolean(
     detailDeveloper && savedDetailForm && isDeveloperFormDirty(form, savedDetailForm),
   );
+  useEffect(() => {
+    workspaceTab.setDirty(detailFormDirty);
+    return () => workspaceTab.setDirty(false);
+  }, [detailFormDirty, workspaceTab.tabId]); // eslint-disable-line react-hooks/exhaustive-deps
   const detailNeedsProfileConfirmation =
     detailDeveloper?.profileStatus ===
     GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration;
@@ -1628,17 +1631,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
 
   function selectPageTab(nextTab: TeamPageTab, focusTab = false) {
     if (nextTab !== pageTab) {
-      const params = new URLSearchParams(window.location.search);
-      params.set(
-        "view",
-        nextTab === "ASSIGNMENTS" ? "assignments" : nextTab === "SAFETY" ? "safety" : "team",
-      );
-      const search = params.toString();
-      window.history.pushState(
-        null,
-        "",
-        `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`,
-      );
+      if (!detailOnlyDeveloper) {
+        workspaceTab.setView({
+          ...workspaceTab.view,
+          view: nextTab === "ASSIGNMENTS" ? "assignments" : nextTab === "SAFETY" ? "safety" : "team",
+        });
+      }
       setPageTab(nextTab);
     }
     if (focusTab) {

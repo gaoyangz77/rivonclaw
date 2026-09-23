@@ -1,6 +1,8 @@
 import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
+import { workspaceTabsTranslations } from "./workspace-tabs-translations.js";
 
 export default {
+  workspace: workspaceTabsTranslations.de,
   office: {
     title: "Agenten-Büro",
     exit: "Beenden",

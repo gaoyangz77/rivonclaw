@@ -338,8 +338,9 @@ describe("Panel architecture guardrails", () => {
 
   it("routes tab-list interaction through TkTabs", () => {
     const primitivePath = join(SRC_ROOT, "components", "design-system", "Primitives.tsx");
+    const workspaceTabsPath = join(SRC_ROOT, "components", "design-system", "WorkspaceTabs.tsx");
     const violations = allFiles
-      .filter((filePath) => filePath.endsWith(".tsx") && filePath !== primitivePath)
+      .filter((filePath) => filePath.endsWith(".tsx") && filePath !== primitivePath && filePath !== workspaceTabsPath)
       .filter((filePath) => readFileSync(filePath, "utf-8").includes('role="tablist"'))
       .map((filePath) => relative(SRC_ROOT, filePath).replace(/\\/g, "/"));
 
@@ -444,6 +445,7 @@ describe("Panel architecture guardrails", () => {
     );
     const appCss = readCssGraph(join(SRC_ROOT, "styles.css"));
     const layoutSource = readFileSync(join(SRC_ROOT, "layout", "Layout.tsx"), "utf-8");
+    const appSource = readFileSync(join(SRC_ROOT, "App.tsx"), "utf-8");
 
     expect(designSystemCss).toMatch(/\.tk-v1-page\s*>\s*\*\s*\{[^}]*flex-shrink:\s*0;/s);
     expect(designSystemCss).toMatch(
@@ -451,7 +453,7 @@ describe("Panel architecture guardrails", () => {
     );
     expect(appCss).toMatch(/\.sidebar\s*\{[^}]*z-index:\s*var\(--tk-v1-z-shell/s);
     expect(layoutSource).toContain("<TkHierarchicalNav");
-    expect(layoutSource).toContain("<PageErrorBoundary");
+    expect(`${layoutSource}\n${appSource}`).toContain("<PageErrorBoundary");
   });
 
   it("keeps body-portaled modal controls above the modal backdrop", () => {

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,7 @@ import {
   usePrivacyMode,
 } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { BEFORE_NAVIGATE_EVENT, type BeforeNavigateDetail } from "../../lib/navigation-guard.js";
+import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
@@ -57,7 +57,7 @@ type Confirmation =
   | { kind: "archive"; id: string; name: string; revision: number }
   | { kind: "unlink"; bindingId: string; productTitle: string }
   | { kind: "discard"; action: "select"; selectedId: string }
-  | { kind: "discard"; action: "close" | "create" | "navigate" }
+  | { kind: "discard"; action: "close" | "create" }
   | null;
 
 function draftFromKnowledge(knowledge: GQL.ProductKnowledge): KnowledgeDraft {
@@ -106,6 +106,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const { showToast } = useToast();
   const privacyMode = usePrivacyMode();
   const entityStore = useEntityStore();
+  const workspaceTab = useWorkspaceTab();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const [status, setStatus] = useState<GQL.ProductKnowledgeStatus>(
@@ -122,7 +123,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const [createName, setCreateName] = useState("");
   const [createPid, setCreatePid] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
-  const pendingNavigationRef = useRef<(() => void) | null>(null);
   const [sellerSku, setSellerSku] = useState("");
   const [discoveryKnowledgeId, setDiscoveryKnowledgeId] = useState("");
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
@@ -173,6 +173,10 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const dirty = draftIsDirty(draft, knowledge);
   const pidIsValid = (value: string) =>
     !value.trim() || (value.trim().length <= 64 && /^[A-Za-z0-9._-]+$/.test(value.trim()));
+  useEffect(() => {
+    workspaceTab.setDirty(dirty);
+    return () => workspaceTab.setDirty(false);
+  }, [dirty, workspaceTab.tabId]); // eslint-disable-line react-hooks/exhaustive-deps
   const isArchived = knowledge?.status === GQL.ProductKnowledgeStatus.Archived;
   const discoveryPayload =
     discoveryKnowledgeId === selectedId ? discovery.data?.discoverProductsBySellerSku : undefined;
@@ -196,19 +200,11 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
-    const handleBeforeNavigate = (event: Event) => {
-      const navigationEvent = event as CustomEvent<BeforeNavigateDetail>;
-      event.preventDefault();
-      pendingNavigationRef.current = navigationEvent.detail.proceed ?? null;
-      setConfirmation({ kind: "discard", action: "navigate" });
-    };
     window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener(BEFORE_NAVIGATE_EVENT, handleBeforeNavigate);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener(BEFORE_NAVIGATE_EVENT, handleBeforeNavigate);
     };
-  }, [dirty, t]);
+  }, [dirty]);
 
   function selectKnowledge(id: string) {
     if (id === selectedId) return;
@@ -445,9 +441,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   }
 
   function cancelConfirmation() {
-    if (confirmation?.kind === "discard" && confirmation.action === "navigate") {
-      pendingNavigationRef.current = null;
-    }
     setConfirmation(null);
   }
 
@@ -462,8 +455,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
       return;
     }
     const action = confirmation;
-    const pendingNavigation = action.action === "navigate" ? pendingNavigationRef.current : null;
-    pendingNavigationRef.current = null;
     setConfirmation(null);
     resetSelection();
     if (action.action === "select") {
@@ -474,7 +465,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
       void createKnowledgeNow();
       return;
     }
-    pendingNavigation?.();
   }
 
   if (authChecking) {
