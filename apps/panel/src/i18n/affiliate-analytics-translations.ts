@@ -58,7 +58,9 @@ const englishAnalytics = {
       "Date range is the application date, not the decision or order date. Shipment date is first observed by our sync, not a precise platform timestamp; coverage begins on different dates for each shop.",
     loaded: "{{count}} rows loaded",
     loadMore: "Load more",
-    viewOrders: "View",
+    exportLoaded: "Download {{count}} loaded rows (.xlsx)",
+    viewOrders: "View orders and videos",
+    applicationId: "Sample application ID",
     ordersAndVideos: "Post-application orders and content",
     orderNote:
       "Only order lines dated on or after application are shown. A line may link to more than one application, so do not sum across applications as an unduplicated total.",
@@ -72,6 +74,7 @@ const englishAnalytics = {
     fields: {
       DATE: "Applied",
       SHOP_NAME: "Shop",
+      SHOP_ALIAS: "Shop alias",
       CREATOR_USERNAME: "Creator",
       PRODUCT_NAME: "Product",
       SAMPLE_DECISION_BUCKET: "Review result",
@@ -448,7 +451,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "日期筛选按申样日期，而非决策或出单日期。寄样日期是同步首次观测到寄出，并非平台精确发货时间；各店铺的观测覆盖起点不同。",
         loaded: "已加载 {{count}} 行",
         loadMore: "加载更多",
-        viewOrders: "查看",
+        exportLoaded: "下载已加载的 {{count}} 行（.xlsx）",
+        viewOrders: "查看订单与视频",
+        applicationId: "申样申请 ID",
         ordersAndVideos: "申样后的订单与内容",
         orderNote:
           "仅显示申样当日及之后的订单行。同一订单行可能关联多个申样申请，跨申请求和不能当作去重后的平台总量。",
@@ -462,6 +467,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "申样日期",
           SHOP_NAME: "店铺",
+          SHOP_ALIAS: "店铺别名",
           CREATOR_USERNAME: "达人",
           PRODUCT_NAME: "商品",
           SAMPLE_DECISION_BUCKET: "审样结果",
@@ -789,7 +795,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "Der Zeitraum bezieht sich auf das Antragsdatum. Versanddatum ist die erste Beobachtung, kein exakter Plattformzeitpunkt; die Abdeckung beginnt je Shop unterschiedlich.",
         loaded: "{{count}} Zeilen geladen",
         loadMore: "Mehr laden",
-        viewOrders: "Ansehen",
+        exportLoaded: "{{count}} geladene Zeilen herunterladen (.xlsx)",
+        viewOrders: "Bestellungen und Videos ansehen",
+        applicationId: "Musterantrags-ID",
         ordersAndVideos: "Bestellungen und Inhalte nach dem Antrag",
         orderNote:
           "Nur Bestellzeilen ab Antragsdatum. Eine Zeile kann mehreren Anträgen zugeordnet sein; Summen sind nicht dedupliziert.",
@@ -803,6 +811,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "Antrag",
           SHOP_NAME: "Shop",
+          SHOP_ALIAS: "Shop-Alias",
           CREATOR_USERNAME: "Creator",
           PRODUCT_NAME: "Produkt",
           SAMPLE_DECISION_BUCKET: "Prüfergebnis",
@@ -908,7 +917,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "El rango usa la fecha de solicitud. La fecha de envío es la primera observación, no la hora exacta de la plataforma; la cobertura empieza en fechas distintas según la tienda.",
         loaded: "{{count}} filas cargadas",
         loadMore: "Cargar más",
-        viewOrders: "Ver",
+        exportLoaded: "Descargar {{count}} filas cargadas (.xlsx)",
+        viewOrders: "Ver pedidos y vídeos",
+        applicationId: "ID de solicitud de muestra",
         ordersAndVideos: "Pedidos y contenido posteriores",
         orderNote:
           "Solo pedidos desde la fecha de solicitud. Una línea puede pertenecer a varias solicitudes; no sumes como total deduplicado.",
@@ -922,6 +933,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "Solicitud",
           SHOP_NAME: "Tienda",
+          SHOP_ALIAS: "Alias de tienda",
           CREATOR_USERNAME: "Creador",
           PRODUCT_NAME: "Producto",
           SAMPLE_DECISION_BUCKET: "Resultado",
@@ -1027,7 +1039,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "La période suit la date de demande. L’envoi correspond à la première observation, pas à l’heure exacte de la plateforme ; la couverture varie selon la boutique.",
         loaded: "{{count}} lignes chargées",
         loadMore: "Charger plus",
-        viewOrders: "Voir",
+        exportLoaded: "Télécharger les {{count}} lignes chargées (.xlsx)",
+        viewOrders: "Voir commandes et vidéos",
+        applicationId: "ID de demande d’échantillon",
         ordersAndVideos: "Commandes et contenus après demande",
         orderNote:
           "Seules les commandes après la demande apparaissent. Une ligne peut être liée à plusieurs demandes ; les sommes ne sont pas dédupliquées.",
@@ -1041,6 +1055,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "Demande",
           SHOP_NAME: "Boutique",
+          SHOP_ALIAS: "Alias de boutique",
           CREATOR_USERNAME: "Créateur",
           PRODUCT_NAME: "Produit",
           SAMPLE_DECISION_BUCKET: "Décision",
@@ -1147,7 +1162,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "Rentang memakai tanggal permohonan. Tanggal kirim adalah pengamatan pertama, bukan waktu tepat platform; cakupan berbeda per toko.",
         loaded: "{{count}} baris dimuat",
         loadMore: "Muat lagi",
-        viewOrders: "Lihat",
+        exportLoaded: "Unduh {{count}} baris yang dimuat (.xlsx)",
+        viewOrders: "Lihat pesanan dan video",
+        applicationId: "ID permohonan sampel",
         ordersAndVideos: "Pesanan dan konten setelah permohonan",
         orderNote:
           "Hanya baris pesanan sejak tanggal permohonan. Satu baris bisa terkait beberapa permohonan; jumlahnya bukan total unik.",
@@ -1161,6 +1178,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "Permohonan",
           SHOP_NAME: "Toko",
+          SHOP_ALIAS: "Alias toko",
           CREATOR_USERNAME: "Kreator",
           PRODUCT_NAME: "Produk",
           SAMPLE_DECISION_BUCKET: "Hasil",
@@ -1266,7 +1284,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "Il periodo usa la data di richiesta. La spedizione è la prima osservazione, non l’ora esatta della piattaforma; la copertura varia per negozio.",
         loaded: "{{count}} righe caricate",
         loadMore: "Carica altre",
-        viewOrders: "Vedi",
+        exportLoaded: "Scarica {{count}} righe caricate (.xlsx)",
+        viewOrders: "Vedi ordini e video",
+        applicationId: "ID richiesta campione",
         ordersAndVideos: "Ordini e contenuti dopo la richiesta",
         orderNote:
           "Solo righe d’ordine dalla richiesta in poi. Una riga può riferirsi a più richieste; la somma non è deduplicata.",
@@ -1280,6 +1300,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "Richiesta",
           SHOP_NAME: "Negozio",
+          SHOP_ALIAS: "Alias negozio",
           CREATOR_USERNAME: "Creator",
           PRODUCT_NAME: "Prodotto",
           SAMPLE_DECISION_BUCKET: "Esito",
@@ -1384,7 +1405,9 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           "ช่วงวันที่อิงวันสมัคร วันที่ส่งคือวันที่ระบบพบครั้งแรก ไม่ใช่เวลาแน่นอนของแพลตฟอร์ม แต่ละร้านเริ่มมีข้อมูลต่างวันกัน",
         loaded: "โหลดแล้ว {{count}} แถว",
         loadMore: "โหลดเพิ่ม",
-        viewOrders: "ดู",
+        exportLoaded: "ดาวน์โหลด {{count}} แถวที่โหลดแล้ว (.xlsx)",
+        viewOrders: "ดูคำสั่งซื้อและวิดีโอ",
+        applicationId: "รหัสใบสมัครตัวอย่าง",
         ordersAndVideos: "คำสั่งซื้อและเนื้อหาหลังสมัคร",
         orderNote:
           "แสดงเฉพาะรายการสั่งซื้อตั้งแต่วันสมัคร รายการหนึ่งอาจเชื่อมโยงหลายใบสมัคร ผลรวมจึงไม่ใช่ยอดที่ตัดซ้ำแล้ว",
@@ -1398,6 +1421,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         fields: {
           DATE: "วันสมัคร",
           SHOP_NAME: "ร้านค้า",
+          SHOP_ALIAS: "ชื่อย่อร้านค้า",
           CREATOR_USERNAME: "ครีเอเตอร์",
           PRODUCT_NAME: "สินค้า",
           SAMPLE_DECISION_BUCKET: "ผลการตรวจ",

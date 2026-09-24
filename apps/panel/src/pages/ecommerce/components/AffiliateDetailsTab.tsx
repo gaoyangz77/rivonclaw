@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useLazyQuery } from "@apollo/client/react";
 import type { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,9 @@ import {
   TkPanelHeader,
   TkPrivate,
   TkTableFrame,
+  TkModal,
 } from "../../../components/design-system/index.js";
+import { buildAffiliateDetailWorkbook } from "../affiliate-detail-export.js";
 import {
   defaultAffiliateDateRange,
   endDateLtFromInclusive,
@@ -39,6 +41,7 @@ const REVIEW_DIMENSIONS = [
   "DATE",
   "SHOP_ID",
   "SHOP_NAME",
+  "SHOP_ALIAS",
   "SAMPLE_APPLICATION_ID",
   "CREATOR_OPEN_ID",
   "CREATOR_USERNAME",
@@ -83,6 +86,7 @@ const ORDER_METRICS = [
   "AFFILIATE_UNITS",
   "AFFILIATE_NET_GMV_USD",
 ] as GQL.EcomBiMetric[];
+const ORDER_COLUMNS = ["ORDER_DATE", "ORDER_ID", "CONTENT_ID", ...ORDER_METRICS];
 
 const initialFilters: AffiliateDetailFilterDraft = {
   origin: "",
@@ -124,6 +128,9 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
   const [orderRows, setOrderRows] = useState<Row[]>([]);
   const [orderPage, setOrderPage] = useState<GQL.EcomBiPageInfo | null>(null);
   const [lastOrderInput, setLastOrderInput] = useState<GQL.EcomBiQueryInput | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [orderExportError, setOrderExportError] = useState<string | null>(null);
   const requestSequence = useRef(0);
   const orderRequestSequence = useRef(0);
   const [queryData, dataState] = useLazyQuery<DataResult, { input: GQL.EcomBiQueryInput }>(
@@ -153,6 +160,15 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
       : []),
   ];
 
+  const closeOrders = () => {
+    orderRequestSequence.current += 1;
+    setSelectedApplication(null);
+    setOrderRows([]);
+    setOrderPage(null);
+    setLastOrderInput(null);
+    setOrderExportError(null);
+  };
+
   const load = async (offset = 0) => {
     if (!shopIds.length || (!offset && range.startDateGe >= range.endDateLt)) return;
     if (
@@ -177,6 +193,13 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
     };
     const input = offset ? { ...lastInput!, offset } : freshInput;
     const request = ++requestSequence.current;
+    if (!offset) {
+      setExportError(null);
+      setRows([]);
+      setPage(null);
+      setLastInput(input);
+      closeOrders();
+    }
     const response = await queryData({ variables: { input } });
     if (request !== requestSequence.current) return;
     const result = response.data?.getEcommerceBiData;
@@ -185,31 +208,12 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
       offset ? [...current, ...(result.rows as Row[])] : (result.rows as Row[]),
     );
     setPage(result.pageInfo);
-    if (!offset) {
-      setLastInput(input);
-      setSelectedApplication(null);
-    }
   };
-
-  // The first page is useful immediately; edits to filters remain drafts until Search is clicked.
-  useEffect(() => {
-    if (shops.length) void load();
-    // The tab mounts with an entitlement-filtered shop DTO list.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const selectApplication = async (row: Row) => {
     const shopId = String(row.SHOP_ID ?? "");
     const applicationId = String(row.SAMPLE_APPLICATION_ID ?? "");
     if (!shopId || !applicationId) return;
-    if (
-      selectedApplication?.shopId === shopId &&
-      selectedApplication.applicationId === applicationId
-    ) {
-      orderRequestSequence.current += 1;
-      setSelectedApplication(null);
-      return;
-    }
     orderRequestSequence.current += 1;
     setSelectedApplication({ shopId, applicationId });
     setOrderRows([]);
@@ -244,11 +248,49 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
     setOrderPage(result.pageInfo);
   };
 
+  const downloadExcel = async (
+    exportRows: Row[],
+    exportColumns: readonly string[],
+    sheetName: string,
+    filename: string,
+    orderDetail = false,
+  ) => {
+    setExporting(true);
+    if (orderDetail) setOrderExportError(null);
+    else setExportError(null);
+    try {
+      const { default: ExcelJS } = await import("exceljs");
+      const workbook = buildAffiliateDetailWorkbook(ExcelJS, {
+        sheetName,
+        columns: exportColumns,
+        rows: exportRows,
+        label: (key) => label(key, orderDetail),
+        displayText: (key, value) => cell({ [key]: value }, key),
+      });
+      const bytes = await workbook.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (orderDetail) setOrderExportError(message);
+      else setExportError(message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const columns =
     entity === "REVIEW"
       ? [
           "DATE",
           "SHOP_NAME",
+          "SHOP_ALIAS",
           "CREATOR_USERNAME",
           "PRODUCT_NAME",
           "SAMPLE_DECISION_BUCKET",
@@ -263,6 +305,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
       : [
           "DATE",
           "SHOP_NAME",
+          "SHOP_ALIAS",
           "CREATOR_USERNAME",
           "PRODUCT_NAME",
           "SAMPLE_DECISION_BUCKET",
@@ -325,11 +368,8 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                   setRows([]);
                   setPage(null);
                   setLastInput(null);
-                  setSelectedApplication(null);
-                  orderRequestSequence.current += 1;
-                  setOrderRows([]);
-                  setOrderPage(null);
-                  setLastOrderInput(null);
+                  closeOrders();
+                  setExportError(null);
                   setFilters(initialFilters);
                 }}
                 options={[
@@ -399,6 +439,20 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
           }
           title={t("ecommerce.affiliateAnalytics.details.results")}
           description={t("ecommerce.affiliateAnalytics.details.resultNote")}
+          actions={rows.length ? (
+            <button
+              type="button"
+              disabled={exporting || dataState.loading}
+              onClick={() => void downloadExcel(
+                rows,
+                columns,
+                entity === "REVIEW" ? "Sample review" : "Fulfillment",
+                `affiliate-${entity === "REVIEW" ? "sample-review" : "fulfillment"}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+              )}
+            >
+              {t("ecommerce.affiliateAnalytics.details.exportLoaded", { count: rows.length })}
+            </button>
+          ) : undefined}
         />
         {lastInput && dataState.error && !rows.length ? (
           <TkPanelBody>
@@ -418,7 +472,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
           </TkPanelBody>
         ) : (
           <>
-            <TkTableFrame variant="embedded" className="affiliate-detail-table">
+            <TkTableFrame variant="embedded" className="affiliate-detail-table affiliate-detail-main-table">
               <table>
                 <thead>
                   <tr>
@@ -444,7 +498,11 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                       ))}
                       {entity === "FULFILLMENT" && (
                         <td>
-                          <button type="button" onClick={() => void selectApplication(row)}>
+                          <button
+                            type="button"
+                            aria-label={`${t("ecommerce.affiliateAnalytics.details.viewOrders")}: ${formatted(row.SAMPLE_APPLICATION_ID)}`}
+                            onClick={() => void selectApplication(row)}
+                          >
                             {t("ecommerce.affiliateAnalytics.details.viewOrders")}
                           </button>
                         </td>
@@ -459,6 +517,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                 <span>
                   {t("ecommerce.affiliateAnalytics.details.loaded", { count: rows.length })}
                 </span>
+                {exportError && <span role="alert">{exportError}</span>}
                 {dataState.error && <span role="alert">{dataState.error.message}</span>}
                 {dataState.loading && <span>{t("ecommerce.affiliateAnalytics.loading")}</span>}
                 {page?.hasMore && (
@@ -476,32 +535,33 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
         )}
       </TkPanel>
 
-      {entity === "FULFILLMENT" && selectedApplication && (
-        <TkPanel as="section" padding="none">
-          <TkPanelHeader
-            eyebrow={selectedApplication.applicationId}
-            title={t("ecommerce.affiliateAnalytics.details.ordersAndVideos")}
-            description={t("ecommerce.affiliateAnalytics.details.orderNote")}
-          />
-          {ordersState.error && !orderRows.length ? (
-            <TkPanelBody>
-              <p role="alert">{ordersState.error.message}</p>
-            </TkPanelBody>
-          ) : ordersState.loading && !orderRows.length ? (
-            <TkPanelBody>
-              <p>{t("ecommerce.affiliateAnalytics.loading")}</p>
-            </TkPanelBody>
-          ) : !orderRows.length ? (
-            <TkPanelBody>
-              <p>{t("ecommerce.affiliateAnalytics.details.noPostApplicationOrders")}</p>
-            </TkPanelBody>
-          ) : (
-            <>
+      <TkModal
+        isOpen={entity === "FULFILLMENT" && selectedApplication !== null}
+        onClose={closeOrders}
+        title={t("ecommerce.affiliateAnalytics.details.ordersAndVideos")}
+        maxWidth={1080}
+        className="affiliate-detail-order-modal"
+        closeLabel={t("common.close")}
+      >
+        <p className="affiliate-detail-order-context">
+          {t("ecommerce.affiliateAnalytics.details.applicationId")}: {selectedApplication?.applicationId}
+        </p>
+        <p className="affiliate-detail-note">
+          {t("ecommerce.affiliateAnalytics.details.orderNote")}
+        </p>
+        {ordersState.error && !orderRows.length ? (
+          <p role="alert">{ordersState.error.message}</p>
+        ) : ordersState.loading && !orderRows.length ? (
+          <p>{t("ecommerce.affiliateAnalytics.loading")}</p>
+        ) : !orderRows.length ? (
+          <p>{t("ecommerce.affiliateAnalytics.details.noPostApplicationOrders")}</p>
+        ) : (
+          <>
               <TkTableFrame variant="embedded" className="affiliate-detail-table">
                 <table>
                   <thead>
                     <tr>
-                      {["ORDER_DATE", "ORDER_ID", "CONTENT_ID", ...ORDER_METRICS].map((key) => (
+                      {ORDER_COLUMNS.map((key) => (
                         <th key={key}>{label(key, true)}</th>
                       ))}
                     </tr>
@@ -509,7 +569,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                   <tbody>
                     {orderRows.map((row, index) => (
                       <tr key={`${row.ORDER_ID}:${row.CONTENT_ID}:${index}`}>
-                        {["ORDER_DATE", "ORDER_ID", "CONTENT_ID", ...ORDER_METRICS].map((key) => (
+                        {ORDER_COLUMNS.map((key) => (
                           <td key={key}>{cell(row, key)}</td>
                         ))}
                       </tr>
@@ -517,10 +577,11 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                   </tbody>
                 </table>
               </TkTableFrame>
-              {orderPage?.hasMore && lastOrderInput && (
-                <TkPanelBody>
-                  {ordersState.error && <p role="alert">{ordersState.error.message}</p>}
-                  {ordersState.loading && <p>{t("ecommerce.affiliateAnalytics.loading")}</p>}
+              <div className="affiliate-detail-order-footer">
+                <span>{t("ecommerce.affiliateAnalytics.details.loaded", { count: orderRows.length })}</span>
+                {ordersState.error && <p role="alert">{ordersState.error.message}</p>}
+                {orderExportError && <p role="alert">{orderExportError}</p>}
+                {orderPage?.hasMore && lastOrderInput && (
                   <button
                     type="button"
                     disabled={ordersState.loading}
@@ -533,12 +594,24 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                   >
                     {t("ecommerce.affiliateAnalytics.details.loadMore")}
                   </button>
-                </TkPanelBody>
-              )}
-            </>
-          )}
-        </TkPanel>
-      )}
+                )}
+                <button
+                  type="button"
+                  disabled={exporting || ordersState.loading}
+                  onClick={() => void downloadExcel(
+                    orderRows,
+                    ORDER_COLUMNS,
+                    "Post-application orders",
+                    `affiliate-sample-orders-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                    true,
+                  )}
+                >
+                  {t("ecommerce.affiliateAnalytics.details.exportLoaded", { count: orderRows.length })}
+                </button>
+              </div>
+          </>
+        )}
+      </TkModal>
     </section>
   );
 }

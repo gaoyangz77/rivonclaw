@@ -117,6 +117,12 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.details.entity": "Record type",
   "ecommerce.affiliateAnalytics.details.title": "Affiliate details",
   "ecommerce.affiliateAnalytics.details.search": "Search details",
+  "ecommerce.affiliateAnalytics.details.review": "Sample review results",
+  "ecommerce.affiliateAnalytics.details.fulfillment": "Fulfillment results",
+  "ecommerce.affiliateAnalytics.details.viewOrders": "View orders and videos",
+  "ecommerce.affiliateAnalytics.details.ordersAndVideos": "Post-application orders and content",
+  "ecommerce.affiliateAnalytics.details.applicationId": "Sample application ID",
+  "ecommerce.affiliateAnalytics.details.exportLoaded": "Download {{count}} loaded rows (.xlsx)",
   "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
   "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
   "ecommerce.affiliateAnalytics.run": "Run",
@@ -742,16 +748,50 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
 });
 
 describe("AffiliateAnalyticsPage Details", () => {
-  it("queries application-grain review rows through the shared BI tool contract", async () => {
+  it("waits for Search, then requests application-grain rows and the shop alias", async () => {
     render(<AffiliateAnalyticsPage />);
     fireEvent.click(screen.getByRole("tab", { name: "Details" }));
+    expect(mocks.dataQuery).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
     await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
     const input = mocks.dataQuery.mock.calls[0][0].variables.input;
     expect(input.datasetId).toBe("AFFILIATE_SAMPLE_REVIEW_DETAIL");
     expect(input.shopIds).toEqual(["shop-1"]);
     expect(input.dimensions).toContain("SAMPLE_APPLICATION_ID");
+    expect(input.dimensions).toContain("SHOP_ALIAS");
     expect(input.metrics).toContain("AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION");
     expect(screen.getByText("Affiliate details")).not.toBeNull();
+  });
+
+  it("opens a visible order dialog from a fulfillment row", async () => {
+    mocks.dataQuery.mockImplementation(({ variables }) => {
+      const datasetId = variables.input.datasetId;
+      return Promise.resolve({
+        data: {
+          getEcommerceBiData: {
+            datasetId,
+            granularity: "DAILY",
+            rows: datasetId === "AFFILIATE_SAMPLE_ORDER_DETAIL"
+              ? [{ ORDER_DATE: "2026-09-24", ORDER_ID: "765432109876543210", CONTENT_ID: "video-1", AFFILIATE_UNITS: 2 }]
+              : [{ DATE: "2026-09-24", SHOP_ID: "shop-1", SHOP_NAME: "North Shop", SHOP_ALIAS: "North", SAMPLE_APPLICATION_ID: "sample-1", CREATOR_USERNAME: "creator-1", PRODUCT_NAME: "Product" }],
+            pageInfo: { hasMore: false, nextOffset: null },
+          },
+        },
+      });
+    });
+    render(<AffiliateAnalyticsPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Record type" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fulfillment results" }));
+    expect(mocks.dataQuery).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("North Shop");
+    expect(screen.getAllByText("North").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Download 1 loaded rows (.xlsx)" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "View orders and videos: sample-1" }));
+    const dialog = await screen.findByRole("dialog", { name: "Post-application orders and content" });
+    await waitFor(() => expect(within(dialog).getByText("765432109876543210")).toBeTruthy());
+    expect(within(dialog).getByRole("button", { name: "Download 1 loaded rows (.xlsx)" })).toBeTruthy();
   });
 });
 
