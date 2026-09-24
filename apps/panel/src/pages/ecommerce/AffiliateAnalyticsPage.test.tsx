@@ -113,6 +113,10 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.title": "Affiliate Analytics",
   "ecommerce.affiliateAnalytics.overview": "Overview",
   "ecommerce.affiliateAnalytics.explore.title": "Explore",
+  "ecommerce.affiliateAnalytics.details.tab": "Details",
+  "ecommerce.affiliateAnalytics.details.entity": "Record type",
+  "ecommerce.affiliateAnalytics.details.title": "Affiliate details",
+  "ecommerce.affiliateAnalytics.details.search": "Search details",
   "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
   "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
   "ecommerce.affiliateAnalytics.run": "Run",
@@ -734,6 +738,20 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
     // rows that exist rather than a blank chart.
     expect(chartRows(reachout, "composed")).toEqual([2]);
     expect(chartRows(reachout, "area")).toEqual([]);
+  });
+});
+
+describe("AffiliateAnalyticsPage Details", () => {
+  it("queries application-grain review rows through the shared BI tool contract", async () => {
+    render(<AffiliateAnalyticsPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Details" }));
+    await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+    const input = mocks.dataQuery.mock.calls[0][0].variables.input;
+    expect(input.datasetId).toBe("AFFILIATE_SAMPLE_REVIEW_DETAIL");
+    expect(input.shopIds).toEqual(["shop-1"]);
+    expect(input.dimensions).toContain("SAMPLE_APPLICATION_ID");
+    expect(input.metrics).toContain("AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION");
+    expect(screen.getByText("Affiliate details")).not.toBeNull();
   });
 });
 

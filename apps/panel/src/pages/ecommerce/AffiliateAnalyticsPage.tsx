@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import type { AffiliateAnalyticsShop } from "./affiliate-analytics-scope.js";
 import { AffiliateExploreTab } from "./components/AffiliateExploreTab.js";
+import { AffiliateDetailsTab } from "./components/AffiliateDetailsTab.js";
 import { AffiliateOverviewTab } from "./components/AffiliateOverviewTab.js";
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
 import { TkPanel, TkTabs } from "../../components/design-system/index.js";
@@ -12,7 +13,7 @@ import "./components/AffiliateUi.css";
 export function AffiliateAnalyticsPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
-  const [tab, setTab] = useState<"OVERVIEW" | "EXPLORE">("OVERVIEW");
+  const [tab, setTab] = useState<"OVERVIEW" | "EXPLORE" | "DETAILS">("OVERVIEW");
   const user = entityStore.currentUser;
 
   // Projected to plain DTOs during render: MST nodes must never be captured in
@@ -63,9 +64,14 @@ export function AffiliateAnalyticsPage() {
             label: t("ecommerce.affiliateAnalytics.explore.title"),
             buttonProps: { "data-tutorial-id": "affiliate-analytics-explore-tab" },
           },
+          {
+            id: "DETAILS",
+            label: t("ecommerce.affiliateAnalytics.details.tab"),
+            buttonProps: { "data-tutorial-id": "affiliate-analytics-details-tab" },
+          },
         ]}
         value={tab}
-        onChange={(value) => setTab(value as "OVERVIEW" | "EXPLORE")}
+        onChange={(value) => setTab(value as "OVERVIEW" | "EXPLORE" | "DETAILS")}
         label={t("ecommerce.affiliateAnalytics.title")}
         data-tutorial-id="affiliate-analytics-tabs"
       />
@@ -76,8 +82,10 @@ export function AffiliateAnalyticsPage() {
         </TkPanel>
       ) : tab === "OVERVIEW" ? (
         <AffiliateOverviewTab shops={shops} />
-      ) : (
+      ) : tab === "EXPLORE" ? (
         <AffiliateExploreTab shops={shops} />
+      ) : (
+        <AffiliateDetailsTab shops={shops} />
       )}
     </AffiliatePageFrame>
   );
