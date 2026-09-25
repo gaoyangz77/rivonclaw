@@ -300,7 +300,7 @@ export const AFFILIATE_BI_DATA_QUERY = gql`
     getEcommerceBiData(input: $input) {
       datasetId granularity totalCount rows
       columns { role dimension metric key label valueType }
-      pageInfo { offset requestedLimit effectiveLimit returnedRows hasMore nextOffset }
+      pageInfo { offset requestedLimit effectiveLimit returnedRows totalRows hasMore nextOffset }
       freshness { ...AffiliateFreshnessFields }
     }
   }

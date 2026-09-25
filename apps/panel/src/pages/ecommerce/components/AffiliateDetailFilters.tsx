@@ -1,39 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Select } from "../../../components/inputs/Select.js";
-
-export interface AffiliateDetailFilterDraft {
-  origin: string;
-  decision: string;
-  creatorId: string;
-  productId: string;
-  shipped: string;
-  hasContent: string;
-  postApplicationOrder: string;
-}
+import { TkChoiceSelect, TkField } from "../../../components/design-system/index.js";
+import type { AffiliateDetailFilterDraft } from "../affiliate-detail-query.js";
 
 type Props = {
   value: AffiliateDetailFilterDraft;
   onChange: (next: AffiliateDetailFilterDraft) => void;
 };
-
-function Choice({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label>
-      <span>{label}</span>
-      <Select ariaLabel={label} value={value} options={options} onChange={onChange} />
-    </label>
-  );
-}
 
 function CommonFilters({ value, onChange }: Props) {
   const { t } = useTranslation();
@@ -41,7 +13,8 @@ function CommonFilters({ value, onChange }: Props) {
     onChange({ ...value, [key]: next });
   return (
     <>
-      <Choice
+      <TkChoiceSelect
+        className="affiliate-detail-field"
         label={t("ecommerce.affiliateAnalytics.details.origin")}
         value={value.origin}
         onChange={(next) => set("origin", next)}
@@ -51,22 +24,20 @@ function CommonFilters({ value, onChange }: Props) {
           { value: "NOT_AI", label: t("ecommerce.affiliateAnalytics.details.notAi") },
         ]}
       />
-      <label>
-        <span>{t("ecommerce.affiliateAnalytics.details.creatorId")}</span>
-        <input
-          type="search"
-          value={value.creatorId}
-          onChange={(event) => set("creatorId", event.target.value)}
-        />
-      </label>
-      <label>
-        <span>{t("ecommerce.affiliateAnalytics.details.productId")}</span>
-        <input
-          type="search"
-          value={value.productId}
-          onChange={(event) => set("productId", event.target.value)}
-        />
-      </label>
+      <TkField
+        className="affiliate-detail-field affiliate-detail-field-wide"
+        type="search"
+        label={t("ecommerce.affiliateAnalytics.details.creatorId")}
+        value={value.creatorId}
+        onChange={(event) => set("creatorId", event.target.value)}
+      />
+      <TkField
+        className="affiliate-detail-field affiliate-detail-field-wide"
+        type="search"
+        label={t("ecommerce.affiliateAnalytics.details.productId")}
+        value={value.productId}
+        onChange={(event) => set("productId", event.target.value)}
+      />
     </>
   );
 }
@@ -77,7 +48,8 @@ export function AffiliateReviewFilters(props: Props) {
   return (
     <>
       <CommonFilters {...props} />
-      <Choice
+      <TkChoiceSelect
+        className="affiliate-detail-field"
         label={t("ecommerce.affiliateAnalytics.details.decision")}
         value={value.decision}
         onChange={(next) => onChange({ ...value, decision: next })}
@@ -106,19 +78,22 @@ export function AffiliateFulfillmentFilters(props: Props) {
   return (
     <>
       <CommonFilters {...props} />
-      <Choice
+      <TkChoiceSelect
+        className="affiliate-detail-field"
         label={t("ecommerce.affiliateAnalytics.details.shipmentObserved")}
         value={value.shipped}
         options={yesNo}
         onChange={(next) => set("shipped", next)}
       />
-      <Choice
+      <TkChoiceSelect
+        className="affiliate-detail-field"
         label={t("ecommerce.affiliateAnalytics.details.contentObserved")}
         value={value.hasContent}
         options={yesNo}
         onChange={(next) => set("hasContent", next)}
       />
-      <Choice
+      <TkChoiceSelect
+        className="affiliate-detail-field"
         label={t("ecommerce.affiliateAnalytics.details.postApplicationOrder")}
         value={value.postApplicationOrder}
         options={yesNo}

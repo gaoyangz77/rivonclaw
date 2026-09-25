@@ -7786,7 +7786,7 @@ export const EcomBiDimension = {
   AffiliateCollaborationId: "AFFILIATE_COLLABORATION_ID",
   AffiliateCollaborationName: "AFFILIATE_COLLABORATION_NAME",
   AffiliateCollaborationType: "AFFILIATE_COLLABORATION_TYPE",
-  AffiliateCreator_30DGmvCurrency: "AFFILIATE_CREATOR_30D_GMV_CURRENCY",
+  AffiliateCreatorGmvCurrency: "AFFILIATE_CREATOR_GMV_CURRENCY",
   AffiliateDecidedBy: "AFFILIATE_DECIDED_BY",
   AffiliateOrderAttributionKey: "AFFILIATE_ORDER_ATTRIBUTION_KEY",
   BankAccountMasked: "BANK_ACCOUNT_MASKED",
@@ -8115,15 +8115,14 @@ export const EcomBiMetric = {
   AffiliateCommissionRefundAmount: "AFFILIATE_COMMISSION_REFUND_AMOUNT",
   AffiliateCompletionRate: "AFFILIATE_COMPLETION_RATE",
   AffiliateContentsCreated: "AFFILIATE_CONTENTS_CREATED",
-  AffiliateCreator_30DContentsAtApplication: "AFFILIATE_CREATOR_30D_CONTENTS_AT_APPLICATION",
-  AffiliateCreator_30DGmvAtApplication: "AFFILIATE_CREATOR_30D_GMV_AT_APPLICATION",
+  AffiliateCreatorAvgVideoViewsAtApplication: "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
   AffiliateCreatorFollowersAtApplication: "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
+  AffiliateCreatorGmvAtApplication: "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
   AffiliateCreatorIdentityEligible: "AFFILIATE_CREATOR_IDENTITY_ELIGIBLE",
   AffiliateCreatorIdentityGmvCoverage: "AFFILIATE_CREATOR_IDENTITY_GMV_COVERAGE",
   AffiliateCreatorIdentityResolved: "AFFILIATE_CREATOR_IDENTITY_RESOLVED",
   AffiliateCreatorIdentityRowCoverage: "AFFILIATE_CREATOR_IDENTITY_ROW_COVERAGE",
-  AffiliateCreatorMedianVideoViewsAtApplication:
-    "AFFILIATE_CREATOR_MEDIAN_VIDEO_VIEWS_AT_APPLICATION",
+  AffiliateCreatorVideosAtApplication: "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
   AffiliateCurrentlyApproved: "AFFILIATE_CURRENTLY_APPROVED",
   AffiliateCurrentlyCompleted: "AFFILIATE_CURRENTLY_COMPLETED",
   AffiliateCurrentlyInFlight: "AFFILIATE_CURRENTLY_IN_FLIGHT",
@@ -8340,6 +8339,8 @@ export interface EcomBiPageInfo {
   requestedLimit?: Maybe<Scalars["Int"]["output"]>;
   /** Rows returned in this response. */
   returnedRows: Scalars["Int"]["output"];
+  /** Total rows matching the query across all pages when the dataset computes it; null otherwise. */
+  totalRows?: Maybe<Scalars["Int"]["output"]>;
 }
 
 /** Ecommerce data query. Date range and scope requirements depend on dataset metadata from getEcommerceBiCatalog. */

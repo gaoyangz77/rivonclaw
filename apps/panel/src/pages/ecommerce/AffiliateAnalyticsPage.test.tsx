@@ -10,6 +10,12 @@ const mocks = vi.hoisted(() => ({
   queryCalls: [] as Array<{ operation?: string; variables?: Record<string, unknown> }>,
   dataQuery: vi.fn(),
   valuesQuery: vi.fn(),
+  buildWorkbook: vi.fn(),
+}));
+
+vi.mock("./affiliate-detail-export.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./affiliate-detail-export.js")>()),
+  buildAffiliateDetailWorkbook: mocks.buildWorkbook,
 }));
 
 function operationName(document: {
@@ -24,6 +30,8 @@ vi.mock("../../store/EntityStoreProvider.js", () => ({
 }));
 
 vi.mock("@apollo/client/react", () => ({
+  // Details pages and exports go through client.query; the same fake answers both.
+  useApolloClient: () => ({ query: mocks.dataQuery }),
   useQuery: (
     document: Parameters<typeof operationName>[0],
     options?: { variables?: Record<string, unknown> },
@@ -122,7 +130,15 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.details.viewOrders": "View orders and videos",
   "ecommerce.affiliateAnalytics.details.ordersAndVideos": "Post-application orders and content",
   "ecommerce.affiliateAnalytics.details.applicationId": "Sample application ID",
-  "ecommerce.affiliateAnalytics.details.exportLoaded": "Download {{count}} loaded rows (.xlsx)",
+  "ecommerce.affiliateAnalytics.details.exportAll": "Download all {{total}} rows (.xlsx)",
+  "ecommerce.affiliateAnalytics.details.exportTooLarge":
+    "Downloads are limited to {{max}} rows. Narrow the date range, shops or filters and download in parts.",
+  "ecommerce.affiliateAnalytics.details.exportPreparing": "Preparing {{done}} / {{total}}",
+  "ecommerce.affiliateAnalytics.details.pageSummary": "{{start}}–{{end}} of {{total}}",
+  "ecommerce.affiliateAnalytics.details.previousPage": "Previous page",
+  "ecommerce.affiliateAnalytics.details.nextPage": "Next page",
+  "ecommerce.affiliateAnalytics.details.creatorId": "Creator Open ID",
+  "common.cancel": "Cancel",
   "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
   "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
   "ecommerce.affiliateAnalytics.run": "Run",
@@ -398,6 +414,10 @@ beforeEach(() => {
   mocks.queryCalls = [];
   mocks.dataQuery.mockReset();
   mocks.valuesQuery.mockReset();
+  mocks.buildWorkbook.mockReset();
+  mocks.buildWorkbook.mockReturnValue({
+    xlsx: { writeBuffer: () => Promise.resolve(new ArrayBuffer(8)) },
+  });
   mocks.dataQuery.mockResolvedValue({
     data: {
       getEcommerceBiData: {
@@ -748,23 +768,162 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
 });
 
 describe("AffiliateAnalyticsPage Details", () => {
-  it("waits for Search, then requests application-grain rows and the shop alias", async () => {
+  type Input = {
+    datasetId: string;
+    limit: number;
+    offset: number;
+    filters: unknown[];
+    dimensions: string[];
+    metrics: string[];
+  };
+  type QueryOptions = { variables: { input: Input }; fetchPolicy?: string };
+  const call = (index: number) => mocks.dataQuery.mock.calls[index][0] as QueryOptions;
+  const detailRows = (offset: number, count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      DATE: "2026-09-24",
+      SHOP_ID: "shop-1",
+      SHOP_NAME: "North Shop",
+      SAMPLE_APPLICATION_ID: `sample-${offset + index}`,
+      CREATOR_USERNAME: `creator-${offset + index}`,
+    }));
+  /** A 120-row review result, served in whatever window the caller asks for. */
+  const serveReview = (total = 120) =>
+    mocks.dataQuery.mockImplementation(({ variables }: QueryOptions) => {
+      const { limit, offset } = variables.input;
+      const count = Math.max(0, Math.min(limit, total - offset));
+      return Promise.resolve({
+        data: {
+          getEcommerceBiData: {
+            datasetId: variables.input.datasetId,
+            granularity: "DAILY",
+            rows: detailRows(offset, count),
+            pageInfo: { hasMore: offset + count < total, totalRows: total },
+          },
+        },
+      });
+    });
+  const openDetails = () => {
     render(<AffiliateAnalyticsPage />);
     fireEvent.click(screen.getByRole("tab", { name: "Details" }));
+  };
+
+  it("waits for Search, then requests application-grain rows and the renamed creator fields", async () => {
+    openDetails();
     expect(mocks.dataQuery).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Search details" }));
     await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
-    const input = mocks.dataQuery.mock.calls[0][0].variables.input;
+    const input = call(0).variables.input;
     expect(input.datasetId).toBe("AFFILIATE_SAMPLE_REVIEW_DETAIL");
-    expect(input.shopIds).toEqual(["shop-1"]);
+    expect(input).toMatchObject({ shopIds: ["shop-1"], limit: 50, offset: 0 });
     expect(input.dimensions).toContain("SAMPLE_APPLICATION_ID");
     expect(input.dimensions).toContain("SHOP_ALIAS");
-    expect(input.metrics).toContain("AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION");
+    expect(input.dimensions).toContain("AFFILIATE_CREATOR_GMV_CURRENCY");
+    expect(input.metrics).toEqual([
+      "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
+      "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
+      "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
+      "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
+    ]);
     expect(screen.getByText("Affiliate details")).not.toBeNull();
   });
 
-  it("opens a visible order dialog from a fulfillment row", async () => {
-    mocks.dataQuery.mockImplementation(({ variables }) => {
+  it("pages the frozen search by 50, ignoring filter edits made after Search", async () => {
+    serveReview();
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("1–50 of 120");
+    expect(screen.getByText("1 / 3")).toBeTruthy();
+    expect(screen.getByText("creator-0")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Previous page" })).toHaveProperty("disabled", true);
+
+    // A draft edit is not a search: it must not change which query pages.
+    fireEvent.change(screen.getByLabelText("Creator Open ID"), { target: { value: "someone" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    await screen.findByText("51–100 of 120");
+    expect(screen.getByText("creator-50")).toBeTruthy();
+    expect(screen.queryByText("creator-0")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    await screen.findByText("101–120 of 120");
+    expect(screen.getByText("3 / 3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next page" })).toHaveProperty("disabled", true);
+
+    expect(mocks.dataQuery).toHaveBeenCalledTimes(3);
+    expect([0, 1, 2].map((index) => call(index).variables.input.offset)).toEqual([0, 50, 100]);
+    for (const index of [1, 2]) {
+      expect(call(index).variables.input).toEqual({ ...call(0).variables.input, offset: index * 50 });
+    }
+    expect(call(0).variables.input.filters).toEqual([]);
+  });
+
+  it("downloads every row of the frozen search, not just the visible page", async () => {
+    serveReview();
+    const createObjectURL = vi.fn(() => "blob:details");
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("1–50 of 120");
+    fireEvent.click(screen.getByRole("button", { name: "Download all 120 rows (.xlsx)" }));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+
+    const exportCalls = mocks.dataQuery.mock.calls.slice(1).map(([options]) => options as QueryOptions);
+    expect(exportCalls.map((options) => [options.variables.input.limit, options.variables.input.offset])).toEqual([
+      [500, 0],
+    ]);
+    expect(exportCalls.every((options) => options.fetchPolicy === "no-cache")).toBe(true);
+    expect(mocks.buildWorkbook).toHaveBeenCalledTimes(1);
+    const workbookOptions = mocks.buildWorkbook.mock.calls[0][1] as { rows: unknown[]; columns: string[] };
+    expect(workbookOptions.rows).toHaveLength(120);
+    expect(workbookOptions.columns).toContain("AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION");
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    click.mockRestore();
+  });
+
+  it("disables the download above 10,000 rows and asks the user to split the query", async () => {
+    serveReview(10_001);
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("1–50 of 10,001");
+    const download = screen.getByRole("button", { name: "Download all 10,001 rows (.xlsx)" });
+    expect(download).toHaveProperty("disabled", true);
+    expect(screen.getByText(/Downloads are limited to 10,000 rows/)).toBeTruthy();
+  });
+
+  it("cancels a running download without writing a file", async () => {
+    serveReview();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("1–50 of 120");
+    let release!: (value: unknown) => void;
+    mocks.dataQuery.mockImplementation(() => new Promise((resolve) => (release = resolve)));
+
+    fireEvent.click(screen.getByRole("button", { name: "Download all 120 rows (.xlsx)" }));
+    await screen.findByText("Preparing 0 / 120");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Download all 120 rows (.xlsx)" })).toBeTruthy();
+    release({
+      data: {
+        getEcommerceBiData: {
+          datasetId: "AFFILIATE_SAMPLE_REVIEW_DETAIL",
+          granularity: "DAILY",
+          rows: detailRows(0, 120),
+          pageInfo: { hasMore: false, totalRows: 120 },
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mocks.dataQuery).toHaveBeenCalledTimes(2);
+    expect(mocks.buildWorkbook).not.toHaveBeenCalled();
+    expect(click).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+    click.mockRestore();
+  });
+
+  it("opens the order dialog from a fulfillment row and pages its orders", async () => {
+    mocks.dataQuery.mockImplementation(({ variables }: QueryOptions) => {
       const datasetId = variables.input.datasetId;
       return Promise.resolve({
         data: {
@@ -774,24 +933,32 @@ describe("AffiliateAnalyticsPage Details", () => {
             rows: datasetId === "AFFILIATE_SAMPLE_ORDER_DETAIL"
               ? [{ ORDER_DATE: "2026-09-24", ORDER_ID: "765432109876543210", CONTENT_ID: "video-1", AFFILIATE_UNITS: 2 }]
               : [{ DATE: "2026-09-24", SHOP_ID: "shop-1", SHOP_NAME: "North Shop", SHOP_ALIAS: "North", SAMPLE_APPLICATION_ID: "sample-1", CREATOR_USERNAME: "creator-1", PRODUCT_NAME: "Product" }],
-            pageInfo: { hasMore: false, nextOffset: null },
+            pageInfo: { hasMore: false, totalRows: 1 },
           },
         },
       });
     });
-    render(<AffiliateAnalyticsPage />);
-    fireEvent.click(screen.getByRole("tab", { name: "Details" }));
+    openDetails();
     fireEvent.click(screen.getByRole("button", { name: "Record type" }));
     fireEvent.click(screen.getByRole("button", { name: "Fulfillment results" }));
     expect(mocks.dataQuery).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Search details" }));
     await screen.findByText("North Shop");
     expect(screen.getAllByText("North").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Download 1 loaded rows (.xlsx)" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "View orders and videos: sample-1" }));
+    expect(screen.getByRole("button", { name: "Download all 1 rows (.xlsx)" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /View orders and videos/ })).toBeNull();
+    fireEvent.click(screen.getByRole("row", { name: "View orders and videos: sample-1" }));
     const dialog = await screen.findByRole("dialog", { name: "Post-application orders and content" });
     await waitFor(() => expect(within(dialog).getByText("765432109876543210")).toBeTruthy());
-    expect(within(dialog).getByRole("button", { name: "Download 1 loaded rows (.xlsx)" })).toBeTruthy();
+    expect(within(dialog).getByText("1–1 of 1")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Download all 1 rows (.xlsx)" })).toBeTruthy();
+    const orderInput = call(1).variables.input;
+    expect(orderInput).toMatchObject({
+      datasetId: "AFFILIATE_SAMPLE_ORDER_DETAIL",
+      limit: 50,
+      offset: 0,
+      filters: [{ dimension: "SAMPLE_APPLICATION_ID", operator: "IN", values: ["sample-1"] }],
+    });
   });
 });
 
