@@ -1104,8 +1104,11 @@
   gap: 12px;
 }
 .affiliate-composer-block {
+  /* Inline inset declared once, so a block whose body scrolls can carry the same
+     value inside its scroll box (see .affiliate-check-list). */
+  --composer-inline: var(--tk-v1-space-3);
   min-width: 0;
-  padding: 12px;
+  padding: var(--tk-v1-space-3) var(--composer-inline);
   border: 1px solid var(--color-border);
   border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg-alt);
@@ -1116,6 +1119,11 @@
   font-size: 12px;
 }
 .affiliate-check-list {
+  /* The metrics block is heading + this list, so the list is the block's body:
+     it reaches the block's inline edges and pads back in by the same variable,
+     putting the scrollbar on the block's border instead of inside its padding. */
+  margin-inline: calc(-1 * var(--composer-inline));
+  padding-inline: var(--composer-inline);
   display: grid;
   max-height: 220px;
   gap: 4px;
@@ -1153,13 +1161,20 @@
   grid-template-columns: 1fr auto 1fr auto;
   gap: 6px;
 }
+/* The value results sit between the search row and the manual-value row, so
+   they are a bounded field of their own: a subtle TkPanel whose TkPanelBody
+   scroll carries the inset and the scrollbar. The cap keeps the same visible
+   results area as before (102px of chips + the body's 12px inset each side
+   + the border). */
+.affiliate-value-results-frame {
+  max-height: 128px;
+  margin-top: var(--tk-v1-space-2);
+}
+
 .affiliate-value-results {
   display: flex;
-  max-height: 102px;
   flex-wrap: wrap;
   gap: 5px;
-  margin-top: 8px;
-  overflow: auto;
 }
 .affiliate-value-results button {
   display: grid;

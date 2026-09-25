@@ -21,7 +21,12 @@ import {
 } from "../../../api/affiliate-analytics-queries.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { ProductTableCell } from "../../../components/ecommerce/ProductTableCell.js";
-import { TkSegmented, TkTableFrame } from "../../../components/design-system/index.js";
+import {
+  TkPanel,
+  TkPanelBody,
+  TkSegmented,
+  TkTableFrame,
+} from "../../../components/design-system/index.js";
 import {
   PLATFORM_DATASET,
   RATE_COMPONENTS,
@@ -527,18 +532,24 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
                 {t("ecommerce.affiliateAnalytics.search")}
               </button>
             </div>
-            <div className="affiliate-value-results">
-              {valueState.data?.getEcommerceBiDimensionValues.items.map((item) => (
-                <button
-                  type="button"
-                  key={item.value}
-                  onClick={() => addFilter(item.value, item.label)}
-                >
-                  <strong>{item.label}</strong>
-                  {item.secondaryLabel && <small>{item.secondaryLabel}</small>}
-                </button>
-              ))}
-            </div>
+            {/* Rendered only with results: as a bordered field, an empty frame
+                would show before the first search. */}
+            {(valueState.data?.getEcommerceBiDimensionValues.items.length ?? 0) > 0 && (
+              <TkPanel variant="subtle" padding="none" className="affiliate-value-results-frame">
+                <TkPanelBody scroll padding="sm" className="affiliate-value-results">
+                  {valueState.data?.getEcommerceBiDimensionValues.items.map((item) => (
+                    <button
+                      type="button"
+                      key={item.value}
+                      onClick={() => addFilter(item.value, item.label)}
+                    >
+                      <strong>{item.label}</strong>
+                      {item.secondaryLabel && <small>{item.secondaryLabel}</small>}
+                    </button>
+                  ))}
+                </TkPanelBody>
+              </TkPanel>
+            )}
             <div className="affiliate-manual-filter">
               <input
                 value={manualFilterValue}
