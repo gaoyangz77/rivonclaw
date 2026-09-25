@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.23",
+    "date": "2026-09-25",
+    "en": [
+      "Drill into Affiliate sample details with clearer paging, creator performance columns, and more reliable exports",
+      "Fix scrolling panels so content insets stay inside their scroll areas"
+    ],
+    "zh": [
+      "新增达人联盟样品明细下钻，分页更清晰，展示达人表现数据列，导出更可靠",
+      "修复可滚动面板的内边距，使内容留白保持在滚动区域内"
+    ]
+  },
+  {
     "version": "1.9.22",
     "date": "2026-09-24",
     "en": [
