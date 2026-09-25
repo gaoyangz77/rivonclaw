@@ -257,7 +257,11 @@ they do not own shell or header geometry.
 | Local controls | `TkToolbar`                   | 8px control gap; open or framed composition        | `--tk-v1-space-2`                                    |
 | Record set     | `TkTableFrame`                | shared overflow, header, row density, and boundary | `--tk-v1-row-*`                                      |
 
-The App Shell is the only owner of distance from the sidebar and viewport. `TkPageHeader` is the
+The App Shell is the only owner of distance from the sidebar and viewport. It applies that inset once,
+on each workspace tab's scroll container (`.workspace-page`), not on `<main>` — padding the scroller keeps
+the scrollbar on the window edge and lets the responsive values reach every tab. A full-bleed tab (chat,
+the design lab) zeroes `--tk-v1-shell-content-*` on its own `.workspace-page`; it never cancels the inset
+with negative margins, which silently break whenever the inset changes. `TkPageHeader` is the
 only owner of title, description, and page-action alignment. A workflow may choose which sections
 appear and in what order, but it may not redefine these measurements. Responsive shell insets are
 24px at medium widths and 16px at compact widths.
@@ -265,6 +269,17 @@ appear and in what order, but it may not redefine these measurements. Responsive
 Composite panels use `TkPanelHeader`, `TkPanelBody`, and `TkPanelFooter` for internal geometry.
 When an embedded table or media surface reaches a panel edge, `TkPanel` uses `clip` and remains the
 only owner of the outer radius.
+
+**The inset lives on the element that scrolls — at every level.** The App Shell pads each
+`.workspace-page`, the modal pads its one body region, and a panel that needs to scroll does it
+through exactly one `TkPanelBody scroll` inside `TkPanel padding="none"`, with any header or footer
+as its own primitive. The scroll box then carries the inset, so the scrollbar meets the surface edge.
+Never put a scrolling element inside a padded panel or card: the padding sits outside the scroll box
+and the scrollbar ends up floating in the gutter, pressed against the content.
+
+Inside a padded content panel, siblings stack on a 16px rhythm. The panel's structure pieces —
+header, body, table frame, footer — abut instead, and that exception applies only when both
+neighbours are structure pieces, never merely because one of them is a design-system component.
 
 **`padding="none"` transfers the inset, it does not remove it.** A `TkPanel` with `padding="none"`
 has delegated its inset to its children, so every child must be a primitive that owns one:

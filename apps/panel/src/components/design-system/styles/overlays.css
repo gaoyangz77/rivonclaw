@@ -157,7 +157,10 @@
 }
 
 .tk-v1-modal.modal-content {
-  padding: var(--tk-v1-space-5);
+  /* The modal's inset, declared once. Its own padding, the title bar's bleed and
+     the body scroll region's bleed all read it, so they cannot disagree. */
+  --tk-v1-modal-inset: var(--tk-v1-space-5);
+  padding: var(--tk-v1-modal-inset);
   border: 1px solid var(--tk-v1-surface-edge);
   border-radius: var(--tk-v1-radius-5);
   background: var(--tk-v1-overlay-optical);
@@ -168,12 +171,13 @@
 }
 
 .tk-v1-modal.modal-content.tk-v1-modal-padding-none {
-  padding: 0;
+  --tk-v1-modal-inset: 0px;
 }
 
 .tk-v1-modal .modal-header {
   align-items: flex-start;
-  margin: calc(0px - var(--tk-v1-space-5)) calc(0px - var(--tk-v1-space-5)) var(--tk-v1-space-5);
+  margin: calc(0px - var(--tk-v1-modal-inset)) calc(0px - var(--tk-v1-modal-inset))
+    var(--tk-v1-space-5);
   padding: var(--tk-v1-space-5);
   border-bottom: 1px solid var(--tk-v1-border-subtle);
   background: var(--tk-v1-surface-header-optical);
@@ -181,6 +185,16 @@
 
 .tk-v1-modal-padding-none .modal-header {
   margin: 0;
+}
+
+/* When a modal has body lead content, Modal renders one explicit scroll region
+   under a fixed title bar - the "one modal body region owns the vertical scroll"
+   rule. It is the modal's scroll box, so the inset lives inside it: it reaches
+   the modal's inline edges and pads back in by the same variable, putting the
+   scrollbar on the modal's edge instead of 20px inside it. */
+.tk-v1-modal .modal-scroll-region {
+  margin-inline: calc(0px - var(--tk-v1-modal-inset));
+  padding-inline: var(--tk-v1-modal-inset);
 }
 
 /* TkModalHeader is the only owner of modal header padding. It is self-contained:

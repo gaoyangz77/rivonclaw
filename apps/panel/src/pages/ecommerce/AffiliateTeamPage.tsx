@@ -2383,6 +2383,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         title={t("ecommerce.affiliateTeam.protectionImportModalTitle")}
         maxWidth={1080}
         className="affiliate-protection-import-modal"
+        padding="none"
         closeLabel={t("common.close")}
         preventBackdropClose={protectionImportBusy}
         portal

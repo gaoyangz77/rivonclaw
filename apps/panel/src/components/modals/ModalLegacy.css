@@ -593,28 +593,19 @@
 
 /* ===== 38. Pricing Table ===== */
 
+/* The card fills the side column, whose height tracks the form card beside it.
+   Its inset, column layout and scroll region come from TkPanel padding="none"
+   + TkPanelHeader / TkPanelBody scroll / TkPanelFooter - see the design-system
+   README, "The inset lives on the element that scrolls". */
 .pricing-card {
   font-size: 11px;
-  padding: 16px 18px;
   height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
 }
 
 .pricing-heading {
   margin: 0 0 4px 0;
   font-size: 14px;
   flex-shrink: 0;
-}
-
-.pricing-subtitle {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-weight: 400;
-  margin-left: 8px;
 }
 
 .pricing-status {
@@ -641,12 +632,6 @@
   color: var(--color-text-muted);
   margin-bottom: 8px;
   flex-shrink: 0;
-}
-
-.pricing-scroll {
-  flex: 1;
-  overflow: auto;
-  min-height: 0;
 }
 
 .pricing-inner-table {
@@ -712,8 +697,6 @@
 }
 
 .pricing-disclaimer {
-  margin-top: 6px;
-  flex-shrink: 0;
   font-size: 10px;
   color: var(--color-text-muted);
   line-height: 1.4;
@@ -755,8 +738,7 @@
 }
 
 .pricing-footer-link {
-  margin-top: 4px;
-  flex-shrink: 0;
+  margin-top: var(--tk-v1-space-1);
 }
 
 /* Provider info card — local/custom info in pricing-card shell */

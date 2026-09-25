@@ -1131,12 +1131,11 @@
   color: #b91c1c;
 }
 
+/* The review list lives in a padded modal, whose body is the one vertical scroll
+   region; the list grows inside it rather than scrolling in the modal's padding. */
 .cs-bad-review-list {
   display: grid;
   gap: 12px;
-  max-height: min(560px, 64vh);
-  overflow: auto;
-  padding-right: 2px;
 }
 
 .cs-bad-review-card {
@@ -1923,11 +1922,8 @@
   gap: 10px;
 }
 
-.cs-escalation-modal {
-  max-height: min(760px, calc(100vh - 160px));
-  overflow: auto;
-}
-
+/* .cs-escalation-modal sits directly in a padded modal, whose body is the one
+   vertical scroll region, so it does not scroll on its own. */
 .cs-escalation-modal .cs-escalation-detail {
   padding: 0;
   overflow: visible;

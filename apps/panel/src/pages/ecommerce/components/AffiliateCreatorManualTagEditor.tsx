@@ -18,6 +18,7 @@ import {
   creatorSystemTagLabel,
 } from "../affiliate-creator-system-tags.js";
 import panelI18n from "../../../i18n/index.js";
+import { TkPanel, TkPanelBody } from "../../../components/design-system/index.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 export type CreatorManualTagChange = {
@@ -460,25 +461,31 @@ export function AffiliateCreatorManualTagEditor({
         />
       </label>
 
-      <div className="affiliate-policy-option-grid affiliate-manual-tag-options">
-        {selectable.length === 0 ? (
-          <div className="affiliate-policy-option-empty">
-            {t("ecommerce.affiliateWorkspace.manualTags.noSelectable")}
-          </div>
-        ) : (
-          selectable.map((tag) => (
-            <button
-              key={tag.id}
-              className="affiliate-policy-option"
-              type="button"
-              onClick={() => void assign(tag.id)}
-              disabled={busy}
-            >
-              {tag.name}
-            </button>
-          ))
-        )}
-      </div>
+      <TkPanel variant="subtle" padding="none" className="affiliate-manual-tag-options-frame">
+        <TkPanelBody
+          scroll
+          padding="sm"
+          className="affiliate-policy-option-grid affiliate-manual-tag-options"
+        >
+            {selectable.length === 0 ? (
+              <div className="affiliate-policy-option-empty">
+                {t("ecommerce.affiliateWorkspace.manualTags.noSelectable")}
+              </div>
+            ) : (
+              selectable.map((tag) => (
+                <button
+                  key={tag.id}
+                  className="affiliate-policy-option"
+                  type="button"
+                  onClick={() => void assign(tag.id)}
+                  disabled={busy}
+                >
+                  {tag.name}
+                </button>
+              ))
+            )}
+        </TkPanelBody>
+      </TkPanel>
 
       {canCreate ? (
         <button

@@ -86,6 +86,12 @@
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
+  /* As an inline box on the default baseline, the line reserves descender space
+     beneath it, so in a middle-aligned table cell the switch sat 2.5px above
+     the row's centre. `top` removes that gap (measured 0px; `middle` lands
+     0.8px low). Flex and grid parents ignore vertical-align, so this only
+     changes inline contexts. Staying inline-flex keeps it beside any text. */
+  vertical-align: top;
   cursor: pointer;
 }
 

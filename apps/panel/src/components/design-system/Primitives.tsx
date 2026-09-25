@@ -155,11 +155,32 @@ export function TkPanelHeader({
 
 export interface TkPanelBodyProps extends HTMLAttributes<HTMLDivElement> {
   padding?: Exclude<TkPanelPadding, "none">;
+  /**
+   * Make this body the panel's single vertical scroll region. The inset stays
+   * inside the scroll box so the scrollbar meets the panel edge; the panel turns
+   * into a column and this body takes the remaining height. Use it inside
+   * `TkPanel padding="none"` — never wrap scrolling content in a padded panel.
+   */
+  scroll?: boolean;
 }
 
-export function TkPanelBody({ padding = "md", className, children, ...props }: TkPanelBodyProps) {
+export function TkPanelBody({
+  padding = "md",
+  scroll = false,
+  className,
+  children,
+  ...props
+}: TkPanelBodyProps) {
   return (
-    <div className={cx("tk-v1-panel-body", `tk-v1-panel-body-${padding}`, className)} {...props}>
+    <div
+      className={cx(
+        "tk-v1-panel-body",
+        `tk-v1-panel-body-${padding}`,
+        scroll && "tk-v1-panel-body-scroll",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </div>
   );

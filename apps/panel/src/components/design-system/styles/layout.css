@@ -10,7 +10,15 @@
   background-size: 100% 100%;
 }
 
-.main-content > main {
+/* The inset lives on the element that scrolls. Since workspace tabs, that is
+   each .workspace-page - one per tab, so every tab keeps its own scroll
+   position - while <main> is overflow: hidden. Padding the scroller applies
+   the inset exactly once, keeps the scrollbar on the window edge instead of
+   floating inside the gutter, and lets the 24px/16px responsive values in
+   controls.css reach it. A tab that must be full-bleed zeroes these tokens on
+   its own .workspace-page rather than pulling its content back out with
+   negative margins. */
+.main-content > main > .workspace-page {
   padding: var(--tk-v1-shell-content-top) var(--tk-v1-shell-content-inline)
     var(--tk-v1-shell-content-bottom);
 }
@@ -280,6 +288,29 @@
   padding: var(--tk-v1-space-5);
 }
 
+/* A panel owns at most one vertical scroll region, and it is a TkPanelBody with
+   `scroll`. The inset sits inside the scroll box, so the scrollbar meets the
+   panel's edge instead of floating in the panel's padding next to the content.
+   Same rule as the App Shell (.workspace-page) and the modal body. The panel
+   becomes a column so the region takes whatever height the panel is given; the
+   panel's other pieces keep their natural height. */
+.tk-v1-panel:has(> .tk-v1-panel-body-scroll) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tk-v1-panel:has(> .tk-v1-panel-body-scroll) > :not(.tk-v1-panel-body-scroll) {
+  flex-shrink: 0;
+}
+
+.tk-v1-panel-body-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .tk-v1-panel-footer {
   display: flex;
   align-items: center;
@@ -308,13 +339,17 @@
   box-shadow: var(--tk-v1-surface-highlight), var(--tk-v1-elevation-surface);
 }
 
-/* legacy-shared.css stacks `.section-card > * + *` with a 16px top margin. Inside
-   a TkPanel that margin lands between the header band and the body or table that
-   follows it, opening a seam in a `clip`ped surface. The panel primitives already
-   own their own spacing, so neutralize the legacy rule whenever either side of the
-   pair is one of ours. Content that is still plain legacy markup keeps its stack. */
-.tk-v1-panel:is(.section-card, .panel-card) > [class*="tk-v1-"] + *,
-.tk-v1-panel:is(.section-card, .panel-card) > * + [class*="tk-v1-"] {
+/* legacy-shared.css stacks `.section-card > * + *` with a 16px top margin, which
+   is the content rhythm inside a padded panel. The one place it is wrong is
+   between a panel's own structure pieces - header band, body, table frame and
+   footer - which abut: a margin there opens a seam in a `clip`ped surface. So
+   the exception is keyed on those pieces on BOTH sides, and nothing else.
+   An earlier version zeroed the margin whenever EITHER side carried any tk-v1
+   class; that also stripped the rhythm after controls such as TkTabs or TkAlert
+   and left form content jammed against them. */
+.tk-v1-panel:is(.section-card, .panel-card)
+  > :is(.tk-v1-panel-header, .tk-v1-panel-body, .tk-v1-table-frame, .tk-v1-panel-footer)
+  + :is(.tk-v1-panel-header, .tk-v1-panel-body, .tk-v1-table-frame, .tk-v1-panel-footer) {
   margin-top: 0;
 }
 

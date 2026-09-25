@@ -1472,7 +1472,10 @@
   flex: 1;
   flex-direction: column;
   gap: 12px;
-  padding: 16px 22px;
+  /* Inline inset declared once so the list below can carry it inside its scroll
+     box. 20px (space-5) lines it up with the modal's title bar. */
+  --protection-matched-inline: var(--tk-v1-space-5);
+  padding: var(--tk-v1-space-4) var(--protection-matched-inline);
   overflow: hidden;
   background: color-mix(in srgb, var(--surface-secondary) 48%, var(--surface-primary));
 }
@@ -1500,6 +1503,10 @@
 }
 
 .affiliate-protection-matched-developer-list {
+  /* The section's scroll body: the inset lives inside the scroll box, so the
+     scrollbar sits on the section's edge rather than in its padding. */
+  margin-inline: calc(-1 * var(--protection-matched-inline));
+  padding-inline: var(--protection-matched-inline);
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

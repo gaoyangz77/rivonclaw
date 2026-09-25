@@ -90,9 +90,12 @@
 
 /* Sidebar */
 .sidebar {
+  /* The sidebar's inline inset. Declared once so the nav's scroll region can
+     carry the same value inside its scroll box (see .sidebar-hierarchical-nav). */
+  --sidebar-inline: var(--tk-v1-space-3);
   width: 200px;
   flex-shrink: 0;
-  padding: 24px 12px 12px;
+  padding: var(--tk-v1-space-6) var(--sidebar-inline) var(--tk-v1-space-3);
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border, rgba(17, 24, 39, 0.06));
   box-shadow: var(--sidebar-shadow, 2px 0 8px rgba(15, 23, 42, 0.04));
@@ -113,9 +116,9 @@
 }
 
 .sidebar-collapsed {
+  --sidebar-inline: var(--tk-v1-space-2);
   width: 60px !important;
   min-width: 60px !important;
-  padding: 24px 8px 12px;
 }
 
 .sidebar-resize-handle {
@@ -169,12 +172,24 @@
 .sidebar-hierarchical-nav {
   flex: 1;
   min-height: 0;
+  /* This is the sidebar's scroll region, so the inset lives inside the scroll
+     box: it reaches the sidebar's edges and pads back in by the same variable.
+     The items stay where they were and the scrollbar sits on the sidebar's edge
+     instead of floating 12px inside it. Same rule as the App Shell and panels. */
+  margin-inline: calc(-1 * var(--sidebar-inline));
+  padding-inline: var(--sidebar-inline);
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 2px;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+/* .tk-v1-hierarchical-nav pins its width to 100% of its container, which would
+   only shift the bled region left instead of widening it. In the sidebar the
+   nav stretches through the bleed, so the sidebar hands the width back. */
+.sidebar > .sidebar-hierarchical-nav {
+  width: auto;
 }
 
 .sidebar-hierarchical-nav::-webkit-scrollbar {
@@ -212,10 +227,6 @@
   background: var(--color-sidebar-hover);
   color: var(--color-sidebar-muted);
   font-size: 9px;
-}
-
-.sidebar-collapsed .sidebar-hierarchical-nav {
-  padding-right: 0;
 }
 
 /* Sidebar collapse toggle */
@@ -404,7 +415,6 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 28px 48px 48px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -414,7 +424,7 @@
 }
 
 .workspace-page:has(.cs-workspace-page) {
-  padding-bottom: 16px;
+  --tk-v1-shell-content-bottom: var(--tk-v1-space-4);
 }
 
 /* Language menu (sidebar) */

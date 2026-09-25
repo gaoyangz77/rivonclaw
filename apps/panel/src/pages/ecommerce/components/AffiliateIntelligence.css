@@ -761,9 +761,11 @@
   max-width: 100%;
 }
 
-.affiliate-manual-tag-options {
+/* A bounded list under the search field, so it is its own field surface: a
+   subtle TkPanel whose TkPanelBody scroll carries the inset and the scrollbar.
+   Only the height cap is local. */
+.affiliate-manual-tag-options-frame {
   max-height: 180px;
-  overflow-y: auto;
 }
 
 /*

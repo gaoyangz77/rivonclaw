@@ -1,3 +1,14 @@
+/* Chat is full-bleed: it lays out and scrolls its own panes, so its workspace
+   tab takes no App Shell inset. It used to pull itself back out with
+   `margin: -28px -48px -48px`, which hard-coded the desktop inset - it never
+   matched the 24px/16px responsive values, and once workspace tabs added a
+   second padded layer it left the chat inset by a full 48px. */
+.workspace-page:has(.chat-container) {
+  --tk-v1-shell-content-top: 0;
+  --tk-v1-shell-content-inline: 0;
+  --tk-v1-shell-content-bottom: 0;
+}
+
 .chat-container {
   position: relative;
   display: flex;
@@ -5,8 +16,6 @@
   flex: 1;
   min-height: 0;
   /* allow flex child to shrink below content size */
-  margin: -28px -48px -48px;
-  /* escape main padding */
   overflow: hidden;
   background: var(--color-bg-page);
 }
@@ -31,7 +40,10 @@
   min-height: 0;
   background: color-mix(in srgb, var(--color-bg-page) 88%, var(--color-bg-alt));
   border-right: 1px solid var(--color-border-light);
-  padding: 14px 10px 12px;
+  /* The rail's inline inset, declared once so its scrolling list can carry the
+     same value inside its scroll box (see .chat-session-tabs-scroll). */
+  --chat-tabs-inline: var(--tk-v1-space-3);
+  padding: 14px var(--chat-tabs-inline) 12px;
   gap: 10px;
 }
 
@@ -58,6 +70,11 @@
 }
 
 .chat-session-tabs-scroll {
+  /* The rail's scroll body: it reaches the rail's inline edges and pads back in
+     by the same variable, so the scrollbar sits on the rail's edge instead of
+     inside its padding next to the session tabs. */
+  margin-inline: calc(-1 * var(--chat-tabs-inline));
+  padding-inline: var(--chat-tabs-inline);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -67,7 +84,9 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-  padding: 2px 2px 6px;
+  /* Block room for focus rings, which the scroll box would otherwise clip; the
+     inline inset comes from --chat-tabs-inline above. */
+  padding-block: 2px 6px;
 }
 
 .chat-session-tabs-scroll::-webkit-scrollbar {
@@ -499,7 +518,8 @@
 
 @media (max-width: 920px) {
   .chat-session-tabs {
-    padding: 10px 8px;
+    --chat-tabs-inline: var(--tk-v1-space-2);
+    padding-block: 10px;
   }
 
   .chat-session-tab {

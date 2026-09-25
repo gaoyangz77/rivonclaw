@@ -312,6 +312,24 @@ for (const filePath of files) {
   }
 
   if (filePath.endsWith(".tsx")) {
+    // Rule 9: scroll-region-contract — a panel scrolls through one
+    // `TkPanelBody scroll` inside `TkPanel padding="none"`. In a padded panel the
+    // padding sits outside the scroll box, so the scrollbar floats in the gutter
+    // pressed against the content - the defect this contract exists to remove.
+    if (relPath !== "components/design-system/Primitives.tsx") {
+      for (const body of content.matchAll(/<TkPanelBody\b[^>]*?\bscroll\b(?![-\w])[^>]*>/g)) {
+        const before = content.slice(0, body.index);
+        const panels = [...before.matchAll(/<TkPanel\b(?![A-Za-z])[^>]*>/g)];
+        const panel = panels.at(-1);
+        const line = before.split("\n").length;
+        if (!panel || !/\bpadding=["{]\s*["']?none["']?/.test(panel[0])) {
+          violations.push(
+            `FAIL [scroll-region-contract] ${relPath}:${line} puts TkPanelBody scroll in a panel without padding="none". The panel's padding would sit outside the scroll box.`,
+          );
+        }
+      }
+    }
+
     const tableCount = content.match(/<table\b/g)?.length ?? 0;
     const frameCount = content.match(/<TkTableFrame\b/g)?.length ?? 0;
     if (tableCount !== frameCount) {

@@ -89,6 +89,21 @@ describe("design-system primitives", () => {
     expect(document.querySelector(".tk-v1-panel-footer-end")).toBeTruthy();
   });
 
+  it("marks exactly the scrolling panel body, so the inset stays inside the scroll box", () => {
+    const { container } = render(
+      <TkPanel padding="none">
+        <TkPanelBody>Static</TkPanelBody>
+        <TkPanelBody scroll>Scrolling</TkPanelBody>
+      </TkPanel>,
+    );
+    const bodies = container.querySelectorAll(".tk-v1-panel-body");
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0].classList.contains("tk-v1-panel-body-scroll")).toBe(false);
+    expect(bodies[1].classList.contains("tk-v1-panel-body-scroll")).toBe(true);
+    // The body keeps its own inset class alongside the scroll class.
+    expect(bodies[1].classList.contains("tk-v1-panel-body-md")).toBe(true);
+  });
+
   it("activates interactive table rows without hijacking nested controls", () => {
     const onActivate = vi.fn();
     const onNestedAction = vi.fn();

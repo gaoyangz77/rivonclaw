@@ -2,10 +2,10 @@
   background: var(--tk-v1-bg-canvas);
 }
 
-.main-content > main:has(.tk-design-lab) {
-  display: flex;
-  padding: 0;
-  overflow: hidden;
+.workspace-page:has(.tk-design-lab) {
+  --tk-v1-shell-content-top: 0;
+  --tk-v1-shell-content-inline: 0;
+  --tk-v1-shell-content-bottom: 0;
 }
 
 .tk-design-lab {

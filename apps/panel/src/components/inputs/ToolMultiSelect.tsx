@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useToolDisplayLabel } from "../../lib/tool-display.js";
 import type { AvailableTool } from "@rivonclaw/core/models";
+import { TkPanel, TkPanelBody } from "../design-system/index.js";
 
 interface ToolMultiSelectProps {
   /** Currently selected tool IDs */
@@ -128,60 +129,66 @@ export const ToolMultiSelect = observer(function ToolMultiSelect({
     return <div className="tool-ms-empty">{t("tools.selector.noTools")}</div>;
   }
 
+  // The list is one field inside a longer form, so it keeps a bounded height and
+  // scrolls on its own. A scrolling field is its own surface: a subtle panel whose
+  // scroll body carries the inset, so the scrollbar sits on the field's border
+  // rather than in the enclosing modal's padding.
   return (
-    <div className="tool-ms">
-      {Array.from(grouped.entries()).map(([category, catTools]) => {
-        const allSelected = catTools.every((tool) => selected.has(tool.id));
-        const someSelected = !allSelected && catTools.some((tool) => selected.has(tool.id));
-        const isCollapsed = collapsed.has(category);
-        return (
-          <div key={category} className="tool-ms-group">
-            <div className="tool-ms-group-header">
-              <input
-                type="checkbox"
-                className="tool-ms-checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSelected;
-                }}
-                onChange={() => toggleCategory(catTools)}
-              />
-              <span className="tool-ms-group-name" onClick={() => toggleCollapse(category)}>
-                <span className={`tool-ms-chevron${isCollapsed ? "" : " tool-ms-chevron-open"}`}>
-                  &#9656;
+    <TkPanel variant="subtle" padding="none" className="tool-ms-frame">
+      <TkPanelBody scroll padding="sm" className="tool-ms">
+        {Array.from(grouped.entries()).map(([category, catTools]) => {
+          const allSelected = catTools.every((tool) => selected.has(tool.id));
+          const someSelected = !allSelected && catTools.some((tool) => selected.has(tool.id));
+          const isCollapsed = collapsed.has(category);
+          return (
+            <div key={category} className="tool-ms-group">
+              <div className="tool-ms-group-header">
+                <input
+                  type="checkbox"
+                  className="tool-ms-checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={() => toggleCategory(catTools)}
+                />
+                <span className="tool-ms-group-name" onClick={() => toggleCollapse(category)}>
+                  <span className={`tool-ms-chevron${isCollapsed ? "" : " tool-ms-chevron-open"}`}>
+                    &#9656;
+                  </span>
+                  {categoryLabel(category)}
                 </span>
-                {categoryLabel(category)}
-              </span>
-              <span className="tool-ms-group-count">
-                {catTools.filter((tool) => selected.has(tool.id)).length}/{catTools.length}
-              </span>
-            </div>
-            {!isCollapsed && (
-              <div className="tool-ms-items">
-                {catTools.map((tool) => (
-                  <label
-                    key={tool.id}
-                    className={`tool-ms-item${tool.unavailable ? " tool-ms-item-unavailable" : ""}`}
-                    title={tool.description}
-                  >
-                    <input
-                      type="checkbox"
-                      className="tool-ms-checkbox"
-                      checked={selected.has(tool.id)}
-                      onChange={() => toggle(tool.id)}
-                    />
-                    <span
-                      className={`tool-ms-item-name${tool.unavailable ? " tool-ms-item-name-unavailable" : ""}`}
-                    >
-                      {toolLabel(tool.id)}
-                    </span>
-                  </label>
-                ))}
+                <span className="tool-ms-group-count">
+                  {catTools.filter((tool) => selected.has(tool.id)).length}/{catTools.length}
+                </span>
               </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+              {!isCollapsed && (
+                <div className="tool-ms-items">
+                  {catTools.map((tool) => (
+                    <label
+                      key={tool.id}
+                      className={`tool-ms-item${tool.unavailable ? " tool-ms-item-unavailable" : ""}`}
+                      title={tool.description}
+                    >
+                      <input
+                        type="checkbox"
+                        className="tool-ms-checkbox"
+                        checked={selected.has(tool.id)}
+                        onChange={() => toggle(tool.id)}
+                      />
+                      <span
+                        className={`tool-ms-item-name${tool.unavailable ? " tool-ms-item-name-unavailable" : ""}`}
+                      >
+                        {toolLabel(tool.id)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </TkPanelBody>
+    </TkPanel>
   );
 });

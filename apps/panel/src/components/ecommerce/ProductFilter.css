@@ -2,11 +2,14 @@
   width: min(32rem, calc(100vw - 32px));
 }
 .product-filter-content {
+  /* The popover's inline inset. Declared once so the scrolling lists below can
+     carry the same value inside their scroll boxes. */
+  --product-filter-inline: var(--tk-v1-space-3);
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
-  padding: 12px;
+  padding: var(--tk-v1-space-3) var(--product-filter-inline);
 }
 .product-filter-search {
   margin: 0;
@@ -39,6 +42,14 @@
   max-height: min(320px, 35vh);
   overflow: auto;
   overflow-x: hidden;
+}
+/* The inset lives on the element that scrolls: these lists reach the popover's
+   edges and pad back in by the same variable, so their scrollbars sit on the
+   popover edge instead of floating in its padding next to the options. */
+.product-filter-selected,
+.product-filter-results {
+  margin-inline: calc(-1 * var(--product-filter-inline));
+  padding-inline: var(--product-filter-inline);
 }
 .product-filter-option {
   display: block;

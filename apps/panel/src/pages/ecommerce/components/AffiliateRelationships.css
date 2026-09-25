@@ -1677,7 +1677,11 @@
   min-height: 0;
   overflow: auto;
   overflow-x: hidden;
-  padding-right: 2px;
+  /* The modal passes padding="none", which hands its inset to its children. The
+     title bar picks up space-5 from the design system's .tk-v1-modal .modal-header;
+     this body is the modal's scroll box and takes the same value inside itself,
+     so the content lines up with the title and the scrollbar meets the edge. */
+  padding: var(--tk-v1-space-5);
 }
 
 .product-detail-layout {
