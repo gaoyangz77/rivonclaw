@@ -1,5 +1,9 @@
 import type { GQL } from "@rivonclaw/core";
 import type { TFunction } from "i18next";
+import {
+  isAffiliateDetailNumberField,
+  isAffiliateDetailPercentField,
+} from "./affiliate-detail-export.js";
 
 /** Filter draft edited in the Details tab; only a search freezes it into a query. */
 export interface AffiliateDetailFilterDraft {
@@ -53,18 +57,51 @@ const FULFILLMENT_DIMENSIONS: GQL.EcomBiDimension[] = [
   "SAMPLE_HAS_SHIPMENT",
   "SAMPLE_HAS_CONTENT",
 ];
-const REVIEW_METRICS: GQL.EcomBiMetric[] = [
+/**
+ * Creator performance captured at application, in display order. Every money
+ * metric is in the row's `AFFILIATE_CREATOR_GMV_CURRENCY`, so that column sits
+ * right after the money block it qualifies.
+ */
+const CREATOR_MONEY_BLOCK: GQL.EcomBiMetric[] = [
   "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_UNITS_SOLD_AT_APPLICATION",
   "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
-  "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
-  "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVE_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GMV_PER_BUYER_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVE_GPM_AT_APPLICATION",
 ];
+const CREATOR_ACTIVITY_BLOCK: GQL.EcomBiMetric[] = [
+  "AFFILIATE_CREATOR_PROMOTED_PRODUCTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_BRAND_COLLABORATIONS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_LIKES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_COMMENTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_SHARES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_LIKES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_COMMENTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_SHARES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION",
+  "AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION",
+  "AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION",
+];
+const CREATOR_METRICS: GQL.EcomBiMetric[] = [...CREATOR_MONEY_BLOCK, ...CREATOR_ACTIVITY_BLOCK];
+const CREATOR_COLUMNS: readonly string[] = [
+  ...CREATOR_MONEY_BLOCK,
+  "AFFILIATE_CREATOR_GMV_CURRENCY",
+  ...CREATOR_ACTIVITY_BLOCK,
+];
+const REVIEW_METRICS: GQL.EcomBiMetric[] = CREATOR_METRICS;
 const FULFILLMENT_METRICS: GQL.EcomBiMetric[] = [
   "AFFILIATE_CONTENTS_CREATED",
   "AFFILIATE_ORDERS",
   "AFFILIATE_UNITS",
-  "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
-  "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
+  ...CREATOR_METRICS,
 ];
 const ORDER_DIMENSIONS: GQL.EcomBiDimension[] = [
   "DATE",
@@ -92,11 +129,7 @@ export const AFFILIATE_DETAIL_COLUMNS: Record<AffiliateDetailEntity, readonly st
     "SAMPLE_ORDER_ID",
     "TRACKING_ID",
     "SAMPLE_SHIPPED_DATE",
-    "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
-    "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
-    "AFFILIATE_CREATOR_GMV_CURRENCY",
-    "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
-    "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
+    ...CREATOR_COLUMNS,
   ],
   FULFILLMENT: [
     "DATE",
@@ -112,9 +145,7 @@ export const AFFILIATE_DETAIL_COLUMNS: Record<AffiliateDetailEntity, readonly st
     "AFFILIATE_CONTENTS_CREATED",
     "AFFILIATE_ORDERS",
     "AFFILIATE_UNITS",
-    "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
-    "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
-    "AFFILIATE_CREATOR_GMV_CURRENCY",
+    ...CREATOR_COLUMNS,
   ],
 };
 
@@ -219,6 +250,16 @@ export function affiliateDetailCell(t: TFunction, language: string, row: Row, ke
     return value === null || value === undefined
       ? t("ecommerce.affiliateAnalytics.details.unknown")
       : t(`ecommerce.affiliateAnalytics.details.${Number(value) ? "yes" : "no"}`);
+  if (isAffiliateDetailNumberField(key) && value !== null && value !== undefined && value !== "") {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      // Counts and money show at most 2 decimals; ratios (0.0812) show as "8.12%".
+      return new Intl.NumberFormat(language, {
+        maximumFractionDigits: 2,
+        ...(isAffiliateDetailPercentField(key) ? { style: "percent" } : {}),
+      }).format(numeric);
+    }
+  }
   if (typeof value === "string" && /^-?\d+\.\d+$/.test(value))
     return new Intl.NumberFormat(language, { maximumFractionDigits: 2 }).format(Number(value));
   if (typeof value === "number") return new Intl.NumberFormat(language).format(value);

@@ -46,6 +46,44 @@ describe("Affiliate detail Excel export", () => {
     expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 1 });
   });
 
+  it("writes creator ratios as percentages and money and counts as plain numbers", async () => {
+    const columns = [
+      "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
+      "AFFILIATE_CREATOR_GPM_AT_APPLICATION",
+      "AFFILIATE_CREATOR_GMV_CURRENCY",
+      "AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION",
+      "AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION",
+      "AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION",
+    ];
+    const workbook = buildAffiliateDetailWorkbook(ExcelJS, {
+      sheetName: "Sample review",
+      columns,
+      rows: [{
+        AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION: 5230,
+        AFFILIATE_CREATOR_GPM_AT_APPLICATION: "12.34",
+        AFFILIATE_CREATOR_GMV_CURRENCY: "USD",
+        AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION: 1.23,
+        AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION: "0.0812",
+        AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION: null,
+      }],
+      label: (key) => key,
+      displayText: (_key, value) => String(value),
+    });
+    const loaded = new ExcelJS.Workbook();
+    await loaded.xlsx.load(await workbook.xlsx.writeBuffer());
+    const row = loaded.getWorksheet("Sample review")!.getRow(2);
+    expect(row.getCell(1).value).toBe(5230);
+    expect(row.getCell(1).numFmt).toBe("#,##0.##");
+    expect(row.getCell(2).value).toBe(12.34);
+    expect(row.getCell(2).numFmt).toBe("#,##0.##");
+    expect(row.getCell(3).value).toBe("USD");
+    expect(row.getCell(4).value).toBe(1.23);
+    expect(row.getCell(4).numFmt).toBe("0.00%");
+    expect(row.getCell(5).value).toBe(0.0812);
+    expect(row.getCell(5).numFmt).toBe("0.00%");
+    expect(row.getCell(6).value).toBeNull();
+  });
+
   it("does not convert missing metrics to zero", () => {
     const workbook = buildAffiliateDetailWorkbook(ExcelJS, {
       sheetName: "Sample review",

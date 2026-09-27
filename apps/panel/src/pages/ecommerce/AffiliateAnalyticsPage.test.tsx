@@ -138,6 +138,9 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.details.previousPage": "Previous page",
   "ecommerce.affiliateAnalytics.details.nextPage": "Next page",
   "ecommerce.affiliateAnalytics.details.creatorId": "Creator Open ID",
+  "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_CREATOR_GMV_CURRENCY": "Currency",
+  "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION":
+    "Video engagement rate",
   "common.cancel": "Cancel",
   "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
   "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
@@ -767,6 +770,42 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
   });
 });
 
+const CREATOR_MONEY_BLOCK = [
+  "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_UNITS_SOLD_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVE_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GMV_PER_BUYER_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVE_GPM_AT_APPLICATION",
+];
+const CREATOR_ACTIVITY_BLOCK = [
+  "AFFILIATE_CREATOR_PROMOTED_PRODUCTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_BRAND_COLLABORATIONS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_LIKES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_COMMENTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_SHARES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_LIKES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_COMMENTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_SHARES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION",
+  "AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION",
+  "AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION",
+];
+/** All 24 application-time creator metrics, in the order both tables request them. */
+const CREATOR_METRICS = [...CREATOR_MONEY_BLOCK, ...CREATOR_ACTIVITY_BLOCK];
+const CREATOR_COLUMNS = [
+  ...CREATOR_MONEY_BLOCK,
+  "AFFILIATE_CREATOR_GMV_CURRENCY",
+  ...CREATOR_ACTIVITY_BLOCK,
+];
+
 describe("AffiliateAnalyticsPage Details", () => {
   type Input = {
     datasetId: string;
@@ -818,13 +857,73 @@ describe("AffiliateAnalyticsPage Details", () => {
     expect(input.dimensions).toContain("SAMPLE_APPLICATION_ID");
     expect(input.dimensions).toContain("SHOP_ALIAS");
     expect(input.dimensions).toContain("AFFILIATE_CREATOR_GMV_CURRENCY");
-    expect(input.metrics).toEqual([
-      "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
-      "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
-      "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
-      "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
-    ]);
+    expect(input.metrics).toEqual(CREATOR_METRICS);
     expect(screen.getByText("Affiliate details")).not.toBeNull();
+  });
+
+  it("requests every creator metric for fulfillment after its own metrics", async () => {
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Record type" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fulfillment results" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+    const input = call(0).variables.input;
+    expect(input.datasetId).toBe("AFFILIATE_SAMPLE_FULFILLMENT_DETAIL");
+    expect(input.dimensions).toContain("AFFILIATE_CREATOR_GMV_CURRENCY");
+    expect(input.metrics).toEqual([
+      "AFFILIATE_CONTENTS_CREATED",
+      "AFFILIATE_ORDERS",
+      "AFFILIATE_UNITS",
+      ...CREATOR_METRICS,
+    ]);
+  });
+
+  it("shows the creator block in order with counts, money and percentages formatted", async () => {
+    mocks.dataQuery.mockResolvedValue({
+      data: {
+        getEcommerceBiData: {
+          datasetId: "AFFILIATE_SAMPLE_REVIEW_DETAIL",
+          granularity: "DAILY",
+          rows: [{
+            ...detailRows(0, 1)[0],
+            AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION: 123456,
+            AFFILIATE_CREATOR_GMV_AT_APPLICATION: "1234.567",
+            AFFILIATE_CREATOR_GMV_CURRENCY: "EUR",
+            AFFILIATE_CREATOR_LIVE_GMV_AT_APPLICATION: null,
+            AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION: 1.23,
+            AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION: "0.0812",
+            AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION: null,
+          }],
+          pageInfo: { hasMore: false, totalRows: 1 },
+        },
+      },
+    });
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("creator-0");
+
+    // Labels missing from COPY resolve to their key, which pins the column order.
+    const fieldKey = (text: string) =>
+      Object.entries(COPY).find(([, copy]) => copy === text)?.[0].split(".").pop() ??
+      text.split(".").pop();
+    const headers = screen.getAllByRole("columnheader").map((th) => fieldKey(th.textContent ?? ""));
+    expect(headers.slice(-CREATOR_COLUMNS.length)).toEqual(CREATOR_COLUMNS);
+    expect(headers.slice(0, -CREATOR_COLUMNS.length)).not.toContain("AFFILIATE_CREATOR_GMV_CURRENCY");
+
+    const cells = screen.getAllByRole("cell");
+    const cellOf = (key: string) => cells[headers.indexOf(key)];
+    expect(cellOf("AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION").textContent).toBe("123,456");
+    expect(cellOf("AFFILIATE_CREATOR_GMV_AT_APPLICATION").textContent).toBe("1,234.57");
+    expect(cellOf("AFFILIATE_CREATOR_GMV_CURRENCY").textContent).toBe("EUR");
+    expect(cellOf("AFFILIATE_CREATOR_LIVE_GMV_AT_APPLICATION").textContent).toBe("—");
+    expect(cellOf("AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION").textContent).toBe("123%");
+    expect(cellOf("AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION").textContent).toBe("8.12%");
+    expect(cellOf("AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION").textContent).toBe("—");
+    for (const key of CREATOR_COLUMNS) {
+      expect(cellOf(key).classList.contains("affiliate-detail-num")).toBe(
+        key !== "AFFILIATE_CREATOR_GMV_CURRENCY",
+      );
+    }
   });
 
   it("pages the frozen search by 50, ignoring filter edits made after Search", async () => {

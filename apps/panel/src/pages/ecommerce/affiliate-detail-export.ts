@@ -23,11 +23,35 @@ export class AffiliateDetailExportTooLargeError extends Error {
 }
 
 const DATE_FIELDS = new Set(["DATE", "SAMPLE_SHIPPED_DATE", "ORDER_DATE"]);
+/** Ratios (0.08 = 8%): numeric cells shown and exported as percentages. */
+const PERCENT_FIELDS = new Set([
+  "AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION",
+  "AFFILIATE_CREATOR_POST_RATE_AT_APPLICATION",
+  "AFFILIATE_CREATOR_COMMISSION_RATE_AT_APPLICATION",
+]);
 const NUMBER_FIELDS = new Set([
   "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_UNITS_SOLD_AT_APPLICATION",
   "AFFILIATE_CREATOR_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVE_GMV_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GMV_PER_BUYER_AT_APPLICATION",
+  "AFFILIATE_CREATOR_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_VIDEO_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVE_GPM_AT_APPLICATION",
+  "AFFILIATE_CREATOR_PROMOTED_PRODUCTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_BRAND_COLLABORATIONS_AT_APPLICATION",
   "AFFILIATE_CREATOR_VIDEOS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_LIVES_AT_APPLICATION",
   "AFFILIATE_CREATOR_AVG_VIDEO_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_LIKES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_COMMENTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_VIDEO_SHARES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_VIEWS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_LIKES_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_COMMENTS_AT_APPLICATION",
+  "AFFILIATE_CREATOR_AVG_LIVE_SHARES_AT_APPLICATION",
+  ...PERCENT_FIELDS,
   "AFFILIATE_CONTENTS_CREATED",
   "AFFILIATE_ORDERS",
   "AFFILIATE_UNITS",
@@ -43,6 +67,11 @@ const BOOLEAN_FIELDS = new Set([
 /** Numeric detail columns: written as spreadsheet numbers and right-aligned on screen. */
 export function isAffiliateDetailNumberField(key: string): boolean {
   return NUMBER_FIELDS.has(key);
+}
+
+/** Numeric ratio columns, displayed as percentages on screen and in the workbook. */
+export function isAffiliateDetailPercentField(key: string): boolean {
+  return PERCENT_FIELDS.has(key);
 }
 
 /**
@@ -180,7 +209,8 @@ export function buildAffiliateDetailWorkbook(
     }
     for (const key of options.columns) {
       if (DATE_FIELDS.has(key)) excelRow.getCell(key).numFmt = "yyyy-mm-dd";
-      if (NUMBER_FIELDS.has(key)) excelRow.getCell(key).numFmt = "#,##0.##";
+      if (PERCENT_FIELDS.has(key)) excelRow.getCell(key).numFmt = "0.00%";
+      else if (NUMBER_FIELDS.has(key)) excelRow.getCell(key).numFmt = "#,##0.##";
     }
   });
   return workbook;
