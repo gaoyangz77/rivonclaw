@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NetworkStatus } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
+import { observer } from "mobx-react-lite";
 import type { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,7 +25,20 @@ import {
 import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { buildSpsMarketChart, buildSpsYAxisDomain, formatSpsValue } from "./sps-analytics.js";
+import { SpsShopScopeControl } from "./components/SpsShopScopeControl.js";
+import {
+  SPS_CHART_SERIES_LIMIT,
+  SPS_LIVE_SHOP_LIMIT,
+  buildSpsMarketChart,
+  buildSpsQueryShopIds,
+  buildSpsYAxisDomain,
+  defaultSpsShopSelection,
+  formatSpsValue,
+  isSpsLiveCandidate,
+  isSpsShopSelectionError,
+  reconcileSpsShopSelection,
+  type SpsScopeShop,
+} from "./sps-analytics.js";
 import "./ShopAnalyticsPage.css";
 
 /**
@@ -277,7 +291,10 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
 
 function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
   const { t, i18n } = useTranslation();
-  const chart = buildSpsMarketChart(market.shops);
+  const chart = buildSpsMarketChart(market.shops, SPS_CHART_SERIES_LIMIT);
+  const trendShopCount = market.shops.filter(
+    (shop) => shop.availability === "AVAILABLE" && shop.trend.length > 0,
+  ).length;
   const unit = market.shops.find((shop) => shop.availability === "AVAILABLE")?.metricValueUnit;
   const yAxisValues = chart.rows.flatMap((row) =>
     chart.series
@@ -322,6 +339,9 @@ function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
                 : t("shopAnalytics.chart.unsupportedTitle")}
             </h3>
             {market.apiSupported && <small>{t("shopAnalytics.chart.autoScale")}</small>}
+            {trendShopCount > SPS_CHART_SERIES_LIMIT && (
+              <small>{t("shopAnalytics.chart.seriesLimit", { max: SPS_CHART_SERIES_LIMIT })}</small>
+            )}
           </div>
           {chart.series.length > 0 && (
             <div className="sps-chart-legend" aria-label={t("shopAnalytics.chart.seriesAria")}>
@@ -404,25 +424,87 @@ function MarketSection({ market }: { market: GQL.SpsAnalyticsMarketView }) {
   );
 }
 
-export function ShopAnalyticsPage() {
+export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  const userId = user?.userId;
   const authChecking =
     (entityStore as unknown as { authBootstrap?: { status?: string } }).authBootstrap?.status ===
     "loading";
   const [metricCode, setMetricCode] = useState<GQL.SpsAnalyticsMetricCode>("OTDR");
+  const [scopeReady, setScopeReady] = useState(false);
+  const [scopeLoadError, setScopeLoadError] = useState(false);
+  const [scopeReload, setScopeReload] = useState(0);
+  const [selectionOwnerId, setSelectionOwnerId] = useState<string | null>(null);
+  const [selectedShopIds, setSelectedShopIds] = useState<string[]>([]);
+
+  const scopeShops: SpsScopeShop[] = entityStore.shops
+    .filter((shop) => shop.platform === "TIKTOK_SHOP" && shop.authStatus !== "DISCONNECTED")
+    .map((shop) => ({
+      id: shop.id,
+      shopName: shop.shopName,
+      alias: shop.alias,
+      region: shop.region,
+      platform: shop.platform,
+      authStatus: shop.authStatus,
+    }));
+  const liveScopeShops = scopeShops.filter(isSpsLiveCandidate);
+  const liveScopeSignature = liveScopeShops
+    .map((shop) => shop.id)
+    .sort()
+    .join("|");
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) {
+      setScopeReady(false);
+      setScopeLoadError(false);
+      setSelectionOwnerId(null);
+      setSelectedShopIds([]);
+      return;
+    }
+
+    setScopeReady(false);
+    setScopeLoadError(false);
+    void entityStore.fetchShops().then(
+      () => {
+        if (!cancelled) setScopeReady(true);
+      },
+      () => {
+        if (!cancelled) setScopeLoadError(true);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [entityStore, scopeReload, userId]);
+
+  useEffect(() => {
+    if (!scopeReady || !userId) return;
+    setSelectedShopIds((current) =>
+      selectionOwnerId === userId
+        ? reconcileSpsShopSelection(current, liveScopeShops)
+        : defaultSpsShopSelection(liveScopeShops),
+    );
+    setSelectionOwnerId(userId);
+  }, [liveScopeSignature, scopeReady, selectionOwnerId, userId]);
+
+  const selectionRequired = scopeReady && liveScopeShops.length > 0 && selectedShopIds.length === 0;
+  const queryShopIds = buildSpsQueryShopIds(scopeShops, selectedShopIds);
 
   const query = useQuery<
     { ecommerceGetSpsAnalytics: GQL.SpsAnalyticsView },
     { input: GQL.SpsAnalyticsInput }
   >(ECOMMERCE_GET_SPS_ANALYTICS_QUERY, {
-    variables: { input: { metricCode } },
-    skip: !user,
+    variables: { input: { metricCode, shopIds: queryShopIds } },
+    skip: !user || !scopeReady || selectionRequired,
     fetchPolicy: "cache-and-network",
     notifyOnNetworkStatusChange: true,
   });
-  const report = query.data?.ecommerceGetSpsAnalytics;
+  const selectionQueryError = isSpsShopSelectionError(query.error);
+  const report =
+    selectionRequired || selectionQueryError ? undefined : query.data?.ecommerceGetSpsAnalytics;
   const orderedMarkets = report
     ? [...report.markets].sort(
         (left, right) =>
@@ -440,7 +522,7 @@ export function ShopAnalyticsPage() {
     : null;
   const selectedMetric = METRICS.find((metric) => metric.code === metricCode) ?? METRICS[0];
   const refreshing = query.networkStatus === NetworkStatus.refetch;
-  const loading = query.loading && !report;
+  const loading = (!scopeReady && !scopeLoadError) || (query.loading && !report);
   const latestObservation = useMemo(() => {
     return availableShops
       .map((shop) => shop.observedAt)
@@ -485,7 +567,7 @@ export function ShopAnalyticsPage() {
               className="btn btn-secondary sps-refresh-button"
               type="button"
               onClick={() => void query.refetch()}
-              disabled={refreshing}
+              disabled={refreshing || !scopeReady || scopeLoadError || selectionRequired}
             >
               <RefreshIcon aria-hidden="true" />
               {refreshing ? t("shopAnalytics.refreshing") : t("shopAnalytics.refresh")}
@@ -507,6 +589,14 @@ export function ShopAnalyticsPage() {
           label={t("shopAnalytics.metricSelectorAria")}
         />
       </div>
+
+      {scopeReady && liveScopeShops.length > 0 && (
+        <SpsShopScopeControl
+          shops={liveScopeShops}
+          selectedIds={selectedShopIds}
+          onChange={setSelectedShopIds}
+        />
+      )}
 
       <div className="sps-summary-grid" data-tutorial-id="analytics-summary">
         <TkPanel padding="sm" className="sps-summary-card data-card-hover">
@@ -551,7 +641,33 @@ export function ShopAnalyticsPage() {
         </TkPanel>
       )}
 
-      {query.error && (
+      {scopeLoadError && (
+        <TkPanel className="section-card sps-state-card sps-state-card-error">
+          <strong>{t("shopAnalytics.states.errorTitle")}</strong>
+          <p>{t("shopAnalytics.scope.loadError")}</p>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => setScopeReload((value) => value + 1)}
+          >
+            {t("shopAnalytics.states.retry")}
+          </button>
+        </TkPanel>
+      )}
+
+      {(selectionRequired || selectionQueryError) && (
+        <TkPanel className="section-card sps-state-card sps-state-card-selection">
+          <strong>{t("shopAnalytics.scope.requiredTitle")}</strong>
+          <p>
+            {t("shopAnalytics.scope.selectionRequired", {
+              total: liveScopeShops.length,
+              max: SPS_LIVE_SHOP_LIMIT,
+            })}
+          </p>
+        </TkPanel>
+      )}
+
+      {query.error && !selectionQueryError && !scopeLoadError && !selectionRequired && (
         <TkPanel className="section-card sps-state-card sps-state-card-error">
           <strong>{t("shopAnalytics.states.errorTitle")}</strong>
           <p>{query.error.message}</p>
@@ -561,15 +677,17 @@ export function ShopAnalyticsPage() {
         </TkPanel>
       )}
 
-      {!loading && !query.error && report?.markets.length === 0 && (
+      {!loading && !scopeLoadError && !query.error && report?.markets.length === 0 && (
         <TkPanel className="section-card sps-state-card">
           <strong>{t("shopAnalytics.states.noShopsTitle")}</strong>
           <p>{t("shopAnalytics.states.noShopsBody")}</p>
         </TkPanel>
       )}
 
-      {!query.error &&
+      {!scopeLoadError &&
+        !query.error &&
+        !selectionRequired &&
         orderedMarkets.map((market) => <MarketSection key={market.market} market={market} />)}
     </TkPageFrame>
   );
-}
+});

@@ -2073,6 +2073,17 @@ export default {
     refreshing: "Actualizando…",
     metricSelectorAria: "Métrica SPS",
     diagnosisLens: "ENFOQUE DE DIAGNÓSTICO",
+    scope: {
+      market: "MERCADO EN VIVO · EE. UU.",
+      title: "Alcance de tiendas",
+      selected: "{{selected}} de {{total}} tiendas seleccionadas",
+      selectionRequired: "{{total}} tiendas admiten SPS en vivo. Selecciona hasta {{max}}.",
+      requiredTitle: "Elige las tiendas para analizar",
+      selectVisible: "Seleccionar visibles (hasta {{max}})",
+      clear: "Limpiar",
+      noMatches: "No hay tiendas coincidentes",
+      loadError: "No se pudo cargar la lista de tiendas. Inténtalo de nuevo.",
+    },
     metrics: {
       OTDR: "Tasa de entrega puntual",
       NRR: "Tasa de reseñas negativas",
@@ -2106,6 +2117,7 @@ export default {
       latestObservations: "Últimas {{days}} observaciones diarias",
       unsupportedTitle: "SPS no está disponible en este mercado",
       autoScale: "Eje Y ajustado automáticamente al rango visible",
+      seriesLimit: "El gráfico muestra las primeras {{max}} tiendas de este alcance.",
       seriesAria: "Series del gráfico",
       noTrendTitle: "No se devolvieron puntos de tendencia",
       noTrendBody:

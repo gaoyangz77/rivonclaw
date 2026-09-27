@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSpsMarketChart,
+  buildSpsQueryShopIds,
   buildSpsYAxisDomain,
+  defaultSpsShopSelection,
   displayShopName,
   formatSpsValue,
+  isSpsLiveCandidate,
+  isSpsShopSelectionError,
+  reconcileSpsShopSelection,
+  type SpsScopeShop,
 } from "./sps-analytics.js";
 
 describe("SPS analytics chart helpers", () => {
@@ -63,5 +69,83 @@ describe("SPS analytics chart helpers", () => {
   it("keeps a useful domain for non-percentage and empty series", () => {
     expect(buildSpsYAxisDomain([4.7, 4.9], "score")).toEqual([4.6, 5]);
     expect(buildSpsYAxisDomain([], "%")).toEqual([0, 1]);
+  });
+
+  it("limits chart series without adding points from hidden shops", () => {
+    const chart = buildSpsMarketChart(
+      [
+        {
+          availability: "AVAILABLE",
+          shopAlias: "First",
+          shopId: "shop-a",
+          shopName: "First",
+          trend: [{ recordDate: "2026-07-26", value: 93 }],
+        },
+        {
+          availability: "AVAILABLE",
+          shopAlias: "Second",
+          shopId: "shop-b",
+          shopName: "Second",
+          trend: [{ recordDate: "2026-07-26", value: 88 }],
+        },
+      ],
+      1,
+    );
+
+    expect(chart.series).toEqual([{ shopId: "shop-a", shopName: "First" }]);
+    expect(chart.rows).toEqual([{ recordDate: "2026-07-26", "shop-a": 93 }]);
+  });
+});
+
+describe("SPS shop scope helpers", () => {
+  const scopeShop = (id: string, overrides: Partial<SpsScopeShop> = {}): SpsScopeShop => ({
+    id,
+    shopName: id,
+    alias: null,
+    region: "US",
+    platform: "TIKTOK_SHOP",
+    authStatus: "AUTHORIZED",
+    ...overrides,
+  });
+
+  it("identifies the shops that consume live SPS capacity", () => {
+    expect(isSpsLiveCandidate(scopeShop("us"))).toBe(true);
+    expect(isSpsLiveCandidate(scopeShop("mx", { region: "MX" }))).toBe(false);
+    expect(isSpsLiveCandidate(scopeShop("expired", { authStatus: "EXPIRED" }))).toBe(false);
+  });
+
+  it("selects every shop up to the limit and requires a choice above it", () => {
+    const fifty = Array.from({ length: 50 }, (_, index) => scopeShop(`shop-${index}`));
+    const fiftyOne = [...fifty, scopeShop("shop-50")];
+
+    expect(defaultSpsShopSelection(fifty)).toHaveLength(50);
+    expect(defaultSpsShopSelection(fiftyOne)).toEqual([]);
+  });
+
+  it("drops unavailable ids and keeps the selection within the limit", () => {
+    const shops = [scopeShop("shop-a"), scopeShop("shop-b")];
+    expect(reconcileSpsShopSelection(["missing", "shop-b", "shop-a"], shops, 1)).toEqual([
+      "shop-b",
+    ]);
+  });
+
+  it("keeps passive coverage shops while querying only selected live shops", () => {
+    const shops = [
+      scopeShop("live-a"),
+      scopeShop("live-b"),
+      scopeShop("mx", { region: "MX" }),
+      scopeShop("expired", { authStatus: "EXPIRED" }),
+    ];
+
+    expect(buildSpsQueryShopIds(shops, ["live-b"])).toEqual(["expired", "live-b", "mx"]);
+  });
+
+  it("recognizes the structured backend selection error", () => {
+    expect(
+      isSpsShopSelectionError({
+        errors: [{ extensions: { code: "SPS_SHOP_SELECTION_REQUIRED" } }],
+      }),
+    ).toBe(true);
+    expect(isSpsShopSelectionError(new Error("network unavailable"))).toBe(false);
   });
 });

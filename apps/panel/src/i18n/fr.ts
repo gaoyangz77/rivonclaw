@@ -2087,6 +2087,18 @@ export default {
     refreshing: "Actualisation…",
     metricSelectorAria: "Indicateur SPS",
     diagnosisLens: "ANGLE DE DIAGNOSTIC",
+    scope: {
+      market: "MARCHÉ EN DIRECT · ÉTATS-UNIS",
+      title: "Périmètre des boutiques",
+      selected: "{{selected}} boutiques sur {{total}} sélectionnées",
+      selectionRequired:
+        "{{total}} boutiques sont éligibles au SPS en direct. Sélectionnez-en jusqu’à {{max}}.",
+      requiredTitle: "Choisissez les boutiques à analyser",
+      selectVisible: "Sélectionner les visibles (jusqu’à {{max}})",
+      clear: "Effacer",
+      noMatches: "Aucune boutique correspondante",
+      loadError: "Impossible de charger la liste des boutiques. Réessayez.",
+    },
     metrics: {
       OTDR: "Taux de livraison à temps",
       NRR: "Taux d’avis négatifs",
@@ -2120,6 +2132,7 @@ export default {
       latestObservations: "{{days}} dernières observations quotidiennes",
       unsupportedTitle: "SPS n’est pas disponible sur ce marché",
       autoScale: "Axe Y ajusté automatiquement à la plage visible",
+      seriesLimit: "Le graphique affiche les {{max}} premières boutiques de ce périmètre.",
       seriesAria: "Séries du graphique",
       noTrendTitle: "Aucun point de tendance renvoyé",
       noTrendBody:

@@ -15,6 +15,62 @@ export interface SpsMarketChart {
   series: SpsChartSeries[];
 }
 
+export interface SpsScopeShop {
+  id: string;
+  shopName: string;
+  alias?: string | null;
+  region?: string | null;
+  platform: string;
+  authStatus: string;
+}
+
+export const SPS_LIVE_SHOP_LIMIT = 50;
+export const SPS_CHART_SERIES_LIMIT = 6;
+
+export function isSpsLiveCandidate(shop: SpsScopeShop): boolean {
+  return (
+    shop.platform === "TIKTOK_SHOP" && shop.authStatus === "AUTHORIZED" && shop.region === "US"
+  );
+}
+
+export function defaultSpsShopSelection(
+  shops: readonly SpsScopeShop[],
+  maxShops = SPS_LIVE_SHOP_LIMIT,
+): string[] {
+  return shops.length <= maxShops ? shops.map((shop) => shop.id) : [];
+}
+
+export function reconcileSpsShopSelection(
+  selectedIds: readonly string[],
+  shops: readonly SpsScopeShop[],
+  maxShops = SPS_LIVE_SHOP_LIMIT,
+): string[] {
+  const availableIds = new Set(shops.map((shop) => shop.id));
+  return selectedIds.filter((id) => availableIds.has(id)).slice(0, maxShops);
+}
+
+export function buildSpsQueryShopIds(
+  shops: readonly SpsScopeShop[],
+  selectedLiveShopIds: readonly string[],
+): string[] {
+  const selected = new Set(selectedLiveShopIds);
+  return shops
+    .filter((shop) => !isSpsLiveCandidate(shop) || selected.has(shop.id))
+    .map((shop) => shop.id)
+    .sort();
+}
+
+export function isSpsShopSelectionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const value = error as {
+    graphQLErrors?: Array<{ extensions?: { code?: unknown } }>;
+    errors?: Array<{ extensions?: { code?: unknown } }>;
+  };
+  return [...(value.graphQLErrors ?? []), ...(value.errors ?? [])].some(
+    (entry) => entry.extensions?.code === "SPS_SHOP_SELECTION_REQUIRED",
+  );
+}
+
 function isPercentUnit(unit?: string | null): boolean {
   const normalized = unit?.trim().toLowerCase();
   return normalized === "%" || normalized === "percent" || normalized === "percentage";
@@ -72,10 +128,11 @@ export function buildSpsMarketChart(
   shops: Array<
     Pick<GQL.SpsAnalyticsShopView, "availability" | "shopAlias" | "shopId" | "shopName" | "trend">
   >,
+  maxSeries = Number.POSITIVE_INFINITY,
 ): SpsMarketChart {
-  const availableShops = shops.filter(
-    (shop) => shop.availability === "AVAILABLE" && shop.trend.length > 0,
-  );
+  const availableShops = shops
+    .filter((shop) => shop.availability === "AVAILABLE" && shop.trend.length > 0)
+    .slice(0, maxSeries);
   const rowsByDate = new Map<string, SpsChartRow>();
 
   for (const shop of availableShops) {

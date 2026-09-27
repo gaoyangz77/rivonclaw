@@ -2087,6 +2087,18 @@ export default {
     refreshing: "Refreshing…",
     metricSelectorAria: "SPS metric",
     diagnosisLens: "DIAGNOSIS LENS",
+    scope: {
+      market: "LIVE MARKET · US",
+      title: "Shop scope",
+      selected: "{{selected}} of {{total}} shops selected",
+      selectionRequired:
+        "{{total}} shops are eligible for live SPS. Select up to {{max}} to continue.",
+      requiredTitle: "Choose the shops to analyze",
+      selectVisible: "Select visible (up to {{max}})",
+      clear: "Clear",
+      noMatches: "No matching shops",
+      loadError: "The shop list could not be loaded. Try again before requesting SPS data.",
+    },
     metrics: {
       OTDR: "On-time delivery rate",
       NRR: "Negative review rate",
@@ -2120,6 +2132,7 @@ export default {
       latestObservations: "Latest {{days}} daily observations",
       unsupportedTitle: "SPS is not exposed in this market",
       autoScale: "Y-axis auto-scaled to the visible range",
+      seriesLimit: "The trend chart shows the first {{max}} shops in this scope.",
       seriesAria: "Chart series",
       noTrendTitle: "No trend points returned",
       noTrendBody: "Review the shop status below, then refresh when TikTok SPS data is available.",

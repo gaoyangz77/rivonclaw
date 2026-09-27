@@ -2087,6 +2087,18 @@ export default {
     refreshing: "Wird aktualisiert…",
     metricSelectorAria: "SPS-Metrik",
     diagnosisLens: "DIAGNOSEANSICHT",
+    scope: {
+      market: "LIVE-MARKT · USA",
+      title: "Shop-Auswahl",
+      selected: "{{selected}} von {{total}} Shops ausgewählt",
+      selectionRequired:
+        "{{total}} Shops sind für Live-SPS verfügbar. Wählen Sie bis zu {{max}} aus.",
+      requiredTitle: "Shops für die Analyse auswählen",
+      selectVisible: "Sichtbare auswählen (bis {{max}})",
+      clear: "Löschen",
+      noMatches: "Keine passenden Shops",
+      loadError: "Die Shop-Liste konnte nicht geladen werden. Versuchen Sie es erneut.",
+    },
     metrics: {
       OTDR: "Pünktliche Zustellrate",
       NRR: "Negative Bewertungsrate",
@@ -2120,6 +2132,7 @@ export default {
       latestObservations: "Neueste {{days}} Tagesbeobachtungen",
       unsupportedTitle: "SPS ist in diesem Markt nicht verfügbar",
       autoScale: "Y-Achse automatisch auf den sichtbaren Bereich skaliert",
+      seriesLimit: "Das Trenddiagramm zeigt die ersten {{max}} Shops dieser Auswahl.",
       seriesAria: "Diagrammreihen",
       noTrendTitle: "Keine Trendpunkte zurückgegeben",
       noTrendBody:
