@@ -129,7 +129,7 @@ describe("SPS shop scope helpers", () => {
     ]);
   });
 
-  it("keeps passive coverage shops while querying only selected live shops", () => {
+  it("queries only selected shops that can use the SPS Open API", () => {
     const shops = [
       scopeShop("live-a"),
       scopeShop("live-b"),
@@ -137,7 +137,7 @@ describe("SPS shop scope helpers", () => {
       scopeShop("expired", { authStatus: "EXPIRED" }),
     ];
 
-    expect(buildSpsQueryShopIds(shops, ["live-b"])).toEqual(["expired", "live-b", "mx"]);
+    expect(buildSpsQueryShopIds(shops, ["live-b"])).toEqual(["live-b"]);
   });
 
   it("recognizes the structured backend selection error", () => {

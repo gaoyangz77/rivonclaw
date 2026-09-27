@@ -55,7 +55,7 @@ export function buildSpsQueryShopIds(
 ): string[] {
   const selected = new Set(selectedLiveShopIds);
   return shops
-    .filter((shop) => !isSpsLiveCandidate(shop) || selected.has(shop.id))
+    .filter((shop) => isSpsLiveCandidate(shop) && selected.has(shop.id))
     .map((shop) => shop.id)
     .sort();
 }

@@ -2005,8 +2005,8 @@ export default {
     signInTitle: "登录后查看店铺分析",
     signInBody: "SPS 数据仅对当前账户拥有的店铺开放。",
     eyebrow: "店铺表现",
-    title: "一个页面掌握所有店铺的 SPS 健康度。",
-    subtitle: "按市场比较店铺，查看 TikTok 实时指标趋势，并从评分直接深入诊断。",
+    title: "一个页面掌握可用店铺的 SPS 健康度。",
+    subtitle: "比较支持 SPS API 的美国店铺，查看 TikTok 实时指标趋势，并从评分直接深入诊断。",
     liveApi: "实时 API · 5 分钟缓存",
     refresh: "刷新",
     refreshing: "正在刷新…",
@@ -2032,8 +2032,8 @@ export default {
       IM_DSAT: "即时消息不满意率",
     },
     summary: {
-      markets: "市场",
-      marketsHint: "按已接入店铺归组",
+      markets: "支持市场",
+      marketsHint: "当前 SPS Open API 覆盖范围",
       liveShops: "实时 SPS 店铺",
       liveShopsHint: "已授权且具备 SPS 权限的美国店铺",
       averageSps: "平均 SPS",
@@ -2103,6 +2103,9 @@ export default {
       retry: "重试",
       noShopsTitle: "未找到 TikTok 店铺",
       noShopsBody: "接入 TikTok Shop 后即可开始监控店铺表现评分。",
+      noEligibleShopsTitle: "暂无可分析的 SPS 店铺",
+      noEligibleShopsBody:
+        "TikTok SPS Open API 当前仅支持美国店铺。接入或重新授权符合条件的美国店铺后即可开始分析。",
     },
   },
   tutorial: {

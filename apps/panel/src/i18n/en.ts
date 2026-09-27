@@ -2079,9 +2079,9 @@ export default {
     signInTitle: "Sign in to view shop analytics",
     signInBody: "SPS data is available only for shops owned by your current account.",
     eyebrow: "SHOP PERFORMANCE",
-    title: "One view of every shop’s SPS health.",
+    title: "One view of every supported shop’s SPS health.",
     subtitle:
-      "Compare shops market by market, follow TikTok’s live metric trend, and move from score to diagnosis without leaving the page.",
+      "Compare eligible US shops, follow TikTok’s live metric trend, and move from score to diagnosis without leaving the page.",
     liveApi: "Live API · 5 min cache",
     refresh: "Refresh",
     refreshing: "Refreshing…",
@@ -2108,8 +2108,8 @@ export default {
       IM_DSAT: "IM dissatisfaction rate",
     },
     summary: {
-      markets: "Markets",
-      marketsHint: "Grouped from your onboarded shops",
+      markets: "Supported markets",
+      marketsHint: "Current SPS Open API coverage",
       liveShops: "Live SPS shops",
       liveShopsHint: "Authorized US shops with SPS scope",
       averageSps: "Average SPS",
@@ -2180,6 +2180,9 @@ export default {
       retry: "Try again",
       noShopsTitle: "No TikTok Shops found",
       noShopsBody: "Onboard a TikTok Shop to start monitoring Shop Performance Score.",
+      noEligibleShopsTitle: "No shops are currently available for SPS analysis",
+      noEligibleShopsBody:
+        "TikTok's SPS Open API currently supports US shops only. Connect or reauthorize an eligible US shop to begin.",
     },
   },
   tutorial: {

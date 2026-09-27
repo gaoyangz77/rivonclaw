@@ -2079,9 +2079,9 @@ export default {
     signInTitle: "Anmelden, um Shop-Analysen anzuzeigen",
     signInBody: "SPS-Daten sind nur für Shops verfügbar, die Ihrem aktuellen Konto gehören.",
     eyebrow: "SHOP-PERFORMANCE",
-    title: "Der SPS-Zustand aller Shops auf einen Blick.",
+    title: "Der SPS-Zustand aller unterstützten Shops auf einen Blick.",
     subtitle:
-      "Vergleichen Sie Shops nach Markt, verfolgen Sie TikToks Live-Metriktrend und gelangen Sie direkt von der Bewertung zur Diagnose.",
+      "Vergleichen Sie berechtigte US-Shops, verfolgen Sie TikToks Live-Metriktrend und gelangen Sie direkt von der Bewertung zur Diagnose.",
     liveApi: "Live-API · 5 Min. Cache",
     refresh: "Aktualisieren",
     refreshing: "Wird aktualisiert…",
@@ -2108,8 +2108,8 @@ export default {
       IM_DSAT: "Unzufriedenheitsrate im Chat",
     },
     summary: {
-      markets: "Märkte",
-      marketsHint: "Nach Ihren verbundenen Shops gruppiert",
+      markets: "Unterstützte Märkte",
+      marketsHint: "Aktuelle Abdeckung der SPS Open API",
       liveShops: "Shops mit Live-SPS",
       liveShopsHint: "Autorisierte US-Shops mit SPS-Berechtigung",
       averageSps: "Durchschnittlicher SPS",
@@ -2182,6 +2182,9 @@ export default {
       retry: "Erneut versuchen",
       noShopsTitle: "Keine TikTok-Shops gefunden",
       noShopsBody: "Verbinden Sie einen TikTok Shop, um den Shop Performance Score zu überwachen.",
+      noEligibleShopsTitle: "Derzeit sind keine Shops für die SPS-Analyse verfügbar",
+      noEligibleShopsBody:
+        "Die TikTok SPS Open API unterstützt derzeit nur US-Shops. Verbinden oder autorisieren Sie einen berechtigten US-Shop erneut.",
     },
   },
   tutorial: {

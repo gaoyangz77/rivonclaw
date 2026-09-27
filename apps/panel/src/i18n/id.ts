@@ -2035,9 +2035,9 @@ export default {
     signInTitle: "Masuk untuk melihat analitik toko",
     signInBody: "Data SPS hanya tersedia untuk toko milik akun Anda saat ini.",
     eyebrow: "PERFORMA TOKO",
-    title: "Pantau kesehatan SPS semua toko dalam satu tampilan.",
+    title: "Pantau kesehatan SPS semua toko yang didukung dalam satu tampilan.",
     subtitle:
-      "Bandingkan toko per pasar, ikuti tren metrik langsung TikTok, dan lanjutkan dari skor ke diagnosis tanpa meninggalkan halaman.",
+      "Bandingkan toko AS yang memenuhi syarat, ikuti tren metrik langsung TikTok, dan lanjutkan dari skor ke diagnosis tanpa meninggalkan halaman.",
     liveApi: "API langsung · cache 5 mnt",
     refresh: "Segarkan",
     refreshing: "Menyegarkan…",
@@ -2063,8 +2063,8 @@ export default {
       IM_DSAT: "Tingkat ketidakpuasan pesan instan",
     },
     summary: {
-      markets: "Pasar",
-      marketsHint: "Dikelompokkan dari toko yang telah dihubungkan",
+      markets: "Pasar yang didukung",
+      marketsHint: "Cakupan SPS Open API saat ini",
       liveShops: "Toko SPS langsung",
       liveShopsHint: "Toko AS terotorisasi dengan izin SPS",
       averageSps: "SPS rata-rata",
@@ -2136,6 +2136,9 @@ export default {
       retry: "Coba lagi",
       noShopsTitle: "Tidak ada TikTok Shop",
       noShopsBody: "Hubungkan TikTok Shop untuk mulai memantau Shop Performance Score.",
+      noEligibleShopsTitle: "Belum ada toko yang tersedia untuk analisis SPS",
+      noEligibleShopsBody:
+        "SPS Open API TikTok saat ini hanya mendukung toko AS. Hubungkan atau otorisasi ulang toko AS yang memenuhi syarat.",
     },
   },
   tutorial: {

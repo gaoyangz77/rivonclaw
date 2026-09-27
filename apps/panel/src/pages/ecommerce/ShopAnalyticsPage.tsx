@@ -490,6 +490,7 @@ export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
     setSelectionOwnerId(userId);
   }, [liveScopeSignature, scopeReady, selectionOwnerId, userId]);
 
+  const noEligibleShops = scopeReady && liveScopeShops.length === 0;
   const selectionRequired = scopeReady && liveScopeShops.length > 0 && selectedShopIds.length === 0;
   const queryShopIds = buildSpsQueryShopIds(scopeShops, selectedShopIds);
 
@@ -498,7 +499,7 @@ export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
     { input: GQL.SpsAnalyticsInput }
   >(ECOMMERCE_GET_SPS_ANALYTICS_QUERY, {
     variables: { input: { metricCode, shopIds: queryShopIds } },
-    skip: !user || !scopeReady || selectionRequired,
+    skip: !user || !scopeReady || noEligibleShops || selectionRequired,
     fetchPolicy: "cache-and-network",
     notifyOnNetworkStatusChange: true,
   });
@@ -522,7 +523,8 @@ export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
     : null;
   const selectedMetric = METRICS.find((metric) => metric.code === metricCode) ?? METRICS[0];
   const refreshing = query.networkStatus === NetworkStatus.refetch;
-  const loading = (!scopeReady && !scopeLoadError) || (query.loading && !report);
+  const loading =
+    (!scopeReady && !scopeLoadError) || (query.loading && !report && !noEligibleShops);
   const latestObservation = useMemo(() => {
     return availableShops
       .map((shop) => shop.observedAt)
@@ -567,7 +569,9 @@ export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
               className="btn btn-secondary sps-refresh-button"
               type="button"
               onClick={() => void query.refetch()}
-              disabled={refreshing || !scopeReady || scopeLoadError || selectionRequired}
+              disabled={
+                refreshing || !scopeReady || scopeLoadError || noEligibleShops || selectionRequired
+              }
             >
               <RefreshIcon aria-hidden="true" />
               {refreshing ? t("shopAnalytics.refreshing") : t("shopAnalytics.refresh")}
@@ -677,7 +681,18 @@ export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
         </TkPanel>
       )}
 
-      {!loading && !scopeLoadError && !query.error && report?.markets.length === 0 && (
+      {!loading && !scopeLoadError && noEligibleShops && (
+        <TkPanel className="section-card sps-state-card">
+          <strong>{t("shopAnalytics.states.noEligibleShopsTitle")}</strong>
+          <p>{t("shopAnalytics.states.noEligibleShopsBody")}</p>
+        </TkPanel>
+      )}
+
+      {!loading &&
+        !scopeLoadError &&
+        !noEligibleShops &&
+        !query.error &&
+        report?.markets.length === 0 && (
         <TkPanel className="section-card sps-state-card">
           <strong>{t("shopAnalytics.states.noShopsTitle")}</strong>
           <p>{t("shopAnalytics.states.noShopsBody")}</p>
@@ -685,6 +700,7 @@ export const ShopAnalyticsPage = observer(function ShopAnalyticsPage() {
       )}
 
       {!scopeLoadError &&
+        !noEligibleShops &&
         !query.error &&
         !selectionRequired &&
         orderedMarkets.map((market) => <MarketSection key={market.market} market={market} />)}

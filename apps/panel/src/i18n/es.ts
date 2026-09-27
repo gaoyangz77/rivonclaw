@@ -2065,9 +2065,9 @@ export default {
     signInTitle: "Inicia sesión para ver los análisis de tiendas",
     signInBody: "Los datos SPS solo están disponibles para las tiendas de tu cuenta actual.",
     eyebrow: "RENDIMIENTO DE TIENDAS",
-    title: "El estado SPS de todas tus tiendas en una sola vista.",
+    title: "El estado SPS de todas las tiendas compatibles en una sola vista.",
     subtitle:
-      "Compara tiendas por mercado, sigue la tendencia en vivo de TikTok y pasa de la puntuación al diagnóstico sin salir de la página.",
+      "Compara tiendas elegibles de EE. UU., sigue la tendencia en vivo de TikTok y pasa de la puntuación al diagnóstico sin salir de la página.",
     liveApi: "API en vivo · caché de 5 min",
     refresh: "Actualizar",
     refreshing: "Actualizando…",
@@ -2093,8 +2093,8 @@ export default {
       IM_DSAT: "Tasa de insatisfacción en mensajería",
     },
     summary: {
-      markets: "Mercados",
-      marketsHint: "Agrupados a partir de tus tiendas conectadas",
+      markets: "Mercados compatibles",
+      marketsHint: "Cobertura actual de la API abierta de SPS",
       liveShops: "Tiendas con SPS en vivo",
       liveShopsHint: "Tiendas de EE. UU. autorizadas con permiso SPS",
       averageSps: "SPS promedio",
@@ -2168,6 +2168,9 @@ export default {
       retry: "Intentar de nuevo",
       noShopsTitle: "No se encontraron tiendas de TikTok",
       noShopsBody: "Conecta una TikTok Shop para empezar a supervisar el Shop Performance Score.",
+      noEligibleShopsTitle: "No hay tiendas disponibles para el análisis SPS",
+      noEligibleShopsBody:
+        "La API abierta de SPS de TikTok solo admite actualmente tiendas de EE. UU. Conecta o vuelve a autorizar una tienda elegible de EE. UU.",
     },
   },
   tutorial: {
