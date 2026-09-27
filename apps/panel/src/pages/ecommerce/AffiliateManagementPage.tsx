@@ -251,6 +251,7 @@ const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const AFFILIATE_PROPOSAL_PAGE_SIZE = 20;
+const AFFILIATE_SAMPLE_REVIEW_NOTE_MAX_LENGTH = 1_000;
 export const AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS = [25, 50] as const;
 export type AffiliateProposalPageSize = (typeof AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_AFFILIATE_PROPOSAL_PAGE_SIZE: AffiliateProposalPageSize = 25;
@@ -10395,6 +10396,7 @@ function CreatorRelationshipDetailContent({
     GQL.AffiliateSampleRejectReason.NotMatch,
   );
   const [sampleRejectExplanation, setSampleRejectExplanation] = useState("");
+  const [sampleReviewNote, setSampleReviewNote] = useState("");
   const conversationViewportRef = useRef<HTMLDivElement | null>(null);
   const conversationAutoScrollPendingRef = useRef(true);
   const conversationScrollRelationshipRef = useRef<string | null>(null);
@@ -10983,12 +10985,14 @@ function CreatorRelationshipDetailContent({
                 rejecting && sampleRejectReason === GQL.AffiliateSampleRejectReason.Other
                   ? sampleRejectExplanation.trim()
                   : null,
+              reviewNote: sampleReviewNote.trim() || null,
             },
           },
         });
       }
       setSampleReviewCommand(null);
       setSampleRejectExplanation("");
+      setSampleReviewNote("");
       await Promise.all([
         sampleQuery.refetch(),
         proposalQuery.refetch(),
@@ -10999,6 +11003,12 @@ function CreatorRelationshipDetailContent({
     } catch (error) {
       showToast(error instanceof Error ? error.message : String(error), "error");
     }
+  }
+
+  function closeSampleReviewDialog(): void {
+    setSampleReviewCommand(null);
+    setSampleRejectExplanation("");
+    setSampleReviewNote("");
   }
   const {
     data: relationshipTimelineData,
@@ -12128,6 +12138,14 @@ function CreatorRelationshipDetailContent({
                             })}
                           </div>
                         ) : null}
+                        {sample.merchantReviewNote ? (
+                          <div className="affiliate-workbench-review-note">
+                            <strong>
+                              {t("ecommerce.affiliateWorkspace.workbench.reviewNoteRecorded")}
+                            </strong>
+                            <TkPrivate as="p">{sample.merchantReviewNote}</TkPrivate>
+                          </div>
+                        ) : null}
                         <div className="affiliate-workbench-sample-review-actions">
                           {sample.reviewDisposition ===
                           GQL.AffiliateSampleReviewDisposition.SoftRejected ? (
@@ -12523,7 +12541,7 @@ function CreatorRelationshipDetailContent({
       />
       <Modal
         isOpen={Boolean(sampleReviewCommand)}
-        onClose={() => setSampleReviewCommand(null)}
+        onClose={closeSampleReviewDialog}
         title={t(
           `ecommerce.affiliateWorkspace.workbench.reviewTitles.${sampleReviewCommand?.kind ?? "APPROVE"}`,
         )}
@@ -12563,12 +12581,28 @@ function CreatorRelationshipDetailContent({
               ) : null}
             </>
           ) : null}
+          {sampleReviewCommand?.kind !== "REOPEN" ? (
+            <label className="affiliate-workbench-review-note-field">
+              <span>{t("ecommerce.affiliateWorkspace.workbench.reviewNote")}</span>
+              <textarea
+                className="form-input"
+                aria-label={t("ecommerce.affiliateWorkspace.workbench.reviewNote")}
+                value={sampleReviewNote}
+                onChange={(event) => setSampleReviewNote(event.target.value)}
+                placeholder={t("ecommerce.affiliateWorkspace.workbench.reviewNotePlaceholder")}
+                maxLength={AFFILIATE_SAMPLE_REVIEW_NOTE_MAX_LENGTH}
+                rows={3}
+              />
+              <small>
+                {t("ecommerce.affiliateWorkspace.workbench.reviewNoteCount", {
+                  count: sampleReviewNote.length,
+                  max: AFFILIATE_SAMPLE_REVIEW_NOTE_MAX_LENGTH,
+                })}
+              </small>
+            </label>
+          ) : null}
           <div className="modal-actions">
-            <button
-              className="btn btn-secondary"
-              type="button"
-              onClick={() => setSampleReviewCommand(null)}
-            >
+            <button className="btn btn-secondary" type="button" onClick={closeSampleReviewDialog}>
               {t("common.cancel")}
             </button>
             <button
@@ -12806,7 +12840,7 @@ function CreatorProfilePanel({
               {handle ? (
                 <CreatorDetailCopyRow
                   label={t("ecommerce.affiliateWorkspace.creatorDetail.tiktokHandle")}
-                  value={handle}
+                  value={normalizeTikTokUsername(handle) ?? ""}
                   copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorHandle"
                   copiedMessageKey="ecommerce.affiliateWorkspace.creatorHandleCopied"
                 />
@@ -13010,7 +13044,7 @@ function CreatorPlatformId({
       {handle ? (
         <>
           <span className="affiliate-creator-platform-label">TikTok</span>
-          <span className="affiliate-creator-handle">{handle}</span>
+          <CreatorHandleCopy handle={handle} />
         </>
       ) : null}
       <PlatformIdCopy
@@ -13026,8 +13060,22 @@ function CreatorPlatformHandle({ handle }: { handle: string | null }) {
   return (
     <span className="affiliate-creator-platform-row">
       <span className="affiliate-creator-platform-label">TikTok</span>
-      <span className="affiliate-creator-handle">{handle}</span>
+      <CreatorHandleCopy handle={handle} />
     </span>
+  );
+}
+
+function CreatorHandleCopy({ handle }: { handle: string }) {
+  const username = normalizeTikTokUsername(handle);
+  if (!username) return null;
+  return (
+    <CopyInlineValue
+      value={username}
+      displayValue={`@${username}`}
+      className="affiliate-id-copy-button affiliate-platform-id-copy"
+      copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorHandle"
+      copiedMessageKey="ecommerce.affiliateWorkspace.creatorHandleCopied"
+    />
   );
 }
 
@@ -13075,12 +13123,14 @@ function PlatformIdCopy({
 
 function CopyInlineValue({
   value,
+  displayValue,
   compact = false,
   className,
   copiedMessageKey,
   copyLabelKey,
 }: {
   value: string;
+  displayValue?: string;
   compact?: boolean;
   className: string;
   copiedMessageKey: string;
@@ -13131,7 +13181,7 @@ function CopyInlineValue({
       title={copied ? t(copiedMessageKey) : t(copyLabelKey)}
     >
       <CopyIcon />
-      <span>{copied ? t(copiedMessageKey) : t(copyLabelKey)}</span>
+      <span>{displayValue ?? (copied ? t(copiedMessageKey) : t(copyLabelKey))}</span>
     </button>
   );
 }

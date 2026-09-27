@@ -3088,6 +3088,10 @@ export default {
         sampleReviewSaved: "Entscheidung gespeichert.",
         rejectReason: "Grund",
         rejectExplanation: "Grund erläutern",
+        reviewNote: "Prüfnotiz (optional)",
+        reviewNotePlaceholder: "Kontext für eine spätere Prüfung durch Mitarbeiter hinzufügen",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "Prüfnotiz",
         reviewTitles: {
           APPROVE: "Musterantrag genehmigen",
           PLATFORM_REJECT: "Musterantrag ablehnen",

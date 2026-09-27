@@ -31,7 +31,7 @@ const data = (
   data: { searchProductsForUser: { products, totalShops: 80, failedShopIds } },
 });
 function submit(keyword: string) {
-  fireEvent.click(screen.getByRole("button", { name: "筛选商品" }));
+  fireEvent.click(screen.getByRole("button", { name: /^筛选商品/ }));
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: keyword } });
   fireEvent.click(screen.getByRole("button", { name: "搜索" }));
 }
@@ -97,6 +97,50 @@ it("still uses one user-level request with a selected shop and filters returned 
   await screen.findByText("Match B");
   expect(screen.queryByText("Match A")).toBeNull();
   expect(result).toHaveBeenCalledOnce();
+});
+
+it("selects every current search result while preserving products selected earlier", async () => {
+  const onChange = vi.fn();
+  function Harness() {
+    const [value, setValue] = useState<ProductFilterValue[]>([
+      { shopId: "shop-2", productId: "existing" },
+    ]);
+    return (
+      <ProductFilter
+        value={value}
+        onChange={(next) => {
+          setValue(next);
+          onChange(next);
+        }}
+      />
+    );
+  }
+  render(
+    <MockedProvider
+      mocks={[
+        {
+          request: request("gummies"),
+          result: data([
+            { shopId: "shop-0", productId: "1", title: "Gummies A" },
+            { shopId: "shop-1", productId: "2", title: "Gummies B" },
+          ]),
+        },
+      ]}
+    >
+      <Harness />
+    </MockedProvider>,
+  );
+
+  submit("gummies");
+  await screen.findByText("Gummies A");
+  fireEvent.click(screen.getByRole("button", { name: "全选" }));
+
+  expect(onChange).toHaveBeenLastCalledWith([
+    { shopId: "shop-2", productId: "existing" },
+    { shopId: "shop-0", productId: "1" },
+    { shopId: "shop-1", productId: "2" },
+  ]);
+  expect(screen.getByRole("button", { name: "全选" }).hasAttribute("disabled")).toBe(true);
 });
 
 it("keeps matches but marks partial failures incomplete", async () => {

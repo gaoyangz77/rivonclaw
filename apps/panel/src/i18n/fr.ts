@@ -3088,6 +3088,10 @@ export default {
         sampleReviewSaved: "Décision enregistrée.",
         rejectReason: "Motif",
         rejectExplanation: "Précisez le motif",
+        reviewNote: "Note de révision (facultatif)",
+        reviewNotePlaceholder: "Ajoutez du contexte pour une future révision par l’équipe",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "Note de révision",
         reviewTitles: {
           APPROVE: "Approuver la demande",
           PLATFORM_REJECT: "Refuser la demande d’échantillon",

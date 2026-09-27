@@ -15,6 +15,45 @@
   border-top: 1px solid var(--tk-v1-border-default);
 }
 
+.affiliate-workbench-review-note {
+  padding: var(--tk-v1-space-3);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: 1.5;
+}
+
+.affiliate-workbench-review-note strong {
+  color: var(--tk-v1-fg-default);
+  font-weight: 600;
+}
+
+.affiliate-workbench-review-note p {
+  margin: var(--tk-v1-space-1) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-workbench-review-note-field {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-workbench-review-note-field > span {
+  color: var(--tk-v1-fg-default);
+  font-weight: 600;
+}
+
+.affiliate-workbench-review-note-field small {
+  justify-self: end;
+  color: var(--tk-v1-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .affiliate-sample-shop-identity {
   display: flex;
   flex-wrap: wrap;

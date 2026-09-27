@@ -3037,6 +3037,10 @@ export default {
         sampleReviewSaved: "Keputusan disimpan.",
         rejectReason: "Alasan",
         rejectExplanation: "Jelaskan alasan",
+        reviewNote: "Catatan tinjauan (opsional)",
+        reviewNotePlaceholder: "Tambahkan konteks untuk tinjauan staf berikutnya",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "Catatan tinjauan",
         reviewTitles: {
           APPROVE: "Setujui permohonan",
           PLATFORM_REJECT: "Tolak permohonan sampel",

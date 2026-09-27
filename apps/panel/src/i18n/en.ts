@@ -3493,6 +3493,10 @@ export default {
         allSamplesLoaded: "All {{count}} matching Sample Applications loaded",
         rejectReason: "Reason",
         rejectExplanation: "Explain the reason",
+        reviewNote: "Review note (optional)",
+        reviewNotePlaceholder: "Add context for future staff review",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "Review note",
         reviewTitles: {
           APPROVE: "Approve Sample Application",
           PLATFORM_REJECT: "Reject Sample Application",

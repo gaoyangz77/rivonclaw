@@ -3324,6 +3324,10 @@ export default {
         allSamplesLoaded: "已加载全部 {{count}} 条匹配申样",
         rejectReason: "拒绝原因",
         rejectExplanation: "请说明原因",
+        reviewNote: "操作备注（选填）",
+        reviewNotePlaceholder: "记录同意、拒绝或忽略的原因，供后续人工审查",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "审核备注",
         reviewTitles: {
           APPROVE: "同意样品申请",
           PLATFORM_REJECT: "拒绝样品申请",

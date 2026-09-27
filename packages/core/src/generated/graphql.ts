@@ -14502,6 +14502,8 @@ export interface ReviewAffiliateSampleApplicationInput {
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
   rejectReasonExplanation?: InputMaybe<Scalars["String"]["input"]>;
   reviewDispositionRevision: Scalars["Int"]["input"];
+  /** Optional staff note retained with this manual Sample Application review. */
+  reviewNote?: InputMaybe<Scalars["String"]["input"]>;
   sampleApplicationRecordId: Scalars["ID"]["input"];
 }
 
@@ -14592,6 +14594,7 @@ export interface SampleApplicationRecord {
   merchantReviewDecidedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   merchantReviewDecision?: Maybe<AffiliateSampleReviewDecision>;
   merchantReviewExecutionMode?: Maybe<AffiliateSampleReviewExecutionMode>;
+  merchantReviewNote?: Maybe<Scalars["String"]["output"]>;
   merchantReviewRejectReason?: Maybe<AffiliateSampleRejectReason>;
   merchantReviewRejectReasonExplanation?: Maybe<Scalars["String"]["output"]>;
   /** Legacy storage name for the number of Provider-confirmed published affiliate works. Prefer publishedContentCount in Agent-facing reads. */

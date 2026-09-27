@@ -75,6 +75,7 @@ function sampleRow(index: number) {
       merchantReviewExecutionMode: null,
       merchantReviewRejectReason: null,
       merchantReviewRejectReasonExplanation: null,
+      merchantReviewNote: null,
       merchantReviewDecidedAt: null,
       merchantReviewActorType: null,
       platformStatus: null,

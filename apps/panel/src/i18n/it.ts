@@ -3071,6 +3071,10 @@ export default {
         sampleReviewSaved: "Decisione salvata.",
         rejectReason: "Motivo",
         rejectExplanation: "Spiega il motivo",
+        reviewNote: "Nota di revisione (facoltativa)",
+        reviewNotePlaceholder: "Aggiungi contesto per una futura revisione dello staff",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "Nota di revisione",
         reviewTitles: {
           APPROVE: "Approva richiesta",
           PLATFORM_REJECT: "Rifiuta la richiesta di campione",

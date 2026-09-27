@@ -3074,6 +3074,10 @@ export default {
         sampleReviewSaved: "Decisión guardada.",
         rejectReason: "Motivo",
         rejectExplanation: "Explica el motivo",
+        reviewNote: "Nota de revisión (opcional)",
+        reviewNotePlaceholder: "Añade contexto para una futura revisión del equipo",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "Nota de revisión",
         reviewTitles: {
           APPROVE: "Aprobar solicitud",
           PLATFORM_REJECT: "Rechazar solicitud de muestra",

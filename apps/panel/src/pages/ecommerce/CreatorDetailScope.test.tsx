@@ -1,5 +1,5 @@
 import type { DocumentNode } from "graphql";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import { ToastProvider } from "../../components/Toast.js";
@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   fetchMore: vi.fn(),
   mutate: vi.fn(),
   detail: {} as Record<string, unknown>,
+  samples: [] as Array<Record<string, unknown>>,
   entityStore: {
     shops: [
       { id: "1", alias: "1号店", shopName: "One" },
@@ -35,7 +36,12 @@ vi.mock("@apollo/client/react", () => ({
     const operation = def?.kind === "OperationDefinition" ? def.name!.value : "";
     const input = options.variables?.input ?? {};
     if (!options.skip) state.calls.push({ operation, input });
-    const page = { items: [], productSummaries: [], hasMore: false, nextCursor: null };
+    const page = {
+      items: operation === "AffiliateRelationshipSampleApplications" ? state.samples : [],
+      productSummaries: [],
+      hasMore: false,
+      nextCursor: null,
+    };
     const data: Record<string, unknown> = {
       affiliateCreatorRelationshipDetail: state.detail,
       affiliateRelationshipSampleApplications: page,
@@ -51,6 +57,8 @@ vi.mock("@apollo/client/react", () => ({
 beforeEach(async () => {
   await i18n.changeLanguage("zh");
   state.calls.length = 0;
+  state.samples = [];
+  state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
     creator: {
       id: "creator-profile",
@@ -101,7 +109,10 @@ beforeEach(async () => {
 });
 afterEach(cleanup);
 
-function view(relationshipId = "creator", tab: "overview" | "conversation" = "overview") {
+function view(
+  relationshipId = "creator",
+  tab: "overview" | "samples" | "conversation" = "overview",
+) {
   return (
     <ToastProvider>
       <CreatorRelationshipDetailModal
@@ -189,5 +200,56 @@ describe("Creator Detail scope integration", () => {
     selectScope("1号店");
     instance.rerender(view("another-creator"));
     expect(screen.getByRole("button", { name: "查看范围" }).textContent).toContain("全局视角");
+  });
+
+  it("sends and then displays an optional note for a manual sample review", async () => {
+    state.samples = [
+      {
+        id: "sample-1",
+        creatorRelationshipId: "creator",
+        shopId: "1",
+        platformApplicationId: "platform-sample-1",
+        productId: "product-1",
+        productName: "Test product",
+        sampleWorkStatus: "REQUEST_PENDING_REVIEW",
+        reviewDisposition: "OPEN",
+        reviewDispositionRevision: 1,
+        projectionRevision: 3,
+        platformStatus: "PENDING",
+        firstObservedAt: "2026-09-27T10:00:00.000Z",
+        lastObservedAt: "2026-09-27T10:00:00.000Z",
+      },
+    ];
+    const instance = render(view("creator", "samples"));
+
+    fireEvent.click(screen.getByRole("button", { name: "同意" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "操作备注（选填）" }), {
+      target: { value: "库存和内容方向均已人工确认" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("common.confirm") }));
+
+    await waitFor(() => {
+      expect(state.mutate).toHaveBeenCalledWith({
+        variables: {
+          input: expect.objectContaining({
+            sampleApplicationRecordId: "sample-1",
+            decision: "APPROVE",
+            reviewNote: "库存和内容方向均已人工确认",
+          }),
+        },
+      });
+    });
+
+    state.samples = [
+      {
+        ...state.samples[0],
+        merchantReviewDecidedAt: "2026-09-27T10:05:00.000Z",
+        merchantReviewActorType: "HUMAN",
+        merchantReviewNote: "库存和内容方向均已人工确认",
+      },
+    ];
+    instance.rerender(view("creator", "samples"));
+    expect(screen.getByText("审核备注")).toBeTruthy();
+    expect(screen.getByText("库存和内容方向均已人工确认")).toBeTruthy();
   });
 });

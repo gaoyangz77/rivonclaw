@@ -2232,6 +2232,7 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
         merchantReviewExecutionMode
         merchantReviewRejectReason
         merchantReviewRejectReasonExplanation
+        merchantReviewNote
         merchantReviewDecidedAt
         platformStatus
         platformFulfillmentStatus
@@ -3041,6 +3042,7 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         merchantReviewExecutionMode
         merchantReviewRejectReason
         merchantReviewRejectReasonExplanation
+        merchantReviewNote
         merchantReviewDecidedAt
         merchantReviewActorType
         order {
@@ -4056,6 +4058,7 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       merchantReviewExecutionMode
       merchantReviewRejectReason
       merchantReviewRejectReasonExplanation
+      merchantReviewNote
       merchantReviewDecidedAt
       merchantReviewActorType
       platformStatus

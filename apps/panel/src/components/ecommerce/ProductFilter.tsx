@@ -13,6 +13,7 @@ export interface ProductFilterValue {
   productId: string;
 }
 const keyOf = (value: ProductFilterValue) => JSON.stringify([value.shopId, value.productId]);
+const PRODUCT_FILTER_SELECTION_LIMIT = 100;
 
 /** Catalog selection only: consumers own their entity queries and pagination. */
 export const ProductFilter = observer(function ProductFilter({
@@ -92,6 +93,20 @@ export const ProductFilter = observer(function ProductFilter({
         : [...value, { shopId: option.shopId, productId: option.productId }],
     );
   };
+  const allMatchesSelected =
+    matches.length > 0 && matches.every((option) => selected.has(keyOf(option)));
+  const selectAllMatches = () => {
+    const next = [...value];
+    const nextKeys = new Set(selected);
+    for (const option of matches) {
+      if (next.length >= PRODUCT_FILTER_SELECTION_LIMIT) break;
+      const key = keyOf(option);
+      if (nextKeys.has(key)) continue;
+      next.push({ shopId: option.shopId, productId: option.productId });
+      nextKeys.add(key);
+    }
+    onChange(next);
+  };
   return (
     <TkPopover
       label={label}
@@ -127,6 +142,18 @@ export const ProductFilter = observer(function ProductFilter({
           <span>
             {t("ecommerce.affiliateWorkspace.workbench.productsSelected", { count: value.length })}
           </span>
+          <TkButton
+            size="sm"
+            variant="ghost"
+            disabled={
+              !matches.length ||
+              allMatchesSelected ||
+              value.length >= PRODUCT_FILTER_SELECTION_LIMIT
+            }
+            onClick={selectAllMatches}
+          >
+            {t("ecommerce.affiliateWorkspace.workbench.selectAllProductResults")}
+          </TkButton>
           <TkButton size="sm" variant="ghost" disabled={!value.length} onClick={() => onChange([])}>
             {t("ecommerce.affiliateWorkspace.workbench.clearProducts")}
           </TkButton>
@@ -194,7 +221,7 @@ export const ProductFilter = observer(function ProductFilter({
                 variant={checked ? "secondary" : "ghost"}
                 className="product-filter-option"
                 aria-pressed={checked}
-                disabled={!checked && value.length >= 100}
+                disabled={!checked && value.length >= PRODUCT_FILTER_SELECTION_LIMIT}
                 onClick={() => toggle(option)}
               >
                 <span className="product-filter-option-layout">

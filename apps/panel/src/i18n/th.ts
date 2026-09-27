@@ -2929,6 +2929,10 @@ export default {
         sampleReviewSaved: "บันทึกการตัดสินใจแล้ว",
         rejectReason: "เหตุผล",
         rejectExplanation: "อธิบายเหตุผล",
+        reviewNote: "หมายเหตุการตรวจสอบ (ไม่บังคับ)",
+        reviewNotePlaceholder: "เพิ่มบริบทสำหรับการตรวจสอบของพนักงานในภายหลัง",
+        reviewNoteCount: "{{count}}/{{max}}",
+        reviewNoteRecorded: "หมายเหตุการตรวจสอบ",
         reviewTitles: {
           APPROVE: "อนุมัติคำขอ",
           PLATFORM_REJECT: "ปฏิเสธคำขอตัวอย่างสินค้า",
