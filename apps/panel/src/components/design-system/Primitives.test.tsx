@@ -58,6 +58,18 @@ describe("design-system primitives", () => {
     );
   });
 
+  it("marks bounded workspaces explicitly so they can own internal scrolling", () => {
+    render(
+      <TkPageFrame data-testid="workspace-page" layout="workspace">
+        Workspace
+      </TkPageFrame>,
+    );
+
+    expect(screen.getByTestId("workspace-page").classList.contains("tk-v1-page-workspace")).toBe(
+      true,
+    );
+  });
+
   it("provides reusable content, toolbar, and table layers", () => {
     render(
       <TkPanel as="section" padding="none" clip>

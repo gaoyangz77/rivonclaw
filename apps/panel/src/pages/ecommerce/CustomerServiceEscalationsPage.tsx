@@ -616,7 +616,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   }
 
   return (
-    <TkPageFrame className="cs-workspace-page">
+    <TkPageFrame className="cs-workspace-page" layout="workspace">
       <TkPageHeader
         data-tutorial-id="cs-header"
         title={t(

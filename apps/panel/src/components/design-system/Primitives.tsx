@@ -21,14 +21,24 @@ function cx(...values: Array<string | false | null | undefined>) {
 
 export interface TkPageFrameProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
+  layout?: "document" | "workspace";
 }
 
 export const TkPageFrame = forwardRef<HTMLDivElement, TkPageFrameProps>(function TkPageFrame(
-  { children, className, ...props },
+  { children, className, layout = "document", ...props },
   ref,
 ) {
   return (
-    <div ref={ref} className={cx("page-enter", "tk-v1-page", className)} {...props}>
+    <div
+      ref={ref}
+      className={cx(
+        "page-enter",
+        "tk-v1-page",
+        layout === "workspace" && "tk-v1-page-workspace",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </div>
   );

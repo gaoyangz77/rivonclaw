@@ -266,6 +266,12 @@ only owner of title, description, and page-action alignment. A workflow may choo
 appear and in what order, but it may not redefine these measurements. Responsive shell insets are
 24px at medium widths and 16px at compact widths.
 
+`TkPageFrame` fills the scroll viewport when content is short and grows to its intrinsic content height
+without shrinking when content is long. This keeps the App Shell's bottom inset after the final section;
+pages must not add their own bottom padding to compensate for overflow. A bounded workbench that owns
+internal scrolling declares `layout="workspace"`; the shared modifier then constrains the frame to the
+available viewport with `flex: 1` and `min-height: 0`.
+
 Composite panels use `TkPanelHeader`, `TkPanelBody`, and `TkPanelFooter` for internal geometry.
 When an embedded table or media surface reaches a panel edge, `TkPanel` uses `clip` and remains the
 only owner of the outer radius.

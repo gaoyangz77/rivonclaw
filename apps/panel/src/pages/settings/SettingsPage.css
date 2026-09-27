@@ -2,7 +2,6 @@
   position: relative;
   width: min(100%, 980px);
   margin: 0 auto;
-  padding-bottom: var(--tk-v1-space-12);
   color: var(--tk-v1-fg-default);
   font-family: var(--tk-v1-font-sans);
 }

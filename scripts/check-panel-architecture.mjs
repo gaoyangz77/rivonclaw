@@ -460,6 +460,18 @@ if (existsSync(designSystemCssPath)) {
       "FAIL [shell-layout-contract] TkPageFrame children may compress and overlap inside the scroll pane.",
     );
   }
+  if (!/\.tk-v1-page\s*\{[^}]*flex:\s*1\s+0\s+auto;[^}]*min-height:\s*100%;/s.test(css)) {
+    violations.push(
+      "FAIL [shell-layout-contract] TkPageFrame must grow with long content so the shell bottom inset remains after the final section.",
+    );
+  }
+  if (
+    !/\.tk-v1-page\.tk-v1-page-workspace\s*\{[^}]*flex:\s*1;[^}]*min-height:\s*0;/s.test(css)
+  ) {
+    violations.push(
+      "FAIL [shell-layout-contract] Workspace-mode TkPageFrame must stay viewport-bound for internal scrolling.",
+    );
+  }
   if (
     !/\[data-theme="dark"\]\s+\.main-content\s*\{[^}]*background-image:\s*var\(--tk-v1-canvas-optical\);/s.test(
       css,
