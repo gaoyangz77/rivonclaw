@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.24",
+    "date": "2026-09-27",
+    "en": [
+      "Limit SPS analytics to supported shops and keep shop selection scoped to the analytics view",
+      "Preserve bottom spacing on long pages so content stays clear of the desktop shell"
+    ],
+    "zh": [
+      "SPS 分析仅展示支持的店铺，并修正分析页面的店铺选择范围",
+      "修复长页面的底部留白，避免内容紧贴桌面窗口底部"
+    ]
+  },
+  {
     "version": "1.9.23",
     "date": "2026-09-25",
     "en": [
