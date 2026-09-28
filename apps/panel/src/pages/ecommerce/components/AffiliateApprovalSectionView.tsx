@@ -37,6 +37,7 @@ const OUTCOME_SERIES = [
   { key: "approved", labelKey: "approved", fill: "var(--affiliate-approved)" },
   { key: "merchantRejected", labelKey: "merchantRejected", fill: "var(--affiliate-rejected)" },
   { key: "overdueByUs", labelKey: "overdueByUs", fill: "var(--affiliate-overdue)" },
+  { key: "ignored", labelKey: "ignored", fill: "var(--affiliate-ignored)" },
   { key: "inFlight", labelKey: "inFlight", fill: "var(--affiliate-inflight)" },
 ] as const;
 
@@ -154,6 +155,7 @@ export function AffiliateApprovalSectionView({
             ["approved", "approved"],
             ["merchantRejected", "merchantRejected"],
             ["overdueByUs", "overdueByUs"],
+            ["ignored", "ignored"],
             ["inFlight", "inFlight"],
           ].map(([key, label]) => (
             <div key={key} role="row">

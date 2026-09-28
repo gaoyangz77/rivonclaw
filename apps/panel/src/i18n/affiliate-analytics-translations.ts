@@ -76,6 +76,7 @@ const englishAnalytics = {
       APPROVED: "Approved",
       MERCHANT_REJECTED: "Merchant rejected",
       OVERDUE_BY_US: "Overdue on our side",
+      IGNORED: "Ignored",
       IN_FLIGHT: "In flight",
     },
     fields: {
@@ -237,6 +238,7 @@ const englishAnalytics = {
     approved: "Approved",
     merchantRejected: "Merchant rejected",
     overdueByUs: "Overdue on our side",
+    ignored: "Ignored",
     inFlight: "In flight",
     approvalRate: "Approval rate",
     merchantRejectRate: "Merchant reject rate",
@@ -348,6 +350,7 @@ const englishAnalytics = {
       AFFILIATE_CAMPAIGN_REPLY_RATE: "Campaign reply rate",
       AFFILIATE_APPLICATIONS_CREATED: "Applications",
       AFFILIATE_CURRENTLY_APPROVED: "Approved",
+      AFFILIATE_CURRENTLY_IGNORED: "Ignored",
       AFFILIATE_SHIPPED_OBSERVED_CURRENT: "Shipped (observed)",
       AFFILIATE_CURRENTLY_COMPLETED: "Completed",
       AFFILIATE_APPROVAL_RATE: "Approval rate",
@@ -403,7 +406,7 @@ const englishTutorial = {
     "Response rates are plotted per horizon because raw response counts are gated on invitation maturity. Trailing cohorts are drawn in grey while their responses are still arriving.",
   approvalTitle: "Sample approval, counted on the application date",
   approvalBody:
-    "Every application resolves into approved, merchant-rejected, overdue on our side, or still in flight. The overdue share is ours to fix.",
+    "Every application resolves into approved, merchant-rejected, ignored, overdue on our side, or still in flight. The overdue share is ours to fix.",
   postApprovalTitle: "Post-approval performance, measured in units",
   postApprovalBody:
     "Units never go missing, so this stage uses units rather than GMV. Beside them it sets the free samples shipped on a day against the affiliate units sold that same day, with the trailing 7-day ratio of the two on the right axis.",
@@ -497,6 +500,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "已通过",
           MERCHANT_REJECTED: "商家拒绝",
           OVERDUE_BY_US: "我方逾期",
+          IGNORED: "已忽略",
           IN_FLIGHT: "处理中",
         },
         fields: {
@@ -650,6 +654,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         approved: "已通过",
         merchantRejected: "商家拒绝",
         overdueByUs: "我方超时未处理",
+        ignored: "已忽略",
         inFlight: "处理中",
         approvalRate: "通过率",
         merchantRejectRate: "商家拒绝率",
@@ -753,6 +758,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           AFFILIATE_CAMPAIGN_REPLY_RATE: "Campaign 回复率",
           AFFILIATE_APPLICATIONS_CREATED: "申样数",
           AFFILIATE_CURRENTLY_APPROVED: "已通过",
+          AFFILIATE_CURRENTLY_IGNORED: "已忽略",
           AFFILIATE_SHIPPED_OBSERVED_CURRENT: "已发货（观测）",
           AFFILIATE_CURRENTLY_COMPLETED: "已完成",
           AFFILIATE_APPROVAL_RATE: "通过率",
@@ -807,7 +813,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         "回应按各时长的回应率呈现，因为原始回应数受定邀成熟度限制。末尾队列以灰色绘制，表示回应仍在到达。",
       approvalTitle: "申样通过：按申请日统计",
       approvalBody:
-        "每个申请最终落到已通过、商家拒绝、我方超时或仍在处理中。超时的那部分是我们自己要解决的。",
+        "每个申请最终落到已通过、商家拒绝、已忽略、我方超时或仍在处理中。超时的那部分是我们自己要解决的。",
       postApprovalTitle: "通过后表现：以件数计量",
       postApprovalBody:
         "件数不会缺失，因此这一段用件数而非 GMV。旁边把当天寄出的免费样品与当天联盟渠道卖出的件数放在一起，右轴给出两者的滚动 7 天比值。",
@@ -821,6 +827,8 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   ),
   de: resource(
     {
+      approval: { ignored: "Ignoriert" },
+      catalog: { metrics: { AFFILIATE_CURRENTLY_IGNORED: "Ignoriert" } },
       details: {
         tab: "Details",
         eyebrow: "Einträge je Antrag",
@@ -869,6 +877,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "Genehmigt",
           MERCHANT_REJECTED: "Vom Händler abgelehnt",
           OVERDUE_BY_US: "Bei uns überfällig",
+          IGNORED: "Ignoriert",
           IN_FLIGHT: "In Bearbeitung",
         },
         fields: {
@@ -957,7 +966,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         "Nur Raten sind über Zeithorizonte vergleichbar; junge Kohorten erscheinen grau, solange Antworten eintreffen.",
       approvalTitle: "Sample-Freigabe nach Antragsdatum",
       approvalBody:
-        "Jeder Antrag endet als freigegeben, abgelehnt, überfällig auf unserer Seite oder noch offen.",
+        "Jeder Antrag endet als freigegeben, abgelehnt, ignoriert, überfällig auf unserer Seite oder noch offen.",
       postApprovalTitle: "Nach der Freigabe, gemessen in Einheiten",
       postApprovalBody:
         "Einheiten fehlen nie, deshalb ersetzen sie hier den GMV; daneben stehen die an einem Tag versandten Gratismuster den am selben Tag verkauften Affiliate-Einheiten gegenüber, mit dem gleitenden 7-Tage-Verhältnis auf der rechten Achse.",
@@ -971,6 +980,8 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   ),
   es: resource(
     {
+      approval: { ignored: "Ignorada" },
+      catalog: { metrics: { AFFILIATE_CURRENTLY_IGNORED: "Ignorada" } },
       details: {
         tab: "Detalles",
         eyebrow: "Registros por solicitud",
@@ -1019,6 +1030,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "Aprobada",
           MERCHANT_REJECTED: "Rechazada por el vendedor",
           OVERDUE_BY_US: "Vencida por nuestra parte",
+          IGNORED: "Ignorada",
           IN_FLIGHT: "En curso",
         },
         fields: {
@@ -1107,7 +1119,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         "Solo las tasas son comparables entre horizontes; las cohortes recientes se dibujan en gris mientras llegan respuestas.",
       approvalTitle: "Aprobación, por fecha de solicitud",
       approvalBody:
-        "Cada solicitud acaba aprobada, rechazada por el comerciante, vencida por nuestra parte o aún en curso.",
+        "Cada solicitud acaba aprobada, rechazada por el comerciante, ignorada, vencida por nuestra parte o aún en curso.",
       postApprovalTitle: "Tras la aprobación, medido en unidades",
       postApprovalBody:
         "Las unidades nunca faltan, por eso sustituyen al GMV; junto a ellas se comparan las muestras gratuitas enviadas un día con las unidades de afiliados vendidas ese mismo día, con la razón móvil de 7 días en el eje derecho.",
@@ -1121,6 +1133,8 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   ),
   fr: resource(
     {
+      approval: { ignored: "Ignorée" },
+      catalog: { metrics: { AFFILIATE_CURRENTLY_IGNORED: "Ignorée" } },
       details: {
         tab: "Détails",
         eyebrow: "Lignes par demande",
@@ -1169,6 +1183,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "Approuvée",
           MERCHANT_REJECTED: "Refus du marchand",
           OVERDUE_BY_US: "En retard chez nous",
+          IGNORED: "Ignorée",
           IN_FLIGHT: "En cours",
         },
         fields: {
@@ -1257,7 +1272,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         "Seuls les taux se comparent entre horizons ; les cohortes récentes restent grises tant que les réponses arrivent.",
       approvalTitle: "Validation, à la date de demande",
       approvalBody:
-        "Chaque demande finit validée, refusée par le marchand, en retard de notre côté ou encore en cours.",
+        "Chaque demande finit validée, refusée par le marchand, ignorée, en retard de notre côté ou encore en cours.",
       postApprovalTitle: "Après validation, mesuré en unités",
       postApprovalBody:
         "Les unités ne manquent jamais ; elles remplacent donc le GMV, et à côté les échantillons gratuits expédiés un jour sont comparés aux unités Affiliate vendues le même jour, avec le rapport glissant sur 7 jours sur l’axe de droite.",
@@ -1272,6 +1287,8 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   ),
   id: resource(
     {
+      approval: { ignored: "Diabaikan" },
+      catalog: { metrics: { AFFILIATE_CURRENTLY_IGNORED: "Diabaikan" } },
       details: {
         tab: "Detail",
         eyebrow: "Catatan per permohonan",
@@ -1320,6 +1337,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "Disetujui",
           MERCHANT_REJECTED: "Ditolak penjual",
           OVERDUE_BY_US: "Terlambat di pihak kami",
+          IGNORED: "Diabaikan",
           IN_FLIGHT: "Diproses",
         },
         fields: {
@@ -1408,7 +1426,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         "Hanya rate yang bisa dibandingkan antar horizon; kohor terbaru berwarna abu-abu selama respons masih masuk.",
       approvalTitle: "Persetujuan, per tanggal pengajuan",
       approvalBody:
-        "Setiap pengajuan berakhir disetujui, ditolak penjual, terlambat di pihak kami, atau masih berjalan.",
+        "Setiap pengajuan berakhir disetujui, ditolak penjual, diabaikan, terlambat di pihak kami, atau masih berjalan.",
       postApprovalTitle: "Setelah disetujui, diukur dalam unit",
       postApprovalBody:
         "Unit tidak pernah hilang sehingga menggantikan GMV; di sampingnya sampel gratis yang dikirim pada suatu hari dibandingkan dengan unit affiliate yang terjual pada hari yang sama, dengan rasio bergulir 7 hari pada sumbu kanan.",
@@ -1422,6 +1440,8 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   ),
   it: resource(
     {
+      approval: { ignored: "Ignorata" },
+      catalog: { metrics: { AFFILIATE_CURRENTLY_IGNORED: "Ignorata" } },
       details: {
         tab: "Dettagli",
         eyebrow: "Record per richiesta",
@@ -1470,6 +1490,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "Approvata",
           MERCHANT_REJECTED: "Rifiutata dal venditore",
           OVERDUE_BY_US: "Scaduta da noi",
+          IGNORED: "Ignorata",
           IN_FLIGHT: "In corso",
         },
         fields: {
@@ -1558,7 +1579,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
         "Solo i tassi sono confrontabili tra orizzonti; le coorti recenti restano grigie finché arrivano risposte.",
       approvalTitle: "Approvazione, alla data della richiesta",
       approvalBody:
-        "Ogni richiesta finisce approvata, rifiutata dal merchant, scaduta da parte nostra o ancora in corso.",
+        "Ogni richiesta finisce approvata, rifiutata dal merchant, ignorata, scaduta da parte nostra o ancora in corso.",
       postApprovalTitle: "Dopo l’approvazione, misurato in unità",
       postApprovalBody:
         "Le unità non mancano mai e sostituiscono il GMV; accanto, i campioni gratuiti spediti in un giorno vengono confrontati con le unità Affiliate vendute lo stesso giorno, con il rapporto mobile a 7 giorni sull’asse destro.",
@@ -1572,6 +1593,8 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
   ),
   th: resource(
     {
+      approval: { ignored: "เพิกเฉย" },
+      catalog: { metrics: { AFFILIATE_CURRENTLY_IGNORED: "เพิกเฉย" } },
       details: {
         tab: "รายละเอียด",
         eyebrow: "ข้อมูลระดับใบสมัคร",
@@ -1619,6 +1642,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
           APPROVED: "อนุมัติ",
           MERCHANT_REJECTED: "ผู้ขายปฏิเสธ",
           OVERDUE_BY_US: "ฝ่ายเราเลยกำหนด",
+          IGNORED: "เพิกเฉย",
           IN_FLIGHT: "กำลังดำเนินการ",
         },
         fields: {
@@ -1702,7 +1726,7 @@ export const AFFILIATE_ANALYTICS_TRANSLATIONS = {
       reachoutTitle: "การเชิญ นับตามวันที่เชิญ",
       reachoutBody: "เทียบข้ามช่วงเวลาได้เฉพาะอัตราเท่านั้น คอฮอร์ตล่าสุดจะเป็นสีเทาระหว่างที่การตอบกลับยังทยอยเข้ามา",
       approvalTitle: "การอนุมัติ นับตามวันที่ยื่นคำขอ",
-      approvalBody: "ทุกคำขอจะจบลงที่อนุมัติ ผู้ขายปฏิเสธ เกินกำหนดฝั่งเรา หรือยังดำเนินการอยู่",
+      approvalBody: "ทุกคำขอจะจบลงที่อนุมัติ ผู้ขายปฏิเสธ เพิกเฉย เกินกำหนดฝั่งเรา หรือยังดำเนินการอยู่",
       postApprovalTitle: "หลังอนุมัติ วัดเป็นจำนวนชิ้น",
       postApprovalBody:
         "จำนวนชิ้นไม่เคยขาดหาย จึงใช้แทน GMV และข้างกันจะเทียบตัวอย่างฟรีที่ส่งออกในแต่ละวันกับจำนวนชิ้นที่ช่อง Affiliate ขายได้ในวันเดียวกัน พร้อมอัตราส่วนเฉลี่ยย้อนหลัง 7 วันบนแกนขวา",

@@ -79,6 +79,7 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
       approved
       merchantRejected
       overdueByUs
+      ignored
       inFlight
       approvalRate
       merchantRejectRate
@@ -89,6 +90,7 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         approved
         merchantRejected
         overdueByUs
+        ignored
         inFlight
         approvalRate
       }
@@ -98,6 +100,7 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         approved
         merchantRejected
         overdueByUs
+        ignored
         inFlight
         approvalRate
       }
@@ -107,6 +110,7 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         approved
         merchantRejected
         overdueByUs
+        ignored
         inFlight
         approvalRate
         merchantRejectRate
@@ -119,6 +123,7 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         approved
         merchantRejected
         overdueByUs
+        ignored
         inFlight
         approvalRate
         merchantRejectRate
@@ -131,6 +136,7 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         approved
         merchantRejected
         overdueByUs
+        ignored
         inFlight
         approvalRate
         merchantRejectRate

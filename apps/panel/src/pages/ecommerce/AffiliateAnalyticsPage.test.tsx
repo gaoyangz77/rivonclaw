@@ -87,6 +87,7 @@ vi.mock("@apollo/client/react", () => ({
 vi.mock("recharts", () => {
   const Container = ({ children }: { children?: unknown }) => <div>{children as never}</div>;
   const Element = () => <span />;
+  const Series = ({ dataKey }: { dataKey?: string }) => <span data-series={dataKey} />;
   const chart =
     (kind: string) =>
     ({ children, data }: { children?: unknown; data?: unknown[] }) => (
@@ -106,7 +107,7 @@ vi.mock("recharts", () => {
     Legend: Element,
     Line: Element,
     ReferenceArea: Element,
-    Bar: Element,
+    Bar: Series,
     Tooltip: Element,
     XAxis: Element,
     YAxis: Element,
@@ -138,6 +139,8 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.details.previousPage": "Previous page",
   "ecommerce.affiliateAnalytics.details.nextPage": "Next page",
   "ecommerce.affiliateAnalytics.details.creatorId": "Creator Open ID",
+  "ecommerce.affiliateAnalytics.details.decision": "Current decision",
+  "ecommerce.affiliateAnalytics.details.decisions.IGNORED": "Ignored",
   "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_CREATOR_GMV_CURRENCY": "Currency",
   "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION":
     "Video engagement rate",
@@ -162,6 +165,7 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.approval.title": "Sample approval",
   "ecommerce.affiliateAnalytics.approval.axis": "Cohort axis: the application submission date",
   "ecommerce.affiliateAnalytics.approval.overdueRate": "Overdue rate",
+  "ecommerce.affiliateAnalytics.approval.ignored": "Ignored",
   "ecommerce.affiliateAnalytics.postApproval.title": "Post-approval performance",
   "ecommerce.affiliateAnalytics.postApproval.axis":
     "Two bases: the application date and the calendar day",
@@ -293,7 +297,8 @@ function approvalFixture() {
       approved: 100,
       merchantRejected: 10,
       overdueByUs: 2,
-      inFlight: 8,
+      ignored: 3,
+      inFlight: 5,
       approvalRate: 100 / 120,
       merchantRejectRate: 10 / 120,
       overdueRate: 2 / 120,
@@ -304,7 +309,8 @@ function approvalFixture() {
       approved: 200,
       merchantRejected: 50,
       overdueByUs: 18,
-      inFlight: 32,
+      ignored: 12,
+      inFlight: 20,
       approvalRate: 2 / 3,
       merchantRejectRate: 1 / 6,
       overdueRate: 0.06,
@@ -315,7 +321,8 @@ function approvalFixture() {
     approved: 300,
     merchantRejected: 60,
     overdueByUs: 20,
-    inFlight: 40,
+    ignored: 15,
+    inFlight: 25,
     approvalRate: 0.714,
     merchantRejectRate: 0.143,
     overdueRate: 0.048,
@@ -326,7 +333,8 @@ function approvalFixture() {
         approved: 30,
         merchantRejected: 5,
         overdueByUs: 2,
-        inFlight: 3,
+        ignored: 1,
+        inFlight: 2,
       },
     ],
     byAge: [
@@ -336,7 +344,8 @@ function approvalFixture() {
         approved: 20,
         merchantRejected: 4,
         overdueByUs: 1,
-        inFlight: 15,
+        ignored: 5,
+        inFlight: 10,
       },
     ],
     byDecisionOrigin,
@@ -707,6 +716,13 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
     expect(approval.textContent).not.toContain("Human");
   });
 
+  it("renders ignored as its own chart series and decision-origin column", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const approval = section(container, "approval");
+    expect(approval.querySelector('[data-series="ignored"]')).toBeTruthy();
+    expect(within(approval).getAllByText("Ignored").length).toBeGreaterThan(0);
+  });
+
   it("discloses the shop basis next to the rate it was computed over", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
 
@@ -961,6 +977,8 @@ describe("AffiliateAnalyticsPage Details", () => {
     Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Current decision" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ignored" }));
     fireEvent.click(screen.getByRole("button", { name: "Search details" }));
     await screen.findByText("1–50 of 120");
     fireEvent.click(screen.getByRole("button", { name: "Download all 120 rows (.xlsx)" }));
@@ -971,6 +989,12 @@ describe("AffiliateAnalyticsPage Details", () => {
       [500, 0],
     ]);
     expect(exportCalls.every((options) => options.fetchPolicy === "no-cache")).toBe(true);
+    expect(call(0).variables.input.filters).toEqual([{
+      dimension: "SAMPLE_DECISION_BUCKET", operator: "IN", values: ["IGNORED"],
+    }]);
+    expect(exportCalls.every((options) =>
+      JSON.stringify(options.variables.input.filters) ===
+      JSON.stringify(call(0).variables.input.filters))).toBe(true);
     expect(mocks.buildWorkbook).toHaveBeenCalledTimes(1);
     const workbookOptions = mocks.buildWorkbook.mock.calls[0][1] as { rows: unknown[]; columns: string[] };
     expect(workbookOptions.rows).toHaveLength(120);

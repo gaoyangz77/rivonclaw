@@ -55,7 +55,7 @@ export function AffiliateReviewFilters(props: Props) {
         onChange={(next) => onChange({ ...value, decision: next })}
         options={[
           { value: "", label: t("ecommerce.affiliateAnalytics.details.all") },
-          ...["APPROVED", "MERCHANT_REJECTED", "OVERDUE_BY_US", "IN_FLIGHT"].map((id) => ({
+          ...["APPROVED", "MERCHANT_REJECTED", "OVERDUE_BY_US", "IGNORED", "IN_FLIGHT"].map((id) => ({
             value: id,
             label: t(`ecommerce.affiliateAnalytics.details.decisions.${id}`),
           })),

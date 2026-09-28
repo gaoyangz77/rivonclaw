@@ -27,6 +27,7 @@
   --affiliate-approved: #0f9d7a;
   --affiliate-rejected: #d2603f;
   --affiliate-overdue: #d79a21;
+  --affiliate-ignored: #7c5cc4;
   --affiliate-inflight: #b9c4d1;
 
   /* Overview · section 3 — units */
@@ -67,6 +68,7 @@
   --affiliate-approved: #3fc9a2;
   --affiliate-rejected: #e5876a;
   --affiliate-overdue: #edb44a;
+  --affiliate-ignored: #b69af0;
   --affiliate-inflight: #4a5563;
   --affiliate-units: #6aa9e3;
   --affiliate-projection: #35597c;

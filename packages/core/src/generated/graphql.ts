@@ -960,6 +960,7 @@ export interface AffiliateAnalyticsSampleMetrics {
   estimatedCommissionUsd: Scalars["Float"]["output"];
   fulfillmentObservedRate?: Maybe<Scalars["Float"]["output"]>;
   grossGmvUsd: Scalars["Float"]["output"];
+  ignored: Scalars["Float"]["output"];
   inFlight: Scalars["Float"]["output"];
   netGmvUsd: Scalars["Float"]["output"];
   orders: Scalars["Float"]["output"];
@@ -982,6 +983,7 @@ export interface AffiliateAnalyticsSampleTrendPoint {
   estimatedCommissionUsd: Scalars["Float"]["output"];
   fulfillmentObservedRate?: Maybe<Scalars["Float"]["output"]>;
   grossGmvUsd: Scalars["Float"]["output"];
+  ignored: Scalars["Float"]["output"];
   inFlight: Scalars["Float"]["output"];
   netGmvUsd: Scalars["Float"]["output"];
   orders: Scalars["Float"]["output"];
@@ -1017,6 +1019,7 @@ export interface AffiliateApprovalAgePoint {
   applications: Scalars["Int"]["output"];
   approvalRate?: Maybe<Scalars["Float"]["output"]>;
   approved: Scalars["Int"]["output"];
+  ignored: Scalars["Int"]["output"];
   inFlight: Scalars["Int"]["output"];
   merchantRejected: Scalars["Int"]["output"];
   overdueByUs: Scalars["Int"]["output"];
@@ -1027,6 +1030,7 @@ export interface AffiliateApprovalDailyPoint {
   approvalRate?: Maybe<Scalars["Float"]["output"]>;
   approved: Scalars["Int"]["output"];
   cohortDs: Scalars["String"]["output"];
+  ignored: Scalars["Int"]["output"];
   inFlight: Scalars["Int"]["output"];
   merchantRejected: Scalars["Int"]["output"];
   overdueByUs: Scalars["Int"]["output"];
@@ -1038,6 +1042,7 @@ export interface AffiliateApprovalDecisionOriginAgePoint {
   approvalRate?: Maybe<Scalars["Float"]["output"]>;
   approved: Scalars["Int"]["output"];
   decidedBy: AffiliateSampleDecisionOrigin;
+  ignored: Scalars["Int"]["output"];
   inFlight: Scalars["Int"]["output"];
   merchantRejectRate?: Maybe<Scalars["Float"]["output"]>;
   merchantRejected: Scalars["Int"]["output"];
@@ -1051,6 +1056,7 @@ export interface AffiliateApprovalDecisionOriginDailyPoint {
   approved: Scalars["Int"]["output"];
   cohortDs: Scalars["String"]["output"];
   decidedBy: AffiliateSampleDecisionOrigin;
+  ignored: Scalars["Int"]["output"];
   inFlight: Scalars["Int"]["output"];
   merchantRejectRate?: Maybe<Scalars["Float"]["output"]>;
   merchantRejected: Scalars["Int"]["output"];
@@ -1063,6 +1069,7 @@ export interface AffiliateApprovalDecisionOriginMetrics {
   approvalRate?: Maybe<Scalars["Float"]["output"]>;
   approved: Scalars["Int"]["output"];
   decidedBy: AffiliateSampleDecisionOrigin;
+  ignored: Scalars["Int"]["output"];
   inFlight: Scalars["Int"]["output"];
   merchantRejectRate?: Maybe<Scalars["Float"]["output"]>;
   merchantRejected: Scalars["Int"]["output"];
@@ -1113,6 +1120,7 @@ export interface AffiliateApprovalSection {
   coverage: AffiliateCoverage;
   daily: Array<AffiliateApprovalDailyPoint>;
   dailyByDecisionOrigin: Array<AffiliateApprovalDecisionOriginDailyPoint>;
+  ignored: Scalars["Int"]["output"];
   inFlight: Scalars["Int"]["output"];
   merchantRejectRate?: Maybe<Scalars["Float"]["output"]>;
   merchantRejected: Scalars["Int"]["output"];
@@ -8150,6 +8158,7 @@ export const EcomBiMetric = {
   AffiliateCreatorVideoGpmAtApplication: "AFFILIATE_CREATOR_VIDEO_GPM_AT_APPLICATION",
   AffiliateCurrentlyApproved: "AFFILIATE_CURRENTLY_APPROVED",
   AffiliateCurrentlyCompleted: "AFFILIATE_CURRENTLY_COMPLETED",
+  AffiliateCurrentlyIgnored: "AFFILIATE_CURRENTLY_IGNORED",
   AffiliateCurrentlyInFlight: "AFFILIATE_CURRENTLY_IN_FLIGHT",
   AffiliateCurrentlyMerchantRejected: "AFFILIATE_CURRENTLY_MERCHANT_REJECTED",
   AffiliateCurrentlyOverdueByUs: "AFFILIATE_CURRENTLY_OVERDUE_BY_US",
