@@ -47,7 +47,7 @@ export interface AccountMember {
 /** A named permission-scope bundle owned by one main account. */
 export interface AccountRoleType {
   id: Scalars["String"]["output"];
-  /** Seeded template role; its name cannot be changed. */
+  /** Seeded template role; it cannot be edited or deleted. */
   isSystem: Scalars["Boolean"]["output"];
   /** Number of member accounts currently assigned this role. */
   memberCount: Scalars["Int"]["output"];

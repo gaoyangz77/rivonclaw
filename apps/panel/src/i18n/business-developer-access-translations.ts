@@ -10,12 +10,20 @@ const en = {
     tab: "Login",
     title: "Login account",
     subtitle: "How this BD signs in to TK Copilot",
-    description:
-      "The login is a sub-account that opens only the BD workspace: Needs Attention, Manual Workbench, Creators, History, Product Knowledge (read-only) and Analytics details.",
-    statusNone: "No login",
-    statusNoneDetail: "This BD cannot sign in yet.",
+    noLoginTitle: "This BD cannot sign in yet",
+    noLoginHint:
+      "Create a login so this BD can sign in with their own email and work in the BD workspace.",
     statusActive: "Active",
     statusDisabled: "Disabled",
+    scopeLabel: "Can open",
+    scope: {
+      needsAttention: "Agent Workbench",
+      manualWorkbench: "Manual Workbench",
+      creators: "Cooperation creators",
+      history: "Platform collaborations",
+      productKnowledge: "Product Knowledge (read-only)",
+      analyticsDetails: "Analytics details",
+    },
     archivedNoLoginHint: "An archived BD cannot get a login. Restore the BD first.",
     archivedHint:
       "Archiving disabled this login. Restoring the BD does not enable it again; restore the BD first, then enable the login here.",
@@ -39,6 +47,8 @@ const en = {
     removeTitle: "Remove login",
     removeMessage:
       "Remove the login {{email}}? {{name}} can no longer sign in. Their creators, outreach accounts and history stay, and you can create a new login later.",
+    removeDescription:
+      "The account can no longer sign in. The BD and their creators stay unchanged.",
     created: "Login created.",
     passwordReset: "Password reset.",
     disabledToast: "Login disabled.",
@@ -77,12 +87,19 @@ const zh: Copy = {
     tab: "登录账号",
     title: "登录账号",
     subtitle: "该 BD 登录 TK匠 的方式",
-    description:
-      "登录账号是一个只开放 BD 工作台的子账号：待处理、人工工作台、达人、历史、产品知识（只读）和数据分析明细。",
-    statusNone: "未创建登录账号",
-    statusNoneDetail: "该 BD 目前还不能登录。",
+    noLoginTitle: "该 BD 还不能登录",
+    noLoginHint: "创建登录账号后，该 BD 可以用自己的邮箱登录 BD 工作台。",
     statusActive: "启用中",
     statusDisabled: "已停用",
+    scopeLabel: "可访问范围",
+    scope: {
+      needsAttention: "智能体工作台",
+      manualWorkbench: "人工工作台",
+      creators: "合作达人",
+      history: "平台合作",
+      productKnowledge: "产品知识（只读）",
+      analyticsDetails: "数据分析明细",
+    },
     archivedNoLoginHint: "已归档的 BD 不能创建登录账号，请先恢复该 BD。",
     archivedHint:
       "归档时已停用该登录账号。恢复 BD 不会自动重新启用；请先恢复 BD，再在这里启用登录账号。",
@@ -105,6 +122,7 @@ const zh: Copy = {
     removeTitle: "删除登录账号",
     removeMessage:
       "确定删除登录账号 {{email}}？{{name}} 将无法再登录。其名下的达人、联络账号和历史记录都会保留，之后可以重新创建登录账号。",
+    removeDescription: "删除后该账号将无法登录；BD 身份和名下达人不受影响。",
     created: "登录账号已创建。",
     passwordReset: "密码已重置。",
     disabledToast: "登录账号已停用。",
@@ -139,12 +157,20 @@ const de: Copy = {
     tab: "Anmeldung",
     title: "Anmeldekonto",
     subtitle: "Wie sich dieser BD bei TK Copilot anmeldet",
-    description:
-      "Das Anmeldekonto ist ein Unterkonto, das nur den BD-Arbeitsbereich öffnet: Handlungsbedarf, manuelle Workbench, Creator, Verlauf, Produktwissen (nur lesen) und Analyse-Details.",
-    statusNone: "Keine Anmeldung",
-    statusNoneDetail: "Dieser BD kann sich noch nicht anmelden.",
+    noLoginTitle: "Dieser BD kann sich noch nicht anmelden",
+    noLoginHint:
+      "Erstellen Sie eine Anmeldung, damit sich der BD mit seiner eigenen E-Mail im BD-Arbeitsbereich anmelden kann.",
     statusActive: "Aktiv",
     statusDisabled: "Deaktiviert",
+    scopeLabel: "Zugriff auf",
+    scope: {
+      needsAttention: "Agent-Arbeitsbereich",
+      manualWorkbench: "Manueller Arbeitsbereich",
+      creators: "Kooperations-Creator",
+      history: "Plattformkooperationen",
+      productKnowledge: "Produktwissen (nur lesen)",
+      analyticsDetails: "Analysen – Details",
+    },
     archivedNoLoginHint:
       "Ein archivierter BD kann keine Anmeldung erhalten. Stellen Sie den BD zuerst wieder her.",
     archivedHint:
@@ -170,6 +196,8 @@ const de: Copy = {
     removeTitle: "Anmeldung entfernen",
     removeMessage:
       "Anmeldung {{email}} entfernen? {{name}} kann sich dann nicht mehr anmelden. Creator, Outreach-Konten und Verlauf bleiben erhalten, und Sie können später eine neue Anmeldung erstellen.",
+    removeDescription:
+      "Das Konto kann sich danach nicht mehr anmelden. Der BD und seine Creator bleiben unverändert.",
     created: "Anmeldung erstellt.",
     passwordReset: "Passwort zurückgesetzt.",
     disabledToast: "Anmeldung deaktiviert.",
@@ -208,12 +236,20 @@ const es: Copy = {
     tab: "Acceso",
     title: "Cuenta de acceso",
     subtitle: "Cómo inicia sesión este BD en TK Copilot",
-    description:
-      "La cuenta de acceso es una subcuenta que solo abre el espacio de trabajo del BD: Requiere atención, Mesa de trabajo manual, Creadores, Historial, Conocimiento del producto (solo lectura) y el detalle de Analítica.",
-    statusNone: "Sin acceso",
-    statusNoneDetail: "Este BD todavía no puede iniciar sesión.",
+    noLoginTitle: "Este BD todavía no puede iniciar sesión",
+    noLoginHint:
+      "Crea un acceso para que el BD inicie sesión con su propio correo en su espacio de trabajo.",
     statusActive: "Activa",
     statusDisabled: "Desactivada",
+    scopeLabel: "Puede abrir",
+    scope: {
+      needsAttention: "Área de trabajo del Agent",
+      manualWorkbench: "Área de trabajo manual",
+      creators: "Creadores colaboradores",
+      history: "Colaboraciones de plataforma",
+      productKnowledge: "Conocimiento del producto (solo lectura)",
+      analyticsDetails: "Analítica – Detalles",
+    },
     archivedNoLoginHint:
       "Un BD archivado no puede tener una cuenta de acceso. Restaura primero el BD.",
     archivedHint:
@@ -239,6 +275,7 @@ const es: Copy = {
     removeTitle: "Eliminar acceso",
     removeMessage:
       "¿Eliminar el acceso {{email}}? {{name}} ya no podrá iniciar sesión. Sus creadores, cuentas de contacto e historial se conservan, y podrás crear un nuevo acceso más adelante.",
+    removeDescription: "La cuenta ya no podrá iniciar sesión. El BD y sus creadores no cambian.",
     created: "Acceso creado.",
     passwordReset: "Contraseña restablecida.",
     disabledToast: "Acceso desactivado.",
@@ -275,12 +312,20 @@ const fr: Copy = {
     tab: "Connexion",
     title: "Compte de connexion",
     subtitle: "Comment ce BD se connecte à TK Copilot",
-    description:
-      "Le compte de connexion est un sous-compte qui n'ouvre que l'espace de travail du BD : À traiter, Atelier manuel, Créateurs, Historique, Connaissances produit (lecture seule) et le détail des Analyses.",
-    statusNone: "Aucune connexion",
-    statusNoneDetail: "Ce BD ne peut pas encore se connecter.",
+    noLoginTitle: "Ce BD ne peut pas encore se connecter",
+    noLoginHint:
+      "Créez une connexion pour que le BD se connecte à son espace de travail avec sa propre adresse e-mail.",
     statusActive: "Active",
     statusDisabled: "Désactivée",
+    scopeLabel: "Accès à",
+    scope: {
+      needsAttention: "Espace de travail Agent",
+      manualWorkbench: "Espace de travail manuel",
+      creators: "Créateurs partenaires",
+      history: "Collaborations de plateforme",
+      productKnowledge: "Connaissance produit (lecture seule)",
+      analyticsDetails: "Analytique – Détails",
+    },
     archivedNoLoginHint:
       "Un BD archivé ne peut pas recevoir de connexion. Restaurez d'abord le BD.",
     archivedHint:
@@ -306,6 +351,8 @@ const fr: Copy = {
     removeTitle: "Supprimer la connexion",
     removeMessage:
       "Supprimer la connexion {{email}} ? {{name}} ne pourra plus se connecter. Ses créateurs, comptes de prospection et historique sont conservés, et vous pourrez créer une nouvelle connexion plus tard.",
+    removeDescription:
+      "Le compte ne pourra plus se connecter. Le BD et ses créateurs ne sont pas modifiés.",
     created: "Connexion créée.",
     passwordReset: "Mot de passe réinitialisé.",
     disabledToast: "Connexion désactivée.",
@@ -342,12 +389,19 @@ const id: Copy = {
     tab: "Login",
     title: "Akun login",
     subtitle: "Cara BD ini masuk ke TK Copilot",
-    description:
-      "Akun login adalah sub-akun yang hanya membuka ruang kerja BD: Perlu Perhatian, Meja Kerja Manual, Kreator, Riwayat, Pengetahuan Produk (hanya baca) dan detail Analitik.",
-    statusNone: "Belum ada login",
-    statusNoneDetail: "BD ini belum bisa masuk.",
+    noLoginTitle: "BD ini belum bisa masuk",
+    noLoginHint: "Buat login agar BD ini bisa masuk ke ruang kerja BD dengan email sendiri.",
     statusActive: "Aktif",
     statusDisabled: "Nonaktif",
+    scopeLabel: "Dapat membuka",
+    scope: {
+      needsAttention: "Ruang kerja Agent",
+      manualWorkbench: "Ruang kerja manual",
+      creators: "Kreator kerja sama",
+      history: "Kolaborasi platform",
+      productKnowledge: "Pengetahuan produk (hanya baca)",
+      analyticsDetails: "Analitik – Detail",
+    },
     archivedNoLoginHint: "BD yang diarsipkan tidak bisa diberi login. Pulihkan BD terlebih dahulu.",
     archivedHint:
       "Pengarsipan menonaktifkan login ini. Memulihkan BD tidak mengaktifkannya kembali; pulihkan BD terlebih dahulu, lalu aktifkan login di sini.",
@@ -371,6 +425,7 @@ const id: Copy = {
     removeTitle: "Hapus login",
     removeMessage:
       "Hapus login {{email}}? {{name}} tidak bisa masuk lagi. Kreator, akun outreach, dan riwayatnya tetap disimpan, dan Anda dapat membuat login baru nanti.",
+    removeDescription: "Akun ini tidak bisa masuk lagi. BD dan kreatornya tidak berubah.",
     created: "Login dibuat.",
     passwordReset: "Kata sandi diatur ulang.",
     disabledToast: "Login dinonaktifkan.",
@@ -407,12 +462,20 @@ const it: Copy = {
     tab: "Accesso",
     title: "Account di accesso",
     subtitle: "Come questo BD accede a TK Copilot",
-    description:
-      "L'account di accesso è un sottoaccount che apre solo lo spazio di lavoro del BD: Da gestire, Banco di lavoro manuale, Creator, Cronologia, Conoscenza prodotto (sola lettura) e il dettaglio di Analisi.",
-    statusNone: "Nessun accesso",
-    statusNoneDetail: "Questo BD non può ancora accedere.",
+    noLoginTitle: "Questo BD non può ancora accedere",
+    noLoginHint:
+      "Crea un accesso perché il BD possa entrare nel suo spazio di lavoro con la propria email.",
     statusActive: "Attivo",
     statusDisabled: "Disattivato",
+    scopeLabel: "Può aprire",
+    scope: {
+      needsAttention: "Area di lavoro Agent",
+      manualWorkbench: "Area di lavoro manuale",
+      creators: "Creator collaboratori",
+      history: "Collaborazioni della piattaforma",
+      productKnowledge: "Conoscenza prodotto (sola lettura)",
+      analyticsDetails: "Analytics – Dettagli",
+    },
     archivedNoLoginHint: "Un BD archiviato non può ricevere un accesso. Ripristina prima il BD.",
     archivedHint:
       "L'archiviazione ha disattivato questo accesso. Ripristinare il BD non lo riattiva; ripristina prima il BD, poi attiva qui l'accesso.",
@@ -437,6 +500,8 @@ const it: Copy = {
     removeTitle: "Rimuovi accesso",
     removeMessage:
       "Rimuovere l'accesso {{email}}? {{name}} non potrà più accedere. Creator, account di outreach e cronologia restano, e potrai creare un nuovo accesso in seguito.",
+    removeDescription:
+      "L'account non potrà più accedere. Il BD e i suoi creator restano invariati.",
     created: "Accesso creato.",
     passwordReset: "Password reimpostata.",
     disabledToast: "Accesso disattivato.",
@@ -473,12 +538,19 @@ const th: Copy = {
     tab: "การเข้าสู่ระบบ",
     title: "บัญชีเข้าสู่ระบบ",
     subtitle: "วิธีที่ BD นี้เข้าสู่ระบบ TK Copilot",
-    description:
-      "บัญชีเข้าสู่ระบบคือบัญชีย่อยที่เปิดได้เฉพาะพื้นที่ทำงานของ BD: ต้องดำเนินการ, โต๊ะทำงานแบบแมนนวล, ครีเอเตอร์, ประวัติ, ความรู้ผลิตภัณฑ์ (อ่านอย่างเดียว) และรายละเอียดการวิเคราะห์",
-    statusNone: "ยังไม่มีบัญชีเข้าสู่ระบบ",
-    statusNoneDetail: "BD นี้ยังเข้าสู่ระบบไม่ได้",
+    noLoginTitle: "BD นี้ยังเข้าสู่ระบบไม่ได้",
+    noLoginHint: "สร้างบัญชีเข้าสู่ระบบเพื่อให้ BD เข้าสู่พื้นที่ทำงานของ BD ด้วยอีเมลของตนเอง",
     statusActive: "ใช้งานอยู่",
     statusDisabled: "ปิดใช้งาน",
+    scopeLabel: "เข้าถึงได้",
+    scope: {
+      needsAttention: "พื้นที่ทำงาน Agent",
+      manualWorkbench: "พื้นที่ทำงานของเจ้าหน้าที่",
+      creators: "ครีเอเตอร์ที่ร่วมงาน",
+      history: "ความร่วมมือบนแพลตฟอร์ม",
+      productKnowledge: "ความรู้ผลิตภัณฑ์ (อ่านอย่างเดียว)",
+      analyticsDetails: "การวิเคราะห์ – รายละเอียด",
+    },
     archivedNoLoginHint: "BD ที่เก็บถาวรแล้วสร้างบัญชีเข้าสู่ระบบไม่ได้ กรุณากู้คืน BD ก่อน",
     archivedHint:
       "การเก็บถาวรได้ปิดใช้งานบัญชีเข้าสู่ระบบนี้แล้ว การกู้คืน BD จะไม่เปิดใช้งานให้อีกครั้ง กรุณากู้คืน BD ก่อน แล้วจึงเปิดใช้งานที่นี่",
@@ -501,6 +573,7 @@ const th: Copy = {
     removeTitle: "ลบบัญชีเข้าสู่ระบบ",
     removeMessage:
       "ลบบัญชีเข้าสู่ระบบ {{email}} หรือไม่ {{name}} จะเข้าสู่ระบบไม่ได้อีก ครีเอเตอร์ บัญชีติดต่อ และประวัติจะยังอยู่ และคุณสร้างบัญชีเข้าสู่ระบบใหม่ได้ภายหลัง",
+    removeDescription: "บัญชีนี้จะเข้าสู่ระบบไม่ได้อีก BD และครีเอเตอร์ของ BD ไม่ได้รับผลกระทบ",
     created: "สร้างบัญชีเข้าสู่ระบบแล้ว",
     passwordReset: "รีเซ็ตรหัสผ่านแล้ว",
     disabledToast: "ปิดใช้งานบัญชีเข้าสู่ระบบแล้ว",

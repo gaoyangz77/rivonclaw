@@ -112,12 +112,12 @@ describe("SubAccountFormModal", () => {
     );
 
     const trigger = screen.getByRole("dialog").querySelector(".custom-select-trigger")!;
-    expect(trigger.textContent).toContain("Affiliate Supervisor");
+    expect(trigger.textContent).toContain("Business Developer Supervisor");
     fireEvent.click(trigger);
     const options = Array.from(document.querySelectorAll(".custom-select-option-label")).map(
       (option) => option.textContent,
     );
-    expect(options).toEqual(["Affiliate Supervisor", "Ops"]);
+    expect(options).toEqual(["Business Developer Supervisor", "Ops"]);
   });
 });
 
@@ -135,14 +135,18 @@ describe("SubAccountsSection", () => {
     expect(within(ops).getByRole("button", { name: "Delete" })).toBeTruthy();
   });
 
-  it("names built-in roles by their key and keeps the Business Developer role's sections fixed", () => {
+  it("names built-in roles by their key and offers no edit or delete on any of them", () => {
     render(<SubAccountsSection />);
 
     const bdRole = roleRow("Business Developer");
-    expect(within(bdRole).queryByRole("button", { name: "Edit" })).toBeNull();
+    expect(within(bdRole).queryByRole("button")).toBeNull();
     expect(within(bdRole).getByText(/Its sections are fixed\./)).toBeTruthy();
 
-    fireEvent.click(within(roleRow("Affiliate Supervisor")).getByRole("button", { name: "Edit" }));
+    const supervisorRole = roleRow("Business Developer Supervisor");
+    expect(within(supervisorRole).queryByRole("button")).toBeNull();
+    expect(within(supervisorRole).getByText(/cannot be edited or deleted/)).toBeTruthy();
+
+    fireEvent.click(within(roleRow("Ops")).getByRole("button", { name: "Edit" }));
     const scopeLabels = Array.from(
       document.querySelectorAll(".acct-role-scope-grid .form-checkbox-label"),
     ).map((label) => label.textContent);

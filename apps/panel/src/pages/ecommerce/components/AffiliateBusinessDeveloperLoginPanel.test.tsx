@@ -74,7 +74,11 @@ function renderPanel(apolloMocks: ReadonlyArray<Record<string, unknown>> = []) {
   );
 }
 
-const ACTIVE_LOGIN = { userId: "member-1", email: "maria@example.com", disabled: false };
+const ACTIVE_LOGIN = {
+  userId: "member-1",
+  email: "maria@example.com",
+  disabled: false,
+};
 
 const writeText = vi.fn<(text: string) => Promise<void>>();
 
@@ -94,6 +98,104 @@ afterEach(() => {
 
 const CREDENTIALS_NOTE =
   "The password cannot be shown again after you close this. Copy it and send it to the BD first.";
+
+const SCOPE_CHIPS = [
+  "Agent Workbench",
+  "Manual Workbench",
+  "Cooperation creators",
+  "Platform collaborations",
+  "Product Knowledge (read-only)",
+  "Analytics details",
+];
+
+function scopeChips(): string[] {
+  const list = screen.getByRole("list", { name: "Can open" });
+  return within(list)
+    .getAllByRole("listitem")
+    .map((item) => item.textContent ?? "");
+}
+
+describe("AffiliateBusinessDeveloperLoginPanel layout", () => {
+  it("without a login: explains it, offers to create one, and lists what it will open", () => {
+    seedStore(developer());
+    const { container } = renderPanel();
+
+    expect(screen.getByText("This BD cannot sign in yet")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Create a login so this BD can sign in with their own email and work in the BD workspace.",
+      ),
+    ).toBeTruthy();
+    const create = screen.getByRole("button", {
+      name: "Create login",
+    }) as HTMLButtonElement;
+    expect(create.disabled).toBe(false);
+    expect(create.closest(".affiliate-bd-login-row")).toBeTruthy();
+    expect(scopeChips()).toEqual(SCOPE_CHIPS);
+    expect(screen.queryByRole("button", { name: "Reset password" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove login" })).toBeNull();
+    expect(container.querySelector(".affiliate-bd-login-danger")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("with an active login: status, email and actions on one row, removal in the danger zone", () => {
+    seedStore(developer({ login: ACTIVE_LOGIN }));
+    const { container } = renderPanel();
+
+    const row = container.querySelector(".affiliate-bd-login-row:not(.affiliate-bd-login-danger)");
+    expect(row).toBeTruthy();
+    const account = within(row as HTMLElement);
+    expect(account.getByText("Active").closest(".tk-v1-badge-success")).toBeTruthy();
+    expect(account.getByText("maria@example.com").className).toContain("affiliate-bd-login-email");
+    expect(account.getByRole("button", { name: "Copy email" })).toBeTruthy();
+    expect(account.getByRole("button", { name: "Reset password" })).toBeTruthy();
+    expect(account.getByRole("button", { name: "Disable" })).toBeTruthy();
+    expect(account.queryByRole("button", { name: "Remove login" })).toBeNull();
+
+    const danger = container.querySelector(".affiliate-bd-login-danger") as HTMLElement;
+    expect(danger).toBeTruthy();
+    expect(
+      within(danger).getByText(
+        "The account can no longer sign in. The BD and their creators stay unchanged.",
+      ),
+    ).toBeTruthy();
+    expect(within(danger).getByRole("button", { name: "Remove login" })).toBeTruthy();
+    expect(scopeChips()).toEqual(SCOPE_CHIPS);
+  });
+
+  it("with a disabled login: shows the disabled badge and offers to enable it", () => {
+    seedStore(developer({ login: { ...ACTIVE_LOGIN, disabled: true } }));
+    renderPanel();
+
+    expect(screen.getByText("Disabled").closest(".tk-v1-badge-warning")).toBeTruthy();
+    const enable = screen.getByRole("button", {
+      name: "Enable",
+    }) as HTMLButtonElement;
+    expect(enable.disabled).toBe(false);
+    expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
+  });
+
+  it("lists the access scope in the display language", async () => {
+    seedStore(developer({ login: ACTIVE_LOGIN }));
+    renderPanel();
+    await i18n.changeLanguage("zh");
+
+    const list = await screen.findByRole("list", { name: "可访问范围" });
+    expect(
+      within(list)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([
+      "智能体工作台",
+      "人工工作台",
+      "合作达人",
+      "平台合作",
+      "产品知识（只读）",
+      "数据分析明细",
+    ]);
+    expect(screen.getByText("删除后该账号将无法登录；BD 身份和名下达人不受影响。")).toBeTruthy();
+  });
+});
 
 describe("AffiliateBusinessDeveloperLoginPanel", () => {
   it("prefills a generated password that can be regenerated", () => {
@@ -117,9 +219,17 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
 
   it("creates a login and shows its login info once, with a copy-all message", async () => {
     const workspace = seedStore(developer());
-    const input = { businessDeveloperId: "bd-1", email: "maria@example.com", password: "s3cret" };
+    const input = {
+      businessDeveloperId: "bd-1",
+      email: "maria@example.com",
+      password: "s3cret",
+    };
     const result = vi.fn(() => ({
-      data: { provisionAffiliateBusinessDeveloperLogin: developer({ login: ACTIVE_LOGIN }) },
+      data: {
+        provisionAffiliateBusinessDeveloperLogin: developer({
+          login: ACTIVE_LOGIN,
+        }),
+      },
     }));
     renderPanel([
       {
@@ -131,7 +241,7 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
       },
     ]);
 
-    expect(screen.getByText("No login")).toBeTruthy();
+    expect(screen.getByText("This BD cannot sign in yet")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Create login" }));
     const form = screen.getByRole("dialog");
     fireEvent.change(within(form).getByLabelText("Sign-in email"), {
@@ -143,7 +253,9 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Create login" }));
 
     await waitFor(() => expect(result).toHaveBeenCalledTimes(1));
-    const card = await screen.findByRole("dialog", { name: "Login info for Maria" });
+    const card = await screen.findByRole("dialog", {
+      name: "Login info for Maria",
+    });
     expect(within(card).getByText(CREDENTIALS_NOTE)).toBeTruthy();
     expect(within(card).getByText("maria@example.com")).toBeTruthy();
     expect(within(card).getByText("s3cret")).toBeTruthy();
@@ -181,7 +293,11 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
 
   it("copy-all writes the login info in the display language", async () => {
     seedStore(developer());
-    const input = { businessDeveloperId: "bd-1", email: "maria@example.com", password: "s3cret" };
+    const input = {
+      businessDeveloperId: "bd-1",
+      email: "maria@example.com",
+      password: "s3cret",
+    };
     renderPanel([
       {
         request: {
@@ -189,7 +305,11 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
           variables: { input },
         },
         result: {
-          data: { provisionAffiliateBusinessDeveloperLogin: developer({ login: ACTIVE_LOGIN }) },
+          data: {
+            provisionAffiliateBusinessDeveloperLogin: developer({
+              login: ACTIVE_LOGIN,
+            }),
+          },
         },
       },
     ]);
@@ -200,10 +320,14 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
     fireEvent.change(within(form).getByLabelText("登录邮箱"), {
       target: { value: "maria@example.com" },
     });
-    fireEvent.change(within(form).getByLabelText("初始密码"), { target: { value: "s3cret" } });
+    fireEvent.change(within(form).getByLabelText("初始密码"), {
+      target: { value: "s3cret" },
+    });
     fireEvent.click(within(form).getByRole("button", { name: "创建登录账号" }));
 
-    const card = await screen.findByRole("dialog", { name: "Maria 的登录信息" });
+    const card = await screen.findByRole("dialog", {
+      name: "Maria 的登录信息",
+    });
     expect(within(card).getByText("关闭后将无法再次查看密码，请先复制发给 BD。")).toBeTruthy();
     fireEvent.click(within(card).getByRole("button", { name: "复制全部" }));
     await waitFor(() =>
@@ -221,7 +345,11 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
   it("resets the password and shows a new login info card", async () => {
     seedStore(developer({ login: ACTIVE_LOGIN }));
     const result = vi.fn(() => ({
-      data: { resetAffiliateBusinessDeveloperLoginPassword: developer({ login: ACTIVE_LOGIN }) },
+      data: {
+        resetAffiliateBusinessDeveloperLoginPassword: developer({
+          login: ACTIVE_LOGIN,
+        }),
+      },
     }));
     renderPanel([
       {
@@ -241,7 +369,9 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Set new password" }));
 
     await waitFor(() => expect(result).toHaveBeenCalledTimes(1));
-    const card = await screen.findByRole("dialog", { name: "Login info for Maria" });
+    const card = await screen.findByRole("dialog", {
+      name: "Login info for Maria",
+    });
     expect(within(card).getByText("maria@example.com")).toBeTruthy();
     expect(within(card).getByText("n3w-secret")).toBeTruthy();
 
@@ -273,7 +403,11 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
 
   it("explains a refusal by its error code instead of the raw backend message", async () => {
     seedStore(developer());
-    const input = { businessDeveloperId: "bd-1", email: "maria@example.com", password: "s3cret" };
+    const input = {
+      businessDeveloperId: "bd-1",
+      email: "maria@example.com",
+      password: "s3cret",
+    };
     renderPanel([
       {
         request: {
@@ -330,7 +464,12 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
   });
 
   it("does not offer to enable the disabled login of an archived BD, and says why", () => {
-    seedStore(developer({ archivedAt: NOW, login: { ...ACTIVE_LOGIN, disabled: true } }));
+    seedStore(
+      developer({
+        archivedAt: NOW,
+        login: { ...ACTIVE_LOGIN, disabled: true },
+      }),
+    );
     renderPanel();
 
     expect((screen.getByRole("button", { name: "Enable" }) as HTMLButtonElement).disabled).toBe(
@@ -338,7 +477,11 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
     );
     expect(screen.getByText(/Restoring the BD does not enable it again/)).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Remove login" }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Remove login",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(false);
   });
 
@@ -347,7 +490,11 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
     renderPanel();
 
     expect(
-      (screen.getByRole("button", { name: "Create login" }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Create login",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     expect(screen.getByText(/An archived BD cannot get a login/)).toBeTruthy();
   });
@@ -355,7 +502,9 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
   it("removes the login only after confirmation", async () => {
     const workspace = seedStore(developer({ login: ACTIVE_LOGIN }));
     const result = vi.fn(() => ({
-      data: { removeAffiliateBusinessDeveloperLogin: developer({ login: null }) },
+      data: {
+        removeAffiliateBusinessDeveloperLogin: developer({ login: null }),
+      },
     }));
     renderPanel([
       {
@@ -374,6 +523,7 @@ describe("AffiliateBusinessDeveloperLoginPanel", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Remove login" }));
 
     await waitFor(() => expect(workspace.getBusinessDeveloper("bd-1")?.login).toBeNull());
-    expect(await screen.findByText("No login")).toBeTruthy();
+    expect(await screen.findByText("This BD cannot sign in yet")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Remove login" })).toBeNull();
   });
 });

@@ -6,6 +6,7 @@ import type { TFunction } from "i18next";
 import type { GQL } from "@rivonclaw/core";
 import {
   TkAlert,
+  TkBadge,
   TkButton,
   TkConfirmDialog as ConfirmDialog,
   TkField,
@@ -13,7 +14,7 @@ import {
   TkIconButton,
   TkModal as Modal,
   TkPanel,
-  TkStatus,
+  TkPanelBody,
 } from "../../../components/design-system/index.js";
 import { CopyIcon, RefreshIcon } from "../../../components/icons.js";
 import { useToast } from "../../../components/Toast.js";
@@ -42,6 +43,19 @@ interface IssuedCredentials {
   email: string;
   password: string;
 }
+
+/**
+ * The BD workspace pages a login opens (ADR 085), in sidebar terms. Each key is
+ * one chip under "Can open"; the copy mirrors the sidebar labels of those pages.
+ */
+const LOGIN_SCOPE_KEYS = [
+  "needsAttention",
+  "manualWorkbench",
+  "creators",
+  "history",
+  "productKnowledge",
+  "analyticsDetails",
+] as const;
 
 /** Backend refusals that have their own explanation; anything else shows the backend message. */
 const LOGIN_ERROR_KEYS: Record<string, string> = {
@@ -79,15 +93,21 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
     const [issued, setIssued] = useState<IssuedCredentials | null>(null);
 
     const [provisionLogin, provisionState] = useMutation<
-      { provisionAffiliateBusinessDeveloperLogin: GQL.AffiliateBusinessDeveloper },
+      {
+        provisionAffiliateBusinessDeveloperLogin: GQL.AffiliateBusinessDeveloper;
+      },
       GQL.MutationProvisionAffiliateBusinessDeveloperLoginArgs
     >(PROVISION_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_MUTATION);
     const [resetPassword, resetState] = useMutation<
-      { resetAffiliateBusinessDeveloperLoginPassword: GQL.AffiliateBusinessDeveloper },
+      {
+        resetAffiliateBusinessDeveloperLoginPassword: GQL.AffiliateBusinessDeveloper;
+      },
       GQL.MutationResetAffiliateBusinessDeveloperLoginPasswordArgs
     >(RESET_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_PASSWORD_MUTATION);
     const [setLoginDisabled, disableState] = useMutation<
-      { setAffiliateBusinessDeveloperLoginDisabled: GQL.AffiliateBusinessDeveloper },
+      {
+        setAffiliateBusinessDeveloperLoginDisabled: GQL.AffiliateBusinessDeveloper;
+      },
       GQL.MutationSetAffiliateBusinessDeveloperLoginDisabledArgs
     >(SET_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_DISABLED_MUTATION);
     const [removeLogin, removeState] = useMutation<
@@ -188,7 +208,9 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
         async () =>
           (
             await provisionLogin({
-              variables: { input: { businessDeveloperId: developerId, email, password } },
+              variables: {
+                input: { businessDeveloperId: developerId, email, password },
+              },
             })
           ).data?.provisionAffiliateBusinessDeveloperLogin,
         "ecommerce.affiliateTeam.login.created",
@@ -240,36 +262,6 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
 
     return (
       <div className="affiliate-bd-login">
-        {loginEmail === null ? (
-          <TkStatus
-            tone="neutral"
-            label={t("ecommerce.affiliateTeam.login.statusNone")}
-            detail={t("ecommerce.affiliateTeam.login.statusNoneDetail")}
-          />
-        ) : (
-          <div className="affiliate-bd-login-status">
-            <TkStatus
-              tone={loginDisabled ? "warning" : "success"}
-              label={
-                loginDisabled
-                  ? t("ecommerce.affiliateTeam.login.statusDisabled")
-                  : t("ecommerce.affiliateTeam.login.statusActive")
-              }
-              detail={loginEmail}
-            />
-            <TkIconButton
-              label={t("ecommerce.affiliateTeam.login.copyEmail")}
-              size="sm"
-              variant="ghost"
-              onClick={() => void copyText(loginEmail, "ecommerce.affiliateTeam.login.emailCopied")}
-            >
-              <CopyIcon />
-            </TkIconButton>
-          </div>
-        )}
-
-        <p className="affiliate-bd-login-copy">{t("ecommerce.affiliateTeam.login.description")}</p>
-
         {archived && (
           <TkAlert tone="warning">
             {loginEmail === null
@@ -278,51 +270,123 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
           </TkAlert>
         )}
 
-        <div className="affiliate-bd-login-actions">
-          {loginEmail === null ? (
-            <TkButton
-              variant="primary"
-              size="sm"
-              onClick={() => openDialog("CREATE")}
-              disabled={archived || busy}
-            >
-              {t("ecommerce.affiliateTeam.login.create")}
-            </TkButton>
-          ) : (
-            <>
-              <TkButton size="sm" onClick={() => openDialog("RESET")} disabled={busy}>
-                {t("ecommerce.affiliateTeam.login.resetPassword")}
-              </TkButton>
-              {loginDisabled ? (
+        <TkPanel variant="framed" padding="none" clip className="affiliate-bd-login-card">
+          <TkPanelBody className="affiliate-bd-login-row">
+            {loginEmail === null ? (
+              <div className="affiliate-bd-login-row-copy">
+                <strong className="affiliate-bd-login-heading">
+                  {t("ecommerce.affiliateTeam.login.noLoginTitle")}
+                </strong>
+                <p className="affiliate-bd-login-copy">
+                  {t("ecommerce.affiliateTeam.login.noLoginHint")}
+                </p>
+              </div>
+            ) : (
+              <div className="affiliate-bd-login-row-copy">
+                <span className="affiliate-bd-login-caption">
+                  {t("ecommerce.affiliateTeam.login.email")}
+                </span>
+                <div className="affiliate-bd-login-identity">
+                  <TkBadge tone={loginDisabled ? "warning" : "success"} dot>
+                    {loginDisabled
+                      ? t("ecommerce.affiliateTeam.login.statusDisabled")
+                      : t("ecommerce.affiliateTeam.login.statusActive")}
+                  </TkBadge>
+                  <span className="affiliate-bd-login-email">{loginEmail}</span>
+                  <TkIconButton
+                    label={t("ecommerce.affiliateTeam.login.copyEmail")}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      void copyText(loginEmail, "ecommerce.affiliateTeam.login.emailCopied")
+                    }
+                  >
+                    <CopyIcon />
+                  </TkIconButton>
+                </div>
+              </div>
+            )}
+            <div className="affiliate-bd-login-actions">
+              {loginEmail === null ? (
                 <TkButton
+                  variant="primary"
                   size="sm"
-                  onClick={() => void handleSetDisabled(false)}
+                  onClick={() => openDialog("CREATE")}
                   disabled={archived || busy}
-                  loading={disableState.loading}
                 >
-                  {t("ecommerce.affiliateTeam.login.enable")}
+                  {t("ecommerce.affiliateTeam.login.create")}
                 </TkButton>
               ) : (
-                <TkButton
-                  size="sm"
-                  onClick={() => void handleSetDisabled(true)}
-                  disabled={busy}
-                  loading={disableState.loading}
-                >
-                  {t("ecommerce.affiliateTeam.login.disable")}
-                </TkButton>
+                <>
+                  <TkButton size="sm" onClick={() => openDialog("RESET")} disabled={busy}>
+                    {t("ecommerce.affiliateTeam.login.resetPassword")}
+                  </TkButton>
+                  {loginDisabled ? (
+                    <TkButton
+                      size="sm"
+                      onClick={() => void handleSetDisabled(false)}
+                      disabled={archived || busy}
+                      loading={disableState.loading}
+                    >
+                      {t("ecommerce.affiliateTeam.login.enable")}
+                    </TkButton>
+                  ) : (
+                    <TkButton
+                      size="sm"
+                      onClick={() => void handleSetDisabled(true)}
+                      disabled={busy}
+                      loading={disableState.loading}
+                    >
+                      {t("ecommerce.affiliateTeam.login.disable")}
+                    </TkButton>
+                  )}
+                </>
               )}
-              <TkButton
-                variant="danger"
-                size="sm"
-                onClick={() => setDialog("REMOVE")}
-                disabled={busy}
-              >
-                {t("ecommerce.affiliateTeam.login.remove")}
-              </TkButton>
-            </>
+            </div>
+          </TkPanelBody>
+
+          <TkPanelBody className="affiliate-bd-login-scope">
+            <span
+              className="affiliate-bd-login-caption"
+              id={`affiliate-bd-login-scope-${developerId}`}
+            >
+              {t("ecommerce.affiliateTeam.login.scopeLabel")}
+            </span>
+            <ul
+              className="affiliate-bd-login-scope-list"
+              aria-labelledby={`affiliate-bd-login-scope-${developerId}`}
+            >
+              {LOGIN_SCOPE_KEYS.map((key) => (
+                <li key={key}>
+                  <TkBadge>{t(`ecommerce.affiliateTeam.login.scope.${key}`)}</TkBadge>
+                </li>
+              ))}
+            </ul>
+          </TkPanelBody>
+
+          {loginEmail !== null && (
+            <TkPanelBody className="affiliate-bd-login-row affiliate-bd-login-danger">
+              <div className="affiliate-bd-login-row-copy">
+                <strong className="affiliate-bd-login-heading">
+                  {t("ecommerce.affiliateTeam.login.removeTitle")}
+                </strong>
+                <p className="affiliate-bd-login-copy">
+                  {t("ecommerce.affiliateTeam.login.removeDescription")}
+                </p>
+              </div>
+              <div className="affiliate-bd-login-actions">
+                <TkButton
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setDialog("REMOVE")}
+                  disabled={busy}
+                >
+                  {t("ecommerce.affiliateTeam.login.remove")}
+                </TkButton>
+              </div>
+            </TkPanelBody>
           )}
-        </div>
+        </TkPanel>
 
         <Modal
           isOpen={dialog === "CREATE" || dialog === "RESET" || dialog === "CREDENTIALS"}
@@ -330,10 +394,16 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
           preventBackdropClose={dialog === "CREDENTIALS"}
           title={
             dialog === "CREDENTIALS"
-              ? t("ecommerce.affiliateTeam.login.credentialsTitle", { name: displayName })
+              ? t("ecommerce.affiliateTeam.login.credentialsTitle", {
+                  name: displayName,
+                })
               : dialog === "RESET"
-                ? t("ecommerce.affiliateTeam.login.resetTitle", { name: displayName })
-                : t("ecommerce.affiliateTeam.login.createTitle", { name: displayName })
+                ? t("ecommerce.affiliateTeam.login.resetTitle", {
+                    name: displayName,
+                  })
+                : t("ecommerce.affiliateTeam.login.createTitle", {
+                    name: displayName,
+                  })
           }
           maxWidth={480}
         >
@@ -368,7 +438,9 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
               <TkFormStack>
                 {dialog === "RESET" ? (
                   <p className="affiliate-bd-login-copy">
-                    {t("ecommerce.affiliateTeam.login.resetHint", { email: loginEmail ?? "" })}
+                    {t("ecommerce.affiliateTeam.login.resetHint", {
+                      email: loginEmail ?? "",
+                    })}
                   </p>
                 ) : (
                   <>

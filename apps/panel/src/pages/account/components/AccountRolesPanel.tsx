@@ -69,14 +69,20 @@ export function AccountRolesPanel({
   }
 
   /**
-   * Why a role cannot be deleted, or null when it can be.
+   * Why a role cannot be changed, or null when it can be.
    *
-   * A built-in role re-seeds itself, so the backend refuses to delete it at
-   * all — that case is checked first, because telling the owner to move its
-   * sub-accounts away would promise a deletion that still would not happen.
+   * Built-in roles are fixed by the product: the backend refuses to edit or
+   * delete them, so they get no Edit/Delete buttons at all. A custom role can
+   * be deleted only once no sub-account uses it.
    */
-  function deleteBlockedHint(role: AccountRole): string | null {
-    if (role.isSystem) return t("subAccounts.systemRoleUndeletableHint");
+  function roleLockedHint(role: AccountRole): string | null {
+    if (isBusinessDeveloperRole(role)) {
+      return t("subAccounts.businessDeveloperRoleHint", {
+        section: t("nav.affiliateManagement"),
+        page: t("nav.affiliateTeam"),
+      });
+    }
+    if (role.isSystem) return t("subAccounts.systemRoleLockedHint");
     if (role.memberCount > 0) return t("subAccounts.roleInUseHint");
     return null;
   }
@@ -85,26 +91,19 @@ export function AccountRolesPanel({
     ? (roles.find((role) => role.id === confirmDeleteRoleId) ?? null)
     : null;
 
-  /** @param role the role being edited, or null for the create form. */
-  function renderEditor(role: AccountRole | null) {
-    const isSystem = role?.isSystem ?? false;
-    // A built-in role's name is fixed, so it is shown translated while the
-    // draft keeps the stored name — saving its sections must not read as a
-    // rename, which the backend rejects.
-    const nameValue = role && role.isSystem ? ofRole(role) : draftName;
+  /** The create form, or the editor of a custom role (built-in roles are never edited). */
+  function renderEditor() {
     return (
       <div className="acct-item acct-role-editor">
         <div>
           <label className="form-label-block">{t("subAccounts.roleNameLabel")}</label>
           <input
             type="text"
-            value={nameValue}
+            value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
             placeholder={t("subAccounts.roleNamePlaceholder")}
             className="input-full"
-            disabled={isSystem}
           />
-          {isSystem && <div className="form-hint">{t("subAccounts.systemRoleNameHint")}</div>}
         </div>
         <div>
           <label className="form-label-block">{t("subAccounts.roleScopesLabel")}</label>
@@ -156,7 +155,7 @@ export function AccountRolesPanel({
         </div>
       </div>
 
-      {editingKey === "new" && renderEditor(null)}
+      {editingKey === "new" && renderEditor()}
 
       {roles.length === 0 && editingKey !== "new" ? (
         <div className="empty-cell">{t("subAccounts.noRoles")}</div>
@@ -164,7 +163,7 @@ export function AccountRolesPanel({
         <div className="acct-item-list">
           {roles.map((role) =>
             editingKey === role.id ? (
-              <div key={role.id}>{renderEditor(role)}</div>
+              <div key={role.id}>{renderEditor()}</div>
             ) : (
               <div key={role.id} className="acct-item">
                 <div className="acct-item-title-row">
@@ -172,37 +171,26 @@ export function AccountRolesPanel({
                   {role.isSystem && (
                     <span className="badge badge-muted">{t("subAccounts.systemRole")}</span>
                   )}
-                  <div className="acct-item-actions">
-                    {!isBusinessDeveloperRole(role) && (
+                  {!role.isSystem && (
+                    <div className="acct-item-actions">
                       <button className="btn btn-secondary btn-sm" onClick={() => openEdit(role)}>
                         {t("common.edit")}
                       </button>
-                    )}
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => setConfirmDeleteRoleId(role.id)}
-                      disabled={role.isSystem || role.memberCount > 0 || deletingRole}
-                      title={deleteBlockedHint(role) ?? undefined}
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </div>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => setConfirmDeleteRoleId(role.id)}
+                        disabled={role.memberCount > 0 || deletingRole}
+                        title={roleLockedHint(role) ?? undefined}
+                      >
+                        {t("common.delete")}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="acct-item-meta">
                   <span>{t("subAccounts.roleMemberCount", { count: role.memberCount })}</span>
                 </div>
-                {isBusinessDeveloperRole(role) ? (
-                  <div className="form-hint">
-                    {t("subAccounts.businessDeveloperRoleHint", {
-                      section: t("nav.affiliateManagement"),
-                      page: t("nav.affiliateTeam"),
-                    })}
-                  </div>
-                ) : (
-                  deleteBlockedHint(role) && (
-                    <div className="form-hint">{deleteBlockedHint(role)}</div>
-                  )
-                )}
+                {roleLockedHint(role) && <div className="form-hint">{roleLockedHint(role)}</div>}
                 <div className="acct-tool-chips">
                   {role.scopes.length === 0 ? (
                     <span className="acct-tool-chip">{t("subAccounts.noScopes")}</span>

@@ -51,17 +51,16 @@ const copy = {
     /** Localized names for the built-in roles the backend seeds, keyed by `AccountSystemRoleKey`. */
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Business Developer",
-      AFFILIATE_SUPERVISOR: "Affiliate Supervisor",
+      AFFILIATE_SUPERVISOR: "Business Developer Supervisor",
       CUSTOMER_SERVICE: "Customer Service",
     },
-    systemRoleNameHint:
-      "A built-in role keeps its name, but you can still change which sections it grants.",
     roleNameLabel: "Role name",
     roleNamePlaceholder: "e.g. Business Developer",
     roleScopesLabel: "Sections",
     roleScopesHint: "Automation, Connections, and the account pages stay available to everyone.",
     roleInUseHint: "Move its sub-accounts to another role before deleting it.",
-    systemRoleUndeletableHint: "A built-in role cannot be deleted.",
+    systemRoleLockedHint:
+      "A built-in role cannot be edited or deleted. Create a role for a different set of sections.",
     businessDeveloperMemberHint:
       "This is a business developer's login. Manage it in {{section}} → {{page}}.",
     businessDeveloperRoleHint:
@@ -124,16 +123,15 @@ const copy = {
     systemRole: "内置",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "商务开发",
-      AFFILIATE_SUPERVISOR: "达人主管",
+      AFFILIATE_SUPERVISOR: "商务开发主管",
       CUSTOMER_SERVICE: "客服",
     },
-    systemRoleNameHint: "内置角色的名称不可修改，但仍可调整它授予的板块。",
     roleNameLabel: "角色名称",
     roleNamePlaceholder: "例如：商务开发",
     roleScopesLabel: "可见板块",
     roleScopesHint: "自动化、连接和账号相关页面对所有子账号始终可见。",
     roleInUseHint: "删除前请先把该角色下的子账号转移到其他角色。",
-    systemRoleUndeletableHint: "内置角色不可删除。",
+    systemRoleLockedHint: "内置角色不可编辑或删除。如需其他板块组合，请新建角色。",
     businessDeveloperMemberHint: "这是 BD 的登录账号，请在「{{section}} → {{page}}」中管理。",
     businessDeveloperRoleHint:
       "BD 在「{{section}} → {{page}}」创建登录账号时获得此角色，其可见板块固定不变。",
@@ -196,17 +194,16 @@ const copy = {
     systemRole: "Vorgegeben",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Business Developer",
-      AFFILIATE_SUPERVISOR: "Affiliate-Supervisor",
+      AFFILIATE_SUPERVISOR: "Business-Developer-Supervisor",
       CUSTOMER_SERVICE: "Kundenservice",
     },
-    systemRoleNameHint:
-      "Der Name einer vorgegebenen Rolle bleibt fest, die gewährten Bereiche können Sie dennoch ändern.",
     roleNameLabel: "Rollenname",
     roleNamePlaceholder: "z. B. Business Developer",
     roleScopesLabel: "Bereiche",
     roleScopesHint: "Automatisierung, Verbindungen und die Kontoseiten bleiben für alle verfügbar.",
     roleInUseHint: "Weisen Sie die Unterkonten vor dem Löschen einer anderen Rolle zu.",
-    systemRoleUndeletableHint: "Eine vorgegebene Rolle kann nicht gelöscht werden.",
+    systemRoleLockedHint:
+      "Eine vorgegebene Rolle kann weder bearbeitet noch gelöscht werden. Legen Sie für andere Bereiche eine eigene Rolle an.",
     businessDeveloperMemberHint:
       "Dies ist die Anmeldung eines BD. Verwalten Sie sie unter {{section}} → {{page}}.",
     businessDeveloperRoleHint:
@@ -271,18 +268,17 @@ const copy = {
     systemRole: "Integrado",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Desarrollo de negocio",
-      AFFILIATE_SUPERVISOR: "Supervisor de afiliados",
+      AFFILIATE_SUPERVISOR: "Supervisor de desarrollo de negocio",
       CUSTOMER_SERVICE: "Servicio al cliente",
     },
-    systemRoleNameHint:
-      "Un rol integrado conserva su nombre, pero puedes cambiar las secciones que concede.",
     roleNameLabel: "Nombre del rol",
     roleNamePlaceholder: "p. ej. Business developer",
     roleScopesLabel: "Secciones",
     roleScopesHint:
       "Automatización, Conexiones y las páginas de cuenta siguen disponibles para todos.",
     roleInUseHint: "Mueve sus subcuentas a otro rol antes de eliminarlo.",
-    systemRoleUndeletableHint: "Un rol integrado no se puede eliminar.",
+    systemRoleLockedHint:
+      "Un rol integrado no se puede editar ni eliminar. Crea un rol para otra combinación de secciones.",
     businessDeveloperMemberHint: "Es el acceso de un BD. Gestiónalo en {{section}} → {{page}}.",
     businessDeveloperRoleHint:
       "Los BD reciben este rol con su acceso en {{section}} → {{page}}. Sus secciones son fijas.",
@@ -346,17 +342,16 @@ const copy = {
     systemRole: "Intégré",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Business developer",
-      AFFILIATE_SUPERVISOR: "Superviseur affiliation",
+      AFFILIATE_SUPERVISOR: "Superviseur business developer",
       CUSTOMER_SERVICE: "Service client",
     },
-    systemRoleNameHint:
-      "Un rôle intégré conserve son nom, mais vous pouvez toujours changer les sections qu’il accorde.",
     roleNameLabel: "Nom du rôle",
     roleNamePlaceholder: "ex. Business developer",
     roleScopesLabel: "Sections",
     roleScopesHint: "Automatisation, Connexions et les pages de compte restent accessibles à tous.",
     roleInUseHint: "Transférez ses sous-comptes vers un autre rôle avant de le supprimer.",
-    systemRoleUndeletableHint: "Un rôle intégré ne peut pas être supprimé.",
+    systemRoleLockedHint:
+      "Un rôle intégré ne peut être ni modifié ni supprimé. Créez un rôle pour une autre combinaison de sections.",
     businessDeveloperMemberHint:
       "C'est la connexion d'un BD. Gérez-la dans {{section}} → {{page}}.",
     businessDeveloperRoleHint:
@@ -420,17 +415,16 @@ const copy = {
     systemRole: "Bawaan",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Business developer",
-      AFFILIATE_SUPERVISOR: "Supervisor Afiliasi",
+      AFFILIATE_SUPERVISOR: "Supervisor business developer",
       CUSTOMER_SERVICE: "Layanan Pelanggan",
     },
-    systemRoleNameHint:
-      "Peran bawaan mempertahankan namanya, tetapi bagian yang diberikan tetap bisa diubah.",
     roleNameLabel: "Nama peran",
     roleNamePlaceholder: "mis. Business Developer",
     roleScopesLabel: "Bagian",
     roleScopesHint: "Otomatisasi, Koneksi, dan halaman akun selalu tersedia untuk semua orang.",
     roleInUseHint: "Pindahkan subakunnya ke peran lain sebelum menghapus peran ini.",
-    systemRoleUndeletableHint: "Peran bawaan tidak dapat dihapus.",
+    systemRoleLockedHint:
+      "Peran bawaan tidak dapat diubah atau dihapus. Buat peran baru untuk kombinasi bagian lain.",
     businessDeveloperMemberHint: "Ini adalah login milik BD. Kelola di {{section}} → {{page}}.",
     businessDeveloperRoleHint:
       "BD mendapat peran ini dari login mereka di {{section}} → {{page}}. Bagiannya tetap.",
@@ -494,17 +488,16 @@ const copy = {
     systemRole: "Predefinito",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Business developer",
-      AFFILIATE_SUPERVISOR: "Supervisore affiliati",
+      AFFILIATE_SUPERVISOR: "Supervisore business developer",
       CUSTOMER_SERVICE: "Servizio clienti",
     },
-    systemRoleNameHint:
-      "Un ruolo predefinito mantiene il nome, ma puoi comunque cambiare le sezioni che concede.",
     roleNameLabel: "Nome del ruolo",
     roleNamePlaceholder: "es. Business developer",
     roleScopesLabel: "Sezioni",
     roleScopesHint: "Automazione, Connessioni e le pagine account restano disponibili a tutti.",
     roleInUseHint: "Sposta i suoi sottoaccount su un altro ruolo prima di eliminarlo.",
-    systemRoleUndeletableHint: "Un ruolo predefinito non può essere eliminato.",
+    systemRoleLockedHint:
+      "Un ruolo predefinito non può essere modificato né eliminato. Crea un ruolo per un'altra combinazione di sezioni.",
     businessDeveloperMemberHint: "È l'accesso di un BD. Gestiscilo in {{section}} → {{page}}.",
     businessDeveloperRoleHint:
       "I BD ricevono questo ruolo con il loro accesso in {{section}} → {{page}}. Le sue sezioni sono fisse.",
@@ -566,16 +559,15 @@ const copy = {
     systemRole: "ในระบบ",
     systemRoleNames: {
       BUSINESS_DEVELOPER: "Business developer",
-      AFFILIATE_SUPERVISOR: "หัวหน้าฝ่ายพันธมิตร",
+      AFFILIATE_SUPERVISOR: "หัวหน้า Business developer",
       CUSTOMER_SERVICE: "บริการลูกค้า",
     },
-    systemRoleNameHint: "บทบาทในระบบจะคงชื่อเดิมไว้ แต่ยังปรับส่วนที่อนุญาตได้",
     roleNameLabel: "ชื่อบทบาท",
     roleNamePlaceholder: "เช่น Business Developer",
     roleScopesLabel: "ส่วนที่เข้าถึงได้",
     roleScopesHint: "ระบบอัตโนมัติ การเชื่อมต่อ และหน้าบัญชี เปิดให้ทุกคนใช้งานได้เสมอ",
     roleInUseHint: "โปรดย้ายบัญชีย่อยไปยังบทบาทอื่นก่อนลบบทบาทนี้",
-    systemRoleUndeletableHint: "ไม่สามารถลบบทบาทในระบบได้",
+    systemRoleLockedHint: "ไม่สามารถแก้ไขหรือลบบทบาทในระบบได้ สร้างบทบาทใหม่หากต้องการชุดส่วนอื่น",
     businessDeveloperMemberHint: "นี่คือบัญชีเข้าสู่ระบบของ BD จัดการได้ที่ {{section}} → {{page}}",
     businessDeveloperRoleHint:
       "BD จะได้รับบทบาทนี้จากบัญชีเข้าสู่ระบบที่ {{section}} → {{page}} ส่วนที่มองเห็นได้กำหนดไว้ตายตัว",

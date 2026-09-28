@@ -12,16 +12,87 @@
   line-height: 1.5;
 }
 
+.affiliate-bd-login-heading {
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-body);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-body);
+}
+
+.affiliate-bd-login-caption {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: var(--tk-v1-line-supporting);
+}
+
+/* The account card: account row, access scope, and (with a login) the danger
+   zone, each a TkPanelBody that owns its inset. Siblings are split by a rule. */
+.affiliate-bd-login-card > .tk-v1-panel-body + .tk-v1-panel-body {
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+/* Copy on the left, actions pushed to the right; the actions wrap below the
+   copy when the modal is narrow instead of scrolling sideways. */
+.affiliate-bd-login-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-3) var(--tk-v1-space-4);
+}
+
+.affiliate-bd-login-row-copy {
+  display: grid;
+  flex: 1 1 280px;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+}
+
 .affiliate-bd-login-actions {
   display: flex;
+  flex: 0 1 auto;
   flex-wrap: wrap;
   gap: var(--tk-v1-space-2);
 }
 
-.affiliate-bd-login-status {
+.affiliate-bd-login-identity {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.affiliate-bd-login-email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--tk-v1-fg-default);
+  font-family: var(--tk-v1-font-mono);
+  font-size: var(--tk-v1-type-section-title);
+  font-weight: 600;
+  line-height: var(--tk-v1-line-section-title);
+}
+
+.affiliate-bd-login-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2) var(--tk-v1-space-3);
+}
+
+.affiliate-bd-login-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The danger zone closes the card on a quiet danger tint. */
+.affiliate-bd-login-card > .tk-v1-panel-body.affiliate-bd-login-danger {
+  border-top-color: color-mix(in srgb, var(--tk-v1-danger) 22%, var(--tk-v1-border-subtle));
+  background: color-mix(in srgb, var(--tk-v1-danger) 4%, var(--tk-v1-bg-surface));
 }
 
 .affiliate-bd-login-password {
