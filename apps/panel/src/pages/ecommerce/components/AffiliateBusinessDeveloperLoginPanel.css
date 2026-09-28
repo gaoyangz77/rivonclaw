@@ -17,3 +17,62 @@
   flex-wrap: wrap;
   gap: var(--tk-v1-space-2);
 }
+
+.affiliate-bd-login-status {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-bd-login-password {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-bd-login-password-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-bd-login-password-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.affiliate-bd-login-password-field .tk-v1-input,
+.affiliate-bd-login-credential-value {
+  font-family: var(--tk-v1-font-mono);
+}
+
+/* The one-time login-info card shown after a create or a password reset. */
+.affiliate-bd-login-credentials {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  margin: 0;
+}
+
+.affiliate-bd-login-credential {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-bd-login-credential dt {
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-bd-login-credential dd {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+}
+
+.affiliate-bd-login-credential-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-body);
+  user-select: all;
+}
