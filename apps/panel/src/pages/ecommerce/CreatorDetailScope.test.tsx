@@ -18,7 +18,7 @@ const state = vi.hoisted(() => ({
       { id: "2", alias: "2号店", shopName: "Two" },
     ],
     affiliateWorkspace: {
-      businessDevelopers: [],
+      businessDevelopers: [] as Array<{ id: string; displayName: string; archivedAt?: string }>,
       replaceAffiliateBusinessDevelopers: vi.fn(),
       getBusinessDeveloper: vi.fn(),
     },
@@ -112,6 +112,7 @@ afterEach(cleanup);
 function view(
   relationshipId = "creator",
   tab: "overview" | "samples" | "conversation" = "overview",
+  businessDeveloperOnly = false,
 ) {
   return (
     <ToastProvider>
@@ -119,6 +120,7 @@ function view(
         relationshipId={relationshipId}
         selectedShopId="2"
         initialTab={tab}
+        businessDeveloperOnly={businessDeveloperOnly}
         onClose={vi.fn()}
       />
     </ToastProvider>
@@ -251,5 +253,78 @@ describe("Creator Detail scope integration", () => {
     instance.rerender(view("creator", "samples"));
     expect(screen.getByText("审核备注")).toBeTruthy();
     expect(screen.getByText("库存和内容方向均已人工确认")).toBeTruthy();
+  });
+});
+
+describe("Creator Detail for a business developer (ADR 085)", () => {
+  const ALICE = { id: "bd-alice", displayName: "Alice" };
+
+  beforeEach(() => {
+    state.entityStore.affiliateWorkspace.businessDevelopers = [ALICE];
+    state.entityStore.affiliateWorkspace.getBusinessDeveloper.mockImplementation((id: string) =>
+      id === ALICE.id ? ALICE : undefined,
+    );
+    const relationship = state.detail.creatorRelationship as Record<string, unknown>;
+    relationship.businessDeveloperId = ALICE.id;
+    relationship.manualTags = [{ id: "tag-vip", name: "VIP", sensitive: false }];
+  });
+  afterEach(() => {
+    state.entityStore.affiliateWorkspace.businessDevelopers = [];
+    state.entityStore.affiliateWorkspace.getBusinessDeveloper.mockReset();
+  });
+
+  function openManagement() {
+    fireEvent.click(
+      screen.getByRole("tab", {
+        name: i18n.t("ecommerce.affiliateWorkspace.relationshipInspectorManagement"),
+      }),
+    );
+  }
+  const ownerCard = () => document.querySelector(".affiliate-relationship-owner-card")!;
+  const renameLabel = () =>
+    i18n.t("ecommerce.affiliateWorkspace.manualTags.rename", { name: "VIP" });
+  const removeLabel = () =>
+    i18n.t("ecommerce.affiliateWorkspace.manualTags.remove", { name: "VIP" });
+  const createLabel = () =>
+    i18n.t("ecommerce.affiliateWorkspace.manualTags.createAndAdd", { name: "New label" });
+  function searchNewTag() {
+    fireEvent.change(
+      screen.getByRole("textbox", {
+        name: i18n.t("ecommerce.affiliateWorkspace.manualTags.searchLabel"),
+      }),
+      { target: { value: "New label" } },
+    );
+  }
+
+  it("shows the owning BD as text and offers no owner reassignment", () => {
+    render(view("creator", "overview", true));
+    openManagement();
+
+    expect(ownerCard().querySelector("label")).toBeNull();
+    expect(ownerCard().querySelector(".affiliate-relationship-owner-value")?.textContent).toContain(
+      "Alice",
+    );
+  });
+
+  it("keeps assigning and removing tags but withholds creating and renaming them", () => {
+    render(view("creator", "overview", true));
+    openManagement();
+    searchNewTag();
+
+    expect(screen.getByRole("button", { name: removeLabel() })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: renameLabel() })).toBeNull();
+    expect(screen.queryByRole("button", { name: createLabel() })).toBeNull();
+  });
+
+  it("keeps owner reassignment and tag catalog edits for a supervisor", () => {
+    render(view("creator", "overview", false));
+    openManagement();
+    searchNewTag();
+
+    expect(ownerCard().querySelector("label")).not.toBeNull();
+    expect(ownerCard().querySelector(".affiliate-relationship-owner-value")).toBeNull();
+    expect(screen.getByRole("button", { name: removeLabel() })).toBeTruthy();
+    expect(screen.getByRole("button", { name: renameLabel() })).toBeTruthy();
+    expect(screen.getByRole("button", { name: createLabel() })).toBeTruthy();
   });
 });

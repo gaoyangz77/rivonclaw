@@ -3007,11 +3007,13 @@
   color: var(--accent-color);
   font-size: 12px;
 }
-.affiliate-relationship-owner-card > label {
+.affiliate-relationship-owner-card > label,
+.affiliate-relationship-owner-card > .affiliate-relationship-owner-value {
   display: grid;
   gap: 6px;
 }
 .affiliate-relationship-owner-card > label > span,
+.affiliate-relationship-owner-card > .affiliate-relationship-owner-value > span,
 .affiliate-relationship-owner-card > small {
   color: var(--text-muted);
   font-size: 12px;

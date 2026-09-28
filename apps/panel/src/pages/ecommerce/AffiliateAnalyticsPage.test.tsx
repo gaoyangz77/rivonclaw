@@ -839,6 +839,19 @@ describe("AffiliateAnalyticsPage business developer access", () => {
       "true",
     );
     expect(screen.getByRole("button", { name: "Search details" })).toBeTruthy();
+    // Overview and Explore read the BI catalog and overview queries, which the backend refuses
+    // for a business developer; neither is mounted, so neither is issued.
+    const issued = mocks.queryCalls.map((call) => call.operation);
+    for (const operation of [
+      "AffiliateBiCatalog",
+      "AffiliateOverviewPortfolio",
+      "AffiliateOverviewReachout",
+      "AffiliateOverviewApproval",
+      "AffiliateOverviewPostApproval",
+    ]) {
+      expect(issued).not.toContain(operation);
+    }
+    expect(mocks.valuesQuery).not.toHaveBeenCalled();
   });
 
   it("keeps every tab for a member holding full Affiliate", () => {

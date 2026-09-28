@@ -101,6 +101,7 @@ export function AffiliateCreatorManualTagEditor({
   systemTags = [],
   lastChange,
   lastSystemTagChange = null,
+  canEditTagDefinitions,
   onChanged,
 }: {
   relationshipId: string;
@@ -108,6 +109,12 @@ export function AffiliateCreatorManualTagEditor({
   systemTags?: readonly GQL.AffiliateCreatorSystemTag[];
   lastChange: CreatorManualTagChange | null;
   lastSystemTagChange?: CreatorSystemTagChange | null;
+  /**
+   * Whether the viewer may create and rename catalog tags. A business developer
+   * (ADR 085) assigns and removes existing tags only; the catalog itself is
+   * supervision work.
+   */
+  canEditTagDefinitions: boolean;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -164,10 +171,11 @@ export function AffiliateCreatorManualTagEditor({
   const systemTagDefinitions = systemTagDefinitionData?.affiliateCreatorSystemTagDefinitions ?? [];
   const selectable = selectableManualTags(catalog, manualTags);
   const trimmedSearch = search.trim();
-  const canCreate = canCreateManualTag(catalog, trimmedSearch);
-  const renameTarget = renameTagId
-    ? (manualTags.find((tag) => tag.id === renameTagId) ?? null)
-    : null;
+  const canCreate = canEditTagDefinitions && canCreateManualTag(catalog, trimmedSearch);
+  const renameTarget =
+    canEditTagDefinitions && renameTagId
+      ? (manualTags.find((tag) => tag.id === renameTagId) ?? null)
+      : null;
   const renameIssue = renameTarget
     ? manualTagRenameIssue(catalog, renameTarget.id, renameTarget.name, renameDraft)
     : null;
@@ -370,16 +378,20 @@ export function AffiliateCreatorManualTagEditor({
           manualTags.map((tag) => (
             <span className="affiliate-creator-tag" key={tag.id}>
               <span>{tag.name}</span>
-              <button
-                className="affiliate-creator-tag-rename"
-                type="button"
-                onClick={() => openRename(tag.id, tag.name)}
-                disabled={busy}
-                aria-label={t("ecommerce.affiliateWorkspace.manualTags.rename", { name: tag.name })}
-                title={t("ecommerce.affiliateWorkspace.manualTags.rename", { name: tag.name })}
-              >
-                ✎
-              </button>
+              {canEditTagDefinitions ? (
+                <button
+                  className="affiliate-creator-tag-rename"
+                  type="button"
+                  onClick={() => openRename(tag.id, tag.name)}
+                  disabled={busy}
+                  aria-label={t("ecommerce.affiliateWorkspace.manualTags.rename", {
+                    name: tag.name,
+                  })}
+                  title={t("ecommerce.affiliateWorkspace.manualTags.rename", { name: tag.name })}
+                >
+                  ✎
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void remove(tag.id)}

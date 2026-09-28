@@ -64,6 +64,7 @@ import {
 } from "../../components/icons.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
+import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AffiliateSampleIgnoreButton,
@@ -1033,6 +1034,8 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  // Derived on every render so it follows the signed-in user (ADR 085).
+  const businessDeveloperOnly = isBusinessDeveloperOnly(user);
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
@@ -1845,6 +1848,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
           selectedShopId={selectedShopId}
+          businessDeveloperOnly={businessDeveloperOnly}
           onDecideProposal={async (proposal, status, note, override) => {
             const handled = await decideProposal(proposal, status, note, override);
             if (handled) {
@@ -1863,6 +1867,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
           initialTab={selectedEntityTarget.initialTab}
           replyToLifecycleEventId={selectedEntityTarget.replyToLifecycleEventId}
           hasPendingProposal={selectedEntityTarget.hasPendingProposal}
+          businessDeveloperOnly={businessDeveloperOnly}
           onWorkbenchEntityChanged={() => {
             setWorkbenchEntityRefreshRevision((revision) => revision + 1);
           }}
@@ -3367,6 +3372,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  // A business developer cannot open the BD roster detail or reassign owners (ADR 085).
+  const businessDeveloperOnly = isBusinessDeveloperOnly(user);
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter(
     // Manual Creator CRM is available without enabling the Affiliate Agent.
@@ -3746,7 +3753,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                     ? (businessDeveloperById.get(item.creatorRelation.businessDeveloperId) ?? null)
                     : null
                 }
-                onOpenBusinessDeveloper={setDetailBusinessDeveloperId}
+                onOpenBusinessDeveloper={
+                  businessDeveloperOnly ? null : setDetailBusinessDeveloperId
+                }
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
               />
             ))}
@@ -3787,6 +3796,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
           selectedShopId={selectedShopId}
+          businessDeveloperOnly={businessDeveloperOnly}
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
@@ -3810,7 +3820,8 @@ function CreatorRelationshipCompactCard({
   item: AffiliateCreatorManagementItem;
   shopLabel: (shopId: string) => ShopDisplayLabel;
   businessDeveloper: GQL.AffiliateBusinessDeveloper | null;
-  onOpenBusinessDeveloper: (businessDeveloperId: string) => void;
+  /** Null when the viewer may not open the BD roster detail (a BD-only member). */
+  onOpenBusinessDeveloper: ((businessDeveloperId: string) => void) | null;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
 }) {
   const { t } = useTranslation();
@@ -4047,7 +4058,7 @@ function CreatorRelationshipCompactCard({
         <span className="affiliate-creator-compact-owner-label">
           {t("ecommerce.affiliateTeam.businessDeveloper")}
         </span>
-        {businessDeveloper ? (
+        {businessDeveloper && onOpenBusinessDeveloper ? (
           <button
             className="affiliate-creator-owner-link"
             type="button"
@@ -4272,11 +4283,14 @@ type AffiliateCollaborationDetailQueryData = {
 function AffiliateCollaborationDetailModal({
   collaborationId,
   shopLabel,
+  canManage,
   onClose,
   onChanged,
 }: {
   collaborationId: string;
   shopLabel: (shopId: string) => ShopDisplayLabel;
+  /** Editing and removing a collaboration is supervision work (ADR 085); reading is not. */
+  canManage: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -4359,7 +4373,7 @@ function AffiliateCollaborationDetailModal({
             ) : null}
           </div>
           <div className="affiliate-platform-collaboration-header-actions">
-            {collaboration ? (
+            {collaboration && canManage ? (
               <button
                 className={editing ? "btn btn-secondary" : "btn btn-primary"}
                 type="button"
@@ -4557,27 +4571,29 @@ function AffiliateCollaborationDetailModal({
                 </aside>
               </div>
 
-              <footer className="affiliate-platform-collaboration-danger-zone">
-                <div>
-                  <strong>
-                    {t("ecommerce.affiliateWorkspace.collaborationOperations.stopCollaboration")}
-                  </strong>
-                  <span>
-                    {t(
-                      "ecommerce.affiliateWorkspace.collaborationOperations.stopCollaborationHint",
-                    )}
-                  </span>
-                </div>
-                <button
-                  className="btn btn-danger"
-                  type="button"
-                  onClick={() => setRemoveConfirmOpen(true)}
-                >
-                  {t("ecommerce.affiliateWorkspace.collaborationOperations.removeFromPlatform")}
-                </button>
-              </footer>
+              {canManage ? (
+                <footer className="affiliate-platform-collaboration-danger-zone">
+                  <div>
+                    <strong>
+                      {t("ecommerce.affiliateWorkspace.collaborationOperations.stopCollaboration")}
+                    </strong>
+                    <span>
+                      {t(
+                        "ecommerce.affiliateWorkspace.collaborationOperations.stopCollaborationHint",
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    onClick={() => setRemoveConfirmOpen(true)}
+                  >
+                    {t("ecommerce.affiliateWorkspace.collaborationOperations.removeFromPlatform")}
+                  </button>
+                </footer>
+              ) : null}
 
-              {editing ? (
+              {editing && canManage ? (
                 <aside
                   className="affiliate-platform-editor-drawer affiliate-platform-collaboration-edit-drawer is-open"
                   aria-label={t(
@@ -6450,6 +6466,9 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  // A business developer reads collaborations but does not create, edit or remove them,
+  // nor change shop-wide open collaboration settings (ADR 085).
+  const canManageCollaborations = !isBusinessDeveloperOnly(user);
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
@@ -6668,22 +6687,26 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
                 searchable
                 searchPlaceholder={t("common.searchShops")}
               />
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={() => setOpenSettingsOpen(true)}
-                disabled={shopOptions.length <= 1}
-              >
-                {t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}
-              </button>
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={() => setCreateCollaborationOpen(true)}
-                disabled={shopOptions.length <= 1}
-              >
-                {t("ecommerce.affiliateWorkspace.collaborationOperations.newCollaboration")}
-              </button>
+              {canManageCollaborations ? (
+                <>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => setOpenSettingsOpen(true)}
+                    disabled={shopOptions.length <= 1}
+                  >
+                    {t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={() => setCreateCollaborationOpen(true)}
+                    disabled={shopOptions.length <= 1}
+                  >
+                    {t("ecommerce.affiliateWorkspace.collaborationOperations.newCollaboration")}
+                  </button>
+                </>
+              ) : null}
               <button
                 className="btn btn-secondary"
                 type="button"
@@ -6867,6 +6890,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         <AffiliateCollaborationDetailModal
           collaborationId={selectedCollaborationId}
           shopLabel={shopLabel}
+          canManage={canManageCollaborations}
           onClose={() => setSelectedCollaborationId(null)}
           onChanged={() => void refetch()}
         />
@@ -10331,6 +10355,7 @@ function CreatorRelationshipDetailContent({
   initialTab = "overview",
   replyToLifecycleEventId,
   hasPendingProposal = false,
+  businessDeveloperOnly,
   onWorkbenchEntityChanged,
   onDecideProposal,
   onClose,
@@ -10338,6 +10363,12 @@ function CreatorRelationshipDetailContent({
   item?: CreatorRelationshipDetailItem;
   relationshipId?: string;
   selectedShopId: string;
+  /**
+   * The viewer works in the business developer (BD) workspace only (ADR 085):
+   * the Creator's owning BD is shown, not reassigned, and the shared tag
+   * catalog is used, not redefined. Derived once by the page shell.
+   */
+  businessDeveloperOnly: boolean;
   initialTab?: "profile" | "overview" | "samples" | "platform" | "conversation" | "activity";
   replyToLifecycleEventId?: string;
   hasPendingProposal?: boolean;
@@ -11615,16 +11646,27 @@ function CreatorRelationshipDetailContent({
                   <span>{t("ecommerce.affiliateWorkspace.relationshipOwner")}</span>
                   <strong>{effectiveAiLabel}</strong>
                 </div>
-                <label>
-                  <span>{t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}</span>
-                  <Select
-                    value={relationshipOwnerId}
-                    onChange={updateRelationshipOwner}
-                    options={ownerOptions}
-                    placeholder={t("ecommerce.affiliateTeam.aiTeam")}
-                    disabled={!relationshipId || ownershipBusy}
-                  />
-                </label>
+                {businessDeveloperOnly ? (
+                  <div className="affiliate-relationship-owner-value">
+                    <span>{t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}</span>
+                    <strong>
+                      {relationshipOwnerId
+                        ? (relationshipOwner?.displayName ?? "—")
+                        : t("ecommerce.affiliateTeam.aiTeam")}
+                    </strong>
+                  </div>
+                ) : (
+                  <label>
+                    <span>{t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}</span>
+                    <Select
+                      value={relationshipOwnerId}
+                      onChange={updateRelationshipOwner}
+                      options={ownerOptions}
+                      placeholder={t("ecommerce.affiliateTeam.aiTeam")}
+                      disabled={!relationshipId || ownershipBusy}
+                    />
+                  </label>
+                )}
                 <div className="affiliate-relationship-protection-control">
                   <span>{t("ecommerce.affiliateWorkspace.relationshipAiParticipation")}</span>
                   <strong>
@@ -11721,6 +11763,7 @@ function CreatorRelationshipDetailContent({
                 systemTags={relationship?.systemTags ?? []}
                 lastChange={lastManualTagChange}
                 lastSystemTagChange={lastSystemTagChange}
+                canEditTagDefinitions={!businessDeveloperOnly}
                 onChanged={() => {
                   void refetchRelationshipDetail();
                   void refetchRelationshipTimeline();

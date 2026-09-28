@@ -2532,6 +2532,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         <CreatorRelationshipDetailModal
           item={selectedCreatorDetail}
           selectedShopId={selectedCampaign?.shopId ?? ""}
+          // Campaigns are supervision work: a BD-only member never reaches this page.
+          businessDeveloperOnly={false}
           onClose={() => setSelectedCreatorDetail(null)}
         />
       )}
