@@ -21,6 +21,8 @@ import {
 import { openClawConnector } from "../openclaw/index.js";
 
 const log = createLogger("cloud-graphql-proxy");
+const SLOW_GRAPHQL_REQUEST_MS = 1_000;
+const SLOW_GRAPHQL_INGEST_MS = 250;
 
 // ── Deletion mutation map ────────────────────────────────────────────────────
 // Maps GraphQL operation names to __typename so the proxy can remove entities
@@ -588,8 +590,10 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   }
 
   // Transparent proxy: always returns 200 with standard GraphQL response.
+  const requestStartedAt = performance.now();
   try {
     await ensureAffiliateResolveCheckpointSnapshot(opName, body.query, variables);
+    const preflightCompletedAt = performance.now();
     const isExtension = req.headers["x-request-source"] === "extension";
     const requestedPersistent = body.extensions?.rivonclaw;
     const requestExtensions =
@@ -609,14 +613,17 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     const data = envelope
       ? envelope.data
       : await ctx.authSession.graphqlFetch(body.query, variables);
+    const backendCompletedAt = performance.now();
     recordAffiliateTerminalToolSuccess(opName, body.query, variables, data);
     captureAffiliatePredictionEvidence(opName, variables, data);
 
     // Only ingest Panel responses into MST. Extension (agent tool) responses
     // return partial entities that would overwrite complete store data.
+    const ingestStartedAt = performance.now();
     if (!isExtension) {
       rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
     }
+    const ingestCompletedAt = performance.now();
 
     // Delete mutations return booleans, which ingestGraphQLResponse skips.
     // Use the explicit map to remove the entity from Desktop MST → SSE patch → Panel.
@@ -641,8 +648,32 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     const responseEnvelope = envelope
       ? { ...envelope, data: responseData }
       : { data: responseData };
+    const requestCompletedAt = performance.now();
+    const preflightMs = preflightCompletedAt - requestStartedAt;
+    const backendMs = backendCompletedAt - preflightCompletedAt;
+    const ingestMs = ingestCompletedAt - ingestStartedAt;
+    const postprocessMs = requestCompletedAt - backendCompletedAt - ingestMs;
+    const totalMs = requestCompletedAt - requestStartedAt;
+    if (totalMs >= SLOW_GRAPHQL_REQUEST_MS || ingestMs >= SLOW_GRAPHQL_INGEST_MS) {
+      log.warn("Slow cloud GraphQL operation", {
+        operationName: opName ?? "unknown",
+        requestSource: isExtension ? "extension" : "panel",
+        preflightMs: Math.round(preflightMs),
+        backendMs: Math.round(backendMs),
+        ingestMs: Math.round(ingestMs),
+        postprocessMs: Math.round(postprocessMs),
+        totalMs: Math.round(totalMs),
+      });
+    }
     sendJson(res, 200, responseEnvelope);
   } catch (err) {
+    const totalMs = performance.now() - requestStartedAt;
+    if (totalMs >= SLOW_GRAPHQL_REQUEST_MS) {
+      log.warn("Slow failed cloud GraphQL operation", {
+        operationName: opName ?? "unknown",
+        totalMs: Math.round(totalMs),
+      });
+    }
     // undici's "fetch failed" TypeError hides the real error in .cause
     const cause =
       err instanceof Error && "cause" in err

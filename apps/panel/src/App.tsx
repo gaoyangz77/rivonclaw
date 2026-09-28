@@ -35,6 +35,7 @@ import { useWorkspaceTabs } from "./hooks/useWorkspaceTabs.js";
 import { activeWorkspaceTab } from "./lib/workspace-tabs.js";
 import { WorkspaceTabProvider } from "./lib/workspace-tab-context.js";
 import { PageErrorBoundary } from "./components/PageErrorBoundary.js";
+import { WorkspaceTabActivity } from "./components/WorkspaceTabActivity.js";
 import { TkConfirmDialog } from "./components/design-system/index.js";
 import { useToast } from "./components/Toast.js";
 
@@ -620,12 +621,15 @@ export const App = observer(function App() {
                     })}
                     retryLabel={t("common.reload")}
                   >
-                    {(active || (visitedTabs.userId === currentUserId && visitedTabs.ids.has(tab.id))) &&
-                      (tab.path === "/account/profile" ? (
-                        <Page onNavigate={navigate} onRequestLogout={requestLogout} />
-                      ) : (
-                        <Page />
-                      ))}
+                    {(active || (visitedTabs.userId === currentUserId && visitedTabs.ids.has(tab.id))) && (
+                      <WorkspaceTabActivity active={active}>
+                        {tab.path === "/account/profile" ? (
+                          <Page onNavigate={navigate} onRequestLogout={requestLogout} />
+                        ) : (
+                          <Page />
+                        )}
+                      </WorkspaceTabActivity>
+                    )}
                   </PageErrorBoundary>
                 </WorkspaceTabProvider>
               </div>

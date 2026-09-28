@@ -3688,10 +3688,11 @@ function CampaignStateFilterGroup<T extends string>({
   const rootRef = useRef<HTMLDetailsElement | null>(null);
 
   useEffect(() => {
-    if (!workspaceTab.active) {
+    if (!workspaceTab.active) return;
+    return () => {
       rootRef.current?.removeAttribute("open");
       setOpen(false);
-    }
+    };
   }, [workspaceTab.active]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, shell, dialog, screen } from "electron";
+import { app, BrowserWindow, Menu, Tray, shell, dialog, screen, powerMonitor } from "electron";
 import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   ensureGatewayConfig,
@@ -152,6 +152,7 @@ import {
   parseDesktopWebSessionDeepLink,
   type DesktopWebSessionRequest,
 } from "../auth/desktop-to-web-handoff.js";
+import { startResponsivenessMonitor } from "./responsiveness-monitor.js";
 
 const log = createLogger("desktop");
 
@@ -1268,6 +1269,13 @@ app.whenReady().then(async () => {
       contextIsolation: true,
     },
   });
+  const stopResponsivenessMonitor = startResponsivenessMonitor({
+    app,
+    window: mainWindow,
+    powerMonitor,
+    log,
+  });
+  mainWindow.once("closed", stopResponsivenessMonitor);
 
   const inFlightDesktopWebSessions = new Set<string>();
   handleDesktopWebSessionRequest = async (request) => {

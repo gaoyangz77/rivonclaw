@@ -241,6 +241,18 @@ describe("Panel architecture guardrails", () => {
     }
   });
 
+  it("keeps Chat pinned while suspending visited non-Chat workspace tabs", () => {
+    const appSource = readFileSync(join(SRC_ROOT, "App.tsx"), "utf-8");
+    const chatStart = appSource.indexOf("id={chatTab ? `workspace-panel-${chatTab.id}`");
+    const nonChatStart = appSource.indexOf("{workspace.tabs", chatStart);
+    const nonChatBranch = appSource.slice(nonChatStart);
+
+    expect(chatStart).toBeGreaterThanOrEqual(0);
+    expect(nonChatStart).toBeGreaterThan(chatStart);
+    expect(appSource.slice(chatStart, nonChatStart)).not.toContain("<WorkspaceTabActivity");
+    expect(nonChatBranch).toContain("<WorkspaceTabActivity active={active}>");
+  });
+
   it("uses styled confirmation components instead of native window.confirm", () => {
     const violations = allFiles
       .filter((filePath) => readFileSync(filePath, "utf-8").includes("window.confirm"))

@@ -96,6 +96,7 @@ export const broadcastEvent: BroadcastEvent = (event, data) => {
 };
 
 const log = createLogger("panel-server");
+const SLOW_PANEL_REQUEST_MS = 1_000;
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -366,6 +367,26 @@ export async function startPanelServer(
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${requestedPort}`);
     const pathname = url.pathname;
+    const requestStartedAt = performance.now();
+    if (pathname !== "/api/events" && pathname !== "/api/doctor/run") {
+      let recorded = false;
+      const recordRequestDuration = () => {
+        if (recorded) return;
+        recorded = true;
+        const durationMs = performance.now() - requestStartedAt;
+        if (durationMs >= SLOW_PANEL_REQUEST_MS) {
+          log.warn("Slow Panel end-to-end request", {
+            method: req.method ?? "UNKNOWN",
+            pathname,
+            statusCode: res.statusCode,
+            durationMs: Math.round(durationMs),
+            completed: res.writableFinished,
+          });
+        }
+      };
+      res.once("finish", recordRequestDuration);
+      res.once("close", recordRequestDuration);
+    }
 
     // CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
