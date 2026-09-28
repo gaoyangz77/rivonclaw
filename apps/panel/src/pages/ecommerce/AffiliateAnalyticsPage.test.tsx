@@ -404,7 +404,7 @@ function postApprovalFixture() {
 
 beforeEach(() => {
   mocks.entityStore = {
-    currentUser: { id: "user-1" },
+    currentUser: { id: "user-1", isOwner: true, permissionScopes: [] },
     shops: [{ id: "shop-1", shopName: "North Shop", alias: "North", region: "US" }],
     billingOverview: { shops: [{ shopId: "shop-1", analytics: { allowed: true } }] },
   };
@@ -821,6 +821,40 @@ const CREATOR_COLUMNS = [
   "AFFILIATE_CREATOR_GMV_CURRENCY",
   ...CREATOR_ACTIVITY_BLOCK,
 ];
+
+describe("AffiliateAnalyticsPage business developer access", () => {
+  it("shows a business developer only the Details tab and opens on it", () => {
+    mocks.entityStore = {
+      ...mocks.entityStore,
+      currentUser: {
+        id: "bd-1",
+        isOwner: false,
+        permissionScopes: ["AFFILIATE_BUSINESS_DEVELOPER"],
+      },
+    };
+    render(<AffiliateAnalyticsPage />);
+
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Details"]);
+    expect(screen.getByRole("tab", { name: "Details" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Search details" })).toBeTruthy();
+  });
+
+  it("keeps every tab for a member holding full Affiliate", () => {
+    mocks.entityStore = {
+      ...mocks.entityStore,
+      currentUser: {
+        id: "supervisor-1",
+        isOwner: false,
+        permissionScopes: ["AFFILIATE", "AFFILIATE_BUSINESS_DEVELOPER"],
+      },
+    };
+    render(<AffiliateAnalyticsPage />);
+
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+  });
+});
 
 describe("AffiliateAnalyticsPage Details", () => {
   type Input = {

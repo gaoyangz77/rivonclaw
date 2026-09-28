@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { GQL } from "@rivonclaw/core";
 import {
+  AuthIcon,
   ChannelsIcon,
   CheckIcon,
   ChevronRightIcon,
@@ -72,6 +73,7 @@ import {
 import { buildAccountsList } from "../../lib/channel-accounts.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
+import { AffiliateBusinessDeveloperLoginPanel } from "./components/AffiliateBusinessDeveloperLoginPanel.js";
 import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
 import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxyPanel.js";
@@ -102,7 +104,7 @@ export const CREATOR_BULK_UPDATE_TEMPLATE_HEADERS = AFFILIATE_CREATOR_UPDATE_TEM
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
-type DeveloperDetailTab = "CHANNELS" | "SETTINGS";
+type DeveloperDetailTab = "CHANNELS" | "SETTINGS" | "LOGIN";
 type TeamPageTab = "TEAM" | "ASSIGNMENTS" | "SAFETY";
 type ProtectionImportView = "ADD" | "RESOLVE" | "PREVIEW";
 type ProtectionComposerMode = "FILE" | "MANUAL";
@@ -3181,9 +3183,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                   icon: <UserIcon />,
                   buttonProps: { "aria-controls": "affiliate-bd-panel-settings" },
                 },
+                {
+                  id: "LOGIN",
+                  label: t("ecommerce.affiliateTeam.login.tab"),
+                  icon: <AuthIcon />,
+                  buttonProps: { "aria-controls": "affiliate-bd-panel-login" },
+                },
               ]}
               value={detailTab}
-              onChange={(value) => setDetailTab(value as "CHANNELS" | "SETTINGS")}
+              onChange={(value) => setDetailTab(value as DeveloperDetailTab)}
               label={t("ecommerce.affiliateTeam.detailTabsLabel")}
               idPrefix="affiliate-bd-tab"
             />
@@ -3419,6 +3427,28 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                     myDeviceId={myDeviceId}
                     t={t}
                   />
+                </section>
+              )}
+
+              {detailTab === "LOGIN" && (
+                <section
+                  id="affiliate-bd-panel-login"
+                  className="affiliate-bd-profile-section"
+                  role="tabpanel"
+                  aria-labelledby="affiliate-bd-tab-login"
+                >
+                  <div className="affiliate-bd-command-section-head">
+                    <div className="affiliate-bd-section-title">
+                      <span className="affiliate-bd-section-icon">
+                        <AuthIcon />
+                      </span>
+                      <div>
+                        <strong>{t("ecommerce.affiliateTeam.login.title")}</strong>
+                        <span>{t("ecommerce.affiliateTeam.login.subtitle")}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <AffiliateBusinessDeveloperLoginPanel developerId={detailDeveloper.id} />
                 </section>
               )}
             </div>

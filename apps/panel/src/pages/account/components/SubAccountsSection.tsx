@@ -6,6 +6,7 @@ import { useSubAccounts } from "../hooks/useSubAccounts.js";
 import { formatLocalizedDate } from "../../../lib/format-datetime.js";
 import { AccountRolesPanel } from "./AccountRolesPanel.js";
 import { SubAccountFormModal } from "./SubAccountFormModal.js";
+import { assignableMemberRoles, isBusinessDeveloperMember } from "../account-utils.js";
 import {
   TkAlert,
   TkPanel,
@@ -28,6 +29,11 @@ export function SubAccountsSection() {
 
   const { members, roles } = subAccounts;
   const { ofMember } = useRoleDisplayName(roles);
+  const canCreateMember = assignableMemberRoles(roles).length > 0;
+  const businessDeveloperLocation = {
+    section: t("nav.affiliateManagement"),
+    page: t("nav.affiliateTeam"),
+  };
   const editingMember = editingMemberId
     ? (members.find((member) => member.id === editingMemberId) ?? null)
     : null;
@@ -59,8 +65,8 @@ export function SubAccountsSection() {
           <button
             className="btn btn-primary btn-sm"
             onClick={openCreate}
-            disabled={roles.length === 0}
-            title={roles.length === 0 ? t("subAccounts.needRoleFirst") : undefined}
+            disabled={!canCreateMember}
+            title={canCreateMember ? undefined : t("subAccounts.needRoleFirst")}
           >
             {t("subAccounts.createMember")}
           </button>
@@ -89,33 +95,35 @@ export function SubAccountsSection() {
                       ? t("subAccounts.statusDisabled")
                       : t("subAccounts.statusActive")}
                   </span>
-                  <div className="acct-item-actions">
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => openEdit(member.id)}
-                    >
-                      {t("common.edit")}
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() =>
-                        subAccounts.updateMember({
-                          memberId: member.id,
-                          disabled: !member.disabled,
-                        })
-                      }
-                      disabled={subAccounts.savingMember}
-                    >
-                      {member.disabled ? t("subAccounts.enable") : t("subAccounts.disable")}
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => setConfirmDeleteMemberId(member.id)}
-                      disabled={subAccounts.deletingMember}
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </div>
+                  {!isBusinessDeveloperMember(member) && (
+                    <div className="acct-item-actions">
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => openEdit(member.id)}
+                      >
+                        {t("common.edit")}
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() =>
+                          subAccounts.updateMember({
+                            memberId: member.id,
+                            disabled: !member.disabled,
+                          })
+                        }
+                        disabled={subAccounts.savingMember}
+                      >
+                        {member.disabled ? t("subAccounts.enable") : t("subAccounts.disable")}
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => setConfirmDeleteMemberId(member.id)}
+                        disabled={subAccounts.deletingMember}
+                      >
+                        {t("common.delete")}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="acct-item-meta">
                   <span>{member.email}</span>
@@ -126,6 +134,11 @@ export function SubAccountsSection() {
                     })}
                   </span>
                 </div>
+                {isBusinessDeveloperMember(member) && (
+                  <div className="form-hint">
+                    {t("subAccounts.businessDeveloperMemberHint", businessDeveloperLocation)}
+                  </div>
+                )}
                 <div className="acct-tool-chips">
                   {member.scopes.length === 0 ? (
                     <span className="acct-tool-chip">{t("subAccounts.noScopes")}</span>

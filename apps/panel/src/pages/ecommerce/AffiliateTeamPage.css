@@ -2054,7 +2054,8 @@
   gap: 15px;
 }
 
-.affiliate-bd-detail-scroll.is-settings .affiliate-bd-profile-section {
+.affiliate-bd-detail-scroll.is-settings .affiliate-bd-profile-section,
+.affiliate-bd-detail-scroll.is-login .affiliate-bd-profile-section {
   margin-top: 0;
 }
 

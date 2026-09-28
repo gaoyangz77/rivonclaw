@@ -202,6 +202,38 @@ describe("AffiliateWorkspaceModel", () => {
     expect(workspace.operationalSettings?.onboardingCompletedAt).toBe(NOW);
   });
 
+  it("tracks a BD's login through provision, disable and removal", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    const developer = {
+      __typename: "AffiliateBusinessDeveloper",
+      id: "bd-1",
+      userId: "user-1",
+      displayName: "Maria Internal",
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    workspace.replaceAffiliateBusinessDevelopers([developer] as any);
+    expect(workspace.getBusinessDeveloper("bd-1")?.login).toBeNull();
+
+    const login = {
+      __typename: "AffiliateBusinessDeveloperLogin",
+      userId: "member-1",
+      email: "maria@example.com",
+      disabled: false,
+    };
+    workspace.upsertAffiliateBusinessDeveloper({ ...developer, login } as any);
+    expect(workspace.getBusinessDeveloper("bd-1")?.login?.email).toBe("maria@example.com");
+
+    workspace.upsertAffiliateBusinessDeveloper({
+      ...developer,
+      login: { ...login, disabled: true },
+    } as any);
+    expect(workspace.getBusinessDeveloper("bd-1")?.login?.disabled).toBe(true);
+
+    workspace.upsertAffiliateBusinessDeveloper({ ...developer, login: null } as any);
+    expect(workspace.getBusinessDeveloper("bd-1")?.login).toBeNull();
+  });
+
   it("keeps the delivered message on a closed proposal", () => {
     // A proposal's review draft is scrubbed at terminal state, so the delivered
     // content is the only body a closed card can still show. An undeclared prop

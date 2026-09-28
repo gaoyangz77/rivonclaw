@@ -112,6 +112,13 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   updatedAt: types.optional(types.string, nowIso),
 });
 
+/** The member account a business developer signs in as (ADR 085). */
+export const AffiliateBusinessDeveloperLoginModel = types.model("AffiliateBusinessDeveloperLogin", {
+  userId: types.string,
+  email: types.string,
+  disabled: types.boolean,
+});
+
 export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDeveloper", {
   id: types.identifier,
   userId: types.string,
@@ -133,6 +140,9 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
   deviceId: types.maybeNull(types.string),
   configRevision: types.optional(types.number, 1),
   archivedAt: types.maybeNull(types.string),
+  // Null when the developer has no login. Archiving disables it; restoring
+  // the developer does not re-enable it.
+  login: types.maybeNull(AffiliateBusinessDeveloperLoginModel),
   createdAt: types.optional(types.string, nowIso),
   updatedAt: types.optional(types.string, nowIso),
 });

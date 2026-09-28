@@ -13,7 +13,7 @@ import { getUserInitial } from "../lib/user-manager.js";
 import { canSeeRoute } from "../lib/permission-scope.js";
 import { TkHierarchicalNav } from "../components/design-system/index.js";
 import { TkWorkspaceTabs, type TkWorkspaceTabItem } from "../components/design-system/index.js";
-import { buildSidebarNavigationItems } from "./sidebar-navigation.js";
+import { buildSidebarNavigationItems, selectSidebarRoutes } from "./sidebar-navigation.js";
 import { OfficeShutter } from "../components/office/OfficeShutter.js";
 import { useOfficeShutter } from "../components/office/useOfficeShutter.js";
 import { useTutorial } from "../tutorial/TutorialProvider.js";
@@ -94,8 +94,10 @@ export const Layout = observer(function Layout({
   const { isPlaying: tutorialPlaying } = useTutorial();
   const shutter = useOfficeShutter(tutorialPlaying);
 
-  const navRoutes = ROUTES.filter(
-    (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
+  const navRoutes = selectSidebarRoutes(
+    ROUTES,
+    (r) =>
+      Boolean(r.navLabelKey) && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
   );
 
   useEffect(() => {

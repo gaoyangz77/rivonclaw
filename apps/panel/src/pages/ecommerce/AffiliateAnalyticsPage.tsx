@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
 import type { AffiliateAnalyticsShop } from "./affiliate-analytics-scope.js";
 import { AffiliateExploreTab } from "./components/AffiliateExploreTab.js";
 import { AffiliateDetailsTab } from "./components/AffiliateDetailsTab.js";
@@ -10,11 +11,18 @@ import { TkPanel, TkTabs } from "../../components/design-system/index.js";
 import "./AffiliateAnalyticsPage.css";
 import "./components/AffiliateUi.css";
 
+type AnalyticsTab = "OVERVIEW" | "EXPLORE" | "DETAILS";
+
 export function AffiliateAnalyticsPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
-  const [tab, setTab] = useState<"OVERVIEW" | "EXPLORE" | "DETAILS">("OVERVIEW");
+  const [selectedTab, setSelectedTab] = useState<AnalyticsTab>("OVERVIEW");
   const user = entityStore.currentUser;
+  // A business developer works from the Details tab only (ADR 085). Derived on
+  // every render rather than seeded into state, so it follows the signed-in
+  // user even when the page mounted before `me` arrived.
+  const detailsOnly = isBusinessDeveloperOnly(user);
+  const tab: AnalyticsTab = detailsOnly ? "DETAILS" : selectedTab;
 
   // Projected to plain DTOs during render: MST nodes must never be captured in
   // state, memos or closures (`.claude/rules/mst-react-state.md`).
@@ -54,16 +62,20 @@ export function AffiliateAnalyticsPage() {
       />
       <TkTabs
         items={[
-          {
-            id: "OVERVIEW",
-            label: t("ecommerce.affiliateAnalytics.overview"),
-            buttonProps: { "data-tutorial-id": "affiliate-analytics-overview-tab" },
-          },
-          {
-            id: "EXPLORE",
-            label: t("ecommerce.affiliateAnalytics.explore.title"),
-            buttonProps: { "data-tutorial-id": "affiliate-analytics-explore-tab" },
-          },
+          ...(detailsOnly
+            ? []
+            : [
+                {
+                  id: "OVERVIEW",
+                  label: t("ecommerce.affiliateAnalytics.overview"),
+                  buttonProps: { "data-tutorial-id": "affiliate-analytics-overview-tab" },
+                },
+                {
+                  id: "EXPLORE",
+                  label: t("ecommerce.affiliateAnalytics.explore.title"),
+                  buttonProps: { "data-tutorial-id": "affiliate-analytics-explore-tab" },
+                },
+              ]),
           {
             id: "DETAILS",
             label: t("ecommerce.affiliateAnalytics.details.tab"),
@@ -71,7 +83,7 @@ export function AffiliateAnalyticsPage() {
           },
         ]}
         value={tab}
-        onChange={(value) => setTab(value as "OVERVIEW" | "EXPLORE" | "DETAILS")}
+        onChange={(value) => setSelectedTab(value as AnalyticsTab)}
         label={t("ecommerce.affiliateAnalytics.title")}
         data-tutorial-id="affiliate-analytics-tabs"
       />

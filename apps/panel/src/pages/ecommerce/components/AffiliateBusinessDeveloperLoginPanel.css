@@ -1,0 +1,19 @@
+/* Business developer login panel (ADR 085), rendered in the Team page's BD detail. */
+
+.affiliate-bd-login {
+  display: grid;
+  gap: var(--tk-v1-space-4);
+}
+
+.affiliate-bd-login-copy {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: 1.5;
+}
+
+.affiliate-bd-login-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}

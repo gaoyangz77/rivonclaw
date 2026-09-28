@@ -38,6 +38,8 @@ export interface AccountMember {
   name?: Maybe<Scalars["String"]["output"]>;
   roleId?: Maybe<Scalars["String"]["output"]>;
   roleName?: Maybe<Scalars["String"]["output"]>;
+  /** Built-in role key of the member's role. A member holding a managed built-in role (BUSINESS_DEVELOPER) is administered by its owning module and cannot be edited through the member API. */
+  roleSystemKey?: Maybe<AccountSystemRoleKey>;
   /** Effective scopes after intersecting the role grant with account entitlements. */
   scopes: Array<PermissionScope>;
 }
@@ -51,8 +53,18 @@ export interface AccountRoleType {
   memberCount: Scalars["Int"]["output"];
   name: Scalars["String"]["output"];
   scopes: Array<PermissionScope>;
+  /** Which built-in role this is. Null for a custom role. */
+  systemKey?: Maybe<AccountSystemRoleKey>;
 }
 
+/** Stable identity of a built-in account role. */
+export const AccountSystemRoleKey = {
+  AffiliateSupervisor: "AFFILIATE_SUPERVISOR",
+  BusinessDeveloper: "BUSINESS_DEVELOPER",
+  CustomerService: "CUSTOMER_SERVICE",
+} as const;
+
+export type AccountSystemRoleKey = (typeof AccountSystemRoleKey)[keyof typeof AccountSystemRoleKey];
 /** Input for acknowledging a CS escalation event */
 export interface AckCsEscalationEventInput {
   eventId: Scalars["ID"]["input"];
@@ -1142,6 +1154,8 @@ export interface AffiliateBusinessDeveloper {
   escalationChannelId?: Maybe<Scalars["String"]["output"]>;
   escalationRecipientId?: Maybe<Scalars["String"]["output"]>;
   id: Scalars["ID"]["output"];
+  /** The developer's login. Null when the developer has none. */
+  login?: Maybe<AffiliateBusinessDeveloperLogin>;
   normalizedDisplayName: Scalars["String"]["output"];
   preferredEmailAccountBindingId?: Maybe<Scalars["ID"]["output"]>;
   preferredWhatsAppAccountBindingId?: Maybe<Scalars["ID"]["output"]>;
@@ -1199,6 +1213,13 @@ export interface AffiliateBusinessDeveloperDispatchWhatsApp {
   displayName?: Maybe<Scalars["String"]["output"]>;
   /** @deprecated Populated only for Desktop builds shipped before AFFILIATE_GET_BD_CONTACT existed. Obtain the number through that tool instead: it records which Creator was given the contact, which is what makes their later message from an unknown number resolvable. */
   phoneNumber?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** The member account a business developer signs in as (ADR 085). */
+export interface AffiliateBusinessDeveloperLogin {
+  disabled: Scalars["Boolean"]["output"];
+  email: Scalars["String"]["output"];
+  userId: Scalars["ID"]["output"];
 }
 
 export interface AffiliateBusinessDeveloperPage {
@@ -11105,6 +11126,8 @@ export interface Mutation {
   /** Promote a temporary uploaded image into permanent object storage and link it to an entity. Pass the assetId returned by POST /api/uploads/images; imageUri is accepted as a fallback. */
   promoteImageAsset: ImageAsset;
   protectAffiliateCreatorRelationship: AffiliateCreatorProtection;
+  /** Create the login (a member account holding the built-in Business Developer role) of a business developer. Refused when the developer is archived or already has a login. */
+  provisionAffiliateBusinessDeveloperLogin: AffiliateBusinessDeveloper;
   /** Return the current user's active original LLM API key for desktop sync. Requires an active RivonClaw AI subscription. If the user has no active key yet, one is created. */
   provisionLlmApiKey: LlmApiKey;
   /** Publish an official preset skill invalidation signal to connected desktop clients (admin only). */
@@ -11126,6 +11149,8 @@ export interface Mutation {
   /** Register a new user account */
   register: AuthPayload;
   registerExpertKnowledgeRelease: ExpertKnowledgeRelease;
+  /** Delete a business developer's login and end its sessions. */
+  removeAffiliateBusinessDeveloperLogin: AffiliateBusinessDeveloper;
   removeAffiliateCreatorProtection: AffiliateCreatorProtectionRemovalPayload;
   removeAffiliateCreatorRelationshipProtection: AffiliateCreatorProtectionRemovalPayload;
   /** Disable one product's TikTok Open Collaboration and immediately mark it terminating. */
@@ -11154,6 +11179,8 @@ export interface Mutation {
   requestRegistrationEmailCode: RegistrationEmailCodeResponse;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
+  /** Set a new password on a business developer's login and end its sessions. */
+  resetAffiliateBusinessDeveloperLoginPassword: AffiliateBusinessDeveloper;
   /** Resolve one affiliate work item and return only whether the exact work boundary was accepted. Every completed REQUEST_ACTION or NO_ACTION_NEEDED result is persisted as an ActionProposal work bundle; proposal details and model evidence remain available only through staff review APIs. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   restoreProductKnowledge: ProductKnowledge;
@@ -11170,6 +11197,8 @@ export interface Mutation {
   revokeWhatsAppAccountBinding: WhatsAppAccountBinding;
   /** Send a human-authored affiliate creator message from the CreatorRelationship workspace. */
   sendAffiliateCreatorMessage: SendAffiliateCreatorMessagePayload;
+  /** Enable or disable a business developer's login. Disabling ends its sessions; an archived developer's login cannot be enabled. */
+  setAffiliateBusinessDeveloperLoginDisabled: AffiliateBusinessDeveloper;
   setAffiliateBusinessDeveloperPreferredAccount: AffiliateBusinessDeveloper;
   /** Activate, pause, complete, or archive an Affiliate Campaign. */
   setAffiliateCampaignStatus: AffiliateCampaign;
@@ -11888,6 +11917,10 @@ export interface MutationProtectAffiliateCreatorRelationshipArgs {
   input: ProtectAffiliateCreatorRelationshipInput;
 }
 
+export interface MutationProvisionAffiliateBusinessDeveloperLoginArgs {
+  input: ProvisionAffiliateBusinessDeveloperLoginInput;
+}
+
 export interface MutationPublishPresetSkillsChangedArgs {
   reason?: InputMaybe<Scalars["String"]["input"]>;
 }
@@ -11927,6 +11960,10 @@ export interface MutationRegisterArgs {
 
 export interface MutationRegisterExpertKnowledgeReleaseArgs {
   input: RegisterExpertKnowledgeReleaseInput;
+}
+
+export interface MutationRemoveAffiliateBusinessDeveloperLoginArgs {
+  businessDeveloperId: Scalars["ID"]["input"];
 }
 
 export interface MutationRemoveAffiliateCreatorProtectionArgs {
@@ -11997,6 +12034,11 @@ export interface MutationRequestTikTokGmvMaxAuthorizationArgs {
   adsStoreAccessId: Scalars["ID"]["input"];
 }
 
+export interface MutationResetAffiliateBusinessDeveloperLoginPasswordArgs {
+  businessDeveloperId: Scalars["ID"]["input"];
+  password: Scalars["String"]["input"];
+}
+
 export interface MutationResolveAffiliateWorkItemArgs {
   input: ResolveAffiliateWorkItemInput;
 }
@@ -12029,6 +12071,11 @@ export interface MutationRevokeWhatsAppAccountBindingArgs {
 
 export interface MutationSendAffiliateCreatorMessageArgs {
   input: SendAffiliateCreatorMessageInput;
+}
+
+export interface MutationSetAffiliateBusinessDeveloperLoginDisabledArgs {
+  businessDeveloperId: Scalars["ID"]["input"];
+  disabled: Scalars["Boolean"]["input"];
 }
 
 export interface MutationSetAffiliateBusinessDeveloperPreferredAccountArgs {
@@ -12359,6 +12406,7 @@ export interface PendingTikTokShopClaimView {
 export const PermissionScope = {
   Ads: "ADS",
   Affiliate: "AFFILIATE",
+  AffiliateBusinessDeveloper: "AFFILIATE_BUSINESS_DEVELOPER",
   Billing: "BILLING",
   Chat: "CHAT",
   CustomerService: "CUSTOMER_SERVICE",
@@ -12684,6 +12732,13 @@ export interface ProviderSubscription {
   models?: Maybe<Array<ModelPricing>>;
   plans: Array<Plan>;
   pricingUrl: Scalars["String"]["output"];
+}
+
+export interface ProvisionAffiliateBusinessDeveloperLoginInput {
+  businessDeveloperId: Scalars["ID"]["input"];
+  email: Scalars["String"]["input"];
+  /** Initial password set by the owner or a supervisor. */
+  password: Scalars["String"]["input"];
 }
 
 /** Supported proxy protocols for WhatsApp linked-device sessions */

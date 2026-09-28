@@ -5,6 +5,7 @@ import { TkModal as Modal } from "../../../components/design-system/index.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import type { AccountMember, AccountRole } from "../hooks/useSubAccounts.js";
+import { assignableMemberRoles } from "../account-utils.js";
 
 interface SubAccountFormModalProps {
   isOpen: boolean;
@@ -28,6 +29,9 @@ export function SubAccountFormModal({
 }: SubAccountFormModalProps) {
   const { t } = useTranslation();
   const { ofRole } = useRoleDisplayName(roles);
+  // A business developer's login is created from the BD on the Affiliate Team
+  // & Channels page, so this form never offers the Business Developer role.
+  const assignableRoles = assignableMemberRoles(roles);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +47,7 @@ export function SubAccountFormModal({
     setEmail(editingMember?.email ?? "");
     setName(editingMember?.name ?? "");
     setPassword("");
-    setRoleId(editingMember?.roleId ?? roles[0]?.id ?? "");
+    setRoleId(editingMember?.roleId ?? assignableRoles[0]?.id ?? "");
     setDisabled(editingMember?.disabled ?? false);
   }, [isOpen, editingMemberId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -123,7 +127,7 @@ export function SubAccountFormModal({
             onChange={setRoleId}
             className="input-full"
             placeholder={t("subAccounts.rolePlaceholder")}
-            options={roles.map((role) => ({
+            options={assignableRoles.map((role) => ({
               value: role.id,
               label: ofRole(role),
               description: t("subAccounts.roleMemberCount", { count: role.memberCount }),

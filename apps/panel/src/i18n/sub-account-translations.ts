@@ -48,10 +48,11 @@ const copy = {
     createRole: "New role",
     noRoles: "No roles yet.",
     systemRole: "Built-in",
-    /** Localized names for the built-in roles the backend seeds (keyed by the stored name). */
+    /** Localized names for the built-in roles the backend seeds, keyed by `AccountSystemRoleKey`. */
     systemRoleNames: {
-      "Business Developer": "Business Developer",
-      "Customer Service": "Customer Service",
+      BUSINESS_DEVELOPER: "Business Developer",
+      AFFILIATE_SUPERVISOR: "Affiliate Supervisor",
+      CUSTOMER_SERVICE: "Customer Service",
     },
     systemRoleNameHint:
       "A built-in role keeps its name, but you can still change which sections it grants.",
@@ -61,6 +62,10 @@ const copy = {
     roleScopesHint: "Automation, Connections, and the account pages stay available to everyone.",
     roleInUseHint: "Move its sub-accounts to another role before deleting it.",
     systemRoleUndeletableHint: "A built-in role cannot be deleted.",
+    businessDeveloperMemberHint:
+      "This is a business developer's login. Manage it in {{section}} → {{page}}.",
+    businessDeveloperRoleHint:
+      "Business developers get this role from their login in {{section}} → {{page}}. Its sections are fixed.",
     deleteRoleTitle: "Delete role",
     deleteRoleMessage: "Delete the role “{{name}}”?",
     roleSaved: "Role saved.",
@@ -74,6 +79,7 @@ const copy = {
       ADS: "Ads",
       INVENTORY: "Inventory",
       BILLING: "Billing",
+      AFFILIATE_BUSINESS_DEVELOPER: "BD workspace",
     },
   },
   zh: {
@@ -117,8 +123,9 @@ const copy = {
     noRoles: "还没有角色。",
     systemRole: "内置",
     systemRoleNames: {
-      "Business Developer": "商务开发",
-      "Customer Service": "客服",
+      BUSINESS_DEVELOPER: "商务开发",
+      AFFILIATE_SUPERVISOR: "达人主管",
+      CUSTOMER_SERVICE: "客服",
     },
     systemRoleNameHint: "内置角色的名称不可修改，但仍可调整它授予的板块。",
     roleNameLabel: "角色名称",
@@ -127,6 +134,9 @@ const copy = {
     roleScopesHint: "自动化、连接和账号相关页面对所有子账号始终可见。",
     roleInUseHint: "删除前请先把该角色下的子账号转移到其他角色。",
     systemRoleUndeletableHint: "内置角色不可删除。",
+    businessDeveloperMemberHint: "这是 BD 的登录账号，请在「{{section}} → {{page}}」中管理。",
+    businessDeveloperRoleHint:
+      "BD 在「{{section}} → {{page}}」创建登录账号时获得此角色，其可见板块固定不变。",
     deleteRoleTitle: "删除角色",
     deleteRoleMessage: "确定删除角色“{{name}}”？",
     roleSaved: "角色已保存。",
@@ -140,6 +150,7 @@ const copy = {
       ADS: "广告",
       INVENTORY: "库存",
       BILLING: "账单",
+      AFFILIATE_BUSINESS_DEVELOPER: "BD 工作台",
     },
   },
   de: {
@@ -184,8 +195,9 @@ const copy = {
     noRoles: "Noch keine Rollen.",
     systemRole: "Vorgegeben",
     systemRoleNames: {
-      "Business Developer": "Business Developer",
-      "Customer Service": "Kundenservice",
+      BUSINESS_DEVELOPER: "Business Developer",
+      AFFILIATE_SUPERVISOR: "Affiliate-Supervisor",
+      CUSTOMER_SERVICE: "Kundenservice",
     },
     systemRoleNameHint:
       "Der Name einer vorgegebenen Rolle bleibt fest, die gewährten Bereiche können Sie dennoch ändern.",
@@ -195,6 +207,10 @@ const copy = {
     roleScopesHint: "Automatisierung, Verbindungen und die Kontoseiten bleiben für alle verfügbar.",
     roleInUseHint: "Weisen Sie die Unterkonten vor dem Löschen einer anderen Rolle zu.",
     systemRoleUndeletableHint: "Eine vorgegebene Rolle kann nicht gelöscht werden.",
+    businessDeveloperMemberHint:
+      "Dies ist die Anmeldung eines BD. Verwalten Sie sie unter {{section}} → {{page}}.",
+    businessDeveloperRoleHint:
+      "BDs erhalten diese Rolle über ihre Anmeldung unter {{section}} → {{page}}. Ihre Bereiche sind fest vorgegeben.",
     deleteRoleTitle: "Rolle löschen",
     deleteRoleMessage: "Rolle „{{name}}“ löschen?",
     roleSaved: "Rolle gespeichert.",
@@ -208,6 +224,7 @@ const copy = {
       ADS: "Werbung",
       INVENTORY: "Bestand",
       BILLING: "Abrechnung",
+      AFFILIATE_BUSINESS_DEVELOPER: "BD-Arbeitsbereich",
     },
   },
   es: {
@@ -253,8 +270,9 @@ const copy = {
     noRoles: "Aún no hay roles.",
     systemRole: "Integrado",
     systemRoleNames: {
-      "Business Developer": "Desarrollo de negocio",
-      "Customer Service": "Servicio al cliente",
+      BUSINESS_DEVELOPER: "Desarrollo de negocio",
+      AFFILIATE_SUPERVISOR: "Supervisor de afiliados",
+      CUSTOMER_SERVICE: "Servicio al cliente",
     },
     systemRoleNameHint:
       "Un rol integrado conserva su nombre, pero puedes cambiar las secciones que concede.",
@@ -265,6 +283,9 @@ const copy = {
       "Automatización, Conexiones y las páginas de cuenta siguen disponibles para todos.",
     roleInUseHint: "Mueve sus subcuentas a otro rol antes de eliminarlo.",
     systemRoleUndeletableHint: "Un rol integrado no se puede eliminar.",
+    businessDeveloperMemberHint: "Es el acceso de un BD. Gestiónalo en {{section}} → {{page}}.",
+    businessDeveloperRoleHint:
+      "Los BD reciben este rol con su acceso en {{section}} → {{page}}. Sus secciones son fijas.",
     deleteRoleTitle: "Eliminar rol",
     deleteRoleMessage: "¿Eliminar el rol “{{name}}”?",
     roleSaved: "Rol guardado.",
@@ -278,6 +299,7 @@ const copy = {
       ADS: "Anuncios",
       INVENTORY: "Inventario",
       BILLING: "Facturación",
+      AFFILIATE_BUSINESS_DEVELOPER: "Espacio de trabajo BD",
     },
   },
   fr: {
@@ -323,8 +345,9 @@ const copy = {
     noRoles: "Aucun rôle pour l’instant.",
     systemRole: "Intégré",
     systemRoleNames: {
-      "Business Developer": "Business developer",
-      "Customer Service": "Service client",
+      BUSINESS_DEVELOPER: "Business developer",
+      AFFILIATE_SUPERVISOR: "Superviseur affiliation",
+      CUSTOMER_SERVICE: "Service client",
     },
     systemRoleNameHint:
       "Un rôle intégré conserve son nom, mais vous pouvez toujours changer les sections qu’il accorde.",
@@ -334,6 +357,10 @@ const copy = {
     roleScopesHint: "Automatisation, Connexions et les pages de compte restent accessibles à tous.",
     roleInUseHint: "Transférez ses sous-comptes vers un autre rôle avant de le supprimer.",
     systemRoleUndeletableHint: "Un rôle intégré ne peut pas être supprimé.",
+    businessDeveloperMemberHint:
+      "C'est la connexion d'un BD. Gérez-la dans {{section}} → {{page}}.",
+    businessDeveloperRoleHint:
+      "Les BD reçoivent ce rôle avec leur connexion dans {{section}} → {{page}}. Ses sections sont fixes.",
     deleteRoleTitle: "Supprimer le rôle",
     deleteRoleMessage: "Supprimer le rôle « {{name}} » ?",
     roleSaved: "Rôle enregistré.",
@@ -347,6 +374,7 @@ const copy = {
       ADS: "Publicités",
       INVENTORY: "Stock",
       BILLING: "Facturation",
+      AFFILIATE_BUSINESS_DEVELOPER: "Espace de travail BD",
     },
   },
   id: {
@@ -391,8 +419,9 @@ const copy = {
     noRoles: "Belum ada peran.",
     systemRole: "Bawaan",
     systemRoleNames: {
-      "Business Developer": "Business developer",
-      "Customer Service": "Layanan Pelanggan",
+      BUSINESS_DEVELOPER: "Business developer",
+      AFFILIATE_SUPERVISOR: "Supervisor Afiliasi",
+      CUSTOMER_SERVICE: "Layanan Pelanggan",
     },
     systemRoleNameHint:
       "Peran bawaan mempertahankan namanya, tetapi bagian yang diberikan tetap bisa diubah.",
@@ -402,6 +431,9 @@ const copy = {
     roleScopesHint: "Otomatisasi, Koneksi, dan halaman akun selalu tersedia untuk semua orang.",
     roleInUseHint: "Pindahkan subakunnya ke peran lain sebelum menghapus peran ini.",
     systemRoleUndeletableHint: "Peran bawaan tidak dapat dihapus.",
+    businessDeveloperMemberHint: "Ini adalah login milik BD. Kelola di {{section}} → {{page}}.",
+    businessDeveloperRoleHint:
+      "BD mendapat peran ini dari login mereka di {{section}} → {{page}}. Bagiannya tetap.",
     deleteRoleTitle: "Hapus peran",
     deleteRoleMessage: "Hapus peran “{{name}}”?",
     roleSaved: "Peran disimpan.",
@@ -415,6 +447,7 @@ const copy = {
       ADS: "Iklan",
       INVENTORY: "Inventaris",
       BILLING: "Tagihan",
+      AFFILIATE_BUSINESS_DEVELOPER: "Ruang kerja BD",
     },
   },
   it: {
@@ -460,8 +493,9 @@ const copy = {
     noRoles: "Ancora nessun ruolo.",
     systemRole: "Predefinito",
     systemRoleNames: {
-      "Business Developer": "Business developer",
-      "Customer Service": "Servizio clienti",
+      BUSINESS_DEVELOPER: "Business developer",
+      AFFILIATE_SUPERVISOR: "Supervisore affiliati",
+      CUSTOMER_SERVICE: "Servizio clienti",
     },
     systemRoleNameHint:
       "Un ruolo predefinito mantiene il nome, ma puoi comunque cambiare le sezioni che concede.",
@@ -471,6 +505,9 @@ const copy = {
     roleScopesHint: "Automazione, Connessioni e le pagine account restano disponibili a tutti.",
     roleInUseHint: "Sposta i suoi sottoaccount su un altro ruolo prima di eliminarlo.",
     systemRoleUndeletableHint: "Un ruolo predefinito non può essere eliminato.",
+    businessDeveloperMemberHint: "È l'accesso di un BD. Gestiscilo in {{section}} → {{page}}.",
+    businessDeveloperRoleHint:
+      "I BD ricevono questo ruolo con il loro accesso in {{section}} → {{page}}. Le sue sezioni sono fisse.",
     deleteRoleTitle: "Elimina ruolo",
     deleteRoleMessage: "Eliminare il ruolo “{{name}}”?",
     roleSaved: "Ruolo salvato.",
@@ -484,6 +521,7 @@ const copy = {
       ADS: "Annunci",
       INVENTORY: "Inventario",
       BILLING: "Fatturazione",
+      AFFILIATE_BUSINESS_DEVELOPER: "Spazio di lavoro BD",
     },
   },
   th: {
@@ -527,8 +565,9 @@ const copy = {
     noRoles: "ยังไม่มีบทบาท",
     systemRole: "ในระบบ",
     systemRoleNames: {
-      "Business Developer": "Business developer",
-      "Customer Service": "บริการลูกค้า",
+      BUSINESS_DEVELOPER: "Business developer",
+      AFFILIATE_SUPERVISOR: "หัวหน้าฝ่ายพันธมิตร",
+      CUSTOMER_SERVICE: "บริการลูกค้า",
     },
     systemRoleNameHint: "บทบาทในระบบจะคงชื่อเดิมไว้ แต่ยังปรับส่วนที่อนุญาตได้",
     roleNameLabel: "ชื่อบทบาท",
@@ -537,6 +576,9 @@ const copy = {
     roleScopesHint: "ระบบอัตโนมัติ การเชื่อมต่อ และหน้าบัญชี เปิดให้ทุกคนใช้งานได้เสมอ",
     roleInUseHint: "โปรดย้ายบัญชีย่อยไปยังบทบาทอื่นก่อนลบบทบาทนี้",
     systemRoleUndeletableHint: "ไม่สามารถลบบทบาทในระบบได้",
+    businessDeveloperMemberHint: "นี่คือบัญชีเข้าสู่ระบบของ BD จัดการได้ที่ {{section}} → {{page}}",
+    businessDeveloperRoleHint:
+      "BD จะได้รับบทบาทนี้จากบัญชีเข้าสู่ระบบที่ {{section}} → {{page}} ส่วนที่มองเห็นได้กำหนดไว้ตายตัว",
     deleteRoleTitle: "ลบบทบาท",
     deleteRoleMessage: "ลบบทบาท “{{name}}” หรือไม่",
     roleSaved: "บันทึกบทบาทแล้ว",
@@ -550,6 +592,7 @@ const copy = {
       ADS: "โฆษณา",
       INVENTORY: "สินค้าคงคลัง",
       BILLING: "การเรียกเก็บเงิน",
+      AFFILIATE_BUSINESS_DEVELOPER: "พื้นที่ทำงาน BD",
     },
   },
 } as const;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import { ROUTES, resolveLandingPath, FALLBACK_LANDING_PATH } from "./routes.js";
 import { canSeeRoute } from "./lib/permission-scope.js";
+import { selectSidebarRoutes } from "./layout/sidebar-navigation.js";
 
 describe("commerce navigation", () => {
   it("puts Campaign and Team on the first Affiliate row, then the two workbenches", () => {
@@ -68,9 +69,9 @@ describe("design-system review route", () => {
 
 describe("permission-scope navigation", () => {
   it("gives an AFFILIATE-only member the Affiliate group plus the base pages", () => {
-    const bd = { isOwner: false, permissionScopes: [GQL.PermissionScope.Affiliate] };
+    const supervisor = { isOwner: false, permissionScopes: [GQL.PermissionScope.Affiliate] };
     const visible = ROUTES.filter(
-      (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, bd),
+      (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, supervisor),
     ).map((route) => route.path);
 
     expect(visible).toEqual([
@@ -93,6 +94,51 @@ describe("permission-scope navigation", () => {
       "/account/settings",
       "/account/profile",
     ]);
+  });
+
+  it("gives a business developer only the BD workspace pages plus the base pages", () => {
+    const bd = {
+      isOwner: false,
+      permissionScopes: [GQL.PermissionScope.AffiliateBusinessDeveloper],
+    };
+    const navEligible = (route: (typeof ROUTES)[number]) =>
+      Boolean(route.navLabelKey) && !route.navHidden;
+    const permitted = ROUTES.filter((route) => navEligible(route) && canSeeRoute(route, bd)).map(
+      (route) => route.path,
+    );
+    const affiliateWorkspace = [
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/manual-workbench",
+      "/commerce/product-knowledge",
+      "/commerce/affiliate/creators",
+      "/commerce/affiliate/history",
+      "/commerce/affiliate/analytics",
+    ];
+    const basePages = [
+      "/automation/crons",
+      "/connections/channels",
+      "/connections/models",
+      "/automation/skills",
+      "/connections/extensions",
+      "/account/usage",
+      "/account/settings",
+      "/account/profile",
+    ];
+
+    // The Overview page itself stays reserved for full Affiliate control...
+    expect(permitted).toEqual([...affiliateWorkspace, ...basePages]);
+    // ...but its sidebar group still opens, since it holds the workspace pages.
+    expect(
+      selectSidebarRoutes(ROUTES, (route) => navEligible(route) && canSeeRoute(route, bd)).map(
+        (route) => route.path,
+      ),
+    ).toEqual(["/commerce/affiliate", ...affiliateWorkspace, ...basePages]);
+  });
+
+  it("lands a business developer on Needs Attention", () => {
+    expect(resolveLandingPath([GQL.PermissionScope.AffiliateBusinessDeveloper])).toBe(
+      "/commerce/affiliate/attention",
+    );
   });
 
   it("lands an AFFILIATE-only member on the campaigns page", () => {

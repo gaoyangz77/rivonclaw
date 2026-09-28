@@ -84,13 +84,25 @@ export interface RouteEntry {
   /** Render as a first-level disclosure instead of a direct navigation leaf. */
   navGroupOnly?: boolean;
   /**
-   * Permission scope the signed-in user must hold for this route to appear in
-   * the sidebar. Absent = a base page every account may see.
+   * Permission scopes that each unlock this route in the sidebar: holding ANY
+   * one of them is enough. Absent = a base page every account may see.
    *
    * This is job separation, not a security boundary: it only masks nav items.
    */
-  scope?: GQL.PermissionScope;
+  scopes?: readonly GQL.PermissionScope[];
 }
+
+/** Affiliate pages reserved for full Affiliate control (owner, Affiliate Supervisor). */
+const AFFILIATE_SUPERVISOR_SCOPES: readonly GQL.PermissionScope[] = [GQL.PermissionScope.Affiliate];
+
+/**
+ * Affiliate pages that make up the business developer workspace (ADR 085):
+ * open to full Affiliate control and to AFFILIATE_BUSINESS_DEVELOPER alike.
+ */
+const AFFILIATE_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
+  GQL.PermissionScope.Affiliate,
+  GQL.PermissionScope.AffiliateBusinessDeveloper,
+];
 
 /**
  * Central route registry — single source of truth for paths, nav items,
@@ -104,7 +116,7 @@ export const ROUTES: RouteEntry[] = [
     icon: <ChatIcon />,
     navLabelKey: "nav.chat",
     keepMounted: true,
-    scope: GQL.PermissionScope.Chat,
+    scopes: [GQL.PermissionScope.Chat],
   },
   {
     path: "/commerce/tiktok-shops",
@@ -114,7 +126,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.tiktokShops",
     authRequired: true,
     navHidden: true,
-    scope: GQL.PermissionScope.ShopManagement,
+    scopes: [GQL.PermissionScope.ShopManagement],
   },
   {
     path: "/commerce/shops",
@@ -123,7 +135,7 @@ export const ROUTES: RouteEntry[] = [
     icon: <ShopIcon />,
     navLabelKey: "nav.shopManagement",
     authRequired: true,
-    scope: GQL.PermissionScope.ShopManagement,
+    scopes: [GQL.PermissionScope.ShopManagement],
   },
   {
     path: "/commerce/shop-analytics",
@@ -132,7 +144,7 @@ export const ROUTES: RouteEntry[] = [
     icon: <EcommerceIcon />,
     navLabelKey: "nav.shopAnalytics",
     authRequired: true,
-    scope: GQL.PermissionScope.ShopAnalytics,
+    scopes: [GQL.PermissionScope.ShopAnalytics],
   },
   {
     path: "/commerce/customer-service",
@@ -142,7 +154,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.customerService",
     authRequired: true,
     navGroupOnly: true,
-    scope: GQL.PermissionScope.CustomerService,
+    scopes: [GQL.PermissionScope.CustomerService],
   },
   {
     path: "/commerce/customer-service/conversations",
@@ -152,7 +164,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.customerServiceConversations",
     authRequired: true,
     parentPath: "/commerce/customer-service",
-    scope: GQL.PermissionScope.CustomerService,
+    scopes: [GQL.PermissionScope.CustomerService],
   },
   {
     path: "/commerce/customer-service/escalations",
@@ -162,7 +174,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.customerServiceEscalations",
     authRequired: true,
     parentPath: "/commerce/customer-service",
-    scope: GQL.PermissionScope.CustomerService,
+    scopes: [GQL.PermissionScope.CustomerService],
   },
   {
     path: "/commerce/customer-service/performance",
@@ -172,7 +184,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.customerServicePerformance",
     authRequired: true,
     parentPath: "/commerce/customer-service",
-    scope: GQL.PermissionScope.CustomerService,
+    scopes: [GQL.PermissionScope.CustomerService],
   },
   {
     path: "/commerce/customer-service/experiments",
@@ -183,7 +195,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.customerServiceExperiments",
     authRequired: true,
     parentPath: "/commerce/customer-service",
-    scope: GQL.PermissionScope.CustomerService,
+    scopes: [GQL.PermissionScope.CustomerService],
   },
   {
     path: "/commerce/affiliate",
@@ -193,7 +205,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateManagement",
     authRequired: true,
     navGroupOnly: true,
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_SUPERVISOR_SCOPES,
   },
   {
     path: "/commerce/affiliate/campaigns",
@@ -203,7 +215,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateCampaigns",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_SUPERVISOR_SCOPES,
   },
   {
     path: "/commerce/affiliate/team",
@@ -214,7 +226,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateTeam",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_SUPERVISOR_SCOPES,
   },
   {
     path: "/commerce/affiliate/attention",
@@ -224,7 +236,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateNeedsAttention",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/manual-workbench",
@@ -234,7 +246,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateManualWorkbench",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/product-knowledge",
@@ -244,7 +256,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.productKnowledge",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/creators",
@@ -254,7 +266,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateCreators",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/history",
@@ -264,7 +276,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateHistory",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/analytics",
@@ -274,7 +286,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateAnalytics",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/intelligence",
@@ -284,7 +296,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.affiliateIntelligence",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scope: GQL.PermissionScope.Affiliate,
+    scopes: AFFILIATE_SUPERVISOR_SCOPES,
   },
   {
     path: "/commerce/ads",
@@ -293,7 +305,7 @@ export const ROUTES: RouteEntry[] = [
     icon: <AdsIcon />,
     navLabelKey: "nav.adsManagement",
     authRequired: true,
-    scope: GQL.PermissionScope.Ads,
+    scopes: [GQL.PermissionScope.Ads],
   },
   {
     path: "/commerce/inventory",
@@ -302,7 +314,7 @@ export const ROUTES: RouteEntry[] = [
     icon: <ModuleIcon />,
     navLabelKey: "nav.inventoryManagement",
     authRequired: true,
-    scope: GQL.PermissionScope.Inventory,
+    scopes: [GQL.PermissionScope.Inventory],
   },
   {
     path: "/automation/crons",
@@ -357,7 +369,7 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.billing",
     authRequired: true,
     navAuthOnly: true,
-    scope: GQL.PermissionScope.Billing,
+    scopes: [GQL.PermissionScope.Billing],
   },
   {
     path: "/account/settings",
@@ -396,6 +408,7 @@ export const ROUTE_MAP = new Map(ROUTES.map((r) => [r.path, r]));
 export const SCOPE_LANDING_PATH: Partial<Record<GQL.PermissionScope, string>> = {
   [GQL.PermissionScope.Chat]: "/",
   [GQL.PermissionScope.Affiliate]: "/commerce/affiliate/campaigns",
+  [GQL.PermissionScope.AffiliateBusinessDeveloper]: "/commerce/affiliate/attention",
   [GQL.PermissionScope.CustomerService]: "/commerce/customer-service/conversations",
   [GQL.PermissionScope.ShopManagement]: "/commerce/shops",
   [GQL.PermissionScope.ShopAnalytics]: "/commerce/shop-analytics",

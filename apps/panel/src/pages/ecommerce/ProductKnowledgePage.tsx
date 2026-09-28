@@ -17,6 +17,7 @@ import {
 } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
+import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
 import { shopDisplayLabel } from "../../lib/shop-display.js";
 import { MASKED_NAME_PLACEHOLDER } from "../../lib/privacy-placeholder.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
@@ -108,6 +109,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const entityStore = useEntityStore();
   const workspaceTab = useWorkspaceTab();
   const user = entityStore.currentUser;
+  // A business developer reads Product Knowledge but does not maintain it
+  // (ADR 085): every create, edit, link and archive control is withheld.
+  const readOnly = isBusinessDeveloperOnly(user);
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const [status, setStatus] = useState<GQL.ProductKnowledgeStatus>(
     GQL.ProductKnowledgeStatus.Active,
@@ -178,6 +182,8 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     return () => workspaceTab.setDirty(false);
   }, [dirty, workspaceTab.tabId]); // eslint-disable-line react-hooks/exhaustive-deps
   const isArchived = knowledge?.status === GQL.ProductKnowledgeStatus.Archived;
+  /** Archived knowledge and a read-only viewer both leave the content as it is. */
+  const locked = isArchived || readOnly;
   const discoveryPayload =
     discoveryKnowledgeId === selectedId ? discovery.data?.discoverProductsBySellerSku : undefined;
   const candidates = discoveryPayload?.candidates ?? [];
@@ -280,7 +286,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   }
 
   async function handleSave() {
-    if (!knowledge || !draft || isArchived) return;
+    if (!knowledge || !draft || locked) return;
     try {
       const result = await updateKnowledge({
         variables: {
@@ -357,7 +363,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
   async function runDiscovery(clearLinkFailures = true) {
     const values = splitSellerSkuInput(sellerSku);
-    if (values.length === 0 || isArchived) return;
+    if (values.length === 0 || locked) return;
     if (values.length > DISCOVER_SELLER_SKU_LIMIT) {
       showToast(
         t("ecommerce.productKnowledge.tooManySellerSkus", { limit: DISCOVER_SELLER_SKU_LIMIT }),
@@ -540,13 +546,17 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
         title={t("ecommerce.productKnowledge.pageTitle")}
         subtitle={t("ecommerce.productKnowledge.pageSubtitle")}
         actions={
-          <button
-            className="btn btn-primary"
-            data-tutorial-id="product-knowledge-create"
-            onClick={() => setCreateOpen(true)}
-          >
-            + {t("ecommerce.productKnowledge.create")}
-          </button>
+          readOnly ? (
+            <span className="badge badge-muted">{t("ecommerce.productKnowledge.readOnly")}</span>
+          ) : (
+            <button
+              className="btn btn-primary"
+              data-tutorial-id="product-knowledge-create"
+              onClick={() => setCreateOpen(true)}
+            >
+              + {t("ecommerce.productKnowledge.create")}
+            </button>
+          )
         }
       />
 
@@ -733,7 +743,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                   id="product-knowledge-name"
                   value={draft.name}
                   maxLength={120}
-                  readOnly={isArchived}
+                  readOnly={locked}
                   onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                 />
               </div>
@@ -745,7 +755,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                 ) : (
                   <span className="badge badge-muted">v{knowledge.revision}</span>
                 )}
-                {isArchived ? (
+                {readOnly ? null : isArchived ? (
                   <button
                     className="btn btn-primary"
                     disabled={restoreState.loading}
@@ -842,7 +852,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                 <input
                   id="product-knowledge-merchant-pid"
                   value={draft.merchantPid}
-                  readOnly={isArchived}
+                  readOnly={locked}
                   onChange={(event) => setDraft({ ...draft, merchantPid: event.target.value })}
                   placeholder={t("ecommerce.productKnowledge.merchantPidPlaceholder")}
                   aria-invalid={!pidIsValid(draft.merchantPid)}
@@ -920,7 +930,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                     <ProductKnowledgeMarkdownEditor
                       key={`${knowledge.id}:${activeTab}`}
                       value={activeMarkdown}
-                      readOnly={isArchived}
+                      readOnly={locked}
                       placeholder={t(`ecommerce.productKnowledge.${activeTab}Placeholder`)}
                       onChange={(markdown) =>
                         setDraft({ ...draft, [activeTabConfig.field]: markdown })
@@ -969,18 +979,20 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                           aliasLabel={productCardLabels.alias}
                           sellerSkuLabel={productCardLabels.sellerSku}
                           actions={
-                            <button
-                              className="commerce-product-card-action"
-                              onClick={() =>
-                                setConfirmation({
-                                  kind: "unlink",
-                                  bindingId: binding.id,
-                                  productTitle: binding.productTitleSnapshot,
-                                })
-                              }
-                            >
-                              {t("ecommerce.productKnowledge.unlink")}
-                            </button>
+                            readOnly ? undefined : (
+                              <button
+                                className="commerce-product-card-action"
+                                onClick={() =>
+                                  setConfirmation({
+                                    kind: "unlink",
+                                    bindingId: binding.id,
+                                    productTitle: binding.productTitleSnapshot,
+                                  })
+                                }
+                              >
+                                {t("ecommerce.productKnowledge.unlink")}
+                              </button>
+                            )
                           }
                         />
                       );
@@ -992,7 +1004,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                   </p>
                 )}
 
-                {!isArchived ? (
+                {!locked ? (
                   <div className="product-knowledge-discovery">
                     <div className="product-knowledge-discovery-form">
                       <div>

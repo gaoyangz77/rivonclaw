@@ -175,6 +175,23 @@ describe("panel i18n resources", () => {
     }
   });
 
+  it("labels every permission scope and built-in account role in every locale", () => {
+    // The sub-account page renders both through t() keyed by the enum value; a
+    // missing key would print the raw key where a section or role name belongs.
+    const labelGroups: Record<string, readonly string[]> = {
+      "subAccounts.scope": Object.values(GQL.PermissionScope),
+      "subAccounts.systemRoleNames": Object.values(GQL.AccountSystemRoleKey),
+    };
+
+    for (const language of LANGUAGE_OPTIONS) {
+      const values = flattenValues(LANGUAGE_RESOURCES[language.code].translation);
+      expect(
+        missingLabelKeys(values, labelGroups),
+        `${language.code} missing sub-account labels`,
+      ).toEqual([]);
+    }
+  });
+
   it("labels every Affiliate creator card and profile value the backend emits in every locale", () => {
     // AffiliateCreatorPerformanceCurrent.sourceType is a plain String in the schema.
     // These values mirror the backend enum AffiliateCreatorPerformanceSourceType in

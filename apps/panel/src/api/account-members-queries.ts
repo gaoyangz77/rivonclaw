@@ -7,6 +7,7 @@ const ACCOUNT_MEMBER_FIELDS_FRAGMENT = gql`
     name
     roleId
     roleName
+    roleSystemKey
     scopes
     disabled
     createdAt
@@ -19,6 +20,7 @@ const ACCOUNT_ROLE_FIELDS_FRAGMENT = gql`
     name
     scopes
     isSystem
+    systemKey
     memberCount
   }
 `;

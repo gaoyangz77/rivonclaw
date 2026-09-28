@@ -4494,6 +4494,11 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     archivedAt
     createdAt
     updatedAt
+    login {
+      userId
+      email
+      disabled
+    }
   }
 `;
 
@@ -4657,6 +4662,56 @@ export const SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION = gql`
   ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
   mutation SetAffiliateBusinessDeveloperPreferredAccount($input: SetAffiliateBusinessDeveloperPreferredAccountInput!) {
     setAffiliateBusinessDeveloperPreferredAccount(input: $input) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const PROVISION_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation ProvisionAffiliateBusinessDeveloperLogin(
+    $input: ProvisionAffiliateBusinessDeveloperLoginInput!
+  ) {
+    provisionAffiliateBusinessDeveloperLogin(input: $input) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const RESET_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_PASSWORD_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation ResetAffiliateBusinessDeveloperLoginPassword(
+    $businessDeveloperId: ID!
+    $password: String!
+  ) {
+    resetAffiliateBusinessDeveloperLoginPassword(
+      businessDeveloperId: $businessDeveloperId
+      password: $password
+    ) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const SET_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_DISABLED_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation SetAffiliateBusinessDeveloperLoginDisabled(
+    $businessDeveloperId: ID!
+    $disabled: Boolean!
+  ) {
+    setAffiliateBusinessDeveloperLoginDisabled(
+      businessDeveloperId: $businessDeveloperId
+      disabled: $disabled
+    ) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const REMOVE_AFFILIATE_BUSINESS_DEVELOPER_LOGIN_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation RemoveAffiliateBusinessDeveloperLogin($businessDeveloperId: ID!) {
+    removeAffiliateBusinessDeveloperLogin(businessDeveloperId: $businessDeveloperId) {
       ...AffiliateBusinessDeveloperFields
     }
   }

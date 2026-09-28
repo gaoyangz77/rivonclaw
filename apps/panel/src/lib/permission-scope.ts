@@ -1,3 +1,5 @@
+import { GQL } from "@rivonclaw/core";
+
 /**
  * Menu-level permission gating.
  *
@@ -7,8 +9,11 @@
  */
 
 export interface ScopedRoute {
-  /** Absent = base page, visible to every account. */
-  scope?: string;
+  /**
+   * Scopes that each unlock this route: holding ANY one of them is enough.
+   * Absent = base page, visible to every account.
+   */
+  scopes?: readonly string[];
 }
 
 export interface ScopeHolder {
@@ -23,6 +28,24 @@ export function canSeeRoute(route: ScopedRoute, user: ScopeHolder | null): boole
   // Signed out: unchanged behavior. `authRequired` already prompts for login.
   if (!user) return true;
   if (user.isOwner) return true;
-  if (!route.scope) return true;
-  return user.permissionScopes.includes(route.scope);
+  if (!route.scopes) return true;
+  return route.scopes.some((scope) => user.permissionScopes.includes(scope));
+}
+
+/**
+ * Whether the user works in the business developer (BD) workspace only
+ * (ADR 085): a member holding AFFILIATE_BUSINESS_DEVELOPER without the full
+ * AFFILIATE scope. Such a member sees a reduced Affiliate section — the
+ * Analytics Details tab only and read-only Product Knowledge.
+ *
+ * Owners hold both scopes and are never BD-only; signed-out users are not
+ * either. Like `canSeeRoute`, this shapes what the Panel offers, not what the
+ * backend allows.
+ */
+export function isBusinessDeveloperOnly(user: ScopeHolder | null | undefined): boolean {
+  if (!user || user.isOwner) return false;
+  return (
+    user.permissionScopes.includes(GQL.PermissionScope.AffiliateBusinessDeveloper) &&
+    !user.permissionScopes.includes(GQL.PermissionScope.Affiliate)
+  );
 }

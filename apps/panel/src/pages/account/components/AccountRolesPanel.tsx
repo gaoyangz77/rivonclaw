@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { GQL } from "@rivonclaw/core";
+import type { GQL } from "@rivonclaw/core";
 import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
 import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import type { AccountRole } from "../hooks/useSubAccounts.js";
-
-const ALL_SCOPES = Object.values(GQL.PermissionScope);
+import { GRANTABLE_ROLE_SCOPES, isBusinessDeveloperRole } from "../account-utils.js";
 
 interface AccountRolesPanelProps {
   roles: AccountRole[];
@@ -16,8 +15,11 @@ interface AccountRolesPanelProps {
 }
 
 /**
- * Compact role editor. Without it the owner can only ever use the seeded
- * "Business Developer" role and cannot adjust what a sub-account sees.
+ * Compact role editor, so the owner can adjust what each sub-account sees.
+ *
+ * The built-in Business Developer role is shown but never edited: its sections
+ * are fixed, and it is handed out only by creating a business developer's
+ * login on the Affiliate Team & Channels page (ADR 085).
  */
 export function AccountRolesPanel({
   roles,
@@ -108,7 +110,7 @@ export function AccountRolesPanel({
           <label className="form-label-block">{t("subAccounts.roleScopesLabel")}</label>
           <div className="form-hint">{t("subAccounts.roleScopesHint")}</div>
           <div className="acct-role-scope-grid">
-            {ALL_SCOPES.map((scope) => (
+            {GRANTABLE_ROLE_SCOPES.map((scope) => (
               <label key={scope} className="form-checkbox-row">
                 <input
                   type="checkbox"
@@ -171,9 +173,11 @@ export function AccountRolesPanel({
                     <span className="badge badge-muted">{t("subAccounts.systemRole")}</span>
                   )}
                   <div className="acct-item-actions">
-                    <button className="btn btn-secondary btn-sm" onClick={() => openEdit(role)}>
-                      {t("common.edit")}
-                    </button>
+                    {!isBusinessDeveloperRole(role) && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(role)}>
+                        {t("common.edit")}
+                      </button>
+                    )}
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => setConfirmDeleteRoleId(role.id)}
@@ -187,8 +191,17 @@ export function AccountRolesPanel({
                 <div className="acct-item-meta">
                   <span>{t("subAccounts.roleMemberCount", { count: role.memberCount })}</span>
                 </div>
-                {deleteBlockedHint(role) && (
-                  <div className="form-hint">{deleteBlockedHint(role)}</div>
+                {isBusinessDeveloperRole(role) ? (
+                  <div className="form-hint">
+                    {t("subAccounts.businessDeveloperRoleHint", {
+                      section: t("nav.affiliateManagement"),
+                      page: t("nav.affiliateTeam"),
+                    })}
+                  </div>
+                ) : (
+                  deleteBlockedHint(role) && (
+                    <div className="form-hint">{deleteBlockedHint(role)}</div>
+                  )
                 )}
                 <div className="acct-tool-chips">
                   {role.scopes.length === 0 ? (

@@ -12,6 +12,34 @@ export interface SidebarNavigationOptions {
 }
 
 /**
+ * Chooses the routes the sidebar shows: every route `isVisible` accepts, plus
+ * each `navGroupOnly` parent that has at least one visible child.
+ *
+ * A group-only parent renders as a disclosure, not a destination, so it must
+ * appear whenever one of its children does — even when the parent's own page
+ * is gated more tightly (a business developer sees the Affiliate group's
+ * workspace pages but not its Overview page). Route resolution still applies
+ * the parent's own scopes, so this never unlocks the parent page itself.
+ */
+export function selectSidebarRoutes(
+  routes: readonly RouteEntry[],
+  isVisible: (route: RouteEntry) => boolean,
+): RouteEntry[] {
+  const visible = new Set(routes.filter(isVisible));
+  const parentsWithVisibleChildren = new Set(
+    [...visible].map((route) => route.parentPath).filter((path): path is string => Boolean(path)),
+  );
+  return routes.filter(
+    (route) =>
+      visible.has(route) ||
+      (route.navGroupOnly &&
+        Boolean(route.navLabelKey) &&
+        !route.navHidden &&
+        parentsWithVisibleChildren.has(route.path)),
+  );
+}
+
+/**
  * Converts the flat route registry into the two-level navigation contract.
  *
  * - `parentPath` routes become children of their registered parent.
