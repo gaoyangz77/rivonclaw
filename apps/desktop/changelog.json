@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.25",
+    "date": "2026-09-28",
+    "en": [
+      "Improve Affiliate review workflows and show ignored sample applications in analytics",
+      "Show fuller creator performance in Affiliate detail tables and retry transient Feishu media uploads"
+    ],
+    "zh": [
+      "改进达人联盟审核流程，并在分析页面展示已忽略的样品申请",
+      "在达人联盟明细表展示更完整的达人表现数据，并重试飞书媒体上传的临时错误"
+    ]
+  },
+  {
     "version": "1.9.24",
     "date": "2026-09-27",
     "en": [
