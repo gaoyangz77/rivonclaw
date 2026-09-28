@@ -1,0 +1,219 @@
+From 6a4b7fef85274297f3251f08674c83073f3c3492 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 28 Sep 2026 10:54:07 +0800
+Subject: [PATCH 42/42] vendor(openclaw): retry transient Feishu media uploads
+
+Why:
+- Feishu file and image uploads can fail with transient ECONNRESET errors before message dispatch.
+- Bounded upload-only retries improve delivery without broad replay of non-idempotent message sends.
+
+Removal:
+- drop when upstream provides equivalent bounded transient retries for im/v1/files and im/v1/images while keeping permanent failures single-attempt and message dispatch single-shot.
+- OpenClaw PR #104322 alone is insufficient because it intentionally leaves media uploads single-attempt.
+
+Tests:
+- extensions/feishu/src/media.test.ts
+- apps/desktop/src/channels/vendor-feishu-media-upload-retry.sentinel.test.ts
+---
+ extensions/feishu/src/media.test.ts | 99 +++++++++++++++++++++++++++++
+ extensions/feishu/src/media.ts      | 46 ++++++++++----
+ 2 files changed, 131 insertions(+), 14 deletions(-)
+
+diff --git a/extensions/feishu/src/media.test.ts b/extensions/feishu/src/media.test.ts
+index 6ebdd3ce2ba..08c66300154 100644
+--- a/extensions/feishu/src/media.test.ts
++++ b/extensions/feishu/src/media.test.ts
+@@ -303,6 +303,105 @@ describe("sendMediaFeishu msg_type routing", () => {
+     expect(callData<{ msg_type?: string }>(messageCreateMock).msg_type).toBe("file");
+   });
+ 
++  it("retries transient file upload failures before dispatching one message", async () => {
++    vi.useFakeTimers();
++    try {
++      fileCreateMock
++        .mockRejectedValueOnce(Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }))
++        .mockResolvedValueOnce({ code: 0, data: { file_key: "file_key_after_retry" } });
++
++      const send = sendMediaFeishu({
++        cfg: emptyConfig,
++        to: "user:ou_target",
++        mediaBuffer: Buffer.from("spreadsheet"),
++        fileName: "report.xlsx",
++      });
++      await vi.runAllTimersAsync();
++
++      await expect(send).resolves.toMatchObject({ messageId: "msg_1" });
++      expect(fileCreateMock).toHaveBeenCalledTimes(2);
++      expect(messageCreateMock).toHaveBeenCalledTimes(1);
++      expect(JSON.parse(callData<{ content?: string }>(messageCreateMock).content ?? "{}")).toEqual(
++        {
++          file_key: "file_key_after_retry",
++        },
++      );
++    } finally {
++      vi.useRealTimers();
++    }
++  });
++
++  it("retries transient image upload failures before dispatching one message", async () => {
++    vi.useFakeTimers();
++    try {
++      imageCreateMock
++        .mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { code: "EPIPE" }))
++        .mockResolvedValueOnce({ code: 0, data: { image_key: "image_key_after_retry" } });
++
++      const send = sendMediaFeishu({
++        cfg: emptyConfig,
++        to: "user:ou_target",
++        mediaBuffer: validPngImage,
++        fileName: "photo.png",
++      });
++      await vi.runAllTimersAsync();
++
++      await expect(send).resolves.toMatchObject({ messageId: "msg_1" });
++      expect(imageCreateMock).toHaveBeenCalledTimes(2);
++      expect(messageCreateMock).toHaveBeenCalledTimes(1);
++      expect(JSON.parse(callData<{ content?: string }>(messageCreateMock).content ?? "{}")).toEqual(
++        {
++          image_key: "image_key_after_retry",
++        },
++      );
++    } finally {
++      vi.useRealTimers();
++    }
++  });
++
++  it("does not retry permanent upload failures", async () => {
++    fileCreateMock.mockRejectedValueOnce(
++      Object.assign(new Error("Request failed with status code 400"), {
++        response: { status: 400, data: { code: 234001, msg: "invalid file" } },
++      }),
++    );
++
++    await expect(
++      sendMediaFeishu({
++        cfg: emptyConfig,
++        to: "user:ou_target",
++        mediaBuffer: Buffer.from("bad-file"),
++        fileName: "report.xlsx",
++      }),
++    ).rejects.toThrow(/Feishu file upload failed/);
++    expect(fileCreateMock).toHaveBeenCalledTimes(1);
++    expect(messageCreateMock).not.toHaveBeenCalled();
++  });
++
++  it("bounds transient upload retries and never dispatches without a file key", async () => {
++    vi.useFakeTimers();
++    try {
++      fileCreateMock.mockRejectedValue(
++        Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }),
++      );
++
++      const send = sendMediaFeishu({
++        cfg: emptyConfig,
++        to: "user:ou_target",
++        mediaBuffer: Buffer.from("spreadsheet"),
++        fileName: "report.xlsx",
++      });
++      const rejected = expect(send).rejects.toThrow(/Feishu file upload failed/);
++      await vi.runAllTimersAsync();
++
++      await rejected;
++      expect(fileCreateMock).toHaveBeenCalledTimes(3);
++      expect(messageCreateMock).not.toHaveBeenCalled();
++    } finally {
++      vi.useRealTimers();
++    }
++  });
++
+   it("uses msg_type=media for remote mp4 content even when the filename is generic", async () => {
+     runFfprobeMock.mockResolvedValueOnce("6.789\n");
+     loadWebMediaMock.mockResolvedValueOnce({
+diff --git a/extensions/feishu/src/media.ts b/extensions/feishu/src/media.ts
+index e93871213ef..823e5ca9304 100644
+--- a/extensions/feishu/src/media.ts
++++ b/extensions/feishu/src/media.ts
+@@ -15,6 +15,7 @@ import {
+ } from "openclaw/plugin-sdk/media-runtime";
+ import { saveMediaBuffer, type SavedMedia } from "openclaw/plugin-sdk/media-store";
+ import type { ReplyPayloadTtsSupplement } from "openclaw/plugin-sdk/reply-payload";
++import { isTransientNetworkError, retryAsync } from "openclaw/plugin-sdk/retry-runtime";
+ import { readRegularFile, writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtime";
+ import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+ import {
+@@ -35,6 +36,9 @@ import { resolveFeishuSendTarget } from "./send-target.js";
+ import { sendReplyOrFallbackDirect } from "./send.js";
+ 
+ const FEISHU_MEDIA_HTTP_TIMEOUT_MS = 120_000;
++const FEISHU_MEDIA_UPLOAD_ATTEMPTS = 3;
++const FEISHU_MEDIA_UPLOAD_RETRY_BASE_MS = 1_000;
++const FEISHU_MEDIA_UPLOAD_RETRY_MAX_MS = 4_000;
+ const FEISHU_MAX_FILE_UPLOAD_BYTES = 30 * 1024 * 1024;
+ const FEISHU_MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+ const FEISHU_VOICE_FILE_NAME = "voice.ogg";
+@@ -73,6 +77,16 @@ const FEISHU_TRANSCODABLE_AUDIO_EXTS = new Set([
+   ".wma",
+ ]);
+ 
++async function retryFeishuMediaUpload<T>(upload: () => Promise<T>): Promise<T> {
++  return await retryAsync(upload, {
++    attempts: FEISHU_MEDIA_UPLOAD_ATTEMPTS,
++    minDelayMs: FEISHU_MEDIA_UPLOAD_RETRY_BASE_MS,
++    maxDelayMs: FEISHU_MEDIA_UPLOAD_RETRY_MAX_MS,
++    jitter: "full",
++    shouldRetry: isTransientNetworkError,
++  });
++}
++
+ async function runBeforeFeishuMessageDispatch<T>(operation: () => Promise<T> | T): Promise<T> {
+   try {
+     return await operation();
+@@ -461,12 +475,14 @@ async function uploadImageFeishu(params: {
+ 
+   const response = await requestFeishuApi(
+     () =>
+-      client.im.image.create({
+-        data: {
+-          image_type: imageType,
+-          image: imageData,
+-        },
+-      }),
++      retryFeishuMediaUpload(() =>
++        client.im.image.create({
++          data: {
++            image_type: imageType,
++            image: imageData,
++          },
++        }),
++      ),
+     "Feishu image upload failed",
+     { includeNestedErrorLogId: true },
+   );
+@@ -518,14 +534,16 @@ async function uploadFileFeishu(params: {
+ 
+   const response = await requestFeishuApi(
+     () =>
+-      client.im.file.create({
+-        data: {
+-          file_type: fileType,
+-          file_name: safeFileName,
+-          file: fileData,
+-          ...(duration !== undefined ? { duration } : {}),
+-        },
+-      }),
++      retryFeishuMediaUpload(() =>
++        client.im.file.create({
++          data: {
++            file_type: fileType,
++            file_name: safeFileName,
++            file: fileData,
++            ...(duration !== undefined ? { duration } : {}),
++          },
++        }),
++      ),
+     "Feishu file upload failed",
+     { includeNestedErrorLogId: true },
+   );
+-- 
+2.50.1 (Apple Git-155)
+

@@ -209,6 +209,18 @@ Removal: drop this patch when `.openclaw-version` contains that commit or an
 equivalent lazy-loading implementation and the packaged Windows CLI sentinel
 passes on pristine vendor.
 
+### 0042 - Bounded Feishu media upload retries
+
+Retries transient network failures from Feishu image and file uploads up to
+three total attempts with exponential full-jitter backoff. The retry boundary
+stays before message dispatch, permanent API failures remain single-attempt,
+and a recovered upload produces only one visible message.
+
+Removal: upstream provides equivalent bounded transient retries for
+`im/v1/files` and `im/v1/images` while preserving single-attempt permanent
+failures and single-shot message dispatch. OpenClaw PR `#104322` alone is not
+sufficient because it intentionally leaves media uploads single-attempt.
+
 ## Dropped In v2026.9.3
 
 Audited on pristine `1391f7cd2d40ab5bbcf2f5f831d3a64f520e72d7` without
