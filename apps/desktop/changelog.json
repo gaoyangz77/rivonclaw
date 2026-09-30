@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.26",
+    "date": "2026-09-30",
+    "en": [
+      "Give business developers a dedicated login and workspace with role-appropriate Affiliate controls",
+      "Suspend inactive workspace tabs to reduce background resource use"
+    ],
+    "zh": [
+      "新增商务拓展人员专用登录与工作区，并按角色显示达人联盟操作",
+      "暂停非活跃工作区标签，减少后台资源占用"
+    ]
+  },
+  {
     "version": "1.9.25",
     "date": "2026-09-28",
     "en": [
