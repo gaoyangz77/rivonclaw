@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTutorial } from "../TutorialProvider.js";
-import { waitForTutorialTarget } from "../targets.js";
+import { findVisibleTutorialTarget, waitForTutorialTarget } from "../targets.js";
 
 interface SpotlightRect {
   top: number;
@@ -118,9 +118,7 @@ export function TutorialOverlay() {
     if (!isPlaying || steps.length === 0) return;
     const step = steps[currentStepIndex];
     if (!step) return;
-    const current = activeTargetRef.current;
-    const el =
-      current && document.contains(current) ? current : document.querySelector(step.target);
+    const el = findVisibleTutorialTarget(step.target);
     if (!el) return;
     activeTargetRef.current = el;
     positionTarget(el, step.placement ?? "bottom");
@@ -222,7 +220,7 @@ export function TutorialOverlay() {
     const resize =
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
     const observeTarget = () => {
-      const target = document.querySelector(step.target);
+      const target = findVisibleTutorialTarget(step.target);
       if (target !== observed) {
         resize?.disconnect();
         observed = target;
@@ -242,7 +240,12 @@ export function TutorialOverlay() {
     };
     observeTarget();
     const mutations = new MutationObserver(observeTarget);
-    mutations.observe(document.body, { childList: true, subtree: true });
+    mutations.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["hidden", "inert"],
+    });
     return () => {
       resize?.disconnect();
       mutations.disconnect();

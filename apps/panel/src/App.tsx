@@ -53,7 +53,8 @@ const LEGACY_ONBOARDING_ACCOUNT_ENTRY_COMPLETED_KEY = "onboarding_account_entry_
 
 export const App = observer(function App() {
   // The staged production rollout is opt-in; development exercises the full tab host.
-  const workspaceTabsEnabled = import.meta.env.VITE_WORKSPACE_TABS === "1" ||
+  const workspaceTabsEnabled =
+    import.meta.env.VITE_WORKSPACE_TABS === "1" ||
     (import.meta.env.DEV && import.meta.env.VITE_WORKSPACE_TABS !== "0");
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -106,8 +107,9 @@ export const App = observer(function App() {
     userId: currentUserId,
     isOwner: currentUserIsOwner,
     scopeSignature: currentUserScopes,
-    bootstrapReady: showWelcome === false && (!workspaceTabsEnabled ||
-      (runtimeStatus.snapshotReceived && !authBootstrapLoading)),
+    bootstrapReady:
+      showWelcome === false &&
+      (!workspaceTabsEnabled || (runtimeStatus.snapshotReceived && !authBootstrapLoading)),
     tabsEnabled: workspaceTabsEnabled,
   });
   const { workspace } = workspaceController;
@@ -142,7 +144,16 @@ export const App = observer(function App() {
         trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
       }
     },
-    [workspaceTabsEnabled, currentPath, dirtyTabs, activeTab.id, workspaceController.openRoute, currentUserId, showToast, t],
+    [
+      workspaceTabsEnabled,
+      currentPath,
+      dirtyTabs,
+      activeTab.id,
+      workspaceController.openRoute,
+      currentUserId,
+      showToast,
+      t,
+    ],
   );
 
   useEffect(() => {
@@ -526,7 +537,11 @@ export const App = observer(function App() {
   }
 
   return (
-    <TutorialProvider currentPath={currentPath}>
+    <TutorialProvider
+      currentPath={currentPath}
+      activeTabId={workspace.activeTabId}
+      workspaceTabsEnabled={workspaceTabsEnabled}
+    >
       <Layout
         currentPath={currentPath}
         onNavigate={navigate}
@@ -579,7 +594,8 @@ export const App = observer(function App() {
                 resetKey={chatTab?.id ?? "chat-suspended"}
                 title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
                 message={t("common.pageErrorMessage", {
-                  defaultValue: "The navigation is still available. Retry this page or open another section.",
+                  defaultValue:
+                    "The navigation is still available. Retry this page or open another section.",
                 })}
                 retryLabel={t("common.reload")}
               >
@@ -615,13 +631,17 @@ export const App = observer(function App() {
                 >
                   <PageErrorBoundary
                     resetKey={tab.id}
-                    title={t("common.pageErrorTitle", { defaultValue: "This page ran into a problem" })}
+                    title={t("common.pageErrorTitle", {
+                      defaultValue: "This page ran into a problem",
+                    })}
                     message={t("common.pageErrorMessage", {
-                      defaultValue: "The navigation is still available. Retry this page or open another section.",
+                      defaultValue:
+                        "The navigation is still available. Retry this page or open another section.",
                     })}
                     retryLabel={t("common.reload")}
                   >
-                    {(active || (visitedTabs.userId === currentUserId && visitedTabs.ids.has(tab.id))) && (
+                    {(active ||
+                      (visitedTabs.userId === currentUserId && visitedTabs.ids.has(tab.id))) && (
                       <WorkspaceTabActivity active={active}>
                         {tab.path === "/account/profile" ? (
                           <Page onNavigate={navigate} onRequestLogout={requestLogout} />

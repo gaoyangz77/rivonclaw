@@ -5,7 +5,13 @@ import {
 } from "./ecommerceAffiliateAttention.js";
 import { productKnowledgeSteps } from "./productKnowledge.js";
 import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js";
+import {
+  ecommerceAffiliateAnalyticsSteps,
+  ecommerceAffiliateAnalyticsBdSteps,
+} from "./ecommerceAffiliateAnalytics.js";
+import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js";
 import { TUTORIAL_WORKBENCHES_TRANSLATIONS } from "../../i18n/tutorial-workbenches-translations.js";
+import { TUTORIAL_OCTOBER_TRANSLATIONS } from "../../i18n/tutorial-october-translations.js";
 import { LANGUAGE_OPTIONS, LANGUAGE_RESOURCES } from "../../i18n/languages.js";
 
 function target(id: string, onClick: () => void = vi.fn()) {
@@ -23,6 +29,81 @@ afterEach(async () => {
 });
 
 describe("refreshed tutorial lifecycles", () => {
+  it.each([
+    ["supervisor", ecommerceAffiliateAnalyticsSteps, "overview"],
+    ["BD", ecommerceAffiliateAnalyticsBdSteps, "details"],
+  ] as const)(
+    "restores the %s analytics view after entering Details backwards",
+    async (_, steps, expected) => {
+      const clicks: string[] = [];
+      for (const tab of ["overview", "explore", "details"])
+        target(`affiliate-analytics-${tab}-tab`, () => clicks.push(tab));
+      const last = steps.at(-1)!;
+      await last.prepare?.();
+      await last.cleanup?.();
+      expect(clicks).toEqual(["details", expected]);
+    },
+  );
+
+  it("opens a BD Login panel from either end of the group without provisioning", async () => {
+    const provision = vi.fn();
+    target("provision-login", provision);
+    const open = vi.fn(() => {
+      target("affiliate-bd-detail");
+      target("affiliate-bd-login-tab", () => target("affiliate-bd-login"));
+    });
+    target("affiliate-team-developer", open);
+    const dispatch = vi.spyOn(document, "dispatchEvent");
+    const step = ecommerceAffiliateTeamSteps.find(
+      (step) => step.id === "affiliate-team-loginScope",
+    )!;
+    await step.prepare?.();
+    expect(open).toHaveBeenCalledOnce();
+    expect(document.querySelector('[data-tutorial-id="affiliate-bd-login"]')).not.toBeNull();
+    await step.cleanup?.();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
+    expect(provision).not.toHaveBeenCalled();
+  });
+
+  it("leaves an existing BD detail and its settings untouched", async () => {
+    target("affiliate-bd-detail");
+    const click = vi.fn();
+    target("affiliate-bd-login-tab", click);
+    const dispatch = vi.spyOn(document, "dispatchEvent");
+    const step = ecommerceAffiliateTeamSteps.find((step) => step.id === "affiliate-team-login")!;
+    await step.prepare?.();
+    await step.cleanup?.();
+    expect(click).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it.each(["affiliate-campaign-wizard-stages", "affiliate-campaign-wizard"])(
+    "opens and closes its own empty draft from %s without saving",
+    async (id) => {
+      const create = vi.fn(() => target("affiliate-campaign-wizard"));
+      const close = vi.fn();
+      const save = vi.fn();
+      target("affiliate-campaign-create", create);
+      target("affiliate-campaign-wizard-cancel", close);
+      target("affiliate-campaign-wizard-save", save);
+      const step = ecommerceAffiliateCampaignSteps.find((step) => step.id === id)!;
+      await step.prepare?.();
+      await step.cleanup?.();
+      expect(create).toHaveBeenCalledOnce();
+      expect(close).toHaveBeenCalledOnce();
+      expect(save).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves an existing campaign draft", async () => {
+    target("affiliate-campaign-wizard");
+    const close = vi.fn();
+    target("affiliate-campaign-wizard-cancel", close);
+    const step = ecommerceAffiliateCampaignSteps.at(-1)!;
+    await step.prepare?.();
+    await step.cleanup?.();
+    expect(close).not.toHaveBeenCalled();
+  });
   it.each([
     [
       "Agent",
@@ -101,17 +182,21 @@ function strings(value: object, prefix = ""): Record<string, string> {
   );
 }
 
-describe("September workbench copy", () => {
-  it("merges every refreshed key in all eight languages without English fallback", () => {
-    const english = strings(TUTORIAL_WORKBENCHES_TRANSLATIONS.en);
-    for (const language of LANGUAGE_OPTIONS) {
-      const copy = strings(TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code]);
-      expect(Object.keys(copy)).toEqual(Object.keys(english));
-      const resolved = strings(LANGUAGE_RESOURCES[language.code].translation);
-      for (const [key, value] of Object.entries(copy)) {
-        expect(resolved[key], `${language.code} ${key}`).toBe(value);
-        if (language.code !== "en") expect(value).not.toBe(english[key]);
+describe("workbench and October copy", () => {
+  it.each([TUTORIAL_WORKBENCHES_TRANSLATIONS, TUTORIAL_OCTOBER_TRANSLATIONS])(
+    "merges refreshed keys in all eight languages without English fallback",
+    (translations) => {
+      const english = strings(translations.en);
+      for (const language of LANGUAGE_OPTIONS) {
+        const copy = strings(translations[language.code]);
+        const latest = strings(TUTORIAL_OCTOBER_TRANSLATIONS[language.code]);
+        expect(Object.keys(copy)).toEqual(Object.keys(english));
+        const resolved = strings(LANGUAGE_RESOURCES[language.code].translation);
+        for (const [key, value] of Object.entries(copy)) {
+          expect(resolved[key], `${language.code} ${key}`).toBe(latest[key] ?? value);
+          if (language.code !== "en") expect(value).not.toBe(english[key]);
+        }
       }
-    }
-  });
+    },
+  );
 });

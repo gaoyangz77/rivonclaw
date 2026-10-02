@@ -57,7 +57,13 @@ export function SubAccountsSection() {
   }
 
   return (
-    <TkPanel as="section" padding="none" clip className="section-card">
+    <TkPanel
+      as="section"
+      padding="none"
+      clip
+      className="section-card"
+      data-tutorial-id="account-members"
+    >
       <TkPanelHeader
         title={t("subAccounts.title")}
         description={t("subAccounts.description")}

@@ -41,6 +41,7 @@ export function SpsShopScopeControl({
     <section
       className={`sps-scope-control${selectionRequired ? " sps-scope-control-required" : ""}`}
       aria-labelledby="sps-scope-title"
+      data-tutorial-id="analytics-shop-scope"
     >
       <div className="sps-scope-copy">
         <span>{t("shopAnalytics.scope.market")}</span>

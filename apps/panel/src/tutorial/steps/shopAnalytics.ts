@@ -19,6 +19,7 @@ function step(
 export const shopAnalyticsSteps: TutorialStep[] = [
   step("analytics-welcome", "analytics-header", "welcome", "bottom"),
   step("analytics-metrics", "analytics-metrics", "metrics", "bottom"),
+  step("analytics-shop-scope", "analytics-shop-scope", "scope", "bottom"),
   step("analytics-summary", "analytics-summary", "summary", "bottom"),
   step("analytics-timeline", "analytics-timeline", "timeline", "bottom"),
   step("analytics-market", "analytics-market", "trend", "top"),

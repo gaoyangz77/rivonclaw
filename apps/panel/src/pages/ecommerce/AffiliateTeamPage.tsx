@@ -287,7 +287,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     Array<{ value: string; label: string }>
   >([]);
   const myDeviceId = useMyDeviceId();
-  const [pageTab, setPageTab] = useState<TeamPageTab>(() => readTeamPageTab(workspaceTab.view.view));
+  const [pageTab, setPageTab] = useState<TeamPageTab>(() =>
+    readTeamPageTab(workspaceTab.view.view),
+  );
   const [developerPage, setDeveloperPage] = useState(0);
   const [developerSearch, setDeveloperSearch] = useState("");
   const [showArchivedDevelopers, setShowArchivedDevelopers] = useState(false);
@@ -1636,7 +1638,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       if (!detailOnlyDeveloper) {
         workspaceTab.setView({
           ...workspaceTab.view,
-          view: nextTab === "ASSIGNMENTS" ? "assignments" : nextTab === "SAFETY" ? "safety" : "team",
+          view:
+            nextTab === "ASSIGNMENTS" ? "assignments" : nextTab === "SAFETY" ? "safety" : "team",
         });
       }
       setPageTab(nextTab);
@@ -1895,6 +1898,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                         return (
                           <TkInteractiveTableRow
                             key={developer.id}
+                            data-tutorial-id="affiliate-team-developer"
                             className={developer.archivedAt ? "is-archived" : undefined}
                             onActivate={() => openDeveloperDetail(summary)}
                           >
@@ -3094,7 +3098,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         {detailOnlyDeveloper && !detailSummary && <LoadingSpinner variant="inline" />}
         {detailDeveloper && detailSummary && (
           <>
-            <div className="affiliate-bd-command-header">
+            <div className="affiliate-bd-command-header" data-tutorial-id="affiliate-bd-detail">
               <div className="affiliate-bd-command-identity">
                 <span className="affiliate-bd-command-avatar">
                   <UserIcon />
@@ -3187,7 +3191,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                   id: "LOGIN",
                   label: t("ecommerce.affiliateTeam.login.tab"),
                   icon: <AuthIcon />,
-                  buttonProps: { "aria-controls": "affiliate-bd-panel-login" },
+                  buttonProps: {
+                    "aria-controls": "affiliate-bd-panel-login",
+                    "data-tutorial-id": "affiliate-bd-login-tab",
+                  },
                 },
               ]}
               value={detailTab}

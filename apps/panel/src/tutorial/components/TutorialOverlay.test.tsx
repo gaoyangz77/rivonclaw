@@ -35,6 +35,54 @@ afterEach(() => {
 });
 
 describe("TutorialOverlay step lifecycle", () => {
+  it("measures the active duplicate and follows retained-tab visibility changes", async () => {
+    const hidden = document.createElement("section");
+    hidden.hidden = true;
+    const oldTarget = document.createElement("div");
+    oldTarget.dataset.tutorialId = "retained";
+    const active = oldTarget.cloneNode() as HTMLElement;
+    const rect = (width: number) => ({
+      top: 100,
+      left: 80,
+      width,
+      height: 120,
+      bottom: 220,
+      right: 80 + width,
+      x: 80,
+      y: 100,
+      toJSON: () => ({}),
+    });
+    oldTarget.getBoundingClientRect = () => rect(100);
+    active.getBoundingClientRect = () => rect(300);
+    hidden.append(oldTarget);
+    document.body.append(hidden, active);
+    tutorial.steps = [
+      {
+        id: "retained",
+        target: '[data-tutorial-id="retained"]',
+        titleKey: "tutorial.retained.title",
+        bodyKey: "tutorial.retained.body",
+      },
+    ];
+    const view = render(<TutorialOverlay />);
+    await waitFor(() =>
+      expect(view.container.querySelector<HTMLElement>(".tutorial-spotlight")?.style.width).toBe(
+        "312px",
+      ),
+    );
+    act(() => {
+      active.hidden = true;
+      hidden.hidden = false;
+    });
+    await waitFor(() =>
+      expect(view.container.querySelector<HTMLElement>(".tutorial-spotlight")?.style.width).toBe(
+        "112px",
+      ),
+    );
+    expect(tutorial.next).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
   it("remeasures when an async queue replaces its loading target", async () => {
     const loading = document.createElement("div");
     loading.dataset.tutorialId = "async-queue";

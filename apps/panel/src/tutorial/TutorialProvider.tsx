@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import type { ReactNode } from "react";
 import { observer } from "mobx-react-lite";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
+import { useEntityStore } from "../store/EntityStoreProvider.js";
+import { isBusinessDeveloperOnly } from "../lib/permission-scope.js";
 import type { TutorialStep } from "./types.js";
 import { getStepsForRoute } from "./steps/index.js";
 
@@ -21,23 +23,33 @@ const TutorialContext = createContext<TutorialContextValue | null>(null);
 
 export const TutorialProvider = observer(function TutorialProvider({
   currentPath,
+  activeTabId,
+  workspaceTabsEnabled = false,
   children,
 }: {
   currentPath: string;
+  activeTabId?: string;
+  workspaceTabsEnabled?: boolean;
   children: ReactNode;
 }) {
   const runtimeStatus = useRuntimeStatus();
+  const entityStore = useEntityStore();
+  const businessDeveloperOnly = isBusinessDeveloperOnly(entityStore.currentUser);
+  const isOwner = entityStore.currentUser?.isOwner === true;
   const enabled = runtimeStatus.appSettings.tutorialEnabled;
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const steps = useMemo(() => getStepsForRoute(currentPath), [currentPath]);
+  const steps = useMemo(
+    () => getStepsForRoute(currentPath, { businessDeveloperOnly, workspaceTabsEnabled, isOwner }),
+    [currentPath, businessDeveloperOnly, workspaceTabsEnabled, isOwner],
+  );
 
-  // Stop tutorial when route changes
+  // Same-route workspace tabs and permission changes also invalidate playback.
   useEffect(() => {
     setIsPlaying(false);
     setCurrentStepIndex(0);
-  }, [currentPath]);
+  }, [currentPath, activeTabId, businessDeveloperOnly, isOwner, workspaceTabsEnabled]);
 
   // Auto-stop playback when the feature is disabled via settings.
   useEffect(() => {

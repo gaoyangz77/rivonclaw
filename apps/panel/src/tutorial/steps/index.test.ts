@@ -50,11 +50,11 @@ describe("tutorial step registry", () => {
   it("keeps the audited Affiliate tutorials at their intended coverage", () => {
     const expectedStepCounts: Record<string, number> = {
       "/commerce/affiliate/attention": 7,
-      "/commerce/affiliate/manual-workbench": 6,
-      "/commerce/affiliate/team": 5,
+      "/commerce/affiliate/manual-workbench": 8,
+      "/commerce/affiliate/team": 7,
       "/commerce/product-knowledge": 5,
       "/commerce/affiliate/campaigns": 8,
-      "/commerce/affiliate/analytics": 7,
+      "/commerce/affiliate/analytics": 11,
       "/commerce/affiliate/creators": 4,
       "/commerce/affiliate/history": 4,
       "/commerce/affiliate/intelligence": 4,
@@ -67,6 +67,33 @@ describe("tutorial step registry", () => {
     expect(getStepsForRoute("/commerce/affiliate")).toBe(
       getStepsForRoute("/commerce/affiliate/creators"),
     );
+  });
+
+  it("only offers BD-accessible views and read-only knowledge instructions", () => {
+    const options = { businessDeveloperOnly: true, isOwner: false };
+    const analytics = getStepsForRoute("/commerce/affiliate/analytics", options);
+    expect(analytics).toHaveLength(4);
+    expect(
+      analytics.every(
+        (step) => step.id?.includes("details") || step.bodyKey.endsWith("bdWelcomeBody"),
+      ),
+    ).toBe(true);
+    const knowledge = getStepsForRoute("/commerce/product-knowledge", options);
+    expect(knowledge).toHaveLength(4);
+    expect(knowledge.every((step) => step.bodyKey.includes("readOnly"))).toBe(true);
+    expect(
+      getStepsForRoute("/account/profile", options).some(
+        (step) => step.id === "account-members" || step.id === "account-roles",
+      ),
+    ).toBe(false);
+  });
+
+  it("only adds workspace-tab guidance when tabs are enabled and the route is taught", () => {
+    expect(getStepsForRoute("/commerce/affiliate/team", { workspaceTabsEnabled: true })[0].id).toBe(
+      "workspace-page-tabs",
+    );
+    expect(getStepsForRoute("/commerce/affiliate/team")[0].id).not.toBe("workspace-page-tabs");
+    expect(getStepsForRoute("/internal/not-a-page", { workspaceTabsEnabled: true })).toEqual([]);
   });
 
   it("covers every sidebar route with a tutorial", () => {
@@ -97,18 +124,23 @@ describe("tutorial step registry", () => {
     const auditedRoutes = ROUTES.filter((route) => !route.internal);
 
     for (const route of auditedRoutes) {
-      const stepIds = new Set<string>();
-      for (const step of getStepsForRoute(route.path)) {
-        expect(step.id, `${route.path} step id`).toMatch(/\S/);
-        expect(stepIds.has(step.id!), `${route.path} duplicate step id ${step.id}`).toBe(false);
-        stepIds.add(step.id!);
+      for (const options of [
+        { workspaceTabsEnabled: true },
+        { businessDeveloperOnly: true, isOwner: false },
+      ]) {
+        const stepIds = new Set<string>();
+        for (const step of getStepsForRoute(route.path, options)) {
+          expect(step.id, `${route.path} step id`).toMatch(/\S/);
+          expect(stepIds.has(step.id!), `${route.path} duplicate step id ${step.id}`).toBe(false);
+          stepIds.add(step.id!);
 
-        const targetId = step.target.match(TARGET_SELECTOR)?.[1];
-        expect(targetId, `${route.path} stable target for ${step.id}`).toBeDefined();
-        expect(
-          renderedSource.includes(`data-tutorial-id="${targetId}"`),
-          `${route.path} rendered target ${targetId}`,
-        ).toBe(true);
+          const targetId = step.target.match(TARGET_SELECTOR)?.[1];
+          expect(targetId, `${route.path} stable target for ${step.id}`).toBeDefined();
+          expect(
+            renderedSource.includes(`data-tutorial-id="${targetId}"`),
+            `${route.path} rendered target ${targetId}`,
+          ).toBe(true);
+        }
       }
     }
   });
@@ -140,7 +172,10 @@ describe("tutorial step registry", () => {
 
     const missingOrFallback: string[] = [];
     for (const route of AFFILIATE_TUTORIAL_ROUTES) {
-      for (const step of getStepsForRoute(route)) {
+      for (const step of [
+        ...getStepsForRoute(route, { workspaceTabsEnabled: true }),
+        ...getStepsForRoute(route, { businessDeveloperOnly: true, isOwner: false }),
+      ]) {
         for (const language of LANGUAGE_OPTIONS.filter((entry) => entry.code !== "en")) {
           for (const key of [step.titleKey, step.bodyKey]) {
             const localized = getTranslation(LANGUAGE_RESOURCES[language.code].translation, key);

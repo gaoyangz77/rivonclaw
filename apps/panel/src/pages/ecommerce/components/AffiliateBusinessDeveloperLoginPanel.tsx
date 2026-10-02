@@ -261,7 +261,7 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
     }
 
     return (
-      <div className="affiliate-bd-login">
+      <div className="affiliate-bd-login" data-tutorial-id="affiliate-bd-login">
         {archived && (
           <TkAlert tone="warning">
             {loginEmail === null
@@ -354,6 +354,7 @@ export const AffiliateBusinessDeveloperLoginPanel = observer(
             </span>
             <ul
               className="affiliate-bd-login-scope-list"
+              data-tutorial-id="affiliate-bd-loginScope"
               aria-labelledby={`affiliate-bd-login-scope-${developerId}`}
             >
               {LOGIN_SCOPE_KEYS.map((key) => (

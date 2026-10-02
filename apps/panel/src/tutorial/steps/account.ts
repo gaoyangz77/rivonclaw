@@ -25,4 +25,6 @@ export const accountSteps: TutorialStep[] = [
   step("account-surface-actions", "account-surface-actions", "surfaceActions", "left"),
   step("account-profiles", "account-profiles", "profilesSection", "bottom"),
   step("account-default-profile", "account-default-profile", "defaultProfile", "bottom"),
+  step("account-members", "account-members", "members", "top"),
+  step("account-roles", "account-roles", "roles", "top"),
 ];

@@ -138,7 +138,7 @@ export function AccountRolesPanel({
   }
 
   return (
-    <div className="acct-role-panel">
+    <div className="acct-role-panel" data-tutorial-id="account-roles">
       <div className="acct-role-panel-header">
         <div>
           <h4>{t("subAccounts.rolesTitle")}</h4>

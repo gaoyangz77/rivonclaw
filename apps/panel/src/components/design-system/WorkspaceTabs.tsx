@@ -37,7 +37,10 @@ export function TkWorkspaceTabs({
     }
     if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
-      onReorder(id, Math.max(0, Math.min(items.length - 1, index + (event.key === "ArrowLeft" ? -1 : 1))));
+      onReorder(
+        id,
+        Math.max(0, Math.min(items.length - 1, index + (event.key === "ArrowLeft" ? -1 : 1))),
+      );
       return;
     }
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -53,7 +56,12 @@ export function TkWorkspaceTabs({
   }
 
   return (
-    <div className="tk-v1-workspace-tabs" role="tablist" aria-label={label}>
+    <div
+      className="tk-v1-workspace-tabs"
+      role="tablist"
+      aria-label={label}
+      data-tutorial-id="workspace-tabs"
+    >
       {items.map((item, index) => (
         <div
           className={`tk-v1-workspace-tab${item.id === value ? " is-active" : ""}`}
@@ -70,7 +78,9 @@ export function TkWorkspaceTabs({
           }}
         >
           <button
-            ref={(node) => { tabRefs.current[index] = node; }}
+            ref={(node) => {
+              tabRefs.current[index] = node;
+            }}
             className="tk-v1-workspace-tab-trigger"
             role="tab"
             type="button"
@@ -83,7 +93,11 @@ export function TkWorkspaceTabs({
           >
             {item.icon && <span className="tk-v1-workspace-tab-icon">{item.icon}</span>}
             <span className="tk-v1-workspace-tab-label">{item.label}</span>
-            {item.dirty && <span className="tk-v1-workspace-tab-dirty" aria-label={dirtyLabel}>●</span>}
+            {item.dirty && (
+              <span className="tk-v1-workspace-tab-dirty" aria-label={dirtyLabel}>
+                ●
+              </span>
+            )}
           </button>
           <button
             type="button"

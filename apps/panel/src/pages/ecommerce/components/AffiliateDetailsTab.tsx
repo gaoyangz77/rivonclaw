@@ -67,7 +67,9 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
   const [shopSelection, setShopSelection] = useState<string[]>(shops.map((shop) => shop.id));
   const shopIds = reconcileShopSelection(shopSelection, shops);
   const [range, setRange] = useState(defaultAffiliateDateRange);
-  const [filters, setFilters] = useState<AffiliateDetailFilterDraft>(EMPTY_AFFILIATE_DETAIL_FILTERS);
+  const [filters, setFilters] = useState<AffiliateDetailFilterDraft>(
+    EMPTY_AFFILIATE_DETAIL_FILTERS,
+  );
   const [selectedApplication, setSelectedApplication] = useState<{
     shopId: string;
     applicationId: string;
@@ -149,7 +151,11 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
           description={t("ecommerce.affiliateAnalytics.details.subtitle")}
         />
         <TkPanelBody>
-          <TkFormStack gap="md" className="affiliate-detail-query">
+          <TkFormStack
+            gap="md"
+            className="affiliate-detail-query"
+            data-tutorial-id="affiliate-analytics-details-query"
+          >
             <div className="affiliate-detail-controls">
               <TkChoiceSelect
                 className="affiliate-detail-field"
@@ -191,7 +197,10 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                 }
               />
             </div>
-            <div className="tk-v1-form-action-row">
+            <div
+              className="tk-v1-form-action-row"
+              data-tutorial-id="affiliate-analytics-details-filters"
+            >
               <div className="affiliate-detail-controls">
                 {entity === "REVIEW" ? (
                   <AffiliateReviewFilters value={filters} onChange={setFilters} />
@@ -220,7 +229,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
         </TkPanelBody>
       </TkPanel>
 
-      <TkPanel as="section" padding="none">
+      <TkPanel as="section" padding="none" data-tutorial-id="affiliate-analytics-details-results">
         <TkPanelHeader
           eyebrow={
             resultEntity === "REVIEW"
@@ -263,9 +272,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                     ? t("ecommerce.affiliateAnalytics.noDataTitle")
                     : t("ecommerce.affiliateAnalytics.details.searchPrompt")
                 }
-                description={
-                  pages.input ? t("ecommerce.affiliateAnalytics.noDataBody") : undefined
-                }
+                description={pages.input ? t("ecommerce.affiliateAnalytics.noDataBody") : undefined}
               />
             </TkPanelBody>
           )

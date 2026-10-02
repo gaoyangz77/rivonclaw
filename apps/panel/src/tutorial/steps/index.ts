@@ -23,7 +23,10 @@ import {
   ecommerceAffiliateManualWorkbenchSteps,
 } from "./ecommerceAffiliateAttention.js";
 import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js";
-import { ecommerceAffiliateAnalyticsSteps } from "./ecommerceAffiliateAnalytics.js";
+import {
+  ecommerceAffiliateAnalyticsSteps,
+  ecommerceAffiliateAnalyticsBdSteps,
+} from "./ecommerceAffiliateAnalytics.js";
 import { ecommerceAffiliateCreatorsSteps } from "./ecommerceAffiliateCreators.js";
 import { ecommerceAffiliateHistorySteps } from "./ecommerceAffiliateHistory.js";
 import { ecommerceAffiliateIntelligenceSteps } from "./ecommerceAffiliateIntelligence.js";
@@ -31,6 +34,7 @@ import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js";
 import { inventoryManagementSteps } from "./inventoryManagement.js";
 import { shopAnalyticsSteps } from "./shopAnalytics.js";
 import { productKnowledgeSteps } from "./productKnowledge.js";
+import { tutorialTarget } from "../targets.js";
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
@@ -64,6 +68,49 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/account/settings": settingsSteps,
 };
 
-export function getStepsForRoute(route: string): TutorialStep[] {
-  return stepRegistry[route] ?? [];
+export function getStepsForRoute(
+  route: string,
+  {
+    businessDeveloperOnly = false,
+    workspaceTabsEnabled = false,
+    isOwner = true,
+  }: {
+    businessDeveloperOnly?: boolean;
+    workspaceTabsEnabled?: boolean;
+    isOwner?: boolean;
+  } = {},
+): TutorialStep[] {
+  let steps = stepRegistry[route] ?? [];
+  if (!isOwner && route === "/account/profile") {
+    steps = steps.filter((step) => !["account-members", "account-roles"].includes(step.id ?? ""));
+  }
+  if (businessDeveloperOnly && route === "/commerce/affiliate/analytics") {
+    steps = ecommerceAffiliateAnalyticsBdSteps;
+  }
+  if (businessDeveloperOnly && route === "/commerce/product-knowledge") {
+    steps = productKnowledgeSteps
+      .filter((step) => step.id !== "product-knowledge-create")
+      .map((step) =>
+        step.id === "product-knowledge-welcome"
+          ? { ...step, bodyKey: "tutorial.productKnowledge.readOnlyBody" }
+          : step.id === "product-knowledge-library"
+            ? { ...step, bodyKey: "tutorial.productKnowledge.readOnlyLibraryBody" }
+            : step.id === "product-knowledge-content"
+              ? { ...step, bodyKey: "tutorial.productKnowledge.readOnlyContentBody" }
+              : step.id === "product-knowledge-bindings"
+                ? { ...step, bodyKey: "tutorial.productKnowledge.readOnlyBindingsBody" }
+                : step,
+      );
+  }
+  if (!workspaceTabsEnabled || steps.length === 0) return steps;
+  return [
+    {
+      id: "workspace-page-tabs",
+      target: tutorialTarget("workspace-tabs"),
+      titleKey: "tutorial.workspace.tabsTitle",
+      bodyKey: "tutorial.workspace.tabsBody",
+      placement: "bottom",
+    },
+    ...steps,
+  ];
 }
