@@ -7772,6 +7772,7 @@ export const EcomBiDatasetId = {
   OrderShopDaily: "ORDER_SHOP_DAILY",
   OrderSkuDaily: "ORDER_SKU_DAILY",
   OrderSkuExportLine: "ORDER_SKU_EXPORT_LINE",
+  ProductReviewDetail: "PRODUCT_REVIEW_DETAIL",
   ShopSpsMetricCurrent: "SHOP_SPS_METRIC_CURRENT",
   ShopSpsMetricDiagnosisCurrent: "SHOP_SPS_METRIC_DIAGNOSIS_CURRENT",
   ShopSpsOverviewCurrent: "SHOP_SPS_OVERVIEW_CURRENT",
@@ -7887,6 +7888,7 @@ export const EcomBiDimension = {
   PayoutNotes: "PAYOUT_NOTES",
   PhoneNumber: "PHONE_NUMBER",
   Platform: "PLATFORM",
+  PlatformReviewId: "PLATFORM_REVIEW_ID",
   ProductBrandId: "PRODUCT_BRAND_ID",
   ProductBrandName: "PRODUCT_BRAND_NAME",
   ProductCategory: "PRODUCT_CATEGORY",
@@ -7897,6 +7899,11 @@ export const EcomBiDimension = {
   ProductStatus: "PRODUCT_STATUS",
   Recipient: "RECIPIENT",
   RelatedOrderId: "RELATED_ORDER_ID",
+  ReviewContent: "REVIEW_CONTENT",
+  ReviewCreateTime: "REVIEW_CREATE_TIME",
+  ReviewRating: "REVIEW_RATING",
+  ReviewTitle: "REVIEW_TITLE",
+  ReviewUpdateTime: "REVIEW_UPDATE_TIME",
   RoiProtection: "ROI_PROTECTION",
   RtsTime: "RTS_TIME",
   SampleApplicationId: "SAMPLE_APPLICATION_ID",
@@ -7999,6 +8006,7 @@ export const EcomBiDimensionEntity = {
   Finance: "FINANCE",
   Order: "ORDER",
   Product: "PRODUCT",
+  ProductReview: "PRODUCT_REVIEW",
   SampleApplication: "SAMPLE_APPLICATION",
   Shop: "SHOP",
   Sku: "SKU",
@@ -8078,6 +8086,7 @@ export interface EcomBiFilterInput {
 /** Allowed BI filter operators. */
 export const EcomBiFilterOperator = {
   In: "IN",
+  Lte: "LTE",
   NotIn: "NOT_IN",
 } as const;
 
@@ -8404,9 +8413,9 @@ export interface EcomBiQueryInput {
   advertiserIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Dataset to query. */
   datasetId: EcomBiDatasetId;
-  /** Dimensions to group by. Defaults are declared by dataset metadata. */
+  /** Dimensions to select or group by, depending on dataset grain. Defaults are declared by dataset metadata; detail/export datasets do not aggregate rows. */
   dimensions?: InputMaybe<Array<EcomBiDimension>>;
-  /** End date exclusive in YYYY-MM-DD format when the dataset uses dates. */
+  /** End date exclusive in YYYY-MM-DD format when the dataset uses dates. PRODUCT_REVIEW_DETAIL uses review creation in each shop timezone. */
   endDateLt?: InputMaybe<Scalars["String"]["input"]>;
   /** Optional filters over dataset-supported dimensions. */
   filters?: InputMaybe<Array<EcomBiFilterInput>>;
@@ -8424,7 +8433,7 @@ export interface EcomBiQueryInput {
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Current-user Shop regions to expand server-side into every onboarded Shop Mongo ID in those regions. Use this instead of shopIds when the user asks for all of their shops in one or more regions. Cannot be combined with shopIds. Ownership and per-Shop analytics entitlement checks still apply; SPS also retains its 50-Shop and US-only limits. */
   shopRegions?: InputMaybe<Array<ShopRegion>>;
-  /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. */
+  /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. PRODUCT_REVIEW_DETAIL uses review creation in each shop timezone. */
   startDateGe?: InputMaybe<Scalars["String"]["input"]>;
   /** Canonical warehouse Mongo IDs for warehouse-scoped live inventory datasets. */
   warehouseIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
@@ -13137,7 +13146,7 @@ export interface Query {
   ecommerceSearchFbtInventoryRecordPage: EcommerceFbtObjectListResult;
   /** Search fulfillment packages with optional filters and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchPackages: Array<EcomPackage>;
-  /** Search/list products across authorized shops with optional shopIds and region scope. When shopIds and region are both provided, only shops matching both are searched. When creation-time and update-time filters are both provided, products must match both ranges. The limit applies across all selected shops, and pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
+  /** Search/list products across authorized shops with optional shopIds and region scope. When shopIds and region are both provided, only shops matching both are searched. When creation-time and update-time filters are both provided, products must match both ranges. The limit applies across all selected shops, and pagination is handled internally by the backend. Multi-shop results are best-effort: a shop that cannot be searched is logged and skipped, while successful shop results are still returned. For full product details including images use ecommerceGetProduct. */
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
