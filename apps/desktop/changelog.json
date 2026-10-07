@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.27",
+    "date": "2026-10-07",
+    "en": [
+      "Enable workspace tabs in release builds and restore review management settings",
+      "Update tutorials for workspaces and Affiliate workflows"
+    ],
+    "zh": [
+      "修复正式版工作区标签，并恢复评价管理设置",
+      "更新工作区和达人联盟流程教程"
+    ]
+  },
+  {
     "version": "1.9.26",
     "date": "2026-09-30",
     "en": [
