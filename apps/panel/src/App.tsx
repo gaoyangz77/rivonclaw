@@ -52,10 +52,8 @@ const WELCOME_PAGE_COMPLETED_KEY = "welcome_page_completed";
 const LEGACY_ONBOARDING_ACCOUNT_ENTRY_COMPLETED_KEY = "onboarding_account_entry_completed";
 
 export const App = observer(function App() {
-  // The staged production rollout is opt-in; development exercises the full tab host.
-  const workspaceTabsEnabled =
-    import.meta.env.VITE_WORKSPACE_TABS === "1" ||
-    (import.meta.env.DEV && import.meta.env.VITE_WORKSPACE_TABS !== "0");
+  // Workspace tabs are enabled in release builds; keep an explicit rollback switch.
+  const workspaceTabsEnabled = import.meta.env.VITE_WORKSPACE_TABS !== "0";
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const runtimeStatus = useRuntimeStatus();

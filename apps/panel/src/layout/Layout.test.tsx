@@ -18,7 +18,12 @@ vi.mock("../components/BottomActions.js", () => ({
 }));
 
 vi.mock("../components/banners/GlobalBannerStack.js", () => ({
-  GlobalBannerStack: () => null,
+  GlobalBannerStack: () => (
+    <>
+      <div role="status">First warning</div>
+      <div role="status">Second warning</div>
+    </>
+  ),
 }));
 
 vi.mock("../components/icons.js", () => ({
@@ -89,5 +94,33 @@ describe("Layout branding", () => {
 
     expect(screen.getByText("TK Copilot")).toBeTruthy();
     expect(screen.queryByText("Customer Named Agent")).toBeNull();
+  });
+});
+
+describe("Layout workspace tabs", () => {
+  it("renders the tab strip between stacked banners and the page", () => {
+    const { container } = render(
+      <Layout
+        currentPath="/"
+        onNavigate={() => {}}
+        workspaceTabs={[{ id: "chat", label: "Chat" }]}
+        activeTabId="chat"
+        onActivateTab={() => {}}
+        onCloseTab={() => {}}
+        onReorderTab={() => {}}
+        onAuthSuccess={() => {}}
+        showWorkspaceTabs
+      >
+        <div data-testid="page-content">Page content</div>
+      </Layout>,
+    );
+
+    const banners = screen.getAllByRole("status");
+    const tablist = screen.getByRole("tablist", { name: "workspace.tabs" });
+    const page = screen.getByTestId("page-content");
+    expect(banners).toHaveLength(2);
+    expect(container.contains(tablist)).toBe(true);
+    expect(banners[1]!.compareDocumentPosition(tablist) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(tablist.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
