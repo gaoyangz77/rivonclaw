@@ -11,7 +11,7 @@ import { TkSwitchControl } from "../../../components/design-system/index.js";
 import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
-const SHOW_REVIEW_MANAGEMENT_SETTINGS = false;
+const SHOW_REVIEW_MANAGEMENT_SETTINGS = true;
 
 interface AiCustomerServiceTabProps {
   shop: Shop;

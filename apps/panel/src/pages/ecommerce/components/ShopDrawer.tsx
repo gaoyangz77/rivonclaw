@@ -30,7 +30,7 @@ import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 
 const workspaceSectionId = (tab: DrawerTab, section: string) => `shop-workspace-${tab}-${section}`;
 const ADS_ACCOUNT_COLLAPSE_THRESHOLD = 4;
-const SHOW_REVIEW_MANAGEMENT_SETTINGS = false;
+const SHOW_REVIEW_MANAGEMENT_SETTINGS = true;
 
 interface ShopDrawerProps {
   shopId: string | null;
