@@ -4917,3 +4917,22 @@ export const AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY = gql`
     }
   }
 `;
+
+export const AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY = gql`
+  query AffiliateCreatorUpdateExportPage($input: ReadAffiliateCreatorsInput!) {
+    affiliateCreatorUpdateExportPage(input: $input) {
+      items {
+        creatorRelationshipId
+        username
+        sellerProvidedUid
+        sellerNote
+        businessDeveloperName
+        protect
+        protectionNote
+        manualTagNames
+      }
+      hasMore
+      offset
+    }
+  }
+`;

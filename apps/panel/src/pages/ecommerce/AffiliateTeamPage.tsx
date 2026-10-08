@@ -1,3 +1,4 @@
+import { downloadAffiliateCreatorWorkbook } from "./affiliate-creator-export.js";
 import {
   useCallback,
   useDeferredValue,
@@ -146,6 +147,7 @@ export type DeveloperForm = {
 
 type ProtectionPreviewRow = {
   overwrite?: boolean;
+  businessDeveloperOnly?: boolean;
   rowNumber: number;
   platform: GQL.ShopPlatform;
   creatorOpenId: string | null;
@@ -323,6 +325,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const [protectionImportView, setProtectionImportView] = useState<ProtectionImportView>("ADD");
   const [protectionComposerMode, setProtectionComposerMode] =
     useState<ProtectionComposerMode>("FILE");
+  const [creatorUpdateMode, setCreatorUpdateMode] = useState<"FULL" | "BD_ONLY">("FULL");
   const [protectionImportFileName, setProtectionImportFileName] = useState("");
   const [protectionDragActive, setProtectionDragActive] = useState(false);
   const [protectionPreviewPage, setProtectionPreviewPage] = useState(0);
@@ -956,6 +959,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
 
   function resetProtectionImportDraft() {
     setProtectionRows([]);
+    setCreatorUpdateMode("FULL");
     setProtectionImportProgress(null);
     setProtectionImportPhase("IDLE");
     setProtectionImportOperationId(null);
@@ -1018,7 +1022,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       );
       const seen = new Set<string>();
       const parsed = rawRows.map((raw, index): ProtectionPreviewRow => {
-        const row = parseAffiliateCreatorUpdateRow(raw, manualTagCatalogNames);
+        const row = parseAffiliateCreatorUpdateRow(
+          raw,
+          manualTagCatalogNames,
+          creatorUpdateMode === "BD_ONLY",
+        );
         const creatorOpenId = null;
         const username = row.username;
         const developerName = row.businessDeveloperName;
@@ -1035,6 +1043,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         return {
           rowNumber: index + 2,
           overwrite: true,
+          businessDeveloperOnly: creatorUpdateMode === "BD_ONLY",
           platform: GQL.ShopPlatform.TiktokShop,
           creatorOpenId,
           username,
@@ -1273,7 +1282,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             businessDeveloperId: null,
             businessDeveloperName: null,
             error:
-              row.protect || row.manualTagNames.length > 0
+              row.overwrite || row.protect || row.manualTagNames.length > 0
                 ? null
                 : t("ecommerce.affiliateTeam.creatorUpdateNoOperations"),
           };
@@ -1325,6 +1334,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       sellerNote: row.sellerNote,
       businessDeveloperId: row.businessDeveloperId,
       overwrite: row.overwrite === true,
+      businessDeveloperOnly: row.businessDeveloperOnly === true,
       protect: row.protect,
       protectionNote: row.protectionNote,
       manualTagNames: row.manualTagNames,
@@ -1602,17 +1612,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         import("exceljs"),
       ]);
       const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(ExcelJS, t, manualTagNames);
-      const bytes = await workbook.xlsx.writeBuffer();
-      const url = URL.createObjectURL(
-        new Blob([bytes], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        }),
-      );
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "affiliate-creator-bulk-update.xlsx";
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      await downloadAffiliateCreatorWorkbook(workbook, "affiliate-creator-bulk-update.xlsx");
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
@@ -2069,7 +2069,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         >
           <div>
             <strong>{t("ecommerce.affiliateTeam.creatorBulkUpdateTitle")}</strong>
-            <span>{t("ecommerce.affiliateTeam.creatorBulkUpdateHint")}</span>
+            <span>{t("ecommerce.affiliateTeam.creatorUpdateIntro")}</span>
           </div>
           <button
             className="btn btn-primary"
@@ -2450,6 +2450,23 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
 
             {protectionComposerMode === "FILE" ? (
               <>
+                <TkSegmented
+                  items={[
+                    {
+                      id: "FULL",
+                      label: t("ecommerce.affiliateTeam.creatorUpdateFull"),
+                      disabled: protectionImportBusy,
+                    },
+                    {
+                      id: "BD_ONLY",
+                      label: t("ecommerce.affiliateTeam.creatorUpdateBdOnlyMode"),
+                      disabled: protectionImportBusy,
+                    },
+                  ]}
+                  value={creatorUpdateMode}
+                  onChange={(value) => setCreatorUpdateMode(value as "FULL" | "BD_ONLY")}
+                  label={t("ecommerce.affiliateTeam.creatorUpdateMode")}
+                />
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -2463,7 +2480,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                   </span>
                   <div>
                     <strong>{t("ecommerce.affiliateTeam.protectionTemplateTitle")}</strong>
-                    <p>{t("ecommerce.affiliateTeam.protectionTemplateHint")}</p>
+                    <p>
+                      {t(
+                        creatorUpdateMode === "BD_ONLY"
+                          ? "ecommerce.affiliateTeam.creatorUpdateBdOnlyHint"
+                          : "ecommerce.affiliateTeam.protectionTemplateHint",
+                      )}
+                    </p>
                     <p>
                       {t("ecommerce.affiliateTeam.templateInstructionsSheetHint", {
                         sheet: t("ecommerce.affiliateTeam.templateInstructionsSheetName"),
@@ -2825,7 +2848,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
 
         {protectionImportView === "PREVIEW" && (
           <div className="affiliate-protection-import-body is-preview">
-            {protectionRows.some((row) => row.overwrite) && (
+            {protectionRows.some((row) => row.overwrite && !row.businessDeveloperOnly) && (
               <p className="form-hint">{t("ecommerce.affiliateTeam.creatorOverrideHint")}</p>
             )}
             <div className="affiliate-protection-preview-toolbar">
@@ -2933,27 +2956,31 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                               : "—")}
                         </td>
                         <td className="affiliate-creator-update-actions">
-                          {[
-                            row.sellerProvidedUid
-                              ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: ${row.sellerProvidedUid}`
-                              : row.overwrite
-                                ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: —`
-                                : null,
-                            row.sellerNote
-                              ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: ${row.sellerNote}`
-                              : row.overwrite
-                                ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: —`
-                                : null,
-                            row.protect
-                              ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
-                              : row.overwrite
-                                ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect")
-                                : null,
-                            row.overwrite ? t("ecommerce.affiliateTeam.creatorOverrideTags") : null,
-                            ...row.manualTagNames.map((name) => `#${name}`),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || t("ecommerce.affiliateTeam.creatorUpdateBdOnly")}
+                          {row.businessDeveloperOnly
+                            ? t("ecommerce.affiliateTeam.creatorUpdateBdOnlyHint")
+                            : [
+                                row.sellerProvidedUid
+                                  ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: ${row.sellerProvidedUid}`
+                                  : row.overwrite
+                                    ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: —`
+                                    : null,
+                                row.sellerNote
+                                  ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: ${row.sellerNote}`
+                                  : row.overwrite
+                                    ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: —`
+                                    : null,
+                                row.protect
+                                  ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
+                                  : row.overwrite
+                                    ? t("ecommerce.affiliateTeam.creatorOverrideUnprotect")
+                                    : null,
+                                row.overwrite
+                                  ? t("ecommerce.affiliateTeam.creatorOverrideTags")
+                                  : null,
+                                ...row.manualTagNames.map((name) => `#${name}`),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ") || t("ecommerce.affiliateTeam.creatorUpdateBdOnly")}
                         </td>
                         <td>
                           <em className={`is-${disposition.toLowerCase().replaceAll("_", "-")}`}>

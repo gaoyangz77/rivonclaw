@@ -222,6 +222,67 @@ describe("cloud-graphql handler", () => {
     expect(res._body).toEqual({ data: mockData });
   });
 
+  it("proxies Creator export filters and complete row data without altering spreadsheet values", async () => {
+    const query =
+      "query AffiliateCreatorUpdateExportPage($input: ReadAffiliateCreatorsInput!) { affiliateCreatorUpdateExportPage(input: $input) { items { username sellerProvidedUid manualTagNames } hasMore offset } }";
+    const variables = {
+      input: {
+        businessDeveloperId: "bd-old",
+        shopId: "shop-1",
+        manualTagIds: ["tag-1"],
+        offset: 100,
+        limit: 100,
+      },
+    };
+    const data = {
+      affiliateCreatorUpdateExportPage: {
+        offset: 100,
+        hasMore: true,
+        items: [
+          {
+            username: "creator",
+            sellerProvidedUid: "6905667682868806661",
+            manualTagNames: ["VIP", "Sensitive"],
+          },
+        ],
+      },
+    };
+    const graphqlFetch = vi.fn().mockResolvedValue(data);
+    const ctx = {
+      authSession: { getAccessToken: () => "valid-token", graphqlFetch },
+    } as unknown as ApiContext;
+    const { res } = await dispatch("POST", pathname, ctx, { query, variables });
+    expect(graphqlFetch).toHaveBeenCalledWith(query, variables);
+    expect(res._body).toEqual({ data });
+  });
+
+  it("passes the BD-only upload boundary to Backend without dropping clear-assignment nulls", async () => {
+    const query =
+      "mutation ImportAffiliateCreatorUpdates($input: ImportAffiliateCreatorUpdatesInput!) { importAffiliateCreatorUpdates(input: $input) { appliedCount noOpCount } }";
+    const variables = {
+      input: {
+        importBatchId: "handoff",
+        entries: [
+          {
+            platform: "TIKTOK_SHOP",
+            username: "creator",
+            businessDeveloperOnly: true,
+            businessDeveloperId: null,
+            overwrite: true,
+          },
+        ],
+      },
+    };
+    const data = { importAffiliateCreatorUpdates: { appliedCount: 1, noOpCount: 0 } };
+    const graphqlFetch = vi.fn().mockResolvedValue(data);
+    const ctx = {
+      authSession: { getAccessToken: () => "valid-token", graphqlFetch },
+    } as unknown as ApiContext;
+    const { res } = await dispatch("POST", pathname, ctx, { query, variables });
+    expect(graphqlFetch).toHaveBeenCalledWith(query, variables);
+    expect(res._body).toEqual({ data });
+  });
+
   it("forwards malformed affiliate actions to Backend-owned validation", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {

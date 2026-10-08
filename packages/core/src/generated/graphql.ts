@@ -2765,6 +2765,23 @@ export interface AffiliateCreatorSystemTagDefinition {
   tag: AffiliateCreatorSystemTag;
 }
 
+export interface AffiliateCreatorUpdateExportPage {
+  hasMore: Scalars["Boolean"]["output"];
+  items: Array<AffiliateCreatorUpdateExportRow>;
+  offset: Scalars["Int"]["output"];
+}
+
+export interface AffiliateCreatorUpdateExportRow {
+  businessDeveloperName?: Maybe<Scalars["String"]["output"]>;
+  creatorRelationshipId: Scalars["ID"]["output"];
+  manualTagNames: Array<Scalars["String"]["output"]>;
+  protect: Scalars["Boolean"]["output"];
+  protectionNote?: Maybe<Scalars["String"]["output"]>;
+  sellerNote?: Maybe<Scalars["String"]["output"]>;
+  sellerProvidedUid?: Maybe<Scalars["String"]["output"]>;
+  username: Scalars["String"]["output"];
+}
+
 /** Shop-level affiliate decision references. They inform Agent judgment but do not directly approve or reject a Sample Application. */
 export interface AffiliateDecisionThresholds {
   /** Default shop reference line for an available Creator-product expected-sales prediction. It is not an automatic Sample decision. Deterministic Campaign filtering requires an explicit Campaign selection-policy threshold. */
@@ -10277,6 +10294,8 @@ export interface ImportAffiliateCreatorProtectionsPayload {
 
 export interface ImportAffiliateCreatorUpdateEntryInput {
   businessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Update only the BD assignment. Blank BD clears the assignment; protection, tags and seller metadata are ignored and preserved. Requires an existing owned Creator relationship. */
+  businessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
   creatorOpenId?: InputMaybe<Scalars["String"]["input"]>;
   manualTagNames?: InputMaybe<Array<Scalars["String"]["input"]>>;
   /** Replace this Creator's BD, protection and manual tags with the row's target state. Blank values clear those fields. Other Creators are untouched. */
@@ -12995,6 +13014,8 @@ export interface Query {
   affiliateCreatorSampleApplicationsForRelationship: AffiliateCreatorSampleApplicationListPayload;
   /** Read the fixed catalog of Backend-defined Creator system tags. */
   affiliateCreatorSystemTagDefinitions: Array<AffiliateCreatorSystemTagDefinition>;
+  /** Read a stable ID-ordered page of editable Creator CRM data for the current Creator-list filters. Supervisor only; includes all manual tags and protection notes for round-trip Excel upload. */
+  affiliateCreatorUpdateExportPage: AffiliateCreatorUpdateExportPage;
   /** Read WhatsApp messages on demand from the bound provider for an affiliate creator relationship. */
   affiliateCreatorWhatsAppMessages: Array<AffiliateCreatorMessageHistoryItem>;
   /** Read a server-paginated shop-scoped Creator relationship page with profile, tags, latest collaboration, and attention context. */
@@ -13422,6 +13443,10 @@ export interface QueryAffiliateCreatorRelationshipStateArgs {
 export interface QueryAffiliateCreatorSampleApplicationsForRelationshipArgs {
   creatorRelationshipId: Scalars["ID"]["input"];
   includeFulfillments?: InputMaybe<Scalars["Boolean"]["input"]>;
+}
+
+export interface QueryAffiliateCreatorUpdateExportPageArgs {
+  input: ReadAffiliateCreatorsInput;
 }
 
 export interface QueryAffiliateCreatorWhatsAppMessagesArgs {

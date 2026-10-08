@@ -6,6 +6,7 @@ import { AFFILIATE_TEAM_TRANSLATIONS } from "../../i18n/affiliate-team-translati
 import {
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
   validateAffiliateCreatorUpdateTemplate,
+  parseAffiliateCreatorUpdateRow,
 } from "./affiliate-protection-import.js";
 import {
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME,
@@ -254,5 +255,96 @@ describe("Creator bulk-update template", () => {
     expect(() =>
       buildAffiliateCreatorUpdateTemplateWorkbook(ExcelJS, (key) => key, ["VIP", " "]),
     ).toThrow("must not be blank");
+  });
+});
+
+describe("Creator export/upload Excel round trip", () => {
+  it.each(LOCALES)(
+    "exports the exact upload format in %s, including long UID text and more than five tags",
+    async (locale) => {
+      const tags = Array.from({ length: 7 }, (_, i) => `Tag ${i}`);
+      const row = {
+        creatorRelationshipId: "relationship-1",
+        username: "creator.name",
+        protect: true,
+        sellerProvidedUid: "6905667682868806661",
+        sellerNote: "Seller note\nSecond line",
+        businessDeveloperName: "Old BD",
+        protectionNote: "Keep protected",
+        manualTagNames: tags,
+      };
+      const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(
+        ExcelJS,
+        await translatorFor(locale),
+        tags,
+        [row],
+      );
+      const bytes = new Uint8Array(await workbook.xlsx.writeBuffer());
+      const uploaded = XLSX.read(bytes, { type: "array" });
+      const sheet = uploaded.Sheets[uploaded.SheetNames[0]];
+      const headers = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        blankrows: false,
+      })[0];
+      expect(headers).toEqual([
+        ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+        "add_manual_tag_6",
+        "add_manual_tag_7",
+      ]);
+      expect(validateAffiliateCreatorUpdateTemplate(headers).valid).toBe(true);
+      expect(sheet.B2.t).toBe("s");
+      expect(sheet.B2.v).toBe(row.sellerProvidedUid);
+      const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })[0];
+      expect(parseAffiliateCreatorUpdateRow(raw, tags)).toMatchObject({
+        username: row.username,
+        sellerProvidedUid: row.sellerProvidedUid,
+        sellerNote: row.sellerNote,
+        businessDeveloperName: "Old BD",
+        protect: true,
+        protectionNote: row.protectionNote,
+        manualTagNames: tags,
+        issue: null,
+      });
+      raw.bd_name = "New BD";
+      expect(parseAffiliateCreatorUpdateRow(raw, tags, true)).toMatchObject({
+        businessDeveloperName: "New BD",
+        issue: null,
+      });
+      expect(validationsBySqref(bytes).has("M2:M10001")).toBe(true);
+    },
+  );
+  it("preserves blank values and literal text strings", async () => {
+    const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(
+      ExcelJS,
+      await translatorFor("zh"),
+      [],
+      [
+        {
+          creatorRelationshipId: "r1",
+          username: "plain",
+          protect: false,
+          manualTagNames: [],
+          sellerProvidedUid: "00123456789012345678",
+          sellerNote: "=SUM(A1:A9)",
+        },
+      ],
+    );
+    const bytes = new Uint8Array(await workbook.xlsx.writeBuffer());
+    const uploaded = XLSX.read(bytes, { type: "array" });
+    const sheet = uploaded.Sheets[uploaded.SheetNames[0]];
+    expect(XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 })[0]).toEqual([
+      ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+    ]);
+    expect(sheet.C2.f).toBeUndefined();
+    const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })[0];
+    expect(parseAffiliateCreatorUpdateRow(raw, [])).toMatchObject({
+      sellerProvidedUid: "00123456789012345678",
+      sellerNote: "=SUM(A1:A9)",
+      businessDeveloperName: null,
+      protect: false,
+      protectionNote: null,
+      manualTagNames: [],
+      issue: null,
+    });
   });
 });

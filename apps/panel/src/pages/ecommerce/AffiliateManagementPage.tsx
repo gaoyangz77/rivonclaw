@@ -1,3 +1,4 @@
+import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExportButton.js";
 import {
   useCallback,
   useEffect,
@@ -3492,31 +3493,35 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     return () => window.clearTimeout(timer);
   }, [creatorSearch]);
 
+  const creatorFilters: GQL.ReadAffiliateCreatorsInput = {
+    shopId: selectedShopId || null,
+    manualTagIds: selectedManualTagIds.length ? selectedManualTagIds : undefined,
+    manualTagMatchMode: selectedManualTagIds.length ? manualTagMatchMode : undefined,
+    systemTags: selectedSystemTags.length ? selectedSystemTags : undefined,
+    systemTagMatchMode: selectedSystemTags.length ? systemTagMatchMode : undefined,
+    sampleTiers: selectedSampleTiers.length ? selectedSampleTiers : undefined,
+    shopSampleTiers:
+      selectedShopId && selectedShopSampleTiers.length ? selectedShopSampleTiers : undefined,
+    needsAttentionOnly,
+    businessDeveloperId:
+      selectedBusinessDeveloperId &&
+      selectedBusinessDeveloperId !== AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+        ? selectedBusinessDeveloperId
+        : undefined,
+    unassignedBusinessDeveloperOnly:
+      selectedBusinessDeveloperId === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+        ? true
+        : undefined,
+    search: debouncedCreatorSearch || undefined,
+  };
+
   const { data, loading, refetch } = useQuery<
     { affiliateCreators: GQL.AffiliateCreatorManagementPage },
     { input: GQL.ReadAffiliateCreatorsInput }
   >(AFFILIATE_CREATORS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId || null,
-        manualTagIds: selectedManualTagIds.length ? selectedManualTagIds : undefined,
-        manualTagMatchMode: selectedManualTagIds.length ? manualTagMatchMode : undefined,
-        systemTags: selectedSystemTags.length ? selectedSystemTags : undefined,
-        systemTagMatchMode: selectedSystemTags.length ? systemTagMatchMode : undefined,
-        sampleTiers: selectedSampleTiers.length ? selectedSampleTiers : undefined,
-        shopSampleTiers:
-          selectedShopId && selectedShopSampleTiers.length ? selectedShopSampleTiers : undefined,
-        needsAttentionOnly,
-        businessDeveloperId:
-          selectedBusinessDeveloperId &&
-          selectedBusinessDeveloperId !== AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
-            ? selectedBusinessDeveloperId
-            : undefined,
-        unassignedBusinessDeveloperOnly:
-          selectedBusinessDeveloperId === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
-            ? true
-            : undefined,
-        search: debouncedCreatorSearch || undefined,
+        ...creatorFilters,
         offset: (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE,
         limit: AFFILIATE_CREATORS_PAGE_SIZE,
       },
@@ -3605,6 +3610,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               searchable
               searchPlaceholder={t("common.searchShops")}
             />
+            {!businessDeveloperOnly && <AffiliateCreatorExportButton input={creatorFilters} />}
             <button
               className="btn btn-secondary"
               type="button"

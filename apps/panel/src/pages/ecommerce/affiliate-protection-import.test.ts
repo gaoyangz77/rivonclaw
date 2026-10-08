@@ -374,3 +374,36 @@ describe("Affiliate Creator bulk update import", () => {
     ).toThrow("row 1 exceeds the safe request size");
   });
 });
+
+describe("BD-only spreadsheet parsing", () => {
+  it("ignores stale or invalid non-BD cells while retaining username and BD", () => {
+    const raw = {
+      creator_username: "@creator",
+      bd_name: "New BD",
+      creator_uid_note: 12345678,
+      protection_action: "invalid",
+      protection_note: "Ignore this",
+      add_manual_tag_1: "Deleted tag",
+    };
+    expect(parseAffiliateCreatorUpdateRow(raw, [], true)).toMatchObject({
+      username: "creator",
+      businessDeveloperName: "New BD",
+      issue: null,
+      manualTagNames: [],
+      protect: false,
+      sellerProvidedUid: null,
+      sellerNote: null,
+      protectionNote: null,
+    });
+    expect(
+      parseAffiliateCreatorUpdateRow({ creator_username: "creator", bd_name: "" }, [], true),
+    ).toMatchObject({
+      businessDeveloperName: null,
+      issue: null,
+    });
+    expect(parseAffiliateCreatorUpdateRow({ bd_name: "New BD" }, [], true).issue).toBe(
+      "MISSING_CREATOR",
+    );
+    expect(parseAffiliateCreatorUpdateRow(raw, []).issue).not.toBeNull();
+  });
+});

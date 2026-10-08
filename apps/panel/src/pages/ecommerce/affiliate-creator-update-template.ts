@@ -1,3 +1,4 @@
+import type { GQL } from "@rivonclaw/core";
 import type { DataValidation, Workbook, Worksheet } from "exceljs";
 import { AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS } from "./affiliate-protection-import.js";
 
@@ -45,7 +46,13 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
   ExcelJS: ExcelJsModule,
   t: Translate,
   manualTagNames: readonly string[],
+  rows: readonly GQL.AffiliateCreatorUpdateExportRow[] = [],
 ): Workbook {
+  const extraTagCount = rows.reduce((max, row) => Math.max(max, row.manualTagNames.length), 5);
+  const headers = [
+    ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+    ...Array.from({ length: extraTagCount - 5 }, (_, index) => `add_manual_tag_${index + 6}`),
+  ];
   const required = t("ecommerce.affiliateTeam.templateRequired");
   const optional = t("ecommerce.affiliateTeam.templateOptional");
   const manualTagHint = t("ecommerce.affiliateTeam.templateManualTagHint");
@@ -98,9 +105,9 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
   const workbook = new ExcelJS.Workbook();
   // The importer reads the first sheet, so the data sheet must be added first.
   const data = workbook.addWorksheet(AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME);
-  const headerRow = data.addRow([...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS]);
+  const headerRow = data.addRow([...headers]);
   headerRow.font = { bold: true };
-  AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.forEach((header, index) => {
+  headers.forEach((header, index) => {
     const note = header.startsWith(MANUAL_TAG_HEADER_PREFIX)
       ? `${optional} · ${manualTagHint}`
       : headerNotes.get(header);
@@ -111,16 +118,34 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
       texts: [{ font: { bold: true }, text: `${header}\n` }, { text: note }],
     };
   });
-  const widths = [28, 28, 48, 32, 22, 42, 26, 26, 26, 26, 26];
+  const widths = [28, 28, 48, 32, 22, 42, ...Array(extraTagCount).fill(26)];
   widths.forEach((width, index) => {
     data.getColumn(index + 1).width = width;
   });
   data.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: 1, column: AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.length },
+    to: { row: 1, column: headers.length },
   };
-  const sellerUidColumn = AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.indexOf("creator_uid_note") + 1;
+  const sellerUidColumn = headers.indexOf("creator_uid_note") + 1;
   data.getColumn(sellerUidColumn).numFmt = "@";
+  for (const row of rows) {
+    if (!row.username.trim()) throw new Error("Creator export rows require a username");
+    if (row.manualTagNames.some((name) => !tagNames.includes(name))) {
+      throw new Error(
+        "Creator export contains a tag missing from the current catalog; refresh and try again",
+      );
+    }
+    data.addRow([
+      row.username,
+      row.sellerProvidedUid ?? "",
+      row.sellerNote ?? "",
+      row.businessDeveloperName ?? "",
+      row.protect ? "PROTECT" : "UNPROTECT",
+      row.protect ? (row.protectionNote ?? "") : "",
+      ...Array.from({ length: extraTagCount }, (_, index) => row.manualTagNames[index] ?? ""),
+    ]);
+  }
+  data.views = [{ state: "frozen", ySplit: 1 }];
 
   const instructions = workbook.addWorksheet(
     t("ecommerce.affiliateTeam.templateInstructionsSheetName"),
@@ -135,7 +160,7 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
     instructions.addRow([entry.field, entry.requirement, entry.hint, entry.example]);
   });
   instructions.addRow([
-    `${MANUAL_TAG_HEADER_PREFIX}1 … ${MANUAL_TAG_HEADER_PREFIX}5`,
+    `${MANUAL_TAG_HEADER_PREFIX}1 … ${MANUAL_TAG_HEADER_PREFIX}${extraTagCount}`,
     optional,
     manualTagHint,
     "",
@@ -175,12 +200,12 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
           formulae: [`LEN(${column}2)=0`],
           error: t("ecommerce.affiliateTeam.templateNoManualTags"),
         });
-  AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS.forEach((header, index) => {
+  headers.forEach((header, index) => {
     const column = data.getColumn(index + 1).letter;
     if (header === "protection_action") {
-      addColumnValidation(data, column, protectionActionValidation);
+      addColumnValidation(data, column, protectionActionValidation, rows.length);
     } else if (header.startsWith(MANUAL_TAG_HEADER_PREFIX)) {
-      addColumnValidation(data, column, manualTagValidation(column));
+      addColumnValidation(data, column, manualTagValidation(column), rows.length);
     }
   });
 
@@ -216,10 +241,15 @@ function strictValidation(
  * leave `dataValidations` out. Per-cell `cell.dataValidation` would instead
  * materialize thousands of cells for the optimiser to squeeze back together.
  */
-function addColumnValidation(worksheet: Worksheet, column: string, validation: DataValidation) {
+function addColumnValidation(
+  worksheet: Worksheet,
+  column: string,
+  validation: DataValidation,
+  rowCount = 0,
+) {
   const { dataValidations } = worksheet as Worksheet & {
     dataValidations: { add(address: string, validation: DataValidation): void };
   };
-  const lastRow = AFFILIATE_CREATOR_UPDATE_TEMPLATE_VALIDATED_ROWS + 1;
+  const lastRow = Math.max(AFFILIATE_CREATOR_UPDATE_TEMPLATE_VALIDATED_ROWS, rowCount) + 1;
   dataValidations.add(`${column}2:${column}${lastRow}`, validation);
 }

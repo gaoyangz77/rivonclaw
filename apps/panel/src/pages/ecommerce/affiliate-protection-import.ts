@@ -116,11 +116,25 @@ export function normalizeCreatorManualTagName(name: string): string {
 export function parseAffiliateCreatorUpdateRow(
   raw: Record<string, unknown>,
   manualTagCatalogNames: readonly string[],
+  businessDeveloperOnly = false,
 ): ParsedAffiliateCreatorUpdateRow {
   const row = Object.fromEntries(
     Object.entries(raw).map(([key, value]) => [normalizeAffiliateCreatorUpdateHeader(key), value]),
   );
   const username = cleanCell(row.creator_username)?.replace(/^@/u, "") || null;
+  if (businessDeveloperOnly) {
+    return {
+      username,
+      businessDeveloperName: cleanCell(row.bd_name),
+      sellerProvidedUid: null,
+      sellerNote: null,
+      protect: false,
+      protectionNote: null,
+      manualTagNames: [],
+      unknownManualTagNames: [],
+      issue: username ? null : "MISSING_CREATOR",
+    };
+  }
   const sellerProvidedUid = cleanCell(row.creator_uid_note);
   const sellerNote = cleanCell(row.creator_note);
   const businessDeveloperName = cleanCell(row.bd_name);

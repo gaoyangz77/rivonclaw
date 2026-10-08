@@ -1,3 +1,4 @@
+import { AFFILIATE_CREATOR_EXPORT_COPY } from "./affiliate-creator-export-translations.js";
 import {
   creatorOverrideCopy,
   creatorOverrideUnassignedEvent,
@@ -2815,6 +2816,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.en,
         ...sellerMetadataTemplateCopy.en,
         ...creatorOverrideCopy("en"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.en,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.en,
@@ -2839,6 +2841,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.zh,
         ...sellerMetadataTemplateCopy.zh,
         ...creatorOverrideCopy("zh"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.zh,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.zh,
@@ -2863,6 +2866,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.de,
         ...sellerMetadataTemplateCopy.de,
         ...creatorOverrideCopy("de"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.de,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.de,
@@ -2887,6 +2891,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.es,
         ...sellerMetadataTemplateCopy.es,
         ...creatorOverrideCopy("es"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.es,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.es,
@@ -2911,6 +2916,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.fr,
         ...sellerMetadataTemplateCopy.fr,
         ...creatorOverrideCopy("fr"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.fr,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.fr,
@@ -2935,6 +2941,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.id,
         ...sellerMetadataTemplateCopy.id,
         ...creatorOverrideCopy("id"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.id,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.id,
@@ -2959,6 +2966,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.it,
         ...sellerMetadataTemplateCopy.it,
         ...creatorOverrideCopy("it"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.it,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.it,
@@ -2983,6 +2991,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...creatorBulkUpdateResultCopy.th,
         ...sellerMetadataTemplateCopy.th,
         ...creatorOverrideCopy("th"),
+        ...AFFILIATE_CREATOR_EXPORT_COPY.th,
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.th,
