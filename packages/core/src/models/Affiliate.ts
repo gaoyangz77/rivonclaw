@@ -344,6 +344,8 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   creatorPostRate: types.maybeNull(types.number),
   creatorRelationshipId: types.maybeNull(types.string),
   affiliateCollaborationId: types.maybeNull(types.string),
+  viewerCanApprove: types.maybeNull(types.boolean),
+  viewerCanAccessCurrentCreator: types.maybeNull(types.boolean),
   sampleApplicationRecordId: types.maybeNull(types.string),
   productId: types.maybeNull(types.string),
   affiliateCollaboration: types.maybeNull(types.frozen<Record<string, any>>()),

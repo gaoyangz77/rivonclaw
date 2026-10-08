@@ -795,6 +795,8 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
     affiliateActionProposalChanged {
       proposal {
         id
+        viewerCanApprove
+        viewerCanAccessCurrentCreator
         userId
         focusShopId
         shopIds
@@ -3159,6 +3161,33 @@ export class BackendSubscriptionClient {
       return unsubscribe;
     };
 
+    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
+  }
+
+  subscribeToAffiliateWorkbenchChanges(
+    onChange: (change: { creatorRelationshipId: string; shopIds: string[] }) => void,
+  ): () => void {
+    const key = "affiliate-workbench-changed";
+    const subscribe = (attempt: number): (() => void) => {
+      if (!this.client) return () => {};
+      return this.client.subscribe<{ affiliateWorkbenchChanged: { creatorRelationshipId: string; shopIds: string[] } }>(
+        { query: "subscription AffiliateWorkbenchChanged { affiliateWorkbenchChanged { creatorRelationshipId shopIds } }" },
+        {
+          next: (result) => {
+            this.noteSubscriptionNext(key, attempt);
+            if (this.handleResultErrors(key, attempt, "Affiliate workbench subscription failed", result.errors)) return;
+            const change = result.data?.affiliateWorkbenchChanged;
+            if (!change) {
+              this.logUnexpectedResult(key, attempt, "affiliateWorkbenchChanged", result as any);
+              return;
+            }
+            onChange(change);
+          },
+          error: (error) => this.handleSubscriptionError(key, attempt, "Affiliate workbench subscription error", error),
+          complete: () => this.handleSubscriptionComplete(key, attempt),
+        },
+      );
+    };
     return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
   }
 

@@ -163,6 +163,8 @@ export interface ActionProposal {
   type: ActionProposalType;
   updatedAt: Scalars["DateTimeISO"]["output"];
   userId: Scalars["ID"]["output"];
+  viewerCanAccessCurrentCreator?: Maybe<Scalars["Boolean"]["output"]>;
+  viewerCanApprove?: Maybe<Scalars["Boolean"]["output"]>;
 }
 
 export interface ActionProposalApprovalPolicyUpdateIntent {
@@ -2236,6 +2238,7 @@ export type AffiliateCreatorBulkUpdateStatus =
   (typeof AffiliateCreatorBulkUpdateStatus)[keyof typeof AffiliateCreatorBulkUpdateStatus];
 export interface AffiliateCreatorChannelContact {
   accountBindingId: Scalars["ID"]["output"];
+  accountLabel?: Maybe<Scalars["String"]["output"]>;
   businessDeveloperId?: Maybe<Scalars["ID"]["output"]>;
   channel: AffiliateMessageChannel;
   creatorEmail?: Maybe<Scalars["String"]["output"]>;
@@ -2690,6 +2693,7 @@ export interface AffiliateCreatorRelationshipDetailPayload {
   performance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   protection?: Maybe<AffiliateCreatorProtection>;
   shopActivitySummaries: Array<AffiliateCreatorRelationshipShopActivitySummary>;
+  viewerCanEditCreatorConfiguration: Scalars["Boolean"]["output"];
 }
 
 export interface AffiliateCreatorRelationshipSellerMetadataPayload {
@@ -2910,6 +2914,7 @@ export interface AffiliateEscalationPageInput {
   offset?: InputMaybe<Scalars["Int"]["input"]>;
   search?: InputMaybe<Scalars["String"]["input"]>;
   status?: InputMaybe<AffiliateEscalationStatus>;
+  unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
 /** Lifecycle state of an Affiliate Agent handoff to staff. */
@@ -5262,6 +5267,11 @@ export interface AffiliateWorkProductContext {
   title?: Maybe<Scalars["String"]["output"]>;
 }
 
+export interface AffiliateWorkbenchChanged {
+  creatorRelationshipId: Scalars["ID"]["output"];
+  shopIds: Array<Scalars["ID"]["output"]>;
+}
+
 export interface AffiliateWorkbenchPendingConversationPage {
   emailCount: Scalars["Int"]["output"];
   hasMore: Scalars["Boolean"]["output"];
@@ -5296,6 +5306,8 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Order the page by the time the conversation started waiting for a reply. ASC, the default, returns the longest-waiting conversation first; DESC returns the most recent first. A cursor is bound to the order that minted it. */
   sortOrder?: InputMaybe<EcomSortOrder>;
+  /** Only public Creator Relationships. Mutually exclusive with businessDeveloperId. */
+  unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
 export interface AffiliateWorkbenchPendingConversationRow {
@@ -5305,6 +5317,7 @@ export interface AffiliateWorkbenchPendingConversationRow {
   creatorName?: Maybe<Scalars["String"]["output"]>;
   creatorRelationshipId: Scalars["ID"]["output"];
   creatorUsername?: Maybe<Scalars["String"]["output"]>;
+  hasPendingAgentProposal?: Maybe<Scalars["Boolean"]["output"]>;
   humanOnly: Scalars["Boolean"]["output"];
   id: Scalars["ID"]["output"];
   lastPendingAt: Scalars["DateTimeISO"]["output"];
@@ -5363,6 +5376,8 @@ export interface AffiliateWorkbenchSamplePageInput {
   sortOrder?: InputMaybe<EcomSortOrder>;
   /** Filter by the manual-workbench Sample view. Omit for the legacy pending-review view. */
   statusFilter?: InputMaybe<AffiliateWorkbenchSampleStatusFilter>;
+  /** Only public Creator Relationships. Mutually exclusive with businessDeveloperId. */
+  unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
 export interface AffiliateWorkbenchSampleRow {
@@ -5371,6 +5386,7 @@ export interface AffiliateWorkbenchSampleRow {
   creatorName?: Maybe<Scalars["String"]["output"]>;
   creatorRelationshipId: Scalars["ID"]["output"];
   creatorUsername?: Maybe<Scalars["String"]["output"]>;
+  hasPendingAgentProposal?: Maybe<Scalars["Boolean"]["output"]>;
   humanOnly: Scalars["Boolean"]["output"];
   id: Scalars["ID"]["output"];
   /** The Creator's manual tags, resolved to their current catalog rows and ordered by name, the same order the Creator record uses. An id whose catalog row no longer exists is omitted. */
@@ -14168,6 +14184,8 @@ export interface ReadActionProposalsInput {
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
   status?: InputMaybe<ActionProposalStatus>;
   type?: InputMaybe<ActionProposalType>;
+  /** Only proposals with no frozen Business Developer. Mutually exclusive with businessDeveloperId. */
+  unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
 export interface ReadAffiliateApprovalPoliciesInput {
@@ -15263,6 +15281,8 @@ export interface Subscription {
   affiliateUnknownSenderIdentificationChanged: AffiliateUnknownSenderIdentificationChangedEvent;
   /** Streams backend-materialized affiliate work projections. Desktop should use this as the idempotent source of truth for agent dispatch and review surfaces. */
   affiliateWorkItemChanged: AffiliateWorkItemChanged;
+  /** UI-only Affiliate workbench invalidation; does not dispatch Agent work. */
+  affiliateWorkbenchChanged: AffiliateWorkbenchChanged;
   clientLogUploadRequested: ClientLogUploadRequestPayload;
   /** Streams backend-materialized CS conversation snapshots whenever a conversation changes. Desktop should treat each payload as the latest whole-entity snapshot and only wake the local CS agent when dispatchHint is present. */
   csConversationChanged: CustomerServiceConversation;

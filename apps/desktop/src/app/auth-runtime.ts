@@ -176,6 +176,11 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     broadcastEvent("affiliate-action-proposal-changed", { proposal });
   });
 
+  // Daily-work visibility is independent of Agent presence/dispatch eligibility.
+  backendSubscription.subscribeToAffiliateWorkbenchChanges((change) => {
+    broadcastEvent("affiliate-workbench-changed", change);
+  });
+
   backendSubscription.subscribeToAffiliateEscalationChanges((change) => {
     broadcastEvent("affiliate-escalation-changed", { change });
     if (change.status === "OPEN") {

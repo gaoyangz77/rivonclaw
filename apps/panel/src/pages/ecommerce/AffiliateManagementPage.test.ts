@@ -275,6 +275,16 @@ describe("AffiliateManagementPage proposal source", () => {
     ).toEqual([]);
   });
 
+  it("keeps realtime own and public proposal lists separate by frozen owner", () => {
+    const own = { ...proposal("own", "PENDING"), businessDeveloperIdSnapshot: "bd-1" } as GQL.ActionProposal;
+    const publicProposal = { ...proposal("public", "PENDING"), businessDeveloperIdSnapshot: null } as GQL.ActionProposal;
+    expect(applyAffiliateProposalChange([], own, { businessDeveloperId: "__UNASSIGNED__" })).toEqual([]);
+    expect(applyAffiliateProposalChange([], publicProposal, { businessDeveloperId: "__MY_BD__" })).toEqual([]);
+    expect(applyAffiliateProposalChange([], publicProposal, { businessDeveloperId: "__UNASSIGNED__" })).toEqual([publicProposal]);
+    expect(applyAffiliateProposalChange([], own, { businessDeveloperId: "__MY_BD__" })).toEqual([own]);
+    expect(applyAffiliateProposalChange([publicProposal], publicProposal, { businessDeveloperId: "bd-1" })).toEqual([]);
+  });
+
   it("orders the proposal timeline by creation time, not later status updates", () => {
     const older = {
       ...proposal("proposal-older", "PENDING"),

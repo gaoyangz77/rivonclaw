@@ -65,7 +65,9 @@ import {
 } from "../../components/icons.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
+import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
 import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
+import { AFFILIATE_WORKBENCH_MY_BD_VALUE, affiliateWorkbenchBdInput, affiliateWorkbenchBdOptions } from "./affiliate-workbench-bd-filter.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AffiliateSampleIgnoreButton,
@@ -767,9 +769,11 @@ export function applyAffiliateProposalChange(
     proposal.creatorRelationship?.shopStates.some((state) => state.shopId === filters.shopId);
   const hasBusinessDeveloperSnapshot = proposal.businessDeveloperIdSnapshot != null;
   const targetsBusinessDeveloper =
-    !filters.businessDeveloperId ||
-    proposal.businessDeveloperIdSnapshot === filters.businessDeveloperId ||
-    (existingIndex >= 0 && !hasBusinessDeveloperSnapshot);
+    filters.businessDeveloperId === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+      ? !hasBusinessDeveloperSnapshot
+      : filters.businessDeveloperId === AFFILIATE_WORKBENCH_MY_BD_VALUE
+        ? hasBusinessDeveloperSnapshot
+        : !filters.businessDeveloperId || proposal.businessDeveloperIdSnapshot === filters.businessDeveloperId;
   const matches =
     (!filters.status || proposal.status === filters.status) &&
     (!filters.type || proposal.type === filters.type) &&
@@ -1040,7 +1044,12 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedManualShopIds, setSelectedManualShopIds] = useState<string[] | null>(null);
-  const [selectedBusinessDeveloperId, setSelectedBusinessDeveloperId] = useState("");
+  const [businessDeveloperSelection, setSelectedBusinessDeveloperId] = useState<string | null>(null);
+  const selectedBusinessDeveloperId = businessDeveloperOnly
+    ? businessDeveloperSelection === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+      ? AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
+      : AFFILIATE_WORKBENCH_MY_BD_VALUE
+    : businessDeveloperSelection === AFFILIATE_WORKBENCH_MY_BD_VALUE ? "" : businessDeveloperSelection ?? "";
   const [workbenchTab, setWorkbenchTab] = useState<AffiliateWorkbenchTab>(() =>
     kind === "AGENT" ? "PENDING_AGENT" : "SAMPLES",
   );
@@ -1112,16 +1121,15 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     }
   }, [businessDeveloperData, entityStore.affiliateWorkspace]);
 
-  const businessDeveloperOptions = [
-    { value: "", label: t("ecommerce.affiliateWorkspace.allBusinessDevelopers") },
-    ...[...(businessDeveloperData?.affiliateBusinessDevelopers ?? [])]
-      .filter((developer) => !developer.archivedAt)
-      .sort((left, right) => left.displayName.localeCompare(right.displayName))
-      .map((developer) => ({
-        value: developer.id,
-        label: developer.displayName,
-      })),
-  ];
+  const businessDeveloperOptions = affiliateWorkbenchBdOptions(
+    businessDeveloperOnly,
+    businessDeveloperData?.affiliateBusinessDevelopers ?? [],
+    {
+      all: t("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
+      own: t("ecommerce.affiliateWorkspace.myCreatorsFilter"),
+      public: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
+    },
+  );
   const proposalFilterOptions = useMemo(
     () =>
       PROPOSAL_FILTERS.map((filter) => ({
@@ -1204,7 +1212,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       variables: {
         input: {
           shopId: null,
-          businessDeveloperId: selectedBusinessDeveloperId || null,
+          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
           status: proposalStatus,
           type: proposalType,
           ...agentWorkTimeArgs,
@@ -1226,7 +1234,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     variables: {
       input: {
         status: "OPEN",
-        businessDeveloperId: selectedBusinessDeveloperId || null,
+        ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
         search: attentionSearch.trim() || null,
         ...agentWorkTimeArgs,
         offset: escalationOffset,
@@ -1300,7 +1308,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         variables: {
           input: {
             shopId: null,
-            businessDeveloperId: selectedBusinessDeveloperId || null,
+            ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
             status: proposalStatus,
             type: proposalType,
             ...(agentWorkCreatedAtGe && agentWorkCreatedAtLt
@@ -1348,6 +1356,10 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     setProposalPageStack(retreatAffiliateProposalPageCursorStack(activeProposalPageStack));
   }
 
+  useAffiliateWorkbenchRefresh(useCallback(() => {
+    setWorkbenchEntityRefreshRevision((revision) => revision + 1);
+  }, []));
+
   function goToNextProposalPage(): void {
     if (!hasMoreProposals || !proposalCursor) return;
     setProposalPageStack(
@@ -1371,7 +1383,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         const proposal = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
         if (!proposal?.id) return;
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
-        setWorkbenchEntityRefreshRevision((revision) => revision + 1);
         setProposalPageBuffer((current) =>
           current.queryKey !== proposalQueryKey
             ? current
@@ -1524,7 +1535,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       const result = await refetchProposals({
         input: {
           shopId: null,
-          businessDeveloperId: selectedBusinessDeveloperId || null,
+          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
           status: proposalStatus,
           type: proposalType,
           limit: proposalPageRequest.limit,
@@ -1551,6 +1562,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   }
 
   function openCreatorDetail(proposal: GQL.ActionProposal): void {
+    if (proposal.viewerCanAccessCurrentCreator === false) return;
     const detailItem = relationshipWorkItemFromProposal(proposal, entityStore.affiliateWorkspace);
     const detail = detailItem
       ? relationshipDetailFromWorkItem(detailItem)
@@ -1622,8 +1634,11 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
               className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
               data-tutorial-id="affiliate-attention-filters"
             >
-              <AffiliateBusinessDeveloperSelect
-                developers={businessDeveloperData?.affiliateBusinessDevelopers ?? []}
+              <TkChoiceSelect
+                label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+                options={businessDeveloperOptions}
+                searchable
+                searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
                 value={selectedBusinessDeveloperId}
                 onChange={setSelectedBusinessDeveloperId}
                 className="affiliate-status-select"
@@ -7639,6 +7654,7 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
                     className="affiliate-agent-work-table-creator-button"
                     type="button"
                     title={t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+                    disabled={proposal.viewerCanAccessCurrentCreator === false}
                     onClick={(event) => {
                       event.stopPropagation();
                       onOpenCreator(bundle);
@@ -7769,6 +7785,7 @@ function AgentWorkBundleDetailModal({
   const relationshipId =
     proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId ?? null;
   const contextEndAt = proposal.sourceWorkBoundary?.versionAt ?? proposal.createdAt;
+  const canAccessCurrentCreator = proposal.viewerCanAccessCurrentCreator !== false;
   const {
     data: reviewRelationshipData,
     loading: reviewRelationshipLoading,
@@ -7779,7 +7796,7 @@ function AgentWorkBundleDetailModal({
   >(AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY, {
     variables: { input: { creatorRelationshipId: relationshipId ?? "" } },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !canAccessCurrentCreator,
   });
   const {
     data: reviewTimelineData,
@@ -7797,7 +7814,7 @@ function AgentWorkBundleDetailModal({
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !canAccessCurrentCreator,
   });
   const {
     data: reviewProposalHistoryData,
@@ -8164,7 +8181,7 @@ export function AgentWorkBundleCard({
     ? creatorPlatformIdentity(proposal.creatorProfile)
     : null;
   const openCreator =
-    proposal.creatorProfile && onOpenCreator
+    proposal.viewerCanAccessCurrentCreator !== false && proposal.creatorProfile && onOpenCreator
       ? () => onOpenCreator(proposal.creatorProfile as GQL.AffiliateCreatorIdentity)
       : undefined;
   const sampleReviewRows = proposalSampleReviewRows(proposal);
@@ -8345,7 +8362,8 @@ export function AgentWorkBundleCard({
       <TkButton
         variant="primary"
         type="button"
-        disabled={decidingProposal || (revisionOpen && !trimmedRevisionNote)}
+        disabled={decidingProposal || (revisionOpen && !trimmedRevisionNote)
+          || (!revisionOpen && !ignoreOpen && proposal.viewerCanApprove === false)}
         onClick={(event) => {
           event.stopPropagation();
           if (ignoreOpen) {
@@ -10198,7 +10216,7 @@ function CreatorAvatarImage({
   );
 }
 
-function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
+function CreatorContactPanel({ relationshipId, canEdit }: { relationshipId: string; canEdit: boolean }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { data, loading, error, refetch } = useQuery<
@@ -10295,7 +10313,7 @@ function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
               <button
                 className="btn btn-secondary btn-sm"
                 type="button"
-                disabled={!email.trim() || saveEmailState.loading}
+                disabled={!canEdit || !email.trim() || saveEmailState.loading}
                 onClick={() => void updateEmail()}
               >
                 {t("common.save")}
@@ -10313,7 +10331,7 @@ function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
               <button
                 className="btn btn-secondary btn-sm"
                 type="button"
-                disabled={!whatsApp.trim() || saveWhatsAppState.loading}
+                disabled={!canEdit || !whatsApp.trim() || saveWhatsAppState.loading}
                 onClick={() => void updateWhatsApp()}
               >
                 {t("common.save")}
@@ -10408,6 +10426,7 @@ function CreatorRelationshipDetailContent({
     "AUTO",
   );
   const [composerShopId, setComposerShopId] = useState(selectedShopId);
+  const [composerContactId, setComposerContactId] = useState("");
   const [composerSubject, setComposerSubject] = useState("");
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
@@ -10488,7 +10507,18 @@ function CreatorRelationshipDetailContent({
     };
   }, [refetchRelationshipDetail]);
   const relationshipDetail = relationshipDetailData?.affiliateCreatorRelationshipDetail ?? null;
+  const canEditCreatorConfiguration = relationshipDetail?.viewerCanEditCreatorConfiguration === true;
   const relationship = relationshipDetail?.creatorRelationship ?? item?.creatorRelation ?? null;
+  const { data: publicContactData } = useQuery<
+    { affiliateCreatorContactState: GQL.AffiliateCreatorContactStatePayload },
+    { input: GQL.AffiliateCreatorContactStateInput }
+  >(AFFILIATE_CREATOR_CONTACT_STATE_QUERY, {
+    variables: { input: { creatorRelationshipId: relationshipId ?? "" } },
+    skip: !relationshipId || !relationship || Boolean(relationship.businessDeveloperId),
+    fetchPolicy: "cache-and-network",
+  });
+  const publicContacts = publicContactData?.affiliateCreatorContactState.channelContacts ?? [];
+  useEffect(() => { setComposerContactId(""); }, [relationshipId]);
   const [sellerUidEditing, setSellerUidEditing] = useState(false);
   const [sellerUidDraft, setSellerUidDraft] = useState(relationship?.sellerProvidedUid ?? "");
   const [sellerNoteEditing, setSellerNoteEditing] = useState(false);
@@ -10654,6 +10684,7 @@ function CreatorRelationshipDetailContent({
     setComposerSubject("");
     setStagedAttachments([]);
     setComposerChannel("AUTO");
+    setComposerContactId("");
     setPendingReplyToLifecycleEventId(undefined);
     setSampleReviewCommand(null);
     setProposalHistoryOpen(false);
@@ -10852,6 +10883,10 @@ function CreatorRelationshipDetailContent({
     hasOlder: canLoadOlderConversation,
     loadOlder: fetchOlderScopeMessages,
   } = useCreatorScopeConversation(relationshipId, scopeShopId);
+  useAffiliateWorkbenchRefresh(useCallback(() => {
+    void refetchRelationshipDetail();
+    void refetchConversationMessages();
+  }, [refetchRelationshipDetail, refetchConversationMessages]), relationshipId);
   const newestConversationMessageKey = conversationMessages.at(-1)
     ? affiliateCreatorMessageKey(conversationMessages.at(-1)!)
     : null;
@@ -10927,6 +10962,7 @@ function CreatorRelationshipDetailContent({
             creatorRelationshipId: relationshipId,
             parts,
             preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
+            channelContactId: composerContactId || undefined,
             emailSubject: composerSubject.trim() || undefined,
             replyToLifecycleEventId: pendingReplyToLifecycleEventId,
           },
@@ -11522,6 +11558,7 @@ function CreatorRelationshipDetailContent({
                     <button
                       className="affiliate-relationship-seller-uid-value"
                       type="button"
+                      disabled={!canEditCreatorConfiguration}
                       onClick={() => setSellerUidEditing(true)}
                     >
                       {relationship?.sellerProvidedUid ||
@@ -11637,7 +11674,7 @@ function CreatorRelationshipDetailContent({
             ) : null}
             {contextInspectorSection !== "overview" ? <CreatorGlobalInformation /> : null}
             {contextInspectorSection === "contacts" && relationshipId ? (
-              <CreatorContactPanel relationshipId={relationshipId} />
+              <CreatorContactPanel relationshipId={relationshipId} canEdit={canEditCreatorConfiguration} />
             ) : null}
             {contextInspectorSection === "management" ? (
               <section className="affiliate-relationship-work-side-card affiliate-relationship-owner-card">
@@ -11677,7 +11714,7 @@ function CreatorRelationshipDetailContent({
                     className="btn btn-secondary btn-sm"
                     type="button"
                     onClick={toggleRelationshipProtection}
-                    disabled={!relationshipId || ownershipBusy}
+                    disabled={!canEditCreatorConfiguration || !relationshipId || ownershipBusy}
                   >
                     {relationshipProtection
                       ? t("ecommerce.affiliateTeam.removeProtection", {
@@ -11703,7 +11740,7 @@ function CreatorRelationshipDetailContent({
               <section className="affiliate-relationship-work-side-card affiliate-relationship-seller-note-card">
                 <div className="affiliate-relationship-work-side-card-head">
                   <span>{t("ecommerce.affiliateWorkspace.sellerNote")}</span>
-                  {!sellerNoteEditing ? (
+                  {!sellerNoteEditing && canEditCreatorConfiguration ? (
                     <button
                       className="affiliate-inline-link-button"
                       type="button"
@@ -11755,7 +11792,7 @@ function CreatorRelationshipDetailContent({
                 )}
               </section>
             ) : null}
-            {contextInspectorSection === "management" && relationshipId ? (
+            {contextInspectorSection === "management" && relationshipId && canEditCreatorConfiguration ? (
               <AffiliateCreatorManualTagEditor
                 relationshipId={relationshipId}
                 manualTags={relationship?.manualTags ?? []}
@@ -12377,9 +12414,11 @@ function CreatorRelationshipDetailContent({
                       />
                       <Select
                         value={composerChannel}
-                        onChange={(value) =>
-                          setComposerChannel(value as "AUTO" | GQL.AffiliateMessageChannel)
-                        }
+                        disabled={publicContacts.length > 0 && Boolean(pendingReplyToLifecycleEventId)}
+                        onChange={(value) => {
+                          setComposerChannel(value as "AUTO" | GQL.AffiliateMessageChannel);
+                          setComposerContactId("");
+                        }}
                         options={[
                           {
                             value: "AUTO",
@@ -12400,6 +12439,21 @@ function CreatorRelationshipDetailContent({
                         ]}
                         ariaLabel={t("ecommerce.affiliateWorkspace.messageComposerDefaultChannel")}
                       />
+                      {publicContacts.length > 0 && !pendingReplyToLifecycleEventId ? (
+                        <Select
+                          value={composerContactId}
+                          onChange={(id) => {
+                            setComposerContactId(id);
+                            const contact = publicContacts.find((candidate) => candidate.id === id);
+                            if (contact) setComposerChannel(contact.channel);
+                          }}
+                          options={publicContacts.map((contact) => ({
+                            value: contact.id,
+                            label: `${contact.channel === GQL.AffiliateMessageChannel.Whatsapp ? "WhatsApp" : "Email"} · ${contact.accountLabel ?? contact.effectiveAlias ?? "—"}`,
+                          }))}
+                          placeholder={t("ecommerce.affiliateWorkspace.messageComposerExistingContact")}
+                        />
+                      ) : null}
                       {composerChannel === GQL.AffiliateMessageChannel.Email ? (
                         <input
                           className="form-input"

@@ -1422,6 +1422,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         creatorId
         creatorRelationshipId
         businessDeveloperIdSnapshot
+        viewerCanApprove
+        viewerCanAccessCurrentCreator
         creatorRelationship {
           id
           creatorId
@@ -2821,6 +2823,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
 export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
   query AffiliateCreatorRelationshipDetail($input: AffiliateCreatorRelationshipDetailInput!) {
     affiliateCreatorRelationshipDetail(input: $input) {
+      viewerCanEditCreatorConfiguration
       includedShopIds
       lastContactedAt
       lastBusinessActivityAt
@@ -3299,6 +3302,7 @@ export const AFFILIATE_CREATOR_CONTACT_STATE_QUERY = gql`
       }
       channelContacts {
         id
+        accountLabel
         creatorRelationshipId
         accountBindingId
         businessDeveloperId
@@ -3634,6 +3638,8 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       productId
       creatorRelationshipId
       businessDeveloperIdSnapshot
+      viewerCanApprove
+      viewerCanAccessCurrentCreator
       creatorGmv {
         amount
         currency
@@ -4024,6 +4030,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
 const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
   fragment AffiliateWorkbenchSampleRowFields on AffiliateWorkbenchSampleRow {
     id
+    hasPendingAgentProposal
     creatorRelationshipId
     creatorName
     creatorUsername
@@ -4129,6 +4136,7 @@ export const AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY = gql`
         sourceLabel
         sourceShopId
         replyToLifecycleEventId
+        hasPendingAgentProposal
         creatorName
         creatorUsername
         creatorAvatarUrl

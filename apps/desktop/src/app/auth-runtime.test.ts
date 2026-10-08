@@ -98,6 +98,9 @@ vi.mock("../cloud/backend-subscription-client.js", () => ({
         mocks.callbacks.affiliateWorkItemChanged = callback;
       }),
       subscribeToAffiliateUnknownSenderIdentificationChanges: vi.fn(),
+      subscribeToAffiliateWorkbenchChanges: vi.fn((callback) => {
+        mocks.callbacks.affiliateWorkbenchChanged = callback;
+      }),
       subscribeToAffiliateActionProposalChanges: vi.fn((callback) => {
         mocks.callbacks.affiliateActionProposalChanged = callback;
       }),
@@ -177,6 +180,10 @@ describe("setupAuth backend subscription forwarding", () => {
     mocks.callbacks.affiliateOutreachAccountConnected(payload);
 
     expect(broadcastEvent).toHaveBeenCalledWith("affiliate-outreach-account-connected", payload);
+    const change = { creatorRelationshipId: "public-creator", shopIds: ["shop-1"] };
+    mocks.callbacks.affiliateWorkbenchChanged(change);
+    expect(broadcastEvent).toHaveBeenCalledWith("affiliate-workbench-changed", change);
+    expect(mocks.handleAffiliateWorkItemChanged).not.toHaveBeenCalled();
   });
 
   it("logs a malformed Affiliate dispatch without losing subsequent subscription notifications", async () => {

@@ -44,6 +44,7 @@ vi.mock("@apollo/client/react", () => ({
     };
     const data: Record<string, unknown> = {
       affiliateCreatorRelationshipDetail: state.detail,
+      affiliateCreatorContactState: { channelContacts: [] },
       affiliateRelationshipSampleApplications: page,
       affiliateRelationshipPlatformCollaborations: page,
       affiliateActionProposalPage: page,
@@ -60,6 +61,7 @@ beforeEach(async () => {
   state.samples = [];
   state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
+    viewerCanEditCreatorConfiguration: true,
     creator: {
       id: "creator-profile",
       displayName: "Test Creator",

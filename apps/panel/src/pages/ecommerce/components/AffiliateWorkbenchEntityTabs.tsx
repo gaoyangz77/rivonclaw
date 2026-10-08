@@ -43,6 +43,7 @@ import { creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
 import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
+import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
 import {
@@ -303,7 +304,7 @@ function AffiliateWorkbenchSampleList({
   const [reopeningRowId, setReopeningRowId] = useState<string | null>(null);
   const sampleFilterInput: GQL.AffiliateWorkbenchSamplePageInput = {
     ...shopFilter,
-    businessDeveloperId: selectedBusinessDeveloperId || null,
+    ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
     protected: workbenchProtectionValue(protection),
     statusFilter,
     sortOrder,
@@ -749,6 +750,7 @@ function AffiliateWorkbenchSampleList({
                             protectedCreator={row.protected}
                             humanOnly={row.humanOnly}
                             proposal={row.proposal}
+                            hasPendingAgentProposal={row.hasPendingAgentProposal}
                           />
                           {row.businessDeveloperName ? (
                             <span className="affiliate-workbench-badge">
@@ -891,7 +893,7 @@ function AffiliateWorkbenchMessageList({
         channel: channel || null,
         ...(creatorSearch ? { creatorSearch } : {}),
         ...shopFilter,
-        businessDeveloperId: selectedBusinessDeveloperId || null,
+        ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
         protected: workbenchProtectionValue(protection),
         sortOrder,
         ...timeArgs,
@@ -927,7 +929,7 @@ function AffiliateWorkbenchMessageList({
           channel: channel || null,
           ...(creatorSearch ? { creatorSearch } : {}),
           ...shopFilter,
-          businessDeveloperId: selectedBusinessDeveloperId || null,
+          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
           protected: workbenchProtectionValue(protection),
           sortOrder,
           ...(lastPendingAtGe && lastPendingAtLt ? { lastPendingAtGe, lastPendingAtLt } : {}),
@@ -1139,7 +1141,7 @@ function AffiliateWorkbenchMessageList({
                     selectedShopId: row.sourceShopId ?? undefined,
                     initialTab: "conversation",
                     replyToLifecycleEventId: row.replyToLifecycleEventId,
-                    hasPendingProposal: Boolean(row.proposal),
+                    hasPendingProposal: row.hasPendingAgentProposal ?? Boolean(row.proposal),
                   });
                 return (
                   <TkInteractiveTableRow
@@ -1182,6 +1184,7 @@ function AffiliateWorkbenchMessageList({
                           protectedCreator={row.protected}
                           humanOnly={row.humanOnly}
                           proposal={row.proposal}
+                          hasPendingAgentProposal={row.hasPendingAgentProposal}
                         />
                       </div>
                     </td>
@@ -1544,11 +1547,12 @@ function StatusBadges(props: {
   protectedCreator: boolean;
   humanOnly: boolean;
   proposal?: GQL.ActionProposal | null;
+  hasPendingAgentProposal?: boolean | null;
 }) {
   const { t } = useTranslation();
   return (
     <>
-      {props.proposal ? (
+      {props.proposal || props.hasPendingAgentProposal ? (
         <span className="affiliate-workbench-badge affiliate-workbench-badge-proposal">
           {t("ecommerce.affiliateWorkspace.workbench.agentProposal")}
         </span>

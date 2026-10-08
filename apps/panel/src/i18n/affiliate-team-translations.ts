@@ -2820,6 +2820,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.en,
+        myCreatorsFilter: "My creators",
+        publicCreatorsFilter: "Public creators",
+        messageComposerExistingContact: "Existing conversation account",
         ...protectionWorkspaceCopy.en,
         ...relationshipWorkspaceCopy.en,
         ...sellerRelationshipMetadataCopy.en,
@@ -2845,6 +2848,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.zh,
+        myCreatorsFilter: "我的达人",
+        publicCreatorsFilter: "公共达人",
+        messageComposerExistingContact: "现有会话账号",
         ...protectionWorkspaceCopy.zh,
         ...relationshipWorkspaceCopy.zh,
         ...sellerRelationshipMetadataCopy.zh,
@@ -2870,6 +2876,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.de,
+        myCreatorsFilter: "Meine Creator",
+        publicCreatorsFilter: "Öffentliche Creator",
+        messageComposerExistingContact: "Konto der bestehenden Unterhaltung",
         ...protectionWorkspaceCopy.de,
         ...relationshipWorkspaceCopy.de,
         ...sellerRelationshipMetadataCopy.de,
@@ -2895,6 +2904,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.es,
+        myCreatorsFilter: "Mis creadores",
+        publicCreatorsFilter: "Creadores públicos",
+        messageComposerExistingContact: "Cuenta de conversación existente",
         ...protectionWorkspaceCopy.es,
         ...relationshipWorkspaceCopy.es,
         ...sellerRelationshipMetadataCopy.es,
@@ -2920,6 +2932,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.fr,
+        myCreatorsFilter: "Mes créateurs",
+        publicCreatorsFilter: "Créateurs publics",
+        messageComposerExistingContact: "Compte de conversation existante",
         ...protectionWorkspaceCopy.fr,
         ...relationshipWorkspaceCopy.fr,
         ...sellerRelationshipMetadataCopy.fr,
@@ -2945,6 +2960,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.id,
+        myCreatorsFilter: "Kreator saya",
+        publicCreatorsFilter: "Kreator publik",
+        messageComposerExistingContact: "Akun percakapan yang ada",
         ...protectionWorkspaceCopy.id,
         ...relationshipWorkspaceCopy.id,
         ...sellerRelationshipMetadataCopy.id,
@@ -2970,6 +2988,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.it,
+        myCreatorsFilter: "I miei creator",
+        publicCreatorsFilter: "Creator pubblici",
+        messageComposerExistingContact: "Account della conversazione esistente",
         ...protectionWorkspaceCopy.it,
         ...relationshipWorkspaceCopy.it,
         ...sellerRelationshipMetadataCopy.it,
@@ -2995,6 +3016,9 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.th,
+        myCreatorsFilter: "ครีเอเตอร์ของฉัน",
+        publicCreatorsFilter: "ครีเอเตอร์ส่วนกลาง",
+        messageComposerExistingContact: "บัญชีการสนทนาที่มีอยู่",
         ...protectionWorkspaceCopy.th,
         ...relationshipWorkspaceCopy.th,
         ...sellerRelationshipMetadataCopy.th,
