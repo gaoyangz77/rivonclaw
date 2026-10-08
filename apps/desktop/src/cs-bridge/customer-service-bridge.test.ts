@@ -1346,6 +1346,14 @@ describe("agent dispatch", () => {
     );
     expect(prompt).toContain("highest-priority");
     expect(prompt).toContain("overrides general customer-service and store instructions");
+    expect(prompt).toContain("Authorization alone is not execution capability");
+    expect(prompt).toContain("After a successful cs_escalate call, send a concise buyer-facing progress");
+    expect(prompt).toContain("update in the same run");
+    expect(prompt).toContain("do not claim the request was submitted");
+    expect(prompt).toContain("An interim manager response is a progress update, not a final resolution");
+    expect(prompt).toContain("Approval is not proof of execution");
+    expect(prompt).toContain("an approved refund is not a completed refund");
+    expect(prompt).toContain("is not a shipped replacement");
   });
 
   it("dispatchCatchUp appends operator instruction as a separate internal block", async () => {

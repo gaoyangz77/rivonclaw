@@ -31,12 +31,15 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
     expect(prompt).not.toContain("Default to ecom_cs_end_session");
   });
 
-  it("guides bad-review reachouts without requiring a buyer message", () => {
+  it("delegates bad-review workflow to backend without requiring a buyer message", () => {
     const prompt = buildCsAgentDispatchSystemPrompt("BAD_REVIEW_REACHOUT");
 
     expect(prompt).toContain("bad-review reachout");
     expect(prompt).toContain("Do not assume a buyer message triggered this run");
-    expect(prompt).toContain("apologize");
-    expect(prompt).toContain("Do not offer coupons");
+    expect(prompt).toContain("Use the operator instruction as the task authority and review context");
+    expect(prompt).toContain("backend-provided workflow at the current conversation stage");
+    expect(prompt).toContain("do not restart it or send a duplicate reachout");
+    expect(prompt).not.toContain("Send one concise buyer-facing message");
+    expect(prompt).not.toContain("Do not offer coupons");
   });
 });

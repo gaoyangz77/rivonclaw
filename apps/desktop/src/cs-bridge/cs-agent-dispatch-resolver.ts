@@ -202,8 +202,7 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
         "This dispatch was initiated by backend/Airflow for a TikTok Shop bad-review reachout.",
         "Do not assume a buyer message triggered this run.",
         "Use the operator instruction as the task authority and review context.",
-        "Send one concise buyer-facing message: apologize for the poor experience and ask what went wrong or how we can help.",
-        "Do not offer coupons, refunds, replacements, or other compensation unless the current shop policy and conversation context explicitly support it.",
+        "Follow the backend-provided workflow at the current conversation stage; do not restart it or send a duplicate reachout.",
         END_SESSION_GUIDANCE,
       ].join(" ");
   }
