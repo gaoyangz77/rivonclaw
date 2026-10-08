@@ -7802,6 +7802,8 @@ export const EcomBiDatasetId = {
   AffiliateSampleOrderDetail: "AFFILIATE_SAMPLE_ORDER_DETAIL",
   AffiliateSampleReviewDetail: "AFFILIATE_SAMPLE_REVIEW_DETAIL",
   CsDailySummary: "CS_DAILY_SUMMARY",
+  CsUnpaidHoldoutDaily: "CS_UNPAID_HOLDOUT_DAILY",
+  CsUnpaidReachoutDaily: "CS_UNPAID_REACHOUT_DAILY",
   FinanceIncomeExportLine: "FINANCE_INCOME_EXPORT_LINE",
   FinancePaymentExportLine: "FINANCE_PAYMENT_EXPORT_LINE",
   FinanceStatementDaily: "FINANCE_STATEMENT_DAILY",
@@ -7896,6 +7898,7 @@ export const EcomBiDimension = {
   DeliveryOptionType: "DELIVERY_OPTION_TYPE",
   District: "DISTRICT",
   Email: "EMAIL",
+  ExperimentId: "EXPERIMENT_ID",
   FinanceLineKey: "FINANCE_LINE_KEY",
   FinanceOrderCreatedTime: "FINANCE_ORDER_CREATED_TIME",
   FinanceOrderDeliveryTime: "FINANCE_ORDER_DELIVERY_TIME",
@@ -8311,6 +8314,13 @@ export const EcomBiMetric = {
   GrossOrderCount: "GROSS_ORDER_COUNT",
   GrossRevenueAmount: "GROSS_REVENUE_AMOUNT",
   GrossUnits: "GROSS_UNITS",
+  HoldoutControlMaturedOrders: "HOLDOUT_CONTROL_MATURED_ORDERS",
+  HoldoutControlPaidOrders: "HOLDOUT_CONTROL_PAID_ORDERS",
+  HoldoutControlPaymentRate: "HOLDOUT_CONTROL_PAYMENT_RATE",
+  HoldoutPaymentRateDifference: "HOLDOUT_PAYMENT_RATE_DIFFERENCE",
+  HoldoutProductionMaturedOrders: "HOLDOUT_PRODUCTION_MATURED_ORDERS",
+  HoldoutProductionPaidOrders: "HOLDOUT_PRODUCTION_PAID_ORDERS",
+  HoldoutProductionPaymentRate: "HOLDOUT_PRODUCTION_PAYMENT_RATE",
   InboundMessages: "INBOUND_MESSAGES",
   InTransitQuantity: "IN_TRANSIT_QUANTITY",
   LockedQuantity: "LOCKED_QUANTITY",
@@ -8403,6 +8413,14 @@ export const EcomBiMetric = {
   TotalInTransitQuantity: "TOTAL_IN_TRANSIT_QUANTITY",
   TotalSettlementAmount: "TOTAL_SETTLEMENT_AMOUNT",
   TotalStockQuantity: "TOTAL_STOCK_QUANTITY",
+  UnpaidAssociatedGmv: "UNPAID_ASSOCIATED_GMV",
+  UnpaidAssociatedPaidOrders: "UNPAID_ASSOCIATED_PAID_ORDERS",
+  UnpaidAssociatedSalesUnits: "UNPAID_ASSOCIATED_SALES_UNITS",
+  UnpaidEligibleOrders: "UNPAID_ELIGIBLE_ORDERS",
+  UnpaidOrders: "UNPAID_ORDERS",
+  UnpaidReachedOrders: "UNPAID_REACHED_ORDERS",
+  UnpaidReachoutPaymentRate: "UNPAID_REACHOUT_PAYMENT_RATE",
+  UnpaidSentMessages: "UNPAID_SENT_MESSAGES",
   WeightKg: "WEIGHT_KG",
 } as const;
 
@@ -8491,10 +8509,12 @@ export interface EcomBiQueryResult {
 
 /** BI query output column. */
 export interface EcomBiResultColumn {
+  description?: Maybe<Scalars["String"]["output"]>;
   dimension?: Maybe<EcomBiDimension>;
   key: Scalars["String"]["output"];
   label: Scalars["String"]["output"];
   metric?: Maybe<EcomBiMetric>;
+  note?: Maybe<Scalars["String"]["output"]>;
   role: EcomBiFieldRole;
   valueType: EcomBiValueType;
 }
