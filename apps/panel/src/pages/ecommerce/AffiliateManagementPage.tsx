@@ -1038,7 +1038,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const businessDeveloperOnly = isBusinessDeveloperOnly(user);
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
-  const [selectedShopId, setSelectedShopId] = useState("");
+  const [selectedManualShopIds, setSelectedManualShopIds] = useState<string[] | null>(null);
   const [selectedBusinessDeveloperId, setSelectedBusinessDeveloperId] = useState("");
   const [workbenchTab, setWorkbenchTab] = useState<AffiliateWorkbenchTab>(() =>
     kind === "AGENT" ? "PENDING_AGENT" : "SAMPLES",
@@ -1111,20 +1111,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     }
   }, [businessDeveloperData, entityStore.affiliateWorkspace]);
 
-  const shopOptions = [
-    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-    ...shops
-      .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
-      .map((shop) => {
-        const label = shopDisplayLabel(shop, shop.id);
-        return {
-          value: shop.id,
-          label: label.text,
-          sensitive: label.sensitive,
-          searchTerms: shopSelectSearchTerms(shop, shop.id),
-        };
-      }),
-  ];
   const businessDeveloperOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allBusinessDevelopers") },
     ...[...(businessDeveloperData?.affiliateBusinessDevelopers ?? [])]
@@ -1693,9 +1679,16 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
           {workbenchTab === "SAMPLES" || workbenchTab === "MESSAGES" ? (
             <AffiliateWorkbenchEntityTabs
               tab={workbenchTab}
-              selectedShopId={selectedShopId}
-              shopOptions={shopOptions}
-              onSelectShop={setSelectedShopId}
+              selectedShopIds={selectedManualShopIds}
+              shops={shops
+                .filter((shop) => shop.authStatus === GQL.ShopAuthStatus.Authorized)
+                .map((shop) => ({
+                  id: shop.id,
+                  shopName: shop.shopName,
+                  alias: shop.alias,
+                  region: shop.region,
+                }))}
+              onSelectShops={setSelectedManualShopIds}
               businessDeveloperOptions={businessDeveloperOptions}
               selectedBusinessDeveloperId={selectedBusinessDeveloperId}
               onSelectBusinessDeveloper={setSelectedBusinessDeveloperId}
@@ -1847,7 +1840,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
-          selectedShopId={selectedShopId}
+          selectedShopId=""
           businessDeveloperOnly={businessDeveloperOnly}
           onDecideProposal={async (proposal, status, note, override) => {
             const handled = await decideProposal(proposal, status, note, override);
@@ -1863,7 +1856,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       {selectedEntityTarget ? (
         <CreatorRelationshipDetailModal
           relationshipId={selectedEntityTarget.creatorRelationshipId}
-          selectedShopId={selectedEntityTarget.selectedShopId ?? selectedShopId}
+          selectedShopId={selectedEntityTarget.selectedShopId ?? ""}
           initialTab={selectedEntityTarget.initialTab}
           replyToLifecycleEventId={selectedEntityTarget.replyToLifecycleEventId}
           hasPendingProposal={selectedEntityTarget.hasPendingProposal}

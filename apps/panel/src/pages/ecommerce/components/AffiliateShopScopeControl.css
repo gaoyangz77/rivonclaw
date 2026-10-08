@@ -1,0 +1,39 @@
+.affiliate-scope-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-shop-scope-field {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-shop-scope-popover {
+  display: grid;
+  width: min(320px, 78vw);
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-shop-scope-list {
+  max-height: 240px;
+}
+
+.affiliate-shop-scope-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+  border-radius: var(--tk-v1-radius-3);
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-shop-scope-option:hover {
+  background: var(--tk-v1-bg-subtle);
+}
+
+.affiliate-shop-scope-option small {
+  color: var(--tk-v1-fg-muted);
+}

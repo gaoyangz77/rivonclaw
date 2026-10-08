@@ -489,19 +489,19 @@ describe("AffiliateAnalyticsPage Overview", () => {
         ],
       },
     };
-    const { container } = render(<AffiliateAnalyticsPage />);
-    const picker = container.querySelector<HTMLDetailsElement>(".affiliate-shop-picker")!;
+    render(<AffiliateAnalyticsPage />);
+    const picker = screen.getByRole("button", { name: "2 shops selected" });
 
-    fireEvent.click(picker.querySelector("summary")!);
-    expect(picker.open).toBe(true);
-    const berlin = within(picker).getByRole("checkbox", { name: /Berlin/ });
+    fireEvent.click(picker);
+    expect(picker.getAttribute("aria-expanded")).toBe("true");
+    const berlin = screen.getByRole("checkbox", { name: /Berlin/ });
     fireEvent.pointerDown(berlin);
     fireEvent.click(berlin);
-    expect(picker.open).toBe(true);
+    expect(picker.getAttribute("aria-expanded")).toBe("true");
     expect(overviewInputs().at(-1)?.shopIds).toEqual(["shop-1"]);
 
     fireEvent.pointerDown(document.body);
-    expect(picker.open).toBe(false);
+    expect(picker.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("renders the three cohort sections, each declaring its own time axis", () => {

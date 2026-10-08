@@ -18,10 +18,12 @@ const PRODUCT_FILTER_SELECTION_LIMIT = 100;
 /** Catalog selection only: consumers own their entity queries and pagination. */
 export const ProductFilter = observer(function ProductFilter({
   shopId,
+  shopIds,
   value,
   onChange,
 }: {
   shopId?: string;
+  shopIds?: readonly string[];
   value: ProductFilterValue[];
   onChange: (value: ProductFilterValue[]) => void;
 }) {
@@ -29,7 +31,7 @@ export const ProductFilter = observer(function ProductFilter({
   const store = useEntityStore();
   const [open, setOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
-  const scope = shopId || "";
+  const scope = shopIds ? JSON.stringify([...shopIds].sort()) : shopId || "";
   const client = useApolloClient();
   const request = useRef<AbortController | null>(null);
   const [catalog, setCatalog] = useState({
@@ -46,7 +48,9 @@ export const ProductFilter = observer(function ProductFilter({
   const error = active && catalog.status === "error";
   const options = (active ? catalog.options : []).filter(
     (option): option is ProductOption & { shopId: string } =>
-      Boolean(option.shopId) && (!shopId || option.shopId === shopId),
+      Boolean(option.shopId) &&
+      (!shopId || option.shopId === shopId) &&
+      (!shopIds || shopIds.includes(option.shopId!)),
   );
   const selected = new Set(value.map(keyOf));
   const matches = options;

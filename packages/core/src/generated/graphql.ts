@@ -5275,6 +5275,8 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   protected?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Restrict PLATFORM_CHAT conversations to one owned shop. Only accepted together with the PLATFORM_CHAT channel filter. */
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Match any selected owned shop. Omit or pass null for all shops; an empty list selects no shops. Mutually exclusive with shopId. Only accepted with PLATFORM_CHAT; direct-contact queue counts remain seller-wide. */
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Order the page by the time the conversation started waiting for a reply. ASC, the default, returns the longest-waiting conversation first; DESC returns the most recent first. A cursor is bound to the order that minted it. */
   sortOrder?: InputMaybe<EcomSortOrder>;
 }
@@ -5338,6 +5340,8 @@ export interface AffiliateWorkbenchSamplePageInput {
   /** @deprecated Use statusFilter. Kept for older desktop clients. */
   reviewDisposition?: InputMaybe<AffiliateSampleReviewDisposition>;
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Match any selected owned shop. Omit or pass null for all shops; an empty list selects no shops. Mutually exclusive with shopId. */
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Order the page by Sample application time. ASC, the default, returns the oldest application first; DESC returns the newest first. A cursor is bound to the order that minted it. */
   sortOrder?: InputMaybe<EcomSortOrder>;
   /** Filter by the manual-workbench Sample view. Omit for the legacy pending-review view. */

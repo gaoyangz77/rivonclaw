@@ -109,16 +109,11 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
         <ToastProvider>
           <AffiliateWorkbenchEntityTabs
             tab={tab}
-            selectedShopId=""
-            shopOptions={[
-              { value: "", label: "全部店铺" },
-              {
-                value: "shop-1",
-                label: "MXTK-02",
-                searchTerms: ["Windboss Mexico"],
-              },
+            selectedShopIds={null}
+            shops={[
+              { id: "shop-1", alias: "MXTK-02", shopName: "Windboss Mexico" },
             ]}
-            onSelectShop={vi.fn()}
+            onSelectShops={vi.fn()}
             businessDeveloperOptions={[]}
             selectedBusinessDeveloperId=""
             onSelectBusinessDeveloper={vi.fn()}
@@ -256,9 +251,9 @@ it("passes selected Product Knowledge to both the first and next sample pages", 
       <ToastProvider>
         <AffiliateWorkbenchEntityTabs
           tab="SAMPLES"
-          selectedShopId=""
-          shopOptions={[{ value: "", label: "全部店铺" }]}
-          onSelectShop={vi.fn()}
+          selectedShopIds={null}
+          shops={[]}
+          onSelectShops={vi.fn()}
           businessDeveloperOptions={[]}
           selectedBusinessDeveloperId=""
           onSelectBusinessDeveloper={vi.fn()}

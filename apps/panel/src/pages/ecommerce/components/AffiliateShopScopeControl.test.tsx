@@ -28,6 +28,7 @@ afterEach(() => {
 describe("AffiliateShopScopeControl privacy masking", () => {
   it("finds an alias by the platform shop name", () => {
     render(<AffiliateShopScopeControl shops={shops} selected={[]} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectedShops" }));
 
     fireEvent.change(screen.getByRole("searchbox", { name: "common.searchShops" }), {
       target: { value: "Official Store" },
@@ -40,6 +41,7 @@ describe("AffiliateShopScopeControl privacy masking", () => {
   it("masks a platform shop name but never the operator's own alias", () => {
     setPrivacyMode(true);
     render(<AffiliateShopScopeControl shops={shops} selected={[]} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectedShops" }));
 
     // An alias exists precisely so the shop can be named on a shared screen.
     expect(screen.getByText("US hero shop").hasAttribute("data-tk-private")).toBe(false);
@@ -55,6 +57,7 @@ describe("AffiliateShopScopeControl privacy masking", () => {
     // Masking is CSS-driven off `html[data-privacy]`, so the marks are stable
     // and only the document attribute flips.
     render(<AffiliateShopScopeControl shops={shops} selected={[]} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectedShops" }));
 
     expect(screen.getByText("Windboss Benessere").getAttribute("data-tk-private")).toBe("text");
     expect(screen.getByText("US hero shop").hasAttribute("data-tk-private")).toBe(false);

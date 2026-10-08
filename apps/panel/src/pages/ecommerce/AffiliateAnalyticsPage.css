@@ -171,26 +171,6 @@
   flex-basis: 220px;
 }
 
-/* The shared shop-scope control keeps its own markup; inside this panel its
-   label and controls read like the design-system fields beside it (the label
-   gap mirrors `.tk-v1-field`, the picker height the shared control token). */
-.affiliate-detail-controls .affiliate-scope-controls > label {
-  gap: 6px;
-  width: 172px;
-  color: var(--tk-v1-fg-default);
-  font-size: var(--tk-v1-type-supporting);
-  font-weight: 500;
-  line-height: 1.35;
-}
-
-.affiliate-detail-controls .affiliate-shop-picker summary {
-  display: flex;
-  align-items: center;
-  height: var(--tk-v1-control-default);
-  min-height: 0;
-  padding-block: 0;
-}
-
 .affiliate-detail-notes {
   display: grid;
   gap: var(--tk-v1-space-1);
@@ -334,8 +314,7 @@
 .affiliate-control-bar > label,
 .affiliate-window-control,
 .affiliate-composer-row > label,
-.affiliate-run-row label,
-.affiliate-scope-controls > label {
+.affiliate-run-row label {
   display: grid;
   gap: 5px;
   color: var(--color-text-muted);
@@ -353,85 +332,6 @@
   color: var(--color-text);
   font: inherit;
   font-size: 12px;
-}
-
-.affiliate-scope-controls {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.affiliate-shop-picker {
-  position: relative;
-}
-
-.affiliate-shop-picker summary {
-  min-width: 156px;
-  min-height: 34px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  cursor: pointer;
-  font-size: 12px;
-  list-style: none;
-}
-
-.affiliate-shop-picker > div {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 6px);
-  left: 0;
-  display: grid;
-  width: min(320px, 78vw);
-  max-height: 320px;
-  gap: 4px;
-  padding: 10px;
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--tk-v1-radius-4);
-  background: var(--color-bg);
-  box-shadow: 0 18px 48px rgb(0 0 0 / 16%);
-}
-
-.affiliate-shop-picker > div > button {
-  padding: 6px;
-  border: 0;
-  background: transparent;
-  color: var(--color-primary);
-  cursor: pointer;
-  text-align: left;
-}
-
-.affiliate-shop-picker-search {
-  width: 100%;
-  min-height: 34px;
-  padding: 6px 9px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 12px;
-}
-
-.affiliate-shop-picker label {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 8px;
-  align-items: center;
-  padding: 7px;
-  border-radius: 7px;
-  color: var(--color-text);
-  font-size: 12px;
-}
-
-.affiliate-shop-picker label:hover {
-  background: var(--color-bg-alt);
-}
-.affiliate-shop-picker small {
-  color: var(--color-text-muted);
 }
 
 .affiliate-refresh {

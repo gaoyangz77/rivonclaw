@@ -72,9 +72,9 @@ describe("Affiliate workbench Sample status filter", () => {
         <ToastProvider>
           <AffiliateWorkbenchEntityTabs
             tab="SAMPLES"
-            selectedShopId=""
-            shopOptions={[{ value: "", label: "全部店铺" }]}
-            onSelectShop={vi.fn()}
+            selectedShopIds={null}
+            shops={[]}
+            onSelectShops={vi.fn()}
             businessDeveloperOptions={[]}
             selectedBusinessDeveloperId=""
             onSelectBusinessDeveloper={vi.fn()}

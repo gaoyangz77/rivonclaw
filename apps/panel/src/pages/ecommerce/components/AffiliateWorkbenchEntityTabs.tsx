@@ -42,6 +42,8 @@ import {
 import { creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
 import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
+import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
+import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
 import {
   AffiliateProtectionFilter,
@@ -95,9 +97,9 @@ interface FilterOption {
 
 interface Props {
   tab: AffiliateWorkbenchEntityTab;
-  selectedShopId: string;
-  shopOptions: FilterOption[];
-  onSelectShop: (shopId: string) => void;
+  selectedShopIds: string[] | null;
+  shops: AffiliateAnalyticsShop[];
+  onSelectShops: (shopIds: string[] | null) => void;
   businessDeveloperOptions: FilterOption[];
   selectedBusinessDeveloperId: string;
   onSelectBusinessDeveloper: (businessDeveloperId: string) => void;
@@ -163,9 +165,9 @@ interface ConversationPageData {
 
 export function AffiliateWorkbenchEntityTabs({
   tab,
-  selectedShopId,
-  shopOptions,
-  onSelectShop,
+  selectedShopIds,
+  shops,
+  onSelectShops,
   businessDeveloperOptions,
   selectedBusinessDeveloperId,
   onSelectBusinessDeveloper,
@@ -174,9 +176,9 @@ export function AffiliateWorkbenchEntityTabs({
 }: Props) {
   return tab === "SAMPLES" ? (
     <AffiliateWorkbenchSampleList
-      selectedShopId={selectedShopId}
-      shopOptions={shopOptions}
-      onSelectShop={onSelectShop}
+      selectedShopIds={selectedShopIds}
+      shops={shops}
+      onSelectShops={onSelectShops}
       businessDeveloperOptions={businessDeveloperOptions}
       selectedBusinessDeveloperId={selectedBusinessDeveloperId}
       onSelectBusinessDeveloper={onSelectBusinessDeveloper}
@@ -185,7 +187,7 @@ export function AffiliateWorkbenchEntityTabs({
     />
   ) : (
     <AffiliateWorkbenchMessageList
-      shopOptions={shopOptions}
+      shops={shops}
       businessDeveloperOptions={businessDeveloperOptions}
       selectedBusinessDeveloperId={selectedBusinessDeveloperId}
       onSelectBusinessDeveloper={onSelectBusinessDeveloper}
@@ -196,9 +198,9 @@ export function AffiliateWorkbenchEntityTabs({
 }
 
 function AffiliateWorkbenchSampleList({
-  selectedShopId,
-  shopOptions,
-  onSelectShop,
+  selectedShopIds,
+  shops,
+  onSelectShops,
   businessDeveloperOptions,
   selectedBusinessDeveloperId,
   onSelectBusinessDeveloper,
@@ -227,14 +229,17 @@ function AffiliateWorkbenchSampleList({
   const firstObservedAtLt = timeBounds?.ltIso ?? null;
   const timeArgs =
     firstObservedAtGe && firstObservedAtLt ? { firstObservedAtGe, firstObservedAtLt } : {};
+  const shopIds = selectedShopIds?.filter((id) => shops.some((shop) => shop.id === id)) ?? null;
+  const shopScope = JSON.stringify(shopIds ? [...shopIds].sort() : null);
+  const shopFilter = { shopId: null, ...(shopIds !== null ? { shopIds } : {}) };
   const [productSelection, setProductSelection] = useState<{
     scope: string;
     values: ProductFilterValue[];
-  }>({ scope: selectedShopId, values: [] });
+  }>({ scope: shopScope, values: [] });
   const [productFilterMode, setProductFilterMode] = useState<"catalog" | "knowledge">("catalog");
   const [knowledgeSelection, setKnowledgeSelection] = useState<MerchantPidSelection | null>(null);
   const products =
-    productFilterMode === "catalog" && productSelection.scope === selectedShopId
+    productFilterMode === "catalog" && productSelection.scope === shopScope
       ? productSelection.values
       : [];
   const productKnowledgeId = productFilterMode === "knowledge" ? knowledgeSelection?.id : null;
@@ -247,7 +252,7 @@ function AffiliateWorkbenchSampleList({
     statusFilter,
     sortOrder,
     affiliateWorkbenchTimeFilterKey(timeSelection),
-    selectedShopId,
+    shopScope,
     selectedBusinessDeveloperId,
   ]);
   const [buffer, setBuffer] = useState<WorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>>(() =>
@@ -259,18 +264,24 @@ function AffiliateWorkbenchSampleList({
       : emptyWorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>(filterKey);
   const items = activeBuffer.items;
   const productRefs = useMemo(
-    () =>
-      [...new Map(
+    () => [
+      ...new Map(
         items.flatMap((row) => {
           const productId = row.sampleApplication.productId;
           return productId
-            ? [[`${row.sampleApplication.shopId}:${productId}`, {
-                shopId: row.sampleApplication.shopId,
-                productId,
-              }] as const]
+            ? [
+                [
+                  `${row.sampleApplication.shopId}:${productId}`,
+                  {
+                    shopId: row.sampleApplication.shopId,
+                    productId,
+                  },
+                ] as const,
+              ]
             : [];
         }),
-      ).values()],
+      ).values(),
+    ],
     [items],
   );
   const { data: productData } = useQuery<
@@ -291,7 +302,7 @@ function AffiliateWorkbenchSampleList({
   const hasMore = activeBuffer.hasMore;
   const [reopeningRowId, setReopeningRowId] = useState<string | null>(null);
   const sampleFilterInput: GQL.AffiliateWorkbenchSamplePageInput = {
-    shopId: selectedShopId || null,
+    ...shopFilter,
     businessDeveloperId: selectedBusinessDeveloperId || null,
     protected: workbenchProtectionValue(protection),
     statusFilter,
@@ -419,17 +430,14 @@ function AffiliateWorkbenchSampleList({
         data-tutorial-id="affiliate-workbench-sample-controls"
       >
         <div className="affiliate-workbench-entity-filters">
-          <TkChoiceSelect
+          <AffiliateShopScopeControl
             label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
-            value={selectedShopId}
+            shops={shops}
+            selected={shopIds ?? shops.map((shop) => shop.id)}
             onChange={(next) => {
-              setProductSelection({ scope: next, values: [] });
-              onSelectShop(next);
+              setProductSelection({ scope: JSON.stringify([...next].sort()), values: [] });
+              onSelectShops(next.length === shops.length ? null : next);
             }}
-            options={shopOptions}
-            className="affiliate-workbench-filter-select"
-            searchable
-            searchPlaceholder={t("common.searchShops")}
           />
           <TkChoiceSelect
             label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
@@ -502,7 +510,7 @@ function AffiliateWorkbenchSampleList({
                   variant={productFilterMode === "knowledge" ? "secondary" : "ghost"}
                   onClick={() => {
                     setProductFilterMode("knowledge");
-                    setProductSelection({ scope: selectedShopId, values: [] });
+                    setProductSelection({ scope: shopScope, values: [] });
                   }}
                 >
                   {t("ecommerce.affiliateWorkspace.workbench.merchantPidMode")}
@@ -510,16 +518,16 @@ function AffiliateWorkbenchSampleList({
               </div>
               {productFilterMode === "catalog" ? (
                 <ProductFilter
-                  key={selectedShopId}
-                  shopId={selectedShopId || undefined}
+                  key={shopScope}
+                  shopIds={shopIds ?? undefined}
                   value={products}
-                  onChange={(values) => setProductSelection({ scope: selectedShopId, values })}
+                  onChange={(values) => setProductSelection({ scope: shopScope, values })}
                 />
               ) : (
                 <MerchantPidFilter
                   value={knowledgeSelection}
                   onChange={setKnowledgeSelection}
-                  shopScoped={Boolean(selectedShopId)}
+                  shopScoped={shopIds !== null}
                 />
               )}
             </div>
@@ -815,7 +823,7 @@ function SampleProductCell({
 }
 
 function AffiliateWorkbenchMessageList({
-  shopOptions,
+  shops,
   businessDeveloperOptions,
   selectedBusinessDeveloperId,
   onSelectBusinessDeveloper,
@@ -823,7 +831,7 @@ function AffiliateWorkbenchMessageList({
   refreshRevision,
 }: Pick<
   Props,
-  | "shopOptions"
+  | "shops"
   | "businessDeveloperOptions"
   | "selectedBusinessDeveloperId"
   | "onSelectBusinessDeveloper"
@@ -832,9 +840,13 @@ function AffiliateWorkbenchMessageList({
 >) {
   const { t } = useTranslation();
   const [channel, setChannel] = useState<GQL.AffiliateMessageChannel | "">("");
-  const [messageShopId, setMessageShopId] = useState("");
+  const [messageShopIds, setMessageShopIds] = useState<string[] | null>(null);
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
-  const queryShopId = platformChannelActive && messageShopId ? messageShopId : null;
+  const queryShopIds = platformChannelActive
+    ? (messageShopIds?.filter((id) => shops.some((shop) => shop.id === id)) ?? null)
+    : null;
+  const queryShopScope = JSON.stringify(queryShopIds ? [...queryShopIds].sort() : null);
+  const shopFilter = { shopId: null, ...(queryShopIds !== null ? { shopIds: queryShopIds } : {}) };
   const [protection, setProtection] = useState("ALL");
   const [creatorSearch, setCreatorSearch] = useState("");
   /**
@@ -857,7 +869,7 @@ function AffiliateWorkbenchMessageList({
     channel,
     sortOrder,
     affiliateWorkbenchTimeFilterKey(timeSelection),
-    queryShopId,
+    queryShopScope,
     selectedBusinessDeveloperId,
   ]);
   const [buffer, setBuffer] = useState<
@@ -878,7 +890,7 @@ function AffiliateWorkbenchMessageList({
       input: {
         channel: channel || null,
         ...(creatorSearch ? { creatorSearch } : {}),
-        shopId: queryShopId,
+        ...shopFilter,
         businessDeveloperId: selectedBusinessDeveloperId || null,
         protected: workbenchProtectionValue(protection),
         sortOrder,
@@ -903,7 +915,7 @@ function AffiliateWorkbenchMessageList({
 
   function selectChannel(next: GQL.AffiliateMessageChannel | ""): void {
     setChannel(next);
-    if (next !== GQL.AffiliateMessageChannel.PlatformChat) setMessageShopId("");
+    if (next !== GQL.AffiliateMessageChannel.PlatformChat) setMessageShopIds(null);
   }
 
   const loadMore = useCallback(async () => {
@@ -914,7 +926,7 @@ function AffiliateWorkbenchMessageList({
         input: {
           channel: channel || null,
           ...(creatorSearch ? { creatorSearch } : {}),
-          shopId: queryShopId,
+          ...shopFilter,
           businessDeveloperId: selectedBusinessDeveloperId || null,
           protected: workbenchProtectionValue(protection),
           sortOrder,
@@ -947,7 +959,7 @@ function AffiliateWorkbenchMessageList({
     protection,
     hasMore,
     nextCursor,
-    queryShopId,
+    queryShopScope,
     selectedBusinessDeveloperId,
     sortOrder,
   ]);
@@ -1028,14 +1040,11 @@ function AffiliateWorkbenchMessageList({
             </span>
           </div>
           {platformChannelActive ? (
-            <TkChoiceSelect
+            <AffiliateShopScopeControl
               label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
-              value={messageShopId}
-              onChange={setMessageShopId}
-              options={shopOptions}
-              className="affiliate-workbench-filter-select"
-              searchable
-              searchPlaceholder={t("common.searchShops")}
+              shops={shops}
+              selected={queryShopIds ?? shops.map((shop) => shop.id)}
+              onChange={(next) => setMessageShopIds(next.length === shops.length ? null : next)}
             />
           ) : null}
           <AffiliateProtectionFilter value={protection} onChange={setProtection} />

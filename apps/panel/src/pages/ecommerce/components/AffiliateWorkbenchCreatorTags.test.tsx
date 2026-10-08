@@ -186,9 +186,9 @@ function renderTab(tab: "SAMPLES" | "MESSAGES") {
       <ToastProvider>
         <AffiliateWorkbenchEntityTabs
           tab={tab}
-          selectedShopId=""
-          shopOptions={[{ value: "", label: "全部店铺" }]}
-          onSelectShop={vi.fn()}
+          selectedShopIds={null}
+          shops={[]}
+          onSelectShops={vi.fn()}
           businessDeveloperOptions={[]}
           selectedBusinessDeveloperId=""
           onSelectBusinessDeveloper={vi.fn()}

@@ -217,3 +217,28 @@ it("cancels a pending search and restores the search button", async () => {
   expect(screen.getByText(/搜索已取消/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "搜索" }).hasAttribute("disabled")).toBe(false);
 });
+
+it("limits catalog choices and select-all to the selected shops", async () => {
+  const result = vi.fn(() =>
+    data([
+      { shopId: "shop-0", productId: "1", title: "Match A" },
+      { shopId: "shop-1", productId: "2", title: "Match B" },
+      { shopId: "shop-2", productId: "3", title: "Match C" },
+    ]),
+  );
+  const onChange = vi.fn();
+  render(
+    <MockedProvider mocks={[{ request: request("Match"), result, delay: 0 }]}>
+      <ProductFilter shopIds={["shop-0", "shop-2"]} value={[]} onChange={onChange} />
+    </MockedProvider>,
+  );
+  submit("Match");
+  await screen.findByText("Match C");
+  expect(screen.getByText("Match A")).toBeTruthy();
+  expect(screen.queryByText("Match B")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "全选" }));
+  expect(onChange).toHaveBeenLastCalledWith([
+    { shopId: "shop-0", productId: "1" },
+    { shopId: "shop-2", productId: "3" },
+  ]);
+});
