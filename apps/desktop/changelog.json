@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.28",
+    "date": "2026-10-08",
+    "en": [
+      "Support multi-shop Affiliate workbench filters and own or public workbench scopes for BD staff",
+      "Support creator Excel export and import for BD handoff, and clarify bad-review follow-up responsibilities"
+    ],
+    "zh": [
+      "达人工作台支持多店铺筛选，并为商务拓展人员提供个人与公共工作范围",
+      "支持达人 Excel 导出导入及商务拓展交接，并明确差评跟进职责"
+    ]
+  },
+  {
     "version": "1.9.27",
     "date": "2026-10-07",
     "en": [
