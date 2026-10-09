@@ -164,7 +164,8 @@ function cellValue(key: string, value: unknown, displayText: (key: string, value
     const numeric = Number(value);
     if (Number.isFinite(numeric) && Math.abs(numeric) <= Number.MAX_SAFE_INTEGER) return numeric;
   }
-  if (BOOLEAN_FIELDS.has(key) || key === "SAMPLE_DECISION_BUCKET") {
+  // The reviewer arrives as a structured actor; the sheet gets the same name the table shows.
+  if (BOOLEAN_FIELDS.has(key) || key === "SAMPLE_DECISION_BUCKET" || key === "AFFILIATE_SAMPLE_REVIEWER") {
     return displayText(key, value);
   }
   // IDs and other provider strings stay text, including values beginning with

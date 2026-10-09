@@ -1,5 +1,8 @@
 import { useRef, useState } from "react";
+import { useQuery } from "@apollo/client/react";
+import type { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
+import { AFFILIATE_SAMPLE_REVIEWER_OPTIONS_QUERY } from "../../../api/affiliate-analytics-queries.js";
 import {
   TkAlert,
   TkButton,
@@ -74,6 +77,10 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
     shopId: string;
     applicationId: string;
   } | null>(null);
+  const { data: reviewerData } = useQuery<{
+    affiliateSampleReviewerOptions: GQL.AffiliateSampleReviewerOption[];
+  }>(AFFILIATE_SAMPLE_REVIEWER_OPTIONS_QUERY);
+  const reviewerOptions = reviewerData?.affiliateSampleReviewerOptions ?? [];
   const pages = useAffiliateDetailPages();
   const exporter = useAffiliateDetailExport();
   const tableRef = useRef<HTMLDivElement>(null);
@@ -133,7 +140,11 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
 
   const renderCells = (row: Row) =>
     columns.map((key) => (
-      <td key={key} className={cellClass(key)} title={affiliateDetailTitle(row[key])}>
+      <td
+        key={key}
+        className={cellClass(key)}
+        title={key === "AFFILIATE_SAMPLE_REVIEWER" ? cell(row, key) : affiliateDetailTitle(row[key])}
+      >
         {SENSITIVE_TEXT_FIELDS.has(key) ? (
           <TkPrivate sensitive>{cell(row, key)}</TkPrivate>
         ) : (
@@ -203,9 +214,17 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
             >
               <div className="affiliate-detail-controls">
                 {entity === "REVIEW" ? (
-                  <AffiliateReviewFilters value={filters} onChange={setFilters} />
+                  <AffiliateReviewFilters
+                    value={filters}
+                    onChange={setFilters}
+                    reviewerOptions={reviewerOptions}
+                  />
                 ) : (
-                  <AffiliateFulfillmentFilters value={filters} onChange={setFilters} />
+                  <AffiliateFulfillmentFilters
+                    value={filters}
+                    onChange={setFilters}
+                    reviewerOptions={reviewerOptions}
+                  />
                 )}
               </div>
               <TkButton

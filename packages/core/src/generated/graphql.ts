@@ -4830,6 +4830,12 @@ export const AffiliateSampleReviewExecutionMode = {
 
 export type AffiliateSampleReviewExecutionMode =
   (typeof AffiliateSampleReviewExecutionMode)[keyof typeof AffiliateSampleReviewExecutionMode];
+/** One choice of the Sample reviewer filter. `key` is the value to send as an IN / NOT_IN filter on the AFFILIATE_SAMPLE_REVIEWER BI dimension. */
+export interface AffiliateSampleReviewerOption {
+  actor: AffiliateActorDisplay;
+  key: Scalars["String"]["output"];
+}
+
 export interface AffiliateSampleShipmentDecisionOriginDailyPoint {
   decidedBy: AffiliateSampleDecisionOrigin;
   ds: Scalars["String"]["output"];
@@ -7887,6 +7893,8 @@ export const EcomBiDimension = {
   AffiliateCreatorGmvCurrency: "AFFILIATE_CREATOR_GMV_CURRENCY",
   AffiliateDecidedBy: "AFFILIATE_DECIDED_BY",
   AffiliateOrderAttributionKey: "AFFILIATE_ORDER_ATTRIBUTION_KEY",
+  AffiliateSampleReviewer: "AFFILIATE_SAMPLE_REVIEWER",
+  AffiliateSampleReviewerKind: "AFFILIATE_SAMPLE_REVIEWER_KIND",
   BankAccountMasked: "BANK_ACCOUNT_MASKED",
   BuyerMessage: "BUYER_MESSAGE",
   BuyerUsername: "BUYER_USERNAME",
@@ -13120,6 +13128,8 @@ export interface Query {
   /** Read a Provider-backed CreatorRelationship timeline ordered by business occurredAt. */
   affiliateRelationshipTimeline: AffiliateRelationshipTimelinePayload;
   affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
+  /** The reviewers the Sample detail analytics can be filtered by: the owner, members who use Affiliate, the Agent and the system. Each key is a value for the AFFILIATE_SAMPLE_REVIEWER BI filter. */
+  affiliateSampleReviewerOptions: Array<AffiliateSampleReviewerOption>;
   affiliateShopOpenCollaborations: AffiliateShopCollaborationListPayload;
   affiliateShopTargetCollaborations: AffiliateShopCollaborationListPayload;
   /** Unknown senders awaiting identification for the authenticated seller. Each row carries the seller account and its business developer, what the stranger wrote, the candidate creators we told about that account, and the attempt/cooldown state. Reading this also retires rows that have spent every attempt to STAFF_REQUIRED. */

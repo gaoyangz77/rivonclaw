@@ -46,6 +46,22 @@ describe("Affiliate detail Excel export", () => {
     expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 1 });
   });
 
+  it("writes the reviewer's name, never the structured value, and leaves unreviewed rows empty", async () => {
+    const reviewer = { key: "HUMAN:u1", kind: "MEMBER", displayName: "李四", businessDeveloperId: null };
+    const workbook = buildAffiliateDetailWorkbook(ExcelJS, {
+      sheetName: "Review",
+      columns: ["AFFILIATE_SAMPLE_REVIEWER"],
+      rows: [{ AFFILIATE_SAMPLE_REVIEWER: reviewer }, { AFFILIATE_SAMPLE_REVIEWER: null }],
+      label: (key) => key,
+      displayText: (_key, value) => (value as typeof reviewer).displayName,
+    });
+    const loaded = new ExcelJS.Workbook();
+    await loaded.xlsx.load(await workbook.xlsx.writeBuffer());
+    const sheet = loaded.getWorksheet("Review")!;
+    expect(sheet.getCell("A2").value).toBe("李四");
+    expect(sheet.getCell("A3").value).toBeNull();
+  });
+
   it("writes creator ratios as percentages and money and counts as plain numbers", async () => {
     const columns = [
       "AFFILIATE_CREATOR_FOLLOWERS_AT_APPLICATION",

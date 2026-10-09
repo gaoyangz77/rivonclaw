@@ -312,6 +312,20 @@ export const AFFILIATE_BI_DATA_QUERY = gql`
   }
 `;
 
+/** Choices of the Details tab's reviewer filter; each `key` is a value for the AFFILIATE_SAMPLE_REVIEWER BI filter. */
+export const AFFILIATE_SAMPLE_REVIEWER_OPTIONS_QUERY = gql`
+  query AffiliateSampleReviewerOptions {
+    affiliateSampleReviewerOptions {
+      key
+      actor {
+        kind
+        displayName
+        businessDeveloperId
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_BI_DIMENSION_VALUES_QUERY = gql`
   query AffiliateBiDimensionValues($input: EcomBiDimensionValuesInput!) {
     getEcommerceBiDimensionValues(input: $input) {

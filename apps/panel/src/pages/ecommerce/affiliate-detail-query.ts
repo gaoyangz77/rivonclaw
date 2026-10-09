@@ -1,5 +1,6 @@
 import type { GQL } from "@rivonclaw/core";
 import type { TFunction } from "i18next";
+import { formatAffiliateActor } from "../../lib/affiliate-actor.js";
 import {
   isAffiliateDetailNumberField,
   isAffiliateDetailPercentField,
@@ -8,6 +9,8 @@ import {
 /** Filter draft edited in the Details tab; only a search freezes it into a query. */
 export interface AffiliateDetailFilterDraft {
   origin: string;
+  /** An AFFILIATE_SAMPLE_REVIEWER filter key (`HUMAN:<userId>`, `AGENT`, `SYSTEM`), or "" for everyone. */
+  reviewer: string;
   decision: string;
   creatorId: string;
   productId: string;
@@ -21,6 +24,7 @@ type Row = Record<string, unknown>;
 
 export const EMPTY_AFFILIATE_DETAIL_FILTERS: AffiliateDetailFilterDraft = {
   origin: "",
+  reviewer: "",
   decision: "",
   creatorId: "",
   productId: "",
@@ -44,6 +48,7 @@ const REVIEW_DIMENSIONS: GQL.EcomBiDimension[] = [
   "PRODUCT_ID",
   "PRODUCT_NAME",
   "AFFILIATE_DECIDED_BY",
+  "AFFILIATE_SAMPLE_REVIEWER",
   "SAMPLE_DECISION_BUCKET",
   "SAMPLE_APPLICATION_STATUS",
   "SAMPLE_ORDER_ID",
@@ -126,6 +131,7 @@ export const AFFILIATE_DETAIL_COLUMNS: Record<AffiliateDetailEntity, readonly st
     "CREATOR_USERNAME",
     "PRODUCT_NAME",
     "SAMPLE_DECISION_BUCKET",
+    "AFFILIATE_SAMPLE_REVIEWER",
     "SAMPLE_ORDER_ID",
     "TRACKING_ID",
     "SAMPLE_SHIPPED_DATE",
@@ -138,6 +144,7 @@ export const AFFILIATE_DETAIL_COLUMNS: Record<AffiliateDetailEntity, readonly st
     "CREATOR_USERNAME",
     "PRODUCT_NAME",
     "SAMPLE_DECISION_BUCKET",
+    "AFFILIATE_SAMPLE_REVIEWER",
     "SAMPLE_SHIPPED_DATE",
     "SAMPLE_HAS_SHIPMENT",
     "SAMPLE_HAS_CONTENT",
@@ -187,6 +194,7 @@ export function buildAffiliateDetailInput(options: {
     metrics: review ? REVIEW_METRICS : FULFILLMENT_METRICS,
     filters: [
       ...(filters.origin ? [filter("AFFILIATE_DECIDED_BY", filters.origin)] : []),
+      ...(filters.reviewer ? [filter("AFFILIATE_SAMPLE_REVIEWER", filters.reviewer)] : []),
       ...(creatorId ? [filter("CREATOR_OPEN_ID", creatorId)] : []),
       ...(productId ? [filter("PRODUCT_ID", productId)] : []),
       ...(review && filters.decision ? [filter("SAMPLE_DECISION_BUCKET", filters.decision)] : []),
@@ -235,9 +243,30 @@ export function affiliateDetailLabel(t: TFunction, key: string, orderDetail = fa
   );
 }
 
+/** The reviewer cell is a structured actor, or null while the application is unreviewed. */
+function isReviewerActor(value: unknown): value is GQL.AffiliateActorDisplay {
+  return typeof value === "object" && value !== null && "kind" in value;
+}
+
+/** Choices of the reviewer filter: everyone first, then each reviewer the backend offers. */
+export function affiliateReviewerSelectOptions(
+  t: TFunction,
+  reviewers: readonly Pick<GQL.AffiliateSampleReviewerOption, "key" | "actor">[],
+): Array<{ value: string; label: string }> {
+  return [
+    { value: "", label: t("ecommerce.affiliateAnalytics.details.all") },
+    ...reviewers.map((reviewer) => ({
+      value: reviewer.key,
+      label: formatAffiliateActor(reviewer.actor, t),
+    })),
+  ];
+}
+
 /** Display text for one cell; missing values render "—", never zero. */
 export function affiliateDetailCell(t: TFunction, language: string, row: Row, key: string): string {
   const value = row[key];
+  if (key === "AFFILIATE_SAMPLE_REVIEWER")
+    return isReviewerActor(value) ? formatAffiliateActor(value, t) : formatted(value);
   if (key === "SAMPLE_DECISION_BUCKET")
     return t(`ecommerce.affiliateAnalytics.details.decisions.${String(value)}`, {
       defaultValue: formatted(value),

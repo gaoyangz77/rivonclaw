@@ -123,6 +123,11 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.overview": "Overview",
   "ecommerce.affiliateAnalytics.explore.title": "Explore",
   "ecommerce.affiliateAnalytics.details.tab": "Details",
+  "ecommerce.affiliateAnalytics.details.all": "All",
+  "ecommerce.affiliateAnalytics.details.reviewer": "Reviewer",
+  "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_SAMPLE_REVIEWER": "Reviewer column",
+  "ecommerce.affiliateWorkspace.actor.kinds.AGENT": "Agent",
+  "ecommerce.affiliateWorkspace.actor.kinds.SYSTEM": "System",
   "ecommerce.affiliateAnalytics.details.entity": "Record type",
   "ecommerce.affiliateAnalytics.details.title": "Affiliate details",
   "ecommerce.affiliateAnalytics.details.search": "Search details",
@@ -922,6 +927,64 @@ describe("AffiliateAnalyticsPage Details", () => {
     expect(input.dimensions).toContain("AFFILIATE_CREATOR_GMV_CURRENCY");
     expect(input.metrics).toEqual(CREATOR_METRICS);
     expect(screen.getByText("Affiliate details")).not.toBeNull();
+  });
+
+  it("offers the reviewers, filters by the chosen key and shows who reviewed each row", async () => {
+    mocks.sections.AffiliateSampleReviewerOptions = sectionResult("affiliateSampleReviewerOptions", [
+      {
+        key: "HUMAN:user-1",
+        actor: { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏", businessDeveloperId: "bd-1" },
+      },
+      { key: "AGENT", actor: { kind: "AGENT", displayName: null, businessDeveloperId: null } },
+      { key: "SYSTEM", actor: { kind: "SYSTEM", displayName: null, businessDeveloperId: null } },
+    ]);
+    mocks.dataQuery.mockResolvedValue({
+      data: {
+        getEcommerceBiData: {
+          datasetId: "AFFILIATE_SAMPLE_REVIEW_DETAIL",
+          granularity: "DAILY",
+          rows: [
+            {
+              ...detailRows(0, 1)[0],
+              AFFILIATE_SAMPLE_REVIEWER: {
+                key: "HUMAN:user-1",
+                kind: "BUSINESS_DEVELOPER",
+                displayName: "孙浩鹏",
+                businessDeveloperId: "bd-1",
+              },
+            },
+            { ...detailRows(1, 1)[0], AFFILIATE_SAMPLE_REVIEWER: null },
+          ],
+          pageInfo: { hasMore: false, totalRows: 2 },
+        },
+      },
+    });
+    openDetails();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reviewer" }));
+    const popup = document.querySelector(".custom-select-dropdown")!;
+    expect(
+      Array.from(popup.querySelectorAll(".custom-select-option")).map((node) =>
+        node.textContent?.trim(),
+      ),
+    ).toEqual(["All", "孙浩鹏", "Agent", "System"]);
+    fireEvent.click(within(popup as HTMLElement).getByText("孙浩鹏"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+    await screen.findByText("creator-0");
+    const input = call(0).variables.input;
+    expect(input.dimensions).toContain("AFFILIATE_SAMPLE_REVIEWER");
+    expect(input.filters).toEqual([
+      { dimension: "AFFILIATE_SAMPLE_REVIEWER", operator: "IN", values: ["HUMAN:user-1"] },
+    ]);
+
+    const headers = screen.getAllByRole("columnheader").map((th) => th.textContent);
+    const column = headers.indexOf("Reviewer column");
+    expect(column).toBeGreaterThanOrEqual(0);
+    const bodyRows = screen.getAllByRole("row").slice(1);
+    expect(within(bodyRows[0]!).getAllByRole("cell")[column]!.textContent).toBe("孙浩鹏");
+    expect(within(bodyRows[1]!).getAllByRole("cell")[column]!.textContent).toBe("—");
+    delete mocks.sections.AffiliateSampleReviewerOptions;
   });
 
   it("requests every creator metric for fulfillment after its own metrics", async () => {

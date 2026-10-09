@@ -1,13 +1,18 @@
 import { useTranslation } from "react-i18next";
 import { TkChoiceSelect, TkField } from "../../../components/design-system/index.js";
-import type { AffiliateDetailFilterDraft } from "../affiliate-detail-query.js";
+import type { GQL } from "@rivonclaw/core";
+import {
+  affiliateReviewerSelectOptions,
+  type AffiliateDetailFilterDraft,
+} from "../affiliate-detail-query.js";
 
 type Props = {
   value: AffiliateDetailFilterDraft;
   onChange: (next: AffiliateDetailFilterDraft) => void;
+  reviewerOptions: readonly Pick<GQL.AffiliateSampleReviewerOption, "key" | "actor">[];
 };
 
-function CommonFilters({ value, onChange }: Props) {
+function CommonFilters({ value, onChange, reviewerOptions }: Props) {
   const { t } = useTranslation();
   const set = (key: keyof AffiliateDetailFilterDraft, next: string) =>
     onChange({ ...value, [key]: next });
@@ -23,6 +28,13 @@ function CommonFilters({ value, onChange }: Props) {
           { value: "AI", label: t("ecommerce.affiliateAnalytics.details.ai") },
           { value: "NOT_AI", label: t("ecommerce.affiliateAnalytics.details.notAi") },
         ]}
+      />
+      <TkChoiceSelect
+        className="affiliate-detail-field"
+        label={t("ecommerce.affiliateAnalytics.details.reviewer")}
+        value={value.reviewer}
+        onChange={(next) => set("reviewer", next)}
+        options={affiliateReviewerSelectOptions(t, reviewerOptions)}
       />
       <TkField
         className="affiliate-detail-field affiliate-detail-field-wide"
