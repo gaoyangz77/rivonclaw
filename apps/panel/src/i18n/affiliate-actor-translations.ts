@@ -5,7 +5,7 @@
  * every locale in languages.ts.
  *
  * AGENT stays "Agent" in every locale so it matches the existing review and
- * timeline wording; the BD hint is the same abbreviation everywhere.
+ * timeline wording.
  */
 export const AFFILIATE_ACTOR_TRANSLATIONS = {
   en: {
@@ -19,7 +19,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "System",
           },
-          businessDeveloperHint: "BD",
           reviewer: "Reviewer: {{actor}}",
           sentBy: "Sent by {{actor}}",
         },
@@ -37,7 +36,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "系统",
           },
-          businessDeveloperHint: "BD",
           reviewer: "审核人：{{actor}}",
           sentBy: "{{actor}} 发送",
         },
@@ -55,7 +53,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "System",
           },
-          businessDeveloperHint: "BD",
           reviewer: "Prüfer: {{actor}}",
           sentBy: "Gesendet von {{actor}}",
         },
@@ -73,7 +70,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "Sistema",
           },
-          businessDeveloperHint: "BD",
           reviewer: "Revisor: {{actor}}",
           sentBy: "Enviado por {{actor}}",
         },
@@ -91,7 +87,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "Système",
           },
-          businessDeveloperHint: "BD",
           reviewer: "Examiné par : {{actor}}",
           sentBy: "Envoyé par {{actor}}",
         },
@@ -109,7 +104,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "Sistem",
           },
-          businessDeveloperHint: "BD",
           reviewer: "Peninjau: {{actor}}",
           sentBy: "Dikirim oleh {{actor}}",
         },
@@ -127,7 +121,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "Sistema",
           },
-          businessDeveloperHint: "BD",
           reviewer: "Revisore: {{actor}}",
           sentBy: "Inviato da {{actor}}",
         },
@@ -145,7 +138,6 @@ export const AFFILIATE_ACTOR_TRANSLATIONS = {
             AGENT: "Agent",
             SYSTEM: "ระบบ",
           },
-          businessDeveloperHint: "BD",
           reviewer: "ผู้ตรวจสอบ: {{actor}}",
           sentBy: "ส่งโดย {{actor}}",
         },

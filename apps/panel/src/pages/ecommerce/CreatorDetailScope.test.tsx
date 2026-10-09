@@ -299,7 +299,7 @@ describe("Creator Detail scope integration", () => {
       (node) => node.textContent ?? "",
     );
     expect(lines).toHaveLength(3);
-    expect(lines[0]).toMatch(/^孙浩鹏 \(BD\) 于 .+ 处理$/);
+    expect(lines[0]).toMatch(/^孙浩鹏 于 .+ 处理$/);
     expect(lines[1]).toMatch(/^Agent 于 .+ 处理$/);
     expect(lines[2]).toMatch(/^员工 于 .+ 处理$/);
   });
@@ -329,7 +329,11 @@ describe("Creator Detail scope integration", () => {
     const metas = [...document.querySelectorAll(".affiliate-timeline-meta")].map(
       (node) => node.firstElementChild?.textContent ?? "",
     );
-    expect(metas).toEqual(["孙浩鹏BD", "主账号", i18n.t("ecommerce.affiliateWorkspace.historyActors.STAFF_ACTION")]);
+    expect(metas).toEqual([
+      "孙浩鹏",
+      "主账号",
+      i18n.t("ecommerce.affiliateWorkspace.historyActors.STAFF_ACTION"),
+    ]);
   });
 
   it("captions an outbound message with its sender and leaves other messages bare", () => {
@@ -352,17 +356,13 @@ describe("Creator Detail scope integration", () => {
 
     const rows = [...document.querySelectorAll(".affiliate-conversation-message-row")];
     expect(rows).toHaveLength(4);
-    expect(rows[0]!.textContent).toContain("孙浩鹏 (BD) 发送");
+    expect(rows[0]!.textContent).toContain("孙浩鹏 发送");
     expect(rows[1]!.textContent).toContain("Agent 发送");
     expect(rows[2]!.textContent).not.toContain("发送");
     expect(rows[3]!.textContent).not.toContain("发送");
   });
   it("captions scoped outbound messages with their sender from the shop timeline", () => {
-    const item = (
-      id: string,
-      direction: string,
-      sentBy: Record<string, unknown> | null,
-    ) => ({
+    const item = (id: string, direction: string, sentBy: Record<string, unknown> | null) => ({
       id,
       kind: "MESSAGE",
       occurredAt: "2026-09-27T10:00:00.000Z",
@@ -388,7 +388,7 @@ describe("Creator Detail scope integration", () => {
 
     const rows = [...document.querySelectorAll(".affiliate-conversation-message-row")];
     expect(rows).toHaveLength(4);
-    expect(rows[0]!.textContent).toContain("孙浩鹏 (BD) 发送");
+    expect(rows[0]!.textContent).toContain("孙浩鹏 发送");
     expect(rows[1]!.textContent).toContain("Agent 发送");
     expect(rows[2]!.textContent).not.toContain("发送");
     expect(rows[3]!.textContent).not.toContain("发送");

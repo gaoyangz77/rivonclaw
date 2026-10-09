@@ -1,6 +1,6 @@
 import type { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
-import { affiliateActorParts } from "../../lib/affiliate-actor.js";
+import { formatAffiliateActor } from "../../lib/affiliate-actor.js";
 import "./AffiliateActorLabel.css";
 
 /**
@@ -16,11 +16,9 @@ export function AffiliateActorLabel({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const { name, hint } = affiliateActorParts(actor, t);
   return (
     <span className={className ? `affiliate-actor-label ${className}` : "affiliate-actor-label"}>
-      <span>{name}</span>
-      {hint ? <span className="affiliate-actor-label-hint">{hint}</span> : null}
+      {formatAffiliateActor(actor, t)}
     </span>
   );
 }

@@ -20,7 +20,11 @@ afterEach(cleanup);
 
 type Actor = { kind: string; displayName: string | null; businessDeveloperId: string | null };
 
-const BD: Actor = { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏", businessDeveloperId: "bd-1" };
+const BD: Actor = {
+  kind: "BUSINESS_DEVELOPER",
+  displayName: "孙浩鹏",
+  businessDeveloperId: "bd-1",
+};
 const AGENT: Actor = { kind: "AGENT", displayName: null, businessDeveloperId: null };
 
 function sampleRow(
@@ -171,7 +175,7 @@ describe("workbench Sample Application reviewer", () => {
     const reviewerCells = [...document.querySelectorAll("tbody tr")].map(
       (row) => row.querySelector(".affiliate-workbench-cell-reviewer")?.textContent ?? null,
     );
-    expect(reviewerCells).toEqual(["审核人：孙浩鹏 (BD)", "审核人：Agent", null]);
+    expect(reviewerCells).toEqual(["审核人：孙浩鹏", "审核人：Agent", null]);
   });
 
   it("shows the reviewer beside the ignored badge in the ignored view", async () => {
@@ -183,7 +187,11 @@ describe("workbench Sample Application reviewer", () => {
       PRODUCT_SUMMARY_MOCK,
     ]);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.workbench.colStatus") })),
+      expect(
+        screen.getByRole("button", {
+          name: i18n.t("ecommerce.affiliateWorkspace.workbench.colStatus"),
+        }),
+      ),
     );
     fireEvent.click(
       screen.getByRole("button", {
@@ -198,6 +206,6 @@ describe("workbench Sample Application reviewer", () => {
 
     await waitFor(() => expect(document.querySelectorAll("tbody tr")).toHaveLength(1));
     const handler = document.querySelector(".affiliate-workbench-cell-handler")!;
-    expect(handler.textContent).toContain("审核人：孙浩鹏 (BD)");
+    expect(handler.textContent).toContain("审核人：孙浩鹏");
   });
 });
