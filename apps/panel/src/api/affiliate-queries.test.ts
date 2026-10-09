@@ -10,6 +10,11 @@ import {
   AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
   AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
+  AFFILIATE_COLLABORATION_DETAIL_QUERY,
+  AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
+  AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY,
+  AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+  REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
   AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_ML_INSIGHTS_QUERY,
@@ -328,5 +333,25 @@ describe("executed message proposal content", () => {
 
     expect(query.slice(start, end)).not.toContain("deliveredMessage");
     expect(query.split("deliveredMessage").length - 1).toBe(1);
+  });
+
+  it("selects the resolved actor of every human action the Panel attributes", () => {
+    const actor = /\{\s*kind\s+displayName\s+businessDeveloperId\s*\}/;
+    const selections: Array<[string, Parameters<typeof print>[0], string]> = [
+      ["relationship samples", AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY, "merchantReviewActor"],
+      ["collaboration detail samples", AFFILIATE_COLLABORATION_DETAIL_QUERY, "merchantReviewActor"],
+      ["hydrated sample state", AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY, "merchantReviewActor"],
+      ["workbench sample page", AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, "merchantReviewActor"],
+      ["workbench review mutation", REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION, "merchantReviewActor"],
+      ["relationship timeline", AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, "actor"],
+      ["relationship timeline message sender", AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, "sentBy"],
+      ["message history", AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, "sentBy"],
+    ];
+    for (const [label, document, field] of selections) {
+      const query = queryText(document);
+      const at = query.search(new RegExp(`\\b${field}\\s*\\{`));
+      expect(at, `${label} selects ${field}`).toBeGreaterThanOrEqual(0);
+      expect(query.slice(query.indexOf("{", at)), label).toMatch(new RegExp(`^${actor.source}`));
+    }
   });
 });

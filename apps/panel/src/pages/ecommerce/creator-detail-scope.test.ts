@@ -90,6 +90,16 @@ describe("creator detail view scope", () => {
     expect(result[0].parts).toEqual(parts);
     expect(creatorScopeMessages(items, "")).toHaveLength(4);
   });
+  it("carries the sender of a timeline message into the scoped message rows", () => {
+    const sender = { kind: GQL.AffiliateActorDisplayKind.Member, displayName: "李四" };
+    const sent = { ...message("sent", "1", "2026-09-08T12:00:00Z"), sentBy: sender };
+    const bare = message("bare", "1", "2026-09-07T12:00:00Z");
+    const result = creatorScopeMessages([sent, bare], "1");
+    expect(result.map((item) => [item.messageRef, item.sentBy ?? null])).toEqual([
+      ["bare", null],
+      ["sent", sender],
+    ]);
+  });
   it("merges overlapping pages once and advances the server cursor", () => {
     const newer = message("new", "1", "2026-09-08T12:00:00Z");
     const older = message("old", "1", "2026-09-07T12:00:00Z");

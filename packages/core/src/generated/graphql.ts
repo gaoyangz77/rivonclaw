@@ -744,6 +744,27 @@ export interface AffiliateActionProposalPredictionSnapshot {
   subject: AffiliateExpectedSalesSubjectRef;
 }
 
+/** Display-ready actor of an Affiliate action. displayName is null whenever the kind alone is the label (owner, Agent, system, deleted or unknown). */
+export interface AffiliateActorDisplay {
+  /** Set only for BUSINESS_DEVELOPER: the developer the acting login is bound to. */
+  businessDeveloperId?: Maybe<Scalars["ID"]["output"]>;
+  displayName?: Maybe<Scalars["String"]["output"]>;
+  kind: AffiliateActorDisplayKind;
+}
+
+/** How the Panel should label the actor of an Affiliate action. Resolved server-side because the stored actor id only has meaning inside one account. */
+export const AffiliateActorDisplayKind = {
+  Agent: "AGENT",
+  BusinessDeveloper: "BUSINESS_DEVELOPER",
+  DeletedMember: "DELETED_MEMBER",
+  Member: "MEMBER",
+  Owner: "OWNER",
+  System: "SYSTEM",
+  UnknownHuman: "UNKNOWN_HUMAN",
+} as const;
+
+export type AffiliateActorDisplayKind =
+  (typeof AffiliateActorDisplayKind)[keyof typeof AffiliateActorDisplayKind];
 /** Who is responsible for handling an agenda item. Uniform per Relationship: BUSINESS_DEVELOPER when the Relationship has an assigned business developer, SHOP otherwise (the shop owner is the fallback handler). Orthogonal to the item's shopId anchor, which names WHICH shop's business the item concerns. */
 export const AffiliateAgendaScopeType = {
   BusinessDeveloper: "BUSINESS_DEVELOPER",
@@ -2435,6 +2456,8 @@ export interface AffiliateCreatorMessageHistoryItem {
   messageRef: Scalars["String"]["output"];
   messageType?: Maybe<Scalars["String"]["output"]>;
   parts: Array<AffiliateHistoryPart>;
+  /** Who sent this outbound message. Null for inbound messages and for outbound messages not provably sent through an Affiliate delivery (typed by hand in the channel, or a channel whose provider ids are not yet matched to deliveries, currently email). */
+  sentBy?: Maybe<AffiliateActorDisplay>;
   shopId?: Maybe<Scalars["ID"]["output"]>;
   shopName?: Maybe<Scalars["String"]["output"]>;
   source: Scalars["String"]["output"];
@@ -4542,6 +4565,8 @@ export interface AffiliateRelationshipTimelineInput {
 
 export interface AffiliateRelationshipTimelineItem {
   actionEvent?: Maybe<AffiliateRelationshipTimelineEvent>;
+  /** Who performed this event. Null for messages and for events with no recorded actor. */
+  actor?: Maybe<AffiliateActorDisplay>;
   actorRole?: Maybe<AffiliateLifecycleActorRole>;
   actorType?: Maybe<AffiliateLifecycleActorType>;
   businessEvent?: Maybe<AffiliateRelationshipTimelineEvent>;
@@ -4550,6 +4575,8 @@ export interface AffiliateRelationshipTimelineItem {
   message?: Maybe<AffiliateRelationshipTimelineMessage>;
   occurredAt: Scalars["DateTimeISO"]["output"];
   relatedIds: AffiliateRelationshipTimelineRelatedIds;
+  /** Who sent this outbound MESSAGE item. Null for events, inbound messages, and outbound messages not provably sent through an Affiliate delivery (typed by hand in the channel, or email). */
+  sentBy?: Maybe<AffiliateActorDisplay>;
   summary: Scalars["String"]["output"];
   timePassed?: Maybe<AffiliateTimelineTimePassed>;
 }
@@ -14730,6 +14757,8 @@ export interface SampleApplicationRecord {
   latestObservedContentViewCount?: Maybe<Scalars["Int"]["output"]>;
   /** Provider publication time of the latest known affiliate work; a non-null value means the work is already published, not merely planned or detected locally. */
   latestPublishedContentAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Who reviewed this Sample Application. Null until it has been reviewed. */
+  merchantReviewActor?: Maybe<AffiliateActorDisplay>;
   merchantReviewActorType?: Maybe<AffiliateLifecycleActorType>;
   merchantReviewDecidedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   merchantReviewDecision?: Maybe<AffiliateSampleReviewDecision>;

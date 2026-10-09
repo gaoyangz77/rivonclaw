@@ -2236,6 +2236,12 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
         merchantReviewRejectReasonExplanation
         merchantReviewNote
         merchantReviewDecidedAt
+        merchantReviewActorType
+        merchantReviewActor {
+          kind
+          displayName
+          businessDeveloperId
+        }
         platformStatus
         platformFulfillmentStatus
         updatedAt
@@ -3048,6 +3054,11 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         merchantReviewNote
         merchantReviewDecidedAt
         merchantReviewActorType
+        merchantReviewActor {
+          kind
+          displayName
+          businessDeveloperId
+        }
         order {
           platformOrderId
           trackingNumber
@@ -3107,6 +3118,13 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         lastObservedAt
         providerEventAt
         projectionRevision
+        merchantReviewDecidedAt
+        merchantReviewActorType
+        merchantReviewActor {
+          kind
+          displayName
+          businessDeveloperId
+        }
         order {
           platformOrderId
           trackingNumber
@@ -3508,6 +3526,16 @@ export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
         occurredAt
         actorType
         actorRole
+        actor {
+          kind
+          displayName
+          businessDeveloperId
+        }
+        sentBy {
+          kind
+          displayName
+          businessDeveloperId
+        }
         summary
         relatedIds {
           shopId
@@ -3620,6 +3648,11 @@ export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
         shopName
         accountLabel
         source
+        sentBy {
+          kind
+          displayName
+          businessDeveloperId
+        }
       }
     }
   }
@@ -4068,6 +4101,11 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       merchantReviewNote
       merchantReviewDecidedAt
       merchantReviewActorType
+      merchantReviewActor {
+        kind
+        displayName
+        businessDeveloperId
+      }
       platformStatus
       approveExpirationAt
       firstObservedAt

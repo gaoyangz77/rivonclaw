@@ -1,0 +1,15 @@
+.affiliate-actor-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+}
+
+.affiliate-actor-label-hint {
+  padding: 0 var(--tk-v1-space-1);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-2);
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: 1.4;
+}

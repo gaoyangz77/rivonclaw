@@ -72,7 +72,10 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleShopIdentity,
+  SampleReviewAttribution,
 } from "./components/AffiliateSampleReview.js";
+import { AffiliateActorLabel } from "../../components/ecommerce/AffiliateActorLabel.js";
+import { formatAffiliateActor } from "../../lib/affiliate-actor.js";
 import { AffiliateTeamPage } from "./AffiliateTeamPage.js";
 import { sortAffiliateSamplesPendingFirst } from "./affiliate-sample-order.js";
 import {
@@ -6218,6 +6221,8 @@ type RelationshipTimelineEntryModel = {
   lane: RelationshipTimelineLane;
   time: string;
   kind: string;
+  /** Who performed the event, when the backend recorded a human or Agent actor. */
+  actor: GQL.AffiliateActorDisplay | null;
   title: string;
   detail: string;
   cardPayload?: AffiliateCreatorMessageRawCardPayload | null;
@@ -6252,6 +6257,7 @@ function buildRelationshipTimelineEntries(
       lane: relationshipTimelineLane(item),
       time: item.occurredAt,
       kind: relationshipTimelineKindLabel(item, t),
+      actor: item.actor ?? null,
       title: relationshipTimelineTitle(item, t),
       detail: relationshipTimelineDetail(item, t),
       cardPayload,
@@ -6431,6 +6437,11 @@ function relationshipTimelineCardPayload(
   return null;
 }
 
+/** The named actor replaces the generic Staff / Agent action marker when the backend resolved one. */
+function RelationshipTimelineKind({ entry }: { entry: RelationshipTimelineEntryModel }) {
+  return entry.actor ? <AffiliateActorLabel actor={entry.actor} /> : <span>{entry.kind}</span>;
+}
+
 function RelationshipTimelineEntry({ entry }: { entry: RelationshipTimelineEntryModel }) {
   if (entry.type === "time-passed") {
     return (
@@ -6455,7 +6466,7 @@ function RelationshipTimelineEntry({ entry }: { entry: RelationshipTimelineEntry
       <div className="affiliate-timeline-dot" aria-hidden="true" />
       <div className="affiliate-timeline-entry">
         <div className="affiliate-timeline-meta">
-          <span>{entry.kind}</span>
+          <RelationshipTimelineKind entry={entry} />
           <span>{formatProposalTime(entry.time)}</span>
         </div>
         <div className="affiliate-timeline-event-card">
@@ -7003,6 +7014,13 @@ function AffiliateCreatorMessageRow({
           })}
         </span>
         {time ? <span>{formatProposalTime(time)}</span> : null}
+        {message.sentBy ? (
+          <span>
+            {t("ecommerce.affiliateWorkspace.actor.sentBy", {
+              actor: formatAffiliateActor(message.sentBy, t),
+            })}
+          </span>
+        ) : null}
         <AffiliateMessageSourceLabel message={message} />
       </div>
       {shouldShowText ? (
@@ -8080,7 +8098,7 @@ function AgentWorkReviewContext({
               ) : (
                 <article className="affiliate-agent-review-history-item" key={entry.id}>
                   <div className="affiliate-agent-review-history-meta">
-                    <span>{entry.kind}</span>
+                    <RelationshipTimelineKind entry={entry} />
                     <time dateTime={entry.time}>{formatProposalTime(entry.time)}</time>
                   </div>
                   <strong>{entry.title}</strong>
@@ -9749,6 +9767,7 @@ export function SampleApplicationSummaryCard({
           value={formatProposalTime(sampleApplication.updatedAt)}
         />
       </div>
+      <SampleReviewAttribution sampleApplication={sampleApplication} />
       {detailOpen ? (
         <div className="affiliate-collaboration-sample-details">
           <div className="affiliate-collaboration-sample-details-grid">
@@ -12201,22 +12220,6 @@ function CreatorRelationshipDetailContent({
                           shopId={sample.shopId}
                           variant="compact"
                         />
-                        {sample.merchantReviewDecidedAt ? (
-                          <div className="affiliate-workbench-review-attribution">
-                            {t("ecommerce.affiliateWorkspace.workbench.reviewedBy", {
-                              actor: t(
-                                sample.merchantReviewActorType ===
-                                  GQL.AffiliateLifecycleActorType.Agent
-                                  ? "ecommerce.affiliateWorkspace.workbench.reviewActorAgent"
-                                  : "ecommerce.affiliateWorkspace.workbench.reviewActorHuman",
-                              ),
-                              value: formatLocalizedDateTime(
-                                sample.merchantReviewDecidedAt,
-                                panelI18n.language,
-                              ),
-                            })}
-                          </div>
-                        ) : null}
                         {sample.merchantReviewNote ? (
                           <div className="affiliate-workbench-review-note">
                             <strong>

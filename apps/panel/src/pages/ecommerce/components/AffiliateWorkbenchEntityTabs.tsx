@@ -18,6 +18,7 @@ import {
   TkTableFrame,
 } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
+import { formatAffiliateActor } from "../../../lib/affiliate-actor.js";
 import {
   formatLocalizedMonthDay,
   formatLocalizedRelativeTime,
@@ -757,6 +758,10 @@ function AffiliateWorkbenchSampleList({
                               {row.businessDeveloperName}
                             </span>
                           ) : null}
+                          <SampleReviewerLine
+                            className="affiliate-workbench-cell-reviewer"
+                            sampleApplication={row.sampleApplication}
+                          />
                         </div>
                       </td>
                       <td>
@@ -1405,7 +1410,29 @@ function SoftRejectHandlerCell({
           : "—"}
         {reasonLabel ? ` · ${reasonLabel}` : ""}
       </small>
+      <SampleReviewerLine sampleApplication={sampleApplication} />
     </div>
+  );
+}
+
+/** Who made the merchant decision; renders nothing while the application has not been reviewed. */
+function SampleReviewerLine({
+  sampleApplication,
+  className,
+}: {
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "merchantReviewActor">;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const actor = sampleApplication.merchantReviewActor;
+  if (!actor) return null;
+  const text = t("ecommerce.affiliateWorkspace.actor.reviewer", {
+    actor: formatAffiliateActor(actor, t),
+  });
+  return (
+    <small className={className} title={text}>
+      {text}
+    </small>
   );
 }
 

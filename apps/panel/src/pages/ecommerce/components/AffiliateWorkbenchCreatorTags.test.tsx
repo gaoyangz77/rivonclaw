@@ -78,6 +78,7 @@ function sampleRow(index: number) {
       merchantReviewNote: null,
       merchantReviewDecidedAt: null,
       merchantReviewActorType: null,
+      merchantReviewActor: null,
       platformStatus: null,
       approveExpirationAt: null,
       firstObservedAt: "2026-09-01T00:00:00.000Z",

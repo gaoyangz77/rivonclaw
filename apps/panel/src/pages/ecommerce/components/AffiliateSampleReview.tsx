@@ -1,6 +1,9 @@
+import { GQL } from "@rivonclaw/core";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { TkButton, TkPrivate, TkTooltip } from "../../../components/design-system/index.js";
+import { formatAffiliateActor } from "../../../lib/affiliate-actor.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import "./AffiliateSampleReview.css";
 
@@ -46,5 +49,39 @@ export function AffiliateSampleIgnoreButton({
         </TkButton>
       )}
     />
+  );
+}
+
+type SampleReviewAttributionRecord = Pick<
+  GQL.SampleApplicationRecord,
+  "merchantReviewDecidedAt" | "merchantReviewActorType" | "merchantReviewActor"
+>;
+
+/**
+ * "Reviewed by {who} · {when}" for a Sample Application that has a recorded
+ * merchant decision. The resolved actor names the person (or Agent); a record
+ * that carries only the coarse actor type keeps the generic Agent / Staff label.
+ */
+export function SampleReviewAttribution({
+  sampleApplication,
+}: {
+  sampleApplication: SampleReviewAttributionRecord;
+}) {
+  const { t, i18n } = useTranslation();
+  if (!sampleApplication.merchantReviewDecidedAt) return null;
+  const actor = sampleApplication.merchantReviewActor
+    ? formatAffiliateActor(sampleApplication.merchantReviewActor, t)
+    : t(
+        sampleApplication.merchantReviewActorType === GQL.AffiliateLifecycleActorType.Agent
+          ? "ecommerce.affiliateWorkspace.workbench.reviewActorAgent"
+          : "ecommerce.affiliateWorkspace.workbench.reviewActorHuman",
+      );
+  return (
+    <div className="affiliate-workbench-review-attribution">
+      {t("ecommerce.affiliateWorkspace.workbench.reviewedBy", {
+        actor,
+        value: formatLocalizedDateTime(sampleApplication.merchantReviewDecidedAt, i18n.language),
+      })}
+    </div>
   );
 }

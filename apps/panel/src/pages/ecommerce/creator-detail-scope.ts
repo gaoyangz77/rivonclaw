@@ -67,6 +67,7 @@ export function creatorScopeMessages(
           shopId: item.relatedIds.shopId,
           shopName: message.shopName,
           accountLabel: message.accountLabel,
+          sentBy: item.sentBy ?? null,
           source: "RELATIONSHIP_TIMELINE",
         },
       ];

@@ -12,6 +12,8 @@ const state = vi.hoisted(() => ({
   mutate: vi.fn(),
   detail: {} as Record<string, unknown>,
   samples: [] as Array<Record<string, unknown>>,
+  history: [] as Array<Record<string, unknown>>,
+  timeline: [] as Array<Record<string, unknown>>,
   entityStore: {
     shops: [
       { id: "1", alias: "1号店", shopName: "One" },
@@ -48,8 +50,8 @@ vi.mock("@apollo/client/react", () => ({
       affiliateRelationshipSampleApplications: page,
       affiliateRelationshipPlatformCollaborations: page,
       affiliateActionProposalPage: page,
-      affiliateCreatorMessageHistory: { items: [], hasMore: false },
-      affiliateRelationshipTimeline: { items: [], hasOlder: false },
+      affiliateCreatorMessageHistory: { items: state.history, hasMore: false },
+      affiliateRelationshipTimeline: { items: state.timeline, hasOlder: false },
     };
     return { data, loading: false, refetch: state.refetch, fetchMore: state.fetchMore };
   },
@@ -59,6 +61,8 @@ beforeEach(async () => {
   await i18n.changeLanguage("zh");
   state.calls.length = 0;
   state.samples = [];
+  state.history = [];
+  state.timeline = [];
   state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
     viewerCanEditCreatorConfiguration: true,
@@ -113,7 +117,7 @@ afterEach(cleanup);
 
 function view(
   relationshipId = "creator",
-  tab: "overview" | "samples" | "conversation" = "overview",
+  tab: "overview" | "samples" | "conversation" | "activity" = "overview",
   businessDeveloperOnly = false,
 ) {
   return (
@@ -255,6 +259,139 @@ describe("Creator Detail scope integration", () => {
     instance.rerender(view("creator", "samples"));
     expect(screen.getByText("审核备注")).toBeTruthy();
     expect(screen.getByText("库存和内容方向均已人工确认")).toBeTruthy();
+  });
+
+  it("names the reviewer of a Sample Application, falling back to the generic label", () => {
+    const reviewed = {
+      id: "sample-1",
+      creatorRelationshipId: "creator",
+      shopId: "1",
+      platformApplicationId: "platform-sample-1",
+      productId: "product-1",
+      sampleWorkStatus: "REQUEST_PENDING_REVIEW",
+      reviewDisposition: "OPEN",
+      reviewDispositionRevision: 1,
+      projectionRevision: 3,
+      platformStatus: "PENDING",
+      firstObservedAt: "2026-09-27T10:00:00.000Z",
+      lastObservedAt: "2026-09-27T10:00:00.000Z",
+      merchantReviewDecidedAt: "2026-09-27T10:05:00.000Z",
+    };
+    state.samples = [
+      {
+        ...reviewed,
+        id: "sample-bd",
+        merchantReviewActorType: "HUMAN",
+        merchantReviewActor: { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏" },
+      },
+      {
+        ...reviewed,
+        id: "sample-agent",
+        merchantReviewActorType: "AGENT",
+        merchantReviewActor: { kind: "AGENT", displayName: null },
+      },
+      // Older payloads carry only the coarse actor type.
+      { ...reviewed, id: "sample-legacy", merchantReviewActorType: "HUMAN" },
+    ];
+    render(view("creator", "samples"));
+
+    const lines = [...document.querySelectorAll(".affiliate-workbench-review-attribution")].map(
+      (node) => node.textContent ?? "",
+    );
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toMatch(/^孙浩鹏 \(BD\) 于 .+ 处理$/);
+    expect(lines[1]).toMatch(/^Agent 于 .+ 处理$/);
+    expect(lines[2]).toMatch(/^员工 于 .+ 处理$/);
+  });
+
+  it("shows who performed each timeline event and keeps the generic marker when none is recorded", () => {
+    const event = (id: string, actor: Record<string, unknown> | null) => ({
+      id,
+      kind: "ACTION_EVENT",
+      occurredAt: "2026-09-27T10:00:00.000Z",
+      actorType: "HUMAN",
+      actorRole: "STAFF",
+      actor,
+      summary: "",
+      relatedIds: {},
+      actionEvent: { eventType: "SAMPLE_APPROVED", actorRole: "STAFF" },
+      businessEvent: null,
+      message: null,
+      timePassed: null,
+    });
+    state.timeline = [
+      event("event-bd", { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏" }),
+      event("event-owner", { kind: "OWNER", displayName: null }),
+      event("event-none", null),
+    ];
+    render(view("creator", "activity"));
+
+    const metas = [...document.querySelectorAll(".affiliate-timeline-meta")].map(
+      (node) => node.firstElementChild?.textContent ?? "",
+    );
+    expect(metas).toEqual(["孙浩鹏BD", "主账号", i18n.t("ecommerce.affiliateWorkspace.historyActors.STAFF_ACTION")]);
+  });
+
+  it("captions an outbound message with its sender and leaves other messages bare", () => {
+    const message = (messageRef: string, direction: string, sentBy: unknown) => ({
+      channel: "WHATSAPP",
+      direction,
+      messageRef,
+      parts: [{ kind: "TEXT", text: `text ${messageRef}` }],
+      createdAt: "2026-09-27T10:00:00.000Z",
+      source: "TEST",
+      sentBy,
+    });
+    state.history = [
+      message("m1", "SELLER", { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏" }),
+      message("m2", "SELLER", { kind: "AGENT", displayName: null }),
+      message("m3", "SELLER", null),
+      message("m4", "CREATOR", null),
+    ];
+    render(view("creator", "conversation"));
+
+    const rows = [...document.querySelectorAll(".affiliate-conversation-message-row")];
+    expect(rows).toHaveLength(4);
+    expect(rows[0]!.textContent).toContain("孙浩鹏 (BD) 发送");
+    expect(rows[1]!.textContent).toContain("Agent 发送");
+    expect(rows[2]!.textContent).not.toContain("发送");
+    expect(rows[3]!.textContent).not.toContain("发送");
+  });
+  it("captions scoped outbound messages with their sender from the shop timeline", () => {
+    const item = (
+      id: string,
+      direction: string,
+      sentBy: Record<string, unknown> | null,
+    ) => ({
+      id,
+      kind: "MESSAGE",
+      occurredAt: "2026-09-27T10:00:00.000Z",
+      actor: null,
+      sentBy,
+      summary: "",
+      relatedIds: { shopId: "1" },
+      message: {
+        channel: "WHATSAPP",
+        direction,
+        messageRef: id,
+        parts: [{ kind: "TEXT", text: `text ${id}` }],
+      },
+    });
+    state.timeline = [
+      item("t1", "SELLER", { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏" }),
+      item("t2", "SELLER", { kind: "AGENT", displayName: null }),
+      item("t3", "SELLER", null),
+      item("t4", "CREATOR", null),
+    ];
+    render(view("creator", "conversation"));
+    selectScope("1号店");
+
+    const rows = [...document.querySelectorAll(".affiliate-conversation-message-row")];
+    expect(rows).toHaveLength(4);
+    expect(rows[0]!.textContent).toContain("孙浩鹏 (BD) 发送");
+    expect(rows[1]!.textContent).toContain("Agent 发送");
+    expect(rows[2]!.textContent).not.toContain("发送");
+    expect(rows[3]!.textContent).not.toContain("发送");
   });
 });
 

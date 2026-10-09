@@ -137,3 +137,17 @@
   flex-wrap: wrap;
   gap: var(--tk-v1-space-2);
 }
+
+/*
+ * The reviewer sits under the status badges. It takes a full row of the badge
+ * container so it never competes with the badges for width.
+ */
+.affiliate-workbench-cell-reviewer {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
