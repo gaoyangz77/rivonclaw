@@ -343,6 +343,8 @@ describe("executed message proposal content", () => {
       ["hydrated sample state", AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY, "merchantReviewActor"],
       ["workbench sample page", AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, "merchantReviewActor"],
       ["workbench review mutation", REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION, "merchantReviewActor"],
+      ["proposal list decision actor", AFFILIATE_ACTION_PROPOSALS_QUERY, "decisionActor"],
+      ["proposal decide mutation actor", DECIDE_ACTION_PROPOSAL_MUTATION, "decisionActor"],
       ["relationship timeline", AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, "actor"],
       ["relationship timeline message sender", AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, "sentBy"],
       ["message history", AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, "sentBy"],

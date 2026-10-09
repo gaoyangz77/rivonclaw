@@ -4034,3 +4034,16 @@
     width: 100%;
   }
 }
+
+/* The decider sits under the status badge so one cell still reads as one status. */
+.affiliate-agent-work-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-agent-work-decided-by {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+}

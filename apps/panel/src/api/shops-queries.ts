@@ -1772,6 +1772,11 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           actorType
           actorId
         }
+        decisionActor {
+          kind
+          displayName
+          businessDeveloperId
+        }
         messageIntent {
           creatorId
           creatorOpenId
@@ -3946,6 +3951,11 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         note
         actorType
         actorId
+      }
+      decisionActor {
+        kind
+        displayName
+        businessDeveloperId
       }
       messageIntent {
         creatorId

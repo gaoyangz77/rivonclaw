@@ -112,6 +112,8 @@ export interface ActionProposal {
   creatorShoppableVideoCount?: Maybe<Scalars["Int"]["output"]>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   decision?: Maybe<ActionProposalDecisionSnapshot>;
+  /** Who decided this proposal (approved, rejected, ignored, requested a revision, expired). Null while it is undecided. */
+  decisionActor?: Maybe<AffiliateActorDisplay>;
   /** Content actually delivered for this proposal, resolved from executionResult.deliveryId. Absent when the proposal never executed a message, or when the Delivery predates retained conversation content. */
   deliveredMessage?: Maybe<ActionProposalDeliveredMessage>;
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;

@@ -7563,7 +7563,20 @@ export function agentWorkTableActions(
   return actions;
 }
 
-const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
+/** Who decided the proposal; renders nothing while it is undecided. */
+function ProposalDecidedBy({ proposal }: { proposal: Pick<GQL.ActionProposal, "decisionActor"> }) {
+  const { t } = useTranslation();
+  if (!proposal.decisionActor) return null;
+  return (
+    <small className="affiliate-agent-work-decided-by">
+      {t("ecommerce.affiliateWorkspace.actor.decidedBy", {
+        actor: formatAffiliateActor(proposal.decisionActor, t),
+      })}
+    </small>
+  );
+}
+
+export const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
   bundles,
   shopLabelForId,
   onOpen,
@@ -7746,13 +7759,16 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
                   </div>
                 </td>
                 <td className="affiliate-agent-work-table-status">
-                  <span
-                    className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}
-                  >
-                    {t(`ecommerce.affiliateWorkspace.proposalFilters.${proposal.status}`, {
-                      defaultValue: proposal.status,
-                    })}
-                  </span>
+                  <div className="affiliate-agent-work-status-stack">
+                    <span
+                      className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}
+                    >
+                      {t(`ecommerce.affiliateWorkspace.proposalFilters.${proposal.status}`, {
+                        defaultValue: proposal.status,
+                      })}
+                    </span>
+                    <ProposalDecidedBy proposal={proposal} />
+                  </div>
                 </td>
               </TkInteractiveTableRow>
             );
@@ -7763,7 +7779,7 @@ const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
   );
 });
 
-function AgentWorkBundleDetailModal({
+export function AgentWorkBundleDetailModal({
   bundle,
   shopLabelForId,
   decidingProposal,
@@ -7885,6 +7901,7 @@ function AgentWorkBundleDetailModal({
                 defaultValue: proposal.status,
               })}
             </span>
+            <ProposalDecidedBy proposal={proposal} />
           </>
         }
         actions={
