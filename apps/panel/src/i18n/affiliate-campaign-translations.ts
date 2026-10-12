@@ -1,7 +1,9 @@
 import { campaignScreeningCopy } from "./campaign-screening-translations.js";
+import { campaignPacingCopy } from "./campaign-pacing-translations.js";
 
 const en = {
   screening: campaignScreeningCopy.en,
+  pacing: campaignPacingCopy.en,
   eyebrow: "AFFILIATE ACQUISITION",
   title: "Creator campaigns",
   subtitle: "Discover, score, and contact the right creators on a predictable daily cadence.",
@@ -638,6 +640,7 @@ const en = {
 const zh = {
   ...en,
   screening: campaignScreeningCopy.zh,
+  pacing: campaignPacingCopy.zh,
   dynamicDiscoveryTitle: "动态达人发现",
   dynamicDiscoveryDescription:
     "推广计划运行期间，默认模型会结合商品、长期方向和历史结果，一次生成一组搜索条件。有符合条件的云端订阅时优先在云端生成，桌面端保留为备用。",
@@ -2570,6 +2573,7 @@ function locale(
     ...operational,
     ...(operationalLocale ? commissionCopy[operationalLocale] : {}),
     screening: campaignScreeningCopy[operationalLocale ?? "en"],
+    pacing: campaignPacingCopy[operationalLocale ?? "en"],
     errors: {
       ...en.errors,
       ...operational?.errors,

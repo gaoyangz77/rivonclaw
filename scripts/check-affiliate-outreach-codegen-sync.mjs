@@ -34,11 +34,49 @@ function generatedConst(name) {
 }
 
 function hasLine(source, expected) {
-  return source.split(/\r?\n/).some((line) => line.trim() === expected);
+  return source
+    .split(/\r?\n/)
+    .some((line) => normalizeQuotes(line.trim()) === normalizeQuotes(expected));
 }
 
 function hasSnippet(source, expected) {
-  return source.includes(expected);
+  return normalizeQuotes(source).includes(normalizeQuotes(expected));
+}
+
+// Codegen emits single quotes; the repository formatter uses double quotes.
+function normalizeQuotes(value) {
+  return value.replaceAll('"', "'");
+}
+
+addCheck(
+  "AffiliateCampaign.outreachPacingMode is in backend schema",
+  hasLine(
+    block(schema, "type", "AffiliateCampaign"),
+    "outreachPacingMode: AffiliateCampaignOutreachPacingMode!",
+  ),
+);
+addCheck(
+  "AffiliateCampaign.outreachPacingMode is in core generated type",
+  hasLine(
+    generatedInterface("AffiliateCampaign"),
+    "outreachPacingMode: AffiliateCampaignOutreachPacingMode;",
+  ),
+);
+addCheck(
+  "WriteAffiliateCampaignInput.outreachPacingMode stays optional",
+  hasLine(
+    generatedInterface("WriteAffiliateCampaignInput"),
+    "outreachPacingMode?: InputMaybe<AffiliateCampaignOutreachPacingMode>;",
+  ),
+);
+for (const [key, value] of [
+  ["Fast", "FAST"],
+  ["Uniform", "UNIFORM"],
+]) {
+  addCheck(
+    `AffiliateCampaignOutreachPacingMode.${key} is generated`,
+    hasSnippet(generatedConst("AffiliateCampaignOutreachPacingMode"), `${key}: '${value}'`),
+  );
 }
 
 const signalSchema = block(schema, "type", "AffiliateRelationshipSignal");

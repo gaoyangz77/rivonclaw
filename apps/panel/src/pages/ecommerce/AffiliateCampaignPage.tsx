@@ -131,6 +131,7 @@ type CampaignForm = {
    * either way so toggling the mode never loses the seller's draft.
    */
   firstTouchMode: GQL.AffiliateCampaignFirstTouchMode;
+  outreachPacingMode: GQL.AffiliateCampaignOutreachPacingMode;
 };
 
 export const emptyForm: CampaignForm = {
@@ -171,6 +172,7 @@ export const emptyForm: CampaignForm = {
   templateSource: GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
   messageProductName: "",
   firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
+  outreachPacingMode: GQL.AffiliateCampaignOutreachPacingMode.Uniform,
 };
 
 /**
@@ -879,6 +881,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         campaign.productSnapshot?.title ||
         campaignLeadProductId(campaign),
       firstTouchMode: campaign.firstTouchMode,
+      outreachPacingMode:
+        campaign.outreachPacingMode ?? GQL.AffiliateCampaignOutreachPacingMode.Uniform,
     });
     setEditingCampaignId(campaign.id);
     setTargetStepAttempted(false);
@@ -1081,6 +1085,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         // pre-screen. There is no seller-set threshold to send any more.
         selectionPolicy: { strategy: form.strategy },
         firstTouchMode: form.firstTouchMode,
+        outreachPacingMode: form.outreachPacingMode,
         messageTemplateText: form.templateText.trim(),
         messageTemplateSource: form.templateSource,
         messageProductName: form.messageProductName.trim() || productPreview.title,
@@ -1516,7 +1521,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         <div className="affiliate-campaign-window">
           <div className="affiliate-campaign-window-copy">
             <span>{t("ecommerce.affiliateCampaign.sendingWindow")}</span>
-            <small>{t("ecommerce.affiliateCampaign.localTime")}</small>
+            <small>
+              {t("ecommerce.affiliateCampaign.localTime")} ·{" "}
+              {t("ecommerce.affiliateCampaign.pacing.uniform")}
+            </small>
           </div>
           <div className="affiliate-campaign-window-range">
             <strong>08:00</strong>
@@ -1848,6 +1856,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
 
                 <div className="affiliate-campaign-modal-policy-row">
+                  <span
+                    className="affiliate-campaign-modal-policy-pill"
+                    title={t(
+                      `ecommerce.affiliateCampaign.pacing.${selectedCampaign.outreachPacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast ? "fastHint" : "uniformHint"}`,
+                    )}
+                  >
+                    {t(
+                      `ecommerce.affiliateCampaign.pacing.${selectedCampaign.outreachPacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast ? "fast" : "uniform"}`,
+                    )}
+                  </span>
                   <span className="affiliate-campaign-modal-policy-pill">
                     {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
                   </span>
@@ -2852,6 +2870,32 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
                 <div className="affiliate-campaign-field-pair">
                   <label>
+                    <span>{t("ecommerce.affiliateCampaign.pacing.label")}</span>
+                    <select
+                      value={form.outreachPacingMode}
+                      onChange={(event) =>
+                        updateForm(
+                          "outreachPacingMode",
+                          event.target.value as GQL.AffiliateCampaignOutreachPacingMode,
+                        )
+                      }
+                    >
+                      <option value={GQL.AffiliateCampaignOutreachPacingMode.Uniform}>
+                        {t("ecommerce.affiliateCampaign.pacing.uniform")}
+                      </option>
+                      <option value={GQL.AffiliateCampaignOutreachPacingMode.Fast}>
+                        {t("ecommerce.affiliateCampaign.pacing.fast")}
+                      </option>
+                    </select>
+                    <small>
+                      {t(
+                        `ecommerce.affiliateCampaign.pacing.${form.outreachPacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast ? "fastHint" : "uniformHint"}`,
+                      )}
+                    </small>
+                  </label>
+                </div>
+                <div className="affiliate-campaign-field-pair">
+                  <label>
                     <span>{t("ecommerce.affiliateCampaign.dailyTarget")}</span>
                     <input
                       ref={(node) => {
@@ -2869,7 +2913,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     {dailyTargetIssue && (
                       <TargetFieldError field="dailyTarget" code={dailyTargetIssue.code} />
                     )}
-                    <small>{t("ecommerce.affiliateCampaign.dailyTargetHint")}</small>
+                    <small>
+                      {t(
+                        `ecommerce.affiliateCampaign.pacing.${form.outreachPacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast ? "fastHint" : "uniformHint"}`,
+                      )}
+                    </small>
                   </label>
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.endDays")}</span>
@@ -3430,13 +3478,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.sendingWindow")}
-                  value={`08:00–22:00 · ${selectedShop?.timezone ?? "—"}`}
+                  value={`${form.outreachPacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast ? t("ecommerce.affiliateCampaign.pacing.allDay") : "08:00–22:00"} · ${selectedShop?.timezone ?? "—"}`}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.estimatedInterval")}
-                  value={t("ecommerce.affiliateCampaign.hourlyRate", {
-                    rate: estimateCampaignCadence(Number(form.dailyTarget), 0),
-                  })}
+                  value={
+                    form.outreachPacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast
+                      ? t("ecommerce.affiliateCampaign.pacing.apiPaced")
+                      : t("ecommerce.affiliateCampaign.hourlyRate", {
+                          rate: estimateCampaignCadence(Number(form.dailyTarget), 0),
+                        })
+                  }
                 />
               </div>
               <div className="affiliate-campaign-authorization">

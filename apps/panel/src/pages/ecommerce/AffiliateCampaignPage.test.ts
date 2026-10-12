@@ -39,6 +39,16 @@ import {
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
+  it("defaults to uniform pacing and offers an explicit immediate fast mode", () => {
+    expect(emptyForm.outreachPacingMode).toBe(GQL.AffiliateCampaignOutreachPacingMode.Uniform);
+    const source = readFileSync(resolve(import.meta.dirname, "AffiliateCampaignPage.tsx"), "utf8");
+    expect(source).toContain("outreachPacingMode: form.outreachPacingMode");
+    expect(source).toContain("option value={GQL.AffiliateCampaignOutreachPacingMode.Fast}");
+    for (const { ecommerce } of Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS)) {
+      expect(ecommerce.affiliateCampaign.pacing.fastHint).toBeTruthy();
+      expect(ecommerce.affiliateCampaign.pacing.uniformHint).toBeTruthy();
+    }
+  });
   it("offers authorized shops without requiring Affiliate Agent activation", () => {
     const source = readFileSync(resolve(import.meta.dirname, "AffiliateCampaignPage.tsx"), "utf8");
     const shopFilter = source.match(

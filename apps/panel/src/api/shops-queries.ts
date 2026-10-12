@@ -317,6 +317,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
       strategy
     }
     firstTouchMode
+    outreachPacingMode
     messageTemplateText
     messageTemplateSource
     messageProductName

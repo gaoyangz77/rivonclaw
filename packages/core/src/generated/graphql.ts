@@ -1334,6 +1334,7 @@ export interface AffiliateCampaign {
   name: Scalars["String"]["output"];
   needsReconfiguration: Scalars["Boolean"]["output"];
   nextTickAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  outreachPacingMode: AffiliateCampaignOutreachPacingMode;
   pausedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   productSnapshot?: Maybe<AffiliateCampaignProductSnapshot>;
   productSnapshotHash?: Maybe<Scalars["String"]["output"]>;
@@ -1661,6 +1662,14 @@ export interface AffiliateCampaignMessageTemplateSuggestion {
   text: Scalars["String"]["output"];
 }
 
+/** UNIFORM uses the local outreach window; FAST runs immediately, around the clock, within daily targets. */
+export const AffiliateCampaignOutreachPacingMode = {
+  Fast: "FAST",
+  Uniform: "UNIFORM",
+} as const;
+
+export type AffiliateCampaignOutreachPacingMode =
+  (typeof AffiliateCampaignOutreachPacingMode)[keyof typeof AffiliateCampaignOutreachPacingMode];
 export const AffiliateCampaignPredictionStatus = {
   DataNotReady: "DATA_NOT_READY",
   Error: "ERROR",
@@ -16825,6 +16834,7 @@ export interface WriteAffiliateCampaignInput {
   /** Required unless firstTouchMode is COLLABORATION_ONLY. */
   messageTemplateText: Scalars["String"]["input"];
   name: Scalars["String"]["input"];
+  outreachPacingMode?: InputMaybe<AffiliateCampaignOutreachPacingMode>;
   /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
   products: Array<WriteAffiliateCampaignProductInput>;
   refreshProductSnapshot?: InputMaybe<Scalars["Boolean"]["input"]>;

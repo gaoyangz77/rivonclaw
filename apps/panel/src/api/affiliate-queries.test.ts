@@ -291,6 +291,7 @@ describe("affiliate Campaign first-touch mode", () => {
     for (const document of [AFFILIATE_CAMPAIGNS_QUERY, WRITE_AFFILIATE_CAMPAIGN_MUTATION]) {
       const query = queryText(document);
       expect(query).toContain("firstTouchMode");
+      expect(query).toContain("outreachPacingMode");
       expect(query).toContain("messageTemplateText");
     }
   });
@@ -338,11 +339,19 @@ describe("executed message proposal content", () => {
   it("selects the resolved actor of every human action the Panel attributes", () => {
     const actor = /\{\s*kind\s+displayName\s+businessDeveloperId\s*\}/;
     const selections: Array<[string, Parameters<typeof print>[0], string]> = [
-      ["relationship samples", AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY, "merchantReviewActor"],
+      [
+        "relationship samples",
+        AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY,
+        "merchantReviewActor",
+      ],
       ["collaboration detail samples", AFFILIATE_COLLABORATION_DETAIL_QUERY, "merchantReviewActor"],
       ["hydrated sample state", AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY, "merchantReviewActor"],
       ["workbench sample page", AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, "merchantReviewActor"],
-      ["workbench review mutation", REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION, "merchantReviewActor"],
+      [
+        "workbench review mutation",
+        REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
+        "merchantReviewActor",
+      ],
       ["proposal list decision actor", AFFILIATE_ACTION_PROPOSALS_QUERY, "decisionActor"],
       ["proposal decide mutation actor", DECIDE_ACTION_PROPOSAL_MUTATION, "decisionActor"],
       ["relationship timeline", AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, "actor"],
