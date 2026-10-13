@@ -31,6 +31,7 @@ function makeSessionStub() {
     scopeKey: "agent:customer-service:cs:tiktok:shop:conv",
     takeTurnText: vi.fn(() => ""),
     isRunAborted: vi.fn(() => false),
+    isBadReviewReachoutRun: vi.fn(() => false),
     clearTurnText: vi.fn(),
     hasRunForwardedText: vi.fn(() => false),
     noteTurnText: vi.fn(),
@@ -77,7 +78,7 @@ describe("EcommerceRelayBridge pending-run sweep", () => {
   });
 
   it("reconciles a stale run whose terminal event was lost and releases its lease", async () => {
-    const { release } = seedPendingRun(bridge, "run-stale", 10 * 60_000);
+    const { release, session } = seedPendingRun(bridge, "run-stale", 10 * 60_000);
     requestMock.mockImplementation(async (method: string) => {
       if (method === "agent.wait") return { status: "error", error: "run died" };
       throw new Error(`unexpected request ${method}`);
@@ -88,6 +89,7 @@ describe("EcommerceRelayBridge pending-run sweep", () => {
     expect(requestMock).toHaveBeenCalledWith("agent.wait", { runId: "run-stale", timeoutMs: 0 });
     expect(bridge.pendingRuns.size).toBe(0);
     expect(release).toHaveBeenCalledTimes(1);
+    expect(session.onRunCompleted).toHaveBeenCalledWith("run-stale");
   });
 
   it("keeps a genuinely running stale run pending and leaves its lease held", async () => {

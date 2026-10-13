@@ -44,6 +44,7 @@ import {
 } from "../telemetry/cs-telemetry-ref.js";
 import {
   SEND_MESSAGE_MUTATION,
+  SEND_BAD_REVIEW_REACHOUT_MUTATION,
   GET_CONVERSATION_DETAILS_QUERY,
   GET_CONVERSATION_MESSAGE_DELTA_QUERY,
   GET_BUYER_ORDERS_QUERY,
@@ -250,6 +251,7 @@ export interface DispatchResult {
 interface CatchUpDispatchOptions {
   dispatchReason?: CsAgentDispatchReason;
   operatorInstruction?: string;
+  badReviewReachoutRoundId?: string;
   currentMessageId?: string;
   currentMessageIndex?: string;
   signalType?: string;
@@ -326,6 +328,7 @@ export class CustomerServiceSession {
 
   /** Lookup from gateway runId → owning round. */
   private roundsByRunId = new Map<string, CSRound>();
+  private badReviewReachoutRoundIds = new Map<string, string>();
 
   /** Admission mode of each accepted run, retained for delivery-recovery follow-ups. */
   private admissionModeByRunId = new Map<string, CsRunAdmissionMode>();
@@ -458,6 +461,7 @@ export class CustomerServiceSession {
   private disposeRound(round: CSRound): void {
     for (const runId of round.getTrackedRunIds()) {
       this.roundsByRunId.delete(runId);
+      // Retain send tokens for late duplicate lifecycle delivery within this session.
       this.admissionModeByRunId.delete(runId);
     }
     if (this.activeRound === round) {
@@ -1096,12 +1100,20 @@ export class CustomerServiceSession {
     }
     const startedAt = Date.now();
     try {
-      await authSession.graphqlFetch(SEND_MESSAGE_MUTATION, {
-        shopId: this.csContext.shopId,
-        conversationId: this.csContext.conversationId,
-        type: GQL.EcomMessageType.Text,
-        content: JSON.stringify({ content: text }),
-      });
+      await authSession.graphqlFetch(
+        this.badReviewReachoutRoundIds.has(runId)
+          ? SEND_BAD_REVIEW_REACHOUT_MUTATION
+          : SEND_MESSAGE_MUTATION,
+        {
+          shopId: this.csContext.shopId,
+          conversationId: this.csContext.conversationId,
+          type: GQL.EcomMessageType.Text,
+          content: JSON.stringify({ content: text }),
+          ...(this.badReviewReachoutRoundIds.has(runId)
+            ? { badReviewReachoutRoundId: this.badReviewReachoutRoundIds.get(runId) }
+            : {}),
+        },
+      );
     } catch (err) {
       this.emitSessionTelemetry({
         action: "auto_reply_send",
@@ -1198,6 +1210,7 @@ export class CustomerServiceSession {
         round,
         placeholder,
         admissionMode,
+        badReviewReachoutRoundId: this.badReviewReachoutRoundIds.get(params.failedRunId),
       });
       if (result.runId) {
         round.registerSensitiveRecoveryRun(result.runId);
@@ -1511,6 +1524,7 @@ export class CustomerServiceSession {
       senderRole: options?.senderRole,
       admissionMode: options?.admissionMode,
       advanceSessionCursor: options?.currentMessageCursor,
+      badReviewReachoutRoundId: options?.badReviewReachoutRoundId,
     });
   }
 
@@ -1522,6 +1536,9 @@ export class CustomerServiceSession {
   }
 
   private catchUpIdempotencyKey(options?: CatchUpDispatchOptions): string {
+    if (options?.badReviewReachoutRoundId) {
+      return `cs-review:${this.csContext.conversationId}:${options.badReviewReachoutRoundId}:${this.dispatchAttemptToken(options)}`;
+    }
     if (!options?.currentMessageId) {
       return `cs-start:${this.csContext.conversationId}:${Date.now()}`;
     }
@@ -1940,6 +1957,10 @@ export class CustomerServiceSession {
     return this.roundsByRunId.get(runId)?.hasForwardedText(runId, text) ?? false;
   }
 
+  isBadReviewReachoutRun(runId: string): boolean {
+    return this.badReviewReachoutRoundIds.has(runId);
+  }
+
   markRunTerminalToolStarted(runId: string): void {
     this.roundsByRunId.get(runId)?.markTerminalToolStarted(runId);
   }
@@ -2160,6 +2181,7 @@ export class CustomerServiceSession {
     senderRole?: string;
     admissionMode?: CsRunAdmissionMode;
     advanceSessionCursor?: CustomerServiceMessageCursor;
+    badReviewReachoutRoundId?: string;
   }): Promise<DispatchResult> {
     const dispatchStartedAt = Date.now();
     const admissionMode = params.admissionMode ?? params.round?.admissionMode ?? "bypass";
@@ -2280,6 +2302,9 @@ export class CustomerServiceSession {
         this.activeRound = round;
       }
       if (runId) {
+        if (params.badReviewReachoutRoundId) {
+          this.badReviewReachoutRoundIds.set(runId, params.badReviewReachoutRoundId);
+        }
         if (params.advanceSessionCursor) {
           void advanceOpenClawSessionCursor({
             shopId: this.csContext.shopId,

@@ -364,6 +364,7 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
         eventTime
         dispatchEventTime
         operatorInstruction
+        badReviewReachoutRoundId
       }
       orderId
       participantCount

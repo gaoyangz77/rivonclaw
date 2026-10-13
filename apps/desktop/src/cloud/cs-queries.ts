@@ -23,6 +23,24 @@ export const SEND_MESSAGE_MUTATION = `
   }
 `;
 
+export const SEND_BAD_REVIEW_REACHOUT_MUTATION = `
+  mutation SendBadReviewReachout(
+    $shopId: String!,
+    $conversationId: String!,
+    $type: EcomMessageType!,
+    $content: String!,
+    $badReviewReachoutRoundId: ID!
+  ) {
+    ecommerceSendMessage(
+      shopId: $shopId,
+      conversationId: $conversationId,
+      type: $type,
+      content: $content,
+      badReviewReachoutRoundId: $badReviewReachoutRoundId
+    ) { messageId }
+  }
+`;
+
 export const GET_CONVERSATION_DETAILS_QUERY = `
   query($shopId: String!, $conversationId: String!) {
     ecommerceGetConversationDetails(shopId: $shopId, conversationId: $conversationId) {

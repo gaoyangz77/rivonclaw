@@ -1380,6 +1380,90 @@ describe("agent dispatch", () => {
     expect(message).toContain("This refund request looks unreasonable.");
   });
 
+  it("binds bad-review send tokens to the dispatched run, including sensitive rewrites", async () => {
+    const bridge = createBridge();
+    rootStore.ingestGraphQLResponse({
+      shops: [
+        {
+          id: defaultShop.objectId,
+          platform: "TIKTOK_SHOP",
+          platformShopId: defaultShop.platformShopId,
+          shopName: defaultShop.shopName,
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: defaultShop.systemPrompt,
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+              runProfileId: defaultShop.runProfileId,
+            },
+          },
+        },
+      ],
+    });
+    let runNumber = 0;
+    mockRpcRequest.mockImplementation(async (method: string) =>
+      method === "agent" ? { runId: `review-run-${++runNumber}` } : { ok: true },
+    );
+    await (bridge as any).dispatchCsConversationSignalNow({
+      type: "MANUAL_START",
+      source: "AIRFLOW",
+      shopId: defaultShop.objectId,
+      platformShopId: defaultShop.platformShopId,
+      conversationId: "conv-review-token",
+      dispatchReason: "BAD_REVIEW_REACHOUT",
+      useMessageDelta: false,
+      badReviewReachoutRoundId: "64f000000000000000000905",
+      dispatchEventTime: "2026-10-13T12:00:00Z",
+      operatorInstruction: "Send a considerate reminder",
+    });
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-review-token",
+    });
+    const agentEvent = (
+      _bridge: CustomerServiceBridge,
+      runId: string,
+      stream: string,
+      data: Record<string, unknown>,
+    ) => bridge.onGatewayEvent({ event: "agent", payload: { runId, stream, data } } as any);
+    agentEvent(bridge, "review-run-1", "assistant", { text: "Let me check the history." });
+    agentEvent(bridge, "review-run-1", "tool", {
+      phase: "start",
+      toolName: "ecom_cs_get_conversation_messages",
+    });
+    expect(
+      mockGraphqlFetch.mock.calls.filter(([query]) => query.includes("ecommerceSendMessage")),
+    ).toHaveLength(0);
+    agentEvent(bridge, "review-run-1", "assistant", { text: "Can we still help?" });
+    agentEvent(bridge, "review-run-1", "lifecycle", { phase: "end" });
+    await vi.waitFor(() => {
+      expect(
+        mockGraphqlFetch.mock.calls.filter(([query]) => query.includes("ecommerceSendMessage")),
+      ).toHaveLength(1);
+    });
+    expect(mockGraphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("badReviewReachoutRoundId"),
+      expect.objectContaining({ badReviewReachoutRoundId: "64f000000000000000000905" }),
+    );
+    await session.dispatchSensitiveContentRecovery({
+      failedRunId: "review-run-1",
+      rejectedText: "Can we still help?",
+    });
+    await session.forwardTextToBuyer("Please let us know how we can help.", "review-run-2");
+    expect(
+      mockGraphqlFetch.mock.calls.findLast(([query]) =>
+        query.includes("ecommerceSendMessage"),
+      )?.[1],
+    ).toMatchObject({ badReviewReachoutRoundId: "64f000000000000000000905" });
+    await session.forwardTextToBuyer("Normal customer-service reply", "unrelated-run");
+    expect(
+      mockGraphqlFetch.mock.calls.findLast(([query]) =>
+        query.includes("ecommerceSendMessage"),
+      )?.[1],
+    ).not.toHaveProperty("badReviewReachoutRoundId");
+    bridge.stop();
+  });
+
   it("dispatchCatchUp skips platform delta when no local OpenClaw session anchor exists", async () => {
     const cursorStore = await import("./cs-session-cursor-store.js");
     vi.mocked(cursorStore.readOpenClawSessionCursor).mockResolvedValueOnce(undefined);

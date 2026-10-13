@@ -140,6 +140,19 @@ describe("handleCsConversationChanged", () => {
     state.shops = [makeShop()];
   });
 
+  it("carries the backend send-round token through a bad-review dispatch", async () => {
+    const conversation = makeConversation("BAD_REVIEW_REACHOUT");
+    conversation.dispatchHint!.badReviewReachoutRoundId = "64f000000000000000000905";
+    await handleCsConversationChanged("device-1", conversation);
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dispatchReason: "BAD_REVIEW_REACHOUT",
+        badReviewReachoutRoundId: "64f000000000000000000905",
+        useMessageDelta: false,
+      }),
+    );
+  });
+
   it("dispatches recognized pending buyer message hints", async () => {
     await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
 

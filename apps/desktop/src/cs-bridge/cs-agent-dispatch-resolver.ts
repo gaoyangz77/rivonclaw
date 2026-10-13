@@ -13,6 +13,7 @@ export type CsAgentDispatchReason =
 export interface CsAgentDispatchRequest extends CsConversationSignalPayload {
   dispatchReason: CsAgentDispatchReason;
   useMessageDelta: boolean;
+  badReviewReachoutRoundId?: string;
 }
 
 const CONVERSATION_DISPATCH_PLANS: Record<
@@ -134,6 +135,9 @@ export function resolveCsConversationDispatch(
         ? undefined
         : (conversation.latestMessagePreview ?? conversation.latestMessage?.content ?? undefined),
     operatorInstruction: hint.operatorInstruction ?? undefined,
+    ...(hint.badReviewReachoutRoundId
+      ? { badReviewReachoutRoundId: hint.badReviewReachoutRoundId }
+      : {}),
     dispatchEventTime:
       hint.dispatchEventTime != null
         ? new Date(hint.dispatchEventTime * 1000).toISOString()

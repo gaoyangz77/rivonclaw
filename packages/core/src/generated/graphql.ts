@@ -7142,6 +7142,8 @@ export interface CustomerServiceConversationDetails {
 
 /** Optional dispatch metadata attached to a full CS conversation snapshot. */
 export interface CustomerServiceConversationDispatchHint {
+  /** Backend-owned bad-review proactive send round ID. */
+  badReviewReachoutRoundId?: Maybe<Scalars["ID"]["output"]>;
   /** Unix seconds when backend emitted this dispatch attempt. Used for Airflow retry idempotency. */
   dispatchEventTime?: Maybe<Scalars["Int"]["output"]>;
   /** Unix seconds of the event that triggered this dispatch. */
@@ -11865,6 +11867,7 @@ export interface MutationEcommerceSendCustomerServiceTextReplyArgs {
 }
 
 export interface MutationEcommerceSendMessageArgs {
+  badReviewReachoutRoundId?: InputMaybe<Scalars["ID"]["input"]>;
   content: Scalars["String"]["input"];
   conversationId: Scalars["String"]["input"];
   shopId: Scalars["String"]["input"];

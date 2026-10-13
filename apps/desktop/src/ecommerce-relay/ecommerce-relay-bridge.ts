@@ -406,6 +406,9 @@ export class EcommerceRelayBridge {
       // Lifecycle events normally flush the last assistant turn first. Keep
       // chat completion as a safety net so a missing lifecycle frame cannot
       // turn real buffered text into a handled-without-reply acknowledgement.
+      if (session.isBadReviewReachoutRun(runId) && payload.state !== "final") {
+        session.clearTurnText(runId);
+      }
       this.flushTurnText(runId, session);
       const completion = session.onRunCompleted(runId);
       if (completion.wasAborted) {
@@ -554,7 +557,10 @@ export class EcommerceRelayBridge {
           runId,
           pending.acceptedAt,
         );
-        for (const text of recovered.texts) {
+        const texts = pending.session.isBadReviewReachoutRun(runId)
+          ? recovered.texts.slice(-1)
+          : recovered.texts;
+        for (const text of texts) {
           if (pending.session.hasRunForwardedText(runId, text)) continue;
           pending.session.noteTurnText(runId, text);
           this.flushTurnText(runId, pending.session);
@@ -713,7 +719,11 @@ export class EcommerceRelayBridge {
       if (this.isTerminalCsTool(data.toolName)) {
         pending.session.markRunTerminalToolStarted(runId);
       }
-      this.flushTurnText(runId, pending.session);
+      if (pending.session.isBadReviewReachoutRun(runId)) {
+        pending.session.clearTurnText(runId);
+      } else {
+        this.flushTurnText(runId, pending.session);
+      }
       return;
     }
 
@@ -721,7 +731,9 @@ export class EcommerceRelayBridge {
       if (data.phase === "end" || data.phase === "error") {
         // Flush any buffered text before clearing — ensures partial
         // responses reach the buyer even when the run errors out.
-        this.flushTurnText(runId, pending.session);
+        if (data.phase !== "error" || !pending.session.isBadReviewReachoutRun(runId)) {
+          this.flushTurnText(runId, pending.session);
+        }
         pending.session.clearTurnText(runId);
       }
     }
@@ -1039,6 +1051,7 @@ export class EcommerceRelayBridge {
       await session.dispatchCatchUp({
         dispatchReason: dispatch.dispatchReason,
         operatorInstruction: dispatch.operatorInstruction ?? undefined,
+        badReviewReachoutRoundId: dispatch.badReviewReachoutRoundId,
         currentMessageId: dispatch.messageId ?? undefined,
         currentMessageIndex: dispatch.messageIndex ?? undefined,
         signalType: dispatch.type,
