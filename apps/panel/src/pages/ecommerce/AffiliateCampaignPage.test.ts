@@ -12,6 +12,8 @@ import {
   campaignRuleMatchLabel,
   campaignMessageStepValid,
   campaignSkipsDirectMessage,
+  campaignMessageProductNameInput,
+  campaignTodayReachoutSupportingText,
   affiliateCampaignCommissionRange,
   campaignDeliveryFailureBreakdown,
   campaignErrorMessage,
@@ -39,6 +41,78 @@ import {
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
+  it("omits the message product name for invitation-only creation, regardless of title length", () => {
+    const title = "Long product title ".repeat(10);
+    expect(
+      campaignMessageProductNameInput(
+        {
+          ...emptyForm,
+          firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly,
+          messageProductName: title,
+        },
+        title,
+      ),
+    ).toBeUndefined();
+    expect(
+      campaignMessageProductNameInput(
+        { ...emptyForm, messageProductName: "  Milano Rope  " },
+        title,
+      ),
+    ).toBe("Milano Rope");
+    expect(campaignMessageProductNameInput(emptyForm, title)).toBe(title);
+  });
+
+  it.each([
+    GQL.AffiliateCampaignOutreachPacingMode.Fast,
+    GQL.AffiliateCampaignOutreachPacingMode.Uniform,
+  ])(
+    "shows the completed daily target before window or legacy next-tick hints in %s mode",
+    (mode) => {
+      const key = campaignTodayReachoutSupportingText(
+        {
+          counters: { sent: 100 },
+          effectiveTarget: 100,
+          nextTickAt: "2026-10-14T15:00:00Z",
+          underDeliveryReason: "OUTREACH_WINDOW_CLOSED",
+        },
+        200,
+        mode,
+        (value) => value,
+      );
+      expect(key).toBe("ecommerce.affiliateCampaign.pacing.dailyTargetReached");
+    },
+  );
+
+  it("does not describe fast outreach as waiting for a sending window", () => {
+    const fast = GQL.AffiliateCampaignOutreachPacingMode.Fast;
+    const key = "ecommerce.affiliateCampaign.pacing.apiPaced";
+    expect(campaignTodayReachoutSupportingText(null, 100, fast, (value) => value)).toBe(key);
+    expect(
+      campaignTodayReachoutSupportingText(
+        { counters: { sent: 50 }, underDeliveryReason: "OUTREACH_WINDOW_CLOSED" },
+        100,
+        fast,
+        (value) => value,
+      ),
+    ).toBe(key);
+    expect(
+      campaignTodayReachoutSupportingText(
+        { counters: { sent: 50 }, underDeliveryReason: "INSUFFICIENT_QUALIFIED_CREATORS" },
+        100,
+        fast,
+        (value) => value,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.underDeliveryInsufficientCreators");
+    expect(
+      campaignTodayReachoutSupportingText(
+        null,
+        100,
+        GQL.AffiliateCampaignOutreachPacingMode.Uniform,
+        (value) => value,
+      ),
+    ).toBe("ecommerce.affiliateCampaign.waitingForWindow");
+  });
+
   it("defaults to uniform pacing and offers an explicit immediate fast mode", () => {
     expect(emptyForm.outreachPacingMode).toBe(GQL.AffiliateCampaignOutreachPacingMode.Uniform);
     const source = readFileSync(resolve(import.meta.dirname, "AffiliateCampaignPage.tsx"), "utf8");

@@ -8,6 +8,7 @@ export const campaignPacingCopy = {
       "Start immediately, 24 hours a day. Use available API capacity up to the daily target; platform limits may slow delivery.",
     allDay: "24 hours · immediate start",
     apiPaced: "As fast as API capacity allows",
+    dailyTargetReached: "Today's outreach target is complete. Resumes on the next shop-local day.",
   },
   zh: {
     label: "触达节奏",
@@ -18,6 +19,7 @@ export const campaignPacingCopy = {
       "立即开始，全天运行。尽量利用可用 API 额度，直到达到每日目标；平台限流可能使发送减速。",
     allDay: "全天 24 小时 · 立即开始",
     apiPaced: "按可用 API 额度尽快触达",
+    dailyTargetReached: "今日触达目标已完成，将在店铺当地下一天继续。",
   },
   de: {
     label: "Kontakttempo",
@@ -28,6 +30,7 @@ export const campaignPacingCopy = {
       "Sofort starten, rund um die Uhr. API-Kapazität bis zum Tagesziel nutzen; Plattformlimits können bremsen.",
     allDay: "24 Stunden · sofortiger Start",
     apiPaced: "So schnell wie die API erlaubt",
+    dailyTargetReached: "Tagesziel erreicht. Fortsetzung am nächsten lokalen Tag des Shops.",
   },
   es: {
     label: "Ritmo de contacto",
@@ -39,6 +42,7 @@ export const campaignPacingCopy = {
       "Empieza inmediatamente, las 24 horas. Usa la capacidad API hasta el objetivo diario; los límites pueden ralentizar el envío.",
     allDay: "24 horas · inicio inmediato",
     apiPaced: "Tan rápido como permita la API",
+    dailyTargetReached: "Objetivo diario completado. Se reanuda el próximo día local de la tienda.",
   },
   fr: {
     label: "Rythme de contact",
@@ -50,6 +54,8 @@ export const campaignPacingCopy = {
       "Démarrer immédiatement, 24 h/24. Utiliser la capacité API jusqu'à l'objectif quotidien ; les limites peuvent ralentir l'envoi.",
     allDay: "24 heures · démarrage immédiat",
     apiPaced: "Selon la capacité API disponible",
+    dailyTargetReached:
+      "Objectif quotidien atteint. Reprise le prochain jour local de la boutique.",
   },
   id: {
     label: "Kecepatan kontak",
@@ -60,6 +66,8 @@ export const campaignPacingCopy = {
       "Mulai segera, 24 jam. Gunakan kapasitas API hingga target harian; batas platform dapat memperlambat pengiriman.",
     allDay: "24 jam · mulai segera",
     apiPaced: "Secepat kapasitas API yang tersedia",
+    dailyTargetReached:
+      "Target hari ini tercapai. Dilanjutkan pada hari berikutnya menurut waktu lokal toko.",
   },
   it: {
     label: "Ritmo di contatto",
@@ -71,6 +79,8 @@ export const campaignPacingCopy = {
       "Inizia subito, 24 ore su 24. Usa la capacità API fino all'obiettivo giornaliero; i limiti possono rallentare l'invio.",
     allDay: "24 ore · avvio immediato",
     apiPaced: "Alla velocità consentita dall'API",
+    dailyTargetReached:
+      "Obiettivo giornaliero raggiunto. Riprende il prossimo giorno locale del negozio.",
   },
   th: {
     label: "จังหวะการติดต่อ",
@@ -80,5 +90,6 @@ export const campaignPacingCopy = {
     fastHint: "เริ่มทันทีตลอด 24 ชั่วโมง ใช้โควตา API จนถึงเป้าหมายรายวัน ข้อจำกัดแพลตฟอร์มอาจทำให้ช้าลง",
     allDay: "24 ชั่วโมง · เริ่มทันที",
     apiPaced: "เร็วที่สุดตามโควตา API ที่มี",
+    dailyTargetReached: "ครบเป้าหมายการติดต่อวันนี้แล้ว จะดำเนินการต่อในวันถัดไปตามเวลาท้องถิ่นของร้าน",
   },
 };

@@ -607,7 +607,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     {
       variables: { campaignId: selectedCampaignId },
       skip: !selectedCampaignId,
-      pollInterval: workspaceTab.active && selectedCampaignId ? 15_000 : 0,
+      ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
     },
   );
   const screeningQuery = useQuery<{
@@ -615,8 +615,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   }>(AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY, {
     variables: { campaignId: selectedCampaignId },
     skip: !selectedCampaignId,
-    pollInterval: workspaceTab.active && selectedCampaignId ? 60_000 : 0,
-    skipPollAttempt: () => !workspaceTab.active || document.visibilityState === "hidden",
+    ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
   });
   // Campaign-wide by default; a selected search plan narrows the same query.
   const creatorStatesQuery = useQuery<{
@@ -633,12 +632,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       },
     },
     skip: !selectedCampaignId,
+    ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
   });
   const selectionReadinessQuery = useQuery<{
     affiliateCampaignSelectionReadiness: GQL.AffiliateCampaignSelectionReadiness;
   }>(AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY, {
     variables: { campaignId: selectedCampaignId },
     skip: !selectedCampaignId,
+    ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
   });
   const searchPlansQuery = useQuery<{
     affiliateCampaignSearchPlanSummaries: {
@@ -648,11 +649,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   }>(AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY, {
     variables: { input: { campaignId: selectedCampaignId, limit: 20 } },
     skip: !selectedCampaignId,
-    // Search-plan history is an operator view, not a dispatch control loop.
-    // Mutations still refetch immediately; the background refresh can be
-    // slower and should stop entirely while the page is not visible.
-    pollInterval: workspaceTab.active && selectedCampaignId ? 60_000 : 0,
-    skipPollAttempt: () => document.visibilityState === "hidden",
+    ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
   });
   const searchPlanPageQueryKey = selectedCampaignId;
   const [searchPlanPageBuffer, setSearchPlanPageBuffer] = useState(() =>
@@ -674,10 +671,36 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       ),
     );
   }, [firstSearchPlanPage, searchPlanPageQueryKey]);
+  const creatorStatePageQueryKey = JSON.stringify([
+    selectedCampaignId,
+    selectedSearchPlanId,
+    stateStatuses,
+    eligibilityCategories,
+    eligibilityReasons,
+  ]);
+  const [creatorStatePageBuffer, setCreatorStatePageBuffer] = useState(() =>
+    emptyCursorPageBuffer<CampaignCreatorState>(creatorStatePageQueryKey),
+  );
+  const activeCreatorStatePageBuffer =
+    creatorStatePageBuffer.queryKey === creatorStatePageQueryKey
+      ? creatorStatePageBuffer
+      : emptyCursorPageBuffer<CampaignCreatorState>(creatorStatePageQueryKey);
+  const firstCreatorStatePage = creatorStatesQuery.data?.affiliateCampaignCreatorStates;
+  useEffect(() => {
+    if (!firstCreatorStatePage) return;
+    setCreatorStatePageBuffer((current) =>
+      replaceCursorPageBufferFirstPage(
+        current,
+        creatorStatePageQueryKey,
+        firstCreatorStatePage,
+        (state) => state.id,
+      ),
+    );
+  }, [firstCreatorStatePage, creatorStatePageQueryKey]);
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
-    itemCount: creatorStatesQuery.data?.affiliateCampaignCreatorStates?.items.length ?? 0,
+    itemCount: activeCreatorStatePageBuffer.items.length,
   });
 
   const [writeCampaign, writeCampaignState] = useMutation<
@@ -1088,7 +1111,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         outreachPacingMode: form.outreachPacingMode,
         messageTemplateText: form.templateText.trim(),
         messageTemplateSource: form.templateSource,
-        messageProductName: form.messageProductName.trim() || productPreview.title,
+        messageProductName: campaignMessageProductNameInput(form, productPreview.title),
         status: GQL.AffiliateCampaignStatus.Active,
       } as unknown as GQL.WriteAffiliateCampaignInput;
       const result = await writeCampaign({
@@ -1281,15 +1304,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     0,
   );
 
-  const creatorStatesNextCursor =
-    creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor ?? null;
+  const creatorStatesNextCursor = activeCreatorStatePageBuffer.nextCursor;
   const loadMoreCreatorStates = async () => {
-    const nextCursor = creatorStatesQuery.data?.affiliateCampaignCreatorStates?.nextCursor;
+    const nextCursor = activeCreatorStatePageBuffer.nextCursor;
     if (!nextCursor || loadMoreCreatorStatesInFlightRef.current) return;
     loadMoreCreatorStatesInFlightRef.current = true;
     setLoadingMoreCreatorStates(true);
     try {
-      await creatorStatesQuery.fetchMore({
+      const result = await creatorStatesQuery.fetchMore({
         variables: {
           input: {
             campaignId: selectedCampaignId,
@@ -1301,16 +1323,20 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
           },
         },
-        updateQuery: (previous, { fetchMoreResult }) => ({
-          affiliateCampaignCreatorStates: {
-            ...fetchMoreResult.affiliateCampaignCreatorStates,
-            items: [
-              ...previous.affiliateCampaignCreatorStates.items,
-              ...fetchMoreResult.affiliateCampaignCreatorStates.items,
-            ],
-          },
-        }),
+        // The query cache stays the first page for polling. Loaded pages live
+        // in the cursor buffer, so a refresh cannot reset the advanced cursor.
+        updateQuery: (previous) => previous,
       });
+      if (result.data?.affiliateCampaignCreatorStates) {
+        setCreatorStatePageBuffer((current) =>
+          appendCursorPageBuffer(
+            current,
+            creatorStatePageQueryKey,
+            result.data!.affiliateCampaignCreatorStates,
+            (state) => state.id,
+          ),
+        );
+      }
     } finally {
       loadMoreCreatorStatesInFlightRef.current = false;
       setLoadingMoreCreatorStates(false);
@@ -2018,15 +2044,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     latestExecution?.effectiveTarget ?? selectedCampaign.dailyOutreachTarget
                   }
                   denominatorLabel={t("ecommerce.affiliateCampaign.todayTargetUnit")}
-                  supportingText={
-                    latestExecution?.nextTickAt
-                      ? t("ecommerce.affiliateCampaign.nextSend", {
-                          time: formatDateTime(latestExecution.nextTickAt),
-                        })
-                      : latestExecution?.underDeliveryReason
-                        ? campaignExecutionReasonLabel(latestExecution.underDeliveryReason, t)
-                        : t("ecommerce.affiliateCampaign.waitingForWindow")
-                  }
+                  supportingText={campaignTodayReachoutSupportingText(
+                    latestExecution,
+                    selectedCampaign.dailyOutreachTarget,
+                    selectedCampaign.outreachPacingMode,
+                    t,
+                  )}
                   progress
                   emphasis
                 />
@@ -2463,9 +2486,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(
-                            creatorStatesQuery.data?.affiliateCampaignCreatorStates?.items ?? []
-                          ).map((state) => (
+                          {activeCreatorStatePageBuffer.items.map((state) => (
                             <CampaignCreatorStateRow
                               key={state.id}
                               state={state}
@@ -3273,6 +3294,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <input
                     value={form.messageProductName}
                     maxLength={80}
+                    disabled={skipDirectMessage}
                     onChange={(event) => updateForm("messageProductName", event.target.value)}
                     placeholder={t("ecommerce.affiliateCampaign.messageProductNamePlaceholder")}
                   />
@@ -4822,6 +4844,63 @@ function campaignReadinessMessage(
     return t("ecommerce.affiliateCampaign.errors.providerRuleUnsupported");
   }
   return t("ecommerce.affiliateCampaign.errors.reconfigurationRequired");
+}
+
+export const CAMPAIGN_DETAIL_POLL_INTERVAL_MS = 15_000;
+
+export function campaignDetailPollingOptions(workspaceActive: boolean, campaignId: string) {
+  return {
+    pollInterval: workspaceActive && campaignId ? CAMPAIGN_DETAIL_POLL_INTERVAL_MS : 0,
+    skipPollAttempt: () => document.visibilityState === "hidden",
+  };
+}
+
+export function campaignMessageProductNameInput(
+  form: Pick<CampaignForm, "firstTouchMode" | "messageProductName">,
+  productTitle: string,
+): string | undefined {
+  return campaignSkipsDirectMessage(form.firstTouchMode)
+    ? undefined
+    : form.messageProductName.trim() || productTitle;
+}
+
+export function campaignTodayReachoutSupportingText(
+  execution:
+    | {
+        counters: { sent: number };
+        effectiveTarget?: number | null;
+        nextTickAt?: string | null;
+        underDeliveryReason?: string | null;
+      }
+    | null
+    | undefined,
+  dailyTarget: number,
+  pacingMode: GQL.AffiliateCampaignOutreachPacingMode | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const target = execution?.effectiveTarget ?? dailyTarget;
+  if (execution && target > 0 && execution.counters.sent >= target) {
+    return t("ecommerce.affiliateCampaign.pacing.dailyTargetReached");
+  }
+  if (execution?.nextTickAt) {
+    return t("ecommerce.affiliateCampaign.nextSend", {
+      time: formatDateTime(execution.nextTickAt),
+    });
+  }
+  if (
+    execution?.underDeliveryReason &&
+    !(
+      pacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast &&
+      execution.underDeliveryReason === "OUTREACH_WINDOW_CLOSED"
+    )
+  ) {
+    return campaignExecutionReasonLabel(execution.underDeliveryReason, t);
+  }
+  return t(
+    pacingMode === GQL.AffiliateCampaignOutreachPacingMode.Fast
+      ? "ecommerce.affiliateCampaign.pacing.apiPaced"
+      : "ecommerce.affiliateCampaign.waitingForWindow",
+  );
 }
 
 function campaignExecutionReasonLabel(reason: string, t: (key: string) => string): string {
