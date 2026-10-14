@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.30",
+    "date": "2026-10-14",
+    "en": [
+      "Configure shop pickup reminders and manage customer reminder settings in a localized menu",
+      "Complete translations for bad-review contact limits"
+    ],
+    "zh": [
+      "支持配置店铺取件提醒，并在多语言菜单中统一管理客服提醒设置",
+      "补齐差评联系次数上限的多语言文案"
+    ]
+  },
+  {
     "version": "1.9.29",
     "date": "2026-10-13",
     "en": [
