@@ -11,7 +11,7 @@ import type { SnapshotIn } from "mobx-state-tree";
 import type * as GQL from "../generated/graphql.js";
 import type { SurfaceModel } from "./Surface.js";
 import type { RunProfileModel } from "./RunProfile.js";
-import type { ShopModel } from "./Shop.js";
+import type { CustomerServiceConfigModel, ShopModel } from "./Shop.js";
 import type { ToolSpecModel } from "./ToolSpec.js";
 import type {
   BillingOverviewModel,
@@ -44,6 +44,8 @@ const _runProfileGuard: _AssertRunProfileCompat = true;
 // ── Shop (MST is a subset — omits createdAt, updatedAt, grantedScopes) ──
 type _AssertShopCompat = AssertSubset<GQL.Shop, SnapshotIn<typeof ShopModel>>;
 const _shopGuard: _AssertShopCompat = true;
+type _AssertCustomerServiceCompat = AssertSubset<GQL.CustomerServiceSettings, SnapshotIn<typeof CustomerServiceConfigModel>>;
+const _customerServiceGuard: _AssertCustomerServiceCompat = true;
 
 // ── ToolSpec (ToolModel adds `source` which is local-only, not in GQL) ──
 type _AssertToolSpecCompat = AssertSubset<

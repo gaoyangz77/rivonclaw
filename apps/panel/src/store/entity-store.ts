@@ -36,6 +36,7 @@ import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
   AFFILIATE_ML_INSIGHTS_BULK_QUERY,
   SHOPS_QUERY,
+  UPDATE_SHOP_MUTATION,
   SHOP_QUERY,
   PLATFORM_APPS_QUERY,
   INITIATE_TIKTOK_OAUTH_MUTATION,
@@ -499,6 +500,14 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         applySnapshot(self.shops, stripTypename(result.data?.shops ?? []) as any);
       }),
 
+      setShopPickupReminderEnabled: flow(function* (shopId: string, enabled: boolean) {
+        const result = yield client().mutate({ mutation: UPDATE_SHOP_MUTATION,
+          variables: { id: shopId, input: { services: { customerService: { pickupReminderEnabled: enabled } } } } });
+        if (!result.data?.updateShop) throw new Error('Shop settings update returned no shop');
+        const current = self.shops.find(shop => shop.id === shopId);
+        if (current) applySnapshot(current, stripTypename(result.data.updateShop) as any);
+      }),
+
       fetchAffiliateMlInsights: flow(function* (input?: { shopIds?: string[] }) {
         if (!(self as any).currentUser) {
           self.affiliateMlInsightRows.clear();
@@ -924,6 +933,7 @@ interface PanelRootActions {
   logout(): Promise<void>;
   clearAuth(): void;
   fetchShops(): Promise<void>;
+  setShopPickupReminderEnabled(shopId: string, enabled: boolean): Promise<void>;
   fetchPlatformApps(): Promise<void>;
   refreshToolSpecs(): Promise<void>;
   createProviderKey(input: any): Promise<any>;

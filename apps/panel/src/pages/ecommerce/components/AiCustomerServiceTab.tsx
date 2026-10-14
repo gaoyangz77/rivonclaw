@@ -6,6 +6,7 @@ import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
+import { PickupReminderSettings } from "./PickupReminderSettings.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
 import { TkSwitchControl } from "../../../components/design-system/index.js";
 import { BadReviewReachoutContactLimit } from "./BadReviewReachoutContactLimit.js";
@@ -269,6 +270,8 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
           onHoldoutPercentChange={onDraftUnpaidHoldoutPercentChange}
         />
       </section>
+
+      <PickupReminderSettings shopId={shop.id} />
 
       {SHOW_REVIEW_MANAGEMENT_SETTINGS && (
         <section

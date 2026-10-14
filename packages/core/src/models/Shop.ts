@@ -7,6 +7,7 @@ export const CustomerServiceConfigModel = types
   .model("CustomerServiceConfig", {
     enabled: types.optional(types.boolean, false),
     unpaidOrderReachoutEnabled: types.optional(types.boolean, false),
+    pickupReminderEnabled: types.optional(types.boolean, false),
     unpaidOrderReachoutStages: types.optional(
       types.array(
         types.model("UnpaidOrderReachoutStage", {

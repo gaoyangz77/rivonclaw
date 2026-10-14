@@ -7642,6 +7642,8 @@ export interface CustomerServiceSettings {
   escalationChannelId?: Maybe<Scalars["String"]["output"]>;
   /** Recipient ID for escalation messages. Null = not configured. */
   escalationRecipientId?: Maybe<Scalars["String"]["output"]>;
+  /** Whether CS sends twice-daily reminders for eligible pickup-point orders. */
+  pickupReminderEnabled: Scalars["Boolean"]["output"];
   /** Platform-managed CS system prompt (same for all shops on this backend version; versioned by EasyClaw operators). Returns null when no platform prompt is configured. Clients compose this with `businessPrompt` locally via the shared `assembleCsPrompt` helper. */
   platformSystemPrompt?: Maybe<Scalars["String"]["output"]>;
   reviewOptimization: ReviewOptimizationSettings;
@@ -7673,6 +7675,8 @@ export interface CustomerServiceSettingsInput {
   expectedConfigExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
   expectedHoldoutExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Pickup reminders flag. Omit/null to keep. */
+  pickupReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Review optimization settings. Omit or pass null to keep. */
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
