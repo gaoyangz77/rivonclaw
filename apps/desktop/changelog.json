@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.29",
+    "date": "2026-10-13",
+    "en": [
+      "Choose uniform or immediate fast campaign outreach, refresh campaign details, and see completed outreach targets",
+      "Configure bad-review contact limits and improve reachout round retries"
+    ],
+    "zh": [
+      "活动触达支持均匀与立即快速模式，自动刷新活动详情并显示已完成的触达目标",
+      "支持设置差评联系次数上限，并改进触达轮次重试"
+    ]
+  },
+  {
     "version": "1.9.28",
     "date": "2026-10-08",
     "en": [
