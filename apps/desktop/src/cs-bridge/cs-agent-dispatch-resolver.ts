@@ -206,7 +206,11 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
         "This dispatch was initiated by backend/Airflow for a TikTok Shop bad-review reachout.",
         "Do not assume a buyer message triggered this run.",
         "Use the operator instruction as the task authority and review context.",
-        "Follow the backend-provided workflow at the current conversation stage; do not restart it or send a duplicate reachout.",
+        "Follow the backend-provided workflow at the current conversation stage; do not restart an already handled case.",
+        "Only the current backend operator instruction together with a bad-review round ID authorizes this proactive contact. Without that round authorization, return NO_REPLY.",
+        "An explicitly backend-authorized new round is not a duplicate send. An earlier delivered round and the absence of a new buyer message alone do not suppress a due reminder authorized by the backend.",
+        "A retry with the same round ID is the same logical contact, not permission for another send. Do not resend an already delivered round or invent a different round ID to bypass backend deduplication. Keep the same round ID for backend-authorized retries of unsent attempts.",
+        "Backend owns timing and contact limits; do not create extra rounds or schedule follow-ups yourself. Ordinary customer-service dispatches do not receive this exception.",
         END_SESSION_GUIDANCE,
       ].join(" ");
   }

@@ -66,6 +66,7 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftBadReviewReachoutEnabled, setDraftBadReviewReachoutEnabled] = useState(false);
   const [draftBadReviewReachoutStars, setDraftBadReviewReachoutStars] = useState("3");
   const [draftBadReviewReachoutRecentDays, setDraftBadReviewReachoutRecentDays] = useState("7");
+  const [draftBadReviewReachoutMaxAttempts, setDraftBadReviewReachoutMaxAttempts] = useState("3");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [editAffiliateMinExpectedSalesUnits, setEditAffiliateMinExpectedSalesUnits] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
@@ -174,6 +175,12 @@ export const EcommercePage = observer(function EcommercePage() {
             ?.recentDays ?? 7,
         ),
       );
+      setDraftBadReviewReachoutMaxAttempts(
+        String(
+          selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout
+            ?.maxAttempts ?? 3,
+        ),
+      );
     }
   }, [
     selectedShop?.id,
@@ -186,6 +193,7 @@ export const EcommercePage = observer(function EcommercePage() {
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.stars,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.recentDays,
+    selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.maxAttempts,
   ]);
 
   useEffect(() => {
@@ -375,6 +383,12 @@ export const EcommercePage = observer(function EcommercePage() {
       return;
     }
 
+    const maxAttempts = Number(draftBadReviewReachoutMaxAttempts);
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 3) {
+      showToast(t("ecommerce.shopDrawer.aiCS.reviewOptimizationInvalidMaxAttempts"), "error");
+      return;
+    }
+
     setSavingReviewOptimizationSettings(true);
     setUpgradePrompt(false);
     try {
@@ -389,6 +403,7 @@ export const EcommercePage = observer(function EcommercePage() {
                 enabled: draftBadReviewReachoutEnabled,
                 stars: parsedStars,
                 recentDays: parsedRecentDays,
+                maxAttempts,
               },
             },
           },
@@ -396,6 +411,7 @@ export const EcommercePage = observer(function EcommercePage() {
       });
       setDraftBadReviewReachoutStars(String(parsedStars));
       setDraftBadReviewReachoutRecentDays(String(parsedRecentDays));
+      setDraftBadReviewReachoutMaxAttempts(String(maxAttempts));
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -747,11 +763,13 @@ export const EcommercePage = observer(function EcommercePage() {
         draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
         draftBadReviewReachoutStars={draftBadReviewReachoutStars}
         draftBadReviewReachoutRecentDays={draftBadReviewReachoutRecentDays}
+        draftBadReviewReachoutMaxAttempts={draftBadReviewReachoutMaxAttempts}
         savingReviewOptimizationSettings={savingReviewOptimizationSettings}
         onToggleReviewOptimizationEnabled={setDraftReviewOptimizationEnabled}
         onToggleBadReviewReachoutEnabled={setDraftBadReviewReachoutEnabled}
         onDraftBadReviewReachoutStarsChange={setDraftBadReviewReachoutStars}
         onDraftBadReviewReachoutRecentDaysChange={setDraftBadReviewReachoutRecentDays}
+        onDraftBadReviewReachoutMaxAttemptsChange={setDraftBadReviewReachoutMaxAttempts}
         onSaveReviewOptimizationSettings={handleSaveReviewOptimizationSettings}
         savingEscalation={escalation.savingEscalation}
         draftEscalationChannel={escalation.draftEscalationChannel}

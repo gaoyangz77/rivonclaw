@@ -72,11 +72,13 @@ interface ShopDrawerProps {
   draftBadReviewReachoutEnabled: boolean;
   draftBadReviewReachoutStars: string;
   draftBadReviewReachoutRecentDays: string;
+  draftBadReviewReachoutMaxAttempts: string;
   savingReviewOptimizationSettings: boolean;
   onToggleReviewOptimizationEnabled: (value: boolean) => void;
   onToggleBadReviewReachoutEnabled: (value: boolean) => void;
   onDraftBadReviewReachoutStarsChange: (value: string) => void;
   onDraftBadReviewReachoutRecentDaysChange: (value: string) => void;
+  onDraftBadReviewReachoutMaxAttemptsChange: (value: string) => void;
   onSaveReviewOptimizationSettings: () => void;
   savingEscalation: boolean;
   draftEscalationChannel: string;
@@ -147,11 +149,13 @@ export const ShopDrawer = observer(function ShopDrawer({
   draftBadReviewReachoutEnabled,
   draftBadReviewReachoutStars,
   draftBadReviewReachoutRecentDays,
+  draftBadReviewReachoutMaxAttempts,
   savingReviewOptimizationSettings,
   onToggleReviewOptimizationEnabled,
   onToggleBadReviewReachoutEnabled,
   onDraftBadReviewReachoutStarsChange,
   onDraftBadReviewReachoutRecentDaysChange,
+  onDraftBadReviewReachoutMaxAttemptsChange,
   onSaveReviewOptimizationSettings,
   savingEscalation,
   draftEscalationChannel,
@@ -752,12 +756,16 @@ export const ShopDrawer = observer(function ShopDrawer({
                   draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
                   draftBadReviewReachoutStars={draftBadReviewReachoutStars}
                   draftBadReviewReachoutRecentDays={draftBadReviewReachoutRecentDays}
+                  draftBadReviewReachoutMaxAttempts={draftBadReviewReachoutMaxAttempts}
                   savingReviewOptimizationSettings={savingReviewOptimizationSettings}
                   onToggleReviewOptimizationEnabled={onToggleReviewOptimizationEnabled}
                   onToggleBadReviewReachoutEnabled={onToggleBadReviewReachoutEnabled}
                   onDraftBadReviewReachoutStarsChange={onDraftBadReviewReachoutStarsChange}
                   onDraftBadReviewReachoutRecentDaysChange={
                     onDraftBadReviewReachoutRecentDaysChange
+                  }
+                  onDraftBadReviewReachoutMaxAttemptsChange={
+                    onDraftBadReviewReachoutMaxAttemptsChange
                   }
                   onSaveReviewOptimizationSettings={onSaveReviewOptimizationSettings}
                   savingEscalation={savingEscalation}

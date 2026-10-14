@@ -36,10 +36,36 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
 
     expect(prompt).toContain("bad-review reachout");
     expect(prompt).toContain("Do not assume a buyer message triggered this run");
-    expect(prompt).toContain("Use the operator instruction as the task authority and review context");
+    expect(prompt).toContain(
+      "Use the operator instruction as the task authority and review context",
+    );
     expect(prompt).toContain("backend-provided workflow at the current conversation stage");
-    expect(prompt).toContain("do not restart it or send a duplicate reachout");
+    expect(prompt).toContain("do not restart an already handled case");
+    expect(prompt).toContain("An explicitly backend-authorized new round is not a duplicate send");
+    expect(prompt).toContain("absence of a new buyer message alone do not suppress a due reminder");
+    expect(prompt).toContain("operator instruction together with a bad-review round ID");
+    expect(prompt).toContain("Without that round authorization, return NO_REPLY");
+    expect(prompt).toContain("A retry with the same round ID is the same logical contact");
+    expect(prompt).toContain("Do not resend an already delivered round");
+    expect(prompt).toContain(
+      "Keep the same round ID for backend-authorized retries of unsent attempts",
+    );
+    expect(prompt).toContain("Ordinary customer-service dispatches do not receive this exception");
+    expect(prompt).not.toContain("or send a duplicate reachout");
     expect(prompt).not.toContain("Send one concise buyer-facing message");
     expect(prompt).not.toContain("Do not offer coupons");
+  });
+
+  it.each([
+    "PENDING_BUYER_MESSAGE",
+    "MANUAL_START",
+    "SESSION_EXPIRING_ESCALATION_FOLLOW_UP",
+    "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
+  ] as const)("does not grant the review-reminder exception to %s", (reason) => {
+    const prompt = buildCsAgentDispatchSystemPrompt(reason);
+    expect(prompt).not.toContain(
+      "An explicitly backend-authorized new round is not a duplicate send",
+    );
+    expect(prompt).not.toContain("due reminder authorized by the backend");
   });
 });

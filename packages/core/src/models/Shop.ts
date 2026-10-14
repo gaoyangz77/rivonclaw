@@ -53,6 +53,7 @@ export const CustomerServiceConfigModel = types
             enabled: types.optional(types.boolean, false),
             stars: types.optional(types.number, 3),
             recentDays: types.optional(types.number, 7),
+            maxAttempts: types.optional(types.number, 3),
           }),
           {},
         ),

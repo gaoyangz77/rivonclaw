@@ -8,6 +8,7 @@ import { CustomerServiceBillingCta } from "../../../components/billing/CustomerS
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
 import { TkSwitchControl } from "../../../components/design-system/index.js";
+import { BadReviewReachoutContactLimit } from "./BadReviewReachoutContactLimit.js";
 import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
@@ -45,11 +46,13 @@ interface AiCustomerServiceTabProps {
   draftBadReviewReachoutEnabled: boolean;
   draftBadReviewReachoutStars: string;
   draftBadReviewReachoutRecentDays: string;
+  draftBadReviewReachoutMaxAttempts: string;
   savingReviewOptimizationSettings: boolean;
   onToggleReviewOptimizationEnabled: (value: boolean) => void;
   onToggleBadReviewReachoutEnabled: (value: boolean) => void;
   onDraftBadReviewReachoutStarsChange: (value: string) => void;
   onDraftBadReviewReachoutRecentDaysChange: (value: string) => void;
+  onDraftBadReviewReachoutMaxAttemptsChange: (value: string) => void;
   onSaveReviewOptimizationSettings: () => void;
   // Escalation
   savingEscalation: boolean;
@@ -93,11 +96,13 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   draftBadReviewReachoutEnabled,
   draftBadReviewReachoutStars,
   draftBadReviewReachoutRecentDays,
+  draftBadReviewReachoutMaxAttempts,
   savingReviewOptimizationSettings,
   onToggleReviewOptimizationEnabled,
   onToggleBadReviewReachoutEnabled,
   onDraftBadReviewReachoutStarsChange,
   onDraftBadReviewReachoutRecentDaysChange,
+  onDraftBadReviewReachoutMaxAttemptsChange,
   onSaveReviewOptimizationSettings,
   savingEscalation,
   draftEscalationChannel,
@@ -314,6 +319,15 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </div>
 
               <div className="shop-review-feature-settings">
+                <BadReviewReachoutContactLimit
+                  value={draftBadReviewReachoutMaxAttempts}
+                  onChange={onDraftBadReviewReachoutMaxAttemptsChange}
+                  disabled={
+                    !draftReviewOptimizationEnabled ||
+                    !draftBadReviewReachoutEnabled ||
+                    savingReviewOptimizationSettings
+                  }
+                />
                 <label className="shop-review-field">
                   <span className="form-label-block">
                     {t("ecommerce.shopDrawer.aiCS.badReviewReachoutStars")}

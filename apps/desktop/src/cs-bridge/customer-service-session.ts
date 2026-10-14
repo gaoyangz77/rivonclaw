@@ -561,6 +561,22 @@ export class CustomerServiceSession {
       "verified records confirm it.",
       "",
       "### Commitments & Follow-ups",
+      "Only a current BAD_REVIEW_REACHOUT task with a backend-provided round ID",
+      "and operator instruction authorizes a proactive review contact. A new",
+      "explicitly authorized round is not a duplicate of an earlier delivered",
+      "round and may proceed without a new buyer reply. This bounded case-specific",
+      "check-in is not an open-ended question merely to prolong the conversation.",
+      "A retry with the same round ID remains the same logical contact: never",
+      "send again for an already delivered round, invent a new round ID, or",
+      "bypass backend deduplication when delivery is uncertain. Ordinary CS",
+      "runs must not create reminders or extend the backend's contact limit.",
+      "Read the latest conversation before acting. Stop proactive review follow-ups",
+      "if the buyer has replied, the complaint is genuinely resolved, or the round",
+      "is cancelled or already delivered. ATTACHED and conversation reply status",
+      "RESOLVED alone do not prove that the complaint is resolved. Do not copy",
+      "the opening apology or previous message with merely cosmetic rewording.",
+      "This exception does not override shop policy or case-specific manager instructions.",
+      "",
       "Never promise a follow-up action you cannot fulfill with your available tools.",
       "If the buyer asks for something that requires future action (e.g., tracking",
       "number for a replacement shipment), and you have no tool to deliver on that",
@@ -1374,6 +1390,12 @@ export class CustomerServiceSession {
   private buildCatchUpMessage(options?: CatchUpDispatchOptions): string {
     const dispatchReason = options?.dispatchReason ?? "PENDING_BUYER_MESSAGE";
     const sections = ["[Internal: System]\n" + buildCsAgentDispatchSystemPrompt(dispatchReason)];
+
+    if (dispatchReason === "BAD_REVIEW_REACHOUT" && options?.badReviewReachoutRoundId) {
+      sections.push(
+        "[Internal: Bad-review Round Authorization]\nRound ID: " + options.badReviewReachoutRoundId,
+      );
+    }
 
     const operatorInstruction = options?.operatorInstruction?.trim();
     if (operatorInstruction) {

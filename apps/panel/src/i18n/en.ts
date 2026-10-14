@@ -5095,6 +5095,16 @@ export default {
         badReviewReachoutRecentDaysHint:
           "Only reviews created in the last N days need follow-up. Use 1 to 90.",
         reviewOptimizationInvalidStars: "Bad-review stars must be a whole number from 1 to 3.",
+        badReviewReachoutMaxAttempts: "Maximum contacts (including first)",
+        badReviewReachoutAttemptCount: "{{count}} contacts",
+        badReviewReachoutAttemptCount_one: "{{count}} contact",
+        badReviewReachoutAttemptCount_other: "{{count}} contacts",
+        badReviewReachoutSchedule1: "First contact only",
+        badReviewReachoutSchedule2: "First contact → follow up 4 hours later",
+        badReviewReachoutSchedule3: "First contact → follow up 4 hours later → final follow-up 8 hours after that",
+        badReviewReachoutTimingTooltip:
+          "Includes the first contact; only successful sends count. If the buyer has not replied, the second contact is eligible 4 hours after the first successful send, and the third 8 hours after the second. Buyer replies stop proactive follow-ups. Delivery depends on half-hourly scheduling, client availability, and eligibility. Lower limits constrain existing plans; higher limits apply only to new plans and never reactivate ended plans.",
+        reviewOptimizationInvalidMaxAttempts: "Maximum contacts must be 1, 2, or 3, including the first.",
         reviewOptimizationInvalidRecentDays: "Follow-up days must be a whole number from 1 to 90.",
       },
       affiliate: {

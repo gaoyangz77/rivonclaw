@@ -5665,6 +5665,8 @@ export interface AuthorizeWmsAccountInput {
 /** Bad-review customer-service reachout settings per shop */
 export interface BadReviewReachoutSettings {
   enabled: Scalars["Boolean"]["output"];
+  /** Maximum successful proactive contacts, including the first. Valid values: 1, 2, 3; default: 3. */
+  maxAttempts: Scalars["Int"]["output"];
   /** Only bad reviews created within this many days are eligible for customer-service reachout. Valid range: 1-90. */
   recentDays: Scalars["Int"]["output"];
   /** Reviews at or below this star rating are treated as bad reviews. Valid range: 1-3. */
@@ -5675,6 +5677,8 @@ export interface BadReviewReachoutSettings {
 export interface BadReviewReachoutSettingsInput {
   /** Bad-review reachout enabled flag. Omit or pass null to keep. */
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Maximum successful proactive contacts including the first (1-3). Increasing applies only to new plans. */
+  maxAttempts?: InputMaybe<Scalars["Int"]["input"]>;
   /** Recent-review reachout window in days. Valid range: 1-90. Omit or pass null to keep. */
   recentDays?: InputMaybe<Scalars["Int"]["input"]>;
   /** Bad-review star threshold. Valid range: 1-3. Omit or pass null to keep. */

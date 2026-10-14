@@ -1347,13 +1347,26 @@ describe("agent dispatch", () => {
     expect(prompt).toContain("highest-priority");
     expect(prompt).toContain("overrides general customer-service and store instructions");
     expect(prompt).toContain("Authorization alone is not execution capability");
-    expect(prompt).toContain("After a successful cs_escalate call, send a concise buyer-facing progress");
+    expect(prompt).toContain(
+      "After a successful cs_escalate call, send a concise buyer-facing progress",
+    );
     expect(prompt).toContain("update in the same run");
     expect(prompt).toContain("do not claim the request was submitted");
-    expect(prompt).toContain("An interim manager response is a progress update, not a final resolution");
+    expect(prompt).toContain(
+      "An interim manager response is a progress update, not a final resolution",
+    );
     expect(prompt).toContain("Approval is not proof of execution");
     expect(prompt).toContain("an approved refund is not a completed refund");
     expect(prompt).toContain("is not a shipped replacement");
+    expect(prompt).toContain(
+      "Only a current BAD_REVIEW_REACHOUT task with a backend-provided round ID",
+    );
+    expect(prompt).toContain("A retry with the same round ID remains the same logical contact");
+    expect(prompt).toContain("Ordinary CS\nruns must not create reminders");
+    expect(prompt).toContain("RESOLVED alone do not prove that the complaint is resolved");
+    expect(prompt).toContain(
+      "This exception does not override shop policy or case-specific manager instructions",
+    );
   });
 
   it("dispatchCatchUp appends operator instruction as a separate internal block", async () => {
@@ -1378,6 +1391,7 @@ describe("agent dispatch", () => {
     expect(message).toContain("Use the provided dispatch context and local session context");
     expect(message).toContain("[Internal: Operator Instruction]");
     expect(message).toContain("This refund request looks unreasonable.");
+    expect(message).not.toContain("[Internal: Bad-review Round Authorization]");
   });
 
   it("binds bad-review send tokens to the dispatched run, including sensitive rewrites", async () => {
@@ -1417,6 +1431,18 @@ describe("agent dispatch", () => {
       dispatchEventTime: "2026-10-13T12:00:00Z",
       operatorInstruction: "Send a considerate reminder",
     });
+    const reviewAgentCall = mockRpcRequest.mock.calls.findLast(
+      (call: any[]) => call[0] === "agent",
+    );
+    expect(reviewAgentCall?.[1].message).toContain(
+      "[Internal: Bad-review Round Authorization]\nRound ID: 64f000000000000000000905",
+    );
+    expect(reviewAgentCall?.[1].message).toContain(
+      "An explicitly backend-authorized new round is not a duplicate send",
+    );
+    expect(reviewAgentCall?.[1].message).toContain(
+      "A retry with the same round ID is the same logical contact",
+    );
     const session = await bridge.getOrCreateSession(defaultShop.objectId, {
       conversationId: "conv-review-token",
     });

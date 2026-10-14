@@ -116,6 +116,7 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
                 enabled
                 stars
                 recentDays
+                maxAttempts
               }
             }
           }
@@ -204,6 +205,7 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
               enabled
               stars
               recentDays
+              maxAttempts
             }
           }
         }

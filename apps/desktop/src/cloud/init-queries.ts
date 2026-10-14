@@ -194,6 +194,7 @@ export const INIT_SHOPS_QUERY = `
               enabled
               stars
               recentDays
+              maxAttempts
             }
           }
         }

@@ -50,6 +50,7 @@ interface ShopUpdateInput {
           enabled?: boolean;
           stars?: number;
           recentDays?: number;
+          maxAttempts?: number;
         };
       } | null;
     };
