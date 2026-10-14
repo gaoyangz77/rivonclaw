@@ -9009,9 +9009,15 @@ export interface EcomOrderSummary {
 /** Tracking info for an order */
 export interface EcomOrderTracking {
   events?: Maybe<Array<EcomTrackingEvent>>;
-  /** Human-readable description of the most recent tracking event — the `description` of the entry with the greatest `updateTimeMillis` in `events`. This is free-form carrier text (e.g. "Order packed and ready for pickup."), not a standardized status enum. TikTok does not expose a separate status enum on either tracking endpoint. */
+  /** Raw event code of the most recent timestamped tracking event. */
+  latestEventActionCode?: Maybe<Scalars["Int"]["output"]>;
+  /** Human-readable description of the most recent tracking event — the `description` of the entry with the greatest `updateTimeMillis` in `events`. Preserve the accompanying raw actionCode when interpreting this free-form carrier text. */
   latestEventDescription?: Maybe<Scalars["String"]["output"]>;
   orderId?: Maybe<Scalars["String"]["output"]>;
+  /** Current platform order status, read alongside the tracking timeline. */
+  orderStatus?: Maybe<Scalars["String"]["output"]>;
+  /** Platform order update time in Unix seconds. */
+  orderUpdateTime?: Maybe<Scalars["Int"]["output"]>;
   /** Name of the shipping carrier (e.g. 'USPS', 'FedEx'). Sourced from the order record (Get Order) and composed in at Layer 2. */
   shippingProvider?: Maybe<Scalars["String"]["output"]>;
   /** Carrier tracking number. Sourced from the order record (Get Order) and composed into this tracking payload at Layer 2 — the TikTok Get Tracking endpoint does not return it. */
@@ -9518,6 +9524,8 @@ export interface EcomTargetCollaborationUpdateFailed {
 
 /** Tracking event */
 export interface EcomTrackingEvent {
+  /** Raw platform logistics event code (TikTok action_code). */
+  actionCode?: Maybe<Scalars["Int"]["output"]>;
   description?: Maybe<Scalars["String"]["output"]>;
   /** Update time in Unix milliseconds (TikTok returns `update_time_millis`; preserved as-is). Float because millis exceed 32-bit Int range. */
   updateTimeMillis?: Maybe<Scalars["Float"]["output"]>;
