@@ -254,24 +254,26 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
         </div>
       </section>
       <section
-        id="shop-workspace-aiCustomerService-unpaid-reachout"
+        id="shop-workspace-aiCustomerService-reminders"
         className="shop-workspace-section"
       >
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.unpaidReachout")}</div>
-        <UnpaidOrderReachoutSettings
-          shop={shop}
-          enabled={draftUnpaidReachoutEnabled}
-          stages={draftUnpaidReachoutStages}
-          evaluationEnabled={draftUnpaidExperimentEnabled}
-          holdoutPercent={draftUnpaidHoldoutPercent}
-          onEnabledChange={onToggleUnpaidReachoutEnabled}
-          onStagesChange={onDraftUnpaidReachoutStagesChange}
-          onEvaluationEnabledChange={onDraftUnpaidExperimentEnabledChange}
-          onHoldoutPercentChange={onDraftUnpaidHoldoutPercentChange}
-        />
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.reminders")}</div>
+        <section id="shop-workspace-aiCustomerService-unpaid-reachout">
+          <div className="drawer-section-label">{t("ecommerce.shopDrawer.aiCS.unpaidReachout")}</div>
+          <UnpaidOrderReachoutSettings
+            shop={shop}
+            enabled={draftUnpaidReachoutEnabled}
+            stages={draftUnpaidReachoutStages}
+            evaluationEnabled={draftUnpaidExperimentEnabled}
+            holdoutPercent={draftUnpaidHoldoutPercent}
+            onEnabledChange={onToggleUnpaidReachoutEnabled}
+            onStagesChange={onDraftUnpaidReachoutStagesChange}
+            onEvaluationEnabledChange={onDraftUnpaidExperimentEnabledChange}
+            onHoldoutPercentChange={onDraftUnpaidHoldoutPercentChange}
+          />
+        </section>
+        <PickupReminderSettings shopId={shop.id} />
       </section>
-
-      <PickupReminderSettings shopId={shop.id} />
 
       {SHOW_REVIEW_MANAGEMENT_SETTINGS && (
         <section

@@ -248,8 +248,8 @@ export const ShopDrawer = observer(function ShopDrawer({
               label: t("ecommerce.shopDrawer.aiCS.csModelOverride"),
             },
             {
-              id: workspaceSectionId(activeTab, "unpaid-reachout"),
-              label: t("ecommerce.shopDrawer.aiCS.unpaidReachout"),
+              id: workspaceSectionId(activeTab, "reminders"),
+              label: t("ecommerce.shopDrawer.aiCS.reminders"),
             },
             ...(SHOW_REVIEW_MANAGEMENT_SETTINGS
               ? [

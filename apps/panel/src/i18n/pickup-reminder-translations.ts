@@ -1,6 +1,20 @@
+import type { SupportedLanguageCode } from "./languages.js";
+
+interface ReminderTranslations {
+  ecommerce: {
+    shopDrawer: { aiCS: { reminders: string } };
+    pickupReminder: { title: string; enabled: string; hint: string; saveFailed: string };
+  };
+}
+
 export const PICKUP_REMINDER_TRANSLATIONS = {
   "en": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "Reminders"
+        }
+      },
       "pickupReminder": {
         "title": "Pickup reminders",
         "enabled": "Remind buyers to collect their orders",
@@ -11,6 +25,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "zh": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "提醒"
+        }
+      },
       "pickupReminder": {
         "title": "自提提醒",
         "enabled": "提醒买家领取自提订单",
@@ -21,6 +40,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "de": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "Erinnerungen"
+        }
+      },
       "pickupReminder": {
         "title": "Abholerinnerungen",
         "enabled": "Käufer an die Abholung erinnern",
@@ -31,6 +55,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "es": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "Recordatorios"
+        }
+      },
       "pickupReminder": {
         "title": "Recordatorios de recogida",
         "enabled": "Recordar a los compradores que recojan sus pedidos",
@@ -41,6 +70,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "fr": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "Rappels"
+        }
+      },
       "pickupReminder": {
         "title": "Rappels de retrait",
         "enabled": "Rappeler aux acheteurs de retirer leurs commandes",
@@ -51,6 +85,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "id": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "Pengingat"
+        }
+      },
       "pickupReminder": {
         "title": "Pengingat pengambilan",
         "enabled": "Ingatkan pembeli untuk mengambil pesanan",
@@ -61,6 +100,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "it": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "Promemoria"
+        }
+      },
       "pickupReminder": {
         "title": "Promemoria di ritiro",
         "enabled": "Ricorda agli acquirenti di ritirare gli ordini",
@@ -71,6 +115,11 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
   },
   "th": {
     "ecommerce": {
+      "shopDrawer": {
+        "aiCS": {
+          "reminders": "การแจ้งเตือน"
+        }
+      },
       "pickupReminder": {
         "title": "แจ้งเตือนรับพัสดุ",
         "enabled": "เตือนผู้ซื้อให้รับคำสั่งซื้อ",
@@ -79,4 +128,4 @@ export const PICKUP_REMINDER_TRANSLATIONS = {
       }
     }
   }
-} as const;
+} as const satisfies Record<SupportedLanguageCode, ReminderTranslations>;

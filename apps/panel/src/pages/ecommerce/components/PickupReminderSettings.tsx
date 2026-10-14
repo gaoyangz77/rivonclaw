@@ -20,7 +20,7 @@ export const PickupReminderSettings = observer(function PickupReminderSettings({
     catch { setError(t('ecommerce.pickupReminder.saveFailed')); }
     finally { setSaving(false); }
   }
-  return <section className="shop-workspace-section" id="shop-workspace-aiCustomerService-pickup-reminder">
+  return <section id="shop-workspace-aiCustomerService-pickup-reminder">
     <div className="drawer-section-label">{t('ecommerce.pickupReminder.title')}</div>
     <TkPanel padding="none"><TkPanelBody>
       <TkSwitch checked={draftEnabled} onChange={setDraftEnabled} disabled={saving || !csEnabled}
