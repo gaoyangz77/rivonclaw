@@ -4226,6 +4226,18 @@ export default {
         noData: "Aucune donnée de session disponible.",
       },
       aiCS: {
+        badReviewReachoutMaxAttempts: "Nombre maximal de contacts (premier inclus)",
+        badReviewReachoutAttemptCount: "{{count}} contacts",
+        badReviewReachoutAttemptCount_one: "{{count}} contact",
+        badReviewReachoutAttemptCount_other: "{{count}} contacts",
+        badReviewReachoutSchedule1: "Premier contact uniquement",
+        badReviewReachoutSchedule2: "Premier contact → relance 4 heures plus tard",
+        badReviewReachoutSchedule3:
+          "Premier contact → relance 4 heures plus tard → dernière relance 8 heures après",
+        badReviewReachoutTimingTooltip:
+          "Le premier contact est inclus ; seuls les envois réussis sont comptés. Sans réponse de l’acheteur, le deuxième contact est possible au plus tôt 4 heures après le premier envoi réussi, et le troisième 8 heures après le deuxième. Une réponse de l’acheteur arrête les relances proactives. L’envoi dépend de la planification toutes les demi-heures, de la disponibilité du client et des conditions d’envoi. Une limite réduite restreint les plans existants ; une limite augmentée ne concerne que les nouveaux plans et ne réactive jamais les plans terminés.",
+        reviewOptimizationInvalidMaxAttempts:
+          "Le maximum doit être de 1, 2 ou 3 contacts, premier contact inclus.",
         serviceStatus: "Statut du service",
         businessPrompt: "Invite commerciale",
         credits: "Utilisation",

@@ -4155,6 +4155,18 @@ export default {
         noData: "Tidak ada data sesi yang tersedia.",
       },
       aiCS: {
+        badReviewReachoutMaxAttempts: "Kontak maksimum (termasuk yang pertama)",
+        badReviewReachoutAttemptCount: "{{count}} kali",
+        badReviewReachoutAttemptCount_one: "{{count}} kali",
+        badReviewReachoutAttemptCount_other: "{{count}} kali",
+        badReviewReachoutSchedule1: "Hanya kontak pertama",
+        badReviewReachoutSchedule2: "Kontak pertama → tindak lanjut 4 jam kemudian",
+        badReviewReachoutSchedule3:
+          "Kontak pertama → tindak lanjut 4 jam kemudian → tindak lanjut terakhir 8 jam setelahnya",
+        badReviewReachoutTimingTooltip:
+          "Termasuk kontak pertama; hanya pengiriman yang berhasil yang dihitung. Jika pembeli belum membalas, kontak kedua dapat dilakukan paling cepat 4 jam setelah pengiriman pertama berhasil, dan kontak ketiga 8 jam setelah yang kedua. Balasan pembeli menghentikan tindak lanjut proaktif. Pengiriman bergantung pada penjadwalan setiap setengah jam, ketersediaan aplikasi klien, dan kelayakan pengiriman. Batas yang lebih rendah membatasi rencana yang ada; batas yang lebih tinggi hanya berlaku untuk rencana baru dan tidak mengaktifkan kembali rencana yang telah berakhir.",
+        reviewOptimizationInvalidMaxAttempts:
+          "Kontak maksimum harus 1, 2, atau 3 kali, termasuk yang pertama.",
         serviceStatus: "Status Layanan",
         businessPrompt: "Perintah Bisnis",
         credits: "Penggunaan",

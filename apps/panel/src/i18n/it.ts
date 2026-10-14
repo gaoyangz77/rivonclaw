@@ -4208,6 +4208,18 @@ export default {
         noData: "Nessun dato di sessione disponibile.",
       },
       aiCS: {
+        badReviewReachoutMaxAttempts: "Numero massimo di contatti (incluso il primo)",
+        badReviewReachoutAttemptCount: "{{count}} contatti",
+        badReviewReachoutAttemptCount_one: "{{count}} contatto",
+        badReviewReachoutAttemptCount_other: "{{count}} contatti",
+        badReviewReachoutSchedule1: "Solo il primo contatto",
+        badReviewReachoutSchedule2: "Primo contatto → ricontatto dopo 4 ore",
+        badReviewReachoutSchedule3:
+          "Primo contatto → ricontatto dopo 4 ore → ultimo ricontatto dopo altre 8 ore",
+        badReviewReachoutTimingTooltip:
+          "Il primo contatto è incluso; vengono conteggiati solo gli invii riusciti. Se l’acquirente non risponde, il secondo contatto è possibile non prima di 4 ore dal primo invio riuscito e il terzo 8 ore dopo il secondo. Le risposte dell’acquirente interrompono i ricontatti proattivi. L’invio dipende dalla pianificazione ogni mezz’ora, dalla disponibilità del client e dai requisiti di invio. Limiti inferiori restringono i piani esistenti; limiti superiori si applicano solo ai nuovi piani e non riattivano quelli terminati.",
+        reviewOptimizationInvalidMaxAttempts:
+          "Il numero massimo deve essere di 1, 2 o 3 contatti, incluso il primo.",
         serviceStatus: "Stato del servizio",
         businessPrompt: "Richiesta aziendale",
         credits: "Utilizzo",

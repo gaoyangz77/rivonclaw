@@ -4226,6 +4226,18 @@ export default {
         noData: "Keine Sitzungsdaten verfügbar.",
       },
       aiCS: {
+        badReviewReachoutMaxAttempts: "Maximale Kontakte (einschließlich Erstkontakt)",
+        badReviewReachoutAttemptCount: "{{count}} Kontakte",
+        badReviewReachoutAttemptCount_one: "{{count}} Kontakt",
+        badReviewReachoutAttemptCount_other: "{{count}} Kontakte",
+        badReviewReachoutSchedule1: "Nur Erstkontakt",
+        badReviewReachoutSchedule2: "Erstkontakt → nach 4 Stunden erneut kontaktieren",
+        badReviewReachoutSchedule3:
+          "Erstkontakt → nach 4 Stunden erneut kontaktieren → weitere 8 Stunden später letztmalig kontaktieren",
+        badReviewReachoutTimingTooltip:
+          "Der Erstkontakt zählt mit; nur erfolgreich gesendete Nachrichten werden gezählt. Ohne Käuferantwort ist der zweite Kontakt frühestens 4 Stunden nach dem ersten erfolgreichen Versand möglich, der dritte frühestens 8 Stunden nach dem zweiten. Käuferantworten beenden proaktive Nachfassaktionen. Der Versand hängt von der halbstündlichen Planung, der Verfügbarkeit des Clients und der Versandberechtigung ab. Niedrigere Grenzen beschränken bestehende Pläne; höhere gelten nur für neue Pläne und reaktivieren keine beendeten Pläne.",
+        reviewOptimizationInvalidMaxAttempts:
+          "Die maximale Kontaktzahl muss einschließlich Erstkontakt 1, 2 oder 3 betragen.",
         serviceStatus: "Servicestatus",
         businessPrompt: "Geschäftsaufforderung",
         credits: "Nutzung",

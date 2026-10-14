@@ -4846,6 +4846,8 @@ export default {
         badReviewReachoutRecentDaysHint: "只跟进最近 N 天创建的差评。请输入 1 到 90。",
         badReviewReachoutMaxAttempts: "最多触达次数（含首次）",
         badReviewReachoutAttemptCount: "{{count}} 次",
+        badReviewReachoutAttemptCount_one: "{{count}} 次",
+        badReviewReachoutAttemptCount_other: "{{count}} 次",
         badReviewReachoutSchedule1: "仅首次联系",
         badReviewReachoutSchedule2: "首次联系 → 4 小时后再次跟进",
         badReviewReachoutSchedule3: "首次联系 → 4 小时后再次跟进 → 再隔 8 小时最后跟进",

@@ -4215,6 +4215,18 @@ export default {
         noData: "No hay datos de sesión disponibles.",
       },
       aiCS: {
+        badReviewReachoutMaxAttempts: "Contactos máximos (incluido el primero)",
+        badReviewReachoutAttemptCount: "{{count}} contactos",
+        badReviewReachoutAttemptCount_one: "{{count}} contacto",
+        badReviewReachoutAttemptCount_other: "{{count}} contactos",
+        badReviewReachoutSchedule1: "Solo el primer contacto",
+        badReviewReachoutSchedule2: "Primer contacto → seguimiento 4 horas después",
+        badReviewReachoutSchedule3:
+          "Primer contacto → seguimiento 4 horas después → último seguimiento 8 horas más tarde",
+        badReviewReachoutTimingTooltip:
+          "Incluye el primer contacto; solo cuentan los envíos correctos. Si el comprador no responde, el segundo contacto puede realizarse como mínimo 4 horas después del primer envío correcto, y el tercero 8 horas después del segundo. Las respuestas del comprador detienen los seguimientos proactivos. El envío depende de la programación cada media hora, la disponibilidad del cliente y los requisitos de envío. Reducir el límite restringe los planes existentes; aumentarlo solo se aplica a los nuevos y nunca reactiva planes finalizados.",
+        reviewOptimizationInvalidMaxAttempts:
+          "El máximo debe ser de 1, 2 o 3 contactos, incluido el primero.",
         serviceStatus: "Estado del servicio",
         businessPrompt: "Aviso comercial",
         credits: "Uso",
