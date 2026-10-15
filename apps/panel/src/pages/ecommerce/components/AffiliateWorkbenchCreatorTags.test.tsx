@@ -84,6 +84,7 @@ function sampleRow(index: number) {
       firstObservedAt: "2026-09-01T00:00:00.000Z",
       lastObservedAt: "2026-09-01T00:00:00.000Z",
       projectionRevision: 1,
+      order: null,
     },
     proposal: null,
   };

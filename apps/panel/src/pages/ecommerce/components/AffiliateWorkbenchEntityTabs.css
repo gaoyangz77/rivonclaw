@@ -151,3 +151,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.affiliate-workbench-sample-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--tk-v1-space-2);
+}

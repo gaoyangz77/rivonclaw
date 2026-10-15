@@ -4123,6 +4123,9 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       firstObservedAt
       lastObservedAt
       projectionRevision
+      order {
+        platformOrderId
+      }
     }
     proposal {
       id

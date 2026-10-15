@@ -44,6 +44,7 @@ import { creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
 import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
+import { AffiliateSampleOrderCopyButton } from "./AffiliateSampleOrderCopyButton.js";
 import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
@@ -776,8 +777,13 @@ function AffiliateWorkbenchSampleList({
                         </div>
                       </td>
                       <td>
-                        <div className="affiliate-workbench-cell-chevron" aria-hidden="true">
-                          ›
+                        <div className="affiliate-workbench-sample-actions">
+                          <AffiliateSampleOrderCopyButton
+                            orderId={row.sampleApplication.order?.platformOrderId}
+                          />
+                          <span className="affiliate-workbench-cell-chevron" aria-hidden="true">
+                            ›
+                          </span>
                         </div>
                       </td>
                     </>
