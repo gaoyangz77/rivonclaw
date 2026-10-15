@@ -23,16 +23,19 @@ export function affiliateWorkbenchBdOptions(
   developers: readonly Pick<GQL.AffiliateBusinessDeveloper, "id" | "displayName">[],
   labels: { all: string; own: string; public: string },
 ) {
+  const publicOption = {
+    value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
+    label: labels.public,
+  };
+  if (bdOnly) {
+    return [{ value: AFFILIATE_WORKBENCH_MY_BD_VALUE, label: labels.own }, publicOption];
+  }
   return [
-    ...(bdOnly
-      ? [{ value: AFFILIATE_WORKBENCH_MY_BD_VALUE, label: labels.own }]
-      : [
-          { value: "", label: labels.all },
-          ...developers
-            .slice()
-            .sort((a, b) => a.displayName.localeCompare(b.displayName))
-            .map((bd) => ({ value: bd.id, label: bd.displayName })),
-        ]),
-    { value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE, label: labels.public },
+    publicOption,
+    { value: "", label: labels.all },
+    ...developers
+      .slice()
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .map((bd) => ({ value: bd.id, label: bd.displayName })),
   ];
 }

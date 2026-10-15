@@ -19,10 +19,10 @@ describe("single-scope workbench BD filter", () => {
       { value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE, label: "Public" },
     ]);
   });
-  it("offers all, one developer or public to supervisors", () => {
+  it("puts public first, then all and sorted developers for supervisors", () => {
     expect(
       affiliateWorkbenchBdOptions(false, developers, labels).map((option) => option.value),
-    ).toEqual(["", "a", "b", AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE]);
+    ).toEqual([AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE, "", "a", "b"]);
   });
   it("never passes UI sentinels as ObjectIds or combines public with a BD", () => {
     expect(affiliateWorkbenchBdInput(AFFILIATE_WORKBENCH_MY_BD_VALUE)).toEqual({
