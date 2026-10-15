@@ -9649,6 +9649,14 @@ export interface EcomUpdateTargetCollaborationResult {
   updateFailed?: Maybe<EcomTargetCollaborationUpdateFailed>;
 }
 
+/** Independent shop settings outcomes in the same order as shopIds. */
+export interface EcommerceBatchShopSettingsResult {
+  failureCount: Scalars["Int"]["output"];
+  results: Array<EcommerceShopSettingsOutcome>;
+  successCount: Scalars["Int"]["output"];
+  totalCount: Scalars["Int"]["output"];
+}
+
 export interface EcommerceDiagnoseOptimizeProductInput {
   brandId?: InputMaybe<Scalars["String"]["input"]>;
   categoryId: Scalars["String"]["input"];
@@ -9889,6 +9897,15 @@ export interface EcommerceRecommendProductCategoryInput {
   includeProhibitedCategories?: InputMaybe<Scalars["Boolean"]["input"]>;
   listingPlatform?: InputMaybe<Scalars["String"]["input"]>;
   productTitle: Scalars["String"]["input"];
+}
+
+/** Per-shop outcome. A failure is not a rollback guarantee; re-read before retrying. */
+export interface EcommerceShopSettingsOutcome {
+  /** Human-readable confirmation message */
+  message?: Maybe<Scalars["String"]["output"]>;
+  /** Shop ID that was updated */
+  shopId: Scalars["String"]["output"];
+  success: Scalars["Boolean"]["output"];
 }
 
 export interface EcommerceTtsTrackingValidationResult {
@@ -11253,8 +11270,10 @@ export interface Mutation {
   /** Mark a conversation as read. Returns true on success. */
   ecommerceMarkConversationRead: Scalars["Boolean"]["output"];
   ecommercePartialEditProduct: EcommercePassthroughResult;
-  /** Update shop settings (agent-facing, flat params) */
+  /** Single-shop masked compatibility endpoint; agents use ecommercePatchShopsSettings. */
   ecommercePatchShopSettings: EcommerceUpdateShopResult;
+  /** Apply one masked settings patch to 1–50 shops with independent per-shop outcomes. */
+  ecommercePatchShopsSettings: EcommerceBatchShopSettingsResult;
   ecommerceRecommendProductCategory: EcommercePassthroughResult;
   ecommerceRecoverProducts: EcommercePassthroughResult;
   ecommerceReplaceCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
@@ -11928,6 +11947,19 @@ export interface MutationEcommercePatchShopSettingsArgs {
   customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
   region?: InputMaybe<ShopRegion>;
   shopId: Scalars["String"]["input"];
+  shopName?: InputMaybe<Scalars["String"]["input"]>;
+  timezone?: InputMaybe<Scalars["String"]["input"]>;
+  timezoneSource?: InputMaybe<ShopTimezoneSource>;
+  updateMask: Array<Scalars["String"]["input"]>;
+  wmsSettings?: InputMaybe<WmsSettingsInput>;
+}
+
+export interface MutationEcommercePatchShopsSettingsArgs {
+  affiliateServiceSettings?: InputMaybe<AffiliateServiceSettingsInput>;
+  alias?: InputMaybe<Scalars["String"]["input"]>;
+  customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
+  region?: InputMaybe<ShopRegion>;
+  shopIds: Array<Scalars["String"]["input"]>;
   shopName?: InputMaybe<Scalars["String"]["input"]>;
   timezone?: InputMaybe<Scalars["String"]["input"]>;
   timezoneSource?: InputMaybe<ShopTimezoneSource>;
