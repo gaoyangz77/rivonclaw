@@ -20,6 +20,7 @@ import { AFFILIATE_CREATOR_SCOPE_TRANSLATIONS } from "./affiliate-creator-scope-
 import { AFFILIATE_NO_ACTION_GATE_TRANSLATIONS } from "./affiliate-no-action-gate-translations.js";
 import { AFFILIATE_DELIVERED_MESSAGE_TRANSLATIONS } from "./affiliate-delivered-message-translations.js";
 import { AFFILIATE_ACTOR_TRANSLATIONS } from "./affiliate-actor-translations.js";
+import { AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS } from "./affiliate-message-send-error-translations.js";
 import { AFFILIATE_COLLABORATION_OPERATION_TRANSLATIONS } from "./affiliate-collaboration-operations-translations.js";
 import { GOOGLE_AUTH_TRANSLATIONS } from "./google-auth-translations.js";
 import { BROWSER_AUTH_TRANSLATIONS } from "./browser-auth-translations.js";
@@ -539,6 +540,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
     resource: mergeTranslationResources(
       language.resource as TranslationResourceRecord,
       AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
+      AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS[language.code],
       TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
       TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
       TUTORIAL_OCTOBER_TRANSLATIONS[language.code],

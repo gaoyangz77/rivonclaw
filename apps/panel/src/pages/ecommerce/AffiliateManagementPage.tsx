@@ -1,4 +1,5 @@
 import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExportButton.js";
+import { AffiliateMessageSendError } from "./components/AffiliateMessageSendError.js";
 import {
   useCallback,
   useEffect,
@@ -10467,6 +10468,7 @@ function CreatorRelationshipDetailContent({
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageSendError, setMessageSendError] = useState<string | null>(null);
   const [markingConversationHandled, setMarkingConversationHandled] = useState(false);
   const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] =
     useState(replyToLifecycleEventId);
@@ -10506,6 +10508,9 @@ function CreatorRelationshipDetailContent({
   useEffect(() => {
     setPendingReplyToLifecycleEventId(replyToLifecycleEventId);
   }, [relationshipId, replyToLifecycleEventId]);
+  useEffect(() => {
+    setMessageSendError(null);
+  }, [relationshipId, composerShopId, composerChannel, composerContactId]);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const desktopInspector = window.matchMedia("(min-width: 1081px)");
@@ -10989,6 +10994,7 @@ function CreatorRelationshipDetailContent({
       })),
     );
     if (!parts.length) return;
+    setMessageSendError(null);
     setSendingMessage(true);
     try {
       const result = await sendAffiliateCreatorMessage({
@@ -11020,7 +11026,7 @@ function CreatorRelationshipDetailContent({
       onWorkbenchEntityChanged?.();
       showToast(t("ecommerce.affiliateWorkspace.messageSubmitted"), "success");
     } catch (error) {
-      showToast(error instanceof Error ? error.message : String(error), "error");
+      setMessageSendError(error instanceof Error ? error.message : String(error));
     } finally {
       setSendingMessage(false);
     }
@@ -12485,6 +12491,12 @@ function CreatorRelationshipDetailContent({
                         />
                       ) : null}
                     </div>
+                    {messageSendError ? (
+                      <AffiliateMessageSendError
+                        message={messageSendError}
+                        onDismiss={() => setMessageSendError(null)}
+                      />
+                    ) : null}
                     <textarea
                       className="form-input affiliate-message-composer-text"
                       value={composerText}
