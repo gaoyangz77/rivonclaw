@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.31",
+    "date": "2026-10-15",
+    "en": [
+      "Filter the Affiliate workbench by site and shop, view handled conversations, and configure the seller's unreplied message window",
+      "Keep proposal review states in sync, show sample order IDs, and clarify TikTok message restrictions",
+      "Use the desktop language for customer service escalation content"
+    ],
+    "zh": [
+      "达人工作台支持站点与店铺筛选、查看已处理会话，并可配置卖家待回复消息时间窗口",
+      "同步提案审核状态，展示样品订单编号，并完善 TikTok 消息限制提示",
+      "客服升级内容跟随桌面端语言设置"
+    ]
+  },
+  {
     "version": "1.9.30",
     "date": "2026-10-14",
     "en": [
