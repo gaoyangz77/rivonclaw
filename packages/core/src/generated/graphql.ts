@@ -11253,6 +11253,8 @@ export interface Mutation {
   /** Mark a conversation as read. Returns true on success. */
   ecommerceMarkConversationRead: Scalars["Boolean"]["output"];
   ecommercePartialEditProduct: EcommercePassthroughResult;
+  /** Update shop settings (agent-facing, flat params) */
+  ecommercePatchShopSettings: EcommerceUpdateShopResult;
   ecommerceRecommendProductCategory: EcommercePassthroughResult;
   ecommerceRecoverProducts: EcommercePassthroughResult;
   ecommerceReplaceCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
@@ -11276,7 +11278,10 @@ export interface Mutation {
   ecommerceUpdateOrderShippingInfo: EcommercePassthroughResult;
   ecommerceUpdatePackageShippingInfo: EcommercePassthroughResult;
   ecommerceUpdateProductPrice: EcommercePassthroughResult;
-  /** Update shop settings (agent-facing, flat params) */
+  /**
+   * Legacy alias-only endpoint for already released Desktop clients.
+   * @deprecated Use ecommercePatchShopSettings with explicit updateMask for shop configuration.
+   */
   ecommerceUpdateShop: EcommerceUpdateShopResult;
   ecommerceUploadProductImage: EcommerceProductImageUploadResult;
   /** Activate, edit, or deactivate a product-level Open Collaboration sample rule. */
@@ -11917,6 +11922,19 @@ export interface MutationEcommercePartialEditProductArgs {
   shopId: Scalars["ID"]["input"];
 }
 
+export interface MutationEcommercePatchShopSettingsArgs {
+  affiliateServiceSettings?: InputMaybe<AffiliateServiceSettingsInput>;
+  alias?: InputMaybe<Scalars["String"]["input"]>;
+  customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
+  region?: InputMaybe<ShopRegion>;
+  shopId: Scalars["String"]["input"];
+  shopName?: InputMaybe<Scalars["String"]["input"]>;
+  timezone?: InputMaybe<Scalars["String"]["input"]>;
+  timezoneSource?: InputMaybe<ShopTimezoneSource>;
+  updateMask: Array<Scalars["String"]["input"]>;
+  wmsSettings?: InputMaybe<WmsSettingsInput>;
+}
+
 export interface MutationEcommerceRecommendProductCategoryArgs {
   input: EcommerceRecommendProductCategoryInput;
   shopId: Scalars["ID"]["input"];
@@ -12018,15 +12036,9 @@ export interface MutationEcommerceUpdateProductPriceArgs {
 }
 
 export interface MutationEcommerceUpdateShopArgs {
-  affiliateServiceSettings?: InputMaybe<AffiliateServiceSettingsInput>;
   alias?: InputMaybe<Scalars["String"]["input"]>;
   customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
-  region?: InputMaybe<ShopRegion>;
   shopId: Scalars["String"]["input"];
-  shopName?: InputMaybe<Scalars["String"]["input"]>;
-  timezone?: InputMaybe<Scalars["String"]["input"]>;
-  timezoneSource?: InputMaybe<ShopTimezoneSource>;
-  updateMask: Array<Scalars["String"]["input"]>;
   wmsSettings?: InputMaybe<WmsSettingsInput>;
 }
 
