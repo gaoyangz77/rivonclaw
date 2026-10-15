@@ -1369,6 +1369,64 @@ describe("agent dispatch", () => {
     );
   });
 
+  it.each([
+    ["zh", "Chinese"],
+    ["zh-CN", "Chinese"],
+    ["zh_TW", "Chinese"],
+    ["en", "English"],
+    ["de", "German"],
+    ["es", "Spanish"],
+    ["fr", "French"],
+    ["id", "Indonesian"],
+    ["it", "Italian"],
+    ["th", "Thai"],
+    [undefined, "English"],
+  ])("uses Desktop locale %s for internal escalation language %s", async (locale, language) => {
+    const bridge = createBridge({ locale });
+    bridge.setShopContext({
+      ...defaultShop,
+      systemPrompt: "Reply to Spanish-speaking buyers in Spanish.",
+    });
+
+    await triggerMessage(bridge, createFrame({ content: JSON.stringify({ content: "Hola" }) }));
+
+    const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
+    const prompt = agentCall![1].extraSystemPrompt as string;
+    expect(prompt).toContain(`- Merchant language (Desktop): ${language}`);
+    expect(prompt).toContain(
+      "Write cs_escalate reason and context in the Merchant language (Desktop)",
+    );
+    expect(prompt).toContain("regardless of the buyer's language or shop language instructions");
+    expect(prompt).toContain("buyer-facing replies must remain in the buyer's language");
+    expect(prompt).toContain("Reply to Spanish-speaking buyers in Spanish.");
+  });
+
+  it("refreshes escalation language on the next dispatch of an existing session", async () => {
+    const bridge = createBridge({ locale: "zh" });
+    bridge.setShopContext(defaultShop);
+    const session = await bridge.getOrCreateSession(defaultShop.objectId, {
+      conversationId: "conv-locale-change",
+    });
+
+    await session.dispatchCatchUp();
+    const firstCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
+    expect(firstCall![1].extraSystemPrompt).toContain("- Merchant language (Desktop): Chinese");
+
+    bridge.updateLocale("de-DE");
+    await session.dispatchCatchUp();
+
+    const secondCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
+    expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent")).toHaveLength(2);
+    expect(
+      mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "cs_register_session"),
+    ).toHaveLength(1);
+    expect(secondCall![1].sessionKey).toBe(firstCall![1].sessionKey);
+    expect(secondCall![1].extraSystemPrompt).toContain("- Merchant language (Desktop): German");
+    expect(secondCall![1].extraSystemPrompt).not.toContain(
+      "- Merchant language (Desktop): Chinese",
+    );
+  });
+
   it("dispatchCatchUp appends operator instruction as a separate internal block", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);

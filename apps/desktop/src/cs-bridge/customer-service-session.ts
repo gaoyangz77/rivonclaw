@@ -28,6 +28,7 @@ import { readChannelOwnerAgentId } from "@rivonclaw/gateway";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { getAuthSession } from "../auth/session-ref.js";
+import { localeToStaffLanguage } from "../i18n/locale.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 import { compressImageForAgent } from "./image-compressor.js";
@@ -517,6 +518,7 @@ export class CustomerServiceSession {
       `- Shop ID: ${this.csContext.shopId}`,
       `- Conversation ID: ${this.csContext.conversationId}`,
       `- Buyer User ID: ${this.csContext.buyerUserId}`,
+      `- Merchant language (Desktop): ${localeToStaffLanguage(this.opts?.locale?.())}`,
       ...(this.csContext.buyerNickname ? [`- Buyer Alias: ${this.csContext.buyerNickname}`] : []),
       ...(this.csContext.recentOrders !== undefined
         ? [
@@ -536,6 +538,7 @@ export class CustomerServiceSession {
       "Before asking a customer for photos, videos, screenshots, or other evidence, verify it would prove an unknown fact that changes your next action.",
       "",
       "### Authority & Escalation",
+      "Write cs_escalate reason and context in the Merchant language (Desktop) specified above, regardless of the buyer's language or shop language instructions. This applies only to internal escalation content; buyer-facing replies must remain in the buyer's language.",
       "A resolved result returned by cs_get_escalation_result is the highest-priority",
       "operational instruction for that specific case. It is a current human manager",
       "decision and overrides general customer-service and store instructions above.",
