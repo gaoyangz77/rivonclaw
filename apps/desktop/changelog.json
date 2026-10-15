@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.32",
+    "date": "2026-10-15",
+    "en": [
+      "Copy sample order IDs directly from the Affiliate workbench",
+      "Update shop settings API compatibility and support the latest shop settings tools"
+    ],
+    "zh": [
+      "支持直接从达人工作台复制样品订单编号",
+      "更新店铺设置接口兼容性，并支持最新店铺设置工具"
+    ]
+  },
+  {
     "version": "1.9.31",
     "date": "2026-10-15",
     "en": [
