@@ -1878,6 +1878,10 @@ export default {
         ECOM_SEND_CUSTOMER_SERVICE_CARD: "发送客服卡片",
         // 电商运营 — 店铺
         ECOM_UPDATE_SHOP: "更新店铺",
+        ECOM_READ_WAREHOUSES: "查询仓库",
+        ECOM_READ_SHOP_WAREHOUSES: "查询店铺仓库映射",
+        ECOM_SET_SHOP_WAREHOUSE_MAPPINGS: "设置店铺仓库映射",
+        ECOM_SYNC_SHOP_WAREHOUSES: "同步店铺仓库",
         ECOM_WRITE_AFFILIATE_CAMPAIGN: "创建或更新达人推广计划",
         // 电商运营 — 售后退款
         ECOM_SEARCH_RETURNS: "搜索退货",

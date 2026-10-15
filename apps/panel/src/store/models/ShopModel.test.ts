@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ShopModel } from "./ShopModel.js";
+import { print } from "graphql";
 
 function createShop(input?: {
   customerServiceEnabled?: boolean;
@@ -46,6 +47,15 @@ function updateInput(mutate: ReturnType<typeof vi.fn>): unknown {
 }
 
 describe("ShopModel service lifecycle actions", () => {
+  it("explicitly masks alias edits so an empty alias clears only that field", async () => {
+    const { mutate, shop } = createShop();
+    mutate.mockResolvedValueOnce({ data: { ecommerceUpdateShop: { shopId: "shop-1", message: "success" } } });
+    await shop.updateAlias("");
+    const request = mutate.mock.calls[0][0];
+    expect(request.variables).toEqual({ shopId: "shop-1", alias: "" });
+    expect(print(request.mutation)).toContain('updateMask: ["alias"]');
+  });
+
   it("binds customer service to the current device when enabling an unbound shop", async () => {
     const { mutate, shop } = createShop();
 

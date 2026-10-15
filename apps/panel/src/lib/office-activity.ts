@@ -221,6 +221,10 @@ export const TOOL_ACTIVITY_CAPTIONS: Record<string, ActivityCaptionId> = {
   ECOM_UPDATE_INVENTORY: "updateInventory",
   // ── E-commerce Ops: shops ──
   ECOM_UPDATE_SHOP: "updateShop",
+  ECOM_READ_WAREHOUSES: "readShop",
+  ECOM_READ_SHOP_WAREHOUSES: "readShop",
+  ECOM_SET_SHOP_WAREHOUSE_MAPPINGS: "updateShop",
+  ECOM_SYNC_SHOP_WAREHOUSES: "updateShop",
   ECOM_WRITE_AFFILIATE_CAMPAIGN: "updateCampaign",
   ECOM_LIST_SHOPS: "listShops",
   ECOM_GET_SHOP: "readShop",

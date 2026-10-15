@@ -5511,35 +5511,39 @@ export interface AffiliateWorkspacePayload {
   searchRuns: Array<CreatorSearchRun>;
 }
 
-/** Agent-facing CS settings patch. Omit a field or pass null/blank to keep it; pass a concrete non-empty value to set it. This tool cannot clear fields; clear fields manually in shop settings. */
+/** CS settings shared by AI and Panel. For AI updates, updateMask selects the only fields to write; masked null clears optional text/device fields, while masked booleans require true/false. Panel/legacy updates keep null values unchanged and use empty strings to clear optional text/device fields. */
 export interface AgentCsSettingsInput {
-  /** Store instructions. Omit or pass null to keep, empty string to clear. */
+  /** Store instructions. When selected by updateMask, null or empty string clears them. Otherwise unchanged. */
   businessPrompt?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS model override. Omit or pass null to keep, empty string to clear. */
+  /** Actual Desktop device ID handling CS; never invent it. When selected by updateMask, null or empty string unbinds without disabling CS. Otherwise unchanged. */
+  csDeviceId?: InputMaybe<Scalars["String"]["input"]>;
+  /** CS model override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
   csModelOverride?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS provider override. Omit or pass null to keep, empty string to clear. */
+  /** CS provider override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
   csProviderOverride?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS enabled flag. Omit or pass null to keep, true/false to set. */
+  /** CS enabled flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
-  /** Escalation channel ID. Omit or pass null to keep, empty string to clear. */
+  /** Existing escalation channel ID. When selected by updateMask, null or empty string clears it. Clear both channel/recipient to remove the full route. */
   escalationChannelId?: InputMaybe<Scalars["String"]["input"]>;
-  /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
+  /** Existing escalation recipient ID. When selected by updateMask, null or empty string clears it. Clear both channel/recipient to remove the full route. */
   escalationRecipientId?: InputMaybe<Scalars["String"]["input"]>;
   /** Optimistic concurrency token for an active configuration experiment. Required when disabling reachout/evaluation would stop that experiment. */
   expectedConfigExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
   expectedHoldoutExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Pickup reminders flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
+  pickupReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Review optimization settings. Omit or pass null to keep. */
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
-  /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
+  /** Existing RunProfile ID for CS; selects a profile without editing permissions. When masked, must be non-empty. Use CUSTOMER_SERVICE to restore the standard profile. */
   runProfileId?: InputMaybe<Scalars["String"]["input"]>;
   /** Nested configuration optimization within holdout Treatment traffic. Variant A is always the current production configuration. */
   unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
   /** Unpaid-order evaluation patch. Omit/null to keep. Read the current evaluation first and pass the active experiment IDs when changing it. */
   unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
-  /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
+  /** Unpaid-order proactive reachout flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
-  /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
+  /** Full replacement for unpaid-order reminder stages, maximum 3. Only written when selected by updateMask. Masked null means []; enabled reachout requires active stages and may restore localized defaults. */
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
 }
 
@@ -5580,6 +5584,16 @@ export interface AgentProductKnowledgePage {
   limit: Scalars["Int"]["output"];
   offset: Scalars["Int"]["output"];
   totalCount: Scalars["Int"]["output"];
+}
+
+/** Explicitly assign or clear one editable shop warehouse mapping. */
+export interface AgentShopWarehouseMappingInput {
+  /** Required intent: SET assigns warehouseId; CLEAR removes the mapping. */
+  action: ShopWarehouseMappingAction;
+  /** ShopWarehouse ID from ecom_read_shop_warehouses. */
+  shopWarehouseId: Scalars["ID"]["input"];
+  /** Owned active non-official Warehouse ID, required for SET. Ignored for CLEAR. */
+  warehouseId?: InputMaybe<Scalars["ID"]["input"]>;
 }
 
 export interface AgentUnpaidOrderConfigExperimentInput {
@@ -7676,41 +7690,41 @@ export interface CustomerServiceSettings {
   unpaidOrderReachoutStages: Array<UnpaidOrderReachoutStage>;
 }
 
-/** Full CS settings including device-level fields (Panel/backend use) */
+/** Full CS settings including the internal holdout representation (Panel/backend use) */
 export interface CustomerServiceSettingsInput {
-  /** Store instructions. Omit or pass null to keep, empty string to clear. */
+  /** Store instructions. When selected by updateMask, null or empty string clears them. Otherwise unchanged. */
   businessPrompt?: InputMaybe<Scalars["String"]["input"]>;
-  /** Device ID (machine fingerprint) of the desktop instance handling CS. Set by desktop app via Panel UI. Omit or pass null to keep, empty string to clear. */
+  /** Actual Desktop device ID handling CS; never invent it. When selected by updateMask, null or empty string unbinds without disabling CS. Otherwise unchanged. */
   csDeviceId?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS model override. Omit or pass null to keep, empty string to clear. */
+  /** CS model override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
   csModelOverride?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS provider override. Omit or pass null to keep, empty string to clear. */
+  /** CS provider override. When selected by updateMask, null or empty string clears the override. Reset both provider/model to restore full defaults. */
   csProviderOverride?: InputMaybe<Scalars["String"]["input"]>;
-  /** CS enabled flag. Omit or pass null to keep, true/false to set. */
+  /** CS enabled flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
-  /** Escalation channel ID. Omit or pass null to keep, empty string to clear. */
+  /** Existing escalation channel ID. When selected by updateMask, null or empty string clears it. Clear both channel/recipient to remove the full route. */
   escalationChannelId?: InputMaybe<Scalars["String"]["input"]>;
-  /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
+  /** Existing escalation recipient ID. When selected by updateMask, null or empty string clears it. Clear both channel/recipient to remove the full route. */
   escalationRecipientId?: InputMaybe<Scalars["String"]["input"]>;
   /** Optimistic concurrency token for an active configuration experiment. Required when disabling reachout/evaluation would stop that experiment. */
   expectedConfigExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
   expectedHoldoutExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
-  /** Pickup reminders flag. Omit/null to keep. */
+  /** Pickup reminders flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   pickupReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Review optimization settings. Omit or pass null to keep. */
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
-  /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
+  /** Existing RunProfile ID for CS; selects a profile without editing permissions. When masked, must be non-empty. Use CUSTOMER_SERVICE to restore the standard profile. */
   runProfileId?: InputMaybe<Scalars["String"]["input"]>;
   /** Nested configuration optimization within holdout Treatment traffic. Variant A is always the current production configuration. */
   unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
   /** Unpaid-order evaluation patch. Omit/null to keep. Read the current evaluation first and pass the active experiment IDs when changing it. */
   unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
-  /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
+  /** Unpaid-order proactive reachout flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Backend/internal holdout settings patch. Agent callers must use unpaidOrderEvaluation instead. */
   unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
-  /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
+  /** Full replacement for unpaid-order reminder stages, maximum 3. Only written when selected by updateMask. Masked null means []; enabled reachout requires active stages and may restore localized defaults. */
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
 }
 
@@ -11252,6 +11266,7 @@ export interface Mutation {
   ecommerceSetCustomerServiceConversationAiEnabled: CustomerServiceConversationInboxItem;
   /** Create or edit merchant Product Knowledge (agent-facing, flat params) */
   ecommerceSetProductKnowledge: SetProductKnowledgePayload;
+  ecommerceSetShopWarehouseMappings: Array<ShopWarehouse>;
   ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   ecommerceUpdateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
@@ -11958,6 +11973,10 @@ export interface MutationEcommerceSetProductKnowledgeArgs {
   usageInstructionsMarkdown?: InputMaybe<Scalars["String"]["input"]>;
 }
 
+export interface MutationEcommerceSetShopWarehouseMappingsArgs {
+  inputs: Array<AgentShopWarehouseMappingInput>;
+}
+
 export interface MutationEcommerceStartCsUnpaidOrderConfigExperimentArgs {
   expectedRunningExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   experimentId: Scalars["ID"]["input"];
@@ -11999,9 +12018,15 @@ export interface MutationEcommerceUpdateProductPriceArgs {
 }
 
 export interface MutationEcommerceUpdateShopArgs {
+  affiliateServiceSettings?: InputMaybe<AffiliateServiceSettingsInput>;
   alias?: InputMaybe<Scalars["String"]["input"]>;
   customerServiceSettings?: InputMaybe<AgentCsSettingsInput>;
+  region?: InputMaybe<ShopRegion>;
   shopId: Scalars["String"]["input"];
+  shopName?: InputMaybe<Scalars["String"]["input"]>;
+  timezone?: InputMaybe<Scalars["String"]["input"]>;
+  timezoneSource?: InputMaybe<ShopTimezoneSource>;
+  updateMask: Array<Scalars["String"]["input"]>;
   wmsSettings?: InputMaybe<WmsSettingsInput>;
 }
 
@@ -15189,6 +15214,13 @@ export const ShopWarehouseEffectStatus = {
 
 export type ShopWarehouseEffectStatus =
   (typeof ShopWarehouseEffectStatus)[keyof typeof ShopWarehouseEffectStatus];
+export const ShopWarehouseMappingAction = {
+  Clear: "CLEAR",
+  Set: "SET",
+} as const;
+
+export type ShopWarehouseMappingAction =
+  (typeof ShopWarehouseMappingAction)[keyof typeof ShopWarehouseMappingAction];
 /** Lifecycle state of a shop-scoped platform warehouse */
 export const ShopWarehouseStatus = {
   Active: "ACTIVE",
@@ -16212,6 +16244,8 @@ export const ToolId = {
   EcomListShops: "ECOM_LIST_SHOPS",
   EcomMarkConversationRead: "ECOM_MARK_CONVERSATION_READ",
   EcomPartialEditProduct: "ECOM_PARTIAL_EDIT_PRODUCT",
+  EcomReadShopWarehouses: "ECOM_READ_SHOP_WAREHOUSES",
+  EcomReadWarehouses: "ECOM_READ_WAREHOUSES",
   EcomRecommendProductCategory: "ECOM_RECOMMEND_PRODUCT_CATEGORY",
   EcomRecoverProducts: "ECOM_RECOVER_PRODUCTS",
   EcomRejectCancellation: "ECOM_REJECT_CANCELLATION",
@@ -16228,6 +16262,8 @@ export const ToolId = {
   EcomSendCustomerServiceTextReply: "ECOM_SEND_CUSTOMER_SERVICE_TEXT_REPLY",
   EcomSetCustomerServiceConversationAiEnabled: "ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED",
   EcomSetProductKnowledge: "ECOM_SET_PRODUCT_KNOWLEDGE",
+  EcomSetShopWarehouseMappings: "ECOM_SET_SHOP_WAREHOUSE_MAPPINGS",
+  EcomSyncShopWarehouses: "ECOM_SYNC_SHOP_WAREHOUSES",
   EcomUpdateInventory: "ECOM_UPDATE_INVENTORY",
   EcomUpdateOrderShippingInfo: "ECOM_UPDATE_ORDER_SHIPPING_INFO",
   EcomUpdatePackageShippingInfo: "ECOM_UPDATE_PACKAGE_SHIPPING_INFO",

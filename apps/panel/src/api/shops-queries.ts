@@ -132,7 +132,7 @@ export const UPDATE_SHOP_MUTATION = gql`
 
 export const ECOMMERCE_UPDATE_SHOP_MUTATION = gql`
   mutation EcommerceUpdateShop($shopId: String!, $alias: String) {
-    ecommerceUpdateShop(shopId: $shopId, alias: $alias) {
+    ecommerceUpdateShop(shopId: $shopId, alias: $alias, updateMask: ["alias"]) {
       shopId
       message
     }

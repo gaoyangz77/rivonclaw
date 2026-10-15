@@ -1952,6 +1952,10 @@ export default {
         ECOM_SEND_CUSTOMER_SERVICE_CARD: "Send CS Card",
         // E-commerce Ops — Shop
         ECOM_UPDATE_SHOP: "Update Shop",
+        ECOM_READ_WAREHOUSES: "Read Warehouses",
+        ECOM_READ_SHOP_WAREHOUSES: "Read Shop Warehouse Mappings",
+        ECOM_SET_SHOP_WAREHOUSE_MAPPINGS: "Set Shop Warehouse Mappings",
+        ECOM_SYNC_SHOP_WAREHOUSES: "Sync Shop Warehouses",
         ECOM_WRITE_AFFILIATE_CAMPAIGN: "Create or Update Affiliate Campaign",
         // E-commerce Ops — Return & Refund
         ECOM_SEARCH_RETURNS: "Search Returns",
