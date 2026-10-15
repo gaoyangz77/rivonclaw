@@ -846,6 +846,12 @@ function AffiliateWorkbenchMessageList({
   | "onOpen"
 >) {
   const { t } = useTranslation();
+  const [statusFilter, setStatusFilter] = useState<GQL.AffiliateWorkbenchConversationStatusFilter>(
+    GQL.AffiliateWorkbenchConversationStatusFilter.Pending,
+  );
+  const pendingView = statusFilter === GQL.AffiliateWorkbenchConversationStatusFilter.Pending;
+  // Omitted keeps the same default contract for older clients and pending requests.
+  const statusArgs = pendingView ? {} : { statusFilter };
   const [channel, setChannel] = useState<GQL.AffiliateMessageChannel | "">("");
   const [messageShopIds, setMessageShopIds] = useState<string[] | null>(null);
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
@@ -871,6 +877,7 @@ function AffiliateWorkbenchMessageList({
   const lastPendingAtLt = timeBounds?.ltIso ?? null;
   const timeArgs = lastPendingAtGe && lastPendingAtLt ? { lastPendingAtGe, lastPendingAtLt } : {};
   const filterKey = workbenchFilterKey([
+    statusFilter,
     creatorSearch,
     protection,
     channel,
@@ -895,6 +902,7 @@ function AffiliateWorkbenchMessageList({
   >(AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY, {
     variables: {
       input: {
+        ...statusArgs,
         channel: channel || null,
         ...(creatorSearch ? { creatorSearch } : {}),
         ...shopFilter,
@@ -931,6 +939,7 @@ function AffiliateWorkbenchMessageList({
     const result = await fetchMore({
       variables: {
         input: {
+          ...statusArgs,
           channel: channel || null,
           ...(creatorSearch ? { creatorSearch } : {}),
           ...shopFilter,
@@ -957,6 +966,7 @@ function AffiliateWorkbenchMessageList({
       };
     });
   }, [
+    statusFilter,
     channel,
     creatorSearch,
     fetchMore,
@@ -1038,12 +1048,12 @@ function AffiliateWorkbenchMessageList({
               ))}
             </div>
             {/*
-             * The chip counts describe the whole pending queue and ignore every
-             * filter on this row, the time range included. Said plainly here so
+             * The chip counts follow the selected status and ownership scope,
+             * but remain across channels and outside the time range. Said plainly here so
              * a filtered list beside a much larger count does not read as a bug.
              */}
             <span className="affiliate-workbench-filter-note">
-              {t("ecommerce.affiliateWorkspace.workbench.queueCountsHint")}
+              {t("ecommerce.affiliateWorkspace.workbench.messageStatusCountsHint")}
             </span>
           </div>
           {platformChannelActive ? (
@@ -1054,6 +1064,28 @@ function AffiliateWorkbenchMessageList({
               onChange={(next) => setMessageShopIds(next.length === shops.length ? null : next)}
             />
           ) : null}
+          <TkChoiceSelect
+            label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
+            value={statusFilter}
+            onChange={(value) =>
+              setStatusFilter(value as GQL.AffiliateWorkbenchConversationStatusFilter)
+            }
+            className="affiliate-workbench-filter-select"
+            options={[
+              {
+                value: GQL.AffiliateWorkbenchConversationStatusFilter.Pending,
+                label: t("ecommerce.affiliateWorkspace.workbench.messageStatusPending"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchConversationStatusFilter.Resolved,
+                label: t("ecommerce.affiliateWorkspace.workbench.messageStatusResolved"),
+              },
+              {
+                value: GQL.AffiliateWorkbenchConversationStatusFilter.All,
+                label: t("ecommerce.affiliateWorkspace.workbench.chipAll"),
+              },
+            ]}
+          />
           <AffiliateProtectionFilter value={protection} onChange={setProtection} />
           <TkChoiceSelect
             value={selectedBusinessDeveloperId}
@@ -1078,13 +1110,21 @@ function AffiliateWorkbenchMessageList({
           {/* Ordering is not a filter, so it sits apart from them at the row's end. */}
           <div className="affiliate-workbench-filter-order">
             <TkChoiceSelect
-              label={t("ecommerce.affiliateWorkspace.workbench.messageSortLabel")}
+              label={t(
+                pendingView
+                  ? "ecommerce.affiliateWorkspace.workbench.messageSortLabel"
+                  : "ecommerce.affiliateWorkspace.workbench.messageTimeSortLabel",
+              )}
               value={sortOrder}
               onChange={(value) => setSortOrder(value as GQL.EcomSortOrder)}
               options={[
                 {
                   value: GQL.EcomSortOrder.Asc,
-                  label: t("ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst"),
+                  label: t(
+                    pendingView
+                      ? "ecommerce.affiliateWorkspace.workbench.messageSortLongestWaitingFirst"
+                      : "ecommerce.affiliateWorkspace.workbench.messageSortOldestFirst",
+                  ),
                 },
                 {
                   value: GQL.EcomSortOrder.Desc,
@@ -1110,7 +1150,13 @@ function AffiliateWorkbenchMessageList({
       ) : viewState === "error" ? (
         <WorkbenchError message={error?.message ?? ""} onRetry={() => void refetch()} />
       ) : viewState === "empty" ? (
-        <WorkbenchEmpty>{t("ecommerce.affiliateWorkspace.workbench.noMessages")}</WorkbenchEmpty>
+        <WorkbenchEmpty>
+          {t(
+            pendingView
+              ? "ecommerce.affiliateWorkspace.workbench.noMessages"
+              : "ecommerce.affiliateWorkspace.workbench.noMessagesForStatus",
+          )}
+        </WorkbenchEmpty>
       ) : (
         <TkTableFrame variant="embedded" className="affiliate-workbench-entity-table-frame">
           <table className="affiliate-workbench-entity-table affiliate-workbench-table-messages">
@@ -1125,7 +1171,13 @@ function AffiliateWorkbenchMessageList({
             </colgroup>
             <thead>
               <tr>
-                <th>{t("ecommerce.affiliateWorkspace.workbench.colWaiting")}</th>
+                <th>
+                  {t(
+                    pendingView
+                      ? "ecommerce.affiliateWorkspace.workbench.colWaiting"
+                      : "ecommerce.affiliateWorkspace.workbench.colMessageTime",
+                  )}
+                </th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colCreator")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}</th>
@@ -1145,8 +1197,13 @@ function AffiliateWorkbenchMessageList({
                     creatorRelationshipId: row.creatorRelationshipId,
                     selectedShopId: row.sourceShopId ?? undefined,
                     initialTab: "conversation",
-                    replyToLifecycleEventId: row.replyToLifecycleEventId,
-                    hasPendingProposal: row.hasPendingAgentProposal ?? Boolean(row.proposal),
+                    replyToLifecycleEventId:
+                      row.conversationStatus === GQL.AffiliateChannelConversationStatus.Pending
+                        ? row.replyToLifecycleEventId
+                        : undefined,
+                    hasPendingProposal:
+                      row.conversationStatus === GQL.AffiliateChannelConversationStatus.Pending &&
+                      (row.hasPendingAgentProposal ?? Boolean(row.proposal)),
                   });
                 return (
                   <TkInteractiveTableRow
@@ -1155,7 +1212,11 @@ function AffiliateWorkbenchMessageList({
                     onActivate={openMessage}
                   >
                     <td>
-                      <WaitingCell lastPendingAt={row.lastPendingAt} nowMs={nowMs} />
+                      {pendingView ? (
+                        <WaitingCell lastPendingAt={row.lastPendingAt} nowMs={nowMs} />
+                      ) : (
+                        <TimeCell value={row.lastPendingAt} />
+                      )}
                     </td>
                     <td>
                       <EntityIdentity
@@ -1185,6 +1246,17 @@ function AffiliateWorkbenchMessageList({
                     </td>
                     <td>
                       <div className="affiliate-workbench-cell-badges">
+                        <span className="affiliate-workbench-badge">
+                          {t(
+                            row.conversationStatus ===
+                              GQL.AffiliateChannelConversationStatus.Resolved
+                              ? "ecommerce.affiliateWorkspace.workbench.messageStatusResolved"
+                              : row.conversationStatus ===
+                                  GQL.AffiliateChannelConversationStatus.Unactionable
+                                ? "ecommerce.affiliateWorkspace.workbench.messageStatusUnactionable"
+                                : "ecommerce.affiliateWorkspace.workbench.messageStatusPending",
+                          )}
+                        </span>
                         <StatusBadges
                           protectedCreator={row.protected}
                           humanOnly={row.humanOnly}
@@ -1207,13 +1279,23 @@ function AffiliateWorkbenchMessageList({
                 <tr>
                   <td className="affiliate-workbench-table-footer" colSpan={7}>
                     {channel
-                      ? t("ecommerce.affiliateWorkspace.workbench.allMessagesLoadedChannel", {
-                          count: items.length,
-                          channel: channelDisplayName(channel, t),
-                        })
-                      : t("ecommerce.affiliateWorkspace.workbench.allMessagesLoaded", {
-                          count: items.length,
-                        })}
+                      ? t(
+                          pendingView
+                            ? "ecommerce.affiliateWorkspace.workbench.allMessagesLoadedChannel"
+                            : "ecommerce.affiliateWorkspace.workbench.allMatchingMessagesLoadedChannel",
+                          {
+                            count: items.length,
+                            channel: channelDisplayName(channel, t),
+                          },
+                        )
+                      : t(
+                          pendingView
+                            ? "ecommerce.affiliateWorkspace.workbench.allMessagesLoaded"
+                            : "ecommerce.affiliateWorkspace.workbench.allMatchingMessagesLoaded",
+                          {
+                            count: items.length,
+                          },
+                        )}
                   </td>
                 </tr>
               </tfoot>

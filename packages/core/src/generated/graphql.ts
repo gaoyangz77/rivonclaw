@@ -2062,6 +2062,14 @@ export const AffiliateChannelConversationSource = {
 
 export type AffiliateChannelConversationSource =
   (typeof AffiliateChannelConversationSource)[keyof typeof AffiliateChannelConversationSource];
+export const AffiliateChannelConversationStatus = {
+  Pending: "PENDING",
+  Resolved: "RESOLVED",
+  Unactionable: "UNACTIONABLE",
+} as const;
+
+export type AffiliateChannelConversationStatus =
+  (typeof AffiliateChannelConversationStatus)[keyof typeof AffiliateChannelConversationStatus];
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars["ID"]["output"]>;
@@ -5316,13 +5324,21 @@ export interface AffiliateWorkbenchChanged {
   shopIds: Array<Scalars["ID"]["output"]>;
 }
 
+export const AffiliateWorkbenchConversationStatusFilter = {
+  All: "ALL",
+  Pending: "PENDING",
+  Resolved: "RESOLVED",
+} as const;
+
+export type AffiliateWorkbenchConversationStatusFilter =
+  (typeof AffiliateWorkbenchConversationStatusFilter)[keyof typeof AffiliateWorkbenchConversationStatusFilter];
 export interface AffiliateWorkbenchPendingConversationPage {
   emailCount: Scalars["Int"]["output"];
   hasMore: Scalars["Boolean"]["output"];
   items: Array<AffiliateWorkbenchPendingConversationRow>;
   nextCursor?: Maybe<Scalars["String"]["output"]>;
   platformCount: Scalars["Int"]["output"];
-  /** All pending conversations after the shop/Business Developer filters; the channel filter never changes counts. */
+  /** Conversations in the selected status view after ownership, protection and shop filters; channel and time filters never change counts. */
   totalCount: Scalars["Int"]["output"];
   /** Pending conversations whose Creator has been waiting for over 24 hours. */
   waitingOver24hCount: Scalars["Int"]["output"];
@@ -5337,9 +5353,9 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
   creatorSearch?: InputMaybe<Scalars["String"]["input"]>;
   cursor?: InputMaybe<Scalars["String"]["input"]>;
-  /** Keep only conversations whose latest unanswered message (lastPendingAt) is at or after this instant. This is when the conversation started waiting for a reply, not when every message in it arrived. Omit for no lower bound. Queue counts continue to describe the whole queue. */
+  /** Keep only conversations whose latest inbound work message (lastPendingAt) is at or after this instant. Resolved and unactionable views retain that message time; it is not the handling time. Omit for no lower bound. Counts stay outside the time range. */
   lastPendingAtGe?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
-  /** Keep only conversations whose latest unanswered message (lastPendingAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
+  /** Keep only conversations whose latest inbound work message (lastPendingAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
   lastPendingAtLt?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
@@ -5348,8 +5364,10 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Match any selected owned shop. Omit or pass null for all shops; an empty list selects no shops. Mutually exclusive with shopId. Only accepted with PLATFORM_CHAT; direct-contact queue counts remain seller-wide. */
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
-  /** Order the page by the time the conversation started waiting for a reply. ASC, the default, returns the longest-waiting conversation first; DESC returns the most recent first. A cursor is bound to the order that minted it. */
+  /** Order by latest inbound work-message time. ASC, the default, returns the oldest message first; DESC returns the newest first. Resolved/ALL views use the same message time, not processing time. A cursor is bound to its status view and order. */
   sortOrder?: InputMaybe<EcomSortOrder>;
+  /** Current conversation state: PENDING (default), RESOLVED, or ALL including UNACTIONABLE. Only observed inbound message cursors qualify. Counts follow this view; changing it requires a fresh cursor. */
+  statusFilter?: InputMaybe<AffiliateWorkbenchConversationStatusFilter>;
   /** Only public Creator Relationships. Mutually exclusive with businessDeveloperId. */
   unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
@@ -5357,6 +5375,7 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
 export interface AffiliateWorkbenchPendingConversationRow {
   businessDeveloperName?: Maybe<Scalars["String"]["output"]>;
   channel: AffiliateMessageChannel;
+  conversationStatus: AffiliateChannelConversationStatus;
   creatorAvatarUrl?: Maybe<Scalars["String"]["output"]>;
   creatorName?: Maybe<Scalars["String"]["output"]>;
   creatorRelationshipId: Scalars["ID"]["output"];
@@ -13192,7 +13211,7 @@ export interface Query {
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop and MCP callers use this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
-  /** Read pending Affiliate channel facts as one merged TikTok, WhatsApp, and Email page. */
+  /** Read Affiliate channel facts as one merged TikTok, WhatsApp, and Email page, filtered by current conversation state; defaults to pending. */
   affiliateWorkbenchPendingConversationPage: AffiliateWorkbenchPendingConversationPage;
   /** Read one stable page of seller-reviewable Affiliate Sample Applications across authorized shops. */
   affiliateWorkbenchSamplePage: AffiliateWorkbenchSamplePage;

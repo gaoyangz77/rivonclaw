@@ -1,3 +1,5 @@
+import { AFFILIATE_MESSAGE_STATUS_COPY } from "./affiliate-message-status-translations.js";
+
 /**
  * Workbench entity-tab translations: the Sample Application and pending-message
  * tables on the Affiliate workbench (columns, channel chips, summaries, and
@@ -8,6 +10,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.en,
           creatorSearch: "Creator search",
           creatorSearchPlaceholder: "Exact creator ID or @username",
           searchCreator: "Search",
@@ -111,6 +114,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.zh,
           creatorSearch: "搜索达人",
           creatorSearchPlaceholder: "达人 ID / @username",
           searchCreator: "搜索",
@@ -209,6 +213,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.de,
           creatorSearch: "Creator-Suche",
           creatorSearchPlaceholder: "Exakte Creator-ID oder @Benutzername",
           searchCreator: "Suchen",
@@ -313,6 +318,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.es,
           creatorSearch: "Buscar creador",
           creatorSearchPlaceholder: "ID exacto del creador o @usuario",
           searchCreator: "Buscar",
@@ -416,6 +422,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.fr,
           creatorSearch: "Rechercher un créateur",
           creatorSearchPlaceholder: "ID exact du créateur ou @pseudo",
           searchCreator: "Rechercher",
@@ -520,6 +527,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.id,
           creatorSearch: "Cari kreator",
           creatorSearchPlaceholder: "ID kreator persis atau @username",
           searchCreator: "Cari",
@@ -622,6 +630,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.it,
           creatorSearch: "Cerca creator",
           creatorSearchPlaceholder: "ID esatto del creator o @username",
           searchCreator: "Cerca",
@@ -723,6 +732,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         workbench: {
+          ...AFFILIATE_MESSAGE_STATUS_COPY.th,
           creatorSearch: "ค้นหาครีเอเตอร์",
           creatorSearchPlaceholder: "ID ครีเอเตอร์ที่ตรงกันหรือ @ชื่อผู้ใช้",
           searchCreator: "ค้นหา",

@@ -4182,6 +4182,7 @@ export const AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY = gql`
         id
         creatorRelationshipId
         channel
+        conversationStatus
         lastPendingAt
         sourceLabel
         sourceShopId
