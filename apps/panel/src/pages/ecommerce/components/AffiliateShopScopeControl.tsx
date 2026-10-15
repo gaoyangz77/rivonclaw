@@ -25,7 +25,7 @@ export function AffiliateShopScopeControl({
 }: {
   shops: AffiliateAnalyticsShop[];
   selected: string[];
-  onChange: (next: string[]) => void;
+  onChange: (next: string[], region?: string) => void;
   showRegion?: boolean;
   label?: string;
 }) {
@@ -79,6 +79,7 @@ export function AffiliateShopScopeControl({
               region
                 ? shops.filter((shop) => shop.region === region).map((shop) => shop.id)
                 : shops.map((shop) => shop.id),
+              region,
             );
           }}
         />

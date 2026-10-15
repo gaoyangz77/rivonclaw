@@ -36,18 +36,23 @@ const shops = [
 ];
 function Harness({ tab }: { tab: AffiliateWorkbenchEntityTab }) {
   const [selectedShopIds, onSelectShops] = useState<string[] | null>(null);
+  const [activeTab, setActiveTab] = useState(tab);
   return (
-    <AffiliateWorkbenchEntityTabs
-      tab={tab}
-      selectedShopIds={selectedShopIds}
-      shops={shops}
-      onSelectShops={onSelectShops}
-      businessDeveloperOptions={[]}
-      selectedBusinessDeveloperId=""
-      onSelectBusinessDeveloper={vi.fn()}
-      refreshRevision={0}
-      onOpen={vi.fn()}
-    />
+    <>
+      <button onClick={() => setActiveTab("SAMPLES")}>Test samples tab</button>
+      <button onClick={() => setActiveTab("MESSAGES")}>Test messages tab</button>
+      <AffiliateWorkbenchEntityTabs
+        tab={activeTab}
+        selectedShopIds={selectedShopIds}
+        shops={shops}
+        onSelectShops={onSelectShops}
+        businessDeveloperOptions={[]}
+        selectedBusinessDeveloperId=""
+        onSelectBusinessDeveloper={vi.fn()}
+        refreshRevision={0}
+        onOpen={vi.fn()}
+      />
+    </>
   );
 }
 beforeEach(async () => {
@@ -107,10 +112,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       </MockedProvider>,
     );
     await waitFor(() => expect(result).toHaveBeenCalledOnce());
-    if (!samples) {
-      fireEvent.click(screen.getByRole("button", { name: /^TikTok Shop/ }));
-      await waitFor(() => expect(inputs.at(-1)?.channel).toBe("PLATFORM_CHAT"));
-    }
+    if (!samples) expect(inputs.at(-1)?.channel).toBeNull();
     const shopLabel = i18n.t("ecommerce.affiliateWorkspace.workbench.colShop");
     fireEvent.click(screen.getByRole("button", { name: shopLabel }));
     // Platform names remain searchable even when the visible display uses an alias.
@@ -120,6 +122,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
     expect(screen.queryByRole("checkbox", { name: /MXTK-01/ })).toBeNull();
     fireEvent.click(screen.getByRole("checkbox", { name: /USTK-01/ }));
     await waitFor(() => expect(inputs.at(-1)?.shopIds).toEqual(["shop-1", "shop-2"]));
+    if (!samples) expect(inputs.at(-1)?.channel).toBe("PLATFORM_CHAT");
     expect(inputs.at(-1)?.cursor).toBeNull();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.getByRole("button", { name: shopLabel }).getAttribute("aria-expanded")).toBe(
@@ -156,3 +159,123 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
     expect(inputs.at(-1)?.cursor).toBeNull();
   },
 );
+
+it("keeps scope controls visible and clears their scope when switching message channels", async () => {
+  const inputs: Array<Record<string, unknown>> = [];
+  render(
+    <MockedProvider
+      mocks={[
+        {
+          request: { query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, variables: () => true },
+          result: {
+            data: {
+              affiliateWorkbenchSamplePage: {
+                items: [],
+                hasMore: false,
+                nextCursor: null,
+                openCount: 0,
+                expiringSoonCount: 0,
+              },
+            },
+          },
+          maxUsageCount: Infinity,
+          delay: 0,
+        },
+        {
+          request: {
+            query: AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY,
+            variables: (variables: { input: Record<string, unknown> }) => {
+              inputs.push(variables.input);
+              return true;
+            },
+          },
+          result: {
+            data: {
+              affiliateWorkbenchPendingConversationPage: {
+                items: [],
+                hasMore: false,
+                nextCursor: null,
+                totalCount: 9,
+                platformCount: 4,
+                whatsappCount: 3,
+                emailCount: 2,
+                waitingOver24hCount: 1,
+              },
+            },
+          },
+          maxUsageCount: Infinity,
+          delay: 0,
+        },
+      ]}
+    >
+      <ToastProvider>
+        <Harness tab="MESSAGES" />
+      </ToastProvider>
+    </MockedProvider>,
+  );
+  const regionLabel = i18n.t("ecommerce.affiliateAnalytics.region");
+  const shopLabel = i18n.t("ecommerce.affiliateWorkspace.workbench.colShop");
+  await waitFor(() => expect(inputs).toHaveLength(1));
+  expect(screen.getByRole("button", { name: shopLabel })).toBeTruthy();
+  expect(
+    screen.getByText(i18n.t("ecommerce.affiliateWorkspace.workbench.messageShopScopeHint")),
+  ).toBeTruthy();
+  // Site selection from All channels sends one atomic, compatible request.
+  fireEvent.click(screen.getByRole("button", { name: regionLabel }));
+  fireEvent.click(screen.getByRole("button", { name: "MX" }));
+  await waitFor(() =>
+    expect(inputs.at(-1)).toMatchObject({
+      channel: "PLATFORM_CHAT",
+      shopIds: ["shop-1", "shop-2"],
+      cursor: null,
+    }),
+  );
+  const beforeTabSwitch = inputs.length;
+  fireEvent.click(screen.getByRole("button", { name: "Test samples tab" }));
+  expect(screen.getByRole("button", { name: shopLabel }).textContent).toContain("3");
+  fireEvent.click(screen.getByRole("button", { name: "Test messages tab" }));
+  await waitFor(() => expect(inputs.length).toBeGreaterThan(beforeTabSwitch));
+  expect(inputs.at(-1)).toMatchObject({ channel: "PLATFORM_CHAT", shopIds: ["shop-1", "shop-2"] });
+  fireEvent.click(screen.getByRole("button", { name: /^WhatsApp/ }));
+  await waitFor(() => expect(inputs.at(-1)?.channel).toBe("WHATSAPP"));
+  expect(inputs.at(-1)?.shopIds).toBeUndefined();
+  expect(screen.getByRole("button", { name: shopLabel })).toBeTruthy();
+  // Shop selection is also available directly from a non-shop channel.
+  fireEvent.click(screen.getByRole("button", { name: shopLabel }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /USTK-01/ }));
+  await waitFor(() =>
+    expect(inputs.at(-1)).toMatchObject({
+      channel: "PLATFORM_CHAT",
+      shopIds: ["shop-1", "shop-2"],
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateAnalytics.selectAll") }),
+  );
+  await waitFor(() => expect(inputs.at(-1)?.shopIds).toBeUndefined());
+  expect(inputs.at(-1)?.channel).toBe("PLATFORM_CHAT");
+  fireEvent.keyDown(document, { key: "Escape" });
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: new RegExp("^" + i18n.t("ecommerce.affiliateWorkspace.workbench.channelEmail")),
+    }),
+  );
+  await waitFor(() => expect(inputs.at(-1)?.channel).toBe("EMAIL"));
+  fireEvent.click(screen.getByRole("button", { name: regionLabel }));
+  fireEvent.click(screen.getByRole("button", { name: "US" }));
+  await waitFor(() =>
+    expect(inputs.at(-1)).toMatchObject({ channel: "PLATFORM_CHAT", shopIds: ["shop-3"] }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: shopLabel }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /USTK-01/ }));
+  await waitFor(() =>
+    expect(inputs.at(-1)).toMatchObject({ channel: "PLATFORM_CHAT", shopIds: [] }),
+  );
+  fireEvent.keyDown(document, { key: "Escape" });
+  fireEvent.click(screen.getByRole("button", { name: /^全部/ }));
+  await waitFor(() => expect(inputs.at(-1)?.channel).toBeNull());
+  expect(inputs.at(-1)?.shopIds).toBeUndefined();
+  expect(inputs.every((input) => input.shopIds == null || input.channel === "PLATFORM_CHAT")).toBe(
+    true,
+  );
+});

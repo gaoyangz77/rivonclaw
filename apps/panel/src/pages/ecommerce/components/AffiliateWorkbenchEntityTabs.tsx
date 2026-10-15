@@ -97,6 +97,11 @@ interface FilterOption {
   sensitive?: boolean;
 }
 
+interface MessageShopScope {
+  channel: GQL.AffiliateMessageChannel | "";
+  shopIds: string[] | null;
+}
+
 interface Props {
   tab: AffiliateWorkbenchEntityTab;
   selectedShopIds: string[] | null;
@@ -176,6 +181,10 @@ export function AffiliateWorkbenchEntityTabs({
   refreshRevision,
   onOpen,
 }: Props) {
+  const [messageScope, setMessageScope] = useState<MessageShopScope>({
+    channel: "",
+    shopIds: null,
+  });
   return tab === "SAMPLES" ? (
     <AffiliateWorkbenchSampleList
       selectedShopIds={selectedShopIds}
@@ -189,6 +198,8 @@ export function AffiliateWorkbenchEntityTabs({
     />
   ) : (
     <AffiliateWorkbenchMessageList
+      scope={messageScope}
+      onSelectScope={setMessageScope}
       shops={shops}
       businessDeveloperOptions={businessDeveloperOptions}
       selectedBusinessDeveloperId={selectedBusinessDeveloperId}
@@ -830,6 +841,8 @@ function SampleProductCell({
 }
 
 function AffiliateWorkbenchMessageList({
+  scope,
+  onSelectScope,
   shops,
   businessDeveloperOptions,
   selectedBusinessDeveloperId,
@@ -844,7 +857,7 @@ function AffiliateWorkbenchMessageList({
   | "onSelectBusinessDeveloper"
   | "refreshRevision"
   | "onOpen"
->) {
+> & { scope: MessageShopScope; onSelectScope: (scope: MessageShopScope) => void }) {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<GQL.AffiliateWorkbenchConversationStatusFilter>(
     GQL.AffiliateWorkbenchConversationStatusFilter.Pending,
@@ -852,8 +865,7 @@ function AffiliateWorkbenchMessageList({
   const pendingView = statusFilter === GQL.AffiliateWorkbenchConversationStatusFilter.Pending;
   // Omitted keeps the same default contract for older clients and pending requests.
   const statusArgs = pendingView ? {} : { statusFilter };
-  const [channel, setChannel] = useState<GQL.AffiliateMessageChannel | "">("");
-  const [messageShopIds, setMessageShopIds] = useState<string[] | null>(null);
+  const { channel, shopIds: messageShopIds } = scope;
   const platformChannelActive = channel === GQL.AffiliateMessageChannel.PlatformChat;
   const queryShopIds = platformChannelActive
     ? (messageShopIds?.filter((id) => shops.some((shop) => shop.id === id)) ?? null)
@@ -928,9 +940,20 @@ function AffiliateWorkbenchMessageList({
     if (refreshRevision > 0) void refetch();
   }, [refetch, refreshRevision]);
 
+  function selectMessageShops(next: string[], region?: string): void {
+    const allSelected =
+      next.length === shops.length && shops.every((shop) => next.includes(shop.id));
+    onSelectScope({
+      channel: !allSelected || region ? GQL.AffiliateMessageChannel.PlatformChat : channel,
+      shopIds: allSelected ? null : next,
+    });
+  }
+
   function selectChannel(next: GQL.AffiliateMessageChannel | ""): void {
-    setChannel(next);
-    if (next !== GQL.AffiliateMessageChannel.PlatformChat) setMessageShopIds(null);
+    onSelectScope({
+      channel: next,
+      shopIds: next === GQL.AffiliateMessageChannel.PlatformChat ? messageShopIds : null,
+    });
   }
 
   const loadMore = useCallback(async () => {
@@ -1056,14 +1079,17 @@ function AffiliateWorkbenchMessageList({
               {t("ecommerce.affiliateWorkspace.workbench.messageStatusCountsHint")}
             </span>
           </div>
-          {platformChannelActive ? (
+          <div className="affiliate-workbench-filter-group">
             <AffiliateShopScopeControl
               label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
               shops={shops}
               selected={queryShopIds ?? shops.map((shop) => shop.id)}
-              onChange={(next) => setMessageShopIds(next.length === shops.length ? null : next)}
+              onChange={selectMessageShops}
             />
-          ) : null}
+            <span className="affiliate-workbench-filter-note">
+              {t("ecommerce.affiliateWorkspace.workbench.messageShopScopeHint")}
+            </span>
+          </div>
           <TkChoiceSelect
             label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
             value={statusFilter}
