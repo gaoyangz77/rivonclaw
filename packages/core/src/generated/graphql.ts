@@ -4023,6 +4023,8 @@ export type AffiliateOperationalProjectionStatus =
 export interface AffiliateOperationalSettings {
   id: Scalars["ID"]["output"];
   onboardingCompletedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Only unreplied Creator messages received within this many days trigger new AI work (1–90, default 90). Existing proposals and message history are retained. */
+  unrepliedMessageLookbackDays: Scalars["Int"]["output"];
   userId: Scalars["ID"]["output"];
 }
 
@@ -11383,6 +11385,8 @@ export interface Mutation {
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
   /** Validate a creator WhatsApp number, confirm it is registered on WhatsApp, and attach it to an affiliate creator relationship. */
   setAffiliateCreatorWhatsApp: SetCreatorWhatsAppContactPayload;
+  /** Set the seller-wide age limit for new AI handling of unreplied messages. Does not acknowledge messages or remove existing proposals. */
+  setAffiliateUnrepliedMessageLookback: AffiliateOperationalSettings;
   /** Admin-only: enable or disable an agent invite code for a user by email. */
   setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
@@ -12270,6 +12274,10 @@ export interface MutationSetAffiliateCreatorEmailArgs {
 
 export interface MutationSetAffiliateCreatorWhatsAppArgs {
   input: SetCreatorWhatsAppContactInput;
+}
+
+export interface MutationSetAffiliateUnrepliedMessageLookbackArgs {
+  days: Scalars["Int"]["input"];
 }
 
 export interface MutationSetAgentInviteArgs {

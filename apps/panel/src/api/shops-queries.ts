@@ -4639,6 +4639,18 @@ export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
     affiliateOperationalSettings {
       id
       userId
+      unrepliedMessageLookbackDays
+      onboardingCompletedAt
+    }
+  }
+`;
+
+export const SET_AFFILIATE_UNREPLIED_MESSAGE_LOOKBACK_MUTATION = gql`
+  mutation SetAffiliateUnrepliedMessageLookback($days: Int!) {
+    setAffiliateUnrepliedMessageLookback(days: $days) {
+      id
+      userId
+      unrepliedMessageLookbackDays
       onboardingCompletedAt
     }
   }
@@ -4884,6 +4896,7 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
     completeAffiliateOperationalOnboarding {
       id
       userId
+      unrepliedMessageLookbackDays
       onboardingCompletedAt
     }
   }

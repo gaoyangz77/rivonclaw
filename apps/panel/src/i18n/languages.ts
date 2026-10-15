@@ -1,3 +1,4 @@
+import { AFFILIATE_MESSAGE_LOOKBACK_TRANSLATIONS } from "./affiliate-message-lookback-translations.js";
 import en from "./en.js";
 import zh from "./zh.js";
 import de from "./de.js";
@@ -541,6 +542,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
       language.resource as TranslationResourceRecord,
       AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
       AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS[language.code],
+      AFFILIATE_MESSAGE_LOOKBACK_TRANSLATIONS[language.code],
       TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
       TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
       TUTORIAL_OCTOBER_TRANSLATIONS[language.code],

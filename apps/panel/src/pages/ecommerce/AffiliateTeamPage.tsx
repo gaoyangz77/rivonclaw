@@ -73,6 +73,7 @@ import {
 } from "../../api/channels.js";
 import { buildAccountsList } from "../../lib/channel-accounts.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
+import { AffiliateMessageLookbackPanel } from "./components/AffiliateMessageLookbackPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateBusinessDeveloperLoginPanel } from "./components/AffiliateBusinessDeveloperLoginPanel.js";
 import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
@@ -2357,6 +2358,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         aria-labelledby="affiliate-team-tab-safety"
         hidden={pageTab !== "SAFETY"}
       >
+        <AffiliateMessageLookbackPanel />
         <section className="affiliate-team-policy-section is-open">
           <div className="affiliate-team-policy-heading" data-tutorial-id="affiliate-team-safety">
             <div>

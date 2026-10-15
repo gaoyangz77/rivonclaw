@@ -148,6 +148,7 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
 });
 
 export const AffiliateOperationalSettingsModel = types.model("AffiliateOperationalSettings", {
+  unrepliedMessageLookbackDays: types.optional(types.integer, 90),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),
