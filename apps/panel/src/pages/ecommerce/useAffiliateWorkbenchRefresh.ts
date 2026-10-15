@@ -8,27 +8,24 @@ export function useAffiliateWorkbenchRefresh(
 ): void {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let deferred = false;
     const schedule = () => {
       if (document.hidden) {
-        deferred = true;
         return;
       }
       if (timer != null) return;
       timer = setTimeout(() => {
         timer = undefined;
         if (document.hidden) {
-          deferred = true;
           return;
         }
-        deferred = false;
         onRefresh();
       }, 250);
     };
     const onVisible = () => {
-      if (!document.hidden && deferred) schedule();
+      if (!document.hidden) schedule();
     };
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", schedule);
     const onChange = (payload: unknown) => {
       const change = payload as {
         creatorRelationshipId?: string;
@@ -44,10 +41,15 @@ export function useAffiliateWorkbenchRefresh(
       "affiliate-action-proposal-changed",
       onChange,
     );
+    // Desktop emits a snapshot on every SSE connection, including reconnects.
+    // Proposal events missed while disconnected must not leave a stale modal.
+    const unsubscribeSnapshot = panelEventBus.subscribe("entity-snapshot", schedule);
     return () => {
       unsubscribe();
       unsubscribeProposal();
+      unsubscribeSnapshot();
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", schedule);
       if (timer != null) clearTimeout(timer);
     };
   }, [onRefresh, relationshipId]);

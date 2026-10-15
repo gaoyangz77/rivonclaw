@@ -1449,7 +1449,8 @@ describe("Affiliate canonical UI contract", () => {
     );
 
     expect(creatorModal).toContain("async function decideRelationshipProposal");
-    expect(creatorModal).toContain("optimisticallyDecidedProposalIds");
+    expect(creatorModal).toContain("proposalProjectionSnapshot(affiliateWorkspace, proposal.id)");
+    expect(creatorModal).not.toContain("optimisticallyDecidedProposalIds");
     expect(creatorModal).toContain("<AgentWorkBundleCard");
     expect(creatorModal).toContain("allowDecisionActions");
     expect(creatorModal).toContain("onApprove={(item) =>");
@@ -1649,7 +1650,7 @@ describe("Affiliate canonical UI contract", () => {
     );
   });
 
-  it("removes a decided row before the mutation resolves and restores it on failure", () => {
+  it("uses the server decision and reconciles errors instead of restoring a captured Pending row", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
@@ -1660,12 +1661,13 @@ describe("Affiliate canonical UI contract", () => {
     );
     const mutationIndex = decideProposal.indexOf("await decideActionProposal");
 
-    expect(decideProposal.indexOf("const optimisticProposal")).toBeLessThan(mutationIndex);
-    expect(decideProposal.indexOf("setProposalPageBuffer")).toBeLessThan(mutationIndex);
-    expect(decideProposal).toContain("optimisticApplied = true");
-    expect(decideProposal).toContain(
-      "items: applyAffiliateProposalChange(current.items, proposal, decisionFilters)",
-    );
+    expect(decideProposal.indexOf("setProposalPageBuffer")).toBeGreaterThan(mutationIndex);
+    expect(decideProposal).not.toContain("optimisticApplied");
+    expect(decideProposal).not.toContain("items: applyAffiliateProposalChange(current.items, proposal, decisionFilters)");
+    expect(decideProposal).toContain("affiliateProposalDecisionApplied(status, updatedProposal.status)");
+    expect(decideProposal).toContain("const reconciled = await Promise.allSettled");
+    expect(decideProposal).toContain("createdAtGe: proposal.createdAt");
+    expect(decideProposal).toContain(".find((item) => item.id === proposal.id)");
     expect(decideProposal).toContain("return false");
   });
 

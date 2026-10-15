@@ -78,3 +78,25 @@ it("defers hidden-window refresh until the page is visible again", () => {
   });
   expect(refresh).toHaveBeenCalledTimes(1);
 });
+
+it("reconciles on visibility, focus and SSE reconnect even if a proposal event was missed", () => {
+  vi.useFakeTimers();
+  const handlers = new Map<string, (payload: unknown) => void>();
+  vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+    handlers.set(event, handler);
+    return vi.fn();
+  });
+  const refresh = vi.fn();
+  renderHook(() => useAffiliateWorkbenchRefresh(refresh, "creator-one"));
+  act(() => {
+    handlers.get("entity-snapshot")?.({});
+    vi.advanceTimersByTime(250);
+  });
+  expect(refresh).toHaveBeenCalledTimes(1);
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+    vi.advanceTimersByTime(250);
+  });
+  expect(refresh).toHaveBeenCalledTimes(2);
+});

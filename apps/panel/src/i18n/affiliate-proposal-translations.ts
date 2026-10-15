@@ -2,6 +2,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   en: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "This suggestion is no longer actionable. The current work has been refreshed; check the latest suggestion.",
         sampleReviewActions: {
           label: {
             APPROVE: "Approve",
@@ -94,6 +95,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   zh: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "这条建议已不可操作，当前待办已更新，请查看最新建议。",
         sampleReviewActions: {
           label: {
             APPROVE: "同意",
@@ -185,6 +187,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   de: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "Dieser Vorschlag kann nicht mehr bearbeitet werden. Die Aufgaben wurden aktualisiert. Bitte prüfen Sie den neuesten Vorschlag.",
         sampleReviewActions: {
           label: {
             APPROVE: "Genehmigen",
@@ -356,6 +359,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   es: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "Esta sugerencia ya no se puede procesar. Las tareas se han actualizado; revisa la sugerencia más reciente.",
         sampleReviewActions: {
           label: {
             APPROVE: "Aprobar",
@@ -528,6 +532,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   fr: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "Cette suggestion ne peut plus être traitée. Les tâches ont été actualisées ; consultez la dernière suggestion.",
         sampleReviewActions: {
           label: {
             APPROVE: "Approuver",
@@ -697,6 +702,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   id: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "Saran ini tidak dapat diproses lagi. Tugas telah diperbarui; periksa saran terbaru.",
         sampleReviewActions: {
           label: {
             APPROVE: "Setujui",
@@ -869,6 +875,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   it: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "Questo suggerimento non è più utilizzabile. Le attività sono state aggiornate; controlla l’ultimo suggerimento.",
         sampleReviewActions: {
           label: {
             APPROVE: "Approva",
@@ -1042,6 +1049,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
   th: {
     ecommerce: {
       affiliateWorkspace: {
+        proposalStateChanged: "ไม่สามารถดำเนินการตามคำแนะนำนี้ได้แล้ว อัปเดตงานปัจจุบันแล้ว โปรดตรวจสอบคำแนะนำล่าสุด",
         sampleReviewActions: {
           label: {
             APPROVE: "อนุมัติ",

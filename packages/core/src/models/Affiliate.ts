@@ -774,6 +774,8 @@ export const AffiliateWorkspaceModel = types
 
     function upsertProposal(proposal: GQL.ActionProposal | null | undefined): void {
       if (!proposal?.id) return;
+      const current = self.actionProposals.find((item) => item.id === proposal.id);
+      if (current && Date.parse(current.updatedAt) > Date.parse(proposal.updatedAt)) return;
       upsertCreator(proposal.creatorProfile);
       upsertCreatorRelationship(proposal.creatorRelationship);
       upsertCollaboration(proposal.affiliateCollaboration);

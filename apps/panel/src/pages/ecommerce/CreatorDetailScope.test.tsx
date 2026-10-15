@@ -1,5 +1,6 @@
 import type { DocumentNode } from "graphql";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { observable, runInAction } from "mobx";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import { ToastProvider } from "../../components/Toast.js";
@@ -15,6 +16,9 @@ const state = vi.hoisted(() => ({
   samples: [] as Array<Record<string, unknown>>,
   history: [] as Array<Record<string, unknown>>,
   timeline: [] as Array<Record<string, unknown>>,
+  proposals: [] as Array<Record<string, unknown>>,
+  storedProposals: new Map<string, Record<string, unknown>>(),
+  handlers: new Map<string, Set<(payload: unknown) => void>>(),
   entityStore: {
     shops: [
       { id: "1", alias: "1号店", shopName: "One" },
@@ -24,10 +28,27 @@ const state = vi.hoisted(() => ({
       businessDevelopers: [] as Array<{ id: string; displayName: string; archivedAt?: string }>,
       replaceAffiliateBusinessDevelopers: vi.fn(),
       getBusinessDeveloper: vi.fn(),
+      proposalProjection: (id: string) => {
+        const proposal = state.storedProposals.get(id);
+        return proposal ? { proposal } : null;
+      },
+      upsertAffiliateActionProposal: (proposal: Record<string, any>) => {
+        const current = state.storedProposals.get(proposal.id);
+        if (current && Date.parse(String(current.updatedAt)) > Date.parse(proposal.updatedAt)) return;
+        runInAction(() => state.storedProposals.set(proposal.id, proposal));
+      },
     },
   },
 }));
 vi.mock("../../store/EntityStoreProvider.js", () => ({ useEntityStore: () => state.entityStore }));
+vi.mock("../../lib/event-bus.js", () => ({ panelEventBus: {
+  subscribe: (event: string, handler: (payload: unknown) => void) => {
+    const handlers = state.handlers.get(event) ?? new Set();
+    handlers.add(handler);
+    state.handlers.set(event, handlers);
+    return () => handlers.delete(handler);
+  },
+} }));
 vi.mock("@apollo/client/react", () => ({
   useMutation: () => [state.mutate, { loading: false }],
   useLazyQuery: () => [state.mutate, { loading: false }],
@@ -40,7 +61,8 @@ vi.mock("@apollo/client/react", () => ({
     const input = options.variables?.input ?? {};
     if (!options.skip) state.calls.push({ operation, input });
     const page = {
-      items: operation === "AffiliateRelationshipSampleApplications" ? state.samples : [],
+      items: operation === "AffiliateRelationshipSampleApplications" ? state.samples
+        : operation === "AffiliateActionProposals" ? state.proposals : [],
       productSummaries: [],
       hasMore: false,
       nextCursor: null,
@@ -64,6 +86,10 @@ beforeEach(async () => {
   state.samples = [];
   state.history = [];
   state.timeline = [];
+  state.proposals = [];
+  state.storedProposals = observable.map([], { deep: false });
+  state.handlers.clear();
+  state.refetch.mockClear();
   state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
     viewerCanEditCreatorConfiguration: true,
@@ -165,6 +191,68 @@ function selectScope(shop: string) {
 function openTab(label: string) {
   fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${label}`) }));
 }
+
+describe("live proposal state inside Creator details", () => {
+  function pending(id = "proposal-old") {
+    return {
+      id, userId: "user", creatorRelationshipId: "creator", shopIds: ["1"],
+      type: "SEND_MESSAGE", status: "PENDING", operatorSummary: `Reply ${id}`,
+      createdAt: "2026-10-14T10:27:06Z", updatedAt: "2026-10-14T10:27:06Z",
+      steps: [], revisionHistory: [], messageIntent: { parts: [{ kind: "TEXT", text: "Hola" }] },
+    };
+  }
+  function superseded() {
+    return { ...pending(), status: "SUPERSEDED", updatedAt: "2026-10-14T10:27:48Z" };
+  }
+  function receive(proposal: Record<string, unknown>) {
+    act(() => {
+      for (const handler of state.handlers.get("affiliate-action-proposal-changed") ?? []) handler({ proposal });
+    });
+  }
+  it("removes decisions immediately when invalidated with an Ignore confirmation open, despite the old query snapshot", async () => {
+    state.proposals = [pending()];
+    const rendered = render(view());
+fireEvent.click(screen.getByRole("button", { name: "忽略" }));
+    expect(screen.getByRole("button", { name: "确认忽略" })).toBeTruthy();
+    receive(superseded());
+    await waitFor(() => expect(screen.queryByRole("button", { name: "确认忽略" })).toBeNull());
+    rendered.rerender(view());
+    expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
+    expect(state.mutate).not.toHaveBeenCalled();
+  });
+  it("treats a stale Ignore response as a state refresh, never a successful ignore", async () => {
+    state.proposals = [pending()];
+    state.mutate.mockResolvedValue({ data: { decideActionProposal: superseded() } });
+    render(view());
+    fireEvent.click(screen.getByRole("button", { name: "忽略" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认忽略" }));
+    await waitFor(() => expect(screen.getByText("这条建议已不可操作，当前待办已更新，请查看最新建议。")).toBeTruthy());
+    expect(document.querySelector('.toast-warning')).toBeTruthy();
+    expect(document.querySelector('.toast-success')).toBeNull();
+    expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
+  });
+  it("does not resurrect the captured Pending proposal when a request fails after an invalidation event", async () => {
+    state.proposals = [pending()];
+    let reject: (error: Error) => void = () => {};
+    state.mutate.mockReturnValue(new Promise((_resolve, no) => { reject = no; }));
+    render(view());
+    fireEvent.click(screen.getByRole("button", { name: "忽略" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认忽略" }));
+    receive(superseded());
+    await act(async () => reject(new Error("Network unavailable")));
+    await waitFor(() => expect(screen.getByText("Network unavailable")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
+    expect(document.querySelector('.toast-success')).toBeNull();
+    expect(state.refetch).toHaveBeenCalled();
+  });
+  it("keeps a genuinely new proposal actionable without reviving the old one", async () => {
+    state.proposals = [pending(), pending("proposal-new")];
+    render(view());
+    receive(superseded());
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "忽略" })).toHaveLength(1));
+    expect(screen.getByText("Reply proposal-new")).toBeTruthy();
+  });
+});
 
 describe("Creator Detail scope integration", () => {
   it("starts globally even from a shop page and keeps shop scope across all entity tabs", () => {

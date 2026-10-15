@@ -67,6 +67,7 @@ import {
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
+import { affiliateProposalDecisionApplied, latestAffiliateProposal } from "./affiliate-proposal-state.js";
 import { sampleOrderIdForCard } from "./affiliate-sample-order-id.js";
 import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
 import { AFFILIATE_WORKBENCH_MY_BD_VALUE, affiliateWorkbenchBdInput, affiliateWorkbenchBdOptions } from "./affiliate-workbench-bd-filter.js";
@@ -390,7 +391,7 @@ export function hydrateAffiliateProposalProjection(
 ): GQL.ActionProposal {
   const storedProposal = affiliateSnapshot(projection.proposal) ?? {};
   const proposal = authoritativeProposal
-    ? { ...storedProposal, ...affiliateSnapshot(authoritativeProposal) }
+    ? latestAffiliateProposal(affiliateSnapshot(authoritativeProposal), storedProposal)
     : storedProposal;
   return {
     ...proposal,
@@ -1363,7 +1364,8 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
 
   useAffiliateWorkbenchRefresh(useCallback(() => {
     setWorkbenchEntityRefreshRevision((revision) => revision + 1);
-  }, []));
+    void refetchProposals();
+  }, [refetchProposals]));
 
   function goToNextProposalPage(): void {
     if (!hasMoreProposals || !proposalCursor) return;
@@ -1420,7 +1422,9 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   );
   const visibleProposalItems = sortAffiliateProposalsNewestFirst(
     filterActionProposals(
-      proposalItemsFromQuery.filter((proposal) => !proposalType || proposal.type === proposalType),
+      proposalItemsFromQuery.filter((proposal) =>
+        (!proposalType || proposal.type === proposalType) &&
+        (!proposalStatus || proposal.status === proposalStatus)),
       attentionSearch,
       shopLabel,
     ),
@@ -1433,7 +1437,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     note?: string,
     sampleReviewOverride?: GQL.ActionProposalSampleReviewOverrideInput,
   ): Promise<boolean> {
-    let optimisticApplied = false;
     const decisionFilters = {
       shopId: undefined,
       businessDeveloperId: selectedBusinessDeveloperId || undefined,
@@ -1454,24 +1457,8 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         sampleReviewOverride,
       );
       const decidedAt = new Date().toISOString();
-      const optimisticProposal = {
-        ...proposal,
-        status,
-        updatedAt: decidedAt,
-      } as GQL.ActionProposal;
-      setProposalPageBuffer((current) =>
-        current.queryKey !== proposalQueryKey
-          ? current
-          : {
-              ...current,
-              items: applyAffiliateProposalChange(
-                current.items,
-                optimisticProposal,
-                decisionFilters,
-              ),
-            },
-      );
-      optimisticApplied = true;
+      // Keep the card disabled while submitting. Do not invent a terminal
+      // state and then roll it back over a newer server/SSE decision.
       const result = await decideActionProposal({
         variables: {
           input: {
@@ -1487,6 +1474,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         },
       });
       const updatedProposal = result.data?.decideActionProposal;
+      if (!updatedProposal) throw new Error(t("ecommerce.updateFailed"));
       if (updatedProposal) {
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal);
         setSelectedAgentWorkBundle((current) => {
@@ -1514,20 +1502,37 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         );
       }
       showToast(
-        actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride),
-        "success",
+        updatedProposal.status === GQL.ActionProposalStatus.ExecutionFailed
+          ? updatedProposal.executionResult?.errorMessage || t("ecommerce.updateFailed")
+          : affiliateProposalDecisionApplied(status, updatedProposal.status)
+          ? actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride)
+          : t("ecommerce.affiliateWorkspace.proposalStateChanged"),
+        updatedProposal.status === GQL.ActionProposalStatus.ExecutionFailed ? "error"
+          : affiliateProposalDecisionApplied(status, updatedProposal.status) ? "success" : "warning",
       );
       return true;
     } catch (err) {
-      if (optimisticApplied) {
-        setProposalPageBuffer((current) =>
-          current.queryKey !== proposalQueryKey
-            ? current
-            : {
-                ...current,
-                items: applyAffiliateProposalChange(current.items, proposal, decisionFilters),
-              },
-        );
+      // A lost response can follow a committed decision. Reconcile instead of
+      // resurrecting the captured Pending snapshot. The Pending list alone
+      // cannot return a terminal row: also read this proposal's exact time
+      // window so an open review modal receives its authoritative state.
+      const reconciled = await Promise.allSettled([
+        refetchProposals(),
+        fetchMoreProposals({
+          variables: { input: {
+            creatorRelationshipId: proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId,
+            createdAtGe: proposal.createdAt,
+            createdAtLt: new Date(Date.parse(proposal.createdAt) + 1).toISOString(),
+            limit: 50,
+          } },
+          updateQuery: (current) => current,
+        }),
+      ]);
+      const currentPage = reconciled[1];
+      if (currentPage?.status === "fulfilled") {
+        const current = currentPage.value.data?.affiliateActionProposalPage?.items
+          .find((item) => item.id === proposal.id);
+        if (current) entityStore.affiliateWorkspace.upsertAffiliateActionProposal(current);
       }
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
       return false;
@@ -7781,7 +7786,7 @@ export const AgentWorkBundleTable = observer(function AgentWorkBundleTable({
   );
 });
 
-export function AgentWorkBundleDetailModal({
+export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetailModal({
   bundle,
   shopLabelForId,
   decidingProposal,
@@ -7810,7 +7815,10 @@ export function AgentWorkBundleDetailModal({
   onIgnore: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
-  const proposal = bundle.proposal;
+  const currentProjection = proposalProjectionSnapshot(affiliateWorkspace, bundle.proposal.id);
+  const proposal = currentProjection
+    ? hydrateAffiliateProposalProjection(currentProjection, bundle.proposal)
+    : bundle.proposal;
   const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
   const primaryShopLabel: ShopDisplayLabel = shopLabels[0] ?? {
     text: t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop"),
@@ -7856,12 +7864,18 @@ export function AgentWorkBundleDetailModal({
     data: reviewProposalHistoryData,
     loading: reviewProposalHistoryLoading,
     error: reviewProposalHistoryError,
+    refetch: refetchReviewProposals,
   } = useQuery<AffiliateActionProposalPageData, { input: ReadAffiliateActionProposalPageInput }>(
     AFFILIATE_ACTION_PROPOSALS_QUERY,
     {
       variables: {
         input: {
           creatorRelationshipId: relationshipId ?? "",
+          // Include this exact proposal even when newer proposals filled the
+          // first history page while the review modal was open.
+          ...(proposal.createdAt ? {
+            createdAtLt: new Date(Date.parse(proposal.createdAt) + 1).toISOString(),
+          } : {}),
           limit: 8,
         },
       },
@@ -7869,6 +7883,15 @@ export function AgentWorkBundleDetailModal({
       skip: !relationshipId,
     },
   );
+
+  useEffect(() => {
+    for (const current of reviewProposalHistoryData?.affiliateActionProposalPage.items ?? []) {
+      affiliateWorkspace.upsertAffiliateActionProposal?.(current);
+    }
+  }, [affiliateWorkspace, reviewProposalHistoryData?.affiliateActionProposalPage]);
+  useAffiliateWorkbenchRefresh(useCallback(() => {
+    void refetchReviewProposals();
+  }, [refetchReviewProposals]), relationshipId);
 
   useEffect(() => {
     if (covered) return;
@@ -7966,7 +7989,7 @@ export function AgentWorkBundleDetailModal({
       </div>
     </AffiliateDetailModal>
   );
-}
+});
 
 function AgentWorkReviewContext({
   proposal,
@@ -8163,9 +8186,9 @@ function reviewContextHasCurrentFacts(
   return Boolean(detail?.lastContactedAt || detail?.performance || detail?.counts);
 }
 
-export function AgentWorkBundleCard({
-  proposal,
-  revisionHistory = proposal.revisionHistory ?? [],
+export const AgentWorkBundleCard = observer(function AgentWorkBundleCard({
+  proposal: initialProposal,
+  revisionHistory = initialProposal.revisionHistory ?? [],
   shopLabel,
   shopLabelForId,
   decidingProposal = false,
@@ -8208,6 +8231,10 @@ export function AgentWorkBundleCard({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
+  const currentProjection = proposalProjectionSnapshot(affiliateWorkspace, initialProposal.id);
+  const proposal = currentProjection
+    ? hydrateAffiliateProposalProjection(currentProjection, initialProposal)
+    : initialProposal;
   const creatorName = proposal.creatorProfile
     ? creatorPrimaryName(proposal.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : t("ecommerce.affiliateWorkspace.unknownCreator");
@@ -8788,7 +8815,7 @@ export function AgentWorkBundleCard({
       ) : null}
     </article>
   );
-}
+});
 
 function AgentWorkRevisionHistory({
   currentProposalId,
@@ -10413,7 +10440,7 @@ export function CreatorRelationshipDetailModal(
   return <CreatorRelationshipDetailContent key={id} {...props} />;
 }
 
-function CreatorRelationshipDetailContent({
+const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDetailContent({
   item,
   relationshipId: relationshipIdOverride,
   selectedShopId,
@@ -10465,9 +10492,6 @@ function CreatorRelationshipDetailContent({
   >("overview");
   const [proposalHistoryOpen, setProposalHistoryOpen] = useState(false);
   const [decidingProposalId, setDecidingProposalId] = useState<string | null>(null);
-  const [optimisticallyDecidedProposalIds, setOptimisticallyDecidedProposalIds] = useState<
-    Set<string>
-  >(() => new Set());
   const tabPanelRef = useRef<HTMLDivElement>(null);
   const [composerText, setComposerText] = useState("");
   const [composerChannel, setComposerChannel] = useState<"AUTO" | GQL.AffiliateMessageChannel>(
@@ -10514,7 +10538,6 @@ function CreatorRelationshipDetailContent({
     setContextInspectorSection("overview");
     setProposalHistoryOpen(false);
     setDecidingProposalId(null);
-    setOptimisticallyDecidedProposalIds(new Set());
   }, [initialTab, relationshipId]);
   useEffect(() => {
     setPendingReplyToLifecycleEventId(replyToLifecycleEventId);
@@ -10826,6 +10849,17 @@ function CreatorRelationshipDetailContent({
   const samplePage = sampleQuery.data?.affiliateRelationshipSampleApplications;
   const platformPage = platformQuery.data?.affiliateRelationshipPlatformCollaborations;
   const proposalPage = proposalQuery.data?.affiliateActionProposalPage;
+  useEffect(() => {
+    for (const current of proposalPage?.items ?? []) {
+      affiliateWorkspace.upsertAffiliateActionProposal?.(current);
+    }
+  }, [affiliateWorkspace, proposalPage]);
+  useEffect(() => panelEventBus.subscribe("affiliate-action-proposal-changed", (payload) => {
+    const current = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
+    if (current?.creatorRelationshipId === relationshipId) {
+      affiliateWorkspace.upsertAffiliateActionProposal?.(current);
+    }
+  }), [affiliateWorkspace, relationshipId]);
   const relationshipSampleApplications = sortAffiliateSamplesPendingFirst(
     mergeById([
       ...(item?.workItems ?? []).flatMap((workItem) => [
@@ -10842,19 +10876,22 @@ function CreatorRelationshipDetailContent({
     matchesCreatorShop(entry.collaboration.shopId, scopeShopId),
   );
   // The list/work-item payload already carries the exact pending proposal that
-  // produced the queue row. Use it as an immediate entity snapshot while the
-  // detail query catches up; the query result wins when both contain the same ID.
+  // produced the queue row. Use it only until the detail query arrives; the
+  // newest query/SSE revision in the entity store owns each proposal's state.
   const relationshipProposals = mergeById([
-    ...(item?.workItems ?? []).flatMap((workItem) => [
+    // Row snapshots seed only the first render, never resurrect a proposal
+    // omitted by a completed authoritative detail query.
+    ...(proposalPage ? [] : item?.workItems ?? []).flatMap((workItem) => [
       ...workItem.pendingProposals,
       ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
     ]),
     ...(proposalPage?.items ?? []),
-  ]).filter((proposal) => matchesCreatorProposalShop(proposal, scopeShopId));
+  ]).map((proposal) => hydrateAffiliateProposalProjection(
+    proposalProjectionSnapshot(affiliateWorkspace, proposal.id) ?? { proposal }, proposal,
+  )).filter((proposal) => matchesCreatorProposalShop(proposal, scopeShopId));
   const visiblePendingProposals = relationshipProposals.filter(
     (proposal) =>
-      proposal.status === GQL.ActionProposalStatus.Pending &&
-      !optimisticallyDecidedProposalIds.has(proposal.id),
+      proposal.status === GQL.ActionProposalStatus.Pending,
   );
   const historicalProposals = relationshipProposals.filter(
     (proposal) => proposal.status !== GQL.ActionProposalStatus.Pending,
@@ -10939,7 +10976,8 @@ function CreatorRelationshipDetailContent({
     void refetchRelationshipDetail();
     void refetchConversationMessages();
     void sampleQuery.refetch();
-  }, [refetchRelationshipDetail, refetchConversationMessages, sampleQuery.refetch]), relationshipId);
+    void proposalQuery.refetch();
+  }, [refetchRelationshipDetail, refetchConversationMessages, sampleQuery.refetch, proposalQuery.refetch]), relationshipId);
   const newestConversationMessageKey = conversationMessages.at(-1)
     ? affiliateCreatorMessageKey(conversationMessages.at(-1)!)
     : null;
@@ -11167,21 +11205,12 @@ function CreatorRelationshipDetailContent({
     }
 
     setDecidingProposalId(proposal.id);
-    setOptimisticallyDecidedProposalIds((current) => new Set(current).add(proposal.id));
-
-    const restorePendingProposal = () => {
-      setOptimisticallyDecidedProposalIds((current) => {
-        const next = new Set(current);
-        next.delete(proposal.id);
-        return next;
-      });
-    };
 
     try {
       if (onDecideProposal) {
         const handled = await onDecideProposal(proposal, status, note, sampleReviewOverride);
         if (!handled) {
-          restorePendingProposal();
+          await proposalQuery.refetch();
           return false;
         }
       } else {
@@ -11201,12 +11230,18 @@ function CreatorRelationshipDetailContent({
           },
         });
         const updatedProposal = result.data?.decideActionProposal;
+        if (!updatedProposal) throw new Error(t("ecommerce.updateFailed"));
         if (updatedProposal) {
           affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal);
         }
         showToast(
-          actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride),
-          "success",
+          updatedProposal.status === GQL.ActionProposalStatus.ExecutionFailed
+            ? updatedProposal.executionResult?.errorMessage || t("ecommerce.updateFailed")
+            : affiliateProposalDecisionApplied(status, updatedProposal.status)
+            ? actionProposalDecisionSuccessMessage(t, proposal, status, sampleReviewOverride)
+            : t("ecommerce.affiliateWorkspace.proposalStateChanged"),
+          updatedProposal.status === GQL.ActionProposalStatus.ExecutionFailed ? "error"
+            : affiliateProposalDecisionApplied(status, updatedProposal.status) ? "success" : "warning",
         );
       }
 
@@ -11217,7 +11252,7 @@ function CreatorRelationshipDetailContent({
       ]);
       return true;
     } catch (error) {
-      restorePendingProposal();
+      await Promise.allSettled([proposalQuery.refetch(), refetchRelationshipDetail()]);
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
       return false;
     } finally {
@@ -12789,7 +12824,7 @@ function CreatorRelationshipDetailContent({
       />
     </>
   );
-}
+});
 
 function CreatorProfilePanel({
   profile,

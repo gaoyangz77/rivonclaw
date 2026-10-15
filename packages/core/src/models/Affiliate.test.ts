@@ -61,6 +61,15 @@ function sample(overrides: Record<string, unknown> = {}) {
 }
 
 describe("AffiliateWorkspaceModel", () => {
+  it("keeps the newer terminal proposal when a stale query/patch arrives later", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    const proposal = { id: "proposal-state", userId: "user-1", creatorRelationshipId: "relationship-1",
+      type: "SEND_MESSAGE", status: "SUPERSEDED", operatorSummary: "Reply", createdAt: NOW,
+      updatedAt: "2026-08-02T00:01:00.000Z", steps: [] } as any;
+    workspace.upsertAffiliateActionProposal(proposal);
+    workspace.upsertAffiliateActionProposal({ ...proposal, status: "PENDING", updatedAt: NOW });
+    expect(workspace.proposalProjection(proposal.id)?.proposal.status).toBe("SUPERSEDED");
+  });
   it("stores canonical platform collaborations without creator-expanded records", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     workspace.ingestAffiliateWorkspace({
