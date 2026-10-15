@@ -3313,6 +3313,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "Copier le numéro de commande",
+        orderId: "Numéro de commande",
+        noOrderYet: "Pas encore disponible",
         title: "Demande d'échantillon",
         detailTitle: "Détails de la demande d'échantillon",
         openDetail: "Ouvrir les détails de la demande d'échantillon",

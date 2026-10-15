@@ -3315,6 +3315,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "Bestellnummer kopieren",
+        orderId: "Bestellnummer",
+        noOrderYet: "Noch nicht verfügbar",
         title: "Musteranfrage",
         detailTitle: "Details zur Musteranfrage",
         openDetail: "Details zur Musteranfrage öffnen",

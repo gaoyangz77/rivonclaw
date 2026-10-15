@@ -4066,6 +4066,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "Copy order ID",
+        orderId: "Order ID",
+        noOrderYet: "Not yet available",
         title: "Sample request",
         detailTitle: "Sample request details",
         openDetail: "Open sample request details",

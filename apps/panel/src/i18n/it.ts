@@ -3297,6 +3297,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "Copia numero d’ordine",
+        orderId: "Numero d’ordine",
+        noOrderYet: "Non ancora disponibile",
         title: "Richiesta campione",
         detailTitle: "Dettagli richiesta campione",
         openDetail: "Apri dettagli richiesta campione",

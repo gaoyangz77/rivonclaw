@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import { ToastProvider } from "../../components/Toast.js";
-import { CreatorRelationshipDetailModal } from "./AffiliateManagementPage.js";
+import { CreatorRelationshipDetailModal, SampleApplicationSummaryCard } from "./AffiliateManagementPage.js";
+import type { GQL } from "@rivonclaw/core";
 
 const state = vi.hoisted(() => ({
   calls: [] as Array<{ operation: string; input: Record<string, unknown> }>,
@@ -114,6 +115,30 @@ beforeEach(async () => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 afterEach(cleanup);
+
+describe("Sample card order facts", () => {
+  function card(orderId: string | null) {
+    const sample = { id: "sample-order", shopId: "1", platformApplicationId: "application-order",
+      sampleWorkStatus: "APPROVED_AWAITING_SHIPMENT", updatedAt: "2026-10-15T00:00:00.000Z",
+      observedContentCount: 0, order: { platformOrderId: orderId, trackingNumber: "TRACK-123" },
+    } as GQL.SampleApplicationRecord;
+    return <ToastProvider><SampleApplicationSummaryCard sampleApplication={sample} embedded /></ToastProvider>;
+  }
+  it("shows a separately labelled copyable order ID without confusing it with tracking", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    render(card("1234567890123456789"));
+    expect(screen.getByText("订单号")).toBeTruthy();
+    expect(screen.getByText("TRACK-123")).toBeTruthy();
+    fireEvent.click(screen.getByText("1234567890123456789").closest("button")!);
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("1234567890123456789"));
+  });
+  it.each([null, "0"])("shows unavailable instead of %s", orderId => {
+    render(card(orderId));
+    expect(screen.getByText("暂未获取")).toBeTruthy();
+    expect(screen.queryByText("0")).toBeNull();
+  });
+});
 
 function view(
   relationshipId = "creator",

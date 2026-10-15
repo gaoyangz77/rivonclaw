@@ -3300,6 +3300,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "Copiar número de pedido",
+        orderId: "Número de pedido",
+        noOrderYet: "Aún no disponible",
         title: "Solicitud de muestra",
         detailTitle: "Detalles de la solicitud de muestra",
         openDetail: "Abrir detalles de la solicitud de muestra",

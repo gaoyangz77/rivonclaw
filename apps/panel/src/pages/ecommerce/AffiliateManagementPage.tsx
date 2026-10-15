@@ -67,6 +67,7 @@ import {
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
+import { sampleOrderIdForCard } from "./affiliate-sample-order-id.js";
 import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
 import { AFFILIATE_WORKBENCH_MY_BD_VALUE, affiliateWorkbenchBdInput, affiliateWorkbenchBdOptions } from "./affiliate-workbench-bd-filter.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -9643,6 +9644,7 @@ export function SampleApplicationSummaryCard({
   const { t } = useTranslation();
   const [detailOpen, setDetailOpen] = useState(false);
   const sampleOrder = sampleApplication.order;
+  const sampleOrderId = sampleOrderIdForCard(sampleOrder?.platformOrderId);
   const trackingNumber = sampleOrder?.trackingNumber ?? sampleApplication.trackingNumber;
   const carrier = sampleOrder?.carrier ?? sampleApplication.carrier;
   const status = t(
@@ -9768,6 +9770,15 @@ export function SampleApplicationSummaryCard({
         />
       ) : null}
       <div className="affiliate-collaboration-sample-grid">
+        <SampleApplicationFact
+          label={t("ecommerce.affiliateWorkspace.sampleApplication.orderId")}
+          value={sampleOrderId
+            ? <CopyInlineValue value={sampleOrderId} displayValue={sampleOrderId}
+                className="affiliate-id-copy-button affiliate-platform-id-copy"
+                copiedMessageKey="ecommerce.affiliateWorkspace.platformIdCopied"
+                copyLabelKey="ecommerce.affiliateWorkspace.sampleApplication.copyOrderId" />
+            : t("ecommerce.affiliateWorkspace.sampleApplication.noOrderYet")}
+        />
         <SampleApplicationFact
           label={t("ecommerce.affiliateWorkspace.sampleApplication.contentProgress")}
           value={t("ecommerce.affiliateWorkspace.sampleApplication.contentProgressValue", {
@@ -9964,7 +9975,7 @@ function SampleApplicationFact({
   value,
 }: {
   label: string;
-  value?: string | number | null;
+  value?: ReactNode;
 }) {
   return (
     <div className="affiliate-entity-fact">
@@ -10927,7 +10938,8 @@ function CreatorRelationshipDetailContent({
   useAffiliateWorkbenchRefresh(useCallback(() => {
     void refetchRelationshipDetail();
     void refetchConversationMessages();
-  }, [refetchRelationshipDetail, refetchConversationMessages]), relationshipId);
+    void sampleQuery.refetch();
+  }, [refetchRelationshipDetail, refetchConversationMessages, sampleQuery.refetch]), relationshipId);
   const newestConversationMessageKey = conversationMessages.at(-1)
     ? affiliateCreatorMessageKey(conversationMessages.at(-1)!)
     : null;

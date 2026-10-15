@@ -3259,6 +3259,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "Salin nomor pesanan",
+        orderId: "Nomor pesanan",
+        noOrderYet: "Belum tersedia",
         title: "Permintaan sampel",
         detailTitle: "Detail permintaan sampel",
         openDetail: "Buka detail permintaan sampel",

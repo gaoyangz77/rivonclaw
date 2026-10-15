@@ -3142,6 +3142,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "คัดลอกหมายเลขคำสั่งซื้อ",
+        orderId: "หมายเลขคำสั่งซื้อ",
+        noOrderYet: "ยังไม่มีข้อมูล",
         title: "คำขอตัวอย่าง",
         detailTitle: "รายละเอียดคำขอตัวอย่าง",
         openDetail: "เปิดรายละเอียดคำขอตัวอย่าง",

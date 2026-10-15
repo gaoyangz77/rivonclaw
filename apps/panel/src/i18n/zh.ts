@@ -3867,6 +3867,9 @@ export default {
         },
       },
       sampleApplication: {
+        copyOrderId: "复制订单号",
+        orderId: "订单号",
+        noOrderYet: "暂未获取",
         title: "样品申请",
         detailTitle: "样品申请详情",
         openDetail: "查看样品申请详情",
