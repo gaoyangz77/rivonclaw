@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.33",
+    "date": "2026-10-16",
+    "en": [
+      "Let BD staff claim public creators, load their details after claiming, and confirm returns to the public pool",
+      "Clarify sample order copy button labels in the Affiliate workbench"
+    ],
+    "zh": [
+      "支持 BD 认领公共达人、认领后加载完整详情，并在退回公海前确认",
+      "完善达人工作台样品订单复制按钮标签"
+    ]
+  },
+  {
     "version": "1.9.32",
     "date": "2026-10-15",
     "en": [
