@@ -4,6 +4,7 @@ import type { GQL } from "@rivonclaw/core";
 import { CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION } from "../../../api/shops-queries.js";
 import { TkButton, TkTooltip } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
+import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
 export function AffiliateClaimCreatorButton({
   creatorRelationshipId,
@@ -14,11 +15,9 @@ export function AffiliateClaimCreatorButton({
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const entityStore = useEntityStore();
   const [claim, { loading }] = useMutation<{
-    claimAffiliateCreatorRelationship: Pick<
-      GQL.AffiliateCreatorRelationship,
-      "id" | "businessDeveloperId" | "operationalConfigRevision" | "updatedAt"
-    >;
+    claimAffiliateCreatorRelationship: GQL.AffiliateCreatorRelationship;
   }>(CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION);
 
   async function claimCreator() {
@@ -26,6 +25,7 @@ export function AffiliateClaimCreatorButton({
       const result = await claim({ variables: { creatorRelationshipId } });
       const relationship = result.data?.claimAffiliateCreatorRelationship;
       if (!relationship?.businessDeveloperId) throw new Error(t("ecommerce.updateFailed"));
+      entityStore.affiliateWorkspace.upsertAffiliateCreatorRelationship(relationship);
       await onClaimed(relationship.businessDeveloperId);
       showToast(t("ecommerce.affiliateWorkspace.creatorClaimed"), "success");
     } catch (error) {

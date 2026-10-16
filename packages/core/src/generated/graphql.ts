@@ -11368,6 +11368,7 @@ export interface Mutation {
   /** Register a new user account */
   register: AuthPayload;
   registerExpertKnowledgeRelease: ExpertKnowledgeRelease;
+  releaseAffiliateCreatorRelationship: AffiliateCreatorRelationship;
   /** Delete a business developer's login and end its sessions. */
   removeAffiliateBusinessDeveloperLogin: AffiliateBusinessDeveloper;
   removeAffiliateCreatorProtection: AffiliateCreatorProtectionRemovalPayload;
@@ -12216,6 +12217,11 @@ export interface MutationRegisterArgs {
 
 export interface MutationRegisterExpertKnowledgeReleaseArgs {
   input: RegisterExpertKnowledgeReleaseInput;
+}
+
+export interface MutationReleaseAffiliateCreatorRelationshipArgs {
+  creatorRelationshipId: Scalars["ID"]["input"];
+  expectedBusinessDeveloperId: Scalars["ID"]["input"];
 }
 
 export interface MutationRemoveAffiliateBusinessDeveloperLoginArgs {

@@ -209,6 +209,19 @@ describe("public Creator claim visibility", () => {
     fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
     expect(screen.queryByRole("button", { name: "认领给我" })).toBeNull();
   });
+  it.each([true, false])("offers release to an authorized owner/supervisor (BD-only=%s)", businessDeveloperOnly => {
+    (state.detail.creatorRelationship as Record<string, unknown>).businessDeveloperId = "bd";
+    render(view("creator", "overview", businessDeveloperOnly));
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(screen.getByRole("button", { name: "退回公池" })).toBeTruthy();
+  });
+  it("does not offer release for public Creators or without configuration permission", () => {
+    state.detail.viewerCanEditCreatorConfiguration = false;
+    (state.detail.creatorRelationship as Record<string, unknown>).businessDeveloperId = "bd";
+    render(view("creator", "overview", true));
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(screen.queryByRole("button", { name: "退回公池" })).toBeNull();
+  });
 });
 
 describe("live proposal state inside Creator details", () => {

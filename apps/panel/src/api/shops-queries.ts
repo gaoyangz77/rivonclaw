@@ -4905,26 +4905,78 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
   }
 `;
 
+// Ownership mutations pass through Desktop's entity hydration, including when
+// the Relationship has never been cached. Keep its full persisted state here.
+export const AFFILIATE_RELATIONSHIP_OWNERSHIP_FIELDS = gql`
+  fragment AffiliateRelationshipOwnershipFields on AffiliateCreatorRelationship {
+    __typename
+    id
+    userId
+    creatorId
+    businessDeveloperId
+    sellerProvidedUid
+    sellerNote
+    operationalConfigRevision
+    manualTagIds
+    manualTags { id name sensitive updatedAt }
+    highestSampleTier
+    shopStates { shopId sampleTier lastContactedAt lastInvitedAt lastQualifiedAt }
+    lastInboundAt
+    lastOutboundAt
+    lastAgentHandledAt
+    committedCheckpointId
+    committedCheckpointAt
+    committedEventCursor
+    lifecycleEventSequence
+    activeRunId
+    activeRunBaseCheckpointId
+    activeRunBaseEventCursor
+    activeRunOperationalConfigRevision
+    activeRunBusinessDeveloperId
+    activeRunBusinessDeveloperConfigRevision
+    agendaItems {
+      key owner sourceType workKind requiredAction shopId sampleApplicationRecordId
+      reviewDisposition affiliateCollaborationId productId proposalId reasons nextActionAt
+      boundaryEventCursor updatedAt messageChannel pendingLifecycleEventId pendingRelationshipSequence
+    }
+    workSummary { agentRequiredCount staffRequiredCount externalWaitingCount nextActionAt }
+    lastBlockedAt
+    lastPlatformSyncedAt
+    stateUpdatedAt
+    activeAffiliateCollaborationIds
+    activeSampleApplicationRecordIds
+    blocked
+    blockedShopIds
+    createdAt
+    updatedAt
+  }
+`;
+
 export const CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION = gql`
   mutation ClaimAffiliateCreatorRelationship($creatorRelationshipId: ID!) {
     claimAffiliateCreatorRelationship(creatorRelationshipId: $creatorRelationshipId) {
-      id
-      businessDeveloperId
-      operationalConfigRevision
-      updatedAt
+      ...AffiliateRelationshipOwnershipFields
     }
   }
+  ${AFFILIATE_RELATIONSHIP_OWNERSHIP_FIELDS}
+`;
+
+export const RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION = gql`
+  mutation ReleaseAffiliateCreatorRelationship($creatorRelationshipId: ID!, $expectedBusinessDeveloperId: ID!) {
+    releaseAffiliateCreatorRelationship(creatorRelationshipId: $creatorRelationshipId, expectedBusinessDeveloperId: $expectedBusinessDeveloperId) {
+      ...AffiliateRelationshipOwnershipFields
+    }
+  }
+  ${AFFILIATE_RELATIONSHIP_OWNERSHIP_FIELDS}
 `;
 
 export const ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
   mutation AssignAffiliateBusinessDeveloper($input: AssignAffiliateBusinessDeveloperInput!) {
     assignAffiliateBusinessDeveloper(input: $input) {
-      id
-      businessDeveloperId
-      operationalConfigRevision
-      updatedAt
+      ...AffiliateRelationshipOwnershipFields
     }
   }
+  ${AFFILIATE_RELATIONSHIP_OWNERSHIP_FIELDS}
 `;
 
 export const UPDATE_AFFILIATE_CREATOR_RELATIONSHIP_SELLER_METADATA_MUTATION = gql`

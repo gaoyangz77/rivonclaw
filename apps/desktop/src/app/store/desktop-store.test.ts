@@ -2,6 +2,33 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { applyPatch, getSnapshot, type IJsonPatch } from "mobx-state-tree";
 import { RootStoreModel } from "@rivonclaw/core/models";
 import { rootStore, subscribeToPatch } from "./desktop-store.js";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { buildSchema, execute } from "graphql";
+import {
+  CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
+  RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
+  ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
+} from "../../../../panel/src/api/shops-queries.js";
+
+describe("ownership mutation → Desktop MST contract", () => {
+  beforeEach(() => rootStore.clearCloudEntities());
+  const schema = buildSchema(readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"));
+  it.each([
+    ["claimAffiliateCreatorRelationship",CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,"new-bd"],
+    ["releaseAffiliateCreatorRelationship",RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,null],
+    ["assignAffiliateBusinessDeveloper",ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,"new-bd"],
+  ] as const)("hydrates %s on a cold and warm store without missing creatorId or erasing active work",async (field,document,owner)=>{
+    const now="2026-10-16T11:16:29.360Z";
+    const entity={id:"relationship",userId:"user",creatorId:"creator",businessDeveloperId:owner,operationalConfigRevision:2,manualTagIds:["tag"],manualTags:[],highestSampleTier:null,shopStates:[],agendaItems:[],workSummary:{agentRequiredCount:0,staffRequiredCount:0,externalWaitingCount:0},committedCheckpointId:"checkpoint",committedEventCursor:4,lifecycleEventSequence:5,activeRunId:"frozen-run",activeRunBusinessDeveloperId:"original-bd",activeRunBusinessDeveloperConfigRevision:3,stateUpdatedAt:now,activeAffiliateCollaborationIds:["collaboration"],activeSampleApplicationRecordIds:["sample"],blocked:false,blockedShopIds:[],createdAt:now,updatedAt:now,sellerProvidedUid:"seller-uid",sellerNote:"Preserve this note"};
+    const response=await execute({schema,document,rootValue:{[field]:()=>entity},variableValues:{creatorRelationshipId:"relationship",expectedBusinessDeveloperId:"original-bd",input:{creatorRelationshipId:"relationship",businessDeveloperId:"new-bd"}}});
+    expect(response.errors).toBeUndefined();
+    expect(response.data?.[field]).toMatchObject({__typename:"AffiliateCreatorRelationship",creatorId:"creator"});
+    await ingestAndCollect(response.data!);
+    await ingestAndCollect(response.data!);
+    expect(getSnapshot(rootStore.affiliateWorkspace.getCreatorRelationship("relationship")!)).toMatchObject({creatorId:"creator",businessDeveloperId:owner,operationalConfigRevision:2,committedCheckpointId:"checkpoint",activeRunId:"frozen-run",activeRunBusinessDeveloperId:"original-bd",manualTagIds:["tag"],activeAffiliateCollaborationIds:["collaboration"],activeSampleApplicationRecordIds:["sample"],sellerProvidedUid:"seller-uid",sellerNote:"Preserve this note"});
+  });
+});
 
 function shop(id: string, name: string) {
   return {

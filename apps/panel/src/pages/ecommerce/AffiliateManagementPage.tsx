@@ -1,5 +1,6 @@
 import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExportButton.js";
 import { AffiliateClaimCreatorButton } from "./components/AffiliateClaimCreatorButton.js";
+import { AffiliateReleaseCreatorButton } from "./components/AffiliateReleaseCreatorButton.js";
 import { AffiliateMessageSendError } from "./components/AffiliateMessageSendError.js";
 import {
   useCallback,
@@ -11798,6 +11799,16 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     creatorRelationshipId={relationshipId}
                     onClaimed={async (businessDeveloperId) => {
                       setRelationshipOwnerId(businessDeveloperId);
+                      await refetchRelationshipDetail();
+                    }}
+                  />
+                ) : null}
+                {relationshipOwnerId && canEditCreatorConfiguration && relationshipId ? (
+                  <AffiliateReleaseCreatorButton
+                    creatorRelationshipId={relationshipId}
+                    businessDeveloperId={relationshipOwnerId}
+                    onReleased={async () => {
+                      setRelationshipOwnerId("");
                       await refetchRelationshipDetail();
                     }}
                   />
