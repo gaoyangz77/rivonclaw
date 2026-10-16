@@ -11158,6 +11158,7 @@ export interface Mutation {
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
   cancelExpertRun: ExpertRun;
   claimAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlanGenerationContext;
+  claimAffiliateCreatorRelationship: AffiliateCreatorRelationship;
   claimAffiliateEscalationNotification?: Maybe<AffiliateEscalationNotificationClaim>;
   claimPendingTikTokShops: TikTokShopClaimResult;
   completeAffiliateOperationalOnboarding: AffiliateOperationalSettings;
@@ -11626,6 +11627,10 @@ export interface MutationCancelExpertRunArgs {
 
 export interface MutationClaimAffiliateCampaignSearchPlanGenerationArgs {
   input: ClaimAffiliateCampaignSearchPlanGenerationInput;
+}
+
+export interface MutationClaimAffiliateCreatorRelationshipArgs {
+  creatorRelationshipId: Scalars["ID"]["input"];
 }
 
 export interface MutationClaimAffiliateEscalationNotificationArgs {

@@ -192,6 +192,25 @@ function openTab(label: string) {
   fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${label}`) }));
 }
 
+describe("public Creator claim visibility", () => {
+  it("offers self-claim to BD staff on a public Creator", () => {
+    render(view("creator", "overview", true));
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(screen.getByRole("button", { name: "认领给我" })).toBeTruthy();
+  });
+  it("does not offer self-claim on an assigned Creator", () => {
+    (state.detail.creatorRelationship as Record<string, unknown>).businessDeveloperId = "bd";
+    render(view("creator", "overview", true));
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(screen.queryByRole("button", { name: "认领给我" })).toBeNull();
+  });
+  it("keeps the supervisor's existing reassignment control", () => {
+    render(view());
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(screen.queryByRole("button", { name: "认领给我" })).toBeNull();
+  });
+});
+
 describe("live proposal state inside Creator details", () => {
   function pending(id = "proposal-old") {
     return {

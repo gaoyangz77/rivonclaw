@@ -4905,6 +4905,17 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
   }
 `;
 
+export const CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION = gql`
+  mutation ClaimAffiliateCreatorRelationship($creatorRelationshipId: ID!) {
+    claimAffiliateCreatorRelationship(creatorRelationshipId: $creatorRelationshipId) {
+      id
+      businessDeveloperId
+      operationalConfigRevision
+      updatedAt
+    }
+  }
+`;
+
 export const ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
   mutation AssignAffiliateBusinessDeveloper($input: AssignAffiliateBusinessDeveloperInput!) {
     assignAffiliateBusinessDeveloper(input: $input) {

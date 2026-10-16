@@ -1,4 +1,5 @@
 import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExportButton.js";
+import { AffiliateClaimCreatorButton } from "./components/AffiliateClaimCreatorButton.js";
 import { AffiliateMessageSendError } from "./components/AffiliateMessageSendError.js";
 import {
   useCallback,
@@ -11792,6 +11793,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     />
                   </label>
                 )}
+                {businessDeveloperOnly && !relationshipOwnerId && relationshipId ? (
+                  <AffiliateClaimCreatorButton
+                    creatorRelationshipId={relationshipId}
+                    onClaimed={async (businessDeveloperId) => {
+                      setRelationshipOwnerId(businessDeveloperId);
+                      await refetchRelationshipDetail();
+                    }}
+                  />
+                ) : null}
                 <div className="affiliate-relationship-protection-control">
                   <span>{t("ecommerce.affiliateWorkspace.relationshipAiParticipation")}</span>
                   <strong>

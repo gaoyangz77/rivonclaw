@@ -1,4 +1,5 @@
 import { AFFILIATE_CREATOR_EXPORT_COPY } from "./affiliate-creator-export-translations.js";
+import { AFFILIATE_CREATOR_CLAIM_COPY } from "./affiliate-creator-claim-translations.js";
 import {
   creatorOverrideCopy,
   creatorOverrideUnassignedEvent,
@@ -2820,6 +2821,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.en,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.en,
         myCreatorsFilter: "My creators",
         publicCreatorsFilter: "Public creators",
         messageComposerExistingContact: "Existing conversation account",
@@ -2848,6 +2850,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.zh,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.zh,
         myCreatorsFilter: "我的达人",
         publicCreatorsFilter: "公共达人",
         messageComposerExistingContact: "现有会话账号",
@@ -2876,6 +2879,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.de,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.de,
         myCreatorsFilter: "Meine Creator",
         publicCreatorsFilter: "Öffentliche Creator",
         messageComposerExistingContact: "Konto der bestehenden Unterhaltung",
@@ -2904,6 +2908,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.es,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.es,
         myCreatorsFilter: "Mis creadores",
         publicCreatorsFilter: "Creadores públicos",
         messageComposerExistingContact: "Cuenta de conversación existente",
@@ -2932,6 +2937,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.fr,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.fr,
         myCreatorsFilter: "Mes créateurs",
         publicCreatorsFilter: "Créateurs publics",
         messageComposerExistingContact: "Compte de conversation existante",
@@ -2960,6 +2966,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.id,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.id,
         myCreatorsFilter: "Kreator saya",
         publicCreatorsFilter: "Kreator publik",
         messageComposerExistingContact: "Akun percakapan yang ada",
@@ -2988,6 +2995,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.it,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.it,
         myCreatorsFilter: "I miei creator",
         publicCreatorsFilter: "Creator pubblici",
         messageComposerExistingContact: "Account della conversazione esistente",
@@ -3016,6 +3024,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
       },
       affiliateWorkspace: {
         ...deliveryAuditCopy.th,
+        ...AFFILIATE_CREATOR_CLAIM_COPY.th,
         myCreatorsFilter: "ครีเอเตอร์ของฉัน",
         publicCreatorsFilter: "ครีเอเตอร์ส่วนกลาง",
         messageComposerExistingContact: "บัญชีการสนทนาที่มีอยู่",
