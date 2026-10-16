@@ -63,6 +63,17 @@ describe("workbench Sample order number copy", () => {
     expect(print(AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY)).toMatch(/order\s*\{\s*platformOrderId\s*\}/);
   });
 
+  it.each(["zh", "en", "de", "es", "fr", "id", "it", "th"])(
+    "shows the order label and copy hint in %s", async (language) => {
+      await i18n.changeLanguage(language);
+      render(button(ORDER_ID));
+      const copy = screen.getByRole("button", { name: copyLabel() });
+      expect(copy.textContent).toBe(i18n.t("ecommerce.affiliateWorkspace.sampleApplication.orderId"));
+      expect(copy.getAttribute("title")).toBe(copyLabel());
+      expect(copy.querySelector("svg")).toBeTruthy();
+    },
+  );
+
   it.each([undefined, null, "", " ", "0", "00", " 0 "])("hides invalid order ID %s", (id) => {
     render(button(id));
     expect(screen.queryByRole("button", { name: copyLabel() })).toBeNull();
