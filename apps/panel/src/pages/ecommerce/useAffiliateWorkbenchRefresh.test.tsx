@@ -100,3 +100,34 @@ it("reconciles on visibility, focus and SSE reconnect even if a proposal event w
   });
   expect(refresh).toHaveBeenCalledTimes(2);
 });
+
+
+it("uses the latest tab callback without resubscribing and replaying the cached snapshot", () => {
+  vi.useFakeTimers();
+  let receiveSnapshot: (payload: unknown) => void = () => {};
+  const subscribe = vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+    if (event === "entity-snapshot") {
+      receiveSnapshot = handler;
+      handler({}); // The actual event bus replays its latest snapshot to new subscribers.
+    }
+    return vi.fn();
+  });
+  const firstTab = vi.fn();
+  const nextTab = vi.fn();
+  const { rerender } = renderHook(({ refresh }) => useAffiliateWorkbenchRefresh(refresh, "creator-one"), {
+    initialProps: { refresh: firstTab },
+  });
+  act(() => vi.advanceTimersByTime(250));
+  expect(firstTab).toHaveBeenCalledTimes(1);
+  const subscriptions = subscribe.mock.calls.length;
+  rerender({ refresh: nextTab });
+  act(() => vi.advanceTimersByTime(250));
+  expect(subscribe).toHaveBeenCalledTimes(subscriptions);
+  expect(nextTab).not.toHaveBeenCalled();
+  act(() => {
+    receiveSnapshot({});
+    vi.advanceTimersByTime(250);
+  });
+  expect(nextTab).toHaveBeenCalledTimes(1);
+  expect(firstTab).toHaveBeenCalledTimes(1);
+});

@@ -1209,6 +1209,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const hasMoreProposals = activeProposalPageBuffer.hasMore;
   const loadingMoreProposals = loadingMoreProposalQueryKey === proposalQueryKey;
 
+  const agentProposalsVisible = Boolean(user) && ["PENDING_AGENT", "ALL_AGENT"].includes(workbenchTab);
   const {
     data: proposalData,
     loading: proposalsLoading,
@@ -1230,7 +1231,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       },
       fetchPolicy: "cache-and-network",
       notifyOnNetworkStatusChange: true,
-      skip: !user || !["PENDING_AGENT", "ALL_AGENT"].includes(workbenchTab),
+      skip: !agentProposalsVisible,
     },
   );
 
@@ -1366,8 +1367,8 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
 
   useAffiliateWorkbenchRefresh(useCallback(() => {
     setWorkbenchEntityRefreshRevision((revision) => revision + 1);
-    void refetchProposals();
-  }, [refetchProposals]));
+    if (agentProposalsVisible) void refetchProposals();
+  }, [agentProposalsVisible, refetchProposals]));
 
   function goToNextProposalPage(): void {
     if (!hasMoreProposals || !proposalCursor) return;
@@ -10492,6 +10493,20 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const [contextInspectorSection, setContextInspectorSection] = useState<
     "overview" | "contacts" | "management"
   >("overview");
+  // Summary/counts stay available from relationshipDetail; each collection belongs
+  // to its visible tab. Do not refetch skipped queries from background events.
+  const managementVisible = contextInspectorOpen && contextInspectorSection === "management";
+  const profileVisible = activeTab === "profile";
+  const samplesVisible = activeTab === "samples";
+  const platformVisible = activeTab === "platform";
+  const proposalsVisible = activeTab === "overview";
+  const timelineVisible = activeTab === "activity" || (managementVisible && !scopeShopId);
+  const globalManagementTimelineVisible = managementVisible && Boolean(scopeShopId);
+  // Decisions can finish after the operator switches tabs.
+  const visibleQueriesRef = useRef({ samplesVisible, proposalsVisible, timelineVisible });
+  useLayoutEffect(() => {
+    visibleQueriesRef.current = { samplesVisible, proposalsVisible, timelineVisible };
+  }, [samplesVisible, proposalsVisible, timelineVisible]);
   const [proposalHistoryOpen, setProposalHistoryOpen] = useState(false);
   const [decidingProposalId, setDecidingProposalId] = useState<string | null>(null);
   const tabPanelRef = useRef<HTMLDivElement>(null);
@@ -10592,7 +10607,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     { input: GQL.AffiliateCreatorContactStateInput }
   >(AFFILIATE_CREATOR_CONTACT_STATE_QUERY, {
     variables: { input: { creatorRelationshipId: relationshipId ?? "" } },
-    skip: !relationshipId || !relationship || Boolean(relationship.businessDeveloperId),
+    skip: !relationshipId || activeTab !== "conversation" || !relationship || Boolean(relationship.businessDeveloperId),
     fetchPolicy: "cache-and-network",
   });
   const publicContacts = publicContactData?.affiliateCreatorContactState.channelContacts ?? [];
@@ -10630,7 +10645,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !profileVisible,
   });
   const authoritativeProfile = creatorProfileData?.affiliateCreatorProfile ?? null;
   const profile = authoritativeProfile?.creator ?? relationshipDetail?.creator ?? fallbackProfile;
@@ -10669,6 +10684,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
     variables: { includeArchived: true },
     fetchPolicy: "cache-and-network",
+    skip: !relationshipId || !managementVisible,
   });
   useEffect(() => {
     if (developerData)
@@ -10692,7 +10708,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     .filter((developer) => !developer.archivedAt)
     .map((developer) => ({ value: developer.id, label: developer.displayName }));
   const relationshipOwner = relationshipOwnerId
-    ? affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId)
+    ? affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId) ??
+      (relationshipDetail?.businessDeveloper?.id === relationshipOwnerId
+        ? relationshipDetail.businessDeveloper : null)
     : null;
   const effectiveAiLabel = relationshipProtection
     ? t("ecommerce.affiliateWorkspace.relationshipProtected")
@@ -10813,7 +10831,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !samplesVisible,
   });
   const platformQuery = useQuery<
     {
@@ -10829,7 +10847,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !platformVisible,
   });
   const proposalQuery = useQuery<
     { affiliateActionProposalPage: GQL.AffiliateActionProposalPage },
@@ -10843,7 +10861,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !proposalsVisible,
   });
   const [decideRelationshipActionProposal] = useMutation<
     { decideActionProposal: GQL.ActionProposal },
@@ -10975,12 +10993,6 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     hasOlder: canLoadOlderConversation,
     loadOlder: fetchOlderScopeMessages,
   } = useCreatorScopeConversation(relationshipId, scopeShopId, activeTab === "conversation");
-  useAffiliateWorkbenchRefresh(useCallback(() => {
-    void refetchRelationshipDetail();
-    void refetchConversationMessages();
-    void sampleQuery.refetch();
-    void proposalQuery.refetch();
-  }, [refetchRelationshipDetail, refetchConversationMessages, sampleQuery.refetch, proposalQuery.refetch]), relationshipId);
   const newestConversationMessageKey = conversationMessages.at(-1)
     ? affiliateCreatorMessageKey(conversationMessages.at(-1)!)
     : null;
@@ -11155,8 +11167,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       setSampleRejectExplanation("");
       setSampleReviewNote("");
       await Promise.all([
-        sampleQuery.refetch(),
-        proposalQuery.refetch(),
+        ...(visibleQueriesRef.current.samplesVisible ? [sampleQuery.refetch()] : []),
+        ...(visibleQueriesRef.current.proposalsVisible ? [proposalQuery.refetch()] : []),
         refetchRelationshipDetail(),
       ]);
       onWorkbenchEntityChanged?.();
@@ -11189,7 +11201,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
+    skip: !relationshipId || !timelineVisible,
   });
 
   async function decideRelationshipProposal(
@@ -11213,7 +11225,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       if (onDecideProposal) {
         const handled = await onDecideProposal(proposal, status, note, sampleReviewOverride);
         if (!handled) {
-          await proposalQuery.refetch();
+          if (visibleQueriesRef.current.proposalsVisible) await proposalQuery.refetch();
           return false;
         }
       } else {
@@ -11249,13 +11261,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       }
 
       await Promise.allSettled([
-        proposalQuery.refetch(),
+        ...(visibleQueriesRef.current.proposalsVisible ? [proposalQuery.refetch()] : []),
         refetchRelationshipDetail(),
-        refetchRelationshipTimeline(),
+        ...(visibleQueriesRef.current.timelineVisible ? [refetchRelationshipTimeline()] : []),
       ]);
       return true;
     } catch (error) {
-      await Promise.allSettled([proposalQuery.refetch(), refetchRelationshipDetail()]);
+      await Promise.allSettled([
+        ...(visibleQueriesRef.current.proposalsVisible ? [proposalQuery.refetch()] : []), refetchRelationshipDetail(),
+      ]);
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
       return false;
     } finally {
@@ -11272,8 +11286,21 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       input: { creatorRelationshipId: relationshipId ?? "", limit: AFFILIATE_TIMELINE_PAGE_SIZE },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !scopeShopId || contextInspectorSection !== "management",
+    skip: !relationshipId || !globalManagementTimelineVisible,
   });
+  useAffiliateWorkbenchRefresh(useCallback(() => {
+    void refetchRelationshipDetail();
+    void refetchConversationMessages();
+    if (profileVisible) void refetchCreatorProfile();
+    if (samplesVisible) void sampleQuery.refetch();
+    if (platformVisible) void platformQuery.refetch();
+    if (proposalsVisible) void proposalQuery.refetch();
+    if (timelineVisible) void refetchRelationshipTimeline();
+    if (globalManagementTimelineVisible) void refetchGlobalManagementTimeline();
+  }, [refetchRelationshipDetail, refetchConversationMessages, profileVisible, refetchCreatorProfile,
+    samplesVisible, sampleQuery.refetch, platformVisible, platformQuery.refetch,
+    proposalsVisible, proposalQuery.refetch, timelineVisible, refetchRelationshipTimeline,
+    globalManagementTimelineVisible, refetchGlobalManagementTimeline]), relationshipId);
   const managementTimelineItems = scopeShopId
     ? (globalManagementTimelineData?.affiliateRelationshipTimeline.items ?? [])
     : (relationshipTimeline?.items ?? []);
@@ -11757,9 +11784,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     {t("ecommerce.affiliateWorkspace.creatorDetail.followers")}:{" "}
                     {formatCount(performance?.followerCount)}
                   </span>
-                  {(authoritativeProfile?.market ?? management?.market) ? (
+                  {(authoritativeProfile?.market ?? performance?.market ?? management?.market) ? (
                     <span className="affiliate-creator-market-pill">
-                      {authoritativeProfile?.market ?? management?.market}
+                      {authoritativeProfile?.market ?? performance?.market ?? management?.market}
                     </span>
                   ) : null}
                 </div>
@@ -11769,10 +11796,10 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
               </section>
             ) : null}
             {contextInspectorSection !== "overview" ? <CreatorGlobalInformation /> : null}
-            {contextInspectorSection === "contacts" && relationshipId ? (
+            {contextInspectorOpen && contextInspectorSection === "contacts" && relationshipId ? (
               <CreatorContactPanel relationshipId={relationshipId} canEdit={canEditCreatorConfiguration} />
             ) : null}
-            {contextInspectorSection === "management" ? (
+            {managementVisible ? (
               <section className="affiliate-relationship-work-side-card affiliate-relationship-owner-card">
                 <div className="affiliate-relationship-work-side-card-head">
                   <span>{t("ecommerce.affiliateWorkspace.relationshipOwner")}</span>
@@ -11851,7 +11878,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                 ) : null}
               </section>
             ) : null}
-            {contextInspectorSection === "management" && relationshipId ? (
+            {managementVisible && relationshipId ? (
               <section className="affiliate-relationship-work-side-card affiliate-relationship-seller-note-card">
                 <div className="affiliate-relationship-work-side-card-head">
                   <span>{t("ecommerce.affiliateWorkspace.sellerNote")}</span>
@@ -11907,7 +11934,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                 )}
               </section>
             ) : null}
-            {contextInspectorSection === "management" && relationshipId && canEditCreatorConfiguration ? (
+            {managementVisible && relationshipId && canEditCreatorConfiguration ? (
               <AffiliateCreatorManualTagEditor
                 relationshipId={relationshipId}
                 manualTags={relationship?.manualTags ?? []}
@@ -11917,8 +11944,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                 canEditTagDefinitions={!businessDeveloperOnly}
                 onChanged={() => {
                   void refetchRelationshipDetail();
-                  void refetchRelationshipTimeline();
-                  if (scopeShopId) void refetchGlobalManagementTimeline();
+                  if (timelineVisible) void refetchRelationshipTimeline();
+                  if (globalManagementTimelineVisible) void refetchGlobalManagementTimeline();
                 }}
               />
             ) : null}

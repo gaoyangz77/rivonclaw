@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { panelEventBus } from "../../lib/event-bus.js";
 
 /** UI-only fact changes must never enter the Desktop Agent dispatcher. */
@@ -6,6 +6,10 @@ export function useAffiliateWorkbenchRefresh(
   onRefresh: () => void,
   relationshipId?: string | null,
 ): void {
+  // Tab switches change the refresh targets, not the SSE subscription. Replaying
+  // the cached snapshot on each new subscription would refetch the newly opened tab twice.
+  const refreshRef = useRef(onRefresh);
+  useLayoutEffect(() => { refreshRef.current = onRefresh; }, [onRefresh]);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
@@ -18,7 +22,7 @@ export function useAffiliateWorkbenchRefresh(
         if (document.hidden) {
           return;
         }
-        onRefresh();
+        refreshRef.current();
       }, 250);
     };
     const onVisible = () => {
@@ -52,5 +56,5 @@ export function useAffiliateWorkbenchRefresh(
       window.removeEventListener("focus", schedule);
       if (timer != null) clearTimeout(timer);
     };
-  }, [onRefresh, relationshipId]);
+  }, [relationshipId]);
 }

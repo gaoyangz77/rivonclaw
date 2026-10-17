@@ -10,6 +10,7 @@ import type { GQL } from "@rivonclaw/core";
 const state = vi.hoisted(() => ({
   calls: [] as Array<{ operation: string; input: Record<string, unknown> }>,
   refetch: vi.fn(),
+  refetches: new Map<string, ReturnType<typeof vi.fn>>(),
   fetchMore: vi.fn(),
   mutate: vi.fn(),
   detail: {} as Record<string, unknown>,
@@ -76,7 +77,11 @@ vi.mock("@apollo/client/react", () => ({
       affiliateCreatorMessageHistory: { items: state.history, hasMore: false },
       affiliateRelationshipTimeline: { items: state.timeline, hasOlder: false },
     };
-    return { data, loading: false, refetch: state.refetch, fetchMore: state.fetchMore };
+    if (!state.refetches.has(operation)) {
+      state.refetches.set(operation, vi.fn(() => state.refetch(operation)));
+    }
+    return { data: options.skip ? undefined : data, loading: false,
+      refetch: state.refetches.get(operation), fetchMore: state.fetchMore };
   },
 }));
 
@@ -90,6 +95,7 @@ beforeEach(async () => {
   state.storedProposals = observable.map([], { deep: false });
   state.handlers.clear();
   state.refetch.mockClear();
+  state.refetches.clear();
   state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
     viewerCanEditCreatorConfiguration: true,
@@ -168,7 +174,7 @@ describe("Sample card order facts", () => {
 
 function view(
   relationshipId = "creator",
-  tab: "overview" | "samples" | "conversation" | "activity" = "overview",
+  tab: "overview" | "samples" | "platform" | "profile" | "conversation" | "activity" = "overview",
   businessDeveloperOnly = false,
 ) {
   return (
@@ -276,6 +282,18 @@ fireEvent.click(screen.getByRole("button", { name: "忽略" }));
     expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
     expect(document.querySelector('.toast-success')).toBeNull();
     expect(state.refetch).toHaveBeenCalled();
+  });
+  it("does not reactivate a hidden proposal or activity query when a decision finishes after switching tabs", async () => {
+    state.proposals = [pending()];
+    let finish!: (value: unknown) => void;
+    state.mutate.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    render(view());
+    fireEvent.click(screen.getByRole("button", { name: "忽略" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认忽略" }));
+    openTab("沟通记录");
+    state.refetch.mockClear();
+    await act(async () => finish({ data: { decideActionProposal: { ...pending(), status: "IGNORED" } } }));
+    expect(state.refetch.mock.calls.map(call => call[0])).toEqual(["AffiliateCreatorRelationshipDetail"]);
   });
   it("keeps a genuinely new proposal actionable without reviving the old one", async () => {
     state.proposals = [pending(), pending("proposal-new")];
@@ -610,5 +628,56 @@ describe("Creator Detail for a business developer (ADR 085)", () => {
     expect(screen.getByRole("button", { name: removeLabel() })).toBeTruthy();
     expect(screen.getByRole("button", { name: renameLabel() })).toBeTruthy();
     expect(screen.getByRole("button", { name: createLabel() })).toBeTruthy();
+  });
+});
+
+
+describe("Creator detail loads only visible collections", () => {
+  const summary = "AffiliateCreatorRelationshipDetail";
+  function queried() { return [...new Set(state.calls.map(c => c.operation))].sort(); }
+  it.each([
+    ["conversation", ["AffiliateCreatorMessageHistory", "AffiliateCreatorContactState"]],
+    ["overview", ["AffiliateActionProposals"]],
+    ["samples", ["AffiliateRelationshipSampleApplications"]],
+    ["platform", ["AffiliateRelationshipPlatformCollaborations"]],
+    ["profile", ["AffiliateCreatorProfile"]],
+    ["activity", ["AffiliateRelationshipTimeline"]],
+  ] as const)("opens %s without querying other tabs", (tab, operations) => {
+    render(view("creator", tab));
+    expect(queried()).toEqual([summary, ...operations].sort());
+    // Collection counts remain available before their tabs have been opened.
+    expect(screen.getByRole("tab", { name: /^样品申请/ }).textContent).toContain("7");
+    expect(screen.getByRole("tab", { name: /^平台合作/ }).textContent).toContain("9");
+  });
+  it("loads the management directory and global tag history only when that inspector is visible", () => {
+    render(view("creator", "conversation"));
+    selectScope("1号店");
+    state.calls.length = 0;
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(queried()).toEqual([summary, "AffiliateBusinessDevelopers", "AffiliateCreatorContactState",
+      "AffiliateRelationshipTimeline", "AffiliateCreatorSystemTagDefinitions", "CreatorManualTags"].sort());
+    expect(state.calls.some(c => c.operation === "AffiliateRelationshipTimeline" && !c.input.shopIds)).toBe(true);
+    state.calls.length = 0;
+    fireEvent.click(document.querySelector('.affiliate-context-inspector-close')!);
+    expect(queried()).not.toContain("AffiliateBusinessDevelopers");
+    // The scoped conversation still uses its shop timeline for messages.
+    expect(state.calls.some(c => c.operation === "AffiliateRelationshipTimeline" && !c.input.shopIds)).toBe(false);
+    expect(queried()).not.toContain("CreatorManualTags");
+  });
+  it("does not refresh inactive collections on focus or reconnect, including after switching tabs", async () => {
+    render(view("creator", "conversation"));
+    act(() => {
+      for (const handler of state.handlers.get("entity-snapshot") ?? []) handler({});
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(state.refetch).toHaveBeenCalled());
+    expect(state.refetch.mock.calls.map(call => call[0]).sort()).toEqual([summary, "AffiliateCreatorMessageHistory"].sort());
+    openTab("样品申请");
+    state.refetch.mockClear();
+    act(() => {
+      for (const handler of state.handlers.get("affiliate-workbench-changed") ?? []) handler({creatorRelationshipId: "creator"});
+    });
+    await waitFor(() => expect(state.refetch).toHaveBeenCalled());
+    expect(state.refetch.mock.calls.map(call => call[0]).sort()).toEqual([summary, "AffiliateRelationshipSampleApplications"].sort());
   });
 });
