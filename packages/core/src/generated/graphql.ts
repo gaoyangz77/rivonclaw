@@ -11133,7 +11133,7 @@ export interface Mutation {
   affiliateIgnoreUnknownSender: AffiliateIgnoreUnknownSenderResult;
   /** Link an unknown inbound sender to a creator relationship, materialize the creator channel contact for the address they wrote from, and confirm the expectation row that predicted them. */
   affiliateLinkUnknownSender: AffiliateLinkUnknownSenderResult;
-  /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
+  /** Publish an affiliate observation. Message webhooks are durably accepted before asynchronous materialization; duplicate messages are idempotent. */
   affiliatePublishRelationshipSignal: AffiliateRelationshipSignal;
   /** Ask an unidentified inbound sender who they are, on the channel they wrote from. Spends one of the row's limited identification attempts and is subject to a cooldown. */
   affiliateReplyUnknownSender: AffiliateReplyUnknownSenderResult;
@@ -13022,7 +13022,7 @@ export const ProxyStatus = {
 } as const;
 
 export type ProxyStatus = (typeof ProxyStatus)[keyof typeof ProxyStatus];
-/** Input for publishing an ephemeral affiliate signal */
+/** Affiliate observation input. Message webhooks are durably received before asynchronous materialization. */
 export interface PublishAffiliateRelationshipSignalInput {
   /** Optional related AffiliateCollaboration platform ID when the publisher already resolved collaboration context. */
   affiliateCollaborationId?: InputMaybe<Scalars["ID"]["input"]>;
@@ -13078,6 +13078,8 @@ export interface PublishAffiliateRelationshipSignalInput {
   creatorUsername?: InputMaybe<Scalars["String"]["input"]>;
   /** Event timestamp as an ISO string. Defaults to server publish time. */
   eventTime?: InputMaybe<Scalars["String"]["input"]>;
+  /** Provider message content JSON for canonical message normalization; transient attachment URLs are not retained in lifecycle events. */
+  messageContentJson?: InputMaybe<Scalars["String"]["input"]>;
   /** Observed message direction. Relationship message signals require this or sender role evidence. */
   messageDirection?: InputMaybe<AffiliateCreatorMessageDirection>;
   /** Platform message ID for creator message signals. */
@@ -15504,7 +15506,7 @@ export interface Subscription {
   affiliateEscalationChanged: AffiliateEscalationChangedEvent;
   /** Fires when a seller-level affiliate outreach account finishes direct-channel onboarding. */
   affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
-  /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
+  /** Streams affiliate observation notifications. Durable message receipts and platform reconciliation recover missed message processing. */
   affiliateRelationshipSignal: AffiliateRelationshipSignal;
   /** Streams unknown senders whose unread material changed, so identification reaches a desktop when the stranger writes rather than when a timer fires. A light signal: re-read affiliateUnknownSenderIdentificationWork for the span and the dispatch verdict. */
   affiliateUnknownSenderIdentificationChanged: AffiliateUnknownSenderIdentificationChangedEvent;
