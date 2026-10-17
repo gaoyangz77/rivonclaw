@@ -1,9 +1,12 @@
 import { useQuery } from "@apollo/client/react";
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { AFFILIATE_BUSINESS_DEVELOPERS_QUERY } from "../../api/shops-queries.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { TkIconButton } from "../design-system/index.js";
+import { CloseIcon } from "../icons.js";
 
 interface AffiliateBdDeviceBannerProps {
   onNavigate: (path: string) => void;
@@ -29,8 +32,13 @@ export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
+  const userId = user?.userId;
+  // Per-account UI state for this App launch only. Never persist a dismissal:
+  // restarting the renderer must show any remaining device warning again.
+  const [dismissedUserIds, setDismissedUserIds] = useState<ReadonlySet<string>>(() => new Set());
+  const dismissed = Boolean(userId && dismissedUserIds.has(userId));
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
-  const skip = !user || authChecking;
+  const skip = !user || authChecking || dismissed;
 
   const developersQuery = useQuery<{
     affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[];
@@ -62,6 +70,16 @@ export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner
         >
           {t("ecommerce.affiliateTeam.deviceBannerAction")}
         </button>
+        <TkIconButton
+          label={t("common.close")}
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (userId) setDismissedUserIds((previous) => new Set(previous).add(userId));
+          }}
+        >
+          <CloseIcon />
+        </TkIconButton>
       </span>
     </div>
   );
