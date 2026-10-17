@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client/react";
+import { useCallback } from "react";
 import { GQL } from "@rivonclaw/core";
 import {
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
@@ -44,6 +45,19 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
           a.messageRef.localeCompare(b.messageRef),
       );
   const query = shopId ? timelineQuery : historyQuery;
+  const refetchHistory = historyQuery.refetch;
+  const refetchTimeline = timelineQuery.refetch;
+  // Workbench refresh subscribes to replayed SSE snapshots. Changing this
+  // callback on every query render would resubscribe and refetch indefinitely.
+  const refetch = useCallback(
+    () =>
+      enabled
+        ? shopId
+          ? refetchTimeline()
+          : refetchHistory()
+        : Promise.resolve(undefined),
+    [enabled, shopId, refetchHistory, refetchTimeline],
+  );
   const hasOlder = shopId
     ? Boolean(timeline?.hasOlder && timeline.olderCursor)
     : Boolean(history?.hasMore && history.nextOffset != null);
@@ -91,6 +105,6 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
     loadOlder,
     loading: query.loading,
     error: query.error,
-    refetch: () => enabled ? (shopId ? timelineQuery.refetch() : historyQuery.refetch()) : Promise.resolve(undefined),
+    refetch,
   };
 }

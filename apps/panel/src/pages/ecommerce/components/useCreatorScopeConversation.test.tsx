@@ -8,8 +8,13 @@ import {
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY as TIMELINE,
 } from "../../../api/shops-queries.js";
 import { useCreatorScopeConversation } from "./useCreatorScopeConversation.js";
+import { useAffiliateWorkbenchRefresh } from "../useAffiliateWorkbenchRefresh.js";
+import { panelEventBus } from "../../../lib/event-bus.js";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 const base = { creatorRelationshipId: "creator", limit: 25 };
 const shopInput = (shop: string, cursor?: string) => ({
   ...base,
@@ -88,6 +93,36 @@ function timeline(items: object[], olderCursor: string | null = null) {
 }
 
 describe("creator scoped conversation API and pagination", () => {
+  it("refreshes once for a replayed SSE snapshot and still permits older-page loading", async () => {
+    const first = mock(HISTORY, base, history([msg("new", "1")], 25));
+    const refreshed = mock(HISTORY, base, history([msg("new", "1")], 25));
+    const older = mock(HISTORY, { ...base, offset: 25 }, history([msg("old", "1", "2026-09-01T12:00:00Z")]));
+    const snapshots = vi.fn();
+    vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
+      if (event === "entity-snapshot") {
+        snapshots();
+        // The real bus immediately replays its most recent snapshot on subscribe.
+        handler({});
+      }
+      return vi.fn();
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <MockedProvider mocks={[first, refreshed, older]}>{children}</MockedProvider>
+    );
+    const { result } = renderHook(() => {
+      const conversation = useCreatorScopeConversation("creator", "");
+      useAffiliateWorkbenchRefresh(conversation.refetch, "creator");
+      return conversation;
+    }, { wrapper });
+    await waitFor(() => expect(result.current.messages[0]?.messageRef).toBe("new"));
+    expect(snapshots).toHaveBeenCalledOnce();
+    await waitFor(() => expect(refreshed.result).toHaveBeenCalledOnce());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => { await result.current.loadOlder(); });
+    await waitFor(() => expect(result.current.messages.map(m => m.messageRef)).toEqual(["old", "new"]));
+    expect(result.current.hasOlder).toBe(false);
+    expect(snapshots).toHaveBeenCalledOnce();
+  });
   it("keeps global history, queries a shop with existing timeline filters, and returns to global", async () => {
     const global = history([msg("global", null), msg("other", "2", "2026-09-07T12:00:00Z")]);
     const mocks = [
