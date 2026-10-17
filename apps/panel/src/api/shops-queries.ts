@@ -4256,6 +4256,7 @@ export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
           errorMessage
         }
         providerMessageId
+        errorCode
         errorMessage
         createdAt
       }

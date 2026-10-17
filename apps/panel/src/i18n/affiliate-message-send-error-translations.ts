@@ -1,5 +1,9 @@
 function translation(copy: {
   title: string;
+  historyRefreshing: string;
+  historyFailed: string;
+  doNotResend: string;
+  attachmentTooLarge: string;
   tiktokRestrictionTitle: string;
   tiktokRestrictionReason: string;
   tiktokRestrictionAction: string;
@@ -10,6 +14,10 @@ function translation(copy: {
 
 export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
   en: translation({
+    historyRefreshing: "Message submitted; refreshing conversation",
+    historyFailed: "Message submitted; conversation refresh failed",
+    doNotResend: "Do not resend. Refresh the conversation to check the latest messages.",
+    attachmentTooLarge: "The image or attachment exceeds the upload size limit. Compress it or choose a smaller file.",
     title: "Message could not be sent",
     tiktokRestrictionTitle: "TikTok restricted this message (16030101)",
     tiktokRestrictionReason:
@@ -19,6 +27,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "Original error and request ID",
   }),
   zh: translation({
+    historyRefreshing: "消息已提交，正在更新记录",
+    historyFailed: "消息已提交，但记录刷新失败",
+    doNotResend: "请勿重复发送；可刷新记录确认最新消息。",
+    attachmentTooLarge: "图片或附件超过上传大小限制，请压缩或选择较小的文件后重试。",
     title: "消息发送失败",
     tiktokRestrictionTitle: "TikTok 平台限制发送（16030101）",
     tiktokRestrictionReason:
@@ -28,6 +40,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "原始错误与请求编号",
   }),
   de: translation({
+    historyRefreshing: "Nachricht übermittelt; Verlauf wird aktualisiert",
+    historyFailed: "Nachricht übermittelt; Verlauf konnte nicht aktualisiert werden",
+    doNotResend: "Nicht erneut senden. Aktualisiere den Verlauf, um die neuesten Nachrichten zu sehen.",
+    attachmentTooLarge: "Das Bild oder der Anhang überschreitet das Upload-Limit. Komprimiere die Datei oder wähle eine kleinere.",
     title: "Nachricht konnte nicht gesendet werden",
     tiktokRestrictionTitle: "TikTok hat diese Nachricht eingeschränkt (16030101)",
     tiktokRestrictionReason:
@@ -37,6 +53,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "Ursprünglicher Fehler und Anfrage-ID",
   }),
   es: translation({
+    historyRefreshing: "Mensaje enviado; actualizando la conversación",
+    historyFailed: "Mensaje enviado; no se pudo actualizar la conversación",
+    doNotResend: "No lo envíes de nuevo. Actualiza la conversación para ver los últimos mensajes.",
+    attachmentTooLarge: "La imagen o el archivo supera el límite de carga. Comprímelo o elige un archivo más pequeño.",
     title: "No se pudo enviar el mensaje",
     tiktokRestrictionTitle: "TikTok restringió este mensaje (16030101)",
     tiktokRestrictionReason:
@@ -46,6 +66,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "Error original e ID de solicitud",
   }),
   fr: translation({
+    historyRefreshing: "Message transmis ; actualisation de la conversation",
+    historyFailed: "Message transmis ; actualisation de la conversation impossible",
+    doNotResend: "Ne renvoyez pas le message. Actualisez la conversation pour voir les derniers messages.",
+    attachmentTooLarge: "L’image ou la pièce jointe dépasse la limite de téléversement. Compressez-la ou choisissez un fichier plus petit.",
     title: "Impossible d’envoyer le message",
     tiktokRestrictionTitle: "TikTok a restreint ce message (16030101)",
     tiktokRestrictionReason:
@@ -55,6 +79,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "Erreur d’origine et identifiant de requête",
   }),
   id: translation({
+    historyRefreshing: "Pesan terkirim; memperbarui percakapan",
+    historyFailed: "Pesan terkirim; pembaruan percakapan gagal",
+    doNotResend: "Jangan kirim ulang. Segarkan percakapan untuk melihat pesan terbaru.",
+    attachmentTooLarge: "Gambar atau lampiran melebihi batas unggahan. Kompres atau pilih berkas yang lebih kecil.",
     title: "Pesan gagal dikirim",
     tiktokRestrictionTitle: "TikTok membatasi pesan ini (16030101)",
     tiktokRestrictionReason:
@@ -64,6 +92,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "Kesalahan asli dan ID permintaan",
   }),
   it: translation({
+    historyRefreshing: "Messaggio inviato; aggiornamento della conversazione",
+    historyFailed: "Messaggio inviato; aggiornamento della conversazione non riuscito",
+    doNotResend: "Non inviare di nuovo. Aggiorna la conversazione per vedere gli ultimi messaggi.",
+    attachmentTooLarge: "L’immagine o l’allegato supera il limite di caricamento. Comprimilo o scegli un file più piccolo.",
     title: "Impossibile inviare il messaggio",
     tiktokRestrictionTitle: "TikTok ha limitato questo messaggio (16030101)",
     tiktokRestrictionReason:
@@ -73,6 +105,10 @@ export const AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS = {
     details: "Errore originale e ID richiesta",
   }),
   th: translation({
+    historyRefreshing: "ส่งข้อความแล้ว กำลังอัปเดตประวัติ",
+    historyFailed: "ส่งข้อความแล้ว แต่อัปเดตประวัติไม่สำเร็จ",
+    doNotResend: "อย่าส่งซ้ำ โปรดรีเฟรชการสนทนาเพื่อตรวจสอบข้อความล่าสุด",
+    attachmentTooLarge: "รูปภาพหรือไฟล์แนบมีขนาดเกินกำหนด โปรดบีบอัดหรือเลือกไฟล์ที่เล็กกว่า",
     title: "ส่งข้อความไม่สำเร็จ",
     tiktokRestrictionTitle: "TikTok จำกัดการส่งข้อความนี้ (16030101)",
     tiktokRestrictionReason:

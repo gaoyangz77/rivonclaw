@@ -10520,6 +10520,16 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const messageSendInFlightRef = useRef(false);
+  const messageSendAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
+  const messageHistoryRefreshRevisionRef = useRef(0);
+  const messageHistoryRefreshInFlightRef = useRef(false);
+  const messageHistoryMountedRef = useRef(true);
+  useEffect(() => {
+    messageHistoryMountedRef.current = true;
+    return () => { messageHistoryMountedRef.current = false; };
+  }, []);
+  const [messageHistorySync, setMessageHistorySync] = useState<"refreshing" | "failed" | null>(null);
   const [messageSendError, setMessageSendError] = useState<string | null>(null);
   const [markingConversationHandled, setMarkingConversationHandled] = useState(false);
   const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] =
@@ -10993,6 +11003,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     hasOlder: canLoadOlderConversation,
     loadOlder: fetchOlderScopeMessages,
   } = useCreatorScopeConversation(relationshipId, scopeShopId, activeTab === "conversation");
+  const refreshSentHistoryRef = useRef(refetchConversationMessages);
+  useLayoutEffect(() => { refreshSentHistoryRef.current = refetchConversationMessages; }, [refetchConversationMessages]);
   const newestConversationMessageKey = conversationMessages.at(-1)
     ? affiliateCreatorMessageKey(conversationMessages.at(-1)!)
     : null;
@@ -11031,6 +11043,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
           },
           body: file,
         });
+        if (response.status === 413) {
+          throw new Error(t("ecommerce.affiliateWorkspace.messageSendError.attachmentTooLarge"));
+        }
         const payload = (await response.json()) as StagedAffiliateAttachment & { error?: string };
         if (!response.ok) throw new Error(payload.error || `Upload failed (${response.status})`);
         staged.push({ ...payload, inline: false });
@@ -11044,8 +11059,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   async function submitComposerMessage(): Promise<void> {
-    if (!relationshipId || !composerShopId || (scopeShopId && composerShopId !== scopeShopId))
-      return;
+    if (messageSendInFlightRef.current || uploadingAttachments || markingConversationHandled ||
+      !relationshipId || !composerShopId || (scopeShopId && composerShopId !== scopeShopId)) return;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
     if (composerText.trim())
       parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: composerText.trim() });
@@ -11059,42 +11074,84 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       })),
     );
     if (!parts.length) return;
+    const input: GQL.SendAffiliateCreatorMessageInput = {
+      shopId: composerShopId,
+      creatorRelationshipId: relationshipId,
+      parts,
+      preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
+      channelContactId: composerContactId || undefined,
+      emailSubject: composerSubject.trim() || undefined,
+      replyToLifecycleEventId: pendingReplyToLifecycleEventId,
+    };
+    const fingerprint = JSON.stringify(input);
+    if (messageSendAttemptRef.current?.fingerprint !== fingerprint) {
+      messageSendAttemptRef.current = { fingerprint, key: `human-ui:${crypto.randomUUID()}` };
+    }
+    input.idempotencyKey = messageSendAttemptRef.current.key;
+    // React's disabled state does not protect two clicks before the next render.
+    messageSendInFlightRef.current = true;
     setMessageSendError(null);
     setSendingMessage(true);
     try {
-      const result = await sendAffiliateCreatorMessage({
-        variables: {
-          input: {
-            shopId: composerShopId,
-            creatorRelationshipId: relationshipId,
-            parts,
-            preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
-            channelContactId: composerContactId || undefined,
-            emailSubject: composerSubject.trim() || undefined,
-            replyToLifecycleEventId: pendingReplyToLifecycleEventId,
-          },
-        },
-      });
+      const result = await sendAffiliateCreatorMessage({ variables: { input } });
       const delivery = result.data?.sendAffiliateCreatorMessage.delivery;
-      if (
-        delivery?.status === GQL.AffiliateDeliveryStatus.Failed ||
-        delivery?.status === GQL.AffiliateDeliveryStatus.PartiallySent
-      ) {
+      if (!delivery) throw new Error(t("ecommerce.updateFailed"));
+      if (delivery.status === GQL.AffiliateDeliveryStatus.Failed) {
+        // Only explicit platform non-acceptance permits a new attempt. A generic
+        // FAILED can also represent a provider transport timeout after acceptance.
+        if (["TikTokApiError", "TikTokShopRateLimitAcquireTimeoutError"].includes(delivery.errorCode ?? "")) {
+          messageSendAttemptRef.current = null;
+        }
         throw new Error(delivery.errorMessage || `Delivery ${delivery.status}`);
       }
+      if (delivery.status === GQL.AffiliateDeliveryStatus.PartiallySent ||
+        delivery.status === GQL.AffiliateDeliveryStatus.Cancelled) {
+        throw new Error(delivery.errorMessage || `Delivery ${delivery.status}`);
+      }
+      messageSendAttemptRef.current = null;
       setComposerText("");
       setComposerSubject("");
       setStagedAttachments([]);
       setPendingReplyToLifecycleEventId(undefined);
       conversationAutoScrollPendingRef.current = true;
-      await refetchConversationMessages();
       onWorkbenchEntityChanged?.();
       showToast(t("ecommerce.affiliateWorkspace.messageSubmitted"), "success");
+      // Delivery is complete independently of a slow/failed history read. Never
+      // report a history error as send failure or invite resending accepted text.
+      refreshSentMessageHistory();
     } catch (error) {
       setMessageSendError(error instanceof Error ? error.message : String(error));
     } finally {
+      messageSendInFlightRef.current = false;
       setSendingMessage(false);
     }
+  }
+
+  function refreshSentMessageHistory(): void {
+    ++messageHistoryRefreshRevisionRef.current;
+    setMessageHistorySync("refreshing");
+    if (messageHistoryRefreshInFlightRef.current) return;
+    messageHistoryRefreshInFlightRef.current = true;
+    void (async () => {
+      let revision: number;
+      try {
+        do {
+          revision = messageHistoryRefreshRevisionRef.current;
+          try {
+            await refreshSentHistoryRef.current();
+            if (messageHistoryMountedRef.current && revision === messageHistoryRefreshRevisionRef.current)
+              setMessageHistorySync(null);
+          } catch {
+            if (messageHistoryMountedRef.current && revision === messageHistoryRefreshRevisionRef.current)
+              setMessageHistorySync("failed");
+          }
+          // A second accepted send must read again after the current request;
+          // otherwise Apollo can deduplicate it into the first send's stale read.
+        } while (messageHistoryMountedRef.current && revision !== messageHistoryRefreshRevisionRef.current);
+      } finally {
+        messageHistoryRefreshInFlightRef.current = false;
+      }
+    })();
   }
 
   async function markConversationHandled(): Promise<void> {
@@ -12525,7 +12582,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       <Select
                         value={composerShopId}
                         onChange={setComposerShopId}
-                        disabled={Boolean(scopeShopId)}
+                        disabled={sendingMessage || Boolean(scopeShopId)}
                         ariaLabel={t("ecommerce.affiliateWorkspace.selectMessageShop")}
                         options={(scopeShopId ? [scopeShopId] : includedShopIds).map((shopId) => {
                           const label = relationshipShopName(shopId);
@@ -12545,7 +12602,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       />
                       <Select
                         value={composerChannel}
-                        disabled={publicContacts.length > 0 && Boolean(pendingReplyToLifecycleEventId)}
+                        disabled={sendingMessage || (publicContacts.length > 0 && Boolean(pendingReplyToLifecycleEventId))}
                         onChange={(value) => {
                           setComposerChannel(value as "AUTO" | GQL.AffiliateMessageChannel);
                           setComposerContactId("");
@@ -12596,6 +12653,19 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                         />
                       ) : null}
                     </div>
+                    {messageHistorySync ? (
+                      <TkAlert
+                        tone={messageHistorySync === "failed" ? "warning" : "info"}
+                        title={t(`ecommerce.affiliateWorkspace.messageSendError.${messageHistorySync === "failed" ? "historyFailed" : "historyRefreshing"}`)}
+                        actions={messageHistorySync === "failed" ? (
+                          <TkButton size="sm" variant="secondary" onClick={refreshSentMessageHistory}>
+                            {t("common.refresh")}
+                          </TkButton>
+                        ) : undefined}
+                      >
+                        {t("ecommerce.affiliateWorkspace.messageSendError.doNotResend")}
+                      </TkAlert>
+                    ) : null}
                     {messageSendError ? (
                       <AffiliateMessageSendError
                         message={messageSendError}
@@ -12605,6 +12675,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     <textarea
                       className="form-input affiliate-message-composer-text"
                       value={composerText}
+                      disabled={sendingMessage}
                       onChange={(event) => setComposerText(event.target.value)}
                       placeholder={t("ecommerce.affiliateWorkspace.messageComposerPlaceholder")}
                       rows={2}

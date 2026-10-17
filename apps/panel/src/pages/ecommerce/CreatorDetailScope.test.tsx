@@ -94,7 +94,7 @@ beforeEach(async () => {
   state.proposals = [];
   state.storedProposals = observable.map([], { deep: false });
   state.handlers.clear();
-  state.refetch.mockClear();
+  state.refetch.mockReset();
   state.refetches.clear();
   state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
@@ -679,5 +679,132 @@ describe("Creator detail loads only visible collections", () => {
     });
     await waitFor(() => expect(state.refetch).toHaveBeenCalled());
     expect(state.refetch.mock.calls.map(call => call[0]).sort()).toEqual([summary, "AffiliateRelationshipSampleApplications"].sort());
+  });
+});
+
+
+describe("manual message submission and history refresh", () => {
+  const accepted = { data: { sendAffiliateCreatorMessage: { delivery: { id: "delivery-1", status: "SENT" } } } };
+  function compose(text = "Hola, gracias") {
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: text } });
+  }
+  function send() { fireEvent.click(screen.getByRole("button", { name: "发送" })); }
+
+  it("acknowledges delivery and releases the composer while history is still pending", async () => {
+    state.mutate.mockResolvedValue(accepted);
+    state.refetch.mockReturnValue(new Promise(() => {}));
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(screen.getByText("消息已提交，正在更新记录")).toBeTruthy());
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("");
+    expect(screen.getByText("请勿重复发送；可刷新记录确认最新消息。")).toBeTruthy();
+    compose("A different next message");
+    expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(state.mutate).toHaveBeenCalledTimes(1);
+    expect(state.mutate.mock.calls[0][0].variables.input.idempotencyKey).toMatch(/^human-ui:/);
+  });
+
+  it("queues a fresh history read when another message is accepted during the first read", async () => {
+    let finishFirst!: (value: unknown) => void;
+    state.refetch.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve; })).mockResolvedValue(undefined);
+    state.mutate.mockResolvedValue(accepted);
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(state.refetch).toHaveBeenCalledTimes(1));
+    compose("Next message"); send();
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledTimes(2));
+    expect(state.refetch).toHaveBeenCalledTimes(1);
+    await act(async () => finishFirst(undefined));
+    await waitFor(() => expect(state.refetch).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("消息已提交，正在更新记录")).toBeNull();
+    expect(state.mutate.mock.calls[0][0].variables.input.idempotencyKey).not.toBe(state.mutate.mock.calls[1][0].variables.input.idempotencyKey);
+  });
+
+  it("treats a failed history refresh as a read failure and retries only the read", async () => {
+    state.mutate.mockResolvedValue(accepted);
+    state.refetch.mockRejectedValueOnce(new Error("History timed out")).mockResolvedValue(undefined);
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(screen.getByText("消息已提交，但记录刷新失败")).toBeTruthy());
+    expect(screen.queryByText("消息发送失败")).toBeNull();
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "刷新" }));
+    await waitFor(() => expect(screen.queryByText("消息已提交，但记录刷新失败")).toBeNull());
+    expect(state.mutate).toHaveBeenCalledTimes(1);
+    expect(state.refetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("reuses the draft idempotency key after an uncertain transport failure", async () => {
+    state.mutate.mockRejectedValueOnce(new Error("Network timeout")).mockResolvedValue(accepted);
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(screen.getByText("Network timeout")).toBeTruthy());
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Hola, gracias");
+    send();
+    await waitFor(() => expect(screen.getByText("消息已提交")).toBeTruthy());
+    const inputs = state.mutate.mock.calls.map(call => call[0].variables.input);
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0].idempotencyKey).toBe(inputs[1].idempotencyKey);
+  });
+
+  it("blocks two clicks in the same render before disabled state is applied", async () => {
+    let finish!: (value: unknown) => void;
+    state.mutate.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    render(view("creator", "conversation"));
+    compose();
+    const button = screen.getByRole("button", { name: "发送" });
+    act(() => {
+      button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(state.mutate).toHaveBeenCalledTimes(1);
+    await act(async () => finish(accepted));
+  });
+
+  it("creates a new attempt after an authoritative failed delivery", async () => {
+    state.mutate.mockResolvedValueOnce({data: {sendAffiliateCreatorMessage: {delivery: {status: "FAILED", errorCode: "TikTokApiError", errorMessage: "Quota rejected"}}}})
+      .mockResolvedValue(accepted);
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(screen.getByText("Quota rejected")).toBeTruthy());
+    send();
+    await waitFor(() => expect(screen.getByText("消息已提交")).toBeTruthy());
+    const inputs = state.mutate.mock.calls.map(call => call[0].variables.input);
+    expect(inputs[0].idempotencyKey).not.toBe(inputs[1].idempotencyKey);
+  });
+
+  it("does not create a new send for an ambiguous provider transport failure labelled FAILED", async () => {
+    state.mutate.mockResolvedValue({data: {sendAffiliateCreatorMessage: {delivery: {status: "FAILED", errorCode: "AbortError", errorMessage: "Provider timeout"}}}});
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(screen.getByText("Provider timeout")).toBeTruthy());
+    send();
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledTimes(2));
+    expect(state.mutate.mock.calls[0][0].variables.input.idempotencyKey).toBe(state.mutate.mock.calls[1][0].variables.input.idempotencyKey);
+  });
+
+  it("keeps partial deliveries on the same key, and changes keys when an unsent draft is edited", async () => {
+    state.mutate.mockResolvedValue({data: {sendAffiliateCreatorMessage: {delivery: {status: "PARTIALLY_SENT", errorMessage: "One part accepted"}}}});
+    render(view("creator", "conversation"));
+    compose(); send();
+    await waitFor(() => expect(screen.getByText("One part accepted")).toBeTruthy());
+    send();
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledTimes(2));
+    expect(state.mutate.mock.calls[0][0].variables.input.idempotencyKey).toBe(state.mutate.mock.calls[1][0].variables.input.idempotencyKey);
+    compose("Edited draft"); send();
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledTimes(3));
+    expect(state.mutate.mock.calls[2][0].variables.input.idempotencyKey).not.toBe(state.mutate.mock.calls[0][0].variables.input.idempotencyKey);
+  });
+
+  it("explains an HTML 413 upload response without trying to parse it as JSON", async () => {
+    const json = vi.fn();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({ status: 413, ok: false, json } as unknown as Response);
+    try {
+      render(view("creator", "conversation"));
+      fireEvent.change(document.querySelector('input[type="file"]')!, {target: { files: [new File(["image"], "photo.jpg", {type: "image/jpeg"})] }});
+      await waitFor(() => expect(screen.getByText("图片或附件超过上传大小限制，请压缩或选择较小的文件后重试。")).toBeTruthy());
+      expect(json).not.toHaveBeenCalled();
+      expect(state.mutate).not.toHaveBeenCalled();
+    } finally { fetchMock.mockRestore(); }
   });
 });
