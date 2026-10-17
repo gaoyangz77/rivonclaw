@@ -2358,9 +2358,10 @@ describe("creator tag catalog wiring", () => {
       /shopSampleTiers:\s*selectedShopId\s*&&\s*selectedShopSampleTiers\.length/u,
     );
     expect(page).toContain("businessDeveloperId:");
-    expect(page).toContain("unassignedBusinessDeveloperOnly:");
+    expect(page).toContain("...affiliateWorkbenchBdInput(selectedBusinessDeveloperId)");
     expect(page).toContain("AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE");
     expect(page).toContain("<AffiliateBusinessDeveloperSelect");
+    expect(page).toContain("ownOrPublicOnly={businessDeveloperOnly}");
   });
 
   it("shows collaboration progress and both tag groups on compact creator cards and detail headers", () => {

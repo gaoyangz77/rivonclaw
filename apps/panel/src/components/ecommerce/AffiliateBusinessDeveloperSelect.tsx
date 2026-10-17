@@ -5,6 +5,7 @@ import type { SelectOption } from "../inputs/Select.js";
 
 export const AFFILIATE_BUSINESS_DEVELOPER_ALL_VALUE = "";
 export const AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE = "__UNASSIGNED__";
+export const AFFILIATE_BUSINESS_DEVELOPER_OWN_VALUE = "__MY_BD__";
 
 type BusinessDeveloperOptionSource = Pick<
   GQL.AffiliateBusinessDeveloper,
@@ -65,6 +66,7 @@ export function AffiliateBusinessDeveloperSelect({
   purpose = "FILTER",
   includeAll = purpose === "FILTER",
   includeUnassigned = false,
+  ownOrPublicOnly = false,
   label,
   className,
   disabled,
@@ -75,23 +77,38 @@ export function AffiliateBusinessDeveloperSelect({
   purpose?: "FILTER" | "ASSIGNMENT";
   includeAll?: boolean;
   includeUnassigned?: boolean;
+  /** BD staff filters may select only their authenticated ownership scope or the public pool. */
+  ownOrPublicOnly?: boolean;
   label?: string;
   className?: string;
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
-  const options = affiliateBusinessDeveloperSelectOptions({
-    developers,
-    purpose,
-    includeAll,
-    includeUnassigned,
-    labels: {
-      all: t("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
-      unassigned: t("ecommerce.affiliateTeam.aiTeam"),
-      unassignedDescription: t("ecommerce.affiliateTeam.aiTeamHint"),
-      archived: t("ecommerce.affiliateTeam.archivedStatus"),
-    },
-  });
+  const options = ownOrPublicOnly
+    ? [
+        {
+          value: AFFILIATE_BUSINESS_DEVELOPER_OWN_VALUE,
+          label: t("ecommerce.affiliateWorkspace.myCreatorsFilter"),
+        },
+        ...(includeUnassigned
+          ? [{
+              value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
+              label: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
+            }]
+          : []),
+      ]
+    : affiliateBusinessDeveloperSelectOptions({
+        developers,
+        purpose,
+        includeAll,
+        includeUnassigned,
+        labels: {
+          all: t("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
+          unassigned: t("ecommerce.affiliateTeam.aiTeam"),
+          unassignedDescription: t("ecommerce.affiliateTeam.aiTeamHint"),
+          archived: t("ecommerce.affiliateTeam.archivedStatus"),
+        },
+      });
 
   return (
     <TkChoiceSelect

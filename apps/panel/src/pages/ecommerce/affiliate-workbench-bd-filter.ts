@@ -1,7 +1,7 @@
 import { GQL } from "@rivonclaw/core";
-import { AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE } from "../../components/ecommerce/AffiliateBusinessDeveloperSelect.js";
+import { AFFILIATE_BUSINESS_DEVELOPER_OWN_VALUE, AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE } from "../../components/ecommerce/AffiliateBusinessDeveloperSelect.js";
 
-export const AFFILIATE_WORKBENCH_MY_BD_VALUE = "__MY_BD__";
+export const AFFILIATE_WORKBENCH_MY_BD_VALUE = AFFILIATE_BUSINESS_DEVELOPER_OWN_VALUE;
 
 /** The own sentinel is UI-only; Backend resolves the authenticated BD, never a client identity. */
 export function affiliateWorkbenchBdInput(value: string) {
