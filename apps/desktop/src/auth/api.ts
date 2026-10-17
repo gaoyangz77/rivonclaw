@@ -90,6 +90,8 @@ const getSession: EndpointHandler = async (_req, res, _url, _params, ctx: ApiCon
     bootstrapStatus: authBootstrap.status,
     error: authBootstrap.error,
     tokenPresent: !!ctx.authSession.getAccessToken(),
+    accountSwitch: ctx.authSession.getAccountSwitchState?.() ?? null,
+    memberLoginAvailable: true,
   });
 };
 
@@ -116,6 +118,50 @@ const login: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) 
     sendJson(res, 400, { error: err instanceof Error ? err.message : "Login failed" });
   }
 };
+
+const accountSwitchesInFlight = new WeakSet<object>();
+
+const switchAccount =
+  (returnToOwner: boolean): EndpointHandler =>
+  async (req, res, _url, _params, ctx) => {
+    if (!isTrustedLoopbackOrigin(req)) {
+      sendJson(res, 403, { error: "Untrusted origin" });
+      return;
+    }
+    if (!ctx.authSession || !ctx.onAuthChange) {
+      sendJson(res, 501, { error: "Account switching unavailable" });
+      return;
+    }
+    if (accountSwitchesInFlight.has(ctx.authSession)) {
+      sendJson(res, 409, { error: "An account switch is already in progress" });
+      return;
+    }
+    accountSwitchesInFlight.add(ctx.authSession);
+    try {
+      if (returnToOwner) await ctx.authSession.returnToOwner();
+      else {
+        const body = (await parseBody(req)) as { memberId?: string };
+        if (!body.memberId || typeof body.memberId !== "string") {
+          sendJson(res, 400, { error: "Member id required" });
+          return;
+        }
+        await ctx.authSession.loginAsMember(body.memberId);
+      }
+      rootStore.clearCloudEntities();
+      await ctx.onAuthChange(returnToOwner ? "return-to-owner" : "member-login");
+      sendJson(res, 200, { ok: true });
+    } catch (error) {
+      sendJson(res, 400, {
+        error: error instanceof Error ? error.message : "Account switch failed",
+        ...(error instanceof GraphqlRequestError &&
+        /^Cannot query field "loginAsAccountMember" on type "Mutation"/.test(error.message)
+          ? { errorCode: "ACCOUNT_SWITCH_BACKEND_UNAVAILABLE" }
+          : {}),
+      });
+    } finally {
+      accountSwitchesInFlight.delete(ctx.authSession);
+    }
+  };
 
 const register: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
   if (!ctx.authSession) {
@@ -435,6 +481,8 @@ const webOpen: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext
 export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.session"], getSession);
   registry.register(API["auth.login"], login);
+  registry.register(API["auth.loginAsMember"], switchAccount(false));
+  registry.register(API["auth.returnToOwner"], switchAccount(true));
   registry.register(API["auth.register"], register);
   registry.register(API["auth.requestCaptcha"], requestCaptcha);
   registry.register(API["auth.storeTokens"], storeTokens);

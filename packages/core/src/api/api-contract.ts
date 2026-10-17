@@ -57,6 +57,16 @@ export const API = {
     desc: "Get current user and auth state",
   },
   "auth.login": { method: "POST", path: "/api/auth/login", desc: "Login with email/password" },
+  "auth.loginAsMember": {
+    method: "POST",
+    path: "/api/auth/login-as-member",
+    desc: "Temporarily sign in as an owned member",
+  },
+  "auth.returnToOwner": {
+    method: "POST",
+    path: "/api/auth/return-to-owner",
+    desc: "End temporary member login and restore the owner",
+  },
   "auth.register": { method: "POST", path: "/api/auth/register", desc: "Register new account" },
   "auth.requestCaptcha": {
     method: "POST",

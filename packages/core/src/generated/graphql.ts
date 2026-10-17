@@ -11336,6 +11336,8 @@ export interface Mutation {
   linkProductsToKnowledge: LinkProductsToKnowledgePayload;
   /** Log in with email and password */
   login: AuthPayload;
+  /** Temporarily sign in as an enabled member of the current owner account, using that member's real permissions */
+  loginAsAccountMember: AuthPayload;
   /** Log out (revoke the provided refresh token) */
   logout: Scalars["Boolean"]["output"];
   manageAffiliateOpenCollaboration: AffiliateShopOperationResultPayload;
@@ -12148,6 +12150,10 @@ export interface MutationLinkProductsToKnowledgeArgs {
 
 export interface MutationLoginArgs {
   input: LoginInput;
+}
+
+export interface MutationLoginAsAccountMemberArgs {
+  memberId: Scalars["ID"]["input"];
 }
 
 export interface MutationLogoutArgs {

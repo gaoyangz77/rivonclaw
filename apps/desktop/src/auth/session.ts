@@ -6,6 +6,7 @@ import {
   ME_QUERY,
   LOGOUT_MUTATION,
   LOGIN_MUTATION,
+  LOGIN_AS_MEMBER_MUTATION,
   REGISTER_MUTATION,
   REQUEST_CAPTCHA_MUTATION,
   DESKTOP_GOOGLE_AUTH_CONFIG_QUERY,
@@ -134,6 +135,94 @@ export class AuthSessionManager {
   private userChangedListeners: UserChangedListener[] = [];
   private credentialsChangedListeners = new Set<CredentialsChangedListener>();
   private secureStorageAvailable = true;
+  private sessionGeneration = 0;
+  private memberSwitchPending = false;
+  private ownerSession: {
+    accessToken: string;
+    refreshToken: string;
+    user: GQL.MeResponse;
+    memberUserId: string;
+    memberLabel: string;
+  } | null = null;
+
+  getAccountSwitchState(): { ownerLabel: string; memberLabel: string } | null {
+    return this.ownerSession
+      ? {
+          ownerLabel: this.ownerSession.user.name || this.ownerSession.user.email,
+          memberLabel: this.ownerSession.memberLabel,
+        }
+      : null;
+  }
+
+  async loginAsMember(memberId: string): Promise<void> {
+    if (this.memberSwitchPending || this.ownerSession)
+      throw new Error("A temporary member login is already active");
+    if (!this.cachedUser?.isOwner || !this.accessToken || !this.refreshToken)
+      throw new Error("An account owner session is required");
+    this.memberSwitchPending = true;
+    try {
+      if (this.refreshPromise) await this.refreshPromise;
+      const result = await this.graphqlFetch<{ loginAsAccountMember: GQL.AuthPayload }>(
+        LOGIN_AS_MEMBER_MUTATION,
+        { memberId },
+      );
+      if (this.refreshPromise) await this.refreshPromise;
+      const payload = result.loginAsAccountMember;
+      if (
+        payload.user.isOwner ||
+        payload.user.userId !== memberId ||
+        payload.user.accountId !== this.cachedUser!.userId
+      )
+        throw new Error("Invalid temporary member session");
+      this.ownerSession = {
+        accessToken: this.accessToken!,
+        refreshToken: this.refreshToken!,
+        user: this.cachedUser!,
+        memberUserId: memberId,
+        memberLabel: payload.user.name || payload.user.email,
+      };
+      this.sessionGeneration += 1;
+      this.accessToken = payload.accessToken;
+      this.refreshToken = payload.refreshToken;
+      await this.emitCredentialsChanged({ state: "available", reason: "sign_in" });
+      await this.setUser(payload.user);
+    } finally {
+      this.memberSwitchPending = false;
+    }
+  }
+
+  async returnToOwner(): Promise<void> {
+    if (this.memberSwitchPending) throw new Error("An account switch is already in progress");
+    const owner = this.ownerSession;
+    if (!owner) throw new Error("No temporary member login is active");
+    this.memberSwitchPending = true;
+    try {
+      // Settle a previous member refresh before restoring the owner identity.
+      if (this.refreshPromise) await Promise.allSettled([this.refreshPromise]);
+      const memberRefreshToken = this.refreshToken;
+      this.sessionGeneration += 1;
+      this.ownerSession = null;
+      this.accessToken = owner.accessToken;
+      this.refreshToken = owner.refreshToken;
+      await this.emitCredentialsChanged({ state: "available", reason: "sign_in" });
+      await this.setUser(owner.user);
+      if (memberRefreshToken) {
+        try {
+          await this.graphqlFetch(
+            LOGOUT_MUTATION,
+            { refreshToken: memberRefreshToken },
+            { autoRefresh: false, includeAccessToken: false },
+          );
+        } catch (error) {
+          log.warn("Could not revoke temporary member refresh token", {
+            category: error instanceof Error ? error.name : "UnknownError",
+          });
+        }
+      }
+    } finally {
+      this.memberSwitchPending = false;
+    }
+  }
 
   constructor(
     private secretStore: SecretStore,
@@ -230,8 +319,17 @@ export class AuthSessionManager {
   ): Promise<void> {
     const reason = options?.reason ?? "sign_in";
     const changed = this.accessToken !== accessToken || this.refreshToken !== refreshToken;
+    if (reason === "sign_in") {
+      this.ownerSession = null;
+      if (changed) this.sessionGeneration += 1;
+    }
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
+    // A delegated member must never replace the owner's saved Keychain session.
+    if (this.ownerSession) {
+      if (changed) await this.emitCredentialsChanged({ state: "available", reason });
+      return;
+    }
     try {
       // A successful backend refresh revokes the previous refresh token. Persist
       // its replacement first so an access-token write failure cannot strand the
@@ -248,6 +346,8 @@ export class AuthSessionManager {
   }
 
   async clearTokens(): Promise<void> {
+    this.ownerSession = null;
+    this.sessionGeneration += 1;
     const hadCredentials = !!this.accessToken || !!this.refreshToken;
     this.accessToken = null;
     this.refreshToken = null;
@@ -308,6 +408,14 @@ export class AuthSessionManager {
 
   private async invalidateRejectedRefreshToken(rejectedToken: string): Promise<void> {
     if (this.refreshToken !== rejectedToken) return;
+    if (this.ownerSession) {
+      this.sessionGeneration += 1;
+      this.accessToken = null;
+      this.refreshToken = null;
+      await this.emitCredentialsChanged({ state: "cleared", reason: "refresh_rejected" });
+      await this.setUser(null);
+      return;
+    }
 
     try {
       const storedRefreshToken = await this.secretStore.get(REFRESH_TOKEN_KEY);
@@ -371,13 +479,23 @@ export class AuthSessionManager {
 
   /** Best-effort cloud logout. */
   async logout(): Promise<void> {
-    const rt = this.refreshToken;
+    const refreshTokens = [
+      ...new Set(
+        [this.refreshToken, this.ownerSession?.refreshToken].filter((token): token is string =>
+          Boolean(token),
+        ),
+      ),
+    ];
     await this.clearTokens();
-    if (rt) {
+    for (const refreshToken of refreshTokens) {
       try {
-        await this.graphqlFetch(LOGOUT_MUTATION, { refreshToken: rt });
+        await this.graphqlFetch(
+          LOGOUT_MUTATION,
+          { refreshToken },
+          { autoRefresh: false, includeAccessToken: false },
+        );
       } catch {
-        // Best-effort — ignore failures
+        // Logout already cleared local credentials; cloud revocation is best-effort.
       }
     }
   }
@@ -481,6 +599,14 @@ export class AuthSessionManager {
     requestExtensions?: Record<string, unknown>,
     options?: GraphqlFetchOptions,
   ): Promise<GraphqlResponseEnvelope<T>> {
+    const generation = this.sessionGeneration;
+    const assertCurrentSession = () => {
+      if (generation !== this.sessionGeneration)
+        throw new GraphqlRequestError(
+          "Account session changed; retry in the current account",
+          "SESSION_CHANGED",
+        );
+    };
     const url = getGraphqlUrl(this.locale);
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     const autoRefresh = options?.autoRefresh !== false;
@@ -488,12 +614,16 @@ export class AuthSessionManager {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
 
-    const doFetch = () =>
-      this.fetchFn(url, {
+    const doFetch = async () => {
+      assertCurrentSession();
+      const response = await this.fetchFn(url, {
         method: "POST",
         headers,
         body: JSON.stringify({ query, variables, extensions: requestExtensions }),
       });
+      assertCurrentSession();
+      return response;
+    };
 
     let res = await doFetch();
 
@@ -505,6 +635,7 @@ export class AuthSessionManager {
     }
 
     let json = (await res.json()) as GraphqlResponseEnvelope<T>;
+    assertCurrentSession();
 
     // Some servers return auth errors as GraphQL errors (HTTP 200) rather than HTTP 401.
     // Attempt a token refresh if we haven't already.
@@ -517,6 +648,7 @@ export class AuthSessionManager {
       }
     }
 
+    assertCurrentSession();
     if (json.errors?.length) {
       const msg = json.errors.map((e) => e.message).join("; ");
       const code = json.errors.find((error) => typeof error.extensions?.code === "string")

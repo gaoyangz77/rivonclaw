@@ -1,12 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { GQL } from "@rivonclaw/core";
 import i18n from "../../../i18n/index.js";
 import type { AccountMember, AccountRole } from "../hooks/useSubAccounts.js";
 import { SubAccountFormModal } from "./SubAccountFormModal.js";
 import { SubAccountsSection } from "./SubAccountsSection.js";
 
-const mocks = vi.hoisted(() => ({ subAccounts: null as unknown }));
+const mocks = vi.hoisted(() => ({
+  subAccounts: null as unknown,
+  switchToMember: vi.fn(),
+  showToast: vi.fn(),
+}));
+vi.mock("../../../api/account-switch.js", () => ({ switchToMember: mocks.switchToMember }));
+vi.mock("../../../components/Toast.js", () => ({
+  useToast: () => ({ showToast: mocks.showToast }),
+}));
 
 vi.mock("../hooks/useSubAccounts.js", () => ({
   useSubAccounts: () => mocks.subAccounts,
@@ -122,11 +130,42 @@ describe("SubAccountFormModal", () => {
 });
 
 describe("SubAccountsSection", () => {
+  it.each([
+    [
+      "ACCOUNT_SWITCH_CLIENT_UNAVAILABLE",
+      "客户端尚未加载子账号登录功能，请完全退出并重新打开客户端后再试。",
+    ],
+    [
+      "ACCOUNT_SWITCH_BACKEND_UNAVAILABLE",
+      "服务端尚未部署子账号登录功能，请部署完成后再试。这不是子账号权限问题。",
+    ],
+  ])("explains version mismatch in Chinese (%s)", async (code, message) => {
+    await i18n.changeLanguage("zh");
+    mocks.switchToMember.mockRejectedValueOnce(Object.assign(new Error("Not found"), { code }));
+    render(<SubAccountsSection />);
+    fireEvent.click(
+      within(memberRow("maria@example.com")).getByRole("button", { name: "登录为此子账号" }),
+    );
+    await waitFor(() =>
+      expect(mocks.showToast).toHaveBeenCalledWith(expect.stringContaining(message), "error"),
+    );
+  });
+  it("starts temporary login for the selected BD and disables disabled members", async () => {
+    render(<SubAccountsSection />);
+    fireEvent.click(
+      within(memberRow("maria@example.com")).getByRole("button", {
+        name: "Sign in as sub-account",
+      }),
+    );
+    expect(mocks.switchToMember).toHaveBeenCalledWith("member-bd");
+  });
+
   it("shows a business developer's login read-only and points to the Team page", () => {
     render(<SubAccountsSection />);
 
     const bd = memberRow("maria@example.com");
-    expect(within(bd).queryByRole("button")).toBeNull();
+    expect(within(bd).getByRole("button", { name: "Sign in as sub-account" })).toBeTruthy();
+    expect(within(bd).queryByRole("button", { name: "Edit" })).toBeNull();
     expect(within(bd).getByText(/Manage it in .* → Team & channels\./)).toBeTruthy();
     expect(within(bd).getByText("BD workspace")).toBeTruthy();
 

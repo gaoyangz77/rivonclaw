@@ -16,6 +16,7 @@ import {
 } from "./CustomerServiceBanners.js";
 import { LlmUnavailableBanner } from "./LlmUnavailableBanner.js";
 import { UpdateBanner } from "./UpdateBanner.js";
+import { AccountSwitchBanner } from "./AccountSwitchBanner.js";
 
 interface GlobalBannerStackProps {
   onNavigate: (path: string) => void;
@@ -76,6 +77,7 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
 
   return (
     <>
+      <AccountSwitchBanner />
       <UpdateBanner onCurrentVersionChange={onCurrentVersionChange} />
       <CloudLlmQuotaBanner onNavigate={onNavigate} />
       <CloudToolsBanner state={runtimeStatus.cloudTools.state} />

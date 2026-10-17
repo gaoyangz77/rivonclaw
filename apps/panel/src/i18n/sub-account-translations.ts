@@ -8,6 +8,15 @@
 
 const copy = {
   en: {
+    loginAsClientUpdateRequired:
+      "Desktop has not loaded sub-account sign-in yet. Fully quit and reopen the app, then try again.",
+    loginAsServerUpdateRequired:
+      "The server has not deployed sub-account sign-in yet. Please try again after deployment; this is not a sub-account permission issue.",
+    loginAs: "Sign in as sub-account",
+    returnToOwner: "Return to main account",
+    loginAsBanner: "Signed in as {{member}}",
+    loginAsHint:
+      "You are using this sub-account’s permissions. Return to {{owner}} at any time; restarting Desktop restores the main account.",
     title: "Sub-accounts",
     description:
       "Create accounts for your team and control which sections each one can open. Sub-accounts sign in with their own email and password.",
@@ -82,6 +91,13 @@ const copy = {
     },
   },
   zh: {
+    loginAsClientUpdateRequired: "客户端尚未加载子账号登录功能，请完全退出并重新打开客户端后再试。",
+    loginAsServerUpdateRequired:
+      "服务端尚未部署子账号登录功能，请部署完成后再试。这不是子账号权限问题。",
+    loginAs: "登录为此子账号",
+    returnToOwner: "返回主账号",
+    loginAsBanner: "当前代登录：{{member}}",
+    loginAsHint: "当前使用该子账号的真实权限。可随时返回主账号 {{owner}}；重启客户端后恢复主账号。",
     title: "子账号管理",
     description:
       "为团队成员创建子账号，并控制每个人可以打开哪些板块。子账号使用各自的邮箱和密码登录。",
@@ -152,6 +168,15 @@ const copy = {
     },
   },
   de: {
+    loginAsClientUpdateRequired:
+      "Die Anmeldung als Unterkonto wurde noch nicht geladen. Beenden Sie die App vollständig und öffnen Sie sie erneut.",
+    loginAsServerUpdateRequired:
+      "Die Anmeldung als Unterkonto ist auf dem Server noch nicht bereitgestellt. Versuchen Sie es nach der Bereitstellung erneut. Dies ist kein Berechtigungsproblem des Unterkontos.",
+    loginAs: "Als Unterkonto anmelden",
+    returnToOwner: "Zum Hauptkonto zurück",
+    loginAsBanner: "Angemeldet als {{member}}",
+    loginAsHint:
+      "Es gelten die Rechte dieses Unterkontos. Sie können jederzeit zu {{owner}} zurückkehren. Ein Desktop-Neustart stellt das Hauptkonto wieder her.",
     title: "Unterkonten",
     description:
       "Legen Sie Konten für Ihr Team an und steuern Sie, welche Bereiche jedes davon öffnen darf. Unterkonten melden sich mit eigener E-Mail und eigenem Passwort an.",
@@ -225,6 +250,15 @@ const copy = {
     },
   },
   es: {
+    loginAsClientUpdateRequired:
+      "La aplicación aún no ha cargado el inicio de sesión como subcuenta. Ciérrala por completo y vuelve a abrirla.",
+    loginAsServerUpdateRequired:
+      "El servidor aún no tiene disponible el inicio de sesión como subcuenta. Inténtalo después del despliegue. No es un problema de permisos de la subcuenta.",
+    loginAs: "Entrar como subcuenta",
+    returnToOwner: "Volver a la cuenta principal",
+    loginAsBanner: "Sesión como {{member}}",
+    loginAsHint:
+      "Se aplican los permisos de esta subcuenta. Puedes volver a {{owner}} cuando quieras; reiniciar Desktop restaura la cuenta principal.",
     title: "Subcuentas",
     description:
       "Crea cuentas para tu equipo y controla qué secciones puede abrir cada una. Las subcuentas inician sesión con su propio correo y contraseña.",
@@ -299,6 +333,15 @@ const copy = {
     },
   },
   fr: {
+    loginAsClientUpdateRequired:
+      "L’application n’a pas encore chargé la connexion en tant que sous-compte. Quittez-la complètement, puis rouvrez-la.",
+    loginAsServerUpdateRequired:
+      "La connexion en tant que sous-compte n’est pas encore déployée sur le serveur. Réessayez après le déploiement. Ce n’est pas un problème d’autorisations du sous-compte.",
+    loginAs: "Se connecter au sous-compte",
+    returnToOwner: "Revenir au compte principal",
+    loginAsBanner: "Connecté en tant que {{member}}",
+    loginAsHint:
+      "Les droits de ce sous-compte s’appliquent. Revenez à {{owner}} à tout moment ; redémarrer Desktop rétablit le compte principal.",
     title: "Sous-comptes",
     description:
       "Créez des comptes pour votre équipe et choisissez les sections que chacun peut ouvrir. Les sous-comptes se connectent avec leur propre e-mail et mot de passe.",
@@ -373,6 +416,15 @@ const copy = {
     },
   },
   id: {
+    loginAsClientUpdateRequired:
+      "Aplikasi belum memuat fitur masuk sebagai subakun. Tutup aplikasi sepenuhnya, lalu buka kembali.",
+    loginAsServerUpdateRequired:
+      "Fitur masuk sebagai subakun belum diterapkan di server. Coba lagi setelah penerapan selesai. Ini bukan masalah izin subakun.",
+    loginAs: "Masuk sebagai subakun",
+    returnToOwner: "Kembali ke akun utama",
+    loginAsBanner: "Masuk sebagai {{member}}",
+    loginAsHint:
+      "Izin subakun ini berlaku. Kembali ke {{owner}} kapan saja; memulai ulang Desktop memulihkan akun utama.",
     title: "Subakun",
     description:
       "Buat akun untuk tim Anda dan tentukan bagian mana yang boleh dibuka masing-masing. Subakun masuk dengan email dan kata sandi sendiri.",
@@ -445,6 +497,15 @@ const copy = {
     },
   },
   it: {
+    loginAsClientUpdateRequired:
+      "L’app non ha ancora caricato l’accesso come sottoaccount. Chiudila completamente e riaprila.",
+    loginAsServerUpdateRequired:
+      "L’accesso come sottoaccount non è ancora disponibile sul server. Riprova dopo il rilascio. Non è un problema di autorizzazioni del sottoaccount.",
+    loginAs: "Accedi come sottoaccount",
+    returnToOwner: "Torna all’account principale",
+    loginAsBanner: "Accesso come {{member}}",
+    loginAsHint:
+      "Si applicano i permessi del sottoaccount. Puoi tornare a {{owner}} in qualsiasi momento; riavviare Desktop ripristina l’account principale.",
     title: "Sottoaccount",
     description:
       "Crea account per il tuo team e decidi quali sezioni ciascuno può aprire. I sottoaccount accedono con email e password proprie.",
@@ -518,6 +579,13 @@ const copy = {
     },
   },
   th: {
+    loginAsClientUpdateRequired: "แอปยังไม่ได้โหลดฟีเจอร์เข้าสู่ระบบบัญชีย่อย กรุณาปิดแอปให้สมบูรณ์แล้วเปิดใหม่",
+    loginAsServerUpdateRequired:
+      "เซิร์ฟเวอร์ยังไม่ได้ติดตั้งฟีเจอร์เข้าสู่ระบบบัญชีย่อย กรุณาลองใหม่หลังติดตั้งเสร็จ ปัญหานี้ไม่เกี่ยวกับสิทธิ์ของบัญชีย่อย",
+    loginAs: "เข้าสู่ระบบบัญชีย่อย",
+    returnToOwner: "กลับไปบัญชีหลัก",
+    loginAsBanner: "เข้าสู่ระบบเป็น {{member}}",
+    loginAsHint: "ใช้สิทธิ์ของบัญชีย่อยนี้ กลับไปที่ {{owner}} ได้ทุกเมื่อ การเริ่ม Desktop ใหม่จะคืนค่าบัญชีหลัก",
     title: "บัญชีย่อย",
     description:
       "สร้างบัญชีให้ทีมของคุณ และกำหนดว่าแต่ละบัญชีเปิดส่วนไหนได้บ้าง บัญชีย่อยเข้าสู่ระบบด้วยอีเมลและรหัสผ่านของตนเอง",

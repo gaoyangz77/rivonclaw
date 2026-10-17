@@ -5,6 +5,7 @@ import type { ApiContext } from "../../app/api-context.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
 import { rootStore } from "../../app/store/desktop-store.js";
 import { registerAuthHandlers } from "../api.js";
+import { GraphqlRequestError } from "../session.js";
 import { MARKETING_ATTRIBUTION_STORAGE_KEY } from "../../attribution/marketing-attribution.js";
 
 // ---------------------------------------------------------------------------
@@ -345,6 +346,8 @@ describe("GET /api/auth/session", () => {
       bootstrapStatus: "ready",
       error: null,
       tokenPresent: true,
+      accountSwitch: null,
+      memberLoginAvailable: true,
     });
     expect((res._body as any).accessToken).toBeUndefined();
   });
@@ -365,6 +368,8 @@ describe("GET /api/auth/session", () => {
       bootstrapStatus: "signed_out",
       error: null,
       tokenPresent: false,
+      accountSwitch: null,
+      memberLoginAvailable: true,
     });
   });
 });
@@ -765,4 +770,88 @@ describe("Desktop authenticated website route", () => {
     expect(res._status).toBe(403);
     expect(res._body).toEqual({ errorCode: "WEB_OPEN_UNTRUSTED_ORIGIN" });
   });
+});
+
+describe("temporary member login", () => {
+  it("identifies a backend that has not deployed the member-login mutation", async () => {
+    const loginAsMember = vi
+      .fn()
+      .mockRejectedValue(
+        new GraphqlRequestError('Cannot query field "loginAsAccountMember" on type "Mutation".'),
+      );
+    const onAuthChange = vi.fn();
+    const result = await dispatch(
+      "POST",
+      "/api/auth/login-as-member",
+      { authSession: { loginAsMember }, onAuthChange } as unknown as ApiContext,
+      { memberId: "bd-1" },
+    );
+    expect(result.res._status).toBe(400);
+    expect(result.res._body).toMatchObject({ errorCode: "ACCOUNT_SWITCH_BACKEND_UNAVAILABLE" });
+    expect(onAuthChange).not.toHaveBeenCalled();
+  });
+  it("switches through Desktop, clears cloud entities and waits for bootstrap without returning tokens", async () => {
+    rootStore.setCurrentUser(mockUser);
+    const loginAsMember = vi.fn().mockResolvedValue(undefined);
+    const onAuthChange = vi.fn(async () => {
+      expect(rootStore.currentUser).toBeNull();
+    });
+    const result = await dispatch(
+      "POST",
+      "/api/auth/login-as-member",
+      { authSession: { loginAsMember }, onAuthChange } as unknown as ApiContext,
+      { memberId: "bd-1" },
+    );
+    expect(result.res._status).toBe(200);
+    expect(result.res._body).toEqual({ ok: true });
+    expect(loginAsMember).toHaveBeenCalledWith("bd-1");
+    expect(onAuthChange).toHaveBeenCalledWith("member-login");
+  });
+  it("rejects non-loopback origins before touching auth", async () => {
+    const req = makeReq("POST", { memberId: "bd-1" });
+    req.headers.origin = "https://untrusted.example";
+    const res = makeRes();
+    const loginAsMember = vi.fn();
+    await registry.dispatch(
+      req,
+      res,
+      new URL("http://localhost/api/auth/login-as-member"),
+      "/api/auth/login-as-member",
+      { authSession: { loginAsMember } } as unknown as ApiContext,
+    );
+    expect(res._status).toBe(403);
+    expect(loginAsMember).not.toHaveBeenCalled();
+  });
+  it("restores the owner through the same bootstrap boundary", async () => {
+    const returnToOwner = vi.fn().mockResolvedValue(undefined),
+      onAuthChange = vi.fn();
+    const result = await dispatch("POST", "/api/auth/return-to-owner", {
+      authSession: { returnToOwner },
+      onAuthChange,
+    } as unknown as ApiContext);
+    expect(result.res._status).toBe(200);
+    expect(returnToOwner).toHaveBeenCalledOnce();
+    expect(onAuthChange).toHaveBeenCalledWith("return-to-owner");
+  });
+});
+
+it("rejects a second identity switch until the first bootstrap finishes", async () => {
+  let finish!: () => void;
+  const onAuthChange = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const ctx = {
+    authSession: { loginAsMember: vi.fn().mockResolvedValue(undefined), returnToOwner: vi.fn() },
+    onAuthChange,
+  } as unknown as ApiContext;
+  const first = dispatch("POST", "/api/auth/login-as-member", ctx, { memberId: "bd-1" });
+  await vi.waitFor(() => expect(onAuthChange).toHaveBeenCalled());
+  const second = await dispatch("POST", "/api/auth/return-to-owner", ctx);
+  expect(second.res._status).toBe(409);
+  expect(ctx.authSession!.returnToOwner).not.toHaveBeenCalled();
+  finish();
+  expect((await first).res._status).toBe(200);
 });

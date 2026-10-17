@@ -664,3 +664,103 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("temporary member login", () => {
+  const memberUser = {
+    ...mockUser,
+    userId: "bd-1",
+    name: "Assigned BD",
+    email: "bd@example.com",
+    isOwner: false,
+  };
+  const response = (data: unknown) => ({ status: 200, json: async () => ({ data }) });
+  async function fixture() {
+    const secrets = makeSecretStore(),
+      fetchFn = vi.fn();
+    const session = new AuthSessionManager(secrets, "en", fetchFn);
+    await session.storeTokens("owner-at", "owner-rt");
+    session.setCachedUser(mockUser);
+    fetchFn.mockResolvedValueOnce(
+      response({
+        loginAsAccountMember: { accessToken: "bd-at", refreshToken: "bd-rt", user: memberUser },
+      }),
+    );
+    return { secrets, fetchFn, session };
+  }
+  it("keeps owner credentials in Keychain across member login, rotation and return", async () => {
+    const { secrets, fetchFn, session } = await fixture();
+    await session.loginAsMember("bd-1");
+    expect(session.getCachedUser()?.isOwner).toBe(false);
+    expect(session.getAccountSwitchState()).toEqual({
+      ownerLabel: "Test",
+      memberLabel: "Assigned BD",
+    });
+    fetchFn.mockResolvedValueOnce(
+      response({
+        refreshToken: { accessToken: "bd-at-2", refreshToken: "bd-rt-2", user: memberUser },
+      }),
+    );
+    await session.refresh();
+    expect(await secrets.get("auth.refreshToken")).toBe("owner-rt");
+    expect(await secrets.get("auth.accessToken")).toBe("owner-at");
+    fetchFn.mockResolvedValueOnce(response({ logout: true }));
+    await session.returnToOwner();
+    expect(session.getAccessToken()).toBe("owner-at");
+    expect(session.getCachedUser()?.isOwner).toBe(true);
+    expect(session.getAccountSwitchState()).toBeNull();
+    expect(JSON.parse(fetchFn.mock.calls.at(-1)![1].body).variables.refreshToken).toBe("bd-rt-2");
+    const restarted = new AuthSessionManager(secrets, "en", vi.fn());
+    await restarted.loadFromKeychain();
+    expect(restarted.getAccessToken()).toBe("owner-at");
+  });
+  it("rejects nested/member switches and preserves owner tokens when the backend rejects a target", async () => {
+    const { session, fetchFn } = await fixture();
+    await session.loginAsMember("bd-1");
+    await expect(session.loginAsMember("bd-2")).rejects.toThrow("already active");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+  it("discards in-flight owner responses after switching identity", async () => {
+    const { session, fetchFn } = await fixture();
+    let finish!: (value: unknown) => void;
+    fetchFn.mockReset();
+    fetchFn.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const old = session.graphqlFetch("query OldOwnerData { me { userId } }");
+    const observed = old.catch((error) => error);
+    fetchFn.mockResolvedValueOnce(
+      response({
+        loginAsAccountMember: { accessToken: "bd-at", refreshToken: "bd-rt", user: memberUser },
+      }),
+    );
+    await session.loginAsMember("bd-1");
+    finish(response({ me: mockUser }));
+    expect(await observed).toMatchObject({ code: "SESSION_CHANGED" });
+  });
+  it("keeps the owner return path when a delegated refresh is revoked", async () => {
+    const { session, fetchFn, secrets } = await fixture();
+    await session.loginAsMember("bd-1");
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{ message: "revoked", extensions: { code: "REFRESH_TOKEN_REVOKED" } }],
+      }),
+    });
+    await expect(session.refresh()).rejects.toThrow("revoked");
+    expect(session.getAccessToken()).toBeNull();
+    expect(session.getAccountSwitchState()).not.toBeNull();
+    expect(await secrets.get("auth.refreshToken")).toBe("owner-rt");
+    await session.returnToOwner();
+    expect(session.getAccessToken()).toBe("owner-at");
+  });
+  it("signing out clears both delegated state and the owner's saved session", async () => {
+    const { session, secrets, fetchFn } = await fixture();
+    await session.loginAsMember("bd-1");
+    fetchFn.mockResolvedValueOnce(response({ logout: true }));
+    await session.logout();
+    expect(session.getAccountSwitchState()).toBeNull();
+    expect(await secrets.get("auth.refreshToken")).toBeUndefined();
+  });
+});

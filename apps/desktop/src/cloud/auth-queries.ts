@@ -99,6 +99,39 @@ export const LOGIN_MUTATION = `
   }
 `;
 
+export const LOGIN_AS_MEMBER_MUTATION = `
+  mutation LoginAsAccountMember($memberId: ID!) {
+    loginAsAccountMember(memberId: $memberId) {
+      accessToken
+      refreshToken
+      user {
+        userId
+        email
+        name
+        createdAt
+        enrolledModules
+        entitlementKeys
+        accountId
+        isOwner
+        permissionScopes
+        roleName
+        defaultRunProfileId
+        support {
+          telegramDebugProxyToken
+        }
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
+      }
+    }
+  }
+`;
+
 export const REGISTER_MUTATION = `
   mutation Register($input: RegisterInput!) {
     register(input: $input) {

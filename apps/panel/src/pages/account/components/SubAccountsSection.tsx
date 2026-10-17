@@ -12,7 +12,10 @@ import {
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
+  TkButton,
 } from "../../../components/design-system/index.js";
+import { switchToMember } from "../../../api/account-switch.js";
+import { useToast } from "../../../components/Toast.js";
 
 /**
  * Sub-account management, shown only to the owner of an account.
@@ -26,6 +29,33 @@ export function SubAccountsSection() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null);
+  const [switchingMemberId, setSwitchingMemberId] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  async function loginAsMember(memberId: string) {
+    setSwitchingMemberId(memberId);
+    try {
+      await switchToMember(memberId);
+    } catch (error) {
+      const code = (error as { code?: string } | null)?.code;
+      const message =
+        code === "ACCOUNT_SWITCH_CLIENT_UNAVAILABLE"
+          ? t("subAccounts.loginAsClientUpdateRequired")
+          : code === "ACCOUNT_SWITCH_BACKEND_UNAVAILABLE"
+            ? t("subAccounts.loginAsServerUpdateRequired")
+            : error instanceof Error
+              ? error.message
+              : String(error);
+      showToast(
+        t("common.operationFailed", {
+          message,
+        }),
+        "error",
+      );
+    } finally {
+      setSwitchingMemberId(null);
+    }
+  }
 
   const { members, roles } = subAccounts;
   const { ofMember } = useRoleDisplayName(roles);
@@ -101,35 +131,47 @@ export function SubAccountsSection() {
                       ? t("subAccounts.statusDisabled")
                       : t("subAccounts.statusActive")}
                   </span>
-                  {!isBusinessDeveloperMember(member) && (
-                    <div className="acct-item-actions">
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => openEdit(member.id)}
-                      >
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() =>
-                          subAccounts.updateMember({
-                            memberId: member.id,
-                            disabled: !member.disabled,
-                          })
-                        }
-                        disabled={subAccounts.savingMember}
-                      >
-                        {member.disabled ? t("subAccounts.enable") : t("subAccounts.disable")}
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => setConfirmDeleteMemberId(member.id)}
-                        disabled={subAccounts.deletingMember}
-                      >
-                        {t("common.delete")}
-                      </button>
-                    </div>
-                  )}
+                  <div className="acct-item-actions">
+                    <TkButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={member.disabled || switchingMemberId !== null}
+                      onClick={() => void loginAsMember(member.id)}
+                    >
+                      {t(
+                        switchingMemberId === member.id ? "common.loading" : "subAccounts.loginAs",
+                      )}
+                    </TkButton>
+                    {!isBusinessDeveloperMember(member) && (
+                      <>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => openEdit(member.id)}
+                        >
+                          {t("common.edit")}
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() =>
+                            subAccounts.updateMember({
+                              memberId: member.id,
+                              disabled: !member.disabled,
+                            })
+                          }
+                          disabled={subAccounts.savingMember}
+                        >
+                          {member.disabled ? t("subAccounts.enable") : t("subAccounts.disable")}
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => setConfirmDeleteMemberId(member.id)}
+                          disabled={subAccounts.deletingMember}
+                        >
+                          {t("common.delete")}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="acct-item-meta">
                   <span>{member.email}</span>
