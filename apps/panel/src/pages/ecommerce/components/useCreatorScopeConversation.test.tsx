@@ -208,3 +208,17 @@ describe("creator scoped conversation API and pagination", () => {
     expect(result.current.messages.map((m) => m.messageRef)).toEqual(["one"]);
   });
 });
+
+
+it("does not read or refetch history until the conversation tab is opened", async () => {
+  const first = mock(HISTORY, base, history([msg("opened", null)]));
+  const wrapper = ({ children }: { children: ReactNode }) => <MockedProvider mocks={[first]}>{children}</MockedProvider>;
+  const { result, rerender } = renderHook(({ enabled }) => useCreatorScopeConversation("creator", "", enabled), {
+    initialProps: { enabled: false }, wrapper,
+  });
+  await act(async () => { await result.current.refetch(); await result.current.loadOlder(); });
+  expect(first.result).not.toHaveBeenCalled();
+  rerender({ enabled: true });
+  await waitFor(() => expect(result.current.messages[0]?.messageRef).toBe("opened"));
+  expect(first.result).toHaveBeenCalledOnce();
+});

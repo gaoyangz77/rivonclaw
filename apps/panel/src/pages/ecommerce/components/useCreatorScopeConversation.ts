@@ -9,7 +9,7 @@ import { creatorScopeMessages, mergeCreatorScopeTimeline } from "../creator-deta
 const PAGE_SIZE = 25;
 
 /** Existing APIs only: preserve global channel history; use the shop-capable timeline for a shop. */
-export function useCreatorScopeConversation(relationshipId: string | null, shopId: string) {
+export function useCreatorScopeConversation(relationshipId: string | null, shopId: string, enabled = true) {
   const historyInput = { creatorRelationshipId: relationshipId ?? "", limit: PAGE_SIZE };
   const timelineInput = {
     ...historyInput,
@@ -21,7 +21,7 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
     { input: GQL.AffiliateCreatorMessageHistoryInput }
   >(AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, {
     variables: { input: historyInput },
-    skip: !relationshipId || Boolean(shopId),
+    skip: !enabled || !relationshipId || Boolean(shopId),
     fetchPolicy: "cache-and-network",
     notifyOnNetworkStatusChange: true,
   });
@@ -30,7 +30,7 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
     { input: GQL.AffiliateRelationshipTimelineInput }
   >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
     variables: { input: timelineInput },
-    skip: !relationshipId || !shopId,
+    skip: !enabled || !relationshipId || !shopId,
     fetchPolicy: "cache-and-network",
     notifyOnNetworkStatusChange: true,
   });
@@ -49,7 +49,7 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
     : Boolean(history?.hasMore && history.nextOffset != null);
 
   async function loadOlder() {
-    if (!hasOlder || query.loading || !relationshipId) return;
+    if (!enabled || !hasOlder || query.loading || !relationshipId) return;
     if (shopId) {
       await timelineQuery.fetchMore({
         variables: { input: { ...timelineInput, cursor: timeline!.olderCursor } },
@@ -91,6 +91,6 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
     loadOlder,
     loading: query.loading,
     error: query.error,
-    refetch: () => (shopId ? timelineQuery.refetch() : historyQuery.refetch()),
+    refetch: () => enabled ? (shopId ? timelineQuery.refetch() : historyQuery.refetch()) : Promise.resolve(undefined),
   };
 }

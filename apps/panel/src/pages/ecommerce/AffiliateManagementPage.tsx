@@ -10524,6 +10524,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const conversationViewportRef = useRef<HTMLDivElement | null>(null);
   const conversationAutoScrollPendingRef = useRef(true);
   const conversationScrollRelationshipRef = useRef<string | null>(null);
+  const conversationOlderRequestsRef = useRef(new Set<string>());
   const activityBottomRef = useRef<HTMLDivElement | null>(null);
   const activityLoadedOlderRef = useRef(false);
   const fallbackProfile = item?.creatorProfile ?? null;
@@ -10973,7 +10974,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     refetch: refetchConversationMessages,
     hasOlder: canLoadOlderConversation,
     loadOlder: fetchOlderScopeMessages,
-  } = useCreatorScopeConversation(relationshipId, scopeShopId);
+  } = useCreatorScopeConversation(relationshipId, scopeShopId, activeTab === "conversation");
   useAffiliateWorkbenchRefresh(useCallback(() => {
     void refetchRelationshipDetail();
     void refetchConversationMessages();
@@ -11341,8 +11342,10 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   ];
 
   async function loadOlderConversationMessages(): Promise<void> {
-    if (!canLoadOlderConversation || !relationshipId) return;
+    if (!canLoadOlderConversation || conversationLoading || !relationshipId) return;
     const requestScopeKey = scopeKey;
+    if (conversationOlderRequestsRef.current.has(requestScopeKey)) return;
+    conversationOlderRequestsRef.current.add(requestScopeKey);
     const viewport = conversationViewportRef.current;
     const previousScrollHeight = viewport?.scrollHeight ?? 0;
     const previousScrollTop = viewport?.scrollTop ?? 0;
@@ -11352,6 +11355,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
       return;
+    } finally {
+      conversationOlderRequestsRef.current.delete(requestScopeKey);
     }
     window.requestAnimationFrame(() => {
       if (activeScopeKeyRef.current !== requestScopeKey) return;
@@ -12430,7 +12435,12 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
               ) : null}
               {activeTab === "conversation" ? (
                 <div className="affiliate-conversation-tab">
-                  <div className="affiliate-conversation-preview" ref={conversationViewportRef}>
+                  <div className="affiliate-conversation-preview" ref={conversationViewportRef}
+                    onScroll={(event) => {
+                      const viewport = event.currentTarget;
+                      if (viewport.scrollTop <= 48 && viewport.scrollHeight > viewport.clientHeight)
+                        void loadOlderConversationMessages();
+                    }}>
                     {scopeShopId ? (
                       <p className="affiliate-creator-scope-note">
                         {t("ecommerce.affiliateWorkspace.creatorScope.sharedMessagesHint")}
