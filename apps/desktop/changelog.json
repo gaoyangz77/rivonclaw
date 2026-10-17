@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.34",
+    "date": "2026-10-17",
+    "en": [
+      "Temporarily switch to a sub-account and return to the owner account",
+      "Load Affiliate creator details and conversation history on demand, and improve message send and refresh feedback",
+      "Show public creators in BD filters and allow dismissing the BD device warning until restart"
+    ],
+    "zh": [
+      "支持临时切换子账号并返回主账号",
+      "达人详情与会话历史按需加载，并改进消息发送及刷新反馈",
+      "BD 筛选支持公共达人，设备提醒可暂时关闭至下次重启"
+    ]
+  },
+  {
     "version": "1.9.33",
     "date": "2026-10-16",
     "en": [
