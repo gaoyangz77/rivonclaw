@@ -207,22 +207,28 @@ describe("Creators list for a business developer", () => {
     expect(state.openedDeveloperDetails).toEqual([]);
   });
 
-  it("offers only My Creators and Public Creators and sends a public-only query", () => {
+  it("offers every BD owner and the AI team, the same filter a supervisor gets", () => {
     signIn(BD_ONLY);
     renderCreators();
     const own = i18n.t("ecommerce.affiliateWorkspace.myCreatorsFilter");
     const publicCreators = i18n.t("ecommerce.affiliateWorkspace.publicCreatorsFilter");
     const all = i18n.t("ecommerce.affiliateWorkspace.allBusinessDevelopers");
     const filter = screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.businessDeveloperFilter") });
-    expect(filter.textContent).toContain(own);
+    expect(filter.textContent).toContain(all);
     expect(state.creatorInputs.at(-1)).toMatchObject({ businessDeveloperId: null });
+    expect(state.creatorInputs.at(-1)).not.toHaveProperty("unassignedBusinessDeveloperOnly");
     fireEvent.click(filter);
-    expect(screen.queryByRole("button", { name: all })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Alice" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: publicCreators }));
+    expect(screen.queryByRole("button", { name: own })).toBeNull();
+    expect(screen.queryByRole("button", { name: publicCreators })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(i18n.t("ecommerce.affiliateTeam.aiTeam")) }));
     expect(state.creatorInputs.at(-1)).toMatchObject({ businessDeveloperId: null, unassignedBusinessDeveloperOnly: true });
     fireEvent.click(filter);
-    fireEvent.click(screen.getByRole("button", { name: own }));
+    const aliceOption = screen
+      .getAllByRole("button", { name: "Alice" })
+      .find((button) => button.classList.contains("custom-select-option"));
+    expect(aliceOption).toBeTruthy();
+    fireEvent.click(aliceOption!);
+    expect(state.creatorInputs.at(-1)).toMatchObject({ businessDeveloperId: "bd-alice" });
     expect(state.creatorInputs.at(-1)).not.toHaveProperty("unassignedBusinessDeveloperOnly");
   });
 
