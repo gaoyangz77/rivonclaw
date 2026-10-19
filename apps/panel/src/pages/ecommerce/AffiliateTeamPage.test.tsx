@@ -9,6 +9,7 @@ import i18n from "../../i18n/index.js";
 import {
   DeveloperEditor,
   DeveloperIntakeLimits,
+  DeveloperCreatorIntake,
   validDeveloperIntake,
   CREATOR_BULK_UPDATE_TEMPLATE_HEADERS,
   SHOP_REGIONS,
@@ -50,6 +51,28 @@ describe("optional automatic Creator intake limits", () => {
     expect(validDeveloperIntake({ ...enabled, weeklyCreatorLimit: 0 })).toBe(false);
     expect(validDeveloperIntake({ ...enabled, monthlyCreatorLimit: 2.5 })).toBe(false);
     expect(validDeveloperIntake({ ...enabled, creatorIntakeLimitsEnabled: false, weeklyCreatorLimit: 0 })).toBe(true);
+  });
+  it("hides advanced options while intake is paused and preserves the configured limits when toggled", async () => {
+    await i18n.changeLanguage("zh");
+    const form = { ...developerFormFrom(source()), acceptingCreators: false, creatorIntakeLimitsEnabled: true, weeklyCreatorLimit: 25, monthlyCreatorLimit: 90 };
+    const setForm = vi.fn();
+    const instance = render(<DeveloperCreatorIntake form={form} setForm={setForm} />);
+    expect(screen.getByRole("checkbox", { name: "接收新达人" }).closest("label")?.classList.contains("affiliate-bd-intake-toggle")).toBe(true);
+    expect(screen.queryByText("接收新达人 · 高级选项（可选）")).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "限制自动接收数量" })).toBeNull();
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: "接收新达人" }));
+    const accepting = { ...form, acceptingCreators: true };
+    expect(setForm).toHaveBeenLastCalledWith(accepting);
+    instance.rerender(<DeveloperCreatorIntake form={accepting} setForm={setForm} />);
+    expect(screen.getByRole("checkbox", { name: "限制自动接收数量" }).closest("label")?.classList.contains("affiliate-bd-intake-toggle")).toBe(true);
+    expect(screen.getByRole("heading", { name: "接收新达人 · 高级选项（可选）" })).toBeTruthy();
+    expect(screen.getByRole("spinbutton", { name: "每周上限" })).toHaveProperty("value", "25");
+    expect(screen.getByRole("spinbutton", { name: "每月上限" })).toHaveProperty("value", "90");
+    fireEvent.click(screen.getByRole("checkbox", { name: "接收新达人" }));
+    expect(setForm).toHaveBeenLastCalledWith(form);
+    instance.rerender(<DeveloperCreatorIntake form={form} setForm={setForm} />);
+    expect(screen.queryByRole("spinbutton")).toBeNull();
   });
   it.each(["en", "zh", "de", "es", "fr", "id", "it", "th"])("has intake copy in %s", language => {
     for (const key of ["intakeAdvanced", "intakeLimitsEnabled", "weeklyCreatorLimit", "monthlyCreatorLimit", "creatorIntakeLimitsHint", "creatorIntakeLimitInvalid"]) {

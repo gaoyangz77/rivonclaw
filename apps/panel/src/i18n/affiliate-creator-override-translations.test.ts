@@ -18,8 +18,10 @@ describe("Creator Excel override copy", () => {
       expect(copy.creatorOverrideHint.length).toBeGreaterThan(50);
       expect(copy.protectionTemplateHint).toBe(copy.creatorOverrideHint);
       expect(copy.templateProtectionActionHint).toContain("UNPROTECT");
-      expect(copy.templateDeveloperHint).toContain("AI Team");
-      expect(copy.creatorOverrideClearBd).toContain("AI Team");
+      expect(copy.aiTeam).toBe(locale.ecommerce.affiliateWorkspace.publicCreatorsFilter);
+      expect(copy.templateDeveloperHint).toContain(copy.aiTeam);
+      expect(copy.creatorOverrideClearBd).toContain(copy.aiTeam);
+      expect(copy.creatorUpdateBdOnlyHint).toContain(copy.aiTeam);
       expect(copy.creatorUpdateUnknownManualTags).toContain("{{names}}");
       expect(
         locale.ecommerce.affiliateWorkspace.lifecycleEvents.RELATIONSHIP_BD_UNASSIGNED,

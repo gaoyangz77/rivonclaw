@@ -2,7 +2,7 @@
 const copy = {
   en: {
     hint: "Each Excel row replaces that Creator’s BD, protection and manual tags. Blank BD clears the assignment; blank protection removes protection; blank tags clear all manual tags. Blank protection notes are cleared. Creators absent from the file and system tags are unchanged.",
-    bd: "Enter the BD’s internal name to assign or reassign. Blank clears the BD assignment (AI Team).",
+    bd: "Enter the BD’s internal name to assign or reassign. Blank clears the BD assignment (Public creators).",
     protection: "PROTECT enables protection; UNPROTECT or blank removes it.",
     note: "Only with PROTECT. Blank clears the previous protection note.",
     tags: "One manual tag per cell. These replace all existing manual tags; all blank clears them. Pick an existing tag from the dropdown: tags that do not exist are rejected. To use a new tag, create it in the system first, then download the template again. System tags are unchanged.",
@@ -15,7 +15,7 @@ const copy = {
       "No manual tags exist yet, so this column must stay blank. Create tags in the system first, then download the template again.",
     unknownTags:
       "Unknown manual tags: {{names}}. Create them in the system first, or choose an existing tag.",
-    clearBd: "Clear BD → AI Team",
+    clearBd: "Clear BD → Public creators",
     unprotect: "Not protected",
     replaceTags: "Target manual tags (empty = none)",
     unassignedEvent: "Creator BD assignment cleared",
@@ -27,7 +27,7 @@ const copy = {
   },
   zh: {
     hint: "Excel 每行覆盖该达人的 BD、保护状态和人工标签。BD 留空会清除分配，保护留空会取消保护，标签全空会清除所有人工标签，保护备注留空会清除原备注。表格中未出现的达人及系统标签不受影响。",
-    bd: "填写 BD 的内部名称以分配或改派；留空清除 BD 分配，回到 AI Team。",
+    bd: "填写 BD 的内部名称以分配或改派；留空清除 BD 分配，回到公共达人。",
     protection: "PROTECT 表示保护；UNPROTECT 或留空表示取消保护。",
     note: "仅用于 PROTECT；留空会清除原保护备注。",
     tags: "每格一个人工标签，整行标签替换现有人工标签；全空则全部清除。请从下拉列表选择已有标签，不存在的标签会被拒绝；如需新标签，请先在系统中创建，再重新下载模板。系统标签不变。",
@@ -37,7 +37,7 @@ const copy = {
       "请从列表中选择已有的人工标签。不存在的标签会被拒绝；请先在系统中创建新标签，再重新下载模板。",
     noTags: "目前还没有人工标签，此列只能留空。请先在系统中创建标签，再重新下载模板。",
     unknownTags: "人工标签不存在：{{names}}。请先在系统中创建，或改选已有标签。",
-    clearBd: "清除 BD → AI Team",
+    clearBd: "清除 BD → 公共达人",
     unprotect: "不保护",
     replaceTags: "目标人工标签（空＝无）",
     unassignedEvent: "清除达人 BD 分配",
@@ -49,7 +49,7 @@ const copy = {
   },
   de: {
     hint: "Jede Excel-Zeile ersetzt BD, Schutz und manuelle Tags dieses Creators. Leere BD-, Schutz-, Tag- oder Notizfelder löschen die jeweiligen Werte. Nicht aufgeführte Creator und System-Tags bleiben unverändert.",
-    bd: "Internen BD-Namen für Zuweisung oder Wechsel eingeben. Leer entfernt die Zuweisung (AI Team).",
+    bd: "Internen BD-Namen für Zuweisung oder Wechsel eingeben. Leer entfernt die Zuweisung (Öffentliche Creator).",
     protection: "PROTECT aktiviert den Schutz; UNPROTECT oder leer entfernt ihn.",
     note: "Nur mit PROTECT. Leer löscht die bisherige Schutznotiz.",
     tags: "Ein manueller Tag je Zelle. Ersetzt alle manuellen Tags; alle leer löscht sie. Wählen Sie einen vorhandenen Tag aus der Liste: Nicht vorhandene Tags werden abgelehnt. Neue Tags zuerst im System anlegen und die Vorlage erneut herunterladen. System-Tags bleiben unverändert.",
@@ -62,7 +62,7 @@ const copy = {
       "Es gibt noch keine manuellen Tags, daher muss diese Spalte leer bleiben. Legen Sie Tags zuerst im System an und laden Sie die Vorlage erneut herunter.",
     unknownTags:
       "Unbekannte manuelle Tags: {{names}}. Legen Sie sie zuerst im System an oder wählen Sie einen vorhandenen Tag.",
-    clearBd: "BD entfernen → AI Team",
+    clearBd: "BD entfernen → Öffentliche Creator",
     unprotect: "Nicht geschützt",
     replaceTags: "Ziel-Tags (leer = keine)",
     unassignedEvent: "BD-Zuweisung des Creators entfernt",
@@ -74,7 +74,7 @@ const copy = {
   },
   es: {
     hint: "Cada fila de Excel reemplaza el BD, la protección y las etiquetas manuales del creador. Los campos vacíos eliminan la asignación, protección, etiquetas o nota correspondientes. No cambia los creadores ausentes ni las etiquetas del sistema.",
-    bd: "Nombre interno del BD para asignar o reasignar. Vacío elimina la asignación (AI Team).",
+    bd: "Nombre interno del BD para asignar o reasignar. Vacío elimina la asignación (Creadores públicos).",
     protection: "PROTECT activa la protección; UNPROTECT o vacío la elimina.",
     note: "Solo con PROTECT. Vacío elimina la nota anterior.",
     tags: "Una etiqueta manual por celda. Reemplazan todas las anteriores; todas vacías las eliminan. Elige una etiqueta existente de la lista: las que no existen se rechazan. Para usar una nueva, créala primero en el sistema y vuelve a descargar la plantilla. No cambia las etiquetas del sistema.",
@@ -87,7 +87,7 @@ const copy = {
       "Aún no hay etiquetas manuales, así que esta columna debe quedar vacía. Crea primero las etiquetas en el sistema y vuelve a descargar la plantilla.",
     unknownTags:
       "Etiquetas manuales desconocidas: {{names}}. Créalas primero en el sistema o elige una etiqueta existente.",
-    clearBd: "Quitar BD → AI Team",
+    clearBd: "Quitar BD → Creadores públicos",
     unprotect: "Sin protección",
     replaceTags: "Etiquetas destino (vacío = ninguna)",
     unassignedEvent: "Asignación de BD del creador eliminada",
@@ -99,7 +99,7 @@ const copy = {
   },
   fr: {
     hint: "Chaque ligne Excel remplace le BD, la protection et les tags manuels du créateur. Les champs vides effacent l’affectation, la protection, les tags ou la note correspondants. Les créateurs absents du fichier et les tags système restent inchangés.",
-    bd: "Nom interne du BD pour affecter ou réaffecter. Vide supprime l’affectation (AI Team).",
+    bd: "Nom interne du BD pour affecter ou réaffecter. Vide supprime l’affectation (Créateurs publics).",
     protection: "PROTECT active la protection ; UNPROTECT ou vide la supprime.",
     note: "Uniquement avec PROTECT. Vide efface la note précédente.",
     tags: "Un tag manuel par cellule. Remplace tous les tags manuels ; tous vides les efface. Choisissez un tag existant dans la liste : les tags inexistants sont refusés. Pour un nouveau tag, créez-le d’abord dans le système, puis retéléchargez le modèle. Les tags système restent inchangés.",
@@ -112,7 +112,7 @@ const copy = {
       "Aucun tag manuel n’existe encore : cette colonne doit rester vide. Créez d’abord des tags dans le système, puis retéléchargez le modèle.",
     unknownTags:
       "Tags manuels inconnus : {{names}}. Créez-les d’abord dans le système ou choisissez un tag existant.",
-    clearBd: "Retirer le BD → AI Team",
+    clearBd: "Retirer le BD → Créateurs publics",
     unprotect: "Non protégé",
     replaceTags: "Tags cibles (vide = aucun)",
     unassignedEvent: "Affectation BD du créateur supprimée",
@@ -124,7 +124,7 @@ const copy = {
   },
   id: {
     hint: "Setiap baris Excel mengganti BD, perlindungan, dan tag manual kreator tersebut. Kolom kosong menghapus penugasan, perlindungan, tag, atau catatan terkait. Kreator di luar file dan tag sistem tidak berubah.",
-    bd: "Nama internal BD untuk menetapkan atau mengganti BD. Kosong menghapus penugasan (AI Team).",
+    bd: "Nama internal BD untuk menetapkan atau mengganti BD. Kosong menghapus penugasan (Kreator publik).",
     protection: "PROTECT mengaktifkan perlindungan; UNPROTECT atau kosong menghapusnya.",
     note: "Hanya dengan PROTECT. Kosong menghapus catatan sebelumnya.",
     tags: "Satu tag manual per sel. Mengganti semua tag manual; kosong semua menghapusnya. Pilih tag yang sudah ada dari daftar: tag yang belum ada akan ditolak. Untuk tag baru, buat dulu di sistem lalu unduh ulang template. Tag sistem tidak berubah.",
@@ -137,7 +137,7 @@ const copy = {
       "Belum ada tag manual, jadi kolom ini harus dikosongkan. Buat tag di sistem terlebih dahulu, lalu unduh ulang template.",
     unknownTags:
       "Tag manual tidak dikenal: {{names}}. Buat dulu di sistem, atau pilih tag yang sudah ada.",
-    clearBd: "Hapus BD → AI Team",
+    clearBd: "Hapus BD → Kreator publik",
     unprotect: "Tidak dilindungi",
     replaceTags: "Tag tujuan (kosong = tidak ada)",
     unassignedEvent: "Penugasan BD kreator dihapus",
@@ -149,7 +149,7 @@ const copy = {
   },
   it: {
     hint: "Ogni riga Excel sostituisce BD, protezione e tag manuali del creator. I campi vuoti cancellano assegnazione, protezione, tag o nota corrispondenti. I creator assenti dal file e i tag di sistema restano invariati.",
-    bd: "Nome interno del BD per assegnare o riassegnare. Vuoto rimuove l’assegnazione (AI Team).",
+    bd: "Nome interno del BD per assegnare o riassegnare. Vuoto rimuove l’assegnazione (Creator pubblici).",
     protection: "PROTECT attiva la protezione; UNPROTECT o vuoto la rimuove.",
     note: "Solo con PROTECT. Vuoto cancella la nota precedente.",
     tags: "Un tag manuale per cella. Sostituisce tutti i tag manuali; tutti vuoti li cancella. Scegli un tag esistente dall’elenco: i tag inesistenti vengono rifiutati. Per un nuovo tag, crealo prima nel sistema e scarica di nuovo il modello. I tag di sistema restano invariati.",
@@ -162,7 +162,7 @@ const copy = {
       "Non esistono ancora tag manuali, quindi questa colonna deve restare vuota. Crea prima i tag nel sistema, poi scarica di nuovo il modello.",
     unknownTags:
       "Tag manuali sconosciuti: {{names}}. Creali prima nel sistema oppure scegli un tag esistente.",
-    clearBd: "Rimuovi BD → AI Team",
+    clearBd: "Rimuovi BD → Creator pubblici",
     unprotect: "Non protetto",
     replaceTags: "Tag di destinazione (vuoto = nessuno)",
     unassignedEvent: "Assegnazione BD del creator rimossa",
@@ -174,7 +174,7 @@ const copy = {
   },
   th: {
     hint: "แต่ละแถว Excel จะแทนที่ BD การปกป้อง และแท็กที่กำหนดเองของครีเอเตอร์ ช่องว่างจะล้างการมอบหมาย การปกป้อง แท็ก หรือหมายเหตุที่เกี่ยวข้อง ครีเอเตอร์ที่ไม่อยู่ในไฟล์และแท็กระบบจะไม่เปลี่ยน",
-    bd: "ใช้ชื่อภายในของ BD เพื่อมอบหมายหรือเปลี่ยนผู้ดูแล เว้นว่างเพื่อล้างการมอบหมาย (AI Team)",
+    bd: "ใช้ชื่อภายในของ BD เพื่อมอบหมายหรือเปลี่ยนผู้ดูแล เว้นว่างเพื่อล้างการมอบหมาย (ครีเอเตอร์ส่วนกลาง)",
     protection: "PROTECT เปิดการปกป้อง ส่วน UNPROTECT หรือช่องว่างยกเลิกการปกป้อง",
     note: "ใช้กับ PROTECT เท่านั้น เว้นว่างเพื่อล้างหมายเหตุเดิม",
     tags: "หนึ่งแท็กต่อช่อง แทนที่แท็กที่กำหนดเองทั้งหมด หากว่างทั้งหมดจะล้างแท็ก เลือกแท็กที่มีอยู่จากรายการ แท็กที่ไม่มีอยู่จะถูกปฏิเสธ หากต้องการแท็กใหม่ ให้สร้างในระบบก่อนแล้วดาวน์โหลดเทมเพลตใหม่ แท็กระบบไม่เปลี่ยน",
@@ -184,7 +184,7 @@ const copy = {
       "เลือกแท็กที่กำหนดเองที่มีอยู่จากรายการ แท็กที่ไม่มีอยู่จะถูกปฏิเสธ ให้สร้างแท็กใหม่ในระบบก่อน แล้วดาวน์โหลดเทมเพลตใหม่",
     noTags: "ยังไม่มีแท็กที่กำหนดเอง คอลัมน์นี้จึงต้องเว้นว่าง ให้สร้างแท็กในระบบก่อน แล้วดาวน์โหลดเทมเพลตใหม่",
     unknownTags: "ไม่พบแท็กที่กำหนดเอง: {{names}} ให้สร้างในระบบก่อน หรือเลือกแท็กที่มีอยู่",
-    clearBd: "ล้าง BD → AI Team",
+    clearBd: "ล้าง BD → ครีเอเตอร์ส่วนกลาง",
     unprotect: "ไม่ปกป้อง",
     replaceTags: "แท็กเป้าหมาย (ว่าง = ไม่มี)",
     unassignedEvent: "ล้างการมอบหมาย BD ของครีเอเตอร์แล้ว",

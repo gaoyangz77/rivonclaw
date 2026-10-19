@@ -31,9 +31,9 @@ export function affiliateWorkbenchBdOptions(
   if (bdOnly && kind === "AGENT") {
     return [{ value: AFFILIATE_WORKBENCH_MY_BD_VALUE, label: labels.own }, publicOption];
   }
+  const allOption = { value: "", label: labels.all };
   return [
-    publicOption,
-    { value: "", label: labels.all },
+    ...(kind === "MANUAL" ? [allOption, publicOption] : [publicOption, allOption]),
     ...developers
       .slice()
       .sort((a, b) => a.displayName.localeCompare(b.displayName))

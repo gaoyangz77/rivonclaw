@@ -216,11 +216,17 @@ describe("public Creator claim visibility", () => {
     }];
     const instance = render(view("creator", "samples", true));
     expect(document.querySelector(".affiliate-workbench-sample-review-card")).not.toBeNull();
-    expect(screen.getByText(i18n.t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly"))).toBeTruthy();
+    const banner = screen.getByText(i18n.t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly")).closest(".affiliate-relationship-readonly-banner")!;
+    expect(banner).not.toBeNull();
+    expect(banner.previousElementSibling?.classList.contains("modal-header")).toBe(true);
+    expect(banner.nextElementSibling?.classList.contains("affiliate-relationship-workspace-body")).toBe(true);
+    expect(banner.closest(".affiliate-collaboration-tab-panel")).toBeNull();
     expect(screen.queryByRole("button", { name: "同意" })).toBeNull();
     expect(screen.queryByRole("button", { name: "拒绝" })).toBeNull();
     expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
     instance.rerender(view("creator", "conversation", true));
+    expect(screen.getAllByText(i18n.t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly"))).toHaveLength(1);
+    expect(document.querySelector(".affiliate-relationship-readonly-banner")).toBe(banner);
     expect(document.querySelector(".affiliate-message-composer")).toBeNull();
     expect(state.calls.some(call => call.operation === "AffiliateCreatorMessageHistory")).toBe(true);
     expect(state.mutate).not.toHaveBeenCalled();

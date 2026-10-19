@@ -11612,6 +11612,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
             </button>
           </div>
         </div>
+        {relationshipDetail && !canPerformDailyOperations ? (
+          <TkAlert className="affiliate-relationship-readonly-banner">
+            {t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly")}
+          </TkAlert>
+        ) : null}
         <div className="affiliate-collaboration-modal-body affiliate-relationship-workspace-body">
           <AffiliateContextInspector
             className="affiliate-collaboration-context-pane"
@@ -11968,9 +11973,6 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
               }`}
               ref={tabPanelRef}
             >
-              {relationshipDetail && !canPerformDailyOperations ? (
-                <TkAlert>{t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly")}</TkAlert>
-              ) : null}
               {activeTab === "profile" ? (
                 <>
                   <CreatorGlobalInformation profile />

@@ -788,6 +788,11 @@
   --affiliate-inspector-width: clamp(340px, 22vw, 380px);
 }
 
+.affiliate-relationship-readonly-banner {
+  flex: 0 0 auto;
+  margin: var(--tk-v1-space-3) var(--tk-v1-space-5);
+}
+
 .affiliate-relationship-work-modal .affiliate-relationship-workspace-body {
   position: relative;
   display: flex;

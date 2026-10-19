@@ -33,9 +33,12 @@ import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { useToast } from "../../components/Toast.js";
 import {
   TkConfirmDialog as ConfirmDialog,
+  TkField,
   TkInteractiveTableRow,
   TkModal as Modal,
   TkSegmented,
+  TkSection,
+  TkSwitch,
   TkSwitchControl,
   TkTableFrame,
   TkTabs,
@@ -162,29 +165,46 @@ export function DeveloperIntakeLimits({ form, setForm }: {
   setForm: (form: DeveloperForm) => void;
 }) {
   const { t } = useTranslation();
+  if (!form.acceptingCreators) return null;
   return (
-    <fieldset>
-      <legend>{t("ecommerce.affiliateTeam.intakeAdvanced")}</legend>
-      <label className="affiliate-bd-inline-toggle">
-        <input type="checkbox" checked={form.creatorIntakeLimitsEnabled}
-          onChange={event => setForm({ ...form, creatorIntakeLimitsEnabled: event.target.checked })} />
-        <span>{t("ecommerce.affiliateTeam.intakeLimitsEnabled")}</span>
-      </label>
-      <p className="form-hint">{t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}</p>
+    <TkSection className="affiliate-bd-intake-limits" title={t("ecommerce.affiliateTeam.intakeAdvanced")}>
+      <TkSwitch
+        className="affiliate-bd-intake-toggle"
+        label={t("ecommerce.affiliateTeam.intakeLimitsEnabled")}
+        checked={form.creatorIntakeLimitsEnabled}
+        onChange={checked => setForm({ ...form, creatorIntakeLimitsEnabled: checked })}
+      />
       {form.creatorIntakeLimitsEnabled && (
-        <>
+        <div className="affiliate-bd-intake-fields">
           {(["weeklyCreatorLimit", "monthlyCreatorLimit"] as const).map(field => (
-            <label key={field}>
-              <span>{t(`ecommerce.affiliateTeam.${field}`)}</span>
-              <input className="input" type="number" min={1} max={2_147_483_647} step={1}
-                value={form[field] || ""}
-                onChange={event => setForm({ ...form, [field]: Number(event.target.value) })} />
-            </label>
+            <TkField key={field} label={t(`ecommerce.affiliateTeam.${field}`)}
+              type="number" min={1} max={2_147_483_647} step={1}
+              value={form[field] || ""}
+              error={!validIntakeLimit(form[field]) ? t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid") : undefined}
+              onChange={event => setForm({ ...form, [field]: Number(event.target.value) })} />
           ))}
-          {!validDeveloperIntake(form) && <p className="form-hint" role="alert">{t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid")}</p>}
-        </>
+        </div>
       )}
-    </fieldset>
+      <p className="form-hint affiliate-bd-intake-hint">{t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}</p>
+    </TkSection>
+  );
+}
+
+export function DeveloperCreatorIntake({ form, setForm }: {
+  form: DeveloperForm;
+  setForm: (form: DeveloperForm) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="affiliate-bd-creator-intake">
+      <TkSwitch
+        className="affiliate-bd-intake-toggle"
+        label={t("ecommerce.affiliateTeam.acceptingCreators")}
+        checked={form.acceptingCreators}
+        onChange={checked => setForm({ ...form, acceptingCreators: checked })}
+      />
+      <DeveloperIntakeLimits form={form} setForm={setForm} />
+    </div>
   );
 }
 
@@ -3891,15 +3911,7 @@ export function DeveloperEditor({
           ))}
         </div>
       </fieldset>
-      <label className="affiliate-developer-toggle">
-        <input
-          type="checkbox"
-          checked={form.acceptingCreators}
-          onChange={(event) => setForm({ ...form, acceptingCreators: event.target.checked })}
-        />
-        <span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span>
-      </label>
-      <DeveloperIntakeLimits form={form} setForm={setForm} />
+      <DeveloperCreatorIntake form={form} setForm={setForm} />
       <label>
         <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
         <textarea
@@ -3983,15 +3995,7 @@ function DeveloperProfileEditor({
         />
       </label>
       <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
-      <label className="affiliate-bd-inline-toggle">
-        <input
-          type="checkbox"
-          checked={form.acceptingCreators}
-          onChange={(event) => setForm({ ...form, acceptingCreators: event.target.checked })}
-        />
-        <span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span>
-      </label>
-      <DeveloperIntakeLimits form={form} setForm={setForm} />
+      <DeveloperCreatorIntake form={form} setForm={setForm} />
       <fieldset>
         <legend>{t("ecommerce.affiliateTeam.regions")}</legend>
         <div className="affiliate-region-grid">
