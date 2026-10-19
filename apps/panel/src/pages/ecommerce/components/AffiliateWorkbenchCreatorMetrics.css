@@ -1,0 +1,30 @@
+.affiliate-workbench-creator-metrics dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  margin: 0;
+}
+
+.affiliate-workbench-creator-metrics dt,
+.affiliate-workbench-creator-metrics-source {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
+}
+
+.affiliate-workbench-creator-metrics dt small {
+  font-size: inherit;
+}
+
+.affiliate-workbench-creator-metrics dd {
+  margin: 0;
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-supporting);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-workbench-creator-metrics-source {
+  display: block;
+  margin-top: var(--tk-v1-space-2);
+}

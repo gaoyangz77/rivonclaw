@@ -4,6 +4,15 @@
  * queue summary. Each band wraps on its own, so a long note or a wide control
  * never staggers the controls of another band.
  */
+.tk-v1-workbench .affiliate-workbench-entity-table.affiliate-workbench-table-samples-open,
+.tk-v1-workbench .affiliate-workbench-entity-table.affiliate-workbench-table-samples-rejected {
+  min-width: 1480px;
+}
+
+.affiliate-workbench-col-metrics {
+  width: 224px;
+}
+
 .affiliate-workbench-entity-toolbar {
   display: grid;
   gap: var(--tk-v1-space-3);

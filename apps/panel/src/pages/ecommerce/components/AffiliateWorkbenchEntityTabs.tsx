@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AffiliateWorkbenchCreatorMetrics } from "./AffiliateWorkbenchCreatorMetrics.js";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
@@ -12,6 +13,7 @@ import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
 import { ProductTableCell } from "../../../components/ecommerce/ProductTableCell.js";
 import {
   TkButton,
+  TkInfoTip,
   TkChoiceSelect,
   TkInteractiveTableRow,
   TkPrivate,
@@ -575,6 +577,7 @@ function AffiliateWorkbenchSampleList({
               <col className="affiliate-workbench-col-tags" />
               <col className="affiliate-workbench-col-shop" />
               <col className="affiliate-workbench-col-product" />
+              <col className="affiliate-workbench-col-metrics" />
               <col className="affiliate-workbench-col-support" />
               <col className="affiliate-workbench-col-status" />
               <col className="affiliate-workbench-col-action" />
@@ -586,6 +589,7 @@ function AffiliateWorkbenchSampleList({
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colTags")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colShop")}</th>
                 <th>{t("ecommerce.affiliateWorkspace.workbench.colProduct")}</th>
+                <th>{t("ecommerce.affiliateWorkspace.workbench.colCreatorMetrics")} <TkInfoTip label={t("ecommerce.affiliateWorkspace.workbench.creatorMetricsHint")} /></th>
                 {ignoredView ? (
                   <>
                     <th>{t("ecommerce.affiliateWorkspace.workbench.colHandler")}</th>
@@ -645,6 +649,7 @@ function AffiliateWorkbenchSampleList({
                       )}
                     />
                   </td>
+                  <td><AffiliateWorkbenchCreatorMetrics row={row} /></td>
                   {ignoredView ? (
                     <>
                       <td>
@@ -731,7 +736,7 @@ function AffiliateWorkbenchSampleList({
             {!hasMore && items.length > 0 ? (
               <tfoot>
                 <tr>
-                  <td className="affiliate-workbench-table-footer" colSpan={8}>
+                  <td className="affiliate-workbench-table-footer" colSpan={9}>
                     {t(
                       ignoredView
                         ? "ecommerce.affiliateWorkspace.workbench.allSamplesLoadedSoftRejected"

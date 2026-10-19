@@ -33,6 +33,8 @@ function sampleRow(
 ) {
   return {
     __typename: "AffiliateWorkbenchSampleRow" as const,
+    creatorGmv: null, creatorPostRate: null, creatorAverageVideoViews: null, creatorUnitsSold: null,
+    creatorPerformanceMarket: null, creatorPerformanceObservedAt: null,
     id: `sample-${index}`,
     hasPendingAgentProposal: false,
     creatorRelationshipId: `rel-${index}`,

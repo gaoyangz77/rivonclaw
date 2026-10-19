@@ -36,6 +36,8 @@ function button(orderId?: string | null) {
 function sampleRow(index: number, platformOrderId: string | null, sampleWorkStatus: string) {
   return {
     __typename: "AffiliateWorkbenchSampleRow",
+    creatorGmv: null, creatorPostRate: null, creatorAverageVideoViews: null, creatorUnitsSold: null,
+    creatorPerformanceMarket: null, creatorPerformanceObservedAt: null,
     id: `sample-${index}`, creatorRelationshipId: `rel-${index}`,
     creatorName: `Creator ${index}`, creatorUsername: `creator${index}`, creatorAvatarUrl: null,
     shopName: "Shop", productTitle: "Product", businessDeveloperName: null,

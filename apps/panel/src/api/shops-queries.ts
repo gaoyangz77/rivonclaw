@@ -4075,6 +4075,12 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
 
 const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
   fragment AffiliateWorkbenchSampleRowFields on AffiliateWorkbenchSampleRow {
+    creatorGmv { amount minimumAmount maximumAmount currency window precision }
+    creatorPostRate
+    creatorAverageVideoViews
+    creatorUnitsSold
+    creatorPerformanceMarket
+    creatorPerformanceObservedAt
     viewerCanPerformDailyOperations
     id
     hasPendingAgentProposal

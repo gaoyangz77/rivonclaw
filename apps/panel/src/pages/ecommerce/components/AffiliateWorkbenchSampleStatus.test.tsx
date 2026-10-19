@@ -19,6 +19,8 @@ describe("Affiliate workbench Sample status filter", () => {
   it.each([false, true])("enforces row-level daily-operation permission for inline reopen (%s)", async canOperate => {
     const row = {
       __typename: "AffiliateWorkbenchSampleRow",
+    creatorGmv: null, creatorPostRate: null, creatorAverageVideoViews: null, creatorUnitsSold: null,
+    creatorPerformanceMarket: null, creatorPerformanceObservedAt: null,
       id: "sample-row", creatorRelationshipId: "creator", viewerCanPerformDailyOperations: canOperate,
       hasPendingAgentProposal: false, creatorName: "Creator", creatorUsername: "creator", creatorAvatarUrl: null,
       shopName: "Shop", productTitle: null, businessDeveloperName: "BD", protected: false,

@@ -44,6 +44,8 @@ const TAG_FIXTURES = [
 function sampleRow(index: number) {
   return {
     __typename: "AffiliateWorkbenchSampleRow" as const,
+    creatorGmv: null, creatorPostRate: null, creatorAverageVideoViews: null, creatorUnitsSold: null,
+    creatorPerformanceMarket: null, creatorPerformanceObservedAt: null,
     id: `sample-${index}`,
     creatorRelationshipId: `rel-${index}`,
     creatorName: `Creator ${index}`,

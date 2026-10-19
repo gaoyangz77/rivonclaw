@@ -5452,8 +5452,15 @@ export interface AffiliateWorkbenchSamplePageInput {
 export interface AffiliateWorkbenchSampleRow {
   businessDeveloperName?: Maybe<Scalars["String"]["output"]>;
   creatorAvatarUrl?: Maybe<Scalars["String"]["output"]>;
+  creatorAverageVideoViews?: Maybe<Scalars["Float"]["output"]>;
+  creatorGmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
   creatorName?: Maybe<Scalars["String"]["output"]>;
+  creatorPerformanceMarket?: Maybe<Scalars["String"]["output"]>;
+  creatorPerformanceObservedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Platform sample-to-post ratio, not a seller-local approval or shipment rate. */
+  creatorPostRate?: Maybe<Scalars["Float"]["output"]>;
   creatorRelationshipId: Scalars["ID"]["output"];
+  creatorUnitsSold?: Maybe<Scalars["Int"]["output"]>;
   creatorUsername?: Maybe<Scalars["String"]["output"]>;
   hasPendingAgentProposal?: Maybe<Scalars["Boolean"]["output"]>;
   humanOnly: Scalars["Boolean"]["output"];
