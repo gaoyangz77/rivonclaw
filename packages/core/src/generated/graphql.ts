@@ -1173,6 +1173,7 @@ export interface AffiliateBusinessDeveloper {
   configRevision: Scalars["Int"]["output"];
   createdAt: Scalars["DateTimeISO"]["output"];
   creatorDisplayName?: Maybe<Scalars["String"]["output"]>;
+  creatorIntakeLimitsEnabled: Scalars["Boolean"]["output"];
   /** Outreach device that executes this developer's WhatsApp/email work, in the same id space as a shop's affiliate device. Null until a device is bound; absence is a real state, never substituted. */
   deviceId?: Maybe<Scalars["String"]["output"]>;
   displayName: Scalars["String"]["output"];
@@ -1181,6 +1182,7 @@ export interface AffiliateBusinessDeveloper {
   id: Scalars["ID"]["output"];
   /** The developer's login. Null when the developer has none. */
   login?: Maybe<AffiliateBusinessDeveloperLogin>;
+  monthlyCreatorLimit: Scalars["Int"]["output"];
   normalizedDisplayName: Scalars["String"]["output"];
   preferredEmailAccountBindingId?: Maybe<Scalars["ID"]["output"]>;
   preferredWhatsAppAccountBindingId?: Maybe<Scalars["ID"]["output"]>;
@@ -1190,6 +1192,7 @@ export interface AffiliateBusinessDeveloper {
   regions: Array<ShopRegion>;
   updatedAt: Scalars["DateTimeISO"]["output"];
   userId: Scalars["ID"]["output"];
+  weeklyCreatorLimit: Scalars["Int"]["output"];
 }
 
 export interface AffiliateBusinessDeveloperContactInput {
@@ -16985,6 +16988,7 @@ export interface WriteAffiliateBusinessDeveloperInput {
   agentAssistanceMode?: InputMaybe<AffiliateAgentAssistanceMode>;
   businessPrompt?: InputMaybe<Scalars["String"]["input"]>;
   creatorDisplayName?: InputMaybe<Scalars["String"]["input"]>;
+  creatorIntakeLimitsEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Outreach device that executes this developer's WhatsApp/email work, in the same id space as a shop's affiliate device. Omit to keep the current binding; null or blank stores the developer as unbound. */
   deviceId?: InputMaybe<Scalars["String"]["input"]>;
   displayName?: InputMaybe<Scalars["String"]["input"]>;
@@ -16992,7 +16996,9 @@ export interface WriteAffiliateBusinessDeveloperInput {
   escalationChannelId?: InputMaybe<Scalars["String"]["input"]>;
   escalationRecipientId?: InputMaybe<Scalars["String"]["input"]>;
   id?: InputMaybe<Scalars["ID"]["input"]>;
+  monthlyCreatorLimit?: InputMaybe<Scalars["Int"]["input"]>;
   regions?: InputMaybe<Array<ShopRegion>>;
+  weeklyCreatorLimit?: InputMaybe<Scalars["Int"]["input"]>;
 }
 
 export interface WriteAffiliateCampaignInput {

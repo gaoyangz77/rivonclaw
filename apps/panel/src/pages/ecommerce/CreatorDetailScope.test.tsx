@@ -244,6 +244,15 @@ describe("public Creator claim visibility", () => {
     fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
     expect(screen.queryByRole("button", { name: "认领给我" })).toBeNull();
   });
+  it("hides self-claim on protected public Creators but retains release for protected owners", () => {
+    state.detail.protection = { id: "protection", note: "Protected" };
+    const instance = render(view("creator", "overview", true));
+    fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
+    expect(screen.queryByRole("button", { name: "认领给我" })).toBeNull();
+    (state.detail.creatorRelationship as Record<string, unknown>).businessDeveloperId = "bd";
+    instance.rerender(view("creator", "overview", true));
+    expect(screen.getByRole("button", { name: "退回公池" })).toBeTruthy();
+  });
   it("keeps the supervisor's existing reassignment control", () => {
     render(view());
     fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));

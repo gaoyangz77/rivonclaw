@@ -11706,7 +11706,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     />
                   </label>
                 )}
-                {businessDeveloperOnly && !relationshipOwnerId && relationshipId ? (
+                {businessDeveloperOnly && !relationshipOwnerId && relationshipId && !relationshipProtection ? (
                   <AffiliateClaimCreatorButton
                     creatorRelationshipId={relationshipId}
                     onClaimed={async (businessDeveloperId) => {

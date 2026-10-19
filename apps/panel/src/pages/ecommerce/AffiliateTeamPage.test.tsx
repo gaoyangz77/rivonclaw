@@ -2,17 +2,61 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { GQL } from "@rivonclaw/core";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import i18n from "../../i18n/index.js";
 import {
   DeveloperEditor,
+  DeveloperIntakeLimits,
+  validDeveloperIntake,
   CREATOR_BULK_UPDATE_TEMPLATE_HEADERS,
   SHOP_REGIONS,
   developerFormFrom,
   isDeveloperFormDirty,
   writeDeveloperInputFrom,
 } from "./AffiliateTeamPage.js";
+
+afterEach(cleanup);
+
+describe("optional automatic Creator intake limits", () => {
+  function source() {
+    return { displayName: "BD", regions: [], acceptingCreators: true, agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted };
+  }
+  it("defaults legacy profiles to unlimited with 100/500 editable limits", () => {
+    const form = developerFormFrom(source());
+    expect(form).toMatchObject({ creatorIntakeLimitsEnabled: false, weeklyCreatorLimit: 100, monthlyCreatorLimit: 500 });
+    expect(isDeveloperFormDirty(form, source())).toBe(false);
+    const changed = { ...form, creatorIntakeLimitsEnabled: true, weeklyCreatorLimit: 25, monthlyCreatorLimit: 90 };
+    expect(isDeveloperFormDirty(changed, source())).toBe(true);
+    expect(writeDeveloperInputFrom(changed)).toMatchObject({ creatorIntakeLimitsEnabled: true, weeklyCreatorLimit: 25, monthlyCreatorLimit: 90 });
+    expect(isDeveloperFormDirty(developerFormFrom(changed), changed)).toBe(false);
+  });
+  it("conditionally exposes labelled limits and explains the UTC+8 reset boundaries", async () => {
+    await i18n.changeLanguage("zh");
+    const form = developerFormFrom(source());
+    const setForm = vi.fn();
+    const instance = render(<DeveloperIntakeLimits form={form} setForm={setForm} />);
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: "限制自动接收数量" }));
+    expect(setForm).toHaveBeenCalledWith({ ...form, creatorIntakeLimitsEnabled: true });
+    const enabled = { ...form, creatorIntakeLimitsEnabled: true };
+    instance.rerender(<DeveloperIntakeLimits form={enabled} setForm={setForm} />);
+    expect(screen.getByRole("spinbutton", { name: "每周上限" })).toHaveProperty("value", "100");
+    expect(screen.getByRole("spinbutton", { name: "每月上限" })).toHaveProperty("value", "500");
+    expect(screen.getByText(/UTC\+8/)).toBeTruthy();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "每周上限" }), { target: { value: "8" } });
+    expect(setForm).toHaveBeenCalledWith({ ...enabled, weeklyCreatorLimit: 8 });
+    expect(validDeveloperIntake({ ...enabled, weeklyCreatorLimit: 0 })).toBe(false);
+    expect(validDeveloperIntake({ ...enabled, monthlyCreatorLimit: 2.5 })).toBe(false);
+    expect(validDeveloperIntake({ ...enabled, creatorIntakeLimitsEnabled: false, weeklyCreatorLimit: 0 })).toBe(true);
+  });
+  it.each(["en", "zh", "de", "es", "fr", "id", "it", "th"])("has intake copy in %s", language => {
+    for (const key of ["intakeAdvanced", "intakeLimitsEnabled", "weeklyCreatorLimit", "monthlyCreatorLimit", "creatorIntakeLimitsHint", "creatorIntakeLimitInvalid"]) {
+      expect(i18n.exists(`ecommerce.affiliateTeam.${key}`, { lng: language })).toBe(true);
+    }
+  });
+});
 
 describe("Affiliate business developer region editor", () => {
   const developer = {
@@ -73,6 +117,9 @@ describe("Affiliate business developer region editor", () => {
           creatorDisplayName: "Creator-facing BD",
           regions: [],
           acceptingCreators: true,
+          creatorIntakeLimitsEnabled: false,
+          weeklyCreatorLimit: 100,
+          monthlyCreatorLimit: 500,
           agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
           businessPrompt: "",
           deviceId: "",
@@ -91,7 +138,7 @@ describe("Affiliate business developer region editor", () => {
     expect(SHOP_REGIONS).toEqual(Object.values(GQL.ShopRegion));
     expect(SHOP_REGIONS).not.toContain("ROW");
     // Region checkboxes + acceptingCreators toggle + outreach-device toggle.
-    expect(screen.getAllByRole("checkbox")).toHaveLength(SHOP_REGIONS.length + 2);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(SHOP_REGIONS.length + 3);
     expect(screen.getByDisplayValue("Regional BD")).toBeTruthy();
     expect(screen.getByDisplayValue("Creator-facing BD")).toBeTruthy();
   });

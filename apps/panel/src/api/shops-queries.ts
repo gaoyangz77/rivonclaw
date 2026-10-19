@@ -4545,6 +4545,9 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     normalizedDisplayName
     regions
     acceptingCreators
+    creatorIntakeLimitsEnabled
+    weeklyCreatorLimit
+    monthlyCreatorLimit
     agentAssistanceMode
     businessPrompt
     profileStatus

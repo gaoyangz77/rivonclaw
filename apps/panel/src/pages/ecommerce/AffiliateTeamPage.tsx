@@ -138,6 +138,9 @@ export type DeveloperForm = {
   creatorDisplayName: string;
   regions: GQL.ShopRegion[];
   acceptingCreators: boolean;
+  creatorIntakeLimitsEnabled: boolean;
+  weeklyCreatorLimit: number;
+  monthlyCreatorLimit: number;
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode;
   businessPrompt: string;
   /** Outreach device draft; "" means unbound. */
@@ -145,6 +148,45 @@ export type DeveloperForm = {
   escalationChannelId: string;
   escalationRecipientId: string;
 };
+
+function validIntakeLimit(value: number): boolean {
+  return Number.isInteger(value) && value > 0 && value <= 2_147_483_647;
+}
+
+export function validDeveloperIntake(form: DeveloperForm): boolean {
+  return !form.creatorIntakeLimitsEnabled || (validIntakeLimit(form.weeklyCreatorLimit) && validIntakeLimit(form.monthlyCreatorLimit));
+}
+
+export function DeveloperIntakeLimits({ form, setForm }: {
+  form: DeveloperForm;
+  setForm: (form: DeveloperForm) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <fieldset>
+      <legend>{t("ecommerce.affiliateTeam.intakeAdvanced")}</legend>
+      <label className="affiliate-bd-inline-toggle">
+        <input type="checkbox" checked={form.creatorIntakeLimitsEnabled}
+          onChange={event => setForm({ ...form, creatorIntakeLimitsEnabled: event.target.checked })} />
+        <span>{t("ecommerce.affiliateTeam.intakeLimitsEnabled")}</span>
+      </label>
+      <p className="form-hint">{t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}</p>
+      {form.creatorIntakeLimitsEnabled && (
+        <>
+          {(["weeklyCreatorLimit", "monthlyCreatorLimit"] as const).map(field => (
+            <label key={field}>
+              <span>{t(`ecommerce.affiliateTeam.${field}`)}</span>
+              <input className="input" type="number" min={1} max={2_147_483_647} step={1}
+                value={form[field] || ""}
+                onChange={event => setForm({ ...form, [field]: Number(event.target.value) })} />
+            </label>
+          ))}
+          {!validDeveloperIntake(form) && <p className="form-hint" role="alert">{t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid")}</p>}
+        </>
+      )}
+    </fieldset>
+  );
+}
 
 type ProtectionPreviewRow = {
   overwrite?: boolean;
@@ -200,6 +242,9 @@ const EMPTY_DEVELOPER: DeveloperForm = {
   creatorDisplayName: "",
   regions: [],
   acceptingCreators: true,
+  creatorIntakeLimitsEnabled: false,
+  weeklyCreatorLimit: 100,
+  monthlyCreatorLimit: 500,
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
   businessPrompt: "",
   deviceId: "",
@@ -212,6 +257,9 @@ type DeveloperFormSource = {
   creatorDisplayName?: string | null;
   regions: readonly GQL.ShopRegion[];
   acceptingCreators: boolean;
+  creatorIntakeLimitsEnabled?: boolean;
+  weeklyCreatorLimit?: number;
+  monthlyCreatorLimit?: number;
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode;
   businessPrompt?: string | null;
   deviceId?: string | null;
@@ -225,6 +273,9 @@ export function developerFormFrom(source: DeveloperFormSource): DeveloperForm {
     creatorDisplayName: source.creatorDisplayName ?? "",
     regions: Array.from(source.regions),
     acceptingCreators: source.acceptingCreators,
+    creatorIntakeLimitsEnabled: source.creatorIntakeLimitsEnabled ?? false,
+    weeklyCreatorLimit: source.weeklyCreatorLimit ?? 100,
+    monthlyCreatorLimit: source.monthlyCreatorLimit ?? 500,
     agentAssistanceMode: source.agentAssistanceMode,
     businessPrompt: source.businessPrompt ?? "",
     deviceId: source.deviceId ?? "",
@@ -239,6 +290,9 @@ export function isDeveloperFormDirty(form: DeveloperForm, source: DeveloperFormS
     form.creatorDisplayName.trim() !== (source.creatorDisplayName?.trim() ?? "") ||
     form.agentAssistanceMode !== source.agentAssistanceMode ||
     form.acceptingCreators !== source.acceptingCreators ||
+    form.creatorIntakeLimitsEnabled !== (source.creatorIntakeLimitsEnabled ?? false) ||
+    form.weeklyCreatorLimit !== (source.weeklyCreatorLimit ?? 100) ||
+    form.monthlyCreatorLimit !== (source.monthlyCreatorLimit ?? 500) ||
     [...form.regions].sort().join("|") !== [...source.regions].sort().join("|") ||
     form.businessPrompt.trim() !== (source.businessPrompt?.trim() ?? "") ||
     form.deviceId.trim() !== (source.deviceId?.trim() ?? "") ||
@@ -257,6 +311,9 @@ export function writeDeveloperInputFrom(
     creatorDisplayName: form.creatorDisplayName.trim() || null,
     regions: form.regions,
     acceptingCreators: form.acceptingCreators,
+    creatorIntakeLimitsEnabled: form.creatorIntakeLimitsEnabled,
+    weeklyCreatorLimit: validIntakeLimit(form.weeklyCreatorLimit) ? form.weeklyCreatorLimit : 100,
+    monthlyCreatorLimit: validIntakeLimit(form.monthlyCreatorLimit) ? form.monthlyCreatorLimit : 500,
     agentAssistanceMode: form.agentAssistanceMode,
     businessPrompt: form.businessPrompt.trim() || null,
     deviceId: form.deviceId.trim() || null,
@@ -824,6 +881,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   }
 
   async function saveDeveloper() {
+    if (!validDeveloperIntake(form)) {
+      showToast(t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid"), "error");
+      return;
+    }
     const displayName = form.displayName.trim();
     if (!displayName) {
       showToast(t("ecommerce.affiliateTeam.nameRequired"), "error");
@@ -3519,6 +3580,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                       disabled={
                         writeState.loading ||
                         !form.displayName.trim() ||
+                        !validDeveloperIntake(form) ||
                         (!detailFormDirty && !detailNeedsProfileConfirmation)
                       }
                     >
@@ -3837,6 +3899,7 @@ export function DeveloperEditor({
         />
         <span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span>
       </label>
+      <DeveloperIntakeLimits form={form} setForm={setForm} />
       <label>
         <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
         <textarea
@@ -3859,7 +3922,7 @@ export function DeveloperEditor({
           className="btn btn-primary"
           type="button"
           onClick={onSave}
-          disabled={saving || !form.displayName.trim()}
+          disabled={saving || !form.displayName.trim() || !validDeveloperIntake(form)}
         >
           {t("common.save")}
         </button>
@@ -3928,6 +3991,7 @@ function DeveloperProfileEditor({
         />
         <span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span>
       </label>
+      <DeveloperIntakeLimits form={form} setForm={setForm} />
       <fieldset>
         <legend>{t("ecommerce.affiliateTeam.regions")}</legend>
         <div className="affiliate-region-grid">
