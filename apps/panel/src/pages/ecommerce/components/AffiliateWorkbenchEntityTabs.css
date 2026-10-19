@@ -6,7 +6,8 @@
  */
 .tk-v1-workbench .affiliate-workbench-entity-table.affiliate-workbench-table-samples-open,
 .tk-v1-workbench .affiliate-workbench-entity-table.affiliate-workbench-table-samples-rejected {
-  min-width: 1480px;
+  /* Fixed columns consume 1380px; leave at least 320px for the product. */
+  min-width: 1700px;
 }
 
 .affiliate-workbench-col-metrics {
