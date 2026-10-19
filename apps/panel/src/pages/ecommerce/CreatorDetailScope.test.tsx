@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { DocumentNode } from "graphql";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { observable, runInAction } from "mobx";
@@ -61,22 +62,24 @@ vi.mock("@apollo/client/react", () => ({
     const operation = def?.kind === "OperationDefinition" ? def.name!.value : "";
     const input = options.variables?.input ?? {};
     if (!options.skip) state.calls.push({ operation, input });
-    const page = {
-      items: operation === "AffiliateRelationshipSampleApplications" ? state.samples
-        : operation === "AffiliateActionProposals" ? state.proposals : [],
-      productSummaries: [],
-      hasMore: false,
-      nextCursor: null,
-    };
-    const data: Record<string, unknown> = {
-      affiliateCreatorRelationshipDetail: state.detail,
-      affiliateCreatorContactState: { channelContacts: [] },
-      affiliateRelationshipSampleApplications: page,
-      affiliateRelationshipPlatformCollaborations: page,
-      affiliateActionProposalPage: page,
-      affiliateCreatorMessageHistory: { items: state.history, hasMore: false },
-      affiliateRelationshipTimeline: { items: state.timeline, hasOlder: false },
-    };
+    const data = useMemo(() => {
+      const page = {
+        items: operation === "AffiliateRelationshipSampleApplications" ? state.samples
+          : operation === "AffiliateActionProposals" ? state.proposals : [],
+        productSummaries: [],
+        hasMore: false,
+        nextCursor: null,
+      };
+      return {
+        affiliateCreatorRelationshipDetail: state.detail,
+        affiliateCreatorContactState: { channelContacts: [] },
+        affiliateRelationshipSampleApplications: page,
+        affiliateRelationshipPlatformCollaborations: page,
+        affiliateActionProposalPage: page,
+        affiliateCreatorMessageHistory: { items: state.history, hasMore: false },
+        affiliateRelationshipTimeline: { items: state.timeline, hasOlder: false },
+      };
+    }, [operation, state.detail, state.samples, state.proposals, state.history, state.timeline]);
     if (!state.refetches.has(operation)) {
       state.refetches.set(operation, vi.fn(() => state.refetch(operation)));
     }

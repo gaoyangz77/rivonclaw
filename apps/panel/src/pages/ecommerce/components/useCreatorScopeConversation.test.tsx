@@ -96,7 +96,11 @@ describe("creator scoped conversation API and pagination", () => {
   it("refreshes once for a replayed SSE snapshot and still permits older-page loading", async () => {
     const first = mock(HISTORY, base, history([msg("new", "1")], 25));
     const refreshed = mock(HISTORY, base, history([msg("new", "1")], 25));
-    const older = mock(HISTORY, { ...base, offset: 25 }, history([msg("old", "1", "2026-09-01T12:00:00Z")]));
+    const older = mock(
+      HISTORY,
+      { ...base, offset: 25 },
+      history([msg("old", "1", "2026-09-01T12:00:00Z")]),
+    );
     const snapshots = vi.fn();
     vi.spyOn(panelEventBus, "subscribe").mockImplementation((event, handler) => {
       if (event === "entity-snapshot") {
@@ -109,17 +113,24 @@ describe("creator scoped conversation API and pagination", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
       <MockedProvider mocks={[first, refreshed, older]}>{children}</MockedProvider>
     );
-    const { result } = renderHook(() => {
-      const conversation = useCreatorScopeConversation("creator", "");
-      useAffiliateWorkbenchRefresh(conversation.refetch, "creator");
-      return conversation;
-    }, { wrapper });
+    const { result } = renderHook(
+      () => {
+        const conversation = useCreatorScopeConversation("creator", "");
+        useAffiliateWorkbenchRefresh(conversation.refetch, "creator");
+        return conversation;
+      },
+      { wrapper },
+    );
     await waitFor(() => expect(result.current.messages[0]?.messageRef).toBe("new"));
     expect(snapshots).toHaveBeenCalledOnce();
     await waitFor(() => expect(refreshed.result).toHaveBeenCalledOnce());
     await waitFor(() => expect(result.current.loading).toBe(false));
-    await act(async () => { await result.current.loadOlder(); });
-    await waitFor(() => expect(result.current.messages.map(m => m.messageRef)).toEqual(["old", "new"]));
+    await act(async () => {
+      await result.current.loadOlder();
+    });
+    await waitFor(() =>
+      expect(result.current.messages.map((m) => m.messageRef)).toEqual(["old", "new"]),
+    );
     expect(result.current.hasOlder).toBe(false);
     expect(snapshots).toHaveBeenCalledOnce();
   });
@@ -244,16 +255,80 @@ describe("creator scoped conversation API and pagination", () => {
   });
 });
 
-
 it("does not read or refetch history until the conversation tab is opened", async () => {
   const first = mock(HISTORY, base, history([msg("opened", null)]));
-  const wrapper = ({ children }: { children: ReactNode }) => <MockedProvider mocks={[first]}>{children}</MockedProvider>;
-  const { result, rerender } = renderHook(({ enabled }) => useCreatorScopeConversation("creator", "", enabled), {
-    initialProps: { enabled: false }, wrapper,
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <MockedProvider mocks={[first]}>{children}</MockedProvider>
+  );
+  const { result, rerender } = renderHook(
+    ({ enabled }) => useCreatorScopeConversation("creator", "", enabled),
+    {
+      initialProps: { enabled: false },
+      wrapper,
+    },
+  );
+  await act(async () => {
+    await result.current.refetch();
+    await result.current.loadOlder();
   });
-  await act(async () => { await result.current.refetch(); await result.current.loadOlder(); });
   expect(first.result).not.toHaveBeenCalled();
   rerender({ enabled: true });
   await waitFor(() => expect(result.current.messages[0]?.messageRef).toBe("opened"));
   expect(first.result).toHaveBeenCalledOnce();
 });
+
+it.each(["", "1"])(
+  "keeps loaded history across a refresh in scope %s and continues from the refreshed cursor",
+  async (shop) => {
+    const query = shop ? TIMELINE : HISTORY;
+    const input = shop ? shopInput(shop) : base;
+    const payload = (ids: string[], cursor: string | number | null) =>
+      shop
+        ? timeline(
+            ids.map((id) => entry(id, "1")),
+            cursor as string | null,
+          )
+        : history(
+            ids.map((id) => msg(id, "1")),
+            cursor as number | null,
+          );
+    const cursor = shop ? "after-new" : 25;
+    const next = shop ? "after-old" : 50;
+    const olderInput = (value: string | number) =>
+      shop ? shopInput(shop, String(value)) : { ...base, offset: value };
+    const mocks = [
+      mock(query, input, payload(["new"], cursor)),
+      mock(query, olderInput(cursor), payload(["old"], next)),
+      mock(query, input, payload(["new"], cursor)),
+      mock(query, olderInput(cursor), payload(["old-updated"], next), 50),
+      mock(query, olderInput(next), payload(["oldest"], null)),
+    ];
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <MockedProvider mocks={mocks}>{children}</MockedProvider>
+    );
+    const { result } = renderHook(() => useCreatorScopeConversation("creator", shop), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.loadOlder();
+    });
+    await waitFor(() =>
+      expect(result.current.messages.map((m) => m.messageRef).sort()).toEqual(["new", "old"]),
+    );
+    let refreshing!: Promise<void | undefined>;
+    act(() => {
+      refreshing = result.current.refetch();
+    });
+    await waitFor(() => expect(mocks[2].result).toHaveBeenCalledOnce());
+    expect(result.current.messages.map((m) => m.messageRef).sort()).toEqual(["new", "old"]);
+    await act(async () => {
+      await refreshing;
+    });
+    expect(result.current.messages.map((m) => m.messageRef).sort()).toEqual(["new", "old-updated"]);
+    await act(async () => {
+      await result.current.loadOlder();
+    });
+    await waitFor(() => expect(mocks[4].result).toHaveBeenCalledOnce());
+    expect(result.current.messages).toHaveLength(3);
+    expect(result.current.hasOlder).toBe(false);
+  },
+);

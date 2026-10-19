@@ -1,39 +1,59 @@
-import { useQuery } from "@apollo/client/react";
 import { useCallback } from "react";
 import { GQL } from "@rivonclaw/core";
 import {
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
 } from "../../../api/shops-queries.js";
-import { creatorScopeMessages, mergeCreatorScopeTimeline } from "../creator-detail-scope.js";
+import { creatorScopeMessages } from "../creator-detail-scope.js";
+import { useAffiliateLoadedQuery } from "../hooks/useAffiliateLoadedQuery.js";
+import {
+  affiliateHistoryCursor,
+  affiliateHistoryPageInfo,
+  affiliateTimelinePageInfo,
+} from "../affiliate-loaded-pages.js";
 
 const PAGE_SIZE = 25;
 
-/** Existing APIs only: preserve global channel history; use the shop-capable timeline for a shop. */
-export function useCreatorScopeConversation(relationshipId: string | null, shopId: string, enabled = true) {
+/** Both global offset history and shop cursor history retain their loaded range on refresh. */
+export function useCreatorScopeConversation(
+  relationshipId: string | null,
+  shopId: string,
+  enabled = true,
+) {
   const historyInput = { creatorRelationshipId: relationshipId ?? "", limit: PAGE_SIZE };
-  const timelineInput = {
-    ...historyInput,
-    shopIds: [shopId],
-    itemTypes: [GQL.AffiliateRelationshipTimelineItemType.Message],
-  };
-  const historyQuery = useQuery<
-    { affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload },
-    { input: GQL.AffiliateCreatorMessageHistoryInput }
+  const scopeKey = JSON.stringify([relationshipId, shopId]);
+  const historyQuery = useAffiliateLoadedQuery<
+    GQL.AffiliateCreatorMessageHistoryItem,
+    GQL.AffiliateCreatorMessageHistoryPayload,
+    GQL.AffiliateCreatorMessageHistoryInput,
+    "affiliateCreatorMessageHistory"
   >(AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, {
-    variables: { input: historyInput },
-    skip: !enabled || !relationshipId || Boolean(shopId),
-    fetchPolicy: "cache-and-network",
-    notifyOnNetworkStatusChange: true,
+    field: "affiliateCreatorMessageHistory",
+    input: historyInput,
+    queryKey: scopeKey,
+    enabled: enabled && Boolean(relationshipId) && !shopId,
+    rowKey: (message) => `${message.channel}:${message.messageRef}`,
+    pageInfo: affiliateHistoryPageInfo,
+    withCursor: affiliateHistoryCursor,
+    throwOnError: true,
   });
-  const timelineQuery = useQuery<
-    { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
-    { input: GQL.AffiliateRelationshipTimelineInput }
+  const timelineQuery = useAffiliateLoadedQuery<
+    GQL.AffiliateRelationshipTimelineItem,
+    GQL.AffiliateRelationshipTimelinePayload,
+    GQL.AffiliateRelationshipTimelineInput,
+    "affiliateRelationshipTimeline"
   >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
-    variables: { input: timelineInput },
-    skip: !enabled || !relationshipId || !shopId,
-    fetchPolicy: "cache-and-network",
-    notifyOnNetworkStatusChange: true,
+    field: "affiliateRelationshipTimeline",
+    input: {
+      ...historyInput,
+      shopIds: [shopId],
+      itemTypes: [GQL.AffiliateRelationshipTimelineItemType.Message],
+    },
+    queryKey: scopeKey,
+    enabled: enabled && Boolean(relationshipId) && Boolean(shopId),
+    rowKey: (entry) => entry.id,
+    pageInfo: affiliateTimelinePageInfo,
+    throwOnError: true,
   });
   const history = historyQuery.data?.affiliateCreatorMessageHistory;
   const timeline = timelineQuery.data?.affiliateRelationshipTimeline;
@@ -47,64 +67,16 @@ export function useCreatorScopeConversation(relationshipId: string | null, shopI
   const query = shopId ? timelineQuery : historyQuery;
   const refetchHistory = historyQuery.refetch;
   const refetchTimeline = timelineQuery.refetch;
-  // Workbench refresh subscribes to replayed SSE snapshots. Changing this
-  // callback on every query render would resubscribe and refetch indefinitely.
   const refetch = useCallback(
-    () =>
-      enabled
-        ? shopId
-          ? refetchTimeline()
-          : refetchHistory()
-        : Promise.resolve(undefined),
+    () => (enabled ? (shopId ? refetchTimeline() : refetchHistory()) : Promise.resolve(undefined)),
     [enabled, shopId, refetchHistory, refetchTimeline],
   );
   const hasOlder = shopId
     ? Boolean(timeline?.hasOlder && timeline.olderCursor)
     : Boolean(history?.hasMore && history.nextOffset != null);
-
   async function loadOlder() {
     if (!enabled || !hasOlder || query.loading || !relationshipId) return;
-    if (shopId) {
-      await timelineQuery.fetchMore({
-        variables: { input: { ...timelineInput, cursor: timeline!.olderCursor } },
-        updateQuery: (previous, { fetchMoreResult }) =>
-          fetchMoreResult
-            ? {
-                affiliateRelationshipTimeline: mergeCreatorScopeTimeline(
-                  previous.affiliateRelationshipTimeline,
-                  fetchMoreResult.affiliateRelationshipTimeline,
-                ),
-              }
-            : previous,
-      });
-    } else {
-      await historyQuery.fetchMore({
-        variables: { input: { ...historyInput, offset: history!.nextOffset } },
-        updateQuery: (previous, { fetchMoreResult }) =>
-          fetchMoreResult
-            ? {
-                affiliateCreatorMessageHistory: {
-                  ...fetchMoreResult.affiliateCreatorMessageHistory,
-                  items: [
-                    ...new Map(
-                      [
-                        ...previous.affiliateCreatorMessageHistory.items,
-                        ...fetchMoreResult.affiliateCreatorMessageHistory.items,
-                      ].map((item) => [`${item.channel}:${item.messageRef}`, item]),
-                    ).values(),
-                  ],
-                },
-              }
-            : previous,
-      });
-    }
+    await query.loadMore();
   }
-  return {
-    messages,
-    hasOlder,
-    loadOlder,
-    loading: query.loading,
-    error: query.error,
-    refetch,
-  };
+  return { messages, hasOlder, loadOlder, loading: query.loading, error: query.error, refetch };
 }

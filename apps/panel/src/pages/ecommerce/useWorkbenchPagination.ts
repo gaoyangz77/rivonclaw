@@ -9,6 +9,7 @@ export interface WorkbenchPage<Row> {
 interface PageBuffer<Row, Page extends WorkbenchPage<Row>> {
   filterKey: string;
   firstPage: Page | undefined;
+  page: Page | undefined;
   items: Row[];
   pageCount: number;
   nextCursor: string | null;
@@ -18,7 +19,11 @@ interface PageBuffer<Row, Page extends WorkbenchPage<Row>> {
 interface Options<Row, Page extends WorkbenchPage<Row>> {
   filterKey: string;
   firstPage: Page | undefined;
-  refreshRevision: number;
+  refreshRevision?: number;
+  enabled?: boolean;
+  rowKey?: (row: Row) => string;
+  mergePages?: (previous: Page, next: Page) => Page;
+  throwOnError?: boolean;
   /** Read a page without replacing the observed first-page query in Apollo. */
   fetchPage: (cursor: string | null) => Promise<Page | undefined>;
   /** A changed product binding can invalidate a cursor; retry once from page 1. */
@@ -31,6 +36,7 @@ function emptyBuffer<Row, Page extends WorkbenchPage<Row>>(
   return {
     filterKey,
     firstPage: undefined,
+    page: undefined,
     items: [],
     pageCount: 0,
     nextCursor: null,
@@ -38,8 +44,8 @@ function emptyBuffer<Row, Page extends WorkbenchPage<Row>>(
   };
 }
 
-function uniqueRows<Row extends { id: string }>(rows: Row[]): Row[] {
-  return [...new Map(rows.map((row) => [row.id, row])).values()];
+function uniqueRows<Row>(rows: Row[], rowKey: (row: Row) => string): Row[] {
+  return [...new Map(rows.map((row) => [rowKey(row), row])).values()];
 }
 
 /**
@@ -48,44 +54,69 @@ function uniqueRows<Row extends { id: string }>(rows: Row[]): Row[] {
  * Merely merging page 1 into an old tail would retain handled/deleted rows;
  * replacing it would collapse the list after every SSE/focus refresh.
  */
-export function useWorkbenchPagination<Row extends { id: string }, Page extends WorkbenchPage<Row>>(
+export function useWorkbenchPagination<Row, Page extends WorkbenchPage<Row>>(
   options: Options<Row, Page>,
 ) {
-  const { filterKey, firstPage, refreshRevision } = options;
+  const { filterKey, firstPage, refreshRevision = 0, enabled = true } = options;
   const [buffer, setBuffer] = useState<PageBuffer<Row, Page>>(() => emptyBuffer(filterKey));
+  const [failure, setFailure] = useState<{ filterKey: string; error: Error } | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   // These are plain Apollo result snapshots and request state, never MST nodes.
   const bufferRef = useRef(buffer);
   const optionsRef = useRef(options);
-  const scopeRef = useRef({ filterKey, running: false, refreshing: false, refreshQueued: false });
+  const scopeRef = useRef({
+    filterKey,
+    enabled,
+    running: false,
+    refreshing: false,
+    refreshQueued: false,
+  });
   useLayoutEffect(() => {
     optionsRef.current = options;
-    if (scopeRef.current.filterKey !== filterKey) {
+    if (scopeRef.current.filterKey !== filterKey || scopeRef.current.enabled !== enabled) {
       // Object identity invalidates requests even after A -> B -> A filters.
-      scopeRef.current = { filterKey, running: false, refreshing: false, refreshQueued: false };
+      scopeRef.current = {
+        filterKey,
+        enabled,
+        running: false,
+        refreshing: false,
+        refreshQueued: false,
+      };
       setBusyKey(null);
     }
   });
 
   const commit = useCallback((next: PageBuffer<Row, Page>) => {
     bufferRef.current = next;
+    setFailure(null);
     setBuffer(next);
   }, []);
 
   const run = useCallback(
     async (mode: "more" | "refresh", seed?: Page) => {
       const scope = scopeRef.current;
+      if (!scope.enabled) return;
       if (scope.running) {
         if (mode === "refresh") scope.refreshQueued = true;
         return;
       }
       const request = optionsRef.current;
+      const rowKey = request.rowKey ?? ((row: Row) => (row as { id: string }).id);
+      const combine = (previous: Page, next: Page): Page => {
+        const merged = request.mergePages?.(previous, next) ?? {
+          ...previous,
+          ...next,
+          items: [...previous.items, ...next.items],
+        };
+        return { ...merged, items: uniqueRows(merged.items, rowKey) };
+      };
       const currentBuffer =
         bufferRef.current.filterKey === scope.filterKey
           ? bufferRef.current
           : emptyBuffer<Row, Page>(scope.filterKey);
       if (mode === "more" && (!currentBuffer.hasMore || !currentBuffer.nextCursor)) return;
       scope.running = true;
+      setFailure(null);
       setBusyKey(scope.filterKey);
       const active = () => scopeRef.current === scope;
       let cursorRecovered = false;
@@ -101,9 +132,12 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
             if (mode === "more") {
               const next = await request.fetchPage(current.nextCursor);
               if (!active() || !next) return;
+              setFailure(null);
+              const page = current.page ? combine(current.page, next) : next;
               commit({
                 ...current,
-                items: uniqueRows([...current.items, ...next.items]),
+                page,
+                items: page.items,
                 pageCount: current.pageCount + 1,
                 nextCursor: next.nextCursor ?? null,
                 hasMore: next.hasMore,
@@ -111,19 +145,21 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
             } else {
               let page = seed ?? (await request.fetchPage(null));
               if (!active() || !page) return;
+              setFailure(null);
               const refreshedFirstPage = page;
-              let items = page.items;
+              let combined = { ...page, items: uniqueRows(page.items, rowKey) };
               let pageCount = 1;
               while (pageCount < current.pageCount && page.hasMore && page.nextCursor) {
                 page = await request.fetchPage(page.nextCursor);
                 if (!active() || !page) return;
-                items = [...items, ...page.items];
+                combined = combine(combined, page);
                 pageCount += 1;
               }
               commit({
                 filterKey: scope.filterKey,
                 firstPage: refreshedFirstPage,
-                items: uniqueRows(items),
+                page: combined,
+                items: combined.items,
                 pageCount,
                 nextCursor: page.nextCursor ?? null,
                 hasMore: page.hasMore,
@@ -131,10 +167,16 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
             }
           } catch (error) {
             if (!active()) return;
+            setFailure({
+              filterKey: scope.filterKey,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
             const recovery = request.onError(error);
             if (recovery === "refresh" && !cursorRecovered) {
               cursorRecovered = true;
               scope.refreshQueued = true;
+            } else if (request.throwOnError) {
+              throw error;
             }
           }
           mode = "refresh";
@@ -152,7 +194,7 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
   );
 
   useEffect(() => {
-    if (!firstPage) return;
+    if (!enabled || !firstPage) return;
     const scope = scopeRef.current;
     if (scope.running) {
       // A cache update during pagination must be checked after the append.
@@ -166,13 +208,17 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
       commit({
         filterKey,
         firstPage,
-        items: uniqueRows(firstPage.items),
+        page: firstPage,
+        items: uniqueRows(
+          firstPage.items,
+          optionsRef.current.rowKey ?? ((row: Row) => (row as { id: string }).id),
+        ),
         pageCount: 1,
         nextCursor: firstPage.nextCursor ?? null,
         hasMore: firstPage.hasMore,
       });
     }
-  }, [commit, filterKey, firstPage, run]);
+  }, [commit, enabled, filterKey, firstPage, run]);
 
   const lastRevision = useRef(refreshRevision);
   useEffect(() => {
@@ -183,7 +229,13 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
   useEffect(
     () => () => {
       // Unmounted tabs cannot commit responses or display their errors.
-      scopeRef.current = { filterKey: "", running: false, refreshing: false, refreshQueued: false };
+      scopeRef.current = {
+        filterKey: "",
+        enabled: false,
+        running: false,
+        refreshing: false,
+        refreshQueued: false,
+      };
     },
     [],
   );
@@ -192,6 +244,7 @@ export function useWorkbenchPagination<Row extends { id: string }, Page extends 
   return {
     ...active,
     loaded: active.pageCount > 0,
+    error: failure?.filterKey === filterKey ? failure.error : null,
     loading: busyKey === filterKey,
     loadMore: useCallback(() => run("more"), [run]),
     refresh: useCallback(() => run("refresh"), [run]),

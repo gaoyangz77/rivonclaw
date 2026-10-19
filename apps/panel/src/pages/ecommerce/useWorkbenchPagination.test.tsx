@@ -196,3 +196,29 @@ describe("workbench loaded-range refresh", () => {
     expect(h.fetchPage).toHaveBeenCalledTimes(2);
   });
 });
+
+
+it("cancels a hidden tab's request, preserves its loaded range, and revalidates when enabled", async () => {
+  const first = page([1, 2], "after-2");
+  const fetchPage = vi.fn<(cursor: string | null) => Promise<Page>>();
+  const onError = vi.fn();
+  const { result, rerender } = renderHook(({ enabled }) => useWorkbenchPagination<Row, Page>({
+    filterKey: "same-creator", firstPage: first, enabled, fetchPage, onError,
+  }), { initialProps: { enabled: true } });
+  fetchPage.mockResolvedValueOnce(page([3, 4], "after-4"));
+  await act(() => result.current.loadMore());
+  const old = deferred<Page>();
+  fetchPage.mockReturnValueOnce(old.promise);
+  let request!: Promise<void>;
+  act(() => { request = result.current.refresh(); });
+  rerender({ enabled: false });
+  await act(async () => { old.reject(new Error("late inactive failure")); await request; });
+  expect(onError).not.toHaveBeenCalled();
+  expect(result.current.items.map(row => row.id)).toEqual(["1", "2", "3", "4"]);
+  const count = fetchPage.mock.calls.length;
+  await act(() => result.current.refresh());
+  expect(fetchPage).toHaveBeenCalledTimes(count);
+  fetchPage.mockResolvedValueOnce(page([3, 5], null));
+  rerender({ enabled: true });
+  await waitFor(() => expect(result.current.items.map(row => row.id)).toEqual(["1", "2", "3", "5"]));
+});

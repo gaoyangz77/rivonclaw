@@ -1,3 +1,9 @@
+import {
+  affiliateTimelinePageInfo,
+  mergeSampleDetailPages,
+  mergePlatformDetailPages,
+} from "./affiliate-loaded-pages.js";
+import { useAffiliateLoadedQuery } from "./hooks/useAffiliateLoadedQuery.js";
 import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExportButton.js";
 import { AffiliateClaimCreatorButton } from "./components/AffiliateClaimCreatorButton.js";
 import { AffiliateReleaseCreatorButton } from "./components/AffiliateReleaseCreatorButton.js";
@@ -69,10 +75,17 @@ import {
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
-import { affiliateProposalDecisionApplied, latestAffiliateProposal } from "./affiliate-proposal-state.js";
+import {
+  affiliateProposalDecisionApplied,
+  latestAffiliateProposal,
+} from "./affiliate-proposal-state.js";
 import { sampleOrderIdForCard } from "./affiliate-sample-order-id.js";
 import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
-import { AFFILIATE_WORKBENCH_MY_BD_VALUE, affiliateWorkbenchBdInput, affiliateWorkbenchBdOptions } from "./affiliate-workbench-bd-filter.js";
+import {
+  AFFILIATE_WORKBENCH_MY_BD_VALUE,
+  affiliateWorkbenchBdInput,
+  affiliateWorkbenchBdOptions,
+} from "./affiliate-workbench-bd-filter.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AffiliateSampleIgnoreButton,
@@ -93,6 +106,7 @@ import {
   matchesCreatorProposalShop,
   creatorProposalRequiresGlobalView,
   creatorScopeTimeline,
+  mergeCreatorScopeTimeline,
   creatorScopeWorkSummary,
 } from "./creator-detail-scope.js";
 import {
@@ -1052,12 +1066,16 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedManualShopIds, setSelectedManualShopIds] = useState<string[] | null>(null);
-  const [businessDeveloperSelection, setSelectedBusinessDeveloperId] = useState<string | null>(null);
+  const [businessDeveloperSelection, setSelectedBusinessDeveloperId] = useState<string | null>(
+    null,
+  );
   const selectedBusinessDeveloperId = businessDeveloperOnly
     ? businessDeveloperSelection === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
       ? AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
       : AFFILIATE_WORKBENCH_MY_BD_VALUE
-    : businessDeveloperSelection === AFFILIATE_WORKBENCH_MY_BD_VALUE ? "" : businessDeveloperSelection ?? "";
+    : businessDeveloperSelection === AFFILIATE_WORKBENCH_MY_BD_VALUE
+      ? ""
+      : (businessDeveloperSelection ?? "");
   const [workbenchTab, setWorkbenchTab] = useState<AffiliateWorkbenchTab>(() =>
     kind === "AGENT" ? "PENDING_AGENT" : "SAMPLES",
   );
@@ -1074,10 +1092,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     useState<AffiliateWorkbenchTimeFilterValue>(ALL_TIME_WORKBENCH_FILTER);
   const agentWorkTimeSelection = affiliateWorkbenchTimeSelection(agentWorkTimeFilter);
   const agentWorkTimeBounds = affiliateWorkbenchTimeBounds(agentWorkTimeSelection);
-  // Primitives, so the memoized `loadMoreProposals` can depend on the range
-  // itself rather than on a fresh object literal it would never see change.
-  const agentWorkCreatedAtGe = agentWorkTimeBounds?.geIso ?? null;
-  const agentWorkCreatedAtLt = agentWorkTimeBounds?.ltIso ?? null;
   const agentWorkTimeArgs = agentWorkTimeBounds
     ? { createdAtGe: agentWorkTimeBounds.geIso, createdAtLt: agentWorkTimeBounds.ltIso }
     : {};
@@ -1094,9 +1108,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const [selectedEntityTarget, setSelectedEntityTarget] =
     useState<AffiliateWorkbenchEntityOpenTarget | null>(null);
   const [workbenchEntityRefreshRevision, setWorkbenchEntityRefreshRevision] = useState(0);
-  const [loadingMoreProposalQueryKey, setLoadingMoreProposalQueryKey] = useState<string | null>(
-    null,
-  );
   const workbenchTitleKey =
     kind === "AGENT"
       ? "ecommerce.affiliateWorkspace.workbench.agentTitle"
@@ -1195,45 +1206,41 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const proposalQueryKey = pagedProposalView
     ? affiliateProposalPagedQueryKey(proposalFilterKey, activeProposalPageStack)
     : proposalFilterKey;
-  const activeProposalQueryKeyRef = useRef(proposalQueryKey);
-  activeProposalQueryKeyRef.current = proposalQueryKey;
-  const [proposalPageBuffer, setProposalPageBuffer] = useState<AffiliateProposalPageBuffer>(() =>
-    emptyAffiliateProposalPageBuffer(proposalQueryKey),
-  );
-  const activeProposalPageBuffer =
-    proposalPageBuffer.queryKey === proposalQueryKey
-      ? proposalPageBuffer
-      : emptyAffiliateProposalPageBuffer(proposalQueryKey);
-  const loadedProposals = activeProposalPageBuffer.items;
-  const proposalCursor = activeProposalPageBuffer.nextCursor;
-  const hasMoreProposals = activeProposalPageBuffer.hasMore;
-  const loadingMoreProposals = loadingMoreProposalQueryKey === proposalQueryKey;
-
-  const agentProposalsVisible = Boolean(user) && ["PENDING_AGENT", "ALL_AGENT"].includes(workbenchTab);
+  const agentProposalsVisible =
+    Boolean(user) && ["PENDING_AGENT", "ALL_AGENT"].includes(workbenchTab);
+  const proposalPages = useAffiliateLoadedQuery<
+    GQL.ActionProposal,
+    GQL.AffiliateActionProposalPage,
+    ReadAffiliateActionProposalPageInput,
+    "affiliateActionProposalPage"
+  >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
+    field: "affiliateActionProposalPage",
+    input: {
+      shopId: null,
+      ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
+      status: proposalStatus,
+      type: proposalType,
+      ...agentWorkTimeArgs,
+      limit: proposalPageRequest.limit,
+      cursor: proposalPageRequest.cursor,
+    } as ReadAffiliateActionProposalPageInput,
+    queryKey: proposalQueryKey,
+    enabled: agentProposalsVisible,
+    rowKey: (proposal: GQL.ActionProposal) => proposal.id,
+    onError: (error) =>
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error"),
+  });
   const {
     data: proposalData,
     loading: proposalsLoading,
     refetch: refetchProposals,
     fetchMore: fetchMoreProposals,
-  } = useQuery<AffiliateActionProposalPageData, { input: ReadAffiliateActionProposalPageInput }>(
-    AFFILIATE_ACTION_PROPOSALS_QUERY,
-    {
-      variables: {
-        input: {
-          shopId: null,
-          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-          status: proposalStatus,
-          type: proposalType,
-          ...agentWorkTimeArgs,
-          limit: proposalPageRequest.limit,
-          cursor: proposalPageRequest.cursor,
-        },
-      },
-      fetchPolicy: "cache-and-network",
-      notifyOnNetworkStatusChange: true,
-      skip: !agentProposalsVisible,
-    },
-  );
+  } = proposalPages;
+  const loadedProposals = proposalData?.affiliateActionProposalPage.items ?? [];
+  const proposalCursor = proposalData?.affiliateActionProposalPage.nextCursor ?? null;
+  const hasMoreProposals = proposalData?.affiliateActionProposalPage.hasMore ?? false;
+  const loadingMoreProposals = proposalPages.paginationLoading;
+  const loadMoreProposals = proposalPages.loadMore;
 
   const {
     data: escalationData,
@@ -1282,93 +1289,22 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     { input: GQL.DecideActionProposalInput }
   >(DECIDE_ACTION_PROPOSAL_MUTATION);
 
-  const replaceProposalPage = useCallback(
-    (queryKey: string, page: AffiliateActionProposalPageData["affiliateActionProposalPage"]) => {
-      if (activeProposalQueryKeyRef.current !== queryKey) return;
-      setProposalPageBuffer(replaceAffiliateProposalPageBuffer(queryKey, page));
-      for (const proposal of page.items) {
-        entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
-      }
-    },
-    [entityStore.affiliateWorkspace],
-  );
-
   useEffect(() => {
-    const page = proposalData?.affiliateActionProposalPage as
-      | AffiliateActionProposalPageData["affiliateActionProposalPage"]
-      | undefined;
-    if (!page) return;
-    replaceProposalPage(proposalQueryKey, page);
-    // `fetchMore` owns appending subsequent pending pages below. Do not depend
-    // on Apollo's loading flag here: its fetch-more transitions reuse the
-    // original first-page result and would replace the advanced cursor with
-    // page 1 again after every click.
-  }, [proposalData?.affiliateActionProposalPage, proposalQueryKey, replaceProposalPage]);
-
-  const loadMoreProposals = useCallback(async () => {
-    // Load-more belongs to the pending stream only; the paged view navigates
-    // with the cursor stack instead of appending.
-    if (pagedProposalView) return;
-    if (!proposalCursor || !hasMoreProposals || loadingMoreProposals) return;
-    const requestQueryKey = proposalQueryKey;
-    setLoadingMoreProposalQueryKey(requestQueryKey);
-    try {
-      const result = await fetchMoreProposals({
-        variables: {
-          input: {
-            shopId: null,
-            ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-            status: proposalStatus,
-            type: proposalType,
-            ...(agentWorkCreatedAtGe && agentWorkCreatedAtLt
-              ? { createdAtGe: agentWorkCreatedAtGe, createdAtLt: agentWorkCreatedAtLt }
-              : {}),
-            limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
-            cursor: proposalCursor,
-          },
-        },
-        updateQuery: (current) => current,
-      });
-      const page = result.data?.affiliateActionProposalPage as
-        | AffiliateActionProposalPageData["affiliateActionProposalPage"]
-        | undefined;
-      if (!page || activeProposalQueryKeyRef.current !== requestQueryKey) return;
-      setProposalPageBuffer((current) =>
-        appendAffiliateProposalPageBuffer(current, requestQueryKey, page),
-      );
-      for (const proposal of page.items) {
-        entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
-      }
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
-    } finally {
-      setLoadingMoreProposalQueryKey((current) => (current === requestQueryKey ? null : current));
+    for (const proposal of proposalData?.affiliateActionProposalPage.items ?? []) {
+      entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
     }
-  }, [
-    agentWorkCreatedAtGe,
-    agentWorkCreatedAtLt,
-    entityStore.affiliateWorkspace,
-    fetchMoreProposals,
-    hasMoreProposals,
-    loadingMoreProposals,
-    pagedProposalView,
-    proposalCursor,
-    proposalQueryKey,
-    proposalStatus,
-    proposalType,
-    selectedBusinessDeveloperId,
-    showToast,
-    t,
-  ]);
+  }, [entityStore.affiliateWorkspace, proposalData?.affiliateActionProposalPage]);
 
   function goToPreviousProposalPage(): void {
     setProposalPageStack(retreatAffiliateProposalPageCursorStack(activeProposalPageStack));
   }
 
-  useAffiliateWorkbenchRefresh(useCallback(() => {
-    setWorkbenchEntityRefreshRevision((revision) => revision + 1);
-    if (agentProposalsVisible) void refetchProposals();
-  }, [agentProposalsVisible, refetchProposals]));
+  useAffiliateWorkbenchRefresh(
+    useCallback(() => {
+      setWorkbenchEntityRefreshRevision((revision) => revision + 1);
+      if (agentProposalsVisible) void refetchProposals();
+    }, [agentProposalsVisible, refetchProposals]),
+  );
 
   function goToNextProposalPage(): void {
     if (!hasMoreProposals || !proposalCursor) return;
@@ -1393,19 +1329,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         const proposal = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
         if (!proposal?.id) return;
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
-        setProposalPageBuffer((current) =>
-          current.queryKey !== proposalQueryKey
-            ? current
-            : {
-                ...current,
-                items: applyAffiliateProposalChange(current.items, proposal, {
-                  shopId: undefined,
-                  businessDeveloperId: selectedBusinessDeveloperId || undefined,
-                  status: proposalStatus,
-                  type: proposalType,
-                }),
-              },
-        );
       },
     );
     return unsubscribeProposal;
@@ -1425,9 +1348,11 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   );
   const visibleProposalItems = sortAffiliateProposalsNewestFirst(
     filterActionProposals(
-      proposalItemsFromQuery.filter((proposal) =>
-        (!proposalType || proposal.type === proposalType) &&
-        (!proposalStatus || proposal.status === proposalStatus)),
+      proposalItemsFromQuery.filter(
+        (proposal) =>
+          (!proposalType || proposal.type === proposalType) &&
+          (!proposalStatus || proposal.status === proposalStatus),
+      ),
       attentionSearch,
       shopLabel,
     ),
@@ -1440,12 +1365,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     note?: string,
     sampleReviewOverride?: GQL.ActionProposalSampleReviewOverrideInput,
   ): Promise<boolean> {
-    const decisionFilters = {
-      shopId: undefined,
-      businessDeveloperId: selectedBusinessDeveloperId || undefined,
-      status: proposalStatus,
-      type: proposalType,
-    };
     try {
       const creatorRelationshipId =
         proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId;
@@ -1491,18 +1410,6 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
             revisionHistory: updatedProposal.revisionHistory ?? current.revisionHistory,
           };
         });
-        setProposalPageBuffer((current) =>
-          current.queryKey !== proposalQueryKey
-            ? current
-            : {
-                ...current,
-                items: applyAffiliateProposalChange(
-                  current.items,
-                  updatedProposal,
-                  decisionFilters,
-                ),
-              },
-        );
       }
       showToast(
         updatedProposal.status === GQL.ActionProposalStatus.ExecutionFailed
@@ -1522,19 +1429,24 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       const reconciled = await Promise.allSettled([
         refetchProposals(),
         fetchMoreProposals({
-          variables: { input: {
-            creatorRelationshipId: proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId,
-            createdAtGe: proposal.createdAt,
-            createdAtLt: new Date(Date.parse(proposal.createdAt) + 1).toISOString(),
-            limit: 50,
-          } },
+          variables: {
+            input: {
+              creatorRelationshipId:
+                proposal.creatorRelationshipId ??
+                proposal.sourceWorkBoundary?.creatorRelationshipId,
+              createdAtGe: proposal.createdAt,
+              createdAtLt: new Date(Date.parse(proposal.createdAt) + 1).toISOString(),
+              limit: 50,
+            },
+          },
           updateQuery: (current) => current,
         }),
       ]);
       const currentPage = reconciled[1];
       if (currentPage?.status === "fulfilled") {
-        const current = currentPage.value.data?.affiliateActionProposalPage?.items
-          .find((item) => item.id === proposal.id);
+        const current = currentPage.value.data?.affiliateActionProposalPage?.items.find(
+          (item) => item.id === proposal.id,
+        );
         if (current) entityStore.affiliateWorkspace.upsertAffiliateActionProposal(current);
       }
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
@@ -1543,25 +1455,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   }
 
   async function refetchActive() {
-    const requestQueryKey = proposalQueryKey;
-    try {
-      const result = await refetchProposals({
-        input: {
-          shopId: null,
-          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-          status: proposalStatus,
-          type: proposalType,
-          limit: proposalPageRequest.limit,
-          cursor: proposalPageRequest.cursor,
-        },
-      });
-      const page = result.data?.affiliateActionProposalPage as
-        | AffiliateActionProposalPageData["affiliateActionProposalPage"]
-        | undefined;
-      if (page) replaceProposalPage(requestQueryKey, page);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
-    }
+    await refetchProposals();
   }
 
   function shopLabel(shopId: string): ShopDisplayLabel {
@@ -1651,7 +1545,9 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
                 label={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
                 options={businessDeveloperOptions}
                 searchable
-                searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
+                searchPlaceholder={t(
+                  "ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder",
+                )}
                 value={selectedBusinessDeveloperId}
                 onChange={setSelectedBusinessDeveloperId}
                 className="affiliate-status-select"
@@ -6964,23 +6860,6 @@ export function sortAffiliateCreatorMessagesOldestFirst(
   );
 }
 
-function mergeAffiliateRelationshipTimelinePayload(
-  previous: { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
-  next: { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
-): { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload } {
-  return {
-    affiliateRelationshipTimeline: {
-      ...next.affiliateRelationshipTimeline,
-      items: mergeById([
-        ...previous.affiliateRelationshipTimeline.items,
-        ...next.affiliateRelationshipTimeline.items,
-      ]).sort(
-        (left, right) => new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
-      ),
-    },
-  };
-}
-
 function AffiliateCreatorMessageRow({
   message,
   creatorRelationshipId,
@@ -7892,9 +7771,12 @@ export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetai
       affiliateWorkspace.upsertAffiliateActionProposal?.(current);
     }
   }, [affiliateWorkspace, reviewProposalHistoryData?.affiliateActionProposalPage]);
-  useAffiliateWorkbenchRefresh(useCallback(() => {
-    void refetchReviewProposals();
-  }, [refetchReviewProposals]), relationshipId);
+  useAffiliateWorkbenchRefresh(
+    useCallback(() => {
+      void refetchReviewProposals();
+    }, [refetchReviewProposals]),
+    relationshipId,
+  );
 
   useEffect(() => {
     if (covered) return;
@@ -9802,12 +9684,19 @@ export function SampleApplicationSummaryCard({
       <div className="affiliate-collaboration-sample-grid">
         <SampleApplicationFact
           label={t("ecommerce.affiliateWorkspace.sampleApplication.orderId")}
-          value={sampleOrderId
-            ? <CopyInlineValue value={sampleOrderId} displayValue={sampleOrderId}
+          value={
+            sampleOrderId ? (
+              <CopyInlineValue
+                value={sampleOrderId}
+                displayValue={sampleOrderId}
                 className="affiliate-id-copy-button affiliate-platform-id-copy"
                 copiedMessageKey="ecommerce.affiliateWorkspace.platformIdCopied"
-                copyLabelKey="ecommerce.affiliateWorkspace.sampleApplication.copyOrderId" />
-            : t("ecommerce.affiliateWorkspace.sampleApplication.noOrderYet")}
+                copyLabelKey="ecommerce.affiliateWorkspace.sampleApplication.copyOrderId"
+              />
+            ) : (
+              t("ecommerce.affiliateWorkspace.sampleApplication.noOrderYet")
+            )
+          }
         />
         <SampleApplicationFact
           label={t("ecommerce.affiliateWorkspace.sampleApplication.contentProgress")}
@@ -10000,13 +9889,7 @@ function RelationshipAgendaCard({
   );
 }
 
-function SampleApplicationFact({
-  label,
-  value,
-}: {
-  label: string;
-  value?: ReactNode;
-}) {
+function SampleApplicationFact({ label, value }: { label: string; value?: ReactNode }) {
   return (
     <div className="affiliate-entity-fact">
       <span>{label}</span>
@@ -10294,7 +10177,13 @@ function CreatorAvatarImage({
   );
 }
 
-function CreatorContactPanel({ relationshipId, canEdit }: { relationshipId: string; canEdit: boolean }) {
+function CreatorContactPanel({
+  relationshipId,
+  canEdit,
+}: {
+  relationshipId: string;
+  canEdit: boolean;
+}) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { data, loading, error, refetch } = useQuery<
@@ -10529,7 +10418,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     messageHistoryMountedRef.current = true;
     return () => { messageHistoryMountedRef.current = false; };
   }, []);
-  const [messageHistorySync, setMessageHistorySync] = useState<"refreshing" | "failed" | null>(null);
+  const [messageHistorySync, setMessageHistorySync] = useState<"refreshing" | "failed" | null>(
+    null,
+  );
   const [messageSendError, setMessageSendError] = useState<string | null>(null);
   const [markingConversationHandled, setMarkingConversationHandled] = useState(false);
   const [pendingReplyToLifecycleEventId, setPendingReplyToLifecycleEventId] =
@@ -10552,6 +10443,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const conversationOlderRequestsRef = useRef(new Set<string>());
   const activityBottomRef = useRef<HTMLDivElement | null>(null);
   const activityLoadedOlderRef = useRef(false);
+  const activityInitialScopeRef = useRef<string | null>(null);
   const fallbackProfile = item?.creatorProfile ?? null;
   const management = item?.managementItem ?? null;
   const relationshipId =
@@ -10718,9 +10610,10 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     .filter((developer) => !developer.archivedAt)
     .map((developer) => ({ value: developer.id, label: developer.displayName }));
   const relationshipOwner = relationshipOwnerId
-    ? affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId) ??
+    ? (affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId) ??
       (relationshipDetail?.businessDeveloper?.id === relationshipOwnerId
-        ? relationshipDetail.businessDeveloper : null)
+        ? relationshipDetail.businessDeveloper
+        : null))
     : null;
   const effectiveAiLabel = relationshipProtection
     ? t("ecommerce.affiliateWorkspace.relationshipProtected")
@@ -10829,49 +10722,48 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     { reopenSoftRejectedAffiliateSampleApplication: GQL.AffiliateWorkbenchSampleRow },
     { input: GQL.ReopenSoftRejectedAffiliateSampleApplicationInput }
   >(REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION);
-  const sampleQuery = useQuery<
-    { affiliateRelationshipSampleApplications: GQL.AffiliateRelationshipSampleApplicationPage },
-    { input: GQL.AffiliateRelationshipEntityPageInput }
+  const detailEntityInput: GQL.AffiliateRelationshipEntityPageInput = {
+    creatorRelationshipId: relationshipId ?? "",
+    shopId: scopeShopId || null,
+    limit: 25,
+  };
+  const sampleQuery = useAffiliateLoadedQuery<
+    GQL.SampleApplicationRecord,
+    GQL.AffiliateRelationshipSampleApplicationPage,
+    GQL.AffiliateRelationshipEntityPageInput,
+    "affiliateRelationshipSampleApplications"
   >(AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY, {
-    variables: {
-      input: {
-        creatorRelationshipId: relationshipId ?? "",
-        shopId: scopeShopId || null,
-        limit: 25,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !samplesVisible,
+    field: "affiliateRelationshipSampleApplications",
+    input: detailEntityInput,
+    queryKey: `${scopeKey}:samples`,
+    enabled: Boolean(relationshipId) && samplesVisible,
+    rowKey: (sample: GQL.SampleApplicationRecord) => sample.id,
+    mergePages: mergeSampleDetailPages,
   });
-  const platformQuery = useQuery<
-    {
-      affiliateRelationshipPlatformCollaborations: GQL.AffiliateRelationshipPlatformCollaborationPage;
-    },
-    { input: GQL.AffiliateRelationshipEntityPageInput }
+  const platformQuery = useAffiliateLoadedQuery<
+    GQL.AffiliateRelationshipPlatformCollaborationItem,
+    GQL.AffiliateRelationshipPlatformCollaborationPage,
+    GQL.AffiliateRelationshipEntityPageInput,
+    "affiliateRelationshipPlatformCollaborations"
   >(AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY, {
-    variables: {
-      input: {
-        creatorRelationshipId: relationshipId ?? "",
-        shopId: scopeShopId || null,
-        limit: 25,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !platformVisible,
+    field: "affiliateRelationshipPlatformCollaborations",
+    input: detailEntityInput,
+    queryKey: `${scopeKey}:platform`,
+    enabled: Boolean(relationshipId) && platformVisible,
+    rowKey: (entry: GQL.AffiliateRelationshipPlatformCollaborationItem) => entry.collaboration.id,
+    mergePages: mergePlatformDetailPages,
   });
-  const proposalQuery = useQuery<
-    { affiliateActionProposalPage: GQL.AffiliateActionProposalPage },
-    { input: GQL.ReadActionProposalsInput }
+  const proposalQuery = useAffiliateLoadedQuery<
+    GQL.ActionProposal,
+    GQL.AffiliateActionProposalPage,
+    GQL.AffiliateRelationshipEntityPageInput,
+    "affiliateActionProposalPage"
   >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
-    variables: {
-      input: {
-        creatorRelationshipId: relationshipId ?? "",
-        shopId: scopeShopId || null,
-        limit: 25,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !proposalsVisible,
+    field: "affiliateActionProposalPage",
+    input: detailEntityInput,
+    queryKey: `${scopeKey}:proposals`,
+    enabled: Boolean(relationshipId) && proposalsVisible,
+    rowKey: (proposal: GQL.ActionProposal) => proposal.id,
   });
   const [decideRelationshipActionProposal] = useMutation<
     { decideActionProposal: GQL.ActionProposal },
@@ -10885,12 +10777,16 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       affiliateWorkspace.upsertAffiliateActionProposal?.(current);
     }
   }, [affiliateWorkspace, proposalPage]);
-  useEffect(() => panelEventBus.subscribe("affiliate-action-proposal-changed", (payload) => {
-    const current = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
-    if (current?.creatorRelationshipId === relationshipId) {
-      affiliateWorkspace.upsertAffiliateActionProposal?.(current);
-    }
-  }), [affiliateWorkspace, relationshipId]);
+  useEffect(
+    () =>
+      panelEventBus.subscribe("affiliate-action-proposal-changed", (payload) => {
+        const current = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
+        if (current?.creatorRelationshipId === relationshipId) {
+          affiliateWorkspace.upsertAffiliateActionProposal?.(current);
+        }
+      }),
+    [affiliateWorkspace, relationshipId],
+  );
   const relationshipSampleApplications = sortAffiliateSamplesPendingFirst(
     mergeById([
       ...(item?.workItems ?? []).flatMap((workItem) => [
@@ -10912,14 +10808,19 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const relationshipProposals = mergeById([
     // Row snapshots seed only the first render, never resurrect a proposal
     // omitted by a completed authoritative detail query.
-    ...(proposalPage ? [] : item?.workItems ?? []).flatMap((workItem) => [
+    ...(proposalPage ? [] : (item?.workItems ?? [])).flatMap((workItem) => [
       ...workItem.pendingProposals,
       ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
     ]),
     ...(proposalPage?.items ?? []),
-  ]).map((proposal) => hydrateAffiliateProposalProjection(
-    proposalProjectionSnapshot(affiliateWorkspace, proposal.id) ?? { proposal }, proposal,
-  )).filter((proposal) => matchesCreatorProposalShop(proposal, scopeShopId));
+  ])
+    .map((proposal) =>
+      hydrateAffiliateProposalProjection(
+        proposalProjectionSnapshot(affiliateWorkspace, proposal.id) ?? { proposal },
+        proposal,
+      ),
+    )
+    .filter((proposal) => matchesCreatorProposalShop(proposal, scopeShopId));
   const visiblePendingProposals = relationshipProposals.filter(
     (proposal) =>
       proposal.status === GQL.ActionProposalStatus.Pending,
@@ -11099,7 +11000,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       if (delivery.status === GQL.AffiliateDeliveryStatus.Failed) {
         // Only explicit platform non-acceptance permits a new attempt. A generic
         // FAILED can also represent a provider transport timeout after acceptance.
-        if (["TikTokApiError", "TikTokShopRateLimitAcquireTimeoutError"].includes(delivery.errorCode ?? "")) {
+        if (
+          ["TikTokApiError", "TikTokShopRateLimitAcquireTimeoutError"].includes(
+            delivery.errorCode ?? "",
+          )
+        ) {
           messageSendAttemptRef.current = null;
         }
         throw new Error(delivery.errorMessage || `Delivery ${delivery.status}`);
@@ -11240,26 +11145,30 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     setSampleRejectExplanation("");
     setSampleReviewNote("");
   }
+  const activityQuery = useAffiliateLoadedQuery<
+    GQL.AffiliateRelationshipTimelineItem,
+    GQL.AffiliateRelationshipTimelinePayload,
+    GQL.AffiliateRelationshipTimelineInput,
+    "affiliateRelationshipTimeline"
+  >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
+    field: "affiliateRelationshipTimeline",
+    input: {
+      creatorRelationshipId: relationshipId ?? "",
+      shopIds: scopeShopId ? [scopeShopId] : undefined,
+      limit: AFFILIATE_TIMELINE_PAGE_SIZE,
+    } as GQL.AffiliateRelationshipTimelineInput,
+    queryKey: `${scopeKey}:activity`,
+    enabled: Boolean(relationshipId) && timelineVisible,
+    rowKey: (entry: GQL.AffiliateRelationshipTimelineItem) => entry.id,
+    pageInfo: affiliateTimelinePageInfo,
+    mergePages: mergeCreatorScopeTimeline,
+  });
   const {
     data: relationshipTimelineData,
     loading: relationshipTimelineLoading,
     error: relationshipTimelineError,
-    fetchMore: fetchMoreRelationshipTimeline,
     refetch: refetchRelationshipTimeline,
-  } = useQuery<
-    { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
-    { input: GQL.AffiliateRelationshipTimelineInput }
-  >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
-    variables: {
-      input: {
-        creatorRelationshipId: relationshipId ?? "",
-        shopIds: scopeShopId ? [scopeShopId] : undefined,
-        limit: AFFILIATE_TIMELINE_PAGE_SIZE,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !timelineVisible,
-  });
+  } = activityQuery;
 
   async function decideRelationshipProposal(
     proposal: GQL.ActionProposal,
@@ -11345,19 +11254,34 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     fetchPolicy: "cache-and-network",
     skip: !relationshipId || !globalManagementTimelineVisible,
   });
-  useAffiliateWorkbenchRefresh(useCallback(() => {
-    void refetchRelationshipDetail();
-    void refetchConversationMessages();
-    if (profileVisible) void refetchCreatorProfile();
-    if (samplesVisible) void sampleQuery.refetch();
-    if (platformVisible) void platformQuery.refetch();
-    if (proposalsVisible) void proposalQuery.refetch();
-    if (timelineVisible) void refetchRelationshipTimeline();
-    if (globalManagementTimelineVisible) void refetchGlobalManagementTimeline();
-  }, [refetchRelationshipDetail, refetchConversationMessages, profileVisible, refetchCreatorProfile,
-    samplesVisible, sampleQuery.refetch, platformVisible, platformQuery.refetch,
-    proposalsVisible, proposalQuery.refetch, timelineVisible, refetchRelationshipTimeline,
-    globalManagementTimelineVisible, refetchGlobalManagementTimeline]), relationshipId);
+  useAffiliateWorkbenchRefresh(
+    useCallback(() => {
+      void refetchRelationshipDetail();
+      void refetchConversationMessages();
+      if (profileVisible) void refetchCreatorProfile();
+      if (samplesVisible) void sampleQuery.refetch();
+      if (platformVisible) void platformQuery.refetch();
+      if (proposalsVisible) void proposalQuery.refetch();
+      if (timelineVisible) void refetchRelationshipTimeline();
+      if (globalManagementTimelineVisible) void refetchGlobalManagementTimeline();
+    }, [
+      refetchRelationshipDetail,
+      refetchConversationMessages,
+      profileVisible,
+      refetchCreatorProfile,
+      samplesVisible,
+      sampleQuery.refetch,
+      platformVisible,
+      platformQuery.refetch,
+      proposalsVisible,
+      proposalQuery.refetch,
+      timelineVisible,
+      refetchRelationshipTimeline,
+      globalManagementTimelineVisible,
+      refetchGlobalManagementTimeline,
+    ]),
+    relationshipId,
+  );
   const managementTimelineItems = scopeShopId
     ? (globalManagementTimelineData?.affiliateRelationshipTimeline.items ?? [])
     : (relationshipTimeline?.items ?? []);
@@ -11377,6 +11301,8 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       activityLoadedOlderRef.current = false;
       return;
     }
+    if (activityInitialScopeRef.current === scopeKey || activityEntries.length === 0) return;
+    activityInitialScopeRef.current = scopeKey;
     window.requestAnimationFrame(() => {
       activityBottomRef.current?.scrollIntoView({ block: "end" });
     });
@@ -11452,118 +11378,18 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   function loadOlderActivity(): void {
-    if (!relationshipTimeline?.hasOlder || !relationshipTimeline.olderCursor || !relationshipId)
-      return;
+    if (!canLoadOlderActivity || activityQuery.loading) return;
     activityLoadedOlderRef.current = true;
-    void fetchMoreRelationshipTimeline({
-      variables: {
-        input: {
-          creatorRelationshipId: relationshipId,
-          shopIds: scopeShopId ? [scopeShopId] : undefined,
-          limit: AFFILIATE_TIMELINE_PAGE_SIZE,
-          cursor: relationshipTimeline.olderCursor,
-        },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => {
-        if (!fetchMoreResult) return previous;
-        return mergeAffiliateRelationshipTimelinePayload(previous, fetchMoreResult);
-      },
-    });
+    void activityQuery.loadMore();
   }
-
   function loadMoreSamples(): void {
-    if (!samplePage?.hasMore || !samplePage.nextCursor || !relationshipId) return;
-    void sampleQuery.fetchMore({
-      variables: {
-        input: {
-          creatorRelationshipId: relationshipId,
-          shopId: scopeShopId || null,
-          limit: 25,
-          cursor: samplePage.nextCursor,
-        },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => {
-        if (!fetchMoreResult) return previous;
-        return {
-          affiliateRelationshipSampleApplications: {
-            ...fetchMoreResult.affiliateRelationshipSampleApplications,
-            items: mergeById([
-              ...previous.affiliateRelationshipSampleApplications.items,
-              ...fetchMoreResult.affiliateRelationshipSampleApplications.items,
-            ]),
-            productSummaries: mergeById(
-              [
-                ...previous.affiliateRelationshipSampleApplications.productSummaries,
-                ...fetchMoreResult.affiliateRelationshipSampleApplications.productSummaries,
-              ],
-              (entry) => `${entry.shopId}:${entry.product.productId}`,
-            ),
-          },
-        };
-      },
-    });
+    void sampleQuery.loadMore();
   }
-
   function loadMorePlatformCollaborations(): void {
-    if (!platformPage?.hasMore || !platformPage.nextCursor || !relationshipId) return;
-    void platformQuery.fetchMore({
-      variables: {
-        input: {
-          creatorRelationshipId: relationshipId,
-          shopId: scopeShopId || null,
-          limit: 25,
-          cursor: platformPage.nextCursor,
-        },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => {
-        if (!fetchMoreResult) return previous;
-        return {
-          affiliateRelationshipPlatformCollaborations: {
-            ...fetchMoreResult.affiliateRelationshipPlatformCollaborations,
-            items: mergeById(
-              [
-                ...previous.affiliateRelationshipPlatformCollaborations.items,
-                ...fetchMoreResult.affiliateRelationshipPlatformCollaborations.items,
-              ],
-              (entry) => entry.collaboration.id,
-            ),
-            productSummaries: mergeById(
-              [
-                ...previous.affiliateRelationshipPlatformCollaborations.productSummaries,
-                ...fetchMoreResult.affiliateRelationshipPlatformCollaborations.productSummaries,
-              ],
-              (entry) => `${entry.shopId}:${entry.product.productId}`,
-            ),
-          },
-        };
-      },
-    });
+    void platformQuery.loadMore();
   }
-
   function loadMoreProposals(): void {
-    if (!proposalPage?.hasMore || !proposalPage.nextCursor || !relationshipId) return;
-    void proposalQuery.fetchMore({
-      variables: {
-        input: {
-          creatorRelationshipId: relationshipId,
-          shopId: scopeShopId || null,
-          limit: 25,
-          cursor: proposalPage.nextCursor,
-        },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => {
-        if (!fetchMoreResult) return previous;
-        return {
-          affiliateActionProposalPage: {
-            ...fetchMoreResult.affiliateActionProposalPage,
-            items: mergeById([
-              ...previous.affiliateActionProposalPage.items,
-              ...fetchMoreResult.affiliateActionProposalPage.items,
-            ]),
-          },
-        };
-      },
-    });
+    void proposalQuery.loadMore();
   }
 
   function updateRelationshipOwner(nextOwnerId: string): void {
@@ -12361,9 +12187,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     </section>
                   ) : null}
                   {proposalPage?.hasMore ? (
-                    <button className="btn btn-secondary" type="button" onClick={loadMoreProposals}>
-                      {t("common.loadMore", { defaultValue: "Load more" })}
-                    </button>
+                    <TkButton
+                      variant="secondary"
+                      disabled={proposalQuery.loading}
+                      onClick={loadMoreProposals}
+                    >
+                      {proposalQuery.loading
+                        ? t("common.loading")
+                        : t("ecommerce.affiliateWorkspace.workbench.loadMore")}
+                    </TkButton>
                   ) : null}
                 </div>
               ) : null}
@@ -12470,9 +12302,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     </div>
                   ) : null}
                   {samplePage?.hasMore ? (
-                    <button className="btn btn-secondary" type="button" onClick={loadMoreSamples}>
-                      {t("common.loadMore", { defaultValue: "Load more" })}
-                    </button>
+                    <TkButton
+                      variant="secondary"
+                      disabled={sampleQuery.loading}
+                      onClick={loadMoreSamples}
+                    >
+                      {sampleQuery.loading
+                        ? t("common.loading")
+                        : t("ecommerce.affiliateWorkspace.workbench.loadMore")}
+                    </TkButton>
                   ) : null}
                 </div>
               ) : null}
@@ -12507,13 +12345,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     </div>
                   ) : null}
                   {platformPage?.hasMore ? (
-                    <button
-                      className="btn btn-secondary"
-                      type="button"
+                    <TkButton
+                      variant="secondary"
+                      disabled={platformQuery.loading}
                       onClick={loadMorePlatformCollaborations}
                     >
-                      {t("common.loadMore", { defaultValue: "Load more" })}
-                    </button>
+                      {platformQuery.loading
+                        ? t("common.loading")
+                        : t("ecommerce.affiliateWorkspace.workbench.loadMore")}
+                    </TkButton>
                   ) : null}
                 </div>
               ) : null}
@@ -12639,7 +12479,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             value: contact.id,
                             label: `${contact.channel === GQL.AffiliateMessageChannel.Whatsapp ? "WhatsApp" : "Email"} · ${contact.accountLabel ?? contact.effectiveAlias ?? "—"}`,
                           }))}
-                          placeholder={t("ecommerce.affiliateWorkspace.messageComposerExistingContact")}
+                          placeholder={t(
+                            "ecommerce.affiliateWorkspace.messageComposerExistingContact",
+                          )}
                         />
                       ) : null}
                       {composerChannel === GQL.AffiliateMessageChannel.Email ? (
@@ -12656,12 +12498,20 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     {messageHistorySync ? (
                       <TkAlert
                         tone={messageHistorySync === "failed" ? "warning" : "info"}
-                        title={t(`ecommerce.affiliateWorkspace.messageSendError.${messageHistorySync === "failed" ? "historyFailed" : "historyRefreshing"}`)}
-                        actions={messageHistorySync === "failed" ? (
-                          <TkButton size="sm" variant="secondary" onClick={refreshSentMessageHistory}>
-                            {t("common.refresh")}
-                          </TkButton>
-                        ) : undefined}
+                        title={t(
+                          `ecommerce.affiliateWorkspace.messageSendError.${messageHistorySync === "failed" ? "historyFailed" : "historyRefreshing"}`,
+                        )}
+                        actions={
+                          messageHistorySync === "failed" ? (
+                            <TkButton
+                              size="sm"
+                              variant="secondary"
+                              onClick={refreshSentMessageHistory}
+                            >
+                              {t("common.refresh")}
+                            </TkButton>
+                          ) : undefined
+                        }
                       >
                         {t("ecommerce.affiliateWorkspace.messageSendError.doNotResend")}
                       </TkAlert>
@@ -12816,11 +12666,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                   ) : null}
                   {relationshipTimelineLoading && activityEntries.length === 0 ? (
                     <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-                  ) : relationshipTimelineError ? null : activityEntries.length > 0 ? (
+                  ) : activityEntries.length > 0 ? (
                     activityEntries.map((entry) => (
                       <RelationshipTimelineEntry key={entry.id} entry={entry} />
                     ))
-                  ) : (
+                  ) : relationshipTimelineError ? null : (
                     <div className="affiliate-proposal-empty">
                       {t("ecommerce.affiliateWorkspace.noActivityYet")}
                     </div>

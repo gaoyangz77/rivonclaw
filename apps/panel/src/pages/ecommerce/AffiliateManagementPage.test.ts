@@ -153,19 +153,6 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(thirdPage.nextCursor).toBe("cursor-after-60");
   });
 
-  it("does not reset the pending cursor when fetch-more loading state changes", () => {
-    const source = readFileSync(
-      resolve(import.meta.dirname, "AffiliateManagementPage.tsx"),
-      "utf8",
-    );
-    const basePageEffect = source.match(
-      /useEffect\(\(\) => \{\n    const page = proposalData\?\.affiliateActionProposalPage[\s\S]*?\n  \}, \[[^\]]*\]\);/,
-    )?.[0];
-
-    expect(basePageEffect).toBeDefined();
-    expect(basePageEffect).not.toContain("proposalsLoading");
-  });
-
   it("places Creator and operator activity on opposite timeline lanes", () => {
     const timelineItem = (
       overrides: Partial<GQL.AffiliateRelationshipTimelineItem>,
@@ -1661,13 +1648,15 @@ describe("Affiliate canonical UI contract", () => {
     );
     const mutationIndex = decideProposal.indexOf("await decideActionProposal");
 
-    expect(decideProposal.indexOf("setProposalPageBuffer")).toBeGreaterThan(mutationIndex);
+    expect(
+      decideProposal.indexOf("entityStore.affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal)"),
+    ).toBeGreaterThan(mutationIndex);
     expect(decideProposal).not.toContain("optimisticApplied");
     expect(decideProposal).not.toContain("items: applyAffiliateProposalChange(current.items, proposal, decisionFilters)");
     expect(decideProposal).toContain("affiliateProposalDecisionApplied(status, updatedProposal.status)");
     expect(decideProposal).toContain("const reconciled = await Promise.allSettled");
     expect(decideProposal).toContain("createdAtGe: proposal.createdAt");
-    expect(decideProposal).toContain(".find((item) => item.id === proposal.id)");
+    expect(decideProposal).toMatch(/\.find\(\s*\(item\) => item.id === proposal.id/);
     expect(decideProposal).toContain("return false");
   });
 
