@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { useTranslation } from "react-i18next";
@@ -46,6 +46,7 @@ import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
 import { AffiliateSampleOrderCopyButton } from "./AffiliateSampleOrderCopyButton.js";
 import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
+import { useWorkbenchPagination } from "../useWorkbenchPagination.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
 import {
@@ -115,52 +116,8 @@ interface Props {
   onOpen: (target: AffiliateWorkbenchEntityOpenTarget) => void;
 }
 
-/**
- * Rows accumulated for ONE exact filter set.
- *
- * The buffer carries the filter key it was fetched for so a filter change never
- * needs a reset effect: a buffer whose key no longer matches the active filters
- * is simply not used for render. Clearing rows from an effect instead raced the
- * ingest effect on mount (Apollo can serve the cache synchronously, and the
- * reset then wiped those rows while `page` kept its identity, so the ingest
- * effect never re-ran and the list stayed permanently empty).
- * Mirrors `affiliateProposalPageQueryKey` / `proposalPageBuffer` in
- * `AffiliateManagementPage.tsx`.
- */
-interface WorkbenchPageBuffer<Row> {
-  filterKey: string;
-  /** `true` once a request for `filterKey` completed and wrote this buffer. */
-  loaded: boolean;
-  items: Row[];
-  nextCursor: string | null;
-  hasMore: boolean;
-}
-
-interface WorkbenchPageResult<Row> {
-  items: Row[];
-  nextCursor?: string | null;
-  hasMore: boolean;
-}
-
 function workbenchFilterKey(parts: Array<string | null | undefined>): string {
   return JSON.stringify(parts.map((part) => part ?? ""));
-}
-
-function emptyWorkbenchPageBuffer<Row>(filterKey: string): WorkbenchPageBuffer<Row> {
-  return { filterKey, loaded: false, items: [], nextCursor: null, hasMore: false };
-}
-
-function replaceWorkbenchPageBuffer<Row>(
-  filterKey: string,
-  page: WorkbenchPageResult<Row>,
-): WorkbenchPageBuffer<Row> {
-  return {
-    filterKey,
-    loaded: true,
-    items: page.items,
-    nextCursor: page.nextCursor ?? null,
-    hasMore: page.hasMore,
-  };
 }
 
 interface SamplePageData {
@@ -269,14 +226,62 @@ function AffiliateWorkbenchSampleList({
     shopScope,
     selectedBusinessDeveloperId,
   ]);
-  const [buffer, setBuffer] = useState<WorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>>(() =>
-    emptyWorkbenchPageBuffer(filterKey),
+  const [reopeningRowId, setReopeningRowId] = useState<string | null>(null);
+  const sampleFilterInput: GQL.AffiliateWorkbenchSamplePageInput = {
+    ...shopFilter,
+    ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
+    protected: workbenchProtectionValue(protection),
+    statusFilter,
+    sortOrder,
+    ...(creatorSearch ? { creatorSearch } : {}),
+    ...(productKnowledgeId ? { productKnowledgeId } : {}),
+    ...(products.length ? { products } : {}),
+    ...timeArgs,
+    limit: PAGE_SIZE,
+  };
+  const {
+    data,
+    loading: queryLoading,
+    error,
+    fetchMore,
+  } = useQuery<SamplePageData, { input: GQL.AffiliateWorkbenchSamplePageInput }>(
+    AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+    {
+      variables: { input: { ...sampleFilterInput, cursor: null } },
+      fetchPolicy: "cache-and-network",
+      notifyOnNetworkStatusChange: true,
+    },
   );
-  const activeBuffer =
-    buffer.filterKey === filterKey
-      ? buffer
-      : emptyWorkbenchPageBuffer<GQL.AffiliateWorkbenchSampleRow>(filterKey);
-  const items = activeBuffer.items;
+  const [reopenSampleApplication] = useMutation<
+    { reopenSoftRejectedAffiliateSampleApplication: GQL.AffiliateWorkbenchSampleRow },
+    { input: GQL.ReopenSoftRejectedAffiliateSampleApplicationInput }
+  >(REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION);
+  const pagination = useWorkbenchPagination<
+    GQL.AffiliateWorkbenchSampleRow,
+    GQL.AffiliateWorkbenchSamplePage
+  >({
+    filterKey,
+    firstPage: data?.affiliateWorkbenchSamplePage,
+    refreshRevision,
+    fetchPage: async (cursor) => {
+      const result = await fetchMore({
+        variables: { input: { ...sampleFilterInput, cursor } },
+        updateQuery: (current) => current,
+      });
+      return result.data?.affiliateWorkbenchSamplePage;
+    },
+    onError: (loadError) => {
+      if (workbenchGraphqlCode(loadError) === "SAMPLE_FILTER_CURSOR_STALE") {
+        showToast(t("ecommerce.affiliateWorkspace.workbench.merchantPidCursorReset"), "warning");
+        return "refresh";
+      }
+      showToast(loadError instanceof Error ? loadError.message : String(loadError), "error");
+    },
+  });
+  const { items, firstPage: page, hasMore, loadMore, refresh: refetch } = pagination;
+  const loading = queryLoading || pagination.loading;
+  const ignoredView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.Ignored;
+  const pendingReviewView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview;
   const productRefs = useMemo(
     () => [
       ...new Map(
@@ -312,83 +317,6 @@ function AffiliateWorkbenchSampleList({
       entry.product,
     ]),
   );
-  const nextCursor = activeBuffer.nextCursor;
-  const hasMore = activeBuffer.hasMore;
-  const [reopeningRowId, setReopeningRowId] = useState<string | null>(null);
-  const sampleFilterInput: GQL.AffiliateWorkbenchSamplePageInput = {
-    ...shopFilter,
-    ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-    protected: workbenchProtectionValue(protection),
-    statusFilter,
-    sortOrder,
-    ...(creatorSearch ? { creatorSearch } : {}),
-    ...(productKnowledgeId ? { productKnowledgeId } : {}),
-    ...(products.length ? { products } : {}),
-    ...timeArgs,
-    limit: PAGE_SIZE,
-  };
-  const { data, loading, error, fetchMore, refetch } = useQuery<
-    SamplePageData,
-    { input: GQL.AffiliateWorkbenchSamplePageInput }
-  >(AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, {
-    variables: { input: { ...sampleFilterInput, cursor: null } },
-    fetchPolicy: "cache-and-network",
-    notifyOnNetworkStatusChange: true,
-  });
-  const [reopenSampleApplication] = useMutation<
-    { reopenSoftRejectedAffiliateSampleApplication: GQL.AffiliateWorkbenchSampleRow },
-    { input: GQL.ReopenSoftRejectedAffiliateSampleApplicationInput }
-  >(REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION);
-  const page = data?.affiliateWorkbenchSamplePage;
-  const ignoredView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.Ignored;
-  const pendingReviewView = statusFilter === GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview;
-
-  useEffect(() => {
-    if (!page) return;
-    setBuffer(replaceWorkbenchPageBuffer(filterKey, page));
-  }, [filterKey, page]);
-
-  useEffect(() => {
-    if (refreshRevision > 0) void refetch();
-  }, [refetch, refreshRevision]);
-
-  const loadMore = useCallback(async () => {
-    if (!hasMore || !nextCursor) return;
-    const requestFilterKey = filterKey;
-    let result;
-    try {
-      result = await fetchMore({
-        variables: { input: { ...sampleFilterInput, cursor: nextCursor } },
-        updateQuery: (current) => current,
-      });
-    } catch (loadError) {
-      const graphQLError = loadError as {
-        graphQLErrors?: Array<{ extensions?: { code?: string } }>;
-        errors?: Array<{ extensions?: { code?: string } }>;
-      };
-      const codes = [...(graphQLError.graphQLErrors ?? []), ...(graphQLError.errors ?? [])];
-      if (codes.some((entry) => entry.extensions?.code === "SAMPLE_FILTER_CURSOR_STALE")) {
-        setBuffer(emptyWorkbenchPageBuffer(filterKey));
-        await refetch({ input: { ...sampleFilterInput, cursor: null } });
-        showToast(t("ecommerce.affiliateWorkspace.workbench.merchantPidCursorReset"), "warning");
-        return;
-      }
-      showToast(loadError instanceof Error ? loadError.message : String(loadError), "error");
-      return;
-    }
-    const next = result.data?.affiliateWorkbenchSamplePage;
-    if (!next) return;
-    setBuffer((current) => {
-      if (current.filterKey !== requestFilterKey) return current;
-      return {
-        filterKey: requestFilterKey,
-        loaded: true,
-        items: appendUniqueRows(current.items, next.items),
-        nextCursor: next.nextCursor ?? null,
-        hasMore: next.hasMore,
-      };
-    });
-  }, [fetchMore, filterKey, hasMore, nextCursor, refetch, sampleFilterInput, showToast, t]);
 
   async function reopenRow(row: GQL.AffiliateWorkbenchSampleRow): Promise<void> {
     setReopeningRowId(row.id);
@@ -428,7 +356,7 @@ function AffiliateWorkbenchSampleList({
           loading,
           hasError: Boolean(error),
           rowCount: items.length,
-          completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
+          completedRowCount: pagination.loaded ? items.length : null,
         });
   const tableVariant = ignoredView
     ? "affiliate-workbench-table-samples-rejected"
@@ -817,7 +745,7 @@ function AffiliateWorkbenchSampleList({
           disabled={loading}
           onClick={() => void loadMore()}
         >
-          {loading ? t("common.loading") : t("ecommerce.affiliateWorkspace.loadMoreProposals")}
+          {loading ? t("common.loading") : t("ecommerce.affiliateWorkspace.workbench.loadMore")}
         </button>
       ) : null}
     </section>
@@ -865,6 +793,7 @@ function AffiliateWorkbenchMessageList({
   | "onOpen"
 > & { scope: MessageShopScope; onSelectScope: (scope: MessageShopScope) => void }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [statusFilter, setStatusFilter] = useState<GQL.AffiliateWorkbenchConversationStatusFilter>(
     GQL.AffiliateWorkbenchConversationStatusFilter.Pending,
   );
@@ -904,47 +833,65 @@ function AffiliateWorkbenchMessageList({
     queryShopScope,
     selectedBusinessDeveloperId,
   ]);
-  const [buffer, setBuffer] = useState<
-    WorkbenchPageBuffer<GQL.AffiliateWorkbenchPendingConversationRow>
-  >(() => emptyWorkbenchPageBuffer(filterKey));
-  const activeBuffer =
-    buffer.filterKey === filterKey
-      ? buffer
-      : emptyWorkbenchPageBuffer<GQL.AffiliateWorkbenchPendingConversationRow>(filterKey);
-  const items = activeBuffer.items;
-  const nextCursor = activeBuffer.nextCursor;
-  const hasMore = activeBuffer.hasMore;
-  const { data, loading, error, fetchMore, refetch } = useQuery<
-    ConversationPageData,
-    { input: GQL.AffiliateWorkbenchPendingConversationPageInput }
-  >(AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY, {
-    variables: {
-      input: {
-        ...statusArgs,
-        channel: channel || null,
-        ...(creatorSearch ? { creatorSearch } : {}),
-        ...shopFilter,
-        ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-        protected: workbenchProtectionValue(protection),
-        sortOrder,
-        ...timeArgs,
-        limit: PAGE_SIZE,
-        cursor: null,
+  const {
+    data,
+    loading: queryLoading,
+    error,
+    fetchMore,
+  } = useQuery<ConversationPageData, { input: GQL.AffiliateWorkbenchPendingConversationPageInput }>(
+    AFFILIATE_WORKBENCH_PENDING_CONVERSATION_PAGE_QUERY,
+    {
+      variables: {
+        input: {
+          ...statusArgs,
+          channel: channel || null,
+          ...(creatorSearch ? { creatorSearch } : {}),
+          ...shopFilter,
+          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
+          protected: workbenchProtectionValue(protection),
+          sortOrder,
+          ...timeArgs,
+          limit: PAGE_SIZE,
+          cursor: null,
+        },
       },
+      fetchPolicy: "cache-and-network",
+      notifyOnNetworkStatusChange: true,
     },
-    fetchPolicy: "cache-and-network",
-    notifyOnNetworkStatusChange: true,
+  );
+  const pagination = useWorkbenchPagination<
+    GQL.AffiliateWorkbenchPendingConversationRow,
+    GQL.AffiliateWorkbenchPendingConversationPage
+  >({
+    filterKey,
+    firstPage: data?.affiliateWorkbenchPendingConversationPage,
+    refreshRevision,
+    fetchPage: async (cursor) => {
+      const result = await fetchMore({
+        variables: {
+          input: {
+            ...statusArgs,
+            channel: channel || null,
+            ...(creatorSearch ? { creatorSearch } : {}),
+            ...shopFilter,
+            ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
+            protected: workbenchProtectionValue(protection),
+            sortOrder,
+            ...timeArgs,
+            limit: PAGE_SIZE,
+            cursor,
+          },
+        },
+        updateQuery: (current) => current,
+      });
+      return result.data?.affiliateWorkbenchPendingConversationPage;
+    },
+    onError: (loadError) => {
+      showToast(loadError instanceof Error ? loadError.message : String(loadError), "error");
+    },
   });
-  const page = data?.affiliateWorkbenchPendingConversationPage;
-
-  useEffect(() => {
-    if (!page) return;
-    setBuffer(replaceWorkbenchPageBuffer(filterKey, page));
-  }, [filterKey, page]);
-
-  useEffect(() => {
-    if (refreshRevision > 0) void refetch();
-  }, [refetch, refreshRevision]);
+  const { items, firstPage: page, hasMore, loadMore, refresh: refetch } = pagination;
+  const loading = queryLoading || pagination.loading;
 
   function selectMessageShops(next: string[], region?: string): void {
     const allSelected =
@@ -962,60 +909,12 @@ function AffiliateWorkbenchMessageList({
     });
   }
 
-  const loadMore = useCallback(async () => {
-    if (!hasMore || !nextCursor) return;
-    const requestFilterKey = filterKey;
-    const result = await fetchMore({
-      variables: {
-        input: {
-          ...statusArgs,
-          channel: channel || null,
-          ...(creatorSearch ? { creatorSearch } : {}),
-          ...shopFilter,
-          ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-          protected: workbenchProtectionValue(protection),
-          sortOrder,
-          ...(lastPendingAtGe && lastPendingAtLt ? { lastPendingAtGe, lastPendingAtLt } : {}),
-          limit: PAGE_SIZE,
-          cursor: nextCursor,
-        },
-      },
-      updateQuery: (current) => current,
-    });
-    const next = result.data?.affiliateWorkbenchPendingConversationPage;
-    if (!next) return;
-    setBuffer((current) => {
-      if (current.filterKey !== requestFilterKey) return current;
-      return {
-        filterKey: requestFilterKey,
-        loaded: true,
-        items: appendUniqueRows(current.items, next.items),
-        nextCursor: next.nextCursor ?? null,
-        hasMore: next.hasMore,
-      };
-    });
-  }, [
-    statusFilter,
-    channel,
-    creatorSearch,
-    fetchMore,
-    filterKey,
-    lastPendingAtGe,
-    lastPendingAtLt,
-    protection,
-    hasMore,
-    nextCursor,
-    queryShopScope,
-    selectedBusinessDeveloperId,
-    sortOrder,
-  ]);
-
   const nowMs = Date.now();
   const viewState = workbenchListViewState({
     loading,
     hasError: Boolean(error),
     rowCount: items.length,
-    completedRowCount: activeBuffer.loaded ? activeBuffer.items.length : null,
+    completedRowCount: pagination.loaded ? items.length : null,
   });
   const channelChips: Array<{
     value: GQL.AffiliateMessageChannel | "";
@@ -1342,7 +1241,7 @@ function AffiliateWorkbenchMessageList({
           disabled={loading}
           onClick={() => void loadMore()}
         >
-          {loading ? t("common.loading") : t("ecommerce.affiliateWorkspace.loadMoreProposals")}
+          {loading ? t("common.loading") : t("ecommerce.affiliateWorkspace.workbench.loadMore")}
         </button>
       ) : null}
     </section>
@@ -1773,10 +1672,4 @@ function channelDisplayName(
     return t("ecommerce.affiliateWorkspace.workbench.channelEmail");
   }
   return "TikTok Shop";
-}
-
-function appendUniqueRows<T extends { id: string }>(current: T[], incoming: T[]): T[] {
-  const byId = new Map(current.map((row) => [row.id, row]));
-  for (const row of incoming) byId.set(row.id, row);
-  return [...byId.values()];
 }

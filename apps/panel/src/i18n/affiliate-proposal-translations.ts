@@ -40,6 +40,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "Items {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "Load more",
           reviewedBy: "Reviewed by {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "Staff",
@@ -132,6 +133,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "第 {{start}}–{{end}} 条",
         },
         workbench: {
+          loadMore: "加载更多",
           reviewedBy: "{{actor}} 于 {{value}} 处理",
           reviewActorAgent: "Agent",
           reviewActorHuman: "员工",
@@ -225,6 +227,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "Einträge {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "Mehr laden",
           reviewedBy: "Geprüft von {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "Mitarbeiter",
@@ -397,6 +400,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "Elementos {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "Cargar más",
           reviewedBy: "Revisado por {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "Personal",
@@ -570,6 +574,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "Éléments {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "Charger plus",
           reviewedBy: "Traité par {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "Équipe",
@@ -740,6 +745,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "Item {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "Muat lagi",
           reviewedBy: "Ditinjau oleh {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "Staf",
@@ -913,6 +919,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "Elementi {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "Carica altro",
           reviewedBy: "Gestito da {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "Staff",
@@ -1086,6 +1093,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           pageRange: "รายการที่ {{start}}–{{end}}",
         },
         workbench: {
+          loadMore: "โหลดเพิ่มเติม",
           reviewedBy: "ตรวจสอบโดย {{actor}} · {{value}}",
           reviewActorAgent: "Agent",
           reviewActorHuman: "พนักงาน",

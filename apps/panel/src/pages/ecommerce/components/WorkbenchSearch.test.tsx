@@ -110,9 +110,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
           <AffiliateWorkbenchEntityTabs
             tab={tab}
             selectedShopIds={null}
-            shops={[
-              { id: "shop-1", alias: "MXTK-02", shopName: "Windboss Mexico" },
-            ]}
+            shops={[{ id: "shop-1", alias: "MXTK-02", shopName: "Windboss Mexico" }]}
             onSelectShops={vi.fn()}
             businessDeveloperOptions={[]}
             selectedBusinessDeveloperId=""
@@ -171,7 +169,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
     } else expect(screen.queryByText("Choose product")).toBeNull();
     fireEvent.click(
       screen.getByRole("button", {
-        name: i18n.t("ecommerce.affiliateWorkspace.loadMoreProposals"),
+        name: i18n.t("ecommerce.affiliateWorkspace.workbench.loadMore"),
       }),
     );
     await waitFor(() => expect(results.at(-2)).toHaveBeenCalledOnce());
@@ -268,7 +266,7 @@ it("passes selected Product Knowledge to both the first and next sample pages", 
   fireEvent.click(screen.getByText("Choose internal code"));
   await waitFor(() => expect(filtered).toHaveBeenCalledOnce());
   fireEvent.click(
-    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.loadMoreProposals") }),
+    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.workbench.loadMore") }),
   );
   await waitFor(() => expect(next).toHaveBeenCalledOnce());
 });

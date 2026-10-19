@@ -125,7 +125,7 @@ describe("workbench time-range filter", () => {
 
       fireEvent.click(
         await screen.findByRole("button", {
-          name: i18n.t("ecommerce.affiliateWorkspace.loadMoreProposals"),
+          name: i18n.t("ecommerce.affiliateWorkspace.workbench.loadMore"),
         }),
       );
       await waitFor(() => expect(results[2]).toHaveBeenCalledOnce());

@@ -139,7 +139,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
     }
     fireEvent.click(
       await screen.findByRole("button", {
-        name: i18n.t("ecommerce.affiliateWorkspace.loadMoreProposals"),
+        name: i18n.t("ecommerce.affiliateWorkspace.workbench.loadMore"),
       }),
     );
     await waitFor(() => expect(inputs.at(-1)?.cursor).toMatch(/^cursor-/));

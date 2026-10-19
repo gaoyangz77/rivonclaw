@@ -144,7 +144,7 @@ it("keeps the chosen status on pagination and discards a late page after switchi
   selectStatus("已处理");
   await waitFor(() => expect(handled.result).toHaveBeenCalledOnce());
   fireEvent.click(
-    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.loadMoreProposals") }),
+    screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.workbench.loadMore") }),
   );
   selectStatus("全部");
   await waitFor(() => expect(all.result).toHaveBeenCalledOnce());
