@@ -130,6 +130,97 @@ describe("SubAccountFormModal", () => {
 });
 
 describe("SubAccountsSection", () => {
+  function manyMembers(count: number) {
+    (mocks.subAccounts as { members: AccountMember[] }).members = Array.from({ length: count }, (_, index) => ({
+      ...MEMBERS[0]!, id: `member-${index}`, name: `BD ${index}`, email: `bd${index}@example.com`,
+    }));
+  }
+
+  it("starts with five accounts and progressively reveals five more until exhausted", () => {
+    manyMembers(12);
+    render(<SubAccountsSection />);
+    const rows = () => document.querySelectorAll(".acct-section-body > .acct-item-list > .acct-item");
+    expect(rows()).toHaveLength(5);
+    expect(screen.queryByText("bd5@example.com")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(rows()).toHaveLength(10);
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(rows()).toHaveLength(12);
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("searches the entire list, even collapsed accounts, and resets the visible batch on search changes", () => {
+    manyMembers(12);
+    render(<SubAccountsSection />);
+    const search = screen.getByRole("searchbox", { name: "Search sub-accounts" });
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    fireEvent.change(search, { target: { value: "bd11@" } });
+    expect(memberRow("bd11@example.com")).toBeTruthy();
+    expect(document.querySelectorAll(".acct-section-body > .acct-item-list > .acct-item")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+    fireEvent.change(search, { target: { value: "BD" } });
+    expect(document.querySelectorAll(".acct-section-body > .acct-item-list > .acct-item")).toHaveLength(5);
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(document.querySelectorAll(".acct-section-body > .acct-item-list > .acct-item")).toHaveLength(10);
+    fireEvent.change(search, { target: { value: "" } });
+    expect(document.querySelectorAll(".acct-section-body > .acct-item-list > .acct-item")).toHaveLength(5);
+  });
+
+  it("does not show an expansion button when there are at most five accounts", () => {
+    manyMembers(5);
+    render(<SubAccountsSection />);
+    expect(document.querySelectorAll(".acct-section-body > .acct-item-list > .acct-item")).toHaveLength(5);
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it.each(["Maria", "  MARIA@EXAMPLE.COM  ", "Ｍａｒｉａ", "Business Developer"])(
+    "filters locally by BD/account name, email or role (%s)",
+    (query) => {
+      render(<SubAccountsSection />);
+      fireEvent.change(screen.getByRole("searchbox", { name: "Search sub-accounts" }), {
+        target: { value: query },
+      });
+      expect(memberRow("maria@example.com")).toBeTruthy();
+      expect(screen.queryByText("ops@example.com")).toBeNull();
+      // Role management is independent of the member search.
+      expect(roleRow("Ops")).toBeTruthy();
+      expect(within(memberRow("maria@example.com")).getByRole("button", {
+        name: "Sign in as sub-account",
+      })).toBeTruthy();
+    },
+  );
+
+  it("distinguishes no matches from no accounts, and restores the full list when cleared", () => {
+    render(<SubAccountsSection />);
+    const search = screen.getByRole("searchbox", { name: "Search sub-accounts" });
+    fireEvent.change(search, { target: { value: "not-a-member" } });
+    expect(screen.getByRole("status").textContent).toBe(i18n.t("subAccounts.noMatchingMembers"));
+    expect(screen.queryByText(i18n.t("subAccounts.noMembers"))).toBeNull();
+    expect(screen.queryByText("maria@example.com")).toBeNull();
+    fireEvent.change(search, { target: { value: "" } });
+    expect(memberRow("maria@example.com")).toBeTruthy();
+    expect(memberRow("ops@example.com")).toBeTruthy();
+  });
+
+  it("finds disabled accounts without names by email and preserves their disabled state", () => {
+    const data = mocks.subAccounts as { members: AccountMember[] };
+    data.members = [{ ...MEMBERS[0]!, name: null, disabled: true }];
+    render(<SubAccountsSection />);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search sub-accounts" }), {
+      target: { value: "maria@" },
+    });
+    expect(within(memberRow("maria@example.com")).getByRole("button", {
+      name: "Sign in as sub-account",
+    }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("shows the existing empty-account message when there are no accounts", () => {
+    (mocks.subAccounts as { members: AccountMember[] }).members = [];
+    render(<SubAccountsSection />);
+    expect(screen.getByText(i18n.t("subAccounts.noMembers"))).toBeTruthy();
+    expect(screen.queryByText(i18n.t("subAccounts.noMatchingMembers"))).toBeNull();
+  });
+
   it.each([
     [
       "ACCOUNT_SWITCH_CLIENT_UNAVAILABLE",

@@ -13,9 +13,12 @@ import {
   TkPanelBody,
   TkPanelHeader,
   TkButton,
+  TkField,
 } from "../../../components/design-system/index.js";
 import { switchToMember } from "../../../api/account-switch.js";
 import { useToast } from "../../../components/Toast.js";
+
+const MEMBER_BATCH_SIZE = 5;
 
 /**
  * Sub-account management, shown only to the owner of an account.
@@ -30,6 +33,8 @@ export function SubAccountsSection() {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null);
   const [switchingMemberId, setSwitchingMemberId] = useState<string | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [visibleMemberLimit, setVisibleMemberLimit] = useState(MEMBER_BATCH_SIZE);
   const { showToast } = useToast();
 
   async function loginAsMember(memberId: string) {
@@ -59,6 +64,12 @@ export function SubAccountsSection() {
 
   const { members, roles } = subAccounts;
   const { ofMember } = useRoleDisplayName(roles);
+  const search = memberSearch.normalize("NFKC").trim().toLocaleLowerCase();
+  const visibleMembers = members.filter((member) =>
+    [member.name, member.email, ofMember(member)].some((value) =>
+      value?.normalize("NFKC").toLocaleLowerCase().includes(search),
+    ),
+  );
   const canCreateMember = assignableMemberRoles(roles).length > 0;
   const businessDeveloperLocation = {
     section: t("nav.affiliateManagement"),
@@ -116,13 +127,26 @@ export function SubAccountsSection() {
           </TkAlert>
         )}
 
+        <TkField
+          type="search"
+          label={t("subAccounts.searchMembers")}
+          placeholder={t("subAccounts.searchMembersPlaceholder")}
+          value={memberSearch}
+          onChange={(event) => {
+            setMemberSearch(event.target.value);
+            setVisibleMemberLimit(MEMBER_BATCH_SIZE);
+          }}
+        />
+
         {subAccounts.loading && members.length === 0 ? (
           <div className="empty-cell">{t("common.loading")}</div>
         ) : members.length === 0 ? (
           <div className="empty-cell">{t("subAccounts.noMembers")}</div>
+        ) : visibleMembers.length === 0 ? (
+          <div className="empty-cell" role="status">{t("subAccounts.noMatchingMembers")}</div>
         ) : (
           <div className="acct-item-list">
-            {members.map((member) => (
+            {visibleMembers.slice(0, visibleMemberLimit).map((member) => (
               <div key={member.id} className="acct-item">
                 <div className="acct-item-title-row">
                   <span className="acct-item-name">{member.name || member.email}</span>
@@ -201,6 +225,15 @@ export function SubAccountsSection() {
               </div>
             ))}
           </div>
+        )}
+
+        {visibleMembers.length > visibleMemberLimit && (
+          <TkButton
+            variant="secondary"
+            onClick={() => setVisibleMemberLimit((limit) => limit + MEMBER_BATCH_SIZE)}
+          >
+            {t("subAccounts.showMoreMembers")}
+          </TkButton>
         )}
 
         <AccountRolesPanel
