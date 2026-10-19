@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.36",
+    "date": "2026-10-19",
+    "en": [
+      "Configure BD creator intake limits and prevent claims of protected creators",
+      "Improve BD owner filters, public creator labels, and manual workbench filter layouts"
+    ],
+    "zh": [
+      "支持配置 BD 达人接收上限，并限制认领受保护达人",
+      "优化 BD 负责人筛选、公共达人标签和人工工作台筛选布局"
+    ]
+  },
+  {
     "version": "1.9.35",
     "date": "2026-10-18",
     "en": [
