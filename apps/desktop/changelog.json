@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.9.35",
+    "date": "2026-10-18",
+    "en": [
+      "Preserve loaded Affiliate workbench, creator detail, conversation, and proposal pages when refreshing"
+    ],
+    "zh": [
+      "刷新达人工作台、达人详情、会话和提案列表时保留已加载的分页内容"
+    ]
+  },
+  {
     "version": "1.9.34",
     "date": "2026-10-17",
     "en": [
