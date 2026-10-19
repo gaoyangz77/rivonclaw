@@ -15,7 +15,9 @@ import {
   TkChoiceSelect,
   TkInteractiveTableRow,
   TkPrivate,
+  TkSegmented,
   TkTableFrame,
+  TkToolbar,
 } from "../../../components/design-system/index.js";
 import { useToast } from "../../../components/Toast.js";
 import { formatAffiliateActor } from "../../../lib/affiliate-actor.js";
@@ -372,7 +374,7 @@ function AffiliateWorkbenchSampleList({
         className="affiliate-workbench-entity-toolbar"
         data-tutorial-id="affiliate-workbench-sample-controls"
       >
-        <div className="affiliate-workbench-entity-filters">
+        <TkToolbar variant="open" className="affiliate-workbench-entity-filters">
           <AffiliateShopScopeControl
             label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
             shops={shops}
@@ -437,28 +439,32 @@ function AffiliateWorkbenchSampleList({
               {t("ecommerce.affiliateWorkspace.workbench.colProduct")}
             </span>
             <div className="affiliate-workbench-product-controls">
-              <div className="affiliate-workbench-product-mode">
-                <TkButton
-                  size="sm"
-                  variant={productFilterMode === "catalog" ? "secondary" : "ghost"}
-                  onClick={() => {
+              <TkSegmented
+                size="sm"
+                className="affiliate-workbench-product-mode"
+                label={t("ecommerce.affiliateWorkspace.workbench.colProduct")}
+                value={productFilterMode}
+                items={[
+                  {
+                    id: "catalog",
+                    label: t("ecommerce.affiliateWorkspace.workbench.catalogProducts"),
+                  },
+                  {
+                    id: "knowledge",
+                    label: t("ecommerce.affiliateWorkspace.workbench.merchantPidMode"),
+                  },
+                ]}
+                onChange={(mode) => {
+                  if (mode === productFilterMode) return;
+                  if (mode === "catalog") {
                     setProductFilterMode("catalog");
                     setKnowledgeSelection(null);
-                  }}
-                >
-                  {t("ecommerce.affiliateWorkspace.workbench.catalogProducts")}
-                </TkButton>
-                <TkButton
-                  size="sm"
-                  variant={productFilterMode === "knowledge" ? "secondary" : "ghost"}
-                  onClick={() => {
+                  } else {
                     setProductFilterMode("knowledge");
                     setProductSelection({ scope: shopScope, values: [] });
-                  }}
-                >
-                  {t("ecommerce.affiliateWorkspace.workbench.merchantPidMode")}
-                </TkButton>
-              </div>
+                  }
+                }}
+              />
               {productFilterMode === "catalog" ? (
                 <ProductFilter
                   key={shopScope}
@@ -480,6 +486,8 @@ function AffiliateWorkbenchSampleList({
             onChange={setTimeFilter}
             selection={timeSelection}
           />
+        </TkToolbar>
+        <TkToolbar variant="open" className="affiliate-workbench-filter-actions-row">
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
             <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
@@ -505,30 +513,30 @@ function AffiliateWorkbenchSampleList({
               className="affiliate-workbench-filter-select"
             />
           </div>
-          {ignoredView ? (
-            <span className="affiliate-workbench-entity-summary">
-              {t("ecommerce.affiliateWorkspace.workbench.softRejectedHint")}
-            </span>
-          ) : pendingReviewView && page ? (
-            <span className="affiliate-workbench-entity-summary">
-              {t("ecommerce.affiliateWorkspace.workbench.summaryOpenCount", {
-                count: page.openCount,
-              })}
-              {page.expiringSoonCount > 0 ? (
-                <>
-                  <span className="affiliate-workbench-summary-divider" aria-hidden="true">
-                    ·
-                  </span>
-                  <span className="affiliate-workbench-summary-warning">
-                    {t("ecommerce.affiliateWorkspace.workbench.summaryExpiringSoon", {
-                      count: page.expiringSoonCount,
-                    })}
-                  </span>
-                </>
-              ) : null}
-            </span>
-          ) : null}
-        </div>
+        </TkToolbar>
+        {ignoredView ? (
+          <p className="affiliate-workbench-entity-summary">
+            {t("ecommerce.affiliateWorkspace.workbench.softRejectedHint")}
+          </p>
+        ) : pendingReviewView && page ? (
+          <p className="affiliate-workbench-entity-summary">
+            {t("ecommerce.affiliateWorkspace.workbench.summaryOpenCount", {
+              count: page.openCount,
+            })}
+            {page.expiringSoonCount > 0 ? (
+              <>
+                <span className="affiliate-workbench-summary-divider" aria-hidden="true">
+                  ·
+                </span>
+                <span className="affiliate-workbench-summary-warning">
+                  {t("ecommerce.affiliateWorkspace.workbench.summaryExpiringSoon", {
+                    count: page.expiringSoonCount,
+                  })}
+                </span>
+              </>
+            ) : null}
+          </p>
+        ) : null}
       </div>
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />
@@ -953,8 +961,8 @@ function AffiliateWorkbenchMessageList({
         className="affiliate-workbench-entity-toolbar"
         data-tutorial-id="affiliate-workbench-message-controls"
       >
-        <div className="affiliate-workbench-entity-filters">
-          <div className="affiliate-workbench-filter-group">
+        <div className="affiliate-workbench-filter-channel-row">
+          <div className="affiliate-workbench-filter-channel-head">
             <span className="tk-v1-label">
               {t("ecommerce.affiliateWorkspace.workbench.colChannelSource")}
             </span>
@@ -976,26 +984,31 @@ function AffiliateWorkbenchMessageList({
                 </button>
               ))}
             </div>
-            {/*
-             * The chip counts follow the selected status and ownership scope,
-             * but remain across channels and outside the time range. Said plainly here so
-             * a filtered list beside a much larger count does not read as a bug.
-             */}
+          </div>
+          {/*
+           * The chip counts follow the selected status and ownership scope,
+           * but remain across channels and outside the time range. Said plainly here so
+           * a filtered list beside a much larger count does not read as a bug.
+           * The shop note sits beside it because it is also about channels: only
+           * TikTok Shop messages carry a shop. Both stay under the channel chips
+           * rather than under a field, so they never stagger the filter row.
+           */}
+          <div className="affiliate-workbench-filter-notes">
             <span className="affiliate-workbench-filter-note">
               {t("ecommerce.affiliateWorkspace.workbench.messageStatusCountsHint")}
             </span>
-          </div>
-          <div className="affiliate-workbench-filter-group">
-            <AffiliateShopScopeControl
-              label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
-              shops={shops}
-              selected={queryShopIds ?? shops.map((shop) => shop.id)}
-              onChange={selectMessageShops}
-            />
             <span className="affiliate-workbench-filter-note">
               {t("ecommerce.affiliateWorkspace.workbench.messageShopScopeHint")}
             </span>
           </div>
+        </div>
+        <TkToolbar variant="open" className="affiliate-workbench-entity-filters">
+          <AffiliateShopScopeControl
+            label={t("ecommerce.affiliateWorkspace.workbench.colShop")}
+            shops={shops}
+            selected={queryShopIds ?? shops.map((shop) => shop.id)}
+            onChange={selectMessageShops}
+          />
           <TkChoiceSelect
             label={t("ecommerce.affiliateWorkspace.workbench.colStatus")}
             value={statusFilter}
@@ -1033,6 +1046,8 @@ function AffiliateWorkbenchMessageList({
             onChange={setTimeFilter}
             selection={timeSelection}
           />
+        </TkToolbar>
+        <TkToolbar variant="open" className="affiliate-workbench-filter-actions-row">
           <div className="affiliate-workbench-filter-search-actions">
             <WorkbenchCreatorSearch value={creatorSearch} onChange={setCreatorSearch} />
             <TkButton className="affiliate-workbench-filter-refresh" onClick={() => void refetch()}>
@@ -1066,16 +1081,16 @@ function AffiliateWorkbenchMessageList({
               className="affiliate-workbench-filter-select"
             />
           </div>
-          {page && page.waitingOver24hCount > 0 ? (
-            <span className="affiliate-workbench-entity-summary">
-              <span className="affiliate-workbench-summary-warning">
-                {t("ecommerce.affiliateWorkspace.workbench.summaryWaitingOver24h", {
-                  count: page.waitingOver24hCount,
-                })}
-              </span>
+        </TkToolbar>
+        {page && page.waitingOver24hCount > 0 ? (
+          <p className="affiliate-workbench-entity-summary">
+            <span className="affiliate-workbench-summary-warning">
+              {t("ecommerce.affiliateWorkspace.workbench.summaryWaitingOver24h", {
+                count: page.waitingOver24hCount,
+              })}
             </span>
-          ) : null}
-        </div>
+          </p>
+        ) : null}
       </div>
       {viewState === "loading" ? (
         <LoadingSpinner variant="page" />

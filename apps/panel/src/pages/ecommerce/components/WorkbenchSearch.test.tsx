@@ -262,7 +262,7 @@ it("passes selected Product Knowledge to both the first and next sample pages", 
     </MockedProvider>,
   );
   await waitFor(() => expect(initial).toHaveBeenCalledOnce());
-  fireEvent.click(screen.getByRole("button", { name: "内部编号" }));
+  fireEvent.click(screen.getByRole("radio", { name: "内部编号" }));
   fireEvent.click(screen.getByText("Choose internal code"));
   await waitFor(() => expect(filtered).toHaveBeenCalledOnce());
   fireEvent.click(

@@ -1,28 +1,46 @@
+/*
+ * The toolbar stacks fixed bands, top to bottom: (messages only) the channel
+ * row and its notes, the filter fields, then search and ordering, then the
+ * queue summary. Each band wraps on its own, so a long note or a wide control
+ * never staggers the controls of another band.
+ */
 .affiliate-workbench-entity-toolbar {
-  padding: 14px 16px;
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  padding: var(--tk-v1-space-4);
   border-bottom: 1px solid var(--tk-v1-border-default);
 }
 
 .affiliate-workbench-entity-filters {
-  display: flex;
-  align-items: end;
-  gap: 12px;
-  flex-wrap: wrap;
-  min-width: 0;
+  gap: var(--tk-v1-space-3);
 }
 
-.affiliate-workbench-filter-select {
-  flex: 0 1 160px;
-  width: 160px;
+/*
+ * One width for every single-value filter in the band, including the ones
+ * owned by shared controls, so the samples band fits one row on a typical
+ * desktop window and wraps on a common rhythm when it cannot.
+ */
+.affiliate-workbench-filter-select,
+.affiliate-workbench-entity-filters .affiliate-protection-filter,
+.affiliate-workbench-entity-filters .affiliate-workbench-time-preset {
+  flex: 0 1 148px;
+  width: 148px;
   min-width: 0;
   max-width: 100%;
 }
 
 .affiliate-workbench-filter-group {
   display: grid;
-  gap: 6px;
+  gap: var(--tk-v1-space-1);
   min-width: 0;
   max-width: 100%;
+}
+
+/* Search and ordering share one band, split by a hairline from the filters above. */
+.affiliate-workbench-filter-actions-row {
+  gap: var(--tk-v1-space-3);
+  padding-top: var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-subtle);
 }
 
 .affiliate-workbench-filter-refresh {
@@ -32,14 +50,14 @@
 .affiliate-workbench-filter-search-actions {
   display: flex;
   align-items: end;
-  gap: 12px;
+  gap: var(--tk-v1-space-2);
   min-width: 0;
   max-width: 100%;
 }
 
 /*
- * Ordering is not a filter. It trails the filter row and hugs its right edge so
- * the two kinds of control never read as one group.
+ * Ordering is not a filter. It trails the search band and hugs its right edge
+ * so the two kinds of control never read as one group.
  */
 .affiliate-workbench-filter-order {
   display: flex;
@@ -49,24 +67,46 @@
   max-width: 100%;
 }
 
+.affiliate-workbench-filter-channel-row {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+}
+
+/* The channel label reads inline with its chips, like a segmented header. */
+.affiliate-workbench-filter-channel-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-3);
+  min-width: 0;
+}
+
 .affiliate-workbench-filter-channels {
   min-height: var(--tk-v1-control-default);
 }
 
+.affiliate-workbench-filter-notes {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 /*
- * Says what a count in this group actually counts. Sized like the design
+ * Says what a count or a scope actually covers. Sized like the design
  * system's field support text so it reads as guidance, not as a value.
  */
 .affiliate-workbench-filter-note {
   color: var(--tk-v1-fg-muted);
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
 }
 
 .affiliate-workbench-entity-summary {
-  flex-basis: 100%;
+  margin: 0;
   color: var(--tk-v1-fg-muted);
-  font-size: 12px;
+  font-size: var(--tk-v1-type-supporting);
+  line-height: var(--tk-v1-line-supporting);
 }
 
 /*
@@ -126,9 +166,13 @@
 .affiliate-workbench-tag-overflow {
   border-style: dashed;
 }
-.affiliate-workbench-product-mode {
-  display: flex;
-  gap: var(--tk-v1-space-1);
+/*
+ * The small segmented switch carries its own 3px inset and border; trimming
+ * its items keeps the whole switch at the shared control height so it lines
+ * up with the selects beside it.
+ */
+.affiliate-workbench-product-mode .tk-v1-segmented-item {
+  height: calc(var(--tk-v1-control-default) - 8px);
 }
 
 .affiliate-workbench-product-controls {
