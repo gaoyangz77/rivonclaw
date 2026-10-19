@@ -3316,13 +3316,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   );
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
   const [creatorBusinessDeveloperSelection, setSelectedBusinessDeveloperId] = useState("");
-  const selectedBusinessDeveloperId = businessDeveloperOnly
-    ? creatorBusinessDeveloperSelection === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
-      ? AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
-      : AFFILIATE_WORKBENCH_MY_BD_VALUE
-    : creatorBusinessDeveloperSelection === AFFILIATE_WORKBENCH_MY_BD_VALUE
-      ? ""
-      : creatorBusinessDeveloperSelection;
+  const selectedBusinessDeveloperId = creatorBusinessDeveloperSelection;
   const [creatorSearch, setCreatorSearch] = useState("");
   const [debouncedCreatorSearch, setDebouncedCreatorSearch] = useState("");
   const [creatorPage, setCreatorPage] = useState(1);
@@ -3611,7 +3605,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               value={selectedBusinessDeveloperId}
               onChange={setSelectedBusinessDeveloperId}
               includeUnassigned
-              ownOrPublicOnly={businessDeveloperOnly}
               className="affiliate-creators-bd-filter"
               disabled={businessDevelopersLoading && businessDevelopers.length === 0}
             />

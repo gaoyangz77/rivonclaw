@@ -2350,7 +2350,12 @@ describe("creator tag catalog wiring", () => {
     expect(page).toContain("...affiliateWorkbenchBdInput(selectedBusinessDeveloperId)");
     expect(page).toContain("AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE");
     expect(page).toContain("<AffiliateBusinessDeveloperSelect");
-    expect(page).toContain("ownOrPublicOnly={businessDeveloperOnly}");
+    const creators = page.slice(
+      page.indexOf("export const AffiliateCreatorsPage"),
+      page.indexOf("function CreatorRelationshipCompactCard"),
+    );
+    expect(creators).toContain("const selectedBusinessDeveloperId = creatorBusinessDeveloperSelection;");
+    expect(creators).not.toContain("ownOrPublicOnly=");
   });
 
   it("shows collaboration progress and both tag groups on compact creator cards and detail headers", () => {
