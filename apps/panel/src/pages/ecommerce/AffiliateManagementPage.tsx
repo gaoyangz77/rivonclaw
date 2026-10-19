@@ -1063,13 +1063,14 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const user = entityStore.currentUser;
   // Derived on every render so it follows the signed-in user (ADR 085).
   const businessDeveloperOnly = isBusinessDeveloperOnly(user);
+  const restrictedWorkbenchOwner = businessDeveloperOnly && kind === "AGENT";
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedManualShopIds, setSelectedManualShopIds] = useState<string[] | null>(null);
   const [businessDeveloperSelection, setSelectedBusinessDeveloperId] = useState<string | null>(
     null,
   );
-  const selectedBusinessDeveloperId = businessDeveloperOnly
+  const selectedBusinessDeveloperId = restrictedWorkbenchOwner
     ? businessDeveloperSelection === AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
       ? AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE
       : AFFILIATE_WORKBENCH_MY_BD_VALUE
@@ -1148,6 +1149,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       own: t("ecommerce.affiliateWorkspace.myCreatorsFilter"),
       public: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
     },
+    kind,
   );
   const proposalFilterOptions = useMemo(
     () =>
@@ -10503,6 +10505,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }, [refetchRelationshipDetail]);
   const relationshipDetail = relationshipDetailData?.affiliateCreatorRelationshipDetail ?? null;
   const canEditCreatorConfiguration = relationshipDetail?.viewerCanEditCreatorConfiguration === true;
+  const canPerformDailyOperations = relationshipDetail?.viewerCanPerformDailyOperations === true;
   const relationship = relationshipDetail?.creatorRelationship ?? item?.creatorRelation ?? null;
   const { data: publicContactData } = useQuery<
     { affiliateCreatorContactState: GQL.AffiliateCreatorContactStatePayload },
@@ -10929,7 +10932,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }, [activeTab, conversationLoading, newestConversationMessageKey, scopeKey]);
 
   async function stageComposerFiles(files: FileList | null): Promise<void> {
-    if (!files?.length || !relationshipId) return;
+    if (!canPerformDailyOperations || !files?.length || !relationshipId) return;
     setUploadingAttachments(true);
     try {
       const staged: StagedAffiliateAttachment[] = [];
@@ -10960,7 +10963,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   async function submitComposerMessage(): Promise<void> {
-    if (messageSendInFlightRef.current || uploadingAttachments || markingConversationHandled ||
+    if (!canPerformDailyOperations || messageSendInFlightRef.current || uploadingAttachments || markingConversationHandled ||
       !relationshipId || !composerShopId || (scopeShopId && composerShopId !== scopeShopId)) return;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
     if (composerText.trim())
@@ -11060,7 +11063,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   async function markConversationHandled(): Promise<void> {
-    if (!relationshipId || !pendingReplyToLifecycleEventId) return;
+    if (!canPerformDailyOperations || !relationshipId || !pendingReplyToLifecycleEventId) return;
     setMarkingConversationHandled(true);
     try {
       const result = await markAffiliateConversationHandled({
@@ -11086,7 +11089,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   async function executeSampleReviewCommand(): Promise<void> {
-    if (!sampleReviewCommand) return;
+    if (!canPerformDailyOperations || !sampleReviewCommand) return;
     try {
       if (sampleReviewCommand.kind === "REOPEN") {
         await reopenSoftRejectedAffiliateSampleApplication({
@@ -11176,6 +11179,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     note?: string,
     sampleReviewOverride?: GQL.ActionProposalSampleReviewOverrideInput,
   ): Promise<boolean> {
+    if (!canPerformDailyOperations) return false;
     const creatorRelationshipId =
       proposal.creatorRelationshipId ??
       proposal.sourceWorkBoundary?.creatorRelationshipId ??
@@ -11971,6 +11975,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
               }`}
               ref={tabPanelRef}
             >
+              {relationshipDetail && !canPerformDailyOperations ? (
+                <TkAlert>{t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly")}</TkAlert>
+              ) : null}
               {activeTab === "profile" ? (
                 <>
                   <CreatorGlobalInformation profile />
@@ -12101,7 +12108,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                               shopLabelForId={relationshipShopName}
                               decidingProposal={decidingProposalId === proposal.id}
                               variant="embedded"
-                              allowDecisionActions
+                              allowDecisionActions={canPerformDailyOperations}
                               affiliateWorkspace={affiliateWorkspace}
                               onApprove={(item) =>
                                 decideRelationshipProposal(item, GQL.ActionProposalStatus.Approved)
@@ -12212,7 +12219,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                   ) : null}
                   {relationshipSampleApplications.map((sample) => {
                     const canPlatformReview =
-                      sample.sampleWorkStatus === GQL.SampleWorkStatus.RequestPendingReview;
+                      canPerformDailyOperations && sample.sampleWorkStatus === GQL.SampleWorkStatus.RequestPendingReview;
                     const commandBase = {
                       sampleApplicationRecordId: sample.id,
                       creatorRelationshipId: sample.creatorRelationshipId,
@@ -12240,7 +12247,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             <TkPrivate as="p">{sample.merchantReviewNote}</TkPrivate>
                           </div>
                         ) : null}
-                        <div className="affiliate-workbench-sample-review-actions">
+                        {canPerformDailyOperations ? <div className="affiliate-workbench-sample-review-actions">
                           {sample.reviewDisposition ===
                           GQL.AffiliateSampleReviewDisposition.SoftRejected ? (
                             canPlatformReview ? (
@@ -12290,7 +12297,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                               {t("ecommerce.affiliateWorkspace.workbench.sampleSyncUnknown")}
                             </span>
                           ) : null}
-                        </div>
+                        </div> : null}
                       </TkPanel>
                     );
                   })}
@@ -12411,7 +12418,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       </>
                     )}
                   </div>
-                  <div className="affiliate-message-composer">
+                  {canPerformDailyOperations ? <div className="affiliate-message-composer">
                     <div className="affiliate-message-composer-head">
                       <div>
                         <strong>{t("ecommerce.affiliateWorkspace.messageComposerTitle")}</strong>
@@ -12630,7 +12637,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </div> : null}
                 </div>
               ) : null}
               {activeTab === "activity" ? (

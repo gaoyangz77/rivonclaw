@@ -101,6 +101,7 @@ beforeEach(async () => {
   state.refetches.clear();
   state.mutate.mockReset().mockResolvedValue({ data: {} });
   state.detail = {
+    viewerCanPerformDailyOperations: true,
     viewerCanEditCreatorConfiguration: true,
     creator: {
       id: "creator-profile",
@@ -202,6 +203,36 @@ function openTab(label: string) {
 }
 
 describe("public Creator claim visibility", () => {
+  it("keeps a colleague's samples and messages readable without review or reply controls", () => {
+    state.detail.viewerCanPerformDailyOperations = false;
+    state.detail.viewerCanEditCreatorConfiguration = false;
+    (state.detail.creatorRelationship as Record<string, unknown>).businessDeveloperId = "colleague";
+    state.samples = [{
+      id: "sample-read-only", creatorRelationshipId: "creator", shopId: "1",
+      platformApplicationId: "application-read-only", productId: "product-read-only",
+      sampleWorkStatus: "REQUEST_PENDING_REVIEW", reviewDisposition: "OPEN",
+      reviewDispositionRevision: 1, projectionRevision: 1,
+      firstObservedAt: "2026-10-01T00:00:00Z", lastObservedAt: "2026-10-01T00:00:00Z",
+    }];
+    const instance = render(view("creator", "samples", true));
+    expect(document.querySelector(".affiliate-workbench-sample-review-card")).not.toBeNull();
+    expect(screen.getByText(i18n.t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "同意" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "拒绝" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "忽略" })).toBeNull();
+    instance.rerender(view("creator", "conversation", true));
+    expect(document.querySelector(".affiliate-message-composer")).toBeNull();
+    expect(state.calls.some(call => call.operation === "AffiliateCreatorMessageHistory")).toBe(true);
+    expect(state.mutate).not.toHaveBeenCalled();
+  });
+
+  it("retains daily operations on a public Creator without granting configuration rights", () => {
+    state.detail.viewerCanEditCreatorConfiguration = false;
+    render(view("creator", "conversation", true));
+    expect(document.querySelector(".affiliate-message-composer")).not.toBeNull();
+    expect(screen.queryByText(i18n.t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly"))).toBeNull();
+  });
+
   it("offers self-claim to BD staff on a public Creator", () => {
     render(view("creator", "overview", true));
     fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));

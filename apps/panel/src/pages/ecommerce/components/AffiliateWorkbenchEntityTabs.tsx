@@ -319,6 +319,7 @@ function AffiliateWorkbenchSampleList({
   );
 
   async function reopenRow(row: GQL.AffiliateWorkbenchSampleRow): Promise<void> {
+    if (row.viewerCanPerformDailyOperations !== true) return;
     setReopeningRowId(row.id);
     try {
       await reopenSampleApplication({
@@ -661,7 +662,7 @@ function AffiliateWorkbenchSampleList({
                             <button
                               className="btn btn-secondary"
                               type="button"
-                              disabled={reopeningRowId === row.id}
+                              disabled={row.viewerCanPerformDailyOperations !== true || reopeningRowId === row.id}
                               onClick={() => void reopenRow(row)}
                             >
                               {reopeningRowId === row.id

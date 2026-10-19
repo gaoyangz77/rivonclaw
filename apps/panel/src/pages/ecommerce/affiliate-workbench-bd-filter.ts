@@ -22,12 +22,13 @@ export function affiliateWorkbenchBdOptions(
   bdOnly: boolean,
   developers: readonly Pick<GQL.AffiliateBusinessDeveloper, "id" | "displayName">[],
   labels: { all: string; own: string; public: string },
+  kind: "AGENT" | "MANUAL" = "AGENT",
 ) {
   const publicOption = {
     value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
     label: labels.public,
   };
-  if (bdOnly) {
+  if (bdOnly && kind === "AGENT") {
     return [{ value: AFFILIATE_WORKBENCH_MY_BD_VALUE, label: labels.own }, publicOption];
   }
   return [

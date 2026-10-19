@@ -2836,6 +2836,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
 export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
   query AffiliateCreatorRelationshipDetail($input: AffiliateCreatorRelationshipDetailInput!) {
     affiliateCreatorRelationshipDetail(input: $input) {
+      viewerCanPerformDailyOperations
       viewerCanEditCreatorConfiguration
       includedShopIds
       lastContactedAt
@@ -4074,6 +4075,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
 
 const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
   fragment AffiliateWorkbenchSampleRowFields on AffiliateWorkbenchSampleRow {
+    viewerCanPerformDailyOperations
     id
     hasPendingAgentProposal
     creatorRelationshipId

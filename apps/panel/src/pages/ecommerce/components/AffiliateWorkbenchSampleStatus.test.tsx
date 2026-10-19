@@ -16,6 +16,43 @@ beforeEach(async () => {
 afterEach(cleanup);
 
 describe("Affiliate workbench Sample status filter", () => {
+  it.each([false, true])("enforces row-level daily-operation permission for inline reopen (%s)", async canOperate => {
+    const row = {
+      __typename: "AffiliateWorkbenchSampleRow",
+      id: "sample-row", creatorRelationshipId: "creator", viewerCanPerformDailyOperations: canOperate,
+      hasPendingAgentProposal: false, creatorName: "Creator", creatorUsername: "creator", creatorAvatarUrl: null,
+      shopName: "Shop", productTitle: null, businessDeveloperName: "BD", protected: false,
+      humanOnly: false, sampleTier: null, systemTags: [], manualTags: [], proposal: null,
+      sampleApplication: {
+        __typename: "SampleApplicationRecord",
+        id: "sample", userId: "owner", shopId: "shop", platformApplicationId: "application",
+        creatorRelationshipId: "creator", creatorId: null, creatorOpenId: null,
+        productId: null, skuId: null, skuName: null, skuImageUrl: null,
+        sampleWorkStatus: "REQUEST_PENDING_REVIEW", reviewDisposition: "SOFT_REJECTED", reviewDispositionRevision: 1,
+        merchantReviewDecision: "REJECT", merchantReviewExecutionMode: "ALLOW_PLATFORM_EXPIRY",
+        merchantReviewRejectReason: null, merchantReviewRejectReasonExplanation: null, merchantReviewNote: null,
+        merchantReviewDecidedAt: null, merchantReviewActorType: null, merchantReviewActor: null,
+        platformStatus: "PENDING", approveExpirationAt: null, projectionRevision: 1, order: null,
+        firstObservedAt: "2026-10-01T00:00:00Z", lastObservedAt: "2026-10-01T00:00:00Z",
+      },
+    };
+    render(<MockedProvider mocks={[{
+      request: { query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, variables: () => true },
+      result: { data: { affiliateWorkbenchSamplePage: { items: [row], hasMore: false, nextCursor: null, openCount: 0, expiringSoonCount: 0 } } },
+      maxUsageCount: Infinity, delay: 0,
+    }]}><ToastProvider><AffiliateWorkbenchEntityTabs
+      tab="SAMPLES" selectedShopIds={null} shops={[]} onSelectShops={vi.fn()}
+      businessDeveloperOptions={[]} selectedBusinessDeveloperId="" onSelectBusinessDeveloper={vi.fn()}
+      refreshRevision={0} onOpen={vi.fn()}
+    /></ToastProvider></MockedProvider>);
+    await screen.findByText("Creator");
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.workbench.colStatus") }));
+    const popup = document.querySelector(".custom-select-dropdown")!;
+    fireEvent.click(Array.from(popup.querySelectorAll(".custom-select-option"))
+      .find(node => node.textContent?.trim() === "已忽略")!);
+    await waitFor(() => expect((screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.workbench.reopen") }) as HTMLButtonElement).disabled).toBe(!canOperate));
+  });
+
   it("offers every history view and sends ALL as an unfiltered status view", async () => {
     const baseInput = {
       shopId: null,

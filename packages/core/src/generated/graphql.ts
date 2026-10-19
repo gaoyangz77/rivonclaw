@@ -2736,6 +2736,7 @@ export interface AffiliateCreatorRelationshipDetailPayload {
   protection?: Maybe<AffiliateCreatorProtection>;
   shopActivitySummaries: Array<AffiliateCreatorRelationshipShopActivitySummary>;
   viewerCanEditCreatorConfiguration: Scalars["Boolean"]["output"];
+  viewerCanPerformDailyOperations: Scalars["Boolean"]["output"];
 }
 
 export interface AffiliateCreatorRelationshipSellerMetadataPayload {
@@ -5465,6 +5466,7 @@ export interface AffiliateWorkbenchSampleRow {
   shopName?: Maybe<Scalars["String"]["output"]>;
   /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
   systemTags: Array<AffiliateCreatorSystemTag>;
+  viewerCanPerformDailyOperations: Scalars["Boolean"]["output"];
 }
 
 /** User-facing Sample Application status view for the Affiliate manual workbench. */

@@ -13,6 +13,12 @@ const developers = [
   { id: "b", displayName: "B" },
 ];
 describe("single-scope workbench BD filter", () => {
+  it("offers all, public, self and colleagues to BD staff in the manual workbench only", () => {
+    expect(affiliateWorkbenchBdOptions(true, developers, labels, "MANUAL").map(option => option.value))
+      .toEqual([AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE, "", "a", "b"]);
+    expect(affiliateWorkbenchBdOptions(true, developers, labels, "AGENT").map(option => option.value))
+      .toEqual([AFFILIATE_WORKBENCH_MY_BD_VALUE, AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE]);
+  });
   it("offers only mine/public to BD staff, regardless of loaded developers", () => {
     expect(affiliateWorkbenchBdOptions(true, developers, labels)).toEqual([
       { value: AFFILIATE_WORKBENCH_MY_BD_VALUE, label: "Mine" },
