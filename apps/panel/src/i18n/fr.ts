@@ -3145,7 +3145,7 @@ export default {
       sampleTierColumnLabel: "Progression actuelle",
       sampleTierColumnHint: "Palier le plus élevé atteint dans toutes les boutiques",
       sampleTierFilterLabel: "Progression actuelle",
-      sampleTierFilterHint: "Trouve les créateurs actuellement arrêtés aux paliers sélectionnés.",
+      sampleTierFilterHint: "Choisissez une étape. Envoi, réception et réalisation sont triés par date récente du créateur, tous magasins confondus ; dates inconnues en dernier. Recliquez pour effacer.",
       sampleTierEmpty: "Aucune progression de collaboration",
       manualTagFilterLabel: "Tags manuels",
       systemTagFilterLabel: "Tags système",

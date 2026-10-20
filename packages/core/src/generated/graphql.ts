@@ -9083,6 +9083,8 @@ export interface EcomOrderSummary {
 
 /** Tracking info for an order */
 export interface EcomOrderTracking {
+  /** Provider delivery time in Unix seconds, from Get Order delivery_time. */
+  deliveryTime?: Maybe<Scalars["Int"]["output"]>;
   events?: Maybe<Array<EcomTrackingEvent>>;
   /** Raw event code of the most recent timestamped tracking event. */
   latestEventActionCode?: Maybe<Scalars["Int"]["output"]>;
@@ -9093,6 +9095,8 @@ export interface EcomOrderTracking {
   orderStatus?: Maybe<Scalars["String"]["output"]>;
   /** Platform order update time in Unix seconds. */
   orderUpdateTime?: Maybe<Scalars["Int"]["output"]>;
+  /** Provider seller shipment time in Unix seconds, from Get Order rts_time. */
+  rtsTime?: Maybe<Scalars["Int"]["output"]>;
   /** Name of the shipping carrier (e.g. 'USPS', 'FedEx'). Sourced from the order record (Get Order) and composed in at Layer 2. */
   shippingProvider?: Maybe<Scalars["String"]["output"]>;
   /** Carrier tracking number. Sourced from the order record (Get Order) and composed into this tracking payload at Layer 2 — the TikTok Get Tracking endpoint does not return it. */

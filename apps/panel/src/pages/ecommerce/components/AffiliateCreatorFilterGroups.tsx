@@ -10,8 +10,8 @@ import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
  *
  * Tier filtering is exact-match: selecting 已发样 returns creators *currently
  * stopped at* 已发样, never every creator that ever shipped a sample. That is
- * why the group is labelled 合作进度 rather than 标签, and why it must be
- * multi-select — several rungs are expressed by selecting several.
+ * why the group is labelled 合作进度 rather than 标签. Progress is a cancellable
+ * single choice so each selection has one unambiguous milestone sort.
  *
  * Order is layout-bearing: both progress groups hold the same fixed four
  * chips, so they sit adjacent and take only the width those chips need, the
@@ -88,7 +88,7 @@ export function AffiliateCreatorFilterGroups({
         labelTitle={t("ecommerce.affiliateWorkspace.sampleTierFilterHint")}
         options={tierOptions}
         selectedIds={selectedSampleTiers}
-        onChange={onSelectedSampleTiersChange}
+        onChange={(tiers) => onSelectedSampleTiersChange(tiers.length ? [tiers[tiers.length - 1]] : [])}
       />
 
       {shopSelected ? (
@@ -97,7 +97,7 @@ export function AffiliateCreatorFilterGroups({
           labelTitle={t("ecommerce.affiliateWorkspace.shopSampleTierFilterHint")}
           options={tierOptions}
           selectedIds={selectedShopSampleTiers}
-          onChange={onSelectedShopSampleTiersChange}
+          onChange={(tiers) => onSelectedShopSampleTiersChange(tiers.length ? [tiers[tiers.length - 1]] : [])}
         />
       ) : null}
 

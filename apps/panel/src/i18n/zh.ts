@@ -3373,7 +3373,7 @@ export default {
       sampleTierColumnLabel: "合作进度",
       sampleTierColumnHint: "该达人在所有店铺中达到的最高合作档位",
       sampleTierFilterLabel: "合作进度",
-      sampleTierFilterHint: "筛选当前处于所选合作档位的达人。",
+      sampleTierFilterHint: "单选合作进度；发样、收样、履约按达人最近对应业务时间倒序，时间未知的排最后。排序时间不随店铺筛选改变。再次点击取消。",
       sampleTierEmpty: "暂无合作进度",
       manualTagFilterLabel: "手动标签",
       systemTagFilterLabel: "系统标签",

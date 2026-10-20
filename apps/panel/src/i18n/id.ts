@@ -3093,7 +3093,7 @@ export default {
       sampleTierColumnLabel: "Progres saat ini",
       sampleTierColumnHint: "Tingkat tertinggi yang dicapai di semua toko",
       sampleTierFilterLabel: "Progres saat ini",
-      sampleTierFilterHint: "Menemukan kreator yang saat ini berhenti di tingkat yang dipilih.",
+      sampleTierFilterHint: "Pilih satu tahap. Pengiriman, penerimaan dan pemenuhan diurutkan menurut waktu terbaru kreator di semua toko; tanggal tak diketahui di akhir. Klik lagi untuk menghapus.",
       sampleTierEmpty: "Belum ada progres kolaborasi",
       manualTagFilterLabel: "Tag manual",
       systemTagFilterLabel: "Tag sistem",

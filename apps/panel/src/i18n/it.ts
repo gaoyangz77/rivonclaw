@@ -3128,7 +3128,7 @@ export default {
       sampleTierColumnLabel: "Progresso attuale",
       sampleTierColumnHint: "Livello più alto raggiunto in tutti i negozi",
       sampleTierFilterLabel: "Progresso attuale",
-      sampleTierFilterHint: "Trova i creator attualmente fermi ai livelli selezionati.",
+      sampleTierFilterHint: "Scegli una fase. Invio, consegna e adempimento seguono la data più recente del creator in tutti i negozi; date sconosciute in fondo. Clicca di nuovo per cancellare.",
       sampleTierEmpty: "Nessun avanzamento della collaborazione",
       manualTagFilterLabel: "Tag manuali",
       systemTagFilterLabel: "Tag di sistema",

@@ -3145,7 +3145,7 @@ export default {
       sampleTierColumnLabel: "Aktueller Fortschritt",
       sampleTierColumnHint: "Höchste in allen Shops erreichte Stufe",
       sampleTierFilterLabel: "Aktueller Fortschritt",
-      sampleTierFilterHint: "Findet Creator, die aktuell auf den gewählten Stufen stehen.",
+      sampleTierFilterHint: "Eine Stufe wählen. Versand, Zustellung und Erfüllung werden nach dem neuesten Creator-Zeitpunkt sortiert; unbekannte Zeiten zuletzt. Der Shopfilter ändert den Zeitbezug nicht. Erneut klicken zum Aufheben.",
       sampleTierEmpty: "Kein Kooperationsfortschritt",
       manualTagFilterLabel: "Manuelle Tags",
       systemTagFilterLabel: "System-Tags",

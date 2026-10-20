@@ -3543,7 +3543,7 @@ export default {
       sampleTierColumnLabel: "Collaboration progress",
       sampleTierColumnHint: "Highest collaboration rung reached across all shops",
       sampleTierFilterLabel: "Collaboration progress",
-      sampleTierFilterHint: "Matches creators currently at the selected collaboration rungs.",
+      sampleTierFilterHint: "Choose one stage. Shipped, delivered and fulfilled sort by the latest creator-wide milestone; unknown dates sort last. Shop filters do not change the date scope. Click again to clear.",
       sampleTierEmpty: "No collaboration progress",
       manualTagFilterLabel: "Manual tags",
       systemTagFilterLabel: "System tags",

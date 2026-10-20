@@ -2983,7 +2983,7 @@ export default {
       sampleTierColumnLabel: "ความคืบหน้าปัจจุบัน",
       sampleTierColumnHint: "ระดับสูงสุดที่ถึงในทุกร้านค้า",
       sampleTierFilterLabel: "ความคืบหน้าปัจจุบัน",
-      sampleTierFilterHint: "ค้นหาครีเอเตอร์ที่หยุดอยู่ที่ระดับที่เลือกในขณะนี้",
+      sampleTierFilterHint: "เลือกหนึ่งขั้นตอน เรียงการส่ง การรับ และการทำตามข้อตกลงจากเวลาล่าสุดของครีเอเตอร์รวมทุกร้าน เวลาที่ไม่ทราบอยู่ท้ายรายการ คลิกซ้ำเพื่อยกเลิก",
       sampleTierEmpty: "ยังไม่มีความคืบหน้าการร่วมงาน",
       manualTagFilterLabel: "แท็กที่กำหนดเอง",
       systemTagFilterLabel: "แท็กระบบ",
