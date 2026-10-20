@@ -1,3 +1,4 @@
+import { AFFILIATE_SAMPLE_SHIPMENT_COPY } from "./affiliate-sample-shipment-translations.js";
 import { AFFILIATE_MESSAGE_STATUS_COPY } from "./affiliate-message-status-translations.js";
 
 /**
@@ -11,6 +12,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.en,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.en,
           colCreatorMetrics: "Creator performance",
           metricGmv: "GMV",
           metricPostRate: "Sample-to-post rate",
@@ -125,6 +127,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.zh,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.zh,
           colCreatorMetrics: "达人表现",
           metricGmv: "GMV",
           metricPostRate: "履约率",
@@ -234,6 +237,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.de,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.de,
           colCreatorMetrics: "Creator-Leistung",
           metricGmv: "GMV",
           metricPostRate: "Muster-Veröffentlichungsrate",
@@ -349,6 +353,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.es,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.es,
           colCreatorMetrics: "Rendimiento del creador",
           metricGmv: "GMV",
           metricPostRate: "Tasa de publicación",
@@ -463,6 +468,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.fr,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.fr,
           colCreatorMetrics: "Performances du créateur",
           metricGmv: "GMV",
           metricPostRate: "Taux de publication",
@@ -578,6 +584,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.id,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.id,
           colCreatorMetrics: "Performa kreator",
           metricGmv: "GMV",
           metricPostRate: "Rasio publikasi sampel",
@@ -691,6 +698,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.it,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.it,
           colCreatorMetrics: "Prestazioni del creator",
           metricGmv: "GMV",
           metricPostRate: "Tasso di pubblicazione",
@@ -803,6 +811,7 @@ export const AFFILIATE_WORKBENCH_ENTITY_TRANSLATIONS = {
       affiliateWorkspace: {
         workbench: {
           ...AFFILIATE_MESSAGE_STATUS_COPY.th,
+          ...AFFILIATE_SAMPLE_SHIPMENT_COPY.th,
           colCreatorMetrics: "ประสิทธิภาพครีเอเตอร์",
           metricGmv: "GMV",
           metricPostRate: "อัตราโพสต์ตัวอย่าง",

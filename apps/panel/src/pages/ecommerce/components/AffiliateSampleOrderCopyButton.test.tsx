@@ -55,14 +55,18 @@ function sampleRow(index: number, platformOrderId: string | null, sampleWorkStat
       merchantReviewDecidedAt: null, merchantReviewActorType: null, merchantReviewActor: null,
       platformStatus: null, approveExpirationAt: null, projectionRevision: 1,
       firstObservedAt: "2026-10-01T00:00:00Z", lastObservedAt: "2026-10-15T00:00:00Z",
-      order: platformOrderId == null ? null : { __typename: "SampleApplicationOrderRecord", platformOrderId },
+      shippedAt: null, deliveredAt: null,
+      order: platformOrderId == null ? null : { __typename: "SampleApplicationOrderRecord", platformOrderId,
+        trackingNumber: null, carrier: null, status: null, trackingSyncedAt: null,
+        latestTrackingEventAt: null, latestTrackingEventActionCode: null,
+        latestTrackingEventDescription: null, trackingEvents: null },
     },
   };
 }
 
 describe("workbench Sample order number copy", () => {
   it("requests the persisted order number in the list query", () => {
-    expect(print(AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY)).toMatch(/order\s*\{\s*platformOrderId\s*\}/);
+    expect(print(AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY)).toMatch(/order\s*\{[^}]*\bplatformOrderId\b/s);
   });
 
   it.each(["zh", "en", "de", "es", "fr", "id", "it", "th"])(
@@ -139,6 +143,10 @@ describe("workbench Sample order number copy", () => {
       sampleRow(3, "8071789659962573986", "DELIVERED_AWAITING_CONTENT"),
       sampleRow(4, "8071789659962573987", "FULFILLED"),
     ];
+    Object.assign(items[0]!.sampleApplication.order!, {
+      status: "IN_TRANSIT", latestTrackingEventAt: "2026-09-01T00:00:00Z",
+      trackingSyncedAt: new Date().toISOString(),
+    });
     render(
       <MockedProvider mocks={[
         {
@@ -172,6 +180,7 @@ describe("workbench Sample order number copy", () => {
     expect(copies).toHaveLength(3);
     const row = copies[0]!.closest("tr")!;
     expect(row.lastElementChild?.contains(copies[0]!)).toBe(true);
+    expect(screen.getByText("物流超过 5 天未更新").closest("tr")).toBe(row);
     fireEvent.keyDown(copies[0]!, { key: "Enter" });
     fireEvent.keyDown(copies[0]!, { key: " " });
     fireEvent.click(copies[0]!);

@@ -1953,6 +1953,16 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         deliveredAt
         order {
           platformOrderId
+          status
+          trackingSyncedAt
+          latestTrackingEventAt
+          latestTrackingEventActionCode
+          latestTrackingEventDescription
+          trackingEvents {
+            actionCode
+            description
+            updateTimeMillis
+          }
           trackingNumber
           carrier
         }
@@ -2065,6 +2075,16 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           deliveredAt
           order {
             platformOrderId
+            status
+            trackingSyncedAt
+            latestTrackingEventAt
+            latestTrackingEventActionCode
+            latestTrackingEventDescription
+            trackingEvents {
+              actionCode
+              description
+              updateTimeMillis
+            }
             trackingNumber
             carrier
           }
@@ -2086,6 +2106,16 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           deliveredAt
           order {
             platformOrderId
+            status
+            trackingSyncedAt
+            latestTrackingEventAt
+            latestTrackingEventActionCode
+            latestTrackingEventDescription
+            trackingEvents {
+              actionCode
+              description
+              updateTimeMillis
+            }
             trackingNumber
             carrier
           }
@@ -3069,6 +3099,16 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         }
         order {
           platformOrderId
+          status
+          trackingSyncedAt
+          latestTrackingEventAt
+          latestTrackingEventActionCode
+          latestTrackingEventDescription
+          trackingEvents {
+            actionCode
+            description
+            updateTimeMillis
+          }
           trackingNumber
           carrier
         }
@@ -3135,6 +3175,16 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         }
         order {
           platformOrderId
+          status
+          trackingSyncedAt
+          latestTrackingEventAt
+          latestTrackingEventActionCode
+          latestTrackingEventDescription
+          trackingEvents {
+            actionCode
+            description
+            updateTimeMillis
+          }
           trackingNumber
           carrier
         }
@@ -4131,8 +4181,22 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       firstObservedAt
       lastObservedAt
       projectionRevision
+      shippedAt
+      deliveredAt
       order {
+        trackingNumber
+        carrier
         platformOrderId
+        status
+        trackingSyncedAt
+        latestTrackingEventAt
+        latestTrackingEventActionCode
+        latestTrackingEventDescription
+        trackingEvents {
+          actionCode
+          description
+          updateTimeMillis
+        }
       }
     }
     proposal {

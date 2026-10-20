@@ -1,3 +1,4 @@
+import { AffiliateSampleShipment } from "./components/AffiliateSampleShipment.js";
 import {
   affiliateTimelinePageInfo,
   mergeSampleDetailPages,
@@ -9710,6 +9711,7 @@ export function SampleApplicationSummaryCard({
           value={formatProposalTime(sampleApplication.updatedAt)}
         />
       </div>
+      <AffiliateSampleShipment sample={sampleApplication} />
       <SampleReviewAttribution sampleApplication={sampleApplication} />
       {detailOpen ? (
         <div className="affiliate-collaboration-sample-details">

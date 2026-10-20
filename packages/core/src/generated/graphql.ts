@@ -14897,8 +14897,15 @@ export interface RunProfile {
 /** Order snapshot linked from an affiliate sample application. */
 export interface SampleApplicationOrderRecord {
   carrier?: Maybe<Scalars["String"]["output"]>;
+  latestTrackingEventActionCode?: Maybe<Scalars["Int"]["output"]>;
+  latestTrackingEventAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  latestTrackingEventDescription?: Maybe<Scalars["String"]["output"]>;
   platformOrderId?: Maybe<Scalars["String"]["output"]>;
+  /** Raw Provider order/logistics status; separate from Sample content fulfillment. */
+  status?: Maybe<Scalars["String"]["output"]>;
+  trackingEvents?: Maybe<Array<SampleApplicationTrackingEventRecord>>;
   trackingNumber?: Maybe<Scalars["String"]["output"]>;
+  trackingSyncedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
 }
 
 /** Warehouse snapshot of cumulative sales attributed to content associated with this Sample Application. It is attribution, not a causal estimate of Sample impact. */
@@ -14990,6 +14997,13 @@ export interface SampleApplicationRecord {
   trackingNumber?: Maybe<Scalars["String"]["output"]>;
   updatedAt: Scalars["DateTimeISO"]["output"];
   userId: Scalars["ID"]["output"];
+}
+
+/** Provider tracking event for a Sample shipment. */
+export interface SampleApplicationTrackingEventRecord {
+  actionCode?: Maybe<Scalars["Int"]["output"]>;
+  description?: Maybe<Scalars["String"]["output"]>;
+  updateTimeMillis?: Maybe<Scalars["Float"]["output"]>;
 }
 
 /** RivonClaw-owned, agent-facing sample lifecycle state. Platform raw statuses stay in platformSnapshotJson. */

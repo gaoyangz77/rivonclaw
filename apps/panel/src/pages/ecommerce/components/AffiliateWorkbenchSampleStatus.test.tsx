@@ -34,7 +34,7 @@ describe("Affiliate workbench Sample status filter", () => {
         merchantReviewDecision: "REJECT", merchantReviewExecutionMode: "ALLOW_PLATFORM_EXPIRY",
         merchantReviewRejectReason: null, merchantReviewRejectReasonExplanation: null, merchantReviewNote: null,
         merchantReviewDecidedAt: null, merchantReviewActorType: null, merchantReviewActor: null,
-        platformStatus: "PENDING", approveExpirationAt: null, projectionRevision: 1, order: null,
+        platformStatus: "PENDING", approveExpirationAt: null, projectionRevision: 1, order: null, shippedAt: null, deliveredAt: null,
         firstObservedAt: "2026-10-01T00:00:00Z", lastObservedAt: "2026-10-01T00:00:00Z",
       },
     };

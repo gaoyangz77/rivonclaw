@@ -153,10 +153,10 @@ beforeEach(async () => {
 afterEach(cleanup);
 
 describe("Sample card order facts", () => {
-  function card(orderId: string | null) {
+  function card(orderId: string | null, tracking: Partial<GQL.SampleApplicationOrderRecord> = {}) {
     const sample = { id: "sample-order", shopId: "1", platformApplicationId: "application-order",
       sampleWorkStatus: "APPROVED_AWAITING_SHIPMENT", updatedAt: "2026-10-15T00:00:00.000Z",
-      observedContentCount: 0, order: { platformOrderId: orderId, trackingNumber: "TRACK-123" },
+      observedContentCount: 0, order: { platformOrderId: orderId, trackingNumber: "TRACK-123", ...tracking },
     } as GQL.SampleApplicationRecord;
     return <ToastProvider><SampleApplicationSummaryCard sampleApplication={sample} embedded /></ToastProvider>;
   }
@@ -168,6 +168,14 @@ describe("Sample card order facts", () => {
     expect(screen.getByText("TRACK-123")).toBeTruthy();
     fireEvent.click(screen.getByText("1234567890123456789").closest("button")!);
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("1234567890123456789"));
+  });
+  it("shows the persisted shipping snapshot inside the Sample card", () => {
+    render(card("123", { status: "IN_TRANSIT", trackingSyncedAt: "2026-10-20T00:00:00Z",
+      latestTrackingEventAt: "2026-10-19T00:00:00Z", latestTrackingEventDescription: "Out for delivery" }));
+    expect(screen.getByRole("region", { name: "物流状态" })).toBeTruthy();
+    expect(screen.getByText("运输中")).toBeTruthy();
+    expect(screen.getByText("Out for delivery")).toBeTruthy();
+    expect(screen.getByText("TRACK-123")).toBeTruthy();
   });
   it.each([null, "0"])("shows unavailable instead of %s", orderId => {
     render(card(orderId));

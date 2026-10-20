@@ -1,3 +1,4 @@
+import { AffiliateSampleShipmentWarning } from "./AffiliateSampleShipment.js";
 import { useMemo, useState } from "react";
 import { AffiliateWorkbenchCreatorMetrics } from "./AffiliateWorkbenchCreatorMetrics.js";
 import { useMutation, useQuery } from "@apollo/client/react";
@@ -701,6 +702,7 @@ function AffiliateWorkbenchSampleList({
                       <td>
                         <div className="affiliate-workbench-cell-badges">
                           <SampleStateBadge sampleApplication={row.sampleApplication} />
+                          <AffiliateSampleShipmentWarning sample={row.sampleApplication} nowMs={nowMs} />
                           <StatusBadges
                             protectedCreator={row.protected}
                             humanOnly={row.humanOnly}

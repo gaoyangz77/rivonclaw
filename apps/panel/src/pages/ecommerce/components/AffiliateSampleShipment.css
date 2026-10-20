@@ -1,0 +1,47 @@
+.affiliate-sample-shipment {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-subtle);
+  padding-top: var(--tk-v1-space-3);
+}
+
+.affiliate-sample-shipment dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--tk-v1-space-3);
+  margin: 0;
+}
+
+.affiliate-sample-shipment-warning {
+  display: inline-flex;
+  justify-self: start;
+  max-width: 100%;
+}
+
+.affiliate-sample-shipment-warning-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: var(--tk-v1-line-micro);
+}
+
+.affiliate-sample-shipment dt,
+.affiliate-sample-shipment small {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+}
+
+.affiliate-sample-shipment dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-sample-shipment small {
+  display: block;
+}
+
+.affiliate-sample-shipment ol {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+  padding-left: var(--tk-v1-space-5);
+}
