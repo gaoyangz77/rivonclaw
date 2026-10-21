@@ -12,6 +12,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Review Action Proposals, handle Agent Escalations, and inspect all Agent work.",
           manualTitle: "Manual Workbench",
+          otherBdOperationForbidden: "You cannot act on Creators assigned to another BD.",
+          operationNotPermitted: "You do not have permission to perform this Affiliate operation.",
           otherBdReadOnly: "This Creator belongs to another BD. You can view their information, samples and messages, but cannot make changes.",
           manualSubtitle: "Process Sample Applications and Creator messages that belong to staff.",
           tabs: { pendingEscalations: "Pending" },
@@ -70,6 +72,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentTitle: "智能体工作台",
           agentSubtitle: "审核操作提案、处理 Agent 升级事项，并查看全部 Agent 工作。",
           manualTitle: "人工工作台",
+          otherBdOperationForbidden: "不能操作其他 BD 名下的达人。",
+          operationNotPermitted: "你没有执行此达人业务操作的权限。",
           otherBdReadOnly: "该达人属于其他 BD。你可以查看资料、申样和消息，但不能修改或操作。",
           manualSubtitle: "集中处理由员工负责的申样申请与达人消息。",
           tabs: { pendingEscalations: "待处理" },
@@ -127,6 +131,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Aktionsvorschläge prüfen, Agent-Eskalationen bearbeiten und alle Agent-Arbeiten einsehen.",
           manualTitle: "Manueller Arbeitsbereich",
+          otherBdOperationForbidden: "Sie können keine Aktionen für Creator ausführen, die einem anderen BD zugewiesen sind.",
+          operationNotPermitted: "Sie haben keine Berechtigung für diese Affiliate-Aktion.",
           otherBdReadOnly: "Dieser Creator gehört einem anderen BD. Informationen, Muster und Nachrichten sind sichtbar, können aber nicht bearbeitet werden.",
           manualSubtitle:
             "Sample-Anträge und Creator-Nachrichten bearbeiten, die Mitarbeitenden gehören.",
@@ -186,6 +192,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Revisa propuestas de acción, gestiona escalaciones y consulta todo el trabajo del Agent.",
           manualTitle: "Área de trabajo manual",
+          otherBdOperationForbidden: "No puedes actuar sobre creadores asignados a otro BD.",
+          operationNotPermitted: "No tienes permiso para realizar esta operación de afiliados.",
           otherBdReadOnly: "Este creador pertenece a otro BD. Puedes ver su información, muestras y mensajes, pero no realizar cambios.",
           manualSubtitle:
             "Procesa solicitudes de muestras y mensajes de creadores asignados al personal.",
@@ -245,6 +253,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Vérifiez les propositions d’action, traitez les escalades et consultez tout le travail de l’Agent.",
           manualTitle: "Espace de travail manuel",
+          otherBdOperationForbidden: "Vous ne pouvez pas agir sur les créateurs attribués à un autre BD.",
+          operationNotPermitted: "Vous n’avez pas l’autorisation d’effectuer cette opération d’affiliation.",
           otherBdReadOnly: "Ce créateur appartient à un autre BD. Vous pouvez consulter ses informations, échantillons et messages, mais pas les modifier.",
           manualSubtitle:
             "Traitez les demandes d’échantillons et les messages de créateurs confiés à l’équipe.",
@@ -304,6 +314,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Tinjau proposal tindakan, tangani eskalasi, dan periksa semua pekerjaan Agent.",
           manualTitle: "Ruang kerja manual",
+          otherBdOperationForbidden: "Anda tidak dapat melakukan tindakan pada kreator yang ditugaskan ke BD lain.",
+          operationNotPermitted: "Anda tidak memiliki izin untuk melakukan tindakan afiliasi ini.",
           otherBdReadOnly: "Kreator ini ditangani BD lain. Anda dapat melihat informasi, sampel, dan pesannya, tetapi tidak dapat melakukan perubahan.",
           manualSubtitle:
             "Proses permohonan sampel dan pesan kreator yang menjadi tanggung jawab staf.",
@@ -363,6 +375,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentSubtitle:
             "Revisiona le proposte di azione, gestisci le escalation e consulta tutto il lavoro Agent.",
           manualTitle: "Area di lavoro manuale",
+          otherBdOperationForbidden: "Non puoi operare sui creator assegnati a un altro BD.",
+          operationNotPermitted: "Non hai l’autorizzazione per eseguire questa operazione di affiliazione.",
           otherBdReadOnly: "Questo creator appartiene a un altro BD. Puoi visualizzare informazioni, campioni e messaggi, ma non apportare modifiche.",
           manualSubtitle:
             "Gestisci le richieste di campioni e i messaggi dei creator affidati al personale.",
@@ -422,6 +436,8 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
           agentTitle: "พื้นที่ทำงาน Agent",
           agentSubtitle: "ตรวจสอบข้อเสนอการดำเนินการ จัดการงานที่ Agent ส่งต่อ และดูงาน Agent ทั้งหมด",
           manualTitle: "พื้นที่ทำงานของเจ้าหน้าที่",
+          otherBdOperationForbidden: "คุณไม่สามารถดำเนินการกับครีเอเตอร์ที่มอบหมายให้ BD คนอื่นได้",
+          operationNotPermitted: "คุณไม่มีสิทธิ์ดำเนินการธุรกิจครีเอเตอร์นี้",
           otherBdReadOnly: "ครีเอเตอร์นี้อยู่ในความดูแลของ BD คนอื่น คุณดูข้อมูล ตัวอย่างสินค้า และข้อความได้ แต่ไม่สามารถแก้ไขหรือดำเนินการได้",
           manualSubtitle: "จัดการคำขอตัวอย่างและข้อความครีเอเตอร์ที่เจ้าหน้าที่เป็นผู้รับผิดชอบ",
           tabs: { pendingEscalations: "รอดำเนินการ" },
