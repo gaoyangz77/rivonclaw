@@ -118,6 +118,7 @@ import {
   AFFILIATE_ESCALATION_PAGE_QUERY,
   AFFILIATE_RESOLVE_ESCALATION_MUTATION,
   AFFILIATE_COLLABORATION_DETAIL_QUERY,
+  REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATOR_CONTACT_STATE_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
@@ -4679,6 +4680,10 @@ function AffiliateCollaborationConfigurationSnapshot({
             value: collaboration.name || "—",
           },
           {
+            label: t("ecommerce.affiliateWorkspace.collaborationOperations.startTime"),
+            value: collaboration.startTime ? formatProposalTime(collaboration.startTime) : "—",
+          },
+          {
             label: t("ecommerce.affiliateWorkspace.collaborationOperations.endTime"),
             value: collaboration.endTime ? formatProposalTime(collaboration.endTime) : "—",
           },
@@ -6813,9 +6818,11 @@ export function sortAffiliateCreatorMessagesOldestFirst(
 function AffiliateCreatorMessageRow({
   message,
   creatorRelationshipId,
+  onRefresh,
 }: {
   message: AffiliateConversationMessage;
   creatorRelationshipId: string;
+  onRefresh: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
   const direction = message.direction ?? GQL.AffiliateCreatorMessageDirection.System;
@@ -6900,6 +6907,8 @@ function AffiliateCreatorMessageRow({
               key={`${message.messageRef}:${index}`}
               part={part}
               creatorRelationshipId={creatorRelationshipId}
+              shopLabel={{ text: message.shopName ?? message.shopId ?? "", sensitive: true }}
+              onRefresh={onRefresh}
             />
           ))}
         </div>
@@ -6908,15 +6917,81 @@ function AffiliateCreatorMessageRow({
   );
 }
 
+/** Uses only the batched message projection; neither this card nor its products query on mount. */
+export function AffiliateMessageTargetCollaborationCard({ part, creatorRelationshipId, shopLabel, onRefresh }: {
+  part: GQL.AffiliateHistoryPart;
+  creatorRelationshipId: string;
+  shopLabel: ShopDisplayLabel;
+  onRefresh: () => Promise<unknown>;
+}) {
+  const { t } = useTranslation();
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refresh] = useMutation<
+    { refreshAffiliateMessageTargetCollaboration: GQL.AffiliateCollaboration },
+    { input: GQL.RefreshAffiliateMessageTargetCollaborationInput }
+  >(REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION);
+  const collaboration = part.targetCollaboration;
+  // Product-card DTOs are derived from the invitation snapshot, never a second product request.
+  const products: GQL.EcomProductSummary[] = (collaboration?.products ?? []).flatMap(product => {
+    const productId = product.productId ?? product.id;
+    return productId ? [{ productId, title: product.title, coverImage: product.mainImageUrl ?? product.imageUrl, status: product.status }] : [];
+  });
+  async function loadDetails() {
+    const referenceToken = part.targetCollaborationRefreshToken;
+    if (!referenceToken || refreshing) return;
+    setRefreshing(true);
+    setRefreshError(null);
+    try {
+      await refresh({ variables: { input: { creatorRelationshipId, referenceToken } } });
+      await onRefresh();
+    } catch (error) {
+      setRefreshError(error instanceof Error ? error.message : String(error));
+    } finally { setRefreshing(false); }
+  }
+  return (
+    <div className="affiliate-conversation-card-stack">
+      {collaboration ? <>
+        <AffiliateCollaborationCard collaboration={collaboration} shopLabel={shopLabel}
+          productSummaries={products} variant="embedded" onOpen={() => setDetailOpen(true)} />
+        <AffiliateCollaborationConfigurationSnapshot collaboration={collaboration} />
+        {collaboration.message ? <div className="affiliate-conversation-message-text"><TkPrivate>{collaboration.message}</TkPrivate></div> : null}
+      </> : <div className="affiliate-conversation-card affiliate-conversation-target-card">
+        <div className="affiliate-conversation-card-body">
+          <strong>{t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardTitle")}</strong>
+          {part.targetCollaborationId ? <PlatformIdCopy value={part.targetCollaborationId} /> : null}
+        </div>
+      </div>}
+      {part.targetCollaborationRefreshToken ? <div className="affiliate-platform-collaboration-empty-row">
+        <p>{t("ecommerce.affiliateWorkspace.messageTargetCard.missing")}</p>
+        <button className="btn btn-secondary" type="button" disabled={refreshing} onClick={() => void loadDetails()}>
+          {refreshing ? t("common.loading") : t("ecommerce.affiliateWorkspace.messageTargetCard.load")}
+        </button>
+      </div> : null}
+      {refreshError ? <div role="alert" className="affiliate-message-send-error">{t("ecommerce.affiliateWorkspace.messageTargetCard.failed")} {refreshError}</div> : null}
+      {detailOpen && collaboration ? <AffiliateCollaborationDetailModal collaborationId={collaboration.id}
+        shopLabel={() => shopLabel} canManage={false} onClose={() => setDetailOpen(false)} onChanged={() => {}} /> : null}
+    </div>
+  );
+}
+
 function AffiliateHistoryPartView({
   part,
   creatorRelationshipId,
+  shopLabel,
+  onRefresh,
 }: {
   part: GQL.AffiliateHistoryPart;
   creatorRelationshipId: string;
+  shopLabel: ShopDisplayLabel;
+  onRefresh: () => Promise<unknown>;
 }) {
   const [downloading, setDownloading] = useState(false);
   if (part.kind === GQL.AffiliateHistoryPartKind.Text) return null;
+  if (part.kind === GQL.AffiliateHistoryPartKind.TargetCollaborationCard) {
+    return <AffiliateMessageTargetCollaborationCard part={part} creatorRelationshipId={creatorRelationshipId} shopLabel={shopLabel} onRefresh={onRefresh} />;
+  }
   if (part.kind === GQL.AffiliateHistoryPartKind.Attachment) {
     return (
       <div className="affiliate-conversation-card affiliate-conversation-target-card">
@@ -12379,6 +12454,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             key={affiliateCreatorMessageKey(message)}
                             message={message}
                             creatorRelationshipId={relationshipId!}
+                            onRefresh={refetchConversationMessages}
                           />
                         ))}
                       </>

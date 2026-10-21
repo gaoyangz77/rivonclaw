@@ -3372,7 +3372,11 @@ export interface AffiliateHistoryPart {
   sampleApplicationId?: Maybe<Scalars["ID"]["output"]>;
   sizeBytes?: Maybe<Scalars["Int"]["output"]>;
   summary?: Maybe<Scalars["String"]["output"]>;
+  /** Latest local Target Collaboration projection, batch-loaded with this message page. */
+  targetCollaboration?: Maybe<AffiliateCollaboration>;
   targetCollaborationId?: Maybe<Scalars["ID"]["output"]>;
+  /** Present only when local invitation details need an explicit on-demand refresh. */
+  targetCollaborationRefreshToken?: Maybe<Scalars["String"]["output"]>;
   text?: Maybe<Scalars["String"]["output"]>;
   width?: Maybe<Scalars["Int"]["output"]>;
 }
@@ -11377,6 +11381,8 @@ export interface Mutation {
   publishUpdate: Scalars["Boolean"]["output"];
   /** Record an impression, dismissal, or action click for a server-driven announcement. */
   recordAnnouncementEvent: Scalars["Boolean"]["output"];
+  /** Explicitly fill missing Target invitation details for an authorized message card; never sends an invitation or reads message history. */
+  refreshAffiliateMessageTargetCollaboration: AffiliateCollaboration;
   /** Query the provider and refresh a payment's status. */
   refreshPayment: Payment;
   /** Refresh an expired access token */
@@ -12217,6 +12223,10 @@ export interface MutationPublishUpdateArgs {
 
 export interface MutationRecordAnnouncementEventArgs {
   input: RecordAnnouncementEventInput;
+}
+
+export interface MutationRefreshAffiliateMessageTargetCollaborationArgs {
+  input: RefreshAffiliateMessageTargetCollaborationInput;
 }
 
 export interface MutationRefreshPaymentArgs {
@@ -14665,6 +14675,12 @@ export interface RecordAnnouncementEventInput {
   key: Scalars["String"]["input"];
   locale?: InputMaybe<Scalars["String"]["input"]>;
   surface: AnnouncementSurface;
+}
+
+export interface RefreshAffiliateMessageTargetCollaborationInput {
+  creatorRelationshipId: Scalars["ID"]["input"];
+  /** Expiring account/Relationship/shop-bound reference issued by a message read. */
+  referenceToken: Scalars["String"]["input"];
 }
 
 /** Refund a provider-backed payment. */

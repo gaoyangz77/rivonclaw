@@ -3570,7 +3570,28 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
   }
 `;
 
+export const AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT = gql`
+  fragment AffiliateMessageTargetCollaboration on AffiliateCollaboration {
+    id userId shopId type status platformCollaborationId creatorIds creatorOpenIds productIds
+    name message startTime endTime lastObservedAt platformUpdatedAt
+    freeSampleRule { hasFreeSample isSampleApprovalExempt }
+    sellerContactInfo { email }
+    products {
+      id productId title mainImageUrl imageUrl status collaborationStatus
+      commission { rate shopAdsCommissionRate }
+    }
+  }
+`;
+
+export const REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION = gql`
+  ${AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT}
+  mutation RefreshAffiliateMessageTargetCollaboration($input: RefreshAffiliateMessageTargetCollaborationInput!) {
+    refreshAffiliateMessageTargetCollaboration(input: $input) { ...AffiliateMessageTargetCollaboration }
+  }
+`;
+
 export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
+  ${AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT}
   query AffiliateRelationshipTimeline($input: AffiliateRelationshipTimelineInput!) {
     affiliateRelationshipTimeline(input: $input) {
       limit
@@ -3625,6 +3646,8 @@ export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
             agentReadable
             productId
             targetCollaborationId
+            targetCollaborationRefreshToken
+            targetCollaboration { ...AffiliateMessageTargetCollaboration }
             sampleApplicationId
             providerType
             summary
@@ -3668,6 +3691,7 @@ export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
 `;
 
 export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
+  ${AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT}
   query AffiliateCreatorMessageHistory($input: AffiliateCreatorMessageHistoryInput!) {
     affiliateCreatorMessageHistory(input: $input) {
       limit
@@ -3693,6 +3717,8 @@ export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
           agentReadable
           productId
           targetCollaborationId
+          targetCollaborationRefreshToken
+          targetCollaboration { ...AffiliateMessageTargetCollaboration }
           sampleApplicationId
           providerType
           summary
