@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.37",
+    "date": "2026-10-20",
+    "en": [
+      "Search sub-accounts and progressively expand account lists",
+      "Show creator performance, sample logistics, and stalled shipment warnings in the Affiliate workbench",
+      "Improve cooperation stage sorting and preserve product column width"
+    ],
+    "zh": [
+      "支持搜索子账号并逐步展开账号列表",
+      "达人工作台展示达人表现、样品物流及物流停滞提醒",
+      "优化合作阶段排序并保留商品列宽"
+    ]
+  },
+  {
     "version": "1.9.36",
     "date": "2026-10-19",
     "en": [
