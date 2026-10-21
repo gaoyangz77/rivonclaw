@@ -28,6 +28,7 @@ function row(id: string, conversationStatus: GQL.AffiliateChannelConversationSta
     creatorRelationshipId: id,
     channel: "EMAIL",
     lastPendingAt: "2026-09-01T00:00:00Z",
+    conversationAt: "2026-09-01T00:00:00Z",
     sourceLabel: "Email",
     sourceShopId: null,
     replyToLifecycleEventId: `event-${id}`,
@@ -47,7 +48,10 @@ function row(id: string, conversationStatus: GQL.AffiliateChannelConversationSta
 }
 function mock(
   input: object,
-  items: ReturnType<typeof row>[],
+  items: Array<Omit<ReturnType<typeof row>, "lastPendingAt" | "replyToLifecycleEventId"> & {
+    lastPendingAt: string | null;
+    replyToLifecycleEventId: string | null;
+  }>,
   cursor: string | null = null,
   delay = 0,
 ) {
@@ -152,4 +156,25 @@ it("keeps the chosen status on pagination and discards a late page after switchi
   expect(screen.getByText("all-current")).toBeTruthy();
   expect(screen.queryByText("handled-late")).toBeNull();
   expect(screen.queryByText("handled-first")).toBeNull();
+});
+
+it("opens seller-only history with a real message time and no pending reply event", async () => {
+  const pending = mock({}, []);
+  const all = mock({ statusFilter: "ALL" }, [{
+    ...row("solsole96", State.Resolved),
+    channel: "PLATFORM_CHAT", sourceLabel: "MXTK-06",
+    lastPendingAt: null, replyToLifecycleEventId: null,
+    conversationAt: "2026-10-12T03:39:07Z",
+  }]);
+  const open = renderMessages([pending, all]);
+  await waitFor(() => expect(pending.result).toHaveBeenCalledOnce());
+  selectStatus("全部");
+  await waitFor(() => expect(all.result).toHaveBeenCalledOnce());
+  expect(screen.getByText("solsole96")).toBeTruthy();
+  expect(document.querySelector(".affiliate-workbench-cell-waiting")).toBeNull();
+  fireEvent.click(screen.getByText("solsole96"));
+  expect(open).toHaveBeenCalledWith(expect.objectContaining({
+    creatorRelationshipId: "solsole96", initialTab: "conversation",
+    replyToLifecycleEventId: undefined, hasPendingProposal: false,
+  }));
 });

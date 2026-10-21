@@ -5359,9 +5359,9 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */
   creatorSearch?: InputMaybe<Scalars["String"]["input"]>;
   cursor?: InputMaybe<Scalars["String"]["input"]>;
-  /** Keep only conversations whose latest inbound work message (lastPendingAt) is at or after this instant. Resolved and unactionable views retain that message time; it is not the handling time. Omit for no lower bound. Counts stay outside the time range. */
+  /** Filter the view's message time at or after this instant: unanswered inbound time for PENDING, latest observed message time for ALL/RESOLVED. The legacy input name is retained. Counts stay outside the time range. */
   lastPendingAtGe?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
-  /** Keep only conversations whose latest inbound work message (lastPendingAt) is strictly before this instant. The range is half-open, so a boundary instant belongs to exactly one window. Omit for no upper bound. */
+  /** Filter the view's message time strictly before this instant: unanswered inbound time for PENDING, latest observed message time for ALL/RESOLVED. The range is half-open. Omit for no upper bound. */
   lastPendingAtLt?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   /** Filter rows and counts by Creator protection: true protected, false unprotected, null all. Includes resolved protection records and blocked Relationships. */
@@ -5370,9 +5370,9 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Match any selected owned shop. Omit or pass null for all shops; an empty list selects no shops. Mutually exclusive with shopId. Only accepted with PLATFORM_CHAT; direct-contact queue counts remain seller-wide. */
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
-  /** Order by latest inbound work-message time. ASC, the default, returns the oldest message first; DESC returns the newest first. Resolved/ALL views use the same message time, not processing time. A cursor is bound to its status view and order. */
+  /** Order by unanswered inbound time for PENDING, latest observed message time for ALL/RESOLVED. ASC returns oldest first; DESC newest first. A cursor is bound to its status view and order. */
   sortOrder?: InputMaybe<EcomSortOrder>;
-  /** Current conversation state: PENDING (default), RESOLVED, or ALL including UNACTIONABLE. Only observed inbound message cursors qualify. Counts follow this view; changing it requires a fresh cursor. */
+  /** PENDING (default) requires an actionable inbound cursor. RESOLVED and ALL include any observed message, including seller-only conversations; ALL also includes UNACTIONABLE. Counts follow the view; changing it requires a fresh cursor. */
   statusFilter?: InputMaybe<AffiliateWorkbenchConversationStatusFilter>;
   /** Only public Creator Relationships. Mutually exclusive with businessDeveloperId. */
   unassignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
@@ -5381,6 +5381,8 @@ export interface AffiliateWorkbenchPendingConversationPageInput {
 export interface AffiliateWorkbenchPendingConversationRow {
   businessDeveloperName?: Maybe<Scalars["String"]["output"]>;
   channel: AffiliateMessageChannel;
+  /** Indexed sort time for this view: pending inbound time or latest observed message time. */
+  conversationAt: Scalars["DateTimeISO"]["output"];
   conversationStatus: AffiliateChannelConversationStatus;
   creatorAvatarUrl?: Maybe<Scalars["String"]["output"]>;
   creatorName?: Maybe<Scalars["String"]["output"]>;
@@ -5389,12 +5391,12 @@ export interface AffiliateWorkbenchPendingConversationRow {
   hasPendingAgentProposal?: Maybe<Scalars["Boolean"]["output"]>;
   humanOnly: Scalars["Boolean"]["output"];
   id: Scalars["ID"]["output"];
-  lastPendingAt: Scalars["DateTimeISO"]["output"];
+  lastPendingAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   /** The Creator's manual tags, resolved to their current catalog rows and ordered by name, the same order the Creator record uses. An id whose catalog row no longer exists is omitted. */
   manualTags: Array<CreatorManualTag>;
   proposal?: Maybe<ActionProposal>;
   protected: Scalars["Boolean"]["output"];
-  replyToLifecycleEventId: Scalars["ID"]["output"];
+  replyToLifecycleEventId?: Maybe<Scalars["ID"]["output"]>;
   /** Highest sample tier across every shop state of this Creator, derived at read time and never stored. Null means no rung has been reached anywhere, which is not the lowest rung. */
   sampleTier?: Maybe<CreatorSampleTier>;
   shopName?: Maybe<Scalars["String"]["output"]>;

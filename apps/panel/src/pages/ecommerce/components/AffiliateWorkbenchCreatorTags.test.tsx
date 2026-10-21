@@ -99,6 +99,7 @@ function conversationRow(index: number) {
     creatorRelationshipId: `rel-${index}`,
     channel: GQL.AffiliateMessageChannel.PlatformChat,
     lastPendingAt: "2026-09-01T00:00:00.000Z",
+    conversationAt: "2026-09-01T00:00:00.000Z",
     sourceLabel: "Shop",
     sourceShopId: "shop-1",
     replyToLifecycleEventId: `event-${index}`,

@@ -82,6 +82,7 @@ function messageRow(id: string, conversationStatus: GQL.AffiliateChannelConversa
     creatorRelationshipId: id,
     channel: "EMAIL",
     lastPendingAt: "2026-09-01T00:00:00Z",
+    conversationAt: "2026-09-01T00:00:00Z",
     sourceLabel: "Email",
     sourceShopId: null,
     replyToLifecycleEventId: `event-${id}`,

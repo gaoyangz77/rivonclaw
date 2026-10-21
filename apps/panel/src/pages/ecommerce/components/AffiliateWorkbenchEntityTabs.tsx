@@ -831,7 +831,7 @@ function AffiliateWorkbenchMessageList({
    * never replay the in-flight cursor.
    */
   const [sortOrder, setSortOrder] = useState<GQL.EcomSortOrder>(GQL.EcomSortOrder.Asc);
-  /** Waiting time, so this queue filters `lastPendingAt`. */
+  /** Pending uses waiting time; history uses the latest observed message time. */
   const [timeFilter, setTimeFilter] =
     useState<AffiliateWorkbenchTimeFilterValue>(ALL_TIME_WORKBENCH_FILTER);
   const timeSelection = affiliateWorkbenchTimeSelection(timeFilter);
@@ -1153,7 +1153,7 @@ function AffiliateWorkbenchMessageList({
                     initialTab: "conversation",
                     replyToLifecycleEventId:
                       row.conversationStatus === GQL.AffiliateChannelConversationStatus.Pending
-                        ? row.replyToLifecycleEventId
+                        ? row.replyToLifecycleEventId ?? undefined
                         : undefined,
                     hasPendingProposal:
                       row.conversationStatus === GQL.AffiliateChannelConversationStatus.Pending &&
@@ -1167,9 +1167,9 @@ function AffiliateWorkbenchMessageList({
                   >
                     <td>
                       {pendingView ? (
-                        <WaitingCell lastPendingAt={row.lastPendingAt} nowMs={nowMs} />
+                        <WaitingCell lastPendingAt={row.conversationAt} nowMs={nowMs} />
                       ) : (
-                        <TimeCell value={row.lastPendingAt} />
+                        <TimeCell value={row.conversationAt} />
                       )}
                     </td>
                     <td>
