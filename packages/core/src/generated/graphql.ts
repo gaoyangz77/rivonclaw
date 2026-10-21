@@ -14427,6 +14427,8 @@ export interface ReadActionProposalsInput {
   cursor?: InputMaybe<Scalars["String"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   sampleApplicationRecordId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Server-side Creator, exact seller UID, proposal, product, collaboration or message search. Applied before pagination; maximum 200 characters. */
+  search?: InputMaybe<Scalars["String"]["input"]>;
   shopId?: InputMaybe<Scalars["ID"]["input"]>;
   status?: InputMaybe<ActionProposalStatus>;
   type?: InputMaybe<ActionProposalType>;

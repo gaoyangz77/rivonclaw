@@ -573,6 +573,7 @@ export function affiliateProposalPageQueryKey(filters: {
   businessDeveloperId?: string | null;
   status?: GQL.ActionProposalStatus;
   type?: GQL.ActionProposalType;
+  search?: string | null;
   /**
    * `affiliateWorkbenchTimeFilterKey` of the active range. A backend cursor is
    * bound to the range that minted it and is rejected outright when replayed
@@ -587,6 +588,7 @@ export function affiliateProposalPageQueryKey(filters: {
     filters.status ?? "ALL",
     filters.type ?? "ALL",
     filters.timeRange ?? "",
+    filters.search?.trim() ?? "",
   ]);
 }
 
@@ -1086,6 +1088,11 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
+  const [debouncedAttentionSearch, setDebouncedAttentionSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedAttentionSearch(attentionSearch.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [attentionSearch]);
   /**
    * One range for the three Agent-work tabs: pending review, all Agent work and
    * escalations all filter their own `createdAt`, so a single control serves
@@ -1189,6 +1196,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     status: proposalStatus,
     type: proposalType,
     timeRange: agentWorkTimeRangeKey,
+    search: debouncedAttentionSearch,
   });
   // The "all Agent work" view is a paged table; the pending view keeps its
   // load-more stream. Only the paged view carries a cursor stack, and a filter
@@ -1224,6 +1232,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
       status: proposalStatus,
       type: proposalType,
+      search: debouncedAttentionSearch || null,
       ...agentWorkTimeArgs,
       limit: proposalPageRequest.limit,
       cursor: proposalPageRequest.cursor,
@@ -1255,7 +1264,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       input: {
         status: "OPEN",
         ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
-        search: attentionSearch.trim() || null,
+        search: debouncedAttentionSearch || null,
         ...agentWorkTimeArgs,
         offset: escalationOffset,
         limit: AFFILIATE_ESCALATION_PAGE_SIZE,
@@ -1268,7 +1277,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
 
   useEffect(() => {
     setEscalationOffset(0);
-  }, [agentWorkTimeRangeKey, attentionSearch, selectedBusinessDeveloperId]);
+  }, [agentWorkTimeRangeKey, debouncedAttentionSearch, selectedBusinessDeveloperId]);
 
   useEffect(() => {
     const totalCount = escalationData?.affiliateEscalationPage.totalCount;
@@ -1351,14 +1360,10 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     ),
   );
   const visibleProposalItems = sortAffiliateProposalsNewestFirst(
-    filterActionProposals(
-      proposalItemsFromQuery.filter(
-        (proposal) =>
-          (!proposalType || proposal.type === proposalType) &&
-          (!proposalStatus || proposal.status === proposalStatus),
-      ),
-      attentionSearch,
-      shopLabel,
+    proposalItemsFromQuery.filter(
+      (proposal) =>
+        (!proposalType || proposal.type === proposalType) &&
+        (!proposalStatus || proposal.status === proposalStatus),
     ),
   );
   const visibleAgentWorkBundles = groupAgentWorkBundles(visibleProposalItems);
@@ -3156,58 +3161,6 @@ export function affiliateSellerSafeMetrics(summary: GQL.AffiliateMlModelEfficien
 
 function formatDate(value: string | Date | null | undefined): string {
   return formatLocalizedDateTime(value, panelI18n.language);
-}
-
-function filterActionProposals(
-  proposals: GQL.ActionProposal[],
-  search: string,
-  shopLabel: (shopId: string) => ShopDisplayLabel,
-): GQL.ActionProposal[] {
-  const query = search.trim().toLowerCase();
-  if (!query) return proposals;
-  return proposals.filter((proposal) =>
-    actionProposalSearchText(proposal, shopLabel).includes(query),
-  );
-}
-
-function actionProposalSearchText(
-  proposal: GQL.ActionProposal,
-  shopLabel: (shopId: string) => ShopDisplayLabel,
-): string {
-  const creatorProfile = proposal.creatorProfile;
-  const collaboration = proposal.affiliateCollaboration;
-  const displayShopIds = actionProposalDisplayShopIds(proposal);
-  const values = [
-    proposal.id,
-    ...displayShopIds.flatMap((shopId) => [shopId, shopLabel(shopId).text]),
-    proposal.creatorId,
-    proposal.operatorSummary,
-    proposal.type,
-    proposal.status,
-    creatorProfile?.id,
-    creatorProfile?.nickname,
-    creatorProfile?.username,
-    creatorProfile?.creatorOpenId,
-    creatorProfile?.creatorImId,
-    proposal.affiliateCollaborationId,
-    proposal.sampleApplicationRecordId,
-    collaboration?.id,
-    ...(collaboration?.creatorIds ?? []),
-    ...(collaboration?.creatorOpenIds ?? []),
-    ...(collaboration?.productIds ?? []),
-    collaboration?.platformCollaborationId,
-    ...(proposal.messageIntent?.parts.flatMap((part) => [
-      part.text,
-      part.productId,
-      part.fileName,
-    ]) ?? []),
-    proposal.sampleReviewIntent?.platformApplicationId,
-    proposal.sampleReviewIntent?.sampleApplicationRecordId,
-  ];
-  return values
-    .filter((value): value is string => typeof value === "string" && value.length > 0)
-    .join(" ")
-    .toLowerCase();
 }
 
 function actionProposalDisplayShopIds(proposal: GQL.ActionProposal): string[] {

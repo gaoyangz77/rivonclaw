@@ -423,6 +423,26 @@ describe("AffiliateManagementPage proposal source", () => {
     );
   });
 
+  it("resets server-side proposal pagination when the search changes", () => {
+    const firstKey = affiliateProposalPageQueryKey({ userId: "seller-1", search: " UID-001 " });
+    expect(firstKey).toBe(affiliateProposalPageQueryKey({ userId: "seller-1", search: "UID-001" }));
+    const nextKey = affiliateProposalPageQueryKey({ userId: "seller-1", search: "UID-002" });
+    const pageTwo = advanceAffiliateProposalPageCursorStack(initialAffiliateProposalPageCursorStack(firstKey), "old-cursor");
+    const reset = resetAffiliateProposalPageCursorStack(pageTwo, nextKey);
+    expect(reset.pageIndex).toBe(0);
+    expect(affiliateProposalPageCursor(reset)).toBeNull();
+    expect(appendAffiliateProposalPageBuffer(emptyAffiliateProposalPageBuffer(firstKey), nextKey, {
+      items: [proposal("stale", "PENDING")], hasMore: false, nextCursor: null,
+    }).items).toEqual([]);
+  });
+
+  it("passes Agent search to the server instead of filtering only loaded proposals", () => {
+    const source = readFileSync(resolve(import.meta.dirname, "AffiliateManagementPage.tsx"), "utf8");
+    const query = source.slice(source.indexOf("const proposalPages ="), source.indexOf("const loadedProposals ="));
+    expect(query).toContain("search: debouncedAttentionSearch || null");
+    expect(source).not.toContain("filterActionProposals(");
+  });
+
   it("returns the paged Agent work view to page 0 when filters or page size change", () => {
     const pendingKey = affiliateProposalPageQueryKey({
       userId: "user-1",

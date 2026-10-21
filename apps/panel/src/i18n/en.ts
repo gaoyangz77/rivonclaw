@@ -3617,7 +3617,7 @@ export default {
         operationRemove: "Remove",
         deletedTag: "Deleted tag",
       },
-      creatorSearchPlaceholder: "Search name, handle, or creator ID",
+      creatorSearchPlaceholder: "Search name, handle, creator ID, or exact UID note",
       creatorLatestWork: "Latest work",
       creatorLastInteraction: "Last interaction",
       creatorActiveCollaborations: "{{count}} active collaboration(s)",
@@ -3978,7 +3978,7 @@ export default {
       mlFalseNegativeRiskBody:
         "{{rate}} of historical approvals would be filtered; those observed approvals sold {{units}} units.",
       mlModelVersion: "Model version",
-      searchPlaceholder: "Search creator, product, proposal, or collaboration",
+      searchPlaceholder: "Search creator, exact UID note, product, proposal, or collaboration",
       businessDeveloperFilter: "BD filter",
       businessDeveloperSearchPlaceholder: "Search BD name",
       allBusinessDevelopers: "All BDs",

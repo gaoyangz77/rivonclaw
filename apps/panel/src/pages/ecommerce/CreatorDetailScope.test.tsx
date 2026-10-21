@@ -52,6 +52,7 @@ vi.mock("../../lib/event-bus.js", () => ({ panelEventBus: {
   },
 } }));
 vi.mock("@apollo/client/react", () => ({
+  useApolloClient: () => ({ mutate: state.mutate, query: state.refetch }),
   useMutation: () => [state.mutate, { loading: false }],
   useLazyQuery: () => [state.mutate, { loading: false }],
   useQuery: (

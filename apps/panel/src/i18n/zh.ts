@@ -3445,7 +3445,7 @@ export default {
         operationRemove: "移除",
         deletedTag: "已删除的标签",
       },
-      creatorSearchPlaceholder: "搜索昵称、账号或达人 ID",
+      creatorSearchPlaceholder: "搜索昵称、账号、达人 ID 或完整备注 UID",
       creatorLatestWork: "最近合作",
       creatorLastInteraction: "最近互动",
       creatorActiveCollaborations: "{{count}} 个活跃合作",
@@ -3784,7 +3784,7 @@ export default {
       mlFalseNegativeRiskBody:
         "模型会过滤 {{rate}} 的历史人工通过样本；这些有结果的样本实际卖出 {{units}} 件。",
       mlModelVersion: "模型版本",
-      searchPlaceholder: "搜索达人、商品、提案或合作",
+      searchPlaceholder: "搜索达人、完整备注 UID、商品、提案或合作",
       businessDeveloperFilter: "BD 筛选",
       businessDeveloperSearchPlaceholder: "搜索 BD 名字",
       allBusinessDevelopers: "全部 BD",
