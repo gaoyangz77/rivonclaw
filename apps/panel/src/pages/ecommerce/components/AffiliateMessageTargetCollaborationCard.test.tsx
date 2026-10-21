@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApolloClient, ApolloLink, InMemoryCache, Observable } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
@@ -46,8 +46,17 @@ function setup(part: GQL.AffiliateHistoryPart, fail = false) {
 it("renders the existing collaboration/product card and invitation details with zero mount queries", async () => {
   const { operations } = setup({ kind: GQL.AffiliateHistoryPartKind.TargetCollaborationCard, targetCollaborationId: "target-1", targetCollaboration: collaboration });
   expect(screen.getAllByText("Probiotic capsules").length).toBeGreaterThan(0);
-  expect(screen.getByText("October invitation")).toBeTruthy();
+  const card = document.querySelector<HTMLElement>(".affiliate-collaboration-chat-card")!;
+  expect(within(card).getByText("定邀卡片").tagName).toBe("STRONG");
+  expect(within(card).getByText("October invitation")).toBeTruthy();
+  expect(card.querySelector(".affiliate-card-section-primary")).toBeNull();
+  const disclosure = document.querySelector<HTMLDetailsElement>(".affiliate-message-target-config")!;
+  expect(disclosure.open).toBe(false);
+  fireEvent.click(within(disclosure).getByText("当前配置"));
+  expect(disclosure.open).toBe(true);
   expect(screen.getByText("We would love to work with you")).toBeTruthy();
+  fireEvent.click(within(disclosure).getByText("当前配置"));
+  expect(disclosure.open).toBe(false);
   expect(document.querySelector(".affiliate-collaboration-card")).toBeTruthy();
   expect(document.querySelector(".affiliate-platform-collaboration-config-snapshot")).toBeTruthy();
   expect(screen.getAllByText(/15%/).length).toBeGreaterThan(0);

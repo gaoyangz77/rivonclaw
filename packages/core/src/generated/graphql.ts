@@ -3360,14 +3360,20 @@ export interface AffiliateHistoryPart {
   agentReadable?: Maybe<Scalars["Boolean"]["output"]>;
   attachmentRef?: Maybe<Scalars["String"]["output"]>;
   caption?: Maybe<Scalars["String"]["output"]>;
+  cardRefreshToken?: Maybe<Scalars["String"]["output"]>;
   durationMs?: Maybe<Scalars["Int"]["output"]>;
   fileName?: Maybe<Scalars["String"]["output"]>;
   height?: Maybe<Scalars["Int"]["output"]>;
   inline?: Maybe<Scalars["Boolean"]["output"]>;
   kind: AffiliateHistoryPartKind;
   mimeType?: Maybe<Scalars["String"]["output"]>;
+  /** External TikTok apply_id; never a local Mongo Sample id. */
+  platformSampleApplicationId?: Maybe<Scalars["String"]["output"]>;
   productId?: Maybe<Scalars["String"]["output"]>;
+  productSummary?: Maybe<EcomProductSummary>;
   providerType?: Maybe<Scalars["String"]["output"]>;
+  /** Current relationship-owned Sample projection, batch-loaded with this message page. */
+  sampleApplication?: Maybe<SampleApplicationRecord>;
   /** Relationship-owned Mongo SampleApplicationRecord ID for a FREE_SAMPLE_CARD. This is never a TikTok Provider application ID; use it with affiliate_get_sample_application. */
   sampleApplicationId?: Maybe<Scalars["ID"]["output"]>;
   sizeBytes?: Maybe<Scalars["Int"]["output"]>;
@@ -11401,6 +11407,8 @@ export interface Mutation {
   publishUpdate: Scalars["Boolean"]["output"];
   /** Record an impression, dismissal, or action click for a server-driven announcement. */
   recordAnnouncementEvent: Scalars["Boolean"]["output"];
+  /** Explicitly fill missing message card entities after current Relationship/shop access checks. Does not read message history or send messages. */
+  refreshAffiliateMessageCards: Scalars["Boolean"]["output"];
   /** Explicitly fill missing Target invitation details for an authorized message card; never sends an invitation or reads message history. */
   refreshAffiliateMessageTargetCollaboration: AffiliateMessageTargetCollaboration;
   /** Query the provider and refresh a payment's status. */
@@ -12243,6 +12251,10 @@ export interface MutationPublishUpdateArgs {
 
 export interface MutationRecordAnnouncementEventArgs {
   input: RecordAnnouncementEventInput;
+}
+
+export interface MutationRefreshAffiliateMessageCardsArgs {
+  input: RefreshAffiliateMessageCardsInput;
 }
 
 export interface MutationRefreshAffiliateMessageTargetCollaborationArgs {
@@ -14695,6 +14707,11 @@ export interface RecordAnnouncementEventInput {
   key: Scalars["String"]["input"];
   locale?: InputMaybe<Scalars["String"]["input"]>;
   surface: AnnouncementSurface;
+}
+
+export interface RefreshAffiliateMessageCardsInput {
+  creatorRelationshipId: Scalars["ID"]["input"];
+  referenceTokens: Array<Scalars["String"]["input"]>;
 }
 
 export interface RefreshAffiliateMessageTargetCollaborationInput {

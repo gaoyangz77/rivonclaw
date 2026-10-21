@@ -3306,15 +3306,15 @@ export default {
         replyFailed: "Antwort konnte nicht gesendet werden",
         replyUnavailable:
           "Zum Antworten ist eine Unterhaltung oder Creator-Identität erforderlich.",
-        cardOnlyMessage: "Diese Nachricht enthält nur eine Karte.",
+        platformCardLabel: "Karte",
         productCard: "Produktkarte: {{product}}",
         sampleApplicationCard: "Musteranfrage-Karte: {{applicationId}}",
         targetCollaborationCard: "Kooperationskarte: {{collaborationId}}",
         productCardLabel: "Produktkarte",
         sampleApplicationCardLabel: "Musteranfrage-Karte",
         sampleApplicationCardTitle: "Musteranfrage",
-        targetCollaborationCardLabel: "Kooperationseinladung",
-        targetCollaborationCardTitle: "Kooperationseinladung",
+        targetCollaborationCardLabel: "Karte für gezielte Kooperation",
+        targetCollaborationCardTitle: "Karte für gezielte Kooperation",
         collaborationId: "Kooperations-ID",
         productCount: "{{count}} Produkt(e)",
         directions: {

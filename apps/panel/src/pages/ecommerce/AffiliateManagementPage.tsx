@@ -1,3 +1,4 @@
+import { AffiliateMessageAttachmentCard } from "./components/AffiliateMessageAttachmentCard.js";
 import { AffiliateSampleShipment } from "./components/AffiliateSampleShipment.js";
 import {
   affiliateTimelinePageInfo,
@@ -119,6 +120,7 @@ import {
   AFFILIATE_RESOLVE_ESCALATION_MUTATION,
   AFFILIATE_COLLABORATION_DETAIL_QUERY,
   REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION,
+  REFRESH_AFFILIATE_MESSAGE_CARDS_MUTATION,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATOR_CONTACT_STATE_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
@@ -192,6 +194,7 @@ import {
   type AffiliateEntityCardVariant,
 } from "./components/AffiliateUi.js";
 import "./components/AffiliateUi.css";
+import "./components/AffiliateMessageTargetCollaborationCard.css";
 import "./AffiliateWorkbenchPage.css";
 import { AffiliateMessageSourceLabel } from "./components/AffiliateMessageSourceLabel.js";
 
@@ -3962,6 +3965,7 @@ export function AffiliateCollaborationCard({
   productSummaries,
   contextLabels = [],
   variant = "listing",
+  compact = false,
   onOpen,
 }: {
   collaboration: GQL.AffiliateCollaboration | GQL.AffiliateMessageTargetCollaboration;
@@ -3970,6 +3974,7 @@ export function AffiliateCollaborationCard({
   productSummaries?: GQL.EcomProductSummary[];
   contextLabels?: string[];
   variant?: AffiliateEntityCardVariant;
+  compact?: boolean;
   onOpen?: () => void;
 }) {
   const { t } = useTranslation();
@@ -4016,6 +4021,7 @@ export function AffiliateCollaborationCard({
         [
           "affiliate-collaboration-card",
           "affiliate-collaboration-record-card",
+          compact ? "affiliate-collaboration-chat-card" : "",
           variant === "embedded" ? "affiliate-entity-card-embedded" : "",
           isInteractive ? "affiliate-collaboration-card-interactive" : "",
         ]
@@ -4035,10 +4041,15 @@ export function AffiliateCollaborationCard({
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-text">
           <div className="affiliate-creator-name-static">
-            {formatAffiliateEnumLabel(collaboration.type)} ·{" "}
-            <TkPrivate sensitive={shopLabel.sensitive}>{shopLabel.text}</TkPrivate>
+            {compact ? <>
+              <strong>{t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardLabel")}</strong>
+              {collaboration.name ? <TkPrivate className="affiliate-chat-invitation-name">{collaboration.name}</TkPrivate> : null}
+            </> : <>
+              {formatAffiliateEnumLabel(collaboration.type)} ·{" "}
+              <TkPrivate sensitive={shopLabel.sensitive}>{shopLabel.text}</TkPrivate>
+            </>}
           </div>
-          <div className="affiliate-work-item-meta">
+          {!compact ? <div className="affiliate-work-item-meta">
             {contextLabels.length > 0 ? (
               <span>{contextLabels.join(" · ")}</span>
             ) : (
@@ -4050,13 +4061,13 @@ export function AffiliateCollaborationCard({
             )}
             <SystemIdCopy value={collaboration.id} />
             <PlatformIdCopy value={collaboration.platformCollaborationId} />
-          </div>
+          </div> : null}
         </div>
-        <RelationshipStatusBadge display={statusDisplay} tone={tone} />
+        <RelationshipStatusBadge display={compact ? { primary: statusDisplay.primary } : statusDisplay} tone={tone} compact={compact} />
       </div>
 
       <div className="affiliate-collaboration-card-body affiliate-collaboration-record-card-body">
-        <section className="affiliate-card-section affiliate-card-section-primary">
+        {!compact ? <section className="affiliate-card-section affiliate-card-section-primary">
           <div className="affiliate-card-section-label">
             {t("ecommerce.affiliateWorkspace.historyTitle")}
           </div>
@@ -4076,7 +4087,7 @@ export function AffiliateCollaborationCard({
             {formatAffiliateEnumLabel(collaboration.status)} ·{" "}
             {formatAffiliateEnumLabel(collaboration.type)}
           </div>
-        </section>
+        </section> : null}
 
         {visibleProductIds.length > 0 ? (
           visibleProductIds.map((productId) => (
@@ -4085,10 +4096,10 @@ export function AffiliateCollaborationCard({
               product={productForId(productId)}
               productId={productId}
               shopId={collaboration.shopId}
-              label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+              label={compact ? undefined : t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
               allowInlineLoad={false}
               allowDetailOpen={variant !== "listing"}
-              variant={variant === "listing" ? "compact" : "embedded"}
+              variant={compact || variant === "listing" ? "compact" : "embedded"}
             />
           ))
         ) : (
@@ -4096,26 +4107,26 @@ export function AffiliateCollaborationCard({
             product={null}
             productId={undefined}
             shopId={collaboration.shopId}
-            label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+            label={compact ? undefined : t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
             allowInlineLoad={false}
             allowDetailOpen={variant !== "listing"}
-            variant={variant === "listing" ? "compact" : "embedded"}
+            variant={compact || variant === "listing" ? "compact" : "embedded"}
           />
         )}
 
         <div className="affiliate-relationship-work-card-priority">
-          <RelationshipMetric
+          {!compact ? <RelationshipMetric
             label={t("ecommerce.affiliateWorkspace.sampleApplication.status")}
             value={formatAffiliateEnumLabel(collaboration.status)}
-          />
-          {"creatorIds" in collaboration ? <RelationshipMetric
+          /> : null}
+          {!compact && "creatorIds" in collaboration ? <RelationshipMetric
             label={t("ecommerce.affiliateWorkspace.collaborationOperations.creators")}
             value={formatInteger(creatorCount)}
           /> : null}
-          <RelationshipMetric
+          {!compact ? <RelationshipMetric
             label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
             value={formatInteger(productCount)}
-          />
+          /> : null}
           {collaboration.type === GQL.AffiliateCollaborationType.Target ? (
             <>
               <RelationshipMetric
@@ -4640,8 +4651,10 @@ function collaborationSampleRuleIsEnabled(
 
 function AffiliateCollaborationConfigurationSnapshot({
   collaboration,
+  showHeading = true,
 }: {
   collaboration: GQL.AffiliateCollaboration | GQL.AffiliateMessageTargetCollaboration;
+  showHeading?: boolean;
 }) {
   const { t } = useTranslation();
   const sampleRule = "openSampleRule" in collaboration ? collaboration.openSampleRule : undefined;
@@ -4701,9 +4714,9 @@ function AffiliateCollaborationConfigurationSnapshot({
 
   return (
     <section className="affiliate-platform-collaboration-config-snapshot">
-      <div className="affiliate-platform-collaboration-section-heading">
+      {showHeading ? <div className="affiliate-platform-collaboration-section-heading">
         <h3>{t("ecommerce.affiliateWorkspace.collaborationOperations.currentConfiguration")}</h3>
-      </div>
+      </div> : null}
       <div className="affiliate-platform-collaboration-fact-grid">
         {facts.map((fact) => (
           <div className="affiliate-platform-collaboration-fact" key={fact.label}>
@@ -6871,11 +6884,7 @@ function AffiliateCreatorMessageRow({
       </div>
       {shouldShowText ? (
         <div className="affiliate-conversation-message-text">{text}</div>
-      ) : (
-        <div className="affiliate-conversation-message-text affiliate-conversation-message-empty">
-          {t("ecommerce.affiliateWorkspace.conversation.cardOnlyMessage")}
-        </div>
-      )}
+      ) : null}
       {hasCardRefs ? (
         <div className="affiliate-conversation-card-stack">
           {productRefs.map((ref) => (
@@ -6908,6 +6917,7 @@ function AffiliateCreatorMessageRow({
               part={part}
               creatorRelationshipId={creatorRelationshipId}
               shopLabel={{ text: message.shopName ?? message.shopId ?? "", sensitive: true }}
+              shopId={message.shopId}
               onRefresh={onRefresh}
             />
           ))}
@@ -6951,12 +6961,15 @@ export function AffiliateMessageTargetCollaborationCard({ part, creatorRelations
     } finally { setRefreshing(false); }
   }
   return (
-    <div className="affiliate-conversation-card-stack">
+    <div className="affiliate-conversation-card-stack affiliate-message-target-card">
       {collaboration ? <>
         <AffiliateCollaborationCard collaboration={collaboration} shopLabel={shopLabel}
-          productSummaries={products} variant="embedded" onOpen={() => setDetailOpen(true)} />
-        <AffiliateCollaborationConfigurationSnapshot collaboration={collaboration} />
-        {collaboration.message ? <div className="affiliate-conversation-message-text"><TkPrivate>{collaboration.message}</TkPrivate></div> : null}
+          productSummaries={products} variant="embedded" compact onOpen={() => setDetailOpen(true)} />
+        <details className="affiliate-message-target-config">
+          <summary>{t("ecommerce.affiliateWorkspace.collaborationOperations.currentConfiguration")}</summary>
+          <AffiliateCollaborationConfigurationSnapshot collaboration={collaboration} showHeading={false} />
+          {collaboration.message ? <div className="affiliate-conversation-message-text"><TkPrivate>{collaboration.message}</TkPrivate></div> : null}
+        </details>
       </> : <div className="affiliate-conversation-card affiliate-conversation-target-card">
         <div className="affiliate-conversation-card-body">
           <strong>{t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardTitle")}</strong>
@@ -6976,94 +6989,63 @@ export function AffiliateMessageTargetCollaborationCard({ part, creatorRelations
   );
 }
 
+export function AffiliateMessageEntityCard({ part, creatorRelationshipId, shopId, onRefresh }: {
+  part: GQL.AffiliateHistoryPart; creatorRelationshipId: string; shopId: string; onRefresh: () => Promise<unknown>;
+}) {
+  const { t } = useTranslation();
+  const [refresh, { loading }] = useMutation(REFRESH_AFFILIATE_MESSAGE_CARDS_MUTATION);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const prefix = "ecommerce.affiliateWorkspace.messageCards.";
+  const sample = part.kind === GQL.AffiliateHistoryPartKind.FreeSampleCard;
+  const product = part.kind === GQL.AffiliateHistoryPartKind.ProductCard;
+  async function load() {
+    const token = part.cardRefreshToken;
+    if (!token || loading) return;
+    setErrorKey(null);
+    try {
+      await refresh({ variables: { input: { creatorRelationshipId, referenceTokens: [token] } } });
+      await onRefresh();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setErrorKey(message.includes("SAMPLE_CARD_NOT_FOUND") ? "sampleNotFound" : message.includes("SAMPLE_CARD_PROJECTION_PENDING") ? "samplePending" : "failed");
+    }
+  }
+  return <div className="affiliate-message-entity-card">
+    {sample && part.sampleApplication ? <SampleApplicationSummaryCard sampleApplication={part.sampleApplication}
+      productSummary={part.productSummary} shopId={shopId} compact /> : <>
+      <strong>{t(`ecommerce.affiliateWorkspace.conversation.${sample ? "sampleApplicationCardLabel" : product ? "productCardLabel" : "platformCardLabel"}`)}</strong>
+      {product ? <ProductSummaryCard product={part.productSummary} productId={part.productId} shopId={shopId}
+        allowInlineLoad={false} variant="compact" /> : <span>{t(`${prefix}unavailable`)}</span>}
+      {sample && part.platformSampleApplicationId ? <PlatformIdCopy value={part.platformSampleApplicationId} /> : null}
+    </>}
+    {part.cardRefreshToken ? <button type="button" className="btn btn-secondary btn-sm" disabled={loading} onClick={() => void load()}>
+      {loading ? t("common.loading") : t(`${prefix}load`)}
+    </button> : null}
+    {errorKey ? <span role="alert">{t(`${prefix}${errorKey}`)}</span> : null}
+  </div>;
+}
+
 function AffiliateHistoryPartView({
   part,
   creatorRelationshipId,
   shopLabel,
+  shopId,
   onRefresh,
 }: {
   part: GQL.AffiliateHistoryPart;
   creatorRelationshipId: string;
   shopLabel: ShopDisplayLabel;
+  shopId?: string | null;
   onRefresh: () => Promise<unknown>;
 }) {
-  const [downloading, setDownloading] = useState(false);
   if (part.kind === GQL.AffiliateHistoryPartKind.Text) return null;
   if (part.kind === GQL.AffiliateHistoryPartKind.TargetCollaborationCard) {
     return <AffiliateMessageTargetCollaborationCard part={part} creatorRelationshipId={creatorRelationshipId} shopLabel={shopLabel} onRefresh={onRefresh} />;
   }
   if (part.kind === GQL.AffiliateHistoryPartKind.Attachment) {
-    return (
-      <div className="affiliate-conversation-card affiliate-conversation-target-card">
-        <div className="affiliate-conversation-card-icon" aria-hidden="true">
-          A
-        </div>
-        <div className="affiliate-conversation-card-body">
-          <strong>{part.fileName ?? "Attachment"}</strong>
-          <span>
-            {[part.mimeType, part.sizeBytes != null ? formatFileSize(part.sizeBytes) : null]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-          {part.caption ? <span>{part.caption}</span> : null}
-          {part.attachmentRef ? (
-            <button
-              className="btn btn-secondary"
-              type="button"
-              disabled={downloading}
-              onClick={() =>
-                void downloadAffiliateAttachment(part, creatorRelationshipId, setDownloading)
-              }
-            >
-              {downloading ? "Loading…" : "Open / download"}
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
+    return <AffiliateMessageAttachmentCard part={part} creatorRelationshipId={creatorRelationshipId} />;
   }
-  const id = part.productId ?? part.targetCollaborationId ?? part.sampleApplicationId;
-  return (
-    <div className="affiliate-conversation-card affiliate-conversation-target-card">
-      <div className="affiliate-conversation-card-icon" aria-hidden="true">
-        C
-      </div>
-      <div className="affiliate-conversation-card-body">
-        <strong>{formatAffiliateEnumLabel(part.kind)}</strong>
-        {id ? <PlatformIdCopy value={id} /> : null}
-        {part.summary ? <span>{part.summary}</span> : null}
-      </div>
-    </div>
-  );
-}
-
-async function downloadAffiliateAttachment(
-  part: GQL.AffiliateHistoryPart,
-  creatorRelationshipId: string,
-  setDownloading: (value: boolean) => void,
-): Promise<void> {
-  if (!part.attachmentRef) return;
-  setDownloading(true);
-  try {
-    const response = await fetch("/api/cloud/ecommerce/affiliate/read-message-attachment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Creator-Relationship-Id": creatorRelationshipId,
-        "X-Affiliate-Read-Mode": "DOWNLOAD",
-      },
-      body: JSON.stringify({ attachmentRef: part.attachmentRef }),
-    });
-    if (!response.ok) throw new Error(`Attachment download failed (${response.status})`);
-    const url = URL.createObjectURL(await response.blob());
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = part.fileName ?? "attachment";
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-  } finally {
-    setDownloading(false);
-  }
+  return <AffiliateMessageEntityCard part={part} creatorRelationshipId={creatorRelationshipId} shopId={shopId ?? part.sampleApplication?.shopId ?? ""} onRefresh={onRefresh} />;
 }
 
 function formatFileSize(bytes: number): string {
@@ -7090,13 +7072,7 @@ function AffiliateCreatorMessageRawPayloadCard({
         ? t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")
         : payload.kind === "target"
           ? t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardLabel")
-          : t("ecommerce.affiliateWorkspace.conversation.cardOnlyMessage");
-  const title =
-    payload.kind === "sample"
-      ? t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardTitle")
-      : payload.kind === "target"
-        ? t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardTitle")
-        : label;
+          : t("ecommerce.affiliateWorkspace.conversation.platformCardLabel");
   return (
     <div className="affiliate-conversation-card affiliate-conversation-target-card">
       <div className="affiliate-conversation-card-icon" aria-hidden="true">
@@ -7109,8 +7085,7 @@ function AffiliateCreatorMessageRawPayloadCard({
               : "C"}
       </div>
       <div className="affiliate-conversation-card-body">
-        <span className="affiliate-conversation-card-kicker">{label}</span>
-        <strong>{title}</strong>
+        <strong>{label}</strong>
         {payload.id ? (
           <div className="affiliate-conversation-card-meta">
             <PlatformIdCopy value={payload.id} />
@@ -7139,10 +7114,10 @@ function AffiliateCreatorMessageProductRefCard({
         )}
       </div>
       <div className="affiliate-conversation-card-body">
-        <span className="affiliate-conversation-card-kicker">
+        <strong>
           {t("ecommerce.affiliateWorkspace.conversation.productCardLabel")}
-        </span>
-        <TkPrivate as="strong" sensitive={Boolean(product?.title)}>
+        </strong>
+        <TkPrivate as="span" sensitive={Boolean(product?.title)}>
           {product?.title || t("ecommerce.affiliateWorkspace.productContextConfirmed")}
         </TkPrivate>
         <div className="affiliate-conversation-card-meta">
@@ -7174,16 +7149,14 @@ function AffiliateCreatorMessageSampleRefCard({
         S
       </div>
       <div className="affiliate-conversation-card-body">
-        <span className="affiliate-conversation-card-kicker">
-          {t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}
-        </span>
         <strong>
-          {sample?.sampleWorkStatus
-            ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sample.sampleWorkStatus}`, {
-                defaultValue: formatAffiliateEnumLabel(sample.sampleWorkStatus),
-              })
-            : t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardTitle")}
+          {t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}
         </strong>
+        {sample?.sampleWorkStatus ? <span>
+          {t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sample.sampleWorkStatus}`, {
+                defaultValue: formatAffiliateEnumLabel(sample.sampleWorkStatus),
+              })}
+        </span> : null}
         <div className="affiliate-conversation-card-meta">
           <PlatformIdCopy value={refItem.platformApplicationId} />
           {sample?.observedContentCount != null ? (
@@ -7212,14 +7185,10 @@ function AffiliateCreatorMessageTargetRefCard({
         T
       </div>
       <div className="affiliate-conversation-card-body">
-        <span className="affiliate-conversation-card-kicker">
-          {t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardLabel")}
-        </span>
         <strong>
-          {collaboration?.status
-            ? formatAffiliateEnumLabel(collaboration.status)
-            : t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardTitle")}
+          {t("ecommerce.affiliateWorkspace.conversation.targetCollaborationCardLabel")}
         </strong>
+        {collaboration?.status ? <span>{formatAffiliateEnumLabel(collaboration.status)}</span> : null}
         <div className="affiliate-conversation-card-meta">
           <PlatformIdCopy value={refItem.platformTargetCollaborationId} />
           {productCount > 0 ? (
@@ -9565,6 +9534,7 @@ export function predictionSignalFallbackLabel(
 
 export function SampleApplicationSummaryCard({
   sampleApplication,
+  compact = false,
   productSummary,
   shopId,
   allowProductLoad = false,
@@ -9572,6 +9542,7 @@ export function SampleApplicationSummaryCard({
   variant,
 }: {
   sampleApplication: GQL.SampleApplicationRecord;
+  compact?: boolean;
   productSummary?: GQL.EcomProductSummary | null;
   shopId?: string | null;
   allowProductLoad?: boolean;
@@ -9654,6 +9625,28 @@ export function SampleApplicationSummaryCard({
   const contentCount = sampleApplication.observedContentCount ?? 0;
   const resolvedVariant = variant ?? (embedded ? "embedded" : "listing");
   const isEmbedded = resolvedVariant === "embedded" || embedded;
+
+  if (compact) return <article className="affiliate-message-sample-card">
+    <div className="affiliate-message-entity-title">
+      <strong>{t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}</strong>
+      <TkBadge tone="neutral">{t("ecommerce.affiliateWorkspace.messageCards.currentState", { status })}</TkBadge>
+    </div>
+    <ProductSummaryCard product={productSummary} productId={sampleApplication.productId}
+      shopId={shopId ?? sampleApplication.shopId} allowInlineLoad={false} variant="compact"
+      appliedForSku={{ skuId: sampleApplication.skuId, skuName: sampleApplication.skuName, skuImageUrl: sampleApplication.skuImageUrl }} />
+    {sampleApplication.commissionRate != null ? <span>
+      {t("ecommerce.affiliateWorkspace.collaborationOperations.commissionPercent")}: {formatPercent(sampleApplication.commissionRate)}
+    </span> : null}
+    <details className="affiliate-message-target-config">
+      <summary>{t("ecommerce.affiliateWorkspace.sampleApplication.showDetails")}</summary>
+      <div className="affiliate-collaboration-sample-details-grid">
+        {detailFields.map(field => <SampleApplicationFact key={field.label} label={field.label} value={field.value} />)}
+        <SampleApplicationFact label={t("ecommerce.affiliateWorkspace.sampleApplication.orderId")} value={sampleOrderId || "—"} />
+        <SampleApplicationFact label={t("ecommerce.affiliateWorkspace.sampleApplication.updatedAt")} value={formatProposalTime(sampleApplication.lastObservedAt)} />
+      </div>
+      <AffiliateSampleShipment sample={sampleApplication} />
+    </details>
+  </article>;
 
   return (
     <article

@@ -3583,6 +3583,31 @@ export const AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT = gql`
   }
 `;
 
+export const AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT = gql`
+  fragment AffiliateMessageCardEntities on AffiliateHistoryPart {
+    platformSampleApplicationId cardRefreshToken
+    productSummary { productId title coverImage status priceMin priceMax skus { skuId skuName sellerSku price currency } }
+    sampleApplication {
+      id shopId creatorRelationshipId platformApplicationId productId skuId skuName skuImageUrl
+      sampleWorkStatus reviewDisposition commissionRate observedContentCount
+      updatedAt lastObservedAt firstObservedAt shippedAt deliveredAt carrier trackingNumber
+      latestObservedContentId latestObservedContentAt latestObservedContentViewCount
+      affiliateCollaborationId platformCollaborationId platformTargetCollaborationId platformOpenCollaborationId
+      order {
+        platformOrderId trackingNumber carrier status trackingSyncedAt latestTrackingEventAt
+        latestTrackingEventDescription latestTrackingEventActionCode
+        trackingEvents { actionCode description updateTimeMillis }
+      }
+    }
+  }
+`;
+
+export const REFRESH_AFFILIATE_MESSAGE_CARDS_MUTATION = gql`
+  mutation RefreshAffiliateMessageCards($input: RefreshAffiliateMessageCardsInput!) {
+    refreshAffiliateMessageCards(input: $input)
+  }
+`;
+
 export const REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION = gql`
   ${AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT}
   mutation RefreshAffiliateMessageTargetCollaboration($input: RefreshAffiliateMessageTargetCollaborationInput!) {
@@ -3592,6 +3617,7 @@ export const REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION = gql`
 
 export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
   ${AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT}
+  ${AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT}
   query AffiliateRelationshipTimeline($input: AffiliateRelationshipTimelineInput!) {
     affiliateRelationshipTimeline(input: $input) {
       limit
@@ -3632,6 +3658,7 @@ export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
           textPreview
           messageRef
           parts {
+            ...AffiliateMessageCardEntities
             kind
             text
             attachmentRef
@@ -3692,6 +3719,7 @@ export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
 
 export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
   ${AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT}
+  ${AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT}
   query AffiliateCreatorMessageHistory($input: AffiliateCreatorMessageHistoryInput!) {
     affiliateCreatorMessageHistory(input: $input) {
       limit
@@ -3703,6 +3731,7 @@ export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
         direction
         messageRef
         parts {
+          ...AffiliateMessageCardEntities
           kind
           text
           attachmentRef

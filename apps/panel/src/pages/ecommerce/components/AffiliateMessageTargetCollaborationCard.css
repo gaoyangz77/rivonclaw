@@ -1,0 +1,124 @@
+/* Chat keeps the invitation readable without repeating the surrounding message metadata. */
+.affiliate-message-target-card .affiliate-collaboration-chat-card {
+  box-shadow: none;
+}
+
+.affiliate-message-target-card .affiliate-collaboration-chat-card > .affiliate-work-item-head {
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+}
+
+.affiliate-collaboration-chat-card .affiliate-creator-name-static {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-collaboration-chat-card .affiliate-creator-name-static > strong {
+  flex-shrink: 0;
+}
+
+.affiliate-collaboration-chat-card .affiliate-chat-invitation-name {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-message-target-card .affiliate-collaboration-chat-card .affiliate-collaboration-record-card-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+}
+
+.affiliate-message-target-card .affiliate-collaboration-chat-card .affiliate-product-summary {
+  grid-template-columns: var(--tk-v1-space-12) minmax(0, 1fr);
+  gap: var(--tk-v1-space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.affiliate-message-target-card .affiliate-collaboration-chat-card .affiliate-product-thumb,
+.affiliate-message-target-card .affiliate-collaboration-chat-card .affiliate-product-thumb-button {
+  width: var(--tk-v1-space-12);
+  height: var(--tk-v1-space-12);
+}
+
+.affiliate-message-target-card .affiliate-collaboration-chat-card .affiliate-relationship-work-card-priority {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-4);
+}
+
+.affiliate-message-target-card .affiliate-collaboration-chat-card .affiliate-relationship-work-metric {
+  display: flex;
+  min-height: 0;
+  align-items: baseline;
+  gap: var(--tk-v1-space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.affiliate-message-target-config > summary {
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.affiliate-message-target-config > summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: var(--tk-v1-space-1);
+}
+
+.affiliate-message-target-config .affiliate-platform-collaboration-config-snapshot {
+  min-height: 0;
+  margin-top: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+}
+
+.affiliate-message-target-config .affiliate-conversation-message-text {
+  margin-top: var(--tk-v1-space-2);
+}
+
+.affiliate-message-entity-card,
+.affiliate-message-sample-card,
+.affiliate-message-attachment-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-message-entity-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-message-entity-card .affiliate-product-summary {
+  grid-template-columns: var(--tk-v1-space-12) minmax(0, 1fr);
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+  box-shadow: none;
+}
+
+.affiliate-message-entity-card .affiliate-product-thumb,
+.affiliate-message-entity-card .affiliate-product-thumb-button {
+  width: var(--tk-v1-space-12);
+  height: var(--tk-v1-space-12);
+}
+
+.affiliate-message-image-preview {
+  display: block;
+  width: 100%;
+  max-height: calc(var(--tk-v1-space-12) * 5);
+  object-fit: contain;
+  border-radius: var(--tk-v1-radius-3);
+}

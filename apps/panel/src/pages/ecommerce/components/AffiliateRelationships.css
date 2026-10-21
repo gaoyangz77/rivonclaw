@@ -3330,10 +3330,6 @@
   white-space: pre-wrap;
 }
 
-.affiliate-conversation-message-empty {
-  color: var(--color-text-muted);
-}
-
 .affiliate-conversation-message-refs {
   display: flex;
   flex-wrap: wrap;
