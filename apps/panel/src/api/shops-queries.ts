@@ -3571,8 +3571,8 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
 `;
 
 export const AFFILIATE_MESSAGE_TARGET_COLLABORATION_FRAGMENT = gql`
-  fragment AffiliateMessageTargetCollaboration on AffiliateCollaboration {
-    id userId shopId type status platformCollaborationId creatorIds creatorOpenIds productIds
+  fragment AffiliateMessageTargetCollaboration on AffiliateMessageTargetCollaboration {
+    id shopId type status platformCollaborationId productIds
     name message startTime endTime lastObservedAt platformUpdatedAt
     freeSampleRule { hasFreeSample isSampleApprovalExempt }
     sellerContactInfo { email }

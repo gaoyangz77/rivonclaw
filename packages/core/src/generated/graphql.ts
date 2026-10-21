@@ -3373,7 +3373,7 @@ export interface AffiliateHistoryPart {
   sizeBytes?: Maybe<Scalars["Int"]["output"]>;
   summary?: Maybe<Scalars["String"]["output"]>;
   /** Latest local Target Collaboration projection, batch-loaded with this message page. */
-  targetCollaboration?: Maybe<AffiliateCollaboration>;
+  targetCollaboration?: Maybe<AffiliateMessageTargetCollaboration>;
   targetCollaborationId?: Maybe<Scalars["ID"]["output"]>;
   /** Present only when local invitation details need an explicit on-demand refresh. */
   targetCollaborationRefreshToken?: Maybe<Scalars["String"]["output"]>;
@@ -3762,6 +3762,26 @@ export const AffiliateMessagePartKind = {
 
 export type AffiliateMessagePartKind =
   (typeof AffiliateMessagePartKind)[keyof typeof AffiliateMessagePartKind];
+/** Local invitation card context, without a collaboration-wide Creator roster or raw Provider payload. */
+export interface AffiliateMessageTargetCollaboration {
+  commissionRate?: Maybe<Scalars["Float"]["output"]>;
+  endTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  freeSampleRule?: Maybe<EcomFreeSampleRule>;
+  id: Scalars["ID"]["output"];
+  lastObservedAt: Scalars["DateTimeISO"]["output"];
+  message?: Maybe<Scalars["String"]["output"]>;
+  name?: Maybe<Scalars["String"]["output"]>;
+  platformCollaborationId: Scalars["String"]["output"];
+  platformUpdatedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  productIds: Array<Scalars["String"]["output"]>;
+  products: Array<EcomAffiliateProduct>;
+  sellerContactInfo?: Maybe<EcomSellerContactInfo>;
+  shopId: Scalars["ID"]["output"];
+  startTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  status: AffiliateCollaborationStatus;
+  type: AffiliateCollaborationType;
+}
+
 /** The owning shop's minimum expected-sales reference for one agenda item. Availability and units are frozen together so a consumer never has to read a missing number as a missing standard. */
 export interface AffiliateMinExpectedSalesReference {
   /** CONFIGURED carries units. NOT_CONFIGURED means this shop set no reference, which is a business answer: there is nothing to compare an estimate against. SHOP_UNRESOLVED means the owning shop could not be read and is a missing fact, never an absent standard. */
@@ -11382,7 +11402,7 @@ export interface Mutation {
   /** Record an impression, dismissal, or action click for a server-driven announcement. */
   recordAnnouncementEvent: Scalars["Boolean"]["output"];
   /** Explicitly fill missing Target invitation details for an authorized message card; never sends an invitation or reads message history. */
-  refreshAffiliateMessageTargetCollaboration: AffiliateCollaboration;
+  refreshAffiliateMessageTargetCollaboration: AffiliateMessageTargetCollaboration;
   /** Query the provider and refresh a payment's status. */
   refreshPayment: Payment;
   /** Refresh an expired access token */

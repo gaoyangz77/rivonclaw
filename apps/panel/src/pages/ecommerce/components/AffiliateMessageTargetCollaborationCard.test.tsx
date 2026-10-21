@@ -10,13 +10,11 @@ import { AffiliateMessageTargetCollaborationCard } from "../AffiliateManagementP
 beforeEach(async () => { await i18n.changeLanguage("zh"); });
 afterEach(cleanup);
 
-const collaboration: GQL.AffiliateCollaboration = {
-  id: "collab-1", userId: "user-1", shopId: "shop-1", type: GQL.AffiliateCollaborationType.Target,
+const collaboration: GQL.AffiliateMessageTargetCollaboration = {
+  id: "collab-1", shopId: "shop-1", type: GQL.AffiliateCollaborationType.Target,
   status: GQL.AffiliateCollaborationStatus.Active, platformCollaborationId: "target-1",
   name: "October invitation", message: "We would love to work with you", productIds: ["p1"],
-  creatorIds: [], creatorOpenIds: [], lastObservedAt: "2026-10-21T12:00:00Z",
-  createdAt: "2026-10-21T12:00:00Z", updatedAt: "2026-10-21T12:00:00Z", firstObservedAt: "2026-10-21T12:00:00Z",
-  lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile, projectionRevision: 1, targetCreators: [],
+  lastObservedAt: "2026-10-21T12:00:00Z",
   platformUpdatedAt: null, startTime: "2026-10-20T12:00:00Z", endTime: "2026-11-01T12:00:00Z",
   sellerContactInfo: null, freeSampleRule: { hasFreeSample: true, isSampleApprovalExempt: false },
   products: [{ id: "p1", productId: "p1", title: "Probiotic capsules", mainImageUrl: "https://example.com/product.png", imageUrl: null, status: "ACTIVE", collaborationStatus: "ACTIVE", commission: { rate: 1500, shopAdsCommissionRate: 500 } }],
@@ -33,7 +31,7 @@ function setup(part: GQL.AffiliateHistoryPart, fail = false) {
       } else if (fail) observer.error(new Error("Platform quota exceeded"));
       else {
         expect(operation.variables).toEqual({ input: { creatorRelationshipId: "rel-1", referenceToken: "bound-reference" } });
-        observer.next({ data: { refreshAffiliateMessageTargetCollaboration: { __typename: "AffiliateCollaboration", ...collaboration } } });
+        observer.next({ data: { refreshAffiliateMessageTargetCollaboration: { __typename: "AffiliateMessageTargetCollaboration", ...collaboration } } });
         observer.complete();
       }
     });

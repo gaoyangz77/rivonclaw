@@ -3964,7 +3964,7 @@ export function AffiliateCollaborationCard({
   variant = "listing",
   onOpen,
 }: {
-  collaboration: GQL.AffiliateCollaboration;
+  collaboration: GQL.AffiliateCollaboration | GQL.AffiliateMessageTargetCollaboration;
   shopLabel: ShopDisplayLabel;
   productSummary?: GQL.EcomProductSummary | null;
   productSummaries?: GQL.EcomProductSummary[];
@@ -3973,8 +3973,8 @@ export function AffiliateCollaborationCard({
   onOpen?: () => void;
 }) {
   const { t } = useTranslation();
-  const creatorIds = collaboration.creatorIds ?? [];
-  const creatorOpenIds = collaboration.creatorOpenIds ?? [];
+  const creatorIds = "creatorIds" in collaboration ? (collaboration.creatorIds ?? []) : [];
+  const creatorOpenIds = "creatorOpenIds" in collaboration ? (collaboration.creatorOpenIds ?? []) : [];
   const productIds = collaboration.productIds ?? [];
   const products = collaboration.products ?? [];
   const creatorCount = creatorIds.length || creatorOpenIds.length;
@@ -4108,10 +4108,10 @@ export function AffiliateCollaborationCard({
             label={t("ecommerce.affiliateWorkspace.sampleApplication.status")}
             value={formatAffiliateEnumLabel(collaboration.status)}
           />
-          <RelationshipMetric
+          {"creatorIds" in collaboration ? <RelationshipMetric
             label={t("ecommerce.affiliateWorkspace.collaborationOperations.creators")}
             value={formatInteger(creatorCount)}
-          />
+          /> : null}
           <RelationshipMetric
             label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
             value={formatInteger(productCount)}
@@ -4611,7 +4611,7 @@ function affiliateDateTimeLocalToUnixSeconds(value: string): number {
 }
 
 function targetProductDrafts(
-  collaboration: GQL.AffiliateCollaboration,
+  collaboration: Pick<GQL.AffiliateCollaboration, "products" | "productIds">,
 ): AffiliateTargetProductDraft[] {
   const activeProducts = collaboration.products.filter((product) => {
     const status = product.collaborationStatus?.toUpperCase();
@@ -4641,10 +4641,10 @@ function collaborationSampleRuleIsEnabled(
 function AffiliateCollaborationConfigurationSnapshot({
   collaboration,
 }: {
-  collaboration: GQL.AffiliateCollaboration;
+  collaboration: GQL.AffiliateCollaboration | GQL.AffiliateMessageTargetCollaboration;
 }) {
   const { t } = useTranslation();
-  const sampleRule = collaboration.openSampleRule;
+  const sampleRule = "openSampleRule" in collaboration ? collaboration.openSampleRule : undefined;
   const facts =
     collaboration.type === GQL.AffiliateCollaborationType.Open
       ? [
@@ -6929,7 +6929,7 @@ export function AffiliateMessageTargetCollaborationCard({ part, creatorRelations
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refresh] = useMutation<
-    { refreshAffiliateMessageTargetCollaboration: GQL.AffiliateCollaboration },
+    { refreshAffiliateMessageTargetCollaboration: GQL.AffiliateMessageTargetCollaboration },
     { input: GQL.RefreshAffiliateMessageTargetCollaborationInput }
   >(REFRESH_AFFILIATE_MESSAGE_TARGET_COLLABORATION_MUTATION);
   const collaboration = part.targetCollaboration;
