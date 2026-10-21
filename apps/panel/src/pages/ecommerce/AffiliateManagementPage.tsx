@@ -5,6 +5,8 @@ import {
   mergePlatformDetailPages,
 } from "./affiliate-loaded-pages.js";
 import { useAffiliateLoadedQuery } from "./hooks/useAffiliateLoadedQuery.js";
+import { useAffiliateSampleIgnore } from "./hooks/useAffiliateSampleIgnore.js";
+import { AffiliateSampleReviewDialog } from "./components/AffiliateSampleReviewDialog.js";
 import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExportButton.js";
 import { AffiliateClaimCreatorButton } from "./components/AffiliateClaimCreatorButton.js";
 import { AffiliateReleaseCreatorButton } from "./components/AffiliateReleaseCreatorButton.js";
@@ -278,7 +280,6 @@ const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const AFFILIATE_PROPOSAL_PAGE_SIZE = 20;
-const AFFILIATE_SAMPLE_REVIEW_NOTE_MAX_LENGTH = 1_000;
 export const AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS = [25, 50] as const;
 export type AffiliateProposalPageSize = (typeof AFFILIATE_PROPOSAL_PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_AFFILIATE_PROPOSAL_PAGE_SIZE: AffiliateProposalPageSize = 25;
@@ -10434,6 +10435,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   );
   const [sampleRejectExplanation, setSampleRejectExplanation] = useState("");
   const [sampleReviewNote, setSampleReviewNote] = useState("");
+  const sampleIgnore = useAffiliateSampleIgnore(sampleReviewCommand?.sampleApplicationRecordId);
   const conversationViewportRef = useRef<HTMLDivElement | null>(null);
   const conversationAutoScrollPendingRef = useRef(true);
   const conversationScrollRelationshipRef = useRef<string | null>(null);
@@ -10697,6 +10699,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       decidingProposalId ||
       reviewSampleState.loading ||
       reopenSampleState.loading ||
+      sampleIgnore.busy ||
       (nextShopId && !includedShopIds.includes(nextShopId))
     )
       return;
@@ -11084,7 +11087,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   async function executeSampleReviewCommand(): Promise<void> {
-    if (!canPerformDailyOperations || !sampleReviewCommand) return;
+    if (!canPerformDailyOperations || !sampleReviewCommand || sampleIgnore.busy) return;
     try {
       if (sampleReviewCommand.kind === "REOPEN") {
         await reopenSoftRejectedAffiliateSampleApplication({
@@ -11099,46 +11102,59 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
         });
       } else {
         const rejecting = sampleReviewCommand.kind !== "APPROVE";
-        await reviewAffiliateSampleApplication({
-          variables: {
-            input: {
-              sampleApplicationRecordId: sampleReviewCommand.sampleApplicationRecordId,
-              creatorRelationshipId: sampleReviewCommand.creatorRelationshipId,
-              projectionRevision: sampleReviewCommand.projectionRevision,
-              reviewDispositionRevision: sampleReviewCommand.reviewDispositionRevision,
-              decision: rejecting
-                ? GQL.AffiliateSampleReviewDecision.Reject
-                : GQL.AffiliateSampleReviewDecision.Approve,
-              executionMode:
-                sampleReviewCommand.kind === "SOFT_REJECT"
-                  ? GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
-                  : GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
-              rejectReason: rejecting ? sampleRejectReason : null,
-              rejectReasonExplanation:
-                rejecting && sampleRejectReason === GQL.AffiliateSampleRejectReason.Other
-                  ? sampleRejectExplanation.trim()
-                  : null,
-              reviewNote: sampleReviewNote.trim() || null,
-            },
-          },
-        });
+        const input: GQL.ReviewAffiliateSampleApplicationInput = {
+          sampleApplicationRecordId: sampleReviewCommand.sampleApplicationRecordId,
+          creatorRelationshipId: sampleReviewCommand.creatorRelationshipId,
+          projectionRevision: sampleReviewCommand.projectionRevision,
+          reviewDispositionRevision: sampleReviewCommand.reviewDispositionRevision,
+          decision: rejecting
+            ? GQL.AffiliateSampleReviewDecision.Reject
+            : GQL.AffiliateSampleReviewDecision.Approve,
+          executionMode:
+            sampleReviewCommand.kind === "SOFT_REJECT"
+              ? GQL.AffiliateSampleReviewExecutionMode.AllowPlatformExpiry
+              : GQL.AffiliateSampleReviewExecutionMode.PlatformAction,
+          rejectReason: rejecting ? sampleRejectReason : null,
+          rejectReasonExplanation:
+            rejecting && sampleRejectReason === GQL.AffiliateSampleRejectReason.Other
+              ? sampleRejectExplanation.trim()
+              : null,
+          reviewNote: sampleReviewNote.trim() || null,
+        };
+        if (sampleReviewCommand.kind === "SOFT_REJECT") {
+          const result = await sampleIgnore.execute(input);
+          if (result === "CHANGED") {
+            closeSampleReviewDialog();
+            onWorkbenchEntityChanged?.();
+            showToast(t("ecommerce.affiliateWorkspace.workbench.ignoreStateChanged"), "warning");
+            return;
+          }
+          if (result !== "SAVED") return;
+        } else {
+          await reviewAffiliateSampleApplication({ variables: { input } });
+        }
       }
       setSampleReviewCommand(null);
       setSampleRejectExplanation("");
       setSampleReviewNote("");
-      await Promise.all([
+      showToast(t("ecommerce.affiliateWorkspace.workbench.sampleReviewSaved"), "success");
+      onWorkbenchEntityChanged?.();
+      // A saved decision must not turn into a reported write failure when a
+      // display refresh fails. The dialog is already closed at this boundary.
+      void Promise.all([
         ...(visibleQueriesRef.current.samplesVisible ? [sampleQuery.refetch()] : []),
         ...(visibleQueriesRef.current.proposalsVisible ? [proposalQuery.refetch()] : []),
         refetchRelationshipDetail(),
-      ]);
-      onWorkbenchEntityChanged?.();
-      showToast(t("ecommerce.affiliateWorkspace.workbench.sampleReviewSaved"), "success");
+      ]).catch(() =>
+        showToast(t("ecommerce.affiliateWorkspace.workbench.reviewRefreshFailed"), "warning"),
+      );
     } catch (error) {
       showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
   function closeSampleReviewDialog(): void {
+    if (sampleIgnore.busy) return;
     setSampleReviewCommand(null);
     setSampleRejectExplanation("");
     setSampleReviewNote("");
@@ -12697,90 +12713,21 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
           if (pendingScopeShopId !== null) applyScope(pendingScopeShopId);
         }}
       />
-      <Modal
-        isOpen={Boolean(sampleReviewCommand)}
+      <AffiliateSampleReviewDialog
+        open={Boolean(sampleReviewCommand)}
+        kind={sampleReviewCommand?.kind ?? "APPROVE"}
+        busy={reviewSampleState.loading || reopenSampleState.loading || sampleIgnore.busy}
+        ignorePhase={sampleIgnore.phase}
+        rejectReason={sampleRejectReason}
+        rejectExplanation={sampleRejectExplanation}
+        reviewNote={sampleReviewNote}
+        onRejectReason={setSampleRejectReason}
+        onRejectExplanation={setSampleRejectExplanation}
+        onReviewNote={setSampleReviewNote}
         onClose={closeSampleReviewDialog}
-        title={t(
-          `ecommerce.affiliateWorkspace.workbench.reviewTitles.${sampleReviewCommand?.kind ?? "APPROVE"}`,
-        )}
-        maxWidth={520}
-        portal
-      >
-        <div className="affiliate-workbench-review-dialog">
-          <p>
-            {t(
-              `ecommerce.affiliateWorkspace.workbench.reviewDescriptions.${sampleReviewCommand?.kind ?? "APPROVE"}`,
-            )}
-          </p>
-          {sampleReviewCommand?.kind === "PLATFORM_REJECT" ||
-          sampleReviewCommand?.kind === "SOFT_REJECT" ? (
-            <>
-              <label className="affiliate-filter-field">
-                <span>{t("ecommerce.affiliateWorkspace.workbench.rejectReason")}</span>
-                <Select
-                  value={sampleRejectReason}
-                  onChange={(value) =>
-                    setSampleRejectReason(value as GQL.AffiliateSampleRejectReason)
-                  }
-                  options={Object.values(GQL.AffiliateSampleRejectReason).map((reason) => ({
-                    value: reason,
-                    label: t(`ecommerce.affiliateWorkspace.rejectReasons.${reason}`),
-                  }))}
-                />
-              </label>
-              {sampleRejectReason === GQL.AffiliateSampleRejectReason.Other ? (
-                <textarea
-                  className="form-input"
-                  value={sampleRejectExplanation}
-                  onChange={(event) => setSampleRejectExplanation(event.target.value)}
-                  placeholder={t("ecommerce.affiliateWorkspace.workbench.rejectExplanation")}
-                  rows={3}
-                />
-              ) : null}
-            </>
-          ) : null}
-          {sampleReviewCommand?.kind !== "REOPEN" ? (
-            <label className="affiliate-workbench-review-note-field">
-              <span>{t("ecommerce.affiliateWorkspace.workbench.reviewNote")}</span>
-              <textarea
-                className="form-input"
-                aria-label={t("ecommerce.affiliateWorkspace.workbench.reviewNote")}
-                value={sampleReviewNote}
-                onChange={(event) => setSampleReviewNote(event.target.value)}
-                placeholder={t("ecommerce.affiliateWorkspace.workbench.reviewNotePlaceholder")}
-                maxLength={AFFILIATE_SAMPLE_REVIEW_NOTE_MAX_LENGTH}
-                rows={3}
-              />
-              <small>
-                {t("ecommerce.affiliateWorkspace.workbench.reviewNoteCount", {
-                  count: sampleReviewNote.length,
-                  max: AFFILIATE_SAMPLE_REVIEW_NOTE_MAX_LENGTH,
-                })}
-              </small>
-            </label>
-          ) : null}
-          <div className="modal-actions">
-            <button className="btn btn-secondary" type="button" onClick={closeSampleReviewDialog}>
-              {t("common.cancel")}
-            </button>
-            <button
-              className={`btn ${sampleReviewCommand?.kind === "PLATFORM_REJECT" ? "btn-danger" : "btn-primary"}`}
-              type="button"
-              disabled={
-                reviewSampleState.loading ||
-                reopenSampleState.loading ||
-                (sampleRejectReason === GQL.AffiliateSampleRejectReason.Other &&
-                  !sampleRejectExplanation.trim())
-              }
-              onClick={() => void executeSampleReviewCommand()}
-            >
-              {reviewSampleState.loading || reopenSampleState.loading
-                ? t("common.loading")
-                : t("common.confirm")}
-            </button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={() => void executeSampleReviewCommand()}
+        onCheck={() => void executeSampleReviewCommand()}
+      />
       <ConfirmDialog
         isOpen={Boolean(pendingOwnershipConfirmation)}
         onCancel={() => setPendingOwnershipConfirmation(null)}
