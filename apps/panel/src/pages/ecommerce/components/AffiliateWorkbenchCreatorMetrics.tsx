@@ -66,7 +66,7 @@ export function AffiliateWorkbenchCreatorMetrics({ row }: { row: Metrics }) {
           <div key={label}>
             <dt>
               {t(`${key}${label}`)}
-              {label === "metricGmv" && gmv ? <small> · {t(`${key}${windowKey}`)}</small> : null}
+              {label === "metricGmv" && gmv ? <small>{t(`${key}${windowKey}`)}</small> : null}
             </dt>
             <dd>{value}</dd>
           </div>

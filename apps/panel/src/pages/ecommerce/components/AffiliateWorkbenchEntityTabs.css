@@ -6,12 +6,12 @@
  */
 .tk-v1-workbench .affiliate-workbench-entity-table.affiliate-workbench-table-samples-open,
 .tk-v1-workbench .affiliate-workbench-entity-table.affiliate-workbench-table-samples-rejected {
-  /* Fixed columns consume 1380px; leave at least 320px for the product. */
-  min-width: 1700px;
+  /* Compact fixed columns leave room for the product and trailing actions. */
+  min-width: 1080px;
 }
 
 .affiliate-workbench-col-metrics {
-  width: 224px;
+  width: 192px;
 }
 
 .affiliate-workbench-entity-toolbar {
@@ -125,6 +125,14 @@
  * same Creator reads the same on both surfaces, but the classes are owned here
  * — this component imports only its own sheet.
  */
+.affiliate-workbench-cell-badges {
+  min-width: 0;
+}
+
+.affiliate-workbench-cell-badges > * {
+  max-width: 100%;
+}
+
 .affiliate-workbench-cell-tags {
   display: flex;
   align-items: center;

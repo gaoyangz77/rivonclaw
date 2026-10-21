@@ -1,7 +1,7 @@
 .affiliate-workbench-creator-metrics dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-2);
   margin: 0;
 }
 
@@ -13,6 +13,7 @@
 }
 
 .affiliate-workbench-creator-metrics dt small {
+  display: block;
   font-size: inherit;
 }
 

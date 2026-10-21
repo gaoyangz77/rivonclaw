@@ -1,6 +1,6 @@
 import { useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { TkButton, TkTooltip } from "../../../components/design-system/index.js";
+import { TkIconButton, TkTooltip } from "../../../components/design-system/index.js";
 import { CopyIcon } from "../../../components/icons.js";
 import { useToast } from "../../../components/Toast.js";
 import { sampleOrderIdForCard } from "../affiliate-sample-order-id.js";
@@ -33,19 +33,18 @@ export function AffiliateSampleOrderCopyButton({ orderId }: { orderId?: string |
     <TkTooltip
       label={label}
       trigger={(props) => (
-        <TkButton
+        <TkIconButton
           {...props}
-          aria-label={label}
+          label={label}
           title={label}
           size="sm"
           variant="ghost"
           loading={copying}
-          leadingIcon={<CopyIcon />}
           onClick={(event) => void copyOrderId(event, value)}
           onKeyDown={(event) => event.stopPropagation()}
         >
-          {t("ecommerce.affiliateWorkspace.sampleApplication.orderId")}
-        </TkButton>
+          <CopyIcon />
+        </TkIconButton>
       )}
     />
   );

@@ -70,11 +70,11 @@ describe("workbench Sample order number copy", () => {
   });
 
   it.each(["zh", "en", "de", "es", "fr", "id", "it", "th"])(
-    "shows the order label and copy hint in %s", async (language) => {
+    "keeps the compact copy action accessible in %s", async (language) => {
       await i18n.changeLanguage(language);
       render(button(ORDER_ID));
       const copy = screen.getByRole("button", { name: copyLabel() });
-      expect(copy.textContent).toBe(i18n.t("ecommerce.affiliateWorkspace.sampleApplication.orderId"));
+      expect(copy.className).toContain("tk-v1-icon-button");
       expect(copy.getAttribute("title")).toBe(copyLabel());
       expect(copy.querySelector("svg")).toBeTruthy();
     },

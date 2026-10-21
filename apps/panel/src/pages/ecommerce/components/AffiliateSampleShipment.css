@@ -18,6 +18,10 @@
   max-width: 100%;
 }
 
+.affiliate-sample-shipment-warning .tk-v1-badge {
+  max-width: 100%;
+}
+
 .affiliate-sample-shipment-warning-text {
   white-space: normal;
   overflow-wrap: anywhere;

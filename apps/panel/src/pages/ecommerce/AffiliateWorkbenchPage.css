@@ -232,89 +232,84 @@
   background: transparent;
 }
 
+/* Keep scrolling inside the table on narrow windows, never at page level. */
+.tk-v1-workbench .affiliate-workbench-entity-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .tk-v1-workbench .affiliate-workbench-entity-table {
-  min-width: 1256px;
+  min-width: 1000px;
   table-layout: fixed;
 }
 
-.tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-time {
-  width: 96px;
+/* Reserve readable fixed cells and let the product use the remaining width. */
+.tk-v1-workbench :is(.affiliate-workbench-table-samples-open, .affiliate-workbench-table-samples-rejected) .affiliate-workbench-col-time {
+  width: 80px;
 }
 
-.tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-creator {
-  width: 214px;
+.tk-v1-workbench :is(.affiliate-workbench-table-samples-open, .affiliate-workbench-table-samples-rejected) .affiliate-workbench-col-creator {
+  width: 148px;
 }
 
-.tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-tags {
-  width: 176px;
+.tk-v1-workbench :is(.affiliate-workbench-table-samples-open, .affiliate-workbench-table-samples-rejected) .affiliate-workbench-col-tags {
+  width: 100px;
 }
 
-.tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-shop {
-  width: 112px;
+.tk-v1-workbench :is(.affiliate-workbench-table-samples-open, .affiliate-workbench-table-samples-rejected) .affiliate-workbench-col-shop {
+  width: 80px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-support {
-  width: 122px;
+  width: 88px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-status {
-  width: 236px;
+  width: 136px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-open .affiliate-workbench-col-action {
-  width: 200px;
-}
-
-.tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-time {
-  width: 96px;
-}
-
-.tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-creator {
-  width: 214px;
-}
-
-.tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-tags {
-  width: 176px;
-}
-
-.tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-shop {
-  width: 112px;
+  width: 64px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-support {
-  width: 210px;
+  width: 104px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-status {
-  width: 130px;
+  width: 104px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-samples-rejected .affiliate-workbench-col-action {
-  width: 110px;
+  width: 104px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-time {
-  width: 130px;
+  width: 100px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-creator {
-  width: 226px;
+  width: 190px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-tags {
-  width: 176px;
+  width: 124px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-support {
-  width: 150px;
+  width: 140px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-status {
-  width: 200px;
+  width: 160px;
 }
 
 .tk-v1-workbench .affiliate-workbench-table-messages .affiliate-workbench-col-action {
   width: 36px;
+}
+
+.tk-v1-workbench .affiliate-workbench-entity-table th {
+  padding-inline: var(--tk-v1-space-2);
 }
 
 .tk-v1-workbench .affiliate-workbench-entity-table-row {
@@ -322,7 +317,7 @@
 }
 
 .tk-v1-workbench .affiliate-workbench-entity-table-row td {
-  padding: 8px 12px;
+  padding: var(--tk-v1-space-2);
   vertical-align: middle;
 }
 
