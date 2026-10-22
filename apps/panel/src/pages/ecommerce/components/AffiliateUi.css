@@ -591,6 +591,31 @@
   white-space: nowrap;
 }
 
+/* Give cooperation shops their own full-width value row. Shop identities must
+   wrap as complete chips rather than all shrinking to their first character. */
+.affiliate-page-frame .affiliate-creator-compact-progress-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--tk-v1-space-2);
+  row-gap: var(--tk-v1-space-2);
+}
+
+.affiliate-page-frame .affiliate-creator-compact-progress-row .affiliate-creator-compact-label-secondary {
+  margin-left: 0;
+}
+
+.affiliate-page-frame .affiliate-creator-compact-values.affiliate-creator-shop-list {
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1);
+  overflow: visible;
+}
+
+.affiliate-page-frame .affiliate-creator-shop-list > .affiliate-creator-shop-pill {
+  flex: 0 0 auto;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .affiliate-page-frame .affiliate-creator-compact-empty {
   color: var(--color-text-muted);
 }
@@ -2209,13 +2234,22 @@
 }
 
 .affiliate-message-composer-route {
-  display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(180px, 0.7fr) minmax(220px, 1fr);
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
 }
 
-.affiliate-message-composer-route > :last-child:nth-child(2) {
-  grid-column: 2 / -1;
+.affiliate-message-composer-channel,
+.affiliate-message-composer-identity {
+  flex: 0 1 12rem;
+  min-width: 9rem;
+  max-width: 20rem;
+}
+
+.affiliate-message-composer-subject {
+  flex: 1 1 18rem;
+  min-width: 0;
 }
 
 .affiliate-relationship-work-modal .affiliate-message-composer-text {
@@ -2500,14 +2534,6 @@
     grid-template-columns: 1fr;
   }
 
-  .affiliate-message-composer-route {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .affiliate-message-composer-route > :last-child:nth-child(3) {
-    grid-column: 1 / -1;
-  }
-
   .affiliate-relationship-work-modal .affiliate-timeline-row {
     grid-template-columns: 18px minmax(0, 1fr);
     gap: 8px;
@@ -2542,13 +2568,13 @@
 @media (max-width: 560px) {
   .affiliate-creator-profile-performance .affiliate-creator-detail-performance-grid,
   .affiliate-creator-profile-sidebar .affiliate-creator-profile-fact-grid,
-  .affiliate-creator-profile-footer-grid .affiliate-creator-detail-id-list,
-  .affiliate-message-composer-route {
+  .affiliate-creator-profile-footer-grid .affiliate-creator-detail-id-list {
     grid-template-columns: 1fr;
   }
 
-  .affiliate-message-composer-route > * {
-    grid-column: 1;
+  .affiliate-message-composer-channel,
+  .affiliate-message-composer-identity {
+    flex-grow: 1;
   }
 }
 

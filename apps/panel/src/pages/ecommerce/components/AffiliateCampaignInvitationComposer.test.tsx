@@ -13,7 +13,9 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-function setup(options: { failures?: number; incomplete?: boolean; code?: string } = {}) {
+function setup(
+  options: { failures?: number; incomplete?: boolean; code?: string; empty?: boolean } = {},
+) {
   const operations: Array<{ name: string; variables: Record<string, any> }> = [];
   const onSent = vi.fn(),
     onBusyChange = vi.fn();
@@ -29,22 +31,24 @@ function setup(options: { failures?: number; incomplete?: boolean; code?: string
         if (operation.operationName === "AffiliateChatCampaignTemplates") {
           observer.next({
             data: {
-              affiliateChatCampaignTemplates: [
-                {
-                  id: "campaign-1",
-                  name: "Windboss invitation",
-                  endDays: 30,
-                  isSampleApprovalExempt: false,
-                  sellerContactEmail: options.incomplete ? null : "seller@example.com",
-                  products: [
+              affiliateChatCampaignTemplates: options.empty
+                ? []
+                : [
                     {
-                      productId: "product-1",
-                      commissionRatePercent: 15,
-                      shopAdsCommissionRatePercent: 5,
+                      id: "campaign-1",
+                      name: "Windboss invitation",
+                      endDays: 30,
+                      isSampleApprovalExempt: false,
+                      sellerContactEmail: options.incomplete ? null : "seller@example.com",
+                      products: [
+                        {
+                          productId: "product-1",
+                          commissionRatePercent: 15,
+                          shopAdsCommissionRatePercent: 5,
+                        },
+                      ],
                     },
                   ],
-                },
-              ],
             },
           });
         } else if (failures-- > 0)
@@ -95,7 +99,7 @@ function setup(options: { failures?: number; incomplete?: boolean; code?: string
   };
 }
 async function chooseTemplate() {
-  fireEvent.click(screen.getByRole("button", { name: "发送定邀" }));
+  fireEvent.click(await screen.findByRole("button", { name: "发送定邀" }));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "选择推广计划" }).hasAttribute("disabled")).toBe(
       false,
@@ -105,12 +109,23 @@ async function chooseTemplate() {
   fireEvent.change(screen.getByPlaceholderText("搜索推广计划"), { target: { value: "Windboss" } });
   fireEvent.click(screen.getByText("Windboss invitation"));
 }
-it("adds no mount query, loads shop templates on demand, and sends one separate invitation even on a double click", async () => {
+it("uses one availability/template query and sends one separate invitation even on a double click", async () => {
   const { operations, onSent } = setup();
-  expect(operations).toEqual([]);
+  await waitFor(() => expect(operations).toHaveLength(1));
   await chooseTemplate();
+  expect(document.querySelector("details")?.open).toBe(false);
+  fireEvent.click(screen.getByText("详情"));
+  expect(document.querySelector("details")?.open).toBe(true);
   expect(screen.getByText("1 个商品 · 有效期 30 天")).toBeTruthy();
-  expect(screen.getByText(/普通佣金 15% · Shop Ads 佣金 5%/)).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "定邀预览" })).toBeTruthy();
+  expect(screen.getByText("普通佣金")).toBeTruthy();
+  expect(screen.getByText("15%")).toBeTruthy();
+  expect(screen.getByText("Shop Ads 佣金")).toBeTruthy();
+  expect(screen.getByText("5%")).toBeTruthy();
+  expect(screen.getByText("product-1")).toBeTruthy();
+  expect(screen.getByText("seller@example.com")).toBeTruthy();
+  expect(screen.getByText("免费样品需审批")).toBeTruthy();
+  expect(operations).toHaveLength(1);
   const button = screen.getByRole("button", { name: "创建并发送定邀" });
   fireEvent.click(button);
   fireEvent.click(button);
@@ -158,8 +173,15 @@ it("disables incomplete templates and clears template selection when changing sh
   );
   rerenderShop("shop-2");
   await waitFor(() => expect(screen.queryByRole("button", { name: "创建并发送定邀" })).toBeNull());
-  expect(screen.getByRole("button", { name: "发送定邀" }).getAttribute("aria-expanded")).toBe(
-    "false",
-  );
+  expect(
+    (await screen.findByRole("button", { name: "发送定邀" })).getAttribute("aria-expanded"),
+  ).toBe("false");
   expect(operations.every((o) => o.name === "AffiliateChatCampaignTemplates")).toBe(true);
+});
+
+it("hides invitation controls when the selected shop has no active Campaigns", async () => {
+  const { operations, container } = setup({ empty: true });
+  await waitFor(() => expect(operations).toHaveLength(1));
+  expect(screen.queryByRole("button", { name: "发送定邀" })).toBeNull();
+  expect(container.textContent).toBe("");
 });

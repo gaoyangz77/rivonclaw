@@ -11,8 +11,9 @@ import {
 } from "../../../api/shops-queries.js";
 
 const prefix = "ecommerce.affiliateWorkspace.campaignInvitation.";
+const previewPrefix = "ecommerce.affiliateWorkspace.campaignReply.";
 
-/** Kept behind an explicit disclosure: opening a creator modal adds no query. */
+/** Mounted only for a selected TikTok reply shop; one query supplies availability and all templates. */
 export function AffiliateCampaignInvitationComposer({
   shopId,
   creatorRelationshipId,
@@ -44,7 +45,7 @@ export function AffiliateCampaignInvitationComposer({
     AFFILIATE_CHAT_CAMPAIGN_TEMPLATES_QUERY,
     {
       variables: { shopId, creatorRelationshipId },
-      skip: !open || !shopId || !creatorRelationshipId,
+      skip: !shopId || !creatorRelationshipId,
       fetchPolicy: "network-only",
     },
   );
@@ -113,6 +114,14 @@ export function AffiliateCampaignInvitationComposer({
       onBusyChange(false);
     }
   }
+  if (loading) return null;
+  if (queryError)
+    return (
+      <TkButton variant="ghost" size="sm" title={queryError.message} onClick={() => void refetch()}>
+        {t("common.retry")}
+      </TkButton>
+    );
+  if (!templates.length) return null;
   return (
     <div className="affiliate-message-campaign-invitation">
       <TkButton
@@ -121,62 +130,91 @@ export function AffiliateCampaignInvitationComposer({
         disabled={disabled || busy || !shopId}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        title={t(`${prefix}hint`)}
       >
         {t(`${prefix}title`)}
       </TkButton>
       {open ? (
         <>
-          <p className="form-hint">{t(`${prefix}hint`)}</p>
-          {queryError ? (
-            <TkAlert
-              tone="danger"
-              title={queryError.message}
-              actions={
-                <TkButton variant="secondary" size="sm" onClick={() => void refetch()}>
-                  {t("common.retry")}
-                </TkButton>
-              }
-            />
-          ) : null}
           <Select
             value={campaignId}
             onChange={(value) => {
               setCampaignId(value);
               setError(null);
             }}
-            disabled={disabled || busy || loading}
+            className="affiliate-message-campaign-select"
+            disabled={disabled || busy}
             searchable
-            options={templates.map((template) => ({ value: template.id, label: template.name }))}
+            options={templates.map((template) => ({
+              value: template.id,
+              label: template.name,
+              sensitive: true,
+            }))}
             ariaLabel={t(`${prefix}select`)}
-            placeholder={loading ? t("common.loading") : t(`${prefix}select`)}
+            placeholder={t(`${prefix}select`)}
             searchPlaceholder={t(`${prefix}search`)}
           />
-          {!loading && !queryError && !templates.length ? (
-            <p className="form-hint">{t(`${prefix}empty`)}</p>
-          ) : null}
           {selected ? (
             <>
-              <p className="form-hint">
-                {t(`${prefix}terms`, { count: selected.products.length, days: selected.endDays })}
-              </p>
-              {selected.products.map((product) => (
-                <div className="form-hint" key={product.productId}>
-                  <TkPrivate>{product.productId}</TkPrivate>
-                  {" · "}
-                  {t(`${prefix}commission`, {
-                    rate: product.commissionRatePercent,
-                    ads: product.shopAdsCommissionRatePercent,
-                  })}
+              <details className="affiliate-message-campaign-terms">
+                <summary>{t("ecommerce.affiliateWorkspace.campaignReply.details")}</summary>
+                <div className="affiliate-message-campaign-terms-popover">
+                  <header className="affiliate-message-campaign-preview-header">
+                    <h4>{t(`${previewPrefix}preview`)}</h4>
+                    <div className="affiliate-message-campaign-preview-name">
+                      <TkPrivate>{selected.name}</TkPrivate>
+                    </div>
+                    <p>
+                      {t(`${prefix}terms`, {
+                        count: selected.products.length,
+                        days: selected.endDays,
+                      })}
+                    </p>
+                  </header>
+                  <div className="affiliate-message-campaign-preview-products">
+                    {selected.products.map((product) => (
+                      <section
+                        className="affiliate-message-campaign-preview-product"
+                        key={product.productId}
+                      >
+                        <div className="affiliate-message-campaign-preview-product-id">
+                          <span>{t(`${previewPrefix}productId`)}</span>
+                          <TkPrivate>{product.productId}</TkPrivate>
+                        </div>
+                        <dl className="affiliate-message-campaign-preview-rates">
+                          <div>
+                            <dt>{t(`${previewPrefix}commission`)}</dt>
+                            <dd>{product.commissionRatePercent}%</dd>
+                          </div>
+                          <div>
+                            <dt>{t(`${previewPrefix}adsCommission`)}</dt>
+                            <dd>{product.shopAdsCommissionRatePercent}%</dd>
+                          </div>
+                        </dl>
+                      </section>
+                    ))}
+                  </div>
+                  <dl className="affiliate-message-campaign-preview-contact">
+                    <div>
+                      <dt>{t(`${previewPrefix}contactEmail`)}</dt>
+                      <dd>
+                        <TkPrivate>{selected.sellerContactEmail || "—"}</TkPrivate>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t(`${previewPrefix}sample`)}</dt>
+                      <dd>
+                        {t(
+                          `${prefix}${selected.isSampleApprovalExempt ? "sampleExempt" : "sampleApproval"}`,
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="affiliate-message-campaign-preview-note">
+                    {t(`${previewPrefix}previewNote`)}
+                  </p>
                 </div>
-              ))}
-              <p className="form-hint">
-                <TkPrivate>{selected.sellerContactEmail}</TkPrivate>
-                {" · "}
-                {t(
-                  `${prefix}${selected.isSampleApprovalExempt ? "sampleExempt" : "sampleApproval"}`,
-                )}
-              </p>
-              {!configured ? <p role="alert">{t(`${prefix}incomplete`)}</p> : null}
+              </details>
               <TkButton
                 variant="primary"
                 size="sm"
@@ -185,6 +223,11 @@ export function AffiliateCampaignInvitationComposer({
               >
                 {busy ? t("common.loading") : t(`${prefix}send`)}
               </TkButton>
+              {!configured ? (
+                <span className="form-hint" role="alert">
+                  {t(`${prefix}incomplete`)}
+                </span>
+              ) : null}
             </>
           ) : null}
           {error ? (

@@ -1,3 +1,4 @@
+import { affiliateMessageAccountOptions } from "./components/affiliate-message-accounts.js";
 import { AffiliateCampaignInvitationComposer } from "./components/AffiliateCampaignInvitationComposer.js";
 import { AffiliateMessageAttachmentCard } from "./components/AffiliateMessageAttachmentCard.js";
 import { AffiliateSampleShipment } from "./components/AffiliateSampleShipment.js";
@@ -3802,7 +3803,7 @@ function CreatorRelationshipCompactCard({
       </section>
 
       <section className="affiliate-creator-compact-relationship">
-        <div className="affiliate-creator-compact-detail-row">
+        <div className="affiliate-creator-compact-detail-row affiliate-creator-compact-progress-row">
           <span className="affiliate-creator-compact-label">
             {t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}
           </span>
@@ -3821,7 +3822,7 @@ function CreatorRelationshipCompactCard({
           <span className="affiliate-creator-compact-label affiliate-creator-compact-label-secondary">
             {t("ecommerce.affiliateWorkspace.creatorCooperationShops")}
           </span>
-          <div className="affiliate-creator-compact-values">
+          <div className="affiliate-creator-compact-values affiliate-creator-shop-list">
             {relationshipShopIds.length ? (
               relationshipShopIds.map((shopId) => (
                 <TkPrivate
@@ -10527,16 +10528,29 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const canEditCreatorConfiguration = relationshipDetail?.viewerCanEditCreatorConfiguration === true;
   const canPerformDailyOperations = relationshipDetail?.viewerCanPerformDailyOperations === true;
   const relationship = relationshipDetail?.creatorRelationship ?? item?.creatorRelation ?? null;
-  const { data: publicContactData } = useQuery<
+  const effectiveComposerChannel = composerChannel === "AUTO"
+    ? relationship?.lastInboundChannel ?? GQL.AffiliateMessageChannel.PlatformChat : composerChannel;
+  const composerUsesShop = effectiveComposerChannel === GQL.AffiliateMessageChannel.PlatformChat;
+  const { data: composerContactData, loading: composerContactsLoading, error: composerContactsError, refetch: refetchComposerContacts } = useQuery<
     { affiliateCreatorContactState: GQL.AffiliateCreatorContactStatePayload },
     { input: GQL.AffiliateCreatorContactStateInput }
   >(AFFILIATE_CREATOR_CONTACT_STATE_QUERY, {
     variables: { input: { creatorRelationshipId: relationshipId ?? "" } },
-    skip: !relationshipId || activeTab !== "conversation" || !relationship || Boolean(relationship.businessDeveloperId),
+    skip: !relationshipId || activeTab !== "conversation" || !canPerformDailyOperations || composerUsesShop,
     fetchPolicy: "cache-and-network",
   });
-  const publicContacts = publicContactData?.affiliateCreatorContactState.channelContacts ?? [];
-  useEffect(() => { setComposerContactId(""); }, [relationshipId]);
+  const composerContactState = composerContactData?.affiliateCreatorContactState;
+  const composerAccountOptions = affiliateMessageAccountOptions(composerContactState, effectiveComposerChannel, Boolean(relationship?.businessDeveloperId));
+  const preferredComposerAccountId = effectiveComposerChannel === GQL.AffiliateMessageChannel.Whatsapp
+    ? composerContactState?.preferredWhatsAppAccount?.id : composerContactState?.preferredEmailAccount?.id;
+  const effectiveComposerContactId = composerAccountOptions.some(option => option.value === composerContactId) ? composerContactId
+    : pendingReplyToLifecycleEventId ? composerAccountOptions[0]?.value ?? ""
+      : composerAccountOptions.find(option => option.accountBindingId === preferredComposerAccountId)?.value
+        ?? (composerAccountOptions.length === 1 ? composerAccountOptions[0].value : "");
+  const composerRouteReady = composerUsesShop
+    ? Boolean(composerShopId && (!scopeShopId || composerShopId === scopeShopId))
+    : Boolean(effectiveComposerContactId && !composerContactsLoading && !composerContactsError);
+  useEffect(() => { setComposerContactId(""); setComposerChannel("AUTO"); setComposerSubject(""); }, [relationshipId]);
   const [sellerUidEditing, setSellerUidEditing] = useState(false);
   const [sellerUidDraft, setSellerUidDraft] = useState(relationship?.sellerProvidedUid ?? "");
   const [sellerNoteEditing, setSellerNoteEditing] = useState(false);
@@ -10985,7 +10999,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
 
   async function submitComposerMessage(): Promise<void> {
     if (!canPerformDailyOperations || messageSendInFlightRef.current || sendingInvitation || uploadingAttachments || markingConversationHandled ||
-      !relationshipId || !composerShopId || (scopeShopId && composerShopId !== scopeShopId)) return;
+      !relationshipId || !composerRouteReady) return;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
     if (composerText.trim())
       parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: composerText.trim() });
@@ -11000,12 +11014,12 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     );
     if (!parts.length) return;
     const input: GQL.SendAffiliateCreatorMessageInput = {
-      shopId: composerShopId,
+      shopId: composerUsesShop ? composerShopId : undefined,
       creatorRelationshipId: relationshipId,
       parts,
-      preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
-      channelContactId: composerContactId || undefined,
-      emailSubject: composerSubject.trim() || undefined,
+      preferredChannel: effectiveComposerChannel,
+      channelContactId: composerUsesShop ? undefined : effectiveComposerContactId || undefined,
+      emailSubject: effectiveComposerChannel === GQL.AffiliateMessageChannel.Email ? composerSubject.trim() || undefined : undefined,
       replyToLifecycleEventId: pendingReplyToLifecycleEventId,
     };
     const fingerprint = JSON.stringify(input);
@@ -12463,99 +12477,48 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       </div>
                     </div>
                     <div className="affiliate-message-composer-route">
-                      <Select
-                        value={composerShopId}
-                        onChange={setComposerShopId}
-                        disabled={sendingMessage || sendingInvitation || Boolean(scopeShopId)}
-                        ariaLabel={t("ecommerce.affiliateWorkspace.selectMessageShop")}
-                        options={(scopeShopId ? [scopeShopId] : includedShopIds).map((shopId) => {
-                          const label = relationshipShopName(shopId);
-                          return {
-                            value: shopId,
-                            label: label.text,
-                            sensitive: label.sensitive,
-                            searchTerms: shopSelectSearchTerms(
-                              entityStore.shops.find((candidate) => candidate.id === shopId),
-                              shopId,
-                            ),
-                          };
-                        })}
-                        placeholder={t("ecommerce.affiliateWorkspace.selectMessageShop")}
-                        searchable
-                        searchPlaceholder={t("common.searchShops")}
-                      />
-                      <Select
-                        value={composerChannel}
-                        disabled={sendingMessage || sendingInvitation || (publicContacts.length > 0 && Boolean(pendingReplyToLifecycleEventId))}
-                        onChange={(value) => {
-                          setComposerChannel(value as "AUTO" | GQL.AffiliateMessageChannel);
-                          setComposerContactId("");
-                        }}
+                      <Select value={effectiveComposerChannel} className="affiliate-message-composer-channel"
+                        disabled={sendingMessage || sendingInvitation || uploadingAttachments}
+                        onChange={value => { setComposerChannel(value as GQL.AffiliateMessageChannel); setComposerContactId(""); setComposerSubject(""); }}
                         options={[
-                          {
-                            value: "AUTO",
-                            label: t("ecommerce.affiliateWorkspace.messageComposerDefaultChannel"),
-                          },
-                          {
-                            value: GQL.AffiliateMessageChannel.Whatsapp,
-                            label: "WhatsApp",
-                          },
-                          {
-                            value: GQL.AffiliateMessageChannel.Email,
-                            label: t("ecommerce.affiliateWorkspace.messageChannels.EMAIL"),
-                          },
-                          {
-                            value: GQL.AffiliateMessageChannel.PlatformChat,
-                            label: t("ecommerce.affiliateWorkspace.messageChannels.PLATFORM_CHAT"),
-                          },
-                        ]}
-                        ariaLabel={t("ecommerce.affiliateWorkspace.messageComposerDefaultChannel")}
-                      />
-                      {publicContacts.length > 0 && !pendingReplyToLifecycleEventId ? (
-                        <Select
-                          value={composerContactId}
-                          onChange={(id) => {
-                            setComposerContactId(id);
-                            const contact = publicContacts.find((candidate) => candidate.id === id);
-                            if (contact) setComposerChannel(contact.channel);
-                          }}
-                          options={publicContacts.map((contact) => ({
-                            value: contact.id,
-                            label: `${contact.channel === GQL.AffiliateMessageChannel.Whatsapp ? "WhatsApp" : "Email"} · ${contact.accountLabel ?? contact.effectiveAlias ?? "—"}`,
-                          }))}
-                          placeholder={t(
-                            "ecommerce.affiliateWorkspace.messageComposerExistingContact",
-                          )}
-                        />
-                      ) : null}
-                      {composerChannel === GQL.AffiliateMessageChannel.Email ? (
-                        <input
-                          className="form-input"
-                          value={composerSubject}
-                          onChange={(event) => setComposerSubject(event.target.value)}
-                          placeholder={t(
-                            "ecommerce.affiliateWorkspace.messageComposerEmailSubject",
-                          )}
-                        />
-                      ) : null}
+                          { value: GQL.AffiliateMessageChannel.PlatformChat, label: t("ecommerce.affiliateWorkspace.messageChannels.PLATFORM_CHAT") },
+                          { value: GQL.AffiliateMessageChannel.Whatsapp, label: "WhatsApp" },
+                          { value: GQL.AffiliateMessageChannel.Email, label: t("ecommerce.affiliateWorkspace.messageChannels.EMAIL") },
+                        ]} ariaLabel={t("ecommerce.affiliateWorkspace.campaignReply.channel")} />
+                      {composerUsesShop ? <>
+                        <Select value={composerShopId} onChange={setComposerShopId} className="affiliate-message-composer-identity"
+                          disabled={sendingMessage || sendingInvitation || Boolean(scopeShopId)}
+                          ariaLabel={t("ecommerce.affiliateWorkspace.selectMessageShop")}
+                          options={(scopeShopId ? [scopeShopId] : includedShopIds).map(shopId => {
+                            const label = relationshipShopName(shopId);
+                            return { value: shopId, label: label.text, sensitive: label.sensitive,
+                              searchTerms: shopSelectSearchTerms(entityStore.shops.find(candidate => candidate.id === shopId), shopId) };
+                          })} placeholder={t("ecommerce.affiliateWorkspace.selectMessageShop")} searchable searchPlaceholder={t("common.searchShops")} />
+                        {relationshipId && composerShopId ? <AffiliateCampaignInvitationComposer
+                          key={`${relationshipId}:${composerShopId}`} shopId={composerShopId} creatorRelationshipId={relationshipId}
+                          replyToLifecycleEventId={pendingReplyToLifecycleEventId}
+                          disabled={sendingMessage || uploadingAttachments || markingConversationHandled}
+                          onBusyChange={setSendingInvitation}
+                          onSent={() => {
+                            setPendingReplyToLifecycleEventId(undefined);
+                            conversationAutoScrollPendingRef.current = true;
+                            onWorkbenchEntityChanged?.();
+                            showToast(t("ecommerce.affiliateWorkspace.campaignInvitation.sent"), "success");
+                            refreshSentMessageHistory();
+                          }} /> : null}
+                      </> : <Select value={effectiveComposerContactId} onChange={setComposerContactId}
+                        className="affiliate-message-composer-identity" disabled={sendingMessage || sendingInvitation || composerContactsLoading}
+                        options={composerAccountOptions} searchable
+                        placeholder={composerContactsLoading ? t("common.loading") : t("ecommerce.affiliateWorkspace.campaignReply.account")}
+                        searchPlaceholder={t("ecommerce.affiliateWorkspace.campaignReply.searchAccounts")}
+                        ariaLabel={t("ecommerce.affiliateWorkspace.campaignReply.account")} />}
+                      {effectiveComposerChannel === GQL.AffiliateMessageChannel.Email ? <input className="form-input affiliate-message-composer-subject"
+                        value={composerSubject} disabled={sendingMessage}
+                        onChange={event => setComposerSubject(event.target.value)}
+                        placeholder={t("ecommerce.affiliateWorkspace.messageComposerEmailSubject")} /> : null}
                     </div>
-                    {relationshipId && composerShopId ? (
-                      <AffiliateCampaignInvitationComposer
-                        key={`${relationshipId}:${composerShopId}`}
-                        shopId={composerShopId}
-                        creatorRelationshipId={relationshipId}
-                        replyToLifecycleEventId={pendingReplyToLifecycleEventId}
-                        disabled={sendingMessage || uploadingAttachments || markingConversationHandled}
-                        onBusyChange={setSendingInvitation}
-                        onSent={() => {
-                          setPendingReplyToLifecycleEventId(undefined);
-                          conversationAutoScrollPendingRef.current = true;
-                          onWorkbenchEntityChanged?.();
-                          showToast(t("ecommerce.affiliateWorkspace.campaignInvitation.sent"), "success");
-                          refreshSentMessageHistory();
-                        }}
-                      />
-                    ) : null}
+                    {!composerUsesShop && composerContactsError ? <AffiliateQueryErrorState error={composerContactsError} onRetry={() => void refetchComposerContacts()} />
+                      : !composerUsesShop && !composerContactsLoading && !composerAccountOptions.length ? <p className="form-hint">{t("ecommerce.affiliateWorkspace.campaignReply.noAccounts")}</p> : null}
                     {messageHistorySync ? (
                       <TkAlert
                         tone={messageHistorySync === "failed" ? "warning" : "info"}
@@ -12598,7 +12561,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             <span>
                               {asset.fileName} · {formatFileSize(asset.sizeBytes)}
                             </span>
-                            {composerChannel === GQL.AffiliateMessageChannel.Email &&
+                            {effectiveComposerChannel === GQL.AffiliateMessageChannel.Email &&
                             asset.mimeType.startsWith("image/") ? (
                               <label>
                                 <input
@@ -12679,7 +12642,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                           className="btn btn-primary btn-sm"
                           type="button"
                           disabled={
-                            !composerShopId ||
+                            !composerRouteReady ||
                             sendingMessage || sendingInvitation ||
                             markingConversationHandled ||
                             uploadingAttachments ||

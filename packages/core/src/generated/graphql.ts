@@ -15162,7 +15162,8 @@ export interface SendAffiliateCreatorMessageInput {
   preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   /** Exact pending inbound lifecycle event acknowledged by this human reply. */
   replyToLifecycleEventId?: InputMaybe<Scalars["ID"]["input"]>;
-  shopId: Scalars["ID"]["input"];
+  /** Required for TikTok shop messages; omitted for WhatsApp and email account replies. */
+  shopId?: InputMaybe<Scalars["ID"]["input"]>;
 }
 
 export interface SendAffiliateCreatorMessagePayload {

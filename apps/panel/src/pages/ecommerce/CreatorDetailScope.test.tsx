@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
   fetchMore: vi.fn(),
   mutate: vi.fn(),
   detail: {} as Record<string, unknown>,
+  contactState: {} as Record<string, unknown>,
   samples: [] as Array<Record<string, unknown>>,
   history: [] as Array<Record<string, unknown>>,
   timeline: [] as Array<Record<string, unknown>>,
@@ -73,14 +74,15 @@ vi.mock("@apollo/client/react", () => ({
       };
       return {
         affiliateCreatorRelationshipDetail: state.detail,
-        affiliateCreatorContactState: { channelContacts: [] },
+        affiliateCreatorContactState: state.contactState,
+        affiliateChatCampaignTemplates: [],
         affiliateRelationshipSampleApplications: page,
         affiliateRelationshipPlatformCollaborations: page,
         affiliateActionProposalPage: page,
         affiliateCreatorMessageHistory: { items: state.history, hasMore: false },
         affiliateRelationshipTimeline: { items: state.timeline, hasOlder: false },
       };
-    }, [operation, state.detail, state.samples, state.proposals, state.history, state.timeline]);
+    }, [operation, state.detail, state.contactState, state.samples, state.proposals, state.history, state.timeline]);
     if (!state.refetches.has(operation)) {
       state.refetches.set(operation, vi.fn(() => state.refetch(operation)));
     }
@@ -92,6 +94,7 @@ vi.mock("@apollo/client/react", () => ({
 beforeEach(async () => {
   await i18n.changeLanguage("zh");
   state.calls.length = 0;
+  state.contactState = { channelContacts: [], whatsAppAccounts: [], emailAccounts: [] };
   state.samples = [];
   state.history = [];
   state.timeline = [];
@@ -694,7 +697,7 @@ describe("Creator detail loads only visible collections", () => {
   const summary = "AffiliateCreatorRelationshipDetail";
   function queried() { return [...new Set(state.calls.map(c => c.operation))].sort(); }
   it.each([
-    ["conversation", ["AffiliateCreatorMessageHistory", "AffiliateCreatorContactState"]],
+    ["conversation", ["AffiliateCreatorMessageHistory", "AffiliateChatCampaignTemplates"]],
     ["overview", ["AffiliateActionProposals"]],
     ["samples", ["AffiliateRelationshipSampleApplications"]],
     ["platform", ["AffiliateRelationshipPlatformCollaborations"]],
@@ -712,7 +715,7 @@ describe("Creator detail loads only visible collections", () => {
     selectScope("1号店");
     state.calls.length = 0;
     fireEvent.click(screen.getByRole("tab", { name: "关系管理" }));
-    expect(queried()).toEqual([summary, "AffiliateBusinessDevelopers", "AffiliateCreatorContactState",
+    expect(queried()).toEqual([summary, "AffiliateBusinessDevelopers", "AffiliateChatCampaignTemplates",
       "AffiliateRelationshipTimeline", "AffiliateCreatorSystemTagDefinitions", "CreatorManualTags"].sort());
     expect(state.calls.some(c => c.operation === "AffiliateRelationshipTimeline" && !c.input.shopIds)).toBe(true);
     state.calls.length = 0;
@@ -864,5 +867,59 @@ describe("manual message submission and history refresh", () => {
       expect(json).not.toHaveBeenCalled();
       expect(state.mutate).not.toHaveBeenCalled();
     } finally { fetchMock.mockRestore(); }
+  });
+});
+
+describe("channel-first manual reply routing", () => {
+  function selectReplyChannel(label: string) {
+    fireEvent.click(screen.getByRole("button", { name: "回复渠道" }));
+    const popup = document.querySelector(".custom-select-dropdown")!;
+    fireEvent.click(within(popup as HTMLElement).getByRole("button", { name: label }));
+  }
+  function contacts() {
+    state.detail = { ...state.detail, creatorRelationship: { ...(state.detail.creatorRelationship as object), businessDeveloperId: "bd-1" } };
+    state.contactState = {
+      preferredWhatsAppAccount: { id: "wa-a" },
+      whatsAppAccounts: [
+        { id: "wa-a", displayName: "WA Account A", status: "CONNECTED", provider: "EVOLUTION_API" },
+        { id: "wa-b", displayName: "WA Account B", status: "CONNECTED", provider: "EVOLUTION_API" },
+      ],
+      emailAccounts: [{ id: "mail-a", displayName: "Email Account", status: "CONNECTED", provider: "MICROSOFT_GRAPH" }],
+      channelContacts: [
+        { id: "wa-contact-a", accountBindingId: "wa-a", channel: "WHATSAPP", status: "ACTIVE", lastObservedAt: "2026-10-20T00:00:00Z" },
+        { id: "wa-contact-b", accountBindingId: "wa-b", channel: "WHATSAPP", status: "ACTIVE", lastObservedAt: "2026-10-20T00:00:00Z" },
+        { id: "mail-contact", accountBindingId: "mail-a", channel: "EMAIL", status: "ACTIVE", lastObservedAt: "2026-10-20T00:00:00Z" },
+      ],
+    };
+  }
+  it("queries account routes only for external channels, honors the selected account and sends without a shop", async () => {
+    contacts(); state.mutate.mockResolvedValue({ data: { sendAffiliateCreatorMessage: { delivery: { status: "SENT" } } } });
+    render(view("creator", "conversation"));
+    expect(state.calls.some(call => call.operation === "AffiliateCreatorContactState")).toBe(false);
+    const route = document.querySelector(".affiliate-message-composer-route")!;
+    expect(route.firstElementChild?.textContent).toContain("店铺后台私信");
+    selectReplyChannel("WhatsApp");
+    expect(screen.queryByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.selectMessageShop") })).toBeNull();
+    expect(screen.queryByRole("button", { name: "发送定邀" })).toBeNull();
+    expect(state.calls.some(call => call.operation === "AffiliateCreatorContactState")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "选择发送账号" }));
+    fireEvent.click(screen.getByRole("button", { name: "WA Account B" }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Reply via the chosen WhatsApp account" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledOnce());
+    expect(state.mutate.mock.calls[0][0].variables.input).toMatchObject({ preferredChannel: "WHATSAPP", channelContactId: "wa-contact-b" });
+    expect(state.mutate.mock.calls[0][0].variables.input.shopId).toBeUndefined();
+    selectReplyChannel(i18n.t("ecommerce.affiliateWorkspace.messageChannels.EMAIL"));
+    expect(screen.getByRole("button", { name: "选择发送账号" }).textContent).toContain("Email Account");
+    selectReplyChannel("店铺后台私信");
+    expect(screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.selectMessageShop") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "选择发送账号" })).toBeNull();
+  });
+  it("shows a disabled send and no shop controls when the selected channel has no usable account", () => {
+    render(view("creator", "conversation")); selectReplyChannel("WhatsApp");
+    expect(screen.getByText("当前渠道暂无可用于联系此达人的账号。")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Unroutable draft" } });
+    expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(state.mutate).not.toHaveBeenCalled();
   });
 });

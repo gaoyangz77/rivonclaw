@@ -3376,6 +3376,10 @@ export const AFFILIATE_CREATOR_CONTACT_STATE_QUERY = gql`
         id
         displayName
       }
+      whatsAppAccounts { id displayName phoneNumber status provider outboundSendBlockedUntil }
+      emailAccounts { id displayName emailAddress sharedMailboxAddress status provider }
+      preferredWhatsAppAccount { id }
+      preferredEmailAccount { id }
       channelContacts {
         id
         accountLabel
