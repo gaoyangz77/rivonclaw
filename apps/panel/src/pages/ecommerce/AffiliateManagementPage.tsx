@@ -3784,6 +3784,14 @@ function CreatorRelationshipCompactCard({
           <div className="affiliate-creator-row-copy">
             <div className="affiliate-creator-row-title">
               <CreatorName name={name} onOpen={() => onOpenRelationship(relationshipDetail)} />
+            </div>
+            <div className="affiliate-creator-row-meta">
+              <CreatorPlatformHandle handle={handle} />
+              {item.market ? (
+                <span className="affiliate-creator-market-pill">{item.market}</span>
+              ) : null}
+            </div>
+            <div className="affiliate-creator-row-state">
               <span
                 className={`affiliate-creator-state ${item.needsAttention ? "affiliate-creator-state-attention" : ""}`}
               >
@@ -3791,12 +3799,6 @@ function CreatorRelationshipCompactCard({
                   ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
                   : t("ecommerce.affiliateWorkspace.creatorStable")}
               </span>
-            </div>
-            <div className="affiliate-creator-row-meta">
-              <CreatorPlatformHandle handle={handle} />
-              {item.market ? (
-                <span className="affiliate-creator-market-pill">{item.market}</span>
-              ) : null}
             </div>
           </div>
         </div>
@@ -3839,60 +3841,62 @@ function CreatorRelationshipCompactCard({
             )}
           </div>
         </div>
-        <div className="affiliate-creator-compact-detail-row">
-          <span className="affiliate-creator-compact-label">
-            {t("ecommerce.affiliateWorkspace.systemTagFilterLabel")}
-          </span>
-          <div className="affiliate-creator-compact-values">
-            {visibleSystemTags.length ? (
-              <>
-                {visibleSystemTags.map((tag) => (
-                  <span
-                    className="affiliate-creator-tag affiliate-creator-system-tag"
-                    key={tag}
-                    title={t("ecommerce.affiliateWorkspace.systemTags.hint")}
-                  >
-                    <span>{creatorSystemTagLabel(t, tag)}</span>
-                  </span>
-                ))}
-                {hiddenSystemTagCount > 0 ? (
-                  <span
-                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
-                    title={systemTags.map((tag) => creatorSystemTagLabel(t, tag)).join(", ")}
-                  >
-                    <span>+{hiddenSystemTagCount}</span>
-                  </span>
-                ) : null}
-              </>
-            ) : (
-              <span className="affiliate-creator-compact-empty">—</span>
-            )}
+        {systemTags.length > 0 || manualTags.length > 0 ? (
+          <div className="affiliate-creator-compact-detail-row">
+            <span className="affiliate-creator-compact-label">
+              {t("ecommerce.affiliateWorkspace.systemTagFilterLabel")}
+            </span>
+            <div className="affiliate-creator-compact-values">
+              {visibleSystemTags.length ? (
+                <>
+                  {visibleSystemTags.map((tag) => (
+                    <span
+                      className="affiliate-creator-tag affiliate-creator-system-tag"
+                      key={tag}
+                      title={t("ecommerce.affiliateWorkspace.systemTags.hint")}
+                    >
+                      <span>{creatorSystemTagLabel(t, tag)}</span>
+                    </span>
+                  ))}
+                  {hiddenSystemTagCount > 0 ? (
+                    <span
+                      className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                      title={systemTags.map((tag) => creatorSystemTagLabel(t, tag)).join(", ")}
+                    >
+                      <span>+{hiddenSystemTagCount}</span>
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="affiliate-creator-compact-empty">—</span>
+              )}
+            </div>
+            <span className="affiliate-creator-compact-label affiliate-creator-compact-label-secondary">
+              {t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
+            </span>
+            <div className="affiliate-creator-compact-values">
+              {visibleManualTags.length ? (
+                <>
+                  {visibleManualTags.map((tag) => (
+                    <span className="affiliate-creator-tag" key={tag.id}>
+                      <span>{tag.name}</span>
+                    </span>
+                  ))}
+                  {hiddenManualTagCount > 0 ? (
+                    <span
+                      className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                      title={manualTags.map((tag) => tag.name).join(", ")}
+                    >
+                      <span>+{hiddenManualTagCount}</span>
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="affiliate-creator-compact-empty">—</span>
+              )}
+            </div>
           </div>
-          <span className="affiliate-creator-compact-label affiliate-creator-compact-label-secondary">
-            {t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
-          </span>
-          <div className="affiliate-creator-compact-values">
-            {visibleManualTags.length ? (
-              <>
-                {visibleManualTags.map((tag) => (
-                  <span className="affiliate-creator-tag" key={tag.id}>
-                    <span>{tag.name}</span>
-                  </span>
-                ))}
-                {hiddenManualTagCount > 0 ? (
-                  <span
-                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
-                    title={manualTags.map((tag) => tag.name).join(", ")}
-                  >
-                    <span>+{hiddenManualTagCount}</span>
-                  </span>
-                ) : null}
-              </>
-            ) : (
-              <span className="affiliate-creator-compact-empty">—</span>
-            )}
-          </div>
-        </div>
+        ) : null}
       </section>
 
       <dl className="affiliate-creator-compact-metrics">

@@ -2423,6 +2423,41 @@ describe("creator tag catalog wiring", () => {
     expect(english).toContain('sampleTierColumnLabel: "Collaboration progress"');
   });
 
+  it("gives cooperating shops a full-width wrapping row without shrinking their names", () => {
+    const creatorCard = page.slice(
+      page.indexOf("function CreatorRelationshipCompactCard"),
+      page.indexOf("function AffiliateCollaborationDetailModal"),
+    );
+    const css = readFileSync(resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"), "utf8");
+    expect(creatorCard).toContain('className="affiliate-creator-compact-detail-row affiliate-creator-compact-progress-row"');
+    expect(creatorCard).toContain('className="affiliate-creator-compact-values affiliate-creator-shop-list"');
+    expect(creatorCard).toContain("relationshipShopIds.map");
+    expect(css).toMatch(/\.affiliate-page-frame \.affiliate-creator-compact-progress-row\s*\{[^}]*grid-template-columns:\s*auto minmax\(0, 1fr\)/u);
+    expect(css).toMatch(/\.affiliate-page-frame \.affiliate-creator-compact-values\.affiliate-creator-shop-list\s*\{[^}]*flex-wrap:\s*wrap/u);
+    expect(css).toMatch(/\.affiliate-page-frame \.affiliate-creator-shop-list > \.affiliate-creator-shop-pill\s*\{[^}]*flex:\s*0 0 auto;[^}]*max-width:\s*100%;[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere/u);
+  });
+
+  it("uses a flat readable register with dedicated status and responsive information groups", () => {
+    const creatorCard = page.slice(
+      page.indexOf("function CreatorRelationshipCompactCard"),
+      page.indexOf("function AffiliateCollaborationDetailModal"),
+    );
+    const css = readFileSync(resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"), "utf8");
+    const titleRow = creatorCard.slice(
+      creatorCard.indexOf('className="affiliate-creator-row-title"'),
+      creatorCard.indexOf('className="affiliate-creator-row-meta"'),
+    );
+    expect(titleRow).not.toContain("affiliate-creator-state");
+    expect(creatorCard).toContain('className="affiliate-creator-row-state"');
+    expect(creatorCard).toContain("systemTags.length > 0 || manualTags.length > 0 ? (");
+    expect(css).not.toContain(".affiliate-creator-compact-card::before");
+    expect(css).toMatch(/\.affiliate-creator-compact-card\s*\{[^}]*border-radius:\s*0;[^}]*box-shadow:\s*none/u);
+    expect(css).toMatch(/\.affiliate-creator-row-state \.affiliate-creator-state\s*\{[^}]*flex:\s*0 0 auto;[^}]*white-space:\s*nowrap/u);
+    expect(css).toMatch(/\.affiliate-creator-compact-metrics\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/u);
+    expect(css).toContain('grid-template-areas: "identity relationship" "metrics status" "owner owner"');
+    expect(css).toContain('grid-template-areas: "identity" "relationship" "metrics" "status" "owner"');
+  });
+
   it("keeps the per-shop tier read-only in the relationship detail", () => {
     // Tiers are backend-derived; the detail must offer no add/remove affordance.
     expect(page).toContain("affiliate-relationship-shop-tier");
