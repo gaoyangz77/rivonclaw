@@ -5206,3 +5206,21 @@ export const AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY = gql`
     }
   }
 `;
+
+export const AFFILIATE_CHAT_CAMPAIGN_TEMPLATES_QUERY = gql`
+  query AffiliateChatCampaignTemplates($shopId: ID!, $creatorRelationshipId: ID!) {
+    affiliateChatCampaignTemplates(shopId: $shopId, creatorRelationshipId: $creatorRelationshipId) {
+      id name endDays isSampleApprovalExempt sellerContactEmail
+      products { productId commissionRatePercent shopAdsCommissionRatePercent }
+    }
+  }
+`;
+
+export const SEND_AFFILIATE_CAMPAIGN_INVITATION_MUTATION = gql`
+  mutation SendAffiliateCampaignInvitation($input: SendAffiliateCampaignInvitationInput!) {
+    sendAffiliateCampaignInvitation(input: $input) {
+      delivery { id status errorCode errorMessage }
+      affiliateCollaboration { id shopId }
+    }
+  }
+`;

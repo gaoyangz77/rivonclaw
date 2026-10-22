@@ -1,3 +1,4 @@
+import { AffiliateCampaignInvitationComposer } from "./components/AffiliateCampaignInvitationComposer.js";
 import { AffiliateMessageAttachmentCard } from "./components/AffiliateMessageAttachmentCard.js";
 import { AffiliateSampleShipment } from "./components/AffiliateSampleShipment.js";
 import {
@@ -10428,6 +10429,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [sendingInvitation, setSendingInvitation] = useState(false);
   const messageSendInFlightRef = useRef(false);
   const messageSendAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const messageHistoryRefreshRevisionRef = useRef(0);
@@ -10715,7 +10717,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   function changeScope(nextShopId: string): void {
     if (
       nextShopId === scopeShopId ||
-      sendingMessage ||
+      sendingMessage || sendingInvitation ||
       uploadingAttachments ||
       decidingProposalId ||
       reviewSampleState.loading ||
@@ -10982,7 +10984,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
 
   async function submitComposerMessage(): Promise<void> {
-    if (!canPerformDailyOperations || messageSendInFlightRef.current || uploadingAttachments || markingConversationHandled ||
+    if (!canPerformDailyOperations || messageSendInFlightRef.current || sendingInvitation || uploadingAttachments || markingConversationHandled ||
       !relationshipId || !composerShopId || (scopeShopId && composerShopId !== scopeShopId)) return;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
     if (composerText.trim())
@@ -11617,7 +11619,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
               value={scopeShopId}
               onChange={changeScope}
               disabled={
-                sendingMessage ||
+                sendingMessage || sendingInvitation ||
                 uploadingAttachments ||
                 Boolean(decidingProposalId) ||
                 reviewSampleState.loading ||
@@ -12464,7 +12466,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       <Select
                         value={composerShopId}
                         onChange={setComposerShopId}
-                        disabled={sendingMessage || Boolean(scopeShopId)}
+                        disabled={sendingMessage || sendingInvitation || Boolean(scopeShopId)}
                         ariaLabel={t("ecommerce.affiliateWorkspace.selectMessageShop")}
                         options={(scopeShopId ? [scopeShopId] : includedShopIds).map((shopId) => {
                           const label = relationshipShopName(shopId);
@@ -12484,7 +12486,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       />
                       <Select
                         value={composerChannel}
-                        disabled={sendingMessage || (publicContacts.length > 0 && Boolean(pendingReplyToLifecycleEventId))}
+                        disabled={sendingMessage || sendingInvitation || (publicContacts.length > 0 && Boolean(pendingReplyToLifecycleEventId))}
                         onChange={(value) => {
                           setComposerChannel(value as "AUTO" | GQL.AffiliateMessageChannel);
                           setComposerContactId("");
@@ -12537,6 +12539,23 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                         />
                       ) : null}
                     </div>
+                    {relationshipId && composerShopId ? (
+                      <AffiliateCampaignInvitationComposer
+                        key={`${relationshipId}:${composerShopId}`}
+                        shopId={composerShopId}
+                        creatorRelationshipId={relationshipId}
+                        replyToLifecycleEventId={pendingReplyToLifecycleEventId}
+                        disabled={sendingMessage || uploadingAttachments || markingConversationHandled}
+                        onBusyChange={setSendingInvitation}
+                        onSent={() => {
+                          setPendingReplyToLifecycleEventId(undefined);
+                          conversationAutoScrollPendingRef.current = true;
+                          onWorkbenchEntityChanged?.();
+                          showToast(t("ecommerce.affiliateWorkspace.campaignInvitation.sent"), "success");
+                          refreshSentMessageHistory();
+                        }}
+                      />
+                    ) : null}
                     {messageHistorySync ? (
                       <TkAlert
                         tone={messageHistorySync === "failed" ? "warning" : "info"}
@@ -12647,7 +12666,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             className="btn btn-secondary btn-sm"
                             type="button"
                             disabled={
-                              markingConversationHandled || sendingMessage || uploadingAttachments
+                              markingConversationHandled || sendingMessage || sendingInvitation || uploadingAttachments
                             }
                             onClick={() => void markConversationHandled()}
                           >
@@ -12661,7 +12680,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                           type="button"
                           disabled={
                             !composerShopId ||
-                            sendingMessage ||
+                            sendingMessage || sendingInvitation ||
                             markingConversationHandled ||
                             uploadingAttachments ||
                             (!composerText.trim() && stagedAttachments.length === 0)

@@ -2073,6 +2073,15 @@ export const AffiliateChannelConversationStatus = {
 
 export type AffiliateChannelConversationStatus =
   (typeof AffiliateChannelConversationStatus)[keyof typeof AffiliateChannelConversationStatus];
+export interface AffiliateChatCampaignTemplate {
+  endDays: Scalars["Int"]["output"];
+  id: Scalars["ID"]["output"];
+  isSampleApprovalExempt: Scalars["Boolean"]["output"];
+  name: Scalars["String"]["output"];
+  products: Array<AffiliateCampaignProductType>;
+  sellerContactEmail?: Maybe<Scalars["String"]["output"]>;
+}
+
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars["ID"]["output"]>;
@@ -11469,6 +11478,8 @@ export interface Mutation {
   revokeEmailAccountBinding: EmailAccountBinding;
   /** Logout or delete a WhatsApp account binding and mark it revoked. */
   revokeWhatsAppAccountBinding: WhatsAppAccountBinding;
+  /** Create a standalone single-creator Target Collaboration from Campaign offer terms and send its card through TikTok chat; does not contribute to Campaign execution data. */
+  sendAffiliateCampaignInvitation: SendAffiliateCreatorMessagePayload;
   /** Send a human-authored affiliate creator message from the CreatorRelationship workspace. */
   sendAffiliateCreatorMessage: SendAffiliateCreatorMessagePayload;
   /** Enable or disable a business developer's login. Disabling ends its sessions; an archived developer's login cannot be enabled. */
@@ -12397,6 +12408,10 @@ export interface MutationRevokeWhatsAppAccountBindingArgs {
   deleteInstance?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
+export interface MutationSendAffiliateCampaignInvitationArgs {
+  input: SendAffiliateCampaignInvitationInput;
+}
+
 export interface MutationSendAffiliateCreatorMessageArgs {
   input: SendAffiliateCreatorMessageInput;
 }
@@ -13295,6 +13310,8 @@ export interface Query {
   affiliateCampaignSummary: AffiliateCampaignSummary;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
+  /** Read offer configuration templates for a manual creator invitation, scoped to the selected shop and relationship. */
+  affiliateChatCampaignTemplates: Array<AffiliateChatCampaignTemplate>;
   /** Read one canonical Open or Target platform Collaboration with its linked Creator, Sample Application, and Product context. */
   affiliateCollaborationDetail: AffiliateCollaborationDetailPayload;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
@@ -13698,6 +13715,11 @@ export interface QueryAffiliateCampaignSummaryArgs {
 
 export interface QueryAffiliateCampaignsArgs {
   input: ReadAffiliateCampaignsInput;
+}
+
+export interface QueryAffiliateChatCampaignTemplatesArgs {
+  creatorRelationshipId: Scalars["ID"]["input"];
+  shopId: Scalars["ID"]["input"];
 }
 
 export interface QueryAffiliateCollaborationDetailArgs {
@@ -15118,6 +15140,15 @@ export interface SellerSkuShopSearchFailure {
   message: Scalars["String"]["output"];
   shopId: Scalars["ID"]["output"];
   shopName: Scalars["String"]["output"];
+}
+
+export interface SendAffiliateCampaignInvitationInput {
+  /** Configuration template only; the new invitation is not a Campaign execution. */
+  campaignId: Scalars["ID"]["input"];
+  creatorRelationshipId: Scalars["ID"]["input"];
+  idempotencyKey: Scalars["String"]["input"];
+  replyToLifecycleEventId?: InputMaybe<Scalars["ID"]["input"]>;
+  shopId: Scalars["ID"]["input"];
 }
 
 export interface SendAffiliateCreatorMessageInput {

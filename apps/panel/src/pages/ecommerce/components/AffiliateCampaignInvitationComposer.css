@@ -1,0 +1,10 @@
+.affiliate-message-campaign-invitation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-message-campaign-invitation > .form-hint {
+  margin: 0;
+}
