@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.39",
+    "date": "2026-10-23",
+    "en": [
+      "Visualize creator performance and provide a multilingual category catalog",
+      "Show account-wide customer service coverage",
+      "Hide the internal performance source shop from creator profiles"
+    ],
+    "zh": [
+      "可视化展示达人表现数据，并提供多语言类目目录",
+      "展示账号范围内的客服覆盖情况",
+      "隐藏达人资料中的表现数据来源店铺等内部信息"
+    ]
+  },
+  {
     "version": "1.9.38",
     "date": "2026-10-23",
     "en": [
