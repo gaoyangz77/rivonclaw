@@ -11,6 +11,7 @@ import type {
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ChevronRightIcon } from "../icons.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
+import { AccountServiceMembershipStatus } from "./AccountServiceMembershipStatus.js";
 import { TkConfirmDialog as ConfirmDialog } from "../design-system/index.js";
 import { TkModal as Modal } from "../design-system/Overlays.js";
 import {
@@ -18,6 +19,7 @@ import {
   billingPlanDisplayName,
   checkoutProviderFromBillingProvider,
   entitlementStatusLabel,
+  isAccountServiceEntitlement,
   findPlanDefinition,
   isHighestAccountPlan,
   shouldShowRenewalReminder,
@@ -109,6 +111,7 @@ function formatMoneyFromMinor(amountMinor: number, currency: string): string {
 }
 
 function subscriptionAmount(subscription: BillingEntitlementStatus["subscription"]): string | null {
+  if (subscription?.planId === GQL.BillingPlanId.EcomCustomerServiceAccountMonthly) return panelI18n.t("billing.offlineSettlement");
   return subscription
     ? formatMoneyFromMinor(subscription.amountMinor, subscription.currency)
     : null;
@@ -633,6 +636,14 @@ function ShopServiceDetailModal({
     }
   }
 
+  if (entitlement && isAccountServiceEntitlement(entitlement)) {
+    return (
+      <Modal isOpen={serviceKey !== null} onClose={onClose} title={title} titleSensitive={titleSensitive} maxWidth={560}>
+        <AccountServiceMembershipStatus entitlement={entitlement} />
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       isOpen={serviceKey !== null}
@@ -808,7 +819,7 @@ function ShopServiceRow({
   }
 
   function handleServiceClick(key: ShopServiceKey, entitlement: BillingEntitlementStatus | null) {
-    if (entitlement?.allowed) {
+    if (entitlement?.allowed || isAccountServiceEntitlement(entitlement)) {
       setDetailServiceKey(key);
       return;
     }
@@ -903,7 +914,7 @@ function ShopServiceRow({
                           })}
                         </span>
                       )}
-                      {subscription &&
+                      {subscription && !isAccountServiceEntitlement(entitlement) &&
                       (subscription.cancelAtPeriodEnd ||
                         subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing) ? (
                         <span className="billing-warning-text">
@@ -1048,6 +1059,7 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
     .filter(
       (row): row is NonNullable<ShopServiceBillingGroup["customerServiceRow"]> =>
         !!row &&
+        !isAccountServiceEntitlement(row.billing?.customerService) &&
         (!row.billing?.customerService.allowed ||
           shouldShowRenewalReminder(row.billing.customerService)),
     )
@@ -1194,6 +1206,9 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
 
       <TkPanelBody>
         <div className="billing-dashboard-grid" data-tutorial-id="billing-account-plan">
+          {(billingOverview?.accountServices ?? []).filter(item => item.entitlement.subscription).map(item => (
+            <AccountServiceMembershipStatus key={item.product} entitlement={item.entitlement} />
+          ))}
           <EntitlementSummary
             title={accountPlan ? billingPlanDisplayName(t, accountPlan) : t("billing.accountAi")}
             entitlement={accountLlm?.entitlement ?? null}

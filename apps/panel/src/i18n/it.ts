@@ -1619,6 +1619,10 @@ export default {
     quotaRefreshAt: "Si aggiorna a {{time}}",
   },
   billing: {
+    accountCustomerService: "Assistenza clienti · Tutti i negozi",
+    accountCoverage: "Abbonamento account",
+    contactAdminRenewal: "Contatta l’amministratore per rinnovare",
+    offlineSettlement: "Fatturazione offline",
     title: "Fatturazione e abbonamento",
     description:
       "Esamina i diritti dell'account, gli abbonamenti ai servizi di negozio e i record di pagamento.",

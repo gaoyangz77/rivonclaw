@@ -15,6 +15,8 @@ import type { CustomerServiceConfigModel, ShopModel } from "./Shop.js";
 import type { ToolSpecModel } from "./ToolSpec.js";
 import type {
   BillingOverviewModel,
+  BillingEntitlementStatusModel,
+  AccountServiceBillingStatusModel,
   BillingPlanDefinitionModel,
   PaymentModel,
 } from "./Subscription.js";
@@ -44,7 +46,10 @@ const _runProfileGuard: _AssertRunProfileCompat = true;
 // ── Shop (MST is a subset — omits createdAt, updatedAt, grantedScopes) ──
 type _AssertShopCompat = AssertSubset<GQL.Shop, SnapshotIn<typeof ShopModel>>;
 const _shopGuard: _AssertShopCompat = true;
-type _AssertCustomerServiceCompat = AssertSubset<GQL.CustomerServiceSettings, SnapshotIn<typeof CustomerServiceConfigModel>>;
+type _AssertCustomerServiceCompat = AssertSubset<
+  GQL.CustomerServiceSettings,
+  SnapshotIn<typeof CustomerServiceConfigModel>
+>;
 const _customerServiceGuard: _AssertCustomerServiceCompat = true;
 
 // ── ToolSpec (ToolModel adds `source` which is local-only, not in GQL) ──
@@ -60,6 +65,16 @@ type _AssertBillingOverviewCompat = AssertSubset<
   SnapshotIn<typeof BillingOverviewModel>
 >;
 const _billingOverviewGuard: _AssertBillingOverviewCompat = true;
+type _AssertBillingEntitlementCompat = AssertSubset<
+  GQL.BillingEntitlementStatus,
+  SnapshotIn<typeof BillingEntitlementStatusModel>
+>;
+const _billingEntitlementGuard: _AssertBillingEntitlementCompat = true;
+type _AssertAccountServiceCompat = AssertSubset<
+  GQL.AccountServiceBillingStatus,
+  SnapshotIn<typeof AccountServiceBillingStatusModel>
+>;
+const _accountServiceGuard: _AssertAccountServiceCompat = true;
 
 type _AssertBillingPlanDefinitionCompat = AssertSubset<
   GQL.BillingPlanDefinition,

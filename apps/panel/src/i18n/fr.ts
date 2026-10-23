@@ -1629,6 +1629,10 @@ export default {
     quotaRefreshAt: "Actualisation à {{time}}",
   },
   billing: {
+    accountCustomerService: "Service client · Toutes les boutiques",
+    accountCoverage: "Abonnement du compte",
+    contactAdminRenewal: "Contactez l’administrateur pour renouveler",
+    offlineSettlement: "Facturation hors ligne",
     title: "Facturation et abonnement",
     description:
       "Vérifiez les droits du compte, les abonnements aux services de boutique et les enregistrements de paiement.",

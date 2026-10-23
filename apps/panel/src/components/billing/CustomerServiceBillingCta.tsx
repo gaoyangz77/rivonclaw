@@ -7,6 +7,7 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { BillingIcon, CloseIcon } from "../icons.js";
 import { TkConfirmDialog as ConfirmDialog } from "../design-system/index.js";
 import { ShopServiceCheckoutModal } from "./ShopServiceCheckoutModal.js";
+import { AccountServiceMembershipStatus } from "./AccountServiceMembershipStatus.js";
 import {
   billingEnumLabel,
   billingPlanDisplayName,
@@ -14,6 +15,7 @@ import {
   customerServicePlan,
   entitlementStatusLabel,
   shouldShowRenewalReminder,
+  isAccountServiceEntitlement,
 } from "./billing-labels.js";
 import panelI18n from "../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
@@ -65,6 +67,7 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
   const entityStore = useEntityStore();
   const plan = customerServicePlan(entityStore.billingPlanDefinitions);
   const allowed = entitlement?.allowed ?? false;
+  const accountManaged = isAccountServiceEntitlement(entitlement);
   const monthLabel = t("subscription.month");
   // The shop id we fall back to is opaque, so the name's sensitivity only
   // carries through when there actually is a name to fall back from.
@@ -104,8 +107,9 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
       subscription.renewalMode === GQL.BillingRenewalMode.NonRenewing);
 
   useEffect(() => {
+    if (accountManaged) return;
     entityStore.refreshPlanDefinitions().catch(() => {});
-  }, [entityStore]);
+  }, [entityStore, accountManaged]);
 
   async function confirmCancelSubscription() {
     if (!entitlement) return;
@@ -134,6 +138,10 @@ export const CustomerServiceBillingCta = observer(function CustomerServiceBillin
     } finally {
       setPortalPending(false);
     }
+  }
+
+  if (entitlement && isAccountServiceEntitlement(entitlement)) {
+    return <AccountServiceMembershipStatus entitlement={entitlement} />;
   }
 
   if (allowed) {

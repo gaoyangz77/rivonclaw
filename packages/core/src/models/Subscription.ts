@@ -24,6 +24,8 @@ export const BillingSubscriptionSummaryModel = types.model("BillingSubscriptionS
 export const BillingEntitlementStatusModel = types.model("BillingEntitlementStatus", {
   scopeType: types.string,
   scopeId: types.string,
+  coverageScopeType: types.maybeNull(types.string),
+  coverageScopeId: types.maybeNull(types.string),
   product: types.string,
   allowed: types.boolean,
   code: types.string,
@@ -47,7 +49,13 @@ export const ShopBillingStatusModel = types.model("ShopBillingStatus", {
   analytics: BillingEntitlementStatusModel,
 });
 
+export const AccountServiceBillingStatusModel = types.model("AccountServiceBillingStatus", {
+  product: types.string,
+  entitlement: BillingEntitlementStatusModel,
+});
+
 export const BillingOverviewModel = types.model("BillingOverview", {
+  accountServices: types.optional(types.array(AccountServiceBillingStatusModel), []),
   accountLlm: AccountLlmBillingStatusModel,
   shops: types.optional(types.array(ShopBillingStatusModel), []),
 });
@@ -100,6 +108,9 @@ export interface BillingSubscriptionSummary extends Instance<
 > {}
 export interface BillingEntitlementStatus extends Instance<typeof BillingEntitlementStatusModel> {}
 export interface AccountLlmBillingStatus extends Instance<typeof AccountLlmBillingStatusModel> {}
+export interface AccountServiceBillingStatus extends Instance<
+  typeof AccountServiceBillingStatusModel
+> {}
 export interface ShopBillingStatus extends Instance<typeof ShopBillingStatusModel> {}
 export interface BillingOverview extends Instance<typeof BillingOverviewModel> {}
 export interface BillingPlanDefinition extends Instance<typeof BillingPlanDefinitionModel> {}

@@ -43,7 +43,7 @@ export const BalanceBadge = observer(function BalanceBadge({
   return (
     <div className="shop-service-badges">
       {entitlement.allowed ? (
-        <span className="badge badge-active">{t("billing.allowed")}</span>
+        <span className="badge badge-active">{entitlementStatusLabel(t, entitlement)}</span>
       ) : (
         <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
       )}

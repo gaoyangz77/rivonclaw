@@ -17,6 +17,7 @@ export { AdsStoreBindingModel } from "./AdsStoreBinding.js";
 export type { AdsStoreBinding } from "./AdsStoreBinding.js";
 export {
   AccountLlmBillingStatusModel,
+  AccountServiceBillingStatusModel,
   BillingEntitlementStatusModel,
   BillingOverviewModel,
   BillingPlanDefinitionModel,
@@ -27,6 +28,7 @@ export {
 } from "./Subscription.js";
 export type {
   AccountLlmBillingStatus,
+  AccountServiceBillingStatus,
   BillingEntitlementStatus,
   BillingOverview,
   BillingPlanDefinition,

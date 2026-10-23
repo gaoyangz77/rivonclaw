@@ -1544,6 +1544,10 @@ export default {
     quotaRefreshAt: "{{time}} 刷新",
   },
   billing: {
+    accountCustomerService: "客服 · 全部店铺",
+    accountCoverage: "账号会员覆盖",
+    contactAdminRenewal: "请联系管理员续费",
+    offlineSettlement: "线下结算",
     title: "计费与订阅",
     description: "查看账户权益、店铺服务订阅状态和支付记录。",
     accountLlm: "账户 LLM",

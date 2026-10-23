@@ -1619,6 +1619,10 @@ export default {
     quotaRefreshAt: "Se actualiza en {{time}}",
   },
   billing: {
+    accountCustomerService: "Atención al cliente · Todas las tiendas",
+    accountCoverage: "Membresía de la cuenta",
+    contactAdminRenewal: "Contacta al administrador para renovar",
+    offlineSettlement: "Facturación fuera de línea",
     title: "Facturación y suscripción",
     description:
       "Revise los derechos de cuenta, compre suscripciones a servicios y registros de pago.",

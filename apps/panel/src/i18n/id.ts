@@ -1593,6 +1593,10 @@ export default {
     quotaRefreshAt: "Menyegarkan di {{time}}",
   },
   billing: {
+    accountCustomerService: "Layanan Pelanggan · Semua Toko",
+    accountCoverage: "Keanggotaan akun",
+    contactAdminRenewal: "Hubungi administrator untuk memperpanjang",
+    offlineSettlement: "Penagihan offline",
     title: "Penagihan & Berlangganan",
     description: "Tinjau hak akun, langganan layanan toko, dan catatan pembayaran.",
     accountLlm: "Akun LLM",

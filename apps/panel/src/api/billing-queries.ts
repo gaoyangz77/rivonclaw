@@ -15,6 +15,8 @@ const BILLING_ENTITLEMENT_FIELDS = gql`
   fragment BillingEntitlementFields on BillingEntitlementStatus {
     scopeType
     scopeId
+    coverageScopeType
+    coverageScopeId
     product
     allowed
     code
@@ -75,6 +77,12 @@ export const BILLING_OVERVIEW_QUERY = gql`
   query BillingOverview {
     billingOverview {
       __typename
+      accountServices {
+        product
+        entitlement {
+          ...BillingEntitlementFields
+        }
+      }
       accountLlm {
         planId
         entitlement {

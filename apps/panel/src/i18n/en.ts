@@ -1609,6 +1609,10 @@ export default {
     quotaRefreshAt: "Refreshes at {{time}}",
   },
   billing: {
+    accountCustomerService: "Customer Service · All Shops",
+    accountCoverage: "Account membership",
+    contactAdminRenewal: "Contact administrator to renew",
+    offlineSettlement: "Offline billing",
     title: "Billing & Subscription",
     description: "Review account entitlements, shop service subscriptions, and payment records.",
     accountLlm: "Account LLM",

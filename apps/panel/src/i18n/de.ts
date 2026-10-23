@@ -1634,6 +1634,10 @@ export default {
     quotaRefreshAt: "Aktualisierungen bei {{time}}",
   },
   billing: {
+    accountCustomerService: "Kundenservice · Alle Shops",
+    accountCoverage: "Kontomitgliedschaft",
+    contactAdminRenewal: "Zur Verlängerung Administrator kontaktieren",
+    offlineSettlement: "Offline-Abrechnung",
     title: "Abrechnung und Abonnement",
     description:
       "Überprüfen Sie Kontoberechtigungen, Shop-Service-Abonnements und Zahlungsaufzeichnungen.",

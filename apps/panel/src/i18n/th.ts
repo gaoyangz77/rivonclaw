@@ -1520,6 +1520,10 @@ export default {
     quotaRefreshAt: "รีเฟรชที่ {{time}}",
   },
   billing: {
+    accountCustomerService: "บริการลูกค้า · ทุกร้านค้า",
+    accountCoverage: "สมาชิกระดับบัญชี",
+    contactAdminRenewal: "ติดต่อผู้ดูแลระบบเพื่อต่ออายุ",
+    offlineSettlement: "ชำระเงินออฟไลน์",
     title: "การเรียกเก็บเงินและการสมัครสมาชิก",
     description: "ตรวจสอบสิทธิ์ของบัญชี การสมัครสมาชิกบริการร้านค้า และบันทึกการชำระเงิน",
     accountLlm: "บัญชี LLM",

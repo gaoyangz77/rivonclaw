@@ -57,6 +57,11 @@ export interface AccountRoleType {
   systemKey?: Maybe<AccountSystemRoleKey>;
 }
 
+export interface AccountServiceBillingStatus {
+  entitlement: BillingEntitlementStatus;
+  product: BillableProduct;
+}
+
 /** Stable identity of a built-in account role. */
 export const AccountSystemRoleKey = {
   AffiliateSupervisor: "AFFILIATE_SUPERVISOR",
@@ -5786,6 +5791,8 @@ export type BillableProduct = (typeof BillableProduct)[keyof typeof BillableProd
 export interface BillingEntitlementStatus {
   allowed: Scalars["Boolean"]["output"];
   code: EntitlementDecisionCode;
+  coverageScopeId?: Maybe<Scalars["String"]["output"]>;
+  coverageScopeType?: Maybe<BillingScopeType>;
   product: BillableProduct;
   scopeId: Scalars["String"]["output"];
   scopeType: BillingScopeType;
@@ -5797,6 +5804,7 @@ export interface BillingEntitlementStatus {
 
 export interface BillingOverview {
   accountLlm: AccountLlmBillingStatus;
+  accountServices: Array<AccountServiceBillingStatus>;
   shops: Array<ShopBillingStatus>;
 }
 
@@ -5819,6 +5827,7 @@ export interface BillingPlanDefinition {
 }
 
 export const BillingPlanId = {
+  EcomCustomerServiceAccountMonthly: "ECOM_CUSTOMER_SERVICE_ACCOUNT_MONTHLY",
   EcomCustomerServiceUnlimitedMonthly: "ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY",
   EcomOnboardingTrialWindow: "ECOM_ONBOARDING_TRIAL_WINDOW",
   RivonclawAiMax: "RIVONCLAW_AI_MAX",
@@ -5859,6 +5868,9 @@ export interface BillingSubscription {
   /** Temporary access deadline after a recurring invoice payment failure. */
   graceUntil?: Maybe<Scalars["DateTimeISO"]["output"]>;
   id: Scalars["ID"]["output"];
+  membershipReason?: Maybe<Scalars["String"]["output"]>;
+  membershipUpdatedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  membershipUpdatedByUserId?: Maybe<Scalars["String"]["output"]>;
   ownerUserId: Scalars["String"]["output"];
   planId: BillingPlanId;
   product: BillableProduct;
@@ -11476,6 +11488,8 @@ export interface Mutation {
   revokeAllSessions: Scalars["Int"]["output"];
   /** Revoke an Outlook/Microsoft Graph email account binding. */
   revokeEmailAccountBinding: EmailAccountBinding;
+  /** Admin-only: immediately revoke an offline account-service membership. */
+  revokeManualAccountServiceMembership: BillingSubscription;
   /** Logout or delete a WhatsApp account binding and mark it revoked. */
   revokeWhatsAppAccountBinding: WhatsAppAccountBinding;
   /** Create a standalone single-creator Target Collaboration from Campaign offer terms and send its card through TikTok chat; does not contribute to Campaign execution data. */
@@ -11497,6 +11511,8 @@ export interface Mutation {
   setAgentInvite: MeResponse;
   /** Set or clear the default RunProfile for the current user */
   setDefaultRunProfile: MeResponse;
+  /** Admin-only: set an absolute offline account-service membership deadline. */
+  setManualAccountServiceMembership: BillingSubscription;
   /** Single frontend entry point for paid billing. The backend decides whether to create a Stripe Checkout, resume a scheduled Stripe cancellation, return ALREADY_ACTIVE, create a Stripe trial that starts after existing free/prepaid access ends, process a Stripe upgrade, or create a Lakala prepaid QR payment. */
   startBillingSubscription: StartBillingSubscriptionResult;
   startBrowserToDesktopLogin: BrowserToDesktopLoginStart;
@@ -12403,6 +12419,12 @@ export interface MutationRevokeEmailAccountBindingArgs {
   bindingId: Scalars["ID"]["input"];
 }
 
+export interface MutationRevokeManualAccountServiceMembershipArgs {
+  ownerUserId: Scalars["String"]["input"];
+  product: BillableProduct;
+  reason: Scalars["String"]["input"];
+}
+
 export interface MutationRevokeWhatsAppAccountBindingArgs {
   bindingId: Scalars["ID"]["input"];
   deleteInstance?: InputMaybe<Scalars["Boolean"]["input"]>;
@@ -12448,6 +12470,13 @@ export interface MutationSetAgentInviteArgs {
 
 export interface MutationSetDefaultRunProfileArgs {
   runProfileId?: InputMaybe<Scalars["String"]["input"]>;
+}
+
+export interface MutationSetManualAccountServiceMembershipArgs {
+  ownerUserId: Scalars["String"]["input"];
+  product: BillableProduct;
+  reason: Scalars["String"]["input"];
+  validUntil: Scalars["DateTimeISO"]["input"];
 }
 
 export interface MutationStartBillingSubscriptionArgs {

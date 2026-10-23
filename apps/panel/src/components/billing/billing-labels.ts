@@ -41,10 +41,18 @@ export function entitlementStatusLabel(
   t: TFunction,
   entitlement: BillingEntitlementStatus | null,
 ): string {
+  if (isAccountServiceEntitlement(entitlement)) {
+    return entitlement?.allowed ? t("billing.accountCoverage") : t("billing.contactAdminRenewal");
+  }
   if (entitlement?.allowed) return t("billing.allowed");
   if (entitlement?.code === GQL.EntitlementDecisionCode.PaymentRequired)
     return t("billing.needsActivation");
   return billingEnumLabel(t, "entitlementCode", entitlement?.code);
+}
+
+export function isAccountServiceEntitlement(entitlement: BillingEntitlementStatus | null | undefined): boolean {
+  return entitlement?.coverageScopeType === GQL.BillingScopeType.Account &&
+    entitlement.product !== GQL.BillableProduct.LlmUsage && !!entitlement.subscription;
 }
 
 export function billingPlanDisplayName(t: TFunction, plan: BillingPlanDefinition): string {

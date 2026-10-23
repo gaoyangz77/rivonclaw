@@ -290,6 +290,17 @@ export const INIT_PLATFORM_APPS_QUERY = `
 export const INIT_BILLING_OVERVIEW_QUERY = `
   query {
     billingOverview {
+      accountServices {
+        product
+        entitlement {
+          scopeType scopeId coverageScopeType coverageScopeId product allowed code source validUntil
+          subscription {
+            planId provider status currency amountMinor currentPeriodStart currentPeriodEnd
+            graceUntil renewalMode cancelAtPeriodEnd
+          }
+          usage { metric window usedPercent remainingPercent refreshAt }
+        }
+      }
       accountLlm {
         planId
         entitlement {
@@ -327,6 +338,8 @@ export const INIT_BILLING_OVERVIEW_QUERY = `
         customerService {
           scopeType
           scopeId
+          coverageScopeType
+          coverageScopeId
           product
           allowed
           code

@@ -1,0 +1,34 @@
+.account-service-membership {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.account-membership-header {
+  flex-wrap: wrap;
+}
+
+.account-membership-header > strong,
+.account-membership-header > .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.account-membership-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--tk-v1-space-3);
+  margin: var(--tk-v1-space-3) 0 0;
+}
+
+.account-membership-details dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.account-membership-details dd {
+  margin: var(--tk-v1-space-1) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

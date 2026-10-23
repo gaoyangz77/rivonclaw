@@ -24,6 +24,7 @@ import { InventoryManagementTab } from "./InventoryManagementTab.js";
 import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
 import type { AffiliateSamplePerformanceFollowUpInput } from "./AffiliateManagementTab.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
+import { isAccountServiceEntitlement } from "../../../components/billing/billing-labels.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { DrawerTab } from "../ecommerce-types.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
@@ -642,7 +643,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                         <span className="shop-info-card-hint">
                           {t("ecommerce.shopDrawer.overview.csToggleHint")}
                         </span>
-                        {!customerServiceEntitlement?.allowed && (
+                        {(!customerServiceEntitlement?.allowed || isAccountServiceEntitlement(customerServiceEntitlement)) && (
                           <CustomerServiceBillingCta
                             shopId={shop.id}
                             shopName={shopLabel.text}
