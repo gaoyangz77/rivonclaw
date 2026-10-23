@@ -1,0 +1,9 @@
+.shop-table-body {
+  display: grid;
+  gap: var(--tk-v1-space-4);
+}
+
+.shop-table-search {
+  flex: 1;
+  max-width: 360px;
+}

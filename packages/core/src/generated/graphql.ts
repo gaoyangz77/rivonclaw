@@ -12844,6 +12844,7 @@ export type PlatformAppStatus = (typeof PlatformAppStatus)[keyof typeof Platform
 export const PlatformMarket = {
   At: "AT",
   Be: "BE",
+  Br: "BR",
   Cz: "CZ",
   De: "DE",
   Es: "ES",
@@ -15314,6 +15315,7 @@ export type ShopPlatform = (typeof ShopPlatform)[keyof typeof ShopPlatform];
 export const ShopRegion = {
   At: "AT",
   Be: "BE",
+  Br: "BR",
   Cz: "CZ",
   De: "DE",
   Es: "ES",

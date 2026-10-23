@@ -2924,6 +2924,9 @@ export default {
     subtitle: "Gérez les boutiques connectées, les autorisations et les paramètres de service.",
     shops: "Boutiques",
     shopsSubtitle: "Boutiques de vendeurs connectées et statut du service.",
+    searchShops: "Rechercher des boutiques",
+    searchShopsPlaceholder: "Rechercher par nom ou alias de boutique",
+    noMatchingShops: "Aucune boutique correspondante.",
     productCard: {
       openProductDetail: "Ouvrir les détails du produit",
       enlargeProductImage: "Afficher l'image produit en grand",
@@ -4163,6 +4166,7 @@ export default {
       ROW: "Autres régions",
       GB: "Royaume-Uni",
       MX: "Mexique",
+      BR: "Brésil",
       ES: "Espagne",
       FR: "France",
       DE: "Allemagne",

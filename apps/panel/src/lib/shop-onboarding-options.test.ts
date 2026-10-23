@@ -51,4 +51,19 @@ describe("shop onboarding combinations", () => {
   it("does not expose legacy ROW routing records as real markets", () => {
     expect(onboardingMarkets([apps[5]], "TIKTOK_SHOP")).toEqual([]);
   });
+
+  it("offers Brazil when its authorization app is available", () => {
+    const brazilApp = {
+      id: "br-local",
+      market: GQL.PlatformMarket.Br,
+      platform: GQL.PlatformType.TiktokShop,
+      sellerType: GQL.PlatformSellerType.Local,
+    };
+    const availableApps = [...apps, brazilApp];
+    expect(onboardingMarkets(availableApps, "TIKTOK_SHOP")).toContain("BR");
+    expect(onboardingSellerTypes(availableApps, "TIKTOK_SHOP", "BR")).toEqual(["LOCAL"]);
+    expect(platformAppsForOnboardingSelection(availableApps, "TIKTOK_SHOP", "BR", "LOCAL")).toEqual([
+      brazilApp,
+    ]);
+  });
 });

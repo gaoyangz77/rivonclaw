@@ -2910,6 +2910,9 @@ export default {
     subtitle: "Gestiona tiendas conectadas, autorización y configuración de servicios.",
     shops: "Tiendas",
     shopsSubtitle: "Tiendas de vendedores conectados y estado del servicio.",
+    searchShops: "Buscar tiendas",
+    searchShopsPlaceholder: "Buscar por nombre o alias de la tienda",
+    noMatchingShops: "No hay tiendas que coincidan.",
     productCard: {
       openProductDetail: "Abrir detalles del producto",
       enlargeProductImage: "Ver imagen del producto más grande",
@@ -4151,6 +4154,7 @@ export default {
       ROW: "Otras regiones",
       GB: "Reino Unido",
       MX: "México",
+      BR: "Brasil",
       ES: "España",
       FR: "Francia",
       DE: "Alemania",

@@ -2924,6 +2924,9 @@ export default {
     subtitle: "Verwalten Sie verbundene Shops, Autorisierung und Serviceeinstellungen.",
     shops: "Geschäfte",
     shopsSubtitle: "Angeschlossene Verkäufershops und Servicestatus.",
+    searchShops: "Shops suchen",
+    searchShopsPlaceholder: "Shopname oder Alias suchen",
+    noMatchingShops: "Keine passenden Shops.",
     productCard: {
       openProductDetail: "Produktdetails öffnen",
       enlargeProductImage: "Größeres Produktbild anzeigen",
@@ -4163,6 +4166,7 @@ export default {
       ROW: "Andere Regionen",
       GB: "Vereinigtes Königreich",
       MX: "Mexiko",
+      BR: "Brasilien",
       ES: "Spanien",
       FR: "Frankreich",
       DE: "Deutschland",

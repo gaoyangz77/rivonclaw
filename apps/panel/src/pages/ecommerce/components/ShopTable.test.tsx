@@ -12,6 +12,8 @@ const translations: Record<string, string> = {
   "ecommerce.shopsSubtitle": "Connected shops",
   "ecommerce.refreshShops": "Refresh shops",
   "ecommerce.addShop": "Add shop",
+  "ecommerce.searchShops": "Search shops",
+  "ecommerce.noMatchingShops": "No matching shops.",
   "ecommerce.table.headers.name": "Shop name",
   "ecommerce.table.headers.alias": "Alias",
   "ecommerce.table.headers.platform": "Platform",
@@ -38,6 +40,7 @@ vi.mock("./BalanceBadge.js", () => ({
 function createShop(input: {
   id: string;
   shopName: string;
+  alias?: string | null;
   collectionKey?: string;
   authStatus?: "AUTHORIZED" | "TOKEN_EXPIRED";
   customerServiceEnabled?: boolean;
@@ -46,7 +49,7 @@ function createShop(input: {
     id: input.id,
     shopName: input.shopName,
     collectionKey: input.collectionKey,
-    alias: null,
+    alias: input.alias ?? null,
     platform: "TIKTOK_SHOP",
     region: "US",
     authStatus: input.authStatus ?? "AUTHORIZED",
@@ -61,6 +64,76 @@ afterEach(() => {
 });
 
 describe("ShopTable collection hierarchy", () => {
+  it("filters loaded shops by name or alias and restores all rows when cleared", () => {
+    render(
+      <ShopTable
+        shops={[
+          createShop({ id: "one", shopName: "Alpha Store", alias: "主店" }),
+          createShop({ id: "two", shopName: "Beta Store", alias: "Outlet" }),
+          createShop({ id: "three", shopName: "Gamma Store" }),
+        ]}
+        oauthLoading={false}
+        oauthWaiting={false}
+        refreshing={false}
+        onRefresh={vi.fn()}
+        onAddShop={vi.fn()}
+        onUpdateAlias={vi.fn()}
+        onOpenDrawer={vi.fn()}
+        onReauthorize={vi.fn()}
+        onRequestDelete={vi.fn()}
+      />,
+    );
+
+    const search = screen.getByRole("searchbox", { name: "Search shops" });
+    fireEvent.change(search, { target: { value: "  aLPHa  " } });
+    expect(screen.getByRole("row", { name: "View Alpha Store" })).toBeTruthy();
+    expect(screen.queryByRole("row", { name: "View Beta Store" })).toBeNull();
+
+    fireEvent.change(search, { target: { value: "主" } });
+    expect(screen.getByRole("row", { name: "View Alpha Store" })).toBeTruthy();
+
+    fireEvent.change(search, { target: { value: "outLET" } });
+    expect(screen.getByRole("row", { name: "View Beta Store" })).toBeTruthy();
+    expect(screen.queryByRole("row", { name: "View Alpha Store" })).toBeNull();
+
+    fireEvent.change(search, { target: { value: "no match" } });
+    expect(screen.getByRole("status").textContent).toBe("No matching shops.");
+    expect(screen.queryByRole("table")).toBeNull();
+
+    fireEvent.change(search, { target: { value: "" } });
+    for (const name of ["Alpha Store", "Beta Store", "Gamma Store"]) {
+      expect(screen.getByRole("row", { name: `View ${name}` })).toBeTruthy();
+    }
+  });
+
+  it("reveals search matches in collapsed collections and restores the collapse state", () => {
+    render(
+      <ShopTable
+        shops={[
+          createShop({ id: "us", shopName: "Group", collectionKey: "group" }),
+          createShop({ id: "fr", shopName: "Group France", collectionKey: "group" }),
+        ]}
+        oauthLoading={false}
+        oauthWaiting={false}
+        refreshing={false}
+        onRefresh={vi.fn()}
+        onAddShop={vi.fn()}
+        onUpdateAlias={vi.fn()}
+        onOpenDrawer={vi.fn()}
+        onReauthorize={vi.fn()}
+        onRequestDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse Group" }));
+    expect(screen.queryByRole("row", { name: "View Group France" })).toBeNull();
+    const search = screen.getByRole("searchbox", { name: "Search shops" });
+    fireEvent.change(search, { target: { value: "group" } });
+    expect(screen.getByRole("row", { name: "View Group France" })).toBeTruthy();
+    fireEvent.change(search, { target: { value: "" } });
+    expect(screen.queryByRole("row", { name: "View Group France" })).toBeNull();
+  });
+
   it("shows semantic collection summaries, name sorting, and collapsible children", () => {
     render(
       <ShopTable

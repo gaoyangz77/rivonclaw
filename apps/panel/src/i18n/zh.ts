@@ -2999,6 +2999,9 @@ export default {
     subtitle: "管理已连接店铺、授权和经营服务。",
     shops: "店铺",
     shopsSubtitle: "已连接店铺与服务状态。",
+    searchShops: "搜索店铺",
+    searchShopsPlaceholder: "搜索店铺名称或别名",
+    noMatchingShops: "没有匹配的店铺。",
     productCard: {
       openProductDetail: "查看商品详情",
       enlargeProductImage: "查看商品大图",
@@ -4649,6 +4652,7 @@ export default {
       ROW: "其他地区",
       GB: "英国",
       MX: "墨西哥",
+      BR: "巴西",
       ES: "西班牙",
       FR: "法国",
       DE: "德国",

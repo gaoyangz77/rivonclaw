@@ -2873,6 +2873,9 @@ export default {
     subtitle: "Kelola toko terhubung, otorisasi, dan pengaturan layanan.",
     shops: "Toko",
     shopsSubtitle: "Toko penjual yang terhubung dan status layanan.",
+    searchShops: "Cari toko",
+    searchShopsPlaceholder: "Cari nama atau alias toko",
+    noMatchingShops: "Tidak ada toko yang cocok.",
     productCard: {
       openProductDetail: "Buka detail produk",
       enlargeProductImage: "Lihat gambar produk lebih besar",
@@ -4092,6 +4095,7 @@ export default {
       ROW: "Wilayah lainnya",
       GB: "Inggris Raya",
       MX: "Meksiko",
+      BR: "Brasil",
       ES: "Spanyol",
       FR: "Perancis",
       DE: "Jerman",

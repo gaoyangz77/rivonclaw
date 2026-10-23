@@ -5,11 +5,13 @@ import type { Shop } from "@rivonclaw/core/models";
 import { ChevronRightIcon, RefreshIcon } from "../../../components/icons.js";
 import {
   TkInteractiveTableRow,
+  TkField,
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
   TkPrivate,
   TkTableFrame,
+  TkToolbar,
   usePrivacyMode,
 } from "../../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
@@ -21,6 +23,7 @@ import {
   shopCollectionRegions,
   sortShopCollectionGroupsByName,
 } from "../../../lib/shop-collections.js";
+import "./ShopTable.css";
 
 interface ShopTableProps {
   shops: Shop[];
@@ -55,12 +58,19 @@ export const ShopTable = observer(function ShopTable({
 }: ShopTableProps) {
   const { t } = useTranslation();
   const privacyMode = usePrivacyMode();
+  const [searchQuery, setSearchQuery] = useState("");
   const [draftAliases, setDraftAliases] = useState<Record<string, string>>({});
   const [savingAliasShopId, setSavingAliasShopId] = useState<string | null>(null);
   const [collapsedCollectionKeys, setCollapsedCollectionKeys] = useState<Set<string>>(
     () => new Set(),
   );
-  const shopGroups = sortShopCollectionGroupsByName(groupShopsByCollection(shops));
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredShops = normalizedQuery
+    ? shops.filter((shop) =>
+        [shop.shopName, shop.alias].some((value) => value?.toLowerCase().includes(normalizedQuery)),
+      )
+    : shops;
+  const shopGroups = sortShopCollectionGroupsByName(groupShopsByCollection(filteredShops));
   const shopAliasSignature = shops.map((shop) => `${shop.id}:${shop.alias ?? ""}`).join("\u0001");
 
   useEffect(() => {
@@ -126,9 +136,26 @@ export const ShopTable = observer(function ShopTable({
         }
       />
 
-      <TkPanelBody>
+      <TkPanelBody className="shop-table-body">
+        {shops.length > 0 && (
+          <TkToolbar variant="open">
+            <TkField
+              className="shop-table-search"
+              type="search"
+              label={t("ecommerce.searchShops")}
+              hideLabel
+              placeholder={t("ecommerce.searchShopsPlaceholder")}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </TkToolbar>
+        )}
         {shops.length === 0 ? (
           <div className="empty-cell">{t("ecommerce.noShops")}</div>
+        ) : filteredShops.length === 0 ? (
+          <div className="empty-cell" role="status">
+            {t("ecommerce.noMatchingShops")}
+          </div>
         ) : (
           <TkTableFrame className="table-scroll-wrap shop-table-wrap">
             <table className="shop-table" data-tutorial-id="shops-table">
@@ -162,7 +189,7 @@ export const ShopTable = observer(function ShopTable({
                   const collectionNameSensitive = group.shops.some(
                     (shop) => shop.shopName?.trim() === collectionName,
                   );
-                  const isExpanded = !collapsedCollectionKeys.has(group.key);
+                  const isExpanded = !!normalizedQuery || !collapsedCollectionKeys.has(group.key);
                   const authorizedShopCount = group.shops.filter(
                     (shop) => shop.authStatus === "AUTHORIZED",
                   ).length;
@@ -180,26 +207,30 @@ export const ShopTable = observer(function ShopTable({
                         <tr className="shop-collection-row">
                           <td>
                             <div className="shop-collection-identity">
-                              <button
-                                type="button"
-                                className={`shop-collection-toggle${
-                                  isExpanded ? " shop-collection-toggle-open" : ""
-                                }`}
-                                onClick={() => toggleCollection(group.key)}
-                                aria-expanded={isExpanded}
-                                aria-label={`${t(
-                                  isExpanded ? "chat.collapseMessage" : "chat.expandMessage",
-                                )} ${collectionName}`}
-                                title={
-                                  collectionNameSensitive && privacyMode
-                                    ? undefined
-                                    : `${t(
-                                        isExpanded ? "chat.collapseMessage" : "chat.expandMessage",
-                                      )} ${collectionName}`
-                                }
-                              >
-                                <ChevronRightIcon />
-                              </button>
+                              {!normalizedQuery && (
+                                <button
+                                  type="button"
+                                  className={`shop-collection-toggle${
+                                    isExpanded ? " shop-collection-toggle-open" : ""
+                                  }`}
+                                  onClick={() => toggleCollection(group.key)}
+                                  aria-expanded={isExpanded}
+                                  aria-label={`${t(
+                                    isExpanded ? "chat.collapseMessage" : "chat.expandMessage",
+                                  )} ${collectionName}`}
+                                  title={
+                                    collectionNameSensitive && privacyMode
+                                      ? undefined
+                                      : `${t(
+                                          isExpanded
+                                            ? "chat.collapseMessage"
+                                            : "chat.expandMessage",
+                                        )} ${collectionName}`
+                                  }
+                                >
+                                  <ChevronRightIcon />
+                                </button>
+                              )}
                               <TkPrivate
                                 className="tk-v1-table-record-name"
                                 sensitive={collectionNameSensitive}

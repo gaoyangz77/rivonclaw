@@ -3154,6 +3154,9 @@ export default {
     subtitle: "Manage connected shops, authorization, and service settings.",
     shops: "Shops",
     shopsSubtitle: "Connected seller shops and service status.",
+    searchShops: "Search shops",
+    searchShopsPlaceholder: "Search shop name or alias",
+    noMatchingShops: "No matching shops.",
     productCard: {
       openProductDetail: "Open product details",
       enlargeProductImage: "View larger product image",
@@ -4886,6 +4889,7 @@ export default {
       ROW: "Other regions",
       GB: "United Kingdom",
       MX: "Mexico",
+      BR: "Brazil",
       ES: "Spain",
       FR: "France",
       DE: "Germany",

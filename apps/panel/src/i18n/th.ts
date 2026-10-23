@@ -2768,6 +2768,9 @@ export default {
     subtitle: "จัดการร้านค้าที่เชื่อมต่อ การอนุญาต และการตั้งค่าบริการ",
     shops: "ร้านค้า",
     shopsSubtitle: "ร้านค้าผู้ขายที่เชื่อมต่อและสถานะการบริการ",
+    searchShops: "ค้นหาร้านค้า",
+    searchShopsPlaceholder: "ค้นหาชื่อร้านค้าหรือชื่อเล่น",
+    noMatchingShops: "ไม่พบร้านค้าที่ตรงกัน",
     productCard: {
       openProductDetail: "เปิดรายละเอียดสินค้า",
       enlargeProductImage: "ดูรูปสินค้าแบบขยาย",
@@ -3942,6 +3945,7 @@ export default {
       ROW: "ภูมิภาคอื่นๆ",
       GB: "สหราชอาณาจักร",
       MX: "เม็กซิโก",
+      BR: "บราซิล",
       ES: "สเปน",
       FR: "ฝรั่งเศส",
       DE: "เยอรมนี",

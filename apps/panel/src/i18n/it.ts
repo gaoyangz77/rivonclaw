@@ -2907,6 +2907,9 @@ export default {
     subtitle: "Gestisci negozi connessi, autorizzazione e impostazioni dei servizi.",
     shops: "Negozi",
     shopsSubtitle: "Negozi del venditore collegati e stato del servizio.",
+    searchShops: "Cerca negozi",
+    searchShopsPlaceholder: "Cerca per nome o alias del negozio",
+    noMatchingShops: "Nessun negozio corrispondente.",
     productCard: {
       openProductDetail: "Apri dettagli prodotto",
       enlargeProductImage: "Visualizza immagine prodotto più grande",
@@ -4145,6 +4148,7 @@ export default {
       ROW: "Altre regioni",
       GB: "Regno Unito",
       MX: "Messico",
+      BR: "Brasile",
       ES: "Spagna",
       FR: "Francia",
       DE: "Germania",
