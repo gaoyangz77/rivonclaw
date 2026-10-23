@@ -7,6 +7,7 @@ import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { CloudRestError } from "./cloud-client.js";
 import { invalidateToolSpecsCache, syncDesktopToolSpecs } from "./tool-specs-sync.js";
+import { ensureDesktopCategories } from "./product-categories-sync.js";
 import {
   assertAffiliateRunTerminalOutcomeAvailable,
   getActiveAffiliateRunCheckpoint,
@@ -585,6 +586,19 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       sendJson(res, 200, {
         errors: [{ message: err instanceof Error ? err.message : "Cloud GraphQL request failed" }],
       });
+    }
+    return;
+  }
+
+  if (opName === "ProductCategoriesSync") {
+    try {
+      const catalog = await ensureDesktopCategories(ctx.authSession, String(variables?.locale ?? "en"), {
+        force: body.extensions?.rivonclaw?.forceCategoriesRefresh === true,
+      });
+      if (!catalog) throw new Error("Authentication required");
+      sendJson(res, 200, { data: { productCategories: catalog } });
+    } catch (error) {
+      sendJson(res, 200, { errors: [{ message: error instanceof Error ? error.message : String(error) }] });
     }
     return;
   }

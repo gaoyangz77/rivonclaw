@@ -6,7 +6,7 @@ import {
   type IJsonPatch,
   type Instance,
 } from "mobx-state-tree";
-import { RootStoreModel } from "@rivonclaw/core/models";
+import { RootStoreModel, productCategoryCacheSnapshot } from "@rivonclaw/core/models";
 import type { GQL } from "@rivonclaw/core";
 import { SYSTEM_TOOL_CATALOG } from "../../generated/system-tool-catalog.js";
 import {
@@ -220,6 +220,19 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
   },
 }))
   .actions((self) => ({
+    beginCategoryLoad(locale: string) {
+      if (!self.categories.has(locale)) self.categories.set(locale, { locale });
+      const bucket = self.categories.get(locale)!;
+      bucket.loading = true;
+      bucket.error = null;
+    },
+    ingestCategoryCatalog(catalog: GQL.ProductCategoryCatalog) {
+      self.categories.set(catalog.locale, productCategoryCacheSnapshot(catalog));
+    },
+    failCategoryLoad(locale: string, error: string) {
+      const bucket = self.categories.get(locale);
+      if (bucket) { bucket.loading = false; bucket.error = error; }
+    },
     beginShopRefresh(reason: string) {
       self.shopLifecycle.status = "loading";
       self.shopLifecycle.lastRefreshReason = reason;
@@ -546,6 +559,10 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
 
     /** Set the current user from auth REST routes (login/register/session). */
     setCurrentUser(userData: any) {
+      if (self.currentUser?.userId !== userData.userId) {
+        self.categories.clear();
+        self.categorySession++;
+      }
       if (self.currentUser) {
         applySnapshot(self.currentUser, userData);
       } else {
@@ -562,6 +579,8 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
     },
 
     beginAuthLifecycle(action: string): number {
+      self.categories.clear();
+      self.categorySession++;
       const auth = (self as any).authBootstrap;
       auth.transitionId += 1;
       auth.phase = "transitioning";
@@ -579,6 +598,8 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
     },
 
     clearCloudEntities() {
+      self.categories.clear();
+      self.categorySession++;
       self.currentUser = null;
       applySnapshot(self.entitledTools, []);
       applySnapshot(self.surfaces, []);
@@ -598,6 +619,8 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
     },
 
     clearCloudDataExceptUser(options?: { preserveShops?: boolean }) {
+      self.categories.clear();
+      self.categorySession++;
       applySnapshot(self.entitledTools, []);
       applySnapshot(self.surfaces, []);
       applySnapshot(self.runProfiles, []);
@@ -619,6 +642,8 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
 
     /** Clear user on logout. */
     clearUser() {
+      self.categories.clear();
+      self.categorySession++;
       self.currentUser = null;
       self.billingOverview = null;
       applySnapshot(self.billingPlanDefinitions, []);

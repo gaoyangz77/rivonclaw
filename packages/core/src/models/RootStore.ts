@@ -1,5 +1,6 @@
 import { types, type Instance } from "mobx-state-tree";
 import { ToolModel } from "./ToolSpec.js";
+import { ProductCategoryCacheModel } from "./ProductCategory.js";
 import { SurfaceModel } from "./Surface.js";
 import { RunProfileModel } from "./RunProfile.js";
 import { ShopModel } from "./Shop.js";
@@ -99,6 +100,8 @@ export const RootStoreModel = types
     authBootstrap: types.optional(AuthBootstrapStateModel, { status: "signed_out", error: null }),
     shopLifecycle: types.optional(ShopLifecycleStateModel, {}),
     platformApps: types.optional(types.array(PlatformAppModel), []),
+    categories: types.optional(types.map(ProductCategoryCacheModel), {}),
+    categorySession: types.optional(types.number, 0),
     wmsAccounts: types.optional(types.array(WmsAccountModel), []),
     warehouses: types.optional(types.array(WarehouseModel), []),
     shopWarehouses: types.optional(types.array(ShopWarehouseModel), []),
@@ -106,6 +109,15 @@ export const RootStoreModel = types
     affiliateWorkspace: types.optional(AffiliateWorkspaceModel, {}),
   })
   .views((self) => ({
+    productCategoryName(locale: string, market: string, categoryId: string): string | null {
+      const catalog = self.categories.get(locale);
+      const version = catalog?.marketVersions.get(market);
+      if (!version) return null;
+      return (
+        catalog?.items.get(`TIKTOK_SHOP:${market}:${version}:TIKTOK_SHOP:${categoryId}`)?.name ??
+        null
+      );
+    },
     get authenticated() {
       return self.currentUser !== null;
     },

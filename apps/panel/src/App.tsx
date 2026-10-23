@@ -99,6 +99,17 @@ export const App = observer(function App() {
   // them. Never hand the node itself to an effect.
   const authBootstrapLoading = (entityStore as any).authBootstrap?.status === "loading";
   const currentUserId = entityStore.currentUser?.userId ?? null;
+  const categoriesLocale = normalizeLanguageCode(i18n.resolvedLanguage ?? i18n.language);
+  const lastCategoryLocale = useRef<string | null>(null);
+  useEffect(() => {
+    if (!currentUserId) { lastCategoryLocale.current = null; return; }
+    if (authBootstrapLoading) return;
+    const force = lastCategoryLocale.current !== null && lastCategoryLocale.current !== categoriesLocale;
+    lastCategoryLocale.current = categoriesLocale;
+    void entityStore.ensureCategories(categoriesLocale, { force }).catch(error => {
+      console.warn("Failed to load product category dictionary", error);
+    });
+  }, [currentUserId, categoriesLocale, authBootstrapLoading]);
   const currentUserIsOwner = entityStore.currentUser?.isOwner ?? true;
   const currentUserScopes = entityStore.currentUser?.permissionScopes.join(",") ?? "";
   const workspaceController = useWorkspaceTabs({

@@ -9,7 +9,9 @@ import {
   type IJsonPatch,
   type IStateTreeNode,
 } from "mobx-state-tree";
-import { RootStoreModel } from "@rivonclaw/core/models";
+import { RootStoreModel, productCategoryCacheSnapshot, PRODUCT_CATEGORY_CACHE_TTL_MS } from "@rivonclaw/core/models";
+import type { GQL } from "@rivonclaw/core";
+import { PRODUCT_CATEGORIES_SYNC_QUERY } from "../api/product-categories-query.js";
 import {
   UserModel,
   SurfaceModel,
@@ -292,8 +294,49 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   })
   .actions((self) => {
     const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
+    const categoryRequests = new Map<string, { promise: Promise<unknown>; force: boolean }>();
 
     return {
+      ensureCategories: flow(function* (locale: string, options: { force?: boolean } = {}) {
+        const userId = self.currentUser?.userId;
+        if (!userId) return;
+        const session = self.categorySession;
+        const key = `${userId}:${session}:${locale}`;
+        const existing = categoryRequests.get(key);
+        // A language switch must not be satisfied by an earlier lazy cache read.
+        if (options.force && existing && !existing.force) {
+          yield existing.promise;
+          if (self.categorySession !== session || self.currentUser?.userId !== userId) return;
+          return yield (self as any).ensureCategories(locale, { force: true });
+        }
+        const cached = self.categories.get(locale);
+        if (!options.force && cached?.fetchedAt != null && !cached.error
+          && Date.now() - cached.fetchedAt < PRODUCT_CATEGORY_CACHE_TTL_MS) return;
+        if (!self.categories.has(locale)) self.categories.set(locale, { locale });
+        self.categories.get(locale)!.loading = true;
+        self.categories.get(locale)!.error = null;
+        let request = existing?.promise;
+        if (!request) {
+          request = client().query({ query: PRODUCT_CATEGORIES_SYNC_QUERY,
+            variables: { locale }, fetchPolicy: "no-cache",
+            context: { http: { includeExtensions: true }, forceCategoriesRefresh: options.force === true },
+          });
+          categoryRequests.set(key, { promise: request, force: options.force === true });
+        }
+        try {
+          const result: { data?: { productCategories?: GQL.ProductCategoryCatalog } } = yield request;
+          if (self.categorySession !== session || self.currentUser?.userId !== userId) return;
+          const catalog = result.data?.productCategories;
+          if (!catalog || catalog.locale !== locale) throw new Error("Invalid product category catalog response");
+          self.categories.set(locale, productCategoryCacheSnapshot(catalog));
+        } catch (error) {
+          if (self.categorySession === session && self.currentUser?.userId === userId) {
+            const bucket = self.categories.get(locale);
+            if (bucket) { bucket.loading = false; bucket.error = error instanceof Error ? error.message : String(error); }
+          }
+          throw error;
+        } finally { categoryRequests.delete(key); }
+      }),
       // ── Auth actions ──
 
       /** Initialize the session: check Desktop auth state, validate via ME query if needed, trigger entity sync. */
@@ -377,6 +420,9 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       }),
 
       clearAuth() {
+        self.categories.clear();
+        self.categorySession++;
+        categoryRequests.clear();
         // Called when auth-expired event fires (401 from API)
         // Desktop will have already cleared the user via SSE, but clear locally for safety
         (self as any).currentUser = null;
@@ -915,6 +961,7 @@ interface PanelEntityOverrides {
 }
 
 interface PanelRootActions {
+  ensureCategories(locale: string, options?: { force?: boolean }): Promise<void>;
   initSession(): Promise<void>;
   login(input: {
     email: string;

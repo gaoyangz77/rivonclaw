@@ -128,6 +128,7 @@ import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
 import { catchUpAffiliateEscalationNotifications } from "../affiliate/affiliate-escalation-notification-actuator.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
+import { ensureDesktopCategories } from "../cloud/product-categories-sync.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { configureFeishuCsCallbackRuntime } from "../channels/feishu-cs-callback-config.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
@@ -618,6 +619,8 @@ app.whenReady().then(async () => {
     const transitionId = rootStore.beginAuthLifecycle("startup");
     try {
       await bootstrapDesktopAuthState(authSession, rootStore);
+      await ensureDesktopCategories(authSession, storage.settings.get("locale") ?? locale, { force: true })
+        .catch(error => log.warn("Failed to load product category dictionary:", error));
     } catch (err) {
       log.warn("Failed to bootstrap desktop auth state:", err);
     } finally {
@@ -1603,6 +1606,8 @@ app.whenReady().then(async () => {
           resetAgentToolingReadiness(action);
           stopCsBridge(CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE);
           await bootstrapDesktopAuthState(authSession, rootStore);
+          await ensureDesktopCategories(authSession, storage.settings.get("locale") ?? locale, { force: true })
+            .catch(error => log.warn("Failed to load product category dictionary:", error));
           const nextToolNameDigest = getEntitledToolNameDigest();
           const nextAgentToolingDigest = getAgentToolingDigest();
           const toolNamesChanged = previousToolNameDigest !== nextToolNameDigest;

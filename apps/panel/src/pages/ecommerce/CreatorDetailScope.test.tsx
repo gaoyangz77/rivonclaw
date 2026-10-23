@@ -23,6 +23,8 @@ const state = vi.hoisted(() => ({
   storedProposals: new Map<string, Record<string, unknown>>(),
   handlers: new Map<string, Set<(payload: unknown) => void>>(),
   entityStore: {
+    ensureCategories: vi.fn().mockResolvedValue(undefined),
+    productCategoryName: () => null,
     shops: [
       { id: "1", alias: "1号店", shopName: "One" },
       { id: "2", alias: "2号店", shopName: "Two" },

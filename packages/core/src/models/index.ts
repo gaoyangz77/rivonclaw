@@ -70,6 +70,13 @@ export type { InventoryGood } from "./InventoryGood.js";
 export { AffiliateWorkspaceModel } from "./Affiliate.js";
 export type { AffiliateLifecycleEvent, AffiliateWorkspace } from "./Affiliate.js";
 export { RootStoreModel } from "./RootStore.js";
+export {
+  ProductCategoryModel,
+  ProductCategoryCacheModel,
+  productCategoryCacheSnapshot,
+  PRODUCT_CATEGORY_CACHE_TTL_MS,
+  PRODUCT_CATEGORIES_QUERY,
+} from "./ProductCategory.js";
 export type { RootStore } from "./RootStore.js";
 export {
   RuntimeStatusStoreModel,

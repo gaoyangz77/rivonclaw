@@ -9,6 +9,12 @@
 
 import type { SnapshotIn } from "mobx-state-tree";
 import type * as GQL from "../generated/graphql.js";
+import type { ProductCategoryModel } from "./ProductCategory.js";
+
+const _productCategoryGuard: AssertSubset<
+  GQL.ProductCategory,
+  SnapshotIn<typeof ProductCategoryModel>
+> = true;
 import type { SurfaceModel } from "./Surface.js";
 import type { RunProfileModel } from "./RunProfile.js";
 import type { CustomerServiceConfigModel, ShopModel } from "./Shop.js";

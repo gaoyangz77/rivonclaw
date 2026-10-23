@@ -3313,6 +3313,30 @@ export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
         updatedAt
       }
       performance {
+        details {
+          observedAt
+          followerAge { key share }
+          followerGender { key share }
+          followerLocation { key share }
+          categoryGmvDistribution { key share }
+          contentGmvDistribution { key share }
+          brandCollaborationCount
+          promotedProductCount
+          averageCommissionRate
+          averageVideoLikeCount
+          averageVideoCommentCount
+          averageVideoShareCount
+          averageLiveViewCount
+          averageLiveLikeCount
+          averageLiveCommentCount
+          averageLiveShareCount
+          liveEngagementRate
+          videoEngagementRate
+          averageGmvPerBuyer { amount currency minimumAmount maximumAmount }
+          productOriginalPriceRange { amount currency minimumAmount maximumAmount }
+          liveGpm { amount currency minimumAmount maximumAmount }
+          videoGpm { amount currency minimumAmount maximumAmount }
+        }
         id
         market
         observedAt

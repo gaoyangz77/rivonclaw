@@ -2515,6 +2515,7 @@ export interface AffiliateCreatorPerformanceCurrent {
   averageVideoViews?: Maybe<Scalars["Float"]["output"]>;
   categoryIds: Array<Scalars["String"]["output"]>;
   contentWindow?: Maybe<Scalars["String"]["output"]>;
+  details?: Maybe<AffiliateCreatorPerformanceDetails>;
   engagementRate?: Maybe<Scalars["Float"]["output"]>;
   followerCount?: Maybe<Scalars["Int"]["output"]>;
   gmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
@@ -2536,6 +2537,40 @@ export interface AffiliateCreatorPerformanceCurrent {
   videoGmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
 }
 
+/** Original-currency value or range from one complete Performance observation. */
+export interface AffiliateCreatorPerformanceDetailMoney {
+  amount?: Maybe<Scalars["Float"]["output"]>;
+  currency: Scalars["String"]["output"];
+  maximumAmount?: Maybe<Scalars["Float"]["output"]>;
+  minimumAmount?: Maybe<Scalars["Float"]["output"]>;
+}
+
+/** Display-safe metrics from the same stored full Performance snapshot. Raw Provider data is never exposed. */
+export interface AffiliateCreatorPerformanceDetails {
+  averageCommissionRate?: Maybe<Scalars["Float"]["output"]>;
+  averageGmvPerBuyer?: Maybe<AffiliateCreatorPerformanceDetailMoney>;
+  averageLiveCommentCount?: Maybe<Scalars["Float"]["output"]>;
+  averageLiveLikeCount?: Maybe<Scalars["Float"]["output"]>;
+  averageLiveShareCount?: Maybe<Scalars["Float"]["output"]>;
+  averageLiveViewCount?: Maybe<Scalars["Float"]["output"]>;
+  averageVideoCommentCount?: Maybe<Scalars["Float"]["output"]>;
+  averageVideoLikeCount?: Maybe<Scalars["Float"]["output"]>;
+  averageVideoShareCount?: Maybe<Scalars["Float"]["output"]>;
+  brandCollaborationCount?: Maybe<Scalars["Float"]["output"]>;
+  categoryGmvDistribution: Array<AffiliateCreatorPerformanceShare>;
+  contentGmvDistribution: Array<AffiliateCreatorPerformanceShare>;
+  followerAge: Array<AffiliateCreatorPerformanceShare>;
+  followerGender: Array<AffiliateCreatorPerformanceShare>;
+  followerLocation: Array<AffiliateCreatorPerformanceShare>;
+  liveEngagementRate?: Maybe<Scalars["Float"]["output"]>;
+  liveGpm?: Maybe<AffiliateCreatorPerformanceDetailMoney>;
+  observedAt: Scalars["DateTimeISO"]["output"];
+  productOriginalPriceRange?: Maybe<AffiliateCreatorPerformanceDetailMoney>;
+  promotedProductCount?: Maybe<Scalars["Float"]["output"]>;
+  videoEngagementRate?: Maybe<Scalars["Float"]["output"]>;
+  videoGpm?: Maybe<AffiliateCreatorPerformanceDetailMoney>;
+}
+
 /** Market-scoped Creator Performance money metric with explicit window and precision. */
 export interface AffiliateCreatorPerformanceMoneyMetric {
   amount?: Maybe<Scalars["Float"]["output"]>;
@@ -2544,6 +2579,12 @@ export interface AffiliateCreatorPerformanceMoneyMetric {
   minimumAmount?: Maybe<Scalars["Float"]["output"]>;
   precision: Scalars["String"]["output"];
   window: Scalars["String"]["output"];
+}
+
+/** A platform-reported share, preserved as a 0..1 ratio without renormalization. */
+export interface AffiliateCreatorPerformanceShare {
+  key: Scalars["String"]["output"];
+  share: Scalars["Float"]["output"];
 }
 
 /** Where the country code used to read a Creator-supplied phone number came from. PHONE_NUMBER means the number already stated it; CALLER_SUPPLIED means the caller named the Creator's region; COLLABORATING_SHOPS means it was derived from the single region shared by the shops this Creator collaborates with — an inference about the Creator, not a fact we hold about them. */
@@ -12953,6 +12994,37 @@ export interface PresetSkillsChangedPayload {
   revision: Scalars["String"]["output"];
 }
 
+export interface ProductCategory {
+  categoryId: Scalars["String"]["output"];
+  categoryVersion: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  isLeaf: Scalars["Boolean"]["output"];
+  listingPlatform: Scalars["String"]["output"];
+  market: Scalars["String"]["output"];
+  name?: Maybe<Scalars["String"]["output"]>;
+  parentId: Scalars["String"]["output"];
+}
+
+export interface ProductCategoryCatalog {
+  fetchedAt: Scalars["DateTimeISO"]["output"];
+  items: Array<ProductCategory>;
+  locale: Scalars["String"]["output"];
+  marketVersions: Array<ProductCategoryMarketVersion>;
+  syncStatus: Array<ProductCategorySyncStatus>;
+}
+
+export interface ProductCategoryMarketVersion {
+  categoryVersion: Scalars["String"]["output"];
+  market: Scalars["String"]["output"];
+}
+
+export interface ProductCategorySyncStatus {
+  categoryCount: Scalars["Int"]["output"];
+  categoryVersion: Scalars["String"]["output"];
+  lastSuccessAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  market: Scalars["String"]["output"];
+}
+
 export interface ProductKnowledge {
   archivedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   bindingCount: Scalars["Int"]["output"];
@@ -13585,6 +13657,7 @@ export interface Query {
   presetSkills?: Maybe<Scalars["String"]["output"]>;
   /** Get pricing for all providers */
   pricing: Array<ProviderPricing>;
+  productCategories: ProductCategoryCatalog;
   productKnowledge: ProductKnowledge;
   productKnowledgeByMerchantPid?: Maybe<ProductKnowledgeIdentity>;
   productKnowledges: ProductKnowledgePage;
@@ -14381,6 +14454,10 @@ export interface QueryPricingArgs {
   deviceId?: InputMaybe<Scalars["String"]["input"]>;
   language?: InputMaybe<Scalars["String"]["input"]>;
   platform?: InputMaybe<Scalars["String"]["input"]>;
+}
+
+export interface QueryProductCategoriesArgs {
+  locale: Scalars["String"]["input"];
 }
 
 export interface QueryProductKnowledgeArgs {

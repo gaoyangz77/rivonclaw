@@ -14,6 +14,7 @@ import { AffiliateCreatorExportButton } from "./components/AffiliateCreatorExpor
 import { AffiliateClaimCreatorButton } from "./components/AffiliateClaimCreatorButton.js";
 import { AffiliateReleaseCreatorButton } from "./components/AffiliateReleaseCreatorButton.js";
 import { AffiliateMessageSendError } from "./components/AffiliateMessageSendError.js";
+import { CreatorPerformanceInsights } from "./components/CreatorPerformanceInsights.js";
 import {
   useCallback,
   useEffect,
@@ -12764,7 +12765,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   );
 });
 
-function CreatorProfilePanel({
+const CreatorProfilePanel = observer(function CreatorProfilePanel({
   profile,
   performance,
   payload,
@@ -12777,7 +12778,14 @@ function CreatorProfilePanel({
   loading: boolean;
   onRefresh: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const categoryStore = useEntityStore();
+  const categoryLocale = (i18n.resolvedLanguage ?? i18n.language).split(/[-_]/)[0];
+  useEffect(() => {
+    void categoryStore.ensureCategories(categoryLocale).catch(error => {
+      console.warn("Failed to refresh product category dictionary", error);
+    });
+  }, [categoryStore, categoryLocale]);
   if (!profile) {
     return (
       <div className="affiliate-proposal-empty">
@@ -12794,7 +12802,11 @@ function CreatorProfilePanel({
   const marketplaceBio = profile.bioDescription?.trim() || null;
   const marketplaceMetrics = buildMarketplaceMetricRows(performance, t);
   const categoryIds = performance?.categoryIds ?? [];
-  const categorySummary = categoryIds?.length ? categoryIds.slice(0, 8).join(", ") : null;
+  const categorySummary = categoryIds?.length ? categoryIds.slice(0, 8).map(id =>
+    id === "-1" ? t("ecommerce.affiliateWorkspace.creatorPerformance.other")
+      : (performance?.market ? categoryStore.productCategoryName(categoryLocale, performance.market, id) : null)
+        ?? t("ecommerce.affiliateWorkspace.creatorPerformance.categoryId", { id }),
+  ).join(", ") : null;
 
   const freshnessLabel = payload
     ? t(`ecommerce.affiliateWorkspace.creatorDetail.freshness.${payload.freshnessStatus}`, {
@@ -12924,6 +12936,10 @@ function CreatorProfilePanel({
           </section>
         </aside>
 
+        {!loading || performance?.details ? (
+          <CreatorPerformanceInsights details={performance?.details} market={performance?.market} />
+        ) : null}
+
         <div className="affiliate-creator-profile-footer-grid">
           <section className="affiliate-creator-detail-section">
             <div className="affiliate-card-section-label">
@@ -12988,7 +13004,7 @@ function CreatorProfilePanel({
       </div>
     </div>
   );
-}
+});
 
 function latestCreatorPerformance(
   profile: GQL.AffiliateCreatorIdentity,
