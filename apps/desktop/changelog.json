@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.38",
+    "date": "2026-10-23",
+    "en": [
+      "Search shops locally and show Brazil market labels",
+      "Improve creator workbench readability, UID note search, and conversation history",
+      "Compose target invitation cards from campaign templates and select the reply channel and account before composing"
+    ],
+    "zh": [
+      "支持本地搜索店铺并展示巴西市场标签",
+      "优化达人工作台可读性、UID 备注搜索与会话历史展示",
+      "支持使用活动模板编写定向邀请卡片，并在编写前选择回复渠道与账号"
+    ]
+  },
+  {
     "version": "1.9.37",
     "date": "2026-10-20",
     "en": [
