@@ -1445,6 +1445,23 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("showRevisionHistory={false}");
   });
 
+  it("hides the internal performance source shop from Creator profiles", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const profile = page.slice(
+      page.indexOf("function CreatorProfilePanel"),
+      page.indexOf("function latestCreatorPerformance"),
+    );
+
+    expect(profile).toContain("creatorDetail.marketplacePerformance");
+    expect(profile).toContain("creatorDetail.lastUpdated");
+    expect(profile).not.toContain("creatorDetail.sourceShop");
+    expect(profile).not.toContain("performance?.sourceShopId");
+    expect(profile).not.toContain("payload?.refreshShopId");
+  });
+
   it("reuses the actionable pending proposal card inside Creator details", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),

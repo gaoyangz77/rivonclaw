@@ -12928,10 +12928,6 @@ const CreatorProfilePanel = observer(function CreatorProfilePanel({
                     : null
                 }
               />
-              <CreatorDetailMetric
-                label={t("ecommerce.affiliateWorkspace.creatorDetail.sourceShop")}
-                value={performance?.sourceShopId ?? payload?.refreshShopId ?? null}
-              />
             </div>
           </section>
         </aside>
