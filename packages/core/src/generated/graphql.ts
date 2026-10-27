@@ -13545,6 +13545,8 @@ export interface Query {
   ecommerceGetConversationMessageDelta: CustomerServiceMessageDelta;
   /** Get messages of a conversation */
   ecommerceGetConversationMessages: CustomerServiceMessageSummaryPage;
+  /** Order IDs for this conversation's buyer in this shop from the last 365 days, newest first. Includes the explicitly linked order even if older. Does not load order details or change the conversation's order association. */
+  ecommerceGetConversationOrderIds: Array<Scalars["String"]["output"]>;
   /** Get conversations for a shop as a flat summary list. Pagination is handled internally by the backend. */
   ecommerceGetConversations: Array<CustomerServiceConversationSummary>;
   /** List backend-materialized customer-service conversations across one or more owned shops. */
@@ -14140,6 +14142,11 @@ export interface QueryEcommerceGetConversationMessagesArgs {
   locale?: InputMaybe<Scalars["String"]["input"]>;
   pageSize: Scalars["Float"]["input"];
   pageToken?: InputMaybe<Scalars["String"]["input"]>;
+  shopId: Scalars["String"]["input"];
+}
+
+export interface QueryEcommerceGetConversationOrderIdsArgs {
+  conversationId: Scalars["String"]["input"];
   shopId: Scalars["String"]["input"];
 }
 

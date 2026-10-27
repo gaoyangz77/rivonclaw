@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import { CustomerServiceWorkspaceModel } from "./CustomerServiceWorkspaceModel.js";
+import {
+  CS_CONVERSATION_ORDER_IDS_QUERY,
+  CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+} from "../../api/shops-queries.js";
 
 function conversation(orderId: string | null = "order-1") {
   return {
@@ -79,6 +83,138 @@ describe("CustomerServiceWorkspaceModel order context", () => {
 
     expect(query).not.toHaveBeenCalled();
     expect(store.selectedConversationOrderContext).toBeNull();
+  });
+
+  it("loads IDs for an unlinked conversation, then lazily loads and caches expanded orders", async () => {
+    const query = vi.fn().mockImplementation(async ({ query: document, variables }) => {
+      if (document === CS_CONVERSATION_ORDER_IDS_QUERY) {
+        return { data: { ecommerceGetConversationOrderIds: ["newest", "older"] } };
+      }
+      return { data: { order: { orderId: variables.orderId }, returns: [] } };
+    });
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationItems: [conversation(null)] },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    await store.fetchSelectedConversationOrderIds();
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: CS_CONVERSATION_ORDER_IDS_QUERY,
+        variables: { shopId: "shop-1", conversationId: "conversation-1" },
+      }),
+    );
+    expect(store.selectedConversationOrderIds).toEqual(["newest", "older"]);
+    expect(store.selectedConversationExpandedOrderId).toBe("newest");
+    expect(store.selectedConversation?.orderId).toBeNull();
+
+    await store.fetchSelectedConversationOrderContext();
+    expect(query).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+        variables: { shopId: "shop-1", orderId: "newest", buyerUserId: "buyer-1" },
+      }),
+    );
+    store.toggleConversationOrder("older");
+    expect(query).toHaveBeenCalledTimes(2);
+    await store.fetchSelectedConversationOrderContext();
+    expect(store.selectedConversationOrderContext?.orderId).toBe("older");
+    store.toggleConversationOrder("older");
+    expect(store.selectedConversationExpandedOrderId).toBeNull();
+    await store.fetchSelectedConversationOrderContext();
+    expect(query).toHaveBeenCalledTimes(3);
+    store.toggleConversationOrder("newest");
+    await store.fetchSelectedConversationOrderContext();
+    expect(query).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps the existing linked order after recent IDs without overwriting it", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValue({ data: { ecommerceGetConversationOrderIds: ["newest", "newest"] } });
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationItems: [conversation("old-linked")] },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    await store.fetchSelectedConversationOrderIds();
+    expect(store.selectedConversationOrderIds).toEqual(["newest", "old-linked"]);
+    expect(store.selectedConversationExpandedOrderId).toBe("newest");
+    expect(store.selectedConversation?.orderId).toBe("old-linked");
+  });
+
+  it("keeps a late ID lookup isolated when switching conversations, even with the same conversation ID", async () => {
+    let resolve!: (value: unknown) => void;
+    const query = vi.fn().mockReturnValueOnce(
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    const store = CustomerServiceWorkspaceModel.create(
+      {
+        conversationItems: [conversation(null), { ...conversation(null), shopId: "shop-2" }],
+      },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    const loading = store.fetchSelectedConversationOrderIds();
+    expect(store.selectedConversationOrderIdsLoading).toBe(true);
+    await store.fetchSelectedConversationOrderIds();
+    expect(query).toHaveBeenCalledTimes(1);
+    store.selectConversation("shop-2", "conversation-1");
+    resolve({ data: { ecommerceGetConversationOrderIds: ["shop-1-order"] } });
+    await loading;
+    expect(store.selectedConversationOrderIds).toEqual([]);
+    expect(store.selectedConversationOrderIdsLoading).toBe(false);
+    store.selectConversation("shop-1", "conversation-1");
+    expect(store.selectedConversationOrderIds).toEqual(["shop-1-order"]);
+  });
+
+  it("keeps a late detail response isolated from the newly expanded order", async () => {
+    let resolve!: (value: unknown) => void;
+    const query = vi.fn().mockReturnValueOnce(
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    const store = CustomerServiceWorkspaceModel.create(
+      {
+        conversationItems: [conversation()],
+        conversationOrderIds: { "shop-1:conversation-1": ["order-1", "order-2"] },
+      },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    const loading = store.fetchSelectedConversationOrderContext();
+    await store.fetchSelectedConversationOrderContext();
+    expect(query).toHaveBeenCalledTimes(1);
+    store.toggleConversationOrder("order-2");
+    resolve({ data: { order: { orderId: "order-1" }, returns: [] } });
+    await loading;
+    expect(store.selectedConversationOrderContext).toBeNull();
+    expect(store.selectedConversationOrderContextLoading).toBe(false);
+    store.toggleConversationOrder("order-1");
+    expect(store.selectedConversationOrderContext?.orderId).toBe("order-1");
+  });
+
+  it("reports and retries ID lookup errors independently of chat history", async () => {
+    const query = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("order service unavailable"))
+      .mockResolvedValueOnce({ data: { ecommerceGetConversationOrderIds: [] } });
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationItems: [conversation(null)] },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    await store.fetchSelectedConversationOrderIds();
+    expect(store.selectedConversationOrderIdsError).toBe("order service unavailable");
+    expect(store.conversationMessagesError).toBeNull();
+    expect(store.selectedConversationOrderIdsLoading).toBe(false);
+    await store.fetchSelectedConversationOrderIds();
+    expect(store.selectedConversationOrderIdsError).toBeNull();
+    expect(store.selectedConversationOrderIds).toEqual([]);
   });
 });
 

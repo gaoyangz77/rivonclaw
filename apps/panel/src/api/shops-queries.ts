@@ -1201,6 +1201,12 @@ export const CS_CONVERSATION_MESSAGES_QUERY = gql`
   }
 `;
 
+export const CS_CONVERSATION_ORDER_IDS_QUERY = gql`
+  query CustomerServiceConversationOrderIds($shopId: String!, $conversationId: String!) {
+    ecommerceGetConversationOrderIds(shopId: $shopId, conversationId: $conversationId)
+  }
+`;
+
 export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
   query CustomerServiceConversationOrderContext(
     $shopId: String!

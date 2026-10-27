@@ -31,6 +31,7 @@ import {
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
+import { ConversationOrderList } from "./components/ConversationOrderList.js";
 import {
   BadReviewBadge,
   CustomerServiceConversationRow,
@@ -168,7 +169,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const fixedTab = mode === "workspace" ? null : mode;
   const activeTab = fixedTab ?? workspace.activeTab;
   const [conversationDetailsOpen, setConversationDetailsOpen] = useState(false);
-  const [conversationOrderOpen, setConversationOrderOpen] = useState(false);
+  const [openConversationOrderKey, setOpenConversationOrderKey] = useState<string | null>(null);
+  const conversationOrderOpen =
+    openConversationOrderKey !== null &&
+    openConversationOrderKey ===
+      `${workspace.selectedConversationShopId}:${workspace.selectedConversationId}`;
   const [conversationAdvancedFiltersOpen, setConversationAdvancedFiltersOpen] = useState(
     workspace.conversationAiFilter !== "all" || workspace.conversationEscalationFilter !== "all",
   );
@@ -234,16 +239,40 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     if (!workspace.selectedConversationId) return;
     olderMessagesScrollRef.current = null;
     setConversationDetailsOpen(false);
-    setConversationOrderOpen(false);
+    setOpenConversationOrderKey(null);
     workspace.fetchConversationMessages(i18n.language);
+    workspace.fetchSelectedConversationOrderIds();
     workspace.fetchConversationSummary();
-  }, [workspace, workspace.selectedConversationId, i18n.language]);
+  }, [
+    workspace,
+    workspace.selectedConversationId,
+    workspace.selectedConversationShopId,
+    i18n.language,
+  ]);
 
   const conversationItems = workspace.filteredConversationItems as Conversation[];
   const conversationMessages = workspace.displayConversationMessages as ConversationMessage[];
   const selectedConversation = workspace.selectedConversation as Conversation | null;
   const selectedConversationOrderContext =
     workspace.selectedConversationOrderContext as ConversationOrderContext | null;
+  const conversationOrderIds = workspace.selectedConversationOrderIds;
+  const expandedOrderId = workspace.selectedConversationExpandedOrderId;
+  useEffect(() => {
+    if (
+      conversationOrderOpen &&
+      expandedOrderId &&
+      !workspace.selectedConversationOrderIdsLoading
+    ) {
+      void workspace.fetchSelectedConversationOrderContext();
+    }
+  }, [
+    workspace,
+    conversationOrderOpen,
+    expandedOrderId,
+    workspace.selectedConversationOrderIdsLoading,
+    workspace.selectedConversationShopId,
+    workspace.selectedConversationId,
+  ]);
   const selectedEscalation = workspace.selectedEscalation as Escalation | null;
   const selectedConversationKey = selectedConversation
     ? `${selectedConversation.shopId}:${selectedConversation.conversationId}`
@@ -303,7 +332,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     if (!conversationOrderOpen) return;
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (conversationOrderRef.current?.contains(event.target as Node)) return;
-      setConversationOrderOpen(false);
+      setOpenConversationOrderKey(null);
     };
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
@@ -1028,7 +1057,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             : t("ecommerce.customerServiceWorkspace.aiDisabled")}
                         </span>
                       </button>
-                      {selectedConversation.orderId && (
+                      {(conversationOrderIds.length > 0 ||
+                        workspace.selectedConversationOrderIdsLoading ||
+                        workspace.selectedConversationOrderIdsError) && (
                         <div
                           className={
                             conversationOrderOpen
@@ -1048,10 +1079,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             aria-expanded={conversationOrderOpen}
                             onClick={() => {
                               const nextOpen = !conversationOrderOpen;
-                              setConversationOrderOpen(nextOpen);
+                              setOpenConversationOrderKey(
+                                nextOpen ? selectedConversationKey : null,
+                              );
                               if (nextOpen) {
                                 setConversationDetailsOpen(false);
-                                void workspace.fetchSelectedConversationOrderContext();
                               }
                             }}
                           >
@@ -1059,49 +1091,28 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             <span>{t("ecommerce.customerServiceWorkspace.order")}</span>
                           </button>
                           <div className="cs-conversation-order-popover">
-                            <div className="cs-conversation-order-head">
-                              <div>
-                                <span>{t("ecommerce.customerServiceWorkspace.orderContext")}</span>
-                                <code>{shortId(selectedConversation.orderId)}</code>
-                              </div>
-                              <TkIconButton
-                                size="sm"
-                                label={t("common.refresh")}
-                                onClick={() =>
-                                  void workspace.fetchSelectedConversationOrderContext(true)
-                                }
-                                disabled={workspace.selectedConversationOrderContextLoading}
-                              >
-                                <RefreshIcon size={14} />
-                              </TkIconButton>
-                            </div>
-                            {workspace.selectedConversationOrderContextLoading &&
-                            !selectedConversationOrderContext ? (
-                              <div className="cs-order-context-state">{t("common.loading")}</div>
-                            ) : workspace.selectedConversationOrderContextError &&
-                              !selectedConversationOrderContext ? (
-                              <div className="cs-order-context-state error">
-                                <span>
-                                  {t("ecommerce.customerServiceWorkspace.orderLoadFailed")}
-                                </span>
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  type="button"
-                                  onClick={() =>
-                                    void workspace.fetchSelectedConversationOrderContext(true)
-                                  }
-                                >
-                                  {t("ecommerce.customerServiceWorkspace.orderRetry")}
-                                </button>
-                              </div>
-                            ) : selectedConversationOrderContext ? (
-                              <ConversationOrderPopover
-                                context={selectedConversationOrderContext}
-                                copiedMeta={workspace.copiedMeta}
-                                locale={i18n.language}
-                                onCopy={copyMeta}
-                              />
-                            ) : null}
+                            <ConversationOrderList
+                              orderIds={conversationOrderIds}
+                              expandedOrderId={expandedOrderId}
+                              loadingIds={workspace.selectedConversationOrderIdsLoading}
+                              idsError={workspace.selectedConversationOrderIdsError}
+                              loadingDetail={workspace.selectedConversationOrderContextLoading}
+                              detailError={workspace.selectedConversationOrderContextError}
+                              onToggle={(orderId) => workspace.toggleConversationOrder(orderId)}
+                              onRetryIds={() => void workspace.fetchSelectedConversationOrderIds()}
+                              onRefresh={() =>
+                                void workspace.fetchSelectedConversationOrderContext(true)
+                              }
+                            >
+                              {selectedConversationOrderContext ? (
+                                <ConversationOrderPopover
+                                  context={selectedConversationOrderContext}
+                                  copiedMeta={workspace.copiedMeta}
+                                  locale={i18n.language}
+                                  onCopy={copyMeta}
+                                />
+                              ) : null}
+                            </ConversationOrderList>
                           </div>
                         </div>
                       )}
@@ -1124,7 +1135,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                           onClick={() => {
                             setConversationDetailsOpen((open) => {
                               const nextOpen = !open;
-                              if (nextOpen) setConversationOrderOpen(false);
+                              if (nextOpen) setOpenConversationOrderKey(null);
                               return nextOpen;
                             });
                           }}

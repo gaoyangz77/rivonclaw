@@ -482,6 +482,44 @@
   transform: translateY(0);
 }
 
+.cs-order-accordion-item + .cs-order-accordion-item {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.cs-order-accordion-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+}
+
+.cs-order-accordion-trigger {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cs-order-accordion-trigger code {
+  overflow-wrap: anywhere;
+}
+
+.cs-order-chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.cs-order-chevron.expanded {
+  transform: rotate(90deg);
+}
+
 .cs-conversation-order-head {
   position: sticky;
   top: 0;

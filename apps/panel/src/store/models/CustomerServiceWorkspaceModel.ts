@@ -10,6 +10,7 @@ import {
   CS_CONVERSATION_INBOX_QUERY,
   CS_CONVERSATION_MESSAGES_QUERY,
   CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+  CS_CONVERSATION_ORDER_IDS_QUERY,
   CS_OPEN_ESCALATIONS_QUERY,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
@@ -53,12 +54,6 @@ function conversationTelemetryContext(
     orderId: item?.orderId ?? "",
     platform: "",
   };
-}
-
-function conversationOrderContextKey(
-  item: Pick<GQL.CustomerServiceConversationInboxItem, "shopId" | "orderId"> | null | undefined,
-): string | null {
-  return item?.orderId ? `${item.shopId}:${item.orderId}` : null;
 }
 
 function normalizedSearch(value: string): string {
@@ -354,6 +349,10 @@ export const CustomerServiceWorkspaceModel = types
     conversationSummaryGenerating: types.optional(types.boolean, false),
     conversationSummaryError: types.maybeNull(types.string),
     conversationOrderContexts: types.optional(types.map(types.frozen<Record<string, any>>()), {}),
+    conversationOrderIds: types.optional(types.map(types.frozen<string[]>()), {}),
+    conversationOrderIdsLoadingKeys: types.optional(types.array(types.string), []),
+    conversationOrderIdsErrors: types.optional(types.map(types.string), {}),
+    expandedConversationOrderId: types.maybeNull(types.string),
     conversationOrderContextLoadingKeys: types.optional(types.array(types.string), []),
     conversationOrderContextErrors: types.optional(types.map(types.string), {}),
 
@@ -416,20 +415,50 @@ export const CustomerServiceWorkspaceModel = types
     get selectedConversationOrderContext() {
       const selected = (self as any)
         .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
-      const key = conversationOrderContextKey(selected);
+      const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+      const key = selected && orderId ? `${selected.shopId}:${orderId}` : null;
       return key ? (self.conversationOrderContexts.get(key) ?? null) : null;
     },
     get selectedConversationOrderContextLoading() {
       const selected = (self as any)
         .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
-      const key = conversationOrderContextKey(selected);
+      const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+      const key = selected && orderId ? `${selected.shopId}:${orderId}` : null;
       return Boolean(key && self.conversationOrderContextLoadingKeys.includes(key));
     },
     get selectedConversationOrderContextError() {
       const selected = (self as any)
         .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
-      const key = conversationOrderContextKey(selected);
+      const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+      const key = selected && orderId ? `${selected.shopId}:${orderId}` : null;
       return key ? (self.conversationOrderContextErrors.get(key) ?? null) : null;
+    },
+    get selectedConversationOrderIds(): string[] {
+      const selected = (self as any)
+        .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      if (!selected) return [];
+      const ids =
+        self.conversationOrderIds.get(`${selected.shopId}:${selected.conversationId}`) ?? [];
+      return [...new Set([...ids, ...(selected.orderId ? [selected.orderId] : [])])];
+    },
+    get selectedConversationExpandedOrderId(): string | null {
+      const ids = (self as any).selectedConversationOrderIds as string[];
+      if (self.expandedConversationOrderId === "") return null;
+      return self.expandedConversationOrderId && ids.includes(self.expandedConversationOrderId)
+        ? self.expandedConversationOrderId
+        : (ids[0] ?? null);
+    },
+    get selectedConversationOrderIdsLoading(): boolean {
+      return self.conversationOrderIdsLoadingKeys.includes(
+        `${self.selectedConversationShopId}:${self.selectedConversationId}`,
+      );
+    },
+    get selectedConversationOrderIdsError(): string | null {
+      return (
+        self.conversationOrderIdsErrors.get(
+          `${self.selectedConversationShopId}:${self.selectedConversationId}`,
+        ) ?? null
+      );
     },
     get displayConversationMessages() {
       const seenServiceTexts = new Set<string>();
@@ -697,6 +726,7 @@ export const CustomerServiceWorkspaceModel = types
           return;
         self.selectedConversationShopId = shopId;
         self.selectedConversationId = nextConversationId;
+        self.expandedConversationOrderId = null;
         self.conversationMessages.replace([]);
         self.conversationMessagesError = null;
         self.conversationMessagesNextPageToken = null;
@@ -886,11 +916,41 @@ export const CustomerServiceWorkspaceModel = types
           self.conversationMessagesLoading = false;
         }
       }),
+      toggleConversationOrder(orderId: string) {
+        const ids = (self as any).selectedConversationOrderIds as string[];
+        if (!ids.includes(orderId)) return;
+        self.expandedConversationOrderId =
+          (self as any).selectedConversationExpandedOrderId === orderId ? "" : orderId;
+      },
+      fetchSelectedConversationOrderIds: flow(function* () {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        if (!selected) return;
+        const { shopId, conversationId } = selected;
+        const key = `${shopId}:${conversationId}`;
+        if (self.conversationOrderIdsLoadingKeys.includes(key)) return;
+        pushUnique(self.conversationOrderIdsLoadingKeys, key);
+        self.conversationOrderIdsErrors.delete(key);
+        try {
+          const result = yield client().query({
+            query: CS_CONVERSATION_ORDER_IDS_QUERY,
+            variables: { shopId, conversationId },
+            fetchPolicy: "network-only",
+          });
+          self.conversationOrderIds.set(key, result.data.ecommerceGetConversationOrderIds);
+        } catch (err) {
+          self.conversationOrderIdsErrors.set(key, errorMessage(err));
+        } finally {
+          removeValue(self.conversationOrderIdsLoadingKeys, key);
+        }
+      }),
       fetchSelectedConversationOrderContext: flow(function* (force = false) {
         const selected = (self as any)
           .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
-        const key = conversationOrderContextKey(selected);
-        if (!selected?.orderId || !key) return null;
+        const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+        if (!selected || !orderId) return null;
+        const { shopId, buyerUserId } = selected;
+        const key = `${shopId}:${orderId}`;
         if (!force && self.conversationOrderContexts.has(key)) {
           return self.conversationOrderContexts.get(key) ?? null;
         }
@@ -902,14 +962,14 @@ export const CustomerServiceWorkspaceModel = types
           const result = yield client().query({
             query: CS_CONVERSATION_ORDER_CONTEXT_QUERY,
             variables: {
-              shopId: selected.shopId,
-              orderId: selected.orderId,
-              buyerUserId: selected.buyerUserId ?? undefined,
+              shopId,
+              orderId,
+              buyerUserId: buyerUserId ?? undefined,
             },
             fetchPolicy: "network-only",
           });
           const context = {
-            orderId: selected.orderId,
+            orderId,
             order: (result.data?.order as GQL.EcomOrder | null | undefined) ?? null,
             returns: (result.data?.returns as GQL.EcomReturn[] | null | undefined) ?? [],
           };
