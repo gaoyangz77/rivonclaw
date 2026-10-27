@@ -5,6 +5,8 @@ import { rootStore, subscribeToPatch } from "./desktop-store.js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildSchema, execute } from "graphql";
+import { computeAffiliateWorkItemDeviceTarget } from "../../affiliate/affiliate-work-item-actuator.js";
+import type { AffiliateWorkItemPayload } from "../../cloud/backend-subscription-client.js";
 import {
   CLAIM_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
   RELEASE_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
@@ -173,6 +175,28 @@ describe("DesktopRootStore shop ingestion", () => {
     );
 
     expect(rootStore.getShop("shop-1")?.services?.customerService?.businessPrompt).toBeNull();
+  });
+
+  it("keeps shop context for a BD on a different device without changing dispatch ownership", () => {
+    const template = customerServiceShop("shop-1", "BD shop");
+    const enabled = { ...template, services: { ...template.services,
+      affiliateService: { ...template.services.affiliateService, enabled: true, deviceId: "shop-device" },
+    } };
+    rootStore.replaceShopsFromGraphQL([enabled, customerServiceShop("disabled", "Disabled")], "test:bd-device");
+    const contexts = rootStore.getAffiliateShopContextsForDevice("bd-device");
+    expect(contexts.map((context) => context.id)).toEqual(["shop-1"]);
+    expect(rootStore.getAffiliateShopContextsForDevice(null)).toEqual([]);
+
+    const item = { creatorRelationship: { workSummary: {
+      businessDeveloperId: "bd-1", businessDeveloperDeviceId: "bd-device",
+    } }, agentWorkingAgendaItems: [{ shopId: "shop-1" }] } as unknown as AffiliateWorkItemPayload;
+    const lookup = () => ({ enabled: true, deviceId: "shop-device" });
+    expect(computeAffiliateWorkItemDeviceTarget(item, lookup)).toEqual({ kind: "BUSINESS_DEVELOPER", deviceId: "bd-device" });
+    expect(computeAffiliateWorkItemDeviceTarget({ ...item, creatorRelationship: { workSummary: {} } } as unknown as AffiliateWorkItemPayload, lookup))
+      .toEqual({ kind: "SHOP", shopId: "shop-1", deviceId: "shop-device" });
+    expect(computeAffiliateWorkItemDeviceTarget({ ...item, creatorRelationship: {
+      workSummary: { businessDeveloperId: "bd-1", businessDeveloperDeviceId: null },
+    } } as unknown as AffiliateWorkItemPayload, lookup)).toEqual({ kind: "BUSINESS_DEVELOPER_WITHOUT_DEVICE" });
   });
 });
 

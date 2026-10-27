@@ -175,12 +175,10 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
     const contexts: AffiliateShopContextProjection[] = [];
     for (const shop of self.shops as any[]) {
       const affiliateService = shop.services?.affiliateService;
-      if (
-        !shop.platformShopId ||
-        !affiliateService?.enabled ||
-        affiliateService.deviceId !== deviceId
-      )
-        continue;
+      if (!shop.platformShopId || !affiliateService?.enabled) continue;
+      // A BD's device can differ from the shop's fallback device. Cache the
+      // enabled shop's context on either device; the work-item actuator owns
+      // device admission (BD first, then shop fallback) before dispatch.
       contexts.push({
         id: shop.id,
         userId: shop.userId,
