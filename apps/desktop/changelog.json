@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.40",
+    "date": "2026-10-27",
+    "en": [
+      "View buyer orders on demand in the customer service conversation workspace",
+      "Preserve shop context on business developer devices"
+    ],
+    "zh": [
+      "客服会话工作区支持按需查看买家订单",
+      "修复商务拓展设备的店铺上下文保留"
+    ]
+  },
+  {
     "version": "1.9.39",
     "date": "2026-10-23",
     "en": [
