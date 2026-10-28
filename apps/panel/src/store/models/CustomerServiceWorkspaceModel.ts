@@ -390,18 +390,8 @@ export const CustomerServiceWorkspaceModel = types
       return PAGE_SIZE_OPTIONS;
     },
     get filteredConversationItems() {
-      const search = normalizedSearch(self.conversationSearch);
-      return self.conversationItems.filter((item) =>
-        matchesText(search, [
-          item.conversationId,
-          item.buyerNickname,
-          item.buyerUserId,
-          item.buyerImUserId,
-          item.orderId,
-          item.latestMessagePreview,
-          item.platformShopId,
-        ]),
-      );
+      // Backend search can match buyer orders absent from the conversation projection.
+      return self.conversationItems.slice();
     },
     get selectedConversation() {
       return (
@@ -628,7 +618,10 @@ export const CustomerServiceWorkspaceModel = types
         return false;
       if (self.conversationEscalationFilter === "none" && item.openEscalationCount > 0)
         return false;
-      return matchesText(search, [
+      const matchesExistingResult = !!search && self.conversationItems.some(
+        (candidate) => candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
+      );
+      return matchesExistingResult || matchesText(search, [
         item.conversationId,
         item.buyerNickname,
         item.buyerUserId,

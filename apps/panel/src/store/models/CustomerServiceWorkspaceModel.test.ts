@@ -252,4 +252,41 @@ describe("CustomerServiceWorkspaceModel conversation search", () => {
 
     expect(store.conversationItems).toHaveLength(0);
   });
+
+  it("displays an order search hit without a linked order and retains it during live updates", async () => {
+    const row = { ...conversation(null), conversationId: "conversation-closed", isOpen: false };
+    const query = vi.fn().mockResolvedValue({ data: { ecommerceGetCustomerServiceInbox: { items: [row], totalCount: 1 } } });
+    const store = CustomerServiceWorkspaceModel.create({}, { apolloClient: { query } as any });
+    store.setConversationSearchDraft("576833748427839658");
+    store.applyConversationSearch();
+    await store.fetchConversations();
+    expect(store.filteredConversationItems).toHaveLength(1);
+    expect(store.filteredConversationItems[0].orderId).toBeNull();
+    store.selectConversation("shop-1", "conversation-closed");
+    store.ingestConversationChanged(changedConversation(false));
+    expect(store.filteredConversationItems).toHaveLength(1);
+    expect(store.conversationTotal).toBe(1);
+    expect(store.selectedConversationId).toBe("conversation-closed");
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not add unrelated live events to order search results, including the same ID in another shop", () => {
+    const store = CustomerServiceWorkspaceModel.create({ conversationItems: [{ ...conversation(null), conversationId: "conversation-closed" }] }, { apolloClient: {} as any });
+    store.setConversationSearchDraft("576833748427839658");
+    store.applyConversationSearch();
+    const event = changedConversation(true);
+    store.ingestConversationChanged({ conversation: { ...event.conversation, shopId: "other-shop" } });
+    store.ingestConversationChanged({ conversation: { ...event.conversation, conversationId: "unrelated" } });
+    expect(store.conversationItems).toHaveLength(1);
+  });
+
+  it("still removes an order search hit when its live status no longer matches the filters", () => {
+    const store = CustomerServiceWorkspaceModel.create({ conversationItems: [{ ...conversation(null), conversationId: "conversation-closed" }], conversationTotal: 1 }, { apolloClient: {} as any });
+    store.setConversationSearchDraft("576833748427839658");
+    store.applyConversationSearch();
+    store.setConversationStatusFilter("pending");
+    store.ingestConversationChanged(changedConversation(false));
+    expect(store.conversationItems).toHaveLength(0);
+    expect(store.conversationTotal).toBe(0);
+  });
 });
