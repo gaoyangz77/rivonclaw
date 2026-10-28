@@ -791,10 +791,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   ]);
 
   useEffect(() => {
+    // Apollo clears data while loading a new offset; that is not a one-page result.
+    if (developerPageQuery.loading || !developerPageData) return;
     if (developerPage > 0 && developerPage >= developerTotalPages) {
       setDeveloperPage(developerTotalPages - 1);
     }
-  }, [developerPage, developerTotalPages]);
+  }, [developerPage, developerTotalPages, developerPageQuery.loading, developerPageData]);
 
   useEffect(() => {
     if (protectionPreviewPage > 0 && protectionPreviewPage >= protectionPreviewTotalPages) {
@@ -2073,7 +2075,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                       className="affiliate-bd-page-button is-previous"
                       type="button"
                       onClick={() => setDeveloperPage((page) => Math.max(0, page - 1))}
-                      disabled={developerPage === 0}
+                      disabled={developerPageQuery.loading || developerPage === 0}
                       title={t("ecommerce.affiliateTeam.previousPage", {
                         defaultValue: "Previous page",
                       })}
@@ -2092,7 +2094,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                       onClick={() =>
                         setDeveloperPage((page) => Math.min(developerTotalPages - 1, page + 1))
                       }
-                      disabled={developerPage + 1 >= developerTotalPages}
+                      disabled={developerPageQuery.loading || developerPage + 1 >= developerTotalPages}
                       title={t("ecommerce.affiliateTeam.nextPage", {
                         defaultValue: "Next page",
                       })}
