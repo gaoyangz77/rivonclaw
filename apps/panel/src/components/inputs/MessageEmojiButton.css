@@ -1,0 +1,26 @@
+.message-emoji-popover {
+  width: min(320px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+}
+
+.message-emoji-loading {
+  min-height: 350px;
+  padding: var(--tk-v1-space-4);
+  color: var(--tk-v1-fg-muted);
+}
+
+.message-emoji-popover .EmojiPickerReact {
+  --epr-bg-color: var(--tk-v1-bg-raised);
+  --epr-text-color: var(--tk-v1-fg-default);
+  --epr-category-label-bg-color: var(--tk-v1-bg-raised);
+  --epr-category-label-text-color: var(--tk-v1-fg-muted);
+  --epr-search-input-bg-color: var(--tk-v1-bg-canvas);
+  --epr-search-input-bg-color-active: var(--tk-v1-bg-raised);
+  --epr-search-input-text-color: var(--tk-v1-fg-default);
+  --epr-search-input-placeholder-color: var(--tk-v1-fg-muted);
+  --epr-hover-bg-color: var(--tk-v1-bg-subtle);
+  --epr-focus-bg-color: var(--tk-v1-bg-subtle);
+  --epr-highlight-color: var(--tk-v1-accent);
+  --epr-picker-border-color: transparent;
+}

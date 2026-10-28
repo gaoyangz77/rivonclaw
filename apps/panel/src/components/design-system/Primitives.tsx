@@ -459,6 +459,8 @@ export interface TkComposerProps extends Omit<
   disabled?: boolean;
   submitDisabled?: boolean;
   submitting?: boolean;
+  tools?: ReactNode;
+  textareaRef?: Ref<HTMLTextAreaElement>;
   textareaProps?: Omit<
     TextareaHTMLAttributes<HTMLTextAreaElement>,
     "aria-label" | "disabled" | "onChange" | "placeholder" | "value"
@@ -476,6 +478,8 @@ export function TkComposer({
   disabled = false,
   submitDisabled = false,
   submitting = false,
+  tools,
+  textareaRef,
   textareaProps,
   className,
   ...props
@@ -492,6 +496,7 @@ export function TkComposer({
     >
       <textarea
         {...textareaProps}
+        ref={textareaRef}
         className={cx("tk-v1-composer-input", textareaProps?.className)}
         aria-label={ariaLabel ?? placeholder}
         disabled={disabled || submitting}
@@ -508,6 +513,7 @@ export function TkComposer({
         }}
       />
       <div className="tk-v1-composer-action">
+        {tools}
         <TkButton
           variant="primary"
           type="submit"

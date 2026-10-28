@@ -11,6 +11,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
+import { MessageEmojiButton } from "../../components/inputs/MessageEmojiButton.js";
 import { useToast } from "../../components/Toast.js";
 import {
   CheckIcon,
@@ -185,6 +186,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const conversationOrderRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const olderMessagesScrollRef = useRef<OlderMessagesScrollSnapshot | null>(null);
   const messageListScrollStateRef = useRef<MessageListScrollState>({
     conversationKey: "",
@@ -1342,6 +1344,13 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       placeholder={t("ecommerce.customerServiceWorkspace.manualReplyPlaceholder")}
                       submitDisabled={!workspace.manualReplyDraft.trim()}
                       submitting={workspace.sendingManualReply}
+                      textareaRef={replyTextareaRef}
+                      tools={<MessageEmojiButton
+                        key={selectedConversationKey}
+                        textareaRef={replyTextareaRef}
+                        onValueChange={(value) => workspace.setManualReplyDraft(value)}
+                        disabled={workspace.sendingManualReply}
+                      />}
                       textareaProps={{ rows: 2 }}
                     />
                   </div>

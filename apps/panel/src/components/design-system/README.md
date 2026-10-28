@@ -321,6 +321,10 @@ variant through props; it never restyles `.custom-select-trigger`. `TkComposer` 
 textarea, focus boundary, keyboard submit, disabled state, and send action. Mixed field/action rows
 use `.tk-v1-form-action-row` so every action shares the default control baseline.
 
+`TkComposer.tools` accepts compact actions beside Send; `textareaRef` lets input tools preserve
+the selection. Customer-service and Affiliate replies share `MessageEmojiButton`, which lazily
+opens a localized native emoji picker in `TkPopover` and edits the existing text draft.
+
 Vertical settings and edit forms use `TkFormStack`; a titled subset of related fields uses
 `TkFormGroup`. Framed composites use `TkPanelBody` for content padding and `TkPanelFooter` for
 actions. Product code must not rely on an unrelated feature stylesheet to provide these spaces.

@@ -41,6 +41,7 @@ import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
+import { MessageEmojiButton } from "../../components/inputs/MessageEmojiButton.js";
 import {
   AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
   AffiliateBusinessDeveloperSelect,
@@ -10419,6 +10420,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const [decidingProposalId, setDecidingProposalId] = useState<string | null>(null);
   const tabPanelRef = useRef<HTMLDivElement>(null);
   const [composerText, setComposerText] = useState("");
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [composerChannel, setComposerChannel] = useState<"AUTO" | GQL.AffiliateMessageChannel>(
     "AUTO",
   );
@@ -12553,6 +12555,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     ) : null}
                     <textarea
                       className="form-input affiliate-message-composer-text"
+                      ref={composerTextareaRef}
                       value={composerText}
                       disabled={sendingMessage}
                       onChange={(event) => setComposerText(event.target.value)}
@@ -12604,6 +12607,12 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     ) : null}
                     <div className="affiliate-message-composer-footer">
                       <div className="affiliate-message-composer-footer-tools">
+                        <MessageEmojiButton
+                          key={`${scopeKey}:${effectiveComposerChannel}:${composerShopId}:${composerContactId}`}
+                          textareaRef={composerTextareaRef}
+                          onValueChange={setComposerText}
+                          disabled={sendingMessage || sendingInvitation}
+                        />
                         <label className="btn btn-secondary btn-sm affiliate-message-file-button">
                           {uploadingAttachments
                             ? t("common.loading")

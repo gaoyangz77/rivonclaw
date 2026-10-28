@@ -373,9 +373,10 @@
 .tk-v1-composer-action {
   display: flex;
   align-items: flex-end;
+  gap: var(--tk-v1-space-2);
 }
 
-.tk-v1-composer-action .tk-v1-button {
+.tk-v1-composer-action > .tk-v1-button:not(.tk-v1-icon-button) {
   min-width: 72px;
 }
 

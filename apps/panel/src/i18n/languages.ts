@@ -42,6 +42,7 @@ import { SUB_ACCOUNT_TRANSLATIONS } from "./sub-account-translations.js";
 import { BUSINESS_DEVELOPER_ACCESS_TRANSLATIONS } from "./business-developer-access-translations.js";
 import { WMS_CREDENTIAL_TRANSLATIONS } from "./wms-credential-translations.js";
 import { OFFICE_ACTIVITY_TRANSLATIONS } from "./office-activity-translations.js";
+import { MESSAGE_EMOJI_TRANSLATIONS } from "./message-emoji-translations.js";
 import { TUTORIAL_SEPTEMBER_TRANSLATIONS } from "./tutorial-september-translations.js";
 import { TUTORIAL_WORKBENCHES_TRANSLATIONS } from "./tutorial-workbenches-translations.js";
 import { TUTORIAL_OCTOBER_TRANSLATIONS } from "./tutorial-october-translations.js";
@@ -618,6 +619,7 @@ export const LANGUAGE_RESOURCES = Object.fromEntries(
         // types already force all eight locales to carry every caption; adding
         // it once keeps that guarantee from depending on eight edits.
         OFFICE_ACTIVITY_TRANSLATIONS[language.code],
+        MESSAGE_EMOJI_TRANSLATIONS[language.code],
       ),
     },
   ]),

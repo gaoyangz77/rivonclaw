@@ -8,6 +8,12 @@ import { ToastProvider } from "../../components/Toast.js";
 import { CreatorRelationshipDetailModal, SampleApplicationSummaryCard } from "./AffiliateManagementPage.js";
 import type { GQL } from "@rivonclaw/core";
 
+vi.mock("../../components/inputs/MessageEmojiPicker.js", () => ({
+  default: ({ onSelect }: { onSelect: (emoji: string) => void }) => (
+    <button type="button" onClick={() => onSelect("😊")}>😊</button>
+  ),
+}));
+
 const state = vi.hoisted(() => ({
   calls: [] as Array<{ operation: string; input: Record<string, unknown> }>,
   refetch: vi.fn(),
@@ -752,6 +758,24 @@ describe("manual message submission and history refresh", () => {
     fireEvent.change(screen.getByRole("textbox"), { target: { value: text } });
   }
   function send() { fireEvent.click(screen.getByRole("button", { name: "发送" })); }
+
+  it("inserts emoji in the creator reply and sends it as text only after Send is clicked", async () => {
+    state.mutate.mockResolvedValue(accepted);
+    render(view("creator", "conversation"));
+    compose("Hola, gracias ");
+    const input = screen.getByRole<HTMLTextAreaElement>("textbox");
+    input.setSelectionRange(input.value.length, input.value.length);
+    fireEvent.click(screen.getByRole("button", { name: "表情" }));
+    const picker = await screen.findByRole("dialog", { name: "表情" });
+    fireEvent.click(await within(picker).findByRole("button", { name: "😊" }));
+    expect(input.value).toBe("Hola, gracias 😊");
+    expect(state.mutate).not.toHaveBeenCalled();
+    send();
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledOnce());
+    expect(state.mutate.mock.calls[0][0].variables.input.parts).toEqual([
+      { kind: "TEXT", text: "Hola, gracias 😊" },
+    ]);
+  });
 
   it("acknowledges delivery and releases the composer while history is still pending", async () => {
     state.mutate.mockResolvedValue(accepted);
