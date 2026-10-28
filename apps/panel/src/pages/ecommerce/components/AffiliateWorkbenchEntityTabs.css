@@ -10,8 +10,14 @@
   min-width: 1080px;
 }
 
+/* Product identity stays compact; Creator performance receives the spare width.
+   Scope to samples: the message table reuses col-product for its channel cell. */
+.tk-v1-workbench :is(.affiliate-workbench-table-samples-open, .affiliate-workbench-table-samples-rejected) .affiliate-workbench-col-product {
+  width: 200px;
+}
+
 .affiliate-workbench-col-metrics {
-  width: 192px;
+  width: auto;
 }
 
 .affiliate-workbench-entity-toolbar {

@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import i18n from "../../i18n/index.js";
@@ -48,6 +48,18 @@ function bundle(
 
 const BD = { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏", businessDeveloperId: "bd-1" };
 const label = () => ({ text: "Shop", sensitive: false });
+
+it("spells out the Creator metric names in the Chinese agent workbench", () => {
+  render(<ToastProvider><AgentWorkBundleTable
+    bundles={[bundle("metrics", GQL.ActionProposalStatus.Pending, null)]}
+    shopLabelForId={label} onOpen={vi.fn()} onOpenCreator={vi.fn()}
+  /></ToastProvider>);
+  for (const name of ["达人表现", "粉丝数", "平均视频播放量", "互动率", "带货视频数"]) {
+    expect(screen.getByText(name)).toBeTruthy();
+  }
+  expect(screen.queryByText("Followers")).toBeNull();
+  expect(screen.queryByText("Avg. views")).toBeNull();
+});
 
 describe("Agent workbench decided-by caption", () => {
   it("names who decided a proposal under its status badge and nothing for an undecided one", () => {

@@ -131,7 +131,7 @@
 
 .affiliate-sample-decision-row {
   display: grid;
-  grid-template-columns: minmax(240px, 2.5fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(200px, 1.4fr) repeat(3, minmax(0, 1fr));
   gap: 0;
   min-width: 0;
 }
@@ -281,7 +281,7 @@
 
 @media (max-width: 980px) {
   .affiliate-sample-decision-row {
-    grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(0, 1fr));
   }
 }
 

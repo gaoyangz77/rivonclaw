@@ -3774,8 +3774,8 @@ export default {
         creatorMetrics: {
           title: "Creator data",
           followers: "Followers",
-          avgViews: "Avg. views",
-          engagementRate: "Engagement",
+          avgViews: "Average video views",
+          engagementRate: "Engagement rate",
           shoppableVideos: "Shoppable videos",
         },
         type: "Type",

@@ -223,7 +223,7 @@ describe.each(["SAMPLES", "MESSAGES"] as const)("%s creator tag column", (tab) =
     expect(cells).toHaveLength(3);
     if (tab === "SAMPLES") {
       await waitFor(() => expect(screen.getAllByText("SELLER-1")).toHaveLength(3));
-      expect(document.querySelectorAll(".commerce-product-table-cell-media")).toHaveLength(3);
+      expect(document.querySelectorAll(".commerce-compact-product-field-media")).toHaveLength(3);
     }
     // Each tags cell is its own <td>, immediately after the Creator cell.
     for (const cell of cells) {

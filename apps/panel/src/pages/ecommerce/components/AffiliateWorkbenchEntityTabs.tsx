@@ -11,7 +11,7 @@ import {
   REOPEN_SOFT_REJECTED_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
 } from "../../../api/shops-queries.js";
 import { LoadingSpinner } from "../../../components/LoadingSpinner.js";
-import { ProductTableCell } from "../../../components/ecommerce/ProductTableCell.js";
+import { CompactProductField } from "../../../components/ecommerce/CompactProductField.js";
 import {
   TkButton,
   TkInfoTip,
@@ -778,7 +778,7 @@ function SampleProductCell({
   const { t } = useTranslation();
   const selectedSku = summary?.skus?.find((sku) => sku.skuId === row.sampleApplication.skuId);
   return (
-    <ProductTableCell
+    <CompactProductField
       title={row.productTitle || summary?.title}
       imageUrl={summary?.coverImage || row.sampleApplication.skuImageUrl}
       skus={selectedSku ? [selectedSku.sellerSku] : summary?.skus?.map((sku) => sku.sellerSku)}

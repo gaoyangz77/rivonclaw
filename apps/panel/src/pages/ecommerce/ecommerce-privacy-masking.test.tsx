@@ -90,7 +90,9 @@ describe("product images on the ecommerce pages", () => {
     const blocks = remoteMediaImageBlocks(pageSource("AffiliateManagementPage.tsx"));
 
     expect(blockFor(blocks, "product.coverImage")).toContain("sensitive");
-    expect(blockFor(blocks, "productCoverImage")).toContain("sensitive");
+    const compact = readFileSync(resolve(process.cwd(), "src/components/ecommerce/CompactProductField.tsx"), "utf8");
+    expect(pageSource("AffiliateManagementPage.tsx")).toMatch(/<CompactProductField[\s\S]*?imageUrl=\{productCoverImage\}/);
+    expect(blockFor(remoteMediaImageBlocks(compact), "imageUrl")).toContain("sensitive");
     // A creator's avatar is not seller data and must stay visible.
     expect(blockFor(blocks, "avatarUrl")).not.toContain("sensitive");
   });

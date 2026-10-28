@@ -243,7 +243,7 @@
   table-layout: fixed;
 }
 
-/* Reserve readable fixed cells and let the product use the remaining width. */
+/* Reserve readable identity/status cells; Creator performance uses the remaining width. */
 .tk-v1-workbench :is(.affiliate-workbench-table-samples-open, .affiliate-workbench-table-samples-rejected) .affiliate-workbench-col-time {
   width: 80px;
 }
@@ -604,36 +604,8 @@
 
 .affiliate-sample-decision-product {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: var(--tk-v1-space-2);
-  align-items: center;
-  min-width: 0;
-}
-
-.affiliate-sample-decision-product-thumb {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--tk-v1-radius-2);
-  background: var(--color-bg);
-}
-
-.affiliate-sample-decision-product-thumb-empty {
-  position: relative;
-}
-
-.affiliate-sample-decision-product-thumb-empty::after {
-  content: "";
-  position: absolute;
-  inset: 10px;
-  border-radius: var(--tk-v1-radius-1);
-  background: color-mix(in srgb, var(--color-text-muted) 22%, transparent);
-}
-
-.affiliate-sample-decision-product-copy {
-  display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--tk-v1-space-1);
   min-width: 0;
 }
 

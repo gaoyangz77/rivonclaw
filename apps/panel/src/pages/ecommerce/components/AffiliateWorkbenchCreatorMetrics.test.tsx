@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import type { GQL } from "@rivonclaw/core";
 import i18n from "../../../i18n/index.js";
@@ -47,7 +47,7 @@ it("keeps range GMV and does not invent a lifetime reporting period", () => {
     />,
   );
   expect(screen.getByText(/100.*–.*200/)).toBeTruthy();
-  expect(screen.getByText(/周期未注明/)).toBeTruthy();
+  expect(screen.getByText("统计周期未注明")).toBeTruthy();
   expect(screen.queryByText(/历史累计/)).toBeNull();
   expect(screen.getAllByText("—")).toHaveLength(3);
 });
@@ -56,4 +56,18 @@ it("renders absent performance without turning it into zero", () => {
   render(<AffiliateWorkbenchCreatorMetrics row={{} as GQL.AffiliateWorkbenchSampleRow} />);
   expect(screen.getAllByText("—")).toHaveLength(4);
   expect(screen.queryByText("0")).toBeNull();
+});
+
+it("uses clear Chinese metric names and follows live language changes", async () => {
+  render(<AffiliateWorkbenchCreatorMetrics row={{
+    creatorGmv: { amount: 100, currency: "USD", window: "UNSPECIFIED", precision: "EXACT" },
+  } as GQL.AffiliateWorkbenchSampleRow} />);
+  for (const label of ["GMV", "样品履约率", "平均视频播放量", "出售件数", "统计周期未注明"]) {
+    expect(screen.getByText(label)).toBeTruthy();
+  }
+  expect(screen.queryByText("Period unspecified")).toBeNull();
+  await act(async () => { await i18n.changeLanguage("en"); });
+  expect(screen.getByText("Average video views")).toBeTruthy();
+  expect(screen.getByText("Reporting period not specified")).toBeTruthy();
+  expect(screen.queryByText("统计周期未注明")).toBeNull();
 });

@@ -86,8 +86,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           creatorMetrics: {
             title: "Creator performance",
             gmv: "GMV",
-            avgViews: "Avg. views",
-            postRate: "Post rate",
+            avgViews: "Average video views",
+            postRate: "Sample-to-post rate",
           },
         },
       },
@@ -179,8 +179,8 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
           creatorMetrics: {
             title: "达人表现",
             gmv: "GMV",
-            avgViews: "平均播放",
-            postRate: "寄样后发稿率",
+            avgViews: "平均视频播放量",
+            postRate: "样品履约率",
           },
         },
       },

@@ -198,6 +198,7 @@ describe("Affiliate proposal stock", () => {
     const applications = screen.getAllByRole("article");
     expect(applications).toHaveLength(2);
     for (const application of applications) {
+      expect(application.querySelector(".commerce-compact-product-field")).toBeTruthy();
       const stock = within(application).getByRole("table", { name: "SKU / 库存" });
       expect(within(stock).getAllByRole("row")).toHaveLength(3);
       expect(within(stock).getByText("ROPE-GOLD-18")).toBeTruthy();

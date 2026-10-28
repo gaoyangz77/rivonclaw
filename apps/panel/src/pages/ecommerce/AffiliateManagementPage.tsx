@@ -1,3 +1,4 @@
+import { CompactProductField } from "../../components/ecommerce/CompactProductField.js";
 import { affiliateMessageAccountOptions } from "./components/affiliate-message-accounts.js";
 import { AffiliateCampaignInvitationComposer } from "./components/AffiliateCampaignInvitationComposer.js";
 import { AffiliateMessageAttachmentCard } from "./components/AffiliateMessageAttachmentCard.js";
@@ -9241,36 +9242,24 @@ export const ProposalSampleDecisionBundle = observer(function ProposalSampleDeci
                 <span className="affiliate-sample-decision-index">{index + 1}</span>
                 <div>
                   <div className="affiliate-sample-decision-product">
-                    {productCoverImage ? (
-                      <RemoteMediaImage
-                        alt=""
-                        className="affiliate-sample-decision-product-thumb"
-                        loading="lazy"
-                        sensitive
-                        sourceUrl={productCoverImage}
-                      />
-                    ) : (
-                      <div
-                        className="affiliate-sample-decision-product-thumb affiliate-sample-decision-product-thumb-empty"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <div className="affiliate-sample-decision-product-copy">
-                      <TkPrivate
-                        as="strong"
-                        sensitive={Boolean(row.productTitle)}
-                        title={productLabel}
-                      >
-                        {productLabel}
-                      </TkPrivate>
+                    <CompactProductField
+                      title={row.productTitle || row.productSummary?.title}
+                      imageUrl={productCoverImage}
+                      skus={
+                        row.productSellerSku
+                          ? [row.productSellerSku]
+                          : row.productSummary?.skus?.map((sku) => sku.sellerSku)
+                      }
+                      skuLabel={t("ecommerce.affiliateCampaign.skuLabel")}
+                      productId={row.productId}
+                      productIdLabel={t("ecommerce.affiliateCampaign.productIdLabel")}
+                      emptyTitle={productLabel}
+                    />
+                    {productPrice ? (
                       <div className="affiliate-sample-decision-product-facts">
-                        {productPrice ? (
-                          <span className="affiliate-sample-decision-product-price">
-                            {productPrice}
-                          </span>
-                        ) : null}
+                        <span className="affiliate-sample-decision-product-price">{productPrice}</span>
                       </div>
-                    </div>
+                    ) : null}
                   </div>
                   <div className="affiliate-sample-decision-identifiers">
                     <span>
