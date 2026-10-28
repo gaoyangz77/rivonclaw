@@ -3574,8 +3574,8 @@
   gap: 10px;
 }
 
-.affiliate-collaboration-sample-panel span,
-.affiliate-collaboration-sample-card span {
+.affiliate-collaboration-sample-panel span:not(.tk-v1-button *),
+.affiliate-collaboration-sample-card span:not(.tk-v1-button *) {
   display: block;
   margin-bottom: 4px;
   color: var(--color-text-muted);
@@ -3594,7 +3594,7 @@
   white-space: nowrap;
 }
 
-.affiliate-entity-fact span {
+.affiliate-entity-fact span:not(.tk-v1-button *) {
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 750;

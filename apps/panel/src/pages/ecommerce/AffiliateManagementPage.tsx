@@ -9733,8 +9733,8 @@ export function SampleApplicationSummaryCard({
           label={t("ecommerce.affiliateWorkspace.sampleApplication.updatedAt")}
           value={formatProposalTime(sampleApplication.updatedAt)}
         />
+        <AffiliateSampleShipment sample={sampleApplication} />
       </div>
-      <AffiliateSampleShipment sample={sampleApplication} />
       <SampleReviewAttribution sampleApplication={sampleApplication} />
       {detailOpen ? (
         <div className="affiliate-collaboration-sample-details">
@@ -9746,16 +9746,16 @@ export function SampleApplicationSummaryCard({
         </div>
       ) : null}
       <div className="affiliate-collaboration-sample-footer">
-        <button
-          className="affiliate-inline-link-button"
-          type="button"
+        <TkButton
+          variant="secondary"
+          size="sm"
           aria-expanded={detailOpen}
           onClick={() => setDetailOpen((value) => !value)}
         >
           {detailOpen
             ? t("ecommerce.affiliateWorkspace.sampleApplication.hideDetails")
             : t("ecommerce.affiliateWorkspace.sampleApplication.showDetails")}
-        </button>
+        </TkButton>
       </div>
     </article>
   );

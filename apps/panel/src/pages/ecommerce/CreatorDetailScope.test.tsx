@@ -184,7 +184,10 @@ describe("Sample card order facts", () => {
   it("shows the persisted shipping snapshot inside the Sample card", () => {
     render(card("123", { status: "IN_TRANSIT", trackingSyncedAt: "2026-10-20T00:00:00Z",
       latestTrackingEventAt: "2026-10-19T00:00:00Z", latestTrackingEventDescription: "Out for delivery" }));
-    expect(screen.getByRole("region", { name: "物流状态" })).toBeTruthy();
+    const shipment = screen.getByRole("region", { name: "物流状态" });
+    expect(shipment.parentElement?.classList.contains("affiliate-collaboration-sample-grid")).toBe(true);
+    expect(shipment.querySelectorAll(".affiliate-sample-shipment-summary > .affiliate-entity-fact")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "查看详情" }).classList.contains("tk-v1-button-secondary")).toBe(true);
     expect(screen.getByText("运输中")).toBeTruthy();
     expect(screen.getByText("Out for delivery")).toBeTruthy();
     expect(screen.getByText("TRACK-123")).toBeTruthy();

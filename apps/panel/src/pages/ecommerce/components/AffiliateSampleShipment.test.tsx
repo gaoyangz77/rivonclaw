@@ -85,14 +85,55 @@ it("renders saved logistics details and expands the Provider timeline newest fir
   expect(screen.getByText("运输中")).toBeTruthy();
   expect(screen.getByText("最近同步")).toBeTruthy();
   expect(screen.getByText("Collected")).toBeTruthy();
+  const region = screen.getByRole("region", { name: "物流状态" });
+  expect(
+    region.querySelectorAll(".affiliate-sample-shipment-summary > .affiliate-entity-fact"),
+  ).toHaveLength(3);
   expect(screen.queryByText("Newer event")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "查看物流轨迹" }));
+  const showButton = screen.getByRole("button", { name: "查看物流轨迹" });
+  const trackingCard = showButton.closest(".affiliate-sample-shipment-latest");
+  expect(trackingCard?.textContent).toContain("Collected");
+  expect(showButton.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(showButton);
+  expect(screen.getByRole("list").id).toBe(showButton.getAttribute("aria-controls"));
+  expect(trackingCard?.contains(screen.getByRole("list"))).toBe(true);
   expect(screen.getAllByRole("listitem").map((e) => e.textContent)).toEqual([
     expect.stringContaining("Newer event"),
     expect.stringContaining("Older event"),
   ]);
   fireEvent.click(screen.getByRole("button", { name: "收起物流轨迹" }));
   expect(screen.queryByRole("list")).toBeNull();
+});
+
+it("keeps separate sample timelines independent", () => {
+  const withEvents = {
+    ...sample,
+    order: {
+      ...sample.order,
+      trackingEvents: [
+        { description: "Package delivered", actionCode: 50104, updateTimeMillis: now },
+      ],
+    },
+  };
+  render(
+    <>
+      <AffiliateSampleShipment sample={withEvents} />
+      <AffiliateSampleShipment sample={withEvents} />
+    </>,
+  );
+  const buttons = screen.getAllByRole("button", { name: "查看物流轨迹" });
+  expect(buttons[0]!.getAttribute("aria-controls")).not.toBe(
+    buttons[1]!.getAttribute("aria-controls"),
+  );
+  fireEvent.click(buttons[0]!);
+  expect(screen.getAllByRole("list")).toHaveLength(1);
+  expect(buttons[1]!.getAttribute("aria-expanded")).toBe("false");
+});
+
+it("does not offer empty tracking history", () => {
+  render(<AffiliateSampleShipment sample={sample} />);
+  expect(screen.queryByRole("button", { name: "查看物流轨迹" })).toBeNull();
+  expect(screen.getByText("Collected")).toBeTruthy();
 });
 
 it("does not invent a logistics snapshot before it has been fetched", () => {
