@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.41",
+    "date": "2026-10-28",
+    "en": [
+      "Return to the top of loaded lists and preserve BD pagination while loading",
+      "Keep server-resolved order search results in customer service conversations",
+      "Compact Affiliate product fields and localize creator performance metrics"
+    ],
+    "zh": [
+      "已加载列表支持回到顶部，并修复 BD 分页加载时重置的问题",
+      "客服会话保留服务端解析的订单搜索结果",
+      "精简达人联盟商品字段展示，并完善达人表现指标的多语言文案"
+    ]
+  },
+  {
     "version": "1.9.40",
     "date": "2026-10-27",
     "en": [
