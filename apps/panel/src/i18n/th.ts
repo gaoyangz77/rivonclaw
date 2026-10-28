@@ -1626,12 +1626,16 @@ export default {
       RIVONCLAW_AI_PLUS: "TK Copilot AI พลัส",
       RIVONCLAW_AI_PRO: "TK Copilot AI Pro",
       RIVONCLAW_AI_MAX: "TK Copilot AI สูงสุด",
+      RIVONCLAW_AI_MAX_2X: "TK Copilot AI Max 2x",
+      RIVONCLAW_AI_MAX_3X: "TK Copilot AI Max 3x",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "บริการลูกค้า AI ไม่จำกัด",
     },
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "การใช้งานคลาวด์พื้นฐาน LLM สำหรับงานประจำวันแบบเบาๆ",
       RIVONCLAW_AI_PRO: "การใช้งาน Plus 3 เท่าสำหรับระบบอัตโนมัติรายวันที่หนักกว่า",
       RIVONCLAW_AI_MAX: "การใช้งาน Plus 8 เท่าสำหรับเวิร์กโฟลว์ที่มีปริมาณมาก",
+      RIVONCLAW_AI_MAX_2X: "ใช้งานได้ 2 เท่าของ Max สำหรับร้านที่มีงานมากและทีมที่กำลังเติบโต",
+      RIVONCLAW_AI_MAX_3X: "ใช้งานได้ 3 เท่าของ Max สำหรับการดำเนินงานร้านค้าขนาดใหญ่",
     },
     exchangeRate: "USD/CNY {{rate}} บน {{date}}",
     services: {

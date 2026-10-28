@@ -5874,6 +5874,8 @@ export const BillingPlanId = {
   EcomCustomerServiceUnlimitedMonthly: "ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY",
   EcomOnboardingTrialWindow: "ECOM_ONBOARDING_TRIAL_WINDOW",
   RivonclawAiMax: "RIVONCLAW_AI_MAX",
+  RivonclawAiMax_2X: "RIVONCLAW_AI_MAX_2X",
+  RivonclawAiMax_3X: "RIVONCLAW_AI_MAX_3X",
   RivonclawAiPlus: "RIVONCLAW_AI_PLUS",
   RivonclawAiPro: "RIVONCLAW_AI_PRO",
 } as const;

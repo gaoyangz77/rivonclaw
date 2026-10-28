@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { applyPatch, types, type IJsonPatch, type SnapshotIn } from "mobx-state-tree";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PaymentModel, RootStoreModel } from "@rivonclaw/core/models";
 import { AccountBillingSection } from "./AccountBillingSection.js";
+
+afterEach(cleanup);
 
 /**
  * Payment history reaches the Panel incrementally: Desktop ingests the
@@ -144,5 +146,80 @@ describe("AccountBillingSection payment records", () => {
 
     expect(screen.queryByText("billing.noCompletedPayments")).toBeNull();
     expect(screen.getByText("Awaiting card")).toBeTruthy();
+  });
+});
+
+describe("Max membership upgrades", () => {
+  function renderMax(planId: string, provider: string) {
+    mockState.store = TestStore.create({
+      billingPlanDefinitions: [
+        ["RIVONCLAW_AI_MAX", "Max", "79"],
+        ["RIVONCLAW_AI_MAX_2X", "Max 2x", "158"],
+        ["RIVONCLAW_AI_MAX_3X", "Max 3x", "237"],
+      ].map(([planId, name, priceMonthly]) => ({
+        planId,
+        name,
+        priceMonthly,
+        product: "LLM_USAGE",
+        priceCurrency: "USD",
+        metered: true,
+      })),
+      billingOverview: {
+        accountLlm: {
+          planId,
+          entitlement: {
+            scopeType: "ACCOUNT",
+            scopeId: "user_1",
+            product: "LLM_USAGE",
+            allowed: true,
+            code: "ALLOWED",
+            validUntil: "2099-12-01T00:00:00Z",
+            subscription: {
+              planId,
+              provider,
+              status: "ACTIVE",
+              currency: "USD",
+              amountMinor: 7900,
+              currentPeriodStart: "2026-10-01T00:00:00Z",
+              currentPeriodEnd: "2099-12-01T00:00:00Z",
+              cancelAtPeriodEnd: false,
+              renewalMode:
+                provider === "STRIPE"
+                  ? "AUTO_RENEWS"
+                  : provider === "LAKALA"
+                    ? "PREPAID"
+                    : "NON_RENEWING",
+            },
+          },
+        },
+      },
+    });
+    render(<AccountBillingSection />);
+  }
+
+  it.each(["STRIPE", "LAKALA", "MANUAL"])("offers higher Max plans to %s members", (provider) => {
+    renderMax("RIVONCLAW_AI_MAX", provider);
+    fireEvent.click(screen.getByRole("button", { name: "billing.upgradeAccountPlan" }));
+    const modal = within(screen.getByRole("dialog", { name: "billing.changeAccountPlan" }));
+    expect(modal.getByRole("button", { name: "Max 2x" })).toBeTruthy();
+    expect(modal.getByRole("button", { name: "Max 3x" })).toBeTruthy();
+    expect(modal.queryByRole("button", { name: "Max" })).toBeNull();
+    expect(modal.getByText("$158.00", { exact: false })).toBeTruthy();
+    fireEvent.click(modal.getByRole("button", { name: "Max 3x" }));
+    expect(modal.getByText("$237.00", { exact: false })).toBeTruthy();
+  });
+
+  it("keeps manual renewal separate from upgrades", () => {
+    renderMax("RIVONCLAW_AI_MAX_2X", "MANUAL");
+    fireEvent.click(screen.getByRole("button", { name: "billing.renewSubscription" }));
+    const modal = within(screen.getByRole("dialog", { name: "billing.extendPrepaidTitle" }));
+    expect(modal.getByRole("button", { name: "Max 2x" })).toBeTruthy();
+    expect(modal.queryByRole("button", { name: "Max 3x" })).toBeNull();
+  });
+
+  it("does not offer upgrades above Max 3x", () => {
+    renderMax("RIVONCLAW_AI_MAX_3X", "STRIPE");
+    expect(screen.queryByRole("button", { name: "billing.upgradeAccountPlan" })).toBeNull();
+    expect(screen.getByText("billing.highestPlan")).toBeTruthy();
   });
 });

@@ -1717,12 +1717,16 @@ export default {
       RIVONCLAW_AI_PLUS: "TK Copilot AI Plus",
       RIVONCLAW_AI_PRO: "TK Copilot AI Pro",
       RIVONCLAW_AI_MAX: "TK Copilot AI Max",
+      RIVONCLAW_AI_MAX_2X: "TK Copilot AI Max 2x",
+      RIVONCLAW_AI_MAX_3X: "TK Copilot AI Max 3x",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "AI Customer Service Unlimited",
     },
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "Baseline cloud LLM usage for light daily work.",
       RIVONCLAW_AI_PRO: "3x the Plus usage for heavier daily automation.",
       RIVONCLAW_AI_MAX: "8x the Plus usage for high-volume workflows.",
+      RIVONCLAW_AI_MAX_2X: "Twice the Max usage for busy shops and growing teams.",
+      RIVONCLAW_AI_MAX_3X: "Three times the Max usage for large-scale shop operations.",
     },
     exchangeRate: "USD/CNY {{rate}} on {{date}}",
     services: {

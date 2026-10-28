@@ -1649,12 +1649,16 @@ export default {
       RIVONCLAW_AI_PLUS: "TK匠 AI Plus",
       RIVONCLAW_AI_PRO: "TK匠 AI Pro",
       RIVONCLAW_AI_MAX: "TK匠 AI Max",
+      RIVONCLAW_AI_MAX_2X: "TK匠 AI Max 2x",
+      RIVONCLAW_AI_MAX_3X: "TK匠 AI Max 3x",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "AI 智能客服无限版",
     },
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "适合轻量日常使用的基础云端 LLM 用量。",
       RIVONCLAW_AI_PRO: "用量为 Plus 的 3 倍，适合更高频的日常自动化。",
       RIVONCLAW_AI_MAX: "用量为 Plus 的 8 倍，适合高频业务流程。",
+      RIVONCLAW_AI_MAX_2X: "Max 2 倍用量，从容应对繁忙店铺和团队增长。",
+      RIVONCLAW_AI_MAX_3X: "Max 3 倍用量，支持更多店铺和更大规模的日常运营。",
     },
     exchangeRate: "USD/CNY {{rate}}，日期 {{date}}",
     services: {

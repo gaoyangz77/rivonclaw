@@ -1702,12 +1702,16 @@ export default {
       RIVONCLAW_AI_PLUS: "TK Copilot AI Ditambah",
       RIVONCLAW_AI_PRO: "TK Copilot AI Pro",
       RIVONCLAW_AI_MAX: "TK Copilot AI Maks",
+      RIVONCLAW_AI_MAX_2X: "TK Copilot AI Max 2x",
+      RIVONCLAW_AI_MAX_3X: "TK Copilot AI Max 3x",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "Layanan Pelanggan AI Tidak Terbatas",
     },
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "Penggunaan cloud dasar LLM untuk pekerjaan ringan sehari-hari.",
       RIVONCLAW_AI_PRO: "3x penggunaan Plus untuk otomatisasi harian yang lebih berat.",
       RIVONCLAW_AI_MAX: "8x penggunaan Plus untuk alur kerja bervolume tinggi.",
+      RIVONCLAW_AI_MAX_2X: "Dua kali penggunaan Max untuk toko sibuk dan tim yang berkembang.",
+      RIVONCLAW_AI_MAX_3X: "Tiga kali penggunaan Max untuk operasional toko berskala besar.",
     },
     exchangeRate: "USD/CNY {{rate}} dan {{date}}",
     services: {

@@ -151,6 +151,8 @@ const ACCOUNT_PLAN_RANK: Record<string, number> = {
   [GQL.BillingPlanId.RivonclawAiPlus]: 1,
   [GQL.BillingPlanId.RivonclawAiPro]: 2,
   [GQL.BillingPlanId.RivonclawAiMax]: 3,
+  [GQL.BillingPlanId.RivonclawAiMax_2X]: 4,
+  [GQL.BillingPlanId.RivonclawAiMax_3X]: 5,
 };
 
 export function accountPlanRank(planId?: string | null): number {
@@ -158,7 +160,7 @@ export function accountPlanRank(planId?: string | null): number {
 }
 
 export function isHighestAccountPlan(planId?: string | null): boolean {
-  return accountPlanRank(planId) >= accountPlanRank(GQL.BillingPlanId.RivonclawAiMax);
+  return accountPlanRank(planId) >= accountPlanRank(GQL.BillingPlanId.RivonclawAiMax_3X);
 }
 
 export function upgradeableAccountPlans(

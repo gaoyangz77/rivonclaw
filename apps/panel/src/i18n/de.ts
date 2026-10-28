@@ -1745,12 +1745,16 @@ export default {
       RIVONCLAW_AI_PLUS: "TK Copilot AI Plus",
       RIVONCLAW_AI_PRO: "TK Copilot AI Pro",
       RIVONCLAW_AI_MAX: "TK Copilot AI max",
+      RIVONCLAW_AI_MAX_2X: "TK Copilot AI Max 2x",
+      RIVONCLAW_AI_MAX_3X: "TK Copilot AI Max 3x",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "KI-Kundenservice unbegrenzt",
     },
     planDescriptions: {
       RIVONCLAW_AI_PLUS: "Baseline-Cloud-LLM-Nutzung für leichte tägliche Arbeit.",
       RIVONCLAW_AI_PRO: "Dreifache Plus-Nutzung für stärkere tägliche Automatisierung.",
       RIVONCLAW_AI_MAX: "6-fache Plus-Nutzung für Arbeitsabläufe mit hohem Volumen.",
+      RIVONCLAW_AI_MAX_2X: "Doppelte Max-Nutzung für stark besuchte Shops und wachsende Teams.",
+      RIVONCLAW_AI_MAX_3X: "Dreifache Max-Nutzung für den Shop-Betrieb in großem Umfang.",
     },
     exchangeRate: "USD/CNY {{rate}} auf {{date}}",
     services: {

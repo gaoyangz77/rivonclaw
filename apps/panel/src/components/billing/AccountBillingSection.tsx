@@ -355,6 +355,12 @@ function EntitlementSummary({
   ].filter(
     (plan, index, plans) => plans.findIndex((item) => item.planId === plan.planId) === index,
   );
+  const checkoutPlans =
+    checkoutIsRenewal && currentAccountPlan
+      ? [currentAccountPlan]
+      : hasAccountSubscription
+        ? upgradeAccountPlans
+        : accountPlans;
   const isHighestPlan = isHighestAccountPlan(accountLlm?.planId);
   const canCancelSubscription =
     !!subscription &&
@@ -509,6 +515,11 @@ function EntitlementSummary({
                       : t("billing.upgradeAccountPlan")}
             </button>
           )}
+          {(canResumeAccountSubscription || canExtendPrepaid) && upgradeAccountPlans.length > 0 && (
+            <button className="btn btn-secondary" onClick={() => openAccountCheckout()}>
+              {t("billing.upgradeAccountPlan")}
+            </button>
+          )}
         </div>
       )}
       {accountLlm && (
@@ -523,15 +534,11 @@ function EntitlementSummary({
                   ? t("billing.changeAccountPlan")
                   : t("billing.subscribeAccountPlan")
             }
-            plans={checkoutIsRenewal && currentAccountPlan ? [currentAccountPlan] : accountPlans}
+            plans={checkoutPlans}
             shops={[]}
             scopeType={GQL.BillingScopeType.Account}
             scopeId={accountScopeId}
-            initialPlanId={
-              checkoutIsRenewal && currentAccountPlan
-                ? currentAccountPlan.planId
-                : accountPlans[0]?.planId
-            }
+            initialPlanId={checkoutPlans[0]?.planId}
             initialProvider={checkoutInitialProvider}
             planLabel={t("billing.chooseAccountPlan")}
             priceNotice={t("billing.upgradeProrationHint")}
