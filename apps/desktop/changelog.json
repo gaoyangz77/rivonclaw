@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.42",
+    "date": "2026-10-28",
+    "en": [
+      "Add emoji pickers to customer service and Affiliate replies",
+      "Configure sample review approval result filters and integrate shipment tracking into detail cards",
+      "Offer Max 2x and Max 3x membership options"
+    ],
+    "zh": [
+      "客服与达人联盟回复支持表情选择",
+      "支持配置样品审批结果筛选，并将样品物流整合到详情卡片",
+      "新增 Max 2x 和 Max 3x 会员选项"
+    ]
+  },
+  {
     "version": "1.9.41",
     "date": "2026-10-28",
     "en": [
