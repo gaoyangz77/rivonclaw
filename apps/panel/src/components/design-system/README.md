@@ -325,6 +325,11 @@ use `.tk-v1-form-action-row` so every action shares the default control baseline
 the selection. Customer-service and Affiliate replies share `MessageEmojiButton`, which lazily
 opens a localized native emoji picker in `TkPopover` and edits the existing text draft.
 
+Customer-service and Affiliate composers use `useMessageAttachmentDrafts` and
+`MessageAttachmentPreviews` for clipboard images. Paste only stages an unsent draft;
+removal, conversation changes and unmount revoke local preview URLs. Affiliate
+staging reuses draft-asset upload; CS uploads and sends only when the operator clicks Send.
+
 Vertical settings and edit forms use `TkFormStack`; a titled subset of related fields uses
 `TkFormGroup`. Framed composites use `TkPanelBody` for content padding and `TkPanelFooter` for
 actions. Product code must not rely on an unrelated feature stylesheet to provide these spaces.

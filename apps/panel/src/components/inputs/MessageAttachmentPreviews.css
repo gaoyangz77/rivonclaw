@@ -1,0 +1,40 @@
+.message-attachment-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.message-attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-subtle);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.message-attachment-thumbnail {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--tk-v1-bg-raised);
+}
+
+.message-attachment-caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
+  overflow-wrap: anywhere;
+  min-width: 0;
+  font-size: var(--tk-v1-type-supporting);
+  color: var(--tk-v1-fg-muted);
+}
+.message-attachment-file-input {
+  display: none;
+}

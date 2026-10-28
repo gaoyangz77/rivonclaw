@@ -1493,6 +1493,9 @@
 }
 
 .cs-manual-reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-2);
   flex: 0 0 auto;
   margin: 8px;
 }

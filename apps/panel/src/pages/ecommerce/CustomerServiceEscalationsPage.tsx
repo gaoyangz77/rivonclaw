@@ -11,7 +11,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
-import { MessageEmojiButton } from "../../components/inputs/MessageEmojiButton.js";
+import { CustomerServiceReplyComposer } from "./components/CustomerServiceReplyComposer.js";
 import { useToast } from "../../components/Toast.js";
 import {
   CheckIcon,
@@ -41,7 +41,6 @@ import {
 import {
   TkPageFrame,
   TkPageHeader,
-  TkComposer,
   TkIconButton,
   TkInteractiveTableRow,
   TkModal as Modal,
@@ -186,7 +185,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const conversationOrderRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
-  const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const olderMessagesScrollRef = useRef<OlderMessagesScrollSnapshot | null>(null);
   const messageListScrollStateRef = useRef<MessageListScrollState>({
     conversationKey: "",
@@ -520,22 +518,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
         showToast(t("ecommerce.customerServiceWorkspace.escalationUnavailable"), "error");
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
-    }
-  }
-
-  async function sendManualReply() {
-    if (!workspace.manualReplyDraft.trim() || workspace.sendingManualReply) return;
-    try {
-      const result = await workspace.sendManualReply(i18n.language);
-      if (!result) return;
-      showToast(t("ecommerce.customerServiceWorkspace.manualReplySent"), "success");
-    } catch (err) {
-      showToast(
-        err instanceof Error
-          ? err.message
-          : t("ecommerce.customerServiceWorkspace.manualReplyFailed"),
-        "error",
-      );
     }
   }
 
@@ -1333,25 +1315,10 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         ))}
                       </div>
                     )}
-                    <TkComposer
-                      className="cs-manual-reply-form"
-                      data-tutorial-id="cs-manual-reply"
-                      value={workspace.manualReplyDraft}
-                      onValueChange={(value) => workspace.setManualReplyDraft(value)}
-                      onSubmit={() => void sendManualReply()}
-                      submitLabel={t("ecommerce.customerServiceWorkspace.manualReplySend")}
-                      submittingLabel={t("common.loading")}
-                      placeholder={t("ecommerce.customerServiceWorkspace.manualReplyPlaceholder")}
-                      submitDisabled={!workspace.manualReplyDraft.trim()}
-                      submitting={workspace.sendingManualReply}
-                      textareaRef={replyTextareaRef}
-                      tools={<MessageEmojiButton
-                        key={selectedConversationKey}
-                        textareaRef={replyTextareaRef}
-                        onValueChange={(value) => workspace.setManualReplyDraft(value)}
-                        disabled={workspace.sendingManualReply}
-                      />}
-                      textareaProps={{ rows: 2 }}
+                    <CustomerServiceReplyComposer
+                      key={selectedConversationKey}
+                      shopId={selectedConversation.shopId}
+                      conversationId={selectedConversation.conversationId}
                     />
                   </div>
                 </>

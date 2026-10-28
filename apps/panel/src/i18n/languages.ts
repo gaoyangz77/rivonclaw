@@ -43,6 +43,7 @@ import { BUSINESS_DEVELOPER_ACCESS_TRANSLATIONS } from "./business-developer-acc
 import { WMS_CREDENTIAL_TRANSLATIONS } from "./wms-credential-translations.js";
 import { OFFICE_ACTIVITY_TRANSLATIONS } from "./office-activity-translations.js";
 import { MESSAGE_EMOJI_TRANSLATIONS } from "./message-emoji-translations.js";
+import { MESSAGE_ATTACHMENT_TRANSLATIONS } from "./message-attachment-translations.js";
 import { TUTORIAL_SEPTEMBER_TRANSLATIONS } from "./tutorial-september-translations.js";
 import { TUTORIAL_WORKBENCHES_TRANSLATIONS } from "./tutorial-workbenches-translations.js";
 import { TUTORIAL_OCTOBER_TRANSLATIONS } from "./tutorial-october-translations.js";
@@ -620,6 +621,7 @@ export const LANGUAGE_RESOURCES = Object.fromEntries(
         // it once keeps that guarantee from depending on eight edits.
         OFFICE_ACTIVITY_TRANSLATIONS[language.code],
         MESSAGE_EMOJI_TRANSLATIONS[language.code],
+        MESSAGE_ATTACHMENT_TRANSLATIONS[language.code],
       ),
     },
   ]),

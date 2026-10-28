@@ -1,6 +1,6 @@
 import { flow, getEnv, types } from "mobx-state-tree";
 import { GQL } from "@rivonclaw/core";
-import { API, clientPath } from "@rivonclaw/core/api-contract";
+import { API, CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson, fetchVoid } from "../../api/client.js";
 import {
   CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
@@ -1119,7 +1119,22 @@ export const CustomerServiceWorkspaceModel = types
           removeValue(self.startingConversationIds as unknown as string[], item.conversationId);
         }
       }),
-      sendManualReply: flow(function* (locale?: string) {
+      sendManualImageReply: flow(function* (input: {
+        shopId: string; conversationId: string; file: File; idempotencyKey: string;
+      }) {
+        return yield fetchJson<{ ok: boolean; messageId?: string }>(
+          clientPath(CLOUD_REST["ecommerce.csManualImageReply"]), {
+            method: "POST",
+            headers: {
+              "Content-Type": input.file.type, "X-Shop-Id": input.shopId,
+              "X-Conversation-Id": input.conversationId, "X-Idempotency-Key": input.idempotencyKey,
+            },
+            body: input.file,
+          },
+        );
+      }),
+      sendManualReply: flow(function* (locale?: string, refresh = true) {
+        if (self.sendingManualReply) return null;
         const selected = (self as any)
           .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
         const message = self.manualReplyDraft.trim();
@@ -1135,9 +1150,14 @@ export const CustomerServiceWorkspaceModel = types
               message,
             },
           });
-          self.manualReplyDraft = "";
-          yield (self as any).fetchConversationMessages(locale);
-          yield (self as any).fetchConversations();
+          if (self.selectedConversationId === selected.conversationId &&
+            self.selectedConversationShopId === selected.shopId && self.manualReplyDraft.trim() === message) {
+            self.manualReplyDraft = "";
+          }
+          if (refresh) {
+            yield (self as any).fetchConversationMessages(locale);
+            yield (self as any).fetchConversations();
+          }
           const messageId = result.data?.ecommerceSendCustomerServiceTextReply?.messageId;
           emitCsTelemetry("cs.session_event", {
             ...conversationTelemetryContext(selected),

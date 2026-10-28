@@ -7,6 +7,7 @@ import i18n from "../../i18n/index.js";
 import { ToastProvider } from "../../components/Toast.js";
 import { CreatorRelationshipDetailModal, SampleApplicationSummaryCard } from "./AffiliateManagementPage.js";
 import type { GQL } from "@rivonclaw/core";
+import { mockObjectUrls } from "../../../test/mock-object-urls.js";
 
 vi.mock("../../components/inputs/MessageEmojiPicker.js", () => ({
   default: ({ onSelect }: { onSelect: (emoji: string) => void }) => (
@@ -100,6 +101,7 @@ vi.mock("@apollo/client/react", () => ({
 }));
 
 beforeEach(async () => {
+  mockObjectUrls();
   await i18n.changeLanguage("zh");
   state.calls.length = 0;
   state.contactState = { channelContacts: [], whatsAppAccounts: [], emailAccounts: [] };
@@ -162,7 +164,7 @@ beforeEach(async () => {
   Element.prototype.scrollTo = vi.fn();
   Element.prototype.scrollIntoView = vi.fn();
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("Sample card order facts", () => {
   function card(orderId: string | null, tracking: Partial<GQL.SampleApplicationOrderRecord> = {}) {
@@ -761,6 +763,34 @@ describe("manual message submission and history refresh", () => {
     fireEvent.change(screen.getByRole("textbox"), { target: { value: text } });
   }
   function send() { fireEvent.click(screen.getByRole("button", { name: "发送" })); }
+
+  it("previews and removes pasted images, then sends only retained uploaded draft references", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 200,
+      json: async () => ({ draftAssetId: "draft-image", fileName: "capture.png", mimeType: "image/png", sizeBytes: 5, sha256: "hash" }),
+    } as Response);
+    state.mutate.mockResolvedValue(accepted);
+    try {
+      render(view("creator", "conversation"));
+      const paste = () => fireEvent.paste(screen.getByRole("textbox"), { clipboardData: {
+        files: [new File(["image"], "capture.png", { type: "image/png" })],
+      } });
+      paste();
+      expect(screen.getByRole("img", { name: "capture.png" })).toBeTruthy();
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+      expect(fetchMock.mock.calls[0][0]).toBe("/api/cloud/ecommerce/affiliate/upload-draft-attachment");
+      expect(state.mutate).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "移除 capture.png" }));
+      expect(screen.queryByRole("img", { name: "capture.png" })).toBeNull();
+      paste();
+      await waitFor(() => expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(false));
+      send();
+      await waitFor(() => expect(state.mutate).toHaveBeenCalledOnce());
+      expect(state.mutate.mock.calls[0][0].variables.input.parts).toEqual([
+        { kind: "ATTACHMENT", draftAssetId: "draft-image", emailDisposition: "ATTACHMENT" },
+      ]);
+      await waitFor(() => expect(screen.queryByRole("img", { name: "capture.png" })).toBeNull());
+    } finally { fetchMock.mockRestore(); }
+  });
 
   it("inserts emoji in the creator reply and sends it as text only after Send is clicked", async () => {
     state.mutate.mockResolvedValue(accepted);

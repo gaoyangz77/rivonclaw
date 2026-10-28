@@ -766,6 +766,11 @@ export function cloudRestPath(backendPath: string): string {
 }
 
 export const CLOUD_REST = {
+  "ecommerce.csManualImageReply": {
+    method: "POST",
+    path: cloudRestPath("/api/ecommerce/customer-service/manual-image-reply"),
+    desc: "Send a manual customer-service image reply without requiring an AI session",
+  },
   "uploads.images": {
     method: "POST",
     path: cloudRestPath("/uploads/images"),

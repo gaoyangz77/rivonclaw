@@ -42,6 +42,8 @@ import { GQL } from "@rivonclaw/core";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import { MessageEmojiButton } from "../../components/inputs/MessageEmojiButton.js";
+import { MessageAttachmentPreviews } from "../../components/inputs/MessageAttachmentPreviews.js";
+import { useMessageAttachmentDrafts } from "../../hooks/useMessageAttachmentDrafts.js";
 import {
   AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
   AffiliateBusinessDeveloperSelect,
@@ -10427,8 +10429,6 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const [composerShopId, setComposerShopId] = useState(selectedShopId);
   const [composerContactId, setComposerContactId] = useState("");
   const [composerSubject, setComposerSubject] = useState("");
-  const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
-  const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [sendingInvitation, setSendingInvitation] = useState(false);
   const messageSendInFlightRef = useRef(false);
@@ -10696,6 +10696,32 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     ? scopedShopSummary?.lastBusinessActivityAt
     : relationshipDetail?.lastBusinessActivityAt;
   const scopeKey = `${relationshipId ?? ""}:${scopeShopId}`;
+  const attachmentDrafts = useMessageAttachmentDrafts<StagedAffiliateAttachment>({
+    scopeKey,
+    allowFiles: true,
+    disabled: !canPerformDailyOperations || sendingMessage || sendingInvitation,
+    stage: async (file, signal) => {
+      if (!relationshipId) throw new Error("Creator relationship is required");
+      const response = await fetch("/api/cloud/ecommerce/affiliate/upload-draft-attachment", {
+        method: "POST", signal,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-Creator-Relationship-Id": relationshipId,
+          "X-File-Name": encodeURIComponent(file.name),
+          "X-Affiliate-Upload-Source": "HUMAN_UPLOAD",
+        },
+        body: file,
+      });
+      if (response.status === 413) throw new Error(t("ecommerce.affiliateWorkspace.messageSendError.attachmentTooLarge"));
+      const payload = await response.json() as StagedAffiliateAttachment & { error?: string };
+      if (!response.ok) throw new Error(payload.error || `Upload failed (${response.status})`);
+      return { ...payload, inline: false };
+    },
+    onError: message => showToast(message, "error"),
+  });
+  const uploadingAttachments = attachmentDrafts.uploading;
+  const stagedAttachments = attachmentDrafts.items.flatMap(item => item.value ? [item.value] : []);
+  const tooManyMessageParts = stagedAttachments.length + (composerText.trim() ? 1 : 0) > 10;
   const activeScopeKeyRef = useRef(scopeKey);
   useLayoutEffect(() => {
     activeScopeKeyRef.current = scopeKey;
@@ -10718,7 +10744,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     );
     setComposerText("");
     setComposerSubject("");
-    setStagedAttachments([]);
+    attachmentDrafts.clear();
     setComposerChannel("AUTO");
     setComposerContactId("");
     setPendingReplyToLifecycleEventId(undefined);
@@ -10740,7 +10766,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       (nextShopId && !includedShopIds.includes(nextShopId))
     )
       return;
-    if (composerText.trim() || composerSubject.trim() || stagedAttachments.length) {
+    if (composerText.trim() || composerSubject.trim() || attachmentDrafts.items.length) {
       setPendingScopeShopId(nextShopId);
     } else applyScope(nextShopId);
   }
@@ -10966,40 +10992,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     conversationAutoScrollPendingRef.current = false;
   }, [activeTab, conversationLoading, newestConversationMessageKey, scopeKey]);
 
-  async function stageComposerFiles(files: FileList | null): Promise<void> {
-    if (!canPerformDailyOperations || !files?.length || !relationshipId) return;
-    setUploadingAttachments(true);
-    try {
-      const staged: StagedAffiliateAttachment[] = [];
-      for (const file of Array.from(files)) {
-        const response = await fetch("/api/cloud/ecommerce/affiliate/upload-draft-attachment", {
-          method: "POST",
-          headers: {
-            "Content-Type": file.type || "application/octet-stream",
-            "X-Creator-Relationship-Id": relationshipId,
-            "X-File-Name": encodeURIComponent(file.name),
-            "X-Affiliate-Upload-Source": "HUMAN_UPLOAD",
-          },
-          body: file,
-        });
-        if (response.status === 413) {
-          throw new Error(t("ecommerce.affiliateWorkspace.messageSendError.attachmentTooLarge"));
-        }
-        const payload = (await response.json()) as StagedAffiliateAttachment & { error?: string };
-        if (!response.ok) throw new Error(payload.error || `Upload failed (${response.status})`);
-        staged.push({ ...payload, inline: false });
-      }
-      setStagedAttachments((current) => [...current, ...staged].slice(0, 10));
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : String(error), "error");
-    } finally {
-      setUploadingAttachments(false);
-    }
-  }
-
   async function submitComposerMessage(): Promise<void> {
     if (!canPerformDailyOperations || messageSendInFlightRef.current || sendingInvitation || uploadingAttachments || markingConversationHandled ||
-      !relationshipId || !composerRouteReady) return;
+      !relationshipId || !composerRouteReady || !attachmentDrafts.ready || tooManyMessageParts) return;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
     if (composerText.trim())
       parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: composerText.trim() });
@@ -11054,7 +11049,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       messageSendAttemptRef.current = null;
       setComposerText("");
       setComposerSubject("");
-      setStagedAttachments([]);
+      attachmentDrafts.clear();
       setPendingReplyToLifecycleEventId(undefined);
       conversationAutoScrollPendingRef.current = true;
       onWorkbenchEntityChanged?.();
@@ -12559,52 +12554,24 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       value={composerText}
                       disabled={sendingMessage}
                       onChange={(event) => setComposerText(event.target.value)}
+                      onPaste={attachmentDrafts.onPaste}
                       placeholder={t("ecommerce.affiliateWorkspace.messageComposerPlaceholder")}
                       rows={2}
                     />
-                    {stagedAttachments.length ? (
-                      <div className="affiliate-message-staged-list">
-                        {stagedAttachments.map((asset) => (
-                          <div className="affiliate-message-staged-item" key={asset.draftAssetId}>
-                            <span>
-                              {asset.fileName} · {formatFileSize(asset.sizeBytes)}
-                            </span>
-                            {effectiveComposerChannel === GQL.AffiliateMessageChannel.Email &&
-                            asset.mimeType.startsWith("image/") ? (
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={asset.inline}
-                                  onChange={(event) =>
-                                    setStagedAttachments((current) =>
-                                      current.map((item) =>
-                                        item.draftAssetId === asset.draftAssetId
-                                          ? { ...item, inline: event.target.checked }
-                                          : item,
-                                      ),
-                                    )
-                                  }
-                                />
-                                {t("ecommerce.affiliateWorkspace.messageComposerInline")}
-                              </label>
-                            ) : null}
-                            <button
-                              className="btn btn-ghost"
-                              type="button"
-                              onClick={() =>
-                                setStagedAttachments((current) =>
-                                  current.filter(
-                                    (item) => item.draftAssetId !== asset.draftAssetId,
-                                  ),
-                                )
-                              }
-                            >
-                              {t("common.remove")}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
+                    <MessageAttachmentPreviews
+                      items={attachmentDrafts.items}
+                      onRemove={attachmentDrafts.remove}
+                      disabled={sendingMessage || sendingInvitation}
+                      extra={item => effectiveComposerChannel === GQL.AffiliateMessageChannel.Email && item.value && item.file.type.startsWith("image/") ? (
+                        <label>
+                          <input type="checkbox" checked={item.value.inline}
+                            disabled={sendingMessage || sendingInvitation}
+                            onChange={event => attachmentDrafts.updateValue(item.id, { ...item.value!, inline: event.target.checked })} />
+                          {t("ecommerce.affiliateWorkspace.messageComposerInline")}
+                        </label>
+                      ) : null}
+                    />
+                    {tooManyMessageParts ? <TkAlert tone="warning">{t("messageAttachments.tooManyParts")}</TkAlert> : null}
                     <div className="affiliate-message-composer-footer">
                       <div className="affiliate-message-composer-footer-tools">
                         <MessageEmojiButton
@@ -12620,16 +12587,16 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                           <input
                             type="file"
                             multiple
-                            disabled={uploadingAttachments || stagedAttachments.length >= 10}
+                            disabled={sendingMessage || sendingInvitation || uploadingAttachments || attachmentDrafts.items.length >= 10}
                             onChange={(event) => {
-                              void stageComposerFiles(event.currentTarget.files);
+                              void attachmentDrafts.addFiles(event.currentTarget.files);
                               event.currentTarget.value = "";
                             }}
                           />
                         </label>
                         <span>
                           {t("ecommerce.affiliateWorkspace.messageComposerAttachmentCount", {
-                            count: stagedAttachments.length,
+                            count: attachmentDrafts.items.length,
                           })}
                         </span>
                       </div>
@@ -12659,7 +12626,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             !composerRouteReady ||
                             sendingMessage || sendingInvitation ||
                             markingConversationHandled ||
-                            uploadingAttachments ||
+                            uploadingAttachments || !attachmentDrafts.ready || tooManyMessageParts ||
                             (!composerText.trim() && stagedAttachments.length === 0)
                           }
                           onClick={() => void submitComposerMessage()}
