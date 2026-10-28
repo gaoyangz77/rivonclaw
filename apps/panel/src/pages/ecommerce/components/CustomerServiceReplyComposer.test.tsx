@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
+import { CS_CONVERSATION_INBOX_QUERY } from "../../../api/shops-queries.js";
 import i18n from "../../../i18n/index.js";
 import { ToastProvider } from "../../../components/Toast.js";
 import { CustomerServiceWorkspaceModel } from "../../../store/models/CustomerServiceWorkspaceModel.js";
@@ -25,11 +26,9 @@ beforeEach(async () => {
   await i18n.changeLanguage("zh");
   urls = mockObjectUrls();
   state.sendImage.mockReset().mockResolvedValue({ ok: true, messageId: "image-1" });
-  state.mutate
-    .mockReset()
-    .mockResolvedValue({
-      data: { ecommerceSendCustomerServiceTextReply: { messageId: "text-1" } },
-    });
+  state.mutate.mockReset().mockResolvedValue({
+    data: { ecommerceSendCustomerServiceTextReply: { messageId: "text-1" } },
+  });
   const conversation = {
     shopId: "shop-1",
     platformShopId: "shop-1",
@@ -111,10 +110,18 @@ describe("customer service pasted image reply", () => {
     expect(state.workspace.manualReplyDraft).toBe("");
     expect(screen.queryByRole("img", { name: "one.png" })).toBeNull();
     expect(screen.getByRole("img", { name: "two.png" })).toBeTruthy();
+    expect(state.query).not.toHaveBeenCalledWith(
+      expect.objectContaining({ query: CS_CONVERSATION_INBOX_QUERY }),
+    );
     const key = state.sendImage.mock.calls[1][1].headers["X-Idempotency-Key"];
     send();
     await waitFor(() => expect(state.sendImage).toHaveBeenCalledTimes(3));
     expect(state.sendImage.mock.calls[2][1].headers["X-Idempotency-Key"]).toBe(key);
+    await waitFor(() =>
+      expect(state.query).toHaveBeenCalledWith(
+        expect.objectContaining({ query: CS_CONVERSATION_INBOX_QUERY }),
+      ),
+    );
     expect(state.mutate).toHaveBeenCalledOnce();
   });
   it("drops unsent images when another conversation opens", () => {

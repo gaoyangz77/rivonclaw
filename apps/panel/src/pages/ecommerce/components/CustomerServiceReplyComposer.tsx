@@ -54,6 +54,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
     setError(null);
     const images = [...attachments.items];
     let refresh = false;
+    let completed = false;
     try {
       if (entityStore.customerServiceWorkspace.manualReplyDraft.trim()) {
         refresh = true;
@@ -74,6 +75,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         if (!result?.ok) throw new Error(t("messageAttachments.sendUnknown"));
         if (mounted.current) attachments.remove(item.id);
       }
+      completed = true;
       if (mounted.current)
         showToast(t("ecommerce.customerServiceWorkspace.manualReplySent"), "success");
     } catch (failure) {
@@ -97,7 +99,8 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
           entityStore.customerServiceWorkspace.selectedConversationId === conversationId
         ) {
           void entityStore.customerServiceWorkspace.fetchConversationMessages(i18n.language);
-          void entityStore.customerServiceWorkspace.fetchConversations();
+          // Keep this conversation and its failed drafts visible for retry.
+          if (completed) void entityStore.customerServiceWorkspace.fetchConversations();
         }
       }
     }
