@@ -37,6 +37,7 @@ export default {
     },
   },
   common: {
+    backToTop: "Back to top",
     loading: "Loading...",
     save: "Save",
     cancel: "Cancel",

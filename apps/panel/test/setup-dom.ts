@@ -62,3 +62,13 @@ if (typeof globalThis.EventSource === "undefined") {
   (globalThis as { EventSource?: unknown }).EventSource =
     StubEventSource as unknown as typeof EventSource;
 }
+
+// Resize notifications require browser layout. Tests with geometry assertions
+// provide their own observer and rects; ordinary rendering needs this stand-in.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

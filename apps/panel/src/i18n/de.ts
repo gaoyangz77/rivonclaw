@@ -38,6 +38,7 @@ export default {
     },
   },
   common: {
+    backToTop: "Nach oben",
     loading: "Laden...",
     save: "Speichern",
     cancel: "Abbrechen",

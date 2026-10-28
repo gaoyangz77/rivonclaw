@@ -1,3 +1,4 @@
+import { LoadedListBackToTop } from "../../../components/navigation/LoadedListBackToTop.js";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TkConfirmDialog as ConfirmDialog } from "../../../components/design-system/index.js";
@@ -227,6 +228,9 @@ export function SubAccountsSection() {
           </div>
         )}
 
+        <LoadedListBackToTop
+          enabled={visibleMemberLimit > MEMBER_BATCH_SIZE && visibleMembers.length > MEMBER_BATCH_SIZE}
+        />
         {visibleMembers.length > visibleMemberLimit && (
           <TkButton
             variant="secondary"

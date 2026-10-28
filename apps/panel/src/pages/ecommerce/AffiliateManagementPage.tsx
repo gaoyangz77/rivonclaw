@@ -1,3 +1,4 @@
+import { LoadedListBackToTop } from "../../components/navigation/LoadedListBackToTop.js";
 import { CompactProductField } from "../../components/ecommerce/CompactProductField.js";
 import { affiliateMessageAccountOptions } from "./components/affiliate-message-accounts.js";
 import { AffiliateCampaignInvitationComposer } from "./components/AffiliateCampaignInvitationComposer.js";
@@ -1549,6 +1550,9 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         data-tutorial-id="affiliate-attention-scope"
       />
 
+      <LoadedListBackToTop
+        enabled={workbenchTab === "PENDING_AGENT" && proposalPages.pageCount > 1}
+      />
       <div className="affiliate-workbench-panel">
         {workbenchTab === "PENDING_AGENT" ||
         workbenchTab === "ALL_AGENT" ||
@@ -12022,6 +12026,13 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
               }`}
               ref={tabPanelRef}
             >
+              <LoadedListBackToTop
+                enabled={
+                  (activeTab === "overview" && proposalQuery.pageCount > 1) ||
+                  (activeTab === "samples" && sampleQuery.pageCount > 1) ||
+                  (activeTab === "platform" && platformQuery.pageCount > 1)
+                }
+              />
               {activeTab === "profile" ? (
                 <>
                   <CreatorGlobalInformation profile />

@@ -1,0 +1,28 @@
+.loaded-list-back-to-top {
+  display: contents;
+}
+
+.loaded-list-back-to-top-button {
+  position: fixed;
+  right: var(--tk-v1-space-4);
+  bottom: calc(var(--tk-v1-space-12) + var(--tk-v1-space-8));
+  z-index: var(--tk-v1-z-sticky);
+  min-height: var(--tk-v1-control-prominent);
+  border-radius: var(--tk-v1-radius-full);
+  box-shadow: var(--tk-v1-elevation-2);
+}
+
+/* Keep modal controls inside the dialog's focus trap and scroll viewport.
+   Mount at the end of the list; the zero-height sticky rail adds no extra row. */
+.loaded-list-back-to-top-modal {
+  display: block;
+  position: sticky;
+  bottom: 0;
+  height: 0;
+  z-index: var(--tk-v1-z-sticky);
+}
+
+.loaded-list-back-to-top-modal .loaded-list-back-to-top-button {
+  position: absolute;
+  bottom: var(--tk-v1-space-4);
+}

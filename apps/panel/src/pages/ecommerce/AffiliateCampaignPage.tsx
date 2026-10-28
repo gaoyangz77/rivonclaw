@@ -1,3 +1,4 @@
+import { LoadedListBackToTop } from "../../components/navigation/LoadedListBackToTop.js";
 import { useEffect, useRef, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
@@ -2086,6 +2087,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         portal
         className="affiliate-campaign-detail-modal"
       >
+        <LoadedListBackToTop
+          enabled={Boolean(selectedCampaign) && (
+            searchWorkspaceView === "conditions"
+              ? activeSearchPlanPageBuffer.loadedMore
+              : activeCreatorStatePageBuffer.loadedMore
+          )}
+        />
         {selectedCampaign && (
           <div className="affiliate-campaign-detail-modal-body">
             {targetCollaborationQuota?.active && (

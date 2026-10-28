@@ -1,3 +1,4 @@
+import { LoadedListBackToTop } from "../../../components/navigation/LoadedListBackToTop.js";
 import { AffiliateSampleShipmentWarning } from "./AffiliateSampleShipment.js";
 import { useMemo, useState } from "react";
 import { AffiliateWorkbenchCreatorMetrics } from "./AffiliateWorkbenchCreatorMetrics.js";
@@ -754,6 +755,7 @@ function AffiliateWorkbenchSampleList({
           </table>
         </TkTableFrame>
       )}
+      <LoadedListBackToTop enabled={pagination.pageCount > 1} />
       {hasMore ? (
         <button
           className="btn btn-secondary affiliate-workbench-load-more"
@@ -1257,6 +1259,7 @@ function AffiliateWorkbenchMessageList({
           </table>
         </TkTableFrame>
       )}
+      <LoadedListBackToTop enabled={pagination.pageCount > 1} />
       {hasMore ? (
         <button
           className="btn btn-secondary affiliate-workbench-load-more"

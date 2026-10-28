@@ -38,6 +38,7 @@ export default {
     },
   },
   common: {
+    backToTop: "Kembali ke atas",
     loading: "Memuat...",
     save: "Simpan",
     cancel: "Batalkan",

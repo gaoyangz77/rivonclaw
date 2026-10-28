@@ -38,6 +38,7 @@ export default {
     },
   },
   common: {
+    backToTop: "กลับขึ้นด้านบน",
     loading: "กำลังโหลด...",
     save: "บันทึก",
     cancel: "ยกเลิก",

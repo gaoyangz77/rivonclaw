@@ -1,3 +1,4 @@
+import { LoadedListBackToTop } from "../../components/navigation/LoadedListBackToTop.js";
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { TkModal as Modal } from "../../components/design-system/index.js";
@@ -30,6 +31,7 @@ const PAGE_SIZE = DEFAULTS.pagination.cronHistory;
 
 export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHistoryProps) {
   const { t, i18n } = useTranslation();
+  const [loadedMore, setLoadedMore] = useState(false);
   const [entries, setEntries] = useState<CronRunLogEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -53,6 +55,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
         } else {
           setEntries((prev) => [...prev, ...result.entries]);
         }
+        setLoadedMore(offset > 0);
         setTotal(result.total);
         setHasMore(result.hasMore);
         setNextOffset(result.nextOffset);
@@ -94,6 +97,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
       title={`${t("crons.historyTitle")} — ${jobName}`}
       maxWidth={720}
     >
+      <LoadedListBackToTop enabled={loadedMore} />
       {error && <TkAlert tone="danger">{error}</TkAlert>}
 
       {loading && entries.length === 0 ? (

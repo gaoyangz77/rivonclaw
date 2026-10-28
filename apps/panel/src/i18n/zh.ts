@@ -37,6 +37,7 @@ export default {
     },
   },
   common: {
+    backToTop: "回到顶部",
     loading: "加载中...",
     save: "保存",
     cancel: "取消",

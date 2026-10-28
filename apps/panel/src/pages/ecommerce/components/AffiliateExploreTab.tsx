@@ -1,3 +1,4 @@
+import { LoadedListBackToTop } from "../../../components/navigation/LoadedListBackToTop.js";
 import { useMemo, useState } from "react";
 import { useLazyQuery, useQuery } from "@apollo/client/react";
 import type { GQL } from "@rivonclaw/core";
@@ -171,6 +172,7 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
     sortDirection: "DESC",
     limit: 100,
   });
+  const [loadedMore, setLoadedMore] = useState(false);
   const [executed, setExecuted] = useState<AffiliateExplorerDraft | null>(null);
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [result, setResult] = useState<GQL.EcomBiQueryResult | null>(null);
@@ -262,6 +264,7 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
     setRows((current) => (append ? mergeAffiliateResultPages(current, nextRows) : nextRows));
     setResult(next);
     setExecuted(state);
+    setLoadedMore(append);
   };
 
   const selectPreset = (preset: (typeof GROUP_PRESETS)[number]) => {
@@ -901,6 +904,7 @@ export function AffiliateExploreTab({ shops }: { shops: AffiliateAnalyticsShop[]
                 </table>
               </TkTableFrame>
             )}
+            <LoadedListBackToTop enabled={loadedMore} />
             {result.pageInfo.hasMore && (
               <button
                 className="btn btn-secondary affiliate-load-more"

@@ -12,9 +12,10 @@ import { AffiliateWorkbenchEntityTabs } from "./AffiliateWorkbenchEntityTabs.js"
 
 vi.mock("../../../components/ecommerce/ProductFilter.js", () => ({ ProductFilter: () => null }));
 beforeEach(async () => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
   await i18n.changeLanguage("zh");
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 type Actor = { kind: string; displayName: string | null; businessDeveloperId: string | null };
 function sampleRow(
   index: number,
@@ -171,9 +172,14 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
       </MockedProvider>
     );
     const view = render(tree(0));
+    view.container.style.overflowY = "auto";
+    view.container.scrollTop = 700;
+    view.container.scrollTo = vi.fn();
     await screen.findByText("Creator 1");
+    expect(screen.queryByRole("button", { name: "回到顶部" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "加载更多" }));
     await screen.findByText("Creator 4");
+    expect(screen.getByRole("button", { name: "回到顶部" })).toBeTruthy();
     view.rerender(tree(1));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "加载中..." }).hasAttribute("disabled")).toBe(true),
@@ -188,5 +194,7 @@ it.each(["SAMPLES", "MESSAGES"] as const)(
     await screen.findByText("Creator 7");
     expect(document.querySelectorAll("tbody tr")).toHaveLength(5);
     expect(screen.queryByRole("button", { name: "加载更多" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "回到顶部" }));
+    expect(view.container.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
   },
 );
