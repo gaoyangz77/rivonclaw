@@ -19,7 +19,7 @@ import { CREATOR_SAMPLE_TIER_ORDER, creatorSampleTierLabel } from "../affiliate-
 import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
 import panelI18n from "../../../i18n/index.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
-import { TkTabs } from "../../../components/design-system/index.js";
+import { TkTabs, TkChoiceSelect } from "../../../components/design-system/index.js";
 
 type AffiliateApprovalPolicy = GQL.AffiliateApprovalPolicy;
 type AffiliatePolicyAction = GQL.ActionProposalType;
@@ -79,6 +79,7 @@ type AffiliatePolicyFormState = {
   id?: string;
   action: AffiliatePolicyAction;
   enabled: boolean;
+  sampleReviewDecisions: GQL.AffiliateSampleReviewDecision[];
   reason: string;
   manualTagIds: string[];
   excludedManualTagIds: string[];
@@ -91,6 +92,7 @@ type AffiliatePolicyFormState = {
 const EMPTY_POLICY_FORM: AffiliatePolicyFormState = {
   action: GQL.ActionProposalType.SendMessage,
   enabled: true,
+  sampleReviewDecisions: [],
   reason: "",
   manualTagIds: [],
   excludedManualTagIds: [],
@@ -237,6 +239,7 @@ export function AffiliateApprovalPolicyPanel() {
             id: form.id,
             action: form.action,
             enabled: form.enabled,
+            sampleReviewDecisions: form.sampleReviewDecisions,
             reason: form.reason.trim() || undefined,
             manualTagIds: form.manualTagIds,
             excludedManualTagIds: form.excludedManualTagIds,
@@ -263,6 +266,7 @@ export function AffiliateApprovalPolicyPanel() {
             id: policy.id,
             action: policy.action,
             enabled: !policy.enabled,
+            sampleReviewDecisions: policy.sampleReviewDecisions ?? [],
             reason: policy.reason ?? undefined,
             manualTagIds: policy.manualTagIds,
             excludedManualTagIds: policy.excludedManualTagIds,
@@ -312,6 +316,7 @@ export function AffiliateApprovalPolicyPanel() {
               id: existingGlobal?.id,
               action,
               enabled: true,
+              sampleReviewDecisions: [],
               reason:
                 existingGlobal?.reason || t("ecommerce.affiliateWorkspace.policies.defaultReason"),
               manualTagIds: [],
@@ -509,7 +514,7 @@ export function AffiliateApprovalPolicyPanel() {
   );
 }
 
-function AffiliatePolicyForm({
+export function AffiliatePolicyForm({
   actionOptions,
   campaignOptions,
   manualTagOptions,
@@ -549,6 +554,9 @@ function AffiliatePolicyForm({
             onChange({
               ...form,
               action,
+              sampleReviewDecisions: action === GQL.ActionProposalType.ReviewSampleApplication
+                ? form.sampleReviewDecisions
+                : [],
               manualTagIds: AFFILIATE_POLICY_SUPPORTS_MANUAL_TAG[action] ? form.manualTagIds : [],
               excludedManualTagIds: AFFILIATE_POLICY_SUPPORTS_MANUAL_TAG[action]
                 ? form.excludedManualTagIds
@@ -565,6 +573,24 @@ function AffiliatePolicyForm({
           ariaLabel={t("ecommerce.affiliateWorkspace.policies.actionLabel")}
         />
       </label>
+
+      {form.action === GQL.ActionProposalType.ReviewSampleApplication ? (
+        <TkChoiceSelect
+          label={t("ecommerce.affiliateWorkspace.policies.sampleReviewDecisionsLabel")}
+          hint={t("ecommerce.affiliateWorkspace.policies.sampleReviewDecisionsHint")}
+          value={sampleReviewDecisionSelection(form.sampleReviewDecisions)}
+          onChange={(value) => onChange({
+            ...form,
+            sampleReviewDecisions: value === "ALL" ? [] : [value as GQL.AffiliateSampleReviewDecision],
+          })}
+          options={[
+            { value: "ALL", label: t("ecommerce.affiliateWorkspace.policies.sampleReviewAllResults") },
+            { value: GQL.AffiliateSampleReviewDecision.Approve, label: t("ecommerce.affiliateWorkspace.policies.sampleReviewApproveOnly") },
+            { value: GQL.AffiliateSampleReviewDecision.Reject, label: t("ecommerce.affiliateWorkspace.policies.sampleReviewRejectOnly") },
+          ]}
+          disabled={saving}
+        />
+      ) : null}
 
       <label className="affiliate-policy-toggle-row">
         <input
@@ -879,11 +905,12 @@ function policyActionDescription(
   });
 }
 
-function policyToForm(policy: AffiliateApprovalPolicy): AffiliatePolicyFormState {
+export function policyToForm(policy: AffiliateApprovalPolicy): AffiliatePolicyFormState {
   return {
     id: policy.id,
     action: policy.action,
     enabled: policy.enabled,
+    sampleReviewDecisions: [...(policy.sampleReviewDecisions ?? [])],
     reason: policy.reason ?? "",
     manualTagIds: [...policy.manualTagIds],
     excludedManualTagIds: [...policy.excludedManualTagIds],
@@ -907,6 +934,7 @@ function parsePolicyIds(value: string): string[] {
 
 function policyFormMatchesAll(form: AffiliatePolicyFormState): boolean {
   return (
+    sampleReviewDecisionSelection(form.sampleReviewDecisions) === "ALL" &&
     form.manualTagIds.length === 0 &&
     form.excludedManualTagIds.length === 0 &&
     form.sampleTiers.length === 0 &&
@@ -924,10 +952,12 @@ type AffiliatePolicyConditionArrays = Pick<
   | "excludedSampleTiers"
   | "campaignIds"
   | "productIds"
+  | "sampleReviewDecisions"
 >;
 
-function isGlobalPolicy(policy: AffiliatePolicyConditionArrays): boolean {
+export function isGlobalPolicy(policy: AffiliatePolicyConditionArrays): boolean {
   return (
+    sampleReviewDecisionSelection(policy.sampleReviewDecisions) === "ALL" &&
     policy.manualTagIds.length === 0 &&
     policy.excludedManualTagIds.length === 0 &&
     policy.sampleTiers.length === 0 &&
@@ -937,7 +967,7 @@ function isGlobalPolicy(policy: AffiliatePolicyConditionArrays): boolean {
   );
 }
 
-function buildPolicyConditionSummary(
+export function buildPolicyConditionSummary(
   t: AffiliatePolicyTranslate,
   policy: AffiliateApprovalPolicy,
   manualTags: GQL.CreatorManualTag[],
@@ -951,6 +981,13 @@ function buildPolicyConditionSummary(
   }
 
   const pieces: string[] = [];
+  if (sampleReviewDecisionSelection(policy.sampleReviewDecisions) !== "ALL") {
+    pieces.push(t(`ecommerce.affiliateWorkspace.policies.${
+      policy.sampleReviewDecisions.includes(GQL.AffiliateSampleReviewDecision.Approve)
+        ? "sampleReviewApproveOnly"
+        : "sampleReviewRejectOnly"
+    }`));
+  }
   const manualTagLabels = manualTags.map((tag) => ({ id: tag.id, label: tag.name }));
   const sampleTierLabels = CREATOR_SAMPLE_TIER_ORDER.map((tier) => ({
     id: tier as string,
@@ -1007,6 +1044,14 @@ function buildPolicyConditionSummary(
     title: pieces.join(" · "),
     description: t("ecommerce.affiliateWorkspace.policies.filteredMatchDescription"),
   };
+}
+
+/** Both selected decisions are semantically equivalent to the legacy wildcard. */
+function sampleReviewDecisionSelection(
+  decisions: readonly GQL.AffiliateSampleReviewDecision[] | null | undefined,
+): GQL.AffiliateSampleReviewDecision | "ALL" {
+  const unique = new Set(decisions ?? []);
+  return unique.size === 1 ? [...unique][0]! : "ALL";
 }
 
 function summarizeKnownNames(

@@ -3833,6 +3833,11 @@ export default {
           "Exiger une approbation avant d'accepter ou refuser les demandes d'échantillon.",
       },
       policies: {
+        sampleReviewDecisionsLabel: "Résultats d’examen des échantillons soumis à approbation",
+        sampleReviewAllResults: "Tous les résultats",
+        sampleReviewApproveOnly: "Seules les acceptations nécessitent une approbation",
+        sampleReviewRejectOnly: "Seuls les refus et l’action Ignorer nécessitent une approbation",
+        sampleReviewDecisionsHint: "Le refus inclut Ignorer (laisser la demande expirer). Toute action correspondante suspend l’ensemble des actions ; les autres règles d’approbation et demandes d’examen humain restent applicables.",
         manualTagsLabel: "Tags manuels",
         allManualTags: "S’applique à tous les tags manuels.",
         excludedManualTagsLabel: "Tags manuels exclus",

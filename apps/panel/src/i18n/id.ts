@@ -3772,6 +3772,11 @@ export default {
           "Wajibkan persetujuan sebelum permintaan sampel disetujui atau ditolak.",
       },
       policies: {
+        sampleReviewDecisionsLabel: "Hasil peninjauan sampel yang memerlukan persetujuan",
+        sampleReviewAllResults: "Semua hasil",
+        sampleReviewApproveOnly: "Hanya penerimaan yang memerlukan persetujuan",
+        sampleReviewRejectOnly: "Hanya penolakan / Abaikan yang memerlukan persetujuan",
+        sampleReviewDecisionsHint: "Penolakan mencakup Abaikan (biarkan permintaan kedaluwarsa). Jika ada tindakan yang cocok, seluruh rangkaian memerlukan persetujuan; kebijakan lain dan permintaan tinjauan manusia tetap berlaku.",
         manualTagsLabel: "Tag manual",
         allManualTags: "Berlaku untuk semua tag manual.",
         excludedManualTagsLabel: "Tag manual yang dikecualikan",

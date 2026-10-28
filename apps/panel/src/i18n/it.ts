@@ -3814,6 +3814,11 @@ export default {
           "Richiedi approvazione prima di approvare o rifiutare richieste campione.",
       },
       policies: {
+        sampleReviewDecisionsLabel: "Esiti della revisione dei campioni che richiedono approvazione",
+        sampleReviewAllResults: "Tutti gli esiti",
+        sampleReviewApproveOnly: "Solo le accettazioni richiedono approvazione",
+        sampleReviewRejectOnly: "Solo rifiuto / Ignora richiede approvazione",
+        sampleReviewDecisionsHint: "Il rifiuto include Ignora (lascia scadere la richiesta). Una sola azione corrispondente sospende l’intero gruppo; le altre regole di approvazione e richieste di revisione umana restano valide.",
         manualTagsLabel: "Tag manuali",
         allManualTags: "Si applica a tutti i tag manuali.",
         excludedManualTagsLabel: "Tag manuali esclusi",

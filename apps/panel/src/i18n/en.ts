@@ -4477,6 +4477,11 @@ export default {
           "Require approval before sample requests are approved or rejected.",
       },
       policies: {
+        sampleReviewDecisionsLabel: "Sample review results requiring approval",
+        sampleReviewAllResults: "All results",
+        sampleReviewApproveOnly: "Only accepted requests require approval",
+        sampleReviewRejectOnly: "Only rejected / ignored requests require approval",
+        sampleReviewDecisionsHint: "Reject includes Ignore (let the request expire). Any matching action pauses the whole bundle; other approval policies and human-review requests still apply.",
         manualTagsLabel: "Manual tags",
         allManualTags: "Applies to all manual tags.",
         excludedManualTagsLabel: "Excluded manual tags",

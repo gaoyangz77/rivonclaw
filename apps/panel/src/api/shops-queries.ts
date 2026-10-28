@@ -2613,6 +2613,7 @@ export const AFFILIATE_APPROVAL_POLICIES_QUERY = gql`
       id
       userId
       action
+      sampleReviewDecisions
       manualTagIds
       excludedManualTagIds
       sampleTiers
@@ -3584,6 +3585,7 @@ export const WRITE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
       id
       userId
       action
+      sampleReviewDecisions
       manualTagIds
       excludedManualTagIds
       sampleTiers

@@ -3819,6 +3819,11 @@ export default {
           "Exigir aprobación antes de aprobar o rechazar solicitudes de muestra.",
       },
       policies: {
+        sampleReviewDecisionsLabel: "Resultados de revisión de muestras que requieren aprobación",
+        sampleReviewAllResults: "Todos los resultados",
+        sampleReviewApproveOnly: "Solo aceptar requiere aprobación",
+        sampleReviewRejectOnly: "Solo rechazar / ignorar requiere aprobación",
+        sampleReviewDecisionsHint: "Rechazar incluye ignorar (dejar caducar la solicitud). Si una acción coincide, todo el conjunto requiere aprobación; las demás políticas y solicitudes de revisión humana siguen vigentes.",
         manualTagsLabel: "Etiquetas manuales",
         allManualTags: "Se aplica a todas las etiquetas manuales.",
         excludedManualTagsLabel: "Etiquetas manuales excluidas",

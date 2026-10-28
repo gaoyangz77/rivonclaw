@@ -4271,6 +4271,11 @@ export default {
         REVIEW_SAMPLE_APPLICATION: "样品申请同意或拒绝前，需要员工审批。",
       },
       policies: {
+        sampleReviewDecisionsLabel: "需要审批的审样结果",
+        sampleReviewAllResults: "所有结果",
+        sampleReviewApproveOnly: "仅通过需要审批",
+        sampleReviewRejectOnly: "仅拒绝／忽略需要审批",
+        sampleReviewDecisionsHint: "拒绝包含忽略（等待申请自然过期）。任意动作命中策略，整个动作组合都需审批；其他审批策略及人工审核请求仍然生效。",
         manualTagsLabel: "手动标签",
         allManualTags: "适用于全部手动标签。",
         excludedManualTagsLabel: "排除的手动标签",

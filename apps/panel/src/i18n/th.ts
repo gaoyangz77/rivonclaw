@@ -3638,6 +3638,11 @@ export default {
         REVIEW_SAMPLE_APPLICATION: "ต้องอนุมัติก่อนอนุมัติหรือปฏิเสธคำขอตัวอย่าง",
       },
       policies: {
+        sampleReviewDecisionsLabel: "ผลการตรวจคำขอสินค้าตัวอย่างที่ต้องอนุมัติ",
+        sampleReviewAllResults: "ผลลัพธ์ทั้งหมด",
+        sampleReviewApproveOnly: "ต้องอนุมัติเฉพาะผลที่ยอมรับ",
+        sampleReviewRejectOnly: "ต้องอนุมัติเฉพาะการปฏิเสธ / เพิกเฉย",
+        sampleReviewDecisionsHint: "การปฏิเสธรวมถึงการเพิกเฉย (ปล่อยให้คำขอหมดอายุ) หากมีการดำเนินการใดตรงกับนโยบาย ทั้งชุดจะต้องรออนุมัติ โดยนโยบายอื่นและคำขอให้มนุษย์ตรวจสอบยังคงมีผล",
         manualTagsLabel: "แท็กที่กำหนดเอง",
         allManualTags: "ใช้กับแท็กที่กำหนดเองทั้งหมด",
         excludedManualTagsLabel: "แท็กที่กำหนดเองที่ยกเว้น",

@@ -1136,6 +1136,8 @@ export interface AffiliateApprovalPolicy {
   /** AND condition dimension. Empty means any product. */
   productIds: Array<Scalars["String"]["output"]>;
   reason?: Maybe<Scalars["String"]["output"]>;
+  /** Sample review decisions requiring approval. Empty means all results; REJECT includes soft reject. */
+  sampleReviewDecisions: Array<AffiliateSampleReviewDecision>;
   /** AND condition dimension over the tiers held across all of the Relationship's shops. Exact rungs, never a threshold. */
   sampleTiers: Array<CreatorSampleTier>;
   updatedAt: Scalars["DateTimeISO"]["output"];
@@ -17225,6 +17227,7 @@ export interface WriteAffiliateApprovalPolicyInput {
   manualTagIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   productIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
   reason?: InputMaybe<Scalars["String"]["input"]>;
+  sampleReviewDecisions?: InputMaybe<Array<AffiliateSampleReviewDecision>>;
   sampleTiers?: InputMaybe<Array<CreatorSampleTier>>;
 }
 

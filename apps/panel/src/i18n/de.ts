@@ -3832,6 +3832,11 @@ export default {
           "Vor dem Genehmigen oder Ablehnen von Probenanträgen eine Freigabe verlangen.",
       },
       policies: {
+        sampleReviewDecisionsLabel: "Prüfergebnisse für Muster mit Freigabepflicht",
+        sampleReviewAllResults: "Alle Ergebnisse",
+        sampleReviewApproveOnly: "Nur Zusagen erfordern eine Freigabe",
+        sampleReviewRejectOnly: "Nur Ablehnen / Ignorieren erfordert eine Freigabe",
+        sampleReviewDecisionsHint: "Ablehnen umfasst Ignorieren (Antrag ablaufen lassen). Jede passende Aktion hält das gesamte Aktionspaket an; andere Freigaberichtlinien und Anfragen zur manuellen Prüfung gelten weiterhin.",
         manualTagsLabel: "Manuelle Tags",
         allManualTags: "Gilt für alle manuellen Tags.",
         excludedManualTagsLabel: "Ausgeschlossene manuelle Tags",
