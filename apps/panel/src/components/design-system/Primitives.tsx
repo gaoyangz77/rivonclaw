@@ -460,6 +460,8 @@ export interface TkComposerProps extends Omit<
   submitDisabled?: boolean;
   submitting?: boolean;
   tools?: ReactNode;
+  /** Secondary send actions, grouped with the primary Send at the footer's end. */
+  secondaryActions?: ReactNode;
   textareaRef?: Ref<HTMLTextAreaElement>;
   textareaProps?: Omit<
     TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -479,6 +481,7 @@ export function TkComposer({
   submitDisabled = false,
   submitting = false,
   tools,
+  secondaryActions,
   textareaRef,
   textareaProps,
   className,
@@ -512,16 +515,20 @@ export function TkComposer({
           }
         }}
       />
-      <div className="tk-v1-composer-action">
-        {tools}
-        <TkButton
-          variant="primary"
-          type="submit"
-          disabled={disabled || submitDisabled}
-          loading={submitting}
-        >
-          {submitting ? (submittingLabel ?? submitLabel) : submitLabel}
-        </TkButton>
+      <div className="tk-v1-composer-footer">
+        {tools ? <div className="tk-v1-composer-tools">{tools}</div> : null}
+        <div className="tk-v1-composer-action">
+          {secondaryActions}
+          <TkButton
+            variant="primary"
+            size="sm"
+            type="submit"
+            disabled={disabled || submitDisabled}
+            loading={submitting}
+          >
+            {submitting ? (submittingLabel ?? submitLabel) : submitLabel}
+          </TkButton>
+        </div>
       </div>
     </form>
   );

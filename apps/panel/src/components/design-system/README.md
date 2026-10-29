@@ -321,7 +321,10 @@ variant through props; it never restyles `.custom-select-trigger`. `TkComposer` 
 textarea, focus boundary, keyboard submit, disabled state, and send action. Mixed field/action rows
 use `.tk-v1-form-action-row` so every action shares the default control baseline.
 
-`TkComposer.tools` accepts compact actions beside Send; `textareaRef` lets input tools preserve
+`TkComposer` gives the draft the full row and places a compact, wrapping toolbar below it.
+`TkComposer.tools` contains leading attachment/emoji tools; `secondaryActions` groups secondary
+send actions with the primary Send at the trailing edge. The textarea grows with its content up
+to its height cap, then scrolls; `textareaRef` lets input tools preserve
 the selection. Customer-service and Affiliate replies share `MessageEmojiButton`, which lazily
 opens a localized native emoji picker in `TkPopover` and edits the existing text draft.
 

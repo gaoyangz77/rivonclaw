@@ -188,7 +188,21 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         disabled={translation.locked}
         submitting={sendBusy}
         textareaRef={textareaRef}
-        textareaProps={{ rows: 2, onPaste: attachments.onPaste }}
+        textareaProps={{ rows: 1, onPaste: attachments.onPaste }}
+        secondaryActions={
+          <TkButton
+            variant="secondary"
+            size="sm"
+            disabled={
+              disabled ||
+              !entityStore.currentUser ||
+              !entityStore.customerServiceWorkspace.manualReplyDraft.trim()
+            }
+            onClick={() => void translation.generate()}
+          >
+            {t("messageTranslation.button")}
+          </TkButton>
+        }
         tools={
           <>
             <MessageEmojiButton
@@ -205,18 +219,6 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
               onClick={() => fileInput.current?.click()}
             >
               {t("messageAttachments.addImages")}
-            </TkButton>
-            <TkButton
-              variant="secondary"
-              size="sm"
-              disabled={
-                disabled ||
-                !entityStore.currentUser ||
-                !entityStore.customerServiceWorkspace.manualReplyDraft.trim()
-              }
-              onClick={() => void translation.generate()}
-            >
-              {t("messageTranslation.button")}
             </TkButton>
           </>
         }

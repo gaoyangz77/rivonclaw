@@ -2282,6 +2282,7 @@
 
 .affiliate-message-composer-footer-actions {
   display: flex;
+  margin-inline-start: auto;
   min-width: 0;
   flex-wrap: wrap;
   align-items: center;

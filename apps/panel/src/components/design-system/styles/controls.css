@@ -327,9 +327,9 @@
 
 .tk-v1-composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
-  gap: var(--tk-v1-space-2);
+  gap: var(--tk-v1-space-1);
   min-width: 0;
   padding: var(--tk-v1-space-2);
   border: 1px solid var(--tk-v1-border-default);
@@ -348,7 +348,8 @@
 
 .tk-v1-composer-input {
   width: 100%;
-  min-height: 48px;
+  field-sizing: content;
+  min-height: var(--tk-v1-control-default);
   max-height: 144px;
   padding: 7px 8px;
   resize: vertical;
@@ -370,10 +371,28 @@
   cursor: not-allowed;
 }
 
+.tk-v1-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.tk-v1-composer-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+}
+
 .tk-v1-composer-action {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--tk-v1-space-2);
+  margin-inline-start: auto;
 }
 
 .tk-v1-composer-action > .tk-v1-button:not(.tk-v1-icon-button) {
