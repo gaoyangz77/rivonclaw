@@ -45,11 +45,32 @@ export interface WorkspaceDescriptor {
 
 export const MAX_WORKSPACE_TABS = 8;
 
+/** Desktop-local translation preparation; contains no business API entities. */
+export type MessageLanguageSource = "messages" | "site";
+export interface MessageLanguageDecision {
+  language: string;
+  source: MessageLanguageSource;
+}
+export interface MessageTranslationRequest {
+  text: string;
+  target?: MessageLanguageDecision;
+  samples?: string[];
+  fallbackLanguage: string;
+}
+export interface MessageTranslationResult extends MessageLanguageDecision {
+  text: string;
+}
+
 // ---------------------------------------------------------------------------
 // Contract
 // ---------------------------------------------------------------------------
 
 export const API = {
+  "messaging.translate": {
+    method: "POST",
+    path: "/api/messaging/translate",
+    desc: "Prepare a human reply translation without sending",
+  },
   // ── Auth ──
   "auth.session": {
     method: "GET",

@@ -1,3 +1,4 @@
+import { MESSAGE_TRANSLATION_TRANSLATIONS } from "./message-translation-translations.js";
 import { AFFILIATE_CREATOR_PERFORMANCE_TRANSLATIONS } from "./affiliate-creator-performance-translations.js";
 import { AFFILIATE_CAMPAIGN_REPLY_TRANSLATIONS } from "./affiliate-campaign-reply-translations.js";
 import { AFFILIATE_CAMPAIGN_INVITATION_TRANSLATIONS } from "./affiliate-campaign-invitation-translations.js";
@@ -622,6 +623,7 @@ export const LANGUAGE_RESOURCES = Object.fromEntries(
         OFFICE_ACTIVITY_TRANSLATIONS[language.code],
         MESSAGE_EMOJI_TRANSLATIONS[language.code],
         MESSAGE_ATTACHMENT_TRANSLATIONS[language.code],
+        MESSAGE_TRANSLATION_TRANSLATIONS[language.code],
       ),
     },
   ]),

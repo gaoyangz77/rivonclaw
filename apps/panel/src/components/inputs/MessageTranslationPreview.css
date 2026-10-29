@@ -1,0 +1,22 @@
+.message-translation-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-4);
+  min-width: 0;
+}
+.message-translation-language {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}
+.message-translation-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-2);
+  color: var(--color-text);
+}
+.message-translation-field textarea {
+  resize: vertical;
+  min-width: 0;
+}

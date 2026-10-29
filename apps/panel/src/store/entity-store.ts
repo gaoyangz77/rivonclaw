@@ -1,4 +1,8 @@
+import { reaction } from "mobx";
+import { MessageTranslationModel } from "./models/MessageTranslationModel.js";
+import { translationIdentity } from "../lib/message-translation.js";
 import {
+  addDisposer,
   applySnapshot,
   applyPatch,
   flow,
@@ -223,6 +227,7 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   mobileManager: types.optional(MobileManagerModel, {}),
   ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
   customerServiceWorkspace: types.optional(CustomerServiceWorkspaceModel, {}),
+  messageTranslation: types.optional(MessageTranslationModel, {}),
   activeCheckout: types.maybeNull(PaymentModel),
   checkoutScopeId: types.maybeNull(types.string),
   paymentInFlight: types.optional(types.boolean, false),
@@ -233,6 +238,13 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   affiliateMlInsightsError: types.maybeNull(types.string),
   affiliateMlInsightsLoadedAt: types.maybeNull(types.number),
 })
+  .actions(self => ({
+    afterCreate() {
+      addDisposer(self, reaction(() => translationIdentity(self.currentUser), identity => {
+        self.messageTranslation.setIdentity(identity);
+      }, { fireImmediately: true }));
+    },
+  }))
   .views((self) => {
     function channelRecipientAlias(
       channelIdRaw: string,
@@ -414,12 +426,14 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       }),
 
       logout: flow(function* () {
+        self.messageTranslation.setIdentity("");
         yield fetch(API["auth.logout"].path, { method: "POST" }).catch(() => {});
         trackEvent("auth.logout");
         // Desktop clears user in MST -> SSE -> Panel auto-updates
       }),
 
       clearAuth() {
+        self.messageTranslation.setIdentity("");
         self.categories.clear();
         self.categorySession++;
         categoryRequests.clear();
@@ -917,6 +931,7 @@ interface PanelEntityOverrides {
   readonly mobileManager: Instance<typeof MobileManagerModel>;
   readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
   readonly customerServiceWorkspace: Instance<typeof CustomerServiceWorkspaceModel>;
+  readonly messageTranslation: Instance<typeof MessageTranslationModel>;
   readonly activeCheckout: Instance<typeof PaymentModel> | null;
   readonly checkoutScopeId: string | null;
   readonly paymentInFlight: boolean;

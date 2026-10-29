@@ -1,3 +1,6 @@
+import { MessageTranslationPreview } from "../../components/inputs/MessageTranslationPreview.js";
+import { useMessageTranslation, type TranslationSendOutcome } from "../../hooks/useMessageTranslation.js";
+import { creatorLanguageSamples, siteLanguage, translationIdentity } from "../../lib/message-translation.js";
 import { LoadedListBackToTop } from "../../components/navigation/LoadedListBackToTop.js";
 import { CompactProductField } from "../../components/ecommerce/CompactProductField.js";
 import { affiliateMessageAccountOptions } from "./components/affiliate-message-accounts.js";
@@ -10695,11 +10698,34 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const scopedLastBusinessActivityAt = scopeShopId
     ? scopedShopSummary?.lastBusinessActivityAt
     : relationshipDetail?.lastBusinessActivityAt;
+  const {
+    messages: conversationMessages,
+    loading: conversationLoading,
+    error: conversationError,
+    refetch: refetchConversationMessages,
+    hasOlder: canLoadOlderConversation,
+    loadOlder: fetchOlderScopeMessages,
+  } = useCreatorScopeConversation(relationshipId, scopeShopId, activeTab === "conversation");
   const scopeKey = `${relationshipId ?? ""}:${scopeShopId}`;
+  const composerTranslationRoute = JSON.stringify(["affiliate", relationshipId, effectiveComposerChannel,
+    composerUsesShop ? composerShopId : effectiveComposerContactId]);
+  const composerTranslationSession = JSON.stringify([translationIdentity(entityStore.currentUser), composerTranslationRoute, scopeKey, pendingReplyToLifecycleEventId]);
+  const composerTranslationSessionRef = useRef(composerTranslationSession);
+  useLayoutEffect(() => { composerTranslationSessionRef.current = composerTranslationSession; }, [composerTranslationSession]);
+  const translationEvidence = creatorLanguageSamples(conversationMessages, effectiveComposerChannel, composerShopId);
+  const translation = useMessageTranslation({
+    routeKey: composerTranslationRoute, contextKey: JSON.stringify([scopeKey, pendingReplyToLifecycleEventId]),
+    draftFingerprint: () => JSON.stringify([composerText, composerSubject, attachmentDrafts.items.map(item => [item.id, item.value?.inline])]), text: composerText, ...translationEvidence,
+    fallbackLanguage: siteLanguage(composerUsesShop
+      ? entityStore.shops.find(shop => shop.id === composerShopId)?.region
+      : authoritativeProfile?.market ?? performance?.market ?? management?.market),
+    disabled: !canPerformDailyOperations || !composerRouteReady || sendingMessage || sendingInvitation || markingConversationHandled,
+    send: text => submitComposerMessage(text),
+  });
   const attachmentDrafts = useMessageAttachmentDrafts<StagedAffiliateAttachment>({
-    scopeKey,
+    scopeKey: `${translationIdentity(entityStore.currentUser)}:${scopeKey}`,
     allowFiles: true,
-    disabled: !canPerformDailyOperations || sendingMessage || sendingInvitation,
+    disabled: !canPerformDailyOperations || sendingMessage || sendingInvitation || translation.locked,
     stage: async (file, signal) => {
       if (!relationshipId) throw new Error("Creator relationship is required");
       const response = await fetch("/api/cloud/ecommerce/affiliate/upload-draft-attachment", {
@@ -10756,7 +10782,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }
   function changeScope(nextShopId: string): void {
     if (
-      nextShopId === scopeShopId ||
+      nextShopId === scopeShopId || translation.locked ||
       sendingMessage || sendingInvitation ||
       uploadingAttachments ||
       decidingProposalId ||
@@ -10960,14 +10986,6 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       ? t("ecommerce.affiliateWorkspace.relationshipNeedsManualReview")
       : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWorkHint");
 
-  const {
-    messages: conversationMessages,
-    loading: conversationLoading,
-    error: conversationError,
-    refetch: refetchConversationMessages,
-    hasOlder: canLoadOlderConversation,
-    loadOlder: fetchOlderScopeMessages,
-  } = useCreatorScopeConversation(relationshipId, scopeShopId, activeTab === "conversation");
   const refreshSentHistoryRef = useRef(refetchConversationMessages);
   useLayoutEffect(() => { refreshSentHistoryRef.current = refetchConversationMessages; }, [refetchConversationMessages]);
   const newestConversationMessageKey = conversationMessages.at(-1)
@@ -10992,12 +11010,16 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     conversationAutoScrollPendingRef.current = false;
   }, [activeTab, conversationLoading, newestConversationMessageKey, scopeKey]);
 
-  async function submitComposerMessage(): Promise<void> {
+  async function submitComposerMessage(translatedText?: string): Promise<TranslationSendOutcome> {
     if (!canPerformDailyOperations || messageSendInFlightRef.current || sendingInvitation || uploadingAttachments || markingConversationHandled ||
-      !relationshipId || !composerRouteReady || !attachmentDrafts.ready || tooManyMessageParts) return;
+      !relationshipId || !composerRouteReady || !attachmentDrafts.ready || tooManyMessageParts ||
+      (translation.locked && translatedText === undefined)) return { complete: false };
+    const body = translatedText ?? composerText;
+    const sendingSession = composerTranslationSession;
+    let freezeText = translatedText !== undefined;
     const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
-    if (composerText.trim())
-      parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: composerText.trim() });
+    if (body.trim())
+      parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: body.trim() });
     parts.push(
       ...stagedAttachments.map((asset) => ({
         kind: GQL.AffiliateMessagePartKind.Attachment,
@@ -11007,7 +11029,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
           : GQL.AffiliateEmailAttachmentDisposition.Attachment,
       })),
     );
-    if (!parts.length) return;
+    if (!parts.length) return { complete: false };
     const input: GQL.SendAffiliateCreatorMessageInput = {
       shopId: composerUsesShop ? composerShopId : undefined,
       creatorRelationshipId: relationshipId,
@@ -11028,8 +11050,14 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     setSendingMessage(true);
     try {
       const result = await sendAffiliateCreatorMessage({ variables: { input } });
+      if (composerTranslationSessionRef.current !== sendingSession) return { complete: false };
       const delivery = result.data?.sendAffiliateCreatorMessage.delivery;
       if (!delivery) throw new Error(t("ecommerce.updateFailed"));
+      freezeText = delivery.status === GQL.AffiliateDeliveryStatus.PartiallySent ||
+        (delivery.status === GQL.AffiliateDeliveryStatus.Failed &&
+          !["TikTokApiError", "TikTokShopRateLimitAcquireTimeoutError"].includes(delivery.errorCode ?? "")) ||
+        Boolean(delivery.parts?.some(part =>
+          part.status === GQL.AffiliateDeliveryPartStatus.Sent || part.status === GQL.AffiliateDeliveryPartStatus.Submitted));
       if (delivery.status === GQL.AffiliateDeliveryStatus.Failed) {
         // Only explicit platform non-acceptance permits a new attempt. A generic
         // FAILED can also represent a provider transport timeout after acceptance.
@@ -11057,8 +11085,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       // Delivery is complete independently of a slow/failed history read. Never
       // report a history error as send failure or invite resending accepted text.
       refreshSentMessageHistory();
+      return { complete: true };
     } catch (error) {
-      setMessageSendError(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      if (composerTranslationSessionRef.current === sendingSession) setMessageSendError(message);
+      return { complete: false, freezeText, error: message };
     } finally {
       messageSendInFlightRef.current = false;
       setSendingMessage(false);
@@ -12472,6 +12503,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     )}
                   </div>
                   {canPerformDailyOperations ? <div className="affiliate-message-composer">
+                    <MessageTranslationPreview controller={translation} />
                     <div className="affiliate-message-composer-head">
                       <div>
                         <strong>{t("ecommerce.affiliateWorkspace.messageComposerTitle")}</strong>
@@ -12480,7 +12512,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     </div>
                     <div className="affiliate-message-composer-route">
                       <Select value={effectiveComposerChannel} className="affiliate-message-composer-channel"
-                        disabled={sendingMessage || sendingInvitation || uploadingAttachments}
+                        disabled={translation.locked || sendingMessage || sendingInvitation || uploadingAttachments}
                         onChange={value => { setComposerChannel(value as GQL.AffiliateMessageChannel); setComposerContactId(""); setComposerSubject(""); }}
                         options={[
                           { value: GQL.AffiliateMessageChannel.PlatformChat, label: t("ecommerce.affiliateWorkspace.messageChannels.PLATFORM_CHAT") },
@@ -12489,7 +12521,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                         ]} ariaLabel={t("ecommerce.affiliateWorkspace.campaignReply.channel")} />
                       {composerUsesShop ? <>
                         <Select value={composerShopId} onChange={setComposerShopId} className="affiliate-message-composer-identity"
-                          disabled={sendingMessage || sendingInvitation || Boolean(scopeShopId)}
+                          disabled={translation.locked || sendingMessage || sendingInvitation || Boolean(scopeShopId)}
                           ariaLabel={t("ecommerce.affiliateWorkspace.selectMessageShop")}
                           options={(scopeShopId ? [scopeShopId] : includedShopIds).map(shopId => {
                             const label = relationshipShopName(shopId);
@@ -12499,7 +12531,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                         {relationshipId && composerShopId ? <AffiliateCampaignInvitationComposer
                           key={`${relationshipId}:${composerShopId}`} shopId={composerShopId} creatorRelationshipId={relationshipId}
                           replyToLifecycleEventId={pendingReplyToLifecycleEventId}
-                          disabled={sendingMessage || uploadingAttachments || markingConversationHandled}
+                          disabled={translation.locked || sendingMessage || uploadingAttachments || markingConversationHandled}
                           onBusyChange={setSendingInvitation}
                           onSent={() => {
                             setPendingReplyToLifecycleEventId(undefined);
@@ -12509,13 +12541,13 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             refreshSentMessageHistory();
                           }} /> : null}
                       </> : <Select value={effectiveComposerContactId} onChange={setComposerContactId}
-                        className="affiliate-message-composer-identity" disabled={sendingMessage || sendingInvitation || composerContactsLoading}
+                        className="affiliate-message-composer-identity" disabled={translation.locked || sendingMessage || sendingInvitation || composerContactsLoading}
                         options={composerAccountOptions} searchable
                         placeholder={composerContactsLoading ? t("common.loading") : t("ecommerce.affiliateWorkspace.campaignReply.account")}
                         searchPlaceholder={t("ecommerce.affiliateWorkspace.campaignReply.searchAccounts")}
                         ariaLabel={t("ecommerce.affiliateWorkspace.campaignReply.account")} />}
                       {effectiveComposerChannel === GQL.AffiliateMessageChannel.Email ? <input className="form-input affiliate-message-composer-subject"
-                        value={composerSubject} disabled={sendingMessage}
+                        value={composerSubject} disabled={translation.locked || sendingMessage}
                         onChange={event => setComposerSubject(event.target.value)}
                         placeholder={t("ecommerce.affiliateWorkspace.messageComposerEmailSubject")} /> : null}
                     </div>
@@ -12552,7 +12584,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       className="form-input affiliate-message-composer-text"
                       ref={composerTextareaRef}
                       value={composerText}
-                      disabled={sendingMessage}
+                      disabled={translation.locked || sendingMessage}
                       onChange={(event) => setComposerText(event.target.value)}
                       onPaste={attachmentDrafts.onPaste}
                       placeholder={t("ecommerce.affiliateWorkspace.messageComposerPlaceholder")}
@@ -12561,11 +12593,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     <MessageAttachmentPreviews
                       items={attachmentDrafts.items}
                       onRemove={attachmentDrafts.remove}
-                      disabled={sendingMessage || sendingInvitation}
+                      disabled={translation.locked || sendingMessage || sendingInvitation}
                       extra={item => effectiveComposerChannel === GQL.AffiliateMessageChannel.Email && item.value && item.file.type.startsWith("image/") ? (
                         <label>
                           <input type="checkbox" checked={item.value.inline}
-                            disabled={sendingMessage || sendingInvitation}
+                            disabled={translation.locked || sendingMessage || sendingInvitation}
                             onChange={event => attachmentDrafts.updateValue(item.id, { ...item.value!, inline: event.target.checked })} />
                           {t("ecommerce.affiliateWorkspace.messageComposerInline")}
                         </label>
@@ -12578,7 +12610,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                           key={`${scopeKey}:${effectiveComposerChannel}:${composerShopId}:${composerContactId}`}
                           textareaRef={composerTextareaRef}
                           onValueChange={setComposerText}
-                          disabled={sendingMessage || sendingInvitation}
+                          disabled={translation.locked || sendingMessage || sendingInvitation}
                         />
                         <label className="btn btn-secondary btn-sm affiliate-message-file-button">
                           {uploadingAttachments
@@ -12587,7 +12619,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                           <input
                             type="file"
                             multiple
-                            disabled={sendingMessage || sendingInvitation || uploadingAttachments || attachmentDrafts.items.length >= 10}
+                            disabled={translation.locked || sendingMessage || sendingInvitation || uploadingAttachments || attachmentDrafts.items.length >= 10}
                             onChange={(event) => {
                               void attachmentDrafts.addFiles(event.currentTarget.files);
                               event.currentTarget.value = "";
@@ -12610,7 +12642,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                             className="btn btn-secondary btn-sm"
                             type="button"
                             disabled={
-                              markingConversationHandled || sendingMessage || sendingInvitation || uploadingAttachments
+                              translation.locked || markingConversationHandled || sendingMessage || sendingInvitation || uploadingAttachments
                             }
                             onClick={() => void markConversationHandled()}
                           >
@@ -12619,11 +12651,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                               : t("ecommerce.affiliateWorkspace.manualMessageNoReplyNeeded")}
                           </button>
                         ) : null}
+                        <button type="button" className="btn btn-secondary btn-sm"
+                          disabled={translation.locked || !entityStore.currentUser || !composerText.trim() || !composerRouteReady ||
+                            sendingMessage || sendingInvitation || markingConversationHandled || uploadingAttachments || !attachmentDrafts.ready || tooManyMessageParts}
+                          onClick={() => void translation.generate()}>{t("messageTranslation.button")}</button>
                         <button
                           className="btn btn-primary btn-sm"
                           type="button"
                           disabled={
-                            !composerRouteReady ||
+                            translation.locked || !composerRouteReady ||
                             sendingMessage || sendingInvitation ||
                             markingConversationHandled ||
                             uploadingAttachments || !attachmentDrafts.ready || tooManyMessageParts ||

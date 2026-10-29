@@ -30,6 +30,8 @@ const state = vi.hoisted(() => ({
   storedProposals: new Map<string, Record<string, unknown>>(),
   handlers: new Map<string, Set<(payload: unknown) => void>>(),
   entityStore: {
+    currentUser: { userId: "owner", accountId: "owner" },
+    messageTranslation: { translate: vi.fn() },
     ensureCategories: vi.fn().mockResolvedValue(undefined),
     productCategoryName: () => null,
     shops: [
@@ -102,6 +104,7 @@ vi.mock("@apollo/client/react", () => ({
 
 beforeEach(async () => {
   mockObjectUrls();
+  state.entityStore.messageTranslation.translate.mockReset().mockResolvedValue({ language: "es", source: "messages", text: "Hola, gracias" });
   await i18n.changeLanguage("zh");
   state.calls.length = 0;
   state.contactState = { channelContacts: [], whatsAppAccounts: [], emailAccounts: [] };
@@ -980,5 +983,73 @@ describe("channel-first manual reply routing", () => {
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "Unroutable draft" } });
     expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(true);
     expect(state.mutate).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("creator translation before sending", () => {
+  const preview = () => screen.getByRole("dialog", { name: "确认译文" });
+  async function translate() {
+    fireEvent.click(screen.getByRole("button", { name: "翻译并发送" }));
+    await waitFor(() => expect(within(preview()).getByRole("textbox", { name: "译文（可编辑）" })).toBeTruthy());
+  }
+  const accepted = { data: { sendAffiliateCreatorMessage: { delivery: { status: "SENT" } } } };
+  it("uses loaded creator text in the chosen shop and sends only the edited translation on confirmation", async () => {
+    state.history = [
+      { channel: "PLATFORM_CHAT", shopId: "2", direction: "CREATOR", messageRef: "in-1", createdAt: "2026-10-29T00:00:00Z", parts: [{ kind: "TEXT", text: "Hola amiga" }] },
+      { channel: "PLATFORM_CHAT", shopId: "1", direction: "CREATOR", messageRef: "in-2", parts: [{ kind: "TEXT", text: "Bonjour" }] },
+      { channel: "PLATFORM_CHAT", shopId: "1", direction: "SELLER", messageRef: "out-1", parts: [{ kind: "TEXT", text: "Hello" }] },
+    ];
+    state.mutate.mockResolvedValue(accepted); render(view("creator", "conversation"));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "你好，谢谢" } });
+    await translate(); expect(state.mutate).not.toHaveBeenCalled();
+    expect(state.entityStore.messageTranslation.translate.mock.calls[0][0].samples).toEqual(["Hola amiga"]);
+    expect((document.querySelector('.affiliate-message-composer-text') as HTMLTextAreaElement).value).toBe("你好，谢谢");
+    expect((screen.getByRole("button", { name: "回复渠道" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(preview()).getByRole("button", { name: "取消" }));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("你好，谢谢");
+    await translate(); fireEvent.change(within(preview()).getByRole("textbox", { name: "译文（可编辑）" }), { target: { value: "Hola 😊" } });
+    const send = within(preview()).getByRole("button", { name: "发送译文" }); fireEvent.click(send); fireEvent.click(send);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "确认译文" })).toBeNull());
+    expect(state.mutate).toHaveBeenCalledOnce(); expect(state.mutate.mock.calls[0][0].variables.input.parts).toEqual([{ kind: "TEXT", text: "Hola 😊" }]);
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("");
+  });
+  it.each(["WHATSAPP", "EMAIL"])("keeps the %s reply route, uses creator market and does not translate email subjects", async channel => {
+    state.detail = { ...state.detail, performance: { market: "MX" }, creatorRelationship: { ...(state.detail.creatorRelationship as object), businessDeveloperId: "bd" } };
+    state.contactState = { preferredWhatsAppAccount: { id: "wa" }, preferredEmailAccount: { id: "mail" },
+      whatsAppAccounts: [{ id: "wa", displayName: "WA", status: "CONNECTED", provider: "EVOLUTION_API" }],
+      emailAccounts: [{ id: "mail", displayName: "Mail", status: "CONNECTED", provider: "MICROSOFT_GRAPH" }],
+      channelContacts: [
+        { id: "wa-contact", accountBindingId: "wa", channel: "WHATSAPP", status: "ACTIVE" },
+        { id: "mail-contact", accountBindingId: "mail", channel: "EMAIL", status: "ACTIVE" },
+      ],
+    };
+    state.history = [{ channel, direction: "CREATOR", messageRef: "in-1", parts: [{ kind: "TEXT", text: "Hola" }] }];
+    state.mutate.mockResolvedValue(accepted); render(view("creator", "conversation"));
+    fireEvent.click(screen.getByRole("button", { name: "回复渠道" }));
+    const label = channel === "EMAIL" ? i18n.t("ecommerce.affiliateWorkspace.messageChannels.EMAIL") : "WhatsApp";
+    fireEvent.click(within(document.querySelector('.custom-select-dropdown') as HTMLElement).getByRole("button", { name: label }));
+    const composer = document.querySelector('.affiliate-message-composer-text')!;
+    fireEvent.change(composer, { target: { value: "你好" } });
+    if (channel === "EMAIL") fireEvent.change(document.querySelector('.affiliate-message-composer-subject')!, { target: { value: "原始主题" } });
+    await translate();
+    expect(state.entityStore.messageTranslation.translate.mock.calls[0][0]).toMatchObject({ samples: ["Hola"], fallbackLanguage: "es" });
+    fireEvent.click(within(preview()).getByRole("button", { name: "发送译文" }));
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledOnce());
+    const input = state.mutate.mock.calls[0][0].variables.input;
+    expect(input).toMatchObject({ preferredChannel: channel, channelContactId: channel === "EMAIL" ? "mail-contact" : "wa-contact", parts: [{ kind: "TEXT", text: "Hola, gracias" }] });
+    expect(input.shopId).toBeUndefined(); if (channel === "EMAIL") expect(input.emailSubject).toBe("原始主题");
+    expect(state.calls.some(call => call.operation === "AffiliateCreatorProfile")).toBe(false);
+  });
+  it("retains translation and reuses the delivery key after ambiguous sending errors", async () => {
+    state.mutate.mockResolvedValue({ data: { sendAffiliateCreatorMessage: { delivery: { status: "PARTIALLY_SENT", parts: [{ status: "SENT" }], errorMessage: "One part accepted" } } } });
+    render(view("creator", "conversation")); fireEvent.change(screen.getByRole("textbox"), { target: { value: "你好" } });
+    await translate(); fireEvent.click(within(preview()).getByRole("button", { name: "发送译文" }));
+    await waitFor(() => expect(within(preview()).getByText("One part accepted")).toBeTruthy());
+    expect((within(preview()).getByRole("textbox", { name: "译文（可编辑）" }) as HTMLTextAreaElement).disabled).toBe(true);
+    fireEvent.click(within(preview()).getByRole("button", { name: "发送译文" }));
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledTimes(2));
+    expect(state.mutate.mock.calls[0][0].variables.input.idempotencyKey).toBe(state.mutate.mock.calls[1][0].variables.input.idempotencyKey);
+    expect((document.querySelector('.affiliate-message-composer-text') as HTMLTextAreaElement).value).toBe("你好");
   });
 });

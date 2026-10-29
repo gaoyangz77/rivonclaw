@@ -1,4 +1,5 @@
-import { flow, getEnv, types } from "mobx-state-tree";
+import { translationIdentity } from "../../lib/message-translation.js";
+import { flow, getEnv, getRoot, types } from "mobx-state-tree";
 import { GQL } from "@rivonclaw/core";
 import { API, CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson, fetchVoid } from "../../api/client.js";
@@ -1146,12 +1147,15 @@ export const CustomerServiceWorkspaceModel = types
           },
         );
       }),
-      sendManualReply: flow(function* (locale?: string, refresh = true) {
+      sendManualReply: flow(function* (locale?: string, refresh = true, draft?: { message: string; original: string }) {
         if (self.sendingManualReply) return null;
         const selected = (self as any)
           .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
-        const message = self.manualReplyDraft.trim();
-        if (!selected || !message) return null;
+        const readIdentity = () => translationIdentity((getRoot(self) as { currentUser?: { userId: string; accountId?: string } | null }).currentUser);
+        const identity = readIdentity();
+        const original = draft?.original ?? self.manualReplyDraft;
+        const message = (draft?.message ?? original).trim();
+        if (!selected || !message || self.manualReplyDraft !== original) return null;
         self.sendingManualReply = true;
         try {
           const startedAt = Date.now();
@@ -1163,15 +1167,16 @@ export const CustomerServiceWorkspaceModel = types
               message,
             },
           });
-          if (self.selectedConversationId === selected.conversationId &&
-            self.selectedConversationShopId === selected.shopId && self.manualReplyDraft.trim() === message) {
+          const messageId = result.data?.ecommerceSendCustomerServiceTextReply?.messageId;
+          const sameIdentity = readIdentity() === identity;
+          if (sameIdentity && messageId && self.selectedConversationId === selected.conversationId &&
+            self.selectedConversationShopId === selected.shopId && self.manualReplyDraft === original) {
             self.manualReplyDraft = "";
           }
-          if (refresh) {
+          if (refresh && sameIdentity) {
             yield (self as any).fetchConversationMessages(locale);
             yield (self as any).fetchConversations();
           }
-          const messageId = result.data?.ecommerceSendCustomerServiceTextReply?.messageId;
           emitCsTelemetry("cs.session_event", {
             ...conversationTelemetryContext(selected),
             action: "manual_reply_send",

@@ -1,3 +1,13 @@
+import {
+  useMessageTranslation,
+  type TranslationSendOutcome,
+} from "../../../hooks/useMessageTranslation.js";
+import { MessageTranslationPreview } from "../../../components/inputs/MessageTranslationPreview.js";
+import {
+  customerLanguageSamples,
+  siteLanguage,
+  translationIdentity,
+} from "../../../lib/message-translation.js";
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -30,41 +40,79 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
       mounted.current = false;
     };
   }, []);
-  const disabled = sending || entityStore.customerServiceWorkspace.sendingManualReply;
+  const sendBusy = sending || entityStore.customerServiceWorkspace.sendingManualReply;
+  const evidence = customerLanguageSamples(
+    entityStore.customerServiceWorkspace.conversationMessages,
+  );
+  const translation = useMessageTranslation({
+    routeKey: JSON.stringify(["cs", shopId, conversationId]),
+    draftFingerprint: () =>
+      JSON.stringify([
+        entityStore.customerServiceWorkspace.manualReplyDraft,
+        attachments.items.map((item) => item.id),
+      ]),
+    text: entityStore.customerServiceWorkspace.manualReplyDraft,
+    ...evidence,
+    fallbackLanguage: siteLanguage(entityStore.shops?.find((shop) => shop.id === shopId)?.region),
+    disabled: sendBusy,
+    send: (text, textAlreadySent) => submit(text, textAlreadySent),
+  });
+  const disabled = sendBusy || translation.locked;
   const attachments = useMessageAttachmentDrafts({
-    scopeKey: `${shopId}:${conversationId}`,
+    scopeKey: `${translationIdentity(entityStore.currentUser)}:${shopId}:${conversationId}`,
     disabled,
     onError: (message) => showToast(message, "error"),
   });
 
-  async function submit() {
+  async function submit(
+    translatedText?: string,
+    textAlreadySent = false,
+  ): Promise<TranslationSendOutcome> {
     if (
       inFlight.current ||
-      disabled ||
-      (!entityStore.customerServiceWorkspace.manualReplyDraft.trim() && !attachments.items.length)
+      sendBusy ||
+      (translation.locked && translatedText === undefined) ||
+      (!(translatedText ?? entityStore.customerServiceWorkspace.manualReplyDraft).trim() &&
+        !attachments.items.length)
     )
-      return;
+      return { complete: false };
     if (
       entityStore.customerServiceWorkspace.selectedConversationShopId !== shopId ||
       entityStore.customerServiceWorkspace.selectedConversationId !== conversationId
     )
-      return;
+      return { complete: false };
     inFlight.current = true;
     setSending(true);
     setError(null);
     const images = [...attachments.items];
+    const original = entityStore.customerServiceWorkspace.manualReplyDraft;
+    const identity = translationIdentity(entityStore.currentUser);
+    let textSent = textAlreadySent;
     let refresh = false;
     let completed = false;
     try {
-      if (entityStore.customerServiceWorkspace.manualReplyDraft.trim()) {
+      if (!textAlreadySent && (translatedText ?? original).trim()) {
         refresh = true;
         // Refresh after the whole batch: resolving text can otherwise remove
         // this row from the Pending list and unmount the unsent image queue.
-        if (!(await entityStore.customerServiceWorkspace.sendManualReply(i18n.language, false)))
+        if (
+          !(await entityStore.customerServiceWorkspace.sendManualReply(
+            i18n.language,
+            false,
+            translatedText === undefined ? undefined : { message: translatedText, original },
+          ))
+        )
           throw new Error(t("messageAttachments.sendUnknown"));
+        textSent = true;
       }
       for (const item of images) {
-        if (!mounted.current) return;
+        if (
+          !mounted.current ||
+          translationIdentity(entityStore.currentUser) !== identity ||
+          entityStore.customerServiceWorkspace.selectedConversationId !== conversationId ||
+          entityStore.customerServiceWorkspace.selectedConversationShopId !== shopId
+        )
+          return { complete: false, textSent };
         refresh = true;
         const result = await entityStore.customerServiceWorkspace.sendManualImageReply({
           shopId,
@@ -78,6 +126,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
       completed = true;
       if (mounted.current)
         showToast(t("ecommerce.customerServiceWorkspace.manualReplySent"), "success");
+      return { complete: true, textSent };
     } catch (failure) {
       if (mounted.current) {
         const unknown = (failure as { code?: string }).code === "IDEMPOTENCY_STATUS_UNKNOWN";
@@ -89,12 +138,18 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
               : String(failure),
         );
       }
+      return {
+        complete: false,
+        textSent,
+        error: failure instanceof Error ? failure.message : String(failure),
+      };
     } finally {
       inFlight.current = false;
       if (mounted.current) {
         setSending(false);
         if (
           refresh &&
+          translationIdentity(entityStore.currentUser) === identity &&
           entityStore.customerServiceWorkspace.selectedConversationShopId === shopId &&
           entityStore.customerServiceWorkspace.selectedConversationId === conversationId
         ) {
@@ -118,6 +173,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         onRemove={attachments.remove}
         disabled={disabled}
       />
+      <MessageTranslationPreview controller={translation} />
       <TkComposer
         data-tutorial-id="cs-manual-reply"
         value={entityStore.customerServiceWorkspace.manualReplyDraft}
@@ -129,7 +185,8 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         submitDisabled={
           !entityStore.customerServiceWorkspace.manualReplyDraft.trim() && !attachments.items.length
         }
-        submitting={disabled}
+        disabled={translation.locked}
+        submitting={sendBusy}
         textareaRef={textareaRef}
         textareaProps={{ rows: 2, onPaste: attachments.onPaste }}
         tools={
@@ -148,6 +205,18 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
               onClick={() => fileInput.current?.click()}
             >
               {t("messageAttachments.addImages")}
+            </TkButton>
+            <TkButton
+              variant="secondary"
+              size="sm"
+              disabled={
+                disabled ||
+                !entityStore.currentUser ||
+                !entityStore.customerServiceWorkspace.manualReplyDraft.trim()
+              }
+              onClick={() => void translation.generate()}
+            >
+              {t("messageTranslation.button")}
             </TkButton>
           </>
         }

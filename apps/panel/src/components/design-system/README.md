@@ -536,3 +536,7 @@ The chat session tab bar remains an intentional composite exception: it manages 
 reorderable sessions rather than page navigation. It must keep the shared tokens and accessibility
 contract, but it should not be forced into `TkTabs` until a dedicated document-tab primitive is
 specified.
+
+### Human reply translation
+
+Customer-service and Affiliate composers share `MessageTranslationPreview` and `useMessageTranslation`: a secondary Translate & send action prepares an editable preview using Desktop's default model. Only explicit confirmation invokes the existing delivery path; cancellation preserves the original draft and attachments. Language decisions live in volatile Panel MST memory and are isolated by account, conversation and reply route. Only already-loaded inbound text is used; no history or Performance query is added. See `apps/desktop/src/messaging/README.md` for the local API and cache policy.
