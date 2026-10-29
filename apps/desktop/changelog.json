@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.9.44",
+    "date": "2026-10-29",
+    "en": [
+      "Preview translated replies before sending and compact the messaging toolbar",
+      "Search multiple orders with localized validation and filter bad-review conversations",
+      "Refresh advertising entities incrementally by account and coalesce sync refreshes",
+      "Refresh account quotas without reloading shop billing"
+    ],
+    "zh": [
+      "发送前预览回复译文，并精简消息工具栏布局",
+      "支持批量订单搜索与本地化校验，并修复差评会话筛选",
+      "按账号增量刷新广告数据，并合并重复同步刷新",
+      "刷新账号额度时不再重新加载店铺账单"
+    ]
+  },
+  {
     "version": "1.9.43",
     "date": "2026-10-28",
     "en": [
