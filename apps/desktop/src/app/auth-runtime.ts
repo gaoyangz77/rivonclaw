@@ -11,6 +11,7 @@ import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item
 import { AffiliateCampaignSearchPlanActuator } from "../affiliate/affiliate-campaign-search-plan-actuator.js";
 import { uploadCurrentLog } from "../logs/upload-current-log.js";
 import { INIT_ADS_ADVERTISERS_QUERY } from "../cloud/init-queries.js";
+import { createAdsEntityRefresher } from "../cloud/ads-entity-refresher.js";
 import {
   catchUpAffiliateEscalationNotifications,
   handleAffiliateEscalationNotification,
@@ -89,16 +90,17 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     broadcastEvent("shop-updated", { shopId, shopName: shop?.shopName ?? shopId });
   });
 
-  backendSubscription.subscribeToAdsOAuthComplete((payload) => {
-    void cloudClient
-      .graphql<Record<string, unknown>>(INIT_ADS_ADVERTISERS_QUERY)
-      .then((data) => {
-        rootStore.ingestGraphQLResponse(data);
-        broadcastEvent("ads-oauth-complete", payload);
-      })
-      .catch((err) => {
-        log.warn("Failed to refresh Ads entities after OAuth completion:", err);
-      });
+  const adsRefresher = createAdsEntityRefresher({
+    refresh: () => cloudClient.graphql<Record<string, unknown>>(INIT_ADS_ADVERTISERS_QUERY),
+    onRefreshed: (payload, data) => {
+      rootStore.ingestGraphQLResponse(data);
+      broadcastEvent("ads-oauth-complete", payload);
+    },
+    onError: (error) => log.warn("Failed to refresh Ads entities after OAuth completion:", error),
+  });
+  backendSubscription.subscribeToAdsOAuthComplete(adsRefresher.enqueue);
+  authSession.onCredentialsChanged((event) => {
+    if (event.reason !== "refresh") adsRefresher.reset();
   });
 
   backendSubscription.subscribeToAffiliateOutreachAccountConnected((payload) => {

@@ -57,6 +57,10 @@ vi.mock("../auth/session.js", () => ({
       loadFromKeychain: mocks.authSessionLoadFromKeychain,
       graphqlFetch: vi.fn(),
       getAccessToken: vi.fn(() => null),
+      onCredentialsChanged: vi.fn((callback) => {
+        mocks.callbacks.adsCredentialsChanged = callback;
+        return () => {};
+      }),
     };
   }),
 }));
@@ -184,6 +188,35 @@ describe("setupAuth backend subscription forwarding", () => {
     mocks.callbacks.affiliateWorkbenchChanged(change);
     expect(broadcastEvent).toHaveBeenCalledWith("affiliate-workbench-changed", change);
     expect(mocks.handleAffiliateWorkItemChanged).not.toHaveBeenCalled();
+  });
+
+  it("coalesces Ads sync notifications before replacing the full Ads snapshot", async () => {
+    const { setupAuth } = await import("./auth-runtime.js");
+    let finish!: (value: Record<string, unknown>) => void;
+    mocks.cloudGraphql.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const broadcastEvent = vi.fn();
+    await setupAuth({
+      secretStore: { get: vi.fn(), set: vi.fn(), delete: vi.fn(), listKeys: vi.fn() },
+      locale: "en-US",
+      getUiLocale: () => "en-US",
+      deviceId: "device",
+      appVersion: "test",
+      proxyFetch: vi.fn(),
+      broadcastEvent,
+    });
+    const payload = { platform: "TIKTOK_ADS", advertiserIds: ["ads-1"], advertiserCount: 1 };
+    for (let i = 0; i < 100; i++) mocks.callbacks.adsOAuthComplete(payload);
+    expect(mocks.cloudGraphql).toHaveBeenCalledTimes(1);
+    finish({ adsAdvertisers: [{ id: "ads-1" }] });
+    await vi.waitFor(() => expect(mocks.cloudGraphql).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(broadcastEvent).toHaveBeenCalledTimes(2));
+    expect(mocks.rootStore.ingestGraphQLResponse).toHaveBeenCalledWith({
+      adsAdvertisers: [{ id: "ads-1" }],
+    });
   });
 
   it("logs a malformed Affiliate dispatch without losing subsequent subscription notifications", async () => {
