@@ -365,21 +365,31 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   }
 
   async function install(): Promise<void> {
+    if (updateDownloadState.status === "installing") {
+      log.info("Update installation already in progress, ignoring duplicate request");
+      return;
+    }
     if (updateDownloadState.status !== "ready") {
       throw new Error("No downloaded update ready to install");
     }
 
+    // Publish before awaiting cleanup so Panel polling keeps showing installing
+    // and repeated requests cannot start another cleanup or installer.
+    const readyState = updateDownloadState;
+    const installerPath = readyState.filePath;
+    updateDownloadState = { status: "installing" };
+
     // Run ALL cleanup before launching the installer.
     if (runFullCleanup) {
       try {
-        if (!(await runFullCleanup())) return;
+        if (!(await runFullCleanup())) {
+          updateDownloadState = readyState;
+          return;
+        }
       } catch (err) {
         log.error("Pre-update cleanup failed (proceeding anyway):", err);
       }
     }
-
-    const installerPath = updateDownloadState.filePath;
-    updateDownloadState = { status: "installing" };
 
     deps.telemetryTrack?.("app.update_installing", {
       version: backendUpdateInfo?.version,
