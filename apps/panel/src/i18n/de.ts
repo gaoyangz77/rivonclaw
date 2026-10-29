@@ -4072,7 +4072,10 @@ export default {
       conversationDetails: "Gesprächsdetails",
       search: "Suchen",
       conversationSearchPlaceholder:
-        "Suchen Sie nach Käufer, Bestellung, Konversation, Nachricht...",
+        "Käufer, Gespräch oder Bestellungen (max. 100, durch Kommas getrennt)",
+      orderSearchInvalid: "Jeder Eintrag muss eine 18-stellige Bestellnummer sein, die mit 5 beginnt. Prüfen Sie die gesamte Liste.",
+      orderSearchTooMany: "Suchen Sie höchstens 100 verschiedene Bestellnummern gleichzeitig. Teilen Sie die Liste in kleinere Gruppen auf.",
+      conversationSearchTooLong: "Die Suche ist zu lang. Verwenden Sie höchstens 128 Zeichen für Käufer oder Gespräche oder eine kürzere Bestellliste.",
       searchPlaceholder: "Suche ID, Bestellung, Käufer, Gespräch, Grund...",
       pageSize: "{{count}} / Seite",
       pageSummary: "Zeigt {{start}}-{{end}} von {{total}} | Seite {{page}} / {{pages}}",

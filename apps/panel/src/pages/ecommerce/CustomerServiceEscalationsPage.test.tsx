@@ -91,3 +91,31 @@ describe("CS conversation bad review filter", () => {
     }));
   });
 });
+
+describe("CS bulk order search", () => {
+  it("pastes newline-separated orders without losing their boundaries and submits the full list", async () => {
+    const { workspace, query } = setup();
+    render(<CustomerServiceConversationsPage />);
+    await screen.findByText("regular-buyer");
+    const input = screen.getByRole("textbox", { name: key("filterSearch") });
+    fireEvent.paste(input, { clipboardData: { getData: () => "576833748427839658\r\n585467690218522028" } });
+    expect(workspace.conversationSearchDraft).toBe("576833748427839658,585467690218522028");
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(query).toHaveBeenLastCalledWith(expect.objectContaining({
+      variables: expect.objectContaining({ search: "576833748427839658,585467690218522028" }),
+    })));
+  });
+
+  it.each([
+    ["CS_ORDER_SEARCH_INVALID", "orderSearchInvalid"],
+    ["CS_ORDER_SEARCH_LIMIT", "orderSearchTooMany"],
+    ["CS_SEARCH_TOO_LONG", "conversationSearchTooLong"],
+  ])("localizes the backend validation error %s", async (code, translationKey) => {
+    const { query } = setup();
+    const error = Object.assign(new Error("Backend validation message"), { errors: [{ extensions: { code } }] });
+    query.mockRejectedValue(error);
+    render(<CustomerServiceConversationsPage />);
+    expect((await screen.findByRole("alert")).textContent).toBe(key(translationKey));
+    expect(screen.queryByText("Backend validation message")).toBeNull();
+  });
+});

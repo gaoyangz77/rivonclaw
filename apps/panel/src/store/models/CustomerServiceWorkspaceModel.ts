@@ -2,6 +2,7 @@ import { flow, getEnv, types } from "mobx-state-tree";
 import { GQL } from "@rivonclaw/core";
 import { API, CLOUD_REST, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson, fetchVoid } from "../../api/client.js";
+import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
 import {
   CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION,
   CS_DISMISS_ESCALATION_MUTATION,
@@ -329,6 +330,7 @@ export const CustomerServiceWorkspaceModel = types
     conversationTotal: types.optional(types.number, 0),
     conversationsLoading: types.optional(types.boolean, false),
     conversationsError: types.maybeNull(types.string),
+    conversationsErrorCode: types.maybeNull(types.string),
     conversationItems: types.optional(types.array(types.frozen<Record<string, any>>()), []),
     selectedConversationId: types.maybeNull(types.string),
     conversationMessagesLoading: types.optional(types.boolean, false),
@@ -850,6 +852,7 @@ export const CustomerServiceWorkspaceModel = types
       fetchConversations: flow(function* () {
         self.conversationsLoading = true;
         self.conversationsError = null;
+        self.conversationsErrorCode = null;
         try {
           const result = yield client().query({
             query: CS_CONVERSATION_INBOX_QUERY,
@@ -884,6 +887,7 @@ export const CustomerServiceWorkspaceModel = types
           }
         } catch (err) {
           self.conversationsError = errorMessage(err);
+          self.conversationsErrorCode = graphQLErrorCode(err);
         } finally {
           self.conversationsLoading = false;
         }

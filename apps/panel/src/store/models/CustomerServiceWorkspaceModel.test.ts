@@ -299,6 +299,39 @@ describe("CustomerServiceWorkspaceModel order context", () => {
 });
 
 describe("CustomerServiceWorkspaceModel conversation search", () => {
+  it("sends a complete 100-order search together with the existing filters and trusts server matches", async () => {
+    const search = Array.from({ length: 100 }, (_, i) => `5${String(i).padStart(17, "0")}`).join(",");
+    const row = { ...conversation(null), isOpen: false };
+    const query = vi.fn().mockResolvedValue({ data: { ecommerceGetCustomerServiceInbox: { items: [row], totalCount: 1 } } });
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationShopId: "shop-1", conversationBadReviewFilter: "hasBadReview" },
+      { apolloClient: { query } as any },
+    );
+    store.setConversationSearchDraft(search);
+    store.applyConversationSearch();
+    await store.fetchConversations();
+    expect(query).toHaveBeenCalledWith(expect.objectContaining({
+      variables: expect.objectContaining({ search, hasBadReview: true, shopIds: ["shop-1"], offset: 0 }),
+    }));
+    expect(store.filteredConversationItems).toEqual([row]);
+  });
+
+  it.each(["CS_ORDER_SEARCH_INVALID", "CS_ORDER_SEARCH_LIMIT", "CS_SEARCH_TOO_LONG"])(
+    "keeps structured validation error %s and clears it after a successful retry", async (code) => {
+      const error = Object.assign(new Error("Invalid search"), { errors: [{ extensions: { code } }] });
+      const query = vi.fn().mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ data: { ecommerceGetCustomerServiceInbox: { items: [], totalCount: 0 } } });
+      const store = CustomerServiceWorkspaceModel.create({}, { apolloClient: { query } as any });
+      await store.fetchConversations();
+      expect(store.conversationsErrorCode).toBe(code);
+      expect(store.conversationsError).toBe("Invalid search");
+      expect(store.conversationsLoading).toBe(false);
+      await store.fetchConversations();
+      expect(store.conversationsErrorCode).toBeNull();
+      expect(store.conversationsError).toBeNull();
+    },
+  );
+
   function changedConversation(isOpen: boolean) {
     return {
       conversation: {

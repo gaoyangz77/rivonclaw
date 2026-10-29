@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ApiContext } from "../../app/api-context.js";
+import { GraphqlRequestError } from "../../auth/session.js";
 import { rootStore } from "../../app/store/desktop-store.js";
 import {
   registerActiveAffiliateRunCheckpoint,
@@ -2240,6 +2241,22 @@ describe("cloud-graphql handler", () => {
     expect(res._status).toBe(200);
     expect(res._body).toEqual({ errors: [{ message: "Not authenticated" }] });
   });
+
+  it.each(["CS_ORDER_SEARCH_INVALID", "CS_ORDER_SEARCH_LIMIT", "CS_SEARCH_TOO_LONG"])(
+    "preserves structured GraphQL error code %s for Panel localization", async (code) => {
+      const ctx = {
+        authSession: {
+          getAccessToken: () => "valid-token",
+          graphqlFetch: vi.fn().mockRejectedValue(new GraphqlRequestError("Invalid search", code)),
+        },
+      } as unknown as ApiContext;
+      const { res } = await dispatch("POST", pathname, ctx, {
+        query: "query CustomerServiceInbox { ecommerceGetCustomerServiceInbox { totalCount } }",
+      });
+      expect(res._status).toBe(200);
+      expect(res._body).toEqual({ errors: [{ message: "Invalid search", extensions: { code } }] });
+    },
+  );
 
   it("returns 200 with errors on non-auth errors", async () => {
     const ctx = {

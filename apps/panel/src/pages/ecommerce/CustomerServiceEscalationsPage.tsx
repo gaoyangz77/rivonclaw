@@ -60,6 +60,11 @@ import type {
 } from "../../store/models/CustomerServiceWorkspaceModel.js";
 
 type Conversation = GQL.CustomerServiceConversationInboxItem;
+const CONVERSATION_SEARCH_ERROR_KEYS: Readonly<Record<string, string>> = {
+  CS_ORDER_SEARCH_INVALID: "ecommerce.customerServiceWorkspace.orderSearchInvalid",
+  CS_ORDER_SEARCH_LIMIT: "ecommerce.customerServiceWorkspace.orderSearchTooMany",
+  CS_SEARCH_TOO_LONG: "ecommerce.customerServiceWorkspace.conversationSearchTooLong",
+};
 type ConversationMessage = GQL.CustomerServiceMessageSummary & {
   isRoutineServiceMessage?: boolean;
   isSystemMessage?: boolean;
@@ -255,6 +260,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   ]);
 
   const conversationItems = workspace.filteredConversationItems as Conversation[];
+  const conversationSearchErrorKey =
+    CONVERSATION_SEARCH_ERROR_KEYS[workspace.conversationsErrorCode ?? ""];
   const conversationMessages = workspace.displayConversationMessages as ConversationMessage[];
   const selectedConversation = workspace.selectedConversation as Conversation | null;
   const selectedConversationOrderContext =
@@ -719,6 +726,18 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                     className="input-full"
                     value={workspace.conversationSearchDraft}
                     onChange={(event) => workspace.setConversationSearchDraft(event.target.value)}
+                    onPaste={(event) => {
+                      const pasted = event.clipboardData.getData("text");
+                      if (!/[\r\n]/.test(pasted)) return;
+                      event.preventDefault();
+                      const input = event.currentTarget;
+                      const start = input.selectionStart ?? input.value.length;
+                      const end = input.selectionEnd ?? start;
+                      workspace.setConversationSearchDraft(
+                        input.value.slice(0, start) + pasted.replace(/\r\n?|\n/g, ",") +
+                          input.value.slice(end),
+                      );
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") workspace.applyConversationSearch();
                     }}
@@ -868,7 +887,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
               </div>
               <div className="cs-conversation-list-scroll">
                 {workspace.conversationsError && (
-                  <div className="form-error">{workspace.conversationsError}</div>
+                  <div className="form-error" role="alert">
+                    {conversationSearchErrorKey
+                      ? t(conversationSearchErrorKey)
+                      : workspace.conversationsError}
+                  </div>
                 )}
                 {workspace.conversationsLoading && conversationItems.length === 0 ? (
                   <div className="affiliate-proposal-empty">{t("common.loading")}</div>

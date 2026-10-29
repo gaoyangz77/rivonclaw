@@ -2,6 +2,7 @@ import type { IncomingMessage } from "node:http";
 import { API } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
 import { rootStore } from "../app/store/desktop-store.js";
+import { GraphqlRequestError } from "../auth/session.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
@@ -700,7 +701,12 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
           ? err.message
           : "Cloud GraphQL request failed";
     log.warn(`Cloud GraphQL proxy error (op=${opName ?? "unknown"}): ${detail}`);
-    sendJson(res, 200, { errors: [{ message: detail }] });
+    sendJson(res, 200, {
+      errors: [{
+        message: detail,
+        ...(err instanceof GraphqlRequestError && err.code ? { extensions: { code: err.code } } : {}),
+      }],
+    });
   }
 };
 
