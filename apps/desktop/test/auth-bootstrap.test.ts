@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { invalidateToolSpecsCache } from "../src/cloud/tool-specs-sync.js";
 import { bootstrapDesktopAuthState } from "../src/app/bootstrap-auth-state.js";
 import {
   INIT_ADS_ADVERTISERS_QUERY,
@@ -12,6 +13,9 @@ import {
   INIT_WMS_ACCOUNTS_QUERY,
   TOOL_SPECS_SYNC_QUERY,
 } from "../src/cloud/init-queries.js";
+
+const log = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+vi.mock("@rivonclaw/logger", () => ({ createLogger: () => log }));
 
 function createStore() {
   const state = {
@@ -93,6 +97,47 @@ function expectNoUnsupportedAdsStoreAccessFields(query: string) {
 describe("bootstrapDesktopAuthState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    invalidateToolSpecsCache();
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it("identifies a pending query and waits for all required startup queries", async () => {
+    vi.useFakeTimers();
+    const store = createStore();
+    let finishBilling!: (value: Record<string, unknown>) => void;
+    const billing = new Promise<Record<string, unknown>>((resolve) => {
+      finishBilling = resolve;
+    });
+    const authSession = {
+      getAccessToken: () => "token",
+      validate: async () => ({ enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"] }),
+      graphqlFetch: vi.fn(async (query: string) => {
+        if (query === INIT_BILLING_OVERVIEW_QUERY) return billing;
+        return query === TOOL_SPECS_SYNC_QUERY ? { toolSpecs: [] } : {};
+      }),
+    };
+    const pending = bootstrapDesktopAuthState(authSession, store);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(authSession.graphqlFetch).toHaveBeenCalledTimes(10);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_SHOPS_QUERY);
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(INIT_ADS_ADVERTISERS_QUERY);
+    expect(store.state.authBootstrap.status).toBe("loading");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(log.warn).toHaveBeenCalledWith(
+      "Startup query still pending",
+      expect.objectContaining({ query: "BillingOverview" }),
+    );
+    expect(log.warn).toHaveBeenCalledTimes(1);
+    finishBilling({ billingOverview: { accountLlm: null, shops: [] } });
+    await pending;
+    expect(store.state.authBootstrap.status).toBe("ready");
+    expect(log.info).toHaveBeenCalledWith(
+      "Startup query completed",
+      expect.objectContaining({ query: "BillingOverview" }),
+    );
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(log.warn).toHaveBeenCalledTimes(1);
   });
 
   it("re-fetches ecommerce account state after clearing stale cloud caches", async () => {

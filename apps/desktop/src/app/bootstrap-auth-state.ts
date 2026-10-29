@@ -10,8 +10,39 @@ import {
   INIT_INVENTORY_GOODS_QUERY,
 } from "../cloud/init-queries.js";
 import { syncDesktopToolSpecs } from "../cloud/tool-specs-sync.js";
+import { createLogger } from "@rivonclaw/logger";
 
 const ECOMMERCE_MODULE_ID = "GLOBAL_ECOMMERCE_SELLER";
+const log = createLogger("auth-bootstrap");
+
+async function measureBootstrapQuery<T>(name: string, run: () => Promise<T>): Promise<T> {
+  const startedAt = performance.now();
+  log.info("Startup query started", { query: name });
+  const slowTimer = setTimeout(() => {
+    log.warn("Startup query still pending", {
+      query: name,
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+  }, 10_000);
+  slowTimer.unref();
+  try {
+    const result = await run();
+    log.info("Startup query completed", {
+      query: name,
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+    return result;
+  } catch (error) {
+    log.warn("Startup query failed", {
+      query: name,
+      durationMs: Math.round(performance.now() - startedAt),
+      error,
+    });
+    throw error;
+  } finally {
+    clearTimeout(slowTimer);
+  }
+}
 
 type BootstrapStatus = "signed_out" | "loading" | "ready" | "error";
 
@@ -63,7 +94,7 @@ export async function bootstrapDesktopAuthState(
   rootStore.setAuthBootstrap("loading", null);
 
   try {
-    const me = await authSession.validate();
+    const me = await measureBootstrapQuery("Me", () => authSession.validate());
     if (!me) {
       if (!authSession.getAccessToken()) {
         rootStore.clearCloudEntities();
@@ -73,30 +104,37 @@ export async function bootstrapDesktopAuthState(
       throw new Error("Failed to load account profile");
     }
 
-    const queries = [INIT_SURFACES_QUERY, INIT_RUN_PROFILES_QUERY];
-
-    queries.push(INIT_PLATFORM_APPS_QUERY, INIT_BILLING_OVERVIEW_QUERY);
+    const queries: Array<[string, string]> = [
+      ["Surfaces", INIT_SURFACES_QUERY],
+      ["RunProfiles", INIT_RUN_PROFILES_QUERY],
+      ["PlatformApps", INIT_PLATFORM_APPS_QUERY],
+      ["BillingOverview", INIT_BILLING_OVERVIEW_QUERY],
+    ];
 
     const hasEcommerceModule = me.enrolledModules?.includes(ECOMMERCE_MODULE_ID) ?? false;
     if (hasEcommerceModule) {
       queries.push(
-        INIT_SHOPS_QUERY,
-        INIT_ADS_ADVERTISERS_QUERY,
-        INIT_WMS_ACCOUNTS_QUERY,
-        INIT_WAREHOUSES_QUERY,
-        INIT_INVENTORY_GOODS_QUERY,
+        ["Shops", INIT_SHOPS_QUERY],
+        ["AdsAdvertisers", INIT_ADS_ADVERTISERS_QUERY],
+        ["WmsAccounts", INIT_WMS_ACCOUNTS_QUERY],
+        ["Warehouses", INIT_WAREHOUSES_QUERY],
+        ["InventoryGoods", INIT_INVENTORY_GOODS_QUERY],
       );
     }
 
     rootStore.ingestGraphQLResponse({ me });
 
     const results = await Promise.allSettled([
-      syncDesktopToolSpecs({
-        authSession,
-        ingest: false,
-        source: "auth-bootstrap",
-      }).then((snapshot) => snapshot.data),
-      ...queries.map((query) => fetchBootstrapQuery(authSession, query)),
+      measureBootstrapQuery("ToolSpecsSync", () =>
+        syncDesktopToolSpecs({
+          authSession,
+          ingest: false,
+          source: "auth-bootstrap",
+        }).then((snapshot) => snapshot.data),
+      ),
+      ...queries.map(([name, query]) =>
+        measureBootstrapQuery(name, () => fetchBootstrapQuery(authSession, query)),
+      ),
     ]);
 
     rootStore.clearCloudDataExceptUser({ preserveShops: hasEcommerceModule });
