@@ -53,6 +53,7 @@ import {
 } from "../../components/design-system/index.js";
 import type {
   ConversationAiFilter,
+  ConversationBadReviewFilter,
   ConversationEscalationFilter,
   ConversationStatusFilter,
   EscalationStatusFilter,
@@ -175,7 +176,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     openConversationOrderKey ===
       `${workspace.selectedConversationShopId}:${workspace.selectedConversationId}`;
   const [conversationAdvancedFiltersOpen, setConversationAdvancedFiltersOpen] = useState(
-    workspace.conversationAiFilter !== "all" || workspace.conversationEscalationFilter !== "all",
+    workspace.conversationAiFilter !== "all" ||
+      workspace.conversationEscalationFilter !== "all" ||
+      workspace.conversationBadReviewFilter !== "all",
   );
   const [dismissEscalationConfirm, setDismissEscalationConfirm] =
     useState<DismissEscalationConfirm | null>(null);
@@ -216,6 +219,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     workspace.conversationStatusFilter,
     workspace.conversationAiFilter,
     workspace.conversationEscalationFilter,
+    workspace.conversationBadReviewFilter,
     workspace.conversationSearch,
     workspace.conversationPage,
     workspace.conversationPageSize,
@@ -806,6 +810,25 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       {
                         value: "none",
                         label: t("ecommerce.customerServiceWorkspace.escalationNone"),
+                      },
+                    ]}
+                  />
+                </FilterField>
+                <FilterField label={t("ecommerce.customerServiceWorkspace.filterBadReviewState")}>
+                  <Select
+                    ariaLabel={t("ecommerce.customerServiceWorkspace.filterBadReviewState")}
+                    value={workspace.conversationBadReviewFilter}
+                    onChange={(value) =>
+                      workspace.setConversationBadReviewFilter(value as ConversationBadReviewFilter)
+                    }
+                    options={[
+                      {
+                        value: "all",
+                        label: t("ecommerce.customerServiceWorkspace.badReviewAll"),
+                      },
+                      {
+                        value: "hasBadReview",
+                        label: t("ecommerce.customerServiceWorkspace.hasBadReview"),
                       },
                     ]}
                   />

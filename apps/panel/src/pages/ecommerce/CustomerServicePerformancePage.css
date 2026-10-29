@@ -78,7 +78,7 @@
 
 .cs-conversation-filter-secondary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(150px, 220px));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
   align-items: end;
   gap: 12px;
   min-width: 0;

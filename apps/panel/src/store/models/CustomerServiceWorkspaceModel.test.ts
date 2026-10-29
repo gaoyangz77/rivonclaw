@@ -4,6 +4,7 @@ import { CustomerServiceWorkspaceModel } from "./CustomerServiceWorkspaceModel.j
 import {
   CS_CONVERSATION_ORDER_IDS_QUERY,
   CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+  CS_CONVERSATION_INBOX_QUERY,
 } from "../../api/shops-queries.js";
 
 function conversation(orderId: string | null = "order-1") {
@@ -19,6 +20,85 @@ function conversation(orderId: string | null = "order-1") {
     openEscalationCount: 0,
   };
 }
+
+describe("CustomerServiceWorkspaceModel bad review filter", () => {
+  const reviews = [{ id: "review-1", rating: 1 }];
+
+  function changed(recentBadReviews?: typeof reviews) {
+    return {
+      conversation: {
+        ...conversation(),
+        replyStatus: GQL.CustomerServiceConversationStatus.Pending,
+        participants: [{ role: "BUYER", userId: "buyer-1" }],
+        ...(recentBadReviews === undefined ? {} : { recentBadReviews }),
+      },
+    };
+  }
+
+  it("passes the filter to the server and resets page and selection when changed", async () => {
+    const row = { ...conversation(), recentBadReviews: reviews };
+    const query = vi.fn().mockResolvedValue({
+      data: { ecommerceGetCustomerServiceInbox: { items: [row], totalCount: 73 } },
+    });
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationItems: [row], conversationPage: 3, conversationShopId: "shop-1" },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    store.setConversationBadReviewFilter("hasBadReview");
+    expect(store.conversationPage).toBe(1);
+    expect(store.selectedConversationId).toBeNull();
+    expect(store.selectedConversationShopId).toBeNull();
+
+    await store.fetchConversations();
+    expect(query).toHaveBeenLastCalledWith(expect.objectContaining({
+      query: CS_CONVERSATION_INBOX_QUERY,
+      variables: expect.objectContaining({ hasBadReview: true, shopIds: ["shop-1"], offset: 0 }),
+    }));
+    expect(store.filteredConversationItems).toEqual([row]);
+    expect(store.conversationTotal).toBe(73);
+
+    store.setConversationBadReviewFilter("all");
+    await store.fetchConversations();
+    expect(query).toHaveBeenLastCalledWith(expect.objectContaining({
+      variables: expect.objectContaining({ hasBadReview: undefined }),
+    }));
+  });
+
+  it("ignores unrelated live conversations but accepts events with bad reviews", () => {
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationBadReviewFilter: "hasBadReview" },
+      { apolloClient: {} as any },
+    );
+    store.ingestConversationChanged(changed());
+    expect(store.conversationTotal).toBe(0);
+    expect(store.conversationItems).toHaveLength(0);
+    store.ingestConversationChanged(changed(reviews));
+    expect(store.conversationTotal).toBe(1);
+    expect(store.conversationItems[0].recentBadReviews).toEqual(reviews);
+  });
+
+  it("preserves inbox review enrichment when message events omit it", () => {
+    const store = CustomerServiceWorkspaceModel.create(
+      {
+        conversationBadReviewFilter: "hasBadReview",
+        conversationItems: [{ ...conversation(), recentBadReviews: reviews }],
+        conversationTotal: 1,
+      },
+      { apolloClient: {} as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    store.ingestConversationChanged(changed());
+    expect(store.conversationItems[0].recentBadReviews).toEqual(reviews);
+    expect(store.conversationTotal).toBe(1);
+    expect(store.selectedConversationId).toBe("conversation-1");
+
+    store.ingestConversationChanged(changed([]));
+    expect(store.conversationItems).toHaveLength(0);
+    expect(store.conversationTotal).toBe(0);
+    expect(store.selectedConversationId).toBeNull();
+  });
+});
 
 describe("CustomerServiceWorkspaceModel order context", () => {
   it("loads and caches the selected conversation order with its returns", async () => {

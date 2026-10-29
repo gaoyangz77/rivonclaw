@@ -618,6 +618,8 @@ export const CustomerServiceWorkspaceModel = types
         return false;
       if (self.conversationEscalationFilter === "none" && item.openEscalationCount > 0)
         return false;
+      if (self.conversationBadReviewFilter === "hasBadReview" && !item.recentBadReviews?.length)
+        return false;
       const matchesExistingResult = !!search && self.conversationItems.some(
         (candidate) => candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
       );
@@ -687,12 +689,18 @@ export const CustomerServiceWorkspaceModel = types
       },
       ingestConversationChanged(raw: unknown) {
         const snapshot = readConversationChanged(raw);
-        const item = snapshot ? conversationSnapshotToInboxItem(snapshot) : null;
-        if (!item) return;
-        const existed = self.conversationItems.some(
+        const incoming = snapshot ? conversationSnapshotToInboxItem(snapshot) : null;
+        if (!incoming) return;
+        const existing = self.conversationItems.find(
           (candidate) =>
-            candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
+            candidate.shopId === incoming.shopId && candidate.conversationId === incoming.conversationId,
         );
+        // Message events can omit the review enrichment supplied by the inbox query.
+        const item = {
+          ...incoming,
+          recentBadReviews: snapshot?.recentBadReviews ?? existing?.recentBadReviews ?? [],
+        };
+        const existed = Boolean(existing);
         if (!shouldShowConversation(item)) {
           if (existed) {
             removeConversation(item);
@@ -850,6 +858,7 @@ export const CustomerServiceWorkspaceModel = types
               status: statusForConversationFilter(self.conversationStatusFilter),
               aiEnabled: aiEnabledForFilter(self.conversationAiFilter),
               escalation: escalationForConversationFilter(self.conversationEscalationFilter),
+              hasBadReview: self.conversationBadReviewFilter === "hasBadReview" ? true : undefined,
               search: self.conversationSearch || undefined,
               limit: self.conversationPageSize,
               offset: (self.conversationPage - 1) * self.conversationPageSize,
