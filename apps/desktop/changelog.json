@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.43",
+    "date": "2026-10-28",
+    "en": [
+      "Paste image drafts into customer service and Affiliate replies, and retain drafts after partial send failures",
+      "Show the update installing state before shutdown cleanup",
+      "Defer product category loading and persist weekly caches for each language"
+    ],
+    "zh": [
+      "客服与达人联盟回复支持粘贴图片，并在部分发送失败时保留草稿",
+      "更新安装前先展示安装状态，再执行退出清理",
+      "延迟加载商品类目，并按语言持久化每周缓存"
+    ]
+  },
+  {
     "version": "1.9.42",
     "date": "2026-10-28",
     "en": [
