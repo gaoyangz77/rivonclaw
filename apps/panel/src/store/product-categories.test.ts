@@ -29,7 +29,10 @@ beforeEach(() => {
     currentUser: { userId: "owner", email: "test@example.com", createdAt: "2026-10-23" },
   } as any);
 });
-afterEach(() => entityStore.clearAuth());
+afterEach(() => {
+  entityStore.clearAuth();
+  vi.useRealTimers();
+});
 
 it("ingests immediately without SSE, merges requests and preserves names on failure", async () => {
   query.mockResolvedValueOnce({ data: { productCategories: catalog } });
@@ -61,9 +64,21 @@ it("does not ingest a late response after logout", async () => {
   expect(entityStore.categories.size).toBe(0);
 });
 
-it("does not let a concurrent lazy request suppress a forced language reload", async () => {
+it("does not let a concurrent lazy request suppress an explicit refresh", async () => {
   query.mockResolvedValue({ data: { productCategories: catalog } });
-  await Promise.all([entityStore.ensureCategories("zh"), entityStore.ensureCategories("zh", { force: true })]);
+  await Promise.all([
+    entityStore.ensureCategories("zh"),
+    entityStore.ensureCategories("zh", { force: true }),
+  ]);
   expect(query).toHaveBeenCalledTimes(2);
   expect(query.mock.calls[1][0].context.forceCategoriesRefresh).toBe(true);
+});
+
+it("reuses a six-day-old locale when switching back to it", async () => {
+  query.mockResolvedValueOnce({ data: { productCategories: catalog } });
+  await entityStore.ensureCategories("zh");
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.now() + 6 * 24 * 60 * 60 * 1000);
+  await entityStore.ensureCategories("zh");
+  expect(query).toHaveBeenCalledTimes(1);
 });

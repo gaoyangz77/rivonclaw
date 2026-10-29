@@ -128,7 +128,6 @@ import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
 import { catchUpAffiliateEscalationNotifications } from "../affiliate/affiliate-escalation-notification-actuator.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
-import { ensureDesktopCategories } from "../cloud/product-categories-sync.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
 import { configureFeishuCsCallbackRuntime } from "../channels/feishu-cs-callback-config.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
@@ -616,15 +615,15 @@ app.whenReady().then(async () => {
     },
   );
   const initialAuthBootstrapPromise = (async () => {
+    const startedAt = performance.now();
     const transitionId = rootStore.beginAuthLifecycle("startup");
     try {
       await bootstrapDesktopAuthState(authSession, rootStore);
-      await ensureDesktopCategories(authSession, storage.settings.get("locale") ?? locale, { force: true })
-        .catch(error => log.warn("Failed to load product category dictionary:", error));
     } catch (err) {
       log.warn("Failed to bootstrap desktop auth state:", err);
     } finally {
       rootStore.finishAuthLifecycle(transitionId);
+      log.info(`Initial auth bootstrap settled in ${Math.round(performance.now() - startedAt)}ms`);
     }
   })();
 
@@ -824,12 +823,18 @@ app.whenReady().then(async () => {
 
   await initialAuthBootstrapPromise;
 
+  // Category dictionaries are loaded on demand through the cloud API. They
+  // are not required for gateway contracts or for displaying the main window.
+  const merchantStageStartedAt = performance.now();
   let merchantExtensionPaths = await stageMerchantExtensionsForCloudTools({
     sourceMerchantExtensionsDir: merchantExtensionsDir,
     stateDir,
     toolNames: rootStore.entitledTools.map((tool) => tool.name),
     logger: log,
   });
+  log.info(
+    `Merchant extension staging completed in ${Math.round(performance.now() - merchantStageStartedAt)}ms`,
+  );
 
   // Setup gateway: launcher, config builder, event dispatcher, connection deps
   const { launcher, buildFullGatewayConfig } = await setupGateway({
@@ -1606,8 +1611,6 @@ app.whenReady().then(async () => {
           resetAgentToolingReadiness(action);
           stopCsBridge(CS_ADMISSION_CANCEL_REASON.AUTH_CHANGE);
           await bootstrapDesktopAuthState(authSession, rootStore);
-          await ensureDesktopCategories(authSession, storage.settings.get("locale") ?? locale, { force: true })
-            .catch(error => log.warn("Failed to load product category dictionary:", error));
           const nextToolNameDigest = getEntitledToolNameDigest();
           const nextAgentToolingDigest = getAgentToolingDigest();
           const toolNamesChanged = previousToolNameDigest !== nextToolNameDigest;

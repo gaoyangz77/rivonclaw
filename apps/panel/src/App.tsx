@@ -38,6 +38,7 @@ import { PageErrorBoundary } from "./components/PageErrorBoundary.js";
 import { WorkspaceTabActivity } from "./components/WorkspaceTabActivity.js";
 import { TkConfirmDialog } from "./components/design-system/index.js";
 import { useToast } from "./components/Toast.js";
+import { useProductCategoryWarmup } from "./hooks/useProductCategoryWarmup.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -100,16 +101,12 @@ export const App = observer(function App() {
   const authBootstrapLoading = (entityStore as any).authBootstrap?.status === "loading";
   const currentUserId = entityStore.currentUser?.userId ?? null;
   const categoriesLocale = normalizeLanguageCode(i18n.resolvedLanguage ?? i18n.language);
-  const lastCategoryLocale = useRef<string | null>(null);
-  useEffect(() => {
-    if (!currentUserId) { lastCategoryLocale.current = null; return; }
-    if (authBootstrapLoading) return;
-    const force = lastCategoryLocale.current !== null && lastCategoryLocale.current !== categoriesLocale;
-    lastCategoryLocale.current = categoriesLocale;
-    void entityStore.ensureCategories(categoriesLocale, { force }).catch(error => {
-      console.warn("Failed to load product category dictionary", error);
-    });
-  }, [currentUserId, categoriesLocale, authBootstrapLoading]);
+  useProductCategoryWarmup(
+    currentUserId,
+    entityStore.categorySession,
+    categoriesLocale,
+    showWelcome === false && !authBootstrapLoading,
+  );
   const currentUserIsOwner = entityStore.currentUser?.isOwner ?? true;
   const currentUserScopes = entityStore.currentUser?.permissionScopes.join(",") ?? "";
   const workspaceController = useWorkspaceTabs({

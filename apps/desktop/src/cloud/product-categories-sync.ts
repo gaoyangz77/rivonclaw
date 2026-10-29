@@ -2,6 +2,10 @@ import type { GQL } from "@rivonclaw/core";
 import { PRODUCT_CATEGORIES_QUERY, PRODUCT_CATEGORY_CACHE_TTL_MS } from "@rivonclaw/core/models";
 import { rootStore } from "../app/store/desktop-store.js";
 import { normalizeAppLocale } from "../i18n/locale.js";
+import { createLogger } from "@rivonclaw/logger";
+import { readProductCategoryCache, writeProductCategoryCache } from "./product-category-cache.js";
+
+const log = createLogger("product-categories-sync");
 
 interface CategorySession {
   graphqlFetch<T = Record<string, unknown>>(
@@ -57,10 +61,37 @@ export async function ensureDesktopCategories(
   }
   rootStore.beginCategoryLoad(locale);
   const task = (async () => {
+    const startedAt = performance.now();
     try {
+      if (!options.force) {
+        try {
+          const persisted = await readProductCategoryCache(locale);
+          if (rootStore.categorySession !== session || rootStore.currentUser?.userId !== userId) {
+            throw new Error("Category request belongs to an expired account session");
+          }
+          if (
+            persisted &&
+            Date.now() - new Date(persisted.fetchedAt).getTime() < PRODUCT_CATEGORY_CACHE_TTL_MS
+          ) {
+            rootStore.ingestCategoryCatalog(persisted);
+            log.info("Product category catalog restored from disk", {
+              locale,
+              items: persisted.items.length,
+              totalMs: Math.round(performance.now() - startedAt),
+            });
+            return persisted;
+          }
+        } catch (error) {
+          if (rootStore.categorySession !== session || rootStore.currentUser?.userId !== userId) {
+            throw error;
+          }
+          log.warn("Failed to restore product category disk cache; fetching catalog", error);
+        }
+      }
       const response = await authSession.graphqlFetch<{
         productCategories: GQL.ProductCategoryCatalog;
       }>(PRODUCT_CATEGORIES_QUERY, { locale });
+      const fetchedAt = performance.now();
       const catalog = response.productCategories;
       if (
         !catalog ||
@@ -75,6 +106,19 @@ export async function ensureDesktopCategories(
         throw new Error("Category request belongs to an expired account session");
       }
       rootStore.ingestCategoryCatalog(catalog);
+      const completedAt = performance.now();
+      log.info("Product category catalog loaded", {
+        locale,
+        items: catalog.items.length,
+        fetchMs: Math.round(fetchedAt - startedAt),
+        ingestMs: Math.round(completedAt - fetchedAt),
+        totalMs: Math.round(completedAt - startedAt),
+      });
+      try {
+        await writeProductCategoryCache(catalog);
+      } catch (error) {
+        log.warn("Failed to persist product category disk cache", error);
+      }
       return catalog;
     } catch (error) {
       if (rootStore.categorySession === session && rootStore.currentUser?.userId === userId) {

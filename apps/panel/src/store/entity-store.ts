@@ -303,7 +303,7 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         const session = self.categorySession;
         const key = `${userId}:${session}:${locale}`;
         const existing = categoryRequests.get(key);
-        // A language switch must not be satisfied by an earlier lazy cache read.
+        // An explicit refresh must not be satisfied by an earlier lazy cache read.
         if (options.force && existing && !existing.force) {
           yield existing.promise;
           if (self.categorySession !== session || self.currentUser?.userId !== userId) return;

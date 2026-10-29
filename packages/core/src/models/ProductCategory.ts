@@ -33,7 +33,7 @@ export const ProductCategoryCacheModel = types.model("ProductCategoryCache", {
   error: types.maybeNull(types.string),
 });
 
-export const PRODUCT_CATEGORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+export const PRODUCT_CATEGORY_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const PRODUCT_CATEGORIES_QUERY = `
   query ProductCategoriesSync($locale: String!) {

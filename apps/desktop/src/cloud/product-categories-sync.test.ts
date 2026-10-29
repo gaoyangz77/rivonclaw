@@ -5,6 +5,12 @@ import { applyPatch, getSnapshot } from "mobx-state-tree";
 import { rootStore, subscribeToPatch } from "../app/store/desktop-store.js";
 import { ensureDesktopCategories } from "./product-categories-sync.js";
 
+const diskCache = vi.hoisted(() => ({ read: vi.fn(), write: vi.fn() }));
+vi.mock("./product-category-cache.js", () => ({
+  readProductCategoryCache: diskCache.read,
+  writeProductCategoryCache: diskCache.write,
+}));
+
 const catalog = (locale = "zh", name = "美妆个护"): GQL.ProductCategoryCatalog => ({
   locale,
   fetchedAt: new Date().toISOString(),
@@ -29,6 +35,8 @@ function login(userId = "owner") {
   });
 }
 beforeEach(() => {
+  diskCache.read.mockReset().mockResolvedValue(null);
+  diskCache.write.mockReset().mockResolvedValue(undefined);
   rootStore.clearCloudEntities();
   login();
 });
@@ -38,7 +46,7 @@ afterEach(() => {
 });
 
 describe("Desktop category lifecycle", () => {
-  it("deduplicates concurrent loads, caches for 24 hours and supports forced language reloads", async () => {
+  it("deduplicates concurrent loads, caches for seven days and supports explicit refresh", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({ productCategories: catalog() });
     await Promise.all([
       ensureDesktopCategories({ graphqlFetch }, "zh"),
@@ -50,6 +58,9 @@ describe("Desktop category lifecycle", () => {
     await ensureDesktopCategories({ graphqlFetch }, "zh", { force: true });
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
     vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 6 * 24 * 60 * 60 * 1000);
+    await ensureDesktopCategories({ graphqlFetch }, "zh");
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
     vi.setSystemTime(Date.now() + PRODUCT_CATEGORY_CACHE_TTL_MS + 1);
     await ensureDesktopCategories({ graphqlFetch }, "zh");
     expect(graphqlFetch).toHaveBeenCalledTimes(3);
@@ -69,6 +80,7 @@ describe("Desktop category lifecycle", () => {
       )
       .mockResolvedValueOnce({ productCategories: catalog("en", "Beauty & Personal Care") });
     const chinese = ensureDesktopCategories({ graphqlFetch }, "zh");
+    await vi.waitFor(() => expect(graphqlFetch).toHaveBeenCalledTimes(1));
     await ensureDesktopCategories({ graphqlFetch }, "en");
     release({ productCategories: catalog() });
     await chinese;
@@ -102,6 +114,7 @@ describe("Desktop category lifecycle", () => {
         }),
     );
     const pending = ensureDesktopCategories({ graphqlFetch }, "zh");
+    await vi.waitFor(() => expect(graphqlFetch).toHaveBeenCalledTimes(1));
     rootStore.clearUser();
     login();
     release({ productCategories: catalog() });
@@ -124,5 +137,66 @@ describe("Desktop category lifecycle", () => {
     } finally {
       stop();
     }
+  });
+
+  it("reuses the persisted catalog after clearing in-memory account state", async () => {
+    const saved = catalog();
+    const graphqlFetch = vi.fn().mockResolvedValue({ productCategories: saved });
+    await ensureDesktopCategories({ graphqlFetch }, "zh");
+    expect(diskCache.write).toHaveBeenCalledWith(saved);
+
+    rootStore.clearCloudEntities();
+    login();
+    diskCache.read.mockResolvedValue(saved);
+    await ensureDesktopCategories({ graphqlFetch }, "zh");
+
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
+    expect(rootStore.productCategoryName("zh", "FR", "601450")).toBe("美妆个护");
+    expect(rootStore.categories.get("zh")?.fetchedAt).toBe(Date.parse(saved.fetchedAt));
+  });
+
+  it("refreshes an expired disk catalog and bypasses disk on explicit refresh", async () => {
+    const expired = {
+      ...catalog(),
+      fetchedAt: new Date(Date.now() - PRODUCT_CATEGORY_CACHE_TTL_MS - 1).toISOString(),
+    };
+    diskCache.read.mockResolvedValue(expired);
+    const fresh = catalog();
+    const graphqlFetch = vi.fn().mockResolvedValue({ productCategories: fresh });
+    await ensureDesktopCategories({ graphqlFetch }, "zh");
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
+    expect(diskCache.write).toHaveBeenCalledWith(fresh);
+
+    diskCache.read.mockClear();
+    await ensureDesktopCategories({ graphqlFetch }, "zh", { force: true });
+    expect(diskCache.read).not.toHaveBeenCalled();
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("recovers from a corrupt disk cache and keeps fresh data when cache writes fail", async () => {
+    diskCache.read.mockRejectedValue(new Error("invalid gzip"));
+    diskCache.write.mockRejectedValue(new Error("disk full"));
+    const graphqlFetch = vi.fn().mockResolvedValue({ productCategories: catalog() });
+    await ensureDesktopCategories({ graphqlFetch }, "zh");
+    expect(rootStore.productCategoryName("zh", "FR", "601450")).toBe("美妆个护");
+    expect(rootStore.categories.get("zh")?.error).toBeNull();
+  });
+
+  it("does not restore a disk result from an expired account session", async () => {
+    let release!: (value: GQL.ProductCategoryCatalog) => void;
+    diskCache.read.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const graphqlFetch = vi.fn();
+    const pending = ensureDesktopCategories({ graphqlFetch }, "zh");
+    rootStore.clearUser();
+    login();
+    release(catalog());
+    await expect(pending).rejects.toThrow("expired account session");
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(rootStore.categories.size).toBe(0);
   });
 });
