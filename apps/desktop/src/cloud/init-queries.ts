@@ -225,9 +225,7 @@ export const INIT_SHOPS_QUERY = `
   }
 `;
 
-export const INIT_ADS_ADVERTISERS_QUERY = `
-  query {
-    adsAdvertisers {
+const ADS_ADVERTISER_FIELDS = `
       __typename
       id
       userId
@@ -249,8 +247,9 @@ export const INIT_ADS_ADVERTISERS_QUERY = `
         lastRefreshedAt
         lastError
       }
-    }
-    adsStoreAccesses(status: ACTIVE) {
+`;
+
+const ADS_STORE_ACCESS_FIELDS = `
       __typename
       id
       userId
@@ -268,7 +267,19 @@ export const INIT_ADS_ADVERTISERS_QUERY = `
       exclusiveAuthorizationStatus
       createdAt
       updatedAt
-    }
+`;
+
+export const INIT_ADS_ADVERTISERS_QUERY = `
+  query {
+    adsAdvertisers { ${ADS_ADVERTISER_FIELDS} }
+    adsStoreAccesses(status: ACTIVE) { ${ADS_STORE_ACCESS_FIELDS} }
+  }
+`;
+
+export const ADS_ENTITY_DELTA_QUERY = `
+  query AdsEntityDelta($ids: [ID!]!) {
+    adsAdvertisers(ids: $ids) { ${ADS_ADVERTISER_FIELDS} }
+    adsStoreAccesses(adsAdvertiserIds: $ids, status: ACTIVE) { ${ADS_STORE_ACCESS_FIELDS} }
   }
 `;
 

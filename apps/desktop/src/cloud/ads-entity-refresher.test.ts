@@ -12,7 +12,7 @@ function deferred() {
 }
 
 describe("Ads entity invalidation refresh", () => {
-  it("bounds a 100-event sync burst to one active snapshot and one trailing snapshot", async () => {
+  it("bounds a 100-event sync burst to one active delta and one trailing delta", async () => {
     const first = deferred();
     const last = deferred();
     const refresh = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(last.promise);
@@ -23,12 +23,14 @@ describe("Ads entity invalidation refresh", () => {
       enqueue({ platform: "TIKTOK_ADS", advertiserIds: [`ads-${i}`], advertiserCount: 1 });
     }
     expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh.mock.calls[0][0]).toEqual(["ads-0"]);
     first.resolve();
     await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
     expect(onRefreshed).toHaveBeenCalledTimes(1);
     last.resolve();
     await vi.waitFor(() => expect(onRefreshed).toHaveBeenCalledTimes(2));
     expect(onRefreshed.mock.calls[1][0].advertiserIds).toHaveLength(99);
+    expect(refresh.mock.calls[1][0]).toEqual(onRefreshed.mock.calls[1][0].advertiserIds);
     const ids = onRefreshed.mock.calls.flatMap(([payload]) => payload.advertiserIds);
     expect(new Set(ids).size).toBe(100);
     expect(onError).not.toHaveBeenCalled();

@@ -308,7 +308,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
       oauthCompletionHandledRef.current = true;
       cleanupOAuthWait();
-      void handleRefresh();
+      // Desktop applies the scoped Ads delta and streams MST patches to this Panel.
       showToast(t("adsManagement.oauthSuccess"), "success");
     });
   }

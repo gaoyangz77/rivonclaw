@@ -13768,6 +13768,7 @@ export interface QueryAdsAdvertiserArgs {
 }
 
 export interface QueryAdsAdvertisersArgs {
+  ids?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   status?: InputMaybe<AdsAdvertiserAuthStatus>;
 }
 
@@ -13777,6 +13778,7 @@ export interface QueryAdsStoreAccessArgs {
 
 export interface QueryAdsStoreAccessesArgs {
   adsAdvertiserId?: InputMaybe<Scalars["ID"]["input"]>;
+  adsAdvertiserIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   advertiserId?: InputMaybe<Scalars["String"]["input"]>;
   status?: InputMaybe<AdsStoreAccessStatus>;
   storeId?: InputMaybe<Scalars["String"]["input"]>;

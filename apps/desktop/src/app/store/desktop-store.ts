@@ -2,12 +2,15 @@ import {
   onPatch,
   applySnapshot,
   getSnapshot,
+  getChildType,
+  typecheck,
   types,
   type IJsonPatch,
   type Instance,
 } from "mobx-state-tree";
 import { RootStoreModel, productCategoryCacheSnapshot } from "@rivonclaw/core/models";
 import type { GQL } from "@rivonclaw/core";
+import type { AdsEntityDelta } from "../../cloud/ads-entity-delta.js";
 import { SYSTEM_TOOL_CATALOG } from "../../generated/system-tool-catalog.js";
 import {
   LLMProviderManagerModel,
@@ -342,6 +345,50 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
           };
         }),
       );
+    },
+
+    /** Replace only the notified advertiser scopes, including removed ACTIVE accesses. */
+    applyAdsEntityDelta(advertiserIds: readonly string[], data: AdsEntityDelta) {
+      const scope = new Set(advertiserIds);
+      const prepare = (target: any, rows: unknown[], scopeKey: string) => {
+        if (!Array.isArray(rows)) throw new Error("Incomplete Ads delta response");
+        const existing = new Map<string, any>(target.map((row: any) => [row.id, row]));
+        const snapshots = new Map<string, any>();
+        for (const raw of rows) {
+          const row = sanitizeForMst(raw) as Record<string, any>;
+          if (!row || typeof row.id !== "string" || !scope.has(row[scopeKey])) {
+            throw new Error("Ads entity outside requested delta scope");
+          }
+          if (snapshots.has(row.id)) throw new Error("Duplicate Ads entity in delta");
+          const previous = existing.get(row.id);
+          if (previous && !scope.has(previous[scopeKey])) {
+            throw new Error("Ads delta conflicts with an unrelated account");
+          }
+          const snapshot = {
+            ...(previous ? (getSnapshot(previous) as Record<string, unknown>) : {}),
+            ...row,
+          };
+          typecheck(getChildType(target), snapshot);
+          snapshots.set(row.id, snapshot);
+        }
+        return { target, existing, snapshots, scopeKey };
+      };
+      // Validate both collections before changing either; partial results must
+      // never clear unrelated accounts or leave half an update in the Panel.
+      const plans = [
+        prepare(self.adsAdvertisers, data.adsAdvertisers, "id"),
+        prepare(self.adsStoreBindings, data.adsStoreAccesses, "adsAdvertiserId"),
+      ];
+      for (const { target, existing, snapshots, scopeKey } of plans) {
+        for (let i = target.length - 1; i >= 0; i--) {
+          if (scope.has(target[i][scopeKey]) && !snapshots.has(target[i].id)) target.splice(i, 1);
+        }
+        for (const [id, snapshot] of snapshots) {
+          const previous = existing.get(id);
+          if (previous) applySnapshot(previous, snapshot);
+          else target.push(snapshot);
+        }
+      }
     },
 
     /**

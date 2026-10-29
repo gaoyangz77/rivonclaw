@@ -10,7 +10,8 @@ import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-servic
 import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item-actuator.js";
 import { AffiliateCampaignSearchPlanActuator } from "../affiliate/affiliate-campaign-search-plan-actuator.js";
 import { uploadCurrentLog } from "../logs/upload-current-log.js";
-import { INIT_ADS_ADVERTISERS_QUERY } from "../cloud/init-queries.js";
+import { when } from "mobx";
+import { fetchAdsEntityDelta } from "../cloud/ads-entity-delta.js";
 import { createAdsEntityRefresher } from "../cloud/ads-entity-refresher.js";
 import {
   catchUpAffiliateEscalationNotifications,
@@ -91,9 +92,21 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   });
 
   const adsRefresher = createAdsEntityRefresher({
-    refresh: () => cloudClient.graphql<Record<string, unknown>>(INIT_ADS_ADVERTISERS_QUERY),
+    refresh: async (ids, signal) => {
+      // A full bootstrap replaces the Ads collections. Apply background deltas only
+      // after it settles so an older startup response cannot overwrite fresh data.
+      if (rootStore.authBootstrap.status === "loading") {
+        await when(() => rootStore.authBootstrap.status !== "loading", { signal });
+      }
+      return fetchAdsEntityDelta(cloudClient, ids, signal);
+    },
     onRefreshed: (payload, data) => {
-      rootStore.ingestGraphQLResponse(data);
+      rootStore.applyAdsEntityDelta(payload.advertiserIds, data);
+      log.info("Applied Ads entity delta", {
+        requestedAdvertisers: payload.advertiserIds.length,
+        advertisers: data.adsAdvertisers.length,
+        storeAccesses: data.adsStoreAccesses.length,
+      });
       broadcastEvent("ads-oauth-complete", payload);
     },
     onError: (error) => log.warn("Failed to refresh Ads entities after OAuth completion:", error),

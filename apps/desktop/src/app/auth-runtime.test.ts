@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { observable, runInAction } from "mobx";
 
 const mocks = vi.hoisted(() => ({
   setAuthSession: vi.fn(),
@@ -13,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   rootStore: {
     upsertShopsFromGraphQL: vi.fn(),
     ingestGraphQLResponse: vi.fn(),
+    applyAdsEntityDelta: vi.fn(),
+    authBootstrap: { status: "ready" },
     findShopByObjectOrPlatformId: vi.fn(),
     getCustomerServiceShopIdsForDevice: vi.fn(() => []),
   },
@@ -136,15 +139,12 @@ vi.mock("../logs/upload-current-log.js", () => ({
   uploadCurrentLog: mocks.uploadCurrentLog,
 }));
 
-vi.mock("../cloud/init-queries.js", () => ({
-  INIT_ADS_ADVERTISERS_QUERY: "query InitAdsAdvertisers { adsAdvertisers { id } }",
-}));
-
 describe("setupAuth backend subscription forwarding", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.rootStore.authBootstrap = observable({ status: "ready" });
     mocks.authSessionLoadFromKeychain.mockResolvedValue(undefined);
-    mocks.cloudGraphql.mockResolvedValue({});
+    mocks.cloudGraphql.mockResolvedValue({ adsAdvertisers: [], adsStoreAccesses: [] });
     mocks.uploadCurrentLog.mockResolvedValue({});
     mocks.handleAffiliateWorkItemChanged.mockResolvedValue(undefined);
     mocks.backendSubscriptionInstances.length = 0;
@@ -190,7 +190,7 @@ describe("setupAuth backend subscription forwarding", () => {
     expect(mocks.handleAffiliateWorkItemChanged).not.toHaveBeenCalled();
   });
 
-  it("coalesces Ads sync notifications before replacing the full Ads snapshot", async () => {
+  it("coalesces Ads sync notifications and applies only the requested account delta", async () => {
     const { setupAuth } = await import("./auth-runtime.js");
     let finish!: (value: Record<string, unknown>) => void;
     mocks.cloudGraphql.mockReturnValueOnce(
@@ -211,12 +211,45 @@ describe("setupAuth backend subscription forwarding", () => {
     const payload = { platform: "TIKTOK_ADS", advertiserIds: ["ads-1"], advertiserCount: 1 };
     for (let i = 0; i < 100; i++) mocks.callbacks.adsOAuthComplete(payload);
     expect(mocks.cloudGraphql).toHaveBeenCalledTimes(1);
-    finish({ adsAdvertisers: [{ id: "ads-1" }] });
+    finish({ adsAdvertisers: [{ id: "ads-1" }], adsStoreAccesses: [] });
     await vi.waitFor(() => expect(mocks.cloudGraphql).toHaveBeenCalledTimes(2));
     await vi.waitFor(() => expect(broadcastEvent).toHaveBeenCalledTimes(2));
-    expect(mocks.rootStore.ingestGraphQLResponse).toHaveBeenCalledWith({
+    expect(mocks.cloudGraphql).toHaveBeenCalledWith(
+      expect.stringContaining("query AdsEntityDelta"),
+      { ids: ["ads-1"] },
+    );
+    expect(mocks.rootStore.applyAdsEntityDelta).toHaveBeenCalledWith(["ads-1"], {
       adsAdvertisers: [{ id: "ads-1" }],
+      adsStoreAccesses: [],
     });
+    expect(mocks.rootStore.ingestGraphQLResponse).not.toHaveBeenCalled();
+  });
+
+  it("waits for full bootstrap, and cancels the old account's wait on session changes", async () => {
+    const { setupAuth } = await import("./auth-runtime.js");
+    mocks.rootStore.authBootstrap = observable({ status: "loading" });
+    const broadcastEvent = vi.fn();
+    await setupAuth({
+      secretStore: { get: vi.fn(), set: vi.fn(), delete: vi.fn(), listKeys: vi.fn() },
+      locale: "en-US",
+      getUiLocale: () => "en-US",
+      deviceId: "device",
+      appVersion: "test",
+      proxyFetch: vi.fn(),
+      broadcastEvent,
+    });
+    const payload = { platform: "TIKTOK_ADS", advertiserIds: ["old"], advertiserCount: 1 };
+    mocks.callbacks.adsOAuthComplete(payload);
+    expect(mocks.cloudGraphql).not.toHaveBeenCalled();
+    mocks.callbacks.adsCredentialsChanged({ reason: "sign_in" });
+    mocks.callbacks.adsOAuthComplete({ ...payload, advertiserIds: ["new"] });
+    runInAction(() => {
+      mocks.rootStore.authBootstrap.status = "ready";
+    });
+    await vi.waitFor(() => expect(broadcastEvent).toHaveBeenCalledTimes(1));
+    expect(mocks.cloudGraphql).toHaveBeenCalledTimes(1);
+    expect(mocks.cloudGraphql).toHaveBeenCalledWith(expect.any(String), { ids: ["new"] });
+    expect(mocks.rootStore.applyAdsEntityDelta).toHaveBeenCalledWith(["new"], expect.any(Object));
   });
 
   it("logs a malformed Affiliate dispatch without losing subsequent subscription notifications", async () => {
