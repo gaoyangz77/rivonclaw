@@ -177,6 +177,7 @@ export const INIT_SHOPS_QUERY = `
       services {
         customerService {
           enabled
+          pickupReminderEnabled
           unpaidOrderReachoutEnabled
           unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }
           unpaidOrderReachoutExperiment { enabled holdoutPercent experimentId startedAt }

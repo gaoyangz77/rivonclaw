@@ -109,6 +109,26 @@ export const BILLING_OVERVIEW_QUERY = gql`
   }
 `;
 
+/**
+ * Account LLM quota only. The periodic quota refresh uses this so it does not
+ * recompute every shop's billing; Desktop merges the selected field into the
+ * stored overview without touching `shops` or `accountServices`.
+ */
+export const ACCOUNT_LLM_BILLING_QUERY = gql`
+  ${BILLING_ENTITLEMENT_FIELDS}
+  query AccountLlmBilling {
+    billingOverview {
+      __typename
+      accountLlm {
+        planId
+        entitlement {
+          ...BillingEntitlementFields
+        }
+      }
+    }
+  }
+`;
+
 export const BILLING_PLAN_DEFINITIONS_QUERY = gql`
   query BillingPlanDefinitions {
     billingPlanDefinitions {

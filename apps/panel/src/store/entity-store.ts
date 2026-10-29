@@ -64,6 +64,7 @@ import {
   GET_INSTALL_URL,
 } from "../api/pairing-queries.js";
 import {
+  ACCOUNT_LLM_BILLING_QUERY,
   BILLING_OVERVIEW_QUERY,
   BILLING_PLAN_DEFINITIONS_QUERY,
   CANCEL_BILLING_SUBSCRIPTION_MUTATION,
@@ -671,6 +672,28 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         yield client().query({ query: BILLING_OVERVIEW_QUERY, fetchPolicy: "network-only" });
       }),
 
+      /**
+       * Re-fetch only the account LLM quota (the periodic quota banner refresh)
+       * and apply it here, without waiting for Desktop's SSE patch. Only
+       * `accountLlm` is replaced; shops and account services stay as loaded.
+       */
+      refreshAccountLlmBilling: flow(function* () {
+        // Capture primitives only: the response belongs to this account session.
+        const userId = self.currentUser?.userId;
+        if (!userId) return;
+        const session = self.categorySession;
+        const result = yield client().query({ query: ACCOUNT_LLM_BILLING_QUERY, fetchPolicy: "network-only" });
+        // Logout (session epoch) or an account switch while in flight: the quota is
+        // another session's and must not be written into this one.
+        if (self.categorySession !== session || self.currentUser?.userId !== userId) return;
+        const accountLlm = result.data?.billingOverview?.accountLlm;
+        if (!accountLlm) throw new Error("Account LLM billing query returned no accountLlm");
+        const snapshot = stripTypename(accountLlm);
+        // Read the live overview after the await: a full refresh may have replaced it.
+        if (self.billingOverview) applySnapshot(self.billingOverview.accountLlm, snapshot);
+        else self.billingOverview = { accountLlm: snapshot } as any;
+      }),
+
       refreshPlanDefinitions: flow(function* () {
         yield client().query({
           query: BILLING_PLAN_DEFINITIONS_QUERY,
@@ -1010,6 +1033,7 @@ interface PanelRootActions {
   registerMobilePairing(input: any): Promise<any>;
   getInstallUrl(input?: any): Promise<any>;
   refreshBilling(): Promise<void>;
+  refreshAccountLlmBilling(): Promise<void>;
   refreshPlanDefinitions(): Promise<void>;
   readPayments(): Promise<void>;
   refreshPayment(...args: any[]): Promise<any>;

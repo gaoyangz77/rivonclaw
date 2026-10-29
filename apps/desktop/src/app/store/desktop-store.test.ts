@@ -293,3 +293,49 @@ describe("DesktopRootStore payment ingestion", () => {
     expect(panel.payments[0].paidAt).toBe("2026-08-01T00:00:00.000Z");
   });
 });
+
+describe("DesktopRootStore billing overview ingestion", () => {
+  beforeEach(() => rootStore.clearCloudEntities());
+  const schema = buildSchema(readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"));
+
+  function entitlement(allowed: boolean, usedPercent: number) {
+    return {
+      scopeType: "ACCOUNT", scopeId: "user", coverageScopeType: null, coverageScopeId: null,
+      product: "LLM_USAGE", allowed, code: allowed ? "ALLOWED" : "QUOTA_EXCEEDED", source: null,
+      subscription: null, validUntil: null,
+      usage: [{ metric: "LLM_TOKEN", window: "WEEK", usedPercent, remainingPercent: 100 - usedPercent, refreshAt: "2026-10-30T00:00:00.000Z" }],
+    };
+  }
+
+  it("keeps the loaded shop rows when the quota refresh selects only accountLlm", async () => {
+    const { BILLING_OVERVIEW_QUERY, ACCOUNT_LLM_BILLING_QUERY } = await import("../../../../panel/src/api/billing-queries.js");
+    const shopStatus = { ...entitlement(true, 0), scopeType: "SHOP", scopeId: "shop-1", product: "ECOM_INVENTORY", usage: [] };
+    const full = await execute({
+      schema,
+      document: BILLING_OVERVIEW_QUERY,
+      rootValue: {
+        billingOverview: () => ({
+          accountServices: [],
+          accountLlm: { planId: "RIVONCLAW_AI_PRO", entitlement: entitlement(true, 10) },
+          shops: [{ shopId: "shop-1", shopName: "Shop 1", customerService: shopStatus, inventory: shopStatus, affiliate: shopStatus, analytics: shopStatus }],
+        }),
+      },
+    });
+    expect(full.errors).toBeUndefined();
+    await ingestAndCollect(full.data!);
+
+    const quota = await execute({
+      schema,
+      document: ACCOUNT_LLM_BILLING_QUERY,
+      rootValue: { billingOverview: () => ({ accountLlm: { planId: "RIVONCLAW_AI_PRO", entitlement: entitlement(false, 100) } }) },
+    });
+    expect(quota.errors).toBeUndefined();
+    expect(Object.keys((quota.data as any).billingOverview)).toEqual(["__typename", "accountLlm"]);
+    await ingestAndCollect(quota.data!);
+
+    const overview = getSnapshot(rootStore.billingOverview!)!;
+    expect(overview.shops.map((shop) => shop.shopId)).toEqual(["shop-1"]);
+    expect(overview.accountLlm.entitlement).toMatchObject({ allowed: false, code: "QUOTA_EXCEEDED" });
+    expect(overview.accountLlm.entitlement.usage[0].usedPercent).toBe(100);
+  });
+});

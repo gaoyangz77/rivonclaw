@@ -425,12 +425,20 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
       };
 
       // --- Nullable singletons: __typename → getter/setter ---
-      const SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
+      // `mergeSelectedFields`: a response carries only the fields its query
+      // selected, so absent top-level fields keep their current value. The
+      // 60-second LLM quota refresh selects only `accountLlm` and must not
+      // erase the shop billing rows the full overview query loaded.
+      const SINGLETONS: Record<
+        string,
+        { get: () => any; set: (v: any) => void; mergeSelectedFields?: boolean }
+      > = {
         BillingOverview: {
           get: () => self.billingOverview,
           set: (v) => {
             self.billingOverview = v;
           },
+          mergeSelectedFields: true,
         },
         MeResponse: {
           get: () => self.currentUser,
@@ -440,7 +448,10 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
         },
       };
 
-      const KEY_SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
+      const KEY_SINGLETONS: Record<
+        string,
+        { get: () => any; set: (v: any) => void; mergeSelectedFields?: boolean }
+      > = {
         me: SINGLETONS.MeResponse,
         billingOverview: SINGLETONS.BillingOverview,
       };
@@ -555,7 +566,10 @@ const DesktopRootStoreModel = RootStoreModel.views((self) => ({
         if (singleton) {
           const s = singleton;
           if (s.get()) {
-            applySnapshot(s.get(), sanitized);
+            applySnapshot(
+              s.get(),
+              s.mergeSelectedFields ? { ...(getSnapshot(s.get()) as object), ...(sanitized as object) } : sanitized,
+            );
           } else {
             s.set(sanitized);
           }

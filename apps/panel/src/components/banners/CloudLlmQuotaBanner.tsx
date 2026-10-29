@@ -29,7 +29,8 @@ export const CloudLlmQuotaBanner = observer(function CloudLlmQuotaBanner({
     let cancelled = false;
     function refreshBilling() {
       if (cancelled || document.visibilityState === "hidden") return;
-      entityStore.refreshBilling().catch(() => {});
+      // Quota only: the full overview (every shop) is refreshed by the billing pages.
+      entityStore.refreshAccountLlmBilling().catch(() => {});
     }
     function onVisibilityChange() {
       if (document.visibilityState === "visible") refreshBilling();
