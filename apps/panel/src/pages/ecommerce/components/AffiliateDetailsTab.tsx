@@ -8,7 +8,6 @@ import {
   TkButton,
   TkChoiceSelect,
   TkEmptyState,
-  TkField,
   TkFormStack,
   TkInteractiveTableRow,
   TkLoadingState,
@@ -31,11 +30,13 @@ import {
   type AffiliateDetailEntity,
   type AffiliateDetailFilterDraft,
 } from "../affiliate-detail-query.js";
+import { defaultAffiliateDateRange, endDateLtFromInclusive } from "../affiliate-analytics.js";
 import {
-  defaultAffiliateDateRange,
-  endDateLtFromInclusive,
-  formatInputEndDate,
-} from "../affiliate-analytics.js";
+  defaultReviewActionRange,
+  deviceTimeZoneLabel,
+  deviceUtcOffsetLabel,
+  reviewActionBounds,
+} from "../affiliate-review-time.js";
 import {
   reconcileShopSelection,
   type AffiliateAnalyticsShop,
@@ -45,6 +46,10 @@ import {
   useAffiliateDetailPages,
 } from "../hooks/useAffiliateDetailPages.js";
 import { useAffiliateDetailExport } from "../hooks/useAffiliateDetailExport.js";
+import {
+  AffiliateDetailWindowFields,
+  type AffiliateDetailTimeBasis,
+} from "./AffiliateDetailWindowFields.js";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
 import { AffiliateFulfillmentFilters, AffiliateReviewFilters } from "./AffiliateDetailFilters.js";
 import { AffiliateDetailPager, revealTableStart } from "./AffiliateDetailPager.js";
@@ -69,13 +74,17 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
   const [entity, setEntity] = useState<AffiliateDetailEntity>("REVIEW");
   const [shopSelection, setShopSelection] = useState<string[]>(shops.map((shop) => shop.id));
   const shopIds = reconcileShopSelection(shopSelection, shops);
+  const [basis, setBasis] = useState<AffiliateDetailTimeBasis>("APPLICATION_DATE");
   const [range, setRange] = useState(defaultAffiliateDateRange);
+  const [reviewRange, setReviewRange] = useState(defaultReviewActionRange);
   const [filters, setFilters] = useState<AffiliateDetailFilterDraft>(
     EMPTY_AFFILIATE_DETAIL_FILTERS,
   );
   const [selectedApplication, setSelectedApplication] = useState<{
     shopId: string;
     applicationId: string;
+    /** Application-date window bounding the order lines (a review-time search has none of its own). */
+    window: Pick<GQL.EcomBiQueryInput, "startDateGe" | "endDateLt">;
   } | null>(null);
   const { data: reviewerData } = useQuery<{
     affiliateSampleReviewerOptions: GQL.AffiliateSampleReviewerOption[];
@@ -90,7 +99,9 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
   const columns = AFFILIATE_DETAIL_COLUMNS[resultEntity];
   const label = (key: string) => affiliateDetailLabel(t, key);
   const cell = (row: Row, key: string) => affiliateDetailCell(t, i18n.language, row, key);
-  const rangeValid = range.startDateGe < range.endDateLt;
+  const reviewBounds = reviewActionBounds(reviewRange);
+  const windowValid =
+    basis === "REVIEW_ACTION" ? reviewBounds !== null : range.startDateGe < range.endDateLt;
   const searching = pages.loading && pages.rows.length === 0;
 
   const clearResults = () => {
@@ -100,14 +111,16 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
   };
 
   const search = () => {
-    if (!shopIds.length || !rangeValid) return;
+    if (!shopIds.length || !windowValid) return;
     clearResults();
     void pages.search(
       buildAffiliateDetailInput({
         entity,
         shopIds,
-        startDateGe: range.startDateGe,
-        endDateLt: range.endDateLt,
+        window:
+          basis === "REVIEW_ACTION" && reviewBounds
+            ? { basis, ...reviewBounds }
+            : { basis: "APPLICATION_DATE", ...range },
         filters,
       }),
     );
@@ -126,7 +139,14 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
       columns,
       sheetName: review ? "Sample review" : "Fulfillment",
       filename: `affiliate-${review ? "sample-review" : "fulfillment"}-${new Date().toISOString().slice(0, 10)}.xlsx`,
-      label,
+      // A spreadsheet date-time has no zone, so its header names the clock it shows.
+      label: (key) =>
+        key === "SAMPLE_REVIEW_ACTION_AT"
+          ? t("ecommerce.affiliateAnalytics.details.exportTimeZoneHeader", {
+              label: label(key),
+              zone: deviceUtcOffsetLabel(),
+            })
+          : label(key),
       displayText: (key, value) => cell({ [key]: value }, key),
     });
   };
@@ -134,8 +154,19 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
   const openOrders = (row: Row) => {
     const shopId = String(row.SHOP_ID ?? "");
     const applicationId = String(row.SAMPLE_APPLICATION_ID ?? "");
-    if (!shopId || !applicationId) return;
-    setSelectedApplication({ shopId, applicationId });
+    const input = pages.input;
+    if (!shopId || !applicationId || !input) return;
+    // The order dataset is windowed by application date. A review-time search
+    // has no such window, so bound the lines by the application's own day.
+    const applicationDate = typeof row.DATE === "string" ? row.DATE : "";
+    const orderWindow =
+      input.startDateGe && input.endDateLt
+        ? { startDateGe: input.startDateGe, endDateLt: input.endDateLt }
+        : applicationDate
+          ? { startDateGe: applicationDate, endDateLt: endDateLtFromInclusive(applicationDate) }
+          : null;
+    if (!orderWindow) return;
+    setSelectedApplication({ shopId, applicationId, window: orderWindow });
   };
 
   const renderCells = (row: Row) =>
@@ -191,23 +222,24 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
                 selected={shopIds}
                 onChange={setShopSelection}
               />
-              <TkField
-                className="affiliate-detail-field"
-                type="date"
-                label={t("ecommerce.affiliateAnalytics.startDate")}
-                value={range.startDateGe}
-                onChange={(event) => setRange({ ...range, startDateGe: event.target.value })}
-              />
-              <TkField
-                className="affiliate-detail-field"
-                type="date"
-                label={t("ecommerce.affiliateAnalytics.endDate")}
-                value={formatInputEndDate(range.endDateLt)}
-                onChange={(event) =>
-                  setRange({ ...range, endDateLt: endDateLtFromInclusive(event.target.value) })
-                }
+              <AffiliateDetailWindowFields
+                basis={basis}
+                onBasisChange={setBasis}
+                dateRange={range}
+                onDateRangeChange={setRange}
+                reviewRange={reviewRange}
+                onReviewRangeChange={setReviewRange}
               />
             </div>
+            {basis === "REVIEW_ACTION" && (
+              <p className="affiliate-detail-note">
+                {t("ecommerce.affiliateAnalytics.details.deviceTimeZone", {
+                  zone: deviceTimeZoneLabel(),
+                })}
+                {reviewBounds === null &&
+                  ` ${t("ecommerce.affiliateAnalytics.details.reviewTimeInvalid")}`}
+              </p>
+            )}
             <div
               className="tk-v1-form-action-row"
               data-tutorial-id="affiliate-analytics-details-filters"
@@ -230,7 +262,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
               <TkButton
                 variant="primary"
                 loading={searching}
-                disabled={!shopIds.length || !rangeValid || pages.loading}
+                disabled={!shopIds.length || !windowValid || pages.loading}
                 onClick={search}
               >
                 {t("ecommerce.affiliateAnalytics.details.search")}
@@ -238,7 +270,11 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
             </div>
             <div className="affiliate-detail-notes">
               <p className="affiliate-detail-note">
-                {t("ecommerce.affiliateAnalytics.details.dateNote")}
+                {t(
+                  basis === "REVIEW_ACTION"
+                    ? "ecommerce.affiliateAnalytics.details.reviewTimeNote"
+                    : "ecommerce.affiliateAnalytics.details.dateNote",
+                )}
               </p>
               <p className="affiliate-detail-note">
                 {t("ecommerce.affiliateAnalytics.details.creatorNote")}
@@ -351,7 +387,7 @@ export function AffiliateDetailsTab({ shops }: { shops: AffiliateAnalyticsShop[]
           key={`${selectedApplication.shopId}:${selectedApplication.applicationId}`}
           shopId={selectedApplication.shopId}
           applicationId={selectedApplication.applicationId}
-          search={pages.input}
+          search={selectedApplication.window}
           onClose={() => setSelectedApplication(null)}
         />
       )}

@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useTimeZone } from "../../../test/use-time-zone.js";
 import { AffiliateAnalyticsPage } from "./AffiliateAnalyticsPage.js";
 
 const mocks = vi.hoisted(() => ({
@@ -146,6 +147,17 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.details.creatorId": "Creator Open ID",
   "ecommerce.affiliateAnalytics.details.decision": "Current decision",
   "ecommerce.affiliateAnalytics.details.decisions.IGNORED": "Ignored",
+  "ecommerce.affiliateAnalytics.details.timeBasis": "Time basis",
+  "ecommerce.affiliateAnalytics.details.timeBasisApplication": "Application date",
+  "ecommerce.affiliateAnalytics.details.timeBasisReviewAction": "Review action time",
+  "ecommerce.affiliateAnalytics.details.reviewStartTime": "Start time",
+  "ecommerce.affiliateAnalytics.details.reviewEndTime": "End time (exclusive)",
+  "ecommerce.affiliateAnalytics.details.deviceTimeZone": "Device time zone {{zone}}.",
+  "ecommerce.affiliateAnalytics.details.reviewTimeInvalid": "End must be after start.",
+  "ecommerce.affiliateAnalytics.details.reviewTimeNote": "Filtering by review action time.",
+  "ecommerce.affiliateAnalytics.details.dateNote": "Date range is the application date.",
+  "ecommerce.affiliateAnalytics.details.exportTimeZoneHeader": "{{label}} ({{zone}})",
+  "ecommerce.affiliateAnalytics.details.fields.SAMPLE_REVIEW_ACTION_AT": "Review action time column",
   "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_CREATOR_GMV_CURRENCY": "Currency",
   "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION":
     "Video engagement rate",
@@ -875,6 +887,8 @@ describe("AffiliateAnalyticsPage business developer access", () => {
 });
 
 describe("AffiliateAnalyticsPage Details", () => {
+  useTimeZone("Asia/Shanghai");
+
   type Input = {
     datasetId: string;
     limit: number;
@@ -922,6 +936,12 @@ describe("AffiliateAnalyticsPage Details", () => {
     const input = call(0).variables.input;
     expect(input.datasetId).toBe("AFFILIATE_SAMPLE_REVIEW_DETAIL");
     expect(input).toMatchObject({ shopIds: ["shop-1"], limit: 50, offset: 0 });
+    // The default basis is the application date: whole-day bounds, no instants.
+    expect(input).toHaveProperty("startDateGe");
+    expect(input).toHaveProperty("endDateLt");
+    expect(input).not.toHaveProperty("reviewActionAtGe");
+    expect(input).not.toHaveProperty("reviewActionAtLt");
+    expect(input.dimensions).toContain("SAMPLE_REVIEW_ACTION_AT");
     expect(input.dimensions).toContain("SAMPLE_APPLICATION_ID");
     expect(input.dimensions).toContain("SHOP_ALIAS");
     expect(input.dimensions).toContain("AFFILIATE_CREATOR_GMV_CURRENCY");
@@ -1191,6 +1211,188 @@ describe("AffiliateAnalyticsPage Details", () => {
       limit: 50,
       offset: 0,
       filters: [{ dimension: "SAMPLE_APPLICATION_ID", operator: "IN", values: ["sample-1"] }],
+    });
+  });
+
+  describe("review action time basis", () => {
+    const chooseReviewTime = () => {
+      fireEvent.click(screen.getByRole("button", { name: "Time basis" }));
+      fireEvent.click(screen.getByRole("button", { name: "Review action time" }));
+    };
+    const setTime = (label: string, value: string) =>
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+
+    it("starts on today 00:00 to tomorrow 00:00 of the device clock and names the device timezone", () => {
+      openDetails();
+      expect(screen.queryByLabelText("Start time")).toBeNull();
+      chooseReviewTime();
+      const today = new Date();
+      const pad = (value: number) => String(value).padStart(2, "0");
+      const day = (date: Date) =>
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+      const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      expect((screen.getByLabelText("Start time") as HTMLInputElement).value).toBe(`${day(today)}T00:00`);
+      expect((screen.getByLabelText("End time (exclusive)") as HTMLInputElement).value).toBe(
+        `${day(tomorrow)}T00:00`,
+      );
+      expect((screen.getByLabelText("Start time") as HTMLInputElement).type).toBe("datetime-local");
+      expect(screen.getByText("Device time zone GMT+08:00 (Asia/Shanghai).")).toBeTruthy();
+      expect(screen.getByText("Filtering by review action time.")).toBeTruthy();
+      expect(screen.queryByText("Date range is the application date.")).toBeNull();
+    });
+
+    it("sends the typed device-local bounds as UTC instants and omits the application dates", async () => {
+      openDetails();
+      chooseReviewTime();
+      setTime("Start time", "2026-10-30T00:00");
+      setTime("End time (exclusive)", "2026-10-31T00:00");
+      fireEvent.click(screen.getByRole("button", { name: "Current decision" }));
+      fireEvent.click(screen.getByRole("button", { name: "Ignored" }));
+      expect(mocks.dataQuery).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+      await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+      const input = call(0).variables.input;
+      expect(input).toMatchObject({
+        datasetId: "AFFILIATE_SAMPLE_REVIEW_DETAIL",
+        reviewActionAtGe: "2026-10-29T16:00:00.000Z",
+        reviewActionAtLt: "2026-10-30T16:00:00.000Z",
+        limit: 50,
+        offset: 0,
+      });
+      expect(input).not.toHaveProperty("startDateGe");
+      expect(input).not.toHaveProperty("endDateLt");
+      expect(input.dimensions).toContain("SAMPLE_REVIEW_ACTION_AT");
+      expect(input.filters).toEqual([
+        { dimension: "SAMPLE_DECISION_BUCKET", operator: "IN", values: ["IGNORED"] },
+      ]);
+    });
+
+    it("requests the action time for fulfillment results too", async () => {
+      openDetails();
+      fireEvent.click(screen.getByRole("button", { name: "Record type" }));
+      fireEvent.click(screen.getByRole("button", { name: "Fulfillment results" }));
+      chooseReviewTime();
+      setTime("Start time", "2026-10-30T00:00");
+      setTime("End time (exclusive)", "2026-10-31T00:00");
+      fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+      await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+      const input = call(0).variables.input;
+      expect(input.datasetId).toBe("AFFILIATE_SAMPLE_FULFILLMENT_DETAIL");
+      expect(input.dimensions).toContain("SAMPLE_REVIEW_ACTION_AT");
+      expect(input).toMatchObject({
+        reviewActionAtGe: "2026-10-29T16:00:00.000Z",
+        reviewActionAtLt: "2026-10-30T16:00:00.000Z",
+      });
+    });
+
+    it("disables Search for a reversed or over-366-day window and says why", () => {
+      openDetails();
+      chooseReviewTime();
+      const search = () => screen.getByRole("button", { name: "Search details" });
+      setTime("Start time", "2026-10-31T00:00");
+      setTime("End time (exclusive)", "2026-10-30T00:00");
+      expect(search()).toHaveProperty("disabled", true);
+      expect(screen.getByText(/End must be after start\./)).toBeTruthy();
+      setTime("Start time", "2025-10-01T00:00");
+      setTime("End time (exclusive)", "2026-10-31T00:00");
+      expect(search()).toHaveProperty("disabled", true);
+      setTime("Start time", "2026-10-30T00:00");
+      expect(search()).toHaveProperty("disabled", false);
+      expect(screen.queryByText(/End must be after start\./)).toBeNull();
+    });
+
+    it("shows the action time column in device-local time, a dash when there is none", async () => {
+      mocks.dataQuery.mockResolvedValue({
+        data: {
+          getEcommerceBiData: {
+            datasetId: "AFFILIATE_SAMPLE_REVIEW_DETAIL",
+            granularity: "DAILY",
+            rows: [
+              { ...detailRows(0, 1)[0], SAMPLE_REVIEW_ACTION_AT: "2026-10-30T08:15:42.123Z" },
+              { ...detailRows(1, 1)[0], SAMPLE_REVIEW_ACTION_AT: null },
+            ],
+            pageInfo: { hasMore: false, totalRows: 2 },
+          },
+        },
+      });
+      openDetails();
+      fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+      await screen.findByText("creator-0");
+      const headers = screen.getAllByRole("columnheader").map((th) => th.textContent);
+      const column = headers.indexOf("Review action time column");
+      expect(column).toBeGreaterThanOrEqual(0);
+      // Labels missing from COPY resolve to their key, which pins the decision column.
+      const decisionColumn = headers.indexOf(
+        "ecommerce.affiliateAnalytics.details.fields.SAMPLE_DECISION_BUCKET",
+      );
+      expect(decisionColumn).toBeGreaterThanOrEqual(0);
+      expect(column).toBe(decisionColumn + 1);
+      const bodyRows = screen.getAllByRole("row").slice(1);
+      expect(within(bodyRows[0]!).getAllByRole("cell")[column]!.textContent).toBe("2026-10-30 16:15:42");
+      expect(within(bodyRows[1]!).getAllByRole("cell")[column]!.textContent).toBe("—");
+    });
+
+    it("downloads the action time under a header naming the device timezone", async () => {
+      serveReview();
+      Object.assign(URL, { createObjectURL: vi.fn(() => "blob:details"), revokeObjectURL: vi.fn() });
+      const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+      openDetails();
+      chooseReviewTime();
+      fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+      await screen.findByText("1–50 of 120");
+      fireEvent.click(screen.getByRole("button", { name: "Download all 120 rows (.xlsx)" }));
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+
+      const searchInput = call(0).variables.input;
+      const exportCalls = mocks.dataQuery.mock.calls.slice(1).map(([options]) => options as QueryOptions);
+      // The download walks the frozen search, instants included.
+      expect(exportCalls[0]!.variables.input).toMatchObject({
+        reviewActionAtGe: (searchInput as unknown as Record<string, unknown>).reviewActionAtGe,
+        reviewActionAtLt: (searchInput as unknown as Record<string, unknown>).reviewActionAtLt,
+        limit: 500,
+      });
+      const workbookOptions = mocks.buildWorkbook.mock.calls[0][1] as {
+        columns: string[];
+        label: (key: string) => string;
+      };
+      expect(workbookOptions.columns).toContain("SAMPLE_REVIEW_ACTION_AT");
+      expect(workbookOptions.label("SAMPLE_REVIEW_ACTION_AT")).toBe(
+        "Review action time column (GMT+08:00)",
+      );
+      expect(workbookOptions.label("DATE")).not.toContain("GMT");
+      click.mockRestore();
+    });
+
+    it("bounds the order lines of a review-time search by the application's own day", async () => {
+      mocks.dataQuery.mockImplementation(({ variables }: QueryOptions) => {
+        const datasetId = variables.input.datasetId;
+        return Promise.resolve({
+          data: {
+            getEcommerceBiData: {
+              datasetId,
+              granularity: "DAILY",
+              rows: datasetId === "AFFILIATE_SAMPLE_ORDER_DETAIL"
+                ? [{ ORDER_DATE: "2026-09-25", ORDER_ID: "765432109876543210", CONTENT_ID: "video-1", AFFILIATE_UNITS: 2 }]
+                : [{ DATE: "2026-09-24", SHOP_ID: "shop-1", SHOP_NAME: "North Shop", SAMPLE_APPLICATION_ID: "sample-1", CREATOR_USERNAME: "creator-1" }],
+              pageInfo: { hasMore: false, totalRows: 1 },
+            },
+          },
+        });
+      });
+      openDetails();
+      fireEvent.click(screen.getByRole("button", { name: "Record type" }));
+      fireEvent.click(screen.getByRole("button", { name: "Fulfillment results" }));
+      chooseReviewTime();
+      fireEvent.click(screen.getByRole("button", { name: "Search details" }));
+      await screen.findByText("North Shop");
+      fireEvent.click(screen.getByRole("row", { name: "View orders and videos: sample-1" }));
+      await screen.findByRole("dialog", { name: "Post-application orders and content" });
+      await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(2));
+      expect(call(1).variables.input).toMatchObject({
+        datasetId: "AFFILIATE_SAMPLE_ORDER_DETAIL",
+        startDateGe: "2026-09-24",
+        endDateLt: "2026-09-25",
+      });
     });
   });
 });

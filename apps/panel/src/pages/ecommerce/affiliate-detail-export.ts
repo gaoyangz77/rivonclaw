@@ -1,5 +1,6 @@
 import type { GQL } from "@rivonclaw/core";
 import type { Workbook } from "exceljs";
+import { parseReviewActionAt, toLocalWallClockDate } from "./affiliate-review-time.js";
 
 type ExcelJsModule = typeof import("exceljs");
 type Row = Record<string, unknown>;
@@ -23,6 +24,9 @@ export class AffiliateDetailExportTooLargeError extends Error {
 }
 
 const DATE_FIELDS = new Set(["DATE", "SAMPLE_SHIPPED_DATE", "ORDER_DATE"]);
+/** Instants (ISO UTC strings) written as spreadsheet date-times in the device's local clock. */
+const DATE_TIME_FIELDS = new Set(["SAMPLE_REVIEW_ACTION_AT"]);
+const DATE_TIME_NUM_FMT = "yyyy-mm-dd hh:mm:ss";
 /** Ratios (0.08 = 8%): numeric cells shown and exported as percentages. */
 const PERCENT_FIELDS = new Set([
   "AFFILIATE_CREATOR_VIDEO_ENGAGEMENT_RATE_AT_APPLICATION",
@@ -160,6 +164,10 @@ function cellValue(key: string, value: unknown, displayText: (key: string, value
   if (DATE_FIELDS.has(key) && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return new Date(`${value}T00:00:00.000Z`);
   }
+  if (DATE_TIME_FIELDS.has(key)) {
+    const instant = parseReviewActionAt(value);
+    if (instant) return toLocalWallClockDate(instant);
+  }
   if (NUMBER_FIELDS.has(key)) {
     const numeric = Number(value);
     if (Number.isFinite(numeric) && Math.abs(numeric) <= Number.MAX_SAFE_INTEGER) return numeric;
@@ -210,6 +218,7 @@ export function buildAffiliateDetailWorkbook(
     }
     for (const key of options.columns) {
       if (DATE_FIELDS.has(key)) excelRow.getCell(key).numFmt = "yyyy-mm-dd";
+      if (DATE_TIME_FIELDS.has(key)) excelRow.getCell(key).numFmt = DATE_TIME_NUM_FMT;
       if (PERCENT_FIELDS.has(key)) excelRow.getCell(key).numFmt = "0.00%";
       else if (NUMBER_FIELDS.has(key)) excelRow.getCell(key).numFmt = "#,##0.##";
     }

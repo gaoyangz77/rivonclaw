@@ -9,6 +9,7 @@ import {
   type AffiliateDetailPage,
 } from "./affiliate-detail-export.js";
 import type { GQL } from "@rivonclaw/core";
+import { useTimeZone } from "../../../test/use-time-zone.js";
 
 describe("Affiliate detail Excel export", () => {
   it("keeps provider IDs as text and dates and metrics as spreadsheet values", async () => {
@@ -44,6 +45,31 @@ describe("Affiliate detail Excel export", () => {
     expect(sheet.getCell("F2").value).toBe(12);
     expect(sheet.getCell("A2").numFmt).toBe("yyyy-mm-dd");
     expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 1 });
+  });
+
+  describe("review action time", () => {
+    useTimeZone("Asia/Shanghai");
+
+    it("writes a real date-time on the device clock and leaves a missing time empty", async () => {
+      const workbook = buildAffiliateDetailWorkbook(ExcelJS, {
+        sheetName: "Review",
+        columns: ["SAMPLE_REVIEW_ACTION_AT"],
+        rows: [
+          { SAMPLE_REVIEW_ACTION_AT: "2026-10-30T08:15:42.000Z" },
+          { SAMPLE_REVIEW_ACTION_AT: null },
+        ],
+        label: (key) => `${key} (GMT+08:00)`,
+        displayText: (_key, value) => String(value),
+      });
+      const loaded = new ExcelJS.Workbook();
+      await loaded.xlsx.load(await workbook.xlsx.writeBuffer());
+      const sheet = loaded.getWorksheet("Review")!;
+      expect(sheet.getCell("A1").value).toBe("SAMPLE_REVIEW_ACTION_AT (GMT+08:00)");
+      // 08:15:42 UTC is 16:15:42 on a UTC+8 clock; the workbook stores that reading.
+      expect(sheet.getCell("A2").value).toEqual(new Date("2026-10-30T16:15:42.000Z"));
+      expect(sheet.getCell("A2").numFmt).toBe("yyyy-mm-dd hh:mm:ss");
+      expect(sheet.getCell("A3").value).toBeNull();
+    });
   });
 
   it("writes the reviewer's name, never the structured value, and leaves unreviewed rows empty", async () => {

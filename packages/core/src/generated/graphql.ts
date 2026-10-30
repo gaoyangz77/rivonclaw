@@ -8184,6 +8184,7 @@ export const EcomBiDimension = {
   SampleHasPostApplicationOrder: "SAMPLE_HAS_POST_APPLICATION_ORDER",
   SampleHasShipment: "SAMPLE_HAS_SHIPMENT",
   SampleOrderId: "SAMPLE_ORDER_ID",
+  SampleReviewActionAt: "SAMPLE_REVIEW_ACTION_AT",
   SampleShippedDate: "SAMPLE_SHIPPED_DATE",
   SellerNote: "SELLER_NOTE",
   SellerSku: "SELLER_SKU",
@@ -8731,11 +8732,15 @@ export interface EcomBiQueryInput {
   offset?: InputMaybe<Scalars["Int"]["input"]>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
+  /** Review action time range start, inclusive: an ISO-8601 instant with an explicit offset or Z (for example 2026-10-30T00:00:00Z or 2026-10-30T08:00:00+08:00). Only AFFILIATE_SAMPLE_REVIEW_DETAIL and AFFILIATE_SAMPLE_FULFILLMENT_DETAIL accept it, and it must be sent together with reviewActionAtLt. See the SAMPLE_REVIEW_ACTION_AT dimension. */
+  reviewActionAtGe?: InputMaybe<Scalars["String"]["input"]>;
+  /** Review action time range end, exclusive: an ISO-8601 instant with an explicit offset or Z. Must be later than reviewActionAtGe and at most 366 days after it. */
+  reviewActionAtLt?: InputMaybe<Scalars["String"]["input"]>;
   /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Use either shopIds or shopRegions, not both. Order, Finance, CS, and live SPS datasets require one of these Shop scopes. SPS accepts at most 50 owned AUTHORIZED US shops with data.shop_analytics.public.read. Usually omit both Shop scopes for Ads so authorized advertiser stores without onboarded Shops remain included; supplying either scope restricts Ads results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Current-user Shop regions to expand server-side into every onboarded Shop Mongo ID in those regions. Use this instead of shopIds when the user asks for all of their shops in one or more regions. Cannot be combined with shopIds. Ownership and per-Shop analytics entitlement checks still apply; SPS also retains its 50-Shop and US-only limits. */
   shopRegions?: InputMaybe<Array<ShopRegion>>;
-  /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. PRODUCT_REVIEW_DETAIL uses review creation in each shop timezone. */
+  /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. PRODUCT_REVIEW_DETAIL uses review creation in each shop timezone. Optional on AFFILIATE_SAMPLE_REVIEW_DETAIL and AFFILIATE_SAMPLE_FULFILLMENT_DETAIL when reviewActionAtGe/reviewActionAtLt is given (then send both startDateGe and endDateLt or neither). */
   startDateGe?: InputMaybe<Scalars["String"]["input"]>;
   /** Canonical warehouse Mongo IDs for warehouse-scoped live inventory datasets. */
   warehouseIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
