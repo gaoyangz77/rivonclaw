@@ -6,6 +6,7 @@ import {
   EMPTY_AFFILIATE_DETAIL_FILTERS,
   affiliateDetailCell,
   affiliateReviewerSelectOptions,
+  AFFILIATE_REVIEWER_UNRECORDED_KEY,
   buildAffiliateDetailInput,
   type AffiliateDetailEntity,
 } from "./affiliate-detail-query.js";
@@ -67,7 +68,13 @@ describe("reviewer in the detail query", () => {
     expect(build("FULFILLMENT", "").filters).toEqual([]);
   });
 
-  it("builds the dropdown from the backend options after an all-reviewers default", () => {
+  it("filters decided Samples without a recorded reviewer by the filter-only UNRECORDED key", () => {
+    expect(build("REVIEW", AFFILIATE_REVIEWER_UNRECORDED_KEY).filters).toEqual([
+      { dimension: "AFFILIATE_SAMPLE_REVIEWER", operator: "IN", values: ["UNRECORDED"] },
+    ]);
+  });
+
+  it("builds the dropdown: all, no record, then the backend options", () => {
     const options = affiliateReviewerSelectOptions(t, [
       {
         key: "HUMAN:user-1",
@@ -78,6 +85,7 @@ describe("reviewer in the detail query", () => {
     ]);
     expect(options).toEqual([
       { value: "", label: "全部" },
+      { value: "UNRECORDED", label: "无记录" },
       { value: "HUMAN:user-1", label: "孙浩鹏" },
       { value: "AGENT", label: "Agent" },
       { value: "SYSTEM", label: "系统" },

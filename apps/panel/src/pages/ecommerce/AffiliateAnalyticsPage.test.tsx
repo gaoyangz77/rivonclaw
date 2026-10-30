@@ -126,6 +126,7 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.details.tab": "Details",
   "ecommerce.affiliateAnalytics.details.all": "All",
   "ecommerce.affiliateAnalytics.details.reviewer": "Reviewer",
+  "ecommerce.affiliateAnalytics.details.reviewerUnrecorded": "No record",
   "ecommerce.affiliateAnalytics.details.fields.AFFILIATE_SAMPLE_REVIEWER": "Reviewer column",
   "ecommerce.affiliateWorkspace.actor.kinds.AGENT": "Agent",
   "ecommerce.affiliateWorkspace.actor.kinds.SYSTEM": "System",
@@ -987,7 +988,7 @@ describe("AffiliateAnalyticsPage Details", () => {
       Array.from(popup.querySelectorAll(".custom-select-option")).map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(["All", "孙浩鹏", "Agent", "System"]);
+    ).toEqual(["All", "No record", "孙浩鹏", "Agent", "System"]);
     fireEvent.click(within(popup as HTMLElement).getByText("孙浩鹏"));
 
     fireEvent.click(screen.getByRole("button", { name: "Search details" }));

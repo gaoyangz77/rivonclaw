@@ -262,13 +262,24 @@ function isReviewerActor(value: unknown): value is GQL.AffiliateActorDisplay {
   return typeof value === "object" && value !== null && "kind" in value;
 }
 
-/** Choices of the reviewer filter: everyone first, then each reviewer the backend offers. */
+/**
+ * Backend's filter-only reviewer key: approved or rejected Samples with no reviewer recorded (today
+ * mostly decisions made directly in TikTok Seller Center). No row carries it (their reviewer stays
+ * empty) and the backend never lists it as a reviewer option, so the filter adds it itself.
+ */
+export const AFFILIATE_REVIEWER_UNRECORDED_KEY = "UNRECORDED";
+
+/** Choices of the reviewer filter: everyone, no record, then each reviewer the backend offers. */
 export function affiliateReviewerSelectOptions(
   t: TFunction,
   reviewers: readonly Pick<GQL.AffiliateSampleReviewerOption, "key" | "actor">[],
 ): Array<{ value: string; label: string }> {
   return [
     { value: "", label: t("ecommerce.affiliateAnalytics.details.all") },
+    {
+      value: AFFILIATE_REVIEWER_UNRECORDED_KEY,
+      label: t("ecommerce.affiliateAnalytics.details.reviewerUnrecorded"),
+    },
     ...reviewers.map((reviewer) => ({
       value: reviewer.key,
       label: formatAffiliateActor(reviewer.actor, t),
