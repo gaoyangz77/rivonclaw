@@ -41,6 +41,8 @@ it("keeps the clicked filters across pages even when the user changes BD while e
       data: {
         affiliateCreatorUpdateExportPage: {
           offset: 1,
+          nextOffset: 2,
+          skippedWithoutUsernameCount: 0,
           hasMore: false,
           items: [{ ...row, creatorRelationshipId: "relationship-2", username: "creator-2" }],
         },
@@ -58,6 +60,8 @@ it("keeps the clicked filters across pages even when the user changes BD while e
       data: {
         affiliateCreatorUpdateExportPage: {
           offset: 0,
+          nextOffset: 1,
+          skippedWithoutUsernameCount: 0,
           hasMore: true,
           items: [row],
         },
@@ -85,6 +89,8 @@ it("does not download a partial file when a later page fails", async () => {
       data: {
         affiliateCreatorUpdateExportPage: {
           offset: 0,
+          nextOffset: 1,
+          skippedWithoutUsernameCount: 0,
           hasMore: true,
           items: [row],
         },
@@ -96,4 +102,50 @@ it("does not download a partial file when a later page fails", async () => {
   await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith("Second page unavailable", "error"));
   expect(mocks.download).not.toHaveBeenCalled();
   expect(screen.getByRole("button").hasAttribute("disabled")).toBe(false);
+});
+
+it("downloads the uploadable rows and reports Creators skipped for lacking a TikTok username", async () => {
+  mocks.query
+    .mockResolvedValueOnce({
+      data: {
+        affiliateCreatorUpdateExportPage: {
+          offset: 0,
+          nextOffset: 3,
+          skippedWithoutUsernameCount: 2,
+          hasMore: false,
+          items: [row],
+        },
+      },
+    })
+    .mockResolvedValueOnce({ data: { creatorManualTags: [] } });
+  render(<AffiliateCreatorExportButton input={{}} />);
+  fireEvent.click(screen.getByRole("button", { name: "导出当前筛选的达人" }));
+  await waitFor(() => expect(mocks.download).toHaveBeenCalledTimes(1));
+  expect(mocks.toast).toHaveBeenCalledWith(
+    "已导出 1 位达人。另有 2 位达人 TikTok 没有提供账号名（多为已停用账号），无法通过上传更新，已跳过。",
+    "warning",
+  );
+});
+
+it("explains an empty export when every matching Creator lacks a TikTok username", async () => {
+  mocks.query.mockResolvedValueOnce({
+    data: {
+      affiliateCreatorUpdateExportPage: {
+        offset: 0,
+        nextOffset: 2,
+        skippedWithoutUsernameCount: 2,
+        hasMore: false,
+        items: [],
+      },
+    },
+  });
+  render(<AffiliateCreatorExportButton input={{}} />);
+  fireEvent.click(screen.getByRole("button", { name: "导出当前筛选的达人" }));
+  await waitFor(() =>
+    expect(mocks.toast).toHaveBeenCalledWith(
+      "没有可导出的达人：当前筛选的 2 位达人 TikTok 都没有提供账号名（多为已停用账号）。",
+      "warning",
+    ),
+  );
+  expect(mocks.download).not.toHaveBeenCalled();
 });

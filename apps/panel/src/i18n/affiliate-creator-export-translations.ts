@@ -5,6 +5,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "Export filtered Creators",
     creatorExportProgress: "Exporting · {{count}} Creators",
     creatorExportEmpty: "No Creators match the current filters.",
+    creatorExportSkippedWithoutUsername:
+      "Exported {{count}} Creators. Skipped {{skipped}} that TikTok shows without a username (usually deactivated accounts); they can't be updated by upload.",
+    creatorExportOnlyWithoutUsername:
+      "Nothing to export: TikTok shows none of the {{skipped}} matching Creators with a username (usually deactivated accounts).",
     creatorUpdateMode: "Fields to update",
     creatorUpdateFull: "All template fields",
     creatorUpdateBdOnlyMode: "BD only",
@@ -17,6 +21,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "导出当前筛选的达人",
     creatorExportProgress: "正在导出 · {{count}} 位达人",
     creatorExportEmpty: "当前筛选没有匹配的达人。",
+    creatorExportSkippedWithoutUsername:
+      "已导出 {{count}} 位达人。另有 {{skipped}} 位达人 TikTok 没有提供账号名（多为已停用账号），无法通过上传更新，已跳过。",
+    creatorExportOnlyWithoutUsername:
+      "没有可导出的达人：当前筛选的 {{skipped}} 位达人 TikTok 都没有提供账号名（多为已停用账号）。",
     creatorUpdateMode: "更新范围",
     creatorUpdateFull: "全部模板字段",
     creatorUpdateBdOnlyMode: "仅更新 BD",
@@ -28,6 +36,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "Gefilterte Creator exportieren",
     creatorExportProgress: "Export läuft · {{count}} Creator",
     creatorExportEmpty: "Keine Creator entsprechen den aktuellen Filtern.",
+    creatorExportSkippedWithoutUsername:
+      "{{count}} Creator exportiert. {{skipped}} Creator ohne Benutzernamen bei TikTok (meist deaktivierte Konten) wurden übersprungen, da sie nicht per Upload aktualisiert werden können.",
+    creatorExportOnlyWithoutUsername:
+      "Nichts zu exportieren: TikTok zeigt keinen der {{skipped}} passenden Creator mit Benutzernamen (meist deaktivierte Konten).",
     creatorUpdateMode: "Zu aktualisierende Felder",
     creatorUpdateFull: "Alle Vorlagenfelder",
     creatorUpdateBdOnlyMode: "Nur BD",
@@ -40,6 +52,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "Exportar creadores filtrados",
     creatorExportProgress: "Exportando · {{count}} creadores",
     creatorExportEmpty: "Ningún creador coincide con los filtros actuales.",
+    creatorExportSkippedWithoutUsername:
+      "Se exportaron {{count}} creadores. Se omitieron {{skipped}} que TikTok muestra sin nombre de usuario (normalmente cuentas desactivadas); no se pueden actualizar mediante carga.",
+    creatorExportOnlyWithoutUsername:
+      "Nada que exportar: TikTok no muestra nombre de usuario para ninguno de los {{skipped}} creadores coincidentes (normalmente cuentas desactivadas).",
     creatorUpdateMode: "Campos que actualizar",
     creatorUpdateFull: "Todos los campos de la plantilla",
     creatorUpdateBdOnlyMode: "Solo BD",
@@ -52,6 +68,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "Exporter les créateurs filtrés",
     creatorExportProgress: "Export en cours · {{count}} créateurs",
     creatorExportEmpty: "Aucun créateur ne correspond aux filtres actuels.",
+    creatorExportSkippedWithoutUsername:
+      "{{count}} créateurs exportés. {{skipped}} créateurs sans nom d'utilisateur côté TikTok (généralement des comptes désactivés) ont été ignorés ; ils ne peuvent pas être mis à jour par import.",
+    creatorExportOnlyWithoutUsername:
+      "Rien à exporter : TikTok n'affiche aucun nom d'utilisateur pour les {{skipped}} créateurs correspondants (généralement des comptes désactivés).",
     creatorUpdateMode: "Champs à modifier",
     creatorUpdateFull: "Tous les champs du modèle",
     creatorUpdateBdOnlyMode: "BD uniquement",
@@ -64,6 +84,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "Ekspor kreator yang difilter",
     creatorExportProgress: "Mengekspor · {{count}} kreator",
     creatorExportEmpty: "Tidak ada kreator yang cocok dengan filter saat ini.",
+    creatorExportSkippedWithoutUsername:
+      "{{count}} kreator diekspor. {{skipped}} kreator tanpa nama pengguna dari TikTok (biasanya akun nonaktif) dilewati karena tidak dapat diperbarui lewat unggahan.",
+    creatorExportOnlyWithoutUsername:
+      "Tidak ada yang bisa diekspor: TikTok tidak menampilkan nama pengguna untuk {{skipped}} kreator yang cocok (biasanya akun nonaktif).",
     creatorUpdateMode: "Kolom yang diperbarui",
     creatorUpdateFull: "Semua kolom template",
     creatorUpdateBdOnlyMode: "Hanya BD",
@@ -76,6 +100,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "Esporta i creator filtrati",
     creatorExportProgress: "Esportazione · {{count}} creator",
     creatorExportEmpty: "Nessun creator corrisponde ai filtri attuali.",
+    creatorExportSkippedWithoutUsername:
+      "Esportati {{count}} creator. Saltati {{skipped}} creator senza nome utente su TikTok (di solito account disattivati), perché non aggiornabili tramite caricamento.",
+    creatorExportOnlyWithoutUsername:
+      "Niente da esportare: TikTok non mostra il nome utente per nessuno dei {{skipped}} creator corrispondenti (di solito account disattivati).",
     creatorUpdateMode: "Campi da aggiornare",
     creatorUpdateFull: "Tutti i campi del modello",
     creatorUpdateBdOnlyMode: "Solo BD",
@@ -88,6 +116,10 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorExport: "ส่งออกครีเอเตอร์ตามตัวกรอง",
     creatorExportProgress: "กำลังส่งออก · {{count}} ครีเอเตอร์",
     creatorExportEmpty: "ไม่มีครีเอเตอร์ที่ตรงกับตัวกรองปัจจุบัน",
+    creatorExportSkippedWithoutUsername:
+      "ส่งออกครีเอเตอร์ {{count}} ราย ข้าม {{skipped}} รายที่ TikTok ไม่แสดงชื่อผู้ใช้ (ส่วนใหญ่เป็นบัญชีที่ปิดใช้งาน) เพราะอัปเดตผ่านการอัปโหลดไม่ได้",
+    creatorExportOnlyWithoutUsername:
+      "ไม่มีข้อมูลให้ส่งออก: TikTok ไม่แสดงชื่อผู้ใช้ของครีเอเตอร์ที่ตรงกันทั้ง {{skipped}} ราย (ส่วนใหญ่เป็นบัญชีที่ปิดใช้งาน)",
     creatorUpdateMode: "ฟิลด์ที่ต้องการอัปเดต",
     creatorUpdateFull: "ทุกฟิลด์ในเทมเพลต",
     creatorUpdateBdOnlyMode: "เฉพาะ BD",

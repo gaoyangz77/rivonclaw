@@ -29,20 +29,30 @@ export function AffiliateCreatorExportButton({ input }: { input: GQL.ReadAffilia
     abortRef.current = controller;
     setCount(0);
     try {
-      const rows = await collectAffiliateCreatorExportRows(async (offset) => {
-        const result = await client.query<{
-          affiliateCreatorUpdateExportPage: GQL.AffiliateCreatorUpdateExportPage;
-        }>({
-          query: AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY,
-          variables: { input: { ...scope, offset, limit: 100 } },
-          fetchPolicy: "no-cache",
-          context: { fetchOptions: { signal: controller.signal } },
-        });
-        if (!result.data) throw new Error(t("ecommerce.updateFailed"));
-        return result.data.affiliateCreatorUpdateExportPage;
-      }, setCount);
+      const { rows, skippedWithoutUsernameCount } = await collectAffiliateCreatorExportRows(
+        async (offset) => {
+          const result = await client.query<{
+            affiliateCreatorUpdateExportPage: GQL.AffiliateCreatorUpdateExportPage;
+          }>({
+            query: AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY,
+            variables: { input: { ...scope, offset, limit: 100 } },
+            fetchPolicy: "no-cache",
+            context: { fetchOptions: { signal: controller.signal } },
+          });
+          if (!result.data) throw new Error(t("ecommerce.updateFailed"));
+          return result.data.affiliateCreatorUpdateExportPage;
+        },
+        setCount,
+      );
       if (!rows.length) {
-        showToast(t("ecommerce.affiliateTeam.creatorExportEmpty"), "warning");
+        showToast(
+          skippedWithoutUsernameCount
+            ? t("ecommerce.affiliateTeam.creatorExportOnlyWithoutUsername", {
+                skipped: skippedWithoutUsernameCount,
+              })
+            : t("ecommerce.affiliateTeam.creatorExportEmpty"),
+          "warning",
+        );
         return;
       }
       const [catalog, { default: ExcelJS }] = await Promise.all([
@@ -62,6 +72,15 @@ export function AffiliateCreatorExportButton({ input }: { input: GQL.ReadAffilia
         rows,
       );
       await downloadAffiliateCreatorWorkbook(workbook, "affiliate-creator-bulk-update.xlsx");
+      if (skippedWithoutUsernameCount) {
+        showToast(
+          t("ecommerce.affiliateTeam.creatorExportSkippedWithoutUsername", {
+            count: rows.length,
+            skipped: skippedWithoutUsernameCount,
+          }),
+          "warning",
+        );
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
         showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");

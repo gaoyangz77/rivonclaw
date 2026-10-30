@@ -5239,6 +5239,8 @@ export const AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY = gql`
       }
       hasMore
       offset
+      nextOffset
+      skippedWithoutUsernameCount
     }
   }
 `;

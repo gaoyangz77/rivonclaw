@@ -2875,7 +2875,11 @@ export interface AffiliateCreatorSystemTagDefinition {
 export interface AffiliateCreatorUpdateExportPage {
   hasMore: Scalars["Boolean"]["output"];
   items: Array<AffiliateCreatorUpdateExportRow>;
+  /** Relationship offset for the next page. Skipped Creators advance it, so it can exceed offset + items.length. */
+  nextOffset: Scalars["Int"]["output"];
   offset: Scalars["Int"]["output"];
+  /** Creators on this page omitted because TikTok provided no username, which the username-keyed uploader needs. */
+  skippedWithoutUsernameCount: Scalars["Int"]["output"];
 }
 
 export interface AffiliateCreatorUpdateExportRow {
