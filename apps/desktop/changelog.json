@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.45",
+    "date": "2026-10-30",
+    "en": [
+      "Filter Affiliate sample details by review action time, and see who reviewed a sample and why on its card",
+      "Add a no-record choice to the reviewer filter, and add a single Creator beside bulk import",
+      "Hide Creators without a TikTok username by default, and report which Creators were skipped from export for lacking one"
+    ],
+    "zh": [
+      "达人联盟样品明细支持按审核操作时间筛选，样品卡片显示审核人及审核原因",
+      "审核人筛选新增“无记录”选项，并在批量导入旁新增单个达人添加",
+      "默认隐藏没有 TikTok 用户名的达人，导出时说明因缺少用户名而被跳过的达人"
+    ]
+  },
+  {
     "version": "1.9.44",
     "date": "2026-10-29",
     "en": [
