@@ -1,0 +1,124 @@
+.affiliate-creator-add-form {
+  display: grid;
+  gap: var(--tk-v1-space-4);
+}
+
+.affiliate-creator-add-protect {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--tk-v1-space-3);
+  cursor: pointer;
+}
+
+.affiliate-creator-add-protect input {
+  margin-top: var(--tk-v1-space-1);
+}
+
+.affiliate-creator-add-protect-copy {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+}
+
+.affiliate-creator-add-protect-copy strong {
+  color: var(--tk-v1-fg-default);
+  font-size: 13px;
+}
+
+.affiliate-creator-add-protect-copy small {
+  color: var(--tk-v1-fg-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.affiliate-creator-add-failure {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-creator-add-protect-group {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-creator-add-tag-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.affiliate-creator-add-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tk-v1-space-1);
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-1) var(--tk-v1-space-1) var(--tk-v1-space-2);
+  border: 1px solid color-mix(in srgb, var(--tk-v1-accent) 30%, var(--tk-v1-border-default));
+  border-radius: var(--tk-v1-radius-full);
+  background: color-mix(in srgb, var(--tk-v1-accent) 8%, transparent);
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+}
+
+.affiliate-creator-add-tag-pill button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--tk-v1-radius-full);
+  background: transparent;
+  color: var(--tk-v1-fg-muted);
+  cursor: pointer;
+}
+
+.affiliate-creator-add-tag-pill button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--tk-v1-accent) 14%, transparent);
+  color: var(--tk-v1-fg-default);
+}
+
+/* Only the height cap is local; the frame, inset and scrolling belong to the design system. */
+.affiliate-creator-add-tags-frame {
+  max-height: 160px;
+}
+
+.affiliate-creator-add-tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-creator-add-tag-option {
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-3);
+  border: 1px solid var(--tk-v1-border-default);
+  border-radius: var(--tk-v1-radius-full);
+  background: transparent;
+  color: var(--tk-v1-fg-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.affiliate-creator-add-tag-option:hover:not(:disabled) {
+  border-color: var(--tk-v1-border-strong);
+  color: var(--tk-v1-fg-default);
+}
+
+.affiliate-creator-add-tag-option[aria-pressed="true"] {
+  border-color: var(--tk-v1-accent);
+  background: color-mix(in srgb, var(--tk-v1-accent) 12%, transparent);
+  color: var(--tk-v1-fg-default);
+}
+
+.affiliate-creator-add-tag-option:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.affiliate-creator-add-tags-empty {
+  color: var(--tk-v1-fg-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}

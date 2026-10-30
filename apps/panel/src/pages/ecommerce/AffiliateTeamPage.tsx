@@ -79,6 +79,7 @@ import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPa
 import { AffiliateMessageLookbackPanel } from "./components/AffiliateMessageLookbackPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateBusinessDeveloperLoginPanel } from "./components/AffiliateBusinessDeveloperLoginPanel.js";
+import { AffiliateCreatorAddModal } from "./components/AffiliateCreatorAddModal.js";
 import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
 import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxyPanel.js";
@@ -112,7 +113,6 @@ type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
 type DeveloperDetailTab = "CHANNELS" | "SETTINGS" | "LOGIN";
 type TeamPageTab = "TEAM" | "ASSIGNMENTS" | "SAFETY";
 type ProtectionImportView = "ADD" | "RESOLVE" | "PREVIEW";
-type ProtectionComposerMode = "FILE" | "MANUAL";
 type ChannelAccount = {
   id: string;
   businessDeveloperId?: string | null;
@@ -401,15 +401,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   >([]);
   const [protectionImportOpen, setProtectionImportOpen] = useState(false);
   const [protectionImportView, setProtectionImportView] = useState<ProtectionImportView>("ADD");
-  const [protectionComposerMode, setProtectionComposerMode] =
-    useState<ProtectionComposerMode>("FILE");
   const [creatorUpdateMode, setCreatorUpdateMode] = useState<"FULL" | "BD_ONLY">("FULL");
   const [protectionImportFileName, setProtectionImportFileName] = useState("");
   const [protectionDragActive, setProtectionDragActive] = useState(false);
   const [protectionPreviewPage, setProtectionPreviewPage] = useState(0);
-  const [manualCreator, setManualCreator] = useState("");
-  const [manualDeveloperId, setManualDeveloperId] = useState(UNASSIGNED_ID);
-  const [manualNote, setManualNote] = useState("");
+  const [creatorAddOpen, setCreatorAddOpen] = useState(false);
   const [confirmedProtectionBoundary, setConfirmedProtectionBoundary] = useState(false);
   const [protectionPage, setProtectionPage] = useState(0);
   const [protectionSearch, setProtectionSearch] = useState("");
@@ -690,16 +686,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const transferOwnerOptions = useMemo(
     () => ownerOptions.filter((option) => option.value !== detailDeveloper?.id),
     [detailDeveloper?.id, ownerOptions],
-  );
-  const protectionOwnerOptions = useMemo(
-    () => [
-      { value: UNASSIGNED_ID, label: t("ecommerce.affiliateTeam.protectionUnassigned") },
-      ...activeDevelopers.map((developer) => ({
-        value: developer.id,
-        label: developer.displayName,
-      })),
-    ],
-    [activeDevelopers, t],
   );
   const loading =
     developersQuery.loading ||
@@ -1051,14 +1037,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     setDeveloperResolutionGroups([]);
     setProtectionImportFileName("");
     setProtectionPreviewPage(0);
-    setManualCreator("");
-    setManualDeveloperId(UNASSIGNED_ID);
-    setManualNote("");
   }
 
   function openProtectionImport() {
     resetProtectionImportDraft();
-    setProtectionComposerMode("FILE");
     setProtectionImportView("ADD");
     setProtectionImportOpen(true);
   }
@@ -1180,45 +1162,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     if (file) void processProtectionFile(file);
   }
 
-  function addManualProtection() {
-    const identity = manualCreator.trim().replace(/^@/, "");
-    if (!identity) {
-      showToast(t("ecommerce.affiliateTeam.missingCreatorIdentity"), "error");
-      return;
+  async function refreshAfterCreatorAdded() {
+    try {
+      await Promise.all([
+        protectionQuery.refetch(),
+        developersQuery.refetch(),
+        developerPageQuery.refetch(),
+      ]);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
-    const duplicate = protectionRows.some(
-      (row) => row.username?.toLowerCase() === identity.toLowerCase(),
-    );
-    if (duplicate) {
-      showToast(t("ecommerce.affiliateTeam.duplicateCreator"), "error");
-      return;
-    }
-    const developer =
-      manualDeveloperId === UNASSIGNED_ID
-        ? null
-        : workspace.getBusinessDeveloper(manualDeveloperId);
-    setProtectionRows((rows) => [
-      ...rows,
-      {
-        rowNumber: rows.reduce((highest, row) => Math.max(highest, row.rowNumber), 1) + 1,
-        platform: GQL.ShopPlatform.TiktokShop,
-        creatorOpenId: null,
-        username: identity,
-        sellerProvidedUid: null,
-        sellerNote: null,
-        businessDeveloperId: developer?.id ?? null,
-        businessDeveloperName: developer?.displayName ?? null,
-        protect: true,
-        protectionNote: manualNote.trim() || null,
-        manualTagNames: [],
-        error: null,
-      },
-    ]);
-    setManualCreator("");
-    setManualNote("");
-    setProtectionImportFileName("");
-    setProtectionImportView("PREVIEW");
-    setProtectionPreviewPage(0);
   }
 
   function updateDeveloperResolutionGroup(
@@ -2155,14 +2108,24 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             <strong>{t("ecommerce.affiliateTeam.creatorBulkUpdateTitle")}</strong>
             <span>{t("ecommerce.affiliateTeam.creatorUpdateIntro")}</span>
           </div>
-          <button
-            className="btn btn-primary"
-            type="button"
-            onClick={openProtectionImport}
-            disabled={protectionImportBusy}
-          >
-            <UserPlusIcon /> {t("ecommerce.affiliateTeam.importCreatorUpdates")}
-          </button>
+          <div className="affiliate-creator-management-actions">
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => setCreatorAddOpen(true)}
+              disabled={protectionImportBusy}
+            >
+              <UserPlusIcon /> {t("ecommerce.affiliateTeam.creatorAddButton")}
+            </button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={openProtectionImport}
+              disabled={protectionImportBusy}
+            >
+              <UserPlusIcon /> {t("ecommerce.affiliateTeam.importCreatorUpdates")}
+            </button>
+          </div>
         </div>
         <section className="affiliate-protection-boundary">
           <div className="affiliate-protection-boundary-head">
@@ -2468,6 +2431,20 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
           </div>
         </section>
       </div>
+      <AffiliateCreatorAddModal
+        isOpen={creatorAddOpen}
+        onClose={() => setCreatorAddOpen(false)}
+        developers={activeDevelopers.map((developer) => ({
+          id: developer.id,
+          displayName: developer.displayName,
+        }))}
+        tags={(creatorTagsQuery.data?.creatorManualTags ?? []).map((tag) => ({
+          id: tag.id,
+          name: tag.name,
+        }))}
+        tagsLoading={creatorTagsQuery.loading}
+        onAdded={() => void refreshAfterCreatorAdded()}
+      />
       <Modal
         isOpen={protectionImportOpen}
         onClose={closeProtectionImport}
@@ -2510,158 +2487,90 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             <TkSegmented
               items={[
                 {
-                  id: "FILE",
-                  label: (
-                    <>
-                      <DownloadIcon />
-                      {t("ecommerce.affiliateTeam.protectionImportExcelTab")}
-                    </>
-                  ),
+                  id: "FULL",
+                  label: t("ecommerce.affiliateTeam.creatorUpdateFull"),
+                  disabled: protectionImportBusy,
                 },
                 {
-                  id: "MANUAL",
-                  label: (
-                    <>
-                      <UserPlusIcon />
-                      {t("ecommerce.affiliateTeam.protectionImportManualTab")}
-                    </>
-                  ),
+                  id: "BD_ONLY",
+                  label: t("ecommerce.affiliateTeam.creatorUpdateBdOnlyMode"),
+                  disabled: protectionImportBusy,
                 },
               ]}
-              value={protectionComposerMode}
-              onChange={(value) => setProtectionComposerMode(value as "FILE" | "MANUAL")}
-              label={t("ecommerce.affiliateTeam.protectionImportMethod")}
+              value={creatorUpdateMode}
+              onChange={(value) => setCreatorUpdateMode(value as "FULL" | "BD_ONLY")}
+              label={t("ecommerce.affiliateTeam.creatorUpdateMode")}
             />
-
-            {protectionComposerMode === "FILE" ? (
-              <>
-                <TkSegmented
-                  items={[
-                    {
-                      id: "FULL",
-                      label: t("ecommerce.affiliateTeam.creatorUpdateFull"),
-                      disabled: protectionImportBusy,
-                    },
-                    {
-                      id: "BD_ONLY",
-                      label: t("ecommerce.affiliateTeam.creatorUpdateBdOnlyMode"),
-                      disabled: protectionImportBusy,
-                    },
-                  ]}
-                  value={creatorUpdateMode}
-                  onChange={(value) => setCreatorUpdateMode(value as "FULL" | "BD_ONLY")}
-                  label={t("ecommerce.affiliateTeam.creatorUpdateMode")}
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  hidden
-                  onChange={handleProtectionFile}
-                />
-                <div className="affiliate-protection-template-card">
-                  <span className="affiliate-protection-template-card-icon">
-                    <DownloadIcon />
-                  </span>
-                  <div>
-                    <strong>{t("ecommerce.affiliateTeam.protectionTemplateTitle")}</strong>
-                    <p>
-                      {t(
-                        creatorUpdateMode === "BD_ONLY"
-                          ? "ecommerce.affiliateTeam.creatorUpdateBdOnlyHint"
-                          : "ecommerce.affiliateTeam.protectionTemplateHint",
-                      )}
-                    </p>
-                    <p>
-                      {t("ecommerce.affiliateTeam.templateInstructionsSheetHint", {
-                        sheet: t("ecommerce.affiliateTeam.templateInstructionsSheetName"),
-                      })}
-                    </p>
-                  </div>
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => void downloadTemplate()}
-                    disabled={protectionImportBusy}
-                  >
-                    <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
-                  </button>
-                </div>
-                <div
-                  className={`affiliate-protection-dropzone ${protectionDragActive ? "is-dragging" : ""} ${protectionImportPhase === "PARSING" ? "is-busy" : ""}`}
-                  onDragEnter={(event) => {
-                    event.preventDefault();
-                    if (!protectionImportBusy) setProtectionDragActive(true);
-                  }}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDragLeave={(event) => {
-                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                      setProtectionDragActive(false);
-                    }
-                  }}
-                  onDrop={handleProtectionDrop}
-                >
-                  <span className="affiliate-protection-dropzone-icon">
-                    <DownloadIcon />
-                  </span>
-                  <div>
-                    <h3>
-                      {protectionImportPhase === "PARSING"
-                        ? t("ecommerce.affiliateTeam.protectionImportParsing")
-                        : t("ecommerce.affiliateTeam.protectionImportDropTitle")}
-                    </h3>
-                    <p>{t("ecommerce.affiliateTeam.protectionImportDropHint")}</p>
-                  </div>
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={protectionImportBusy}
-                  >
-                    {t("ecommerce.affiliateTeam.protectionImportChooseFile")}
-                  </button>
-                  <small>.xlsx · .xls · .csv</small>
-                </div>
-              </>
-            ) : (
-              <div className="affiliate-protection-manual-card">
-                <div>
-                  <h3>{t("ecommerce.affiliateTeam.addProtectionEntries")}</h3>
-                  <p>{t("ecommerce.affiliateTeam.protectionEntryHint")}</p>
-                </div>
-                <div className="affiliate-protection-manual">
-                  <label>
-                    <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
-                    <input
-                      value={manualCreator}
-                      onChange={(event) => setManualCreator(event.target.value)}
-                      placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")}
-                    />
-                  </label>
-                  <label>
-                    <span>{t("ecommerce.affiliateTeam.assignProtectionDeveloper")}</span>
-                    <Select
-                      value={manualDeveloperId}
-                      options={protectionOwnerOptions}
-                      onChange={setManualDeveloperId}
-                    />
-                  </label>
-                  <label>
-                    <span>{t("ecommerce.affiliateTeam.note")}</span>
-                    <input
-                      value={manualNote}
-                      onChange={(event) => setManualNote(event.target.value)}
-                      placeholder={t("ecommerce.affiliateTeam.notePlaceholder")}
-                    />
-                  </label>
-                </div>
-                <div className="affiliate-protection-manual-actions">
-                  <button className="btn btn-primary" type="button" onClick={addManualProtection}>
-                    <UserPlusIcon /> {t("ecommerce.affiliateTeam.addProtectedCreator")}
-                  </button>
-                </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              hidden
+              onChange={handleProtectionFile}
+            />
+            <div className="affiliate-protection-template-card">
+              <span className="affiliate-protection-template-card-icon">
+                <DownloadIcon />
+              </span>
+              <div>
+                <strong>{t("ecommerce.affiliateTeam.protectionTemplateTitle")}</strong>
+                <p>
+                  {t(
+                    creatorUpdateMode === "BD_ONLY"
+                      ? "ecommerce.affiliateTeam.creatorUpdateBdOnlyHint"
+                      : "ecommerce.affiliateTeam.protectionTemplateHint",
+                  )}
+                </p>
+                <p>
+                  {t("ecommerce.affiliateTeam.templateInstructionsSheetHint", {
+                    sheet: t("ecommerce.affiliateTeam.templateInstructionsSheetName"),
+                  })}
+                </p>
               </div>
-            )}
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => void downloadTemplate()}
+                disabled={protectionImportBusy}
+              >
+                <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
+              </button>
+            </div>
+            <div
+              className={`affiliate-protection-dropzone ${protectionDragActive ? "is-dragging" : ""} ${protectionImportPhase === "PARSING" ? "is-busy" : ""}`}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                if (!protectionImportBusy) setProtectionDragActive(true);
+              }}
+              onDragOver={(event) => event.preventDefault()}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setProtectionDragActive(false);
+                }
+              }}
+              onDrop={handleProtectionDrop}
+            >
+              <span className="affiliate-protection-dropzone-icon">
+                <DownloadIcon />
+              </span>
+              <div>
+                <h3>
+                  {protectionImportPhase === "PARSING"
+                    ? t("ecommerce.affiliateTeam.protectionImportParsing")
+                    : t("ecommerce.affiliateTeam.protectionImportDropTitle")}
+                </h3>
+                <p>{t("ecommerce.affiliateTeam.protectionImportDropHint")}</p>
+              </div>
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={protectionImportBusy}
+              >
+                {t("ecommerce.affiliateTeam.protectionImportChooseFile")}
+              </button>
+              <small>.xlsx · .xls · .csv</small>
+            </div>
           </div>
         )}
 
@@ -2939,18 +2848,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             <div className="affiliate-protection-preview-toolbar">
               <div>
                 <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
-                <span>
-                  {protectionImportFileName ||
-                    t("ecommerce.affiliateTeam.protectionImportManualSource")}
-                </span>
+                <span>{protectionImportFileName}</span>
               </div>
               <button
                 className="btn btn-secondary btn-sm"
                 type="button"
-                onClick={() => {
-                  setProtectionComposerMode(protectionImportFileName ? "FILE" : "MANUAL");
-                  setProtectionImportView("ADD");
-                }}
+                onClick={() => setProtectionImportView("ADD")}
                 disabled={protectionImportBusy}
               >
                 {t("ecommerce.affiliateTeam.protectionImportContinueAdding")}

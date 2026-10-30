@@ -492,6 +492,14 @@
   line-height: 1.45;
 }
 
+.affiliate-creator-management-toolbar > .affiliate-creator-management-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--tk-v1-space-3);
+}
+
 .affiliate-creator-management-toolbar .btn {
   display: inline-flex;
   flex: 0 0 auto;
@@ -561,36 +569,6 @@
   padding: 14px 20px;
   border-bottom: 1px solid var(--border-color);
   background: color-mix(in srgb, var(--warning-color) 5%, var(--surface-primary));
-}
-
-.affiliate-protection-manual {
-  display: grid;
-  grid-template-columns: minmax(190px, 1fr) minmax(180px, 240px) minmax(190px, 1fr) auto;
-  gap: 12px;
-  align-items: end;
-}
-
-.affiliate-protection-manual label {
-  min-width: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.affiliate-protection-manual label > span {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.affiliate-protection-manual input {
-  width: 100%;
-  min-height: 40px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  font: inherit;
-  padding: 8px 11px;
 }
 
 .affiliate-protection-row.is-excluded {
@@ -1117,14 +1095,12 @@
   height: 22px;
 }
 
-.affiliate-protection-dropzone h3,
-.affiliate-protection-manual-card h3 {
+.affiliate-protection-dropzone h3 {
   margin: 0;
   font-size: 17px;
 }
 
-.affiliate-protection-dropzone p,
-.affiliate-protection-manual-card p {
+.affiliate-protection-dropzone p {
   max-width: 580px;
   margin: 7px auto 0;
   color: var(--text-muted);
@@ -1135,38 +1111,6 @@
 .affiliate-protection-dropzone small {
   color: var(--text-muted);
   font-size: 10.5px;
-}
-
-.affiliate-protection-manual-card {
-  display: grid;
-  gap: 22px;
-  padding: 26px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--tk-v1-radius-4);
-  background: color-mix(in srgb, var(--surface-secondary) 44%, var(--surface-primary));
-}
-
-.affiliate-protection-manual-card > div:first-child {
-  text-align: center;
-}
-
-.affiliate-protection-manual-card .affiliate-protection-manual {
-  grid-template-columns: minmax(200px, 1fr) minmax(200px, 0.8fr) minmax(200px, 1fr);
-}
-
-.affiliate-protection-manual-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.affiliate-protection-manual-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.affiliate-protection-manual-actions svg {
-  width: 16px;
 }
 
 .affiliate-protection-preview-toolbar,
@@ -3120,6 +3064,7 @@
     flex-direction: column;
   }
   .affiliate-creator-management-toolbar .btn {
+    flex: 1 1 auto;
     justify-content: center;
   }
   .affiliate-protection-import-modal {
@@ -3139,9 +3084,6 @@
     margin-left: -18px;
     padding-right: 18px;
     padding-left: 18px;
-  }
-  .affiliate-protection-manual {
-    grid-template-columns: 1fr;
   }
   .affiliate-protection-developer-map {
     grid-template-columns: 1fr;
