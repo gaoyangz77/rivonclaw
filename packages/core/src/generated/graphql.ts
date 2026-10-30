@@ -14700,6 +14700,8 @@ export interface ReadAffiliateCreatorsInput {
   /** Return only Creator Relationships assigned to this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
   creatorId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Include Creator Relationships whose Creator has no TikTok username. They are hidden by default, except when search or creatorId targets them explicitly. */
+  includeCreatorsWithoutUsername?: InputMaybe<Scalars["Boolean"]["input"]>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   /** Relationship-level manual tags, combined per manualTagMatchMode. */

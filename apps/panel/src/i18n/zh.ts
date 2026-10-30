@@ -3381,6 +3381,8 @@ export default {
       creatorsPanelHint:
         "默认显示所有已授权店铺中的达人关系，无需开启 Agent 服务；可按单店缩小范围。",
       creatorAttentionOnly: "仅看需处理",
+      creatorIncludeWithoutUsername: "显示无账号名达人",
+      creatorIncludeWithoutUsernameHint: "TikTok 没有提供账号名的达人（多为已停用账号）默认不显示；按 ID 精确搜索仍可找到。",
       sampleTiers: {
         SAMPLE_SHIPPED: "已发样",
         SAMPLE_DELIVERED: "已收样",

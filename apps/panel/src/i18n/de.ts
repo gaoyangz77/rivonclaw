@@ -3153,6 +3153,8 @@ export default {
       creatorsPanelHint:
         "Zeigt standardmäßig alle Affiliate-aktivierten Shops; wählen Sie einen Shop zum Eingrenzen.",
       creatorAttentionOnly: "Nur Handlungsbedarf",
+      creatorIncludeWithoutUsername: "Creator ohne Benutzernamen anzeigen",
+      creatorIncludeWithoutUsernameHint: "TikTok liefert für diese Creator keinen Benutzernamen (meist deaktivierte Konten). Sie sind standardmäßig ausgeblendet; eine exakte ID-Suche findet sie weiterhin.",
       sampleTiers: {
         SAMPLE_SHIPPED: "Muster versandt",
         SAMPLE_DELIVERED: "Muster zugestellt",

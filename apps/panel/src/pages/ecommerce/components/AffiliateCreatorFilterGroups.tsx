@@ -34,12 +34,14 @@ export function AffiliateCreatorFilterGroups({
   selectedManualTagIds,
   selectedSystemTags,
   needsAttentionOnly,
+  includeCreatorsWithoutUsername,
   selectedSampleTiers,
   selectedShopSampleTiers,
   shopSelected,
   onManualTagMatchModeChange,
   onSystemTagMatchModeChange,
   onNeedsAttentionOnlyChange,
+  onIncludeCreatorsWithoutUsernameChange,
   onSelectedManualTagIdsChange,
   onSelectedSystemTagsChange,
   onSelectedSampleTiersChange,
@@ -50,6 +52,7 @@ export function AffiliateCreatorFilterGroups({
   systemTagDefinitions: ReadonlyArray<Pick<GQL.AffiliateCreatorSystemTagDefinition, "tag">>;
   systemTagMatchMode: GQL.TagMatchMode;
   needsAttentionOnly: boolean;
+  includeCreatorsWithoutUsername: boolean;
   selectedManualTagIds: string[];
   selectedSystemTags: GQL.AffiliateCreatorSystemTag[];
   selectedSampleTiers: GQL.CreatorSampleTier[];
@@ -58,6 +61,7 @@ export function AffiliateCreatorFilterGroups({
   onManualTagMatchModeChange: (mode: GQL.TagMatchMode) => void;
   onSystemTagMatchModeChange: (mode: GQL.TagMatchMode) => void;
   onNeedsAttentionOnlyChange: (needsAttentionOnly: boolean) => void;
+  onIncludeCreatorsWithoutUsernameChange: (include: boolean) => void;
   onSelectedManualTagIdsChange: (tagIds: string[]) => void;
   onSelectedSystemTagsChange: (tags: GQL.AffiliateCreatorSystemTag[]) => void;
   onSelectedSampleTiersChange: (tiers: GQL.CreatorSampleTier[]) => void;
@@ -169,6 +173,18 @@ export function AffiliateCreatorFilterGroups({
           onChange={(event) => onNeedsAttentionOnlyChange(event.target.checked)}
         />
         <span>{t("ecommerce.affiliateWorkspace.creatorAttentionOnly")}</span>
+      </label>
+
+      <label
+        className="affiliate-creators-toggle"
+        title={t("ecommerce.affiliateWorkspace.creatorIncludeWithoutUsernameHint")}
+      >
+        <input
+          type="checkbox"
+          checked={includeCreatorsWithoutUsername}
+          onChange={(event) => onIncludeCreatorsWithoutUsernameChange(event.target.checked)}
+        />
+        <span>{t("ecommerce.affiliateWorkspace.creatorIncludeWithoutUsername")}</span>
       </label>
     </div>
   );

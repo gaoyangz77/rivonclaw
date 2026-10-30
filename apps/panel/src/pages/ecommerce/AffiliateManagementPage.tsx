@@ -3288,6 +3288,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     [],
   );
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
+  const [includeCreatorsWithoutUsername, setIncludeCreatorsWithoutUsername] = useState(false);
   const [creatorBusinessDeveloperSelection, setSelectedBusinessDeveloperId] = useState("");
   const selectedBusinessDeveloperId = creatorBusinessDeveloperSelection;
   const [creatorSearch, setCreatorSearch] = useState("");
@@ -3403,6 +3404,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     shopSampleTiers:
       selectedShopId && selectedShopSampleTiers.length ? selectedShopSampleTiers : undefined,
     needsAttentionOnly,
+    includeCreatorsWithoutUsername: includeCreatorsWithoutUsername || undefined,
     ...affiliateWorkbenchBdInput(selectedBusinessDeveloperId),
     search: debouncedCreatorSearch || undefined,
   };
@@ -3447,6 +3449,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     manualTagMatchMode,
     systemTagMatchMode,
     needsAttentionOnly,
+    includeCreatorsWithoutUsername,
     selectedBusinessDeveloperId,
     selectedManualTagIds,
     selectedSystemTags,
@@ -3600,6 +3603,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           systemTagDefinitions={systemTagDefinitions}
           systemTagMatchMode={systemTagMatchMode}
           needsAttentionOnly={needsAttentionOnly}
+          includeCreatorsWithoutUsername={includeCreatorsWithoutUsername}
           selectedManualTagIds={selectedManualTagIds}
           selectedSystemTags={selectedSystemTags}
           selectedSampleTiers={selectedSampleTiers}
@@ -3608,6 +3612,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           onManualTagMatchModeChange={setManualTagMatchMode}
           onSystemTagMatchModeChange={setSystemTagMatchMode}
           onNeedsAttentionOnlyChange={setNeedsAttentionOnly}
+          onIncludeCreatorsWithoutUsernameChange={setIncludeCreatorsWithoutUsername}
           onSelectedManualTagIdsChange={setSelectedManualTagIds}
           onSelectedSystemTagsChange={setSelectedSystemTags}
           onSelectedSampleTiersChange={setSelectedSampleTiers}

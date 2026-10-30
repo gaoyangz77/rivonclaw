@@ -3136,6 +3136,8 @@ export default {
       creatorsPanelHint:
         "Mostra per impostazione predefinita tutti i negozi Affiliate attivi; selezionane uno per restringere la vista.",
       creatorAttentionOnly: "Solo da attenzionare",
+      creatorIncludeWithoutUsername: "Mostra creator senza nome utente",
+      creatorIncludeWithoutUsernameHint: "TikTok non fornisce un nome utente per questi creator (per lo più account disattivati). Sono nascosti per impostazione predefinita; una ricerca per ID esatto li trova comunque.",
       sampleTiers: {
         SAMPLE_SHIPPED: "Campione spedito",
         SAMPLE_DELIVERED: "Campione consegnato",

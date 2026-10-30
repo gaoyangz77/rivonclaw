@@ -2991,6 +2991,8 @@ export default {
       creatorsPanelTitle: "พูลครีเอเตอร์ของร้านค้า",
       creatorsPanelHint: "แสดงทุกร้านที่เปิด Affiliate โดยค่าเริ่มต้น และเลือกร้านเดียวเพื่อจำกัดมุมมอง",
       creatorAttentionOnly: "เฉพาะที่ต้องตรวจสอบ",
+      creatorIncludeWithoutUsername: "แสดงครีเอเตอร์ที่ไม่มีชื่อผู้ใช้",
+      creatorIncludeWithoutUsernameHint: "TikTok ไม่ได้ให้ชื่อผู้ใช้ของครีเอเตอร์เหล่านี้ (ส่วนใหญ่เป็นบัญชีที่ปิดใช้งาน) จะถูกซ่อนไว้โดยค่าเริ่มต้น แต่ยังค้นหาด้วย ID ที่ตรงกันได้",
       sampleTiers: {
         SAMPLE_SHIPPED: "ส่งตัวอย่างแล้ว",
         SAMPLE_DELIVERED: "รับตัวอย่างแล้ว",

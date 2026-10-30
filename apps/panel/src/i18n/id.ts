@@ -3101,6 +3101,8 @@ export default {
       creatorsPanelHint:
         "Secara default menampilkan semua toko ber-Affiliate; pilih satu toko untuk mempersempit tampilan.",
       creatorAttentionOnly: "Hanya perlu perhatian",
+      creatorIncludeWithoutUsername: "Tampilkan kreator tanpa nama pengguna",
+      creatorIncludeWithoutUsernameHint: "TikTok tidak memberikan nama pengguna untuk kreator ini (sebagian besar akun nonaktif). Disembunyikan secara default; pencarian ID persis tetap menemukannya.",
       sampleTiers: {
         SAMPLE_SHIPPED: "Sampel dikirim",
         SAMPLE_DELIVERED: "Sampel diterima",

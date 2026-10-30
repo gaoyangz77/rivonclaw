@@ -15,9 +15,9 @@ function Harness() {
   return <AffiliateCreatorFilterGroups manualTagCatalog={[{ id: "a", name: "标签甲" }, { id: "b", name: "标签乙" }]}
     manualTagMatchMode={GQL.TagMatchMode.Any} systemTagDefinitions={[]}
     systemTagMatchMode={GQL.TagMatchMode.Any} selectedManualTagIds={tags} selectedSystemTags={[]}
-    needsAttentionOnly={false} selectedSampleTiers={global} selectedShopSampleTiers={shop}
+    needsAttentionOnly={false} includeCreatorsWithoutUsername={false} selectedSampleTiers={global} selectedShopSampleTiers={shop}
     shopSelected onManualTagMatchModeChange={() => {}} onSystemTagMatchModeChange={() => {}}
-    onNeedsAttentionOnlyChange={() => {}} onSelectedManualTagIdsChange={setTags}
+    onNeedsAttentionOnlyChange={() => {}} onIncludeCreatorsWithoutUsernameChange={() => {}} onSelectedManualTagIdsChange={setTags}
     onSelectedSystemTagsChange={() => {}} onSelectedSampleTiersChange={setGlobal}
     onSelectedShopSampleTiersChange={setShop} />;
 }
@@ -35,4 +35,20 @@ it.each([0, 1])("switches and clears progress selection in group %s without affe
   expect(received.getAttribute("aria-pressed")).toBe("false");
   for (const name of ["标签甲", "标签乙"]) fireEvent.click(screen.getByRole("button", { name }));
   for (const name of ["标签甲", "标签乙"]) expect(screen.getByRole("button", { name }).getAttribute("aria-pressed")).toBe("true");
+});
+
+it("toggles including Creators that TikTok gave no username", () => {
+  const changes: boolean[] = [];
+  render(<AffiliateCreatorFilterGroups manualTagCatalog={[]} manualTagMatchMode={GQL.TagMatchMode.Any}
+    systemTagDefinitions={[]} systemTagMatchMode={GQL.TagMatchMode.Any} selectedManualTagIds={[]}
+    selectedSystemTags={[]} needsAttentionOnly={false} includeCreatorsWithoutUsername={false}
+    selectedSampleTiers={[]} selectedShopSampleTiers={[]} shopSelected={false}
+    onManualTagMatchModeChange={() => {}} onSystemTagMatchModeChange={() => {}}
+    onNeedsAttentionOnlyChange={() => {}} onIncludeCreatorsWithoutUsernameChange={(value) => changes.push(value)}
+    onSelectedManualTagIdsChange={() => {}} onSelectedSystemTagsChange={() => {}}
+    onSelectedSampleTiersChange={() => {}} onSelectedShopSampleTiersChange={() => {}} />);
+  const toggle = screen.getByRole("checkbox", { name: "显示无账号名达人" });
+  expect((toggle as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(toggle);
+  expect(changes).toEqual([true]);
 });
