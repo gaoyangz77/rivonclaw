@@ -508,6 +508,7 @@ function createSampleReviewWorkItem(
     sampleWorkStatus: GQL.SampleWorkStatus.RequestPendingReview,
     reviewDisposition: GQL.AffiliateSampleReviewDisposition.Open,
     reviewDispositionRevision: 1,
+    merchantReviewByShopRules: false,
     firstObservedAt: "2026-05-11T00:00:00.000Z",
     lastObservedAt: "2026-05-11T00:01:00.000Z",
     lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile,
