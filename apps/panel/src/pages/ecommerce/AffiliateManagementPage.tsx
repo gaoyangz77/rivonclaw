@@ -105,7 +105,8 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleShopIdentity,
-  SampleReviewAttribution,
+  SampleReviewResult,
+  sampleRejectedStatusLabel,
 } from "./components/AffiliateSampleReview.js";
 import { AffiliateActorLabel } from "../../components/ecommerce/AffiliateActorLabel.js";
 import { formatAffiliateActor } from "../../lib/affiliate-actor.js";
@@ -9566,12 +9567,11 @@ export function SampleApplicationSummaryCard({
   const sampleOrderId = sampleOrderIdForCard(sampleOrder?.platformOrderId);
   const trackingNumber = sampleOrder?.trackingNumber ?? sampleApplication.trackingNumber;
   const carrier = sampleOrder?.carrier ?? sampleApplication.carrier;
-  const status = t(
-    `ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`,
-    {
+  const status =
+    sampleRejectedStatusLabel(sampleApplication, t) ??
+    t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`, {
       defaultValue: formatAffiliateEnumLabel(sampleApplication.sampleWorkStatus),
-    },
-  );
+    });
   const detailFields = [
     {
       label: t("ecommerce.affiliateWorkspace.sampleApplication.applicationId"),
@@ -9744,8 +9744,8 @@ export function SampleApplicationSummaryCard({
           value={formatProposalTime(sampleApplication.updatedAt)}
         />
         <AffiliateSampleShipment sample={sampleApplication} />
+        <SampleReviewResult sampleApplication={sampleApplication} />
       </div>
-      <SampleReviewAttribution sampleApplication={sampleApplication} />
       {detailOpen ? (
         <div className="affiliate-collaboration-sample-details">
           <div className="affiliate-collaboration-sample-details-grid">

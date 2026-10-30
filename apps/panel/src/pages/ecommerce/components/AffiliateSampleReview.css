@@ -76,3 +76,42 @@
   font-size: inherit;
   font-weight: 500;
 }
+
+/*
+ * Review result of a Sample Application card. It is a child of the card's fact
+ * grid and spans it, so it takes the grid's inset and gap rather than a margin
+ * of its own. Rules are written as descendants of the block because the card's
+ * blanket `span` / `strong` rules would otherwise restyle anything inside it.
+ */
+.affiliate-sample-review-result {
+  display: grid;
+  grid-column: 1 / -1;
+  min-width: 0;
+  gap: var(--tk-v1-space-1);
+  padding: var(--tk-v1-space-3);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--tk-v1-bg-subtle);
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: 1.5;
+}
+
+.affiliate-sample-review-result .affiliate-sample-review-result-line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-sample-review-result .affiliate-sample-review-result-reviewer {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--tk-v1-space-2);
+}
+
+.affiliate-sample-review-result .affiliate-sample-review-result-reviewer time {
+  color: var(--tk-v1-fg-muted);
+}
+
+.affiliate-sample-review-result .affiliate-sample-review-result-reviewer time::before {
+  content: "·";
+  margin-inline-end: var(--tk-v1-space-2);
+}

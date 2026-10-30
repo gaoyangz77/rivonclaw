@@ -15190,6 +15190,8 @@ export interface SampleApplicationRecord {
   /** Who reviewed this Sample Application. Null until it has been reviewed. */
   merchantReviewActor?: Maybe<AffiliateActorDisplay>;
   merchantReviewActorType?: Maybe<AffiliateLifecycleActorType>;
+  /** True when the recorded review was made by the shop's Sample review rules (ADR-094), so the Panel can show a general reason instead of the Provider reason code. */
+  merchantReviewByShopRules: Scalars["Boolean"]["output"];
   merchantReviewDecidedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   merchantReviewDecision?: Maybe<AffiliateSampleReviewDecision>;
   merchantReviewExecutionMode?: Maybe<AffiliateSampleReviewExecutionMode>;

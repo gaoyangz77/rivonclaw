@@ -3574,8 +3574,8 @@
   gap: 10px;
 }
 
-.affiliate-collaboration-sample-panel span:not(.tk-v1-button *),
-.affiliate-collaboration-sample-card span:not(.tk-v1-button *) {
+.affiliate-collaboration-sample-panel span:not(:where(.tk-v1-button *)),
+.affiliate-collaboration-sample-card span:not(:where(.tk-v1-button *)) {
   display: block;
   margin-bottom: 4px;
   color: var(--color-text-muted);

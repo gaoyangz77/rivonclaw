@@ -2285,6 +2285,7 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
           displayName
           businessDeveloperId
         }
+        merchantReviewByShopRules
         platformStatus
         platformFulfillmentStatus
         updatedAt
@@ -3104,6 +3105,7 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
           displayName
           businessDeveloperId
         }
+        merchantReviewByShopRules
         order {
           platformOrderId
           status
@@ -3180,6 +3182,7 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
           displayName
           businessDeveloperId
         }
+        merchantReviewByShopRules
         order {
           platformOrderId
           status
@@ -4267,6 +4270,7 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
         displayName
         businessDeveloperId
       }
+      merchantReviewByShopRules
       platformStatus
       approveExpirationAt
       firstObservedAt

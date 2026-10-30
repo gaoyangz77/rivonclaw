@@ -51,6 +51,7 @@ import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
 import { AffiliateSampleOrderCopyButton } from "./AffiliateSampleOrderCopyButton.js";
+import { sampleRejectedStatusLabel } from "./AffiliateSampleReview.js";
 import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
 import { useWorkbenchPagination } from "../useWorkbenchPagination.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
@@ -1585,12 +1586,9 @@ function SampleStateBadge({
       </span>
     );
   }
-  if (sampleApplication.platformStatus === "REJECT_CANCELLED") {
-    return (
-      <span className="affiliate-workbench-badge">
-        {t("ecommerce.affiliateWorkspace.workbench.sampleStatusRejected")}
-      </span>
-    );
+  const rejectedLabel = sampleRejectedStatusLabel(sampleApplication, t);
+  if (rejectedLabel) {
+    return <span className="affiliate-workbench-badge">{rejectedLabel}</span>;
   }
   if (sampleApplication.sampleWorkStatus === GQL.SampleWorkStatus.PlatformStatusUnknown) {
     return (

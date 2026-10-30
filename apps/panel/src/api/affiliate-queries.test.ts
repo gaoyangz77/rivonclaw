@@ -336,6 +336,18 @@ describe("executed message proposal content", () => {
     expect(query.split("deliveredMessage").length - 1).toBe(1);
   });
 
+  it("selects whether the shop's rules made the review wherever the reviewer is selected", () => {
+    for (const document of [
+      AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY,
+      AFFILIATE_COLLABORATION_DETAIL_QUERY,
+      AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY,
+      AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY,
+      REVIEW_AFFILIATE_SAMPLE_APPLICATION_MUTATION,
+    ]) {
+      expect(queryText(document)).toMatch(/\bmerchantReviewByShopRules\b/);
+    }
+  });
+
   it("selects the resolved actor of every human action the Panel attributes", () => {
     const actor = /\{\s*kind\s+displayName\s+businessDeveloperId\s*\}/;
     const selections: Array<[string, Parameters<typeof print>[0], string]> = [

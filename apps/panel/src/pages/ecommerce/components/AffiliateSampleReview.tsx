@@ -1,4 +1,5 @@
 import { GQL } from "@rivonclaw/core";
+import type { TFunction } from "i18next";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { TkButton, TkPrivate, TkTooltip } from "../../../components/design-system/index.js";
@@ -52,23 +53,67 @@ export function AffiliateSampleIgnoreButton({
   );
 }
 
-type SampleReviewAttributionRecord = Pick<
+/** TikTok's status for a Sample Application the seller rejected (or that was cancelled by rejection). */
+const PLATFORM_REJECTED_STATUS = "REJECT_CANCELLED";
+
+/**
+ * "Rejected" for a Sample Application TikTok reports as rejected, else null.
+ *
+ * Our own work status folds a rejection into CANCELLED, which reads as if the
+ * Creator withdrew; the platform status is what says the seller said no. Every
+ * surface that labels a Sample's state asks here first so they cannot disagree.
+ */
+export function sampleRejectedStatusLabel(
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "platformStatus">,
+  t: TFunction,
+): string | null {
+  return sampleApplication.platformStatus === PLATFORM_REJECTED_STATUS
+    ? t("ecommerce.affiliateWorkspace.workbench.sampleStatusRejected")
+    : null;
+}
+
+type SampleReviewResultRecord = Pick<
   GQL.SampleApplicationRecord,
-  "merchantReviewDecidedAt" | "merchantReviewActorType" | "merchantReviewActor"
+  | "merchantReviewDecidedAt"
+  | "merchantReviewActorType"
+  | "merchantReviewActor"
+  | "merchantReviewRejectReason"
+  | "merchantReviewRejectReasonExplanation"
+  | "merchantReviewByShopRules"
 >;
 
 /**
- * "Reviewed by {who} · {when}" for a Sample Application that has a recorded
- * merchant decision. The resolved actor names the person (or Agent); a record
- * that carries only the coarse actor type keeps the generic Agent / Staff label.
+ * The outcome of a Sample Application's review, as lines of one block: who
+ * reviewed it and when, and why it was rejected. The resolved actor names the
+ * person (or Agent); a record that carries only the coarse actor type keeps
+ * the generic Agent / Staff label. A review the shop's rules made shows one
+ * general reason rather than the Provider reason code it sent.
+ *
+ * Renders nothing when there is nothing to say.
  */
-export function SampleReviewAttribution({
+export function SampleReviewResult({
   sampleApplication,
 }: {
-  sampleApplication: SampleReviewAttributionRecord;
+  sampleApplication: SampleReviewResultRecord;
 }) {
   const { t, i18n } = useTranslation();
-  if (!sampleApplication.merchantReviewDecidedAt) return null;
+  const decidedAt = sampleApplication.merchantReviewDecidedAt;
+  const rejectReason = sampleApplication.merchantReviewRejectReason;
+  const prefix = "ecommerce.affiliateWorkspace.sampleReviewResult";
+  const reasonText = sampleApplication.merchantReviewByShopRules
+    ? t(`${prefix}.shopRulesReason`)
+    : rejectReason
+      ? [
+          t(`ecommerce.affiliateWorkspace.rejectReasons.${rejectReason}`, {
+            defaultValue: rejectReason,
+          }),
+          sampleApplication.merchantReviewRejectReasonExplanation?.trim(),
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
+  if (!decidedAt && !reasonText) return null;
+
   const actor = sampleApplication.merchantReviewActor
     ? formatAffiliateActor(sampleApplication.merchantReviewActor, t)
     : t(
@@ -76,12 +121,20 @@ export function SampleReviewAttribution({
           ? "ecommerce.affiliateWorkspace.workbench.reviewActorAgent"
           : "ecommerce.affiliateWorkspace.workbench.reviewActorHuman",
       );
+
   return (
-    <div className="affiliate-workbench-review-attribution">
-      {t("ecommerce.affiliateWorkspace.workbench.reviewedBy", {
-        actor,
-        value: formatLocalizedDateTime(sampleApplication.merchantReviewDecidedAt, i18n.language),
-      })}
-    </div>
+    <section className="affiliate-sample-review-result" aria-label={t(`${prefix}.label`)}>
+      {decidedAt ? (
+        <p className="affiliate-sample-review-result-line affiliate-sample-review-result-reviewer">
+          {t("ecommerce.affiliateWorkspace.actor.reviewer", { actor })}
+          <time dateTime={decidedAt}>{formatLocalizedDateTime(decidedAt, i18n.language)}</time>
+        </p>
+      ) : null}
+      {reasonText ? (
+        <p className="affiliate-sample-review-result-line">
+          {t(`${prefix}.rejectReason`, { reason: reasonText })}
+        </p>
+      ) : null}
+    </section>
   );
 }

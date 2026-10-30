@@ -169,6 +169,73 @@ beforeEach(async () => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+describe("Sample card review result", () => {
+  const reviewed = {
+    id: "sample-review", shopId: "1", platformApplicationId: "application-review",
+    sampleWorkStatus: "CANCELLED", platformStatus: "REJECT_CANCELLED", reviewDisposition: "OPEN",
+    updatedAt: "2026-10-30T03:32:00.000Z", observedContentCount: 0,
+    merchantReviewDecidedAt: "2026-10-30T03:32:00.000Z", merchantReviewActorType: "SYSTEM",
+    merchantReviewActor: { kind: "SYSTEM", displayName: null },
+  };
+  function card(overrides: Record<string, unknown>) {
+    const sample = { ...reviewed, ...overrides } as unknown as GQL.SampleApplicationRecord;
+    return <ToastProvider><SampleApplicationSummaryCard sampleApplication={sample} embedded /></ToastProvider>;
+  }
+  const lines = () =>
+    [...document.querySelectorAll(".affiliate-sample-review-result-line")].map(line => line.textContent ?? "");
+
+  it("calls a seller-rejected application rejected, not cancelled, in the header and the status fact", () => {
+    render(card({}));
+    expect(document.querySelector(".affiliate-collaboration-sample-status")?.textContent).toBe("已拒绝");
+    fireEvent.click(screen.getByRole("button", { name: "查看详情" }));
+    expect(screen.queryByText("已取消")).toBeNull();
+    expect(screen.getAllByText("已拒绝")).toHaveLength(2);
+  });
+
+  it("keeps the work status for an application the platform did not reject", () => {
+    render(card({ platformStatus: "CANCELLED" }));
+    expect(document.querySelector(".affiliate-collaboration-sample-status")?.textContent).toBe("已取消");
+  });
+
+  it("states who rejected and the reason a person chose", () => {
+    render(card({
+      merchantReviewActorType: "HUMAN",
+      merchantReviewActor: { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏" },
+      merchantReviewRejectReason: "NOT_MATCH",
+    }));
+
+    const [reviewer, reason] = lines();
+    expect(reviewer).toMatch(/^审核人：孙浩鹏.+/);
+    expect(reason).toBe("拒绝理由：不匹配");
+    // The block sits in the card's fact grid, so it shares the other facts' inset.
+    expect(document.querySelector(".affiliate-sample-review-result")?.parentElement?.className)
+      .toContain("affiliate-collaboration-sample-grid");
+  });
+
+  it("gives a review the shop's rules made one general reason instead of the code sent to TikTok", () => {
+    render(card({ merchantReviewRejectReason: "OTHER", merchantReviewByShopRules: true }));
+
+    const [reviewer, reason] = lines();
+    expect(reviewer).toMatch(/^审核人：系统.+/);
+    expect(reason).toBe("拒绝理由：不符合店铺达人业务提示词要求");
+    expect(lines()).toHaveLength(2);
+  });
+
+  it("shows only the reviewer for a human decision that carries no reason", () => {
+    render(card({
+      merchantReviewActorType: "HUMAN",
+      merchantReviewActor: { kind: "BUSINESS_DEVELOPER", displayName: "孙浩鹏" },
+    }));
+    expect(lines()).toHaveLength(1);
+    expect(lines()[0]).toMatch(/^审核人：孙浩鹏.+/);
+  });
+
+  it("renders no block for an application nobody has reviewed", () => {
+    render(card({ merchantReviewDecidedAt: null, merchantReviewActorType: null, merchantReviewActor: null }));
+    expect(document.querySelector(".affiliate-sample-review-result")).toBeNull();
+  });
+});
+
 describe("Sample card order facts", () => {
   function card(orderId: string | null, tracking: Partial<GQL.SampleApplicationOrderRecord> = {}) {
     const sample = { id: "sample-order", shopId: "1", platformApplicationId: "application-order",
@@ -535,13 +602,13 @@ describe("Creator Detail scope integration", () => {
     ];
     render(view("creator", "samples"));
 
-    const lines = [...document.querySelectorAll(".affiliate-workbench-review-attribution")].map(
+    const lines = [...document.querySelectorAll(".affiliate-sample-review-result-reviewer")].map(
       (node) => node.textContent ?? "",
     );
     expect(lines).toHaveLength(3);
-    expect(lines[0]).toMatch(/^孙浩鹏 于 .+ 处理$/);
-    expect(lines[1]).toMatch(/^Agent 于 .+ 处理$/);
-    expect(lines[2]).toMatch(/^员工 于 .+ 处理$/);
+    expect(lines[0]).toMatch(/^审核人：孙浩鹏.+/);
+    expect(lines[1]).toMatch(/^审核人：Agent.+/);
+    expect(lines[2]).toMatch(/^审核人：员工.+/);
   });
 
   it("shows who performed each timeline event and keeps the generic marker when none is recorded", () => {
