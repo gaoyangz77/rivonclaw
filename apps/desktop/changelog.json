@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.46",
+    "date": "2026-10-31",
+    "en": [
+      "Keep business developer editor actions reachable and make the form more compact",
+      "Let the shop scope selector's select-all toggle back off"
+    ],
+    "zh": [
+      "商务拓展负责人编辑器的操作按钮始终可点击，表单布局更紧凑",
+      "店铺范围选择器的全选可再次点击取消"
+    ]
+  },
+  {
     "version": "1.9.45",
     "date": "2026-10-30",
     "en": [
