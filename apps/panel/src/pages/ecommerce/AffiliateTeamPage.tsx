@@ -3704,7 +3704,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         isOpen={editing}
         onClose={closeDeveloperEditor}
         title={editingDeveloper?.displayName ?? t("ecommerce.affiliateTeam.newDeveloper")}
-        maxWidth={720}
+        maxWidth={960}
         className="affiliate-developer-modal"
         padding="none"
         closeLabel={t("common.close")}
@@ -3755,82 +3755,97 @@ export function DeveloperEditor({
 }) {
   return (
     <div className="affiliate-developer-editor">
-      <label>
-        <span>{t("ecommerce.affiliateTeam.internalName")}</span>
-        <input
-          className="input"
-          value={form.displayName}
-          onChange={(event) => setForm({ ...form, displayName: event.target.value })}
-        />
-        <small className="form-hint">{t("ecommerce.affiliateTeam.internalNameHint")}</small>
-      </label>
-      <label>
-        <span>{t("ecommerce.affiliateTeam.creatorDisplayName")}</span>
-        <input
-          className="input"
-          value={form.creatorDisplayName}
-          onChange={(event) => setForm({ ...form, creatorDisplayName: event.target.value })}
-          placeholder={t("ecommerce.affiliateTeam.creatorDisplayNamePlaceholder")}
-        />
-        <small className="form-hint">{t("ecommerce.affiliateTeam.creatorDisplayNameHint")}</small>
-      </label>
-      <label>
-        <span>{t("ecommerce.affiliateTeam.workMode")}</span>
-        <Select
-          value={form.agentAssistanceMode}
-          onChange={(value) =>
-            setForm({ ...form, agentAssistanceMode: value as GQL.AffiliateAgentAssistanceMode })
-          }
-          options={[
-            {
-              value: GQL.AffiliateAgentAssistanceMode.AiAssisted,
-              label: t("ecommerce.affiliateTeam.aiAssisted"),
-            },
-            {
-              value: GQL.AffiliateAgentAssistanceMode.HumanOnly,
-              label: t("ecommerce.affiliateTeam.humanOnly"),
-            },
-          ]}
-        />
-      </label>
-      <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
-      <fieldset>
-        <legend>{t("ecommerce.affiliateTeam.regions")}</legend>
-        <div className="affiliate-region-grid">
-          {SHOP_REGIONS.map((region) => (
-            <label key={region}>
-              <input
-                type="checkbox"
-                checked={form.regions.includes(region)}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    regions: event.target.checked
-                      ? [...form.regions, region]
-                      : form.regions.filter((item) => item !== region),
-                  })
-                }
-              />
-              <span>{formatShopRegionLabel(region, t)}</span>
-            </label>
-          ))}
+      {/*
+       * Only the body scrolls; the modal's title bar above and the decision row
+       * below stay put, so Save is reachable however tall the form grows.
+       */}
+      <div className="affiliate-developer-editor-body">
+        <div className="affiliate-developer-editor-column">
+          <label>
+            <span>{t("ecommerce.affiliateTeam.internalName")}</span>
+            <input
+              className="input"
+              value={form.displayName}
+              onChange={(event) => setForm({ ...form, displayName: event.target.value })}
+            />
+            <small className="form-hint">{t("ecommerce.affiliateTeam.internalNameHint")}</small>
+          </label>
+          <label>
+            <span>{t("ecommerce.affiliateTeam.creatorDisplayName")}</span>
+            <input
+              className="input"
+              value={form.creatorDisplayName}
+              onChange={(event) => setForm({ ...form, creatorDisplayName: event.target.value })}
+              placeholder={t("ecommerce.affiliateTeam.creatorDisplayNamePlaceholder")}
+            />
+            <small className="form-hint">
+              {t("ecommerce.affiliateTeam.creatorDisplayNameHint")}
+            </small>
+          </label>
+          <label>
+            <span>{t("ecommerce.affiliateTeam.workMode")}</span>
+            <Select
+              value={form.agentAssistanceMode}
+              onChange={(value) =>
+                setForm({
+                  ...form,
+                  agentAssistanceMode: value as GQL.AffiliateAgentAssistanceMode,
+                })
+              }
+              options={[
+                {
+                  value: GQL.AffiliateAgentAssistanceMode.AiAssisted,
+                  label: t("ecommerce.affiliateTeam.aiAssisted"),
+                },
+                {
+                  value: GQL.AffiliateAgentAssistanceMode.HumanOnly,
+                  label: t("ecommerce.affiliateTeam.humanOnly"),
+                },
+              ]}
+            />
+          </label>
+          <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
         </div>
-      </fieldset>
-      <DeveloperCreatorIntake form={form} setForm={setForm} />
-      <label>
-        <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
-        <textarea
-          className="input"
-          rows={7}
-          value={form.businessPrompt}
-          onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })}
-          placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")}
-        />
-        <small className="affiliate-bd-prompt-hint">
-          <InfoIcon />
-          {t("ecommerce.affiliateTeam.workingStylePlaceholder")}
-        </small>
-      </label>
+        <div className="affiliate-developer-editor-column">
+          <fieldset>
+            <legend>{t("ecommerce.affiliateTeam.regions")}</legend>
+            <div className="affiliate-region-grid">
+              {SHOP_REGIONS.map((region) => (
+                <label key={region}>
+                  <input
+                    type="checkbox"
+                    checked={form.regions.includes(region)}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        regions: event.target.checked
+                          ? [...form.regions, region]
+                          : form.regions.filter((item) => item !== region),
+                      })
+                    }
+                  />
+                  <span>{formatShopRegionLabel(region, t)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <DeveloperCreatorIntake form={form} setForm={setForm} />
+        </div>
+        <label className="affiliate-developer-editor-guidance">
+          <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
+          <textarea
+            className="input"
+            rows={4}
+            value={form.businessPrompt}
+            onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })}
+            placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")}
+          />
+          <small className="affiliate-bd-prompt-hint">
+            <InfoIcon />
+            {t("ecommerce.affiliateTeam.workingStylePlaceholder")}
+          </small>
+        </label>
+      </div>
       <div className="affiliate-developer-editor-actions">
         <button className="btn btn-secondary" type="button" onClick={onCancel}>
           {t("common.cancel")}
