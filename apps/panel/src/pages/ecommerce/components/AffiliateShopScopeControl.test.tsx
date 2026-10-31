@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { applySnapshot } from "mobx-state-tree";
@@ -66,5 +67,65 @@ describe("AffiliateShopScopeControl privacy masking", () => {
 
     expect(screen.getByText("Windboss Benessere").getAttribute("data-tk-private")).toBe("text");
     expect(screen.getByText("US hero shop").hasAttribute("data-tk-private")).toBe(false);
+  });
+});
+
+describe("AffiliateShopScopeControl bulk selection", () => {
+  function renderControlled(initial: string[]) {
+    const onChange = vi.fn();
+    function Harness() {
+      const [selected, setSelected] = useState(initial);
+      return (
+        <AffiliateShopScopeControl
+          shops={shops}
+          selected={selected}
+          onChange={(next) => {
+            onChange(next);
+            setSelected(next);
+          }}
+        />
+      );
+    }
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectedShops" }));
+    return onChange;
+  }
+
+  it("turns into deselect-all once every shop is selected, so a seller can clear and pick a few", () => {
+    const onChange = renderControlled(["shop-alias"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectAll" }));
+    expect(onChange).toHaveBeenLastCalledWith(["shop-alias", "shop-plain", "shop-bare"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.deselectAll" }));
+    expect(onChange).toHaveBeenLastCalledWith([]);
+    expect(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectAll" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Windboss Benessere/ }));
+    expect(onChange).toHaveBeenLastCalledWith(["shop-plain"]);
+  });
+
+  it("acts only on the shops the search shows", () => {
+    const onChange = renderControlled(["shop-bare"]);
+    fireEvent.change(screen.getByRole("searchbox", { name: "common.searchShops" }), {
+      target: { value: "Windboss" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectAll" }));
+    expect(onChange).toHaveBeenLastCalledWith(["shop-plain", "shop-bare"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.deselectAll" }));
+    expect(onChange).toHaveBeenLastCalledWith(["shop-bare"]);
+  });
+
+  it("disables the bulk button when the search matches nothing", () => {
+    renderControlled([]);
+    fireEvent.change(screen.getByRole("searchbox", { name: "common.searchShops" }), {
+      target: { value: "no such shop" },
+    });
+    expect(
+      (screen.getByRole("button", { name: "ecommerce.affiliateAnalytics.selectAll" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });

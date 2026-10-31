@@ -57,6 +57,19 @@ export function AffiliateShopScopeControl({
     onChange(
       selected.includes(shopId) ? selected.filter((id) => id !== shopId) : [...selected, shopId],
     );
+  // The bulk button acts on the shops the search currently shows, so a seller can
+  // clear everything and then pick a few, or narrow by search and take just those.
+  const visibleShopIds = new Set(visibleShops.map((shop) => shop.id));
+  const allVisibleSelected =
+    visibleShops.length > 0 && visibleShops.every((shop) => selected.includes(shop.id));
+  const toggleVisible = () =>
+    onChange(
+      allVisibleSelected
+        ? selected.filter((id) => !visibleShopIds.has(id))
+        : shops
+            .filter((shop) => selected.includes(shop.id) || visibleShopIds.has(shop.id))
+            .map((shop) => shop.id),
+    );
   const options = [
     { value: "", label: t("ecommerce.affiliateAnalytics.allRegions") },
     ...(regionValue === CUSTOM_SCOPE
@@ -108,9 +121,12 @@ export function AffiliateShopScopeControl({
           <TkButton
             variant="ghost"
             size="sm"
-            onClick={() => onChange(shops.map((shop) => shop.id))}
+            disabled={visibleShops.length === 0}
+            onClick={toggleVisible}
           >
-            {t("ecommerce.affiliateAnalytics.selectAll")}
+            {allVisibleSelected
+              ? t("ecommerce.affiliateAnalytics.deselectAll")
+              : t("ecommerce.affiliateAnalytics.selectAll")}
           </TkButton>
           <TkPanel variant="subtle" padding="none">
             <TkPanelBody scroll className="affiliate-shop-scope-list">

@@ -157,6 +157,7 @@ const en = {
   searching: "Searching shops…",
   searchSummary: "{{found}} candidates · {{successful}}/{{total}} shops searched successfully",
   selectAll: "Select available",
+  deselectAll: "Deselect all",
   partialFailure: "Some shops could not be searched",
   unmatchedSellerSkus: "{{count}} Seller SKUs matched no product:",
   tooManySellerSkus: "At most {{limit}} Seller SKUs can be searched at once.",
@@ -326,6 +327,7 @@ const zh = {
   searching: "正在搜索店铺…",
   searchSummary: "找到 {{found}} 个候选 · {{successful}}/{{total}} 个店铺搜索成功",
   selectAll: "选择全部可连接商品",
+  deselectAll: "取消全选",
   partialFailure: "部分店铺搜索失败",
   unmatchedSellerSkus: "{{count}} 个 Seller SKU 未匹配到任何商品：",
   tooManySellerSkus: "一次最多搜索 {{limit}} 个 Seller SKU。",
@@ -389,6 +391,7 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
     ecommerce: {
       productKnowledge: locale({
         pageTitle: "Produktwissen",
+        deselectAll: "Alle abwählen",
         pageSubtitle: "Produktwissen einmal pflegen und mit Angeboten in allen Shops verbinden.",
         create: "Neues Wissen",
         merchantPid: "Interner Produktcode (optional)",
@@ -407,6 +410,7 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
     ecommerce: {
       productKnowledge: locale({
         pageTitle: "Conocimiento del producto",
+        deselectAll: "Deseleccionar todo",
         pageSubtitle:
           "Crea conocimiento reutilizable y conéctalo con productos de todas tus tiendas.",
         create: "Nuevo conocimiento",
@@ -425,6 +429,7 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
     ecommerce: {
       productKnowledge: locale({
         pageTitle: "Connaissance produit",
+        deselectAll: "Tout désélectionner",
         pageSubtitle:
           "Créez une base réutilisable et reliez-la aux produits de toutes vos boutiques.",
         create: "Nouvelle connaissance",
@@ -443,6 +448,7 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
     ecommerce: {
       productKnowledge: locale({
         pageTitle: "Pengetahuan produk",
+        deselectAll: "Batalkan semua pilihan",
         pageSubtitle:
           "Bangun pengetahuan yang dapat digunakan kembali dan hubungkan ke produk di semua toko.",
         create: "Pengetahuan baru",
@@ -461,6 +467,7 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
     ecommerce: {
       productKnowledge: locale({
         pageTitle: "Conoscenza prodotto",
+        deselectAll: "Deseleziona tutto",
         pageSubtitle: "Crea conoscenza riutilizzabile e collegala ai prodotti di tutti i negozi.",
         create: "Nuova conoscenza",
         merchantPid: "Codice prodotto interno (facoltativo)",
@@ -478,6 +485,7 @@ export const PRODUCT_KNOWLEDGE_TRANSLATIONS = {
     ecommerce: {
       productKnowledge: locale({
         pageTitle: "ความรู้ผลิตภัณฑ์",
+        deselectAll: "ยกเลิกการเลือกทั้งหมด",
         pageSubtitle: "สร้างความรู้ที่นำกลับมาใช้ซ้ำและเชื่อมกับสินค้าในทุกร้าน",
         create: "สร้างความรู้",
         merchantPid: "รหัสสินค้าภายใน (ไม่บังคับ)",

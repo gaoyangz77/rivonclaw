@@ -392,13 +392,16 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     });
   }
 
+  const selectableCandidateKeys = selectableCandidates
+    .filter((candidate) => candidate.existingProductKnowledgeId !== selectedId)
+    .map(candidateKey);
+  // Read in render too, so the bulk button says what its next click will do.
+  const allCandidatesSelected =
+    selectableCandidateKeys.length > 0 &&
+    selectableCandidateKeys.every((key) => selectedCandidates.has(key));
+
   function toggleAllCandidates() {
-    const selectableKeys = selectableCandidates
-      .filter((candidate) => candidate.existingProductKnowledgeId !== selectedId)
-      .map(candidateKey);
-    const allSelected =
-      selectableKeys.length > 0 && selectableKeys.every((key) => selectedCandidates.has(key));
-    setSelectedCandidates(allSelected ? new Set() : new Set(selectableKeys));
+    setSelectedCandidates(allCandidatesSelected ? new Set() : new Set(selectableCandidateKeys));
   }
 
   async function handleLinkProducts() {
@@ -1058,7 +1061,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                             (candidate) => !candidate.existingProductKnowledgeId,
                           ) ? (
                             <button className="btn btn-secondary" onClick={toggleAllCandidates}>
-                              {t("ecommerce.productKnowledge.selectAll")}
+                              {allCandidatesSelected
+                                ? t("ecommerce.productKnowledge.deselectAll")
+                                : t("ecommerce.productKnowledge.selectAll")}
                             </button>
                           ) : null}
                         </div>
