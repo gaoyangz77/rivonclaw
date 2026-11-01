@@ -50,6 +50,7 @@ import { useMessageAttachmentDrafts } from "../../hooks/useMessageAttachmentDraf
 import {
   AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
   AffiliateBusinessDeveloperSelect,
+  affiliateBusinessDeveloperSearchTerms,
 } from "../../components/ecommerce/AffiliateBusinessDeveloperSelect.js";
 import {
   TkAlert,
@@ -10653,7 +10654,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   );
   const ownerOptions = affiliateWorkspace.businessDevelopers
     .filter((developer) => !developer.archivedAt)
-    .map((developer) => ({ value: developer.id, label: developer.displayName }));
+    .map((developer) => ({
+      value: developer.id,
+      label: developer.displayName,
+      searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
+    }));
   const relationshipOwner = relationshipOwnerId
     ? (affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId) ??
       (relationshipDetail?.businessDeveloper?.id === relationshipOwnerId
@@ -11793,6 +11798,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       onChange={updateRelationshipOwner}
                       options={ownerOptions}
                       placeholder={t("ecommerce.affiliateTeam.aiTeam")}
+                      ariaLabel={t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}
+                      searchable
+                      searchPlaceholder={t(
+                        "ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder",
+                      )}
                       disabled={!relationshipId || ownershipBusy}
                     />
                   </label>

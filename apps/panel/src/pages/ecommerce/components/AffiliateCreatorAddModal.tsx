@@ -11,6 +11,7 @@ import {
   TkPanelBody,
 } from "../../../components/design-system/index.js";
 import { Select } from "../../../components/inputs/Select.js";
+import { affiliateBusinessDeveloperSearchTerms } from "../../../components/ecommerce/AffiliateBusinessDeveloperSelect.js";
 import { useToast } from "../../../components/Toast.js";
 import "./AffiliateCreatorAddModal.css";
 
@@ -25,6 +26,7 @@ export const AFFILIATE_SELLER_NOTE_MAX_LENGTH = 5000;
 export interface AffiliateCreatorAddBd {
   id: string;
   displayName: string;
+  creatorDisplayName: string | null;
 }
 
 /** A manual tag from the seller's catalog, as a primitive DTO. */
@@ -140,6 +142,7 @@ export function AffiliateCreatorAddModal({
     ...developers.map((developer) => ({
       value: developer.id,
       label: developer.displayName,
+      searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
     })),
   ];
 
@@ -249,6 +252,8 @@ export function AffiliateCreatorAddModal({
               options={bdOptions}
               onChange={setBdId}
               ariaLabel={t("ecommerce.affiliateTeam.creatorAddBd")}
+              searchable
+              searchPlaceholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
               disabled={loading}
             />
           </div>

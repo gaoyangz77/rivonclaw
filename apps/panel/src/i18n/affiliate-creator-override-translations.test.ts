@@ -23,6 +23,12 @@ describe("Creator Excel override copy", () => {
       expect(copy.creatorOverrideClearBd).toContain(copy.aiTeam);
       expect(copy.creatorUpdateBdOnlyHint).toContain(copy.aiTeam);
       expect(copy.creatorUpdateUnknownManualTags).toContain("{{names}}");
+      // Blank UID note and seller note cells clear the saved values on overwrite
+      // rows; the summary must say so by column name, not leave it implied.
+      expect(copy.creatorOverrideHint).toContain("creator_uid_note");
+      expect(copy.creatorOverrideHint).toContain("creator_note");
+      expect(copy.creatorOverrideClearSellerUid).toBeTruthy();
+      expect(copy.creatorOverrideClearSellerNote).toBeTruthy();
       expect(
         locale.ecommerce.affiliateWorkspace.lifecycleEvents.RELATIONSHIP_BD_UNASSIGNED,
       ).toBeTruthy();
@@ -32,5 +38,7 @@ describe("Creator Excel override copy", () => {
     expect(en.templateManualTagHint).toContain("rejected");
     expect(en.templateManualTagHint).not.toContain("created as non-sensitive");
     expect(en.templateDeveloperHint).not.toContain("no BD change");
+    expect(en.templateCreatorUidHint).toContain("Blank clears");
+    expect(en.templateCreatorNoteHint).toContain("Blank clears");
   });
 });

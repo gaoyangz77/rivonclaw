@@ -29,6 +29,7 @@ import {
   UserPlusIcon,
 } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { affiliateBusinessDeveloperSearchTerms } from "../../components/ecommerce/AffiliateBusinessDeveloperSelect.js";
 import { LoadingSpinner } from "../../components/LoadingSpinner.js";
 import { useToast } from "../../components/Toast.js";
 import {
@@ -253,7 +254,6 @@ type BusinessDeveloperResolutionGroup = {
   archivedDeveloperId: string | null;
   resolution: BusinessDeveloperResolution;
   mappedDeveloperId: string;
-  mapSearch: string;
   error: string | null;
 };
 
@@ -679,6 +679,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       ...activeDevelopers.map((developer) => ({
         value: developer.id,
         label: developer.displayName,
+        searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
       })),
     ],
     [activeDevelopers, t],
@@ -1129,7 +1130,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             ...seed,
             resolution: seed.defaultResolution,
             mappedDeveloperId: "",
-            mapSearch: "",
             error: null,
           }),
         );
@@ -2190,6 +2190,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                 <Select
                   value={protectionDeveloperId}
                   onChange={setProtectionDeveloperId}
+                  searchable
+                  searchPlaceholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
                   options={[
                     {
                       value: "",
@@ -2200,6 +2202,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                     ...activeDevelopers.map((developer) => ({
                       value: developer.id,
                       label: developer.displayName,
+                      searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
                     })),
                   ]}
                 />
@@ -2437,6 +2440,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         developers={activeDevelopers.map((developer) => ({
           id: developer.id,
           displayName: developer.displayName,
+          creatorDisplayName: developer.creatorDisplayName ?? null,
         }))}
         tags={(creatorTagsQuery.data?.creatorManualTags ?? []).map((tag) => ({
           id: tag.id,
@@ -2647,13 +2651,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             {developerResolutionGroups.length > 0 && (
               <div className="affiliate-protection-developer-list">
                 {developerResolutionGroups.map((group) => {
-                  const mappingOptions = activeDevelopers.filter(
-                    (developer) =>
-                      !group.mapSearch ||
-                      developer.displayName
-                        .toLocaleLowerCase()
-                        .includes(group.mapSearch.toLocaleLowerCase()),
-                  );
+                  const mappingOptions = activeDevelopers.map((developer) => ({
+                    value: developer.id,
+                    label: developer.displayName,
+                    searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
+                  }));
                   return (
                     <section
                       className={`affiliate-protection-developer-card ${group.error ? "has-error" : ""}`}
@@ -2683,7 +2685,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                             updateDeveloperResolutionGroup(group.clientKey, {
                               resolution: event.target.value as BusinessDeveloperResolution,
                               mappedDeveloperId: "",
-                              mapSearch: "",
                             })
                           }
                           disabled={ensureDevelopersState.loading}
@@ -2737,37 +2738,22 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                       {group.resolution === "MAP" && (
                         <div className="affiliate-protection-developer-map">
                           <label>
-                            <span>{t("ecommerce.affiliateTeam.searchExistingDeveloper")}</span>
-                            <input
-                              type="search"
-                              value={group.mapSearch}
-                              onChange={(event) =>
+                            <span>{t("ecommerce.affiliateTeam.selectExistingDeveloper")}</span>
+                            <Select
+                              value={group.mappedDeveloperId}
+                              onChange={(value) =>
                                 updateDeveloperResolutionGroup(group.clientKey, {
-                                  mapSearch: event.target.value,
+                                  mappedDeveloperId: value,
                                 })
                               }
-                              placeholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
+                              options={mappingOptions}
+                              placeholder={t("ecommerce.affiliateTeam.selectExistingDeveloper")}
+                              ariaLabel={t("ecommerce.affiliateTeam.selectExistingDeveloper")}
+                              searchable
+                              searchPlaceholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
                               disabled={ensureDevelopersState.loading}
                             />
                           </label>
-                          <select
-                            value={group.mappedDeveloperId}
-                            onChange={(event) =>
-                              updateDeveloperResolutionGroup(group.clientKey, {
-                                mappedDeveloperId: event.target.value,
-                              })
-                            }
-                            disabled={ensureDevelopersState.loading}
-                          >
-                            <option value="">
-                              {t("ecommerce.affiliateTeam.selectExistingDeveloper")}
-                            </option>
-                            {mappingOptions.map((developer) => (
-                              <option value={developer.id} key={developer.id}>
-                                {developer.displayName}
-                              </option>
-                            ))}
-                          </select>
                         </div>
                       )}
 
@@ -2950,12 +2936,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                                 row.sellerProvidedUid
                                   ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: ${row.sellerProvidedUid}`
                                   : row.overwrite
-                                    ? `${t("ecommerce.affiliateWorkspace.sellerProvidedUid")}: —`
+                                    ? t("ecommerce.affiliateTeam.creatorOverrideClearSellerUid")
                                     : null,
                                 row.sellerNote
                                   ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: ${row.sellerNote}`
                                   : row.overwrite
-                                    ? `${t("ecommerce.affiliateWorkspace.sellerNote")}: —`
+                                    ? t("ecommerce.affiliateTeam.creatorOverrideClearSellerNote")
                                     : null,
                                 row.protect
                                   ? t("ecommerce.affiliateTeam.creatorUpdateProtectAction")
@@ -4119,6 +4105,9 @@ function ChannelAccountRows({
                   value={account.businessDeveloperId ?? UNASSIGNED_ID}
                   onChange={(value) => onOwnerChange(channel, account.id, value)}
                   options={ownerOptions}
+                  ariaLabel={t("ecommerce.affiliateTeam.assignDeveloper")}
+                  searchable
+                  searchPlaceholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
                 />
               </label>
             )}

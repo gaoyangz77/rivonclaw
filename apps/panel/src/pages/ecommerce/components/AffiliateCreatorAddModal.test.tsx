@@ -19,8 +19,8 @@ const TAGS = [
   { id: "tag-3", name: "Vip-lite" },
 ];
 const DEVELOPERS = [
-  { id: "bd-1", displayName: "Maria" },
-  { id: "bd-2", displayName: "Chen" },
+  { id: "bd-1", displayName: "Maria", creatorDisplayName: null },
+  { id: "bd-2", displayName: "Chen", creatorDisplayName: "Chen Wei" },
 ];
 
 type Variables = { input: GQL.ImportAffiliateCreatorUpdatesInput };
@@ -199,6 +199,21 @@ describe("buildAffiliateCreatorAddEntry seller metadata and tags", () => {
 });
 
 describe("AffiliateCreatorAddModal", () => {
+  it("searches the BD dropdown by display name and by the Creator-facing name", () => {
+    setup({ data: payload(GQL.AffiliateCreatorBulkUpdateStatus.Applied) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Responsible BD" }));
+    const search = screen.getByRole("textbox", { name: "Search BDs by name" });
+
+    fireEvent.change(search, { target: { value: "mar" } });
+    expect(screen.queryByText("Maria")).not.toBeNull();
+    expect(screen.queryByText("Chen")).toBeNull();
+
+    fireEvent.change(search, { target: { value: "chen wei" } });
+    expect(screen.queryByText("Chen")).not.toBeNull();
+    expect(screen.queryByText("Maria")).toBeNull();
+  });
+
   it("starts protected, with the note enabled and submit waiting for a username", () => {
     setup({ data: payload(GQL.AffiliateCreatorBulkUpdateStatus.Applied) });
 

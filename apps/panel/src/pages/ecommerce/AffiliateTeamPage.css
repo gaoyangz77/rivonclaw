@@ -1602,9 +1602,7 @@
 
 .affiliate-protection-developer-map {
   display: grid;
-  grid-template-columns: minmax(180px, 0.75fr) minmax(220px, 1.25fr);
   gap: 10px;
-  align-items: end;
 }
 
 .affiliate-protection-developer-safety-note {
@@ -3122,9 +3120,6 @@
     margin-left: -18px;
     padding-right: 18px;
     padding-left: 18px;
-  }
-  .affiliate-protection-developer-map {
-    grid-template-columns: 1fr;
   }
   .affiliate-protection-developer-footer,
   .affiliate-bd-profile-review-banner {

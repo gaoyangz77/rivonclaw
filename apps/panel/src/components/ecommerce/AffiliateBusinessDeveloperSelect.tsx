@@ -19,6 +19,17 @@ interface BusinessDeveloperOptionLabels {
   archived: string;
 }
 
+/**
+ * Extra search terms for a BD option beyond its label. Every BD dropdown uses
+ * this so searching finds a BD by the name Creators see as well as the
+ * internal display name, whichever dropdown the user is in.
+ */
+export function affiliateBusinessDeveloperSearchTerms(developer: {
+  creatorDisplayName?: string | null;
+}): string[] | undefined {
+  return developer.creatorDisplayName ? [developer.creatorDisplayName] : undefined;
+}
+
 export function affiliateBusinessDeveloperSelectOptions({
   developers,
   purpose,
@@ -51,7 +62,7 @@ export function affiliateBusinessDeveloperSelectOptions({
       .map((developer) => ({
         value: developer.id,
         label: developer.displayName,
-        searchTerms: developer.creatorDisplayName ? [developer.creatorDisplayName] : undefined,
+        searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
         badge: developer.archivedAt ? labels.archived : undefined,
         badgeTone: developer.archivedAt ? ("neutral" as const) : undefined,
       })),

@@ -736,7 +736,7 @@ const protectionDeveloperImportCopy = {
     safeDeveloperDefaults: "Created paused, human-only, with no regions or AI instructions.",
     restoreDeveloperSafety:
       "The original profile is retained, but it will be restored paused and human-only until reviewed.",
-    searchExistingDeveloper: "Search existing BDs",
+   
     selectExistingDeveloper: "Select a BD",
     importDecisionSummary:
       "Create {{create}} · restore {{restore}} · protection only {{unassigned}}",
@@ -772,7 +772,7 @@ const protectionDeveloperImportCopy = {
     newDeveloperName: "新 BD 名称",
     safeDeveloperDefaults: "将以暂停接收、仅人工处理、无地区和 AI 指引的安全状态创建。",
     restoreDeveloperSafety: "保留原资料，但恢复后先暂停接收并仅允许人工处理，等待你检查。",
-    searchExistingDeveloper: "搜索已有 BD",
+   
     selectExistingDeveloper: "选择一个 BD",
     importDecisionSummary: "创建 {{create}} 个 · 恢复 {{restore}} 个 · 仅保护 {{unassigned}} 个",
     noSilentSkip: "每个非空 BD 名称都必须有明确处理方式。",
@@ -839,7 +839,7 @@ const protectionDeveloperImportCopy = {
     safeDeveloperDefaults: "Pausiert, nur manuell, ohne Regionen oder KI-Anweisungen.",
     restoreDeveloperSafety:
       "Das Profil bleibt erhalten, wird aber pausiert und nur manuell wiederhergestellt.",
-    searchExistingDeveloper: "BDs durchsuchen",
+   
     selectExistingDeveloper: "BD auswählen",
     importDecisionSummary:
       "{{create}} erstellen · {{restore}} wiederherstellen · {{unassigned}} nur schützen",
@@ -876,7 +876,7 @@ const protectionDeveloperImportCopy = {
     newDeveloperName: "Nombre del nuevo BD",
     safeDeveloperDefaults: "Se crea pausado, solo humano y sin regiones ni instrucciones IA.",
     restoreDeveloperSafety: "Se conserva el perfil, pero se restaura pausado y solo humano.",
-    searchExistingDeveloper: "Buscar BD",
+   
     selectExistingDeveloper: "Seleccionar BD",
     importDecisionSummary:
       "Crear {{create}} · restaurar {{restore}} · solo proteger {{unassigned}}",
@@ -912,7 +912,7 @@ const protectionDeveloperImportCopy = {
     newDeveloperName: "Nom du nouveau BD",
     safeDeveloperDefaults: "Créé en pause, humain uniquement, sans région ni consigne IA.",
     restoreDeveloperSafety: "Le profil est conservé mais restauré en pause et en mode humain.",
-    searchExistingDeveloper: "Rechercher un BD",
+   
     selectExistingDeveloper: "Sélectionner un BD",
     importDecisionSummary:
       "Créer {{create}} · restaurer {{restore}} · protéger seul {{unassigned}}",
@@ -949,7 +949,7 @@ const protectionDeveloperImportCopy = {
     safeDeveloperDefaults: "Dibuat jeda, hanya manusia, tanpa wilayah atau instruksi AI.",
     restoreDeveloperSafety:
       "Profil lama dipertahankan, tetapi dipulihkan dalam mode jeda dan hanya manusia.",
-    searchExistingDeveloper: "Cari BD",
+   
     selectExistingDeveloper: "Pilih BD",
     importDecisionSummary: "Buat {{create}} · pulihkan {{restore}} · hanya lindungi {{unassigned}}",
     noSilentSkip: "Setiap nama BD harus diputuskan.",
@@ -984,7 +984,7 @@ const protectionDeveloperImportCopy = {
     newDeveloperName: "Nome nuovo BD",
     safeDeveloperDefaults: "Creato in pausa, solo umano, senza regioni o istruzioni IA.",
     restoreDeveloperSafety: "Il profilo resta intatto ma viene ripristinato in pausa e solo umano.",
-    searchExistingDeveloper: "Cerca BD",
+   
     selectExistingDeveloper: "Seleziona BD",
     importDecisionSummary:
       "Crea {{create}} · ripristina {{restore}} · solo protezione {{unassigned}}",
@@ -1020,7 +1020,7 @@ const protectionDeveloperImportCopy = {
     newDeveloperName: "ชื่อ BD ใหม่",
     safeDeveloperDefaults: "สร้างแบบหยุดรับ ใช้คนเท่านั้น และไม่มีภูมิภาคหรือคำสั่ง AI",
     restoreDeveloperSafety: "เก็บข้อมูลเดิมไว้ แต่กู้คืนแบบหยุดรับและใช้คนเท่านั้น",
-    searchExistingDeveloper: "ค้นหา BD",
+   
     selectExistingDeveloper: "เลือก BD",
     importDecisionSummary: "สร้าง {{create}} · กู้คืน {{restore}} · ปกป้องอย่างเดียว {{unassigned}}",
     noSilentSkip: "ชื่อ BD ที่ไม่ว่างทุกชื่อจำเป็นต้องมีการตัดสินใจ",
@@ -2012,62 +2012,62 @@ const sellerRelationshipMetadataCopy = {
 const sellerMetadataTemplateCopy = {
   en: {
     templateCreatorUidHint:
-      "Optional seller-maintained UID. Keep this column as Text so long values are not rounded.",
-    templateCreatorNoteHint: "Optional internal note for this Creator relationship.",
+      "Optional seller-maintained UID. Blank clears the saved UID. Keep this column as Text so long values are not rounded.",
+    templateCreatorNoteHint: "Optional internal note for this Creator relationship. Blank clears the saved note.",
     templateCreatorNoteExample: "Priority partner for the holiday launch",
     creatorUidMustBeText:
       "creator_uid_note must be stored as text; numeric Excel cells can corrupt long UIDs.",
   },
   zh: {
     templateCreatorUidHint:
-      "可选，由卖家自行维护的 UID。此列必须保持文本格式，避免长数字被四舍五入。",
-    templateCreatorNoteHint: "可选，用于记录该达人关系的内部备注。",
+      "可选，由卖家自行维护的 UID。留空会清除已保存的 UID。此列必须保持文本格式，避免长数字被四舍五入。",
+    templateCreatorNoteHint: "可选，用于记录该达人关系的内部备注。留空会清除已保存的备注。",
     templateCreatorNoteExample: "节日活动重点合作达人",
     creatorUidMustBeText: "creator_uid_note 必须以文本保存；Excel 数字格式会损坏长 UID。",
   },
   de: {
     templateCreatorUidHint:
-      "Optionale, vom Verkäufer gepflegte UID. Als Text belassen, damit lange Werte nicht gerundet werden.",
-    templateCreatorNoteHint: "Optionale interne Notiz zur Creator-Beziehung.",
+      "Optionale, vom Verkäufer gepflegte UID. Leer löscht die gespeicherte UID. Als Text belassen, damit lange Werte nicht gerundet werden.",
+    templateCreatorNoteHint: "Optionale interne Notiz zur Creator-Beziehung. Leer löscht die gespeicherte Notiz.",
     templateCreatorNoteExample: "Prioritätspartner für die Feiertagskampagne",
     creatorUidMustBeText:
       "creator_uid_note muss als Text gespeichert sein; Zahlenzellen können lange UIDs beschädigen.",
   },
   es: {
     templateCreatorUidHint:
-      "UID opcional mantenido por el vendedor. Conserva la columna como texto para evitar redondeos.",
-    templateCreatorNoteHint: "Nota interna opcional sobre esta relación.",
+      "UID opcional mantenido por el vendedor. Si se deja vacío, se borra el UID guardado. Conserva la columna como texto para evitar redondeos.",
+    templateCreatorNoteHint: "Nota interna opcional sobre esta relación. Si se deja vacía, se borra la nota guardada.",
     templateCreatorNoteExample: "Socio prioritario para la campaña festiva",
     creatorUidMustBeText:
       "creator_uid_note debe guardarse como texto; las celdas numéricas pueden dañar UID largos.",
   },
   fr: {
     templateCreatorUidHint:
-      "UID facultatif géré par le vendeur. Conservez la colonne au format texte pour éviter les arrondis.",
-    templateCreatorNoteHint: "Note interne facultative sur cette relation.",
+      "UID facultatif géré par le vendeur. Vide, il efface l’UID enregistré. Conservez la colonne au format texte pour éviter les arrondis.",
+    templateCreatorNoteHint: "Note interne facultative sur cette relation. Vide, elle efface la note enregistrée.",
     templateCreatorNoteExample: "Partenaire prioritaire pour la campagne des fêtes",
     creatorUidMustBeText:
       "creator_uid_note doit être enregistré comme texte ; une cellule numérique peut altérer un UID long.",
   },
   id: {
     templateCreatorUidHint:
-      "UID opsional yang dikelola penjual. Biarkan kolom sebagai Teks agar nilai panjang tidak dibulatkan.",
-    templateCreatorNoteHint: "Catatan internal opsional untuk relasi kreator ini.",
+      "UID opsional yang dikelola penjual. Jika kosong, UID yang tersimpan akan dihapus. Biarkan kolom sebagai Teks agar nilai panjang tidak dibulatkan.",
+    templateCreatorNoteHint: "Catatan internal opsional untuk relasi kreator ini. Jika kosong, catatan yang tersimpan akan dihapus.",
     templateCreatorNoteExample: "Mitra prioritas untuk kampanye liburan",
     creatorUidMustBeText:
       "creator_uid_note harus disimpan sebagai teks; sel angka dapat merusak UID panjang.",
   },
   it: {
     templateCreatorUidHint:
-      "UID facoltativo gestito dal venditore. Mantieni la colonna come testo per evitare arrotondamenti.",
-    templateCreatorNoteHint: "Nota interna facoltativa sulla relazione.",
+      "UID facoltativo gestito dal venditore. Se vuoto, cancella l’UID salvato. Mantieni la colonna come testo per evitare arrotondamenti.",
+    templateCreatorNoteHint: "Nota interna facoltativa sulla relazione. Se vuota, cancella la nota salvata.",
     templateCreatorNoteExample: "Partner prioritario per la campagna festiva",
     creatorUidMustBeText:
       "creator_uid_note deve essere salvato come testo; le celle numeriche possono alterare UID lunghi.",
   },
   th: {
-    templateCreatorUidHint: "UID ที่ผู้ขายดูแลเอง (ไม่บังคับ) ให้คอลัมน์เป็นข้อความเพื่อไม่ให้เลขยาวถูกปัด",
-    templateCreatorNoteHint: "หมายเหตุภายในสำหรับความสัมพันธ์นี้ (ไม่บังคับ)",
+    templateCreatorUidHint: "UID ที่ผู้ขายดูแลเอง (ไม่บังคับ) หากเว้นว่างจะล้าง UID ที่บันทึกไว้ ให้คอลัมน์เป็นข้อความเพื่อไม่ให้เลขยาวถูกปัด",
+    templateCreatorNoteHint: "หมายเหตุภายในสำหรับความสัมพันธ์นี้ (ไม่บังคับ) หากเว้นว่างจะล้างหมายเหตุที่บันทึกไว้",
     templateCreatorNoteExample: "พาร์ทเนอร์สำคัญสำหรับแคมเปญเทศกาล",
     creatorUidMustBeText: "creator_uid_note ต้องเก็บเป็นข้อความ เซลล์ตัวเลขอาจทำให้ UID ยาวเสียหาย",
   },

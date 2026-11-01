@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import {
   AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
+  affiliateBusinessDeveloperSearchTerms,
   affiliateBusinessDeveloperSelectOptions,
 } from "./AffiliateBusinessDeveloperSelect.js";
 
@@ -57,5 +58,13 @@ describe("AffiliateBusinessDeveloperSelect options", () => {
     });
 
     expect(options.map((option) => option.value)).toEqual(["bd-z"]);
+  });
+});
+
+describe("affiliateBusinessDeveloperSearchTerms", () => {
+  it("lets every BD dropdown match the Creator-facing name as well as the label", () => {
+    expect(affiliateBusinessDeveloperSearchTerms({ creatorDisplayName: "Zoé" })).toEqual(["Zoé"]);
+    expect(affiliateBusinessDeveloperSearchTerms({ creatorDisplayName: null })).toBeUndefined();
+    expect(affiliateBusinessDeveloperSearchTerms({})).toBeUndefined();
   });
 });
