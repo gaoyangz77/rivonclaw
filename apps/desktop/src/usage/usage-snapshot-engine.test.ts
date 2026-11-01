@@ -459,4 +459,73 @@ describe("UsageSnapshotEngine", () => {
       expect(sonnetSnapshot!.snapshotTime).toBe(t2);
     });
   });
+  // ── Capture failure: gateway unavailable ──
+  describe("when the gateway usage capture fails", () => {
+    const failingCapture: CaptureUsageFn = async () => {
+      throw new Error("OpenClawConnector: RPC client not connected");
+    };
+
+    function seedSnapshot(): number {
+      vi.setSystemTime(new Date("2025-06-01T10:00:00Z"));
+      const t1 = Date.now();
+      storage.usageSnapshots.insert({
+        keyId: "key-1",
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        inputTokens: 1000,
+        outputTokens: 500,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalCostUsd: "0.050000",
+        snapshotTime: t1,
+      });
+      vi.setSystemTime(new Date("2025-06-01T12:00:00Z"));
+      return t1;
+    }
+
+    function expectUntouched(t1: number): void {
+      const snapshot = storage.usageSnapshots.getLatest("key-1", "claude-sonnet-4-5-20250929");
+      expect(snapshot!.snapshotTime).toBe(t1);
+      expect(snapshot!.inputTokens).toBe(1000);
+      const history = storage.keyUsageHistory.queryByWindow({
+        keyId: "key-1",
+        windowStart: 0,
+        windowEnd: Date.now() + 1000,
+      });
+      expect(history).toHaveLength(0);
+    }
+
+    it("recordDeactivation resolves and writes neither a snapshot nor a history row", async () => {
+      const t1 = seedSnapshot();
+      const engine = new UsageSnapshotEngine(storage, failingCapture);
+
+      await expect(
+        engine.recordDeactivation("key-1", "anthropic", "claude-sonnet-4-5-20250929"),
+      ).resolves.toBeUndefined();
+
+      expectUntouched(t1);
+    });
+
+    it("reconcileOnStartup resolves and writes neither a snapshot nor a history row", async () => {
+      const t1 = seedSnapshot();
+      const engine = new UsageSnapshotEngine(storage, failingCapture);
+
+      await expect(
+        engine.reconcileOnStartup("key-1", "anthropic", "claude-sonnet-4-5-20250929"),
+      ).resolves.toBeUndefined();
+
+      expectUntouched(t1);
+    });
+
+    it("recordActivation resolves without creating an all-zero initial snapshot", async () => {
+      vi.setSystemTime(new Date("2025-06-01T12:00:00Z"));
+      const engine = new UsageSnapshotEngine(storage, failingCapture);
+
+      await expect(
+        engine.recordActivation("key-2", "anthropic", "claude-sonnet-4-5-20250929"),
+      ).resolves.toBeUndefined();
+
+      expect(storage.usageSnapshots.getLatest("key-2", "claude-sonnet-4-5-20250929")).toBeFalsy();
+    });
+  });
 });

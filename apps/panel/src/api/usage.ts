@@ -1,51 +1,6 @@
 import { fetchJson } from "./client.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 
-// --- Usage ---
-
-export interface UsageSummary {
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalTokens: number;
-  totalEstimatedCostUsd: number;
-  recordCount: number;
-  byModel: Record<
-    string,
-    {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      estimatedCostUsd: number;
-      count: number;
-    }
-  >;
-  byProvider: Record<
-    string,
-    {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      estimatedCostUsd: number;
-      count: number;
-    }
-  >;
-}
-
-export async function fetchUsage(filter?: {
-  since?: string;
-  until?: string;
-  model?: string;
-  provider?: string;
-}): Promise<UsageSummary> {
-  const params = new URLSearchParams();
-  if (filter?.since) params.set("since", filter.since);
-  if (filter?.until) params.set("until", filter.until);
-  if (filter?.model) params.set("model", filter.model);
-  if (filter?.provider) params.set("provider", filter.provider);
-  const query = params.toString();
-  return fetchJson<UsageSummary>(clientPath(API["usage.summary"]) + (query ? "?" + query : ""));
-}
-
 // --- Per-Key/Model Usage ---
 
 export interface KeyModelUsageSummary {

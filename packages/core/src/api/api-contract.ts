@@ -477,7 +477,6 @@ export const API = {
   },
 
   // ── Usage ──
-  "usage.summary": { method: "GET", path: "/api/usage", desc: "Overall usage summary" },
   "usage.keyUsage": { method: "GET", path: "/api/key-usage", desc: "Per-key/model usage" },
   "usage.activeKey": { method: "GET", path: "/api/key-usage/active", desc: "Active key info" },
   "usage.timeseries": {

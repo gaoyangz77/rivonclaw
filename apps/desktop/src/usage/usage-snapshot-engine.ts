@@ -1,8 +1,11 @@
 import type { Storage } from "@rivonclaw/storage";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+
+const log = createLogger("usage-snapshot-engine");
 
 /**
- * Cumulative per-model usage totals from OpenClaw JSONL.
+ * Cumulative per-model usage totals reported by the OpenClaw gateway (`sessions.usage` RPC).
  * Keys are "provider/model" strings, values are token/cost totals.
  */
 export interface ModelUsageTotals {
@@ -26,7 +29,7 @@ const ZERO_TOTALS: ModelUsageTotals = {
   totalCostUsd: "0",
 };
 
-/** Clamp a number to zero if negative (can happen when JSONL files are rotated). */
+/** Clamp a number to zero if negative (can happen when the gateway's session history shrinks, e.g. sessions deleted or reset). */
 function clampZero(n: number): number {
   return n < 0 ? 0 : n;
 }
@@ -44,12 +47,39 @@ export class UsageSnapshotEngine {
   ) {}
 
   /**
+   * Capture current usage, or return null when the gateway cannot provide it.
+   *
+   * This is a deliberate system-boundary catch: a failed capture must write
+   * nothing (a zero-filled snapshot would corrupt every later delta) and must
+   * not block the provider-key switch that awaits these methods. The key's
+   * snapshot simply stays at its previous value and the next successful
+   * capture produces a delta that covers the gap.
+   */
+  private async tryCaptureUsage(
+    operation: string,
+    keyId: string,
+    model: string,
+  ): Promise<Map<string, ModelUsageTotals> | null> {
+    try {
+      return await this.captureUsage();
+    } catch (err) {
+      log.warn(
+        `Skipping usage snapshot (${operation}) for key ${keyId} model ${model}: ` +
+          `could not capture usage from the gateway:`,
+        err,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Called BEFORE deactivating old key/model.
    * Diffs current usage with latest snapshot, inserts historical record + new snapshot.
    * If no previous snapshot exists (first time), only creates initial snapshot.
    */
   async recordDeactivation(keyId: string, provider: string, model: string): Promise<void> {
-    const currentUsage = await this.captureUsage();
+    const currentUsage = await this.tryCaptureUsage("deactivation", keyId, model);
+    if (!currentUsage) return;
     const modelKey = `${resolveGatewayProvider(provider as LLMProvider)}/${model}`;
     const current = currentUsage.get(modelKey) ?? ZERO_TOTALS;
     const now = Date.now();
@@ -99,7 +129,8 @@ export class UsageSnapshotEngine {
       return; // Already have a snapshot, no-op
     }
 
-    const currentUsage = await this.captureUsage();
+    const currentUsage = await this.tryCaptureUsage("activation", keyId, model);
+    if (!currentUsage) return;
     const modelKey = `${resolveGatewayProvider(provider as LLMProvider)}/${model}`;
     const current = currentUsage.get(modelKey) ?? ZERO_TOTALS;
     const now = Date.now();
@@ -132,7 +163,8 @@ export class UsageSnapshotEngine {
       return; // No previous data, nothing to reconcile
     }
 
-    const currentUsage = await this.captureUsage();
+    const currentUsage = await this.tryCaptureUsage("startup reconcile", activeKeyId, activeModel);
+    if (!currentUsage) return;
     const modelKey = `${resolveGatewayProvider(activeProvider as LLMProvider)}/${activeModel}`;
     const current = currentUsage.get(modelKey) ?? ZERO_TOTALS;
     const now = Date.now();

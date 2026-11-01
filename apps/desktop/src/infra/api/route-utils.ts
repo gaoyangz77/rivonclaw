@@ -1,16 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { join } from "node:path";
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
-import { createLogger } from "@rivonclaw/logger";
-import {
-  DEFAULT_AGENT_ID,
-  resolveAgentSessionsDir,
-  resolveOpenClawStateDir,
-  resolveUserSkillsDir,
-} from "@rivonclaw/core/node";
+import { resolveUserSkillsDir } from "@rivonclaw/core/node";
 import { proxyNetwork } from "../proxy/proxy-aware-network.js";
-
-const log = createLogger("panel-server");
 
 /** Directory where user-installed skills are stored.
  *  Lazy function (not a constant) because OPENCLAW_STATE_DIR may be set
@@ -106,45 +96,4 @@ export function parseSkillFrontmatter(content: string): {
     else if (key === "version") result.version = val;
   }
   return result;
-}
-
-/**
- * Invalidate the cached skills snapshot in the gateway session store.
- */
-export function invalidateSkillsSnapshot(): void {
-  try {
-    const agentsRoot = join(resolveOpenClawStateDir(), "agents");
-    const agentIds = new Set<string>([DEFAULT_AGENT_ID]);
-    if (existsSync(agentsRoot)) {
-      for (const entry of readdirSync(agentsRoot, { withFileTypes: true })) {
-        if (entry.isDirectory()) agentIds.add(entry.name);
-      }
-    }
-
-    let changedStores = 0;
-    for (const agentId of agentIds) {
-      const storePath = join(resolveAgentSessionsDir(process.env, agentId), "sessions.json");
-      if (!existsSync(storePath)) continue;
-      const store = JSON.parse(readFileSync(storePath, "utf-8")) as Record<
-        string,
-        Record<string, unknown>
-      >;
-      let changed = false;
-      for (const entry of Object.values(store)) {
-        if (entry.skillsSnapshot) {
-          delete entry.skillsSnapshot;
-          changed = true;
-        }
-      }
-      if (changed) {
-        writeFileSync(storePath, JSON.stringify(store, null, 2), "utf-8");
-        changedStores += 1;
-      }
-    }
-    if (changedStores > 0) {
-      log.info(`Cleared cached skillsSnapshot from ${changedStores} agent session store(s)`);
-    }
-  } catch (err) {
-    log.warn("Failed to invalidate skills snapshot:", err);
-  }
 }

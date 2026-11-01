@@ -59,7 +59,6 @@ export const DEFAULTS = {
     fetchTimeoutMs: 5_000,
     doctorTimeoutMs: 60_000,
     pairingCodeTtlMs: 60_000,
-    usageCacheTtlMs: 30_000,
     channelProbeTimeoutMs: 8_000,
     channelClientTimeoutMs: 25_000,
     agentReplyTimeoutMs: 60_000,

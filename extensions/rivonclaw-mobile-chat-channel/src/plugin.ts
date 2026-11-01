@@ -405,6 +405,27 @@ export default defineRivonClawPlugin({
         respond(true, { success: true });
       });
 
+      // Desktop reports the outcome of a session reset it ran on behalf of the phone
+      // (see MobileSyncEngine.requestSessionReset for why the reset goes through Desktop).
+      api.registerGatewayMethod("mobile_chat_reset_result", async ({ params, respond }) => {
+        const { pairingId, requestId, ok, error } = (params || {}) as {
+          pairingId?: string;
+          requestId?: string;
+          ok?: boolean;
+          error?: string;
+        };
+        const engine = pairingId ? syncEngines.get(pairingId) : undefined;
+        if (!engine || !requestId || typeof ok !== "boolean") {
+          respond(false, { error: "Unknown pairing or malformed reset result" });
+          return;
+        }
+        if (!engine.completeSessionReset(requestId, ok, error)) {
+          respond(false, { error: "Unknown or expired reset requestId" });
+          return;
+        }
+        respond(true, { success: true });
+      });
+
       // Stop sync engine(s). If pairingId given, stop that one; otherwise stop all.
       api.registerGatewayMethod("mobile_chat_stop_sync", async ({ params, respond }) => {
         const { pairingId } = (params || {}) as { pairingId?: string };

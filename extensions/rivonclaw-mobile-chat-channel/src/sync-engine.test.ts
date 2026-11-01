@@ -559,4 +559,132 @@ describe("MobileSyncEngine", () => {
       );
     });
   });
+
+  describe("session reset handshake", () => {
+    const SESSION_KEY = "agent:main:mobile:direct:mobile-123";
+
+    function setupReset() {
+      (engine as any).api = {
+        config: {},
+        runtime: {
+          channel: {
+            routing: { resolveAgentRoute: vi.fn(() => ({ sessionKey: SESSION_KEY })) },
+          },
+        },
+      };
+      const broadcast = vi.fn();
+      engine.gatewayBroadcast = broadcast;
+      return broadcast;
+    }
+
+    const resetAcks = () =>
+      transport._sent.map((s: any) => s.msg).filter((m: any) => m.type === "reset_ack");
+
+    async function sendResetReq() {
+      const handler = (transport as any)._handlers.get("pairing-1");
+      await handler({ type: "reset_req", id: "req-1", timestamp: Date.now() });
+    }
+
+    function lastRequestId(broadcast: ReturnType<typeof vi.fn>): string {
+      const call = broadcast.mock.calls.find(([event]) => event === "plugin.rivonclaw.mobile-session-reset-requested");
+      return call![1].requestId;
+    }
+
+    it("asks Desktop to reset and does not ack until the result arrives", async () => {
+      await engine.start();
+      const broadcast = setupReset();
+
+      await sendResetReq();
+
+      expect(broadcast).toHaveBeenCalledWith("plugin.rivonclaw.mobile-session-reset-requested", {
+        pairingId: "pairing-1",
+        sessionKey: SESSION_KEY,
+        requestId: expect.any(String),
+      });
+      expect(resetAcks()).toHaveLength(0);
+    });
+
+    it("acks success and clears engine state after an ok result", async () => {
+      await engine.start();
+      const broadcast = setupReset();
+      engine.queueOutbound("mobile-123", { type: "text", text: "old" });
+      (engine as any).markProcessed("old-msg");
+      engine.activeSessionKeys.add(SESSION_KEY);
+
+      await sendResetReq();
+      expect(engine.completeSessionReset(lastRequestId(broadcast), true)).toBe(true);
+
+      const acks = resetAcks();
+      expect(acks).toHaveLength(1);
+      expect(acks[0]).toMatchObject({ type: "reset_ack", success: true });
+      expect(acks[0].error).toBeUndefined();
+      expect((engine as any).outbox.size).toBe(0);
+      expect((engine as any).sentHistory).toHaveLength(0);
+      expect((engine as any).processedIds.size).toBe(0);
+      expect(engine.activeSessionKeys.size).toBe(0);
+    });
+
+    it("acks failure with the error and keeps engine state after a failed result", async () => {
+      await engine.start();
+      const broadcast = setupReset();
+      engine.queueOutbound("mobile-123", { type: "text", text: "keep" });
+
+      await sendResetReq();
+      engine.completeSessionReset(lastRequestId(broadcast), false, "session busy");
+
+      const acks = resetAcks();
+      expect(acks).toHaveLength(1);
+      expect(acks[0]).toMatchObject({ success: false, error: "session busy" });
+      expect((engine as any).outbox.size).toBe(1);
+    });
+
+    it("acks failure when Desktop never answers", async () => {
+      await engine.start();
+      const broadcast = setupReset();
+
+      await sendResetReq();
+      await vi.advanceTimersByTimeAsync(8_000);
+
+      const acks = resetAcks();
+      expect(acks).toHaveLength(1);
+      expect(acks[0]).toMatchObject({ success: false });
+      expect(acks[0].error).toContain("Timed out");
+
+      // A result arriving after the timeout must not produce a second ack.
+      expect(engine.completeSessionReset(lastRequestId(broadcast), true)).toBe(false);
+      expect(resetAcks()).toHaveLength(1);
+    });
+
+    it("never acks success when gateway broadcast is unavailable", async () => {
+      await engine.start();
+      setupReset();
+      engine.gatewayBroadcast = null;
+
+      await sendResetReq();
+
+      const acks = resetAcks();
+      expect(acks).toHaveLength(1);
+      expect(acks[0]).toMatchObject({ success: false });
+      expect(acks[0].error).toContain("unavailable");
+    });
+
+    it("rejects a result for an unknown requestId without acking", async () => {
+      await engine.start();
+      setupReset();
+
+      expect(engine.completeSessionReset("nope", true)).toBe(false);
+      expect(resetAcks()).toHaveLength(0);
+    });
+
+    it("drops pending resets on stop() without acking", async () => {
+      await engine.start();
+      setupReset();
+      await sendResetReq();
+
+      engine.stop();
+      await vi.advanceTimersByTimeAsync(8_000);
+
+      expect(resetAcks()).toHaveLength(0);
+    });
+  });
 });

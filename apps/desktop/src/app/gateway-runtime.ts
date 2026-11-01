@@ -11,6 +11,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createGatewayConfigBuilder } from "../gateway/config-builder.js";
 import { createGatewayEventDispatcher } from "../gateway/event-dispatcher.js";
+import { handleMobileSessionResetRequest } from "../mobile/session-reset.js";
 import { startIdleMonitor } from "../scene/idle-monitor.js";
 import { startSceneService } from "../scene/scene-service.js";
 import type { GatewayEventHandler } from "../gateway/event-dispatcher.js";
@@ -130,6 +131,12 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     },
     onSessionActivity: (sessionKey) => {
       rootStore.llmManager.trackSessionActivity(sessionKey);
+    },
+    onMobileSessionResetRequested: (req) => {
+      void handleMobileSessionResetRequest(req, {
+        request: (method, params) => openClawConnector.request(method, params),
+        broadcastEvent,
+      });
     },
   });
   const handleGatewayEvent: GatewayEventHandler = (evt) => {

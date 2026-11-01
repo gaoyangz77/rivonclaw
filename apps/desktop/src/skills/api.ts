@@ -18,7 +18,6 @@ import {
   parseBody,
   proxiedFetch,
   parseSkillFrontmatter,
-  invalidateSkillsSnapshot,
   getUserSkillsDir,
 } from "../infra/api/route-utils.js";
 
@@ -323,7 +322,6 @@ const install: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext
       await fs.writeFile(join(skillDir, "_meta.json"), JSON.stringify(body.meta), "utf-8");
     }
 
-    invalidateSkillsSnapshot();
     sendJson(res, 200, { ok: true });
   } catch (err: unknown) {
     const msg = formatError(err);
@@ -373,7 +371,6 @@ const writeTemplate: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
       await fs.writeFile(join(skillDir, "SKILL.md"), body.content, "utf-8");
     }
 
-    invalidateSkillsSnapshot();
     sendJson(res, 200, { ok: true });
   } catch (err: unknown) {
     const msg = formatError(err);
@@ -395,7 +392,6 @@ export async function syncOfficialPresetSkills(
 
   try {
     const manifest = await fetchOfficialPresetManifest(ctx);
-    let wroteAny = false;
 
     for (const item of manifest.skills) {
       const localSlug = item.localSlug || item.slug;
@@ -421,7 +417,6 @@ export async function syncOfficialPresetSkills(
 
       try {
         await installOfficialPresetZip(ctx, item, skillsDir);
-        wroteAny = true;
         if (shouldInstall) result.installed += 1;
         if (shouldUpdate) result.updated += 1;
       } catch (err) {
@@ -430,9 +425,6 @@ export async function syncOfficialPresetSkills(
       }
     }
 
-    if (wroteAny) {
-      invalidateSkillsSnapshot();
-    }
     return result;
   } catch (err: unknown) {
     throw Object.assign(new Error(formatError(err)), { result });
@@ -482,7 +474,6 @@ const deleteSkill: EndpointHandler = async (req, res, _url, _params, _ctx) => {
   const skillsDir = getUserSkillsDir();
   try {
     await fs.rm(join(skillsDir, body.slug), { recursive: true, force: true });
-    invalidateSkillsSnapshot();
     sendJson(res, 200, { ok: true });
   } catch (err: unknown) {
     const msg = formatError(err);

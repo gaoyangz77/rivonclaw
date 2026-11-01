@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
+import type { MobileSessionResetRequest } from "../mobile/session-reset.js";
 
 const TELEGRAM_CHANNEL_ID = "telegram";
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
@@ -17,6 +18,8 @@ export interface GatewayEventDispatcherDeps {
     membershipChanged: boolean;
   };
   onSessionActivity?: (sessionKey: string) => void;
+  /** A paired phone asked to reset its conversation; the mobile channel plugin awaits the outcome. */
+  onMobileSessionResetRequested?: (req: MobileSessionResetRequest) => void;
   /**
    * Internal department run activity for the office view.
    *
@@ -59,7 +62,14 @@ function isInternalTelegramDebugAccount(input: {
 export function createGatewayEventDispatcher(
   deps: GatewayEventDispatcherDeps,
 ): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onSceneEvent } = deps;
+  const {
+    broadcastEvent,
+    chatSessions,
+    onRecipientSeen,
+    onSessionActivity,
+    onSceneEvent,
+    onMobileSessionResetRequested,
+  } = deps;
 
   return (evt: GatewayEventFrame): void => {
     if (evt.event === "plugin.rivonclaw.scene-event" || evt.event === "rivonclaw.scene-event") {
@@ -83,10 +93,14 @@ export function createGatewayEventDispatcher(
       }
     }
 
-    if (evt.event === "mobile.session-reset") {
-      const payload = evt.payload as { sessionKey?: string } | undefined;
-      if (payload?.sessionKey) {
-        broadcastEvent("session-reset", { sessionKey: payload.sessionKey });
+    if (evt.event === "plugin.rivonclaw.mobile-session-reset-requested") {
+      const p = evt.payload as Partial<MobileSessionResetRequest> | undefined;
+      if (p?.pairingId && p.sessionKey && p.requestId) {
+        onMobileSessionResetRequested?.({
+          pairingId: p.pairingId,
+          sessionKey: p.sessionKey,
+          requestId: p.requestId,
+        });
       }
     }
 
@@ -171,7 +185,7 @@ export function createGatewayEventDispatcher(
       }
     }
 
-    if (evt.event === "mobile.inbound") {
+    if (evt.event === "plugin.rivonclaw.mobile-inbound") {
       const p = evt.payload as
         | {
             sessionKey?: string;

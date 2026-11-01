@@ -43,22 +43,43 @@ describe("createGatewayEventDispatcher", () => {
     dispatch = createGatewayEventDispatcher(deps);
   });
 
-  // ── mobile.session-reset ────────────────────────────────────────────────
+  // ── plugin.rivonclaw.mobile-session-reset-requested ──────────────────────────────────────
 
-  describe("mobile.session-reset", () => {
-    it("pushes SSE when sessionKey is present", () => {
-      dispatch(makeEvent("mobile.session-reset", { sessionKey: "sk-123" }));
-      expect(deps.broadcastEvent).toHaveBeenCalledWith("session-reset", { sessionKey: "sk-123" });
+  describe("plugin.rivonclaw.mobile-session-reset-requested", () => {
+    const req = { pairingId: "p-1", sessionKey: "sk-123", requestId: "r-1" };
+
+    it("hands the request to onMobileSessionResetRequested", () => {
+      const onMobileSessionResetRequested = vi.fn();
+      dispatch = createGatewayEventDispatcher({ ...deps, onMobileSessionResetRequested });
+      dispatch(makeEvent("plugin.rivonclaw.mobile-session-reset-requested", req));
+      expect(onMobileSessionResetRequested).toHaveBeenCalledWith(req);
     });
 
-    it("does NOT push SSE when sessionKey is missing", () => {
-      dispatch(makeEvent("mobile.session-reset", {}));
+    it("does NOT push Panel SSE itself (that waits for the gateway reset to succeed)", () => {
+      dispatch = createGatewayEventDispatcher({
+        ...deps,
+        onMobileSessionResetRequested: vi.fn(),
+      });
+      dispatch(makeEvent("plugin.rivonclaw.mobile-session-reset-requested", req));
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
-    it("does NOT push SSE when payload is undefined", () => {
-      dispatch(makeEvent("mobile.session-reset"));
-      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    it.each([
+      ["pairingId", { sessionKey: "sk", requestId: "r" }],
+      ["sessionKey", { pairingId: "p", requestId: "r" }],
+      ["requestId", { pairingId: "p", sessionKey: "sk" }],
+    ])("ignores a payload missing %s", (_field, payload) => {
+      const onMobileSessionResetRequested = vi.fn();
+      dispatch = createGatewayEventDispatcher({ ...deps, onMobileSessionResetRequested });
+      dispatch(makeEvent("plugin.rivonclaw.mobile-session-reset-requested", payload));
+      expect(onMobileSessionResetRequested).not.toHaveBeenCalled();
+    });
+
+    it("ignores an undefined payload", () => {
+      const onMobileSessionResetRequested = vi.fn();
+      dispatch = createGatewayEventDispatcher({ ...deps, onMobileSessionResetRequested });
+      dispatch(makeEvent("plugin.rivonclaw.mobile-session-reset-requested"));
+      expect(onMobileSessionResetRequested).not.toHaveBeenCalled();
     });
   });
 
@@ -275,14 +296,14 @@ describe("createGatewayEventDispatcher", () => {
     });
   });
 
-  // ── mobile.inbound ─────────────────────────────────────────────────────
+  // ── plugin.rivonclaw.mobile-inbound ─────────────────────────────────────────────────────
 
-  describe("mobile.inbound", () => {
+  describe("plugin.rivonclaw.mobile-inbound", () => {
     it("pushes SSE with converted media URLs", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "sk-mob",
           message: "Photo",
           timestamp: 1700000000,
@@ -308,7 +329,7 @@ describe("createGatewayEventDispatcher", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "sk-mob",
           message: "Text only",
           timestamp: 1700000000,
@@ -323,7 +344,7 @@ describe("createGatewayEventDispatcher", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "sk-mob",
           message: "Nothing",
           mediaPaths: [],
@@ -338,7 +359,7 @@ describe("createGatewayEventDispatcher", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: 1699999999 });
 
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "sk-archived-mob",
           message: "Back",
           channel: "mobile",
@@ -354,7 +375,7 @@ describe("createGatewayEventDispatcher", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "sk-mob",
           message: "test",
         }),
@@ -369,18 +390,18 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("does NOT push SSE when sessionKey is missing", () => {
-      dispatch(makeEvent("mobile.inbound", { message: "orphan" }));
+      dispatch(makeEvent("plugin.rivonclaw.mobile-inbound", { message: "orphan" }));
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does NOT push SSE when message is missing", () => {
-      dispatch(makeEvent("mobile.inbound", { sessionKey: "sk-1" }));
+      dispatch(makeEvent("plugin.rivonclaw.mobile-inbound", { sessionKey: "sk-1" }));
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does NOT push mobile service session inbound messages to Webchat SSE", () => {
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "agent:main:cs:tiktok:conv-1",
           message: "internal",
         }),
@@ -393,7 +414,7 @@ describe("createGatewayEventDispatcher", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
       dispatch(
-        makeEvent("mobile.inbound", {
+        makeEvent("plugin.rivonclaw.mobile-inbound", {
           sessionKey: "sk-mob",
           message: "Mixed",
           mediaPaths: ["/tmp/random/file.jpg", "/home/user/.local/share/openclaw/media/img.png"],

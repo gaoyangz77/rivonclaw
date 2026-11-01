@@ -19,11 +19,9 @@
  */
 
 import crypto from "node:crypto";
-import { join } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 import { ScopeType, GQL, normalizeWeixinAccountId } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
-import { CUSTOMER_SERVICE_AGENT_ID, resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { readChannelOwnerAgentId } from "@rivonclaw/gateway";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
@@ -33,7 +31,6 @@ import { rootStore } from "../app/store/desktop-store.js";
 import { proxyNetwork } from "../infra/proxy/proxy-aware-network.js";
 import { compressImageForAgent } from "./image-compressor.js";
 import { CSRound } from "./cs-round.js";
-import { loadSessionCostSummary } from "../usage/session-usage.js";
 import {
   emitCsTelemetry,
   emitCsError,
@@ -342,9 +339,6 @@ export class CustomerServiceSession {
 
   /** Timer for coalescing rapid buyer-message dispatches. */
   private pendingBuyerDispatchTimer: ReturnType<typeof setTimeout> | null = null;
-
-  /** Cached gateway session id for reading this conversation's JSONL usage summary. */
-  private gatewaySessionId: string | null = null;
 
   /** Escalations keyed by escalationId. Populated by addEscalation, resolved by resolveEscalation. */
   readonly escalations = new Map<string, Escalation>();
@@ -1162,10 +1156,10 @@ export class CustomerServiceSession {
       textLength: text.length,
     });
 
-    // Token snapshots used to scan the entire gateway session JSONL transcript
-    // after every CS auto-reply. Disable that hot path until usage accounting
-    // can be emitted incrementally.
-    // void this.collectAndEmitTokenSnapshot(runId);
+    // `cs.token_snapshot` is intentionally not emitted: summing the whole
+    // gateway session transcript after every CS auto-reply was a CPU hot path.
+    // If it returns, read per-session totals from the gateway `sessions.usage`
+    // RPC (`key: scopeKey`) and emit incrementally — never read transcripts.
     emitCsTelemetry("cs.message", {
       shopId: this.csContext.shopId,
       platformShopId: this.shop.platformShopId,
@@ -1300,94 +1294,6 @@ export class CustomerServiceSession {
 
     const round = this.roundsByRunId.get(params.runId);
     if (round) this.markRoundTerminal(round);
-  }
-
-  /**
-   * Collect the cumulative LLM token snapshot for this conversation from the
-   * gateway session JSONL and emit it as a `cs.token_snapshot` BI event.
-   *
-   * Strategy: read the session's JSONL transcript via `loadSessionCostSummary`,
-   * which sums `usage` fields across all assistant messages. The gateway's
-   * `sessions.list` per-session `inputTokens` / `outputTokens` cannot be used
-   * because they are *per-run overwrites* (see vendor session-usage.ts —
-   * `patch.inputTokens = usage.input`, not `$inc`), which violates the
-   * "cumulative since session creation" contract.
-   *
-   * scopeKey → sessionFile resolution: we ask the gateway for this one session
-   * via `sessions.describe`, then cache its `sessionId` and join it with
-   * `resolveAgentSessionsDir()` to get the JSONL path. The RPC is used only
-   * for path resolution — never for token data.
-   *
-   * provider / model: the provider/model of the most recent assistant turn
-   * in the JSONL (largest-timestamp entry with a `usage` field). This
-   * represents "what model did we just use for this run" — distinct from
-   * aggregate dominance, which is bucketed by `${provider}::${model}` and
-   * can mis-report across provider switches inside a long session.
-   * Aggregate breakdowns belong in the downstream data pipeline, not here.
-   *
-   * Any failure yields a silent no-op. This path is at a system boundary with
-   * a best-effort analytics emitter; the rule is "never let BI collection
-   * block business logic".
-   */
-  private async collectAndEmitTokenSnapshot(runId: string): Promise<void> {
-    try {
-      let sessionId = this.gatewaySessionId;
-      if (!sessionId) {
-        const rpcResult = await openClawConnector.request<{
-          session?: { sessionId?: string | null } | null;
-        }>("sessions.describe", { key: this.scopeKey });
-        sessionId = rpcResult?.session?.sessionId ?? null;
-        if (sessionId) {
-          this.gatewaySessionId = sessionId;
-        }
-      }
-      if (!sessionId) return;
-
-      const sessionFile = join(
-        resolveAgentSessionsDir(process.env, CUSTOMER_SERVICE_AGENT_ID),
-        `${sessionId}.jsonl`,
-      );
-      const summary = await loadSessionCostSummary({ sessionFile });
-      if (!summary) return;
-
-      const inputTokens = Math.max(
-        0,
-        Math.floor(Number.isFinite(summary.input) ? summary.input : 0),
-      );
-      const outputTokens = Math.max(
-        0,
-        Math.floor(Number.isFinite(summary.output) ? summary.output : 0),
-      );
-      const cacheReadTokens = Math.max(
-        0,
-        Math.floor(Number.isFinite(summary.cacheRead) ? summary.cacheRead : 0),
-      );
-      const cacheWriteTokens = Math.max(
-        0,
-        Math.floor(Number.isFinite(summary.cacheWrite) ? summary.cacheWrite : 0),
-      );
-
-      const latest = summary.latestAssistantModel;
-
-      emitCsTelemetry("cs.token_snapshot", {
-        shopId: this.csContext.shopId,
-        conversationId: this.csContext.conversationId,
-        inputTokens,
-        outputTokens,
-        cacheReadTokens,
-        cacheWriteTokens,
-        provider: latest?.provider ?? "",
-        model: latest?.model ?? "",
-        runId,
-      });
-    } catch (err) {
-      // System boundary: swallow. BI collection never blocks CS traffic.
-      log.warn(
-        `Failed to collect cs.token_snapshot for ${this.scopeKey} ` +
-          `(non-fatal): ` +
-          (err instanceof Error ? err.message : String(err)),
-      );
-    }
   }
 
   private buildCatchUpMessage(options?: CatchUpDispatchOptions): string {

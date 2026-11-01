@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { join, dirname, basename, extname } from "node:path";
+import { join, basename, extname } from "node:path";
 import { homedir } from "node:os";
 import { URL, fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
@@ -66,6 +66,9 @@ const OUTBOX_LIMIT = 500;
 const ACK_TIMEOUT_MS = 30_000; // Retry unacked messages every 30s until ACKed.
 const SAVE_DEBOUNCE_MS = 500;
 const PROCESSED_IDS_LIMIT = 1000;
+// The mobile client gives up on a reset_req after 10s (client/mobile/src/engine/mobileSync.ts),
+// so fail explicitly before that instead of letting it expire silently on the phone.
+const RESET_TIMEOUT_MS = 8_000;
 
 // Duplicated from index.ts to avoid circular imports (index re-exports this module).
 // Sync: must match DEFAULTS.relay.maxClientBytes in packages/core/src/defaults.ts
@@ -114,6 +117,8 @@ export class MobileSyncEngine {
   private saveChain: Promise<void> = Promise.resolve();
   private lastFlushTime: number = 0;
   private syncStatePath: string;
+  /** Session resets handed to Desktop and not yet confirmed, keyed by requestId. */
+  private pendingResets: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   public readonly mobileDeviceId: string;
   public pairingId: string;
@@ -281,6 +286,8 @@ export class MobileSyncEngine {
     // Clear ACK timers
     for (const timer of this.ackTimers.values()) clearTimeout(timer);
     this.ackTimers.clear();
+    for (const timer of this.pendingResets.values()) clearTimeout(timer);
+    this.pendingResets.clear();
     // Flush pending save immediately
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
@@ -362,76 +369,78 @@ export class MobileSyncEngine {
     }
   }
 
-  /** Reset the agent session: update session store, archive transcripts, and clear engine state. */
-  public async resetSession() {
-    const core = this.api.runtime;
-    const cfg = this.api.config;
-    const route = core.channel.routing.resolveAgentRoute({
-      cfg,
+  /**
+   * Ask Desktop to reset the agent session for this pairing.
+   *
+   * The plugin cannot reset the session itself: the engine only lets bundled or
+   * trusted-official plugins dispatch gateway methods, and this extension is
+   * neither. Desktop holds an operator gateway client, so the reset goes through
+   * it: we broadcast `plugin.rivonclaw.mobile-session-reset-requested`, Desktop calls
+   * `sessions.reset`, then reports back through the `mobile_chat_reset_result`
+   * gateway method (see {@link completeSessionReset}). `reset_ack` is only sent
+   * once that outcome is known, or the request times out.
+   */
+  public requestSessionReset() {
+    if (!this.gatewayBroadcast) {
+      throw new Error("Gateway broadcast is unavailable; cannot reach Desktop to reset the session");
+    }
+    const route = this.api.runtime.channel.routing.resolveAgentRoute({
+      cfg: this.api.config,
       channel: "mobile",
       accountId: this.pairingId,
       peer: { kind: "direct", id: this.mobileDeviceId },
     });
-    const storePath = core.channel.session.resolveStorePath(
-      (cfg.session as Record<string, unknown> | undefined)?.store as string | undefined,
-      { agentId: route.agentId },
+    const requestId = randomUUID();
+    this.pendingResets.set(
+      requestId,
+      setTimeout(() => {
+        this.pendingResets.delete(requestId);
+        this.sendResetAck(false, "Timed out waiting for Desktop to reset the session");
+      }, RESET_TIMEOUT_MS),
     );
-    // storePath points to the sessions store file (e.g. sessions.json), so dirname gives the sessions directory
-    const sessionDir = storePath ? dirname(storePath) : join(homedir(), ".openclaw", "sessions");
+    // Gateway broadcasts outside the core event allowlist reach operator clients only
+    // under the `plugin.` prefix; any other name is silently dropped for every client.
+    this.gatewayBroadcast("plugin.rivonclaw.mobile-session-reset-requested", {
+      pairingId: this.pairingId,
+      sessionKey: route.sessionKey,
+      requestId,
+    });
+  }
 
-    // 1. Read the current sessionId from the store, then update the entry with a new sessionId.
-    //    Transcript files are named by sessionId (UUID), not by sessionKey.
-    let oldSessionId: string | undefined;
-    if (storePath) {
-      try {
-        const raw = await fs.readFile(storePath, "utf-8");
-        const store = JSON.parse(raw) as Record<string, any>;
-        const entry = store[route.sessionKey];
-        if (entry) {
-          oldSessionId = entry.sessionId;
-          entry.sessionId = randomUUID();
-          entry.updatedAt = Date.now();
-          entry.systemSent = false;
-          entry.abortedLastRun = false;
-          entry.inputTokens = 0;
-          entry.outputTokens = 0;
-          entry.totalTokens = 0;
-          entry.totalTokensFresh = true;
-          await fs.writeFile(storePath, JSON.stringify(store, null, 2) + "\n", "utf-8");
-        }
-      } catch (err: any) {
-        console.error(
-          `[MobileSync:${this.pairingId.slice(0, 8)}] Failed to update session store:`,
-          err.message,
-        );
-      }
+  /**
+   * Apply Desktop's outcome for a reset requested via {@link requestSessionReset}.
+   * Returns false when the requestId is unknown or already timed out.
+   */
+  public completeSessionReset(requestId: string, ok: boolean, error?: string): boolean {
+    const timer = this.pendingResets.get(requestId);
+    if (!timer) return false;
+    clearTimeout(timer);
+    this.pendingResets.delete(requestId);
+
+    if (!ok) {
+      this.sendResetAck(false, error || "Desktop failed to reset the session");
+      return true;
     }
 
-    // 2. Archive the session transcript file by renaming it.
-    //    The transcript filename is {sessionId}.jsonl (NOT sessionKey).
-    if (oldSessionId) {
-      const sessionFile = join(sessionDir, `${oldSessionId}.jsonl`);
-      const archiveSuffix = `.reset.${new Date().toISOString().replace(/:/g, "-")}`;
-      const archiveFile = sessionFile + archiveSuffix;
-      try {
-        await fs.rename(sessionFile, archiveFile);
-      } catch (err: any) {
-        if (err.code !== "ENOENT") throw err;
-      }
-    }
-
-    // 3. Clear engine outbox and sent history
+    // The agent session is fresh now; drop the engine's own view of the old conversation.
     this.outbox.clear();
     this.sentHistory.length = 0;
     this.processedIds.clear();
     this.processedIdsOrder.length = 0;
     this.activeSessionKeys.clear();
     this.scheduleSave();
+    this.sendResetAck(true);
+    return true;
+  }
 
-    // 4. Broadcast session-reset event to connected gateway clients (Chat Page)
-    if (this.gatewayBroadcast) {
-      this.gatewayBroadcast("mobile.session-reset", { sessionKey: route.sessionKey });
-    }
+  private sendResetAck(success: boolean, error?: string) {
+    this.transport.send(this.pairingId, {
+      type: "reset_ack",
+      id: randomUUID(),
+      success,
+      ...(error ? { error } : {}),
+      timestamp: Date.now(),
+    });
   }
 
   public get isRelayConnected(): boolean {
@@ -526,22 +535,10 @@ export class MobileSyncEngine {
 
       case "reset_req":
         try {
-          await this.resetSession();
-          this.transport.send(this.pairingId, {
-            type: "reset_ack",
-            id: randomUUID(),
-            success: true,
-            timestamp: Date.now(),
-          });
+          this.requestSessionReset();
         } catch (err: any) {
-          console.error("[MobileSync] Reset failed:", err.message);
-          this.transport.send(this.pairingId, {
-            type: "reset_ack",
-            id: randomUUID(),
-            success: false,
-            error: err.message,
-            timestamp: Date.now(),
-          });
+          console.error("[MobileSync] Reset request failed:", err.message);
+          this.sendResetAck(false, err.message);
         }
         break;
 
@@ -641,7 +638,7 @@ export class MobileSyncEngine {
     // Notify connected Chat Page clients that a mobile user message arrived,
     // so it appears in the conversation in real time (not only after sync).
     if (this.gatewayBroadcast) {
-      this.gatewayBroadcast("mobile.inbound", {
+      this.gatewayBroadcast("plugin.rivonclaw.mobile-inbound", {
         sessionKey: route.sessionKey,
         message: messageText,
         timestamp: msg.timestamp || Date.now(),

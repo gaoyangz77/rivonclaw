@@ -35,19 +35,6 @@ vi.mock("@rivonclaw/core/endpoints", async () => {
   return { ...actual, isStagingDevMode: () => false };
 });
 
-// `@rivonclaw/core/node` resolves the agent sessions directory at runtime.
-// We don't care about the actual path in the test — `loadSessionCostSummary`
-// is mocked, so the path is just an opaque string fed into the mock.
-vi.mock("@rivonclaw/core/node", async () => {
-  const actual = await vi.importActual<Record<string, unknown>>("@rivonclaw/core/node");
-  return { ...actual, resolveAgentSessionsDir: () => "/tmp/agents/main/sessions" };
-});
-
-const mockLoadSessionCostSummary = vi.fn();
-vi.mock("../usage/session-usage.js", () => ({
-  loadSessionCostSummary: (...args: unknown[]) => mockLoadSessionCostSummary(...args),
-}));
-
 const mockEmitCsTelemetry = vi.fn();
 const mockEmitCsError = vi.fn();
 const mockEmitCsDeliveryRecovery = vi.fn();
@@ -188,13 +175,12 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     });
   });
 
-  it("does not scan gateway session JSONL for token snapshots on the CS send hot path", async () => {
+  it("does not query gateway usage for token snapshots on the CS send hot path", async () => {
     const session = makeSession();
 
     await session.forwardTextToBuyer("hi");
 
     expect(mockRpcRequest).not.toHaveBeenCalled();
-    expect(mockLoadSessionCostSummary).not.toHaveBeenCalled();
     expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.message")).toBe(true);
     expect(mockEmitCsTelemetry.mock.calls.some(([t]) => t === "cs.token_snapshot")).toBe(false);
     expect(mockGraphqlFetch).toHaveBeenCalledTimes(1);
