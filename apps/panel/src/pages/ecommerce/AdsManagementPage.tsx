@@ -691,7 +691,11 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                             </span>
                           </button>
                         </td>
-                        <td>{regions || "-"}</td>
+                        <td>
+                          <span className="tk-v1-table-truncate" title={regions}>
+                            {regions || "-"}
+                          </span>
+                        </td>
                         <td>
                           <TkBadge tone={readinessBadgeTone(group.status)}>
                             {t(`adsManagement.shopAdsStatus.${group.status}`, {

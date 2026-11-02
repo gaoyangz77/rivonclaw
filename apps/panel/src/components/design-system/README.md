@@ -414,6 +414,12 @@ not trigger the row. Destructive or state-changing actions stay explicit in the 
 Badges communicate categorical state. A live status may add a dot or pulse. Pills are not used as
 general decoration. Labels use explicit language such as `Running`, `Needs review`, and `Failed`.
 
+New code uses `TkBadge`. Legacy `.badge` call sites inside a page or modal render the same contract
+through the badge bridge in `styles/controls.css`, the way `.btn` adopts `TkButton`: `badge-success`
+and `badge-active` (an enabled, authorized, or current state) map to `success`, `badge-muted` to
+`neutral`, and `badge-info`/`badge-warning`/`badge-danger` to their namesakes. Do not restyle
+`.badge` per feature; migrate the call site to `TkBadge` instead.
+
 ### 6.8 Overlay
 
 Popovers and menus use elevation 2. Modals use elevation 3 and an opaque-enough backdrop. Frosted

@@ -124,7 +124,9 @@
       ):not([type="hidden"]),
     textarea,
     select
-  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.tk-v1-inline-input):not(.custom-select-search) {
+  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.tk-v1-inline-input):not(
+    .custom-select-search
+  ) {
   border-color: var(--tk-v1-border-default);
   border-radius: var(--tk-v1-radius-2);
   background-color: var(--tk-v1-bg-raised);
@@ -142,7 +144,9 @@
       ):not([type="hidden"]),
     textarea,
     select
-  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.tk-v1-inline-input):not(.custom-select-search):focus-visible {
+  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.tk-v1-inline-input):not(
+    .custom-select-search
+  ):focus-visible {
   border-color: var(--tk-v1-accent);
   outline: none;
   box-shadow: var(--tk-v1-focus);
@@ -490,6 +494,60 @@
 
 .tk-v1-badge-danger {
   --_tk-badge-color: var(--tk-v1-danger);
+}
+
+/* Legacy badge adoption bridge -----------------------------------------------
+   `.badge` call sites render the TkBadge contract until they migrate. The page
+   scope sits in :where() so feature rules that size a badge in context still
+   apply; the tone rules are specific enough to replace the legacy dark-theme
+   paint. `active` marks an enabled/authorized state, which TkBadge calls success. */
+:where(.tk-v1-page, .tk-v1-modal) .badge {
+  --_tk-badge-color: var(--tk-v1-fg-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--_tk-badge-color) 20%, transparent);
+  border-radius: var(--tk-v1-radius-full);
+  background: color-mix(in srgb, var(--_tk-badge-color) 8%, transparent);
+  color: var(--_tk-badge-color);
+  font-family: var(--tk-v1-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+:where(.tk-v1-page, .tk-v1-modal) .badge:is(.badge-success, .badge-active) {
+  --_tk-badge-color: var(--tk-v1-success);
+}
+
+:where(.tk-v1-page, .tk-v1-modal) .badge.badge-info {
+  --_tk-badge-color: var(--tk-v1-info);
+}
+
+:where(.tk-v1-page, .tk-v1-modal) .badge.badge-warning {
+  --_tk-badge-color: var(--tk-v1-warning);
+}
+
+:where(.tk-v1-page, .tk-v1-modal) .badge.badge-danger {
+  --_tk-badge-color: var(--tk-v1-danger);
+}
+
+:where(.tk-v1-page, .tk-v1-modal)
+  .badge:is(
+    .badge-success,
+    .badge-active,
+    .badge-info,
+    .badge-warning,
+    .badge-danger,
+    .badge-muted
+  ) {
+  border-color: color-mix(in srgb, var(--_tk-badge-color) 20%, transparent);
+  background: color-mix(in srgb, var(--_tk-badge-color) 8%, transparent);
+  color: var(--_tk-badge-color);
 }
 
 .tk-v1-badge-dot {
