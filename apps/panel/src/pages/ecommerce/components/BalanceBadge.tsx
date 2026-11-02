@@ -5,18 +5,19 @@ import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../../store/RuntimeStatusProvider.js";
 import { entitlementStatusLabel } from "../../../components/billing/billing-labels.js";
+import { TkBadge } from "../../../components/design-system/index.js";
 
 const ASSIGNMENT_BADGE = {
   unassigned: {
-    className: "badge badge-warning",
+    tone: "warning",
     labelKey: "ecommerce.customerServiceDeviceStatus.notRunning",
   },
   current_device: {
-    className: "badge badge-success",
+    tone: "success",
     labelKey: "ecommerce.customerServiceDeviceStatus.currentDevice",
   },
   other_device: {
-    className: "badge badge-info",
+    tone: "info",
     labelKey: "ecommerce.customerServiceDeviceStatus.otherDevice",
   },
 } as const;
@@ -30,7 +31,7 @@ export const BalanceBadge = observer(function BalanceBadge({
   const entityStore = useEntityStore();
   const runtimeStatus = useRuntimeStatus();
   if (!shop.services?.customerService?.enabled) {
-    return <span className="badge badge-muted">{t("common.disabled")}</span>;
+    return <TkBadge tone="neutral">{t("common.disabled")}</TkBadge>;
   }
   const entitlement =
     entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ??
@@ -42,13 +43,11 @@ export const BalanceBadge = observer(function BalanceBadge({
 
   return (
     <div className="shop-service-badges">
+      <TkBadge tone={entitlement.allowed ? "success" : "warning"}>
+        {entitlementStatusLabel(t, entitlement)}
+      </TkBadge>
       {entitlement.allowed ? (
-        <span className="badge badge-active">{entitlementStatusLabel(t, entitlement)}</span>
-      ) : (
-        <span className="badge badge-warning">{entitlementStatusLabel(t, entitlement)}</span>
-      )}
-      {entitlement.allowed ? (
-        <span className={assignmentBadge.className}>{t(assignmentBadge.labelKey)}</span>
+        <TkBadge tone={assignmentBadge.tone}>{t(assignmentBadge.labelKey)}</TkBadge>
       ) : null}
     </div>
   );

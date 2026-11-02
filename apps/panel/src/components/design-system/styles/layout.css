@@ -464,6 +464,16 @@
    emphasis against the muted `td` foreground, and truncates rather than wrapping
    so a long name cannot push the row out of its rhythm. Features scope their own
    variants off this class; the contract itself is shared. */
+/* Long secondary cell text (lists, paths) kept to one line; pair it with a
+   `title` so the full value stays reachable. */
+.tk-v1-table-truncate {
+  display: block;
+  max-width: 32ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tk-v1-table-record-name {
   display: inline-block;
   max-width: 24ch;

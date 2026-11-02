@@ -1,3 +1,5 @@
+import type { TkBadgeTone } from "../../components/design-system/index.js";
+
 /** OAuth authorization timeout in milliseconds (5 minutes). */
 export const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -46,19 +48,17 @@ export function formatBalanceDisplay(
   return t("tiktokShops.balance.remaining", { balance });
 }
 
-export function getAuthStatusBadgeClass(status: string): string {
+export function getAuthStatusBadgeTone(status: string): TkBadgeTone {
   switch (status) {
     case "AUTHORIZED":
-      return "badge badge-active";
+      return "success";
     case "TOKEN_EXPIRED":
-      return "badge badge-warning";
+      return "warning";
     case "REVOKED":
     case "PENDING_AUTH":
-      return "badge badge-danger";
-    case "DISCONNECTED":
-      return "badge badge-muted";
+      return "danger";
     default:
-      return "badge badge-muted";
+      return "neutral";
   }
 }
 

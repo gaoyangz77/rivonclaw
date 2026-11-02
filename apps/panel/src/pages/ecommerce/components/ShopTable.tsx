@@ -7,6 +7,8 @@ import {
   TkInteractiveTableRow,
   TkField,
   TkPanel,
+  TkBadge,
+  type TkBadgeTone,
   TkPanelBody,
   TkPanelHeader,
   TkPrivate,
@@ -15,7 +17,7 @@ import {
   usePrivacyMode,
 } from "../../../components/design-system/index.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
-import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
+import { getAuthStatusBadgeTone } from "../ecommerce-utils.js";
 import { BalanceBadge } from "./BalanceBadge.js";
 import {
   groupShopsByCollection,
@@ -38,10 +40,10 @@ interface ShopTableProps {
   onRequestDelete: (shopId: string) => void;
 }
 
-function getAggregateStatusBadgeClass(activeCount: number, totalCount: number): string {
-  if (activeCount === totalCount) return "badge badge-active shop-collection-summary-badge";
-  if (activeCount === 0) return "badge badge-muted shop-collection-summary-badge";
-  return "badge badge-warning shop-collection-summary-badge";
+function getAggregateStatusBadgeTone(activeCount: number, totalCount: number): TkBadgeTone {
+  if (activeCount === totalCount) return "success";
+  if (activeCount === 0) return "neutral";
+  return "warning";
 }
 
 export const ShopTable = observer(function ShopTable({
@@ -247,31 +249,38 @@ export const ShopTable = observer(function ShopTable({
                             {headerShop.platform === "TIKTOK_SHOP" ? "TikTok" : headerShop.platform}
                           </td>
                           <td>
-                            {shopCollectionRegions(group.shops)
-                              .map((region) => formatShopRegionLabel(region, t))
-                              .join(", ")}
+                            {(() => {
+                              const regions = shopCollectionRegions(group.shops)
+                                .map((region) => formatShopRegionLabel(region, t))
+                                .join(", ");
+                              return (
+                                <span className="tk-v1-table-truncate" title={regions}>
+                                  {regions}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td>
-                            <span
-                              className={getAggregateStatusBadgeClass(
+                            <TkBadge
+                              tone={getAggregateStatusBadgeTone(
                                 authorizedShopCount,
                                 group.shops.length,
                               )}
                             >
                               {authorizedShopCount}/{group.shops.length}{" "}
                               {t("tiktokShops.authStatus_AUTHORIZED")}
-                            </span>
+                            </TkBadge>
                           </td>
                           <td>
-                            <span
-                              className={getAggregateStatusBadgeClass(
+                            <TkBadge
+                              tone={getAggregateStatusBadgeTone(
                                 enabledCustomerServiceCount,
                                 group.shops.length,
                               )}
                             >
                               {enabledCustomerServiceCount}/{group.shops.length}{" "}
                               {t("billing.allowed")}
-                            </span>
+                            </TkBadge>
                           </td>
                           <td />
                         </tr>
@@ -295,7 +304,7 @@ export const ShopTable = observer(function ShopTable({
                               </td>
                               <td className="shop-table-col-alias">
                                 <input
-                                  className="shop-alias-input"
+                                  className="tk-v1-inline-input shop-alias-input"
                                   aria-label={`${t("ecommerce.table.headers.alias")} ${shop.shopName}`}
                                   value={draftAliases[shopId] ?? currentAlias}
                                   placeholder={t("ecommerce.table.aliasPlaceholder")}
@@ -324,9 +333,9 @@ export const ShopTable = observer(function ShopTable({
                               <td>{shop.platform === "TIKTOK_SHOP" ? "TikTok" : shop.platform}</td>
                               <td>{formatShopRegionLabel(shop.region, t)}</td>
                               <td>
-                                <span className={getAuthStatusBadgeClass(shop.authStatus)}>
+                                <TkBadge tone={getAuthStatusBadgeTone(shop.authStatus)}>
                                   {t(`tiktokShops.authStatus_${shop.authStatus}`)}
-                                </span>
+                                </TkBadge>
                               </td>
                               <td>
                                 <BalanceBadge shop={shop} />

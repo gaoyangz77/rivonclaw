@@ -337,6 +337,10 @@ Vertical settings and edit forms use `TkFormStack`; a titled subset of related f
 `TkFormGroup`. Framed composites use `TkPanelBody` for content padding and `TkPanelFooter` for
 actions. Product code must not rely on an unrelated feature stylesheet to provide these spaces.
 
+An editable value inside a table cell uses `.tk-v1-inline-input`: it reads as the cell's text until
+hovered and becomes a field only while focused, so a column of editable values never turns the table
+into a form. Its text sits on the column's content edge and its frame reaches into the cell padding.
+
 Legacy page-level control bridges must exclude elements whose class contains `tk-v1-`. Once a
 shared primitive is present, that primitive alone owns hover, focus, disabled, and loading states.
 
@@ -395,6 +399,10 @@ variant is square and flush with its parent `TkPanel`; the parent alone owns out
 8px radius. Never put a rounded table frame inside another rounded surface. Headers remain quiet,
 numbers align on the decimal or right edge, IDs and metrics use mono type, row actions appear
 consistently, and status never relies on color alone.
+
+Long secondary cell text — a list of regions, a path — stays on one line with `.tk-v1-table-truncate`
+and carries the full value in `title`; it never wraps a row taller than its neighbours. Status cells
+use `TkBadge`, whose label never wraps.
 
 When opening a record is the row's primary action, use `TkInteractiveTableRow` instead of adding a
 redundant View button. Click, Enter, and Space activate the row; hover and focus share the standard

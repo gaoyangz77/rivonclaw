@@ -13,7 +13,7 @@ import { ChevronRightIcon, CloseIcon, ShopIcon } from "../../../components/icons
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { shopDisplayLabel } from "../../../lib/shop-display.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
-import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
+import { getAuthStatusBadgeTone } from "../ecommerce-utils.js";
 import {
   navigateToAdsManagement,
   readinessBadgeTone,
@@ -368,9 +368,9 @@ export const ShopDrawer = observer(function ShopDrawer({
               )}
             </div>
             {shop && (
-              <span className={getAuthStatusBadgeClass(shop.authStatus)}>
+              <TkBadge tone={getAuthStatusBadgeTone(shop.authStatus)}>
                 {t(`tiktokShops.authStatus_${shop.authStatus}`)}
-              </span>
+              </TkBadge>
             )}
           </div>
         </div>
@@ -481,9 +481,9 @@ export const ShopDrawer = observer(function ShopDrawer({
                         <span className="shop-info-label">
                           {t("ecommerce.table.headers.authStatus")}
                         </span>
-                        <span className={getAuthStatusBadgeClass(shop.authStatus)}>
+                        <TkBadge tone={getAuthStatusBadgeTone(shop.authStatus)}>
                           {t(`tiktokShops.authStatus_${shop.authStatus}`)}
-                        </span>
+                        </TkBadge>
                       </div>
                     </div>
                   </section>

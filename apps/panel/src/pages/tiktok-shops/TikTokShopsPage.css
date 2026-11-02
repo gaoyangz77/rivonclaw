@@ -78,10 +78,6 @@
   background: var(--color-bg);
 }
 
-.shop-collection-row td:first-child {
-  border-left: 3px solid color-mix(in srgb, var(--color-primary) 64%, var(--color-border-light));
-}
-
 .shop-collection-row .tk-v1-table-record-name {
   font-weight: 650;
 }
@@ -138,10 +134,6 @@
   transform: rotate(90deg);
 }
 
-.shop-collection-summary-badge {
-  white-space: nowrap;
-}
-
 .shop-collection-row td {
   border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 12%, var(--color-border-light));
 }
@@ -172,33 +164,15 @@
   font-weight: 650;
 }
 
+/* The alias cell is a .tk-v1-inline-input; only its floor width is local. */
 .shop-alias-input {
-  width: 100%;
   min-width: 96px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
-  color: var(--color-text);
-  transition:
-    border-color var(--transition-fast),
-    background-color var(--transition-fast);
 }
 
-.shop-alias-input:hover {
-  border-color: var(--color-border-light);
-}
-
-.shop-alias-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  background: var(--color-bg-alt);
-}
-
-.shop-alias-input:disabled {
-  opacity: 0.7;
-  cursor: wait;
+/* Customer-service state and device assignment read as one line, so every
+   shop row keeps the same height whichever badges it shows. */
+.shop-table .shop-service-badges {
+  flex-wrap: nowrap;
 }
 
 .shop-balance-cell {

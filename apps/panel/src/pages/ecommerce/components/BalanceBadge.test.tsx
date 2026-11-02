@@ -39,9 +39,9 @@ afterEach(cleanup);
 
 describe("BalanceBadge", () => {
   it.each([
-    ["unassigned", "Not running", "badge-warning"],
-    ["current_device", "Running on this device", "badge-success"],
-    ["other_device", "Running on another device", "badge-info"],
+    ["unassigned", "Not running", "tk-v1-badge-warning"],
+    ["current_device", "Running on this device", "tk-v1-badge-success"],
+    ["other_device", "Running on another device", "tk-v1-badge-info"],
   ] as const)("renders the %s assignment state", (assignment, label, className) => {
     render(<BalanceBadge shop={shopWithAssignment(assignment)} />);
 

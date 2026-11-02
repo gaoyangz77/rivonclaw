@@ -124,7 +124,7 @@
       ):not([type="hidden"]),
     textarea,
     select
-  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.custom-select-search) {
+  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.tk-v1-inline-input):not(.custom-select-search) {
   border-color: var(--tk-v1-border-default);
   border-radius: var(--tk-v1-radius-2);
   background-color: var(--tk-v1-bg-raised);
@@ -142,10 +142,52 @@
       ):not([type="hidden"]),
     textarea,
     select
-  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.custom-select-search):focus-visible {
+  ):not(.tk-v1-input):not(.tk-v1-composer-input):not(.tk-v1-inline-input):not(.custom-select-search):focus-visible {
   border-color: var(--tk-v1-accent);
   outline: none;
   box-shadow: var(--tk-v1-focus);
+}
+
+/* Inline-edit field for a table cell: it reads as the cell's value until the
+   pointer is over it, and becomes a field only while focused. A row of bordered
+   inputs turns a table into a form, so the field bridge above excludes it. */
+.tk-v1-inline-input {
+  /* Text sits on the column's content edge; the hover/focus frame reaches into
+     the cell padding on both sides, so the width grows by the same amount. */
+  width: calc(100% + 2 * var(--tk-v1-space-2));
+  height: var(--tk-v1-control-compact);
+  padding: 0 var(--tk-v1-space-2);
+  margin-inline: calc(0px - var(--tk-v1-space-2));
+  border: 1px solid transparent;
+  border-radius: var(--tk-v1-radius-2);
+  background: transparent;
+  color: var(--tk-v1-fg-default);
+  font: inherit;
+  transition:
+    border-color var(--tk-v1-fast),
+    background-color var(--tk-v1-fast),
+    box-shadow var(--tk-v1-fast);
+}
+
+.tk-v1-inline-input::placeholder {
+  color: var(--tk-v1-fg-muted);
+}
+
+.tk-v1-inline-input:hover:not(:disabled) {
+  border-color: var(--tk-v1-border-default);
+}
+
+.tk-v1-inline-input:focus-visible,
+.tk-v1-inline-input:focus {
+  border-color: var(--tk-v1-accent);
+  outline: none;
+  background: var(--tk-v1-bg-raised);
+  box-shadow: var(--tk-v1-focus);
+}
+
+.tk-v1-inline-input:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 @media (max-width: 900px) {
