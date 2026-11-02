@@ -26,6 +26,8 @@ it("validates whole days and saves the selected range into the current MST setti
         id: "settings-1",
         userId: "seller-1",
         unrepliedMessageLookbackDays: 14,
+        autoClaimOnSampleApproval: false,
+        autoReleaseOnSampleRejection: false,
         onboardingCompletedAt: null,
       },
     },
@@ -62,6 +64,8 @@ it("validates whole days and saves the selected range into the current MST setti
     id: "settings-2",
     userId: "seller-1",
     unrepliedMessageLookbackDays: 30,
+    autoClaimOnSampleApproval: false,
+    autoReleaseOnSampleRejection: false,
   });
   fireEvent.click(save);
   await waitFor(() => expect(workspace.operationalSettings?.unrepliedMessageLookbackDays).toBe(14));

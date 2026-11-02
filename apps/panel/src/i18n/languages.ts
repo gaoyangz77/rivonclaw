@@ -5,6 +5,7 @@ import { AFFILIATE_CAMPAIGN_INVITATION_TRANSLATIONS } from "./affiliate-campaign
 import { AFFILIATE_MESSAGE_CARD_TRANSLATIONS } from "./affiliate-message-card-translations.js";
 import { AFFILIATE_MESSAGE_TARGET_TRANSLATIONS } from "./affiliate-message-target-translations.js";
 import { AFFILIATE_MESSAGE_LOOKBACK_TRANSLATIONS } from "./affiliate-message-lookback-translations.js";
+import { AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS } from "./affiliate-creator-business-translations.js";
 import en from "./en.js";
 import zh from "./zh.js";
 import de from "./de.js";
@@ -601,6 +602,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
       AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
       AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS[language.code],
       AFFILIATE_MESSAGE_LOOKBACK_TRANSLATIONS[language.code],
+      AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS[language.code],
       CUSTOMER_SERVICE_ORDER_TRANSLATIONS[language.code],
       TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
       TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],

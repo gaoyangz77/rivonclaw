@@ -4815,6 +4815,8 @@ export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
       id
       userId
       unrepliedMessageLookbackDays
+      autoClaimOnSampleApproval
+      autoReleaseOnSampleRejection
       onboardingCompletedAt
     }
   }
@@ -4826,6 +4828,21 @@ export const SET_AFFILIATE_UNREPLIED_MESSAGE_LOOKBACK_MUTATION = gql`
       id
       userId
       unrepliedMessageLookbackDays
+      autoClaimOnSampleApproval
+      autoReleaseOnSampleRejection
+      onboardingCompletedAt
+    }
+  }
+`;
+
+export const SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION = gql`
+  mutation SetAffiliateCreatorBusinessSettings($input: SetAffiliateCreatorBusinessSettingsInput!) {
+    setAffiliateCreatorBusinessSettings(input: $input) {
+      id
+      userId
+      unrepliedMessageLookbackDays
+      autoClaimOnSampleApproval
+      autoReleaseOnSampleRejection
       onboardingCompletedAt
     }
   }
@@ -5072,6 +5089,8 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
       id
       userId
       unrepliedMessageLookbackDays
+      autoClaimOnSampleApproval
+      autoReleaseOnSampleRejection
       onboardingCompletedAt
     }
   }

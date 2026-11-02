@@ -211,6 +211,22 @@ describe("AffiliateWorkspaceModel", () => {
     expect(workspace.operationalSettings?.onboardingCompletedAt).toBe(NOW);
   });
 
+  it("defaults the seller-wide Creator business rules to off and stores their persisted values", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    workspace.setAffiliateOperationalSettings({ id: "settings-1", userId: "user-1" } as any);
+    expect(workspace.operationalSettings?.autoClaimOnSampleApproval).toBe(false);
+    expect(workspace.operationalSettings?.autoReleaseOnSampleRejection).toBe(false);
+
+    workspace.setAffiliateOperationalSettings({
+      id: "settings-1",
+      userId: "user-1",
+      autoClaimOnSampleApproval: true,
+      autoReleaseOnSampleRejection: false,
+    } as any);
+    expect(workspace.operationalSettings?.autoClaimOnSampleApproval).toBe(true);
+    expect(workspace.operationalSettings?.autoReleaseOnSampleRejection).toBe(false);
+  });
+
   it("tracks a BD's login through provision, disable and removal", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     const developer = {

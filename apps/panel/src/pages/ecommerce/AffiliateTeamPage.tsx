@@ -25,6 +25,7 @@ import {
   GlobeIcon,
   InfoIcon,
   RefreshIcon,
+  SettingsIcon,
   UserIcon,
   UserPlusIcon,
 } from "../../components/icons.js";
@@ -78,6 +79,7 @@ import {
 import { buildAccountsList } from "../../lib/channel-accounts.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateMessageLookbackPanel } from "./components/AffiliateMessageLookbackPanel.js";
+import { AffiliateCreatorBusinessSettingsPanel } from "./components/AffiliateCreatorBusinessSettingsPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateBusinessDeveloperLoginPanel } from "./components/AffiliateBusinessDeveloperLoginPanel.js";
 import { AffiliateCreatorAddModal } from "./components/AffiliateCreatorAddModal.js";
@@ -112,7 +114,7 @@ export const CREATOR_BULK_UPDATE_TEMPLATE_HEADERS = AFFILIATE_CREATOR_UPDATE_TEM
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
 type DeveloperDetailTab = "CHANNELS" | "SETTINGS" | "LOGIN";
-type TeamPageTab = "TEAM" | "ASSIGNMENTS" | "SAFETY";
+type TeamPageTab = "TEAM" | "ASSIGNMENTS" | "SAFETY" | "BUSINESS";
 type ProtectionImportView = "ADD" | "RESOLVE" | "PREVIEW";
 type ChannelAccount = {
   id: string;
@@ -345,8 +347,16 @@ export function writeDeveloperInputFrom(
 function readTeamPageTab(view?: string): TeamPageTab {
   if (view === "assignments") return "ASSIGNMENTS";
   if (view === "safety") return "SAFETY";
+  if (view === "business") return "BUSINESS";
   return "TEAM";
 }
+
+const TEAM_PAGE_TAB_VIEWS: Record<TeamPageTab, string> = {
+  TEAM: "team",
+  ASSIGNMENTS: "assignments",
+  SAFETY: "safety",
+  BUSINESS: "business",
+};
 
 export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   detailOnlyDeveloper,
@@ -695,6 +705,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     whatsappQuery.loading ||
     emailQuery.loading;
   const onboardingComplete = Boolean(workspace.operationalSettings?.onboardingCompletedAt);
+  const enabledCreatorBusinessRuleCount =
+    Number(workspace.operationalSettings?.autoClaimOnSampleApproval === true) +
+    Number(workspace.operationalSettings?.autoReleaseOnSampleRejection === true);
   const protectionData = protectionQuery.data?.affiliateCreatorProtections;
   const protectedCreatorCount =
     (protectionData?.resolvedCount ?? 0) + (protectionData?.unresolvedCount ?? 0);
@@ -1675,8 +1688,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       if (!detailOnlyDeveloper) {
         workspaceTab.setView({
           ...workspaceTab.view,
-          view:
-            nextTab === "ASSIGNMENTS" ? "assignments" : nextTab === "SAFETY" ? "safety" : "team",
+          view: TEAM_PAGE_TAB_VIEWS[nextTab],
         });
       }
       setPageTab(nextTab);
@@ -1717,6 +1729,17 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       ),
       icon: onboardingComplete ? <CheckIcon /> : <InfoIcon />,
       iconClassName: onboardingComplete ? "is-ready" : "needs-setup",
+    },
+    {
+      id: "BUSINESS",
+      label: t("ecommerce.affiliateTeam.creatorBusinessTab"),
+      summary:
+        enabledCreatorBusinessRuleCount > 0
+          ? t("ecommerce.affiliateTeam.creatorBusinessSummaryOn", {
+              count: enabledCreatorBusinessRuleCount,
+            })
+          : t("ecommerce.affiliateTeam.creatorBusinessSummaryOff"),
+      icon: <SettingsIcon />,
     },
   ];
 
@@ -2433,6 +2456,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             <AffiliateApprovalPolicyPanel />
           </div>
         </section>
+      </div>
+
+      <div
+        id="affiliate-team-panel-business"
+        className="affiliate-team-page-tab-panel is-business"
+        role="tabpanel"
+        aria-labelledby="affiliate-team-tab-business"
+        hidden={pageTab !== "BUSINESS"}
+      >
+        <AffiliateCreatorBusinessSettingsPanel />
       </div>
       <AffiliateCreatorAddModal
         isOpen={creatorAddOpen}

@@ -43,6 +43,9 @@ vi.mock("./components/AffiliateApprovalPolicyPanel.js", () => ({
 vi.mock("./components/AffiliateMessageLookbackPanel.js", () => ({
   AffiliateMessageLookbackPanel: () => null,
 }));
+vi.mock("./components/AffiliateCreatorBusinessSettingsPanel.js", () => ({
+  AffiliateCreatorBusinessSettingsPanel: () => null,
+}));
 vi.mock("./components/AffiliateCreatorTagCatalogPanel.js", () => ({
   AffiliateCreatorTagCatalogPanel: () => null,
 }));
@@ -99,7 +102,12 @@ function roster(totalCount = 35) {
   });
 }
 
-function renderRoster({ failSecondPage = false, shrinkOnRefresh = false } = {}) {
+function renderRoster({
+  failSecondPage = false,
+  shrinkOnRefresh = false,
+  view = {} as Record<string, string>,
+  setView = vi.fn(),
+} = {}) {
   const pageRequests: number[] = [];
   const totals = new Map<number, number>();
   let totalCount = 35;
@@ -136,6 +144,8 @@ function renderRoster({ failSecondPage = false, shrinkOnRefresh = false } = {}) 
             id: "settings",
             userId: "seller",
             unrepliedMessageLookbackDays: 7,
+            autoClaimOnSampleApproval: false,
+            autoReleaseOnSampleRejection: false,
             onboardingCompletedAt: null,
           },
         },
@@ -187,7 +197,7 @@ function renderRoster({ failSecondPage = false, shrinkOnRefresh = false } = {}) 
   render(
     <MockedProvider mocks={mocks}>
       <WorkspaceTabProvider
-        value={{ tabId: "team", active: true, view: {}, setView: vi.fn(), setDirty: vi.fn() }}
+        value={{ tabId: "team", active: true, view, setView, setDirty: vi.fn() }}
       >
         <ToastProvider>
           <AffiliateTeamPage />
@@ -244,5 +254,32 @@ describe("BD roster pagination", () => {
     await screen.findByText("BD 01");
     await waitFor(() => expect(requests).toEqual([0, 25, 25, 0]));
     expect(screen.getByText("1 / 1")).toBeTruthy();
+  });
+});
+
+describe("page tabs", () => {
+  const panel = (id: string) => document.getElementById(`affiliate-team-panel-${id}`);
+
+  it("opens the Creator business tab from the saved business view", async () => {
+    renderRoster({ view: { view: "business" } });
+    const tab = await screen.findByRole("tab", {
+      name: new RegExp(i18n.t("ecommerce.affiliateTeam.creatorBusinessTab")),
+    });
+    expect(tab.getAttribute("aria-selected")).toBe("true");
+    expect(panel("business")?.hidden).toBe(false);
+    for (const other of ["team", "assignments", "safety"]) expect(panel(other)?.hidden).toBe(true);
+  });
+
+  it("records the business view when its tab is selected", async () => {
+    const setView = vi.fn();
+    renderRoster({ setView });
+    expect(panel("business")?.hidden).toBe(true);
+    fireEvent.click(
+      await screen.findByRole("tab", {
+        name: new RegExp(i18n.t("ecommerce.affiliateTeam.creatorBusinessTab")),
+      }),
+    );
+    expect(setView).toHaveBeenCalledWith({ view: "business" });
+    expect(panel("business")?.hidden).toBe(false);
   });
 });

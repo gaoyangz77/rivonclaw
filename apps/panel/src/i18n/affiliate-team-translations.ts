@@ -54,7 +54,7 @@ const operationalCopy = {
     globalApprovalPolicies: "Account-wide approval policies",
     globalApprovalPoliciesHint:
       "Applies to every Affiliate shop under this seller account. SEND_MESSAGE rules review the exact draft before provider delivery.",
-    pageTabsLabel: "Team, Creator assignment, and safety sections",
+    pageTabsLabel: "Team, Creator assignment, safety, and Creator business sections",
     teamOperationsTab: "Team operations",
     creatorAssignmentsTab: "Creator assignments",
     safetyAndApprovalTab: "Safety & approvals",
@@ -141,7 +141,7 @@ const operationalCopy = {
     globalApprovalPolicies: "卖家账号全局审批规则",
     globalApprovalPoliciesHint:
       "适用于该卖家账号下所有 Affiliate 店铺。SEND_MESSAGE 规则会在 Provider 投递前审核准确的消息草稿。",
-    pageTabsLabel: "团队、达人分配与安全设置",
+    pageTabsLabel: "团队、达人分配、安全设置与达人业务配置",
     teamOperationsTab: "团队运营",
     creatorAssignmentsTab: "达人分配",
     safetyAndApprovalTab: "安全与审批",
@@ -232,7 +232,7 @@ const operationalCopy = {
     globalApprovalPolicies: "Kontoweite Freigaberegeln",
     globalApprovalPoliciesHint:
       "Gilt für alle Affiliate-Shops dieses Verkäuferkontos. SEND_MESSAGE-Regeln prüfen den exakten Entwurf vor der Provider-Zustellung.",
-    pageTabsLabel: "Team, Creator-Zuweisung und Sicherheit",
+    pageTabsLabel: "Team, Creator-Zuweisung, Sicherheit und Creator-Geschäftsregeln",
     teamOperationsTab: "Teambetrieb",
     creatorAssignmentsTab: "Creator-Zuweisung",
     safetyAndApprovalTab: "Sicherheit & Freigaben",
@@ -288,7 +288,7 @@ const operationalCopy = {
     globalApprovalPolicies: "Reglas de aprobación de la cuenta",
     globalApprovalPoliciesHint:
       "Se aplica a todas las tiendas Affiliate de esta cuenta. Las reglas SEND_MESSAGE revisan el borrador exacto antes del envío.",
-    pageTabsLabel: "Equipo, asignación de creadores y seguridad",
+    pageTabsLabel: "Equipo, asignación de creadores, seguridad y reglas de negocio de creadores",
     teamOperationsTab: "Operaciones del equipo",
     creatorAssignmentsTab: "Asignación de creadores",
     safetyAndApprovalTab: "Seguridad y aprobaciones",
@@ -344,7 +344,7 @@ const operationalCopy = {
     globalApprovalPolicies: "Règles d’approbation du compte",
     globalApprovalPoliciesHint:
       "S’applique à toutes les boutiques Affiliate de ce compte vendeur. Les règles SEND_MESSAGE vérifient le brouillon exact avant l’envoi.",
-    pageTabsLabel: "Équipe, attribution des créateurs et sécurité",
+    pageTabsLabel: "Équipe, attribution des créateurs, sécurité et règles métier créateurs",
     teamOperationsTab: "Opérations d’équipe",
     creatorAssignmentsTab: "Attribution des créateurs",
     safetyAndApprovalTab: "Sécurité et approbations",
@@ -400,7 +400,7 @@ const operationalCopy = {
     globalApprovalPolicies: "Aturan persetujuan seluruh akun",
     globalApprovalPoliciesHint:
       "Berlaku untuk semua toko Affiliate di akun penjual ini. Aturan SEND_MESSAGE meninjau draf persis sebelum dikirim provider.",
-    pageTabsLabel: "Tim, penugasan kreator, dan keamanan",
+    pageTabsLabel: "Tim, penugasan kreator, keamanan, dan aturan bisnis kreator",
     teamOperationsTab: "Operasi tim",
     creatorAssignmentsTab: "Penugasan kreator",
     safetyAndApprovalTab: "Keamanan & persetujuan",
@@ -456,7 +456,7 @@ const operationalCopy = {
     globalApprovalPolicies: "Regole di approvazione dell’account",
     globalApprovalPoliciesHint:
       "Si applica a tutti i negozi Affiliate dell’account venditore. Le regole SEND_MESSAGE verificano la bozza esatta prima dell’invio.",
-    pageTabsLabel: "Team, assegnazione creator e sicurezza",
+    pageTabsLabel: "Team, assegnazione creator, sicurezza e regole business creator",
     teamOperationsTab: "Operazioni del team",
     creatorAssignmentsTab: "Assegnazione creator",
     safetyAndApprovalTab: "Sicurezza e approvazioni",
@@ -512,7 +512,7 @@ const operationalCopy = {
     globalApprovalPolicies: "กฎอนุมัติทั้งบัญชี",
     globalApprovalPoliciesHint:
       "ใช้กับร้าน Affiliate ทุกแห่งในบัญชีผู้ขายนี้ กฎ SEND_MESSAGE จะตรวจร่างข้อความที่แน่นอนก่อนส่งผ่าน Provider",
-    pageTabsLabel: "ส่วนทีม การมอบหมายครีเอเตอร์ และความปลอดภัย",
+    pageTabsLabel: "ส่วนทีม การมอบหมายครีเอเตอร์ ความปลอดภัย และกฎธุรกิจครีเอเตอร์",
     teamOperationsTab: "การดำเนินงานของทีม",
     creatorAssignmentsTab: "การมอบหมายครีเอเตอร์",
     safetyAndApprovalTab: "ความปลอดภัยและการอนุมัติ",

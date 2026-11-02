@@ -152,6 +152,9 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
 
 export const AffiliateOperationalSettingsModel = types.model("AffiliateOperationalSettings", {
   unrepliedMessageLookbackDays: types.optional(types.integer, 90),
+  // Seller-wide Creator business rules; both are off until a supervisor enables them.
+  autoClaimOnSampleApproval: types.optional(types.boolean, false),
+  autoReleaseOnSampleRejection: types.optional(types.boolean, false),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),

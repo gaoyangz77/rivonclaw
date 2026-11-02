@@ -4116,6 +4116,10 @@ export const AffiliateOperationalProjectionStatus = {
 export type AffiliateOperationalProjectionStatus =
   (typeof AffiliateOperationalProjectionStatus)[keyof typeof AffiliateOperationalProjectionStatus];
 export interface AffiliateOperationalSettings {
+  /** When a Business Developer approves a Sample Application of a public, unprotected Creator with no collaboration progress, assign that Creator to them (default off). */
+  autoClaimOnSampleApproval: Scalars["Boolean"]["output"];
+  /** When a Business Developer rejects or ignores a Sample Application of a Creator they own that has no collaboration progress, release the Creator to the public pool (default off). */
+  autoReleaseOnSampleRejection: Scalars["Boolean"]["output"];
   id: Scalars["ID"]["output"];
   onboardingCompletedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   /** Only unreplied Creator messages received within this many days trigger new AI work (1–90, default 90). Existing proposals and message history are retained. */
@@ -11571,6 +11575,8 @@ export interface Mutation {
   setAffiliateBusinessDeveloperPreferredAccount: AffiliateBusinessDeveloper;
   /** Activate, pause, complete, or archive an Affiliate Campaign. */
   setAffiliateCampaignStatus: AffiliateCampaign;
+  /** Set the seller-wide Creator ownership automations that follow a Business Developer's Sample review. Both default off and apply only to Creators with no collaboration progress. */
+  setAffiliateCreatorBusinessSettings: AffiliateOperationalSettings;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
   /** Validate a creator WhatsApp number, confirm it is registered on WhatsApp, and attach it to an affiliate creator relationship. */
@@ -12519,6 +12525,10 @@ export interface MutationSetAffiliateBusinessDeveloperPreferredAccountArgs {
 
 export interface MutationSetAffiliateCampaignStatusArgs {
   input: SetAffiliateCampaignStatusInput;
+}
+
+export interface MutationSetAffiliateCreatorBusinessSettingsArgs {
+  input: SetAffiliateCreatorBusinessSettingsInput;
 }
 
 export interface MutationSetAffiliateCreatorEmailArgs {
@@ -15339,6 +15349,11 @@ export interface SetAffiliateBusinessDeveloperPreferredAccountInput {
 export interface SetAffiliateCampaignStatusInput {
   campaignId: Scalars["ID"]["input"];
   status: AffiliateCampaignStatus;
+}
+
+export interface SetAffiliateCreatorBusinessSettingsInput {
+  autoClaimOnSampleApproval: Scalars["Boolean"]["input"];
+  autoReleaseOnSampleRejection: Scalars["Boolean"]["input"];
 }
 
 export interface SetCreatorEmailContactInput {
