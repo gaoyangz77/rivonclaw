@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.9.47",
+    "date": "2026-11-02",
+    "en": [
+      "Rename Team & channels to Team & settings, add a creator business settings tab, and make every business developer dropdown searchable",
+      "Filter the manual Affiliate workbench to creators that have a business developer, and make the intake limits clearer in one card",
+      "Say that blank UID and note cells clear the saved value in Creator Excel import",
+      "Show consistent status badges and an inline alias editor with even rows on the shop table",
+      "Read OpenClaw session data from its new SQLite storage again"
+    ],
+    "zh": [
+      "“团队与渠道”更名为“团队与设置”，新增达人业务设置标签页，所有商务拓展负责人下拉框均支持搜索",
+      "人工工作台可筛选已分配商务拓展负责人的达人，并将自动领取额度整合为一张更清晰的卡片",
+      "达人 Excel 导入中明确说明：UID 备注和备注留空会清除已保存的值",
+      "店铺表格状态徽标样式统一，别名可直接行内编辑且行高一致",
+      "恢复读取已迁移到 SQLite 的 OpenClaw 会话数据"
+    ]
+  },
+  {
     "version": "1.9.46",
     "date": "2026-10-31",
     "en": [
