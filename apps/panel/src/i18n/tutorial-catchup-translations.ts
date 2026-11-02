@@ -59,7 +59,7 @@ export const TUTORIAL_NEW_KEYS_EN = {
         "Each card summarizes the lifecycle and commercial scope. Open it to inspect creators, products, samples, settings, and supported management actions.",
     },
     ecommerceAffiliateTeam: {
-      welcomeTitle: "Team and channels",
+      welcomeTitle: "Team and settings",
       welcomeBody:
         "Define who owns each creator relationship and which WhatsApp or Outlook account they use, then keep creator protections and approval rules in one operational workspace.",
       tabsTitle: "Three operating areas",
@@ -368,7 +368,7 @@ export const TUTORIAL_CATCHUP_ZH = {
         "每张卡片汇总合作生命周期与商业范围；打开后可查看达人、商品、样品、设置及支持的管理操作。",
     },
     ecommerceAffiliateTeam: {
-      welcomeTitle: "团队与渠道",
+      welcomeTitle: "团队与配置",
       welcomeBody:
         "统一管理达人关系负责人及其 WhatsApp、Outlook 发送账号，并维护达人保护范围和审批规则。",
       tabsTitle: "三个运营区域",

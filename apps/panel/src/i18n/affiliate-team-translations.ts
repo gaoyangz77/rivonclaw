@@ -84,7 +84,7 @@ const operationalCopy = {
     templateIdentityRequired: "Required",
     templateIdentityHint: "Enter the Creator's TikTok username, with or without @.",
     templateDeveloperHint:
-      "Enter the BD's exact display name from Team & channels. Leave blank for protection only. Do not enter a system ID.",
+      "Enter the BD's exact display name from Team & settings. Leave blank for protection only. Do not enter a system ID.",
     templateNoteHint: "Optional reason or migration note.",
     templateInstructionsSheetName: "Instructions",
     templateExample: "Example",
@@ -170,7 +170,7 @@ const operationalCopy = {
     templateIdentityRequired: "必填",
     templateIdentityHint: "填写达人的 TikTok 用户名，带不带 @ 均可。",
     templateDeveloperHint:
-      "填写“团队与渠道”页面中的 BD 完整显示名称；仅保护时留空。请勿填写系统 ID。",
+      "填写“团队与配置”页面中的 BD 完整显示名称；仅保护时留空。请勿填写系统 ID。",
     templateNoteHint: "可填写保护原因或迁移备注。",
     templateInstructionsSheetName: "填写说明",
     templateExample: "示例",
@@ -263,7 +263,7 @@ const operationalCopy = {
     templateIdentityRequired: "Erforderlich",
     templateIdentityHint: "TikTok-Username des Creators mit oder ohne @ eingeben.",
     templateDeveloperHint:
-      "Exakten Anzeigenamen des BD aus Team & Kanäle eingeben. Für reinen Schutz leer lassen. Keine System-ID eingeben.",
+      "Exakten Anzeigenamen des BD aus Team & Einstellungen eingeben. Für reinen Schutz leer lassen. Keine System-ID eingeben.",
     templateNoteHint: "Optionaler Schutzgrund oder Migrationshinweis.",
     templateInstructionsSheetName: "Anleitung",
     templateExample: "Beispiel",
@@ -319,7 +319,7 @@ const operationalCopy = {
     templateIdentityRequired: "Obligatorio",
     templateIdentityHint: "Introduce el usuario de TikTok del creador, con o sin @.",
     templateDeveloperHint:
-      "Introduce el nombre visible exacto del BD en Equipo y canales. Déjalo vacío para solo proteger. No uses un ID del sistema.",
+      "Introduce el nombre visible exacto del BD en Equipo y configuración. Déjalo vacío para solo proteger. No uses un ID del sistema.",
     templateNoteHint: "Motivo de protección o nota de migración opcional.",
     templateInstructionsSheetName: "Instrucciones",
     templateExample: "Ejemplo",
@@ -375,7 +375,7 @@ const operationalCopy = {
     templateIdentityRequired: "Obligatoire",
     templateIdentityHint: "Saisissez le nom d'utilisateur TikTok du créateur, avec ou sans @.",
     templateDeveloperHint:
-      "Saisissez le nom d'affichage exact du BD dans Équipe et canaux. Laissez vide pour protéger uniquement. N'utilisez pas d'ID système.",
+      "Saisissez le nom d'affichage exact du BD dans Équipe et paramètres. Laissez vide pour protéger uniquement. N'utilisez pas d'ID système.",
     templateNoteHint: "Motif de protection ou note de migration facultative.",
     templateInstructionsSheetName: "Instructions",
     templateExample: "Exemple",
@@ -431,7 +431,7 @@ const operationalCopy = {
     templateIdentityRequired: "Wajib",
     templateIdentityHint: "Masukkan username TikTok kreator, dengan atau tanpa @.",
     templateDeveloperHint:
-      "Masukkan nama tampilan BD persis seperti di Tim & kanal. Kosongkan untuk hanya melindungi. Jangan masukkan ID sistem.",
+      "Masukkan nama tampilan BD persis seperti di Tim & pengaturan. Kosongkan untuk hanya melindungi. Jangan masukkan ID sistem.",
     templateNoteHint: "Alasan perlindungan atau catatan migrasi opsional.",
     templateInstructionsSheetName: "Petunjuk",
     templateExample: "Contoh",
@@ -487,7 +487,7 @@ const operationalCopy = {
     templateIdentityRequired: "Obbligatorio",
     templateIdentityHint: "Inserisci lo username TikTok del creator, con o senza @.",
     templateDeveloperHint:
-      "Inserisci il nome visualizzato esatto del BD in Team e canali. Lascia vuoto per la sola protezione. Non inserire un ID di sistema.",
+      "Inserisci il nome visualizzato esatto del BD in Team e impostazioni. Lascia vuoto per la sola protezione. Non inserire un ID di sistema.",
     templateNoteHint: "Motivo della protezione o nota di migrazione facoltativa.",
     templateInstructionsSheetName: "Istruzioni",
     templateExample: "Esempio",
@@ -542,7 +542,7 @@ const operationalCopy = {
     templateIdentityRequired: "จำเป็น",
     templateIdentityHint: "กรอก username TikTok ของครีเอเตอร์ โดยมีหรือไม่มี @ ก็ได้",
     templateDeveloperHint:
-      "กรอกชื่อที่แสดงของ BD ให้ตรงกับหน้า ทีมและช่องทาง เว้นว่างเมื่อต้องการปกป้องเท่านั้น ห้ามกรอก System ID",
+      "กรอกชื่อที่แสดงของ BD ให้ตรงกับหน้า ทีมและการตั้งค่า เว้นว่างเมื่อต้องการปกป้องเท่านั้น ห้ามกรอก System ID",
     templateNoteHint: "เหตุผลในการปกป้องหรือบันทึกการย้ายข้อมูล (ไม่บังคับ)",
     templateInstructionsSheetName: "คำแนะนำ",
     templateExample: "ตัวอย่าง",
@@ -1034,7 +1034,7 @@ const protectionDeveloperImportCopy = {
 
 const en = {
   eyebrow: "Affiliate operations",
-  title: "Team & channels",
+  title: "Team & settings",
   subtitle:
     "Assign creator relationships and outreach accounts to the people responsible for moving them forward.",
   addDeveloper: "Add BD",
@@ -1101,7 +1101,7 @@ const en = {
 
 const zh = {
   eyebrow: "Affiliate 运营",
-  title: "团队与渠道",
+  title: "团队与配置",
   subtitle: "把达人关系和联络渠道分配给真正负责推进合作的人。",
   addDeveloper: "新增 BD",
   aiTeam: "公共达人",
@@ -1163,7 +1163,7 @@ const zh = {
 
 const de = {
   eyebrow: "Affiliate-Betrieb",
-  title: "Team & Kanäle",
+  title: "Team & Einstellungen",
   subtitle: "Creator-Beziehungen und Kontaktkonten den zuständigen Personen zuweisen.",
   addDeveloper: "BD hinzufügen",
   aiTeam: "Öffentliche Creator",
@@ -1226,7 +1226,7 @@ const de = {
 
 const es = {
   eyebrow: "Operaciones de afiliados",
-  title: "Equipo y canales",
+  title: "Equipo y configuración",
   subtitle: "Asigna relaciones y cuentas de contacto a las personas responsables.",
   addDeveloper: "Añadir BD",
   aiTeam: "Creadores públicos",
@@ -1287,7 +1287,7 @@ const es = {
 
 const fr = {
   eyebrow: "Opérations d'affiliation",
-  title: "Équipe et canaux",
+  title: "Équipe et paramètres",
   subtitle: "Attribuez les relations et comptes de contact aux responsables.",
   addDeveloper: "Ajouter un BD",
   aiTeam: "Créateurs publics",
@@ -1349,7 +1349,7 @@ const fr = {
 
 const id = {
   eyebrow: "Operasi afiliasi",
-  title: "Tim & kanal",
+  title: "Tim & pengaturan",
   subtitle: "Tetapkan relasi kreator dan akun kontak kepada penanggung jawab.",
   addDeveloper: "Tambah BD",
   aiTeam: "Kreator publik",
@@ -1410,7 +1410,7 @@ const id = {
 
 const it = {
   eyebrow: "Operazioni affiliate",
-  title: "Team e canali",
+  title: "Team e impostazioni",
   subtitle: "Assegna relazioni e account di contatto ai responsabili.",
   addDeveloper: "Aggiungi BD",
   aiTeam: "Creator pubblici",
@@ -1471,7 +1471,7 @@ const it = {
 
 const th = {
   eyebrow: "งาน Affiliate",
-  title: "ทีมและช่องทาง",
+  title: "ทีมและการตั้งค่า",
   subtitle: "มอบหมายความสัมพันธ์และบัญชีติดต่อให้ผู้รับผิดชอบ",
   addDeveloper: "เพิ่ม BD",
   aiTeam: "ครีเอเตอร์ส่วนกลาง",
@@ -1685,7 +1685,7 @@ const developerDeviceCopy = {
     deviceRequired: "Choose a handling device before saving an active BD.",
     deviceBannerTitle: "Business developers with no handling device",
     deviceBannerBody: "No device handles WhatsApp or email messages for: {{names}}.",
-    deviceBannerAction: "Open Team & channels",
+    deviceBannerAction: "Open Team & settings",
   },
   zh: {
     outreachDevice: "接管设备",
@@ -1697,7 +1697,7 @@ const developerDeviceCopy = {
     deviceRequired: "请先为启用中的 BD 指定接管设备，再保存。",
     deviceBannerTitle: "有 BD 的联络账号无人接管",
     deviceBannerBody: "以下 BD 的 WhatsApp / 邮件消息暂时没有设备接管：{{names}}。",
-    deviceBannerAction: "打开团队与渠道",
+    deviceBannerAction: "打开团队与配置",
   },
   de: {
     outreachDevice: "Verarbeitendes Gerät",
@@ -1709,7 +1709,7 @@ const developerDeviceCopy = {
     deviceRequired: "Wählen Sie ein verarbeitendes Gerät, bevor Sie einen aktiven BD speichern.",
     deviceBannerTitle: "Business Developer ohne verarbeitendes Gerät",
     deviceBannerBody: "Für {{names}} verarbeitet kein Gerät WhatsApp- oder E-Mail-Nachrichten.",
-    deviceBannerAction: "Team & Kanäle öffnen",
+    deviceBannerAction: "Team & Einstellungen öffnen",
   },
   es: {
     outreachDevice: "Dispositivo que gestiona",
@@ -1721,7 +1721,7 @@ const developerDeviceCopy = {
     deviceRequired: "Elige un dispositivo que gestione al BD antes de guardarlo como activo.",
     deviceBannerTitle: "BD sin dispositivo que los gestione",
     deviceBannerBody: "Ningún dispositivo maneja los mensajes de WhatsApp o correo de: {{names}}.",
-    deviceBannerAction: "Abrir Equipo y canales",
+    deviceBannerAction: "Abrir Equipo y configuración",
   },
   fr: {
     outreachDevice: "Appareil qui gère",
@@ -1733,7 +1733,7 @@ const developerDeviceCopy = {
     deviceRequired: "Choisissez un appareil qui gère ce BD avant de l'enregistrer comme actif.",
     deviceBannerTitle: "BD sans appareil qui les gère",
     deviceBannerBody: "Aucun appareil ne gère les messages WhatsApp ou e-mail de : {{names}}.",
-    deviceBannerAction: "Ouvrir Équipe et canaux",
+    deviceBannerAction: "Ouvrir Équipe et paramètres",
   },
   id: {
     outreachDevice: "Perangkat penangan",
@@ -1746,7 +1746,7 @@ const developerDeviceCopy = {
     deviceBannerTitle: "BD tanpa perangkat penangan",
     deviceBannerBody:
       "Belum ada perangkat yang menangani pesan WhatsApp atau email untuk: {{names}}.",
-    deviceBannerAction: "Buka Tim & kanal",
+    deviceBannerAction: "Buka Tim & pengaturan",
   },
   it: {
     outreachDevice: "Dispositivo che gestisce",
@@ -1758,7 +1758,7 @@ const developerDeviceCopy = {
     deviceRequired: "Scegli un dispositivo che gestisca il BD prima di salvarlo come attivo.",
     deviceBannerTitle: "BD senza un dispositivo che li gestisca",
     deviceBannerBody: "Nessun dispositivo gestisce i messaggi WhatsApp o email di: {{names}}.",
-    deviceBannerAction: "Apri Team e canali",
+    deviceBannerAction: "Apri Team e impostazioni",
   },
   th: {
     outreachDevice: "อุปกรณ์ที่ดูแล",
@@ -1770,7 +1770,7 @@ const developerDeviceCopy = {
     deviceRequired: "โปรดเลือกอุปกรณ์ที่ดูแลก่อนบันทึก BD ที่ใช้งานอยู่",
     deviceBannerTitle: "มี BD ที่ยังไม่มีอุปกรณ์ดูแล",
     deviceBannerBody: "ยังไม่มีอุปกรณ์ที่ดูแลข้อความ WhatsApp หรืออีเมลของ: {{names}}",
-    deviceBannerAction: "เปิดหน้าทีมและช่องทาง",
+    deviceBannerAction: "เปิดหน้าทีมและการตั้งค่า",
   },
 } as const;
 
@@ -2968,7 +2968,7 @@ const creatorAddCopy = {
 
 export const AFFILIATE_TEAM_TRANSLATIONS = {
   en: {
-    nav: { affiliateTeam: "Team & channels" },
+    nav: { affiliateTeam: "Team & settings" },
     ecommerce: {
       affiliateTeam: {
         ...en,
@@ -2999,7 +2999,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   zh: {
-    nav: { affiliateTeam: "团队与渠道" },
+    nav: { affiliateTeam: "团队与配置" },
     ecommerce: {
       affiliateTeam: {
         ...zh,
@@ -3030,7 +3030,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   de: {
-    nav: { affiliateTeam: "Team & Kanäle" },
+    nav: { affiliateTeam: "Team & Einstellungen" },
     ecommerce: {
       affiliateTeam: {
         ...de,
@@ -3061,7 +3061,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   es: {
-    nav: { affiliateTeam: "Equipo y canales" },
+    nav: { affiliateTeam: "Equipo y configuración" },
     ecommerce: {
       affiliateTeam: {
         ...es,
@@ -3092,7 +3092,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   fr: {
-    nav: { affiliateTeam: "Équipe et canaux" },
+    nav: { affiliateTeam: "Équipe et paramètres" },
     ecommerce: {
       affiliateTeam: {
         ...fr,
@@ -3123,7 +3123,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   id: {
-    nav: { affiliateTeam: "Tim & kanal" },
+    nav: { affiliateTeam: "Tim & pengaturan" },
     ecommerce: {
       affiliateTeam: {
         ...id,
@@ -3154,7 +3154,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   it: {
-    nav: { affiliateTeam: "Team e canali" },
+    nav: { affiliateTeam: "Team e impostazioni" },
     ecommerce: {
       affiliateTeam: {
         ...it,
@@ -3185,7 +3185,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
     },
   },
   th: {
-    nav: { affiliateTeam: "ทีมและช่องทาง" },
+    nav: { affiliateTeam: "ทีมและการตั้งค่า" },
     ecommerce: {
       affiliateTeam: {
         ...th,

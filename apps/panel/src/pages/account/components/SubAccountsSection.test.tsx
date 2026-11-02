@@ -257,7 +257,7 @@ describe("SubAccountsSection", () => {
     const bd = memberRow("maria@example.com");
     expect(within(bd).getByRole("button", { name: "Sign in as sub-account" })).toBeTruthy();
     expect(within(bd).queryByRole("button", { name: "Edit" })).toBeNull();
-    expect(within(bd).getByText(/Manage it in .* → Team & channels\./)).toBeTruthy();
+    expect(within(bd).getByText(/Manage it in .* → Team & settings\./)).toBeTruthy();
     expect(within(bd).getByText("BD workspace")).toBeTruthy();
 
     const ops = memberRow("ops@example.com");

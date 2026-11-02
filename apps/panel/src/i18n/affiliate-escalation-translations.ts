@@ -1,7 +1,7 @@
 export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   en: {
     nav: {
-      affiliateTeam: "Team & channels",
+      affiliateTeam: "Team & settings",
       affiliateNeedsAttention: "Agent Workbench",
       affiliateManualWorkbench: "Manual Workbench",
     },
@@ -62,7 +62,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   zh: {
     nav: {
-      affiliateTeam: "渠道和团队",
+      affiliateTeam: "团队与配置",
       affiliateNeedsAttention: "智能体工作台",
       affiliateManualWorkbench: "人工工作台",
     },
@@ -120,7 +120,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   de: {
     nav: {
-      affiliateTeam: "Team & Kanäle",
+      affiliateTeam: "Team & Einstellungen",
       affiliateNeedsAttention: "Agent-Arbeitsbereich",
       affiliateManualWorkbench: "Manueller Arbeitsbereich",
     },
@@ -181,7 +181,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   es: {
     nav: {
-      affiliateTeam: "Equipo y canales",
+      affiliateTeam: "Equipo y configuración",
       affiliateNeedsAttention: "Área de trabajo del Agent",
       affiliateManualWorkbench: "Área de trabajo manual",
     },
@@ -242,7 +242,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   fr: {
     nav: {
-      affiliateTeam: "Équipe et canaux",
+      affiliateTeam: "Équipe et paramètres",
       affiliateNeedsAttention: "Espace de travail Agent",
       affiliateManualWorkbench: "Espace de travail manuel",
     },
@@ -303,7 +303,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   id: {
     nav: {
-      affiliateTeam: "Tim & kanal",
+      affiliateTeam: "Tim & pengaturan",
       affiliateNeedsAttention: "Ruang kerja Agent",
       affiliateManualWorkbench: "Ruang kerja manual",
     },
@@ -364,7 +364,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   it: {
     nav: {
-      affiliateTeam: "Team e canali",
+      affiliateTeam: "Team e impostazioni",
       affiliateNeedsAttention: "Area di lavoro Agent",
       affiliateManualWorkbench: "Area di lavoro manuale",
     },
@@ -426,7 +426,7 @@ export const AFFILIATE_ESCALATION_TRANSLATIONS = {
   },
   th: {
     nav: {
-      affiliateTeam: "ทีมและช่องทาง",
+      affiliateTeam: "ทีมและการตั้งค่า",
       affiliateNeedsAttention: "พื้นที่ทำงาน Agent",
       affiliateManualWorkbench: "พื้นที่ทำงานของเจ้าหน้าที่",
     },

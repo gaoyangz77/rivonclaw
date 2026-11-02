@@ -76,7 +76,7 @@ const en = {
     account: {
       membersTitle: "Account members and BD logins",
       membersBody:
-        "Owners manage account members here. BD login access is managed from Team & Channels, inside a BD profile's Login tab, not through this member-creation flow. This tour creates no accounts.",
+        "Owners manage account members here. BD login access is managed from Team & Settings, inside a BD profile's Login tab, not through this member-creation flow. This tour creates no accounts.",
       rolesTitle: "Built-in and custom roles",
       rolesBody:
         "Built-in roles are locked. Use custom roles for editable permission sets and inspect assignments before changing access. This tour does not create, modify or delete roles.",
@@ -170,7 +170,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "账号成员与 BD 登录",
         membersBody:
-          "账号所有者在此管理成员。BD 登录由团队与渠道中的 BD 资料「登录」页管理，不通过此处创建成员。本教程不创建账号。",
+          "账号所有者在此管理成员。BD 登录由团队与配置中的 BD 资料「登录」页管理，不通过此处创建成员。本教程不创建账号。",
         rolesTitle: "内置角色与自定义角色",
         rolesBody:
           "内置角色已锁定。需要可编辑的权限集合时使用自定义角色，变更权限前检查分配情况。本教程不创建、修改或删除角色。",
@@ -261,7 +261,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "Kontomitglieder und BD-Logins",
         membersBody:
-          "Eigentümer verwalten hier Kontomitglieder. BD-Zugang wird im Login-Tab eines BD-Profils unter Team und Kanäle verwaltet, nicht über diese Mitgliedererstellung. Die Tour erstellt keine Konten.",
+          "Eigentümer verwalten hier Kontomitglieder. BD-Zugang wird im Login-Tab eines BD-Profils unter Team und Einstellungen verwaltet, nicht über diese Mitgliedererstellung. Die Tour erstellt keine Konten.",
         rolesTitle: "Integrierte und eigene Rollen",
         rolesBody:
           "Integrierte Rollen sind gesperrt. Nutzen Sie eigene Rollen für bearbeitbare Berechtigungen und prüfen Sie Zuordnungen vor Änderungen. Die Tour erstellt, ändert oder löscht keine Rollen.",
@@ -352,7 +352,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "Miembros y accesos BD",
         membersBody:
-          "Los propietarios gestionan aquí los miembros. El acceso BD se gestiona en Equipo y canales, pestaña Acceso del perfil BD, no mediante este flujo de creación de miembros. El tutorial no crea cuentas.",
+          "Los propietarios gestionan aquí los miembros. El acceso BD se gestiona en Equipo y configuración, pestaña Acceso del perfil BD, no mediante este flujo de creación de miembros. El tutorial no crea cuentas.",
         rolesTitle: "Roles integrados y personalizados",
         rolesBody:
           "Los roles integrados están bloqueados. Usa roles personalizados para permisos editables y revisa asignaciones antes de cambiar accesos. El tutorial no crea, modifica ni elimina roles.",
@@ -443,7 +443,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "Membres du compte et connexions BD",
         membersBody:
-          "Les propriétaires gèrent ici les membres. L'accès BD se gère dans Équipe et canaux, onglet Connexion du profil BD, pas via cette création de membres. Le tutoriel ne crée aucun compte.",
+          "Les propriétaires gèrent ici les membres. L'accès BD se gère dans Équipe et paramètres, onglet Connexion du profil BD, pas via cette création de membres. Le tutoriel ne crée aucun compte.",
         rolesTitle: "Rôles intégrés et personnalisés",
         rolesBody:
           "Les rôles intégrés sont verrouillés. Utilisez des rôles personnalisés pour les permissions modifiables et vérifiez les attributions avant tout changement. Le tutoriel ne crée, modifie ni supprime de rôle.",
@@ -534,7 +534,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "Anggota akun dan login BD",
         membersBody:
-          "Pemilik mengelola anggota akun di sini. Akses BD dikelola dari Tim & Kanal, tab Login profil BD, bukan alur pembuatan anggota ini. Tutorial tidak membuat akun.",
+          "Pemilik mengelola anggota akun di sini. Akses BD dikelola dari Tim & Pengaturan, tab Login profil BD, bukan alur pembuatan anggota ini. Tutorial tidak membuat akun.",
         rolesTitle: "Peran bawaan dan khusus",
         rolesBody:
           "Peran bawaan dikunci. Gunakan peran khusus untuk izin yang dapat disunting dan periksa penugasan sebelum mengubah akses. Tutorial tidak membuat, mengubah atau menghapus peran.",
@@ -625,7 +625,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "Membri dell'account e login BD",
         membersBody:
-          "I proprietari gestiscono qui i membri. L'accesso BD si gestisce in Team e canali, scheda Login del profilo BD, non tramite questa creazione di membri. Il tutorial non crea account.",
+          "I proprietari gestiscono qui i membri. L'accesso BD si gestisce in Team e impostazioni, scheda Login del profilo BD, non tramite questa creazione di membri. Il tutorial non crea account.",
         rolesTitle: "Ruoli integrati e personalizzati",
         rolesBody:
           "I ruoli integrati sono bloccati. Usa ruoli personalizzati per permessi modificabili e controlla le assegnazioni prima di cambiare accessi. Il tutorial non crea, modifica o elimina ruoli.",
@@ -716,7 +716,7 @@ export const TUTORIAL_OCTOBER_TRANSLATIONS: Record<SupportedLanguageCode, typeof
       account: {
         membersTitle: "สมาชิกบัญชีและการเข้าสู่ระบบ BD",
         membersBody:
-          "เจ้าของจัดการสมาชิกบัญชีที่นี่ สิทธิ์เข้าสู่ระบบ BD จัดการผ่านทีมและช่องทาง ในแท็บเข้าสู่ระบบของโปรไฟล์ BD ไม่ใช่ขั้นสร้างสมาชิกนี้ บทแนะนำไม่สร้างบัญชี",
+          "เจ้าของจัดการสมาชิกบัญชีที่นี่ สิทธิ์เข้าสู่ระบบ BD จัดการผ่านทีมและการตั้งค่า ในแท็บเข้าสู่ระบบของโปรไฟล์ BD ไม่ใช่ขั้นสร้างสมาชิกนี้ บทแนะนำไม่สร้างบัญชี",
         rolesTitle: "บทบาทในตัวและแบบกำหนดเอง",
         rolesBody:
           "บทบาทในตัวถูกล็อก ใช้บทบาทกำหนดเองสำหรับชุดสิทธิ์ที่แก้ไขได้และตรวจการมอบหมายก่อนเปลี่ยนสิทธิ์ บทแนะนำไม่สร้าง แก้ไข หรือลบบทบาท",

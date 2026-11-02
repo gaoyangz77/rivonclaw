@@ -4,7 +4,7 @@ import { GQL } from "@rivonclaw/core";
  * Sub-account rules for the built-in Business Developer role (ADR 085).
  *
  * A business developer's login is created from the business developer itself
- * on the Affiliate Team & Channels page. The generic member editor therefore
+ * on the Affiliate Team & Settings page. The generic member editor therefore
  * never hands out that role, never edits or deletes a member holding it, and
  * never grants the BD workspace scope, whose only holder is that role. The
  * backend refuses all of these; the Panel does not offer them.

@@ -113,7 +113,7 @@ const HIERARCHICAL_NAV_ITEMS: readonly TkHierarchicalNavItem[] = [
     children: [
       { id: "/commerce/affiliate/campaigns", label: "推广计划", group: "执行" },
       { id: "/commerce/affiliate/attention", label: "工作台", group: "执行" },
-      { id: "/commerce/affiliate/team", label: "团队与渠道", group: "执行" },
+      { id: "/commerce/affiliate/team", label: "团队与配置", group: "执行" },
       { id: "/commerce/product-knowledge", label: "产品知识", group: "资产" },
       { id: "/commerce/affiliate/creators", label: "合作达人", group: "资产" },
       { id: "/commerce/affiliate/history", label: "平台合作", group: "资产" },

@@ -1,6 +1,6 @@
 /**
  * Copy for business developer (BD) access (ADR 085): the BD login panel on the
- * Affiliate Team & Channels page, and the read-only Product Knowledge notice a
+ * Affiliate Team & Settings page, and the read-only Product Knowledge notice a
  * BD-only member sees. Sub-account strings for the same change live with the
  * rest of the sub-account copy in sub-account-translations.ts.
  */

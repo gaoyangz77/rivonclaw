@@ -57,7 +57,7 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
           "Jede Karte fasst Lebenszyklus und geschäftlichen Umfang zusammen. Öffnen Sie sie, um Creator, Produkte, Samples, Einstellungen und unterstützte Verwaltungsaktionen zu prüfen.",
       },
       ecommerceAffiliateTeam: {
-        welcomeTitle: "Team und Kanäle",
+        welcomeTitle: "Team und Einstellungen",
         welcomeBody:
           "Legen Sie fest, wer jede Creator-Beziehung betreut und welches WhatsApp- oder Outlook-Konto verwendet wird. Verwalten Sie außerdem Creator-Schutz und Freigaberegeln zentral.",
         tabsTitle: "Drei Arbeitsbereiche",
@@ -180,7 +180,7 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
           "Cada tarjeta resume el ciclo de vida y el alcance comercial. Ábrela para revisar creadores, productos, muestras, ajustes y las acciones de gestión disponibles.",
       },
       ecommerceAffiliateTeam: {
-        welcomeTitle: "Equipo y canales",
+        welcomeTitle: "Equipo y configuración",
         welcomeBody:
           "Define quién es responsable de cada relación con creadores y qué cuenta de WhatsApp u Outlook utiliza; gestiona además la protección de creadores y las reglas de aprobación en un solo espacio.",
         tabsTitle: "Tres áreas operativas",
@@ -303,7 +303,7 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
           "Chaque fiche résume le cycle de vie et le périmètre commercial. Ouvrez-la pour examiner les créateurs, produits, échantillons, paramètres et actions de gestion disponibles.",
       },
       ecommerceAffiliateTeam: {
-        welcomeTitle: "Équipe et canaux",
+        welcomeTitle: "Équipe et paramètres",
         welcomeBody:
           "Définissez le responsable de chaque relation créateur et le compte WhatsApp ou Outlook utilisé, puis gérez les protections des créateurs et les règles d’approbation dans un espace unique.",
         tabsTitle: "Trois espaces opérationnels",
@@ -426,7 +426,7 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
           "Setiap kartu merangkum siklus hidup dan cakupan komersial. Buka untuk memeriksa kreator, produk, sampel, pengaturan, dan tindakan pengelolaan yang didukung.",
       },
       ecommerceAffiliateTeam: {
-        welcomeTitle: "Tim dan saluran",
+        welcomeTitle: "Tim dan pengaturan",
         welcomeBody:
           "Tentukan penanggung jawab setiap hubungan kreator dan akun WhatsApp atau Outlook yang digunakan, lalu kelola perlindungan kreator serta aturan persetujuan dalam satu ruang kerja.",
         tabsTitle: "Tiga area operasional",
@@ -549,7 +549,7 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
           "Ogni scheda riepiloga il ciclo di vita e l’ambito commerciale. Aprila per esaminare creator, prodotti, campioni, impostazioni e azioni di gestione supportate.",
       },
       ecommerceAffiliateTeam: {
-        welcomeTitle: "Team e canali",
+        welcomeTitle: "Team e impostazioni",
         welcomeBody:
           "Definisci chi gestisce ogni relazione con i creator e quale account WhatsApp o Outlook utilizza, quindi mantieni protezioni dei creator e regole di approvazione in un’unica area operativa.",
         tabsTitle: "Tre aree operative",
@@ -672,7 +672,7 @@ export const AFFILIATE_TUTORIAL_TRANSLATIONS = {
           "แต่ละการ์ดสรุปวงจรชีวิตและขอบเขตทางธุรกิจ เปิดเพื่อดูครีเอเตอร์ สินค้า ตัวอย่าง การตั้งค่า และการจัดการที่รองรับ",
       },
       ecommerceAffiliateTeam: {
-        welcomeTitle: "ทีมและช่องทาง",
+        welcomeTitle: "ทีมและการตั้งค่า",
         welcomeBody:
           "กำหนดผู้รับผิดชอบความสัมพันธ์กับครีเอเตอร์แต่ละรายและบัญชี WhatsApp หรือ Outlook ที่ใช้ พร้อมจัดการการปกป้องครีเอเตอร์และกฎการอนุมัติในที่เดียว",
         tabsTitle: "พื้นที่ปฏิบัติงานสามส่วน",

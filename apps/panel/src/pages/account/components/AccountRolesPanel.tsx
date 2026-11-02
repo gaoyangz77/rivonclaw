@@ -19,7 +19,7 @@ interface AccountRolesPanelProps {
  *
  * The built-in Business Developer role is shown but never edited: its sections
  * are fixed, and it is handed out only by creating a business developer's
- * login on the Affiliate Team & Channels page (ADR 085).
+ * login on the Affiliate Team & Settings page (ADR 085).
  */
 export function AccountRolesPanel({
   roles,
