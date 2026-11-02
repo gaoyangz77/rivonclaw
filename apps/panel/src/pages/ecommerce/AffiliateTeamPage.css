@@ -1755,7 +1755,8 @@
 }
 
 .affiliate-bd-detail-modal,
-.affiliate-unassigned-modal {
+.affiliate-unassigned-modal,
+.affiliate-developer-modal {
   --text-primary: var(--color-text);
   --text-secondary: var(--color-text-secondary);
   --text-muted: var(--color-text-muted);
@@ -2487,36 +2488,62 @@
   font-style: italic;
 }
 
+/*
+ * New-Creator intake is one card, framed like the regions fieldset beside it:
+ * the intake switch is its header row, and the optional limit is a nested
+ * settings row (switch + its rules as description) with the two quotas below.
+ */
 .affiliate-bd-creator-intake {
   grid-column: 1 / -1;
   display: grid;
-  gap: var(--tk-v1-space-3);
   min-width: 0;
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--tk-v1-radius-3);
+}
+
+/* Inside the BD detail editor, match that editor's tinted regions fieldset. */
+.affiliate-bd-inline-editor .affiliate-bd-creator-intake {
+  background: color-mix(in srgb, var(--surface-secondary) 44%, var(--surface-primary));
+}
+
+.affiliate-bd-intake-toggle .tk-v1-switch-label {
+  font-weight: 600;
+}
+
+.affiliate-bd-intake-limits {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  padding-bottom: var(--tk-v1-space-3);
+  border-top: 1px solid var(--tk-v1-border-subtle);
+}
+
+/* The nested row reads as a sub-option of intake: secondary weight, no bold. */
+.affiliate-bd-intake-limits .affiliate-bd-intake-toggle .tk-v1-switch-label {
+  font-weight: 500;
+}
+
+.affiliate-bd-intake-limits .affiliate-bd-intake-toggle {
+  padding-top: var(--tk-v1-space-2);
+}
+
+/* The switch and its rules read as one row: the note is its description. */
+.affiliate-bd-intake-limits-head {
+  display: grid;
+}
+
+.affiliate-bd-intake-hint {
+  margin: 0;
+  padding-right: var(--tk-v1-space-12);
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
 }
 
 .affiliate-bd-intake-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--tk-v1-space-4);
-}
-
-.affiliate-bd-intake-toggle {
-  justify-content: flex-start;
-  gap: var(--tk-v1-space-3);
-  width: fit-content;
-  max-width: 100%;
-}
-
-.affiliate-bd-intake-limits > .tk-v1-section-body {
-  display: grid;
-  gap: var(--tk-v1-space-3);
-}
-
-.affiliate-bd-intake-hint {
-  margin: 0;
-  color: var(--tk-v1-fg-secondary);
-  font-size: var(--tk-v1-type-supporting);
-  line-height: var(--tk-v1-line-supporting);
 }
 
 @media (max-width: 560px) {

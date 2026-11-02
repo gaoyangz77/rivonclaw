@@ -39,7 +39,6 @@ import {
   TkInteractiveTableRow,
   TkModal as Modal,
   TkSegmented,
-  TkSection,
   TkSwitch,
   TkSwitchControl,
   TkTableFrame,
@@ -169,14 +168,21 @@ export function DeveloperIntakeLimits({ form, setForm }: {
 }) {
   const { t } = useTranslation();
   if (!form.acceptingCreators) return null;
+  // A sub-setting of intake, so it is a nested row of the same card rather than
+  // a section of its own. The quota rules sit right under the switch but outside
+  // its <label>: TkSwitch's description would fold the whole paragraph into the
+  // switch's accessible name.
   return (
-    <TkSection className="affiliate-bd-intake-limits" title={t("ecommerce.affiliateTeam.intakeAdvanced")}>
-      <TkSwitch
-        className="affiliate-bd-intake-toggle"
-        label={t("ecommerce.affiliateTeam.intakeLimitsEnabled")}
-        checked={form.creatorIntakeLimitsEnabled}
-        onChange={checked => setForm({ ...form, creatorIntakeLimitsEnabled: checked })}
-      />
+    <div className="affiliate-bd-intake-limits">
+      <div className="affiliate-bd-intake-limits-head">
+        <TkSwitch
+          className="affiliate-bd-intake-toggle"
+          label={t("ecommerce.affiliateTeam.intakeLimitsEnabled")}
+          checked={form.creatorIntakeLimitsEnabled}
+          onChange={checked => setForm({ ...form, creatorIntakeLimitsEnabled: checked })}
+        />
+        <p className="affiliate-bd-intake-hint">{t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}</p>
+      </div>
       {form.creatorIntakeLimitsEnabled && (
         <div className="affiliate-bd-intake-fields">
           {(["weeklyCreatorLimit", "monthlyCreatorLimit"] as const).map(field => (
@@ -188,8 +194,7 @@ export function DeveloperIntakeLimits({ form, setForm }: {
           ))}
         </div>
       )}
-      <p className="form-hint affiliate-bd-intake-hint">{t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}</p>
-    </TkSection>
+    </div>
   );
 }
 

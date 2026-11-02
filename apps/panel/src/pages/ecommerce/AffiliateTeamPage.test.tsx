@@ -58,7 +58,6 @@ describe("optional automatic Creator intake limits", () => {
     const setForm = vi.fn();
     const instance = render(<DeveloperCreatorIntake form={form} setForm={setForm} />);
     expect(screen.getByRole("checkbox", { name: "接收新达人" }).closest("label")?.classList.contains("affiliate-bd-intake-toggle")).toBe(true);
-    expect(screen.queryByText("接收新达人 · 高级选项（可选）")).toBeNull();
     expect(screen.queryByRole("checkbox", { name: "限制自动接收数量" })).toBeNull();
     expect(screen.queryByRole("spinbutton")).toBeNull();
     fireEvent.click(screen.getByRole("checkbox", { name: "接收新达人" }));
@@ -66,7 +65,13 @@ describe("optional automatic Creator intake limits", () => {
     expect(setForm).toHaveBeenLastCalledWith(accepting);
     instance.rerender(<DeveloperCreatorIntake form={accepting} setForm={setForm} />);
     expect(screen.getByRole("checkbox", { name: "限制自动接收数量" }).closest("label")?.classList.contains("affiliate-bd-intake-toggle")).toBe(true);
-    expect(screen.getByRole("heading", { name: "接收新达人 · 高级选项（可选）" })).toBeTruthy();
+    // The limit is a nested block of the intake card, with the quota rules beside it, not a section.
+    const limitBlock = screen.getByRole("checkbox", { name: "限制自动接收数量" }).closest(".affiliate-bd-intake-limits")!;
+    expect(limitBlock.closest(".affiliate-bd-creator-intake")).toBe(
+      screen.getByRole("checkbox", { name: "接收新达人" }).closest(".affiliate-bd-creator-intake"),
+    );
+    expect(limitBlock.textContent).toMatch(/UTC\+8/);
+    expect(screen.queryByRole("heading")).toBeNull();
     expect(screen.getByRole("spinbutton", { name: "每周上限" })).toHaveProperty("value", "25");
     expect(screen.getByRole("spinbutton", { name: "每月上限" })).toHaveProperty("value", "90");
     fireEvent.click(screen.getByRole("checkbox", { name: "接收新达人" }));
@@ -75,7 +80,7 @@ describe("optional automatic Creator intake limits", () => {
     expect(screen.queryByRole("spinbutton")).toBeNull();
   });
   it.each(["en", "zh", "de", "es", "fr", "id", "it", "th"])("has intake copy in %s", language => {
-    for (const key of ["intakeAdvanced", "intakeLimitsEnabled", "weeklyCreatorLimit", "monthlyCreatorLimit", "creatorIntakeLimitsHint", "creatorIntakeLimitInvalid"]) {
+    for (const key of ["intakeLimitsEnabled", "weeklyCreatorLimit", "monthlyCreatorLimit", "creatorIntakeLimitsHint", "creatorIntakeLimitInvalid"]) {
       expect(i18n.exists(`ecommerce.affiliateTeam.${key}`, { lng: language })).toBe(true);
     }
   });

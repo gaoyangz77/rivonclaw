@@ -1,6 +1,5 @@
 export const AFFILIATE_BD_INTAKE_COPY = {
   en: {
-    intakeAdvanced: "New Creator intake · Advanced (optional)",
     intakeLimitsEnabled: "Limit automatic intake",
     weeklyCreatorLimit: "Weekly limit",
     monthlyCreatorLimit: "Monthly limit",
@@ -9,7 +8,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "Enter positive whole-number limits.",
   },
   zh: {
-    intakeAdvanced: "接收新达人 · 高级选项（可选）",
     intakeLimitsEnabled: "限制自动接收数量",
     weeklyCreatorLimit: "每周上限",
     monthlyCreatorLimit: "每月上限",
@@ -18,7 +16,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "请输入大于 0 的整数上限。",
   },
   de: {
-    intakeAdvanced: "Neue Creator · Erweitert (optional)",
     intakeLimitsEnabled: "Automatische Aufnahme begrenzen",
     weeklyCreatorLimit: "Wochenlimit",
     monthlyCreatorLimit: "Monatslimit",
@@ -27,7 +24,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "Positive ganze Zahlen eingeben.",
   },
   es: {
-    intakeAdvanced: "Nuevos creadores · Avanzado (opcional)",
     intakeLimitsEnabled: "Limitar asignaciones automáticas",
     weeklyCreatorLimit: "Límite semanal",
     monthlyCreatorLimit: "Límite mensual",
@@ -36,7 +32,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "Introduce límites enteros positivos.",
   },
   fr: {
-    intakeAdvanced: "Nouveaux créateurs · Avancé (facultatif)",
     intakeLimitsEnabled: "Limiter les attributions automatiques",
     weeklyCreatorLimit: "Limite hebdomadaire",
     monthlyCreatorLimit: "Limite mensuelle",
@@ -45,7 +40,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "Saisissez des limites entières positives.",
   },
   id: {
-    intakeAdvanced: "Kreator baru · Lanjutan (opsional)",
     intakeLimitsEnabled: "Batasi penugasan otomatis",
     weeklyCreatorLimit: "Batas mingguan",
     monthlyCreatorLimit: "Batas bulanan",
@@ -54,7 +48,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "Masukkan batas berupa bilangan bulat positif.",
   },
   it: {
-    intakeAdvanced: "Nuovi creator · Avanzate (facoltativo)",
     intakeLimitsEnabled: "Limita assegnazioni automatiche",
     weeklyCreatorLimit: "Limite settimanale",
     monthlyCreatorLimit: "Limite mensile",
@@ -63,7 +56,6 @@ export const AFFILIATE_BD_INTAKE_COPY = {
     creatorIntakeLimitInvalid: "Inserisci limiti interi positivi.",
   },
   th: {
-    intakeAdvanced: "รับครีเอเตอร์ใหม่ · ขั้นสูง (ไม่บังคับ)",
     intakeLimitsEnabled: "จำกัดการมอบหมายอัตโนมัติ",
     weeklyCreatorLimit: "ขีดจำกัดรายสัปดาห์",
     monthlyCreatorLimit: "ขีดจำกัดรายเดือน",
