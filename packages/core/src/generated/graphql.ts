@@ -5447,6 +5447,8 @@ export interface AffiliateWorkbenchPendingConversationPage {
 }
 
 export interface AffiliateWorkbenchPendingConversationPageInput {
+  /** Only Creator Relationships owned by some Business Developer. Mutually exclusive with businessDeveloperId and unassignedBusinessDeveloperOnly. */
+  assignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Restrict the page and its counts to conversations whose Relationship is owned by this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Restrict the page to one channel. PLATFORM_CHAT keeps only TikTok shop conversations; WHATSAPP and EMAIL keep only direct-contact conversations. Counts cover all channels while respecting protection, Business Developer and applicable shop filters. */
@@ -5517,6 +5519,8 @@ export interface AffiliateWorkbenchSamplePage {
 }
 
 export interface AffiliateWorkbenchSamplePageInput {
+  /** Only Creator Relationships owned by some Business Developer. Mutually exclusive with businessDeveloperId and unassignedBusinessDeveloperOnly. */
+  assignedBusinessDeveloperOnly?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Restrict the page and its counts to Sample Applications whose Relationship is owned by this Business Developer. */
   businessDeveloperId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Exact Creator platform/internal ID, Relationship ID or username (case-insensitive; optional @). Applied before pagination and counts. */

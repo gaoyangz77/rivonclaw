@@ -1174,6 +1174,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
       all: t("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
       own: t("ecommerce.affiliateWorkspace.myCreatorsFilter"),
       public: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
+      assigned: t("ecommerce.affiliateWorkspace.assignedCreatorsFilter"),
     },
     kind,
   );
