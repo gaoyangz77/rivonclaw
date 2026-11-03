@@ -4,6 +4,8 @@ import {
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
   AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_ENTRIES,
   AFFILIATE_CREATOR_UPDATE_IMPORT_MAX_VARIABLE_BYTES,
+  AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+  AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
   affiliateCreatorUpdateImportVariablesByteLength,
   buildAffiliateDeveloperProvisionBatches,
   buildAffiliateProtectionDeveloperResolutionSeeds,
@@ -61,6 +63,43 @@ describe("Affiliate Creator bulk update import", () => {
         "manual_tags",
       ]).unsupportedHeaders,
     ).toEqual(["manual_tags"]);
+  });
+
+  it("accepts the export-only failed-rows columns and the row parser ignores them", () => {
+    const headers = [
+      ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+      AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
+      AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+    ];
+    expect(headers.slice(-2)).toEqual(["source_row", "failure_reason"]);
+    expect(validateAffiliateCreatorUpdateTemplate(headers)).toEqual({
+      valid: true,
+      missingHeaders: [],
+      unsupportedHeaders: [],
+    });
+    // Header normalisation applies to them like any other column.
+    expect(
+      validateAffiliateCreatorUpdateTemplate([
+        ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+        "Source Row",
+        "Failure-Reason",
+      ]).valid,
+    ).toBe(true);
+
+    const base = { creator_username: "@kept", creator_note: "note", protection_action: "PROTECT" };
+    const withExtras = parseAffiliateCreatorUpdateRow(
+      { ...base, source_row: 7, failure_reason: "AffiliateCreatorRelationship not found" },
+      [],
+    );
+    expect(withExtras).toEqual(parseAffiliateCreatorUpdateRow(base, []));
+    expect(withExtras).toMatchObject({ username: "kept", sellerNote: "note", issue: null });
+    expect(
+      parseAffiliateCreatorUpdateRow(
+        { ...base, source_row: 7, failure_reason: "x" },
+        [],
+        true,
+      ),
+    ).toEqual(parseAffiliateCreatorUpdateRow(base, [], true));
   });
 
   it("parses target state, arbitrary tag columns, and case-insensitive tag duplicates", () => {

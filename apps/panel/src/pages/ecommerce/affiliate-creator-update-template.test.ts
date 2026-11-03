@@ -9,8 +9,11 @@ import {
   parseAffiliateCreatorUpdateRow,
 } from "./affiliate-protection-import.js";
 import {
+  AFFILIATE_CREATOR_UPDATE_FAILURE_DEFAULT_FILENAME,
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME,
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_TAG_SHEET_NAME,
+  affiliateCreatorUpdateFailureFilename,
+  buildAffiliateCreatorUpdateFailureWorkbook,
   buildAffiliateCreatorUpdateTemplateWorkbook,
 } from "./affiliate-creator-update-template.js";
 
@@ -345,6 +348,252 @@ describe("Creator export/upload Excel round trip", () => {
       protectionNote: null,
       manualTagNames: [],
       issue: null,
+    });
+  });
+});
+
+describe("Creator bulk-update failed-rows export", () => {
+  const UPLOADED_HEADERS = [...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS];
+  const LONG_UID = "6905667682868806661";
+
+  async function failureBytes(
+    headers: readonly unknown[],
+    rows: Parameters<typeof buildAffiliateCreatorUpdateFailureWorkbook>[3],
+  ) {
+    const workbook = buildAffiliateCreatorUpdateFailureWorkbook(
+      ExcelJS,
+      await translatorFor("en"),
+      headers,
+      rows,
+    );
+    return new Uint8Array(await workbook.xlsx.writeBuffer());
+  }
+
+  /** The importer's own two reads of the first sheet (see processProtectionFile). */
+  function importerReads(bytes: Uint8Array) {
+    const book = XLSX.read(bytes, { type: "array" });
+    const sheet = book.Sheets[book.SheetNames[0]!]!;
+    return {
+      book,
+      sheet,
+      sheetRows: XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        defval: "",
+        blankrows: false,
+      }),
+      rawRows: XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" }),
+    };
+  }
+
+  const failedRows = [
+    {
+      rowNumber: 4,
+      reason: "AffiliateCreatorRelationship not found",
+      sourceValues: ["@ghost", LONG_UID, "n1", "Alice", "PROTECT", "vip", "VIP", "", "", "", ""],
+    },
+    {
+      rowNumber: 9,
+      reason: "Duplicate creator",
+      sourceValues: ["@ghost", "", "", "", "", "", "", "", "", "", ""],
+    },
+  ];
+
+  it("keeps the uploaded header and cells, then source_row and failure_reason, on the first sheet", async () => {
+    const { book, sheetRows } = importerReads(await failureBytes(UPLOADED_HEADERS, failedRows));
+    expect(book.SheetNames).toEqual([AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME]);
+    expect(sheetRows[0]).toEqual([...UPLOADED_HEADERS, "source_row", "failure_reason"]);
+    expect(sheetRows[1]).toEqual([
+      "@ghost",
+      LONG_UID,
+      "n1",
+      "Alice",
+      "PROTECT",
+      "vip",
+      "VIP",
+      "",
+      "",
+      "",
+      "",
+      4,
+      "AffiliateCreatorRelationship not found",
+    ]);
+    expect(sheetRows[2]?.slice(-2)).toEqual([9, "Duplicate creator"]);
+    expect(sheetRows).toHaveLength(3);
+  });
+
+  it("freezes and filters the header and gives the two reference columns a hover note", async () => {
+    const workbook = buildAffiliateCreatorUpdateFailureWorkbook(
+      ExcelJS,
+      await translatorFor("en"),
+      UPLOADED_HEADERS,
+      failedRows,
+    );
+    const sheet = workbook.getWorksheet(AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME)!;
+    expect(sheet.views[0]).toMatchObject({ state: "frozen", ySplit: 1 });
+    expect(sheet.autoFilter).toEqual({
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: UPLOADED_HEADERS.length + 2 },
+    });
+    expect(sheet.getRow(1).font?.bold).toBe(true);
+    const copy = AFFILIATE_TEAM_TRANSLATIONS.en.ecommerce.affiliateTeam;
+    const noteText = (column: number) => {
+      const note = sheet.getRow(1).getCell(column).note as { texts: Array<{ text: string }> };
+      return note.texts.map((part) => part.text).join("");
+    };
+    expect(noteText(UPLOADED_HEADERS.length + 1)).toContain(copy.failedRowsSourceRowNote);
+    expect(noteText(UPLOADED_HEADERS.length + 2)).toContain(copy.failedRowsReasonNote);
+  });
+
+  it("writes the seller UID column as text so long IDs keep every digit", async () => {
+    const bytes = await failureBytes(UPLOADED_HEADERS, [
+      {
+        rowNumber: 2,
+        reason: "UID must be text",
+        // 16 digits: an exact number the spreadsheet app stored as a number.
+        sourceValues: ["@a", 1234567890123456, "", "", "", "", "", "", "", "", ""],
+      },
+    ]);
+    expect(importerReads(bytes).sheet.B2).toMatchObject({ t: "s", v: "1234567890123456" });
+    const workbook = buildAffiliateCreatorUpdateFailureWorkbook(
+      ExcelJS,
+      await translatorFor("en"),
+      UPLOADED_HEADERS,
+      failedRows,
+    );
+    expect(
+      workbook.getWorksheet(AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME)!.getColumn(2).numFmt,
+    ).toBe("@");
+  });
+
+  it("does not turn a UID that already lost digits into a plausible text value", async () => {
+    const lossy = Number(LONG_UID); // not exactly representable: the uploaded cell already lost digits
+    expect(Number.isSafeInteger(lossy)).toBe(false);
+    const { sheet, rawRows } = importerReads(
+      await failureBytes(UPLOADED_HEADERS, [
+        {
+          rowNumber: 2,
+          reason: "UID must be text",
+          sourceValues: ["@a", lossy, "", "", "", "", "", "", "", "", ""],
+        },
+      ]),
+    );
+    expect(sheet.B2!.t).toBe("n");
+    expect(parseAffiliateCreatorUpdateRow(rawRows[0]!, []).issue).toBe("UID_MUST_BE_TEXT");
+  });
+
+  it("round-trips through the importer: valid template, extra columns ignored", async () => {
+    const { sheetRows, rawRows } = importerReads(await failureBytes(UPLOADED_HEADERS, failedRows));
+    expect(validateAffiliateCreatorUpdateTemplate(sheetRows[0] ?? [])).toEqual({
+      valid: true,
+      missingHeaders: [],
+      unsupportedHeaders: [],
+    });
+    expect(rawRows).toHaveLength(failedRows.length);
+    const parsed = parseAffiliateCreatorUpdateRow(rawRows[0]!, ["VIP"]);
+    expect(parsed).toMatchObject({
+      username: "ghost",
+      sellerProvidedUid: LONG_UID,
+      sellerNote: "n1",
+      businessDeveloperName: "Alice",
+      protect: true,
+      protectionNote: "vip",
+      manualTagNames: ["VIP"],
+      issue: null,
+    });
+  });
+
+  it("keeps extra uploaded columns and the original header spelling, without duplicating a prior export's columns", async () => {
+    const uploaded = [
+      "Creator Username",
+      "creator_uid_note",
+      "creator_note",
+      "bd_name",
+      "protection_action",
+      "protection_note",
+      "add_manual_tag_1",
+      "add_manual_tag_7",
+      "source_row",
+      "failure_reason",
+      "",
+    ];
+    const { sheetRows } = importerReads(
+      await failureBytes(uploaded, [
+        {
+          rowNumber: 5,
+          reason: "again",
+          sourceValues: ["@x", "", "", "", "", "", "", "T7", 3, "old reason", ""],
+        },
+      ]),
+    );
+    expect(sheetRows[0]).toEqual([
+      "Creator Username",
+      "creator_uid_note",
+      "creator_note",
+      "bd_name",
+      "protection_action",
+      "protection_note",
+      "add_manual_tag_1",
+      "add_manual_tag_7",
+      "source_row",
+      "failure_reason",
+    ]);
+    expect(sheetRows[1]).toEqual(["@x", "", "", "", "", "", "", "T7", 5, "again"]);
+  });
+
+  it("refuses a failed row without a reason instead of exporting an unexplained row", async () => {
+    await expect(
+      failureBytes(UPLOADED_HEADERS, [{ rowNumber: 2, reason: "  ", sourceValues: [] }]),
+    ).rejects.toThrow("failure reason");
+  });
+
+  it("translates the hover notes in every locale", async () => {
+    for (const locale of LOCALES) {
+      const workbook = buildAffiliateCreatorUpdateFailureWorkbook(
+        ExcelJS,
+        await translatorFor(locale),
+        UPLOADED_HEADERS,
+        failedRows,
+      );
+      const sheet = workbook.getWorksheet(AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME)!;
+      const copy = AFFILIATE_TEAM_TRANSLATIONS[locale].ecommerce.affiliateTeam;
+      const note = sheet.getRow(1).getCell(UPLOADED_HEADERS.length + 2).note as {
+        texts: Array<{ text: string }>;
+      };
+      expect(note.texts.map((part) => part.text).join("")).toContain(copy.failedRowsReasonNote);
+      expect(copy.exportFailedRows.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("names the file after the upload, with a fixed fallback", () => {
+    expect(affiliateCreatorUpdateFailureFilename("creators.xlsx")).toBe("creators-failed.xlsx");
+    expect(affiliateCreatorUpdateFailureFilename("Q3 list.v2.csv")).toBe("Q3 list.v2-failed.xlsx");
+    expect(affiliateCreatorUpdateFailureFilename("")).toBe(
+      AFFILIATE_CREATOR_UPDATE_FAILURE_DEFAULT_FILENAME,
+    );
+    expect(affiliateCreatorUpdateFailureFilename(".xlsx")).toBe(
+      AFFILIATE_CREATOR_UPDATE_FAILURE_DEFAULT_FILENAME,
+    );
+    expect(AFFILIATE_CREATOR_UPDATE_FAILURE_DEFAULT_FILENAME).toBe(
+      "affiliate-creator-bulk-update-failed.xlsx",
+    );
+  });
+
+  it("pins the importer's row alignment that sourceValues relies on, even across blank rows", () => {
+    const sheet = XLSX.utils.aoa_to_sheet([
+      UPLOADED_HEADERS,
+      ["@a", "", "", "", "", "", "", "", "", "", ""],
+      [],
+      ["@b", "", "", "", "", "", "", "", "", "", ""],
+    ]);
+    const sheetRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      defval: "",
+      blankrows: false,
+    });
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+    expect(rawRows).toHaveLength(sheetRows.length - 1);
+    rawRows.forEach((raw, index) => {
+      expect(raw.creator_username).toBe(sheetRows[index + 1]![0]);
     });
   });
 });

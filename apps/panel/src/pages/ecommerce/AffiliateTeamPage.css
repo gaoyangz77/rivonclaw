@@ -1122,7 +1122,7 @@
   gap: 16px;
 }
 
-.affiliate-protection-preview-toolbar > div {
+.affiliate-protection-preview-toolbar > div:first-child {
   display: grid;
   gap: 3px;
 }

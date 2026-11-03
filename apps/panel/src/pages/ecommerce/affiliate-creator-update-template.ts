@@ -1,6 +1,12 @@
 import type { GQL } from "@rivonclaw/core";
 import type { DataValidation, Workbook, Worksheet } from "exceljs";
-import { AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS } from "./affiliate-protection-import.js";
+import {
+  AFFILIATE_CREATOR_UPDATE_EXPORT_ONLY_HEADERS,
+  AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+  AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
+  AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
+  normalizeAffiliateCreatorUpdateHeader,
+} from "./affiliate-protection-import.js";
 
 type ExcelJsModule = typeof import("exceljs");
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -252,4 +258,122 @@ function addColumnValidation(
   };
   const lastRow = Math.max(AFFILIATE_CREATOR_UPDATE_TEMPLATE_VALIDATED_ROWS, rowCount) + 1;
   dataValidations.add(`${column}2:${column}${lastRow}`, validation);
+}
+
+export const AFFILIATE_CREATOR_UPDATE_FAILURE_DEFAULT_FILENAME =
+  "affiliate-creator-bulk-update-failed.xlsx";
+
+/** `orders.xlsx` -> `orders-failed.xlsx`; no usable uploaded name falls back to a fixed one. */
+export function affiliateCreatorUpdateFailureFilename(uploadedFileName: string): string {
+  const base = uploadedFileName.trim().replace(/\.[^./\\]+$/u, "");
+  return base ? `${base}-failed.xlsx` : AFFILIATE_CREATOR_UPDATE_FAILURE_DEFAULT_FILENAME;
+}
+
+export type AffiliateCreatorUpdateFailureRow = {
+  /** Spreadsheet row number in the uploaded file (the header is row 1). */
+  rowNumber: number;
+  /** The failure text exactly as the import preview shows it. */
+  reason: string;
+  /** The row's cells as uploaded, aligned with the uploaded header row. */
+  sourceValues: readonly unknown[];
+};
+
+/**
+ * Workbook of the rows an import left in error, built to be fixed and uploaded
+ * again as-is: the uploaded header and cells come first, unchanged, followed by
+ * the reference-only `source_row` and `failure_reason` columns, which the
+ * importer accepts and ignores. If the uploaded file already ended with those
+ * two columns (a re-uploaded failure export), they are dropped before the new
+ * ones are appended so they never duplicate.
+ *
+ * The seller UID column is text. A UID the spreadsheet app stored as a number
+ * is written back as text only when that number is exact (a safe integer). A
+ * longer one has already lost digits in the uploaded file, so it stays a
+ * number and the re-import keeps rejecting it instead of submitting a
+ * plausible-looking wrong UID.
+ */
+export function buildAffiliateCreatorUpdateFailureWorkbook(
+  ExcelJS: ExcelJsModule,
+  t: Translate,
+  uploadedHeaders: readonly unknown[],
+  failedRows: readonly AffiliateCreatorUpdateFailureRow[],
+): Workbook {
+  const keptColumns: number[] = [];
+  uploadedHeaders.forEach((header, index) => {
+    if (
+      !AFFILIATE_CREATOR_UPDATE_EXPORT_ONLY_HEADERS.includes(
+        normalizeAffiliateCreatorUpdateHeader(header),
+      )
+    ) {
+      keptColumns.push(index);
+    }
+  });
+  while (
+    keptColumns.length > 0 &&
+    !String(uploadedHeaders[keptColumns[keptColumns.length - 1]!] ?? "").trim()
+  ) {
+    keptColumns.pop();
+  }
+  const keptHeaders = keptColumns.map((index) => String(uploadedHeaders[index] ?? ""));
+  const uidColumn = keptHeaders.findIndex(
+    (header) => normalizeAffiliateCreatorUpdateHeader(header) === "creator_uid_note",
+  );
+
+  const workbook = new ExcelJS.Workbook();
+  const data = workbook.addWorksheet(AFFILIATE_CREATOR_UPDATE_TEMPLATE_DATA_SHEET_NAME);
+  const headers = [
+    ...keptHeaders,
+    AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
+    AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+  ];
+  const headerRow = data.addRow(headers);
+  headerRow.font = { bold: true };
+  const sourceRowColumn = keptHeaders.length + 1;
+  const reasonColumn = keptHeaders.length + 2;
+  const referenceNotes: Array<[number, string, string]> = [
+    [
+      sourceRowColumn,
+      AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
+      t("ecommerce.affiliateTeam.failedRowsSourceRowNote"),
+    ],
+    [
+      reasonColumn,
+      AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+      t("ecommerce.affiliateTeam.failedRowsReasonNote"),
+    ],
+  ];
+  for (const [column, header, note] of referenceNotes) {
+    headerRow.getCell(column).note = {
+      texts: [{ font: { bold: true }, text: `${header}\n` }, { text: note }],
+    };
+  }
+  keptHeaders.forEach((_, index) => {
+    data.getColumn(index + 1).width = 26;
+  });
+  data.getColumn(sourceRowColumn).width = 14;
+  data.getColumn(reasonColumn).width = 64;
+  if (uidColumn >= 0) data.getColumn(uidColumn + 1).numFmt = "@";
+
+  for (const row of failedRows) {
+    if (!row.reason.trim())
+      throw new Error("A failed Creator import row requires a failure reason");
+    const values = keptColumns.map((sourceColumn, index) =>
+      failureCellValue(row.sourceValues[sourceColumn], index === uidColumn),
+    );
+    data.addRow([...values, row.rowNumber, row.reason]);
+  }
+  data.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: headers.length },
+  };
+  data.views = [{ state: "frozen", ySplit: 1 }];
+  return workbook;
+}
+
+function failureCellValue(value: unknown, isUidColumn: boolean): string | number | boolean {
+  if (typeof value === "number") {
+    return isUidColumn && Number.isSafeInteger(value) ? String(value) : value;
+  }
+  if (typeof value === "boolean" || typeof value === "string") return value;
+  return String(value ?? "");
 }

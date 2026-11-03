@@ -98,7 +98,11 @@ import {
   summarizeAffiliateProtectionAssignments,
   validateAffiliateCreatorUpdateTemplate,
 } from "./affiliate-protection-import.js";
-import { buildAffiliateCreatorUpdateTemplateWorkbook } from "./affiliate-creator-update-template.js";
+import {
+  affiliateCreatorUpdateFailureFilename,
+  buildAffiliateCreatorUpdateFailureWorkbook,
+  buildAffiliateCreatorUpdateTemplateWorkbook,
+} from "./affiliate-creator-update-template.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
@@ -232,6 +236,8 @@ type ProtectionPreviewRow = {
   manualTagNames: string[];
   error: string | null;
   excluded?: boolean;
+  /** The row's cells as uploaded (aligned with the uploaded header row), kept for the failed-rows export. */
+  sourceValues: unknown[];
 };
 
 type ProtectionImportProgress = {
@@ -418,6 +424,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const [protectionImportView, setProtectionImportView] = useState<ProtectionImportView>("ADD");
   const [creatorUpdateMode, setCreatorUpdateMode] = useState<"FULL" | "BD_ONLY">("FULL");
   const [protectionImportFileName, setProtectionImportFileName] = useState("");
+  /** The uploaded header row, as read; always replaced together with `protectionRows`. */
+  const [protectionImportSourceHeaders, setProtectionImportSourceHeaders] = useState<unknown[]>(
+    [],
+  );
   const [protectionDragActive, setProtectionDragActive] = useState(false);
   const [protectionPreviewPage, setProtectionPreviewPage] = useState(0);
   const [creatorAddOpen, setCreatorAddOpen] = useState(false);
@@ -1055,6 +1065,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     setDeveloperProvisionRevision(0);
     setDeveloperResolutionGroups([]);
     setProtectionImportFileName("");
+    setProtectionImportSourceHeaders([]);
     setProtectionPreviewPage(0);
   }
 
@@ -1100,6 +1111,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         );
       }
       const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      // `rawRows[i]` and `sheetRows[i + 1]` are the same spreadsheet row; the failed-rows
+      // export relies on that, so a divergence must stop the import instead of exporting
+      // another row's cells.
+      if (rawRows.length !== sheetRows.length - 1) {
+        throw new Error("Spreadsheet rows could not be read consistently; re-save the file and retry");
+      }
       const activeDevelopersByName = new Map(
         authoritativeDevelopers
           .filter((developer) => !developer.archivedAt)
@@ -1140,6 +1157,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
           protectionNote: row.protectionNote,
           manualTagNames: row.manualTagNames,
           error,
+          sourceValues: sheetRows[index + 1] ?? [],
         };
       });
       const groups: BusinessDeveloperResolutionGroup[] =
@@ -1153,6 +1171,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         );
       const operationId = globalThis.crypto?.randomUUID?.() ?? `import-${Date.now()}`;
       setProtectionRows(parsed);
+      setProtectionImportSourceHeaders(sheetRows[0] ?? []);
       setProtectionImportOperationId(operationId);
       setDeveloperProvisionRevision(0);
       setDeveloperResolutionGroups(groups);
@@ -1668,6 +1687,29 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       ]);
       const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(ExcelJS, t, manualTagNames);
       await downloadAffiliateCreatorWorkbook(workbook, "affiliate-creator-bulk-update.xlsx");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
+  async function exportFailedProtectionRows() {
+    // Snapshot plain values before awaiting; the draft may change while exceljs loads.
+    const failedRows = protectionRows.flatMap((row) =>
+      classifyAffiliateProtectionPreviewRow(row) === "ERROR" && row.error
+        ? [{ rowNumber: row.rowNumber, reason: row.error, sourceValues: row.sourceValues }]
+        : [],
+    );
+    const sourceHeaders = protectionImportSourceHeaders;
+    const filename = affiliateCreatorUpdateFailureFilename(protectionImportFileName);
+    try {
+      const { default: ExcelJS } = await import("exceljs");
+      const workbook = buildAffiliateCreatorUpdateFailureWorkbook(
+        ExcelJS,
+        t,
+        sourceHeaders,
+        failedRows,
+      );
+      await downloadAffiliateCreatorWorkbook(workbook, filename);
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
@@ -2874,14 +2916,26 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                 <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
                 <span>{protectionImportFileName}</span>
               </div>
-              <button
-                className="btn btn-secondary btn-sm"
-                type="button"
-                onClick={() => setProtectionImportView("ADD")}
-                disabled={protectionImportBusy}
-              >
-                {t("ecommerce.affiliateTeam.protectionImportContinueAdding")}
-              </button>
+              <div className="affiliate-team-detail-actions">
+                {protectionPreviewCounts.ERROR > 0 && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    type="button"
+                    onClick={() => void exportFailedProtectionRows()}
+                    disabled={protectionImportBusy}
+                  >
+                    {t("ecommerce.affiliateTeam.exportFailedRows")}
+                  </button>
+                )}
+                <button
+                  className="btn btn-secondary btn-sm"
+                  type="button"
+                  onClick={() => setProtectionImportView("ADD")}
+                  disabled={protectionImportBusy}
+                >
+                  {t("ecommerce.affiliateTeam.protectionImportContinueAdding")}
+                </button>
+              </div>
             </div>
 
             <div className="affiliate-protection-preview-summary">

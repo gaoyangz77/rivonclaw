@@ -706,6 +706,11 @@ const protectionImportModalFallback = {
   confirmationRequiredBeforeImport:
     "Your confirmation is required even when every BD name matched automatically.",
   confirmAssignmentsAndReview: "Confirm assignments and review",
+  exportFailedRows: "Export failed rows",
+  failedRowsSourceRowNote:
+    "Row number in the file you uploaded. For reference only; ignored when you re-import.",
+  failedRowsReasonNote:
+    "Why this row could not be imported. For reference only; ignored when you re-import.",
 } as const;
 
 const protectionDeveloperImportCopy = {
@@ -812,6 +817,9 @@ const protectionDeveloperImportCopy = {
     confirmedAssignmentSummary: "{{assigned}} 行分配负责人 · {{unassigned}} 行仅保护",
     confirmationRequiredBeforeImport: "即使所有名称都自动匹配，也必须由你确认后才能导入。",
     confirmAssignmentsAndReview: "确认负责人并检查预览",
+    exportFailedRows: "导出失败记录",
+    failedRowsSourceRowNote: "你上传文件中的行号。仅供参考，重新导入时会被忽略。",
+    failedRowsReasonNote: "该行无法导入的原因。仅供参考，重新导入时会被忽略。",
   },
   de: {
     ...protectionImportModalFallback,
@@ -850,6 +858,9 @@ const protectionDeveloperImportCopy = {
       "Derselbe BD-Name kann nicht erstellt und wiederhergestellt werden.",
     templateDeveloperHint:
       "Exakten BD-Namen eingeben. Unbekannte Namen werden vor dem Import geprüft; leer lassen für reinen Schutz.",
+    exportFailedRows: "Fehlgeschlagene Zeilen exportieren",
+    failedRowsSourceRowNote: "Zeilennummer in der hochgeladenen Datei. Nur zur Orientierung; wird beim erneuten Import ignoriert.",
+    failedRowsReasonNote: "Grund, warum diese Zeile nicht importiert werden konnte. Nur zur Orientierung; wird beim erneuten Import ignoriert.",
   },
   es: {
     ...protectionImportModalFallback,
@@ -886,6 +897,9 @@ const protectionDeveloperImportCopy = {
     conflictingDeveloperResolution: "El mismo nombre no puede crearse y restaurarse.",
     templateDeveloperHint:
       "Introduce el nombre exacto del BD. Los desconocidos se revisan antes de importar; déjalo vacío para solo proteger.",
+    exportFailedRows: "Exportar filas fallidas",
+    failedRowsSourceRowNote: "Número de fila en el archivo que subiste. Solo como referencia; se ignora al volver a importar.",
+    failedRowsReasonNote: "Motivo por el que no se pudo importar esta fila. Solo como referencia; se ignora al volver a importar.",
   },
   fr: {
     ...protectionImportModalFallback,
@@ -922,6 +936,9 @@ const protectionDeveloperImportCopy = {
     conflictingDeveloperResolution: "Un même nom ne peut être créé et restauré.",
     templateDeveloperHint:
       "Saisissez le nom exact du BD. Les noms inconnus seront vérifiés avant l’import ; laissez vide pour protéger uniquement.",
+    exportFailedRows: "Exporter les lignes en échec",
+    failedRowsSourceRowNote: "Numéro de ligne dans le fichier importé. À titre indicatif uniquement ; ignoré lors d'une nouvelle importation.",
+    failedRowsReasonNote: "Raison pour laquelle cette ligne n'a pas pu être importée. À titre indicatif uniquement ; ignoré lors d'une nouvelle importation.",
   },
   id: {
     ...protectionImportModalFallback,
@@ -958,6 +975,9 @@ const protectionDeveloperImportCopy = {
     conflictingDeveloperResolution: "Nama yang sama tidak dapat dibuat dan dipulihkan.",
     templateDeveloperHint:
       "Masukkan nama BD yang tepat. Nama tak dikenal akan ditinjau sebelum impor; kosongkan untuk hanya melindungi.",
+    exportFailedRows: "Ekspor baris gagal",
+    failedRowsSourceRowNote: "Nomor baris pada file yang Anda unggah. Hanya sebagai referensi; diabaikan saat diimpor ulang.",
+    failedRowsReasonNote: "Alasan baris ini tidak dapat diimpor. Hanya sebagai referensi; diabaikan saat diimpor ulang.",
   },
   it: {
     ...protectionImportModalFallback,
@@ -994,6 +1014,9 @@ const protectionDeveloperImportCopy = {
     conflictingDeveloperResolution: "Lo stesso nome non può essere creato e ripristinato.",
     templateDeveloperHint:
       "Inserisci il nome BD esatto. I nomi sconosciuti saranno verificati prima dell’importazione; lascia vuoto per sola protezione.",
+    exportFailedRows: "Esporta righe non riuscite",
+    failedRowsSourceRowNote: "Numero di riga nel file caricato. Solo come riferimento; ignorato alla reimportazione.",
+    failedRowsReasonNote: "Motivo per cui questa riga non è stata importata. Solo come riferimento; ignorato alla reimportazione.",
   },
   th: {
     ...protectionImportModalFallback,
@@ -1029,6 +1052,9 @@ const protectionDeveloperImportCopy = {
     conflictingDeveloperResolution: "ชื่อเดียวกันไม่สามารถสร้างและกู้คืนพร้อมกันได้",
     templateDeveloperHint:
       "ใส่ชื่อ BD ที่ตรงกัน ชื่อที่ไม่รู้จักจะถูกตรวจสอบก่อนนำเข้า เว้นว่างไว้หากต้องการปกป้องอย่างเดียว",
+    exportFailedRows: "ส่งออกแถวที่ล้มเหลว",
+    failedRowsSourceRowNote: "หมายเลขแถวในไฟล์ที่คุณอัปโหลด ใช้อ้างอิงเท่านั้น และจะถูกละเว้นเมื่อนำเข้าอีกครั้ง",
+    failedRowsReasonNote: "เหตุผลที่แถวนี้นำเข้าไม่ได้ ใช้อ้างอิงเท่านั้น และจะถูกละเว้นเมื่อนำเข้าอีกครั้ง",
   },
 } as const;
 

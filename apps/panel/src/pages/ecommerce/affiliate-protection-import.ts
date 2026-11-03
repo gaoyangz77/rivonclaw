@@ -18,6 +18,19 @@ export const AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS = [
   "add_manual_tag_5",
 ] as const;
 
+/**
+ * Trailing columns of the failed-rows export (source row number in the uploaded
+ * file, and why the row failed). They are reference-only: the export carries
+ * them so a fixed file can be re-uploaded as-is, so the template validator
+ * accepts them and the row parser never reads them.
+ */
+export const AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER = "source_row";
+export const AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER = "failure_reason";
+export const AFFILIATE_CREATOR_UPDATE_EXPORT_ONLY_HEADERS: readonly string[] = [
+  AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
+  AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+];
+
 const REQUIRED_CREATOR_UPDATE_HEADERS = [
   "creator_username",
   "creator_uid_note",
@@ -73,7 +86,9 @@ export function normalizeAffiliateCreatorUpdateHeader(value: unknown): string {
 /**
  * Reject the former two-column protection workbook instead of silently
  * interpreting blank update columns. Additional numbered manual-tag columns
- * are accepted so customers can extend the template horizontally.
+ * are accepted so customers can extend the template horizontally, and so are
+ * the export-only `source_row` / `failure_reason` columns of a failed-rows
+ * export (ignored by the row parser).
  */
 export function validateAffiliateCreatorUpdateTemplate(
   rawHeaders: unknown[],
@@ -88,6 +103,7 @@ export function validateAffiliateCreatorUpdateTemplate(
     "bd_name",
     "protection_action",
     "protection_note",
+    ...AFFILIATE_CREATOR_UPDATE_EXPORT_ONLY_HEADERS,
   ]);
   const unsupportedHeaders = headers.filter(
     (header) => !supported.has(header) && !MANUAL_TAG_HEADER_PATTERN.test(header),

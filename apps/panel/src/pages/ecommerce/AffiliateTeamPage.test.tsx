@@ -216,3 +216,23 @@ describe("Affiliate Creator bulk update template", () => {
     expect(CREATOR_BULK_UPDATE_TEMPLATE_HEADERS).not.toContain("creator_open_id");
   });
 });
+
+describe("Affiliate Creator bulk update failed-rows export button", () => {
+  // The import preview needs the whole page's Apollo/MST wiring to render, so the
+  // gating is pinned at the source level like the other page-structure checks here.
+  const source = readFileSync(resolve(__dirname, "AffiliateTeamPage.tsx"), "utf8");
+
+  it("renders only when at least one preview row is in the ERROR disposition", () => {
+    expect(source).toMatch(
+      /protectionPreviewCounts\.ERROR > 0 && \(\s*<button[^>]*>[\s\S]*?exportFailedProtectionRows\(\)[\s\S]*?disabled=\{protectionImportBusy\}[\s\S]*?ecommerce\.affiliateTeam\.exportFailedRows/u,
+    );
+  });
+
+  it("exports only ERROR rows with the original cells and the preview's own error text", () => {
+    expect(source).toContain(
+      'classifyAffiliateProtectionPreviewRow(row) === "ERROR" && row.error',
+    );
+    expect(source).toContain("sourceValues: row.sourceValues");
+  });
+});
+
