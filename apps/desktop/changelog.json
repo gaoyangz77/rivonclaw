@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.49",
+    "date": "2026-11-04",
+    "en": [
+      "Show why the AI engine failed to start, instead of a generic customer service bridge warning",
+      "Fix the AI engine failing to start in a restart loop when its local agent database is large"
+    ],
+    "zh": [
+      "AI 引擎启动失败时显示具体原因，不再只提示客服桥接断开",
+      "修复本地智能体数据库较大时 AI 引擎启动失败并反复重启的问题"
+    ]
+  },
+  {
     "version": "1.9.48",
     "date": "2026-11-03",
     "en": [
