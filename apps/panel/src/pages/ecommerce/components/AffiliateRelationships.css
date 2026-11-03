@@ -3945,7 +3945,8 @@
     flex-direction: column;
   }
 
-  .affiliate-workspace-shop-select {
+  .affiliate-workspace-shop-select,
+  .affiliate-workspace-region-select {
     min-width: 0;
     width: 100%;
   }

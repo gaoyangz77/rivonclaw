@@ -10,6 +10,10 @@
   min-width: 220px;
 }
 
+.affiliate-workspace-region-select {
+  min-width: 140px;
+}
+
 .affiliate-prediction-comparison {
   display: grid;
   gap: 8px;

@@ -189,6 +189,88 @@ describe("Collaboration history for a business developer", () => {
   });
 });
 
+describe("Creators list shop picker", () => {
+  function signInWithShops() {
+    signIn(SUPERVISOR);
+    const shop = (id: string, name: string, region: string) => ({
+      id,
+      alias: name,
+      shopName: name,
+      region,
+      platform: "TIKTOK_SHOP",
+      authStatus: "AUTHORIZED",
+      services: { affiliateService: { enabled: true } },
+    });
+    state.entityStore.shops = [
+      shop("shop-us-1", "USTK-01", "US"),
+      shop("shop-mx-1", "MXTK-05", "MX"),
+      shop("shop-us-3", "USTK-03", "US"),
+    ];
+  }
+
+  function openPicker(selector: string) {
+    const trigger = document.querySelector<HTMLButtonElement>(`${selector} .custom-select-trigger`);
+    expect(trigger).toBeTruthy();
+    fireEvent.click(trigger!);
+  }
+
+  function optionLabels() {
+    return [...document.querySelectorAll(".custom-select-option-label")].map((node) => node.textContent);
+  }
+
+  function pickOption(label: string) {
+    const option = [...document.querySelectorAll<HTMLButtonElement>(".custom-select-option")].find(
+      (button) => button.textContent?.includes(label),
+    );
+    expect(option).toBeTruthy();
+    fireEvent.click(option!);
+  }
+
+  it("narrows the shop options by region without filtering by region itself", () => {
+    signInWithShops();
+    render(
+      <ToastProvider>
+        <AffiliateCreatorsPage />
+      </ToastProvider>,
+    );
+    const unitedStates = `${i18n.t("ecommerce.market.US")} (2)`;
+
+    openPicker(".affiliate-workspace-shop-select");
+    pickOption("MXTK-05");
+    expect(state.creatorInputs.at(-1)).toMatchObject({ shopId: "shop-mx-1" });
+
+    // The selected shop is outside the new region, so the picker falls back to All shops.
+    openPicker(".affiliate-workspace-region-select");
+    pickOption(unitedStates);
+    expect(state.creatorInputs.at(-1)).toMatchObject({ shopId: null });
+    expect(state.creatorInputs.at(-1)).not.toHaveProperty("region");
+
+    openPicker(".affiliate-workspace-shop-select");
+    expect(optionLabels()).toEqual([
+      i18n.t("ecommerce.affiliateWorkspace.allShops"),
+      "USTK-01",
+      "USTK-03",
+    ]);
+    pickOption("USTK-03");
+    expect(state.creatorInputs.at(-1)).toMatchObject({ shopId: "shop-us-3" });
+
+    // A shop already inside the picked region stays selected.
+    openPicker(".affiliate-workspace-region-select");
+    pickOption(i18n.t("ecommerce.affiliateAnalytics.allRegions"));
+    expect(state.creatorInputs.at(-1)).toMatchObject({ shopId: "shop-us-3" });
+  });
+
+  it("hides the region picker when every shop is in one region", () => {
+    signIn(SUPERVISOR);
+    render(
+      <ToastProvider>
+        <AffiliateCreatorsPage />
+      </ToastProvider>,
+    );
+    expect(document.querySelector(".affiliate-workspace-region-select")).toBeNull();
+  });
+});
+
 describe("Creators list for a business developer", () => {
   function renderCreators() {
     render(

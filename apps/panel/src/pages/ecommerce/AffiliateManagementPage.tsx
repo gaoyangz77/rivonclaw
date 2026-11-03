@@ -44,6 +44,7 @@ import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
+import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
 import { MessageEmojiButton } from "../../components/inputs/MessageEmojiButton.js";
 import { MessageAttachmentPreviews } from "../../components/inputs/MessageAttachmentPreviews.js";
 import { useMessageAttachmentDrafts } from "../../hooks/useMessageAttachmentDrafts.js";
@@ -3278,6 +3279,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
       shop.authStatus === GQL.ShopAuthStatus.Authorized,
   );
   const [selectedShopId, setSelectedShopId] = useState("");
+  // Narrows the shop picker's options only; it is not a filter of its own, so
+  // "All shops" stays all shops whichever region is picked.
+  const [shopPickerRegion, setShopPickerRegion] = useState("");
   const [selectedManualTagIds, setSelectedManualTagIds] = useState<string[]>([]);
   const [manualTagMatchMode, setManualTagMatchMode] = useState<GQL.TagMatchMode>(
     GQL.TagMatchMode.Any,
@@ -3307,18 +3311,40 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     }
   }, [entityStore, user]);
 
+  const shopRegions = [
+    ...new Set(affiliateShops.map((shop) => shop.region?.toUpperCase()).filter(Boolean) as string[]),
+  ].sort();
+  const shopRegionOptions = [
+    { value: "", label: t("ecommerce.affiliateAnalytics.allRegions") },
+    ...shopRegions.map((region) => ({
+      value: region,
+      label: `${formatShopRegionLabel(region, t)} (${
+        affiliateShops.filter((shop) => shop.region?.toUpperCase() === region).length
+      })`,
+    })),
+  ];
   const shopOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
-    ...affiliateShops.map((shop) => {
-      const label = shopDisplayLabel(shop, shop.id);
-      return {
-        value: shop.id,
-        label: label.text,
-        sensitive: label.sensitive,
-        searchTerms: shopSelectSearchTerms(shop, shop.id),
-      };
-    }),
+    ...affiliateShops
+      .filter((shop) => !shopPickerRegion || shop.region?.toUpperCase() === shopPickerRegion)
+      .map((shop) => {
+        const label = shopDisplayLabel(shop, shop.id);
+        return {
+          value: shop.id,
+          label: label.text,
+          sensitive: label.sensitive,
+          searchTerms: shopSelectSearchTerms(shop, shop.id),
+        };
+      }),
   ];
+  function selectShopPickerRegion(region: string) {
+    setShopPickerRegion(region);
+    // Keep the selected shop only when the narrowed list still offers it.
+    const selectedShop = affiliateShops.find((shop) => shop.id === selectedShopId);
+    if (region && selectedShop && selectedShop.region?.toUpperCase() !== region) {
+      setSelectedShopId("");
+    }
+  }
   function shopLabel(shopId: string): ShopDisplayLabel {
     return shopDisplayLabel(
       entityStore.shops.find((candidate) => candidate.id === shopId),
@@ -3499,6 +3525,15 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             className="affiliate-workbench-controls"
             data-tutorial-id="affiliate-creators-controls"
           >
+            {shopRegions.length > 1 && (
+              <Select
+                value={shopPickerRegion}
+                onChange={selectShopPickerRegion}
+                options={shopRegionOptions}
+                className="affiliate-workspace-region-select"
+                ariaLabel={t("ecommerce.affiliateAnalytics.region")}
+              />
+            )}
             <Select
               value={selectedShopId}
               onChange={setSelectedShopId}
