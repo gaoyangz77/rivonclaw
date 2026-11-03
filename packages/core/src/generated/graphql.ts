@@ -5039,6 +5039,47 @@ export interface AffiliateShipmentDailyPoint {
   unitsPerSample?: Maybe<Scalars["Float"]["output"]>;
 }
 
+/** A platform Collaboration tagged with the name of the shop it belongs to. */
+export interface AffiliateShopCollaboration {
+  campaignId?: Maybe<Scalars["ID"]["output"]>;
+  collaborationSubType?: Maybe<Scalars["String"]["output"]>;
+  commissionEndTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  commissionRate?: Maybe<Scalars["Float"]["output"]>;
+  commissionStartTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  contentCreatorCount?: Maybe<Scalars["Int"]["output"]>;
+  createdAt: Scalars["DateTimeISO"]["output"];
+  creatorIds: Array<Scalars["ID"]["output"]>;
+  creatorInvitedCount?: Maybe<Scalars["Int"]["output"]>;
+  creatorOpenIds: Array<Scalars["String"]["output"]>;
+  effectiveTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  endTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  firstObservedAt: Scalars["DateTimeISO"]["output"];
+  freeSampleRule?: Maybe<EcomFreeSampleRule>;
+  id: Scalars["ID"]["output"];
+  lastObservedAt: Scalars["DateTimeISO"]["output"];
+  lastSyncSource: AffiliateProjectionSyncSource;
+  message?: Maybe<Scalars["String"]["output"]>;
+  name?: Maybe<Scalars["String"]["output"]>;
+  openSampleRule?: Maybe<EcomOpenCollaborationSampleRule>;
+  platformCollaborationId: Scalars["String"]["output"];
+  platformUpdatedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  productCount?: Maybe<Scalars["Int"]["output"]>;
+  productIds: Array<Scalars["String"]["output"]>;
+  products: Array<EcomAffiliateProduct>;
+  projectionRevision: Scalars["Int"]["output"];
+  sellerContactInfo?: Maybe<EcomSellerContactInfo>;
+  shopId: Scalars["ID"]["output"];
+  /** Shop name as stored on the platform connection. */
+  shopName: Scalars["String"]["output"];
+  showcaseCreatorCount?: Maybe<Scalars["Int"]["output"]>;
+  startTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  status: AffiliateCollaborationStatus;
+  targetCreators: Array<EcomTargetCollaborationCreator>;
+  type: AffiliateCollaborationType;
+  updatedAt: Scalars["DateTimeISO"]["output"];
+  userId: Scalars["ID"]["output"];
+}
+
 /** Platform Collaborations for one shop, as seller shop operations read them. Unlike the Creator-scoped Affiliate reads this keeps the complete Creator roster, because shop operations act on the collaboration itself rather than on one Creator relationship. */
 export interface AffiliateShopCollaborationListPayload {
   items: Array<AffiliateCollaboration>;
@@ -5070,6 +5111,24 @@ export const AffiliateShopReferenceAvailability = {
 
 export type AffiliateShopReferenceAvailability =
   (typeof AffiliateShopReferenceAvailability)[keyof typeof AffiliateShopReferenceAvailability];
+/** Platform Collaborations across several shops in one read, with a per-shop coverage report. Like the single-shop list it keeps the complete Creator roster. */
+export interface AffiliateShopsCollaborationListPayload {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Matching Collaborations from every covered shop, newest observation first. */
+  items: Array<AffiliateShopCollaboration>;
+  /** Collaborations matched across all covered shops before the result limit, so a truncated list can be told apart from a complete one. */
+  matchedCollaborationCount: Scalars["Int"]["output"];
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 export interface AffiliateTargetCollaborationCreateProductInput {
   productId: Scalars["String"]["input"];
   /** Target Collaboration Shop Ads-attributed commission in basis points. */
@@ -7064,6 +7123,22 @@ export interface CsUnpaidOrderConfigVariantView {
   variantKey: Scalars["String"]["output"];
 }
 
+/** Unpaid-order evaluation state across several shops, with a per-shop coverage report */
+export interface CsUnpaidOrderEvaluationAcrossShopsResult {
+  /** One evaluation view per successfully read shop, ordered by shop name then shop ID */
+  evaluations: Array<CsUnpaidOrderShopEvaluationView>;
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 export interface CsUnpaidOrderEvaluationSettingsInput {
   enabled: Scalars["Boolean"]["input"];
   holdoutPercent: Scalars["Int"]["input"];
@@ -7139,6 +7214,20 @@ export interface CsUnpaidOrderSettingsLocksView {
   canEditBaseStages: Scalars["Boolean"]["output"];
   canStartConfigExperiment: Scalars["Boolean"]["output"];
   reason?: Maybe<CsUnpaidOrderSettingsLockReason>;
+}
+
+/** Unpaid-order evaluation state tagged with the shop it belongs to */
+export interface CsUnpaidOrderShopEvaluationView {
+  config: CsUnpaidOrderConfigStateView;
+  configExperiment?: Maybe<CsUnpaidOrderConfigExperimentView>;
+  enabled: Scalars["Boolean"]["output"];
+  holdout: CsUnpaidOrderHoldoutView;
+  holdoutPercent: Scalars["Int"]["output"];
+  locks: CsUnpaidOrderSettingsLocksView;
+  reachoutEnabled: Scalars["Boolean"]["output"];
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  stages: Array<UnpaidOrderReachoutStage>;
 }
 
 export interface CsUnpaidReachoutCurrencyGmv {
@@ -7431,6 +7520,22 @@ export interface CustomerServiceConversationSummary {
   unreadCount?: Maybe<Scalars["Int"]["output"]>;
 }
 
+/** Customer service conversations found across several shops, with a per-shop coverage report. */
+export interface CustomerServiceConversationsAcrossShopsResult {
+  /** Conversations from all successful shops, most recently active first */
+  conversations: Array<CustomerServiceShopConversationSummary>;
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 /** Create conversation result */
 export interface CustomerServiceCreateConversationResult {
   conversationId: Scalars["String"]["output"];
@@ -7492,6 +7597,22 @@ export interface CustomerServiceMessageSummaryPage {
   items: Array<CustomerServiceMessageSummary>;
   /** Pagination cursor — pass back to fetch the next page */
   nextPageToken?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** Conversations pending a seller reply across several shops, with a per-shop coverage report. */
+export interface CustomerServicePendingConversationsAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Pending conversations from all searched shops, most recently pending first */
+  items: Array<CustomerServiceShopConversationSummary>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
 }
 
 /** Scan result of CS conversations needing a seller reply. Not a paginated page — items is the complete scan output, capped by the platform's 24-hour SLA window. */
@@ -7786,6 +7907,22 @@ export interface CustomerServiceSessionPage {
   nextPageToken?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** Customer service support sessions found across several shops, with a per-shop coverage report */
+export interface CustomerServiceSessionsAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Sessions from all successful shops, newest first */
+  sessions: Array<CustomerServiceShopSession>;
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 /** Customer service settings per shop (user-configurable) */
 export interface CustomerServiceSettings {
   businessPrompt?: Maybe<Scalars["String"]["output"]>;
@@ -7848,6 +7985,47 @@ export interface CustomerServiceSettingsInput {
   unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
   /** Full replacement for unpaid-order reminder stages, maximum 3. Only written when selected by updateMask. Masked null means []; enabled reachout requires active stages and may restore localized defaults. */
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
+}
+
+/** A customer service conversation summary tagged with the shop it belongs to. */
+export interface CustomerServiceShopConversationSummary {
+  /** Display nickname of the buyer (extracted from participants[]) */
+  buyerNickname?: Maybe<Scalars["String"]["output"]>;
+  /** Platform user ID of the buyer participant (extracted from participants[]) */
+  buyerUserId?: Maybe<Scalars["String"]["output"]>;
+  conversationId: Scalars["String"]["output"];
+  /** Human-readable preview of the latest message (TEXT unwrapped from JSON wire format) */
+  latestMessagePreview?: Maybe<Scalars["String"]["output"]>;
+  /** Unix seconds of last update */
+  latestMessageTime?: Maybe<Scalars["Int"]["output"]>;
+  /** Role of the latest message's sender (BUYER / SHOP / CUSTOMER_SERVICE / SYSTEM / ROBOT) */
+  latestSenderRole?: Maybe<Scalars["String"]["output"]>;
+  /** Associated order ID if the conversation is anchored to an order */
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  unreadCount?: Maybe<Scalars["Int"]["output"]>;
+}
+
+/** A customer service support session tagged with the shop it belongs to */
+export interface CustomerServiceShopSession {
+  /** Unix seconds when the session began */
+  beginTime?: Maybe<Scalars["Int"]["output"]>;
+  /** Buyer's nickname */
+  buyerNickname?: Maybe<Scalars["String"]["output"]>;
+  /** Chat tags such as AfterSale, Logistics, or Presale */
+  chatTags?: Maybe<Array<Scalars["String"]["output"]>>;
+  /** Associated conversation ID */
+  conversationId?: Maybe<Scalars["String"]["output"]>;
+  /** Reason for low satisfaction, localized by the request locale */
+  dissatisfactionReason?: Maybe<Scalars["String"]["output"]>;
+  /** Unix seconds when the session ended */
+  endTime?: Maybe<Scalars["Int"]["output"]>;
+  /** Customer satisfaction score (for example 1-5) */
+  satisfactionScore?: Maybe<Scalars["Int"]["output"]>;
+  sessionId: Scalars["String"]["output"];
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
 }
 
 export interface DecideActionProposalInput {
@@ -8849,6 +9027,22 @@ export interface EcomCancellationLineItem {
   skuName?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** Cancellation requests found across several shops, with a per-shop coverage report */
+export interface EcomCancellationSearchAcrossShopsResult {
+  /** Matching cancellation requests from all successful shops, newest first */
+  cancellations: Array<EcomShopCancellation>;
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 /** Target collaboration create result */
 export interface EcomCreateTargetCollaborationResult {
   invalidOpenIdList?: Maybe<Array<Scalars["String"]["output"]>>;
@@ -8891,6 +9085,54 @@ export const EcomDocumentType = {
 } as const;
 
 export type EcomDocumentType = (typeof EcomDocumentType)[keyof typeof EcomDocumentType];
+/** FBT goods read across several shops, with a per-shop coverage report */
+export interface EcomFbtGoodsAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** FBT goods per successful shop, ordered by shop name then shop ID. The same goods record appears once for every shop that can see it. */
+  goods: Array<EcomFbtShopRecord>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
+/** FBT inventory read across several shops, with a per-shop coverage report */
+export interface EcomFbtInventoryAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** FBT inventory rows per successful shop, ordered by shop name then shop ID. The same (goods, warehouse) row appears once for every shop that can see it. */
+  inventory: Array<EcomFbtShopRecord>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
+/** FBT inventory records read across several shops, with a per-shop coverage report */
+export interface EcomFbtInventoryRecordsAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** FBT inventory change records from all successful shops, newest first. The same record appears once for every shop that can see it. */
+  inventoryRecords: Array<EcomFbtShopRecord>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 /** Whether a Fulfilled by TikTok read succeeded. Anything other than OK means the returned FBT facts are incomplete and absent stock must not be interpreted as zero stock. */
 export const EcomFbtReadState = {
   AccessDenied: "ACCESS_DENIED",
@@ -8900,6 +9142,31 @@ export const EcomFbtReadState = {
 } as const;
 
 export type EcomFbtReadState = (typeof EcomFbtReadState)[keyof typeof EcomFbtReadState];
+/** One raw FBT record (warehouse, goods, inventory row or inventory record) tagged with the shop it was read through */
+export interface EcomFbtShopRecord {
+  /** The record exactly as TikTok Shop returned it */
+  data: Scalars["JSONObject"]["output"];
+  shopId: Scalars["String"]["output"];
+  /** Shop name as stored on the platform connection */
+  shopName: Scalars["String"]["output"];
+}
+
+/** FBT warehouses read across several shops, with a per-shop coverage report */
+export interface EcomFbtWarehousesAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+  /** FBT warehouses per successful shop, ordered by shop name then shop ID */
+  warehouses: Array<EcomFbtShopRecord>;
+}
+
 /** Free sample rule */
 export interface EcomFreeSampleRule {
   hasFreeSample?: Maybe<Scalars["Boolean"]["output"]>;
@@ -9021,6 +9288,22 @@ export interface EcomOrderLineItem {
   /** Raw TikTok Shop line item sku_type enum */
   skuType?: Maybe<Scalars["String"]["output"]>;
   trackingNumber?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** Orders listed across several shops, with a per-shop coverage report */
+export interface EcomOrderListAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Matching orders from all successful shops, newest first */
+  orders: Array<EcomShopOrderSummary>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
 }
 
 /** Definitions for interpreting order-derived ecommerce sales statistics. */
@@ -9266,6 +9549,22 @@ export interface EcomPackageOrder {
   skus?: Maybe<Array<EcomPackageSku>>;
 }
 
+/** Fulfillment packages found across several shops, with a per-shop coverage report */
+export interface EcomPackageSearchAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Matching packages from all successful shops, ordered by the requested sort field and direction */
+  packages: Array<EcomShopPackage>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 /** SKU contained in a package */
 export interface EcomPackageSku {
   name?: Maybe<Scalars["String"]["output"]>;
@@ -9323,6 +9622,22 @@ export interface EcomProductCategory {
   isLeaf?: Maybe<Scalars["Boolean"]["output"]>;
   localName?: Maybe<Scalars["String"]["output"]>;
   parentId?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** Product diagnoses read across several shops, with a per-shop coverage report */
+export interface EcomProductDiagnosesAcrossShopsResult {
+  /** One diagnosis payload per successful shop, ordered by shop name then shop ID */
+  diagnoses: Array<EcomShopProductDiagnoses>;
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
 }
 
 /** Product SKU */
@@ -9596,6 +9911,22 @@ export interface EcomReturnRecord {
   role?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** Return requests found across several shops, with a per-shop coverage report */
+export interface EcomReturnSearchAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Matching return requests from all successful shops, newest first */
+  returns: Array<EcomShopReturn>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
 /** Return status filter for searching returns */
 export const EcomReturnStatusFilter = {
   All: "ALL",
@@ -9637,12 +9968,162 @@ export interface EcomShippingDocument {
   trackingNumber?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** A cancellation request tagged with the shop it belongs to */
+export interface EcomShopCancellation {
+  cancelId: Scalars["String"]["output"];
+  cancelReason?: Maybe<Scalars["String"]["output"]>;
+  cancelReasonText?: Maybe<Scalars["String"]["output"]>;
+  cancelStatus?: Maybe<Scalars["String"]["output"]>;
+  /** BUYER_CANCEL, CANCEL */
+  cancelType?: Maybe<Scalars["String"]["output"]>;
+  /** Unix seconds */
+  createTime?: Maybe<Scalars["Int"]["output"]>;
+  lineItems?: Maybe<Array<EcomCancellationLineItem>>;
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  refundAmount?: Maybe<EcomRefundAmount>;
+  role?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  shouldReplenishStock?: Maybe<Scalars["Boolean"]["output"]>;
+  /** Unix seconds */
+  updateTime?: Maybe<Scalars["Int"]["output"]>;
+}
+
+/** An order summary tagged with the shop it belongs to */
+export interface EcomShopOrderSummary {
+  /** Platform buyer user ID */
+  buyerUserId?: Maybe<Scalars["String"]["output"]>;
+  /** Unix seconds */
+  createTime?: Maybe<Scalars["Int"]["output"]>;
+  currency?: Maybe<Scalars["String"]["output"]>;
+  orderId: Scalars["String"]["output"];
+  /** Unix seconds */
+  paidTime?: Maybe<Scalars["Int"]["output"]>;
+  shippingProvider?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  /** Raw platform order status (e.g. AWAITING_SHIPMENT) */
+  status?: Maybe<Scalars["String"]["output"]>;
+  totalAmount?: Maybe<Scalars["String"]["output"]>;
+  trackingNumber?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** A fulfillment package tagged with the shop it belongs to */
+export interface EcomShopPackage {
+  /** Unix seconds */
+  createTime?: Maybe<Scalars["Int"]["output"]>;
+  /** Order IDs contained in this package */
+  orderIds?: Maybe<Array<Scalars["String"]["output"]>>;
+  packageId: Scalars["String"]["output"];
+  /** Raw platform package status */
+  packageStatus?: Maybe<Scalars["String"]["output"]>;
+  shippingProvider?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  trackingNumber?: Maybe<Scalars["String"]["output"]>;
+  /** Unix seconds */
+  updateTime?: Maybe<Scalars["Int"]["output"]>;
+}
+
+/** The diagnosis payload TikTok Shop returned for one shop's products */
+export interface EcomShopProductDiagnoses {
+  /** The diagnosis payload exactly as TikTok Shop returned it */
+  data: Scalars["JSONObject"]["output"];
+  requestId?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  /** Shop name as stored on the platform connection */
+  shopName: Scalars["String"]["output"];
+}
+
+/** Product IDs that belong to one shop */
+export interface EcomShopProductsInput {
+  /** Product IDs of THIS shop (from ecom_search_products rows carrying this shopId) */
+  productIds: Array<Scalars["ID"]["input"]>;
+  /** Shop ID from ecom_list_shops or the ecom_search_products result row */
+  shopId: Scalars["ID"]["input"];
+}
+
+/** A return request tagged with the shop it belongs to */
+export interface EcomShopReturn {
+  /** Unix seconds */
+  createTime?: Maybe<Scalars["Int"]["output"]>;
+  handoverMethod?: Maybe<Scalars["String"]["output"]>;
+  isQuickRefund?: Maybe<Scalars["Boolean"]["output"]>;
+  lineItems?: Maybe<Array<EcomReturnLineItem>>;
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  refundAmount?: Maybe<EcomRefundAmount>;
+  returnId: Scalars["String"]["output"];
+  returnMethod?: Maybe<Scalars["String"]["output"]>;
+  returnReason?: Maybe<Scalars["String"]["output"]>;
+  returnReasonText?: Maybe<Scalars["String"]["output"]>;
+  /** e.g. AWAITING_BUYER_SHIP */
+  returnStatus?: Maybe<Scalars["String"]["output"]>;
+  returnTrackingNumber?: Maybe<Scalars["String"]["output"]>;
+  /** RETURN_AND_REFUND, REFUND_ONLY, REPLACE */
+  returnType?: Maybe<Scalars["String"]["output"]>;
+  /** Who filed the request: BUYER / SELLER / SYSTEM */
+  role?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  /** Unix seconds */
+  updateTime?: Maybe<Scalars["Int"]["output"]>;
+}
+
+/** A shop that could not be searched during a multi-shop scan */
+export interface EcomShopSearchFailure {
+  /** Why this shop could not be searched */
+  error: Scalars["String"]["output"];
+  shopId: Scalars["String"]["output"];
+  /** Shop name as stored on the platform connection */
+  shopName: Scalars["String"]["output"];
+}
+
+/** Order-derived per-SKU demand metrics tagged with the shop they belong to */
+export interface EcomShopSkuPerformance {
+  /** Shop-local date for this SKU demand row (YYYY-MM-DD) */
+  dateKey?: Maybe<Scalars["String"]["output"]>;
+  /** Overall GMV for the SKU */
+  gmv?: Maybe<EcomAnalyticsMoney>;
+  /** Product ID that owns the SKU */
+  productId?: Maybe<Scalars["String"]["output"]>;
+  /** Product name captured from order facts */
+  productName?: Maybe<Scalars["String"]["output"]>;
+  /** Seller SKU captured from order facts */
+  sellerSku?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName: Scalars["String"]["output"];
+  /** SKU ID */
+  skuId: Scalars["String"]["output"];
+  /** SKU display name captured from order facts */
+  skuName?: Maybe<Scalars["String"]["output"]>;
+  /** Total orders for the SKU */
+  skuOrders?: Maybe<Scalars["Int"]["output"]>;
+  /** Total units sold for the SKU */
+  unitsSold?: Maybe<Scalars["Int"]["output"]>;
+}
+
 /** Inventory updates for one shop */
 export interface EcomShopUpdateInventoryInput {
   /** Shop ID (the 'id' field from ecommerce_list_shops) */
   shopId: Scalars["String"]["input"];
   /** SKU inventory updates to apply to this shop. */
   updates: Array<EcomUpdateInventoryInput>;
+}
+
+/** A warehouse tagged with the shop it belongs to */
+export interface EcomShopWarehouse {
+  address?: Maybe<EcommerceWarehouseAddress>;
+  effectStatus: Scalars["String"]["output"];
+  entityId?: Maybe<Scalars["String"]["output"]>;
+  id: Scalars["String"]["output"];
+  isDefault?: Maybe<Scalars["Boolean"]["output"]>;
+  name: Scalars["String"]["output"];
+  regionCode?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  /** Shop name as stored on the platform connection */
+  shopName: Scalars["String"]["output"];
+  subType?: Maybe<Scalars["String"]["output"]>;
+  type: Scalars["String"]["output"];
 }
 
 /** Order-derived per-SKU demand metrics for shop analytics */
@@ -9665,6 +10146,24 @@ export interface EcomSkuPerformance {
   skuOrders?: Maybe<Scalars["Int"]["output"]>;
   /** Total units sold for the SKU */
   unitsSold?: Maybe<Scalars["Int"]["output"]>;
+}
+
+/** Order-derived SKU demand rows across several shops, with a per-shop coverage report. Rows are ordered by date, then shop, then SKU. */
+export interface EcomSkuPerformanceAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Per-day per-SKU demand rows tagged with their shop */
+  items: Array<EcomShopSkuPerformance>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** Number of rows returned across all shops by this query */
+  totalCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
 }
 
 /** Flat order-derived SKU demand result. Serving reads return one row per shop-local date and SKU. */
@@ -9794,6 +10293,22 @@ export interface EcomUpdateInventoryWarehouseInput {
 export interface EcomUpdateTargetCollaborationResult {
   targetCollaborationConflicts?: Maybe<Array<EcomTargetCollaborationConflict>>;
   updateFailed?: Maybe<EcomTargetCollaborationUpdateFailed>;
+}
+
+/** Ordinary warehouses read across several shops, with a per-shop coverage report */
+export interface EcomWarehousesAcrossShopsResult {
+  /** Shops whose search failed; each is listed in failedShops */
+  failedShopCount: Scalars["Int"]["output"];
+  /** Shops that could not be searched. Their rows are NOT part of the result, so the result is incomplete whenever this list is not empty. */
+  failedShops: Array<EcomShopSearchFailure>;
+  /** Shops in scope that the scan attempted to search */
+  searchedShopCount: Scalars["Int"]["output"];
+  /** Shops whose search completed (including shops with zero matches) */
+  succeededShopCount: Scalars["Int"]["output"];
+  /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+  /** Warehouses from all successful shops, ordered by shop name then shop ID */
+  warehouses: Array<EcomShopWarehouse>;
 }
 
 /** Independent shop settings outcomes in the same order as shopIds. */
@@ -13523,6 +14038,10 @@ export interface Query {
   affiliateSampleReviewerOptions: Array<AffiliateSampleReviewerOption>;
   affiliateShopOpenCollaborations: AffiliateShopCollaborationListPayload;
   affiliateShopTargetCollaborations: AffiliateShopCollaborationListPayload;
+  /** List Open Collaborations across several shops (default: every authorized shop of the user), tagged with their shop, plus a per-shop coverage report. A shop that fails its Affiliate management entitlement check is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any read. */
+  affiliateShopsOpenCollaborations: AffiliateShopsCollaborationListPayload;
+  /** List Target Collaborations across several shops (default: every authorized shop of the user), tagged with their shop, plus a per-shop coverage report. A shop that fails its Affiliate management entitlement check is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any read. */
+  affiliateShopsTargetCollaborations: AffiliateShopsCollaborationListPayload;
   /** Unknown senders awaiting identification for the authenticated seller. Each row carries the seller account and its business developer, what the stranger wrote, the candidate creators we told about that account, and the attempt/cooldown state. Reading this also retires rows that have spent every attempt to STAFF_REQUIRED. */
   affiliateUnknownSenderIdentificationWork: Array<AffiliateUnknownSenderIdentificationWorkView>;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
@@ -13577,6 +14096,8 @@ export interface Query {
   /** Get near-real-time customer service performance metrics from the warehouse. */
   ecommerceGetCSRealtimePerformance: CustomerServiceRealtimePerformanceReport;
   ecommerceGetCSUnpaidOrderEvaluation: CsUnpaidOrderEvaluationView;
+  /** Read unpaid-order evaluation state across several shops (default: every authorized shop of the user), one view per shop tagged with the shop, plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any read. */
+  ecommerceGetCSUnpaidOrderEvaluationAcrossShops: CsUnpaidOrderEvaluationAcrossShopsResult;
   ecommerceGetCSUnpaidOrderExperimentAnalysis: CsUnpaidReachoutExperimentResult;
   ecommerceGetCSUnpaidOrderExperimentPerformance: Array<CsUnpaidReachoutExperimentArm>;
   /** Get shop-level observational unpaid-order reachout performance with a compatible holdout summary. */
@@ -13592,10 +14113,14 @@ export interface Query {
   ecommerceGetConversationOrderIds: Array<Scalars["String"]["output"]>;
   /** Get conversations for a shop as a flat summary list. Pagination is handled internally by the backend. */
   ecommerceGetConversations: Array<CustomerServiceConversationSummary>;
+  /** Get conversations across several shops (default: every authorized shop of the user) as flat summaries tagged with their shop, plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any read. */
+  ecommerceGetConversationsAcrossShops: CustomerServiceConversationsAcrossShopsResult;
   /** List backend-materialized customer-service conversations across one or more owned shops. */
   ecommerceGetCustomerServiceInbox: CustomerServiceConversationInboxPage;
   ecommerceGetFbtInboundOrders: EcommerceFbtInboundOrderListResult;
   ecommerceGetFbtWarehouses: EcommerceFbtWarehouseListResult;
+  /** List FBT warehouses across several US shops (default: every authorized US shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
+  ecommerceGetFbtWarehousesAcrossShops: EcomFbtWarehousesAcrossShopsResult;
   /** Get fulfillment tracking for an order. Optional buyerUserId for buyer scoping. */
   ecommerceGetFulfillmentTracking: EcomOrderTracking;
   /** Get order details by order ID. Returns null if the order is not found or does not belong to the optional buyerUserId. */
@@ -13605,12 +14130,16 @@ export interface Query {
   ecommerceGetOrderSalesStats: EcomOrderSalesStatsResult;
   /** List/search orders as a flat summary list. Optional buyerUserId for buyer-scoped queries. Pagination is handled internally by the backend. For full order details use ecommerceGetOrder. */
   ecommerceGetOrders: Array<EcomOrderSummary>;
+  /** List/search orders across several shops (default: every authorized shop of the user) as flat summaries tagged with their shop, plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any search. */
+  ecommerceGetOrdersAcrossShops: EcomOrderListAcrossShopsResult;
   /** Get package detail by package ID */
   ecommerceGetPackageDetail: EcomPackageDetail;
   /** Get shipping document for a package */
   ecommerceGetPackageShippingDocument: EcomShippingDocument;
   /** Get conversations pending seller reply */
   ecommerceGetPendingConversations: CustomerServicePendingConversationsResult;
+  /** Get conversations pending seller reply across several shops (default: every authorized shop of the user), tagged with their shop. Read from backend state with a single query, so no shop can fail individually and the result is never truncated. An explicitly requested shop that is unowned or not authorized fails the query before any read. */
+  ecommerceGetPendingConversationsAcrossShops: CustomerServicePendingConversationsAcrossShopsResult;
   /** Get product details */
   ecommerceGetProduct: EcomProduct;
   ecommerceGetProductBrands: EcommercePassthroughResult;
@@ -13618,6 +14147,8 @@ export interface Query {
   ecommerceGetProductCategoryAttributes: EcommercePassthroughResult;
   ecommerceGetProductCategoryRules: EcommercePassthroughResult;
   ecommerceGetProductDiagnoses: EcommercePassthroughResult;
+  /** Get product diagnoses for the products of several shops. Every shop in shopProducts must be owned and authorized, otherwise the query fails before any platform call; a shop whose platform call fails is reported in failedShops instead of failing the whole query. */
+  ecommerceGetProductDiagnosesAcrossShops: EcomProductDiagnosesAcrossShopsResult;
   /** Read merchant Product Knowledge (agent-facing, flat params) */
   ecommerceGetProductKnowledge: AgentProductKnowledgePage;
   /** Get valid reject reasons for a return or cancellation */
@@ -13626,23 +14157,41 @@ export interface Query {
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
+  /** Get order-derived shop SKU demand metrics from the warehouse across several shops (default: every authorized shop of the user) as one row per shop, shop-local date and SKU, plus a per-shop coverage report. All shops are read through serial batched warehouse queries, so no single shop can fail: a query error fails the whole call, and a shop with no warehouse data contributes zero rows. An explicitly requested shop that is unowned or not authorized fails the query before any read. */
+  ecommerceGetShopSkuPerformanceListAcrossShops: EcomSkuPerformanceAcrossShopsResult;
   /** Load the seller SPS analytics page: current SPS overview plus TikTok's live 90-day trend for one selected SPS metric, grouped by market and shop. */
   ecommerceGetSpsAnalytics: SpsAnalyticsView;
   ecommerceGetWarehouses: EcommerceWarehouseListResult;
+  /** List ordinary warehouses across several shops (default: every authorized shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
+  ecommerceGetWarehousesAcrossShops: EcomWarehousesAcrossShopsResult;
   ecommerceListCSUnpaidOrderExperiments: Array<CsUnpaidOrderConfigExperimentView>;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
+  /** Search customer service sessions across several shops (default: every authorized shop of the user) within a begin-time range, tagged with their shop, plus a per-shop coverage report. Platform pagination is followed internally. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any search. */
+  ecommerceSearchCSSessionsAcrossShops: CustomerServiceSessionsAcrossShopsResult;
   /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchCancellations: Array<EcomCancellation>;
+  /** Search order cancellation requests across several shops (default: every authorized shop of the user). Returns the matching requests tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any search. */
+  ecommerceSearchCancellationsAcrossShops: EcomCancellationSearchAcrossShopsResult;
+  /** Search FBT goods across several US shops (default: every authorized US shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
+  ecommerceSearchFbtGoodsAcrossShops: EcomFbtGoodsAcrossShopsResult;
   ecommerceSearchFbtGoodsPage: EcommerceFbtObjectListResult;
+  /** Search FBT inventory across several US shops (default: every authorized US shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
+  ecommerceSearchFbtInventoryAcrossShops: EcomFbtInventoryAcrossShopsResult;
   ecommerceSearchFbtInventoryPage: EcommerceFbtObjectListResult;
   ecommerceSearchFbtInventoryRecordPage: EcommerceFbtObjectListResult;
+  /** Search FBT inventory records across several US shops (default: every authorized US shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
+  ecommerceSearchFbtInventoryRecordsAcrossShops: EcomFbtInventoryRecordsAcrossShopsResult;
   /** Search fulfillment packages with optional filters and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchPackages: Array<EcomPackage>;
+  /** Search fulfillment packages across several shops (default: every authorized shop of the user), tagged with their shop, plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any search. */
+  ecommerceSearchPackagesAcrossShops: EcomPackageSearchAcrossShopsResult;
   /** Search/list products across authorized shops with optional shopIds and region scope. When shopIds and region are both provided, only shops matching both are searched. When creation-time and update-time filters are both provided, products must match both ranges. The limit applies across all selected shops, and pagination is handled internally by the backend. Multi-shop results are best-effort: a shop that cannot be searched is logged and skipped, while successful shop results are still returned. For full product details including images use ecommerceGetProduct. */
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
+  /** Search return/refund/replacement requests across several shops (default: every authorized shop of the user). Returns the matching requests tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any search. */
+  ecommerceSearchReturnsAcrossShops: EcomReturnSearchAcrossShopsResult;
   ecommerceValidateTtsTracking: EcommerceTtsTrackingValidationResult;
   /** List Outlook/Microsoft Graph email account bindings for the authenticated seller. */
   emailAccountBindings: Array<EmailAccountBinding>;
@@ -14031,6 +14580,25 @@ export interface QueryAffiliateShopTargetCollaborationsArgs {
   status?: InputMaybe<AffiliateCollaborationStatus>;
 }
 
+export interface QueryAffiliateShopsOpenCollaborationsArgs {
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  productId?: InputMaybe<Scalars["String"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  status?: InputMaybe<AffiliateCollaborationStatus>;
+}
+
+export interface QueryAffiliateShopsTargetCollaborationsArgs {
+  campaignId?: InputMaybe<Scalars["ID"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  productId?: InputMaybe<Scalars["String"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  status?: InputMaybe<AffiliateCollaborationStatus>;
+}
+
 export interface QueryAffiliateUnknownSenderIdentificationWorkArgs {
   input?: InputMaybe<ReadAffiliateUnknownSenderIdentificationWorkInput>;
 }
@@ -14149,6 +14717,12 @@ export interface QueryEcommerceGetCsUnpaidOrderEvaluationArgs {
   shopId: Scalars["ID"]["input"];
 }
 
+export interface QueryEcommerceGetCsUnpaidOrderEvaluationAcrossShopsArgs {
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+}
+
 export interface QueryEcommerceGetCsUnpaidOrderExperimentAnalysisArgs {
   experimentId: Scalars["ID"]["input"];
 }
@@ -14201,6 +14775,14 @@ export interface QueryEcommerceGetConversationsArgs {
   shopId: Scalars["String"]["input"];
 }
 
+export interface QueryEcommerceGetConversationsAcrossShopsArgs {
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  locale?: InputMaybe<Scalars["String"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+}
+
 export interface QueryEcommerceGetCustomerServiceInboxArgs {
   aiEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   escalation?: InputMaybe<CustomerServiceConversationEscalationFilter>;
@@ -14219,6 +14801,12 @@ export interface QueryEcommerceGetFbtInboundOrdersArgs {
 
 export interface QueryEcommerceGetFbtWarehousesArgs {
   shopId: Scalars["ID"]["input"];
+}
+
+export interface QueryEcommerceGetFbtWarehousesAcrossShopsArgs {
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 }
 
 export interface QueryEcommerceGetFulfillmentTrackingArgs {
@@ -14249,6 +14837,15 @@ export interface QueryEcommerceGetOrdersArgs {
   status?: InputMaybe<EcomOrderStatus>;
 }
 
+export interface QueryEcommerceGetOrdersAcrossShopsArgs {
+  buyerUserId?: InputMaybe<Scalars["String"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  status?: InputMaybe<EcomOrderStatus>;
+}
+
 export interface QueryEcommerceGetPackageDetailArgs {
   buyerUserId?: InputMaybe<Scalars["String"]["input"]>;
   packageId: Scalars["String"]["input"];
@@ -14266,6 +14863,12 @@ export interface QueryEcommerceGetPackageShippingDocumentArgs {
 
 export interface QueryEcommerceGetPendingConversationsArgs {
   shopId: Scalars["String"]["input"];
+}
+
+export interface QueryEcommerceGetPendingConversationsAcrossShopsArgs {
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 }
 
 export interface QueryEcommerceGetProductArgs {
@@ -14300,6 +14903,10 @@ export interface QueryEcommerceGetProductDiagnosesArgs {
   shopId: Scalars["ID"]["input"];
 }
 
+export interface QueryEcommerceGetProductDiagnosesAcrossShopsArgs {
+  shopProducts: Array<EcomShopProductsInput>;
+}
+
 export interface QueryEcommerceGetProductKnowledgeArgs {
   id?: InputMaybe<Scalars["ID"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
@@ -14331,12 +14938,28 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
   startDateGe: Scalars["String"]["input"];
 }
 
+export interface QueryEcommerceGetShopSkuPerformanceListAcrossShopsArgs {
+  endDateLt: Scalars["String"]["input"];
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  productIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  startDateGe: Scalars["String"]["input"];
+}
+
 export interface QueryEcommerceGetSpsAnalyticsArgs {
   input: SpsAnalyticsInput;
 }
 
 export interface QueryEcommerceGetWarehousesArgs {
   shopId: Scalars["ID"]["input"];
+}
+
+export interface QueryEcommerceGetWarehousesAcrossShopsArgs {
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 }
 
 export interface QueryEcommerceListCsUnpaidOrderExperimentsArgs {
@@ -14352,6 +14975,16 @@ export interface QueryEcommerceSearchCsSessionsArgs {
   shopId: Scalars["String"]["input"];
 }
 
+export interface QueryEcommerceSearchCsSessionsAcrossShopsArgs {
+  beginTimeGe: Scalars["Float"]["input"];
+  beginTimeLt: Scalars["Float"]["input"];
+  buyerNickname?: InputMaybe<Scalars["String"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+}
+
 export interface QueryEcommerceSearchCancellationsArgs {
   cancelIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
   cancelStatus?: InputMaybe<Array<EcomCancelStatusFilter>>;
@@ -14365,9 +14998,45 @@ export interface QueryEcommerceSearchCancellationsArgs {
   updateTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
 }
 
+export interface QueryEcommerceSearchCancellationsAcrossShopsArgs {
+  cancelIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  cancelStatus?: InputMaybe<Array<EcomCancelStatusFilter>>;
+  cancelTypes?: InputMaybe<Array<EcomCancelTypeFilter>>;
+  createTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
+  createTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  orderIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  updateTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
+  updateTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
+}
+
+export interface QueryEcommerceSearchFbtGoodsAcrossShopsArgs {
+  goodsIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  productIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  referenceCodes?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  skuIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+}
+
 export interface QueryEcommerceSearchFbtGoodsPageArgs {
   input: EcommerceFbtGoodsPageInput;
   shopId: Scalars["ID"]["input"];
+}
+
+export interface QueryEcommerceSearchFbtInventoryAcrossShopsArgs {
+  fbtWarehouseIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  goodsIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  skuIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
 }
 
 export interface QueryEcommerceSearchFbtInventoryPageArgs {
@@ -14380,12 +15049,37 @@ export interface QueryEcommerceSearchFbtInventoryRecordPageArgs {
   shopId: Scalars["ID"]["input"];
 }
 
+export interface QueryEcommerceSearchFbtInventoryRecordsAcrossShopsArgs {
+  createTimeGe?: InputMaybe<Scalars["Int"]["input"]>;
+  createTimeLe?: InputMaybe<Scalars["Int"]["input"]>;
+  fbtWarehouseIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  goodsIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+}
+
 export interface QueryEcommerceSearchPackagesArgs {
   createTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
   createTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   packageStatus?: InputMaybe<EcomPackageStatus>;
   shopId: Scalars["String"]["input"];
+  sortField?: InputMaybe<EcomSortField>;
+  sortOrder?: InputMaybe<EcomSortOrder>;
+  updateTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
+  updateTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
+}
+
+export interface QueryEcommerceSearchPackagesAcrossShopsArgs {
+  createTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
+  createTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  packageStatus?: InputMaybe<EcomPackageStatus>;
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   sortField?: InputMaybe<EcomSortField>;
   sortOrder?: InputMaybe<EcomSortOrder>;
   updateTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
@@ -14414,6 +15108,21 @@ export interface QueryEcommerceSearchReturnsArgs {
   returnStatus?: InputMaybe<Array<EcomReturnStatusFilter>>;
   returnTypes?: InputMaybe<Array<EcomReturnTypeFilter>>;
   shopId: Scalars["String"]["input"];
+  updateTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
+  updateTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
+}
+
+export interface QueryEcommerceSearchReturnsAcrossShopsArgs {
+  createTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
+  createTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  orderIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  region?: InputMaybe<ShopRegion>;
+  returnIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  returnStatus?: InputMaybe<Array<EcomReturnStatusFilter>>;
+  returnTypes?: InputMaybe<Array<EcomReturnTypeFilter>>;
+  shopId?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   updateTimeGe?: InputMaybe<Scalars["Float"]["input"]>;
   updateTimeLt?: InputMaybe<Scalars["Float"]["input"]>;
 }
