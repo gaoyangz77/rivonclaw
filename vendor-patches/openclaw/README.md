@@ -221,6 +221,22 @@ Removal: upstream provides equivalent bounded transient retries for
 failures and single-shot message dispatch. OpenClaw PR `#104322` alone is not
 sufficient because it intentionally leaves media uploads single-attempt.
 
+### 0043 - Size-aware SQLite integrity budget
+
+Backports OpenClaw commit `a6a4e88da29863c8527bef2710f7090e3a0d95d8`
+(PR `#141918`) together with its prerequisite
+`31a823079ed837c43ac0cd85a0c46d9dcbc6750c` (PR `#141669`). The pinned vendor
+gives the asynchronous admission and maintenance integrity child a fixed
+30-second lifetime, so a healthy multi-GB agent database is killed mid-scan,
+Gateway startup fails, and every restart repeats the same scan. The backport
+budgets 30 seconds plus one second per 32 MiB, capped at 30 minutes, and
+reports path, size, budget, and the last observed child phase on timeout.
+Doctor read-only inspection timeouts (`c245214aa71`) and moving cold cleanup
+checks off the main thread (`efa6acb1aea`) are intentionally not carried.
+
+Removal: drop this patch when `.openclaw-version` contains upstream commit
+`a6a4e88da29863c8527bef2710f7090e3a0d95d8`.
+
 ## Dropped In v2026.9.3
 
 Audited on pristine `1391f7cd2d40ab5bbcf2f5f831d3a64f520e72d7` without
