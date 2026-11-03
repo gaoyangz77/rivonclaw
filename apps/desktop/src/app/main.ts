@@ -65,6 +65,7 @@ import {
 } from "../gateway/startup-utils.js";
 import { initTelemetry } from "../telemetry/telemetry-init.js";
 import { setCsTelemetryClient } from "../telemetry/cs-telemetry-ref.js";
+import { redactUserPaths, sanitizeTelemetryErrorText } from "../telemetry/telemetry-sanitize.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-utils.js";
 import {
   projectProviderMetadataFromVendor,
@@ -155,6 +156,8 @@ import {
 import { startResponsivenessMonitor } from "./responsiveness-monitor.js";
 
 const log = createLogger("desktop");
+/** Long enough for the gateway's reason and remediation, short enough for a metadata column. */
+const GATEWAY_FAILURE_TELEMETRY_MAX_CHARS = 500;
 
 configureDesktopBrandCompatibility();
 
@@ -1427,14 +1430,20 @@ app.whenReady().then(async () => {
     stopCsBridge();
   });
 
-  launcher.on("restarting", (attempt, delayMs) => {
+  launcher.on("restarting", (attempt, delayMs, exit) => {
     log.info(`Gateway restarting (attempt ${attempt}, delay ${delayMs}ms)`);
     updateTray("starting");
 
-    // Track gateway restart
+    // Track gateway restart with why the previous process exited, so restart
+    // loops can be grouped and alerted on by cause.
     telemetryClient?.track("gateway.restarted", {
       attempt,
       delayMs,
+      exitCode: exit.code,
+      exitSignal: exit.signal,
+      startupFailure: exit.startupFailure
+        ? sanitizeTelemetryErrorText(exit.startupFailure, GATEWAY_FAILURE_TELEMETRY_MAX_CHARS)
+        : null,
     });
   });
 
@@ -1442,20 +1451,16 @@ app.whenReady().then(async () => {
     log.error("Gateway error:", error);
   });
 
-  // Sanitize paths to remove usernames (e.g., /Users/john/... → ~/...)
-  const sanitizePath = (s: string) =>
-    s.replace(/(?:\/Users\/|\/home\/|C:\\Users\\)[^\s/\\]+/gi, "~");
-
   // Track uncaught exceptions
   process.on("uncaughtException", (error) => {
     log.error("Uncaught exception:", error);
 
     // Track error event with truncated + sanitized stack trace (first 5 lines)
     const stackLines = error.stack?.split("\n") ?? [];
-    const truncatedStack = sanitizePath(stackLines.slice(0, 5).join("\n"));
+    const truncatedStack = redactUserPaths(stackLines.slice(0, 5).join("\n"));
 
     telemetryClient?.track("app.error", {
-      errorMessage: sanitizePath(error.message),
+      errorMessage: redactUserPaths(error.message),
       errorStack: truncatedStack,
     });
   });
@@ -1468,10 +1473,10 @@ app.whenReady().then(async () => {
     log.error("Unhandled rejection:", error);
 
     const stackLines = error.stack?.split("\n") ?? [];
-    const truncatedStack = sanitizePath(stackLines.slice(0, 5).join("\n"));
+    const truncatedStack = redactUserPaths(stackLines.slice(0, 5).join("\n"));
 
     telemetryClient?.track("app.error", {
-      errorMessage: sanitizePath(error.message),
+      errorMessage: redactUserPaths(error.message),
       errorStack: truncatedStack,
       type: "unhandledRejection",
     });

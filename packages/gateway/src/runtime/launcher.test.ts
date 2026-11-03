@@ -5,6 +5,7 @@ import {
   createLineReader,
   GatewayLauncher,
   isGatewayReadinessProbeClose,
+  parseGatewayStartupFailure,
 } from "./launcher.js";
 import type { GatewayLaunchOptions } from "./types.js";
 import * as fs from "node:fs";
@@ -500,7 +501,11 @@ describe("GatewayLauncher", () => {
       // Simulate crash
       mockChild.emit("exit", 1, null);
 
-      expect(restartingFn).toHaveBeenCalledWith(1, 10); // attempt 1, 10ms delay
+      expect(restartingFn).toHaveBeenCalledWith(1, 10, {
+        code: 1,
+        signal: null,
+        startupFailure: null,
+      }); // attempt 1, 10ms delay
 
       // Advance past the backoff delay
       vi.advanceTimersByTime(10);
@@ -518,17 +523,29 @@ describe("GatewayLauncher", () => {
 
       // First crash
       mockChild.emit("exit", 1, null);
-      expect(restartingFn).toHaveBeenLastCalledWith(1, 10);
+      expect(restartingFn).toHaveBeenLastCalledWith(1, 10, {
+        code: 1,
+        signal: null,
+        startupFailure: null,
+      });
       vi.advanceTimersByTime(10);
 
       // Second crash
       mockChild.emit("exit", 1, null);
-      expect(restartingFn).toHaveBeenLastCalledWith(2, 20);
+      expect(restartingFn).toHaveBeenLastCalledWith(2, 20, {
+        code: 1,
+        signal: null,
+        startupFailure: null,
+      });
       vi.advanceTimersByTime(20);
 
       // Third crash
       mockChild.emit("exit", 1, null);
-      expect(restartingFn).toHaveBeenLastCalledWith(3, 40);
+      expect(restartingFn).toHaveBeenLastCalledWith(3, 40, {
+        code: 1,
+        signal: null,
+        startupFailure: null,
+      });
     });
 
     it("does not restart when stop() was called", async () => {
@@ -594,7 +611,87 @@ describe("GatewayLauncher", () => {
       mockChild.emit("exit", 1, null);
 
       // Backoff should be reset to initial (attempt 1 = 10ms)
-      expect(restartingFn).toHaveBeenLastCalledWith(1, 10);
+      expect(restartingFn).toHaveBeenLastCalledWith(1, 10, {
+        code: 1,
+        signal: null,
+        startupFailure: null,
+      });
+    });
+  });
+
+  describe("startup failure reason", () => {
+    it("parses the failure line with or without console decoration", () => {
+      expect(parseGatewayStartupFailure("Gateway failed to start: boom. Run x.")).toBe(
+        "boom. Run x.",
+      );
+      expect(
+        parseGatewayStartupFailure(
+          "\u001b[31m2026-11-03T08:00:00Z Gateway failed to start: boom\u001b[39m",
+        ),
+      ).toBe("boom");
+      expect(parseGatewayStartupFailure("[gateway] listening on ws://127.0.0.1:1")).toBeNull();
+      expect(parseGatewayStartupFailure("Gateway failed to start: ")).toBeNull();
+    });
+
+    it("reports the reason printed before a failed startup with the restart", async () => {
+      const launcher = createLauncher();
+      const restartingFn = vi.fn();
+      launcher.on("restarting", restartingFn);
+
+      await launcher.start();
+      mockChild.stderr.emit(
+        "data",
+        Buffer.from(
+          "2026-11-03T08:52:50.333+08:00 Gateway failed to start: SQLite integrity check timed out after 30 seconds for C:\\data\\agent.sqlite.\n",
+        ),
+      );
+      mockChild.emit("exit", 1, null);
+
+      expect(restartingFn).toHaveBeenCalledWith(1, 10, {
+        code: 1,
+        signal: null,
+        startupFailure:
+          "SQLite integrity check timed out after 30 seconds for C:\\data\\agent.sqlite.",
+      });
+      expect(launcher.getStatus().lastError).toBe(
+        "SQLite integrity check timed out after 30 seconds for C:\\data\\agent.sqlite.",
+      );
+    });
+
+    it("does not carry a previous process's failure into the next restart", async () => {
+      const launcher = createLauncher();
+      const restartingFn = vi.fn();
+      launcher.on("restarting", restartingFn);
+
+      await launcher.start();
+      mockChild.stderr.emit("data", Buffer.from("Gateway failed to start: port in use\n"));
+      mockChild.emit("exit", 1, null);
+      vi.advanceTimersByTime(10);
+
+      mockChild.emit("exit", null, "SIGKILL");
+
+      expect(restartingFn).toHaveBeenLastCalledWith(2, 20, {
+        code: null,
+        signal: "SIGKILL",
+        startupFailure: null,
+      });
+    });
+
+    it("ignores failure text printed after the gateway became ready", async () => {
+      const launcher = createLauncher();
+      const restartingFn = vi.fn();
+      launcher.on("restarting", restartingFn);
+
+      await launcher.start();
+      mockChild.stdout.emit("data", Buffer.from("[gateway] listening on ws://127.0.0.1:1\n"));
+      mockChild.stderr.emit("data", Buffer.from("Gateway failed to start: quoted in a chat\n"));
+      mockChild.emit("exit", 1, null);
+
+      expect(restartingFn).toHaveBeenCalledWith(1, 10, {
+        code: 1,
+        signal: null,
+        startupFailure: null,
+      });
     });
   });
 

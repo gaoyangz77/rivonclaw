@@ -20,6 +20,12 @@ export const OpenClawConnectorModel = types.model("OpenClawConnector", {
   sidecarState: types.optional(SidecarState, "unknown"),
   restartAttempt: types.optional(types.number, 0),
   lastError: types.optional(types.string, ""),
+  /**
+   * Reason the most recent gateway process gave for failing to start, as
+   * printed by the gateway itself. Empty once a gateway becomes ready, or when
+   * the last exit carried no reason.
+   */
+  startupFailure: types.optional(types.string, ""),
 });
 
 export interface OpenClawConnector extends Instance<typeof OpenClawConnectorModel> {}

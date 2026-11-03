@@ -156,6 +156,9 @@ export const DesktopRuntimeStatusModel = RuntimeStatusStoreModel.actions((self) 
   setConnectorLastError(error: string) {
     self.openClawConnector.lastError = error;
   },
+  setConnectorStartupFailure(reason: string) {
+    self.openClawConnector.startupFailure = reason;
+  },
 
   /** Bulk-load all app settings from storage on startup. */
   loadAppSettings(settings: Record<string, string>) {

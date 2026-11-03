@@ -76,6 +76,8 @@ export default {
     cloudToolsUnavailableTitle: "เครื่องมือคลาวด์ไม่พร้อมใช้งาน",
     cloudToolsUnavailableBody:
       "เครื่องมือคลาวด์และความสามารถของ Agent ที่เกี่ยวข้องไม่พร้อมใช้งานชั่วคราว โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้งในภายหลัง",
+    gatewayStartupFailedTitle: "เอนจิน AI เริ่มทำงานไม่สำเร็จ",
+    gatewayStartupFailedBody: "บริการลูกค้า AI และแชทหยุดชั่วคราว ระบบจะลองใหม่โดยอัตโนมัติ สาเหตุ:",
   },
   authGate: {
     loginRequired: "ต้องเข้าสู่ระบบ",

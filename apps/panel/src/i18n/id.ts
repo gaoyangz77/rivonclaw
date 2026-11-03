@@ -76,6 +76,9 @@ export default {
     cloudToolsUnavailableTitle: "Alat cloud tidak tersedia",
     cloudToolsUnavailableBody:
       "Alat cloud dan kemampuan agen terkait untuk sementara tidak tersedia. Periksa koneksi Anda dan coba lagi nanti.",
+    gatewayStartupFailedTitle: "Mesin AI gagal dimulai",
+    gatewayStartupFailedBody:
+      "Layanan pelanggan AI dan chat dijeda dan akan dicoba ulang secara otomatis. Penyebab:",
   },
   authGate: {
     loginRequired: "Diperlukan Masuk",

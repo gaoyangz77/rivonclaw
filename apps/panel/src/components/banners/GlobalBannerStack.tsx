@@ -9,6 +9,7 @@ import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import { AffiliateBdDeviceBanner } from "./AffiliateBdDeviceBanner.js";
 import { CloudLlmQuotaBanner } from "./CloudLlmQuotaBanner.js";
 import { CloudToolsBanner } from "./CloudToolsBanner.js";
+import { GatewayStartupFailureBanner } from "./GatewayStartupFailureBanner.js";
 import {
   CustomerServiceBridgeBanner,
   CustomerServiceRoutingBanner,
@@ -47,10 +48,15 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
   const hasActiveLlmProvider = entityStore.providerKeys.some((key) => key.isDefault);
   const showLlmUnavailableBanner = Boolean(user) && !authChecking && !hasActiveLlmProvider;
 
+  // A gateway that cannot start is the root cause of every downstream
+  // disconnect, so its own reason replaces the generic CS bridge warning.
+  const gatewayStartupFailure = runtimeStatus.openClawConnector.startupFailure;
+
   // CS bridge warning: show when shops need CS on this device but bridge isn't connected.
   // Derived from entity store + device identity — mirrors CS bridge's syncFromCache() filter.
   const csBridgeState = runtimeStatus.csBridge.state;
   const showCsBridgeBanner =
+    gatewayStartupFailure === "" &&
     csBridgeState !== "connected" &&
     runtimeStatus.deviceId !== "" &&
     entityStore.shops.some((shop) => {
@@ -82,6 +88,7 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
       <CloudLlmQuotaBanner onNavigate={onNavigate} />
       <CloudToolsBanner state={runtimeStatus.cloudTools.state} />
       <LlmUnavailableBanner show={showLlmUnavailableBanner} />
+      <GatewayStartupFailureBanner reason={gatewayStartupFailure} />
       <AffiliateBdDeviceBanner onNavigate={onNavigate} />
       <CustomerServiceBridgeBanner
         show={showCsBridgeBanner}

@@ -8,7 +8,13 @@ import { stripVTControlCharacters } from "node:util";
 import { fileURLToPath } from "node:url";
 import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
-import type { GatewayLaunchOptions, GatewayState, GatewayStatus, GatewayEvents } from "./types.js";
+import type {
+  GatewayLaunchOptions,
+  GatewayState,
+  GatewayStatus,
+  GatewayEvents,
+  GatewayExit,
+} from "./types.js";
 import {
   GatewayPerformanceCapture,
   type GatewayPerformanceBurst,
@@ -40,6 +46,20 @@ export function isGatewayReadinessProbeClose(line: string): boolean {
     /\bua=n\/a\s/.test(text) &&
     /\bcode=1005 reason=n\/a phase=ws_upgrade_started\s*$/.test(text)
   );
+}
+
+const GATEWAY_STARTUP_FAILURE_MARKER = "Gateway failed to start: ";
+
+/**
+ * Extract the reason from the stderr line OpenClaw prints right before it
+ * exits on a failed startup. The line may carry a console timestamp prefix.
+ */
+export function parseGatewayStartupFailure(line: string): string | null {
+  const text = stripVTControlCharacters(line);
+  const index = text.indexOf(GATEWAY_STARTUP_FAILURE_MARKER);
+  if (index < 0) return null;
+  const reason = text.slice(index + GATEWAY_STARTUP_FAILURE_MARKER.length).trim();
+  return reason || null;
 }
 
 export function createLineReader(onLine: (line: string) => void): {
@@ -464,6 +484,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
     }
 
     let readyEmitted = false;
+    let startupFailure: string | null = null;
 
     // Track whether the gateway has produced any output. If it hasn't after
     // 15 seconds, something is seriously wrong (e.g. ELECTRON_RUN_AS_NODE
@@ -497,6 +518,9 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
     const stderrLines = createLineReader((line) => {
       hasOutput = true;
       if (this.performanceCapture.consumeStderrLine(line)) return;
+      if (!readyEmitted) {
+        startupFailure = parseGatewayStartupFailure(line) ?? startupFailure;
+      }
       if (line.startsWith("[startup-timer]") || isGatewayReadinessProbeClose(line)) {
         log.debug(`[gateway stderr] ${line}`);
       } else {
@@ -530,12 +554,15 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
       }
 
       // Process crashed or exited unexpectedly — attempt restart
-      this.scheduleRestart();
+      this.scheduleRestart({ code, signal, startupFailure });
     });
   }
 
-  private scheduleRestart(): void {
+  private scheduleRestart(exit: GatewayExit): void {
     this.restartCount++;
+    if (exit.startupFailure) {
+      this.lastError = exit.startupFailure;
+    }
 
     // Check if we've exceeded max restarts
     if (this.options.maxRestarts > 0 && this.restartCount > this.options.maxRestarts) {
@@ -565,7 +592,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
 
     log.info(`Restarting gateway in ${delay}ms (attempt ${this.restartCount})`);
 
-    this.emit("restarting", this.restartCount, delay);
+    this.emit("restarting", this.restartCount, delay, exit);
 
     this.restartTimer = setTimeout(() => {
       this.restartTimer = null;

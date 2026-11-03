@@ -16,6 +16,7 @@ const { mockRuntimeStatusStore, mockRpcClientInstance, MockGatewayRpcClient } = 
     setConnectorSidecarState: vi.fn(),
     setConnectorRestartAttempt: vi.fn(),
     setConnectorLastError: vi.fn(),
+    setConnectorStartupFailure: vi.fn(),
   };
 
   const mockRpcClientInstance = {
@@ -199,10 +200,28 @@ describe("OpenClawConnector", () => {
 
     it("sets processState to 'starting' and increments restartAttempt on 'restarting' event", () => {
       connector.initLauncher(launcher as any);
-      launcher.emit("restarting", 3);
+      launcher.emit("restarting", 3, 4000, { code: 1, signal: null, startupFailure: null });
 
       expect(mockRuntimeStatusStore.setConnectorProcessState).toHaveBeenCalledWith("starting");
       expect(mockRuntimeStatusStore.setConnectorRestartAttempt).toHaveBeenCalledWith(3);
+      expect(mockRuntimeStatusStore.setConnectorStartupFailure).toHaveBeenCalledWith("");
+    });
+
+    it("publishes the gateway's startup failure reason until a gateway becomes ready", () => {
+      connector.initLauncher(launcher as any);
+      launcher.emit("restarting", 1, 1000, {
+        code: 1,
+        signal: null,
+        startupFailure: "SQLite integrity check timed out after 30 seconds",
+      });
+
+      expect(mockRuntimeStatusStore.setConnectorStartupFailure).toHaveBeenLastCalledWith(
+        "SQLite integrity check timed out after 30 seconds",
+      );
+
+      launcher.emit("ready");
+
+      expect(mockRuntimeStatusStore.setConnectorStartupFailure).toHaveBeenLastCalledWith("");
     });
 
     it("sets lastError on 'error' event", () => {

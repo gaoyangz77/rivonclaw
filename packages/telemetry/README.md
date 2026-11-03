@@ -124,15 +124,15 @@ Get the current number of queued events.
 
 The following event types are supported:
 
-| Event Type           | Description               | Metadata                       |
-| -------------------- | ------------------------- | ------------------------------ |
-| `app.started`        | Application started       | `{ version, platform }`        |
-| `app.stopped`        | Application stopped       | `{ runtimeMs }`                |
-| `app.heartbeat`      | Periodic heartbeat        | `{ uptime }`                   |
-| `gateway.restarted`  | Gateway process restarted | -                              |
-| `rule.created`       | New rule created          | `{ artifactType }`             |
-| `channel.configured` | Channel configured        | `{ channelType }`              |
-| `app.error`          | Application error         | `{ errorMessage, errorStack }` |
+| Event Type           | Description               | Metadata                                                     |
+| -------------------- | ------------------------- | ------------------------------------------------------------ |
+| `app.started`        | Application started       | `{ version, platform }`                                      |
+| `app.stopped`        | Application stopped       | `{ runtimeMs }`                                              |
+| `app.heartbeat`      | Periodic heartbeat        | `{ uptime }`                                                 |
+| `gateway.restarted`  | Gateway process restarted | `{ attempt, delayMs, exitCode, exitSignal, startupFailure }` |
+| `rule.created`       | New rule created          | `{ artifactType }`                                           |
+| `channel.configured` | Channel configured        | `{ channelType }`                                            |
+| `app.error`          | Application error         | `{ errorMessage, errorStack }`                               |
 
 ## Usage Examples
 

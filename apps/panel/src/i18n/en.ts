@@ -78,6 +78,9 @@ export default {
     cloudToolsUnavailableTitle: "Cloud tools unavailable",
     cloudToolsUnavailableBody:
       "Cloud tools and related agent capabilities are temporarily unavailable. Check your connection and try again shortly.",
+    gatewayStartupFailedTitle: "AI engine failed to start",
+    gatewayStartupFailedBody:
+      "AI customer service and chat are paused and will retry automatically. Reason:",
   },
   authGate: {
     loginRequired: "Login Required",

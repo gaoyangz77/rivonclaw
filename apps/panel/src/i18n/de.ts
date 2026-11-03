@@ -76,6 +76,9 @@ export default {
     cloudToolsUnavailableTitle: "Cloud-Tools nicht verfügbar",
     cloudToolsUnavailableBody:
       "Cloud-Tools und zugehörige Agent-Funktionen sind vorübergehend nicht verfügbar. Prüfen Sie Ihre Verbindung und versuchen Sie es später erneut.",
+    gatewayStartupFailedTitle: "KI-Engine konnte nicht starten",
+    gatewayStartupFailedBody:
+      "KI-Kundenservice und Chat sind pausiert und werden automatisch erneut gestartet. Ursache:",
   },
   authGate: {
     loginRequired: "Anmeldung erforderlich",

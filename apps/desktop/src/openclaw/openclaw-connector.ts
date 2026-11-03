@@ -1,7 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
 import { GatewayRpcClient } from "@rivonclaw/gateway";
-import type { GatewayLauncher, GatewayEventFrame } from "@rivonclaw/gateway";
+import type { GatewayExit, GatewayLauncher, GatewayEventFrame } from "@rivonclaw/gateway";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import WebSocket from "ws";
 
@@ -120,6 +120,7 @@ export class OpenClawConnector {
     });
 
     launcher.on("ready", () => {
+      runtimeStatusStore.setConnectorStartupFailure("");
       // The launcher emits "ready" when the gateway prints "listening on",
       // but the vendor's WebSocket upgrade handler is registered ~60-200ms
       // later (synchronous plugin setup after listen).  We probe the WS
@@ -151,9 +152,10 @@ export class OpenClawConnector {
       this.disconnectRpc();
     });
 
-    launcher.on("restarting", (attempt: number) => {
+    launcher.on("restarting", (attempt: number, _delayMs: number, exit: GatewayExit) => {
       runtimeStatusStore.setConnectorProcessState("starting");
       runtimeStatusStore.setConnectorRestartAttempt(attempt);
+      runtimeStatusStore.setConnectorStartupFailure(exit.startupFailure ?? "");
     });
 
     launcher.on("error", (error: Error) => {

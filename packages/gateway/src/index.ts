@@ -42,6 +42,7 @@ export type {
   GatewayLaunchOptions,
   GatewayStatus,
   GatewayEvents,
+  GatewayExit,
 } from "./runtime/types.js";
 export { resolveSecretEnv, buildGatewayEnv } from "./secrets/secret-injector.js";
 export {

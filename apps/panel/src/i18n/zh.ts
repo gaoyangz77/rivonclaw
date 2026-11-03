@@ -77,6 +77,8 @@ export default {
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "云端工具库不可用",
     cloudToolsUnavailableBody: "云端工具及相关 Agent 能力暂时不可用，请检查网络连接后稍后重试。",
+    gatewayStartupFailedTitle: "AI 引擎启动失败",
+    gatewayStartupFailedBody: "AI 客服和对话已暂停，系统正在自动重试。原因：",
   },
   authGate: {
     loginRequired: "需要登录",

@@ -151,6 +151,11 @@
   opacity: 0.86;
 }
 
+/* The gateway's reason can carry long file paths with no spaces. */
+.gateway-startup-failure-reason {
+  overflow-wrap: anywhere;
+}
+
 .update-progress-bar {
   height: 4px;
   background: var(--color-border);

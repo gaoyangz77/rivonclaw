@@ -31,10 +31,21 @@ export interface GatewayStatus {
   lastError: string | null;
 }
 
+/** How the previous gateway process ended, reported with each automatic restart. */
+export interface GatewayExit {
+  code: number | null;
+  signal: string | null;
+  /**
+   * Reason the gateway printed as "Gateway failed to start: ..." before it
+   * became ready, or null when the process exited without one.
+   */
+  startupFailure: string | null;
+}
+
 export interface GatewayEvents {
   started: [pid: number];
   ready: [];
   stopped: [code: number | null, signal: string | null];
-  restarting: [attempt: number, delayMs: number];
+  restarting: [attempt: number, delayMs: number, exit: GatewayExit];
   error: [error: Error];
 }

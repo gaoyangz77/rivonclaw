@@ -76,6 +76,9 @@ export default {
     cloudToolsUnavailableTitle: "Outils cloud indisponibles",
     cloudToolsUnavailableBody:
       "Les outils cloud et les fonctions d’agent associées sont temporairement indisponibles. Vérifiez votre connexion et réessayez plus tard.",
+    gatewayStartupFailedTitle: "Le moteur IA n’a pas pu démarrer",
+    gatewayStartupFailedBody:
+      "Le service client IA et le chat sont en pause et redémarreront automatiquement. Cause :",
   },
   authGate: {
     loginRequired: "Connexion requise",
