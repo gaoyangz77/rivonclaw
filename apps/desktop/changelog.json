@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.48",
+    "date": "2026-11-03",
+    "en": [
+      "Narrow the Creators shop picker by region",
+      "Release a business developer's new Creator to the public pool when a sample application is still unreviewed shortly before TikTok's review deadline",
+      "Export the failed rows from the Creator bulk import preview as an Excel file you can fix and re-upload"
+    ],
+    "zh": [
+      "达人页的店铺选择器可先按区域缩小范围",
+      "新增商务拓展负责人规则：样品申请在 TikTok 审核截止前仍未审核时，将其新达人释放到公共池",
+      "达人批量导入预览可导出失败行为 Excel，修正后可直接重新上传"
+    ]
+  },
+  {
     "version": "1.9.47",
     "date": "2026-11-02",
     "en": [
