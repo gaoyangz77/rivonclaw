@@ -1,0 +1,5 @@
+/* The hours field belongs to the deadline-release switch above it. */
+.affiliate-creator-business-hours {
+  max-width: 240px;
+  margin-block: var(--tk-v1-space-2) var(--tk-v1-space-4);
+}

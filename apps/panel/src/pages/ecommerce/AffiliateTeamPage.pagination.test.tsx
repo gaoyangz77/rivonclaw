@@ -53,7 +53,10 @@ vi.mock("./components/AffiliateCreatorTagCatalogPanel.js", () => ({
 beforeEach(async () => {
   await i18n.changeLanguage("en");
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  store.affiliateWorkspace.operationalSettings = null;
+});
 
 const developers = Array.from({ length: 35 }, (_, index) => ({
   __typename: "AffiliateBusinessDeveloper" as const,
@@ -146,6 +149,7 @@ function renderRoster({
             unrepliedMessageLookbackDays: 7,
             autoClaimOnSampleApproval: false,
             autoReleaseOnSampleRejection: false,
+            releaseBeforeSampleExpiryHours: null,
             onboardingCompletedAt: null,
           },
         },
@@ -281,5 +285,40 @@ describe("page tabs", () => {
     );
     expect(setView).toHaveBeenCalledWith({ view: "business" });
     expect(panel("business")?.hidden).toBe(false);
+  });
+
+  const businessTab = () =>
+    screen.findByRole("tab", {
+      name: new RegExp(i18n.t("ecommerce.affiliateTeam.creatorBusinessTab")),
+    });
+
+  it("counts the deadline release among the Creator business rules in the tab summary", async () => {
+    store.affiliateWorkspace.operationalSettings = {
+      autoClaimOnSampleApproval: true,
+      autoReleaseOnSampleRejection: true,
+      releaseBeforeSampleExpiryHours: 72,
+    } as never;
+    renderRoster();
+    expect((await businessTab()).textContent).toContain("3 of 3 rules on");
+  });
+
+  it("counts only the deadline release when it is the sole rule on", async () => {
+    store.affiliateWorkspace.operationalSettings = {
+      autoClaimOnSampleApproval: false,
+      autoReleaseOnSampleRejection: false,
+      releaseBeforeSampleExpiryHours: 24,
+    } as never;
+    renderRoster();
+    expect((await businessTab()).textContent).toContain("1 of 3 rules on");
+  });
+
+  it("reports no rules on when the deadline release is off", async () => {
+    store.affiliateWorkspace.operationalSettings = {
+      autoClaimOnSampleApproval: false,
+      autoReleaseOnSampleRejection: false,
+      releaseBeforeSampleExpiryHours: null,
+    } as never;
+    renderRoster();
+    expect((await businessTab()).textContent).toContain("No rules on");
   });
 });

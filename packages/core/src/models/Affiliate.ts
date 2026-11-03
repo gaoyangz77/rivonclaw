@@ -152,9 +152,12 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
 
 export const AffiliateOperationalSettingsModel = types.model("AffiliateOperationalSettings", {
   unrepliedMessageLookbackDays: types.optional(types.integer, 90),
-  // Seller-wide Creator business rules; both are off until a supervisor enables them.
+  // Seller-wide Creator business rules; all are off until a supervisor enables them.
   autoClaimOnSampleApproval: types.optional(types.boolean, false),
   autoReleaseOnSampleRejection: types.optional(types.boolean, false),
+  // Hours before TikTok's review deadline at which an unreviewed Sample Application
+  // releases a BD's new Creator to the public pool (1..142). Null means the rule is off.
+  releaseBeforeSampleExpiryHours: types.maybeNull(types.integer),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),

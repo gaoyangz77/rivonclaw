@@ -722,7 +722,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const onboardingComplete = Boolean(workspace.operationalSettings?.onboardingCompletedAt);
   const enabledCreatorBusinessRuleCount =
     Number(workspace.operationalSettings?.autoClaimOnSampleApproval === true) +
-    Number(workspace.operationalSettings?.autoReleaseOnSampleRejection === true);
+    Number(workspace.operationalSettings?.autoReleaseOnSampleRejection === true) +
+    Number(workspace.operationalSettings?.releaseBeforeSampleExpiryHours != null);
   const protectionData = protectionQuery.data?.affiliateCreatorProtections;
   const protectedCreatorCount =
     (protectionData?.resolvedCount ?? 0) + (protectionData?.unresolvedCount ?? 0);

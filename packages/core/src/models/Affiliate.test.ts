@@ -216,15 +216,25 @@ describe("AffiliateWorkspaceModel", () => {
     workspace.setAffiliateOperationalSettings({ id: "settings-1", userId: "user-1" } as any);
     expect(workspace.operationalSettings?.autoClaimOnSampleApproval).toBe(false);
     expect(workspace.operationalSettings?.autoReleaseOnSampleRejection).toBe(false);
+    expect(workspace.operationalSettings?.releaseBeforeSampleExpiryHours).toBeNull();
 
     workspace.setAffiliateOperationalSettings({
       id: "settings-1",
       userId: "user-1",
       autoClaimOnSampleApproval: true,
       autoReleaseOnSampleRejection: false,
+      releaseBeforeSampleExpiryHours: 72,
     } as any);
     expect(workspace.operationalSettings?.autoClaimOnSampleApproval).toBe(true);
     expect(workspace.operationalSettings?.autoReleaseOnSampleRejection).toBe(false);
+    expect(workspace.operationalSettings?.releaseBeforeSampleExpiryHours).toBe(72);
+
+    workspace.setAffiliateOperationalSettings({
+      id: "settings-1",
+      userId: "user-1",
+      releaseBeforeSampleExpiryHours: null,
+    } as any);
+    expect(workspace.operationalSettings?.releaseBeforeSampleExpiryHours).toBeNull();
   });
 
   it("tracks a BD's login through provision, disable and removal", () => {

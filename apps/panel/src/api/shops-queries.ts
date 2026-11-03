@@ -4817,6 +4817,7 @@ export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
       unrepliedMessageLookbackDays
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
+      releaseBeforeSampleExpiryHours
       onboardingCompletedAt
     }
   }
@@ -4830,6 +4831,7 @@ export const SET_AFFILIATE_UNREPLIED_MESSAGE_LOOKBACK_MUTATION = gql`
       unrepliedMessageLookbackDays
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
+      releaseBeforeSampleExpiryHours
       onboardingCompletedAt
     }
   }
@@ -4843,6 +4845,7 @@ export const SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION = gql`
       unrepliedMessageLookbackDays
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
+      releaseBeforeSampleExpiryHours
       onboardingCompletedAt
     }
   }
@@ -5091,6 +5094,7 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
       unrepliedMessageLookbackDays
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
+      releaseBeforeSampleExpiryHours
       onboardingCompletedAt
     }
   }

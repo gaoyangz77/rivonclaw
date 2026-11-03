@@ -28,6 +28,7 @@ it("validates whole days and saves the selected range into the current MST setti
         unrepliedMessageLookbackDays: 14,
         autoClaimOnSampleApproval: false,
         autoReleaseOnSampleRejection: false,
+        releaseBeforeSampleExpiryHours: null,
         onboardingCompletedAt: null,
       },
     },

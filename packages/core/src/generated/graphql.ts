@@ -4122,6 +4122,8 @@ export interface AffiliateOperationalSettings {
   autoReleaseOnSampleRejection: Scalars["Boolean"]["output"];
   id: Scalars["ID"]["output"];
   onboardingCompletedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Timeout safeguard: release a BD-assigned Creator with no collaboration progress to the public pool when one of its Sample Applications is still pending review this many hours before TikTok's review deadline (1–142). Null means off. */
+  releaseBeforeSampleExpiryHours?: Maybe<Scalars["Int"]["output"]>;
   /** Only unreplied Creator messages received within this many days trigger new AI work (1–90, default 90). Existing proposals and message history are retained. */
   unrepliedMessageLookbackDays: Scalars["Int"]["output"];
   userId: Scalars["ID"]["output"];
@@ -12094,7 +12096,7 @@ export interface Mutation {
   setAffiliateBusinessDeveloperPreferredAccount: AffiliateBusinessDeveloper;
   /** Activate, pause, complete, or archive an Affiliate Campaign. */
   setAffiliateCampaignStatus: AffiliateCampaign;
-  /** Set the seller-wide Creator ownership automations that follow a Business Developer's Sample review. Both default off and apply only to Creators with no collaboration progress. */
+  /** Set the seller-wide Creator ownership automations: the two that follow a Business Developer's Sample review and the pre-deadline timeout release. All default off and apply only to Creators with no collaboration progress. */
   setAffiliateCreatorBusinessSettings: AffiliateOperationalSettings;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
@@ -16067,6 +16069,8 @@ export interface SetAffiliateCampaignStatusInput {
 export interface SetAffiliateCreatorBusinessSettingsInput {
   autoClaimOnSampleApproval: Scalars["Boolean"]["input"];
   autoReleaseOnSampleRejection: Scalars["Boolean"]["input"];
+  /** Absent leaves the stored value unchanged; null turns the safeguard off; an integer from 1 to 142 sets it. */
+  releaseBeforeSampleExpiryHours?: InputMaybe<Scalars["Int"]["input"]>;
 }
 
 export interface SetCreatorEmailContactInput {
