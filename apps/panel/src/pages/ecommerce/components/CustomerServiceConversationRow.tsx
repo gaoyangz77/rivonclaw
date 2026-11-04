@@ -68,6 +68,56 @@ export function CustomerServiceConversationRow({
   );
 }
 
+/**
+ * An order-search hit whose buyer has no conversation yet. It reads like a conversation row
+ * (same classes) and opens an empty conversation view; the conversation is only created when
+ * the operator sends the first message.
+ */
+export function CustomerServiceOrderDraftRow({
+  active,
+  orderId,
+  shopLabel,
+  timeLabel,
+  statusLabel,
+  amountLabel,
+  onSelect,
+}: {
+  active: boolean;
+  orderId: string;
+  shopLabel: ShopDisplayLabel;
+  timeLabel: string;
+  statusLabel: string;
+  amountLabel: string;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      className={active ? "cs-conversation-row active" : "cs-conversation-row"}
+      type="button"
+      onClick={onSelect}
+    >
+      <span className="cs-conversation-meta">
+        <TkPrivate as="span" sensitive={shopLabel.sensitive}>
+          {shopLabel.text}
+        </TkPrivate>
+        <span>{timeLabel}</span>
+      </span>
+      <span className="cs-conversation-row-head">
+        <strong title={orderId}>{orderId}</strong>
+        <span className="cs-conversation-badges">
+          {statusLabel && <span className="badge badge-info">{statusLabel}</span>}
+        </span>
+      </span>
+      <span className="cs-conversation-preview">
+        {[t("ecommerce.customerServiceWorkspace.noMessagesYet"), amountLabel]
+          .filter(Boolean)
+          .join(" · ")}
+      </span>
+    </button>
+  );
+}
+
 export function EscalationStateBadge({
   conversation,
   onClick,

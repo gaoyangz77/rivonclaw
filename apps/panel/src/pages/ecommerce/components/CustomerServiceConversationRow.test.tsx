@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
-import { CustomerServiceConversationRow } from "./CustomerServiceConversationRow.js";
+import { CustomerServiceConversationRow, CustomerServiceOrderDraftRow } from "./CustomerServiceConversationRow.js";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -141,5 +141,31 @@ describe("CustomerServiceConversationRow", () => {
     fireEvent.click(screen.getByText(BAD_REVIEW_BADGE));
     expect(onOpenBadReviews).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("CustomerServiceOrderDraftRow", () => {
+  it("renders like a conversation row with the order details and selects on click", () => {
+    const onSelect = vi.fn();
+    const { container } = render(
+      <CustomerServiceOrderDraftRow
+        active
+        orderId="order-9"
+        shopLabel={{ text: "Shop One", sensitive: false }}
+        timeLabel="Nov 4, 10:00"
+        statusLabel="Awaiting Shipment"
+        amountLabel="$12.50"
+        onSelect={onSelect}
+      />,
+    );
+    const row = container.querySelector("button.cs-conversation-row.active");
+    expect(row).toBeTruthy();
+    expect(screen.getByText("order-9")).toBeTruthy();
+    expect(screen.getByText("Awaiting Shipment")).toBeTruthy();
+    expect(
+      screen.getByText("ecommerce.customerServiceWorkspace.noMessagesYet · $12.50"),
+    ).toBeTruthy();
+    fireEvent.click(row!);
+    expect(onSelect).toHaveBeenCalledOnce();
   });
 });

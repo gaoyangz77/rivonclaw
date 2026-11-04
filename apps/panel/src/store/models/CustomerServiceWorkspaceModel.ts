@@ -335,9 +335,14 @@ export const CustomerServiceWorkspaceModel = types
     conversationsErrorCode: types.maybeNull(types.string),
     conversationItems: types.optional(types.array(types.frozen<Record<string, any>>()), []),
     // Order-ID search hits whose buyer has no conversation yet (plain data, replaced per fetch).
+    // They are listed like conversations but have no conversation ID until the first message.
     ordersWithoutConversation: types.optional(types.array(types.frozen<Record<string, any>>()), []),
-    startingOrderKeys: types.optional(types.array(types.string), []),
-    startOrderErrors: types.optional(types.map(types.string), {}),
+    // Selected order draft; mutually exclusive with the selected conversation.
+    selectedOrderDraftShopId: types.maybeNull(types.string),
+    selectedOrderDraftOrderId: types.maybeNull(types.string),
+    // Bumped when the operator picks a different row, not when a draft becomes a real conversation,
+    // so the reply composer (and its unsent images) survives that transition.
+    selectionRevision: types.optional(types.number, 0),
     selectedConversationId: types.maybeNull(types.string),
     conversationMessagesLoading: types.optional(types.boolean, false),
     conversationMessagesLoadingMore: types.optional(types.boolean, false),
@@ -400,6 +405,20 @@ export const CustomerServiceWorkspaceModel = types
     get filteredConversationItems() {
       // Backend search can match buyer orders absent from the conversation projection.
       return self.conversationItems.slice();
+    },
+    get orderDraftsOnPage(): Record<string, any>[] {
+      // Order-search hits are not paginated; show them with the first page of results only.
+      return self.conversationPage === 1 ? self.ordersWithoutConversation.slice() : [];
+    },
+    get selectedOrderDraft(): Record<string, any> | null {
+      if (!self.selectedOrderDraftShopId || !self.selectedOrderDraftOrderId) return null;
+      return (
+        (self as any).orderDraftsOnPage.find(
+          (order: Record<string, any>) =>
+            order.shopId === self.selectedOrderDraftShopId &&
+            order.orderId === self.selectedOrderDraftOrderId,
+        ) ?? null
+      );
     },
     get selectedConversation() {
       return (
@@ -497,12 +516,6 @@ export const CustomerServiceWorkspaceModel = types
     isConversationAiUpdating(conversationId: string) {
       return self.updatingConversationAiIds.includes(conversationId);
     },
-    isOrderStarting(shopId: string, orderId: string) {
-      return self.startingOrderKeys.includes(`${shopId}:${orderId}`);
-    },
-    startOrderError(shopId: string, orderId: string): string | null {
-      return self.startOrderErrors.get(`${shopId}:${orderId}`) ?? null;
-    },
     isConversationStarting(conversationId: string) {
       return self.startingConversationIds.includes(conversationId);
     },
@@ -585,6 +598,29 @@ export const CustomerServiceWorkspaceModel = types
       return self.escalationItems[index + 1]?.id ?? self.escalationItems[index - 1]?.id ?? null;
     }
 
+    function clearOrderDraftSelection() {
+      self.selectedOrderDraftShopId = null;
+      self.selectedOrderDraftOrderId = null;
+    }
+    function clearSelection() {
+      self.selectedConversationId = null;
+      self.selectedConversationShopId = null;
+      clearOrderDraftSelection();
+    }
+    /** Drops everything loaded for the previously selected conversation. */
+    function resetSelectedThread() {
+      self.selectionRevision += 1;
+      self.expandedConversationOrderId = null;
+      self.conversationMessages.replace([]);
+      self.conversationMessagesError = null;
+      self.conversationMessagesNextPageToken = null;
+      self.conversationMessagesLoadingMore = false;
+      self.manualReplyDraft = "";
+      self.conversationSummary = null;
+      self.conversationSummaryError = null;
+      self.conversationSummaryLoading = false;
+      self.conversationSummaryGenerating = false;
+    }
     function replaceConversation(item: GQL.CustomerServiceConversationInboxItem) {
       const next = self.conversationItems.filter(
         (candidate) =>
@@ -655,32 +691,27 @@ export const CustomerServiceWorkspaceModel = types
       setConversationShopId(value: string) {
         self.conversationShopId = value;
         self.conversationPage = 1;
-        self.selectedConversationId = null;
-        self.selectedConversationShopId = null;
+        clearSelection();
       },
       setConversationStatusFilter(value: ConversationStatusFilter) {
         self.conversationStatusFilter = value;
         self.conversationPage = 1;
-        self.selectedConversationId = null;
-        self.selectedConversationShopId = null;
+        clearSelection();
       },
       setConversationAiFilter(value: ConversationAiFilter) {
         self.conversationAiFilter = value;
         self.conversationPage = 1;
-        self.selectedConversationId = null;
-        self.selectedConversationShopId = null;
+        clearSelection();
       },
       setConversationEscalationFilter(value: ConversationEscalationFilter) {
         self.conversationEscalationFilter = value;
         self.conversationPage = 1;
-        self.selectedConversationId = null;
-        self.selectedConversationShopId = null;
+        clearSelection();
       },
       setConversationBadReviewFilter(value: ConversationBadReviewFilter) {
         self.conversationBadReviewFilter = value;
         self.conversationPage = 1;
-        self.selectedConversationId = null;
-        self.selectedConversationShopId = null;
+        clearSelection();
       },
       setConversationSearchDraft(value: string) {
         self.conversationSearchDraft = value;
@@ -689,14 +720,14 @@ export const CustomerServiceWorkspaceModel = types
         self.conversationSearch = self.conversationSearchDraft.trim();
         self.conversationPage = 1;
         self.ordersWithoutConversation.clear();
-        self.startOrderErrors.clear();
+        clearOrderDraftSelection();
       },
       clearConversationSearch() {
         self.conversationSearchDraft = "";
         self.conversationSearch = "";
         self.conversationPage = 1;
         self.ordersWithoutConversation.clear();
-        self.startOrderErrors.clear();
+        clearOrderDraftSelection();
       },
       setConversationPage(value: number) {
         self.conversationPage = Math.max(1, Math.min((self as any).conversationPageCount, value));
@@ -740,21 +771,27 @@ export const CustomerServiceWorkspaceModel = types
         const nextConversationId = conversationId ?? null;
         if (
           self.selectedConversationId === nextConversationId &&
-          self.selectedConversationShopId === shopId
+          self.selectedConversationShopId === shopId &&
+          !self.selectedOrderDraftOrderId
         )
           return;
+        clearOrderDraftSelection();
         self.selectedConversationShopId = shopId;
         self.selectedConversationId = nextConversationId;
-        self.expandedConversationOrderId = null;
-        self.conversationMessages.replace([]);
-        self.conversationMessagesError = null;
-        self.conversationMessagesNextPageToken = null;
-        self.conversationMessagesLoadingMore = false;
-        self.manualReplyDraft = "";
-        self.conversationSummary = null;
-        self.conversationSummaryError = null;
-        self.conversationSummaryLoading = false;
-        self.conversationSummaryGenerating = false;
+        resetSelectedThread();
+      },
+      /** Opens an order-search hit with no conversation as an empty conversation view. */
+      selectOrderDraft(shopId: string, orderId: string) {
+        if (
+          self.selectedOrderDraftShopId === shopId &&
+          self.selectedOrderDraftOrderId === orderId
+        )
+          return;
+        self.selectedConversationId = null;
+        self.selectedConversationShopId = null;
+        self.selectedOrderDraftShopId = shopId;
+        self.selectedOrderDraftOrderId = orderId;
+        resetSelectedThread();
       },
       setConversationListWidth(value: number) {
         self.conversationListWidth = Math.max(240, Math.min(620, Math.round(value)));
@@ -901,6 +938,9 @@ export const CustomerServiceWorkspaceModel = types
           ) {
             self.selectedConversationId = null;
             self.selectedConversationShopId = null;
+          }
+          if (self.selectedOrderDraftOrderId && !(self as any).selectedOrderDraft) {
+            clearOrderDraftSelection();
           }
         } catch (err) {
           self.conversationsError = errorMessage(err);
@@ -1150,43 +1190,40 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       /**
-       * Creates (or reopens) the platform conversation for an order whose buyer has none, then
-       * opens it in the message view so the operator types the first message. Does not start an
-       * AI run: AI only takes over once the buyer replies.
+       * Creates (or reopens) the platform conversation behind a selected order draft, ingests it
+       * and, when the draft is still the selection, makes the real conversation the selection
+       * without touching the composer draft. Does not start an AI run: AI only takes over once
+       * the buyer replies. Throws on failure and leaves the draft selected.
        */
-      startConversationFromOrder: flow(function* (shopId: string, orderId: string) {
-        const key = `${shopId}:${orderId}`;
-        if (self.startingOrderKeys.includes(key)) return false;
-        pushUnique(self.startingOrderKeys as unknown as string[], key);
-        self.startOrderErrors.delete(key);
-        try {
-          const result = yield client().mutate({
-            mutation: CS_START_CONVERSATION_FROM_ORDER_MUTATION,
-            variables: { shopId, orderId },
-          });
-          const item = result.data?.ecommerceStartCustomerServiceConversationFromOrder as
-            | GQL.CustomerServiceConversationInboxItem
-            | undefined;
-          if (!item) throw new Error("Failed to start the conversation");
-          const existed = self.conversationItems.some(
-            (candidate) =>
-              candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
-          );
-          replaceConversation(item);
-          if (!existed) self.conversationTotal += 1;
-          self.ordersWithoutConversation.replace(
-            self.ordersWithoutConversation.filter(
-              (order) => order.shopId !== shopId || order.orderId !== orderId,
-            ) as any,
-          );
-          (self as any).selectConversation(item.shopId, item.conversationId);
-          return true;
-        } catch (err) {
-          self.startOrderErrors.set(key, errorMessage(err));
-          return false;
-        } finally {
-          removeValue(self.startingOrderKeys as unknown as string[], key);
+      promoteOrderDraft: flow(function* (shopId: string, orderId: string) {
+        const result = yield client().mutate({
+          mutation: CS_START_CONVERSATION_FROM_ORDER_MUTATION,
+          variables: { shopId, orderId },
+        });
+        const item = result.data?.ecommerceStartCustomerServiceConversationFromOrder as
+          | GQL.CustomerServiceConversationInboxItem
+          | undefined;
+        if (!item) throw new Error("Failed to start the conversation");
+        const existed = self.conversationItems.some(
+          (candidate) =>
+            candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
+        );
+        replaceConversation(item);
+        if (!existed) self.conversationTotal += 1;
+        self.ordersWithoutConversation.replace(
+          self.ordersWithoutConversation.filter(
+            (order) => order.shopId !== shopId || order.orderId !== orderId,
+          ) as any,
+        );
+        if (
+          self.selectedOrderDraftShopId === shopId &&
+          self.selectedOrderDraftOrderId === orderId
+        ) {
+          clearOrderDraftSelection();
+          self.selectedConversationShopId = item.shopId;
+          self.selectedConversationId = item.conversationId;
         }
+        return { shopId: item.shopId, conversationId: item.conversationId };
       }),
       sendManualImageReply: flow(function* (input: {
         shopId: string; conversationId: string; file: File; idempotencyKey: string;

@@ -1145,7 +1145,52 @@ export const CS_ESCALATION_BY_ID_QUERY = gql`
   }
 `;
 
+// One selection for every operation that returns an inbox row, so the list query and the
+// start-from-order mutation cannot drift apart.
+export const CS_CONVERSATION_INBOX_ITEM_FIELDS_FRAGMENT = gql`
+  fragment CustomerServiceConversationInboxItemFields on CustomerServiceConversationInboxItem {
+    shopId
+    platformShopId
+    conversationId
+    status
+    isOpen
+    platformConversationStatus
+    aiEnabled
+    buyerUserId
+    buyerImUserId
+    buyerNickname
+    orderId
+    latestMessageTime
+    latestMessageId
+    latestMessageIndex
+    latestMessageType
+    latestSenderRole
+    latestMessagePreview
+    lastPendingAt
+    resolvedAt
+    updatedAt
+    openEscalationCount
+    latestOpenEscalationId
+    latestOpenEscalationStatus
+    latestOpenEscalationUpdatedAt
+    recentBadReviews {
+      id
+      platformReviewId
+      orderId
+      productId
+      sellerSkus
+      rating
+      title
+      content
+      reviewCreateTime
+      reviewUpdateTime
+      followUpStatus
+    }
+  }
+`;
+
 export const CS_CONVERSATION_INBOX_QUERY = gql`
+  ${CS_CONVERSATION_INBOX_ITEM_FIELDS_FRAGMENT}
   query CustomerServiceInbox(
     $shopIds: [ID!]
     $status: CustomerServiceConversationStatus
@@ -1177,43 +1222,7 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
         currency
       }
       items {
-        shopId
-        platformShopId
-        conversationId
-        status
-        isOpen
-        platformConversationStatus
-        aiEnabled
-        buyerUserId
-        buyerImUserId
-        buyerNickname
-        orderId
-        latestMessageTime
-        latestMessageId
-        latestMessageIndex
-        latestMessageType
-        latestSenderRole
-        latestMessagePreview
-        lastPendingAt
-        resolvedAt
-        updatedAt
-        openEscalationCount
-        latestOpenEscalationId
-        latestOpenEscalationStatus
-        latestOpenEscalationUpdatedAt
-        recentBadReviews {
-          id
-          platformReviewId
-          orderId
-          productId
-          sellerSkus
-          rating
-          title
-          content
-          reviewCreateTime
-          reviewUpdateTime
-          followUpStatus
-        }
+        ...CustomerServiceConversationInboxItemFields
       }
     }
   }
@@ -1390,40 +1399,10 @@ export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
 `;
 
 export const CS_START_CONVERSATION_FROM_ORDER_MUTATION = gql`
+  ${CS_CONVERSATION_INBOX_ITEM_FIELDS_FRAGMENT}
   mutation StartCustomerServiceConversationFromOrder($shopId: ID!, $orderId: String!) {
     ecommerceStartCustomerServiceConversationFromOrder(shopId: $shopId, orderId: $orderId) {
-      shopId
-      platformShopId
-      conversationId
-      status
-      isOpen
-      platformConversationStatus
-      aiEnabled
-      buyerUserId
-      buyerImUserId
-      buyerNickname
-      orderId
-      latestMessageTime
-      latestMessageId
-      latestMessageIndex
-      latestMessageType
-      latestSenderRole
-      latestMessagePreview
-      lastPendingAt
-      resolvedAt
-      updatedAt
-      openEscalationCount
-      latestOpenEscalationId
-      latestOpenEscalationStatus
-      latestOpenEscalationUpdatedAt
-      recentBadReviews {
-        id
-        platformReviewId
-        orderId
-        productId
-        sellerSkus
-        height
-      }
+      ...CustomerServiceConversationInboxItemFields
     }
   }
 `;

@@ -438,7 +438,41 @@ describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
     expect(store.ordersWithoutConversation).toHaveLength(0);
   });
 
-  it("ingests the started conversation, selects it, drops the order and starts no AI run", async () => {
+  it("selects an order draft instead of a conversation and loads no messages for it", async () => {
+    const query = vi.fn();
+    const store = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order], selectedConversationId: "conversation-1", selectedConversationShopId: "shop-1" },
+      { apolloClient: { query } as any },
+    );
+    store.selectOrderDraft("shop-1", "order-9");
+    expect(store.selectedConversationId).toBeNull();
+    expect(store.selectedConversationShopId).toBeNull();
+    expect(store.selectedConversation).toBeNull();
+    expect(store.selectedOrderDraft).toEqual(order);
+    await store.fetchConversationMessages();
+    await store.fetchSelectedConversationOrderIds();
+    expect(query).not.toHaveBeenCalled();
+    store.selectConversation("shop-1", "conversation-1");
+    expect(store.selectedOrderDraft).toBeNull();
+  });
+
+  it("shows order drafts on the first page only and drops a selection the refetch no longer returns", async () => {
+    const query = vi.fn().mockResolvedValue({
+      data: { ecommerceGetCustomerServiceInbox: { items: [], totalCount: 0, ordersWithoutConversation: [] } },
+    });
+    const store = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order], conversationPage: 2 },
+      { apolloClient: { query } as any },
+    );
+    expect(store.orderDraftsOnPage).toEqual([]);
+    store.setConversationPage(1);
+    store.selectOrderDraft("shop-1", "order-9");
+    await store.fetchConversations();
+    expect(store.selectedOrderDraft).toBeNull();
+    expect(store.selectedOrderDraftOrderId).toBeNull();
+  });
+
+  it("creates the conversation, moves the selection to it, keeps the draft text and starts no AI run", async () => {
     const mutate = vi.fn().mockResolvedValue({
       data: { ecommerceStartCustomerServiceConversationFromOrder: started },
     });
@@ -446,8 +480,11 @@ describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
       { ordersWithoutConversation: [order, { ...order, orderId: "order-10" }] },
       { apolloClient: { mutate } as any },
     );
-    const ok = await store.startConversationFromOrder("shop-1", "order-9");
-    expect(ok).toBe(true);
+    store.selectOrderDraft("shop-1", "order-9");
+    store.setManualReplyDraft("Hello");
+    const revision = store.selectionRevision;
+    const created = await store.promoteOrderDraft("shop-1", "order-9");
+    expect(created).toEqual({ shopId: "shop-1", conversationId: "conversation-9" });
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({ variables: { shopId: "shop-1", orderId: "order-9" } }),
@@ -455,27 +492,41 @@ describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
     expect(store.conversationItems.map((item) => item.conversationId)).toEqual(["conversation-9"]);
     expect(store.selectedConversationId).toBe("conversation-9");
     expect(store.selectedConversationShopId).toBe("shop-1");
-    expect(store.selectedConversation?.conversationId).toBe("conversation-9");
+    expect(store.selectedOrderDraft).toBeNull();
     expect(store.ordersWithoutConversation.map((o) => o.orderId)).toEqual(["order-10"]);
-    expect(store.isOrderStarting("shop-1", "order-9")).toBe(false);
+    expect(store.manualReplyDraft).toBe("Hello");
+    expect(store.selectionRevision).toBe(revision);
   });
 
-  it("surfaces the backend error, keeps the order and clears the pending flag", async () => {
-    let pendingDuringCall = false;
-    const mutate = vi.fn().mockImplementation(async () => {
-      pendingDuringCall = store.isOrderStarting("shop-1", "order-9");
-      throw new Error("CS_ORDER_NOT_FOUND: order is not synced");
+  it("does not steal the selection when the operator moved on before the conversation was created", async () => {
+    const mutate = vi.fn().mockResolvedValue({
+      data: { ecommerceStartCustomerServiceConversationFromOrder: started },
     });
+    const store = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order, { ...order, orderId: "order-10" }] },
+      { apolloClient: { mutate } as any },
+    );
+    store.selectOrderDraft("shop-1", "order-9");
+    const pending = store.promoteOrderDraft("shop-1", "order-9");
+    store.selectOrderDraft("shop-1", "order-10");
+    await pending;
+    expect(store.selectedConversationId).toBeNull();
+    expect(store.selectedOrderDraft?.orderId).toBe("order-10");
+    expect(store.conversationItems).toHaveLength(1);
+  });
+
+  it("rejects with the backend error and keeps the draft selected with its text", async () => {
+    const mutate = vi.fn().mockRejectedValue(new Error("CS_ORDER_NOT_FOUND: order is not synced"));
     const store = CustomerServiceWorkspaceModel.create(
       { ordersWithoutConversation: [order] },
       { apolloClient: { mutate } as any },
     );
-    const ok = await store.startConversationFromOrder("shop-1", "order-9");
-    expect(ok).toBe(false);
-    expect(pendingDuringCall).toBe(true);
-    expect(store.isOrderStarting("shop-1", "order-9")).toBe(false);
-    expect(store.startOrderError("shop-1", "order-9")).toContain("CS_ORDER_NOT_FOUND");
-    expect(store.ordersWithoutConversation).toHaveLength(1);
+    store.selectOrderDraft("shop-1", "order-9");
+    store.setManualReplyDraft("Hello");
+    await expect(store.promoteOrderDraft("shop-1", "order-9")).rejects.toThrow("CS_ORDER_NOT_FOUND");
+    expect(store.selectedOrderDraft).toEqual(order);
     expect(store.selectedConversationId).toBeNull();
+    expect(store.ordersWithoutConversation).toHaveLength(1);
+    expect(store.manualReplyDraft).toBe("Hello");
   });
 });

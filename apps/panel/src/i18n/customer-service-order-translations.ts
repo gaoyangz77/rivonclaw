@@ -2,8 +2,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   en: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "Orders without a conversation",
-        startConversation: "Start conversation",
+        noMessagesYet: "No messages yet",
         orderListTitle: "Orders · {{count}}",
         ordersLoadFailed: "Could not load the buyer’s orders.",
         ordersEmpty: "No orders found.",
@@ -13,8 +12,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   zh: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "尚无对话的订单",
-        startConversation: "发起会话",
+        noMessagesYet: "暂无消息",
         orderListTitle: "订单 · {{count}}",
         ordersLoadFailed: "买家订单列表加载失败。",
         ordersEmpty: "暂无订单。",
@@ -24,8 +22,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   de: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "Bestellungen ohne Unterhaltung",
-        startConversation: "Unterhaltung starten",
+        noMessagesYet: "Noch keine Nachrichten",
         orderListTitle: "Bestellungen · {{count}}",
         ordersLoadFailed: "Die Bestellungen des Käufers konnten nicht geladen werden.",
         ordersEmpty: "Keine Bestellungen gefunden.",
@@ -35,8 +32,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   es: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "Pedidos sin conversación",
-        startConversation: "Iniciar conversación",
+        noMessagesYet: "Aún no hay mensajes",
         orderListTitle: "Pedidos · {{count}}",
         ordersLoadFailed: "No se pudieron cargar los pedidos del comprador.",
         ordersEmpty: "No se encontraron pedidos.",
@@ -46,8 +42,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   fr: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "Commandes sans conversation",
-        startConversation: "Démarrer la conversation",
+        noMessagesYet: "Aucun message pour le moment",
         orderListTitle: "Commandes · {{count}}",
         ordersLoadFailed: "Impossible de charger les commandes de l’acheteur.",
         ordersEmpty: "Aucune commande trouvée.",
@@ -57,8 +52,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   id: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "Pesanan tanpa percakapan",
-        startConversation: "Mulai percakapan",
+        noMessagesYet: "Belum ada pesan",
         orderListTitle: "Pesanan · {{count}}",
         ordersLoadFailed: "Pesanan pembeli tidak dapat dimuat.",
         ordersEmpty: "Tidak ada pesanan.",
@@ -68,8 +62,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   it: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "Ordini senza conversazione",
-        startConversation: "Avvia conversazione",
+        noMessagesYet: "Nessun messaggio ancora",
         orderListTitle: "Ordini · {{count}}",
         ordersLoadFailed: "Impossibile caricare gli ordini dell’acquirente.",
         ordersEmpty: "Nessun ordine trovato.",
@@ -79,8 +72,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   th: {
     ecommerce: {
       customerServiceWorkspace: {
-        ordersWithoutConversationTitle: "คำสั่งซื้อที่ยังไม่มีการสนทนา",
-        startConversation: "เริ่มการสนทนา",
+        noMessagesYet: "ยังไม่มีข้อความ",
         orderListTitle: "คำสั่งซื้อ · {{count}}",
         ordersLoadFailed: "ไม่สามารถโหลดคำสั่งซื้อของผู้ซื้อได้",
         ordersEmpty: "ไม่พบคำสั่งซื้อ",

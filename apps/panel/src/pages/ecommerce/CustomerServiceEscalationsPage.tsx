@@ -36,12 +36,9 @@ import { ConversationOrderList } from "./components/ConversationOrderList.js";
 import {
   BadReviewBadge,
   CustomerServiceConversationRow,
+  CustomerServiceOrderDraftRow,
   EscalationStateBadge,
 } from "./components/CustomerServiceConversationRow.js";
-import {
-  CustomerServiceOrdersWithoutConversation,
-  type OrderWithoutConversationRow,
-} from "./components/CustomerServiceOrdersWithoutConversation.js";
 import {
   TkPageFrame,
   TkPageHeader,
@@ -64,6 +61,7 @@ import type {
 } from "../../store/models/CustomerServiceWorkspaceModel.js";
 
 type Conversation = GQL.CustomerServiceConversationInboxItem;
+type OrderDraft = GQL.CustomerServiceOrderWithoutConversation;
 const CONVERSATION_SEARCH_ERROR_KEYS: Readonly<Record<string, string>> = {
   CS_ORDER_SEARCH_INVALID: "ecommerce.customerServiceWorkspace.orderSearchInvalid",
   CS_ORDER_SEARCH_LIMIT: "ecommerce.customerServiceWorkspace.orderSearchTooMany",
@@ -391,19 +389,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     );
   }
 
-  const ordersWithoutConversationRows: OrderWithoutConversationRow[] =
-    workspace.ordersWithoutConversation.map((order) => ({
-      shopId: order.shopId,
-      orderId: order.orderId,
-      shop: shopLabel(order.shopId),
-      statusLabel: humanizePlatformValue(order.status),
-      createdLabel: formatCompactDateTime(order.createTime),
-      amountLabel: order.totalAmount
-        ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
-        : "",
-      pending: workspace.isOrderStarting(order.shopId, order.orderId),
-      error: workspace.startOrderError(order.shopId, order.orderId),
-    }));
+  const orderDrafts = workspace.orderDraftsOnPage as OrderDraft[];
+  const selectedOrderDraft = workspace.selectedOrderDraft as OrderDraft | null;
 
   async function copyMeta(label: string, value: string) {
     try {
@@ -913,35 +900,52 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                 )}
                 {workspace.conversationsLoading && conversationItems.length === 0 ? (
                   <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-                ) : conversationItems.length === 0 ? (
+                ) : conversationItems.length === 0 && orderDrafts.length === 0 ? (
                   <div className="affiliate-proposal-empty">
                     {t("ecommerce.customerServiceWorkspace.conversationEmpty")}
                   </div>
                 ) : (
-                  conversationItems.map((item) => (
-                    <CustomerServiceConversationRow
-                      key={`${item.shopId}:${item.conversationId}`}
-                      item={item}
-                      active={
-                        selectedConversation?.conversationId === item.conversationId &&
-                        selectedConversation?.shopId === item.shopId
-                      }
-                      buyerName={buyerLabel(item)}
-                      shopLabel={shopLabel(item.shopId)}
-                      timeLabel={
-                        item.latestMessageTime ? formatCompactDateTime(item.latestMessageTime) : "-"
-                      }
-                      onSelect={() =>
-                        workspace.selectConversation(item.shopId, item.conversationId)
-                      }
-                      onOpenBadReviews={() => setReviewModalConversation(item)}
-                    />
-                  ))
+                  <>
+                    {orderDrafts.map((order) => (
+                      <CustomerServiceOrderDraftRow
+                        key={`draft:${order.shopId}:${order.orderId}`}
+                        active={
+                          selectedOrderDraft?.shopId === order.shopId &&
+                          selectedOrderDraft?.orderId === order.orderId
+                        }
+                        orderId={order.orderId}
+                        shopLabel={shopLabel(order.shopId)}
+                        timeLabel={order.createTime ? formatCompactDateTime(order.createTime) : "-"}
+                        statusLabel={humanizePlatformValue(order.status)}
+                        amountLabel={
+                          order.totalAmount
+                            ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
+                            : ""
+                        }
+                        onSelect={() => workspace.selectOrderDraft(order.shopId, order.orderId)}
+                      />
+                    ))}
+                    {conversationItems.map((item) => (
+                      <CustomerServiceConversationRow
+                        key={`${item.shopId}:${item.conversationId}`}
+                        item={item}
+                        active={
+                          selectedConversation?.conversationId === item.conversationId &&
+                          selectedConversation?.shopId === item.shopId
+                        }
+                        buyerName={buyerLabel(item)}
+                        shopLabel={shopLabel(item.shopId)}
+                        timeLabel={
+                          item.latestMessageTime ? formatCompactDateTime(item.latestMessageTime) : "-"
+                        }
+                        onSelect={() =>
+                          workspace.selectConversation(item.shopId, item.conversationId)
+                        }
+                        onOpenBadReviews={() => setReviewModalConversation(item)}
+                      />
+                    ))}
+                  </>
                 )}
-                <CustomerServiceOrdersWithoutConversation
-                  rows={ordersWithoutConversationRows}
-                  onStart={(shopId, orderId) => void workspace.startConversationFromOrder(shopId, orderId)}
-                />
               </div>
               <div className="cs-escalation-pagination">
                 <button
@@ -1384,9 +1388,38 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       </div>
                     )}
                     <CustomerServiceReplyComposer
-                      key={selectedConversationKey}
+                      key={workspace.selectionRevision}
                       shopId={selectedConversation.shopId}
                       conversationId={selectedConversation.conversationId}
+                    />
+                  </div>
+                </>
+              ) : selectedOrderDraft ? (
+                <>
+                  <div className="cs-conversation-summary">
+                    <div className="cs-conversation-detail-head">
+                      <div>
+                        <div className="cs-conversation-title-row">
+                          <h2>{selectedOrderDraft.orderId}</h2>
+                        </div>
+                        <TkPrivate as="p" sensitive={shopLabel(selectedOrderDraft.shopId).sensitive}>
+                          {shopLabel(selectedOrderDraft.shopId).text}
+                        </TkPrivate>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="cs-message-panel"
+                    aria-label={t("ecommerce.customerServiceWorkspace.messages")}
+                  >
+                    <div className="affiliate-proposal-empty">
+                      {t("ecommerce.customerServiceWorkspace.noMessages")}
+                    </div>
+                    <CustomerServiceReplyComposer
+                      key={workspace.selectionRevision}
+                      shopId={selectedOrderDraft.shopId}
+                      conversationId={null}
+                      orderId={selectedOrderDraft.orderId}
                     />
                   </div>
                 </>

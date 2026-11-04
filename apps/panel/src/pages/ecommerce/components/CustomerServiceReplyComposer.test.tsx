@@ -2,7 +2,10 @@ import { MessageTranslationModel } from "../../../store/models/MessageTranslatio
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
-import { CS_CONVERSATION_INBOX_QUERY } from "../../../api/shops-queries.js";
+import {
+  CS_CONVERSATION_INBOX_QUERY,
+  CS_START_CONVERSATION_FROM_ORDER_MUTATION,
+} from "../../../api/shops-queries.js";
 import i18n from "../../../i18n/index.js";
 import { ToastProvider } from "../../../components/Toast.js";
 import { CustomerServiceWorkspaceModel } from "../../../store/models/CustomerServiceWorkspaceModel.js";
@@ -211,5 +214,101 @@ describe("customer service translation preview", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(state.workspace.manualReplyDraft).toBe("你好");
     expect(state.mutate).not.toHaveBeenCalled();
+  });
+});
+
+describe("customer service order draft first send", () => {
+  const order = { shopId: "shop-1", orderId: "order-9", buyerUserId: "buyer-9" };
+  const started = {
+    shopId: "shop-1",
+    platformShopId: "shop-1",
+    conversationId: "chat-9",
+    status: GQL.CustomerServiceConversationStatus.Pending,
+    isOpen: true,
+    aiEnabled: true,
+    openEscalationCount: 0,
+    orderId: "order-9",
+  };
+  const startCalls = () =>
+    state.mutate.mock.calls.filter(
+      ([options]) => options.mutation === CS_START_CONVERSATION_FROM_ORDER_MUTATION,
+    );
+  const textCalls = () =>
+    state.mutate.mock.calls.filter(
+      ([options]) => options.mutation !== CS_START_CONVERSATION_FROM_ORDER_MUTATION,
+    );
+  beforeEach(() => {
+    state.mutate.mockImplementation(async (options: { mutation: unknown }) =>
+      options.mutation === CS_START_CONVERSATION_FROM_ORDER_MUTATION
+        ? { data: { ecommerceStartCustomerServiceConversationFromOrder: started } }
+        : { data: { ecommerceSendCustomerServiceTextReply: { messageId: "text-1" } } },
+    );
+    // After the first send the backend lists the new conversation.
+    state.query.mockResolvedValue({
+      data: {
+        ecommerceGetCustomerServiceInbox: { items: [started], totalCount: 1 },
+        ecommerceGetConversationMessages: { items: [] },
+      },
+    });
+    state.workspace = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order] },
+      { apolloClient: { query: state.query, mutate: state.mutate } as any },
+    );
+    state.workspace.selectOrderDraft("shop-1", "order-9");
+  });
+  const draftView = () => (
+    <ToastProvider>
+      <CustomerServiceReplyComposer shopId="shop-1" conversationId={null} orderId="order-9" />
+    </ToastProvider>
+  );
+
+  it("creates the conversation before sending the first text and moves the selection to it", async () => {
+    state.workspace.setManualReplyDraft("Hello");
+    render(draftView());
+    send();
+    await waitFor(() => expect(textCalls()).toHaveLength(1));
+    expect(startCalls()).toHaveLength(1);
+    expect(state.mutate.mock.calls[0][0].mutation).toBe(CS_START_CONVERSATION_FROM_ORDER_MUTATION);
+    expect(textCalls()[0][0].variables).toEqual({
+      shopId: "shop-1",
+      conversationId: "chat-9",
+      message: "Hello",
+    });
+    expect(state.workspace.selectedConversationId).toBe("chat-9");
+    expect(state.workspace.selectedOrderDraft).toBeNull();
+    await waitFor(() => expect(state.workspace.manualReplyDraft).toBe(""));
+    // Nothing but the two GraphQL mutations: no AI run was requested.
+    expect(state.sendImage).not.toHaveBeenCalled();
+  });
+
+  it("keeps the order draft, the text and shows the backend error when creation fails", async () => {
+    state.mutate.mockRejectedValue(new Error("CS_ORDER_NOT_FOUND: order is not synced"));
+    state.workspace.setManualReplyDraft("Hello");
+    render(draftView());
+    send();
+    await waitFor(() => expect(screen.getByText(/CS_ORDER_NOT_FOUND/)).toBeTruthy());
+    expect(startCalls()).toHaveLength(1);
+    expect(textCalls()).toHaveLength(0);
+    expect(state.workspace.selectedOrderDraft?.orderId).toBe("order-9");
+    expect(state.workspace.selectedConversationId).toBeNull();
+    expect(state.workspace.manualReplyDraft).toBe("Hello");
+  });
+
+  it("creates the conversation first when the first message is an image, keeping the queued image through the switch", async () => {
+    render(draftView());
+    const file = image();
+    paste(file);
+    send();
+    await waitFor(() => expect(state.sendImage).toHaveBeenCalledOnce());
+    expect(startCalls()).toHaveLength(1);
+    expect(state.sendImage.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        body: file,
+        headers: expect.objectContaining({ "X-Conversation-Id": "chat-9", "X-Shop-Id": "shop-1" }),
+      }),
+    );
+    expect(state.workspace.selectedConversationId).toBe("chat-9");
+    await waitFor(() => expect(screen.queryByRole("img")).toBeNull());
+    expect(textCalls()).toHaveLength(0);
   });
 });
