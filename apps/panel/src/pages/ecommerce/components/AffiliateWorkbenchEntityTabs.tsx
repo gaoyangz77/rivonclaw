@@ -51,7 +51,11 @@ import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
 import { AffiliateSampleOrderCopyButton } from "./AffiliateSampleOrderCopyButton.js";
-import { sampleRejectedStatusLabel, samplePartnerAnnotation } from "./AffiliateSampleReview.js";
+import {
+  AffiliateSamplePartnerBadge,
+  affiliateSampleStatusLabel,
+  isSampleRejectedByPlatform,
+} from "./AffiliateSampleReview.js";
 import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
 import { useWorkbenchPagination } from "../useWorkbenchPagination.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
@@ -1579,34 +1583,26 @@ function SampleStateBadge({
   sampleApplication: GQL.SampleApplicationRecord;
 }) {
   const { t } = useTranslation();
-  if (sampleApplication.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected) {
-    return (
-      <span className="affiliate-workbench-badge">
-        {t("ecommerce.affiliateWorkspace.workbench.sampleStatusIgnored")}
-      </span>
-    );
-  }
-  const rejectedLabel = sampleRejectedStatusLabel(sampleApplication, t);
-  if (rejectedLabel) {
-    return <span className="affiliate-workbench-badge">{rejectedLabel}</span>;
-  }
-  if (sampleApplication.sampleWorkStatus === GQL.SampleWorkStatus.PlatformStatusUnknown) {
-    return (
-      <span className="affiliate-workbench-badge affiliate-workbench-badge-sync">
-        {t("ecommerce.affiliateWorkspace.workbench.sampleSyncIssue")}
-      </span>
-    );
-  }
-  const partnerAnnotation = samplePartnerAnnotation(sampleApplication, t);
+  // A sync issue is only the fallback for a Sample no seller decision or TikTok
+  // rejection explains; those win so the label agrees with every other surface.
+  const isSyncIssue =
+    sampleApplication.sampleWorkStatus === GQL.SampleWorkStatus.PlatformStatusUnknown &&
+    sampleApplication.reviewDisposition !== GQL.AffiliateSampleReviewDisposition.SoftRejected &&
+    !isSampleRejectedByPlatform(sampleApplication);
   return (
     <>
-      <span className="affiliate-workbench-badge">
-        {t(
-          `ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`,
-          { defaultValue: sampleApplication.sampleWorkStatus },
-        )}
+      <AffiliateSamplePartnerBadge sampleApplication={sampleApplication} />
+      <span
+        className={
+          isSyncIssue
+            ? "affiliate-workbench-badge affiliate-workbench-badge-sync"
+            : "affiliate-workbench-badge"
+        }
+      >
+        {isSyncIssue
+          ? t("ecommerce.affiliateWorkspace.workbench.sampleSyncIssue")
+          : affiliateSampleStatusLabel(sampleApplication, t)}
       </span>
-      {partnerAnnotation ? <span className="form-hint">{partnerAnnotation}</span> : null}
     </>
   );
 }

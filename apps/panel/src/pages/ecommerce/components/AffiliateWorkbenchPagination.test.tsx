@@ -52,7 +52,7 @@ function sampleRow(
       skuId: null,
       skuName: null,
       skuImageUrl: null,
-      sampleWorkStatus: null,
+      sampleWorkStatus: "REQUEST_PENDING_REVIEW",
       reviewDisposition: overrides.reviewDisposition,
       reviewDispositionRevision: 1,
       merchantReviewDecision: null,

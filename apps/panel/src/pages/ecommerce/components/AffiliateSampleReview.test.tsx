@@ -6,8 +6,9 @@ import i18n from "../../../i18n/index.js";
 import { runtimeStatusStore } from "../../../store/runtime-status-store.js";
 import {
   AffiliateSampleIgnoreButton,
+  AffiliateSamplePartnerBadge,
   AffiliateSampleShopIdentity,
-  samplePartnerAnnotation,
+  affiliateSampleStatusLabel,
 } from "./AffiliateSampleReview.js";
 
 const { mockStore } = vi.hoisted(() => ({
@@ -77,7 +78,7 @@ describe("ignore sample application", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
     fireEvent.click(button);
     expect(onClick).toHaveBeenCalledOnce();
-    expect(i18n.t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected")).toBe("已忽略");
+    expect(i18n.t("ecommerce.affiliateWorkspace.workbench.sampleStatusIgnored")).toBe("已忽略");
     expect(i18n.t("ecommerce.affiliateWorkspace.workbench.platformReject")).toBe("拒绝");
   });
 
@@ -95,25 +96,64 @@ describe("ignore sample application", () => {
     render(<AffiliateSampleIgnoreButton disabled onClick={onClick} />);
     fireEvent.click(screen.getByRole("button", { name: "Ignore" }));
     expect(onClick).not.toHaveBeenCalled();
-    expect(i18n.t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected")).toBe("Ignored");
+    expect(i18n.t("ecommerce.affiliateWorkspace.workbench.sampleStatusIgnored")).toBe("Ignored");
     expect(i18n.t("ecommerce.affiliateWorkspace.workbench.platformReject")).toBe("Reject");
   });
 });
 
+describe("sample application status label", () => {
+  const sample = (overrides: Record<string, unknown>) =>
+    ({
+      sampleWorkStatus: "REQUEST_PENDING_REVIEW",
+      platformStatus: "PENDING",
+      reviewDisposition: "OPEN",
+      ...overrides,
+    }) as Parameters<typeof affiliateSampleStatusLabel>[0];
+
+  it("puts a seller ignore first, a platform rejection second, then the work status", () => {
+    expect(affiliateSampleStatusLabel(sample({}), i18n.t)).toBe("待审核");
+    expect(
+      affiliateSampleStatusLabel(sample({ sampleWorkStatus: "CANCELLED", platformStatus: "REJECT_CANCELLED" }), i18n.t),
+    ).toBe("已拒绝");
+    expect(
+      affiliateSampleStatusLabel(
+        sample({ platformStatus: "REJECT_CANCELLED", reviewDisposition: "SOFT_REJECTED" }),
+        i18n.t,
+      ),
+    ).toBe("已忽略");
+  });
+
+  it("reads a pending partner review as plain 审核中 because the badge carries the partner", () => {
+    expect(
+      affiliateSampleStatusLabel(sample({ sampleWorkStatus: "REQUEST_PENDING_PARTNER_REVIEW" }), i18n.t),
+    ).toBe("审核中");
+  });
+
+  it("humanizes a work status that has no label", () => {
+    expect(affiliateSampleStatusLabel(sample({ sampleWorkStatus: "SOME_NEW_STATE" }), i18n.t)).toBe(
+      "Some New State",
+    );
+  });
+});
+
 describe("partner-managed sample application", () => {
-  it("annotates the managing partner in every locale and omits it without one", async () => {
-    expect(samplePartnerAnnotation({ partnerName: "VIPStreamers GS" }, i18n.t)).toBe(
-      "由 VIPStreamers GS 管理",
-    );
-    expect(i18n.t("ecommerce.affiliateWorkspace.sampleWorkStatusLabels.REQUEST_PENDING_PARTNER_REVIEW")).toBe(
-      "服务商审核中",
-    );
+  it("marks the application with a service provider badge that names the partner on hover", async () => {
+    const view = render(<AffiliateSamplePartnerBadge sampleApplication={{ partnerName: "VIPStreamers GS" }} />);
+    const badge = screen.getByText("服务商");
+    expect(badge.closest("[title]")?.getAttribute("title")).toBe("由 VIPStreamers GS 管理");
+    view.unmount();
     await i18n.changeLanguage("en");
-    expect(samplePartnerAnnotation({ partnerName: "VIPStreamers GS" }, i18n.t)).toBe(
+    render(<AffiliateSamplePartnerBadge sampleApplication={{ partnerName: " VIPStreamers GS " }} />);
+    expect(screen.getByText("Partner").closest("[title]")?.getAttribute("title")).toBe(
       "Managed by VIPStreamers GS",
     );
-    expect(samplePartnerAnnotation({ partnerName: null }, i18n.t)).toBeNull();
-    expect(samplePartnerAnnotation({ partnerName: "  " }, i18n.t)).toBeNull();
-    expect(samplePartnerAnnotation({}, i18n.t)).toBeNull();
+  });
+
+  it("renders nothing without a partner", () => {
+    for (const partnerName of [null, "  ", undefined]) {
+      const view = render(<AffiliateSamplePartnerBadge sampleApplication={{ partnerName }} />);
+      expect(view.container.firstChild).toBeNull();
+      view.unmount();
+    }
   });
 });

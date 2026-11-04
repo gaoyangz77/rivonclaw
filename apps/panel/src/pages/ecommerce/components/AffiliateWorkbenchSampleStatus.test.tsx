@@ -55,6 +55,47 @@ describe("Affiliate workbench Sample status filter", () => {
     await waitFor(() => expect((screen.getByRole("button", { name: i18n.t("ecommerce.affiliateWorkspace.workbench.reopen") }) as HTMLButtonElement).disabled).toBe(!canOperate));
   });
 
+  it("shows the service provider badge immediately before the status of a partner-managed Sample", async () => {
+    const row = {
+      __typename: "AffiliateWorkbenchSampleRow",
+      creatorGmv: null, creatorPostRate: null, creatorAverageVideoViews: null, creatorUnitsSold: null,
+      creatorPerformanceMarket: null, creatorPerformanceObservedAt: null,
+      id: "sample-row", creatorRelationshipId: "creator", viewerCanPerformDailyOperations: true,
+      hasPendingAgentProposal: false, creatorName: "Creator", creatorUsername: "creator", creatorAvatarUrl: null,
+      shopName: "Shop", productTitle: null, businessDeveloperName: "BD", protected: false,
+      humanOnly: false, sampleTier: null, systemTags: [], manualTags: [], proposal: null,
+      sampleApplication: {
+        __typename: "SampleApplicationRecord",
+        id: "sample", userId: "owner", shopId: "shop", platformApplicationId: "application",
+        creatorRelationshipId: "creator", creatorId: null, creatorOpenId: null,
+        productId: null, skuId: null, skuName: null, skuImageUrl: null,
+        sampleWorkStatus: "REQUEST_PENDING_PARTNER_REVIEW", partnerName: "VIPStreamers GS",
+        reviewDisposition: null, reviewDispositionRevision: 1,
+        merchantReviewDecision: null, merchantReviewExecutionMode: null,
+        merchantReviewRejectReason: null, merchantReviewRejectReasonExplanation: null, merchantReviewNote: null,
+        merchantReviewDecidedAt: null, merchantReviewActorType: null, merchantReviewActor: null,
+        platformStatus: "PENDING", approveExpirationAt: null, projectionRevision: 1, order: null, shippedAt: null, deliveredAt: null,
+        firstObservedAt: "2026-10-01T00:00:00Z", lastObservedAt: "2026-10-01T00:00:00Z",
+      },
+    };
+    render(<MockedProvider mocks={[{
+      request: { query: AFFILIATE_WORKBENCH_SAMPLE_PAGE_QUERY, variables: () => true },
+      result: { data: { affiliateWorkbenchSamplePage: { items: [row], hasMore: false, nextCursor: null, openCount: 0, expiringSoonCount: 0 } } },
+      maxUsageCount: Infinity, delay: 0,
+    }]}><ToastProvider><AffiliateWorkbenchEntityTabs
+      tab="SAMPLES" selectedShopIds={null} shops={[]} onSelectShops={vi.fn()}
+      businessDeveloperOptions={[]} selectedBusinessDeveloperId="" onSelectBusinessDeveloper={vi.fn()}
+      refreshRevision={0} onOpen={vi.fn()}
+    /></ToastProvider></MockedProvider>);
+    await screen.findByText("Creator");
+    const badge = document.querySelector(".affiliate-sample-partner-badge")!;
+    expect(badge.textContent).toBe("服务商");
+    expect(badge.getAttribute("title")).toBe("由 VIPStreamers GS 管理");
+    const status = badge.nextElementSibling!;
+    expect(status.textContent).toBe("审核中");
+    expect(document.querySelector(".form-hint")).toBeNull();
+  });
+
   it("offers every history view and sends ALL as an unfiltered status view", async () => {
     const baseInput = {
       shopId: null,

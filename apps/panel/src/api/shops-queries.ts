@@ -1683,6 +1683,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           platformCollaborationId
           sampleWorkStatus
           partnerName
+          reviewDisposition
+          platformStatus
           trackingNumber
           carrier
           shippedAt
@@ -2122,6 +2124,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         skuImageUrl
         sampleWorkStatus
         partnerName
+        reviewDisposition
+        platformStatus
         observedContentCount
         latestObservedContentAt
         shippedAt
@@ -2245,6 +2249,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           skuImageUrl
           sampleWorkStatus
           partnerName
+          reviewDisposition
+          platformStatus
           observedContentCount
           latestObservedContentAt
           shippedAt
@@ -2277,6 +2283,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           skuImageUrl
           sampleWorkStatus
           partnerName
+          reviewDisposition
+          platformStatus
           observedContentCount
           latestObservedContentAt
           shippedAt
@@ -3035,6 +3043,8 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           skuImageUrl
           sampleWorkStatus
           partnerName
+          reviewDisposition
+          platformStatus
           observedContentCount
           latestObservedContentAt
           updatedAt
@@ -3343,6 +3353,7 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         commissionRate
         sampleWorkStatus
         partnerName
+        reviewDisposition
         platformStatus
         platformFulfillmentStatus
         approveExpirationAt
@@ -3803,7 +3814,7 @@ export const AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT = gql`
     productSummary { productId title coverImage status priceMin priceMax skus { skuId skuName sellerSku price currency } }
     sampleApplication {
       id shopId creatorRelationshipId platformApplicationId productId skuId skuName skuImageUrl
-      sampleWorkStatus partnerName reviewDisposition commissionRate observedContentCount
+      sampleWorkStatus partnerName reviewDisposition platformStatus commissionRate observedContentCount
       updatedAt lastObservedAt firstObservedAt shippedAt deliveredAt carrier trackingNumber
       latestObservedContentId latestObservedContentAt latestObservedContentViewCount
       affiliateCollaborationId platformCollaborationId platformTargetCollaborationId platformOpenCollaborationId

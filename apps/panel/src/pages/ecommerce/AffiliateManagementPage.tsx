@@ -109,8 +109,8 @@ import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleShopIdentity,
   SampleReviewResult,
-  sampleRejectedStatusLabel,
-  samplePartnerAnnotation,
+  AffiliateSamplePartnerBadge,
+  affiliateSampleStatusLabel,
 } from "./components/AffiliateSampleReview.js";
 import { AffiliateActorLabel } from "../../components/ecommerce/AffiliateActorLabel.js";
 import { formatAffiliateActor } from "../../lib/affiliate-actor.js";
@@ -3782,14 +3782,8 @@ function CreatorRelationshipCompactCard({
       })
     : t("ecommerce.affiliateWorkspace.creatorNotInCollaboration");
   const sampleStatus = item.latestSampleApplicationRecord?.sampleWorkStatus ?? null;
-  const sampleStatusLabel = sampleStatus
-    ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleStatus}`, {
-        defaultValue: formatAffiliateEnumLabel(sampleStatus),
-      })
-    : "—";
-  const latestSamplePartner = item.latestSampleApplicationRecord
-    ? samplePartnerAnnotation(item.latestSampleApplicationRecord, t)
-    : null;
+  const latestSample = item.latestSampleApplicationRecord ?? null;
+  const sampleStatusLabel = latestSample ? affiliateSampleStatusLabel(latestSample, t) : "—";
   const sampleStatusDescription = sampleStatus
     ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusDescriptions.${sampleStatus}`, {
         defaultValue: t("ecommerce.affiliateWorkspace.sampleWorkStatusDescriptions.DEFAULT"),
@@ -3989,8 +3983,8 @@ function CreatorRelationshipCompactCard({
           <div>
             <dt>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</dt>
             <dd title={sampleStatusDescription ?? sampleStatusLabel}>
+              {latestSample ? <AffiliateSamplePartnerBadge sampleApplication={latestSample} /> : null}
               {sampleStatusLabel}
-              {latestSamplePartner ? <small className="form-hint">{latestSamplePartner}</small> : null}
             </dd>
           </div>
           <div>
@@ -7214,7 +7208,6 @@ function AffiliateCreatorMessageSampleRefCard({
 }) {
   const { t } = useTranslation();
   const sample = refItem.sampleApplicationRecord;
-  const samplePartner = sample ? samplePartnerAnnotation(sample, t) : null;
   return (
     <div className="affiliate-conversation-card affiliate-conversation-sample-card">
       <div className="affiliate-conversation-card-icon" aria-hidden="true">
@@ -7225,11 +7218,9 @@ function AffiliateCreatorMessageSampleRefCard({
           {t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}
         </strong>
         {sample?.sampleWorkStatus ? <span>
-          {t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sample.sampleWorkStatus}`, {
-                defaultValue: formatAffiliateEnumLabel(sample.sampleWorkStatus),
-              })}
+          <AffiliateSamplePartnerBadge sampleApplication={sample} />
+          {affiliateSampleStatusLabel(sample, t)}
         </span> : null}
-        {samplePartner ? <span className="form-hint">{samplePartner}</span> : null}
         <div className="affiliate-conversation-card-meta">
           <PlatformIdCopy value={refItem.platformApplicationId} />
           {sample?.observedContentCount != null ? (
@@ -9639,12 +9630,8 @@ export function SampleApplicationSummaryCard({
   const sampleOrderId = sampleOrderIdForCard(sampleOrder?.platformOrderId);
   const trackingNumber = sampleOrder?.trackingNumber ?? sampleApplication.trackingNumber;
   const carrier = sampleOrder?.carrier ?? sampleApplication.carrier;
-  const status =
-    sampleRejectedStatusLabel(sampleApplication, t) ??
-    t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`, {
-      defaultValue: formatAffiliateEnumLabel(sampleApplication.sampleWorkStatus),
-    });
-  const partnerAnnotation = samplePartnerAnnotation(sampleApplication, t);
+  const status = affiliateSampleStatusLabel(sampleApplication, t);
+  const partnerName = sampleApplication.partnerName?.trim();
   const detailFields = [
     {
       label: t("ecommerce.affiliateWorkspace.sampleApplication.applicationId"),
@@ -9655,10 +9642,10 @@ export function SampleApplicationSummaryCard({
       value: status,
     },
     // Only a partner-managed application has a service provider to show.
-    ...(partnerAnnotation
+    ...(partnerName
       ? [{
           label: t("ecommerce.affiliateWorkspace.sampleApplication.partner"),
-          value: sampleApplication.partnerName,
+          value: partnerName,
         }]
       : []),
     {
@@ -9720,8 +9707,8 @@ export function SampleApplicationSummaryCard({
   if (compact) return <article className="affiliate-message-sample-card">
     <div className="affiliate-message-entity-title">
       <strong>{t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}</strong>
+      <AffiliateSamplePartnerBadge sampleApplication={sampleApplication} />
       <TkBadge tone="neutral">{t("ecommerce.affiliateWorkspace.messageCards.currentState", { status })}</TkBadge>
-      {partnerAnnotation ? <small className="form-hint">{partnerAnnotation}</small> : null}
     </div>
     <ProductSummaryCard product={productSummary} productId={sampleApplication.productId}
       shopId={shopId ?? sampleApplication.shopId} allowInlineLoad={false} variant="compact"
@@ -9772,10 +9759,8 @@ export function SampleApplicationSummaryCard({
           </div>
         </div>
         <div className="affiliate-collaboration-sample-status">
-          {sampleApplication.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected
-            ? t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected")
-            : status}
-          {partnerAnnotation ? <small className="form-hint">{partnerAnnotation}</small> : null}
+          <AffiliateSamplePartnerBadge sampleApplication={sampleApplication} />
+          {status}
         </div>
       </div>
       {!isEmbedded ? (

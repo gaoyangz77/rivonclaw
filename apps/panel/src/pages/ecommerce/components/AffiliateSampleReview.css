@@ -115,3 +115,12 @@
   content: "·";
   margin-inline-end: var(--tk-v1-space-2);
 }
+
+/* The marker sits before the status text; keep it from stretching or wrapping. */
+.affiliate-sample-partner-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  margin-inline-end: var(--tk-v1-space-2);
+  vertical-align: middle;
+}

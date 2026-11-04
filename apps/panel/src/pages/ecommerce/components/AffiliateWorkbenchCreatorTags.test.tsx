@@ -70,7 +70,7 @@ function sampleRow(index: number) {
       skuId: null,
       skuName: null,
       skuImageUrl: null,
-      sampleWorkStatus: null,
+      sampleWorkStatus: "REQUEST_PENDING_REVIEW",
       reviewDisposition: "OPEN",
       reviewDispositionRevision: 1,
       merchantReviewDecision: null,

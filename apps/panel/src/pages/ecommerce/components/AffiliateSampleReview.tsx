@@ -2,7 +2,7 @@ import { GQL } from "@rivonclaw/core";
 import type { TFunction } from "i18next";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import { TkButton, TkPrivate, TkTooltip } from "../../../components/design-system/index.js";
+import { TkBadge, TkButton, TkPrivate, TkTooltip } from "../../../components/design-system/index.js";
 import { formatAffiliateActor } from "../../../lib/affiliate-actor.js";
 import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
@@ -67,24 +67,68 @@ export function sampleRejectedStatusLabel(
   sampleApplication: Pick<GQL.SampleApplicationRecord, "platformStatus">,
   t: TFunction,
 ): string | null {
-  return sampleApplication.platformStatus === PLATFORM_REJECTED_STATUS
+  return isSampleRejectedByPlatform(sampleApplication)
     ? t("ecommerce.affiliateWorkspace.workbench.sampleStatusRejected")
     : null;
 }
 
+export function isSampleRejectedByPlatform(
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "platformStatus">,
+): boolean {
+  return sampleApplication.platformStatus === PLATFORM_REJECTED_STATUS;
+}
+
 /**
- * "Managed by {partner}" for a Sample Application a service provider / MCN owns on
- * TikTok. The partner name stays on the record for its whole life, so shipped and
- * completed Samples keep the annotation. Null when no partner is recorded.
+ * The one status label every surface shows for a Sample Application, so the same
+ * application never reads differently from page to page. In priority order: the
+ * seller ignored it, TikTok reports it rejected, otherwise our own work status.
  */
-export function samplePartnerAnnotation(
-  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName">,
+export function affiliateSampleStatusLabel(
+  sampleApplication: Pick<
+    GQL.SampleApplicationRecord,
+    "platformStatus" | "reviewDisposition" | "sampleWorkStatus"
+  >,
   t: TFunction,
-): string | null {
+): string {
+  if (sampleApplication.reviewDisposition === GQL.AffiliateSampleReviewDisposition.SoftRejected) {
+    return t("ecommerce.affiliateWorkspace.workbench.sampleStatusIgnored");
+  }
+  const rejected = sampleRejectedStatusLabel(sampleApplication, t);
+  if (rejected) return rejected;
+  return t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`, {
+    defaultValue: humanizeEnum(sampleApplication.sampleWorkStatus),
+  });
+}
+
+function humanizeEnum(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/**
+ * The "Service provider" marker for a Sample Application a service provider / MCN
+ * owns on TikTok. The partner name stays on the record for its whole life, so
+ * shipped and completed Samples keep the marker. Hovering shows who manages it.
+ * Place it immediately before the status text; renders nothing without a partner.
+ */
+export function AffiliateSamplePartnerBadge({
+  sampleApplication,
+}: {
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName">;
+}) {
+  const { t } = useTranslation();
   const partner = sampleApplication.partnerName?.trim();
-  return partner
-    ? t("ecommerce.affiliateWorkspace.sampleApplication.managedByPartner", { partner })
-    : null;
+  if (!partner) return null;
+  return (
+    <span
+      className="affiliate-sample-partner-badge"
+      title={t("ecommerce.affiliateWorkspace.sampleApplication.managedByPartner", { partner })}
+    >
+      <TkBadge tone="info">{t("ecommerce.affiliateWorkspace.sampleApplication.partnerBadge")}</TkBadge>
+    </span>
+  );
 }
 
 type SampleReviewResultRecord = Pick<
