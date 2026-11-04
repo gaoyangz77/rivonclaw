@@ -12,7 +12,11 @@ import {
   CS_CONVERSATION_INBOX_QUERY,
   CS_CONVERSATION_MESSAGES_QUERY,
   CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+  CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY,
   CS_CONVERSATION_ORDER_IDS_QUERY,
+  CS_CONVERSATION_PACKAGE_DETAIL_QUERY,
+  CS_CONVERSATION_ORDER_TRACKING_QUERY,
+  CS_CONVERSATION_RETURN_RECORDS_QUERY,
   CS_OPEN_ESCALATIONS_QUERY,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
@@ -283,6 +287,15 @@ function conversationSnapshotToInboxItem(
   };
 }
 
+export function conversationOrderDetailKey(
+  kind: "tracking" | "packages" | "returnRecords" | "cancellations",
+  shopId: string,
+  orderId: string,
+  returnId?: string,
+): string {
+  return [kind, shopId, orderId, returnId].filter(Boolean).join(":");
+}
+
 export const CustomerServiceWorkspaceModel = types
   .model("CustomerServiceWorkspace", {
     activeTab: types.optional(
@@ -367,6 +380,10 @@ export const CustomerServiceWorkspaceModel = types
     expandedConversationOrderId: types.maybeNull(types.string),
     conversationOrderContextLoadingKeys: types.optional(types.array(types.string), []),
     conversationOrderContextErrors: types.optional(types.map(types.string), {}),
+    /** Live per-order extras (logistics timeline, return negotiation history), keyed by `conversationOrderDetailKey`. */
+    conversationOrderDetails: types.optional(types.map(types.frozen<Record<string, any>>()), {}),
+    conversationOrderDetailLoadingKeys: types.optional(types.array(types.string), []),
+    conversationOrderDetailErrors: types.optional(types.map(types.string), {}),
 
     escalationShopId: types.optional(types.string, ""),
     escalationStatusFilter: types.optional(
@@ -438,6 +455,15 @@ export const CustomerServiceWorkspaceModel = types
       const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
       const key = selected && orderId ? `${selected.shopId}:${orderId}` : null;
       return key ? (self.conversationOrderContextErrors.get(key) ?? null) : null;
+    },
+    orderDetail(key: string) {
+      return self.conversationOrderDetails.get(key) ?? null;
+    },
+    orderDetailLoading(key: string) {
+      return self.conversationOrderDetailLoadingKeys.includes(key);
+    },
+    orderDetailError(key: string) {
+      return self.conversationOrderDetailErrors.get(key) ?? null;
     },
     get selectedConversationOrderIds(): string[] {
       const selected = (self as any)
@@ -592,6 +618,33 @@ export const CustomerServiceWorkspaceModel = types
       if (index < 0) return null;
       return self.escalationItems[index + 1]?.id ?? self.escalationItems[index - 1]?.id ?? null;
     }
+
+    const queryData = async (
+      query: unknown,
+      variables: Record<string, unknown>,
+    ): Promise<any> =>
+      (await client().query({ query: query as any, variables, fetchPolicy: "network-only" })).data;
+
+    /** Loads one live order extra into `conversationOrderDetails`; only the key and variables cross the await. */
+    const loadOrderDetail = flow(function* (
+      key: string,
+      request: () => Promise<any>,
+      pick: (data: any) => Record<string, any>,
+      force: boolean,
+    ) {
+      if (!force && self.conversationOrderDetails.has(key)) return;
+      if (self.conversationOrderDetailLoadingKeys.includes(key)) return;
+      pushUnique(self.conversationOrderDetailLoadingKeys, key);
+      self.conversationOrderDetailErrors.delete(key);
+      try {
+        const data = yield request();
+        self.conversationOrderDetails.set(key, pick(data));
+      } catch (err) {
+        self.conversationOrderDetailErrors.set(key, errorMessage(err));
+      } finally {
+        removeValue(self.conversationOrderDetailLoadingKeys, key);
+      }
+    });
 
     function clearSelection() {
       self.selectedConversationId = null;
@@ -1019,6 +1072,74 @@ export const CustomerServiceWorkspaceModel = types
         } finally {
           removeValue(self.conversationOrderContextLoadingKeys, key);
         }
+      }),
+      fetchSelectedConversationOrderTracking: flow(function* (force = false) {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+        if (!selected || !orderId) return;
+        const { shopId, buyerUserId } = selected;
+        yield loadOrderDetail(
+          conversationOrderDetailKey("tracking", shopId, orderId),
+          () => queryData(CS_CONVERSATION_ORDER_TRACKING_QUERY, { shopId, orderId, buyerUserId: buyerUserId ?? undefined }),
+          (data) => data?.tracking ?? { events: [] },
+          force,
+        );
+      }),
+      fetchSelectedConversationOrderCancellations: flow(function* (force = false) {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+        if (!selected || !orderId) return;
+        const { shopId } = selected;
+        yield loadOrderDetail(
+          conversationOrderDetailKey("cancellations", shopId, orderId),
+          () => queryData(CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY, { shopId, orderId }),
+          (data) => ({ cancellations: data?.cancellations ?? [] }),
+          force,
+        );
+      }),
+      fetchSelectedConversationOrderPackages: flow(function* (packageIds: string[], force = false) {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+        if (!selected || !orderId) return;
+        const { shopId, buyerUserId } = selected;
+        const ids = [...new Set(packageIds)].slice(0, 5);
+        yield loadOrderDetail(
+          conversationOrderDetailKey("packages", shopId, orderId),
+          async () => ({
+            packages: (
+              await Promise.all(
+                ids.map(
+                  async (packageId) =>
+                    (
+                      await queryData(CS_CONVERSATION_PACKAGE_DETAIL_QUERY, {
+                        shopId,
+                        packageId,
+                        buyerUserId: buyerUserId ?? undefined,
+                      })
+                    )?.package,
+                ),
+              )
+            ).filter(Boolean),
+          }),
+          (data) => ({ packages: data.packages }),
+          force,
+        );
+      }),
+      fetchSelectedConversationReturnRecords: flow(function* (returnId: string, force = false) {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const orderId = (self as any).selectedConversationExpandedOrderId as string | null;
+        if (!selected || !orderId) return;
+        const { shopId, buyerUserId } = selected;
+        yield loadOrderDetail(
+          conversationOrderDetailKey("returnRecords", shopId, orderId, returnId),
+          () => queryData(CS_CONVERSATION_RETURN_RECORDS_QUERY, { shopId, returnId, buyerUserId: buyerUserId ?? undefined }),
+          (data) => ({ records: data?.records ?? [] }),
+          force,
+        );
       }),
       fetchOlderConversationMessages: flow(function* (locale?: string) {
         const selected = (self as any)

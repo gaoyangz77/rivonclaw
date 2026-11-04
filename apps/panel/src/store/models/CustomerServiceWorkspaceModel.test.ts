@@ -1,9 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
-import { CustomerServiceWorkspaceModel } from "./CustomerServiceWorkspaceModel.js";
+import {
+  CustomerServiceWorkspaceModel,
+  conversationOrderDetailKey,
+} from "./CustomerServiceWorkspaceModel.js";
 import {
   CS_CONVERSATION_ORDER_IDS_QUERY,
   CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+  CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY,
+  CS_CONVERSATION_ORDER_TRACKING_QUERY,
+  CS_CONVERSATION_PACKAGE_DETAIL_QUERY,
+  CS_CONVERSATION_RETURN_RECORDS_QUERY,
   CS_CONVERSATION_INBOX_QUERY,
 } from "../../api/shops-queries.js";
 
@@ -526,5 +533,141 @@ describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
     expect(store.ordersWithoutConversation).toHaveLength(1);
     expect(store.selectedConversationId).toBeNull();
     expect(store.openingOrderKey).toBeNull();
+  });
+});
+
+describe("CustomerServiceWorkspaceModel order extras", () => {
+  function selectedStore(query: ReturnType<typeof vi.fn>) {
+    const store = CustomerServiceWorkspaceModel.create(
+      { conversationItems: [conversation()] },
+      { apolloClient: { query } as any },
+    );
+    store.selectConversation("shop-1", "conversation-1");
+    return store;
+  }
+
+  it("loads the logistics timeline once per order and refetches when forced", async () => {
+    const query = vi.fn().mockResolvedValue({
+      data: { tracking: { events: [{ description: "Delivered", updateTimeMillis: 2 }] } },
+    });
+    const store = selectedStore(query);
+    const key = conversationOrderDetailKey("tracking", "shop-1", "order-1");
+
+    await store.fetchSelectedConversationOrderTracking();
+    await store.fetchSelectedConversationOrderTracking();
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: CS_CONVERSATION_ORDER_TRACKING_QUERY,
+        variables: { shopId: "shop-1", orderId: "order-1", buyerUserId: "buyer-1" },
+      }),
+    );
+    expect((store.orderDetail(key) as any).events[0].description).toBe("Delivered");
+
+    await store.fetchSelectedConversationOrderTracking(true);
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a logistics failure local and clears it on retry", async () => {
+    const query = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("tracking down"))
+      .mockResolvedValueOnce({ data: { tracking: null } });
+    const store = selectedStore(query);
+    const key = conversationOrderDetailKey("tracking", "shop-1", "order-1");
+
+    await store.fetchSelectedConversationOrderTracking();
+    expect(store.orderDetailError(key)).toContain("tracking down");
+    expect(store.orderDetail(key)).toBeNull();
+    expect(store.orderDetailLoading(key)).toBe(false);
+
+    await store.fetchSelectedConversationOrderTracking(true);
+    expect(store.orderDetailError(key)).toBeNull();
+    expect(store.orderDetail(key)).toEqual({ events: [] });
+  });
+
+  it("loads a return's negotiation history keyed by order and return", async () => {
+    const query = vi.fn().mockResolvedValue({
+      data: { records: [{ event: "ORDER_RETURN", role: "BUYER", createTime: 10 }] },
+    });
+    const store = selectedStore(query);
+
+    await store.fetchSelectedConversationReturnRecords("return-1");
+
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: CS_CONVERSATION_RETURN_RECORDS_QUERY,
+        variables: { shopId: "shop-1", returnId: "return-1", buyerUserId: "buyer-1" },
+      }),
+    );
+    const key = conversationOrderDetailKey("returnRecords", "shop-1", "order-1", "return-1");
+    expect((store.orderDetail(key) as any).records[0].event).toBe("ORDER_RETURN");
+  });
+
+  it("loads cancellations on their own so a failure never touches the order context", async () => {
+    const query = vi.fn().mockImplementation(async ({ query: document }) => {
+      if (document === CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY) throw new Error("cancel down");
+      return { data: { order: { orderId: "order-1", lineItems: [] }, returns: [] } };
+    });
+    const store = selectedStore(query);
+    const key = conversationOrderDetailKey("cancellations", "shop-1", "order-1");
+
+    await store.fetchSelectedConversationOrderContext();
+    await store.fetchSelectedConversationOrderCancellations();
+
+    expect(store.selectedConversationOrderContextError).toBeNull();
+    expect((store.selectedConversationOrderContext as any)?.order.orderId).toBe("order-1");
+    expect(store.orderDetailError(key)).toContain("cancel down");
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY,
+        variables: { shopId: "shop-1", orderId: "order-1" },
+      }),
+    );
+  });
+
+  it("loads package details for the distinct package ids, capped at five, and caches them", async () => {
+    const query = vi.fn().mockImplementation(async ({ variables }) => ({
+      data: {
+        package: {
+          packageId: variables.packageId,
+          trackingNumber: `TN-${variables.packageId}`,
+          lastMileTrackingNumber: null,
+          shippingProviderName: "EVRi",
+        },
+      },
+    }));
+    const store = selectedStore(query);
+    const key = conversationOrderDetailKey("packages", "shop-1", "order-1");
+    const ids = ["p1", "p2", "p1", "p3", "p4", "p5", "p6"];
+
+    await store.fetchSelectedConversationOrderPackages(ids);
+    await store.fetchSelectedConversationOrderPackages(ids);
+
+    expect(query).toHaveBeenCalledTimes(5);
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: CS_CONVERSATION_PACKAGE_DETAIL_QUERY,
+        variables: { shopId: "shop-1", packageId: "p1", buyerUserId: "buyer-1" },
+      }),
+    );
+    expect((store.orderDetail(key) as any).packages.map((p: any) => p.trackingNumber)).toEqual([
+      "TN-p1",
+      "TN-p2",
+      "TN-p3",
+      "TN-p4",
+      "TN-p5",
+    ]);
+  });
+
+  it("records a package lookup failure under its own key", async () => {
+    const query = vi.fn().mockRejectedValue(new Error("package down"));
+    const store = selectedStore(query);
+    const key = conversationOrderDetailKey("packages", "shop-1", "order-1");
+
+    await store.fetchSelectedConversationOrderPackages(["p1"]);
+
+    expect(store.orderDetailError(key)).toContain("package down");
+    expect(store.orderDetail(key)).toBeNull();
   });
 });

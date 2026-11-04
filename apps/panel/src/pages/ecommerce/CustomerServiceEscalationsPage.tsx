@@ -34,6 +34,15 @@ import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConversationOrderList } from "./components/ConversationOrderList.js";
 import {
+  OrderAfterSalesSection,
+  OrderLogisticsSection,
+} from "./components/ConversationOrderDetails.js";
+import {
+  formatCompactDateTime,
+  formatOrderMoney,
+  humanizePlatformValue,
+} from "./customer-service-order-utils.js";
+import {
   BadReviewBadge,
   CustomerServiceConversationRow,
   CustomerServiceOrderDraftRow,
@@ -51,7 +60,9 @@ import {
   TkTableFrame,
   TkTabs,
 } from "../../components/design-system/index.js";
+import type { Instance } from "mobx-state-tree";
 import type {
+  CustomerServiceWorkspaceModel,
   ConversationAiFilter,
   ConversationBadReviewFilter,
   ConversationEscalationFilter,
@@ -259,6 +270,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       !workspace.selectedConversationOrderIdsLoading
     ) {
       void workspace.fetchSelectedConversationOrderContext();
+      void workspace.fetchSelectedConversationOrderTracking();
+      void workspace.fetchSelectedConversationOrderCancellations();
     }
   }, [
     workspace,
@@ -1215,13 +1228,17 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                               detailError={workspace.selectedConversationOrderContextError}
                               onToggle={(orderId) => workspace.toggleConversationOrder(orderId)}
                               onRetryIds={() => void workspace.fetchSelectedConversationOrderIds()}
-                              onRefresh={() =>
-                                void workspace.fetchSelectedConversationOrderContext(true)
-                              }
+                              onRefresh={() => {
+                                void workspace.fetchSelectedConversationOrderContext(true);
+                                void workspace.fetchSelectedConversationOrderTracking(true);
+                                void workspace.fetchSelectedConversationOrderCancellations(true);
+                              }}
                             >
                               {selectedConversationOrderContext ? (
                                 <ConversationOrderPopover
                                   context={selectedConversationOrderContext}
+                                  workspace={workspace}
+                                  shopId={selectedConversation.shopId}
                                   copiedMeta={workspace.copiedMeta}
                                   locale={i18n.language}
                                   onCopy={copyMeta}
@@ -2104,11 +2121,15 @@ const EndSessionConfirmModal = observer(function EndSessionConfirmModal({
 
 function ConversationOrderPopover({
   context,
+  workspace,
+  shopId,
   copiedMeta,
   locale,
   onCopy,
 }: {
   context: ConversationOrderContext;
+  workspace: Instance<typeof CustomerServiceWorkspaceModel>;
+  shopId: string;
   copiedMeta: string | null;
   locale: string;
   onCopy: (label: string, value: string) => Promise<void>;
@@ -2172,16 +2193,39 @@ function ConversationOrderPopover({
               <strong>{formatCompactDateTime(order.createTime)}</strong>
             </div>
           )}
-          {order && (order.shippingProvider || order.trackingNumber) && (
+          {order?.paidTime ? (
             <div>
-              <span>{t("ecommerce.customerServiceWorkspace.shipping")}</span>
-              <strong>
-                {[order.shippingProvider, order.trackingNumber].filter(Boolean).join(" · ")}
-              </strong>
+              <span>{t("ecommerce.customerServiceWorkspace.paidAt")}</span>
+              <strong>{formatCompactDateTime(order.paidTime)}</strong>
             </div>
-          )}
+          ) : null}
+          {order?.deliveryTime ? (
+            <div>
+              <span>{t("ecommerce.customerServiceWorkspace.deliveredAt")}</span>
+              <strong>{formatCompactDateTime(order.deliveryTime)}</strong>
+            </div>
+          ) : null}
+          {order?.paymentMethodName ? (
+            <div>
+              <span>{t("ecommerce.customerServiceWorkspace.paymentMethod")}</span>
+              <strong>{order.paymentMethodName}</strong>
+            </div>
+          ) : null}
         </div>
       </section>
+
+      {order && (
+        <OrderLogisticsSection
+          workspace={workspace}
+          shopId={shopId}
+          orderId={context.orderId}
+          shippingProvider={order.shippingProvider}
+          trackingNumbers={orderTrackingNumbers(order)}
+          packageIds={orderPackageIds(order)}
+          copiedMeta={copiedMeta}
+          onCopy={onCopy}
+        />
+      )}
 
       {order && (
         <section className="cs-order-context-section">
@@ -2303,47 +2347,34 @@ function ConversationOrderPopover({
         </section>
       )}
 
-      <section className="cs-order-context-section">
-        <h4>{t("ecommerce.customerServiceWorkspace.afterSales", { count: returns.length })}</h4>
-        {returns.length === 0 ? (
-          <p className="cs-order-empty">{t("ecommerce.customerServiceWorkspace.noAfterSales")}</p>
-        ) : (
-          <div className="cs-order-returns">
-            {returns.map((item) => (
-              <article className="cs-order-return" key={item.returnId}>
-                <div className="cs-order-return-head">
-                  <strong>
-                    {humanizePlatformValue(item.returnType) ||
-                      t("ecommerce.customerServiceWorkspace.afterSaleRequest")}
-                  </strong>
-                  <span>
-                    {humanizePlatformValue(item.returnStatus) ||
-                      t("ecommerce.customerServiceWorkspace.unknownStatus")}
-                  </span>
-                </div>
-                {(item.returnReasonText || item.returnReason) && (
-                  <p>{item.returnReasonText || humanizePlatformValue(item.returnReason)}</p>
-                )}
-                <div className="cs-order-return-meta">
-                  <code>{shortId(item.returnId)}</code>
-                  {item.refundAmount?.refundTotal && (
-                    <strong>
-                      {formatOrderMoney(
-                        item.refundAmount.refundTotal,
-                        item.refundAmount.currency ?? order?.currency,
-                        locale,
-                      )}
-                    </strong>
-                  )}
-                  <span>{formatCompactDateTime(item.updateTime ?? item.createTime)}</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      <OrderAfterSalesSection
+        workspace={workspace}
+        shopId={shopId}
+        orderId={context.orderId}
+        returns={returns}
+        currency={order?.currency}
+        locale={locale}
+      />
     </div>
   );
+}
+
+/** Order-level number first; some orders only carry it on their line items. */
+function orderTrackingNumbers(order: GQL.EcomOrder): string[] {
+  const numbers = order.trackingNumber
+    ? [order.trackingNumber]
+    : (order.lineItems ?? []).map((item) => item.trackingNumber);
+  return [...new Set(numbers.map((value) => value?.trim()).filter((v): v is string => Boolean(v)))];
+}
+
+function orderPackageIds(order: GQL.EcomOrder): string[] {
+  return [
+    ...new Set(
+      (order.lineItems ?? [])
+        .map((item) => item.packageId?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ].slice(0, 5);
 }
 
 function CopyOrderField({
@@ -2667,46 +2698,6 @@ function escalationStatusLabel(status: GQL.CsEscalationStatus, t: (key: string) 
   if (status === GQL.CsEscalationStatus.Closed)
     return t("ecommerce.customerServiceWorkspace.statusClosed");
   return t("ecommerce.customerServiceWorkspace.statusPending");
-}
-
-function formatCompactDateTime(value?: string | number | null): string {
-  if (value == null) return "-";
-  const date = typeof value === "number" ? new Date(value * 1000) : value;
-  return formatLocalizedDateTime(
-    date,
-    panelI18n.language,
-    { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
-    "-",
-  );
-}
-
-function formatOrderMoney(
-  value?: string | null,
-  currency?: string | null,
-  locale?: string,
-): string {
-  if (!value) return "-";
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || !currency) return [currency, value].filter(Boolean).join(" ");
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${value}`;
-  }
-}
-
-function humanizePlatformValue(value?: string | null): string {
-  if (!value) return "";
-  return value
-    .toLowerCase()
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function formatDateTime(value?: string | null): string {

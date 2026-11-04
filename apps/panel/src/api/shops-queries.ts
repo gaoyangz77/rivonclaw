@@ -1306,6 +1306,7 @@ export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
         currency
         displayStatus
         packageStatus
+        packageId
         trackingNumber
       }
     }
@@ -1342,6 +1343,93 @@ export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
           refundTotal
         }
       }
+    }
+  }
+`;
+
+export const CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY = gql`
+  query CustomerServiceConversationOrderCancellations($shopId: String!, $orderId: String!) {
+    cancellations: ecommerceSearchCancellations(
+      shopId: $shopId
+      orderIds: [$orderId]
+      limit: 20
+    ) {
+      cancelId
+      orderId
+      cancelType
+      cancelStatus
+      cancelReason
+      cancelReasonText
+      role
+      createTime
+      updateTime
+      refundAmount {
+        currency
+        refundTotal
+      }
+    }
+  }
+`;
+
+export const CS_CONVERSATION_PACKAGE_DETAIL_QUERY = gql`
+  query CustomerServiceConversationPackageDetail(
+    $shopId: String!
+    $packageId: String!
+    $buyerUserId: String
+  ) {
+    package: ecommerceGetPackageDetail(
+      shopId: $shopId
+      packageId: $packageId
+      buyerUserId: $buyerUserId
+    ) {
+      packageId
+      trackingNumber
+      lastMileTrackingNumber
+      shippingProviderName
+    }
+  }
+`;
+
+export const CS_CONVERSATION_ORDER_TRACKING_QUERY = gql`
+  query CustomerServiceConversationOrderTracking(
+    $shopId: String!
+    $orderId: String!
+    $buyerUserId: String
+  ) {
+    tracking: ecommerceGetFulfillmentTracking(
+      shopId: $shopId
+      orderId: $orderId
+      buyerUserId: $buyerUserId
+    ) {
+      orderId
+      shippingProvider
+      trackingNumber
+      events {
+        actionCode
+        description
+        updateTimeMillis
+      }
+    }
+  }
+`;
+
+export const CS_CONVERSATION_RETURN_RECORDS_QUERY = gql`
+  query CustomerServiceConversationReturnRecords(
+    $shopId: String!
+    $returnId: String!
+    $buyerUserId: String
+  ) {
+    records: ecommerceGetReturnRecords(
+      shopId: $shopId
+      returnId: $returnId
+      buyerUserId: $buyerUserId
+    ) {
+      event
+      role
+      description
+      reasonText
+      note
+      createTime
     }
   }
 `;

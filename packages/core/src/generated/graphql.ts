@@ -9585,11 +9585,17 @@ export interface EcomPackage {
 /** Detailed package info */
 export interface EcomPackageDetail {
   hasMultiSkus?: Maybe<Scalars["Boolean"]["output"]>;
+  /** Last-mile carrier tracking number, when the package is handed over. */
+  lastMileTrackingNumber?: Maybe<Scalars["String"]["output"]>;
   orders?: Maybe<Array<EcomPackageOrder>>;
   packageId: Scalars["String"]["output"];
   packageStatus?: Maybe<Scalars["String"]["output"]>;
   packageSubStatus?: Maybe<Scalars["String"]["output"]>;
+  /** Display name of the shipping provider. */
+  shippingProviderName?: Maybe<Scalars["String"]["output"]>;
   splitAndCombineTag?: Maybe<Scalars["String"]["output"]>;
+  /** Carrier tracking number of the package. */
+  trackingNumber?: Maybe<Scalars["String"]["output"]>;
 }
 
 /** Order contained in a package */

@@ -466,8 +466,8 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 21;
-  width: min(390px, calc(100vw - 56px));
-  max-height: min(560px, calc(100vh - 190px));
+  width: min(640px, calc(100vw - 56px));
+  max-height: calc(100vh - 160px);
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
   background: var(--color-bg);
@@ -654,7 +654,12 @@
 
 .cs-order-context-meta {
   display: grid;
-  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tk-v1-space-2);
+}
+
+.cs-order-context-meta > :first-child {
+  grid-column: 1 / -1;
 }
 
 .cs-order-context-meta .cs-meta-copy {
@@ -691,9 +696,15 @@
   white-space: nowrap;
 }
 
-.cs-order-recipient-details {
+.cs-order-recipient-details,
+.cs-order-logistics-head {
   display: grid;
-  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tk-v1-space-2);
+}
+
+.cs-order-recipient-field.multiline {
+  grid-column: 1 / -1;
 }
 
 .cs-order-recipient-field {
@@ -2117,4 +2128,77 @@
 
 .affiliate-proposal-toolbar .btn {
   flex-shrink: 0;
+}
+
+.cs-order-logistics-head {
+  margin-bottom: var(--tk-v1-space-2);
+}
+
+.cs-order-logistics-head .cs-order-recipient-field {
+  grid-template-columns: 72px minmax(0, 1fr) 18px;
+}
+
+.cs-order-logistics-head .cs-order-recipient-field:not(.copyable) {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.cs-order-inline-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-2);
+  color: var(--color-danger);
+  font-size: 11.5px;
+}
+
+.cs-order-timeline {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: var(--tk-v1-space-2);
+  list-style: none;
+}
+
+.cs-order-timeline li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--tk-v1-space-2);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.cs-order-timeline time {
+  color: var(--color-text-muted);
+}
+
+.cs-order-timeline li > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.cs-order-timeline-line {
+  color: var(--color-text-muted);
+}
+
+.cs-order-return-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-3);
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+
+.cs-order-history-toggle {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
 }
