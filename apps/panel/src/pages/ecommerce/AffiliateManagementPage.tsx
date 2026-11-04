@@ -91,7 +91,7 @@ import {
 } from "../../components/icons.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
-import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
+import { graphQLErrorCode, graphQLErrorExtensions } from "../../lib/graphql-error-code.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
 import {
   affiliateProposalDecisionApplied,
@@ -8913,13 +8913,25 @@ function actionProposalDecisionNote(
   );
 }
 
+/** TikTok's refusal of an approval, quoting the code and message TikTok returned. */
+function sampleApprovalRefusedMessage(
+  t: ReturnType<typeof useTranslation>["t"],
+  error: unknown,
+): string {
+  const extensions = graphQLErrorExtensions(error);
+  return t("ecommerce.affiliateWorkspace.sampleApprovalRefused", {
+    code: String(extensions?.providerCode ?? ""),
+    message: String(extensions?.providerMessage ?? ""),
+  });
+}
+
 /** The toast for a failed proposal decision; TikTok's refusal of an approval gets its own wording. */
 function proposalDecisionErrorMessage(
   t: ReturnType<typeof useTranslation>["t"],
   error: unknown,
 ): string {
   if (graphQLErrorCode(error) === SAMPLE_APPROVAL_REFUSED_BY_PLATFORM) {
-    return t("ecommerce.affiliateWorkspace.sampleApprovalRefused");
+    return sampleApprovalRefusedMessage(t, error);
   }
   return error instanceof Error ? error.message : t("ecommerce.updateFailed");
 }
@@ -11279,7 +11291,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
         setSampleReviewCommand(null);
         setSampleRejectExplanation("");
         setSampleReviewNote("");
-        showToast(t("ecommerce.affiliateWorkspace.sampleApprovalRefused"), "error");
+        showToast(sampleApprovalRefusedMessage(t, error), "error");
         onWorkbenchEntityChanged?.();
         void Promise.all([
           ...(visibleQueriesRef.current.samplesVisible ? [sampleQuery.refetch()] : []),

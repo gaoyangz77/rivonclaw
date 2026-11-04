@@ -16,3 +16,16 @@ export function graphQLErrorCode(error: unknown): string | null {
   const code = value.graphQLErrors?.[0]?.extensions?.code ?? value.errors?.[0]?.extensions?.code;
   return typeof code === "string" ? code : null;
 }
+
+/**
+ * The `extensions` of the first GraphQL error carried by an Apollo failure, or
+ * null when there is none. Same shapes as {@link graphQLErrorCode}.
+ */
+export function graphQLErrorExtensions(error: unknown): Record<string, unknown> | null {
+  if (!error || typeof error !== "object") return null;
+  const value = error as {
+    graphQLErrors?: Array<{ extensions?: Record<string, unknown> }>;
+    errors?: Array<{ extensions?: Record<string, unknown> }>;
+  };
+  return value.graphQLErrors?.[0]?.extensions ?? value.errors?.[0]?.extensions ?? null;
+}

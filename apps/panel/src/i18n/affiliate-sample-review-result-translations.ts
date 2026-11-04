@@ -10,7 +10,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   en: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok could not create the sample order for this application, so it is still pending review. Check the product's sample stock or sample settings and try again, or choose Reject.",
+        sampleApprovalRefused: "TikTok refused this approval: \"{{message}}\" ({{code}}), without giving a reason. The application is still pending review. Try again later, or approve it directly in TikTok Seller Center to see the specific reason.",
         sampleReviewResult: {
           label: "Review result",
           rejectReason: "Rejection reason: {{reason}}",
@@ -22,7 +22,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   zh: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok 无法为这条申样创建样品订单，申样仍为待审核。可检查商品的样品库存或样品设置后重试，或选择拒绝。",
+        sampleApprovalRefused: "TikTok 拒绝了这次审批：“{{message}}”（{{code}}），未说明具体原因。申样仍为待审核，可以稍后重试，或在 TikTok 卖家中心直接审批这条申样以查看具体原因。",
         sampleReviewResult: {
           label: "审核结果",
           rejectReason: "拒绝理由：{{reason}}",
@@ -34,7 +34,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   de: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok konnte für diese Anfrage keine Musterbestellung erstellen, daher bleibt sie in Prüfung. Prüfe den Musterbestand oder die Mustereinstellungen des Produkts und versuche es erneut, oder wähle Ablehnen.",
+        sampleApprovalRefused: "TikTok hat diese Genehmigung abgelehnt: „{{message}}“ ({{code}}), ohne Angabe eines Grundes. Die Anfrage bleibt in Prüfung. Versuche es später erneut oder genehmige sie direkt im TikTok Seller Center, um den genauen Grund zu sehen.",
         sampleReviewResult: {
           label: "Prüfergebnis",
           rejectReason: "Ablehnungsgrund: {{reason}}",
@@ -46,7 +46,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   es: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok no pudo crear el pedido de muestra para esta solicitud, por lo que sigue pendiente de revisión. Revisa el stock o la configuración de muestras del producto y vuelve a intentarlo, o elige Rechazar.",
+        sampleApprovalRefused: "TikTok rechazó esta aprobación: \"{{message}}\" ({{code}}), sin indicar el motivo. La solicitud sigue pendiente de revisión. Vuelve a intentarlo más tarde o apruébala directamente en TikTok Seller Center para ver el motivo concreto.",
         sampleReviewResult: {
           label: "Resultado de la revisión",
           rejectReason: "Motivo del rechazo: {{reason}}",
@@ -58,7 +58,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   fr: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok n'a pas pu créer la commande d'échantillon pour cette demande, elle reste donc en attente de vérification. Vérifiez le stock d'échantillons ou les réglages d'échantillons du produit puis réessayez, ou choisissez Refuser.",
+        sampleApprovalRefused: "TikTok a refusé cette approbation : « {{message}} » ({{code}}), sans en préciser la raison. La demande reste en attente de vérification. Réessayez plus tard ou approuvez-la directement dans TikTok Seller Center pour voir la raison exacte.",
         sampleReviewResult: {
           label: "Résultat de la vérification",
           rejectReason: "Motif du refus : {{reason}}",
@@ -70,7 +70,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   id: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok tidak dapat membuat pesanan sampel untuk permintaan ini, sehingga statusnya masih menunggu peninjauan. Periksa stok sampel atau pengaturan sampel produk lalu coba lagi, atau pilih Tolak.",
+        sampleApprovalRefused: "TikTok menolak persetujuan ini: \"{{message}}\" ({{code}}), tanpa menyebutkan alasannya. Permintaan masih menunggu peninjauan. Coba lagi nanti, atau setujui langsung di TikTok Seller Center untuk melihat alasan spesifiknya.",
         sampleReviewResult: {
           label: "Hasil peninjauan",
           rejectReason: "Alasan penolakan: {{reason}}",
@@ -82,7 +82,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   it: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok non è riuscito a creare l'ordine campione per questa richiesta, quindi resta in attesa di verifica. Controlla la disponibilità o le impostazioni dei campioni del prodotto e riprova, oppure scegli Rifiuta.",
+        sampleApprovalRefused: "TikTok ha rifiutato questa approvazione: \"{{message}}\" ({{code}}), senza indicarne il motivo. La richiesta resta in attesa di verifica. Riprova più tardi oppure approvala direttamente in TikTok Seller Center per vedere il motivo preciso.",
         sampleReviewResult: {
           label: "Esito della revisione",
           rejectReason: "Motivo del rifiuto: {{reason}}",
@@ -94,7 +94,7 @@ export const AFFILIATE_SAMPLE_REVIEW_RESULT_TRANSLATIONS = {
   th: {
     ecommerce: {
       affiliateWorkspace: {
-        sampleApprovalRefused: "TikTok ไม่สามารถสร้างคำสั่งซื้อตัวอย่างสำหรับคำขอนี้ได้ คำขอจึงยังรอการตรวจสอบ โปรดตรวจสอบสต็อกหรือการตั้งค่าตัวอย่างของสินค้าแล้วลองอีกครั้ง หรือเลือกปฏิเสธ",
+        sampleApprovalRefused: "TikTok ปฏิเสธการอนุมัตินี้: \"{{message}}\" ({{code}}) โดยไม่ระบุสาเหตุ คำขอยังรอการตรวจสอบ โปรดลองอีกครั้งภายหลัง หรืออนุมัติโดยตรงใน TikTok Seller Center เพื่อดูสาเหตุที่แน่ชัด",
         sampleReviewResult: {
           label: "ผลการตรวจสอบ",
           rejectReason: "เหตุผลที่ปฏิเสธ: {{reason}}",
