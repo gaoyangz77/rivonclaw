@@ -30,6 +30,9 @@ export const SITE_LANGUAGES: Record<GQL.ShopRegion, string> = {
 export function siteLanguage(site?: string | null): string {
   return SITE_LANGUAGES[site?.toUpperCase() as GQL.ShopRegion] ?? "en";
 }
+export function languageLabel(code: string, locale: string): string {
+  return new Intl.DisplayNames([locale], { type: "language" }).of(code) ?? code;
+}
 export function translationIdentity(
   user: { userId: string; accountId?: string } | null | undefined,
 ): string {

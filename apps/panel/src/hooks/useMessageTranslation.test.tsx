@@ -14,7 +14,7 @@ vi.mock("../store/EntityStoreProvider.js", () => ({
     messageTranslation: { translate: state.translate },
   }),
 }));
-function View({ route = "one", draft = "你好" }: { route?: string; draft?: string }) {
+function View({ route = "one", draft = "你好", auto = false }: { route?: string; draft?: string; auto?: boolean }) {
   const controller = useMessageTranslation({
     routeKey: route,
     text: draft,
@@ -27,7 +27,7 @@ function View({ route = "one", draft = "你好" }: { route?: string; draft?: str
   });
   return (
     <>
-      <button onClick={() => void controller.generate()}>Translate</button>
+      <button onClick={() => void controller.generate({ autoSend: auto })}>Translate</button>
       <MessageTranslationPreview controller={controller} />
     </>
   );
@@ -101,6 +101,41 @@ describe("translation request lifetime", () => {
     await waitFor(() => expect(screen.getByDisplayValue("Hola")).toBeTruthy());
     view.rerender(<View draft="新草稿" />);
     fireEvent.click(screen.getByRole("button", { name: "发送译文" }));
+    expect(state.send).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+describe("one-click send", () => {
+  it("sends without a modal when the language came from messages", async () => {
+    state.translate.mockResolvedValue({ language: "fr", source: "messages", text: "Bonjour" });
+    state.send.mockResolvedValue({ complete: true });
+    render(<View auto />);
+    fireEvent.click(screen.getByText("Translate"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(state.send).toHaveBeenCalledWith("Bonjour", false, "fr"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+  it("opens the modal for a site-default language and does not send", async () => {
+    state.translate.mockResolvedValue({ language: "es", source: "site", text: "Hola" });
+    render(<View auto />);
+    fireEvent.click(screen.getByText("Translate"));
+    await waitFor(() => expect(screen.getByDisplayValue("Hola")).toBeTruthy());
+    expect(state.send).not.toHaveBeenCalled();
+  });
+  it("opens the modal for the default flow even with a messages-based language", async () => {
+    state.translate.mockResolvedValue({ language: "fr", source: "messages", text: "Bonjour" });
+    render(<View />);
+    fireEvent.click(screen.getByText("Translate"));
+    await waitFor(() => expect(screen.getByDisplayValue("Bonjour")).toBeTruthy());
+    expect(state.send).not.toHaveBeenCalled();
+  });
+  it("sends nothing when the draft changed while translating", async () => {
+    let finish!: (value: unknown) => void;
+    state.translate.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const view = render(<View auto />);
+    fireEvent.click(screen.getByText("Translate"));
+    view.rerender(<View auto draft="新草稿" />);
+    await act(async () => finish({ language: "fr", source: "messages", text: "Bonjour" }));
     expect(state.send).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
   });

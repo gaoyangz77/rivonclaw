@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { TkAlert, TkBadge, TkButton, TkModal } from "../design-system/index.js";
 import type { useMessageTranslation } from "../../hooks/useMessageTranslation.js";
+import { languageLabel } from "../../lib/message-translation.js";
 import "./MessageTranslationPreview.css";
 
 export function MessageTranslationPreview({
@@ -11,10 +12,7 @@ export function MessageTranslationPreview({
   const { t, i18n } = useTranslation();
   const preview = controller.preview;
   if (!preview) return null;
-  const language = preview.language
-    ? (new Intl.DisplayNames([i18n.language], { type: "language" }).of(preview.language) ??
-      preview.language)
-    : null;
+  const language = preview.language ? languageLabel(preview.language, i18n.language) : null;
   return (
     <TkModal
       isOpen
@@ -36,6 +34,9 @@ export function MessageTranslationPreview({
           <span>{t("messageTranslation.original")}</span>
           <textarea className="form-input" value={preview.original} readOnly rows={3} />
         </label>
+        {preview.fromAutoSend && preview.source === "site" && !preview.textSent ? (
+          <p className="form-hint">{t("messageTranslation.siteReview")}</p>
+        ) : null}
         {preview.loading ? <p role="status">{t("messageTranslation.generating")}</p> : null}
         {preview.language ? (
           <label className="message-translation-field">

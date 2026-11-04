@@ -5,6 +5,7 @@ import {
 import { MessageTranslationPreview } from "../../../components/inputs/MessageTranslationPreview.js";
 import {
   customerLanguageSamples,
+  languageLabel,
   siteLanguage,
   translationIdentity,
 } from "../../../lib/message-translation.js";
@@ -55,7 +56,8 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
     ...evidence,
     fallbackLanguage: siteLanguage(entityStore.shops?.find((shop) => shop.id === shopId)?.region),
     disabled: sendBusy,
-    send: (text, textAlreadySent) => submit(text, textAlreadySent),
+    send: (text, textAlreadySent, language) => submit(text, textAlreadySent, language),
+    onAutoSendError: setError,
   });
   const disabled = sendBusy || translation.locked;
   const attachments = useMessageAttachmentDrafts({
@@ -67,6 +69,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
   async function submit(
     translatedText?: string,
     textAlreadySent = false,
+    translatedLanguage?: string,
   ): Promise<TranslationSendOutcome> {
     if (
       inFlight.current ||
@@ -125,7 +128,14 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
       }
       completed = true;
       if (mounted.current)
-        showToast(t("ecommerce.customerServiceWorkspace.manualReplySent"), "success");
+        showToast(
+          translatedLanguage
+            ? t("messageTranslation.sentTranslated", {
+                language: languageLabel(translatedLanguage, i18n.language),
+              })
+            : t("ecommerce.customerServiceWorkspace.manualReplySent"),
+          "success",
+        );
       return { complete: true, textSent };
     } catch (failure) {
       if (mounted.current) {
@@ -186,19 +196,23 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
           !entityStore.customerServiceWorkspace.manualReplyDraft.trim() && !attachments.items.length
         }
         disabled={translation.locked}
-        submitting={sendBusy}
+        submitting={sendBusy || translation.pending}
         textareaRef={textareaRef}
         textareaProps={{ rows: 1, onPaste: attachments.onPaste }}
         secondaryActions={
           <TkButton
             variant="secondary"
             size="sm"
+            loading={translation.pending}
             disabled={
               disabled ||
               !entityStore.currentUser ||
               !entityStore.customerServiceWorkspace.manualReplyDraft.trim()
             }
-            onClick={() => void translation.generate()}
+            onClick={() => {
+              setError(null);
+              void translation.generate({ autoSend: true });
+            }}
           >
             {t("messageTranslation.button")}
           </TkButton>

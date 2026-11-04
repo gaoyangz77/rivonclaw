@@ -1,6 +1,9 @@
 export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   en: {
     messageTranslation: {
+      sentTranslated: "Translated to {{language}} and sent.",
+      siteReview:
+        "No clear language in the recipient's messages, so the site default was used. Check the language and text before sending.",
       retry: "Retry translation",
       deliveryUncertain:
         "Some parts were submitted or delivery is uncertain. Retry reuses the original request; the translation is locked.",
@@ -22,6 +25,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   zh: {
     messageTranslation: {
+      sentTranslated: "已翻译为{{language}}并发送。",
+      siteReview:
+        "对方消息中没有明确的语言依据，已使用站点默认语言。请确认语言和译文后再发送。",
       retry: "重试翻译",
       deliveryUncertain: "部分消息已提交或发送结果待确认。重试会复用原请求，暂不能修改译文。",
       button: "翻译并发送",
@@ -42,6 +48,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   de: {
     messageTranslation: {
+      sentTranslated: "Ins {{language}} übersetzt und gesendet.",
+      siteReview:
+        "Die Nachrichten des Empfängers geben keine eindeutige Sprache vor, daher wurde die Standardsprache des Marktes verwendet. Prüfen Sie Sprache und Text vor dem Senden.",
       retry: "Übersetzung erneut versuchen",
       deliveryUncertain:
         "Teile wurden übermittelt oder der Versand ist unbestätigt. Der erneute Versuch verwendet dieselbe Anfrage; die Übersetzung ist gesperrt.",
@@ -64,6 +73,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   es: {
     messageTranslation: {
+      sentTranslated: "Traducido al {{language}} y enviado.",
+      siteReview:
+        "Los mensajes del destinatario no indican un idioma claro, así que se usó el idioma predeterminado del mercado. Revise el idioma y el texto antes de enviar.",
       retry: "Reintentar traducción",
       deliveryUncertain:
         "Algunas partes se enviaron o la entrega no está confirmada. Se reutilizará la solicitud original; la traducción está bloqueada.",
@@ -85,6 +97,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   fr: {
     messageTranslation: {
+      sentTranslated: "Traduit en {{language}} et envoyé.",
+      siteReview:
+        "Les messages du destinataire n’indiquent pas de langue claire ; la langue par défaut du marché a été utilisée. Vérifiez la langue et le texte avant l’envoi.",
       retry: "Réessayer la traduction",
       deliveryUncertain:
         "Certaines parties ont été soumises ou l’envoi reste incertain. La nouvelle tentative réutilise la demande initiale ; la traduction est verrouillée.",
@@ -107,6 +122,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   id: {
     messageTranslation: {
+      sentTranslated: "Diterjemahkan ke {{language}} dan terkirim.",
+      siteReview:
+        "Pesan penerima tidak menunjukkan bahasa yang jelas, sehingga bahasa bawaan wilayah dipakai. Periksa bahasa dan teks sebelum mengirim.",
       retry: "Coba terjemahkan lagi",
       deliveryUncertain:
         "Sebagian pesan telah diajukan atau pengiriman belum pasti. Coba lagi memakai permintaan asli; terjemahan dikunci.",
@@ -128,6 +146,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   it: {
     messageTranslation: {
+      sentTranslated: "Tradotto in {{language}} e inviato.",
+      siteReview:
+        "I messaggi del destinatario non indicano una lingua chiara, quindi è stata usata la lingua predefinita del mercato. Controlla lingua e testo prima di inviare.",
       retry: "Riprova traduzione",
       deliveryUncertain:
         "Alcune parti sono state inviate o la consegna è incerta. Il nuovo tentativo riutilizza la richiesta originale; la traduzione è bloccata.",
@@ -149,6 +170,9 @@ export const MESSAGE_TRANSLATION_TRANSLATIONS = {
   },
   th: {
     messageTranslation: {
+      sentTranslated: "แปลเป็น{{language}}และส่งแล้ว",
+      siteReview:
+        "ข้อความของผู้รับไม่ระบุภาษาที่ชัดเจน จึงใช้ภาษาเริ่มต้นของตลาด โปรดตรวจสอบภาษาและข้อความก่อนส่ง",
       retry: "ลองแปลอีกครั้ง",
       deliveryUncertain: "ส่งบางส่วนแล้วหรือยังไม่ยืนยันผล การลองใหม่จะใช้คำขอเดิมและล็อกคำแปลไว้",
       button: "แปลและส่ง",

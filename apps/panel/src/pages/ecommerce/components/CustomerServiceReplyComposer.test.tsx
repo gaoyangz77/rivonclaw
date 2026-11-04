@@ -207,9 +207,43 @@ describe("customer service translation preview", () => {
     state.workspace.setManualReplyDraft("你好");
     render(view());
     translate();
-    await waitFor(() => expect(within(preview()).getByText("Model unavailable")).toBeTruthy());
-    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.getByText("Model unavailable")).toBeTruthy());
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(state.workspace.manualReplyDraft).toBe("你好");
     expect(state.mutate).not.toHaveBeenCalled();
+  });
+  it("sends the translation in one click when the language came from the buyer's messages", async () => {
+    state.translate.mockResolvedValue({ language: "fr", source: "messages", text: "Bonjour" });
+    state.workspace.setManualReplyDraft("你好");
+    render(view());
+    translate();
+    await waitFor(() => expect(state.mutate).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(state.mutate.mock.calls[0][0].variables.message).toBe("Bonjour");
+    await waitFor(() => expect(state.workspace.manualReplyDraft).toBe(""));
+    expect(await screen.findByText("已翻译为法语并发送。")).toBeTruthy();
+  });
+  it("opens the review modal with a hint when the language is only the site default", async () => {
+    state.workspace.setManualReplyDraft("你好");
+    render(view());
+    translate();
+    await ready();
+    expect(within(preview()).getByText(/已使用站点默认语言/)).toBeTruthy();
+    expect(state.mutate).not.toHaveBeenCalled();
+  });
+  it("moves to the review modal when a one-click send fails after the text went out", async () => {
+    state.translate.mockResolvedValue({ language: "fr", source: "messages", text: "Bonjour" });
+    state.sendImage.mockRejectedValueOnce(new Error("image failed"));
+    state.workspace.setManualReplyDraft("你好");
+    render(view());
+    paste(image());
+    translate();
+    await waitFor(() =>
+      expect(within(preview()).getByText("正文已发送。重试只发送剩余附件。")).toBeTruthy(),
+    );
+    fireEvent.click(within(preview()).getByRole("button", { name: "发送剩余附件" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(state.mutate).toHaveBeenCalledOnce();
+    expect(state.sendImage).toHaveBeenCalledTimes(2);
   });
 });
