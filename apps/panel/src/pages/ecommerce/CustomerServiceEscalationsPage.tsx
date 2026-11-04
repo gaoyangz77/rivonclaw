@@ -39,6 +39,10 @@ import {
   EscalationStateBadge,
 } from "./components/CustomerServiceConversationRow.js";
 import {
+  CustomerServiceOrdersWithoutConversation,
+  type OrderWithoutConversationRow,
+} from "./components/CustomerServiceOrdersWithoutConversation.js";
+import {
   TkPageFrame,
   TkPageHeader,
   TkIconButton,
@@ -386,6 +390,20 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       shopId,
     );
   }
+
+  const ordersWithoutConversationRows: OrderWithoutConversationRow[] =
+    workspace.ordersWithoutConversation.map((order) => ({
+      shopId: order.shopId,
+      orderId: order.orderId,
+      shop: shopLabel(order.shopId),
+      statusLabel: humanizePlatformValue(order.status),
+      createdLabel: formatCompactDateTime(order.createTime),
+      amountLabel: order.totalAmount
+        ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
+        : "",
+      pending: workspace.isOrderStarting(order.shopId, order.orderId),
+      error: workspace.startOrderError(order.shopId, order.orderId),
+    }));
 
   async function copyMeta(label: string, value: string) {
     try {
@@ -920,6 +938,10 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                     />
                   ))
                 )}
+                <CustomerServiceOrdersWithoutConversation
+                  rows={ordersWithoutConversationRows}
+                  onStart={(shopId, orderId) => void workspace.startConversationFromOrder(shopId, orderId)}
+                />
               </div>
               <div className="cs-escalation-pagination">
                 <button

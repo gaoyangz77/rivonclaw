@@ -16,6 +16,7 @@ import {
   CS_OPEN_ESCALATIONS_QUERY,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
+  CS_START_CONVERSATION_FROM_ORDER_MUTATION,
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
@@ -333,6 +334,10 @@ export const CustomerServiceWorkspaceModel = types
     conversationsError: types.maybeNull(types.string),
     conversationsErrorCode: types.maybeNull(types.string),
     conversationItems: types.optional(types.array(types.frozen<Record<string, any>>()), []),
+    // Order-ID search hits whose buyer has no conversation yet (plain data, replaced per fetch).
+    ordersWithoutConversation: types.optional(types.array(types.frozen<Record<string, any>>()), []),
+    startingOrderKeys: types.optional(types.array(types.string), []),
+    startOrderErrors: types.optional(types.map(types.string), {}),
     selectedConversationId: types.maybeNull(types.string),
     conversationMessagesLoading: types.optional(types.boolean, false),
     conversationMessagesLoadingMore: types.optional(types.boolean, false),
@@ -491,6 +496,12 @@ export const CustomerServiceWorkspaceModel = types
     },
     isConversationAiUpdating(conversationId: string) {
       return self.updatingConversationAiIds.includes(conversationId);
+    },
+    isOrderStarting(shopId: string, orderId: string) {
+      return self.startingOrderKeys.includes(`${shopId}:${orderId}`);
+    },
+    startOrderError(shopId: string, orderId: string): string | null {
+      return self.startOrderErrors.get(`${shopId}:${orderId}`) ?? null;
     },
     isConversationStarting(conversationId: string) {
       return self.startingConversationIds.includes(conversationId);
@@ -677,11 +688,15 @@ export const CustomerServiceWorkspaceModel = types
       applyConversationSearch() {
         self.conversationSearch = self.conversationSearchDraft.trim();
         self.conversationPage = 1;
+        self.ordersWithoutConversation.clear();
+        self.startOrderErrors.clear();
       },
       clearConversationSearch() {
         self.conversationSearchDraft = "";
         self.conversationSearch = "";
         self.conversationPage = 1;
+        self.ordersWithoutConversation.clear();
+        self.startOrderErrors.clear();
       },
       setConversationPage(value: number) {
         self.conversationPage = Math.max(1, Math.min((self as any).conversationPageCount, value));
@@ -873,6 +888,7 @@ export const CustomerServiceWorkspaceModel = types
             | GQL.CustomerServiceConversationInboxPage
             | undefined;
           self.conversationItems.replace((page?.items ?? []) as any);
+          self.ordersWithoutConversation.replace((page?.ordersWithoutConversation ?? []) as any);
           self.conversationTotal = page?.totalCount ?? 0;
           if (
             self.selectedConversationId &&
@@ -1131,6 +1147,45 @@ export const CustomerServiceWorkspaceModel = types
           return result;
         } finally {
           removeValue(self.startingConversationIds as unknown as string[], item.conversationId);
+        }
+      }),
+      /**
+       * Creates (or reopens) the platform conversation for an order whose buyer has none, then
+       * opens it in the message view so the operator types the first message. Does not start an
+       * AI run: AI only takes over once the buyer replies.
+       */
+      startConversationFromOrder: flow(function* (shopId: string, orderId: string) {
+        const key = `${shopId}:${orderId}`;
+        if (self.startingOrderKeys.includes(key)) return false;
+        pushUnique(self.startingOrderKeys as unknown as string[], key);
+        self.startOrderErrors.delete(key);
+        try {
+          const result = yield client().mutate({
+            mutation: CS_START_CONVERSATION_FROM_ORDER_MUTATION,
+            variables: { shopId, orderId },
+          });
+          const item = result.data?.ecommerceStartCustomerServiceConversationFromOrder as
+            | GQL.CustomerServiceConversationInboxItem
+            | undefined;
+          if (!item) throw new Error("Failed to start the conversation");
+          const existed = self.conversationItems.some(
+            (candidate) =>
+              candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
+          );
+          replaceConversation(item);
+          if (!existed) self.conversationTotal += 1;
+          self.ordersWithoutConversation.replace(
+            self.ordersWithoutConversation.filter(
+              (order) => order.shopId !== shopId || order.orderId !== orderId,
+            ) as any,
+          );
+          (self as any).selectConversation(item.shopId, item.conversationId);
+          return true;
+        } catch (err) {
+          self.startOrderErrors.set(key, errorMessage(err));
+          return false;
+        } finally {
+          removeValue(self.startingOrderKeys as unknown as string[], key);
         }
       }),
       sendManualImageReply: flow(function* (input: {

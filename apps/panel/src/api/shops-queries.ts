@@ -1167,6 +1167,15 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
       offset: $offset
     ) {
       totalCount
+      ordersWithoutConversation {
+        shopId
+        orderId
+        buyerUserId
+        status
+        createTime
+        totalAmount
+        currency
+      }
       items {
         shopId
         platformShopId
@@ -1375,6 +1384,45 @@ export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
         reviewCreateTime
         reviewUpdateTime
         followUpStatus
+      }
+    }
+  }
+`;
+
+export const CS_START_CONVERSATION_FROM_ORDER_MUTATION = gql`
+  mutation StartCustomerServiceConversationFromOrder($shopId: ID!, $orderId: String!) {
+    ecommerceStartCustomerServiceConversationFromOrder(shopId: $shopId, orderId: $orderId) {
+      shopId
+      platformShopId
+      conversationId
+      status
+      isOpen
+      platformConversationStatus
+      aiEnabled
+      buyerUserId
+      buyerImUserId
+      buyerNickname
+      orderId
+      latestMessageTime
+      latestMessageId
+      latestMessageIndex
+      latestMessageType
+      latestSenderRole
+      latestMessagePreview
+      lastPendingAt
+      resolvedAt
+      updatedAt
+      openEscalationCount
+      latestOpenEscalationId
+      latestOpenEscalationStatus
+      latestOpenEscalationUpdatedAt
+      recentBadReviews {
+        id
+        platformReviewId
+        orderId
+        productId
+        sellerSkus
+        height
       }
     }
   }

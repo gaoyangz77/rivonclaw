@@ -403,3 +403,79 @@ describe("CustomerServiceWorkspaceModel conversation search", () => {
     expect(store.conversationTotal).toBe(0);
   });
 });
+
+describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
+  const order = {
+    shopId: "shop-1",
+    orderId: "order-9",
+    buyerUserId: "buyer-9",
+    status: "AWAITING_SHIPMENT",
+    createTime: 1_700_000_000,
+    totalAmount: "12.50",
+    currency: "USD",
+  };
+  const started = {
+    ...conversation("order-9"),
+    conversationId: "conversation-9",
+    buyerUserId: "buyer-9",
+  };
+
+  it("stores the orders from the inbox query and clears them when the search changes", async () => {
+    const query = vi.fn().mockResolvedValue({
+      data: {
+        ecommerceGetCustomerServiceInbox: {
+          items: [],
+          totalCount: 0,
+          ordersWithoutConversation: [order],
+        },
+      },
+    });
+    const store = CustomerServiceWorkspaceModel.create({}, { apolloClient: { query } as any });
+    await store.fetchConversations();
+    expect(store.ordersWithoutConversation.slice()).toEqual([order]);
+    store.setConversationSearchDraft("other");
+    store.applyConversationSearch();
+    expect(store.ordersWithoutConversation).toHaveLength(0);
+  });
+
+  it("ingests the started conversation, selects it, drops the order and starts no AI run", async () => {
+    const mutate = vi.fn().mockResolvedValue({
+      data: { ecommerceStartCustomerServiceConversationFromOrder: started },
+    });
+    const store = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order, { ...order, orderId: "order-10" }] },
+      { apolloClient: { mutate } as any },
+    );
+    const ok = await store.startConversationFromOrder("shop-1", "order-9");
+    expect(ok).toBe(true);
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ variables: { shopId: "shop-1", orderId: "order-9" } }),
+    );
+    expect(store.conversationItems.map((item) => item.conversationId)).toEqual(["conversation-9"]);
+    expect(store.selectedConversationId).toBe("conversation-9");
+    expect(store.selectedConversationShopId).toBe("shop-1");
+    expect(store.selectedConversation?.conversationId).toBe("conversation-9");
+    expect(store.ordersWithoutConversation.map((o) => o.orderId)).toEqual(["order-10"]);
+    expect(store.isOrderStarting("shop-1", "order-9")).toBe(false);
+  });
+
+  it("surfaces the backend error, keeps the order and clears the pending flag", async () => {
+    let pendingDuringCall = false;
+    const mutate = vi.fn().mockImplementation(async () => {
+      pendingDuringCall = store.isOrderStarting("shop-1", "order-9");
+      throw new Error("CS_ORDER_NOT_FOUND: order is not synced");
+    });
+    const store = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order] },
+      { apolloClient: { mutate } as any },
+    );
+    const ok = await store.startConversationFromOrder("shop-1", "order-9");
+    expect(ok).toBe(false);
+    expect(pendingDuringCall).toBe(true);
+    expect(store.isOrderStarting("shop-1", "order-9")).toBe(false);
+    expect(store.startOrderError("shop-1", "order-9")).toContain("CS_ORDER_NOT_FOUND");
+    expect(store.ordersWithoutConversation).toHaveLength(1);
+    expect(store.selectedConversationId).toBeNull();
+  });
+});

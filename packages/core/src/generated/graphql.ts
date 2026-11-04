@@ -7510,6 +7510,8 @@ export interface CustomerServiceConversationInboxItem {
 /** Page of backend-materialized customer service inbox conversations. */
 export interface CustomerServiceConversationInboxPage {
   items: Array<CustomerServiceConversationInboxItem>;
+  /** Order searches only: searched orders found in synced order facts whose buyer has no conversation row (matched neither by order ID nor by shop and buyer). Not paginated, at most 100 entries, and independent of the status/AI/escalation filters. Empty for non-order searches. */
+  ordersWithoutConversation: Array<CustomerServiceOrderWithoutConversation>;
   totalCount: Scalars["Int"]["output"];
 }
 
@@ -7628,6 +7630,23 @@ export interface CustomerServiceMessageSummaryPage {
   items: Array<CustomerServiceMessageSummary>;
   /** Pagination cursor — pass back to fetch the next page */
   nextPageToken?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** A searched order that exists in synced order facts but whose buyer has no backend-materialized CS conversation yet. */
+export interface CustomerServiceOrderWithoutConversation {
+  /** TikTok Shop buyer user ID of the order. */
+  buyerUserId: Scalars["String"]["output"];
+  /** Unix seconds when the order was created. */
+  createTime?: Maybe<Scalars["Int"]["output"]>;
+  currency?: Maybe<Scalars["String"]["output"]>;
+  /** TikTok Shop order ID. */
+  orderId: Scalars["String"]["output"];
+  /** MongoDB Shop._id that owns the order. */
+  shopId: Scalars["ID"]["output"];
+  /** Raw platform order status from synced order facts (display only). */
+  status?: Maybe<Scalars["String"]["output"]>;
+  /** Order total as a decimal string, in `currency`. */
+  totalAmount?: Maybe<Scalars["String"]["output"]>;
 }
 
 /** Conversations pending a seller reply across several shops, with a per-shop coverage report. */
@@ -11983,6 +12002,8 @@ export interface Mutation {
   ecommerceSetProductKnowledge: SetProductKnowledgePayload;
   ecommerceSetShopWarehouseMappings: Array<ShopWarehouse>;
   ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
+  /** Operator action: open (or find) the TikTok conversation for a synced order whose buyer has no conversation yet, WITHOUT starting an AI run, so the operator can type the first message. The row is created RESOLVED with AI enabled, so the buyer's later reply is handled by AI as usual. Idempotent. */
+  ecommerceStartCustomerServiceConversationFromOrder: CustomerServiceConversationInboxItem;
   ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   ecommerceUpdateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
   ecommerceUpdateCSUnpaidOrderReachoutSettings: CsUnpaidOrderEvaluationView;
@@ -12745,6 +12766,11 @@ export interface MutationEcommerceSetShopWarehouseMappingsArgs {
 export interface MutationEcommerceStartCsUnpaidOrderConfigExperimentArgs {
   expectedRunningExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   experimentId: Scalars["ID"]["input"];
+}
+
+export interface MutationEcommerceStartCustomerServiceConversationFromOrderArgs {
+  orderId: Scalars["String"]["input"];
+  shopId: Scalars["ID"]["input"];
 }
 
 export interface MutationEcommerceStopCsUnpaidOrderConfigExperimentArgs {

@@ -1,0 +1,60 @@
+/* Order-search hits that have no conversation yet, shown under the inbox rows. */
+
+.cs-orders-without-conversation {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-3);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-alt);
+}
+
+.cs-orders-without-conversation-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cs-orders-without-conversation-list {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs-orders-without-conversation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-3);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--color-bg);
+}
+
+.cs-orders-without-conversation-main {
+  display: grid;
+  min-width: 0;
+  gap: var(--tk-v1-space-1);
+}
+
+.cs-orders-without-conversation-main strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-orders-without-conversation-shop,
+.cs-orders-without-conversation-meta {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.cs-orders-without-conversation-row .btn {
+  flex: 0 0 auto;
+}
