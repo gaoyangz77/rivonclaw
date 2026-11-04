@@ -1333,6 +1333,8 @@ export interface AffiliateCampaign {
   endDays: Scalars["Int"]["output"];
   /** Whether the templated message is sent after the Creator is invited into the Target Collaboration. */
   firstTouchMode: AffiliateCampaignFirstTouchMode;
+  /** The stored interpretation of the Campaign's CURRENT guidance, shop capability and locale. Read-only: never calls the model; null until interpreted. Costs two indexed reads per Campaign, so select it in detail views, not list rows. */
+  guidanceInterpretation?: Maybe<AffiliateCampaignGuidanceInterpretation>;
   id: Scalars["ID"]["output"];
   /** Whether Creators reached by this Campaign skip the seller's sample approval step. Leaving this false keeps producing the approval decisions the screening models learn from. */
   isSampleApprovalExempt: Scalars["Boolean"]["output"];
@@ -1647,6 +1649,33 @@ export interface AffiliateCampaignGenderDistributionRuleInput {
   minimumPercentage: Scalars["Float"]["input"];
 }
 
+/** One hard requirement from the seller's guidance and how it is enforced. */
+export interface AffiliateCampaignGuidanceChecklistItem {
+  /** In the requested locale: how it is approximated, or why it cannot be filtered. Null when EXACT. */
+  note?: Maybe<Scalars["String"]["output"]>;
+  /** The seller's own wording of the requirement. */
+  requirement: Scalars["String"]["output"];
+  treatment: AffiliateCampaignGuidanceTreatment;
+}
+
+/** How the seller's Campaign search guidance is enforced (ADR-097). The rule tree itself is intentionally not exposed. */
+export interface AffiliateCampaignGuidanceInterpretation {
+  checklist: Array<AffiliateCampaignGuidanceChecklistItem>;
+  id: Scalars["ID"]["output"];
+  interpretedAt: Scalars["DateTimeISO"]["output"];
+  /** Plain-language 'what we understood'; present when the guidance has alternatives or an ambiguity. */
+  restatement?: Maybe<Scalars["String"]["output"]>;
+  softDirections: Array<Scalars["String"]["output"]>;
+}
+
+export const AffiliateCampaignGuidanceTreatment = {
+  Approximate: "APPROXIMATE",
+  Exact: "EXACT",
+  Unsupported: "UNSUPPORTED",
+} as const;
+
+export type AffiliateCampaignGuidanceTreatment =
+  (typeof AffiliateCampaignGuidanceTreatment)[keyof typeof AffiliateCampaignGuidanceTreatment];
 export interface AffiliateCampaignMarketSpecificRules {
   categoryPros?: Maybe<Array<Scalars["String"]["output"]>>;
   creatorLevels?: Maybe<Array<Scalars["String"]["output"]>>;
@@ -12008,6 +12037,8 @@ export interface Mutation {
   manageAffiliateTargetCollaboration: AffiliateShopOperationResultPayload;
   /** Mark one exact pending Affiliate Creator message as handled without sending a reply. */
   markAffiliateConversationHandled: Scalars["Boolean"]["output"];
+  /** Interpret Campaign search guidance exactly as generation will (ADR-097) and return the seller-facing checklist. A mutation because a cache miss spends Cloud LLM quota and writes the cache; the same text, shop and locale later hit that cache. */
+  previewAffiliateCampaignGuidanceInterpretation: AffiliateCampaignGuidanceInterpretation;
   /** Promote a temporary uploaded image into permanent object storage and link it to an entity. Pass the assetId returned by POST /api/uploads/images; imageUri is accepted as a fallback. */
   promoteImageAsset: ImageAsset;
   protectAffiliateCreatorRelationship: AffiliateCreatorProtection;
@@ -12848,6 +12879,10 @@ export interface MutationMarkAffiliateConversationHandledArgs {
   input: MarkAffiliateConversationHandledInput;
 }
 
+export interface MutationPreviewAffiliateCampaignGuidanceInterpretationArgs {
+  input: PreviewAffiliateCampaignGuidanceInterpretationInput;
+}
+
 export interface MutationPromoteImageAssetArgs {
   input: PromoteImageAssetInput;
 }
@@ -13552,6 +13587,12 @@ export interface PresetSkillsChangedPayload {
   publishedAt: Scalars["DateTimeISO"]["output"];
   reason?: Maybe<Scalars["String"]["output"]>;
   revision: Scalars["String"]["output"];
+}
+
+export interface PreviewAffiliateCampaignGuidanceInterpretationInput {
+  searchPlanExplanationLocale?: InputMaybe<AffiliateCampaignSearchPlanExplanationLocale>;
+  searchPlanGuidance?: InputMaybe<Scalars["String"]["input"]>;
+  shopId: Scalars["ID"]["input"];
 }
 
 export interface ProductCategory {
