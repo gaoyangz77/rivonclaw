@@ -44,6 +44,7 @@ import {
   CustomerServiceConversationsPage,
   CustomerServiceEscalationQueuePage,
 } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
+import { AfterSaleReviewPage } from "./pages/ecommerce/AfterSaleReviewPage.js";
 import { CustomerServicePerformancePage } from "./pages/ecommerce/CustomerServicePerformancePage.js";
 import { CustomerServiceExperimentsPage } from "./pages/ecommerce/CustomerServiceExperimentsPage.js";
 import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
@@ -172,6 +173,16 @@ export const ROUTES: RouteEntry[] = [
     component: CustomerServiceEscalationQueuePage,
     icon: <ChannelsIcon />,
     navLabelKey: "nav.customerServiceEscalations",
+    authRequired: true,
+    parentPath: "/commerce/customer-service",
+    scopes: [GQL.PermissionScope.CustomerService],
+  },
+  {
+    path: "/commerce/customer-service/after-sales",
+    pageKey: "ecommerce-customer-service-after-sales",
+    component: AfterSaleReviewPage,
+    icon: <ChannelsIcon />,
+    navLabelKey: "nav.customerServiceAfterSales",
     authRequired: true,
     parentPath: "/commerce/customer-service",
     scopes: [GQL.PermissionScope.CustomerService],

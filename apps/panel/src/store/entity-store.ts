@@ -36,6 +36,7 @@ import {
 } from "./models/index.js";
 import { PaymentModel } from "@rivonclaw/core/models";
 import { EcommerceInventoryModel } from "./models/EcommerceInventoryModel.js";
+import { EcommerceAfterSaleModel } from "./models/EcommerceAfterSaleModel.js";
 import { CustomerServiceWorkspaceModel } from "./models/CustomerServiceWorkspaceModel.js";
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
@@ -227,6 +228,7 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
   channelManager: types.optional(ChannelManagerModel, {}),
   mobileManager: types.optional(MobileManagerModel, {}),
   ecommerceInventory: types.optional(EcommerceInventoryModel, {}),
+  ecommerceAfterSale: types.optional(EcommerceAfterSaleModel, {}),
   customerServiceWorkspace: types.optional(CustomerServiceWorkspaceModel, {}),
   messageTranslation: types.optional(MessageTranslationModel, {}),
   activeCheckout: types.maybeNull(PaymentModel),
@@ -953,6 +955,7 @@ interface PanelEntityOverrides {
   readonly llmManager: Instance<typeof LLMProviderModel>;
   readonly mobileManager: Instance<typeof MobileManagerModel>;
   readonly ecommerceInventory: Instance<typeof EcommerceInventoryModel>;
+  readonly ecommerceAfterSale: Instance<typeof EcommerceAfterSaleModel>;
   readonly customerServiceWorkspace: Instance<typeof CustomerServiceWorkspaceModel>;
   readonly messageTranslation: Instance<typeof MessageTranslationModel>;
   readonly activeCheckout: Instance<typeof PaymentModel> | null;

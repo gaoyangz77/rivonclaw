@@ -31,6 +31,7 @@ import { ecommerceAffiliateCreatorsSteps } from "./ecommerceAffiliateCreators.js
 import { ecommerceAffiliateHistorySteps } from "./ecommerceAffiliateHistory.js";
 import { ecommerceAffiliateIntelligenceSteps } from "./ecommerceAffiliateIntelligence.js";
 import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js";
+import { ecommerceAfterSaleSteps } from "./ecommerceAfterSale.js";
 import { inventoryManagementSteps } from "./inventoryManagement.js";
 import { shopAnalyticsSteps } from "./shopAnalytics.js";
 import { productKnowledgeSteps } from "./productKnowledge.js";
@@ -44,6 +45,7 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/customer-service": customerServiceWorkspaceSteps,
   "/commerce/customer-service/conversations": customerServiceConversationsSteps,
   "/commerce/customer-service/escalations": customerServiceEscalationsSteps,
+  "/commerce/customer-service/after-sales": ecommerceAfterSaleSteps,
   "/commerce/customer-service/performance": customerServicePerformanceSteps,
   "/commerce/customer-service/experiments": customerServiceExperimentsSteps,
   "/commerce/affiliate": ecommerceAffiliateCreatorsSteps,

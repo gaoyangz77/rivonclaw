@@ -791,6 +791,16 @@ export const CLOUD_REST = {
     path: cloudRestPath("/api/ecommerce/customer-service/manual-image-reply"),
     desc: "Send a manual customer-service image reply without requiring an AI session",
   },
+  "ecommerce.rejectReturn": {
+    method: "POST",
+    path: cloudRestPath("/api/ecommerce/reject-return"),
+    desc: "Reject a refund, return, received-package or replacement request (x-shop-id header)",
+  },
+  "ecommerce.rejectCancellation": {
+    method: "POST",
+    path: cloudRestPath("/api/ecommerce/reject-cancellation"),
+    desc: "Reject a buyer cancellation request (x-shop-id header)",
+  },
   "uploads.images": {
     method: "POST",
     path: cloudRestPath("/uploads/images"),

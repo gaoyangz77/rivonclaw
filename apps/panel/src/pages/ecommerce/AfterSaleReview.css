@@ -1,0 +1,154 @@
+/* CSS ownership: after-sale review workspace (ADR-099). */
+
+.after-sale-filters {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--tk-v1-space-3);
+}
+
+.after-sale-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-4);
+}
+
+.after-sale-table th,
+.after-sale-table td {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.after-sale-table .after-sale-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.after-sale-mono {
+  font-family: var(--tk-v1-font-mono);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.after-sale-product {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tk-v1-space-2);
+  max-width: 280px;
+}
+
+.after-sale-product small {
+  color: var(--tk-v1-fg-muted);
+  white-space: nowrap;
+}
+
+.after-sale-deadline {
+  font-variant-numeric: tabular-nums;
+}
+
+.after-sale-deadline-urgent {
+  color: var(--tk-v1-danger);
+  font-weight: 600;
+}
+
+.after-sale-deadline-none {
+  display: flex;
+  flex-direction: column;
+  color: var(--tk-v1-fg-muted);
+}
+
+.after-sale-muted {
+  color: var(--tk-v1-fg-muted);
+}
+
+.after-sale-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-5);
+}
+
+.after-sale-detail h3 {
+  margin: 0 0 var(--tk-v1-space-2);
+}
+
+.after-sale-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--tk-v1-space-3) var(--tk-v1-space-4);
+  margin: 0;
+}
+
+.after-sale-field dt {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.after-sale-field dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.after-sale-lines,
+.after-sale-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.after-sale-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-4);
+}
+
+.after-sale-line-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.after-sale-line-name small {
+  color: var(--tk-v1-fg-muted);
+}
+
+.after-sale-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-2);
+  padding-bottom: var(--tk-v1-space-3);
+  border-bottom: 1px solid var(--tk-v1-border-subtle);
+}
+
+.after-sale-history-item p {
+  margin: 0;
+}
+
+.after-sale-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tk-v1-space-3);
+}
+
+.after-sale-history-head span,
+.after-sale-history-head time {
+  color: var(--tk-v1-fg-muted);
+}
+
+.after-sale-decision,
+.after-sale-reject-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-3);
+}
+
+.after-sale-decision-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--tk-v1-space-2);
+}

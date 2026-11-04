@@ -36,6 +36,7 @@ import { BROWSER_AUTH_TRANSLATIONS } from "./browser-auth-translations.js";
 import { PICKUP_REMINDER_TRANSLATIONS } from "./pickup-reminder-translations.js";
 import { CUSTOMER_SERVICE_DEVICE_TRANSLATIONS } from "./customer-service-device-translations.js";
 import { CUSTOMER_SERVICE_ORDER_TRANSLATIONS } from "./customer-service-order-translations.js";
+import { AFTER_SALE_TRANSLATIONS } from "./after-sale-translations.js";
 import { PRODUCT_KNOWLEDGE_TRANSLATIONS } from "./product-knowledge-translations.js";
 import { AFFILIATE_TUTORIAL_TRANSLATIONS } from "./affiliate-tutorial-translations.js";
 import { AFFILIATE_ANALYTICS_TRANSLATIONS } from "./affiliate-analytics-translations.js";
@@ -604,6 +605,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
       AFFILIATE_MESSAGE_LOOKBACK_TRANSLATIONS[language.code],
       AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS[language.code],
       CUSTOMER_SERVICE_ORDER_TRANSLATIONS[language.code],
+      AFTER_SALE_TRANSLATIONS[language.code],
       TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
       TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
       TUTORIAL_OCTOBER_TRANSLATIONS[language.code],
