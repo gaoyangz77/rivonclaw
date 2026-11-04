@@ -71,13 +71,19 @@ function guidanceCountsLabel(counts: GuidanceTreatmentCounts, t: TFunction): str
     .join(" · ");
 }
 
-/** Wizard confirmation step: what the seller wrote, as understood, with a way back to edit. */
+/**
+ * Target step, under the guidance input: how the guidance will run, reviewed
+ * before the seller moves on, while the text can still be changed. Continue
+ * interprets it on the first click; this block offers the same explicitly and
+ * says when the text changed after the checklist was made.
+ */
 export function AffiliateCampaignGuidancePreview({
   state,
-  onEdit,
+  stale,
+  onRequest,
 }: {
   state:
-    | { status: "empty" }
+    | null
     | { status: "loading" }
     | { status: "error"; errorKey: GuidancePreviewErrorKey }
     | {
@@ -85,13 +91,18 @@ export function AffiliateCampaignGuidancePreview({
         checklist: readonly GuidanceChecklistItemView[];
         restatement?: string | null;
       };
-  onEdit: () => void;
+  /** The guidance, shop or locale changed after `state` was produced. */
+  stale: boolean;
+  onRequest: () => void;
 }) {
   const { t } = useTranslation();
   const titleId = useId();
+  const loading = state?.status === "loading" && !stale;
+  const actionKey = state === null ? "generateChecklist" : "refreshChecklist";
+  const showAction = !loading && (state === null || stale || state.status === "error");
   return (
     <div
-      className="affiliate-guidance-preview"
+      className={`affiliate-guidance-preview${stale ? " is-stale" : ""}`}
       role="region"
       aria-labelledby={titleId}
       aria-live="polite"
@@ -99,28 +110,29 @@ export function AffiliateCampaignGuidancePreview({
       <div className="affiliate-guidance-preview-heading">
         <div>
           <strong id={titleId}>{t(`${KEY_PREFIX}checklistTitle`)}</strong>
-          <p>{t(`${KEY_PREFIX}checklistDescription`)}</p>
+          <p>
+            {t(
+              `${KEY_PREFIX}${state === null ? "checklistPending" : stale ? "checklistStale" : "checklistDescription"}`,
+            )}
+          </p>
         </div>
-        {state.status !== "empty" && (
-          <button type="button" className="affiliate-guidance-edit" onClick={onEdit}>
-            {t(`${KEY_PREFIX}editGuidance`)}
+        {showAction && (
+          <button type="button" className="affiliate-guidance-edit" onClick={onRequest}>
+            {t(`${KEY_PREFIX}${actionKey}`)}
           </button>
         )}
       </div>
-      {state.status === "empty" && (
-        <p className="affiliate-guidance-state">{t(`${KEY_PREFIX}noGuidance`)}</p>
-      )}
-      {state.status === "loading" && (
+      {loading && (
         <p className="affiliate-guidance-state" role="status">
           {t(`${KEY_PREFIX}interpreting`)}
         </p>
       )}
-      {state.status === "error" && (
+      {state?.status === "error" && !stale && (
         <p className="affiliate-guidance-state is-error" role="alert">
           {t(`${KEY_PREFIX}previewError.${state.errorKey}`)}
         </p>
       )}
-      {state.status === "ready" && (
+      {state?.status === "ready" && (
         <AffiliateCampaignGuidanceChecklist
           checklist={state.checklist}
           restatement={state.restatement}

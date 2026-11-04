@@ -52,6 +52,7 @@ import {
 import {
   guidancePreviewErrorKey,
   guidancePreviewInput,
+  guidancePreviewKey,
   type GuidanceChecklistItemView,
   type GuidancePreviewErrorKey,
 } from "./affiliate-campaign-guidance.js";
@@ -762,57 +763,61 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { input: GQL.PreviewAffiliateCampaignGuidanceInterpretationInput }
   >(PREVIEW_AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_MUTATION);
   // Plain DTO, copied out of the response: never an MST node, safe to keep here.
-  const [guidancePreview, setGuidancePreview] = useState<GuidancePreviewState>({
-    status: "empty",
-  });
+  // `forKey` names the shop, locale and guidance it answers, so editing the text
+  // marks the checklist stale instead of letting it describe text that changed.
+  const [guidancePreview, setGuidancePreview] = useState<GuidancePreviewState | null>(null);
   // Counts requests so a slow answer for an earlier shop/guidance/locale cannot
   // overwrite the answer for the current one.
   const guidancePreviewSequence = useRef(0);
-  const guidancePreviewActive = wizardOpen && wizardStep === 4;
   const guidanceExplanationLocale = normalizeCampaignExplanationLocale(
     i18n.resolvedLanguage ?? i18n.language,
   );
-  useEffect(() => {
-    if (!guidancePreviewActive) return;
-    const input = guidancePreviewInput({
-      shopId: form.shopId,
-      searchPlanGuidance: form.searchPlanGuidance,
-      searchPlanExplanationLocale: guidanceExplanationLocale,
-    });
-    if (!input) {
-      setGuidancePreview({ status: "empty" });
-      return;
-    }
+  const currentGuidancePreviewInput = guidancePreviewInput({
+    shopId: form.shopId,
+    searchPlanGuidance: form.searchPlanGuidance,
+    searchPlanExplanationLocale: guidanceExplanationLocale,
+  });
+  const currentGuidancePreviewKey = currentGuidancePreviewInput
+    ? guidancePreviewKey(currentGuidancePreviewInput)
+    : null;
+  const guidancePreviewIsCurrent =
+    guidancePreview !== null && guidancePreview.forKey === currentGuidancePreviewKey;
+  const resetGuidancePreview = () => {
+    guidancePreviewSequence.current += 1;
+    setGuidancePreview(null);
+  };
+  // Interprets the guidance as written right now. A cache hit for text that was
+  // already interpreted (an unchanged Campaign being edited) costs no model call.
+  const requestGuidancePreview = () => {
+    const input = currentGuidancePreviewInput;
+    if (!input) return;
+    const forKey = guidancePreviewKey(input);
     const sequence = ++guidancePreviewSequence.current;
-    setGuidancePreview({ status: "loading" });
+    setGuidancePreview({ status: "loading", forKey });
     previewGuidance({ variables: { input } })
       .then((result) => {
         if (sequence !== guidancePreviewSequence.current) return;
         const interpretation = result.data?.previewAffiliateCampaignGuidanceInterpretation;
-        if (!interpretation) {
-          setGuidancePreview({ status: "error", errorKey: "generic" });
-          return;
-        }
-        setGuidancePreview({
-          status: "ready",
-          checklist: guidanceChecklistView(interpretation.checklist),
-          restatement: interpretation.restatement ?? null,
-        });
+        setGuidancePreview(
+          interpretation
+            ? {
+                status: "ready",
+                forKey,
+                checklist: guidanceChecklistView(interpretation.checklist),
+                restatement: interpretation.restatement ?? null,
+              }
+            : { status: "error", forKey, errorKey: "generic" },
+        );
       })
       .catch((error: unknown) => {
         if (sequence !== guidancePreviewSequence.current) return;
-        setGuidancePreview({ status: "error", errorKey: guidancePreviewErrorKey(error) });
+        setGuidancePreview({ status: "error", forKey, errorKey: guidancePreviewErrorKey(error) });
       });
-    return () => {
-      guidancePreviewSequence.current += 1;
-    };
-  }, [
-    guidancePreviewActive,
-    form.shopId,
-    form.searchPlanGuidance,
-    guidanceExplanationLocale,
-    previewGuidance,
-  ]);
+  };
+  /** Shows the checklist on arriving at the target step when guidance is already written. */
+  const ensureGuidancePreview = () => {
+    if (currentGuidancePreviewInput && !guidancePreviewIsCurrent) requestGuidancePreview();
+  };
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
   const campaignPortfolio = campaignPortfolioQuery.data?.affiliateCampaigns ?? [];
@@ -963,6 +968,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setProductPreviews({});
     setPendingProductResolution(null);
     setEditingCampaignId("");
+    resetGuidancePreview();
     setWizardStep(1);
     setWizardOpen(true);
   };
@@ -1029,6 +1035,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         : {},
     );
     setPendingProductResolution(null);
+    resetGuidancePreview();
     setWizardStep(1);
     setWizardOpen(true);
   };
@@ -1150,6 +1157,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const nextStep = () => {
     if (!validateStep()) return;
+    if (wizardStep === 2 && currentGuidancePreviewInput) {
+      // The seller reviews the checklist on this step, where the guidance can
+      // still be changed: the first click interprets it and stays here.
+      if (!guidancePreviewIsCurrent) {
+        requestGuidancePreview();
+        targetFieldRefs.current.searchPlanGuidance?.scrollIntoView({ block: "start" });
+        return;
+      }
+      if (guidancePreview?.status === "loading") return;
+    }
+    if (wizardStep === 1) ensureGuidancePreview();
     setWizardStep((step) => Math.min(4, step + 1));
   };
 
@@ -3186,6 +3204,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     capabilities={capabilities}
                     marketplaceLabel={marketplaceEnumLabel}
                   />
+                  {currentGuidancePreviewInput && (
+                    <AffiliateCampaignGuidancePreview
+                      state={guidancePreview}
+                      stale={guidancePreview !== null && !guidancePreviewIsCurrent}
+                      onRequest={requestGuidancePreview}
+                    />
+                  )}
                 </section>
                 <section className="affiliate-campaign-outreach-limits">
                   <div>
@@ -3650,10 +3675,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   }
                 />
               </div>
-              <AffiliateCampaignGuidancePreview
-                state={guidancePreview}
-                onEdit={() => setWizardStep(2)}
-              />
               <div className="affiliate-campaign-authorization">
                 <CheckIcon />
                 <div>
@@ -3685,7 +3706,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             data-tutorial-id="affiliate-campaign-wizard-cancel"
             onClick={() => {
               if (wizardStep === 1) setWizardOpen(false);
-              else setWizardStep((step) => step - 1);
+              else {
+                if (wizardStep === 3) ensureGuidancePreview();
+                setWizardStep((step) => step - 1);
+              }
             }}
             disabled={writeCampaignState.loading}
           >
@@ -5084,11 +5108,11 @@ function formatDateTime(value: string) {
   return formatShortDateTime(value, panelI18n.language);
 }
 
-type GuidancePreviewState =
-  | { status: "empty" }
+type GuidancePreviewState = { forKey: string } & (
   | { status: "loading" }
   | { status: "error"; errorKey: GuidancePreviewErrorKey }
-  | { status: "ready"; checklist: GuidanceChecklistItemView[]; restatement: string | null };
+  | { status: "ready"; checklist: GuidanceChecklistItemView[]; restatement: string | null }
+);
 
 /** Copies a response checklist into plain rows so no response object outlives the render. */
 function guidanceChecklistView(

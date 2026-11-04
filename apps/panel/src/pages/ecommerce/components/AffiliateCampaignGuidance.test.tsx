@@ -34,7 +34,8 @@ describe("Campaign guidance presentation", () => {
     render(
       <AffiliateCampaignGuidancePreview
         state={{ status: "ready", checklist, restatement: "粉丝多或销售高均可" }}
-        onEdit={() => {}}
+        stale={false}
+        onRequest={() => {}}
       />,
     );
     expect(screen.getByText("粉丝至少 5000")).toBeTruthy();
@@ -46,25 +47,52 @@ describe("Campaign guidance presentation", () => {
     expect(screen.getByText("粉丝多或销售高均可")).toBeTruthy();
   });
 
-  it("returns to editing from the preview", () => {
-    const onEdit = vi.fn();
-    render(<AffiliateCampaignGuidancePreview state={{ status: "loading" }} onEdit={onEdit} />);
-    fireEvent.click(screen.getByText("返回修改筛选要求"));
-    expect(onEdit).toHaveBeenCalledTimes(1);
+  it("offers to generate the checklist before one exists", () => {
+    const onRequest = vi.fn();
+    render(<AffiliateCampaignGuidancePreview state={null} stale={false} onRequest={onRequest} />);
+    expect(screen.getByText(/直接点「继续」也会先生成清单/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "生成执行清单" }));
+    expect(onRequest).toHaveBeenCalledTimes(1);
   });
 
-  it("explains an empty guidance and each failure without blocking", () => {
-    const { rerender } = render(
-      <AffiliateCampaignGuidancePreview state={{ status: "empty" }} onEdit={() => {}} />,
+  it("shows progress without an action while interpreting", () => {
+    render(
+      <AffiliateCampaignGuidancePreview
+        state={{ status: "loading" }}
+        stale={false}
+        onRequest={() => {}}
+      />,
     );
-    expect(screen.getByText("未填写筛选要求，不做额外筛选")).toBeTruthy();
-    rerender(
+    expect(screen.getByRole("status").textContent).toBe("正在解析你的搜索方向说明……");
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("keeps a stale checklist visible and asks for an update", () => {
+    const onRequest = vi.fn();
+    const { container } = render(
+      <AffiliateCampaignGuidancePreview
+        state={{ status: "ready", checklist, restatement: null }}
+        stale
+        onRequest={onRequest}
+      />,
+    );
+    expect(container.querySelector(".affiliate-guidance-preview.is-stale")).toBeTruthy();
+    expect(screen.getByText("粉丝至少 5000")).toBeTruthy();
+    expect(screen.getByText(/搜索方向说明已修改/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "更新执行清单" }));
+    expect(onRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("explains a failure without blocking and offers a retry", () => {
+    render(
       <AffiliateCampaignGuidancePreview
         state={{ status: "error", errorKey: "quotaExhausted" }}
-        onEdit={() => {}}
+        stale={false}
+        onRequest={() => {}}
       />,
     );
     expect(screen.getByRole("alert").textContent).toContain("云端生成额度已用完");
+    expect(screen.getByRole("button", { name: "更新执行清单" })).toBeTruthy();
   });
 
   it("tells the detail reader when nothing has been interpreted yet", () => {
@@ -76,7 +104,8 @@ describe("Campaign guidance presentation", () => {
     render(
       <AffiliateCampaignGuidancePreview
         state={{ status: "ready", checklist, restatement: "粉丝多或销售高均可" }}
-        onEdit={() => {}}
+        stale={false}
+        onRequest={() => {}}
       />,
     );
     const restatement = screen.getByText("粉丝多或销售高均可");

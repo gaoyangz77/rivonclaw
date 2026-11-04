@@ -108,6 +108,20 @@ export function guidancePreviewInput(input: {
   };
 }
 
+/**
+ * Identity of a preview request: a checklist answers exactly this shop, locale
+ * and (trimmed) guidance. Any difference means the shown checklist is stale.
+ */
+export function guidancePreviewKey(
+  input: GQL.PreviewAffiliateCampaignGuidanceInterpretationInput,
+): string {
+  return JSON.stringify([
+    input.shopId,
+    input.searchPlanExplanationLocale,
+    input.searchPlanGuidance,
+  ]);
+}
+
 export interface GuidanceUsageItem {
   /** Key below `ecommerce.affiliateCampaign.guidance.` */
   key: string;

@@ -7,12 +7,16 @@ const en = {
   hint: "{{count}} / 500 characters. Write “prefer” or “focus on” for a search direction hint; write “must”, “at least” or “exclude” to filter strictly.",
   checklistTitle: "Checklist",
   checklistDescription:
-    "How your search direction will be applied. Review it before activating; this is exactly what will run.",
-  noGuidance: "No filtering requirements entered, so no extra filtering is applied.",
+    "How your search direction will run; this is exactly what will run. Check it before you continue.",
+  checklistPending:
+    "Generate the checklist to see how these requirements will be filtered. Continuing also generates it first.",
+  checklistStale:
+    "The search direction changed after this checklist was made. Update it before you continue.",
+  generateChecklist: "Generate checklist",
+  refreshChecklist: "Update checklist",
   interpreting: "Reading your search direction…",
   notInterpreted:
     "Not interpreted yet: it is interpreted automatically when the next set of search conditions is generated.",
-  editGuidance: "Back to edit filtering requirements",
   viewChecklist: "View checklist",
   hideChecklist: "Hide checklist",
   countExact: "{{count}} as requested",
@@ -68,11 +72,13 @@ const zh: GuidanceCopy = {
     "推广计划运行期间，默认模型会结合商品、长期方向和历史结果，一次生成一组搜索条件。搜索条件在云端生成。",
   hint: "{{count}} / 500 字。写“优先、重点”作为搜索方向参考；写“必须、至少、排除”会严格筛选。",
   checklistTitle: "执行清单",
-  checklistDescription: "你的搜索方向说明会这样执行。激活前请确认，实际运行的就是这份清单。",
-  noGuidance: "未填写筛选要求，不做额外筛选",
+  checklistDescription: "你的搜索方向说明会这样执行，实际运行的就是这份清单。确认无误后再继续。",
+  checklistPending: "点「生成执行清单」查看这些要求会怎样筛选；直接点「继续」也会先生成清单。",
+  checklistStale: "搜索方向说明已修改，下面是修改前的清单，请更新后再继续。",
+  generateChecklist: "生成执行清单",
+  refreshChecklist: "更新执行清单",
   interpreting: "正在解析你的搜索方向说明……",
   notInterpreted: "尚未解析：生成下一组搜索条件时会自动解析",
-  editGuidance: "返回修改筛选要求",
   viewChecklist: "查看执行清单",
   hideChecklist: "收起执行清单",
   countExact: "{{count}} 项按要求",
@@ -123,12 +129,16 @@ const de: GuidanceCopy = {
   hint: "{{count}} / 500 Zeichen. „Bevorzugt“ oder „Schwerpunkt“ ist nur ein Suchhinweis; „muss“, „mindestens“ oder „ausschließen“ filtert strikt.",
   checklistTitle: "Ausführungsliste",
   checklistDescription:
-    "So wird Ihre Suchvorgabe umgesetzt. Prüfen Sie sie vor der Aktivierung; genau das wird ausgeführt.",
-  noGuidance: "Keine Filteranforderungen angegeben, daher wird nicht zusätzlich gefiltert.",
+    "So wird deine Suchrichtung ausgeführt – genau diese Liste läuft später. Prüfe sie, bevor du fortfährst.",
+  checklistPending:
+    "Erstelle die Ausführungsliste, um zu sehen, wie diese Anforderungen gefiltert werden. Beim Fortfahren wird sie ebenfalls zuerst erstellt.",
+  checklistStale:
+    "Die Suchrichtung wurde nach dem Erstellen dieser Liste geändert. Aktualisiere sie, bevor du fortfährst.",
+  generateChecklist: "Ausführungsliste erstellen",
+  refreshChecklist: "Ausführungsliste aktualisieren",
   interpreting: "Ihre Suchvorgabe wird ausgewertet …",
   notInterpreted:
     "Noch nicht ausgewertet: Das geschieht automatisch, wenn der nächste Satz Suchbedingungen erstellt wird.",
-  editGuidance: "Zurück zu den Filteranforderungen",
   viewChecklist: "Ausführungsliste ansehen",
   hideChecklist: "Ausführungsliste ausblenden",
   countExact: "{{count}} wie gewünscht",
@@ -183,13 +193,16 @@ const es: GuidanceCopy = {
   hint: "{{count}} / 500 caracteres. “Preferir” o “centrarse en” es solo una pista de búsqueda; “debe”, “al menos” o “excluir” filtra de forma estricta.",
   checklistTitle: "Lista de ejecución",
   checklistDescription:
-    "Así se aplicará tu orientación de búsqueda. Revísala antes de activar; esto es exactamente lo que se ejecutará.",
-  noGuidance:
-    "No has indicado requisitos de filtrado, así que no se aplica ningún filtro adicional.",
+    "Así se ejecutará tu dirección de búsqueda; esta es exactamente la lista que se aplicará. Revísala antes de continuar.",
+  checklistPending:
+    "Genera la lista para ver cómo se filtrarán estos requisitos. Al continuar también se genera primero.",
+  checklistStale:
+    "La dirección de búsqueda cambió después de generar esta lista. Actualízala antes de continuar.",
+  generateChecklist: "Generar lista",
+  refreshChecklist: "Actualizar lista",
   interpreting: "Interpretando tu orientación de búsqueda…",
   notInterpreted:
     "Aún sin interpretar: se interpretará automáticamente al generar el siguiente conjunto de condiciones de búsqueda.",
-  editGuidance: "Volver a editar los requisitos de filtrado",
   viewChecklist: "Ver lista de ejecución",
   hideChecklist: "Ocultar lista de ejecución",
   countExact: "{{count}} como pediste",
@@ -245,13 +258,16 @@ const fr: GuidanceCopy = {
   hint: "{{count}} / 500 caractères. « Privilégier » ou « se concentrer sur » ne sert que d’indication de recherche ; « doit », « au moins » ou « exclure » filtre strictement.",
   checklistTitle: "Liste d’exécution",
   checklistDescription:
-    "Voici comment vos consignes de recherche seront appliquées. Vérifiez-les avant d’activer : c’est exactement ce qui sera exécuté.",
-  noGuidance:
-    "Aucune exigence de filtrage saisie, donc aucun filtre supplémentaire n’est appliqué.",
+    "Voici comment votre orientation de recherche sera exécutée ; c’est exactement cette liste qui s’appliquera. Vérifiez-la avant de continuer.",
+  checklistPending:
+    "Générez la liste pour voir comment ces exigences seront filtrées. Continuer la génère aussi d’abord.",
+  checklistStale:
+    "L’orientation de recherche a changé après la création de cette liste. Mettez-la à jour avant de continuer.",
+  generateChecklist: "Générer la liste",
+  refreshChecklist: "Mettre à jour la liste",
   interpreting: "Analyse de vos consignes de recherche…",
   notInterpreted:
     "Pas encore analysées : elles le seront automatiquement à la génération du prochain jeu de conditions de recherche.",
-  editGuidance: "Retour pour modifier les exigences de filtrage",
   viewChecklist: "Voir la liste d’exécution",
   hideChecklist: "Masquer la liste d’exécution",
   countExact: "{{count}} comme demandé",
@@ -307,12 +323,15 @@ const id: GuidanceCopy = {
   hint: "{{count}} / 500 karakter. Tulis “utamakan” atau “fokus pada” sebagai petunjuk arah pencarian; tulis “harus”, “minimal”, atau “kecualikan” untuk menyaring secara ketat.",
   checklistTitle: "Daftar eksekusi",
   checklistDescription:
-    "Begini arahan pencarian Anda akan dijalankan. Periksa sebelum mengaktifkan; inilah yang akan berjalan.",
-  noGuidance: "Tidak ada persyaratan penyaringan, jadi tidak ada penyaringan tambahan.",
+    "Beginilah arah pencarian Anda akan dijalankan; daftar inilah yang akan berlaku. Periksa sebelum melanjutkan.",
+  checklistPending:
+    "Buat daftar eksekusi untuk melihat bagaimana persyaratan ini disaring. Melanjutkan juga akan membuatnya terlebih dahulu.",
+  checklistStale: "Arah pencarian berubah setelah daftar ini dibuat. Perbarui sebelum melanjutkan.",
+  generateChecklist: "Buat daftar eksekusi",
+  refreshChecklist: "Perbarui daftar eksekusi",
   interpreting: "Membaca arahan pencarian Anda…",
   notInterpreted:
     "Belum ditafsirkan: akan ditafsirkan otomatis saat set kondisi pencarian berikutnya dibuat.",
-  editGuidance: "Kembali mengubah persyaratan penyaringan",
   viewChecklist: "Lihat daftar eksekusi",
   hideChecklist: "Sembunyikan daftar eksekusi",
   countExact: "{{count}} sesuai permintaan",
@@ -368,13 +387,16 @@ const it: GuidanceCopy = {
   hint: "{{count}} / 500 caratteri. “Preferisci” o “concentrati su” è solo un suggerimento di ricerca; “deve”, “almeno” o “escludi” filtra in modo rigoroso.",
   checklistTitle: "Elenco di esecuzione",
   checklistDescription:
-    "Ecco come verrà applicato il tuo indirizzo di ricerca. Controllalo prima di attivare: è esattamente ciò che verrà eseguito.",
-  noGuidance:
-    "Nessun requisito di filtro inserito, quindi non viene applicato alcun filtro aggiuntivo.",
+    "Ecco come verrà eseguito il tuo indirizzo di ricerca: è esattamente questo l’elenco che verrà applicato. Controllalo prima di continuare.",
+  checklistPending:
+    "Genera l’elenco per vedere come verranno filtrati questi requisiti. Anche continuando viene generato prima.",
+  checklistStale:
+    "L’indirizzo di ricerca è cambiato dopo la creazione di questo elenco. Aggiornalo prima di continuare.",
+  generateChecklist: "Genera elenco",
+  refreshChecklist: "Aggiorna elenco",
   interpreting: "Lettura del tuo indirizzo di ricerca…",
   notInterpreted:
     "Non ancora interpretato: verrà interpretato automaticamente alla generazione del prossimo set di condizioni di ricerca.",
-  editGuidance: "Torna a modificare i requisiti di filtro",
   viewChecklist: "Vedi l’elenco di esecuzione",
   hideChecklist: "Nascondi l’elenco di esecuzione",
   countExact: "{{count}} come richiesto",
@@ -430,11 +452,14 @@ const th: GuidanceCopy = {
   hint: "{{count}} / 500 ตัวอักษร เขียนว่า “ให้ความสำคัญ” หรือ “เน้น” เพื่อเป็นแนวทางการค้นหา เขียนว่า “ต้อง” “อย่างน้อย” หรือ “ไม่รวม” เพื่อกรองอย่างเข้มงวด",
   checklistTitle: "รายการที่จะดำเนินการ",
   checklistDescription:
-    "นี่คือวิธีที่แนวทางการค้นหาของคุณจะถูกนำไปใช้ โปรดตรวจสอบก่อนเปิดใช้งาน สิ่งนี้คือสิ่งที่จะทำงานจริง",
-  noGuidance: "ไม่ได้กรอกข้อกำหนดการกรอง จึงไม่มีการกรองเพิ่มเติม",
+    "แนวทางการค้นหาของคุณจะทำงานแบบนี้ และรายการนี้คือสิ่งที่จะใช้จริง โปรดตรวจสอบก่อนดำเนินการต่อ",
+  checklistPending:
+    "สร้างรายการเพื่อดูว่าข้อกำหนดเหล่านี้จะถูกกรองอย่างไร การกดดำเนินการต่อก็จะสร้างรายการก่อนเช่นกัน",
+  checklistStale: "แนวทางการค้นหาถูกแก้ไขหลังจากสร้างรายการนี้ โปรดอัปเดตก่อนดำเนินการต่อ",
+  generateChecklist: "สร้างรายการ",
+  refreshChecklist: "อัปเดตรายการ",
   interpreting: "กำลังอ่านแนวทางการค้นหาของคุณ…",
   notInterpreted: "ยังไม่ได้ตีความ: ระบบจะตีความอัตโนมัติเมื่อสร้างเงื่อนไขการค้นหาชุดถัดไป",
-  editGuidance: "กลับไปแก้ไขข้อกำหนดการกรอง",
   viewChecklist: "ดูรายการที่จะดำเนินการ",
   hideChecklist: "ซ่อนรายการที่จะดำเนินการ",
   countExact: "ตามที่ต้องการ {{count}} ข้อ",

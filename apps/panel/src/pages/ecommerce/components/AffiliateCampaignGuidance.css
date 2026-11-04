@@ -91,16 +91,21 @@
   color: var(--color-warning);
 }
 
-/* ---- Wizard confirmation step ---- */
+/* ---- Wizard target step, under the guidance input ---- */
 
 .affiliate-guidance-preview {
   display: grid;
   gap: var(--tk-v1-space-3);
-  margin-bottom: var(--tk-v1-space-4);
+  margin-top: var(--tk-v1-space-3);
   padding: var(--tk-v1-space-4);
   border: 1px solid var(--color-border-light);
   border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg-alt);
+}
+
+/* The text changed after this checklist was made: keep it visible, but faded. */
+.affiliate-guidance-preview.is-stale .affiliate-guidance-checklist {
+  opacity: 0.5;
 }
 
 .affiliate-guidance-preview-heading {
