@@ -57,7 +57,7 @@
 }
 
 .tk-v1-page-actions.cs-workspace-header-filters {
-  --cs-filter-control-height: 44px;
+  --cs-filter-control-height: var(--tk-v1-control-default);
 
   flex: 1 1 560px;
   flex-wrap: wrap;
@@ -65,7 +65,7 @@
 }
 
 .cs-conversation-filter-secondary {
-  --cs-filter-control-height: 44px;
+  --cs-filter-control-height: var(--tk-v1-control-default);
 
   display: flex;
   flex: 0 0 auto;
