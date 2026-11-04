@@ -10,25 +10,23 @@ export function AffiliateMessageSendError({
   onDismiss: () => void;
 }) {
   const { t } = useTranslation();
-  // Match the Provider's actual error code, never a number inside a request ID
-  // or an unrelated authorization error.
-  const platformRestriction = /\bTikTok API error 16030101\s*:/.test(message);
+  const restriction = tiktokRestriction(message);
   const key = "ecommerce.affiliateWorkspace.messageSendError";
   return (
     <TkAlert
       tone="danger"
       className="affiliate-message-send-error"
-      title={t(`${key}.${platformRestriction ? "tiktokRestrictionTitle" : "title"}`)}
+      title={t(`${key}.${restriction ? `${restriction}Title` : "title"}`)}
       actions={
         <TkButton size="sm" variant="ghost" onClick={onDismiss}>
           {t("common.close")}
         </TkButton>
       }
     >
-      {platformRestriction ? (
+      {restriction ? (
         <>
-          <div>{t(`${key}.tiktokRestrictionReason`)}</div>
-          <div>{t(`${key}.tiktokRestrictionAction`)}</div>
+          <div>{t(`${key}.${restriction}Reason`)}</div>
+          <div>{t(`${key}.${restriction}Action`)}</div>
           <details className="error-details">
             <summary>{t(`${key}.details`)}</summary>
             <code>{message}</code>
@@ -39,4 +37,18 @@ export function AffiliateMessageSendError({
       )}
     </TkAlert>
   );
+}
+
+type TikTokRestriction = "tiktokRestriction" | "unconnectedCreator";
+
+// Match the Provider's actual error code, never a number inside a request ID
+// or an unrelated authorization error. 16032001 is TikTok's generic
+// precondition code (invalid creator status, region mismatch, ...), so the
+// unconnected-creator limit is recognized only together with its own wording.
+function tiktokRestriction(message: string): TikTokRestriction | null {
+  if (/\bTikTok API error 16030101\s*:/.test(message)) return "tiktokRestriction";
+  if (/\bTikTok API error 16032001\s*:.*\bunconnected creator\b/s.test(message)) {
+    return "unconnectedCreator";
+  }
+  return null;
 }

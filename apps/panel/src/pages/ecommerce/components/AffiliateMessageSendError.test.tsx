@@ -40,6 +40,31 @@ describe("Affiliate message send errors", () => {
     expect(alert.textContent).not.toContain("与 BD 子账号权限无关");
   });
 
+  it("explains TikTok's unconnected-creator limit and points to the working routes", () => {
+    const unconnected =
+      "TikTok API error 16032001: Precondition Required. This operation requires message content that follows platform guidelines and no more than 5 messages to an unconnected creator. Please revise the message content or reduce the message count, then retry. (request_id: 2026103019143738CDABE3179B48038F20)";
+    render(<AffiliateMessageSendError message={unconnected} onDismiss={vi.fn()} />);
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("达人尚未回复过本店铺（16032001）");
+    expect(alert.textContent).toContain("TikTok 店铺后台");
+    expect(alert.textContent).toContain("换一个尚未联系过该达人的店铺");
+    const details = alert.querySelector("details")!;
+    expect(details.querySelector("code")?.textContent).toBe(unconnected);
+    expect(details.textContent).not.toContain("TikTok 店铺后台");
+  });
+
+  it.each([
+    "TikTok API error 16032001: Precondition Required. This operation requires a creator_id whose creator status is valid. Please verify the creator status, provide a valid creator_id, and retry.",
+    "TikTok API error 16032001: Operation Not Allowed. Cannot associate this creator and seller: the creator and seller regions do not match.",
+    "Network error mentioning an unconnected creator (request_id: 16032001)",
+  ])("does not label other 16032001 failures as the unconnected-creator limit: %s", (message) => {
+    render(<AffiliateMessageSendError message={message} onDismiss={vi.fn()} />);
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("消息发送失败");
+    expect(alert.textContent).toContain(message);
+    expect(alert.textContent).not.toContain("尚未回复过本店铺");
+  });
+
   it("keeps long unrecognized errors intact and lets the employee dismiss the notice", () => {
     const onDismiss = vi.fn();
     const message = `Provider failure: ${"详细原因".repeat(300)} — 最后的排查建议`;
