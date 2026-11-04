@@ -52,7 +52,7 @@ import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
 import { AffiliateSampleOrderCopyButton } from "./AffiliateSampleOrderCopyButton.js";
 import {
-  AffiliateSamplePartnerBadge,
+  AffiliateSampleOriginBadge,
   affiliateSampleStatusLabel,
   isSampleRejectedByPlatform,
 } from "./AffiliateSampleReview.js";
@@ -1591,7 +1591,7 @@ function SampleStateBadge({
     !isSampleRejectedByPlatform(sampleApplication);
   return (
     <>
-      <AffiliateSamplePartnerBadge sampleApplication={sampleApplication} />
+      <AffiliateSampleOriginBadge sampleApplication={sampleApplication} />
       <span
         className={
           isSyncIssue

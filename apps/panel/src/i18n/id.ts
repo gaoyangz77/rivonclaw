@@ -3297,6 +3297,8 @@ export default {
         partner: "Penyedia layanan",
         managedByPartner: "Dikelola oleh {{partner}}",
         partnerBadge: "Penyedia layanan",
+        refundableSampleBadge: "Beli & refund",
+        refundableSampleHint: "Sampel yang dibeli sendiri oleh Kreator dan dikembalikan dananya oleh penjual kemudian, tanpa peninjauan. Di TikTok Seller Center, sampel ini ada di tab sampel beli-dan-refund, bukan di sampel gratis.",
         productId: "ID produk",
         collaborationId: "ID kolaborasi",
         openCollaborationId: "ID kolaborasi terbuka",

@@ -3904,6 +3904,8 @@ export default {
         partner: "服务商",
         managedByPartner: "由 {{partner}} 管理",
         partnerBadge: "服务商",
+        refundableSampleBadge: "买返样品",
+        refundableSampleHint: "达人自己下单购买、商家事后返款的样品，没有审核环节。TikTok 后台要在「样品申请 › 买返样品」中查看，不在免费样品里。",
         productId: "商品 ID",
         collaborationId: "合作 ID",
         openCollaborationId: "公开合作 ID",

@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { observable, runInAction } from "mobx";
 import { applySnapshot } from "mobx-state-tree";
+import { GQL } from "@rivonclaw/core";
 import i18n from "../../../i18n/index.js";
 import { runtimeStatusStore } from "../../../store/runtime-status-store.js";
 import {
   AffiliateSampleIgnoreButton,
-  AffiliateSamplePartnerBadge,
+  AffiliateSampleOriginBadge,
   AffiliateSampleShopIdentity,
   affiliateSampleStatusLabel,
 } from "./AffiliateSampleReview.js";
@@ -138,22 +139,51 @@ describe("sample application status label", () => {
 
 describe("partner-managed sample application", () => {
   it("marks the application with a service provider badge that names the partner on hover", async () => {
-    const view = render(<AffiliateSamplePartnerBadge sampleApplication={{ partnerName: "VIPStreamers GS" }} />);
+    const view = render(<AffiliateSampleOriginBadge sampleApplication={{ partnerName: "VIPStreamers GS" }} />);
     const badge = screen.getByText("服务商");
     expect(badge.closest("[title]")?.getAttribute("title")).toBe("由 VIPStreamers GS 管理");
     view.unmount();
     await i18n.changeLanguage("en");
-    render(<AffiliateSamplePartnerBadge sampleApplication={{ partnerName: " VIPStreamers GS " }} />);
+    render(<AffiliateSampleOriginBadge sampleApplication={{ partnerName: " VIPStreamers GS " }} />);
     expect(screen.getByText("Partner").closest("[title]")?.getAttribute("title")).toBe(
       "Managed by VIPStreamers GS",
     );
   });
 
-  it("renders nothing without a partner", () => {
+  it("renders nothing for an ordinary seller-reviewed sample", () => {
     for (const partnerName of [null, "  ", undefined]) {
-      const view = render(<AffiliateSamplePartnerBadge sampleApplication={{ partnerName }} />);
+      const view = render(<AffiliateSampleOriginBadge sampleApplication={{ partnerName }} />);
       expect(view.container.firstChild).toBeNull();
       view.unmount();
     }
+    const free = render(
+      <AffiliateSampleOriginBadge sampleApplication={{ sampleType: GQL.AffiliateSampleApplicationType.FreeSample }} />,
+    );
+    expect(free.container.firstChild).toBeNull();
+  });
+});
+
+describe("refundable sample application", () => {
+  it("marks a buy-and-refund sample and says where TikTok lists it", () => {
+    render(
+      <AffiliateSampleOriginBadge
+        sampleApplication={{ sampleType: GQL.AffiliateSampleApplicationType.RefundableSample }}
+      />,
+    );
+    const badge = screen.getByText("买返样品");
+    expect(badge.closest("[title]")?.getAttribute("title")).toContain("买返样品");
+  });
+
+  it("shows the partner when a partner-managed record is also marked refundable", () => {
+    render(
+      <AffiliateSampleOriginBadge
+        sampleApplication={{
+          partnerName: "VIPStreamers GS",
+          sampleType: GQL.AffiliateSampleApplicationType.RefundableSample,
+        }}
+      />,
+    );
+    expect(screen.getByText("服务商")).toBeTruthy();
+    expect(screen.queryByText("买返样品")).toBeNull();
   });
 });

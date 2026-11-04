@@ -2309,6 +2309,7 @@ export const AffiliateCreatorAssignmentTrigger = {
   CreatorInbound: "CREATOR_INBOUND",
   PartnerSampleApplication: "PARTNER_SAMPLE_APPLICATION",
   PlatformAction: "PLATFORM_ACTION",
+  RefundableSampleApplication: "REFUNDABLE_SAMPLE_APPLICATION",
   SampleApplication: "SAMPLE_APPLICATION",
   TargetCollaboration: "TARGET_COLLABORATION",
 } as const;
@@ -4907,6 +4908,14 @@ export interface AffiliateSampleApplicationStatePayload {
   source: AffiliateProviderReadSource;
 }
 
+/** How a Sample Application reaches the Creator. REFUNDABLE_SAMPLE is inferred (the Creator buys the product and the seller refunds later; the seller-side search never returns it); absent means not classified. */
+export const AffiliateSampleApplicationType = {
+  FreeSample: "FREE_SAMPLE",
+  RefundableSample: "REFUNDABLE_SAMPLE",
+} as const;
+
+export type AffiliateSampleApplicationType =
+  (typeof AffiliateSampleApplicationType)[keyof typeof AffiliateSampleApplicationType];
 export const AffiliateSampleCollaborationLinkBasis = {
   DirectProviderId: "DIRECT_PROVIDER_ID",
   TargetSearchContext: "TARGET_SEARCH_CONTEXT",
@@ -8190,6 +8199,94 @@ export interface EcomAffiliateProduct {
 /** Affiliate seller shop summary */
 export interface EcomAffiliateShop {
   name?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** One cancellation, refund, return, replacement or exchange request (never an order), read from the warehouse facts. */
+export interface EcomAfterSaleRequest {
+  createTime: Scalars["DateTimeISO"]["output"];
+  currency?: Maybe<Scalars["String"]["output"]>;
+  isQuickRefund?: Maybe<Scalars["Boolean"]["output"]>;
+  kind: EcomAfterSaleRequestKind;
+  lines: Array<EcomAfterSaleRequestLine>;
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  reason?: Maybe<Scalars["String"]["output"]>;
+  reasonText?: Maybe<Scalars["String"]["output"]>;
+  /** Decimal string exactly as stored. */
+  refundTotal?: Maybe<Scalars["String"]["output"]>;
+  /** Platform request ID (return_id or cancel_id). */
+  requestId: Scalars["String"]["output"];
+  /** Platform return type or cancel type. */
+  requestType?: Maybe<Scalars["String"]["output"]>;
+  role?: Maybe<Scalars["String"]["output"]>;
+  /** Platform deadline for the seller action. */
+  sellerActionDeadline?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Action the platform asks the seller to take. */
+  sellerNextAction?: Maybe<Scalars["String"]["output"]>;
+  shopId: Scalars["String"]["output"];
+  shopName?: Maybe<Scalars["String"]["output"]>;
+  /** Platform status string. */
+  status?: Maybe<Scalars["String"]["output"]>;
+  updateTime: Scalars["DateTimeISO"]["output"];
+}
+
+/** Kind of an after-sale request. CANCELLATION rows come from the cancellation facts; the others are the return type of a return/refund request. */
+export const EcomAfterSaleRequestKind = {
+  Cancellation: "CANCELLATION",
+  Exchange: "EXCHANGE",
+  Refund: "REFUND",
+  Replacement: "REPLACEMENT",
+  ReturnAndRefund: "RETURN_AND_REFUND",
+} as const;
+
+export type EcomAfterSaleRequestKind =
+  (typeof EcomAfterSaleRequestKind)[keyof typeof EcomAfterSaleRequestKind];
+export interface EcomAfterSaleRequestLine {
+  currency?: Maybe<Scalars["String"]["output"]>;
+  lineItemId: Scalars["String"]["output"];
+  orderLineItemId?: Maybe<Scalars["String"]["output"]>;
+  productId?: Maybe<Scalars["String"]["output"]>;
+  productName?: Maybe<Scalars["String"]["output"]>;
+  /** Decimal string exactly as stored. */
+  refundTotal?: Maybe<Scalars["String"]["output"]>;
+  sellerSku?: Maybe<Scalars["String"]["output"]>;
+  skuId?: Maybe<Scalars["String"]["output"]>;
+  skuName?: Maybe<Scalars["String"]["output"]>;
+}
+
+export interface EcomAfterSaleRequestPage {
+  items: Array<EcomAfterSaleRequest>;
+  /** Null on the last page. */
+  nextCursor?: Maybe<Scalars["String"]["output"]>;
+  /** Requests matching the view and filters across all pages. */
+  totalCount: Scalars["Int"]["output"];
+}
+
+/** TO_REVIEW lists requests the seller must decide on; ALL lists every request created inside a bounded window. */
+export const EcomAfterSaleRequestView = {
+  All: "ALL",
+  ToReview: "TO_REVIEW",
+} as const;
+
+export type EcomAfterSaleRequestView =
+  (typeof EcomAfterSaleRequestView)[keyof typeof EcomAfterSaleRequestView];
+export interface EcomAfterSaleRequestsInput {
+  /** Start of the created-at window (inclusive). Required for ALL, ignored for TO_REVIEW. */
+  createdFrom?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
+  /** End of the created-at window (exclusive). Required for ALL; the window is at most 92 days. */
+  createdTo?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
+  /** Opaque keyset cursor from a previous page. */
+  cursor?: InputMaybe<Scalars["String"]["input"]>;
+  /** Null selects every kind. */
+  kinds?: InputMaybe<Array<EcomAfterSaleRequestKind>>;
+  /** Page size. Default 50, maximum 100. */
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Platform seller-next-action strings. Null selects every action. */
+  sellerActions?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  /** Must be a subset of the caller's shops. Null selects all of them. */
+  shopIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  /** Platform status strings. Null selects every status. */
+  statuses?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  view: EcomAfterSaleRequestView;
 }
 
 /** Aftersale eligibility for an order */
@@ -12234,6 +12331,8 @@ export interface Mutation {
   syncWmsInventoryGoods: SyncWmsInventoryGoodsPayload;
   /** Pull warehouses from one WMS account and upsert canonical Warehouse records. */
   syncWmsWarehouses: WmsWarehouseSyncPayload;
+  tiktokIngestCancellationStatusWebhook: TikTokAfterSaleWebhookResult;
+  tiktokIngestReturnStatusWebhook: TikTokAfterSaleWebhookResult;
   tiktokIngestSellerDeauthorizationWebhook: TikTokSellerDeauthorizationWebhookResult;
   unassignAffiliateEmailAccount: EmailAccountBinding;
   unassignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
@@ -13240,6 +13339,14 @@ export interface MutationSyncWmsWarehousesArgs {
   wmsAccountId: Scalars["ID"]["input"];
 }
 
+export interface MutationTiktokIngestCancellationStatusWebhookArgs {
+  input: TikTokCancellationStatusWebhookInput;
+}
+
+export interface MutationTiktokIngestReturnStatusWebhookArgs {
+  input: TikTokReturnStatusWebhookInput;
+}
+
 export interface MutationTiktokIngestSellerDeauthorizationWebhookArgs {
   input: TikTokSellerDeauthorizationWebhookInput;
 }
@@ -14206,6 +14313,10 @@ export interface Query {
   /** Get public Google sign-in configuration for native desktop clients */
   desktopGoogleAuthConfig: DesktopGoogleAuthConfig;
   discoverProductsBySellerSku: SellerSkuProductDiscoveryPayload;
+  /** One after-sale request of a shop the caller owns, or null when it is not stored under that kind. */
+  ecommerceAfterSaleRequest?: Maybe<EcomAfterSaleRequest>;
+  /** After-sale requests (cancellations, refunds, returns, replacements, exchanges) of the caller's shops, one row per request. TO_REVIEW lists requests awaiting a seller decision, earliest platform deadline first; ALL lists requests created inside a window, newest first. */
+  ecommerceAfterSaleRequests: EcomAfterSaleRequestPage;
   ecommerceCheckListingPrerequisites: EcommercePassthroughResult;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
@@ -14796,6 +14907,16 @@ export interface QueryCsPendingEscalationEventsArgs {
 export interface QueryDiscoverProductsBySellerSkuArgs {
   sellerSku?: InputMaybe<Scalars["String"]["input"]>;
   sellerSkus?: InputMaybe<Array<Scalars["String"]["input"]>>;
+}
+
+export interface QueryEcommerceAfterSaleRequestArgs {
+  kind: EcomAfterSaleRequestKind;
+  requestId: Scalars["String"]["input"];
+  shopId: Scalars["String"]["input"];
+}
+
+export interface QueryEcommerceAfterSaleRequestsArgs {
+  input: EcomAfterSaleRequestsInput;
 }
 
 export interface QueryEcommerceCheckListingPrerequisitesArgs {
@@ -16063,6 +16184,8 @@ export interface SampleApplicationRecord {
   publishedContentCount: Scalars["Int"]["output"];
   reviewDisposition: AffiliateSampleReviewDisposition;
   reviewDispositionRevision: Scalars["Int"]["output"];
+  /** Inferred application type. REFUNDABLE_SAMPLE: the Creator bought the product and the seller refunds later (no seller review; TikTok's seller-side Sample Application list never returns it). Inferred from a webhook-first observation already at shipped stage or later, not a Provider field. Null means not classified: the seller's ordinary Sample. */
+  sampleType?: Maybe<AffiliateSampleApplicationType>;
   /** RivonClaw-owned sample lifecycle state optimized for agent and operator understanding. */
   sampleWorkStatus: SampleWorkStatus;
   shippedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
@@ -17228,6 +17351,22 @@ export const TagMatchMode = {
 } as const;
 
 export type TagMatchMode = (typeof TagMatchMode)[keyof typeof TagMatchMode];
+export interface TikTokAfterSaleWebhookResult {
+  accepted: Scalars["Boolean"]["output"];
+  shopId?: Maybe<Scalars["String"]["output"]>;
+}
+
+export interface TikTokCancellationStatusWebhookInput {
+  cancelId: Scalars["String"]["input"];
+  cancelRole?: InputMaybe<Scalars["String"]["input"]>;
+  cancelStatus: Scalars["String"]["input"];
+  eventTime: Scalars["String"]["input"];
+  notificationId: Scalars["String"]["input"];
+  orderId: Scalars["String"]["input"];
+  platformShopId: Scalars["String"]["input"];
+  updateTime: Scalars["String"]["input"];
+}
+
 export interface TikTokOAuthBrowserStart {
   authUrl: Scalars["String"]["output"];
   expiresAt: Scalars["DateTimeISO"]["output"];
@@ -17242,6 +17381,18 @@ export const TikTokPlatformErrorRetryability = {
 
 export type TikTokPlatformErrorRetryability =
   (typeof TikTokPlatformErrorRetryability)[keyof typeof TikTokPlatformErrorRetryability];
+export interface TikTokReturnStatusWebhookInput {
+  eventTime: Scalars["String"]["input"];
+  notificationId: Scalars["String"]["input"];
+  orderId: Scalars["String"]["input"];
+  platformShopId: Scalars["String"]["input"];
+  returnId: Scalars["String"]["input"];
+  returnRole?: InputMaybe<Scalars["String"]["input"]>;
+  returnStatus: Scalars["String"]["input"];
+  returnType?: InputMaybe<Scalars["String"]["input"]>;
+  updateTime: Scalars["String"]["input"];
+}
+
 /** Raw TikTok sample content fulfillment status values. */
 export const TikTokSampleContentFulfillmentPlatformStatus = {
   Cancelled: "CANCELLED",

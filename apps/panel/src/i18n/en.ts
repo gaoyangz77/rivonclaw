@@ -4104,6 +4104,8 @@ export default {
         partner: "Service provider",
         managedByPartner: "Managed by {{partner}}",
         partnerBadge: "Partner",
+        refundableSampleBadge: "Buy & refund",
+        refundableSampleHint: "A sample the Creator bought and the seller refunds later, with no review. In TikTok Seller Center it is listed under the buy-and-refund samples tab, not among free samples.",
         productId: "Product ID",
         collaborationId: "Collaboration ID",
         openCollaborationId: "Open collaboration ID",

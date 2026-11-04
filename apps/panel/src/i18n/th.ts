@@ -3179,6 +3179,8 @@ export default {
         partner: "ผู้ให้บริการ",
         managedByPartner: "ดูแลโดย {{partner}}",
         partnerBadge: "ผู้ให้บริการ",
+        refundableSampleBadge: "ซื้อแล้วคืนเงิน",
+        refundableSampleHint: "ตัวอย่างที่ครีเอเตอร์ซื้อเองและผู้ขายคืนเงินภายหลัง ไม่ต้องอนุมัติ ใน TikTok Seller Center จะอยู่ในแท็บตัวอย่างแบบซื้อแล้วคืนเงิน ไม่ใช่ในตัวอย่างฟรี",
         productId: "ID สินค้า",
         collaborationId: "ID ความร่วมมือ",
         openCollaborationId: "ID ความร่วมมือแบบเปิด",

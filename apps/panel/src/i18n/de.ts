@@ -3353,6 +3353,8 @@ export default {
         partner: "Dienstleister",
         managedByPartner: "Verwaltet von {{partner}}",
         partnerBadge: "Dienstleister",
+        refundableSampleBadge: "Kauf & Rückerstattung",
+        refundableSampleHint: "Ein Muster, das der Creator selbst gekauft hat und das der Verkäufer später erstattet, ohne Prüfung. Im TikTok Seller Center steht es auf dem Tab für Kauf-und-Rückerstattungs-Muster, nicht bei den Gratismustern.",
         productId: "Produkt-ID",
         collaborationId: "Kooperations-ID",
         openCollaborationId: "Offene Kooperations-ID",

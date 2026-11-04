@@ -3351,6 +3351,8 @@ export default {
         partner: "Prestataire de services",
         managedByPartner: "Géré par {{partner}}",
         partnerBadge: "Prestataire",
+        refundableSampleBadge: "Achat remboursé",
+        refundableSampleHint: "Un échantillon acheté par le créateur et remboursé ensuite par le vendeur, sans validation. Dans TikTok Seller Center, il figure dans l’onglet des échantillons achetés puis remboursés, pas parmi les échantillons gratuits.",
         productId: "ID produit",
         collaborationId: "ID de collaboration",
         openCollaborationId: "ID de collaboration ouverte",

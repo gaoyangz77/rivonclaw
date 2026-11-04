@@ -3335,6 +3335,8 @@ export default {
         partner: "Fornitore di servizi",
         managedByPartner: "Gestito da {{partner}}",
         partnerBadge: "Fornitore",
+        refundableSampleBadge: "Acquisto rimborsato",
+        refundableSampleHint: "Un campione acquistato dal creator e rimborsato in seguito dal venditore, senza revisione. In TikTok Seller Center si trova nella scheda dei campioni acquistati e rimborsati, non tra i campioni gratuiti.",
         productId: "ID prodotto",
         collaborationId: "ID collaborazione",
         openCollaborationId: "ID collaborazione aperta",

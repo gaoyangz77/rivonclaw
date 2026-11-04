@@ -1683,6 +1683,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           platformCollaborationId
           sampleWorkStatus
           partnerName
+          sampleType
           reviewDisposition
           platformStatus
           trackingNumber
@@ -2124,6 +2125,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         skuImageUrl
         sampleWorkStatus
         partnerName
+        sampleType
         reviewDisposition
         platformStatus
         observedContentCount
@@ -2249,6 +2251,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           skuImageUrl
           sampleWorkStatus
           partnerName
+          sampleType
           reviewDisposition
           platformStatus
           observedContentCount
@@ -2283,6 +2286,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           skuImageUrl
           sampleWorkStatus
           partnerName
+          sampleType
           reviewDisposition
           platformStatus
           observedContentCount
@@ -2451,6 +2455,7 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
         skuImageUrl
         sampleWorkStatus
         partnerName
+        sampleType
         reviewDisposition
         reviewDispositionRevision
         merchantReviewDecision
@@ -3043,6 +3048,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           skuImageUrl
           sampleWorkStatus
           partnerName
+          sampleType
           reviewDisposition
           platformStatus
           observedContentCount
@@ -3268,6 +3274,7 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         commissionRate
         sampleWorkStatus
         partnerName
+        sampleType
         platformStatus
         platformFulfillmentStatus
         approveExpirationAt
@@ -3353,6 +3360,7 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         commissionRate
         sampleWorkStatus
         partnerName
+        sampleType
         reviewDisposition
         platformStatus
         platformFulfillmentStatus
@@ -3814,7 +3822,7 @@ export const AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT = gql`
     productSummary { productId title coverImage status priceMin priceMax skus { skuId skuName sellerSku price currency } }
     sampleApplication {
       id shopId creatorRelationshipId platformApplicationId productId skuId skuName skuImageUrl
-      sampleWorkStatus partnerName reviewDisposition platformStatus commissionRate observedContentCount
+      sampleWorkStatus partnerName sampleType reviewDisposition platformStatus commissionRate observedContentCount
       updatedAt lastObservedAt firstObservedAt shippedAt deliveredAt carrier trackingNumber
       latestObservedContentId latestObservedContentAt latestObservedContentViewCount
       affiliateCollaborationId platformCollaborationId platformTargetCollaborationId platformOpenCollaborationId
@@ -4443,6 +4451,7 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       skuImageUrl
       sampleWorkStatus
       partnerName
+      sampleType
       reviewDisposition
       reviewDispositionRevision
       merchantReviewDecision

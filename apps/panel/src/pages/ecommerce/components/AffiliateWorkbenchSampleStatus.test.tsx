@@ -88,7 +88,7 @@ describe("Affiliate workbench Sample status filter", () => {
       refreshRevision={0} onOpen={vi.fn()}
     /></ToastProvider></MockedProvider>);
     await screen.findByText("Creator");
-    const badge = document.querySelector(".affiliate-sample-partner-badge")!;
+    const badge = document.querySelector(".affiliate-sample-origin-badge")!;
     expect(badge.textContent).toBe("服务商");
     expect(badge.getAttribute("title")).toBe("由 VIPStreamers GS 管理");
     const status = badge.nextElementSibling!;

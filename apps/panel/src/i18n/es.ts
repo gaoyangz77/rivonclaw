@@ -3337,6 +3337,8 @@ export default {
         partner: "Proveedor de servicios",
         managedByPartner: "Gestionado por {{partner}}",
         partnerBadge: "Proveedor",
+        refundableSampleBadge: "Compra y reembolso",
+        refundableSampleHint: "Una muestra que el creador compró y que el vendedor reembolsa después, sin revisión. En TikTok Seller Center aparece en la pestaña de muestras de compra y reembolso, no entre las muestras gratuitas.",
         productId: "ID de producto",
         collaborationId: "ID de colaboración",
         openCollaborationId: "ID de colaboración abierta",

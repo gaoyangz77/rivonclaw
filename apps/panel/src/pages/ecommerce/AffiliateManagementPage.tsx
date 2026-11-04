@@ -109,7 +109,7 @@ import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleShopIdentity,
   SampleReviewResult,
-  AffiliateSamplePartnerBadge,
+  AffiliateSampleOriginBadge,
   affiliateSampleStatusLabel,
 } from "./components/AffiliateSampleReview.js";
 import { AffiliateActorLabel } from "../../components/ecommerce/AffiliateActorLabel.js";
@@ -3983,7 +3983,7 @@ function CreatorRelationshipCompactCard({
           <div>
             <dt>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</dt>
             <dd title={sampleStatusDescription ?? sampleStatusLabel}>
-              {latestSample ? <AffiliateSamplePartnerBadge sampleApplication={latestSample} /> : null}
+              {latestSample ? <AffiliateSampleOriginBadge sampleApplication={latestSample} /> : null}
               {sampleStatusLabel}
             </dd>
           </div>
@@ -7218,7 +7218,7 @@ function AffiliateCreatorMessageSampleRefCard({
           {t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}
         </strong>
         {sample?.sampleWorkStatus ? <span>
-          <AffiliateSamplePartnerBadge sampleApplication={sample} />
+          <AffiliateSampleOriginBadge sampleApplication={sample} />
           {affiliateSampleStatusLabel(sample, t)}
         </span> : null}
         <div className="affiliate-conversation-card-meta">
@@ -9707,7 +9707,7 @@ export function SampleApplicationSummaryCard({
   if (compact) return <article className="affiliate-message-sample-card">
     <div className="affiliate-message-entity-title">
       <strong>{t("ecommerce.affiliateWorkspace.conversation.sampleApplicationCardLabel")}</strong>
-      <AffiliateSamplePartnerBadge sampleApplication={sampleApplication} />
+      <AffiliateSampleOriginBadge sampleApplication={sampleApplication} />
       <TkBadge tone="neutral">{t("ecommerce.affiliateWorkspace.messageCards.currentState", { status })}</TkBadge>
     </div>
     <ProductSummaryCard product={productSummary} productId={sampleApplication.productId}
@@ -9759,7 +9759,7 @@ export function SampleApplicationSummaryCard({
           </div>
         </div>
         <div className="affiliate-collaboration-sample-status">
-          <AffiliateSamplePartnerBadge sampleApplication={sampleApplication} />
+          <AffiliateSampleOriginBadge sampleApplication={sampleApplication} />
           {status}
         </div>
       </div>

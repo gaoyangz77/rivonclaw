@@ -108,27 +108,43 @@ function humanizeEnum(value: string): string {
 }
 
 /**
- * The "Service provider" marker for a Sample Application a service provider / MCN
- * owns on TikTok. The partner name stays on the record for its whole life, so
- * shipped and completed Samples keep the marker. Hovering shows who manages it.
- * Place it immediately before the status text; renders nothing without a partner.
+ * The origin marker of a Sample Application, placed immediately before the
+ * status text; renders nothing for an ordinary seller-reviewed Sample.
+ * - "Service provider": a service provider / MCN owns it on TikTok; hovering
+ *   shows who manages it. The partner name stays for the record's whole life.
+ * - "Refundable sample": the Creator bought it and the seller refunds later, so
+ *   there is no review and TikTok lists it on its own seller-center tab, not
+ *   among free samples. Inferred by the backend and sticky.
+ * A partner wins if both were ever present.
  */
-export function AffiliateSamplePartnerBadge({
+export function AffiliateSampleOriginBadge({
   sampleApplication,
 }: {
-  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName">;
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName" | "sampleType">;
 }) {
   const { t } = useTranslation();
   const partner = sampleApplication.partnerName?.trim();
-  if (!partner) return null;
-  return (
-    <span
-      className="affiliate-sample-partner-badge"
-      title={t("ecommerce.affiliateWorkspace.sampleApplication.managedByPartner", { partner })}
-    >
-      <TkBadge tone="info">{t("ecommerce.affiliateWorkspace.sampleApplication.partnerBadge")}</TkBadge>
-    </span>
-  );
+  if (partner) {
+    return (
+      <span
+        className="affiliate-sample-origin-badge"
+        title={t("ecommerce.affiliateWorkspace.sampleApplication.managedByPartner", { partner })}
+      >
+        <TkBadge tone="info">{t("ecommerce.affiliateWorkspace.sampleApplication.partnerBadge")}</TkBadge>
+      </span>
+    );
+  }
+  if (sampleApplication.sampleType === GQL.AffiliateSampleApplicationType.RefundableSample) {
+    return (
+      <span
+        className="affiliate-sample-origin-badge"
+        title={t("ecommerce.affiliateWorkspace.sampleApplication.refundableSampleHint")}
+      >
+        <TkBadge tone="info">{t("ecommerce.affiliateWorkspace.sampleApplication.refundableSampleBadge")}</TkBadge>
+      </span>
+    );
+  }
+  return null;
 }
 
 type SampleReviewResultRecord = Pick<
