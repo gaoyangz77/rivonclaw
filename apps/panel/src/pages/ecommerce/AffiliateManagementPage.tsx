@@ -91,6 +91,7 @@ import {
 } from "../../components/icons.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
+import { graphQLErrorCode } from "../../lib/graphql-error-code.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
 import {
   affiliateProposalDecisionApplied,
@@ -294,6 +295,8 @@ const HISTORY_STATUS_FILTERS = [
 
 type HistoryStatusFilter = (typeof HISTORY_STATUS_FILTERS)[number];
 type HistoryTypeFilter = "ALL" | GQL.AffiliateCollaborationType;
+/** Backend `extensions.code` for an approval TikTok refused; the application stays pending. */
+const SAMPLE_APPROVAL_REFUSED_BY_PLATFORM = "SAMPLE_APPROVAL_REFUSED_BY_PLATFORM";
 const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
@@ -1477,7 +1480,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
         );
         if (current) entityStore.affiliateWorkspace.upsertAffiliateActionProposal(current);
       }
-      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
+      showToast(proposalDecisionErrorMessage(t, err), "error");
       return false;
     }
   }
@@ -8910,6 +8913,17 @@ function actionProposalDecisionNote(
   );
 }
 
+/** The toast for a failed proposal decision; TikTok's refusal of an approval gets its own wording. */
+function proposalDecisionErrorMessage(
+  t: ReturnType<typeof useTranslation>["t"],
+  error: unknown,
+): string {
+  if (graphQLErrorCode(error) === SAMPLE_APPROVAL_REFUSED_BY_PLATFORM) {
+    return t("ecommerce.affiliateWorkspace.sampleApprovalRefused");
+  }
+  return error instanceof Error ? error.message : t("ecommerce.updateFailed");
+}
+
 function actionProposalDecisionSuccessMessage(
   t: ReturnType<typeof useTranslation>["t"],
   proposal: GQL.ActionProposal,
@@ -11258,6 +11272,23 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
         showToast(t("ecommerce.affiliateWorkspace.workbench.reviewRefreshFailed"), "warning"),
       );
     } catch (error) {
+      if (graphQLErrorCode(error) === SAMPLE_APPROVAL_REFUSED_BY_PLATFORM) {
+        // TikTok refused the approval and the backend released its claim, which
+        // moved the record to a new revision. The open dialog holds the old one,
+        // so it closes and the refreshed card is what the next attempt starts from.
+        setSampleReviewCommand(null);
+        setSampleRejectExplanation("");
+        setSampleReviewNote("");
+        showToast(t("ecommerce.affiliateWorkspace.sampleApprovalRefused"), "error");
+        onWorkbenchEntityChanged?.();
+        void Promise.all([
+          ...(visibleQueriesRef.current.samplesVisible ? [sampleQuery.refetch()] : []),
+          refetchRelationshipDetail(),
+        ]).catch(() =>
+          showToast(t("ecommerce.affiliateWorkspace.workbench.reviewRefreshFailed"), "warning"),
+        );
+        return;
+      }
       showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
@@ -11360,7 +11391,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       await Promise.allSettled([
         ...(visibleQueriesRef.current.proposalsVisible ? [proposalQuery.refetch()] : []), refetchRelationshipDetail(),
       ]);
-      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      showToast(proposalDecisionErrorMessage(t, error), "error");
       return false;
     } finally {
       setDecidingProposalId((current) => (current === proposal.id ? null : current));
