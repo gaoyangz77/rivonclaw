@@ -4102,6 +4102,8 @@ export default {
         hideDetails: "Hide details",
         status: "Status",
         applicationId: "Application ID",
+        partner: "Service provider",
+        managedByPartner: "Managed by {{partner}}",
         productId: "Product ID",
         collaborationId: "Collaboration ID",
         openCollaborationId: "Open collaboration ID",
@@ -4658,6 +4660,7 @@ export default {
         blocked: "Blocked",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "This application is managed by a service provider (MCN). The provider reviews it, so you cannot approve or reject it here.",
         REQUEST_PENDING_REVIEW:
           "The creator has submitted a sample request and is waiting for your decision.",
         APPROVED_AWAITING_SHIPMENT:
@@ -4675,6 +4678,7 @@ export default {
         DEFAULT: "The sample request has an updated platform status.",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Pending partner review",
         REQUEST_PENDING_REVIEW: "Pending review",
         APPROVED_AWAITING_SHIPMENT: "Awaiting shipment",
         SHIPPED_IN_TRANSIT: "In transit",

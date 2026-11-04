@@ -3902,6 +3902,8 @@ export default {
         hideDetails: "收起详情",
         status: "状态",
         applicationId: "申请 ID",
+        partner: "服务商",
+        managedByPartner: "由 {{partner}} 管理",
         productId: "商品 ID",
         collaborationId: "合作 ID",
         openCollaborationId: "公开合作 ID",
@@ -4434,6 +4436,7 @@ export default {
         blocked: "已阻止",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "这条申样由服务商管理，需由服务商审核，你无法在后台同意或拒绝。",
         REQUEST_PENDING_REVIEW: "达人已提交样品申请，正在等待你审核。",
         APPROVED_AWAITING_SHIPMENT: "样品申请已同意，正在等待 TikTok FBT 自动履约。",
         SHIPPED_IN_TRANSIT: "样品已经发出，正在运输途中。",
@@ -4447,6 +4450,7 @@ export default {
         DEFAULT: "样品申请状态有更新。",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "服务商审核中",
         REQUEST_PENDING_REVIEW: "待审核",
         APPROVED_AWAITING_SHIPMENT: "待寄样",
         SHIPPED_IN_TRANSIT: "运输中",

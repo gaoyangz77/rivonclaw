@@ -3,3 +3,34 @@
   max-width: 240px;
   margin-block: var(--tk-v1-space-2) var(--tk-v1-space-4);
 }
+
+/* Assignment scenarios: a checkbox column with a muted hint under each label. */
+.affiliate-creator-business-triggers {
+  margin-top: var(--tk-v1-space-4);
+}
+
+.affiliate-creator-business-trigger {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tk-v1-space-3);
+  cursor: pointer;
+}
+
+.affiliate-creator-business-trigger input {
+  margin-top: var(--tk-v1-space-1);
+}
+
+.affiliate-creator-business-trigger-label {
+  display: block;
+  color: var(--tk-v1-fg-default);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.affiliate-creator-business-trigger-hint {
+  display: block;
+  margin-top: var(--tk-v1-space-1);
+  color: var(--tk-v1-fg-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}

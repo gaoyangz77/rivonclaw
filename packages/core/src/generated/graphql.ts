@@ -2303,6 +2303,18 @@ export interface AffiliateCoverageDailyPoint {
   shopsWithData: Scalars["Int"]["output"];
 }
 
+/** A scenario in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. */
+export const AffiliateCreatorAssignmentTrigger = {
+  CampaignFirstTouch: "CAMPAIGN_FIRST_TOUCH",
+  CreatorInbound: "CREATOR_INBOUND",
+  PartnerSampleApplication: "PARTNER_SAMPLE_APPLICATION",
+  PlatformAction: "PLATFORM_ACTION",
+  SampleApplication: "SAMPLE_APPLICATION",
+  TargetCollaboration: "TARGET_COLLABORATION",
+} as const;
+
+export type AffiliateCreatorAssignmentTrigger =
+  (typeof AffiliateCreatorAssignmentTrigger)[keyof typeof AffiliateCreatorAssignmentTrigger];
 export interface AffiliateCreatorBulkUpdateItemResult {
   addedManualTagNames: Array<Scalars["String"]["output"]>;
   businessDeveloperChanged: Scalars["Boolean"]["output"];
@@ -4149,6 +4161,10 @@ export interface AffiliateOperationalSettings {
   autoClaimOnSampleApproval: Scalars["Boolean"]["output"];
   /** When a Business Developer rejects or ignores a Sample Application of a Creator they own that has no collaboration progress, release the Creator to the public pool (default off). */
   autoReleaseOnSampleRejection: Scalars["Boolean"]["output"];
+  /** True when the seller chose their own selection of assignment scenarios; false while the defaults apply. */
+  creatorAssignmentTriggersCustomized: Scalars["Boolean"]["output"];
+  /** Scenarios in force in which a new business fact about an unassigned, unprotected Creator triggers random Business Developer assignment. The seller's own selection, or the defaults (Creator inbound message, Sample Application, partner-managed Sample Application) while they have none. Empty means never assign automatically. */
+  enabledCreatorAssignmentTriggers: Array<AffiliateCreatorAssignmentTrigger>;
   id: Scalars["ID"]["output"];
   onboardingCompletedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   /** Timeout safeguard: release a BD-assigned Creator with no collaboration progress to the public pool when one of its Sample Applications is still pending review this many hours before TikTok's review deadline (1–142). Null means off. */
@@ -12170,7 +12186,7 @@ export interface Mutation {
   setAffiliateBusinessDeveloperPreferredAccount: AffiliateBusinessDeveloper;
   /** Activate, pause, complete, or archive an Affiliate Campaign. */
   setAffiliateCampaignStatus: AffiliateCampaign;
-  /** Set the seller-wide Creator ownership automations: the two that follow a Business Developer's Sample review and the pre-deadline timeout release. All default off and apply only to Creators with no collaboration progress. */
+  /** Set the seller-wide Creator ownership automations: the two that follow a Business Developer's Sample review and the pre-deadline timeout release (all default off, only for Creators with no collaboration progress), and the scenarios that trigger random Business Developer assignment of a new Creator. */
   setAffiliateCreatorBusinessSettings: AffiliateOperationalSettings;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
@@ -16015,6 +16031,8 @@ export interface SampleApplicationRecord {
   /** Legacy storage name for the number of Provider-confirmed published affiliate works. Prefer publishedContentCount in Agent-facing reads. */
   observedContentCount: Scalars["Int"]["output"];
   order?: Maybe<SampleApplicationOrderRecord>;
+  /** Service provider / MCN managing this application on TikTok. While it is PENDING the seller can neither approve nor reject it (work status REQUEST_PENDING_PARTNER_REVIEW). */
+  partnerName?: Maybe<Scalars["String"]["output"]>;
   /** Cumulative attributed-sales snapshot used by Shop-configured post-fulfillment follow-up. Null means no warehouse snapshot is available. */
   performanceSnapshot?: Maybe<SampleApplicationPerformanceSnapshot>;
   platformApplicationId: Scalars["String"]["output"];
@@ -16062,6 +16080,7 @@ export const SampleWorkStatus = {
   Fulfilled: "FULFILLED",
   FulfillmentFailed: "FULFILLMENT_FAILED",
   PlatformStatusUnknown: "PLATFORM_STATUS_UNKNOWN",
+  RequestPendingPartnerReview: "REQUEST_PENDING_PARTNER_REVIEW",
   RequestPendingReview: "REQUEST_PENDING_REVIEW",
   ShippedInTransit: "SHIPPED_IN_TRANSIT",
 } as const;
@@ -16158,6 +16177,8 @@ export interface SetAffiliateCampaignStatusInput {
 export interface SetAffiliateCreatorBusinessSettingsInput {
   autoClaimOnSampleApproval: Scalars["Boolean"]["input"];
   autoReleaseOnSampleRejection: Scalars["Boolean"]["input"];
+  /** Absent leaves the stored selection unchanged; null restores the defaults; a list sets exactly those scenarios (an empty list means never assign automatically). */
+  creatorAssignmentTriggers?: InputMaybe<Array<AffiliateCreatorAssignmentTrigger>>;
   /** Absent leaves the stored value unchanged; null turns the safeguard off; an integer from 1 to 142 sets it. */
   releaseBeforeSampleExpiryHours?: InputMaybe<Scalars["Int"]["input"]>;
 }

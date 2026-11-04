@@ -3177,6 +3177,8 @@ export default {
         hideDetails: "ซ่อนรายละเอียด",
         status: "สถานะ",
         applicationId: "ID คำขอ",
+        partner: "ผู้ให้บริการ",
+        managedByPartner: "ดูแลโดย {{partner}}",
         productId: "ID สินค้า",
         collaborationId: "ID ความร่วมมือ",
         openCollaborationId: "ID ความร่วมมือแบบเปิด",
@@ -3768,6 +3770,7 @@ export default {
           "เจ้าหน้าที่ขอคำแนะนำฉบับแก้ไข หมายเหตุการแก้ไขจะถูกรวมในการทำงานครั้งถัดไปของ Agent",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "คำขอนี้อยู่ภายใต้การดูแลของผู้ให้บริการ (MCN) ผู้ให้บริการเป็นผู้ตรวจสอบ คุณจึงไม่สามารถอนุมัติหรือปฏิเสธได้ที่นี่",
         REQUEST_PENDING_REVIEW: "ครีเอเตอร์ส่งคำขอตัวอย่างแล้วและกำลังรอการตัดสินใจของคุณ",
         APPROVED_AWAITING_SHIPMENT: "คำขอตัวอย่างได้รับการอนุมัติแล้ว แต่ยังต้องจัดส่งตัวอย่าง",
         SHIPPED_IN_TRANSIT: "ตัวอย่างถูกจัดส่งแล้วและอยู่ระหว่างขนส่ง",
@@ -3782,6 +3785,7 @@ export default {
         DEFAULT: "สถานะคำขอตัวอย่างบนแพลตฟอร์มมีการอัปเดต",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "ผู้ให้บริการกำลังตรวจสอบ",
         REQUEST_PENDING_REVIEW: "รอตรวจสอบ",
         APPROVED_AWAITING_SHIPMENT: "รอจัดส่ง",
         SHIPPED_IN_TRANSIT: "กำลังขนส่ง",

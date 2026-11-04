@@ -6,6 +6,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "No rules on",
         creatorBusinessSummaryOn: "{{count}} of 3 rules on",
         creatorBusiness: {
+          triggers: {
+            title: "Scenarios that assign a new Creator to a BD",
+            description:
+              "When an unassigned, unprotected Creator has a new action in any scenario checked below, the system randomly assigns the Creator to a BD. Protected Creators always go to their protection BD.",
+            restoreDefaults: "Restore defaults",
+            restored: "Defaults restored.",
+            CREATOR_INBOUND: { label: "Creator sends a message", hint: "When a new message arrives from the Creator" },
+            SAMPLE_APPLICATION: { label: "Creator sample application (seller can review)", hint: "When a new sample application appears" },
+            PARTNER_SAMPLE_APPLICATION: { label: "Service-provider-managed sample application", hint: "When a new sample application managed by a service provider (MCN) appears" },
+            TARGET_COLLABORATION: { label: "Target collaboration", hint: "When the Creator first appears in a target collaboration" },
+            CAMPAIGN_FIRST_TOUCH: { label: "First outreach of an invitation", hint: "When an invitation task contacts the Creator for the first time" },
+            PLATFORM_ACTION: { label: "Platform action", hint: "When a platform action such as an approval is performed on the Creator in the system" },
+          },
           title: "Creator business rules",
           description:
             "These rules apply to all shops of this seller account and are off by default.",
@@ -37,6 +50,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "未启用",
         creatorBusinessSummaryOn: "已启用 {{count}}/3 项规则",
         creatorBusiness: {
+          triggers: {
+            title: "新达人分配 BD 的场景",
+            description:
+              "未分配、未受保护的达人在以下勾选的场景出现新动作时，系统会随机分配给一位 BD。受保护的达人始终归保护 BD。",
+            restoreDefaults: "恢复默认设置",
+            restored: "已恢复默认设置",
+            CREATOR_INBOUND: { label: "达人主动发消息", hint: "达人发来新消息时" },
+            SAMPLE_APPLICATION: { label: "达人申样（卖家可审核）", hint: "出现一条新的样品申请时" },
+            PARTNER_SAMPLE_APPLICATION: { label: "服务商管理的申样", hint: "出现一条由服务商（MCN）管理的新样品申请时" },
+            TARGET_COLLABORATION: { label: "定向合作", hint: "达人首次出现在一个定向合作中时" },
+            CAMPAIGN_FIRST_TOUCH: { label: "邀约首次触达", hint: "邀约任务第一次联系达人时" },
+            PLATFORM_ACTION: { label: "平台操作", hint: "在系统里对达人执行审批等平台操作时" },
+          },
           title: "达人业务配置",
           description: "以下规则对本卖家账号下的所有店铺生效，默认均为关闭。",
           autoClaim: "新达人申样通过时自动申领",
@@ -65,6 +91,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "Keine Regel aktiv",
         creatorBusinessSummaryOn: "{{count}} von 3 Regeln aktiv",
         creatorBusiness: {
+          triggers: {
+            title: "Szenarien, in denen ein neuer Creator einem BD zugewiesen wird",
+            description:
+              "Tritt bei einem nicht zugewiesenen, nicht geschützten Creator in einem der unten ausgewählten Szenarien eine neue Aktion auf, weist das System den Creator zufällig einem BD zu. Geschützte Creator gehören immer ihrem Schutz-BD.",
+            restoreDefaults: "Standardeinstellungen wiederherstellen",
+            restored: "Standardeinstellungen wiederhergestellt.",
+            CREATOR_INBOUND: { label: "Creator schreibt eine Nachricht", hint: "Wenn eine neue Nachricht vom Creator eintrifft" },
+            SAMPLE_APPLICATION: { label: "Muster-Anfrage des Creators (Verkäufer kann prüfen)", hint: "Wenn eine neue Muster-Anfrage erscheint" },
+            PARTNER_SAMPLE_APPLICATION: { label: "Vom Dienstleister verwaltete Muster-Anfrage", hint: "Wenn eine neue, von einem Dienstleister (MCN) verwaltete Muster-Anfrage erscheint" },
+            TARGET_COLLABORATION: { label: "Gezielte Zusammenarbeit", hint: "Wenn der Creator erstmals in einer gezielten Zusammenarbeit auftaucht" },
+            CAMPAIGN_FIRST_TOUCH: { label: "Erste Kontaktaufnahme einer Einladung", hint: "Wenn eine Einladungsaufgabe den Creator zum ersten Mal kontaktiert" },
+            PLATFORM_ACTION: { label: "Plattformaktion", hint: "Wenn im System eine Plattformaktion wie eine Genehmigung für den Creator ausgeführt wird" },
+          },
           title: "Creator-Geschäftsregeln",
           description:
             "Diese Regeln gelten für alle Shops dieses Verkäuferkontos und sind standardmäßig deaktiviert.",
@@ -98,6 +137,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "Sin reglas activas",
         creatorBusinessSummaryOn: "{{count}} de 3 reglas activas",
         creatorBusiness: {
+          triggers: {
+            title: "Escenarios que asignan un creador nuevo a un BD",
+            description:
+              "Cuando un creador sin asignar y sin protección tiene una acción nueva en alguno de los escenarios marcados abajo, el sistema lo asigna al azar a un BD. Los creadores protegidos siempre van a su BD de protección.",
+            restoreDefaults: "Restaurar valores predeterminados",
+            restored: "Valores predeterminados restaurados.",
+            CREATOR_INBOUND: { label: "El creador envía un mensaje", hint: "Cuando llega un mensaje nuevo del creador" },
+            SAMPLE_APPLICATION: { label: "Solicitud de muestra del creador (el vendedor puede revisar)", hint: "Cuando aparece una solicitud de muestra nueva" },
+            PARTNER_SAMPLE_APPLICATION: { label: "Solicitud de muestra gestionada por un proveedor de servicios", hint: "Cuando aparece una solicitud de muestra nueva gestionada por un proveedor de servicios (MCN)" },
+            TARGET_COLLABORATION: { label: "Colaboración dirigida", hint: "Cuando el creador aparece por primera vez en una colaboración dirigida" },
+            CAMPAIGN_FIRST_TOUCH: { label: "Primer contacto de una invitación", hint: "Cuando una tarea de invitación contacta al creador por primera vez" },
+            PLATFORM_ACTION: { label: "Acción de la plataforma", hint: "Cuando se realiza en el sistema una acción de la plataforma, como una aprobación, sobre el creador" },
+          },
           title: "Reglas de negocio de creadores",
           description:
             "Estas reglas se aplican a todas las tiendas de esta cuenta de vendedor y están desactivadas de forma predeterminada.",
@@ -131,6 +183,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "Aucune règle active",
         creatorBusinessSummaryOn: "{{count}} règle(s) active(s) sur 3",
         creatorBusiness: {
+          triggers: {
+            title: "Scénarios d’affectation d’un nouveau créateur à un BD",
+            description:
+              "Lorsqu’un créateur non affecté et non protégé a une nouvelle action dans l’un des scénarios cochés ci-dessous, le système l’affecte au hasard à un BD. Les créateurs protégés reviennent toujours à leur BD de protection.",
+            restoreDefaults: "Restaurer les paramètres par défaut",
+            restored: "Paramètres par défaut restaurés.",
+            CREATOR_INBOUND: { label: "Le créateur envoie un message", hint: "Lorsqu’un nouveau message du créateur arrive" },
+            SAMPLE_APPLICATION: { label: "Demande d’échantillon du créateur (le vendeur peut l’examiner)", hint: "Lorsqu’une nouvelle demande d’échantillon apparaît" },
+            PARTNER_SAMPLE_APPLICATION: { label: "Demande d’échantillon gérée par un prestataire", hint: "Lorsqu’une nouvelle demande d’échantillon gérée par un prestataire (MCN) apparaît" },
+            TARGET_COLLABORATION: { label: "Collaboration ciblée", hint: "Lorsque le créateur apparaît pour la première fois dans une collaboration ciblée" },
+            CAMPAIGN_FIRST_TOUCH: { label: "Premier contact d’une invitation", hint: "Lorsqu’une tâche d’invitation contacte le créateur pour la première fois" },
+            PLATFORM_ACTION: { label: "Action de la plateforme", hint: "Lorsqu’une action de la plateforme, comme une approbation, est effectuée sur le créateur dans le système" },
+          },
           title: "Règles métier créateurs",
           description:
             "Ces règles s’appliquent à toutes les boutiques de ce compte vendeur et sont désactivées par défaut.",
@@ -163,6 +228,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "Tidak ada aturan aktif",
         creatorBusinessSummaryOn: "{{count}} dari 3 aturan aktif",
         creatorBusiness: {
+          triggers: {
+            title: "Skenario penugasan kreator baru ke BD",
+            description:
+              "Saat kreator yang belum ditugaskan dan tidak dilindungi memiliki aksi baru pada skenario yang dicentang di bawah, sistem menugaskannya secara acak ke seorang BD. Kreator yang dilindungi selalu masuk ke BD perlindungannya.",
+            restoreDefaults: "Pulihkan pengaturan default",
+            restored: "Pengaturan default dipulihkan.",
+            CREATOR_INBOUND: { label: "Kreator mengirim pesan", hint: "Saat pesan baru dari kreator masuk" },
+            SAMPLE_APPLICATION: { label: "Permintaan sampel kreator (penjual dapat meninjau)", hint: "Saat muncul permintaan sampel baru" },
+            PARTNER_SAMPLE_APPLICATION: { label: "Permintaan sampel yang dikelola penyedia layanan", hint: "Saat muncul permintaan sampel baru yang dikelola penyedia layanan (MCN)" },
+            TARGET_COLLABORATION: { label: "Kolaborasi terarah", hint: "Saat kreator pertama kali muncul dalam kolaborasi terarah" },
+            CAMPAIGN_FIRST_TOUCH: { label: "Kontak pertama undangan", hint: "Saat tugas undangan menghubungi kreator untuk pertama kali" },
+            PLATFORM_ACTION: { label: "Aksi platform", hint: "Saat aksi platform seperti persetujuan dilakukan pada kreator di dalam sistem" },
+          },
           title: "Aturan bisnis kreator",
           description:
             "Aturan ini berlaku untuk semua toko di akun penjual ini dan nonaktif secara default.",
@@ -194,6 +272,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "Nessuna regola attiva",
         creatorBusinessSummaryOn: "{{count}} regole attive su 3",
         creatorBusiness: {
+          triggers: {
+            title: "Scenari che assegnano un nuovo creator a un BD",
+            description:
+              "Quando un creator non assegnato e non protetto compie una nuova azione in uno degli scenari selezionati qui sotto, il sistema lo assegna a caso a un BD. I creator protetti vanno sempre al loro BD di protezione.",
+            restoreDefaults: "Ripristina impostazioni predefinite",
+            restored: "Impostazioni predefinite ripristinate.",
+            CREATOR_INBOUND: { label: "Il creator invia un messaggio", hint: "Quando arriva un nuovo messaggio dal creator" },
+            SAMPLE_APPLICATION: { label: "Richiesta di campione del creator (il venditore può esaminarla)", hint: "Quando compare una nuova richiesta di campione" },
+            PARTNER_SAMPLE_APPLICATION: { label: "Richiesta di campione gestita da un fornitore di servizi", hint: "Quando compare una nuova richiesta di campione gestita da un fornitore di servizi (MCN)" },
+            TARGET_COLLABORATION: { label: "Collaborazione mirata", hint: "Quando il creator compare per la prima volta in una collaborazione mirata" },
+            CAMPAIGN_FIRST_TOUCH: { label: "Primo contatto di un invito", hint: "Quando un’attività di invito contatta il creator per la prima volta" },
+            PLATFORM_ACTION: { label: "Azione della piattaforma", hint: "Quando nel sistema viene eseguita sul creator un’azione della piattaforma, come un’approvazione" },
+          },
           title: "Regole business creator",
           description:
             "Queste regole valgono per tutti i negozi di questo account venditore e sono disattivate per impostazione predefinita.",
@@ -226,6 +317,19 @@ export const AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS = {
         creatorBusinessSummaryOff: "ยังไม่เปิดใช้กฎ",
         creatorBusinessSummaryOn: "เปิดใช้ {{count}} จาก 3 กฎ",
         creatorBusiness: {
+          triggers: {
+            title: "สถานการณ์ที่มอบหมายครีเอเตอร์ใหม่ให้ BD",
+            description:
+              "เมื่อครีเอเตอร์ที่ยังไม่ได้มอบหมายและไม่ได้รับการคุ้มครองมีการดำเนินการใหม่ในสถานการณ์ที่เลือกไว้ด้านล่าง ระบบจะสุ่มมอบหมายให้ BD หนึ่งคน ครีเอเตอร์ที่ได้รับการคุ้มครองจะเป็นของ BD ผู้คุ้มครองเสมอ",
+            restoreDefaults: "คืนค่าเริ่มต้น",
+            restored: "คืนค่าเริ่มต้นแล้ว",
+            CREATOR_INBOUND: { label: "ครีเอเตอร์ส่งข้อความมา", hint: "เมื่อมีข้อความใหม่จากครีเอเตอร์" },
+            SAMPLE_APPLICATION: { label: "คำขอตัวอย่างจากครีเอเตอร์ (ผู้ขายตรวจสอบได้)", hint: "เมื่อมีคำขอตัวอย่างใหม่เกิดขึ้น" },
+            PARTNER_SAMPLE_APPLICATION: { label: "คำขอตัวอย่างที่ผู้ให้บริการดูแล", hint: "เมื่อมีคำขอตัวอย่างใหม่ที่ผู้ให้บริการ (MCN) ดูแล" },
+            TARGET_COLLABORATION: { label: "ความร่วมมือแบบเจาะจง", hint: "เมื่อครีเอเตอร์ปรากฏในความร่วมมือแบบเจาะจงเป็นครั้งแรก" },
+            CAMPAIGN_FIRST_TOUCH: { label: "การติดต่อครั้งแรกจากคำเชิญ", hint: "เมื่องานคำเชิญติดต่อครีเอเตอร์เป็นครั้งแรก" },
+            PLATFORM_ACTION: { label: "การดำเนินการของแพลตฟอร์ม", hint: "เมื่อมีการดำเนินการของแพลตฟอร์ม เช่น การอนุมัติ กับครีเอเตอร์ในระบบ" },
+          },
           title: "กฎธุรกิจครีเอเตอร์",
           description: "กฎเหล่านี้ใช้กับทุกร้านค้าของบัญชีผู้ขายนี้ และปิดอยู่ตามค่าเริ่มต้น",
           autoClaim: "รับครีเอเตอร์ใหม่อัตโนมัติเมื่ออนุมัติคำขอตัวอย่าง",

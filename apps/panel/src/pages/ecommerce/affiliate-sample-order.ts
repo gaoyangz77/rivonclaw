@@ -10,6 +10,10 @@ function sampleDisplayPriority(sample: SampleOrderFields): number {
   switch (sample.sampleWorkStatus) {
     case GQL.SampleWorkStatus.RequestPendingReview:
       return 0;
+    case GQL.SampleWorkStatus.RequestPendingPartnerReview:
+      // The service provider owns this review; the seller cannot act on it, so it is
+      // in-flight work, never seller-actionable.
+      return 1;
     case GQL.SampleWorkStatus.Cancelled:
     case GQL.SampleWorkStatus.Expired:
     case GQL.SampleWorkStatus.Fulfilled:

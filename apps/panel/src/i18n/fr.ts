@@ -3349,6 +3349,8 @@ export default {
         hideDetails: "Masquer les détails",
         status: "Statut",
         applicationId: "ID de demande",
+        partner: "Prestataire de services",
+        managedByPartner: "Géré par {{partner}}",
         productId: "ID produit",
         collaborationId: "ID de collaboration",
         openCollaborationId: "ID de collaboration ouverte",
@@ -3975,6 +3977,7 @@ export default {
           "L'équipe a demandé une recommandation révisée. La note de révision sera incluse dans la prochaine exécution de l'agent.",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Cette demande est gérée par un prestataire de services (MCN). Il l'examine, vous ne pouvez donc ni l'approuver ni la refuser ici.",
         REQUEST_PENDING_REVIEW:
           "Le créateur a soumis une demande d'échantillon et attend votre décision.",
         APPROVED_AWAITING_SHIPMENT:
@@ -3992,6 +3995,7 @@ export default {
         DEFAULT: "Le statut de la demande d'échantillon a été mis à jour sur la plateforme.",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Examen par le prestataire",
         REQUEST_PENDING_REVIEW: "En attente d'examen",
         APPROVED_AWAITING_SHIPMENT: "À expédier",
         SHIPPED_IN_TRANSIT: "En transit",

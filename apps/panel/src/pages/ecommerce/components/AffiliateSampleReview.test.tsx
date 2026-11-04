@@ -7,6 +7,7 @@ import { runtimeStatusStore } from "../../../store/runtime-status-store.js";
 import {
   AffiliateSampleIgnoreButton,
   AffiliateSampleShopIdentity,
+  samplePartnerAnnotation,
 } from "./AffiliateSampleReview.js";
 
 const { mockStore } = vi.hoisted(() => ({
@@ -96,5 +97,23 @@ describe("ignore sample application", () => {
     expect(onClick).not.toHaveBeenCalled();
     expect(i18n.t("ecommerce.affiliateWorkspace.workbench.sampleSoftRejected")).toBe("Ignored");
     expect(i18n.t("ecommerce.affiliateWorkspace.workbench.platformReject")).toBe("Reject");
+  });
+});
+
+describe("partner-managed sample application", () => {
+  it("annotates the managing partner in every locale and omits it without one", async () => {
+    expect(samplePartnerAnnotation({ partnerName: "VIPStreamers GS" }, i18n.t)).toBe(
+      "由 VIPStreamers GS 管理",
+    );
+    expect(i18n.t("ecommerce.affiliateWorkspace.sampleWorkStatusLabels.REQUEST_PENDING_PARTNER_REVIEW")).toBe(
+      "服务商审核中",
+    );
+    await i18n.changeLanguage("en");
+    expect(samplePartnerAnnotation({ partnerName: "VIPStreamers GS" }, i18n.t)).toBe(
+      "Managed by VIPStreamers GS",
+    );
+    expect(samplePartnerAnnotation({ partnerName: null }, i18n.t)).toBeNull();
+    expect(samplePartnerAnnotation({ partnerName: "  " }, i18n.t)).toBeNull();
+    expect(samplePartnerAnnotation({}, i18n.t)).toBeNull();
   });
 });

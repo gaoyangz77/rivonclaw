@@ -39,6 +39,21 @@ describe("Creator Detail sample order", () => {
     ]);
   });
 
+  it("never ranks a partner-managed application as seller-actionable", () => {
+    const records = [
+      sample("partner", GQL.SampleWorkStatus.RequestPendingPartnerReview),
+      sample("pending", GQL.SampleWorkStatus.RequestPendingReview),
+      sample("expired", GQL.SampleWorkStatus.Expired),
+      sample("shipping", GQL.SampleWorkStatus.ShippedInTransit),
+    ];
+    expect(sortAffiliateSamplesPendingFirst(records).map(({ id }) => id)).toEqual([
+      "pending",
+      "partner",
+      "shipping",
+      "expired",
+    ]);
+  });
+
   it("keeps ignored applications below pending ones even while TikTok still shows pending", () => {
     const ignored = sample(
       "ignored",

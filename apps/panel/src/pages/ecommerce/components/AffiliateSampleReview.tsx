@@ -72,6 +72,21 @@ export function sampleRejectedStatusLabel(
     : null;
 }
 
+/**
+ * "Managed by {partner}" for a Sample Application a service provider / MCN owns on
+ * TikTok. The partner name stays on the record for its whole life, so shipped and
+ * completed Samples keep the annotation. Null when no partner is recorded.
+ */
+export function samplePartnerAnnotation(
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "partnerName">,
+  t: TFunction,
+): string | null {
+  const partner = sampleApplication.partnerName?.trim();
+  return partner
+    ? t("ecommerce.affiliateWorkspace.sampleApplication.managedByPartner", { partner })
+    : null;
+}
+
 type SampleReviewResultRecord = Pick<
   GQL.SampleApplicationRecord,
   | "merchantReviewDecidedAt"

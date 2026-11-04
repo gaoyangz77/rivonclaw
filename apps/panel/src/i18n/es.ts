@@ -3335,6 +3335,8 @@ export default {
         hideDetails: "Ocultar detalles",
         status: "Estado",
         applicationId: "ID de solicitud",
+        partner: "Proveedor de servicios",
+        managedByPartner: "Gestionado por {{partner}}",
         productId: "ID de producto",
         collaborationId: "ID de colaboración",
         openCollaborationId: "ID de colaboración abierta",
@@ -3962,6 +3964,7 @@ export default {
           "El personal solicitó una recomendación revisada. La nota de revisión se incluirá en la próxima ejecución del agente.",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Esta solicitud la gestiona un proveedor de servicios (MCN). El proveedor la revisa, por lo que no puedes aprobarla ni rechazarla aquí.",
         REQUEST_PENDING_REVIEW: "El creador envió una solicitud de muestra y espera tu decisión.",
         APPROVED_AWAITING_SHIPMENT:
           "La solicitud de muestra está aprobada, pero la muestra aún debe enviarse.",
@@ -3978,6 +3981,7 @@ export default {
         DEFAULT: "El estado de la solicitud de muestra se actualizó en la plataforma.",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "En revisión del proveedor",
         REQUEST_PENDING_REVIEW: "Pendiente de revisión",
         APPROVED_AWAITING_SHIPMENT: "Pendiente de envío",
         SHIPPED_IN_TRANSIT: "En tránsito",

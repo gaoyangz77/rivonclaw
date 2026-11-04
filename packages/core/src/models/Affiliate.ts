@@ -158,6 +158,11 @@ export const AffiliateOperationalSettingsModel = types.model("AffiliateOperation
   // Hours before TikTok's review deadline at which an unreviewed Sample Application
   // releases a BD's new Creator to the public pool (1..142). Null means the rule is off.
   releaseBeforeSampleExpiryHours: types.maybeNull(types.integer),
+  // Scenarios (AffiliateCreatorAssignmentTrigger values) in which a new fact about an
+  // unassigned, unprotected Creator randomly assigns a BD. Backend-resolved effective
+  // list: the defaults while `creatorAssignmentTriggersCustomized` is false.
+  enabledCreatorAssignmentTriggers: types.optional(types.array(types.string), []),
+  creatorAssignmentTriggersCustomized: types.optional(types.boolean, false),
   id: types.identifier,
   userId: types.string,
   onboardingCompletedAt: types.maybeNull(types.string),

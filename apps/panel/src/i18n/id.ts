@@ -3295,6 +3295,8 @@ export default {
         hideDetails: "Sembunyikan detail",
         status: "Status",
         applicationId: "ID permintaan",
+        partner: "Penyedia layanan",
+        managedByPartner: "Dikelola oleh {{partner}}",
         productId: "ID produk",
         collaborationId: "ID kolaborasi",
         openCollaborationId: "ID kolaborasi terbuka",
@@ -3912,6 +3914,7 @@ export default {
           "Staf meminta rekomendasi yang direvisi. Catatan revisi akan disertakan dalam eksekusi agen berikutnya.",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Permintaan ini dikelola oleh penyedia layanan (MCN). Penyedia layanan yang meninjaunya, sehingga kamu tidak dapat menyetujui atau menolaknya di sini.",
         REQUEST_PENDING_REVIEW:
           "Kreator telah mengirim permintaan sampel dan menunggu keputusan Anda.",
         APPROVED_AWAITING_SHIPMENT:
@@ -3927,6 +3930,7 @@ export default {
         DEFAULT: "Status permintaan sampel diperbarui di platform.",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Ditinjau penyedia layanan",
         REQUEST_PENDING_REVIEW: "Menunggu tinjauan",
         APPROVED_AWAITING_SHIPMENT: "Menunggu pengiriman",
         SHIPPED_IN_TRANSIT: "Dalam pengiriman",

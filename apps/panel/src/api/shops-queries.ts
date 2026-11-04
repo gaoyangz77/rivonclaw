@@ -1670,6 +1670,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           collaborationType
           platformCollaborationId
           sampleWorkStatus
+          partnerName
           trackingNumber
           carrier
           shippedAt
@@ -2108,6 +2109,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         skuName
         skuImageUrl
         sampleWorkStatus
+        partnerName
         observedContentCount
         latestObservedContentAt
         shippedAt
@@ -2230,6 +2232,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           skuName
           skuImageUrl
           sampleWorkStatus
+          partnerName
           observedContentCount
           latestObservedContentAt
           shippedAt
@@ -2261,6 +2264,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           skuName
           skuImageUrl
           sampleWorkStatus
+          partnerName
           observedContentCount
           latestObservedContentAt
           shippedAt
@@ -2426,6 +2430,7 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
         skuName
         skuImageUrl
         sampleWorkStatus
+        partnerName
         reviewDisposition
         reviewDispositionRevision
         merchantReviewDecision
@@ -3017,6 +3022,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           skuName
           skuImageUrl
           sampleWorkStatus
+          partnerName
           observedContentCount
           latestObservedContentAt
           updatedAt
@@ -3239,6 +3245,7 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         platformOpenCollaborationId
         commissionRate
         sampleWorkStatus
+        partnerName
         platformStatus
         platformFulfillmentStatus
         approveExpirationAt
@@ -3323,6 +3330,7 @@ export const AFFILIATE_SAMPLE_APPLICATION_STATE_QUERY = gql`
         platformOpenCollaborationId
         commissionRate
         sampleWorkStatus
+        partnerName
         platformStatus
         platformFulfillmentStatus
         approveExpirationAt
@@ -3783,7 +3791,7 @@ export const AFFILIATE_MESSAGE_CARD_ENTITY_FRAGMENT = gql`
     productSummary { productId title coverImage status priceMin priceMax skus { skuId skuName sellerSku price currency } }
     sampleApplication {
       id shopId creatorRelationshipId platformApplicationId productId skuId skuName skuImageUrl
-      sampleWorkStatus reviewDisposition commissionRate observedContentCount
+      sampleWorkStatus partnerName reviewDisposition commissionRate observedContentCount
       updatedAt lastObservedAt firstObservedAt shippedAt deliveredAt carrier trackingNumber
       latestObservedContentId latestObservedContentAt latestObservedContentViewCount
       affiliateCollaborationId platformCollaborationId platformTargetCollaborationId platformOpenCollaborationId
@@ -4411,6 +4419,7 @@ const AFFILIATE_WORKBENCH_SAMPLE_ROW_FRAGMENT = gql`
       skuName
       skuImageUrl
       sampleWorkStatus
+      partnerName
       reviewDisposition
       reviewDispositionRevision
       merchantReviewDecision
@@ -4973,6 +4982,8 @@ export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
       releaseBeforeSampleExpiryHours
+      enabledCreatorAssignmentTriggers
+      creatorAssignmentTriggersCustomized
       onboardingCompletedAt
     }
   }
@@ -4987,6 +4998,8 @@ export const SET_AFFILIATE_UNREPLIED_MESSAGE_LOOKBACK_MUTATION = gql`
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
       releaseBeforeSampleExpiryHours
+      enabledCreatorAssignmentTriggers
+      creatorAssignmentTriggersCustomized
       onboardingCompletedAt
     }
   }
@@ -5001,6 +5014,8 @@ export const SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION = gql`
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
       releaseBeforeSampleExpiryHours
+      enabledCreatorAssignmentTriggers
+      creatorAssignmentTriggersCustomized
       onboardingCompletedAt
     }
   }
@@ -5250,6 +5265,8 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
       autoClaimOnSampleApproval
       autoReleaseOnSampleRejection
       releaseBeforeSampleExpiryHours
+      enabledCreatorAssignmentTriggers
+      creatorAssignmentTriggersCustomized
       onboardingCompletedAt
     }
   }

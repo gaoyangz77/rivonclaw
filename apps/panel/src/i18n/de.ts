@@ -3351,6 +3351,8 @@ export default {
         hideDetails: "Details ausblenden",
         status: "Status",
         applicationId: "Anfrage-ID",
+        partner: "Dienstleister",
+        managedByPartner: "Verwaltet von {{partner}}",
         productId: "Produkt-ID",
         collaborationId: "Kooperations-ID",
         openCollaborationId: "Offene Kooperations-ID",
@@ -3972,6 +3974,7 @@ export default {
           "Mitarbeiter haben eine überarbeitete Empfehlung angefordert. Die Notiz zur Überarbeitung wird im nächsten Agentenlauf berücksichtigt.",
       },
       sampleWorkStatusDescriptions: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Dieser Antrag wird von einem Dienstleister (MCN) verwaltet. Der Dienstleister prüft ihn, daher kannst du ihn hier weder genehmigen noch ablehnen.",
         REQUEST_PENDING_REVIEW:
           "Der Creator hat einen Probenantrag gestellt und wartet auf Ihre Entscheidung.",
         APPROVED_AWAITING_SHIPMENT:
@@ -3989,6 +3992,7 @@ export default {
         DEFAULT: "Der Plattformstatus des Probenantrags wurde aktualisiert.",
       },
       sampleWorkStatusLabels: {
+        REQUEST_PENDING_PARTNER_REVIEW: "Prüfung durch Dienstleister",
         REQUEST_PENDING_REVIEW: "In Prüfung",
         APPROVED_AWAITING_SHIPMENT: "Versand ausstehend",
         SHIPPED_IN_TRANSIT: "Unterwegs",

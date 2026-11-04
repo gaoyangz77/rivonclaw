@@ -9,6 +9,7 @@ import { useToast } from "../../../components/Toast.js";
 import {
   TkButton,
   TkField,
+  TkFormGroup,
   TkPanel,
   TkPanelBody,
   TkPanelHeader,
@@ -20,6 +21,20 @@ import "./AffiliateCreatorBusinessSettingsPanel.css";
 const RELEASE_HOURS_MIN = 1;
 const RELEASE_HOURS_MAX = 142;
 const RELEASE_HOURS_DEFAULT = 72;
+
+// Display order of the assignment scenarios. The default selection is owned by the backend.
+const ASSIGNMENT_TRIGGERS = [
+  "CREATOR_INBOUND",
+  "SAMPLE_APPLICATION",
+  "PARTNER_SAMPLE_APPLICATION",
+  "TARGET_COLLABORATION",
+  "CAMPAIGN_FIRST_TOUCH",
+  "PLATFORM_ACTION",
+] as const satisfies readonly GQL.AffiliateCreatorAssignmentTrigger[];
+
+function sameSet(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((item) => b.includes(item));
+}
 
 export const AffiliateCreatorBusinessSettingsPanel = observer(
   function AffiliateCreatorBusinessSettingsPanel() {
@@ -51,10 +66,17 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
     // Off sends null; an invalid hours draft only matters while the rule is on.
     const releaseHours = deadlineRelease ? releaseHoursValue : null;
     const hoursInvalid = deadlineRelease && !releaseHoursValid;
-    const dirty =
+    const rulesDirty =
       autoClaim !== persistedAutoClaim ||
       autoRelease !== persistedAutoRelease ||
       releaseHours !== persistedReleaseHours;
+    // Plain copy of the persisted scenarios; the draft is null until the user edits them.
+    const persistedTriggers: string[] = [...(settings?.enabledCreatorAssignmentTriggers ?? [])];
+    const triggersCustomized = settings?.creatorAssignmentTriggersCustomized ?? false;
+    const [triggersDraft, setTriggersDraft] = useState<string[] | null>(null);
+    const triggers = triggersDraft ?? persistedTriggers;
+    const triggersDirty = triggersDraft != null && !sameSet(triggersDraft, persistedTriggers);
+    const dirty = rulesDirty || triggersDirty;
     const [saveSettings, { loading: saving }] = useMutation<
       { setAffiliateCreatorBusinessSettings: GQL.AffiliateOperationalSettings },
       { input: GQL.SetAffiliateCreatorBusinessSettingsInput }
@@ -69,6 +91,10 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
               autoClaimOnSampleApproval: autoClaim,
               autoReleaseOnSampleRejection: autoRelease,
               releaseBeforeSampleExpiryHours: releaseHours,
+              // Absent leaves the stored selection unchanged.
+              ...(triggersDirty
+                ? { creatorAssignmentTriggers: triggers as GQL.AffiliateCreatorAssignmentTrigger[] }
+                : {}),
             },
           },
         });
@@ -81,7 +107,43 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
         setAutoReleaseDraft(null);
         setDeadlineReleaseDraft(null);
         setReleaseHoursDraft(null);
+        setTriggersDraft(null);
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saved"), "success");
+      } catch {
+        showToast(t("ecommerce.affiliateTeam.creatorBusiness.saveFailed"), "error");
+      }
+    }
+
+    function toggleTrigger(trigger: string, checked: boolean) {
+      const next = triggers.filter((item) => item !== trigger);
+      setTriggersDraft(checked ? [...next, trigger] : next);
+    }
+
+    // The backend owns the default selection: ask it to restore, then apply its answer.
+    async function restoreDefaults() {
+      if (!loaded || saving) return;
+      if (!triggersCustomized) {
+        setTriggersDraft(null);
+        return;
+      }
+      try {
+        const result = await saveSettings({
+          variables: {
+            input: {
+              // The resolver always writes these two, so send the persisted values, not drafts.
+              autoClaimOnSampleApproval: persistedAutoClaim,
+              autoReleaseOnSampleRejection: persistedAutoRelease,
+              creatorAssignmentTriggers: null,
+            },
+          },
+        });
+        if (!result.data?.setAffiliateCreatorBusinessSettings)
+          throw new Error("Settings response missing");
+        entityStore.affiliateWorkspace.setAffiliateOperationalSettings(
+          result.data.setAffiliateCreatorBusinessSettings,
+        );
+        setTriggersDraft(null);
+        showToast(t("ecommerce.affiliateTeam.creatorBusiness.triggers.restored"), "success");
       } catch {
         showToast(t("ecommerce.affiliateTeam.creatorBusiness.saveFailed"), "error");
       }
@@ -145,6 +207,38 @@ export const AffiliateCreatorBusinessSettingsPanel = observer(
             />
           )}
           <p className="form-hint">{t("ecommerce.affiliateTeam.creatorBusiness.exclusions")}</p>
+          <TkFormGroup
+            className="affiliate-creator-business-triggers"
+            title={t("ecommerce.affiliateTeam.creatorBusiness.triggers.title")}
+            description={t("ecommerce.affiliateTeam.creatorBusiness.triggers.description")}
+          >
+            {ASSIGNMENT_TRIGGERS.map((trigger) => (
+              <label key={trigger} className="affiliate-creator-business-trigger">
+                <input
+                  type="checkbox"
+                  checked={triggers.includes(trigger)}
+                  disabled={!loaded || saving}
+                  onChange={(event) => toggleTrigger(trigger, event.target.checked)}
+                />
+                <span>
+                  <span className="affiliate-creator-business-trigger-label">
+                    {t(`ecommerce.affiliateTeam.creatorBusiness.triggers.${trigger}.label`)}
+                  </span>
+                  <span className="affiliate-creator-business-trigger-hint">
+                    {t(`ecommerce.affiliateTeam.creatorBusiness.triggers.${trigger}.hint`)}
+                  </span>
+                </span>
+              </label>
+            ))}
+            <div>
+              <TkButton
+                disabled={!loaded || saving || (!triggersCustomized && triggersDraft == null)}
+                onClick={() => void restoreDefaults()}
+              >
+                {t("ecommerce.affiliateTeam.creatorBusiness.triggers.restoreDefaults")}
+              </TkButton>
+            </div>
+          </TkFormGroup>
         </TkPanelBody>
       </TkPanel>
     );

@@ -18,6 +18,17 @@ const AUTO_RELEASE = /新达人拒绝\/忽略申样后自动释放到公海/;
 const DEADLINE_RELEASE = /申样临期未审自动释放到公海/;
 const INVALID_HOURS = "请输入 1–142 之间的整数";
 
+const DEFAULT_TRIGGERS = ["CREATOR_INBOUND", "SAMPLE_APPLICATION", "PARTNER_SAMPLE_APPLICATION"];
+const TRIGGER_NAMES = {
+  CREATOR_INBOUND: /达人主动发消息/,
+  SAMPLE_APPLICATION: /达人申样（卖家可审核）/,
+  PARTNER_SAMPLE_APPLICATION: /服务商管理的申样/,
+  TARGET_COLLABORATION: /定向合作/,
+  CAMPAIGN_FIRST_TOUCH: /邀约首次触达/,
+  PLATFORM_ACTION: /平台操作/,
+};
+const restoreButton = () => screen.getByRole("button", { name: "恢复默认设置" }) as HTMLButtonElement;
+
 let workspace: ReturnType<typeof AffiliateWorkspaceModel.create>;
 
 function settings(overrides: Record<string, unknown> = {}) {
@@ -26,7 +37,11 @@ function settings(overrides: Record<string, unknown> = {}) {
     userId: "seller-1",
     unrepliedMessageLookbackDays: 90,
     onboardingCompletedAt: null,
+    autoClaimOnSampleApproval: false,
+    autoReleaseOnSampleRejection: false,
     releaseBeforeSampleExpiryHours: null,
+    enabledCreatorAssignmentTriggers: DEFAULT_TRIGGERS,
+    creatorAssignmentTriggersCustomized: false,
     ...overrides,
   };
 }
@@ -274,4 +289,163 @@ it("ignores an invalid hours draft once the deadline release is switched back of
   fireEvent.click(checkbox(DEADLINE_RELEASE));
   expect(screen.queryByText(INVALID_HOURS)).toBeNull();
   expect(saveButton().disabled).toBe(true);
+});
+
+it("renders the six assignment scenarios from the store, defaults checked", () => {
+  renderPanel();
+  expect(screen.getByText("新达人分配 BD 的场景")).toBeTruthy();
+  const checked = Object.entries(TRIGGER_NAMES).map(([key, name]) => [key, checkbox(name).checked]);
+  expect(checked).toEqual([
+    ["CREATOR_INBOUND", true],
+    ["SAMPLE_APPLICATION", true],
+    ["PARTNER_SAMPLE_APPLICATION", true],
+    ["TARGET_COLLABORATION", false],
+    ["CAMPAIGN_FIRST_TOUCH", false],
+    ["PLATFORM_ACTION", false],
+  ]);
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("marks the form dirty when a scenario is toggled and only while the set differs", () => {
+  renderPanel();
+  fireEvent.click(checkbox(TRIGGER_NAMES.PLATFORM_ACTION));
+  expect(saveButton().disabled).toBe(false);
+  fireEvent.click(checkbox(TRIGGER_NAMES.PLATFORM_ACTION));
+  expect(saveButton().disabled).toBe(true);
+  // Order does not matter: unchecking then re-checking restores the persisted set.
+  fireEvent.click(checkbox(TRIGGER_NAMES.CREATOR_INBOUND));
+  expect(saveButton().disabled).toBe(false);
+  fireEvent.click(checkbox(TRIGGER_NAMES.CREATOR_INBOUND));
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("saves the edited scenario list together with the persisted rule values", async () => {
+  const next = ["CREATOR_INBOUND", "SAMPLE_APPLICATION", "PARTNER_SAMPLE_APPLICATION", "PLATFORM_ACTION"];
+  const result = vi.fn(() => ({
+    data: {
+      setAffiliateCreatorBusinessSettings: settings({
+        enabledCreatorAssignmentTriggers: next,
+        creatorAssignmentTriggersCustomized: true,
+      }),
+    },
+  }));
+  renderPanel([
+    {
+      request: {
+        query: SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION,
+        variables: {
+          input: {
+            autoClaimOnSampleApproval: false,
+            autoReleaseOnSampleRejection: false,
+            releaseBeforeSampleExpiryHours: null,
+            creatorAssignmentTriggers: next,
+          },
+        },
+      },
+      result,
+    },
+  ]);
+  fireEvent.click(checkbox(TRIGGER_NAMES.PLATFORM_ACTION));
+  fireEvent.click(saveButton());
+  await waitFor(() =>
+    expect(workspace.operationalSettings?.creatorAssignmentTriggersCustomized).toBe(true),
+  );
+  expect(result).toHaveBeenCalledOnce();
+  expect(workspace.operationalSettings?.enabledCreatorAssignmentTriggers.slice()).toEqual(next);
+  expect(checkbox(TRIGGER_NAMES.PLATFORM_ACTION).checked).toBe(true);
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("allows saving an empty scenario list", async () => {
+  const result = vi.fn(() => ({
+    data: {
+      setAffiliateCreatorBusinessSettings: settings({
+        enabledCreatorAssignmentTriggers: [],
+        creatorAssignmentTriggersCustomized: true,
+      }),
+    },
+  }));
+  renderPanel([
+    {
+      request: {
+        query: SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION,
+        variables: {
+          input: {
+            autoClaimOnSampleApproval: false,
+            autoReleaseOnSampleRejection: false,
+            releaseBeforeSampleExpiryHours: null,
+            creatorAssignmentTriggers: [],
+          },
+        },
+      },
+      result,
+    },
+  ]);
+  for (const key of DEFAULT_TRIGGERS) {
+    fireEvent.click(checkbox(TRIGGER_NAMES[key as keyof typeof TRIGGER_NAMES]));
+  }
+  fireEvent.click(saveButton());
+  await waitFor(() => expect(result).toHaveBeenCalledOnce());
+  await waitFor(() =>
+    expect(workspace.operationalSettings?.enabledCreatorAssignmentTriggers.length).toBe(0),
+  );
+});
+
+it("restores the defaults with a null selection and the persisted booleans, keeping other drafts", async () => {
+  workspace.setAffiliateOperationalSettings(
+    settings({
+      autoClaimOnSampleApproval: true,
+      enabledCreatorAssignmentTriggers: ["PLATFORM_ACTION"],
+      creatorAssignmentTriggersCustomized: true,
+    }) as never,
+  );
+  const result = vi.fn(() => ({
+    data: {
+      setAffiliateCreatorBusinessSettings: settings({
+        autoClaimOnSampleApproval: true,
+        enabledCreatorAssignmentTriggers: DEFAULT_TRIGGERS,
+        creatorAssignmentTriggersCustomized: false,
+      }),
+    },
+  }));
+  renderPanel([
+    {
+      request: {
+        query: SET_AFFILIATE_CREATOR_BUSINESS_SETTINGS_MUTATION,
+        variables: {
+          input: {
+            // Persisted values, not the unsaved auto-release draft below.
+            autoClaimOnSampleApproval: true,
+            autoReleaseOnSampleRejection: false,
+            creatorAssignmentTriggers: null,
+          },
+        },
+      },
+      result,
+    },
+  ]);
+  fireEvent.click(checkbox(AUTO_RELEASE));
+  fireEvent.click(checkbox(TRIGGER_NAMES.TARGET_COLLABORATION));
+  expect(restoreButton().disabled).toBe(false);
+  fireEvent.click(restoreButton());
+  await waitFor(() => expect(screen.getByText("已恢复默认设置")).toBeTruthy());
+  expect(result).toHaveBeenCalledOnce();
+  expect(workspace.operationalSettings?.creatorAssignmentTriggersCustomized).toBe(false);
+  expect(checkbox(TRIGGER_NAMES.CREATOR_INBOUND).checked).toBe(true);
+  expect(checkbox(TRIGGER_NAMES.PLATFORM_ACTION).checked).toBe(false);
+  expect(checkbox(TRIGGER_NAMES.TARGET_COLLABORATION).checked).toBe(false);
+  // The unrelated unsaved draft survives.
+  expect(checkbox(AUTO_RELEASE).checked).toBe(true);
+  expect(saveButton().disabled).toBe(false);
+});
+
+it("disables restore while on defaults, and only clears the draft without a mutation", () => {
+  renderPanel();
+  expect(restoreButton().disabled).toBe(true);
+  fireEvent.click(checkbox(TRIGGER_NAMES.PLATFORM_ACTION));
+  expect(restoreButton().disabled).toBe(false);
+  fireEvent.click(restoreButton());
+  expect(checkbox(TRIGGER_NAMES.PLATFORM_ACTION).checked).toBe(false);
+  expect(saveButton().disabled).toBe(true);
+  expect(restoreButton().disabled).toBe(true);
 });

@@ -51,7 +51,7 @@ import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import "./AffiliateWorkbenchEntityTabs.css";
 import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
 import { AffiliateSampleOrderCopyButton } from "./AffiliateSampleOrderCopyButton.js";
-import { sampleRejectedStatusLabel } from "./AffiliateSampleReview.js";
+import { sampleRejectedStatusLabel, samplePartnerAnnotation } from "./AffiliateSampleReview.js";
 import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
 import { useWorkbenchPagination } from "../useWorkbenchPagination.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
@@ -1597,13 +1597,17 @@ function SampleStateBadge({
       </span>
     );
   }
+  const partnerAnnotation = samplePartnerAnnotation(sampleApplication, t);
   return (
-    <span className="affiliate-workbench-badge">
-      {t(
-        `ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`,
-        { defaultValue: sampleApplication.sampleWorkStatus },
-      )}
-    </span>
+    <>
+      <span className="affiliate-workbench-badge">
+        {t(
+          `ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleApplication.sampleWorkStatus}`,
+          { defaultValue: sampleApplication.sampleWorkStatus },
+        )}
+      </span>
+      {partnerAnnotation ? <span className="form-hint">{partnerAnnotation}</span> : null}
+    </>
   );
 }
 

@@ -237,6 +237,33 @@ describe("AffiliateWorkspaceModel", () => {
     expect(workspace.operationalSettings?.releaseBeforeSampleExpiryHours).toBeNull();
   });
 
+  it("stores the effective Creator assignment scenarios and whether they are customized", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    workspace.setAffiliateOperationalSettings({ id: "settings-1", userId: "user-1" } as any);
+    expect(workspace.operationalSettings?.enabledCreatorAssignmentTriggers.slice()).toEqual([]);
+    expect(workspace.operationalSettings?.creatorAssignmentTriggersCustomized).toBe(false);
+
+    workspace.setAffiliateOperationalSettings({
+      id: "settings-1",
+      userId: "user-1",
+      enabledCreatorAssignmentTriggers: ["CREATOR_INBOUND", "PLATFORM_ACTION"],
+      creatorAssignmentTriggersCustomized: true,
+    } as any);
+    expect(workspace.operationalSettings?.enabledCreatorAssignmentTriggers.slice()).toEqual([
+      "CREATOR_INBOUND",
+      "PLATFORM_ACTION",
+    ]);
+    expect(workspace.operationalSettings?.creatorAssignmentTriggersCustomized).toBe(true);
+
+    workspace.setAffiliateOperationalSettings({
+      id: "settings-1",
+      userId: "user-1",
+      enabledCreatorAssignmentTriggers: [],
+      creatorAssignmentTriggersCustomized: true,
+    } as any);
+    expect(workspace.operationalSettings?.enabledCreatorAssignmentTriggers.length).toBe(0);
+  });
+
   it("tracks a BD's login through provision, disable and removal", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     const developer = {

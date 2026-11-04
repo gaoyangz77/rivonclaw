@@ -29,6 +29,8 @@ it("validates whole days and saves the selected range into the current MST setti
         autoClaimOnSampleApproval: false,
         autoReleaseOnSampleRejection: false,
         releaseBeforeSampleExpiryHours: null,
+        enabledCreatorAssignmentTriggers: [],
+        creatorAssignmentTriggersCustomized: false,
         onboardingCompletedAt: null,
       },
     },
@@ -67,6 +69,8 @@ it("validates whole days and saves the selected range into the current MST setti
     unrepliedMessageLookbackDays: 30,
     autoClaimOnSampleApproval: false,
     autoReleaseOnSampleRejection: false,
+    enabledCreatorAssignmentTriggers: [],
+    creatorAssignmentTriggersCustomized: false,
   });
   fireEvent.click(save);
   await waitFor(() => expect(workspace.operationalSettings?.unrepliedMessageLookbackDays).toBe(14));
