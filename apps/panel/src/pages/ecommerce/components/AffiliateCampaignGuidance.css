@@ -1,89 +1,171 @@
 /* ADR-097 guidance presentation: wizard preview, detail summary, usage guide. */
 
+/* ---- Shared checklist: restatement callout, then one divided list ---- */
+
 .affiliate-guidance-checklist {
   display: grid;
   gap: var(--tk-v1-space-3);
   min-width: 0;
 }
 
-.affiliate-guidance-checklist-rows {
+.affiliate-guidance-restatement {
   display: grid;
-  gap: var(--tk-v1-space-2);
+  gap: var(--tk-v1-space-1);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--tk-v1-radius-2);
+  background: var(--color-primary-light);
+}
+
+.affiliate-guidance-restatement strong {
+  color: var(--color-primary);
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 800;
+}
+
+.affiliate-guidance-restatement p {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: 1.6;
+}
+
+.affiliate-guidance-checklist-rows {
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--color-bg);
   list-style: none;
 }
 
 .affiliate-guidance-checklist-rows > li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: baseline;
   gap: var(--tk-v1-space-3);
   padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--tk-v1-radius-3);
-  background: var(--color-bg);
+}
+
+.affiliate-guidance-checklist-rows > li + li {
+  border-top: 1px solid var(--color-border-light);
 }
 
 .affiliate-guidance-requirement {
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--color-text);
-}
-
-.affiliate-guidance-treatment {
-  display: grid;
-  justify-items: start;
-  gap: var(--tk-v1-space-1);
-  min-width: 0;
-}
-
-.affiliate-guidance-treatment small {
-  overflow-wrap: anywhere;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-}
-
-.affiliate-guidance-restatement {
-  display: grid;
-  gap: var(--tk-v1-space-1);
-}
-
-.affiliate-guidance-restatement p {
-  margin: 0;
-  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-supporting);
   line-height: 1.55;
 }
 
-.affiliate-guidance-preview {
-  display: grid;
-  gap: var(--tk-v1-space-3);
-  padding: var(--tk-v1-space-4);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-alt);
-}
-
-.affiliate-guidance-preview-heading {
+.affiliate-guidance-treatment {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--tk-v1-space-3);
+  align-items: baseline;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-2);
+  min-width: 0;
 }
 
-.affiliate-guidance-preview-heading p {
-  margin: var(--tk-v1-space-1) 0 0;
+.affiliate-guidance-treatment .tk-v1-badge {
+  flex: none;
+}
+
+.affiliate-guidance-treatment small {
+  flex: 1 1 12em;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-micro);
+  line-height: 1.55;
 }
 
 .affiliate-guidance-state {
   margin: 0;
   color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-supporting);
 }
 
 .affiliate-guidance-state.is-error {
   color: var(--color-warning);
+}
+
+/* ---- Wizard confirmation step ---- */
+
+.affiliate-guidance-preview {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  margin-bottom: var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-guidance-preview-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-3);
+}
+
+.affiliate-guidance-preview-heading strong {
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-body);
+}
+
+.affiliate-guidance-preview-heading p {
+  margin: var(--tk-v1-space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-micro);
+  line-height: 1.55;
+}
+
+.affiliate-guidance-edit {
+  flex: none;
+  padding: var(--tk-v1-space-1) var(--tk-v1-space-2);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-full);
+  background: var(--color-bg);
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--tk-v1-type-micro);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.affiliate-guidance-edit:hover,
+.affiliate-guidance-edit:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border-light));
+  background: var(--color-primary-light);
+  outline: none;
+}
+
+/* ---- Campaign detail: collapsed toggle beside "View first message", expanded panel ---- */
+
+/* Both detail toggles sit right-aligned; only the first one takes the free space. */
+.affiliate-campaign-template-toggle + .affiliate-guidance-toggle {
+  margin-left: 0;
+}
+
+.affiliate-guidance-toggle-counts {
+  display: inline-flex;
+  gap: var(--tk-v1-space-1);
+  margin-left: var(--tk-v1-space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.affiliate-guidance-toggle-counts .is-exact {
+  color: var(--color-success);
+}
+
+.affiliate-guidance-toggle-counts .is-approximate {
+  color: var(--color-warning);
+}
+
+.affiliate-guidance-toggle-counts .is-unsupported {
+  color: var(--color-text-muted);
 }
 
 .affiliate-guidance-summary {
@@ -95,6 +177,27 @@
   border-radius: var(--tk-v1-radius-3);
   background: var(--color-bg);
 }
+
+.affiliate-guidance-summary-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-3);
+}
+
+.affiliate-guidance-summary-heading > span {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.affiliate-guidance-summary-heading > small {
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-micro);
+}
+
+/* ---- Usage guide under the guidance input ---- */
 
 .affiliate-guidance-usage {
   margin-top: var(--tk-v1-space-2);
@@ -122,5 +225,10 @@
 @media (max-width: 560px) {
   .affiliate-guidance-checklist-rows > li {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--tk-v1-space-1);
+  }
+
+  .affiliate-guidance-preview-heading {
+    flex-direction: column;
   }
 }

@@ -1,10 +1,14 @@
+import { useId } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { TkBadge } from "../../../components/design-system/index.js";
 import {
+  guidanceTreatmentCounts,
   guidanceTreatmentPresentation,
   guidanceUsageGroups,
   type GuidanceChecklistItemView,
   type GuidancePreviewErrorKey,
+  type GuidanceTreatmentCounts,
   type GuidanceUsageCapabilities,
 } from "../affiliate-campaign-guidance.js";
 import "./AffiliateCampaignGuidance.css";
@@ -12,9 +16,10 @@ import "./AffiliateCampaignGuidance.css";
 const KEY_PREFIX = "ecommerce.affiliateCampaign.guidance.";
 
 /**
- * The seller's search guidance as the backend understood it (ADR-097): one row
- * per requirement with how it is enforced, then the restatement. Shared by the
- * wizard's confirmation step and the Campaign detail so both say the same thing.
+ * The seller's search guidance as the backend understood it (ADR-097): the
+ * restatement first, because it summarizes the whole reading in one sentence,
+ * then one row per requirement with how it is enforced. Shared by the wizard's
+ * confirmation step and the Campaign detail so both say the same thing.
  */
 export function AffiliateCampaignGuidanceChecklist({
   checklist,
@@ -26,6 +31,12 @@ export function AffiliateCampaignGuidanceChecklist({
   const { t } = useTranslation();
   return (
     <div className="affiliate-guidance-checklist">
+      {restatement && (
+        <div className="affiliate-guidance-restatement">
+          <strong>{t(`${KEY_PREFIX}restatementTitle`)}</strong>
+          <p>{restatement}</p>
+        </div>
+      )}
       {checklist.length > 0 && (
         <ul className="affiliate-guidance-checklist-rows">
           {checklist.map((item, index) => {
@@ -45,14 +56,19 @@ export function AffiliateCampaignGuidanceChecklist({
           })}
         </ul>
       )}
-      {restatement && (
-        <div className="affiliate-guidance-restatement">
-          <strong>{t(`${KEY_PREFIX}restatementTitle`)}</strong>
-          <p>{restatement}</p>
-        </div>
-      )}
     </div>
   );
+}
+
+/** "1 as requested · 1 approximate · 3 not filterable", leaving out empty treatments. */
+function guidanceCountsLabel(counts: GuidanceTreatmentCounts, t: TFunction): string {
+  return [
+    counts.exact > 0 && t(`${KEY_PREFIX}countExact`, { count: counts.exact }),
+    counts.approximate > 0 && t(`${KEY_PREFIX}countApproximate`, { count: counts.approximate }),
+    counts.unsupported > 0 && t(`${KEY_PREFIX}countUnsupported`, { count: counts.unsupported }),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Wizard confirmation step: what the seller wrote, as understood, with a way back to edit. */
@@ -72,15 +88,21 @@ export function AffiliateCampaignGuidancePreview({
   onEdit: () => void;
 }) {
   const { t } = useTranslation();
+  const titleId = useId();
   return (
-    <section className="affiliate-guidance-preview" aria-live="polite">
+    <div
+      className="affiliate-guidance-preview"
+      role="region"
+      aria-labelledby={titleId}
+      aria-live="polite"
+    >
       <div className="affiliate-guidance-preview-heading">
         <div>
-          <strong>{t(`${KEY_PREFIX}checklistTitle`)}</strong>
+          <strong id={titleId}>{t(`${KEY_PREFIX}checklistTitle`)}</strong>
           <p>{t(`${KEY_PREFIX}checklistDescription`)}</p>
         </div>
         {state.status !== "empty" && (
-          <button type="button" className="btn btn-secondary" onClick={onEdit}>
+          <button type="button" className="affiliate-guidance-edit" onClick={onEdit}>
             {t(`${KEY_PREFIX}editGuidance`)}
           </button>
         )}
@@ -104,11 +126,47 @@ export function AffiliateCampaignGuidancePreview({
           restatement={state.restatement}
         />
       )}
-    </section>
+    </div>
   );
 }
 
-/** Campaign detail: the stored interpretation, or a note that none exists yet. */
+/**
+ * Campaign detail header toggle. Collapsed it still says how many requirements
+ * are enforced, approximated or not filterable, so the seller sees at a glance
+ * whether anything they asked for is not applied.
+ */
+export function AffiliateCampaignGuidanceToggle({
+  open,
+  checklist,
+  onToggle,
+}: {
+  open: boolean;
+  checklist: readonly GuidanceChecklistItemView[] | null;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation();
+  const counts = checklist ? guidanceTreatmentCounts(checklist) : null;
+  return (
+    <button
+      type="button"
+      className="affiliate-campaign-template-toggle affiliate-guidance-toggle"
+      aria-expanded={open}
+      title={counts ? guidanceCountsLabel(counts, t) : undefined}
+      onClick={onToggle}
+    >
+      {t(`${KEY_PREFIX}${open ? "hideChecklist" : "viewChecklist"}`)}
+      {counts && (
+        <span className="affiliate-guidance-toggle-counts" aria-hidden="true">
+          {counts.exact > 0 && <span className="is-exact">✓{counts.exact}</span>}
+          {counts.approximate > 0 && <span className="is-approximate">≈{counts.approximate}</span>}
+          {counts.unsupported > 0 && <span className="is-unsupported">✕{counts.unsupported}</span>}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** Campaign detail, expanded: the stored interpretation, or a note that none exists yet. */
 export function AffiliateCampaignGuidanceSummary({
   loading,
   interpretation,
@@ -120,9 +178,15 @@ export function AffiliateCampaignGuidanceSummary({
   } | null;
 }) {
   const { t } = useTranslation();
+  const titleId = useId();
   return (
-    <section className="affiliate-guidance-summary data-card-hover">
-      <strong>{t(`${KEY_PREFIX}checklistTitle`)}</strong>
+    <section className="affiliate-guidance-summary" aria-labelledby={titleId}>
+      <div className="affiliate-guidance-summary-heading">
+        <span id={titleId}>{t(`${KEY_PREFIX}checklistTitle`)}</span>
+        {interpretation && (
+          <small>{guidanceCountsLabel(guidanceTreatmentCounts(interpretation.checklist), t)}</small>
+        )}
+      </div>
       {interpretation ? (
         <AffiliateCampaignGuidanceChecklist
           checklist={interpretation.checklist}

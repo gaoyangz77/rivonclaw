@@ -46,6 +46,7 @@ import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateU
 import {
   AffiliateCampaignGuidancePreview,
   AffiliateCampaignGuidanceSummary,
+  AffiliateCampaignGuidanceToggle,
   AffiliateCampaignGuidanceUsage,
 } from "./components/AffiliateCampaignGuidance.js";
 import {
@@ -554,6 +555,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const loadMoreSearchPlansInFlightRef = useRef(false);
   const [loadingMoreSearchPlans, setLoadingMoreSearchPlans] = useState(false);
   const [messageTemplateOpen, setMessageTemplateOpen] = useState(false);
+  const [guidanceChecklistOpen, setGuidanceChecklistOpen] = useState(false);
   const [selectedCreatorDetail, setSelectedCreatorDetail] =
     useState<CreatorRelationshipDetailItem | null>(null);
   const [campaignPage, setCampaignPage] = useState(1);
@@ -924,6 +926,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setSelectedSearchPlanId("");
     setSearchWorkspaceView("creators");
     setMessageTemplateOpen(false);
+    setGuidanceChecklistOpen(false);
   }, [selectedCampaignId]);
 
   useEffect(() => {
@@ -2056,6 +2059,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         : t("ecommerce.affiliateCampaign.viewFirstMessage")}
                     </button>
                   )}
+                  {selectedCampaign.searchPlanGuidance?.trim() && (
+                    <AffiliateCampaignGuidanceToggle
+                      open={guidanceChecklistOpen}
+                      checklist={selectedCampaignInterpretation?.checklist ?? null}
+                      onToggle={() => setGuidanceChecklistOpen((open) => !open)}
+                    />
+                  )}
                 </div>
 
                 {selectedCampaign.products.length > 1 ? (
@@ -2143,7 +2153,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     </div>
                   )}
 
-                {selectedCampaign.searchPlanGuidance?.trim() && (
+                {guidanceChecklistOpen && selectedCampaign.searchPlanGuidance?.trim() && (
                   <AffiliateCampaignGuidanceSummary
                     loading={
                       guidanceInterpretationQuery.loading && !selectedCampaignInterpretation

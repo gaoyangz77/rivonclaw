@@ -6,6 +6,7 @@ import i18n from "../../../i18n/index.js";
 import {
   AffiliateCampaignGuidancePreview,
   AffiliateCampaignGuidanceSummary,
+  AffiliateCampaignGuidanceToggle,
   AffiliateCampaignGuidanceUsage,
 } from "./AffiliateCampaignGuidance.js";
 
@@ -69,6 +70,60 @@ describe("Campaign guidance presentation", () => {
   it("tells the detail reader when nothing has been interpreted yet", () => {
     render(<AffiliateCampaignGuidanceSummary loading={false} interpretation={null} />);
     expect(screen.getByText("尚未解析：生成下一组搜索条件时会自动解析")).toBeTruthy();
+  });
+
+  it("puts the restatement ahead of the requirement rows", () => {
+    render(
+      <AffiliateCampaignGuidancePreview
+        state={{ status: "ready", checklist, restatement: "粉丝多或销售高均可" }}
+        onEdit={() => {}}
+      />,
+    );
+    const restatement = screen.getByText("粉丝多或销售高均可");
+    const firstRow = screen.getByText("粉丝至少 5000");
+    expect(
+      restatement.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("summarizes each treatment on the collapsed detail toggle", () => {
+    const onToggle = vi.fn();
+    render(
+      <AffiliateCampaignGuidanceToggle open={false} checklist={checklist} onToggle={onToggle} />,
+    );
+    const toggle = screen.getByRole("button");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.getAttribute("title")).toBe("1 项按要求 · 1 项近似 · 1 项无法筛选");
+    expect(toggle.textContent).toBe("查看执行清单✓1≈1✕1");
+    fireEvent.click(toggle);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves out empty treatments and shows only the label before interpretation", () => {
+    const { rerender } = render(
+      <AffiliateCampaignGuidanceToggle
+        open
+        checklist={checklist.filter(
+          (item) => item.treatment !== GQL.AffiliateCampaignGuidanceTreatment.Approximate,
+        )}
+        onToggle={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button").textContent).toBe("收起执行清单✓1✕1");
+    rerender(<AffiliateCampaignGuidanceToggle open={false} checklist={null} onToggle={() => {}} />);
+    expect(screen.getByRole("button").textContent).toBe("查看执行清单");
+    expect(screen.getByRole("button").hasAttribute("title")).toBe(false);
+  });
+
+  it("states the treatment counts in the expanded detail heading", () => {
+    render(
+      <AffiliateCampaignGuidanceSummary
+        loading={false}
+        interpretation={{ checklist, restatement: null }}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "执行清单" })).toBeTruthy();
+    expect(screen.getByText("1 项按要求 · 1 项近似 · 1 项无法筛选")).toBeTruthy();
   });
 
   it("lists the shop's own category specialties and places content language by capability", () => {

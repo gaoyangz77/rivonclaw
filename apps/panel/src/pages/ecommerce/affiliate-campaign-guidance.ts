@@ -42,6 +42,33 @@ export function guidanceTreatmentPresentation(
   }
 }
 
+export interface GuidanceTreatmentCounts {
+  exact: number;
+  approximate: number;
+  unsupported: number;
+}
+
+/** How many requirements fall under each treatment, for the collapsed summary. */
+export function guidanceTreatmentCounts(
+  checklist: readonly GuidanceChecklistItemView[],
+): GuidanceTreatmentCounts {
+  const counts: GuidanceTreatmentCounts = { exact: 0, approximate: 0, unsupported: 0 };
+  for (const item of checklist) {
+    switch (item.treatment) {
+      case GQL.AffiliateCampaignGuidanceTreatment.Exact:
+        counts.exact += 1;
+        break;
+      case GQL.AffiliateCampaignGuidanceTreatment.Approximate:
+        counts.approximate += 1;
+        break;
+      case GQL.AffiliateCampaignGuidanceTreatment.Unsupported:
+        counts.unsupported += 1;
+        break;
+    }
+  }
+  return counts;
+}
+
 export type GuidancePreviewErrorKey =
   | "quotaExhausted"
   | "generationDisabled"
