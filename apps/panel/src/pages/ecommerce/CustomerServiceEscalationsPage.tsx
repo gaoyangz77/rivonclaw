@@ -41,7 +41,7 @@ import {
 import {
   formatCompactDateTime,
   formatOrderMoney,
-  humanizePlatformValue,
+  platformValueLabel,
 } from "./customer-service-order-utils.js";
 import {
   BadReviewBadge,
@@ -989,7 +989,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         orderId={order.orderId}
                         shopLabel={shopLabel(order.shopId)}
                         timeLabel={order.createTime ? formatCompactDateTime(order.createTime) : "-"}
-                        statusLabel={humanizePlatformValue(order.status)}
+                        statusLabel={platformValueLabel(t, "orderStatus", order.status)}
                         amountLabel={
                           order.totalAmount
                             ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
@@ -2146,7 +2146,7 @@ function ConversationOrderPopover({
         {order ? (
           <div className="cs-order-context-summary">
             <span className="cs-order-status">
-              {humanizePlatformValue(order.status) ||
+              {platformValueLabel(t, "orderStatus", order.status) ||
                 t("ecommerce.customerServiceWorkspace.unknownStatus")}
             </span>
             <strong>{formatOrderMoney(order.totalAmount, order.currency, locale)}</strong>

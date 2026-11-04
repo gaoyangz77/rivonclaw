@@ -48,7 +48,8 @@ export type PlatformValueGroup =
   | "returnMethod"
   | "recordRole"
   | "recordEvent"
-  | "cancelStatus";
+  | "cancelStatus"
+  | "orderStatus";
 
 /** Localized label for a TikTok enum value; values without a translation fall back to a humanized form. */
 export function platformValueLabel(
