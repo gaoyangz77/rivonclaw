@@ -36,6 +36,7 @@ import { ConversationOrderList } from "./components/ConversationOrderList.js";
 import {
   OrderAfterSalesSection,
   OrderLogisticsSection,
+  OrderRecipientSection,
 } from "./components/ConversationOrderDetails.js";
 import {
   formatCompactDateTime,
@@ -1218,6 +1219,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             <ModuleIcon size={14} />
                             <span>{t("ecommerce.customerServiceWorkspace.order")}</span>
                           </button>
+                          <div className="cs-conversation-order-layer">
                           <div className="cs-conversation-order-popover">
                             <ConversationOrderList
                               orderIds={conversationOrderIds}
@@ -1245,6 +1247,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                                 />
                               ) : null}
                             </ConversationOrderList>
+                          </div>
                           </div>
                         </div>
                       )}
@@ -2137,33 +2140,6 @@ function ConversationOrderPopover({
   const { t } = useTranslation();
   const { order, returns } = context;
   const orderIdLabel = t("ecommerce.customerServiceWorkspace.orderIdLabel");
-  const recipient = order?.recipientAddress;
-  const recipientAddress =
-    recipient?.fullAddress?.trim() ||
-    [recipient?.region, recipient?.city, recipient?.district]
-      .map((part) => part?.trim())
-      .filter(Boolean)
-      .join(", ");
-  const sellerSkus = Array.from(
-    new Set(
-      (order?.lineItems ?? [])
-        .map((item) => item.sellerSku?.trim())
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ).join(", ");
-  const copyAllLabel = t("ecommerce.customerServiceWorkspace.copyAll");
-  const recipientCopyValue = [
-    [orderIdLabel, order?.orderId ?? context.orderId],
-    [t("ecommerce.customerServiceWorkspace.fullName"), recipient?.name],
-    [t("ecommerce.customerServiceWorkspace.address"), recipientAddress],
-    [t("ecommerce.customerServiceWorkspace.zip"), recipient?.postalCode],
-    [t("ecommerce.customerServiceWorkspace.phone"), recipient?.phone],
-    [t("ecommerce.customerServiceWorkspace.sellerSku"), sellerSkus],
-  ]
-    .map(([label, value]) => `${label}\t${value?.trim() || "—"}`)
-    .join("\n");
-  const recipientCopied = copiedMeta === `${copyAllLabel}:${recipientCopyValue}`;
-
   return (
     <div className="cs-order-context">
       <section className="cs-order-context-section">
@@ -2228,47 +2204,12 @@ function ConversationOrderPopover({
       )}
 
       {order && (
-        <section className="cs-order-context-section">
-          <div className="cs-order-context-section-head">
-            <h4>{t("ecommerce.customerServiceWorkspace.recipientDetails")}</h4>
-            <button
-              className="cs-order-copy-all"
-              type="button"
-              title={copyAllLabel}
-              onClick={() => void onCopy(copyAllLabel, recipientCopyValue)}
-            >
-              {recipientCopied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-              <span>{copyAllLabel}</span>
-            </button>
-          </div>
-          <div className="cs-order-recipient-details">
-            <CopyOrderField
-              label={t("ecommerce.customerServiceWorkspace.fullName")}
-              value={recipient?.name}
-              copiedMeta={copiedMeta}
-              onCopy={onCopy}
-            />
-            <CopyOrderField
-              label={t("ecommerce.customerServiceWorkspace.address")}
-              value={recipientAddress}
-              copiedMeta={copiedMeta}
-              onCopy={onCopy}
-              multiline
-            />
-            <CopyOrderField
-              label={t("ecommerce.customerServiceWorkspace.zip")}
-              value={recipient?.postalCode}
-              copiedMeta={copiedMeta}
-              onCopy={onCopy}
-            />
-            <CopyOrderField
-              label={t("ecommerce.customerServiceWorkspace.phone")}
-              value={recipient?.phone}
-              copiedMeta={copiedMeta}
-              onCopy={onCopy}
-            />
-          </div>
-        </section>
+        <OrderRecipientSection
+          order={order}
+          orderId={context.orderId}
+          copiedMeta={copiedMeta}
+          onCopy={onCopy}
+        />
       )}
 
       {order && (
@@ -2375,45 +2316,6 @@ function orderPackageIds(order: GQL.EcomOrder): string[] {
         .filter((value): value is string => Boolean(value)),
     ),
   ].slice(0, 5);
-}
-
-function CopyOrderField({
-  label,
-  value,
-  copiedMeta,
-  onCopy,
-  multiline = false,
-}: {
-  label: string;
-  value?: string | null;
-  copiedMeta: string | null;
-  onCopy: (label: string, value: string) => Promise<void>;
-  multiline?: boolean;
-}) {
-  const normalizedValue = value?.trim() ?? "";
-  const copied = normalizedValue.length > 0 && copiedMeta === `${label}:${normalizedValue}`;
-
-  if (!normalizedValue) {
-    return (
-      <div className={`cs-order-recipient-field${multiline ? " multiline" : ""}`}>
-        <span>{label}</span>
-        <strong>—</strong>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      className={`cs-order-recipient-field copyable${multiline ? " multiline" : ""}`}
-      type="button"
-      title={`${label}: ${normalizedValue}`}
-      onClick={() => void onCopy(label, normalizedValue)}
-    >
-      <span>{label}</span>
-      <strong>{normalizedValue}</strong>
-      {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-    </button>
-  );
 }
 
 function PageSummary({

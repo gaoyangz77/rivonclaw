@@ -308,7 +308,8 @@
   gap: 8px 12px;
   align-items: start;
   min-width: 0;
-  position: relative;
+  /* Not positioned on purpose: the order popover is anchored to the whole
+     detail pane. z-index still applies because this is a grid item. */
   z-index: 4;
 }
 
@@ -443,11 +444,8 @@
   position: relative;
 }
 
-.cs-conversation-order {
-  position: relative;
-}
-
 .cs-conversation-order-trigger {
+  anchor-name: --cs-conversation-order-trigger;
   display: inline-flex;
   min-width: 76px;
   min-height: 30px;
@@ -461,13 +459,26 @@
   background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
 }
 
-.cs-conversation-order-popover {
+/* The layer spans from just under the trigger to the bottom of the detail
+   pane, so the popover can never extend past the pane at any window height. */
+.cs-conversation-order-layer {
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position-anchor: --cs-conversation-order-trigger;
+  top: calc(anchor(bottom) + var(--tk-v1-space-2));
+  right: anchor(right);
+  bottom: var(--tk-v1-space-2);
   z-index: 21;
+  display: flex;
+  flex-direction: column;
   width: min(640px, calc(100vw - 56px));
-  max-height: calc(100vh - 160px);
+  pointer-events: none;
+}
+
+.cs-conversation-order-popover {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
   background: var(--color-bg);
@@ -475,7 +486,7 @@
     0 18px 48px rgb(15 23 42 / 16%),
     0 1px 0 rgb(255 255 255 / 70%) inset;
   opacity: 0;
-  overflow-y: auto;
+  overflow: hidden;
   pointer-events: none;
   transform: translateY(-3px);
   transition:
@@ -528,10 +539,8 @@
 }
 
 .cs-conversation-order-head {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: flex;
+  flex: none;
   min-height: 48px;
   align-items: center;
   justify-content: space-between;
@@ -539,6 +548,12 @@
   padding: 9px 12px;
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-bg);
+}
+
+.cs-conversation-order-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .cs-conversation-order-head > div {
@@ -866,14 +881,53 @@
 
 .cs-order-return {
   display: grid;
-  gap: 6px;
-  padding: 9px;
   border: 1px solid var(--color-border-light);
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-bg-alt) 60%, var(--color-bg));
 }
 
-.cs-order-return-head,
+.cs-order-return-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+}
+
+.cs-order-return-summary strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-order-return-refund {
+  color: var(--color-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cs-order-return-summary time {
+  flex: none;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.cs-order-return-body {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  padding: 0 var(--tk-v1-space-2) var(--tk-v1-space-2);
+}
+
 .cs-order-return-meta {
   display: flex;
   align-items: center;
@@ -881,15 +935,49 @@
   gap: 8px;
 }
 
-.cs-order-return-head strong {
-  color: var(--color-text);
-  font-size: 11.5px;
+.cs-order-disclosure {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  gap: var(--tk-v1-space-1);
+  padding: 2px 6px 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-.cs-order-return-head span {
-  color: var(--color-warning);
-  font-size: 10.5px;
-  font-weight: 750;
+.cs-order-latest-event {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--tk-v1-space-2);
+  margin: var(--tk-v1-space-2) 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.cs-order-latest-event time {
+  color: var(--color-text-muted);
+}
+
+.cs-order-latest-event span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-order-section-summary {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cs-order-return p {
