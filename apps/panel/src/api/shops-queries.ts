@@ -1430,6 +1430,18 @@ export const CS_CONVERSATION_RETURN_RECORDS_QUERY = gql`
       reasonText
       note
       createTime
+      images {
+        url
+        width
+        height
+      }
+      videos {
+        url
+        coverUrl
+        durationMillis
+        width
+        height
+      }
     }
   }
 `;

@@ -9980,11 +9980,26 @@ export interface EcomReturnRecord {
   description?: Maybe<Scalars["String"]["output"]>;
   /** ORDER_RETURN, SELLER_AGGREE_RETURN, BUYER_RETURN_SHIPPED_TIMEOUT, ... */
   event?: Maybe<Scalars["String"]["output"]>;
+  /** Evidence images the actor (usually the buyer) attached. Signed, expiring URLs; read live. */
+  images?: Maybe<Array<EcomImage>>;
   /** Free-text note left by the actor */
   note?: Maybe<Scalars["String"]["output"]>;
   reasonText?: Maybe<Scalars["String"]["output"]>;
   /** BUYER, SELLER, SYSTEM */
   role?: Maybe<Scalars["String"]["output"]>;
+  /** Evidence videos the actor (usually the buyer) attached. Signed, expiring URLs; read live. */
+  videos?: Maybe<Array<EcomReturnRecordVideo>>;
+}
+
+/** A video the buyer attached to a return record as evidence */
+export interface EcomReturnRecordVideo {
+  /** Signed, expiring cover image URL */
+  coverUrl?: Maybe<Scalars["String"]["output"]>;
+  durationMillis?: Maybe<Scalars["Int"]["output"]>;
+  height?: Maybe<Scalars["Int"]["output"]>;
+  /** Signed, expiring video URL; read it live, never store it */
+  url?: Maybe<Scalars["String"]["output"]>;
+  width?: Maybe<Scalars["Int"]["output"]>;
 }
 
 /** Money-side status of a quick-refund return whose goods-side status is still in flight: REFUNDED when the return records contain a REFUND_SUCCESS event, NOT_REFUNDED_YET otherwise. */

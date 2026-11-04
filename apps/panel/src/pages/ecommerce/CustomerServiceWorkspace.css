@@ -2183,6 +2183,75 @@
   color: var(--color-text-muted);
 }
 
+.cs-order-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1);
+  margin-top: var(--tk-v1-space-1);
+}
+
+.cs-order-evidence-thumb,
+.cs-order-evidence-placeholder {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.cs-order-evidence-placeholder {
+  cursor: default;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.cs-order-evidence-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cs-order-evidence-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.cs-order-evidence-duration {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  padding: 0 var(--tk-v1-space-1);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+  color: var(--color-text);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.cs-order-evidence-player {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 6px;
+  background: var(--color-bg-alt);
+}
+
 .cs-order-return-facts {
   display: flex;
   flex-wrap: wrap;

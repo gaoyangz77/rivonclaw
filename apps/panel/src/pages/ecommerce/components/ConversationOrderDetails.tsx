@@ -14,6 +14,7 @@ import {
   humanizePlatformValue,
   platformValueLabel,
 } from "../customer-service-order-utils.js";
+import { ReturnRecordEvidence } from "./ReturnRecordEvidence.js";
 
 type Workspace = Instance<typeof CustomerServiceWorkspaceModel>;
 type CopyHandler = (label: string, value: string) => Promise<void>;
@@ -203,6 +204,8 @@ type ReturnRecord = {
   reasonText?: string | null;
   note?: string | null;
   createTime?: number | null;
+  images?: GQL.EcomReturnRecord["images"];
+  videos?: GQL.EcomReturnRecord["videos"];
 };
 
 const ReturnCard = observer(function ReturnCard({
@@ -322,6 +325,7 @@ const ReturnCard = observer(function ReturnCard({
                           {line}
                         </span>
                       ))}
+                    <ReturnRecordEvidence images={record.images} videos={record.videos} />
                   </span>
                 </li>
               ))}
