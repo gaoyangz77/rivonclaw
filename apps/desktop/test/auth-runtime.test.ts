@@ -143,9 +143,6 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToAffiliateUnknownSenderIdentificationChanges() {
       return () => {};
     }
-    subscribeToAffiliateCampaignSearchPlanRequests() {
-      return () => {};
-    }
     refreshCsConversationSignals() {
       backendState.refreshCsConversationSignals();
     }

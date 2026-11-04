@@ -8,7 +8,6 @@ import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { registerCustomerServiceCloudEvents } from "../cs-bridge/customer-service-cloud-events.js";
 import { handleAffiliateWorkItemChanged } from "../affiliate/affiliate-work-item-actuator.js";
-import { AffiliateCampaignSearchPlanActuator } from "../affiliate/affiliate-campaign-search-plan-actuator.js";
 import { uploadCurrentLog } from "../logs/upload-current-log.js";
 import { when } from "mobx";
 import { fetchAdsEntityDelta } from "../cloud/ads-entity-delta.js";
@@ -218,16 +217,6 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
     wakeAffiliateUnknownSenderIdentification(authSession, deviceId, getUiLocale);
   });
   startAffiliateUnknownSenderIdentificationSweep(authSession, deviceId, getUiLocale);
-
-  const campaignSearchPlanActuator = new AffiliateCampaignSearchPlanActuator(
-    authSession,
-    deviceId,
-    getUiLocale,
-  );
-  backendSubscription.subscribeToAffiliateCampaignSearchPlanRequests(deviceId, (request) => {
-    campaignSearchPlanActuator.enqueue(request);
-    broadcastEvent("affiliate-campaign-search-plan-requested", { request });
-  });
 
   return { authSession, backendSubscription };
 }

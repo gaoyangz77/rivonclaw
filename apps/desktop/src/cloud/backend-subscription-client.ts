@@ -780,21 +780,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
   }
 `;
 
-export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_REQUESTED_SUBSCRIPTION = `
-  subscription AffiliateCampaignSearchPlanRequested($deviceId: String!) {
-    affiliateCampaignSearchPlanRequested(deviceId: $deviceId) {
-      generationRequestId
-      campaignId
-      shopId
-      platformShopId
-      generation
-      configRevision
-      requestedAt
-      attempt
-    }
-  }
-`;
-
 export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
   subscription AffiliateActionProposalChanged {
     affiliateActionProposalChanged {
@@ -1135,16 +1120,6 @@ export type CsConversationSignalPayload = GQL.CsConversationSignal;
 export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
 export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
 
-export interface AffiliateCampaignSearchPlanRequestPayload {
-  generationRequestId: string;
-  campaignId: string;
-  shopId: string;
-  platformShopId: string;
-  generation: number;
-  configRevision: number;
-  requestedAt: string;
-  attempt: number;
-}
 export type AffiliateActionProposalPayload = GQL.ActionProposal;
 
 export interface AffiliateEscalationChangedPayload {
@@ -3047,58 +3022,6 @@ export class BackendSubscriptionClient {
               key,
               attempt,
               "Affiliate unknown sender identification subscription error",
-              error,
-            ),
-          complete: () => this.handleSubscriptionComplete(key, attempt),
-        },
-      );
-    };
-    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
-  }
-
-  subscribeToAffiliateCampaignSearchPlanRequests(
-    deviceId: string,
-    onRequest: (request: AffiliateCampaignSearchPlanRequestPayload) => void,
-  ): () => void {
-    const key = `affiliate-campaign-search-plan:${deviceId}`;
-    const subscribe = (attempt: number): (() => void) => {
-      if (!this.client) return () => {};
-      return this.client.subscribe<{
-        affiliateCampaignSearchPlanRequested: AffiliateCampaignSearchPlanRequestPayload;
-      }>(
-        {
-          query: AFFILIATE_CAMPAIGN_SEARCH_PLAN_REQUESTED_SUBSCRIPTION,
-          variables: { deviceId },
-        },
-        {
-          next: (result) => {
-            this.noteSubscriptionNext(key, attempt);
-            if (
-              this.handleResultErrors(
-                key,
-                attempt,
-                "Affiliate Campaign SearchPlan subscription contained GraphQL errors",
-                result.errors,
-              )
-            )
-              return;
-            const payload = result.data?.affiliateCampaignSearchPlanRequested;
-            if (!payload) {
-              this.logUnexpectedResult(
-                key,
-                attempt,
-                "affiliateCampaignSearchPlanRequested",
-                result as any,
-              );
-              return;
-            }
-            onRequest(payload);
-          },
-          error: (error) =>
-            this.handleSubscriptionError(
-              key,
-              attempt,
-              "Affiliate Campaign SearchPlan subscription error",
               error,
             ),
           complete: () => this.handleSubscriptionComplete(key, attempt),
