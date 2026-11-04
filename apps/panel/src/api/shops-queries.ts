@@ -404,6 +404,46 @@ export const AFFILIATE_CAMPAIGNS_QUERY = gql`
   }
 `;
 
+// Detail-only (ADR-097): the stored interpretation costs two reads per Campaign,
+// so it is deliberately absent from AffiliateCampaignFields and the list query.
+// It reads the same `affiliateCampaigns` field filtered to one id.
+export const AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_QUERY = gql`
+  query AffiliateCampaignGuidanceInterpretation($input: ReadAffiliateCampaignsInput!) {
+    affiliateCampaigns(input: $input) {
+      id
+      guidanceInterpretation {
+        id
+        checklist {
+          requirement
+          treatment
+          note
+        }
+        restatement
+        softDirections
+        interpretedAt
+      }
+    }
+  }
+`;
+
+export const PREVIEW_AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_MUTATION = gql`
+  mutation PreviewAffiliateCampaignGuidanceInterpretation(
+    $input: PreviewAffiliateCampaignGuidanceInterpretationInput!
+  ) {
+    previewAffiliateCampaignGuidanceInterpretation(input: $input) {
+      id
+      checklist {
+        requirement
+        treatment
+        note
+      }
+      restatement
+      softDirections
+      interpretedAt
+    }
+  }
+`;
+
 // Independent query: an older Backend must not break the existing daily funnel.
 export const AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY = gql`
   query AffiliateCampaignScreeningBreakdown($campaignId: ID!) {

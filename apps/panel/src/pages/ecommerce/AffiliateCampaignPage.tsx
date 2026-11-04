@@ -43,6 +43,17 @@ import {
 } from "./AffiliateManagementPage.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
+import {
+  AffiliateCampaignGuidancePreview,
+  AffiliateCampaignGuidanceSummary,
+  AffiliateCampaignGuidanceUsage,
+} from "./components/AffiliateCampaignGuidance.js";
+import {
+  guidancePreviewErrorKey,
+  guidancePreviewInput,
+  type GuidanceChecklistItemView,
+  type GuidancePreviewErrorKey,
+} from "./affiliate-campaign-guidance.js";
 import "./components/AffiliateUi.css";
 import { generateAffiliateCampaignMessageTemplate } from "../../api/affiliate-campaign-ai.js";
 import {
@@ -52,6 +63,8 @@ import {
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
+  AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_QUERY,
+  PREVIEW_AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_MUTATION,
   AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY,
   AFFILIATE_PRODUCT_SUMMARIES_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
@@ -611,6 +624,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       ...campaignDetailPollingOptions(workspaceTab.active, selectedCampaignId),
     },
   );
+  // Detail-only: the stored interpretation is not part of the list fragment.
+  const guidanceInterpretationQuery = useQuery<{
+    affiliateCampaigns: Array<
+      Pick<GQL.AffiliateCampaign, "id"> & {
+        guidanceInterpretation?: {
+          checklist: GQL.AffiliateCampaignGuidanceChecklistItem[];
+          restatement?: string | null;
+        } | null;
+      }
+    >;
+  }>(AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_QUERY, {
+    variables: { input: { id: selectedCampaignId, limit: 1 } },
+    skip: !selectedCampaignId,
+    fetchPolicy: "cache-and-network",
+  });
   const screeningQuery = useQuery<{
     affiliateCampaignScreeningBreakdown: GQL.AffiliateCampaignScreeningBreakdown;
   }>(AFFILIATE_CAMPAIGN_SCREENING_BREAKDOWN_QUERY, {
@@ -727,6 +755,62 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [retrySearchPlan, retrySearchPlanState] = useMutation(
     RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION,
   );
+  const [previewGuidance] = useMutation<
+    { previewAffiliateCampaignGuidanceInterpretation: GQL.AffiliateCampaignGuidanceInterpretation },
+    { input: GQL.PreviewAffiliateCampaignGuidanceInterpretationInput }
+  >(PREVIEW_AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_MUTATION);
+  // Plain DTO, copied out of the response: never an MST node, safe to keep here.
+  const [guidancePreview, setGuidancePreview] = useState<GuidancePreviewState>({
+    status: "empty",
+  });
+  // Counts requests so a slow answer for an earlier shop/guidance/locale cannot
+  // overwrite the answer for the current one.
+  const guidancePreviewSequence = useRef(0);
+  const guidancePreviewActive = wizardOpen && wizardStep === 4;
+  const guidanceExplanationLocale = normalizeCampaignExplanationLocale(
+    i18n.resolvedLanguage ?? i18n.language,
+  );
+  useEffect(() => {
+    if (!guidancePreviewActive) return;
+    const input = guidancePreviewInput({
+      shopId: form.shopId,
+      searchPlanGuidance: form.searchPlanGuidance,
+      searchPlanExplanationLocale: guidanceExplanationLocale,
+    });
+    if (!input) {
+      setGuidancePreview({ status: "empty" });
+      return;
+    }
+    const sequence = ++guidancePreviewSequence.current;
+    setGuidancePreview({ status: "loading" });
+    previewGuidance({ variables: { input } })
+      .then((result) => {
+        if (sequence !== guidancePreviewSequence.current) return;
+        const interpretation = result.data?.previewAffiliateCampaignGuidanceInterpretation;
+        if (!interpretation) {
+          setGuidancePreview({ status: "error", errorKey: "generic" });
+          return;
+        }
+        setGuidancePreview({
+          status: "ready",
+          checklist: guidanceChecklistView(interpretation.checklist),
+          restatement: interpretation.restatement ?? null,
+        });
+      })
+      .catch((error: unknown) => {
+        if (sequence !== guidancePreviewSequence.current) return;
+        setGuidancePreview({ status: "error", errorKey: guidancePreviewErrorKey(error) });
+      });
+    return () => {
+      guidancePreviewSequence.current += 1;
+    };
+  }, [
+    guidancePreviewActive,
+    form.shopId,
+    form.searchPlanGuidance,
+    guidanceExplanationLocale,
+    previewGuidance,
+  ]);
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
   const campaignPortfolio = campaignPortfolioQuery.data?.affiliateCampaigns ?? [];
@@ -773,6 +857,29 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     selectedCampaign?.shopId ?? "",
   );
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
+  const selectedCampaignInterpretationNode = guidanceInterpretationQuery.data?.affiliateCampaigns.find(
+    (campaign) => campaign.id === selectedCampaignId,
+  )?.guidanceInterpretation;
+  const selectedCampaignInterpretation = selectedCampaignInterpretationNode
+    ? {
+        checklist: guidanceChecklistView(selectedCampaignInterpretationNode.checklist),
+        restatement: selectedCampaignInterpretationNode.restatement ?? null,
+      }
+    : null;
+  // Editing the guidance bumps the Campaign's config revision; the stored
+  // interpretation is for the old text, so read it again.
+  const refetchGuidanceInterpretation = guidanceInterpretationQuery.refetch;
+  const guidanceRevisionRef = useRef<string | null>(null);
+  const guidanceRevisionKey = selectedCampaign
+    ? `${selectedCampaign.id}:${selectedCampaign.configRevision}`
+    : null;
+  useEffect(() => {
+    const previous = guidanceRevisionRef.current;
+    guidanceRevisionRef.current = guidanceRevisionKey;
+    if (previous === null || guidanceRevisionKey === null) return;
+    if (previous.split(":")[0] !== guidanceRevisionKey.split(":")[0]) return;
+    if (previous !== guidanceRevisionKey) void refetchGuidanceInterpretation();
+  }, [guidanceRevisionKey, refetchGuidanceInterpretation]);
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
   const searchPlanSummaries = activeSearchPlanPageBuffer.items;
   const selectedSearchPlanSummary =
@@ -2035,6 +2142,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <p>{selectedCampaign.messageTemplateText}</p>
                     </div>
                   )}
+
+                {selectedCampaign.searchPlanGuidance?.trim() && (
+                  <AffiliateCampaignGuidanceSummary
+                    loading={
+                      guidanceInterpretationQuery.loading && !selectedCampaignInterpretation
+                    }
+                    interpretation={selectedCampaignInterpretation}
+                  />
+                )}
               </section>
 
               <section className="affiliate-campaign-kpi-strip data-card-hover">
@@ -3020,12 +3136,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <section className="affiliate-campaign-dynamic-discovery">
                   <div>
                     <strong>{t("ecommerce.affiliateCampaign.dynamicDiscoveryTitle")}</strong>
-                    <p>{t("ecommerce.affiliateCampaign.dynamicDiscoveryDescription")}</p>
+                    <p>{t("ecommerce.affiliateCampaign.guidance.discoveryDescription")}</p>
                   </div>
                   <ul>
                     <li>{t("ecommerce.affiliateCampaign.dynamicDiscoverySequential")}</li>
                     <li>{t("ecommerce.affiliateCampaign.dynamicDiscoveryPageLimit")}</li>
-                    <li>{t("ecommerce.affiliateCampaign.dynamicDiscoveryDesktopRequired")}</li>
                   </ul>
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.searchPlanGuidance")}</span>
@@ -3052,11 +3167,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       />
                     )}
                     <small className="affiliate-campaign-guidance-contract-hint">
-                      {t("ecommerce.affiliateCampaign.searchPlanGuidanceHint", {
+                      {t("ecommerce.affiliateCampaign.guidance.hint", {
                         count: form.searchPlanGuidance.length,
                       })}
                     </small>
                   </label>
+                  <AffiliateCampaignGuidanceUsage
+                    capabilities={capabilities}
+                    marketplaceLabel={marketplaceEnumLabel}
+                  />
                 </section>
                 <section className="affiliate-campaign-outreach-limits">
                   <div>
@@ -3521,6 +3640,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   }
                 />
               </div>
+              <AffiliateCampaignGuidancePreview
+                state={guidancePreview}
+                onEdit={() => setWizardStep(2)}
+              />
               <div className="affiliate-campaign-authorization">
                 <CheckIcon />
                 <div>
@@ -4949,6 +5072,23 @@ export function campaignPreApprovalOutcomeLabel(
 
 function formatDateTime(value: string) {
   return formatShortDateTime(value, panelI18n.language);
+}
+
+type GuidancePreviewState =
+  | { status: "empty" }
+  | { status: "loading" }
+  | { status: "error"; errorKey: GuidancePreviewErrorKey }
+  | { status: "ready"; checklist: GuidanceChecklistItemView[]; restatement: string | null };
+
+/** Copies a response checklist into plain rows so no response object outlives the render. */
+function guidanceChecklistView(
+  checklist: readonly GQL.AffiliateCampaignGuidanceChecklistItem[],
+): GuidanceChecklistItemView[] {
+  return checklist.map((item) => ({
+    requirement: item.requirement,
+    treatment: item.treatment,
+    note: item.note ?? null,
+  }));
 }
 
 export function normalizeCampaignExplanationLocale(

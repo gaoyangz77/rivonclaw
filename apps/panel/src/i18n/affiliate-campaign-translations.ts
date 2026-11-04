@@ -1,25 +1,21 @@
 import { campaignScreeningCopy } from "./campaign-screening-translations.js";
 import { campaignPacingCopy } from "./campaign-pacing-translations.js";
+import { campaignGuidanceCopy } from "./affiliate-campaign-guidance-translations.js";
 
 const en = {
   screening: campaignScreeningCopy.en,
   pacing: campaignPacingCopy.en,
+  guidance: campaignGuidanceCopy.en,
   eyebrow: "AFFILIATE ACQUISITION",
   title: "Creator campaigns",
   subtitle: "Discover, score, and contact the right creators on a predictable daily cadence.",
   dynamicDiscoveryTitle: "Dynamic creator discovery",
-  dynamicDiscoveryDescription:
-    "While the campaign runs, your default model creates one set of search conditions at a time from the product, direction, and previous results. Eligible Cloud subscriptions run in Backend first; Desktop remains the fallback.",
   dynamicDiscoverySequential:
     "The next set is generated only after the current search conditions reach a terminal boundary.",
   dynamicDiscoveryPageLimit: "Each set keeps its cursor and can search up to 50 successful pages.",
-  dynamicDiscoveryDesktopRequired:
-    "Without an eligible Cloud subscription, Desktop must be online to generate new search conditions. Existing outreach continues while generation waits.",
   searchPlanGuidance: "Search direction (optional)",
   searchPlanGuidancePlaceholder:
     "Example: Prefer practical car-care creators. Creators must have at least 10,000 followers.",
-  searchPlanGuidanceHint:
-    "{{count}} / 500 characters. Preferences and styles are soft directions. ‘Must’, ‘only’, ‘at least’, ‘no more than’, and ‘exclude’ are hard constraints: they must map to a supported TikTok filter or plan generation stops.",
   softGuidanceLabel: "Soft direction",
   hardConstraintsLabel: "Hard constraints",
   noSoftGuidance: "No soft direction",
@@ -641,17 +637,12 @@ const zh = {
   ...en,
   screening: campaignScreeningCopy.zh,
   pacing: campaignPacingCopy.zh,
+  guidance: campaignGuidanceCopy.zh,
   dynamicDiscoveryTitle: "动态达人发现",
-  dynamicDiscoveryDescription:
-    "推广计划运行期间，默认模型会结合商品、长期方向和历史结果，一次生成一组搜索条件。有符合条件的云端订阅时优先在云端生成，桌面端保留为备用。",
   dynamicDiscoverySequential: "当前搜索条件执行完毕后，才会生成下一组。",
   dynamicDiscoveryPageLimit: "每组搜索条件保存可恢复游标，最多完成 50 个成功页面。",
-  dynamicDiscoveryDesktopRequired:
-    "没有符合条件的云端订阅时，桌面端需要保持在线才能生成新搜索条件；生成等待期间，已存在的触达仍继续执行。",
   searchPlanGuidance: "搜索方向说明（可选）",
   searchPlanGuidancePlaceholder: "例如：偏好讲解实用汽车用品的达人。达人必须至少有 10,000 名粉丝。",
-  searchPlanGuidanceHint:
-    "{{count}} / 500 字。偏好、风格和方向属于软约束；“必须、仅限、至少、不超过、排除”等属于硬约束，必须映射到 TikTok 支持的筛选条件，否则会阻止计划生成，不会静默忽略。",
   softGuidanceLabel: "软约束方向",
   hardConstraintsLabel: "硬约束条件",
   noSoftGuidance: "未设置软约束方向",
@@ -1360,8 +1351,6 @@ const operationalCopy = {
       "Im KI-Entwurf fehlt der exakte Creator-Platzhalter. Füge das oben angezeigte Creator-Token ein, bevor du fortfährst.",
     authorizationBody:
       "Nach der Aktivierung darf das Backend qualifizierte Creator mit der neuesten veröffentlichten Vorlage kontaktieren. Eine Pause stoppt neue Sendungen; kritische Produkt- oder Qualifikationsänderungen machen betroffene Warteschlangenaufträge ungültig.",
-    searchPlanGuidanceHint:
-      "{{count}} / 500 Zeichen. Präferenzen und Stile sind weiche Richtungen. „Muss“, „nur“, „mindestens“, „höchstens“ und „ausschließen“ sind harte Vorgaben: Sie müssen einem unterstützten TikTok-Filter entsprechen, sonst stoppt die Plangenerierung.",
     softGuidanceLabel: "Weiche Richtung",
     hardConstraintsLabel: "Harte Vorgaben",
     noSoftGuidance: "Keine weiche Richtung",
@@ -1569,8 +1558,6 @@ const operationalCopy = {
       "Al borrador de IA le falta el marcador exacto del creador. Añade el token mostrado arriba antes de continuar.",
     authorizationBody:
       "Tras activarla, el backend puede contactar a creators cualificados con la última plantilla publicada. Pausar detiene los nuevos envíos; los cambios críticos de producto o cualificación invalidan las tareas afectadas en cola.",
-    searchPlanGuidanceHint:
-      "{{count}} / 500 caracteres. Las preferencias y estilos son orientaciones flexibles. «Debe», «solo», «al menos», «como máximo» y «excluir» son restricciones obligatorias: deben corresponder a un filtro de TikTok compatible o se detendrá la generación.",
     softGuidanceLabel: "Orientación flexible",
     hardConstraintsLabel: "Restricciones obligatorias",
     noSoftGuidance: "Sin orientación flexible",
@@ -1776,8 +1763,6 @@ const operationalCopy = {
       "Le brouillon IA ne contient pas le paramètre exact du créateur. Ajoutez le jeton affiché ci-dessus avant de continuer.",
     authorizationBody:
       "Après activation, le backend peut contacter les créateurs qualifiés avec le dernier modèle publié. La pause arrête les nouveaux envois ; les changements critiques de produit ou de qualification invalident les tâches concernées en file d’attente.",
-    searchPlanGuidanceHint:
-      "{{count}} / 500 caractères. Les préférences et styles sont des orientations souples. « Doit », « uniquement », « au moins », « au plus » et « exclure » sont des contraintes strictes : elles doivent correspondre à un filtre TikTok pris en charge, sinon la génération s’arrête.",
     softGuidanceLabel: "Orientation souple",
     hardConstraintsLabel: "Contraintes strictes",
     noSoftGuidance: "Aucune orientation souple",
@@ -1985,8 +1970,6 @@ const operationalCopy = {
       "Draf AI tidak memiliki placeholder kreator yang tepat. Tambahkan token kreator yang ditampilkan di atas sebelum melanjutkan.",
     authorizationBody:
       "Setelah diaktifkan, backend dapat menghubungi kreator yang memenuhi syarat dengan template terbaru yang dipublikasikan. Menjeda menghentikan pengiriman baru; perubahan penting pada produk atau kualifikasi membatalkan tugas antrean yang terdampak.",
-    searchPlanGuidanceHint:
-      "{{count}} / 500 karakter. Preferensi dan gaya adalah arahan lunak. «Harus», «hanya», «minimal», «maksimal», dan «kecualikan» adalah batasan keras: semuanya harus dipetakan ke filter TikTok yang didukung atau pembuatan rencana dihentikan.",
     softGuidanceLabel: "Arahan lunak",
     hardConstraintsLabel: "Batasan keras",
     noSoftGuidance: "Tidak ada arahan lunak",
@@ -2188,8 +2171,6 @@ const operationalCopy = {
       "Nella bozza AI manca il segnaposto esatto del creator. Aggiungi il token mostrato sopra prima di continuare.",
     authorizationBody:
       "Dopo l’attivazione, il backend può contattare i creator idonei con l’ultimo modello pubblicato. La pausa interrompe i nuovi invii; le modifiche critiche al prodotto o alla qualifica invalidano le attività in coda interessate.",
-    searchPlanGuidanceHint:
-      "{{count}} / 500 caratteri. Preferenze e stili sono indicazioni flessibili. «Deve», «solo», «almeno», «al massimo» ed «escludere» sono vincoli rigidi: devono corrispondere a un filtro TikTok supportato, altrimenti la generazione si interrompe.",
     softGuidanceLabel: "Indicazione flessibile",
     hardConstraintsLabel: "Vincoli rigidi",
     noSoftGuidance: "Nessuna indicazione flessibile",
@@ -2385,8 +2366,6 @@ const operationalCopy = {
       "ฉบับร่างจาก AI ไม่มีตัวยึดตำแหน่งชื่อครีเอเตอร์ที่ถูกต้อง โปรดเพิ่มโทเคนที่แสดงด้านบนก่อนดำเนินการต่อ",
     authorizationBody:
       "หลังเปิดใช้งาน Backend สามารถติดต่อครีเอเตอร์ที่ผ่านเกณฑ์ด้วยเทมเพลตล่าสุดที่เผยแพร่ได้ การหยุดชั่วคราวจะหยุดการส่งใหม่ ส่วนการเปลี่ยนแปลงสำคัญของสินค้าหรือเกณฑ์คัดเลือกจะยกเลิกงานในคิวที่ได้รับผลกระทบ",
-    searchPlanGuidanceHint:
-      "{{count}} / 500 ตัวอักษร ความชอบและสไตล์เป็นแนวทางแบบยืดหยุ่น ส่วนคำว่า “ต้อง”, “เท่านั้น”, “อย่างน้อย”, “ไม่เกิน” และ “ยกเว้น” เป็นเงื่อนไขบังคับ ซึ่งต้องแมปกับตัวกรอง TikTok ที่รองรับ มิฉะนั้นระบบจะหยุดสร้างแผน",
     softGuidanceLabel: "แนวทางแบบยืดหยุ่น",
     hardConstraintsLabel: "เงื่อนไขบังคับ",
     noSoftGuidance: "ไม่มีแนวทางแบบยืดหยุ่น",
@@ -2574,6 +2553,7 @@ function locale(
     ...(operationalLocale ? commissionCopy[operationalLocale] : {}),
     screening: campaignScreeningCopy[operationalLocale ?? "en"],
     pacing: campaignPacingCopy[operationalLocale ?? "en"],
+    guidance: campaignGuidanceCopy[operationalLocale ?? "en"],
     errors: {
       ...en.errors,
       ...operational?.errors,

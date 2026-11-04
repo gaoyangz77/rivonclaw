@@ -39,6 +39,12 @@ import {
   toggleSentCreatorStatePreset,
   unsupportedAffiliateCampaignTemplateVariables,
 } from "./AffiliateCampaignPage.js";
+import {
+  guidancePreviewErrorKey,
+  guidancePreviewInput,
+  guidanceTreatmentPresentation,
+  guidanceUsageGroups,
+} from "./affiliate-campaign-guidance.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
   it("omits the message product name for invitation-only creation, regardless of title length", () => {
@@ -841,5 +847,102 @@ describe("latestShopSellerContactEmail", () => {
         "shop-a",
       ),
     ).toBe("");
+  });
+});
+
+describe("Campaign guidance interpretation presentation (ADR-097)", () => {
+  it("marks each treatment with a glyph, a label and a note policy, never colour alone", () => {
+    expect(guidanceTreatmentPresentation(GQL.AffiliateCampaignGuidanceTreatment.Exact)).toEqual({
+      marker: "✓",
+      labelKey: "treatmentExact",
+      tone: "success",
+      showsNote: false,
+    });
+    expect(
+      guidanceTreatmentPresentation(GQL.AffiliateCampaignGuidanceTreatment.Approximate),
+    ).toMatchObject({ marker: "≈", labelKey: "treatmentApproximate", showsNote: true });
+    expect(
+      guidanceTreatmentPresentation(GQL.AffiliateCampaignGuidanceTreatment.Unsupported),
+    ).toMatchObject({ marker: "✕", labelKey: "treatmentUnsupported", showsNote: true });
+  });
+
+  it("maps each backend preview error code to its own message and the rest to generic", () => {
+    expect(guidancePreviewErrorKey(new Error("[GraphQL] SEARCH_PLAN_CLOUD_QUOTA_EXHAUSTED"))).toBe(
+      "quotaExhausted",
+    );
+    expect(guidancePreviewErrorKey(new Error("SEARCH_PLAN_BACKEND_GENERATION_DISABLED"))).toBe(
+      "generationDisabled",
+    );
+    expect(guidancePreviewErrorKey(new Error("searchPlanGuidance exceeds 500 characters"))).toBe(
+      "tooLong",
+    );
+    expect(guidancePreviewErrorKey(new Error("socket hang up"))).toBe("generic");
+    expect(guidancePreviewErrorKey("boom")).toBe("generic");
+  });
+
+  it("requests a preview only for non-blank guidance, trimmed like the save path", () => {
+    const base = {
+      shopId: "shop-1",
+      searchPlanExplanationLocale: GQL.AffiliateCampaignSearchPlanExplanationLocale.Zh,
+    };
+    expect(guidancePreviewInput({ ...base, searchPlanGuidance: "  \n " })).toBeNull();
+    expect(guidancePreviewInput({ ...base, shopId: "", searchPlanGuidance: "x" })).toBeNull();
+    expect(guidancePreviewInput({ ...base, searchPlanGuidance: "  粉丝至少 5000 " })).toEqual({
+      shopId: "shop-1",
+      searchPlanGuidance: "粉丝至少 5000",
+      searchPlanExplanationLocale: "ZH",
+    });
+  });
+
+  it("lists content language as exact only when the shop offers languages", () => {
+    const withLanguages = guidanceUsageGroups({
+      languages: ["ENGLISH"],
+      categoryPros: ["BEAUTY"],
+    });
+    expect(withLanguages.exact.map((item) => item.key)).toContain("usageExactLanguage");
+    expect(withLanguages.unsupported.map((item) => item.key)).not.toContain(
+      "usageUnsupportedLanguage",
+    );
+
+    const without = guidanceUsageGroups({ languages: [], categoryPros: ["BEAUTY"] });
+    expect(without.exact.map((item) => item.key)).not.toContain("usageExactLanguage");
+    expect(without.unsupported[0]?.key).toBe("usageUnsupportedLanguage");
+
+    // Capabilities still loading behave like a shop with no languages.
+    expect(guidanceUsageGroups(undefined).unsupported[0]?.key).toBe("usageUnsupportedLanguage");
+  });
+
+  it("offers category specialty only with the shop's own values", () => {
+    const groups = guidanceUsageGroups({ languages: [], categoryPros: ["BEAUTY", "HOME"] });
+    expect(groups.exact.map((item) => item.key)).toContain("usageExactCategoryPro");
+    expect(groups.categoryPros).toEqual(["BEAUTY", "HOME"]);
+    expect(
+      guidanceUsageGroups({ languages: [], categoryPros: [] }).exact.map((item) => item.key),
+    ).not.toContain("usageExactCategoryPro");
+  });
+
+  it("keeps the approximate and unsupported groups fixed", () => {
+    const groups = guidanceUsageGroups(undefined);
+    expect(groups.approximate).toHaveLength(7);
+    expect(groups.unsupported.map((item) => item.key)).toEqual(
+      expect.arrayContaining([
+        "usageUnsupportedContentStyle",
+        "usageUnsupportedCooperationReview",
+        "usageUnsupportedSamplePerformance",
+        "usageUnsupportedCreatorDemographics",
+        "usageUnsupportedBrands",
+      ]),
+    );
+  });
+
+  it("ships every guidance key in every locale and drops the stale ones", () => {
+    const zh = AFFILIATE_CAMPAIGN_TRANSLATIONS.zh.ecommerce.affiliateCampaign as Record<
+      string,
+      unknown
+    >;
+    expect(zh).not.toHaveProperty("searchPlanGuidanceHint");
+    expect(zh).not.toHaveProperty("dynamicDiscoveryDescription");
+    expect(zh).not.toHaveProperty("dynamicDiscoveryDesktopRequired");
+    expect((zh.guidance as Record<string, unknown>).treatmentApproximate).toBe("近似筛选");
   });
 });

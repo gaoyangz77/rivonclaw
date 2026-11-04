@@ -1,0 +1,443 @@
+// ADR-097: copy for the Campaign guidance checklist, restatement and usage guide.
+// Nested under `ecommerce.affiliateCampaign.guidance`; every locale carries every key.
+
+const en = {
+  discoveryDescription:
+    "While the campaign runs, your default model creates one set of search conditions at a time from the product, direction, and previous results. Generation runs in the cloud.",
+  hint: "{{count}} / 500 characters. Write “prefer” or “focus on” for a search direction hint; write “must”, “at least” or “exclude” to filter strictly.",
+  checklistTitle: "Checklist",
+  checklistDescription:
+    "How your search direction will be applied. Review it before activating; this is exactly what will run.",
+  noGuidance: "No filtering requirements entered, so no extra filtering is applied.",
+  interpreting: "Reading your search direction…",
+  notInterpreted:
+    "Not interpreted yet: it is interpreted automatically when the next set of search conditions is generated.",
+  editGuidance: "Back to edit filtering requirements",
+  restatementTitle: "What we understood",
+  treatmentExact: "Filtered as requested",
+  treatmentApproximate: "Approximate filter",
+  treatmentUnsupported: "Cannot filter, used only as a search direction",
+  previewError: {
+    quotaExhausted:
+      "The cloud generation quota is used up, so the checklist cannot be shown now. You can still save and activate.",
+    generationDisabled:
+      "Cloud generation is currently turned off, so the checklist cannot be shown now. You can still save and activate.",
+    tooLong: "The search direction is longer than 500 characters. Shorten it to see the checklist.",
+    generic:
+      "The checklist could not be loaded. You can still save and activate; it will be interpreted when search conditions are generated.",
+  },
+  usageToggle: "Which requirements can be filtered?",
+  usageExactTitle: "Filtered exactly",
+  usageApproximateTitle: "Filtered approximately",
+  usageUnsupportedTitle: "Cannot be filtered, only a search direction",
+  usageExactFollowers: "Follower count",
+  usageExactFollowerGender: "Follower gender share",
+  usageExactVideoViews: "Average views of selling videos",
+  usageExactLiveViewers: "Average viewers of selling livestreams",
+  usageExactCreatorLevel: "Creator level",
+  usageExactCategoryPro: "Category specialty ({{labels}})",
+  usageExactAgency: "Agency or independent creator",
+  usageExactFastGrowing: "Fast growth in the last 30 days",
+  usageExactNotInvited: "Not invited in the last 90 days",
+  usageExactLanguage: "Content language",
+  usageApproxSales:
+    "Monthly sales / revenue: uses the platform’s last-30-day sales; when only a range is known, a range that crosses your threshold is let through",
+  usageApproxUnitsSold: "Units sold: uses lifetime units sold since the account opened",
+  usageApproxVideoGmv: "Revenue of a single video: uses the video’s total revenue",
+  usageApproxAge: "Follower age: uses every overlapping age bracket",
+  usageApproxCategory: "Category: maps to the closest category specialty",
+  usageApproxFulfillment: "Fulfillment rate: uses the platform’s “good” rating or better",
+  usageApproxCommission: "Average commission rate: uses the platform’s tiers",
+  usageUnsupportedLanguage: "Content language (not offered for this shop’s market)",
+  usageUnsupportedContentStyle: "On-camera presence, voice-over, content style",
+  usageUnsupportedCooperationReview: "Reviews from past collaborations",
+  usageUnsupportedSamplePerformance: "Sample performance rate",
+  usageUnsupportedCreatorDemographics: "The creator’s own gender or age",
+  usageUnsupportedBrands: "Brands the creator has worked with",
+};
+
+type GuidanceCopy = typeof en;
+
+const zh: GuidanceCopy = {
+  discoveryDescription:
+    "推广计划运行期间，默认模型会结合商品、长期方向和历史结果，一次生成一组搜索条件。搜索条件在云端生成。",
+  hint: "{{count}} / 500 字。写“优先、重点”作为搜索方向参考；写“必须、至少、排除”会严格筛选。",
+  checklistTitle: "执行清单",
+  checklistDescription: "你的搜索方向说明会这样执行。激活前请确认，实际运行的就是这份清单。",
+  noGuidance: "未填写筛选要求，不做额外筛选",
+  interpreting: "正在解析你的搜索方向说明……",
+  notInterpreted: "尚未解析：生成下一组搜索条件时会自动解析",
+  editGuidance: "返回修改筛选要求",
+  restatementTitle: "我们的理解",
+  treatmentExact: "按要求筛选",
+  treatmentApproximate: "近似筛选",
+  treatmentUnsupported: "无法筛选，仅作搜索方向参考",
+  previewError: {
+    quotaExhausted: "云端生成额度已用完，暂时无法显示执行清单。你仍可保存并激活。",
+    generationDisabled: "云端生成目前已关闭，暂时无法显示执行清单。你仍可保存并激活。",
+    tooLong: "搜索方向说明超过 500 字，请缩短后再查看执行清单。",
+    generic: "执行清单加载失败。你仍可保存并激活，生成搜索条件时会自动解析。",
+  },
+  usageToggle: "哪些要求可以筛选？",
+  usageExactTitle: "能精确筛",
+  usageApproximateTitle: "近似筛",
+  usageUnsupportedTitle: "筛不了，只作搜索方向参考",
+  usageExactFollowers: "粉丝数",
+  usageExactFollowerGender: "粉丝性别占比",
+  usageExactVideoViews: "带货视频平均播放",
+  usageExactLiveViewers: "带货直播场均观看",
+  usageExactCreatorLevel: "达人等级",
+  usageExactCategoryPro: "类目专长（{{labels}}）",
+  usageExactAgency: "机构达人或独立达人",
+  usageExactFastGrowing: "近 30 天快速成长",
+  usageExactNotInvited: "90 天内未邀请过",
+  usageExactLanguage: "内容语言",
+  usageApproxSales: "月销/销售额：按平台近 30 天销售额；只有区间时跨门槛的会放行",
+  usageApproxUnitsSold: "成交件数：按开号以来累计销量",
+  usageApproxVideoGmv: "单视频成交额：按视频总成交额",
+  usageApproxAge: "粉丝年龄：按重叠的年龄段",
+  usageApproxCategory: "类目：对应最接近的类目专长",
+  usageApproxFulfillment: "履约率：按平台“良好”及以上",
+  usageApproxCommission: "平均佣金率：按平台档位",
+  usageUnsupportedLanguage: "内容语言（本站点不提供）",
+  usageUnsupportedContentStyle: "真人出镜、口播、内容风格",
+  usageUnsupportedCooperationReview: "合作评价",
+  usageUnsupportedSamplePerformance: "样品表现率",
+  usageUnsupportedCreatorDemographics: "达人本人的性别或年龄",
+  usageUnsupportedBrands: "合作过的品牌",
+};
+
+const de: GuidanceCopy = {
+  discoveryDescription:
+    "Solange die Kampagne läuft, erstellt Ihr Standardmodell jeweils einen Satz Suchbedingungen aus Produkt, Ausrichtung und bisherigen Ergebnissen. Die Erstellung läuft in der Cloud.",
+  hint: "{{count}} / 500 Zeichen. „Bevorzugt“ oder „Schwerpunkt“ ist nur ein Suchhinweis; „muss“, „mindestens“ oder „ausschließen“ filtert strikt.",
+  checklistTitle: "Ausführungsliste",
+  checklistDescription:
+    "So wird Ihre Suchvorgabe umgesetzt. Prüfen Sie sie vor der Aktivierung; genau das wird ausgeführt.",
+  noGuidance: "Keine Filteranforderungen angegeben, daher wird nicht zusätzlich gefiltert.",
+  interpreting: "Ihre Suchvorgabe wird ausgewertet …",
+  notInterpreted:
+    "Noch nicht ausgewertet: Das geschieht automatisch, wenn der nächste Satz Suchbedingungen erstellt wird.",
+  editGuidance: "Zurück zu den Filteranforderungen",
+  restatementTitle: "Unser Verständnis",
+  treatmentExact: "Wie gewünscht gefiltert",
+  treatmentApproximate: "Näherungsfilter",
+  treatmentUnsupported: "Nicht filterbar, nur als Suchhinweis genutzt",
+  previewError: {
+    quotaExhausted:
+      "Das Cloud-Kontingent für die Erstellung ist aufgebraucht, die Liste kann derzeit nicht angezeigt werden. Speichern und Aktivieren ist weiterhin möglich.",
+    generationDisabled:
+      "Die Cloud-Erstellung ist derzeit abgeschaltet, die Liste kann nicht angezeigt werden. Speichern und Aktivieren ist weiterhin möglich.",
+    tooLong: "Die Suchvorgabe ist länger als 500 Zeichen. Kürzen Sie sie, um die Liste zu sehen.",
+    generic:
+      "Die Liste konnte nicht geladen werden. Speichern und Aktivieren ist weiterhin möglich; die Auswertung erfolgt bei der Erstellung der Suchbedingungen.",
+  },
+  usageToggle: "Welche Anforderungen lassen sich filtern?",
+  usageExactTitle: "Exakt filterbar",
+  usageApproximateTitle: "Näherungsweise gefiltert",
+  usageUnsupportedTitle: "Nicht filterbar, nur Suchhinweis",
+  usageExactFollowers: "Followerzahl",
+  usageExactFollowerGender: "Geschlechteranteil der Follower",
+  usageExactVideoViews: "Durchschnittliche Aufrufe von Verkaufsvideos",
+  usageExactLiveViewers: "Durchschnittliche Zuschauer von Verkaufs-Livestreams",
+  usageExactCreatorLevel: "Creator-Stufe",
+  usageExactCategoryPro: "Kategorie-Expertise ({{labels}})",
+  usageExactAgency: "Agentur- oder unabhängiger Creator",
+  usageExactFastGrowing: "Schnelles Wachstum in den letzten 30 Tagen",
+  usageExactNotInvited: "In den letzten 90 Tagen nicht eingeladen",
+  usageExactLanguage: "Inhaltssprache",
+  usageApproxSales:
+    "Monatsumsatz: nach dem Plattformumsatz der letzten 30 Tage; ist nur ein Bereich bekannt, wird ein Bereich über Ihrer Schwelle durchgelassen",
+  usageApproxUnitsSold: "Verkaufte Stückzahl: nach den Gesamtverkäufen seit Kontoeröffnung",
+  usageApproxVideoGmv: "Umsatz eines einzelnen Videos: nach dem Gesamtumsatz des Videos",
+  usageApproxAge: "Follower-Alter: alle überlappenden Altersgruppen",
+  usageApproxCategory: "Kategorie: ähnlichste Kategorie-Expertise",
+  usageApproxFulfillment: "Erfüllungsquote: Plattformbewertung „gut“ oder besser",
+  usageApproxCommission: "Durchschnittliche Provision: nach den Plattformstufen",
+  usageUnsupportedLanguage: "Inhaltssprache (für den Markt dieses Shops nicht verfügbar)",
+  usageUnsupportedContentStyle: "Auftritt vor der Kamera, Sprechertext, Inhaltsstil",
+  usageUnsupportedCooperationReview: "Bewertungen früherer Kooperationen",
+  usageUnsupportedSamplePerformance: "Performancequote bei Mustern",
+  usageUnsupportedCreatorDemographics: "Geschlecht oder Alter des Creators selbst",
+  usageUnsupportedBrands: "Marken, mit denen der Creator gearbeitet hat",
+};
+
+const es: GuidanceCopy = {
+  discoveryDescription:
+    "Mientras la campaña se ejecuta, tu modelo predeterminado crea un conjunto de condiciones de búsqueda cada vez a partir del producto, la orientación y los resultados anteriores. La generación se ejecuta en la nube.",
+  hint: "{{count}} / 500 caracteres. “Preferir” o “centrarse en” es solo una pista de búsqueda; “debe”, “al menos” o “excluir” filtra de forma estricta.",
+  checklistTitle: "Lista de ejecución",
+  checklistDescription:
+    "Así se aplicará tu orientación de búsqueda. Revísala antes de activar; esto es exactamente lo que se ejecutará.",
+  noGuidance:
+    "No has indicado requisitos de filtrado, así que no se aplica ningún filtro adicional.",
+  interpreting: "Interpretando tu orientación de búsqueda…",
+  notInterpreted:
+    "Aún sin interpretar: se interpretará automáticamente al generar el siguiente conjunto de condiciones de búsqueda.",
+  editGuidance: "Volver a editar los requisitos de filtrado",
+  restatementTitle: "Lo que entendemos",
+  treatmentExact: "Filtrado como pediste",
+  treatmentApproximate: "Filtro aproximado",
+  treatmentUnsupported: "No se puede filtrar, solo orienta la búsqueda",
+  previewError: {
+    quotaExhausted:
+      "Se agotó la cuota de generación en la nube, por lo que ahora no se puede mostrar la lista. Aún puedes guardar y activar.",
+    generationDisabled:
+      "La generación en la nube está desactivada, por lo que no se puede mostrar la lista. Aún puedes guardar y activar.",
+    tooLong: "La orientación de búsqueda supera los 500 caracteres. Acórtala para ver la lista.",
+    generic:
+      "No se pudo cargar la lista. Aún puedes guardar y activar; se interpretará al generar las condiciones de búsqueda.",
+  },
+  usageToggle: "¿Qué requisitos se pueden filtrar?",
+  usageExactTitle: "Filtrado exacto",
+  usageApproximateTitle: "Filtrado aproximado",
+  usageUnsupportedTitle: "No se puede filtrar, solo orienta la búsqueda",
+  usageExactFollowers: "Número de seguidores",
+  usageExactFollowerGender: "Proporción de género de los seguidores",
+  usageExactVideoViews: "Reproducciones medias de los vídeos de venta",
+  usageExactLiveViewers: "Espectadores medios de los directos de venta",
+  usageExactCreatorLevel: "Nivel del creator",
+  usageExactCategoryPro: "Especialidad de categoría ({{labels}})",
+  usageExactAgency: "Creator de agencia o independiente",
+  usageExactFastGrowing: "Crecimiento rápido en los últimos 30 días",
+  usageExactNotInvited: "Sin invitar en los últimos 90 días",
+  usageExactLanguage: "Idioma del contenido",
+  usageApproxSales:
+    "Ventas mensuales: usa las ventas de los últimos 30 días de la plataforma; si solo se conoce un rango, se deja pasar el que cruza tu umbral",
+  usageApproxUnitsSold: "Unidades vendidas: usa las ventas acumuladas desde que se abrió la cuenta",
+  usageApproxVideoGmv: "Ingresos de un solo vídeo: usa los ingresos totales del vídeo",
+  usageApproxAge: "Edad de los seguidores: usa todos los tramos de edad que se solapan",
+  usageApproxCategory: "Categoría: se asigna a la especialidad de categoría más cercana",
+  usageApproxFulfillment:
+    "Tasa de cumplimiento: usa la valoración “buena” o superior de la plataforma",
+  usageApproxCommission: "Comisión media: usa los niveles de la plataforma",
+  usageUnsupportedLanguage: "Idioma del contenido (no disponible para el mercado de esta tienda)",
+  usageUnsupportedContentStyle: "Aparición en cámara, locución, estilo de contenido",
+  usageUnsupportedCooperationReview: "Valoraciones de colaboraciones anteriores",
+  usageUnsupportedSamplePerformance: "Tasa de rendimiento de muestras",
+  usageUnsupportedCreatorDemographics: "Género o edad del propio creator",
+  usageUnsupportedBrands: "Marcas con las que ha colaborado",
+};
+
+const fr: GuidanceCopy = {
+  discoveryDescription:
+    "Pendant l’exécution de la campagne, votre modèle par défaut crée un jeu de conditions de recherche à la fois à partir du produit, de l’orientation et des résultats précédents. La génération s’exécute dans le cloud.",
+  hint: "{{count}} / 500 caractères. « Privilégier » ou « se concentrer sur » ne sert que d’indication de recherche ; « doit », « au moins » ou « exclure » filtre strictement.",
+  checklistTitle: "Liste d’exécution",
+  checklistDescription:
+    "Voici comment vos consignes de recherche seront appliquées. Vérifiez-les avant d’activer : c’est exactement ce qui sera exécuté.",
+  noGuidance:
+    "Aucune exigence de filtrage saisie, donc aucun filtre supplémentaire n’est appliqué.",
+  interpreting: "Analyse de vos consignes de recherche…",
+  notInterpreted:
+    "Pas encore analysées : elles le seront automatiquement à la génération du prochain jeu de conditions de recherche.",
+  editGuidance: "Retour pour modifier les exigences de filtrage",
+  restatementTitle: "Notre compréhension",
+  treatmentExact: "Filtré comme demandé",
+  treatmentApproximate: "Filtre approximatif",
+  treatmentUnsupported: "Filtrage impossible, sert seulement d’indication de recherche",
+  previewError: {
+    quotaExhausted:
+      "Le quota de génération cloud est épuisé, la liste ne peut pas être affichée pour l’instant. Vous pouvez quand même enregistrer et activer.",
+    generationDisabled:
+      "La génération cloud est actuellement désactivée, la liste ne peut pas être affichée. Vous pouvez quand même enregistrer et activer.",
+    tooLong:
+      "Les consignes de recherche dépassent 500 caractères. Raccourcissez-les pour voir la liste.",
+    generic:
+      "La liste n’a pas pu être chargée. Vous pouvez quand même enregistrer et activer ; l’analyse aura lieu à la génération des conditions de recherche.",
+  },
+  usageToggle: "Quelles exigences peuvent être filtrées ?",
+  usageExactTitle: "Filtrage exact",
+  usageApproximateTitle: "Filtrage approximatif",
+  usageUnsupportedTitle: "Non filtrable, simple indication de recherche",
+  usageExactFollowers: "Nombre d’abonnés",
+  usageExactFollowerGender: "Répartition par sexe des abonnés",
+  usageExactVideoViews: "Vues moyennes des vidéos de vente",
+  usageExactLiveViewers: "Spectateurs moyens des lives de vente",
+  usageExactCreatorLevel: "Niveau du créateur",
+  usageExactCategoryPro: "Spécialité de catégorie ({{labels}})",
+  usageExactAgency: "Créateur d’agence ou indépendant",
+  usageExactFastGrowing: "Forte croissance sur les 30 derniers jours",
+  usageExactNotInvited: "Non invité au cours des 90 derniers jours",
+  usageExactLanguage: "Langue du contenu",
+  usageApproxSales:
+    "Ventes mensuelles : d’après les ventes des 30 derniers jours de la plateforme ; si seule une fourchette est connue, celle qui franchit votre seuil est acceptée",
+  usageApproxUnitsSold: "Unités vendues : d’après les ventes cumulées depuis l’ouverture du compte",
+  usageApproxVideoGmv: "Chiffre d’affaires d’une seule vidéo : d’après le total de la vidéo",
+  usageApproxAge: "Âge des abonnés : toutes les tranches d’âge qui se chevauchent",
+  usageApproxCategory: "Catégorie : la spécialité de catégorie la plus proche",
+  usageApproxFulfillment: "Taux d’exécution : note « bon » ou supérieure de la plateforme",
+  usageApproxCommission: "Taux de commission moyen : d’après les paliers de la plateforme",
+  usageUnsupportedLanguage: "Langue du contenu (non proposée pour le marché de cette boutique)",
+  usageUnsupportedContentStyle: "Présence à l’écran, voix off, style de contenu",
+  usageUnsupportedCooperationReview: "Avis sur les collaborations passées",
+  usageUnsupportedSamplePerformance: "Taux de performance des échantillons",
+  usageUnsupportedCreatorDemographics: "Sexe ou âge du créateur lui-même",
+  usageUnsupportedBrands: "Marques avec lesquelles il a collaboré",
+};
+
+const id: GuidanceCopy = {
+  discoveryDescription:
+    "Selama kampanye berjalan, model default Anda membuat satu set kondisi pencarian setiap kali dari produk, arahan, dan hasil sebelumnya. Pembuatan berjalan di cloud.",
+  hint: "{{count}} / 500 karakter. Tulis “utamakan” atau “fokus pada” sebagai petunjuk arah pencarian; tulis “harus”, “minimal”, atau “kecualikan” untuk menyaring secara ketat.",
+  checklistTitle: "Daftar eksekusi",
+  checklistDescription:
+    "Begini arahan pencarian Anda akan dijalankan. Periksa sebelum mengaktifkan; inilah yang akan berjalan.",
+  noGuidance: "Tidak ada persyaratan penyaringan, jadi tidak ada penyaringan tambahan.",
+  interpreting: "Membaca arahan pencarian Anda…",
+  notInterpreted:
+    "Belum ditafsirkan: akan ditafsirkan otomatis saat set kondisi pencarian berikutnya dibuat.",
+  editGuidance: "Kembali mengubah persyaratan penyaringan",
+  restatementTitle: "Pemahaman kami",
+  treatmentExact: "Disaring sesuai permintaan",
+  treatmentApproximate: "Penyaringan perkiraan",
+  treatmentUnsupported: "Tidak bisa disaring, hanya sebagai arah pencarian",
+  previewError: {
+    quotaExhausted:
+      "Kuota pembuatan cloud habis, jadi daftar belum dapat ditampilkan. Anda tetap dapat menyimpan dan mengaktifkan.",
+    generationDisabled:
+      "Pembuatan cloud sedang dinonaktifkan, jadi daftar belum dapat ditampilkan. Anda tetap dapat menyimpan dan mengaktifkan.",
+    tooLong: "Arahan pencarian melebihi 500 karakter. Persingkat untuk melihat daftar.",
+    generic:
+      "Daftar tidak dapat dimuat. Anda tetap dapat menyimpan dan mengaktifkan; akan ditafsirkan saat kondisi pencarian dibuat.",
+  },
+  usageToggle: "Persyaratan apa yang bisa disaring?",
+  usageExactTitle: "Disaring secara tepat",
+  usageApproximateTitle: "Disaring secara perkiraan",
+  usageUnsupportedTitle: "Tidak bisa disaring, hanya arah pencarian",
+  usageExactFollowers: "Jumlah pengikut",
+  usageExactFollowerGender: "Proporsi gender pengikut",
+  usageExactVideoViews: "Rata-rata tayangan video jualan",
+  usageExactLiveViewers: "Rata-rata penonton siaran langsung jualan",
+  usageExactCreatorLevel: "Level kreator",
+  usageExactCategoryPro: "Keahlian kategori ({{labels}})",
+  usageExactAgency: "Kreator agensi atau independen",
+  usageExactFastGrowing: "Pertumbuhan cepat dalam 30 hari terakhir",
+  usageExactNotInvited: "Belum diundang dalam 90 hari terakhir",
+  usageExactLanguage: "Bahasa konten",
+  usageApproxSales:
+    "Penjualan bulanan: memakai penjualan 30 hari terakhir dari platform; jika hanya ada rentang, rentang yang melewati ambang Anda diloloskan",
+  usageApproxUnitsSold: "Jumlah terjual: memakai total penjualan sejak akun dibuka",
+  usageApproxVideoGmv: "Omzet satu video: memakai total omzet video",
+  usageApproxAge: "Usia pengikut: memakai semua rentang usia yang tumpang tindih",
+  usageApproxCategory: "Kategori: dipetakan ke keahlian kategori terdekat",
+  usageApproxFulfillment:
+    "Tingkat pemenuhan: memakai peringkat “baik” atau lebih tinggi dari platform",
+  usageApproxCommission: "Rata-rata komisi: memakai tingkatan platform",
+  usageUnsupportedLanguage: "Bahasa konten (tidak tersedia untuk pasar toko ini)",
+  usageUnsupportedContentStyle: "Tampil di kamera, narasi suara, gaya konten",
+  usageUnsupportedCooperationReview: "Ulasan kerja sama sebelumnya",
+  usageUnsupportedSamplePerformance: "Tingkat performa sampel",
+  usageUnsupportedCreatorDemographics: "Gender atau usia kreator itu sendiri",
+  usageUnsupportedBrands: "Merek yang pernah bekerja sama",
+};
+
+const it: GuidanceCopy = {
+  discoveryDescription:
+    "Mentre la campagna è in corso, il tuo modello predefinito crea un set di condizioni di ricerca alla volta a partire da prodotto, indirizzo e risultati precedenti. La generazione avviene nel cloud.",
+  hint: "{{count}} / 500 caratteri. “Preferisci” o “concentrati su” è solo un suggerimento di ricerca; “deve”, “almeno” o “escludi” filtra in modo rigoroso.",
+  checklistTitle: "Elenco di esecuzione",
+  checklistDescription:
+    "Ecco come verrà applicato il tuo indirizzo di ricerca. Controllalo prima di attivare: è esattamente ciò che verrà eseguito.",
+  noGuidance:
+    "Nessun requisito di filtro inserito, quindi non viene applicato alcun filtro aggiuntivo.",
+  interpreting: "Lettura del tuo indirizzo di ricerca…",
+  notInterpreted:
+    "Non ancora interpretato: verrà interpretato automaticamente alla generazione del prossimo set di condizioni di ricerca.",
+  editGuidance: "Torna a modificare i requisiti di filtro",
+  restatementTitle: "Cosa abbiamo capito",
+  treatmentExact: "Filtrato come richiesto",
+  treatmentApproximate: "Filtro approssimativo",
+  treatmentUnsupported: "Non filtrabile, usato solo come indirizzo di ricerca",
+  previewError: {
+    quotaExhausted:
+      "La quota di generazione cloud è esaurita, quindi l’elenco non può essere mostrato ora. Puoi comunque salvare e attivare.",
+    generationDisabled:
+      "La generazione cloud è attualmente disattivata, quindi l’elenco non può essere mostrato. Puoi comunque salvare e attivare.",
+    tooLong: "L’indirizzo di ricerca supera i 500 caratteri. Accorcialo per vedere l’elenco.",
+    generic:
+      "Impossibile caricare l’elenco. Puoi comunque salvare e attivare; verrà interpretato alla generazione delle condizioni di ricerca.",
+  },
+  usageToggle: "Quali requisiti si possono filtrare?",
+  usageExactTitle: "Filtrati con precisione",
+  usageApproximateTitle: "Filtrati in modo approssimativo",
+  usageUnsupportedTitle: "Non filtrabili, solo indirizzo di ricerca",
+  usageExactFollowers: "Numero di follower",
+  usageExactFollowerGender: "Quota di genere dei follower",
+  usageExactVideoViews: "Visualizzazioni medie dei video di vendita",
+  usageExactLiveViewers: "Spettatori medi delle dirette di vendita",
+  usageExactCreatorLevel: "Livello del creator",
+  usageExactCategoryPro: "Specializzazione di categoria ({{labels}})",
+  usageExactAgency: "Creator di agenzia o indipendente",
+  usageExactFastGrowing: "Crescita rapida negli ultimi 30 giorni",
+  usageExactNotInvited: "Non invitato negli ultimi 90 giorni",
+  usageExactLanguage: "Lingua dei contenuti",
+  usageApproxSales:
+    "Vendite mensili: usa le vendite degli ultimi 30 giorni della piattaforma; se è noto solo un intervallo, passa quello che supera la tua soglia",
+  usageApproxUnitsSold: "Unità vendute: usa le vendite cumulative dall’apertura dell’account",
+  usageApproxVideoGmv: "Ricavi di un singolo video: usa i ricavi totali del video",
+  usageApproxAge: "Età dei follower: usa tutte le fasce d’età sovrapposte",
+  usageApproxCategory: "Categoria: associata alla specializzazione più vicina",
+  usageApproxFulfillment:
+    "Tasso di evasione: usa la valutazione “buona” o superiore della piattaforma",
+  usageApproxCommission: "Commissione media: usa i livelli della piattaforma",
+  usageUnsupportedLanguage: "Lingua dei contenuti (non offerta per il mercato di questo negozio)",
+  usageUnsupportedContentStyle: "Presenza in video, voce fuori campo, stile dei contenuti",
+  usageUnsupportedCooperationReview: "Valutazioni delle collaborazioni passate",
+  usageUnsupportedSamplePerformance: "Tasso di rendimento dei campioni",
+  usageUnsupportedCreatorDemographics: "Genere o età del creator stesso",
+  usageUnsupportedBrands: "Marchi con cui ha collaborato",
+};
+
+const th: GuidanceCopy = {
+  discoveryDescription:
+    "ขณะที่แคมเปญทำงาน โมเดลเริ่มต้นของคุณจะสร้างเงื่อนไขการค้นหาทีละชุดจากสินค้า แนวทาง และผลลัพธ์ก่อนหน้า การสร้างทำงานบนคลาวด์",
+  hint: "{{count}} / 500 ตัวอักษร เขียนว่า “ให้ความสำคัญ” หรือ “เน้น” เพื่อเป็นแนวทางการค้นหา เขียนว่า “ต้อง” “อย่างน้อย” หรือ “ไม่รวม” เพื่อกรองอย่างเข้มงวด",
+  checklistTitle: "รายการที่จะดำเนินการ",
+  checklistDescription:
+    "นี่คือวิธีที่แนวทางการค้นหาของคุณจะถูกนำไปใช้ โปรดตรวจสอบก่อนเปิดใช้งาน สิ่งนี้คือสิ่งที่จะทำงานจริง",
+  noGuidance: "ไม่ได้กรอกข้อกำหนดการกรอง จึงไม่มีการกรองเพิ่มเติม",
+  interpreting: "กำลังอ่านแนวทางการค้นหาของคุณ…",
+  notInterpreted: "ยังไม่ได้ตีความ: ระบบจะตีความอัตโนมัติเมื่อสร้างเงื่อนไขการค้นหาชุดถัดไป",
+  editGuidance: "กลับไปแก้ไขข้อกำหนดการกรอง",
+  restatementTitle: "สิ่งที่เราเข้าใจ",
+  treatmentExact: "กรองตามที่ต้องการ",
+  treatmentApproximate: "กรองแบบประมาณ",
+  treatmentUnsupported: "กรองไม่ได้ ใช้เป็นแนวทางการค้นหาเท่านั้น",
+  previewError: {
+    quotaExhausted: "โควตาการสร้างบนคลาวด์ถูกใช้หมดแล้ว จึงยังแสดงรายการไม่ได้ คุณยังบันทึกและเปิดใช้งานได้",
+    generationDisabled: "การสร้างบนคลาวด์ถูกปิดอยู่ จึงแสดงรายการไม่ได้ คุณยังบันทึกและเปิดใช้งานได้",
+    tooLong: "แนวทางการค้นหายาวเกิน 500 ตัวอักษร โปรดย่อให้สั้นลงเพื่อดูรายการ",
+    generic: "โหลดรายการไม่สำเร็จ คุณยังบันทึกและเปิดใช้งานได้ ระบบจะตีความเมื่อสร้างเงื่อนไขการค้นหา",
+  },
+  usageToggle: "ข้อกำหนดใดบ้างที่กรองได้?",
+  usageExactTitle: "กรองได้แม่นยำ",
+  usageApproximateTitle: "กรองแบบประมาณ",
+  usageUnsupportedTitle: "กรองไม่ได้ ใช้เป็นแนวทางการค้นหาเท่านั้น",
+  usageExactFollowers: "จำนวนผู้ติดตาม",
+  usageExactFollowerGender: "สัดส่วนเพศของผู้ติดตาม",
+  usageExactVideoViews: "ยอดชมเฉลี่ยของวิดีโอขายสินค้า",
+  usageExactLiveViewers: "ผู้ชมเฉลี่ยต่อรอบของไลฟ์ขายสินค้า",
+  usageExactCreatorLevel: "ระดับครีเอเตอร์",
+  usageExactCategoryPro: "ความเชี่ยวชาญตามหมวดหมู่ ({{labels}})",
+  usageExactAgency: "ครีเอเตอร์สังกัดเอเจนซีหรืออิสระ",
+  usageExactFastGrowing: "เติบโตเร็วใน 30 วันที่ผ่านมา",
+  usageExactNotInvited: "ไม่ได้รับเชิญภายใน 90 วัน",
+  usageExactLanguage: "ภาษาของเนื้อหา",
+  usageApproxSales:
+    "ยอดขายรายเดือน: ใช้ยอดขาย 30 วันล่าสุดของแพลตฟอร์ม หากทราบเพียงช่วง ช่วงที่คร่อมเกณฑ์ของคุณจะผ่าน",
+  usageApproxUnitsSold: "จำนวนชิ้นที่ขายได้: ใช้ยอดขายสะสมตั้งแต่เปิดบัญชี",
+  usageApproxVideoGmv: "ยอดขายต่อวิดีโอ: ใช้ยอดขายรวมของวิดีโอ",
+  usageApproxAge: "อายุผู้ติดตาม: ใช้ทุกช่วงอายุที่ซ้อนทับกัน",
+  usageApproxCategory: "หมวดหมู่: จับคู่กับความเชี่ยวชาญตามหมวดหมู่ที่ใกล้เคียงที่สุด",
+  usageApproxFulfillment: "อัตราการปฏิบัติตามคำสั่งซื้อ: ใช้ระดับ “ดี” ขึ้นไปของแพลตฟอร์ม",
+  usageApproxCommission: "อัตราค่าคอมมิชชันเฉลี่ย: ใช้ระดับของแพลตฟอร์ม",
+  usageUnsupportedLanguage: "ภาษาของเนื้อหา (ไม่มีให้สำหรับตลาดของร้านค้านี้)",
+  usageUnsupportedContentStyle: "การปรากฏตัวหน้ากล้อง การพากย์ สไตล์เนื้อหา",
+  usageUnsupportedCooperationReview: "รีวิวจากการร่วมงานที่ผ่านมา",
+  usageUnsupportedSamplePerformance: "อัตราผลลัพธ์ของตัวอย่างสินค้า",
+  usageUnsupportedCreatorDemographics: "เพศหรืออายุของครีเอเตอร์เอง",
+  usageUnsupportedBrands: "แบรนด์ที่เคยร่วมงานด้วย",
+};
+
+export const campaignGuidanceCopy = { en, zh, de, es, fr, id, it, th } as const;
