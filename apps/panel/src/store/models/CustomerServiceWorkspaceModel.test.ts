@@ -438,53 +438,31 @@ describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
     expect(store.ordersWithoutConversation).toHaveLength(0);
   });
 
-  it("selects an order draft instead of a conversation and loads no messages for it", async () => {
-    const query = vi.fn();
-    const store = CustomerServiceWorkspaceModel.create(
-      { ordersWithoutConversation: [order], selectedConversationId: "conversation-1", selectedConversationShopId: "shop-1" },
-      { apolloClient: { query } as any },
-    );
-    store.selectOrderDraft("shop-1", "order-9");
-    expect(store.selectedConversationId).toBeNull();
-    expect(store.selectedConversationShopId).toBeNull();
-    expect(store.selectedConversation).toBeNull();
-    expect(store.selectedOrderDraft).toEqual(order);
-    await store.fetchConversationMessages();
-    await store.fetchSelectedConversationOrderIds();
-    expect(query).not.toHaveBeenCalled();
-    store.selectConversation("shop-1", "conversation-1");
-    expect(store.selectedOrderDraft).toBeNull();
-  });
-
-  it("shows order drafts on the first page only and drops a selection the refetch no longer returns", async () => {
-    const query = vi.fn().mockResolvedValue({
-      data: { ecommerceGetCustomerServiceInbox: { items: [], totalCount: 0, ordersWithoutConversation: [] } },
+  it("shows order drafts on the first page only", () => {
+    const store = CustomerServiceWorkspaceModel.create({
+      ordersWithoutConversation: [order],
+      conversationPage: 2,
     });
-    const store = CustomerServiceWorkspaceModel.create(
-      { ordersWithoutConversation: [order], conversationPage: 2 },
-      { apolloClient: { query } as any },
-    );
     expect(store.orderDraftsOnPage).toEqual([]);
     store.setConversationPage(1);
-    store.selectOrderDraft("shop-1", "order-9");
-    await store.fetchConversations();
-    expect(store.selectedOrderDraft).toBeNull();
-    expect(store.selectedOrderDraftOrderId).toBeNull();
+    expect(store.orderDraftsOnPage).toEqual([order]);
   });
 
-  it("creates the conversation, moves the selection to it, keeps the draft text and starts no AI run", async () => {
-    const mutate = vi.fn().mockResolvedValue({
-      data: { ecommerceStartCustomerServiceConversationFromOrder: started },
+  it("opening a draft creates the conversation, selects it, drops the order and starts no AI run", async () => {
+    let pendingDuringCall = false;
+    const mutate = vi.fn().mockImplementation(async () => {
+      pendingDuringCall = store.isOrderStarting("shop-1", "order-9");
+      return { data: { ecommerceStartCustomerServiceConversationFromOrder: started } };
     });
+    const query = vi.fn();
     const store = CustomerServiceWorkspaceModel.create(
       { ordersWithoutConversation: [order, { ...order, orderId: "order-10" }] },
-      { apolloClient: { mutate } as any },
+      { apolloClient: { mutate, query } as any },
     );
-    store.selectOrderDraft("shop-1", "order-9");
-    store.setManualReplyDraft("Hello");
-    const revision = store.selectionRevision;
-    const created = await store.promoteOrderDraft("shop-1", "order-9");
-    expect(created).toEqual({ shopId: "shop-1", conversationId: "conversation-9" });
+    const ok = await store.openOrderDraft("shop-1", "order-9");
+    expect(ok).toBe(true);
+    expect(pendingDuringCall).toBe(true);
+    expect(store.isOrderStarting("shop-1", "order-9")).toBe(false);
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({ variables: { shopId: "shop-1", orderId: "order-9" } }),
@@ -492,41 +470,61 @@ describe("CustomerServiceWorkspaceModel orders without a conversation", () => {
     expect(store.conversationItems.map((item) => item.conversationId)).toEqual(["conversation-9"]);
     expect(store.selectedConversationId).toBe("conversation-9");
     expect(store.selectedConversationShopId).toBe("shop-1");
-    expect(store.selectedOrderDraft).toBeNull();
+    expect(store.openingOrderKey).toBeNull();
     expect(store.ordersWithoutConversation.map((o) => o.orderId)).toEqual(["order-10"]);
-    expect(store.manualReplyDraft).toBe("Hello");
-    expect(store.selectionRevision).toBe(revision);
+    // No fetchJson-backed AI start exists on this path; only the one GraphQL mutation ran.
+    expect(query).not.toHaveBeenCalled();
   });
 
-  it("does not steal the selection when the operator moved on before the conversation was created", async () => {
-    const mutate = vi.fn().mockResolvedValue({
-      data: { ecommerceStartCustomerServiceConversationFromOrder: started },
-    });
+  it("clears the previous conversation while opening and ignores a second click while pending", async () => {
+    let release!: (value: unknown) => void;
+    const mutate = vi.fn().mockReturnValue(new Promise((resolve) => (release = resolve)));
     const store = CustomerServiceWorkspaceModel.create(
-      { ordersWithoutConversation: [order, { ...order, orderId: "order-10" }] },
+      { ordersWithoutConversation: [order], conversationItems: [conversation()] },
       { apolloClient: { mutate } as any },
     );
-    store.selectOrderDraft("shop-1", "order-9");
-    const pending = store.promoteOrderDraft("shop-1", "order-9");
-    store.selectOrderDraft("shop-1", "order-10");
-    await pending;
+    store.selectConversation("shop-1", "conversation-1");
+    const first = store.openOrderDraft("shop-1", "order-9");
     expect(store.selectedConversationId).toBeNull();
-    expect(store.selectedOrderDraft?.orderId).toBe("order-10");
-    expect(store.conversationItems).toHaveLength(1);
+    expect(store.openingOrderKey).toBe("shop-1:order-9");
+    expect(await store.openOrderDraft("shop-1", "order-9")).toBe(false);
+    expect(mutate).toHaveBeenCalledTimes(1);
+    release({ data: { ecommerceStartCustomerServiceConversationFromOrder: started } });
+    expect(await first).toBe(true);
+    expect(store.selectedConversationId).toBe("conversation-9");
+    expect(mutate).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects with the backend error and keeps the draft selected with its text", async () => {
+  it("does not steal the selection when the operator moved on while the conversation was created", async () => {
+    let release!: (value: unknown) => void;
+    const mutate = vi.fn().mockReturnValue(new Promise((resolve) => (release = resolve)));
+    const store = CustomerServiceWorkspaceModel.create(
+      { ordersWithoutConversation: [order], conversationItems: [conversation()] },
+      { apolloClient: { mutate } as any },
+    );
+    const pending = store.openOrderDraft("shop-1", "order-9");
+    store.selectConversation("shop-1", "conversation-1");
+    release({ data: { ecommerceStartCustomerServiceConversationFromOrder: started } });
+    await pending;
+    expect(store.selectedConversationId).toBe("conversation-1");
+    expect(store.conversationItems.map((item) => item.conversationId).sort()).toEqual([
+      "conversation-1",
+      "conversation-9",
+    ]);
+  });
+
+  it("keeps the order and surfaces the backend error when creation fails", async () => {
     const mutate = vi.fn().mockRejectedValue(new Error("CS_ORDER_NOT_FOUND: order is not synced"));
     const store = CustomerServiceWorkspaceModel.create(
       { ordersWithoutConversation: [order] },
       { apolloClient: { mutate } as any },
     );
-    store.selectOrderDraft("shop-1", "order-9");
-    store.setManualReplyDraft("Hello");
-    await expect(store.promoteOrderDraft("shop-1", "order-9")).rejects.toThrow("CS_ORDER_NOT_FOUND");
-    expect(store.selectedOrderDraft).toEqual(order);
-    expect(store.selectedConversationId).toBeNull();
+    const ok = await store.openOrderDraft("shop-1", "order-9");
+    expect(ok).toBe(false);
+    expect(store.isOrderStarting("shop-1", "order-9")).toBe(false);
+    expect(store.startOrderError("shop-1", "order-9")).toContain("CS_ORDER_NOT_FOUND");
     expect(store.ordersWithoutConversation).toHaveLength(1);
-    expect(store.manualReplyDraft).toBe("Hello");
+    expect(store.selectedConversationId).toBeNull();
+    expect(store.openingOrderKey).toBeNull();
   });
 });

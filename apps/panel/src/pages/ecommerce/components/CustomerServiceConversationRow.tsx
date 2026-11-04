@@ -70,8 +70,7 @@ export function CustomerServiceConversationRow({
 
 /**
  * An order-search hit whose buyer has no conversation yet. It reads like a conversation row
- * (same classes) and opens an empty conversation view; the conversation is only created when
- * the operator sends the first message.
+ * (same classes); opening it creates the conversation, then the page shows the normal view.
  */
 export function CustomerServiceOrderDraftRow({
   active,
@@ -80,9 +79,13 @@ export function CustomerServiceOrderDraftRow({
   timeLabel,
   statusLabel,
   amountLabel,
+  pending,
+  error,
   onSelect,
 }: {
   active: boolean;
+  pending: boolean;
+  error: string | null;
   orderId: string;
   shopLabel: ShopDisplayLabel;
   timeLabel: string;
@@ -95,6 +98,7 @@ export function CustomerServiceOrderDraftRow({
     <button
       className={active ? "cs-conversation-row active" : "cs-conversation-row"}
       type="button"
+      aria-busy={pending}
       onClick={onSelect}
     >
       <span className="cs-conversation-meta">
@@ -110,10 +114,17 @@ export function CustomerServiceOrderDraftRow({
         </span>
       </span>
       <span className="cs-conversation-preview">
-        {[t("ecommerce.customerServiceWorkspace.noMessagesYet"), amountLabel]
-          .filter(Boolean)
-          .join(" · ")}
+        {pending
+          ? t("common.loading")
+          : [t("ecommerce.customerServiceWorkspace.noMessagesYet"), amountLabel]
+              .filter(Boolean)
+              .join(" · ")}
       </span>
+      {error && (
+        <span className="form-error" role="alert">
+          {error}
+        </span>
+      )}
     </button>
   );
 }

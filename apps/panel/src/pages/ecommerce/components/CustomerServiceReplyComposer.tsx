@@ -18,20 +18,12 @@ import { MessageEmojiButton } from "../../../components/inputs/MessageEmojiButto
 import { MessageAttachmentPreviews } from "../../../components/inputs/MessageAttachmentPreviews.js";
 import { useMessageAttachmentDrafts } from "../../../hooks/useMessageAttachmentDrafts.js";
 
-/**
- * Reply composer for the selected conversation. With `conversationId === null` it targets an
- * order draft (a searched order whose buyer has no conversation): the first send creates the
- * conversation, then sends through the normal path. The page keys this component by the
- * operator's selection, so it stays mounted while the draft becomes the real conversation.
- */
 export const CustomerServiceReplyComposer = observer(function CustomerServiceReplyComposer({
   shopId,
   conversationId,
-  orderId = null,
 }: {
   shopId: string;
-  conversationId: string | null;
-  orderId?: string | null;
+  conversationId: string;
 }) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -40,18 +32,6 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
   const fileInput = useRef<HTMLInputElement | null>(null);
   const inFlight = useRef(false);
   const mounted = useRef(true);
-  // Fixed for this instance so unsent images and translation survive draft promotion.
-  const scopeId = useRef(conversationId ?? `order:${orderId}`).current;
-  // The conversation sends go to; null until an order draft is promoted.
-  const resolvedConversationId = useRef(conversationId);
-  const targetSelected = () => {
-    const workspace = entityStore.customerServiceWorkspace;
-    return resolvedConversationId.current
-      ? workspace.selectedConversationShopId === shopId &&
-          workspace.selectedConversationId === resolvedConversationId.current
-      : workspace.selectedOrderDraftShopId === shopId &&
-          workspace.selectedOrderDraftOrderId === orderId;
-  };
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -65,7 +45,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
     entityStore.customerServiceWorkspace.conversationMessages,
   );
   const translation = useMessageTranslation({
-    routeKey: JSON.stringify(["cs", shopId, scopeId]),
+    routeKey: JSON.stringify(["cs", shopId, conversationId]),
     draftFingerprint: () =>
       JSON.stringify([
         entityStore.customerServiceWorkspace.manualReplyDraft,
@@ -79,7 +59,7 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
   });
   const disabled = sendBusy || translation.locked;
   const attachments = useMessageAttachmentDrafts({
-    scopeKey: `${translationIdentity(entityStore.currentUser)}:${shopId}:${scopeId}`,
+    scopeKey: `${translationIdentity(entityStore.currentUser)}:${shopId}:${conversationId}`,
     disabled,
     onError: (message) => showToast(message, "error"),
   });
@@ -96,7 +76,11 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         !attachments.items.length)
     )
       return { complete: false };
-    if (!targetSelected()) return { complete: false };
+    if (
+      entityStore.customerServiceWorkspace.selectedConversationShopId !== shopId ||
+      entityStore.customerServiceWorkspace.selectedConversationId !== conversationId
+    )
+      return { complete: false };
     inFlight.current = true;
     setSending(true);
     setError(null);
@@ -107,15 +91,6 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
     let refresh = false;
     let completed = false;
     try {
-      if (!resolvedConversationId.current) {
-        // A failure here leaves the order draft selected with the composer draft intact.
-        const created = await entityStore.customerServiceWorkspace.promoteOrderDraft(
-          shopId,
-          orderId!,
-        );
-        resolvedConversationId.current = created.conversationId;
-        if (!mounted.current || !targetSelected()) return { complete: false };
-      }
       if (!textAlreadySent && (translatedText ?? original).trim()) {
         refresh = true;
         // Refresh after the whole batch: resolving text can otherwise remove
@@ -134,13 +109,14 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         if (
           !mounted.current ||
           translationIdentity(entityStore.currentUser) !== identity ||
-          !targetSelected()
+          entityStore.customerServiceWorkspace.selectedConversationId !== conversationId ||
+          entityStore.customerServiceWorkspace.selectedConversationShopId !== shopId
         )
           return { complete: false, textSent };
         refresh = true;
         const result = await entityStore.customerServiceWorkspace.sendManualImageReply({
           shopId,
-          conversationId: resolvedConversationId.current!,
+          conversationId,
           file: item.file,
           idempotencyKey: `human-cs-image:${item.id}`,
         });
@@ -174,8 +150,8 @@ export const CustomerServiceReplyComposer = observer(function CustomerServiceRep
         if (
           refresh &&
           translationIdentity(entityStore.currentUser) === identity &&
-          resolvedConversationId.current &&
-          targetSelected()
+          entityStore.customerServiceWorkspace.selectedConversationShopId === shopId &&
+          entityStore.customerServiceWorkspace.selectedConversationId === conversationId
         ) {
           void entityStore.customerServiceWorkspace.fetchConversationMessages(i18n.language);
           // Keep this conversation and its failed drafts visible for retry.

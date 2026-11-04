@@ -390,7 +390,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   }
 
   const orderDrafts = workspace.orderDraftsOnPage as OrderDraft[];
-  const selectedOrderDraft = workspace.selectedOrderDraft as OrderDraft | null;
 
   async function copyMeta(label: string, value: string) {
     try {
@@ -909,10 +908,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                     {orderDrafts.map((order) => (
                       <CustomerServiceOrderDraftRow
                         key={`draft:${order.shopId}:${order.orderId}`}
-                        active={
-                          selectedOrderDraft?.shopId === order.shopId &&
-                          selectedOrderDraft?.orderId === order.orderId
-                        }
+                        active={workspace.openingOrderKey === `${order.shopId}:${order.orderId}`}
+                        pending={workspace.isOrderStarting(order.shopId, order.orderId)}
+                        error={workspace.startOrderError(order.shopId, order.orderId)}
                         orderId={order.orderId}
                         shopLabel={shopLabel(order.shopId)}
                         timeLabel={order.createTime ? formatCompactDateTime(order.createTime) : "-"}
@@ -922,7 +920,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
                             : ""
                         }
-                        onSelect={() => workspace.selectOrderDraft(order.shopId, order.orderId)}
+                        onSelect={() => void workspace.openOrderDraft(order.shopId, order.orderId)}
                       />
                     ))}
                     {conversationItems.map((item) => (
@@ -1388,41 +1386,14 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       </div>
                     )}
                     <CustomerServiceReplyComposer
-                      key={workspace.selectionRevision}
+                      key={selectedConversationKey}
                       shopId={selectedConversation.shopId}
                       conversationId={selectedConversation.conversationId}
                     />
                   </div>
                 </>
-              ) : selectedOrderDraft ? (
-                <>
-                  <div className="cs-conversation-summary">
-                    <div className="cs-conversation-detail-head">
-                      <div>
-                        <div className="cs-conversation-title-row">
-                          <h2>{selectedOrderDraft.orderId}</h2>
-                        </div>
-                        <TkPrivate as="p" sensitive={shopLabel(selectedOrderDraft.shopId).sensitive}>
-                          {shopLabel(selectedOrderDraft.shopId).text}
-                        </TkPrivate>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="cs-message-panel"
-                    aria-label={t("ecommerce.customerServiceWorkspace.messages")}
-                  >
-                    <div className="affiliate-proposal-empty">
-                      {t("ecommerce.customerServiceWorkspace.noMessages")}
-                    </div>
-                    <CustomerServiceReplyComposer
-                      key={workspace.selectionRevision}
-                      shopId={selectedOrderDraft.shopId}
-                      conversationId={null}
-                      orderId={selectedOrderDraft.orderId}
-                    />
-                  </div>
-                </>
+              ) : workspace.openingOrderKey ? (
+                <div className="cs-conversation-detail-empty">{t("common.loading")}</div>
               ) : (
                 <div className="cs-conversation-detail-empty">
                   {t("ecommerce.customerServiceWorkspace.selectConversation")}

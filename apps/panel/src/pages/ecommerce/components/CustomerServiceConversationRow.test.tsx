@@ -155,6 +155,8 @@ describe("CustomerServiceOrderDraftRow", () => {
         timeLabel="Nov 4, 10:00"
         statusLabel="Awaiting Shipment"
         amountLabel="$12.50"
+        pending={false}
+        error={null}
         onSelect={onSelect}
       />,
     );
@@ -167,5 +169,25 @@ describe("CustomerServiceOrderDraftRow", () => {
     ).toBeTruthy();
     fireEvent.click(row!);
     expect(onSelect).toHaveBeenCalledOnce();
+  });
+});
+
+describe("CustomerServiceOrderDraftRow states", () => {
+  const props = {
+    active: false,
+    orderId: "order-9",
+    shopLabel: { text: "Shop One", sensitive: false },
+    timeLabel: "-",
+    statusLabel: "",
+    amountLabel: "",
+    onSelect: () => {},
+  };
+  it("shows the loading text while the conversation is being created", () => {
+    render(<CustomerServiceOrderDraftRow {...props} pending error={null} />);
+    expect(screen.getByText("common.loading")).toBeTruthy();
+  });
+  it("shows the backend error on the row", () => {
+    render(<CustomerServiceOrderDraftRow {...props} pending={false} error="CS_ORDER_NOT_FOUND" />);
+    expect(screen.getByRole("alert").textContent).toBe("CS_ORDER_NOT_FOUND");
   });
 });
