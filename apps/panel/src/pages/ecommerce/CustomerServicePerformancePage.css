@@ -44,98 +44,75 @@
 /* The escalation queue band is a TkPanelHeader; it owns its own inset, rule and
    header surface, so nothing here restates them. */
 
-/* Supplies the workspace panel's body inset through TkPanelBody, so only the
-   grid tracks and the rule below the band live here. */
-.cs-workspace-filter-grid {
-  --cs-filter-control-height: 44px;
-  --cs-filter-label-height: 14px;
+/* The primary filters are the actions of the workspace TkPageHeader, so the title
+   and filters share one band. The band wraps under the title when the actions
+   no longer fit; header padding and surface stay with the design system. */
+.tk-v1-page > header.tk-v1-page-header.cs-workspace-header {
+  flex-wrap: wrap;
+  row-gap: var(--tk-v1-space-2);
+}
 
-  display: grid;
+.cs-workspace-header-copy {
   flex: 0 0 auto;
-  grid-template-columns: minmax(170px, 230px) minmax(138px, 170px) minmax(138px, 170px) minmax(
-      280px,
-      1fr
-    );
-  align-items: end;
-  column-gap: 12px;
-  row-gap: 10px;
+}
+
+.tk-v1-page-actions.cs-workspace-header-filters {
+  --cs-filter-control-height: 44px;
+
+  flex: 1 1 560px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cs-conversation-filter-secondary {
+  --cs-filter-control-height: 44px;
+
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-bg);
 }
 
-.cs-conversation-filter-grid {
-  grid-template-columns: 1fr;
-  align-items: end;
-}
-
-.cs-conversation-filter-primary {
-  display: grid;
-  grid-template-columns: minmax(170px, 240px) minmax(150px, 210px) minmax(320px, 1fr) auto;
-  align-items: end;
-  gap: 12px;
-  min-width: 0;
-}
-
-.cs-conversation-filter-secondary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
-  align-items: end;
-  gap: 12px;
-  min-width: 0;
-  padding-top: 2px;
-}
-
 .cs-conversation-filter-buttons {
   display: flex;
-  align-items: end;
-  gap: 8px;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
   min-width: 0;
 }
 
-.cs-filter-field {
-  display: grid;
-  grid-template-rows: var(--cs-filter-label-height) var(--cs-filter-control-height);
-  gap: 6px;
-  min-width: 0;
+.cs-filter-control {
+  flex: 0 1 170px;
+  min-width: 130px;
 }
 
-.cs-filter-field-label {
-  display: flex;
-  align-items: flex-end;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 750;
-  line-height: var(--cs-filter-label-height);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cs-filter-control-search {
+  flex: 1 1 260px;
+  min-width: 220px;
+  max-width: 420px;
 }
 
-.cs-filter-field .custom-select,
-.cs-filter-field .cs-workspace-search,
-.cs-filter-field .input-full {
+.cs-filter-control .custom-select,
+.cs-filter-control .cs-workspace-search,
+.cs-filter-control .input-full {
   min-width: 0;
   width: 100%;
 }
 
-.cs-workspace-filter-grid .custom-select-trigger,
-.cs-workspace-filter-grid .input-full,
-.cs-workspace-filter-grid .btn {
+.cs-workspace-header-filters .custom-select-trigger,
+.cs-workspace-header-filters .input-full,
+.cs-workspace-header-filters .btn,
+.cs-conversation-filter-secondary .custom-select-trigger {
   height: var(--cs-filter-control-height);
   min-height: var(--cs-filter-control-height);
-}
-
-.cs-workspace-filter-grid .custom-select-trigger {
   padding-block: 0;
 }
 
-.cs-workspace-filter-grid .input-full {
-  padding-block: 0;
-}
-
-.cs-workspace-filter-grid .btn {
+.cs-workspace-header-filters .btn {
   justify-content: center;
-  padding-block: 0;
 }
 
 .cs-workspace-search {
@@ -145,13 +122,47 @@
   min-width: 0;
 }
 
+.cs-search-input {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cs-search-input .input-full.has-clear {
+  padding-right: calc(var(--cs-filter-control-height) - var(--tk-v1-space-2));
+}
+
+.cs-search-clear {
+  position: absolute;
+  top: 50%;
+  right: var(--tk-v1-space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tk-v1-space-5);
+  height: var(--tk-v1-space-5);
+  padding: 0;
+  border: 0;
+  border-radius: var(--tk-v1-radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.cs-search-clear:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+}
+
 .cs-workspace-search .btn {
   flex: 0 0 auto;
   min-width: 76px;
 }
 
 .cs-refresh-button {
-  align-self: end;
   width: var(--cs-filter-control-height);
   min-width: var(--cs-filter-control-height);
   padding-inline: 0;
@@ -175,16 +186,6 @@
 
 .cs-advanced-filter-toggle.active svg {
   transform: rotate(90deg);
-}
-
-@media (max-width: 1180px) {
-  .cs-conversation-filter-primary {
-    grid-template-columns: minmax(160px, 1fr) minmax(150px, 1fr) minmax(280px, 1.4fr);
-  }
-
-  .cs-conversation-filter-buttons {
-    grid-column: 1 / -1;
-  }
 }
 
 .cs-performance-page {

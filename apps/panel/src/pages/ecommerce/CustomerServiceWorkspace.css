@@ -67,6 +67,13 @@
   line-height: 1.25;
 }
 
+.cs-conversation-list-head .cs-escalation-page-summary > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cs-conversation-list-scroll {
   min-height: 0;
   overflow-y: auto;
@@ -1858,21 +1865,6 @@
 
 .cs-escalation-search .btn {
   flex: 0 0 auto;
-}
-
-.cs-escalation-search-chip {
-  flex: 0 1 auto;
-  max-width: 260px;
-  padding: 7px 10px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
-  border-radius: var(--tk-v1-radius-full);
-  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
-  color: var(--color-primary);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
 .cs-escalation-listing {

@@ -3951,9 +3951,7 @@
     width: 100%;
   }
 
-  .cs-workspace-filter-grid,
   .cs-workspace-search,
-  .cs-conversation-filter-primary,
   .cs-conversation-filter-secondary,
   .cs-conversation-filter-buttons,
   .cs-escalation-filter-grid,
@@ -3964,7 +3962,9 @@
     min-width: 0;
   }
 
-  .cs-filter-field {
+  .cs-filter-control {
+    flex-basis: auto;
+    max-width: none;
     width: 100%;
   }
 

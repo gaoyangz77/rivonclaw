@@ -2,6 +2,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   en: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "Clear search",
         noMessagesYet: "No messages yet",
         orderListTitle: "Orders · {{count}}",
         ordersLoadFailed: "Could not load the buyer’s orders.",
@@ -12,6 +13,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   zh: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "清除搜索",
         noMessagesYet: "暂无消息",
         orderListTitle: "订单 · {{count}}",
         ordersLoadFailed: "买家订单列表加载失败。",
@@ -22,6 +24,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   de: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "Suche löschen",
         noMessagesYet: "Noch keine Nachrichten",
         orderListTitle: "Bestellungen · {{count}}",
         ordersLoadFailed: "Die Bestellungen des Käufers konnten nicht geladen werden.",
@@ -32,6 +35,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   es: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "Borrar búsqueda",
         noMessagesYet: "Aún no hay mensajes",
         orderListTitle: "Pedidos · {{count}}",
         ordersLoadFailed: "No se pudieron cargar los pedidos del comprador.",
@@ -42,6 +46,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   fr: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "Effacer la recherche",
         noMessagesYet: "Aucun message pour le moment",
         orderListTitle: "Commandes · {{count}}",
         ordersLoadFailed: "Impossible de charger les commandes de l’acheteur.",
@@ -52,6 +57,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   id: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "Hapus pencarian",
         noMessagesYet: "Belum ada pesan",
         orderListTitle: "Pesanan · {{count}}",
         ordersLoadFailed: "Pesanan pembeli tidak dapat dimuat.",
@@ -62,6 +68,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   it: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "Cancella ricerca",
         noMessagesYet: "Nessun messaggio ancora",
         orderListTitle: "Ordini · {{count}}",
         ordersLoadFailed: "Impossibile caricare gli ordini dell’acquirente.",
@@ -72,6 +79,7 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
   th: {
     ecommerce: {
       customerServiceWorkspace: {
+        clearSearch: "ล้างการค้นหา",
         noMessagesYet: "ยังไม่มีข้อความ",
         orderListTitle: "คำสั่งซื้อ · {{count}}",
         ordersLoadFailed: "ไม่สามารถโหลดคำสั่งซื้อของผู้ซื้อได้",
