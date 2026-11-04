@@ -16,6 +16,8 @@ const {
   mockRootStore: {
     ingestGraphQLResponse: vi.fn(),
     upsertShopsFromGraphQL: vi.fn(),
+    applyAdsEntityDelta: vi.fn(),
+    authBootstrap: { status: "ready" },
     shops: [],
   },
   authState: {
@@ -67,6 +69,9 @@ vi.mock("../src/auth/session.js", () => ({
     onUserChanged(listener: (user: any) => void | Promise<void>) {
       authState.listeners.push(listener);
     }
+    onCredentialsChanged() {
+      return () => {};
+    }
     async loadFromKeychain() {}
     getAccessToken() {
       return authState.token;
@@ -74,7 +79,9 @@ vi.mock("../src/auth/session.js", () => ({
     async graphqlFetch() {
       return {
         adsAdvertisers: [{ __typename: "AdsAdvertiser", id: "ads-1" }],
-        adsStoreAccesses: [{ __typename: "AdsStoreAccess", id: "store-access-1" }],
+        adsStoreAccesses: [
+          { __typename: "AdsStoreAccess", id: "store-access-1", adsAdvertiserId: "ads-1" },
+        ],
       };
     }
   },
@@ -141,6 +148,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
       return () => {};
     }
     subscribeToAffiliateUnknownSenderIdentificationChanges() {
+      return () => {};
+    }
+    subscribeToAffiliateWorkbenchChanges() {
       return () => {};
     }
     refreshCsConversationSignals() {
@@ -225,9 +235,11 @@ describe("setupAuth backend subscriptions", () => {
     });
 
     await vi.waitFor(() => {
-      expect(mockRootStore.ingestGraphQLResponse).toHaveBeenCalledWith({
+      expect(mockRootStore.applyAdsEntityDelta).toHaveBeenCalledWith(["ads-1"], {
         adsAdvertisers: [{ __typename: "AdsAdvertiser", id: "ads-1" }],
-        adsStoreAccesses: [{ __typename: "AdsStoreAccess", id: "store-access-1" }],
+        adsStoreAccesses: [
+          { __typename: "AdsStoreAccess", id: "store-access-1", adsAdvertiserId: "ads-1" },
+        ],
       });
     });
     expect(mockBroadcastEvent).toHaveBeenCalledWith(
