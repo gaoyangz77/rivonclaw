@@ -9926,6 +9926,10 @@ export interface EcomReturn {
   lineItems?: Maybe<Array<EcomReturnLineItem>>;
   orderId?: Maybe<Scalars["String"]["output"]>;
   refundAmount?: Maybe<EcomRefundAmount>;
+  /** Whether the buyer's money has been refunded. Only set for quick-refund returns (isQuickRefund=true) that are not yet in a terminal returnStatus: TikTok refunds the buyer as soon as the return parcel is shipped/dropped off, while returnStatus keeps tracking the parcel until the seller receives it, so returnStatus alone does NOT tell whether the money was paid. Null for every other return (its returnStatus already says where it stands) and when the return records could not be read. */
+  refundStatus?: Maybe<EcomReturnRefundStatus>;
+  /** Unix seconds of the REFUND_SUCCESS record, when refundStatus is REFUNDED. Null otherwise. */
+  refundedAt?: Maybe<Scalars["Int"]["output"]>;
   returnId: Scalars["String"]["output"];
   returnMethod?: Maybe<Scalars["String"]["output"]>;
   returnReason?: Maybe<Scalars["String"]["output"]>;
@@ -9967,6 +9971,14 @@ export interface EcomReturnRecord {
   role?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** Money-side status of a quick-refund return whose goods-side status is still in flight: REFUNDED when the return records contain a REFUND_SUCCESS event, NOT_REFUNDED_YET otherwise. */
+export const EcomReturnRefundStatus = {
+  NotRefundedYet: "NOT_REFUNDED_YET",
+  Refunded: "REFUNDED",
+} as const;
+
+export type EcomReturnRefundStatus =
+  (typeof EcomReturnRefundStatus)[keyof typeof EcomReturnRefundStatus];
 /** Return requests found across several shops, with a per-shop coverage report */
 export interface EcomReturnSearchAcrossShopsResult {
   /** Shops whose search failed; each is listed in failedShops */
@@ -10108,6 +10120,10 @@ export interface EcomShopReturn {
   lineItems?: Maybe<Array<EcomReturnLineItem>>;
   orderId?: Maybe<Scalars["String"]["output"]>;
   refundAmount?: Maybe<EcomRefundAmount>;
+  /** Whether the buyer's money has been refunded. Only set for quick-refund returns (isQuickRefund=true) that are not yet in a terminal returnStatus: TikTok refunds the buyer as soon as the return parcel is shipped/dropped off, while returnStatus keeps tracking the parcel until the seller receives it, so returnStatus alone does NOT tell whether the money was paid. Null for every other return (its returnStatus already says where it stands) and when the return records could not be read. */
+  refundStatus?: Maybe<EcomReturnRefundStatus>;
+  /** Unix seconds of the REFUND_SUCCESS record, when refundStatus is REFUNDED. Null otherwise. */
+  refundedAt?: Maybe<Scalars["Int"]["output"]>;
   returnId: Scalars["String"]["output"];
   returnMethod?: Maybe<Scalars["String"]["output"]>;
   returnReason?: Maybe<Scalars["String"]["output"]>;
