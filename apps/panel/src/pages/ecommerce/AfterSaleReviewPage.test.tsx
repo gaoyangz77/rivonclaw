@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import {
+  READ_AFTER_SALE_ORDER_QUERY,
+  READ_AFTER_SALE_ORDER_TRACKING_QUERY,
   READ_AFTER_SALE_REJECT_REASONS_QUERY,
   READ_AFTER_SALE_REQUEST_QUERY,
   READ_AFTER_SALE_REQUESTS_QUERY,
@@ -36,8 +38,21 @@ function dto(overrides: Record<string, unknown> = {}) {
     createTime: "2026-11-03T00:00:00Z",
     updateTime: "2026-11-03T01:00:00Z",
     lines: [
-      { lineItemId: "l1", productName: "Ceramic mug", refundTotal: "12.50", currency: "USD" },
-      { lineItemId: "l2", productName: "Saucer", refundTotal: "0", currency: "USD" },
+      {
+        lineItemId: "l1",
+        productName: "Ceramic mug",
+        sellerSku: "MUG-01",
+        productImageUrl: "https://example.test/mug.jpg",
+        refundTotal: "12.50",
+        currency: "USD",
+      },
+      {
+        lineItemId: "l2",
+        productName: "Saucer",
+        sellerSku: "SAUCER-01",
+        refundTotal: "0",
+        currency: "USD",
+      },
     ],
     needsReview: true,
     sellerDecision: null,
@@ -131,7 +146,14 @@ describe("AfterSaleReviewPage", () => {
     expect(within(bodyRows[0]).getByText("5h 12m").className).toContain(
       "after-sale-deadline-urgent",
     );
-    expect(within(bodyRows[0]).getByText("+1 more")).toBeTruthy();
+    // The product is the dense work-queue field: seller SKU first, the other lines counted.
+    expect(within(bodyRows[0]).getByText("MUG-01")).toBeTruthy();
+    expect(within(bodyRows[0]).getByText("+1")).toBeTruthy();
+    // Each decidable row carries its suggested action; the exchange has none.
+    expect(within(bodyRows[0]).getByRole("button", { name: "Approve refund" })).toBeTruthy();
+    expect(within(bodyRows[0]).getByRole("button", { name: "Reject refund" })).toBeTruthy();
+    expect(within(bodyRows[2]).queryByRole("button", { name: /Approve/ })).toBeNull();
+    expect(within(bodyRows[3]).getByRole("button", { name: "Approve cancellation" })).toBeTruthy();
     expect(within(bodyRows[1]).getByText("Overdue").className).toContain(
       "after-sale-deadline-urgent",
     );
@@ -151,8 +173,8 @@ describe("AfterSaleReviewPage", () => {
     expect(within(dialog).getByRole("link", { name: "Evidence image" }).getAttribute("href")).toBe(
       "https://example.test/evidence.jpg",
     );
-    expect(within(dialog).getByRole("button", { name: "Approve" })).toBeTruthy();
-    expect(within(dialog).getByRole("button", { name: "Reject" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Approve refund" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Reject refund" })).toBeTruthy();
     expect(afterSale.detail.key).toBe("shop-1:REFUND:r1");
   });
 
@@ -164,7 +186,7 @@ describe("AfterSaleReviewPage", () => {
     render(<AfterSaleReviewPage />);
     fireEvent.click(await screen.findByText("Ceramic mug"));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Reject" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reject refund" }));
     await waitFor(() => expect(afterSale.detail.rejectReasons).toHaveLength(1));
     afterSale.setRejectReason("why-1");
     fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Seal is broken" } });
@@ -178,9 +200,13 @@ describe("AfterSaleReviewPage", () => {
     expect(mocks.showToast).toHaveBeenCalledWith(expect.any(String), "error");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Reject request" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("/api/cloud/ecommerce/reject-return");
+    // Product thumbnails resolve through the media cache; only the reject call matters here.
+    const rejectCall = () =>
+      (fetchMock.mock.calls as unknown as Array<[string, RequestInit]>).find(
+        ([url]) => url === "/api/cloud/ecommerce/reject-return",
+      );
+    await waitFor(() => expect(rejectCall()).toBeDefined());
+    const [, init] = rejectCall()!;
     expect(JSON.parse(init.body as string)).toMatchObject({
       returnId: "r1",
       rejectReason: "why-1",
@@ -213,11 +239,11 @@ describe("AfterSaleReviewPage", () => {
     render(<AfterSaleReviewPage />);
     fireEvent.click(await screen.findByText("Ceramic mug"));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(await within(dialog).findByRole("button", { name: "Approve" }));
+    fireEvent.click(await within(dialog).findByRole("button", { name: "Approve refund" }));
 
     expect(mutate).not.toHaveBeenCalled();
     const confirm = (await screen.findAllByRole("dialog")).find((el) =>
-      within(el).queryByText("Approve this request?"),
+      within(el).queryByText("Approve refund?"),
     )!;
     fireEvent.click(within(confirm).getByRole("button", { name: "Approve" }));
 
@@ -259,8 +285,8 @@ describe("AfterSaleReviewPage", () => {
         "Your decision (Rejected) was accepted by TikTok. This request updates when TikTok sends its new status.",
       ),
     ).toBeTruthy();
-    expect(within(dialog).queryByRole("button", { name: "Approve" })).toBeNull();
-    expect(within(dialog).queryByRole("button", { name: "Reject" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: /Approve/ })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: /Reject/ })).toBeNull();
   });
 
   it("shows an exchange read-only and a cancellation without a history", async () => {
@@ -271,14 +297,103 @@ describe("AfterSaleReviewPage", () => {
     expect(
       within(dialog).getByText("This request cannot be decided here. Use TikTok Seller Center."),
     ).toBeTruthy();
-    expect(within(dialog).queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: /Approve/ })).toBeNull();
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     fireEvent.click(screen.getByText("Cancelled item"));
     dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("TikTok provides no history for cancellations.")).toBeTruthy();
-    expect(within(dialog).getByRole("button", { name: "Approve" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Approve cancellation" })).toBeTruthy();
+  });
+
+  it("approves from the list after a confirmation, without opening the detail", async () => {
+    const { mutate } = setup();
+    render(<AfterSaleReviewPage />);
+    const row = (await screen.findByText("Ceramic mug")).closest("tr")!;
+    fireEvent.click(within(row).getByRole("button", { name: "Approve refund" }));
+    expect(mutate).not.toHaveBeenCalled();
+    const confirm = await screen.findByRole("dialog");
+    expect(within(confirm).getByText("Approve refund?")).toBeTruthy();
+    expect(within(confirm).getByText(/Refund request \(r1\)/)).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
+    expect((mutate.mock.calls as unknown as Array<[unknown]>)[0]![0]).toMatchObject({ variables: { shopId: "shop-1", returnId: "r1" } });
+  });
+
+  it("opens the detail on the reject form from the list", async () => {
+    const { afterSale } = setup();
+    render(<AfterSaleReviewPage />);
+    const row = (await screen.findByText("Ceramic mug")).closest("tr")!;
+    fireEvent.click(within(row).getByRole("button", { name: "Reject refund" }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(afterSale.detail.rejectReasons).toHaveLength(1));
+    expect(afterSale.detail.decisionMode).toBe("reject");
+    expect(within(dialog).getByRole("button", { name: "Reject request" })).toBeTruthy();
+  });
+
+  it("copies the order id from the list without opening the row", async () => {
+    const { afterSale } = setup();
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    render(<AfterSaleReviewPage />);
+    const row = (await screen.findByText("Ceramic mug")).closest("tr")!;
+    fireEvent.click(within(row).getByRole("button", { name: /order ID: order-1/ }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("order-1"));
+    expect(afterSale.detail.key).toBeNull();
+  });
+
+  it("shows the live order with its shipping and recipient in the detail", async () => {
+    const { query } = setup();
+    const base = query.getMockImplementation()!;
+    query.mockImplementation(async (opts: { query: unknown }) => {
+      if (opts.query === READ_AFTER_SALE_ORDER_QUERY) {
+        return {
+          data: {
+            order: {
+              orderId: "order-1",
+              status: "DELIVERED",
+              createTime: 1_793_000_000,
+              totalAmount: "25.98",
+              currency: "USD",
+              paymentMethodName: "Card",
+              shippingProvider: "DHL",
+              trackingNumber: "TRK-9",
+              recipientAddress: { name: "Ada", phone: "+49 1", fullAddress: "Berlin" },
+              lineItems: [{ orderLineItemId: "o1", productName: "Ceramic mug", quantity: 2, salePrice: "12.99", currency: "USD" }],
+            },
+          },
+        };
+      }
+      if (opts.query === READ_AFTER_SALE_ORDER_TRACKING_QUERY) {
+        return {
+          data: {
+            tracking: {
+              shippingProvider: "DHL",
+              trackingNumber: "TRK-9",
+              events: [
+                { description: "Picked up", updateTimeMillis: 1_793_000_000_000 },
+                { description: "Delivered to the buyer", updateTimeMillis: 1_793_100_000_000 },
+              ],
+            },
+          },
+        };
+      }
+      return base(opts as never);
+    });
+    render(<AfterSaleReviewPage />);
+    fireEvent.click(await screen.findByText("Ceramic mug"));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("DHL")).toBeTruthy();
+    expect(within(dialog).getByText("Card")).toBeTruthy();
+    expect(within(dialog).getByText("Ada")).toBeTruthy();
+    expect(within(dialog).getByText("Order items (1)")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /tracking number: TRK-9/ })).toBeTruthy();
+    // Only the latest carrier event shows until the seller expands the list.
+    expect(await within(dialog).findByText("Delivered to the buyer")).toBeTruthy();
+    expect(within(dialog).queryByText("Picked up")).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Show all 2 updates" }));
+    expect(within(dialog).getByText("Picked up")).toBeTruthy();
   });
 
   it("shows a list error instead of an empty table", async () => {

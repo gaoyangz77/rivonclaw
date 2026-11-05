@@ -15,11 +15,12 @@ import {
   AFTER_SALE_REJECT_IMAGE_MAX_BYTES,
   AFTER_SALE_REJECT_IMAGE_TYPES,
   AFTER_SALE_REJECT_IMAGES_MAX_TOTAL_BYTES,
+  afterSaleActionLabels,
   toRejectImage,
 } from "../../../../lib/after-sale.js";
 import { useEntityStore } from "../../../../store/EntityStoreProvider.js";
 import type { AfterSaleRequestNode } from "../../../../store/models/EcommerceAfterSaleModel.js";
-import { afterSaleSellerDecisionLabel } from "../../after-sale-labels.js";
+import { afterSaleKindLabel, afterSaleSellerDecisionLabel } from "../../after-sale-labels.js";
 
 const MB = 1024 * 1024;
 
@@ -61,6 +62,8 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
     return <p className="after-sale-muted">{t("ecommerce.afterSale.decision.readOnly")}</p>;
   }
 
+  const labels = afterSaleActionLabels(request.decision);
+  const approveLabel = t(`ecommerce.afterSale.actions.${labels.approve}`);
   const rejecting = detail.decisionMode === "reject";
   const evidenceBytes = evidence.items.reduce((total, item) => total + item.file.size, 0);
   const evidenceTooLarge = evidenceBytes > AFTER_SALE_REJECT_IMAGES_MAX_TOTAL_BYTES;
@@ -92,7 +95,7 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
       ) : null}
       {rejecting ? (
         <div className="after-sale-reject-form">
-          <h3>{t("ecommerce.afterSale.decision.rejectTitle")}</h3>
+          <h3>{t(`ecommerce.afterSale.actions.${labels.reject}`)}</h3>
           {detail.reasonsLoading ? (
             <TkLoadingState
               size="inline"
@@ -196,7 +199,7 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
             disabled={detail.deciding}
             onClick={() => afterSale.beginReject().catch(() => {})}
           >
-            {t("ecommerce.afterSale.decision.reject")}
+            {t(`ecommerce.afterSale.actions.${labels.reject}`)}
           </TkButton>
           <TkButton
             variant="primary"
@@ -204,14 +207,17 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
             aria-busy={detail.deciding || undefined}
             onClick={() => afterSale.beginApprove()}
           >
-            {t("ecommerce.afterSale.decision.approve")}
+            {approveLabel}
           </TkButton>
         </div>
       )}
       <TkConfirmDialog
         isOpen={detail.decisionMode === "confirmApprove"}
-        title={t("ecommerce.afterSale.decision.confirmTitle")}
-        message={t("ecommerce.afterSale.decision.confirmBody")}
+        title={t("ecommerce.afterSale.decision.confirmActionTitle", { action: approveLabel })}
+        message={t("ecommerce.afterSale.decision.confirmActionBody", {
+          kind: afterSaleKindLabel(t, request.kind),
+          requestId: request.requestId,
+        })}
         confirmLabel={t("ecommerce.afterSale.decision.confirmApprove")}
         cancelLabel={t("common.cancel")}
         confirmVariant="primary"

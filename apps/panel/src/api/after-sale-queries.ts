@@ -31,6 +31,7 @@ export const AFTER_SALE_REQUEST_FIELDS_FRAGMENT = gql`
       skuId
       skuName
       sellerSku
+      productImageUrl
       currency
       refundTotal
     }
@@ -112,5 +113,54 @@ export const APPROVE_AFTER_SALE_REFUND_MUTATION = gql`
 export const APPROVE_AFTER_SALE_CANCELLATION_MUTATION = gql`
   mutation ApproveAfterSaleCancellation($shopId: String!, $cancelId: String!) {
     ecommerceApproveCancellation(shopId: $shopId, cancelId: $cancelId)
+  }
+`;
+
+/** The order behind a request, read live from TikTok when the detail opens (ADR-099 Decision 10). */
+export const READ_AFTER_SALE_ORDER_QUERY = gql`
+  query ReadAfterSaleOrder($shopId: String!, $orderId: String!) {
+    order: ecommerceGetOrder(shopId: $shopId, orderId: $orderId) {
+      orderId
+      status
+      createTime
+      paidTime
+      deliveryTime
+      totalAmount
+      currency
+      paymentMethodName
+      shippingProvider
+      trackingNumber
+      recipientAddress {
+        name
+        fullAddress
+        phone
+      }
+      lineItems {
+        orderLineItemId
+        productName
+        quantity
+        sellerSku
+        skuName
+        skuImage
+        salePrice
+        currency
+        displayStatus
+        trackingNumber
+      }
+    }
+  }
+`;
+
+/** Carrier events of the order, read live once the order has a tracking number. */
+export const READ_AFTER_SALE_ORDER_TRACKING_QUERY = gql`
+  query ReadAfterSaleOrderTracking($shopId: String!, $orderId: String!) {
+    tracking: ecommerceGetFulfillmentTracking(shopId: $shopId, orderId: $orderId) {
+      shippingProvider
+      trackingNumber
+      events {
+        description
+        updateTimeMillis
+      }
+    }
   }
 `;

@@ -147,6 +147,38 @@ export function resolveAfterSaleDecision(request: AfterSaleRequestFacts): AfterS
   }
 }
 
+/** What approving and rejecting do for one decision, as i18n keys under `ecommerce.afterSale.actions`. */
+export interface AfterSaleActionLabels {
+  approve:
+    | "approveRefund"
+    | "approveReturn"
+    | "approveReceivedPackage"
+    | "approveReplacement"
+    | "approveCancellation";
+  reject:
+    | "rejectRefund"
+    | "rejectReturn"
+    | "rejectReceivedPackage"
+    | "rejectReplacement"
+    | "rejectCancellation";
+}
+
+/** The suggested action buttons of a decision: they name what the seller is agreeing to. */
+export function afterSaleActionLabels(decision: AfterSaleDecision): AfterSaleActionLabels {
+  if (decision.route === "refund") return { approve: "approveRefund", reject: "rejectRefund" };
+  if (decision.route === "cancellation") {
+    return { approve: "approveCancellation", reject: "rejectCancellation" };
+  }
+  switch (decision.approveDecision) {
+    case GQL.EcomApproveReturnDecision.ApproveReceivedPackage:
+      return { approve: "approveReceivedPackage", reject: "rejectReceivedPackage" };
+    case GQL.EcomApproveReturnDecision.ApproveReplacement:
+      return { approve: "approveReplacement", reject: "rejectReplacement" };
+    default:
+      return { approve: "approveReturn", reject: "rejectReturn" };
+  }
+}
+
 /** A span of minutes split for display; the unit pair depends on the magnitude. */
 export interface AfterSaleDuration {
   format: "daysHours" | "hoursMinutes" | "minutes";

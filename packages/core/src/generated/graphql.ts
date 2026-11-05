@@ -8252,6 +8252,8 @@ export interface EcomAfterSaleRequestLine {
   lineItemId: Scalars["String"]["output"];
   orderLineItemId?: Maybe<Scalars["String"]["output"]>;
   productId?: Maybe<Scalars["String"]["output"]>;
+  /** TikTok's product image URL for the line. */
+  productImageUrl?: Maybe<Scalars["String"]["output"]>;
   productName?: Maybe<Scalars["String"]["output"]>;
   /** Decimal string exactly as stored. */
   refundTotal?: Maybe<Scalars["String"]["output"]>;

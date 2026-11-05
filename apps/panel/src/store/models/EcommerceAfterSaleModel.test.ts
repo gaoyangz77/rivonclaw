@@ -3,6 +3,8 @@ import {
   APPROVE_AFTER_SALE_CANCELLATION_MUTATION,
   APPROVE_AFTER_SALE_REFUND_MUTATION,
   APPROVE_AFTER_SALE_RETURN_MUTATION,
+  READ_AFTER_SALE_ORDER_QUERY,
+  READ_AFTER_SALE_ORDER_TRACKING_QUERY,
   READ_AFTER_SALE_REJECT_REASONS_QUERY,
   READ_AFTER_SALE_REQUEST_QUERY,
   READ_AFTER_SALE_REQUESTS_QUERY,
@@ -213,35 +215,85 @@ describe("EcommerceAfterSaleModel detail", () => {
     videos: [],
   };
 
-  it("loads live records for a return and none for a cancellation", async () => {
-    const { store, query } = setup({
-      query: ({ query: doc }) =>
-        doc === READ_AFTER_SALE_REQUESTS_QUERY
-          ? page([dto(), dto({ kind: "CANCELLATION", requestId: "c1" })])
-          : { data: { records: [record] } },
+  const order = {
+    orderId: "order-1",
+    status: "DELIVERED",
+    totalAmount: "25.98",
+    currency: "EUR",
+    trackingNumber: "TRACK-1",
+    lineItems: [],
+  };
+  const tracking = {
+    trackingNumber: "TRACK-1",
+    events: [{ description: "Delivered", updateTimeMillis: 1 }],
+  };
+
+  function detailSetup(orderOverride: Record<string, unknown> | null = order) {
+    return setup({
+      query: ({ query: doc }) => {
+        if (doc === READ_AFTER_SALE_REQUESTS_QUERY) {
+          return page([dto(), dto({ kind: "CANCELLATION", requestId: "c1" })]);
+        }
+        if (doc === READ_AFTER_SALE_ORDER_QUERY) return { data: { order: orderOverride } };
+        if (doc === READ_AFTER_SALE_ORDER_TRACKING_QUERY) return { data: { tracking } };
+        return { data: { records: [record] } };
+      },
     });
+  }
+
+  it("loads the live order with its carrier events and the records of a return", async () => {
+    const { store, query } = detailSetup();
     await store.fetchRequests();
     await store.openDetail("shop-1:REFUND:r1");
     expect(store.detail.recordsStatus).toBe("loaded");
     expect(store.detail.records).toEqual([record]);
-    expect(query).toHaveBeenLastCalledWith(
+    expect(store.detail.orderStatus).toBe("loaded");
+    expect(store.detail.order).toEqual(order);
+    expect(store.detail.trackingStatus).toBe("loaded");
+    expect(store.detail.tracking).toEqual(tracking);
+    const docs = query.mock.calls.map(([opts]) => opts.query);
+    expect(docs).toContain(READ_AFTER_SALE_RETURN_RECORDS_QUERY);
+    expect(query).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: READ_AFTER_SALE_RETURN_RECORDS_QUERY,
-        variables: { shopId: "shop-1", returnId: "r1" },
+        query: READ_AFTER_SALE_ORDER_QUERY,
+        variables: { shopId: "shop-1", orderId: "order-1" },
       }),
     );
+  });
 
-    const calls = query.mock.calls.length;
+  it("reads no records for a cancellation, and no tracking for an order without a tracking number", async () => {
+    const { store, query } = detailSetup({ ...order, trackingNumber: null });
+    await store.fetchRequests();
     await store.openDetail("shop-1:CANCELLATION:c1");
-    expect(query.mock.calls.length).toBe(calls);
+    const docs = query.mock.calls.map(([opts]) => opts.query);
+    expect(docs).not.toContain(READ_AFTER_SALE_RETURN_RECORDS_QUERY);
+    expect(docs).not.toContain(READ_AFTER_SALE_ORDER_TRACKING_QUERY);
     expect(store.detail.recordsStatus).toBe("idle");
+    expect(store.detail.orderStatus).toBe("loaded");
+    expect(store.detail.trackingStatus).toBe("idle");
     expect(store.selectedRequest?.requestId).toBe("c1");
+  });
+
+  it("shows an order failure in its own section and still loads the records", async () => {
+    const { store } = setup({
+      query: ({ query: doc }) => {
+        if (doc === READ_AFTER_SALE_REQUESTS_QUERY) return page([dto()]);
+        if (doc === READ_AFTER_SALE_ORDER_QUERY) throw new Error("order unavailable");
+        return { data: { records: [record] } };
+      },
+    });
+    await store.fetchRequests();
+    await expect(store.openDetail("shop-1:REFUND:r1")).rejects.toThrow("order unavailable");
+    expect(store.detail.orderStatus).toBe("error");
+    expect(store.detail.orderError).toBe("order unavailable");
+    expect(store.detail.recordsStatus).toBe("loaded");
   });
 
   it("shows a records failure instead of swallowing it", async () => {
     const { store } = setup({
       query: ({ query: doc }) => {
         if (doc === READ_AFTER_SALE_REQUESTS_QUERY) return page([dto()]);
+        if (doc === READ_AFTER_SALE_ORDER_QUERY) return { data: { order: null } };
         throw new Error("records unavailable");
       },
     });
@@ -376,6 +428,52 @@ describe("EcommerceAfterSaleModel decisions", () => {
       ([opts]) => opts.query === READ_AFTER_SALE_REQUESTS_QUERY,
     );
     expect(listCalls.length).toBe(2);
+  });
+
+  it("approves from the list after the confirmation and drops the row from TO_REVIEW", async () => {
+    const { store, mutate } = decisionSetup(
+      {},
+      dto({ needsReview: false, sellerDecision: "APPROVED", decisionAwaitingPlatform: true }),
+    );
+    await store.fetchRequests();
+    store.beginRowApprove("shop-1:REFUND:r1");
+    expect(store.rowApproveRequest?.requestId).toBe("r1");
+    expect(mutate).not.toHaveBeenCalled();
+    const approving = store.approveFromList();
+    expect(store.rowApproveKey).toBeNull();
+    expect(store.rowDecidingKey).toBe("shop-1:REFUND:r1");
+    await approving;
+    expect(mutate).toHaveBeenCalledWith({
+      mutation: APPROVE_AFTER_SALE_REFUND_MUTATION,
+      variables: { shopId: "shop-1", returnId: "r1" },
+    });
+    expect(store.rowDecidingKey).toBeNull();
+    expect(store.requests.map((r) => r.requestId)).toEqual(["other"]);
+    expect(store.notice).toEqual({ outcome: "approved", requestId: "r1", kind: "REFUND" });
+  });
+
+  it("shows a failed approval from the list against its request and keeps the row", async () => {
+    const { store } = setup({
+      query: () => page([dto()]),
+      mutate: () => {
+        throw new Error("TikTok refused");
+      },
+    });
+    await store.fetchRequests();
+    store.beginRowApprove("shop-1:REFUND:r1");
+    await expect(store.approveFromList()).rejects.toThrow("TikTok refused");
+    expect(store.rowDecisionError).toEqual({ requestId: "r1", message: "TikTok refused" });
+    expect(store.rowDecidingKey).toBeNull();
+    expect(store.requests.length).toBe(1);
+  });
+
+  it("opens a request from the list straight on its reject form", async () => {
+    const { store } = decisionSetup({}, null);
+    await store.fetchRequests();
+    await store.openDetailForReject("shop-1:REFUND:r1");
+    expect(store.detail.key).toBe("shop-1:REFUND:r1");
+    expect(store.detail.decisionMode).toBe("reject");
+    expect(store.detail.rejectReasons).toEqual([{ reasonId: "why-1", reasonText: "Not eligible" }]);
   });
 
   it("shows a TikTok approval error and keeps the request open", async () => {

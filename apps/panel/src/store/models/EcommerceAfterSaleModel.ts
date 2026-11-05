@@ -6,6 +6,8 @@ import {
   APPROVE_AFTER_SALE_CANCELLATION_MUTATION,
   APPROVE_AFTER_SALE_REFUND_MUTATION,
   APPROVE_AFTER_SALE_RETURN_MUTATION,
+  READ_AFTER_SALE_ORDER_QUERY,
+  READ_AFTER_SALE_ORDER_TRACKING_QUERY,
   READ_AFTER_SALE_REJECT_REASONS_QUERY,
   READ_AFTER_SALE_REQUEST_QUERY,
   READ_AFTER_SALE_REQUESTS_QUERY,
@@ -14,6 +16,7 @@ import {
 import {
   afterSaleKey,
   resolveAfterSaleDecision,
+  type AfterSaleDecision,
   type AfterSaleKind,
   type AfterSaleRejectImage,
 } from "../../lib/after-sale.js";
@@ -35,6 +38,7 @@ const AfterSaleLineModel = types.model("AfterSaleRequestLine", {
   skuId: types.maybeNull(types.string),
   skuName: types.maybeNull(types.string),
   sellerSku: types.maybeNull(types.string),
+  productImageUrl: types.maybeNull(types.string),
   currency: types.maybeNull(types.string),
   refundTotal: types.maybeNull(types.string),
 });
@@ -120,6 +124,7 @@ function toRequestSnapshot(dto: GQL.EcomAfterSaleRequest) {
       skuId: line.skuId ?? null,
       skuName: line.skuName ?? null,
       sellerSku: line.sellerSku ?? null,
+      productImageUrl: line.productImageUrl ?? null,
       currency: line.currency ?? null,
       refundTotal: line.refundTotal ?? null,
     })),
@@ -138,6 +143,54 @@ export type AfterSaleRecord = Pick<
 
 export type AfterSaleRejectReason = Pick<GQL.EcomRejectReason, "reasonId" | "reasonText">;
 
+/** The order behind the open request, as a plain frozen snapshot read live from TikTok. */
+export type AfterSaleOrder = Pick<
+  GQL.EcomOrder,
+  | "orderId"
+  | "status"
+  | "createTime"
+  | "paidTime"
+  | "deliveryTime"
+  | "totalAmount"
+  | "currency"
+  | "paymentMethodName"
+  | "shippingProvider"
+  | "trackingNumber"
+> & {
+  recipientAddress?: Pick<GQL.EcomRecipientAddress, "name" | "fullAddress" | "phone"> | null;
+  lineItems?: Array<
+    Pick<
+      GQL.EcomOrderLineItem,
+      | "orderLineItemId"
+      | "productName"
+      | "quantity"
+      | "sellerSku"
+      | "skuName"
+      | "skuImage"
+      | "salePrice"
+      | "currency"
+      | "displayStatus"
+      | "trackingNumber"
+    >
+  > | null;
+};
+
+export interface AfterSaleTracking {
+  shippingProvider?: string | null;
+  trackingNumber?: string | null;
+  events?: Array<{ description?: string | null; updateTimeMillis?: number | null }> | null;
+}
+
+const LoadStatus = types.enumeration("AfterSaleLoadStatus", ["idle", "loading", "loaded", "error"]);
+
+/** Tracking numbers of an order: the order's own, else its line items'. */
+export function orderTrackingNumbers(order: AfterSaleOrder): string[] {
+  const numbers = order.trackingNumber
+    ? [order.trackingNumber]
+    : (order.lineItems ?? []).map((item) => item.trackingNumber);
+  return [...new Set(numbers.map((value) => value?.trim()).filter((v): v is string => Boolean(v)))];
+}
+
 export interface AfterSaleNotice {
   outcome: "approved" | "rejected";
   requestId: string;
@@ -155,6 +208,12 @@ const AfterSaleDetailModel = types.model("AfterSaleDetail", {
   ),
   records: types.optional(types.frozen<readonly AfterSaleRecord[]>(), []),
   recordsError: types.maybeNull(types.string),
+  orderStatus: types.optional(LoadStatus, "idle"),
+  order: types.maybeNull(types.frozen<AfterSaleOrder>()),
+  orderError: types.maybeNull(types.string),
+  trackingStatus: types.optional(LoadStatus, "idle"),
+  tracking: types.maybeNull(types.frozen<AfterSaleTracking>()),
+  trackingError: types.maybeNull(types.string),
   decisionMode: types.optional(
     types.enumeration("AfterSaleDecisionMode", ["none", "confirmApprove", "reject"]),
     "none",
@@ -205,6 +264,11 @@ export const EcommerceAfterSaleModel = types
     error: types.maybeNull(types.string),
     notice: types.maybeNull(types.frozen<AfterSaleNotice>()),
     detail: types.optional(AfterSaleDetailModel, {}),
+    /** Request whose approval from the list waits for the seller's confirmation. */
+    rowApproveKey: types.maybeNull(types.string),
+    /** Request being approved from the list. */
+    rowDecidingKey: types.maybeNull(types.string),
+    rowDecisionError: types.maybeNull(types.frozen<{ requestId: string; message: string }>()),
   })
   .views((self) => ({
     /** Everything that changes the query, as one primitive for effect dependencies. */
@@ -234,6 +298,10 @@ export const EcommerceAfterSaleModel = types
       if (days < 0) return "reversed";
       return days + 1 > AFTER_SALE_MAX_WINDOW_DAYS ? "tooLong" : null;
     },
+    get rowApproveRequest() {
+      const key = self.rowApproveKey;
+      return key ? (self.requests.find((request) => request.key === key) ?? null) : null;
+    },
     get selectedRequest() {
       const key = self.detail.key;
       return key ? (self.requests.find((request) => request.key === key) ?? null) : null;
@@ -248,6 +316,7 @@ export const EcommerceAfterSaleModel = types
     let listGeneration = 0;
     let recordsGeneration = 0;
     let reasonsGeneration = 0;
+    let orderGeneration = 0;
 
     function messageFromError(err: unknown) {
       return err instanceof Error ? err.message : "Request failed";
@@ -278,8 +347,54 @@ export const EcommerceAfterSaleModel = types
     function resetDetail() {
       recordsGeneration += 1;
       reasonsGeneration += 1;
+      orderGeneration += 1;
       applySnapshot(self.detail, {});
     }
+
+    /** The order, then its carrier events when it has a tracking number. Both are live TikTok reads. */
+    const loadOrder = flow(function* (key: string, shopId: string, orderId: string) {
+      const generation = ++orderGeneration;
+      const current = () => generation === orderGeneration && self.detail.key === key;
+      self.detail.orderStatus = "loading";
+      self.detail.orderError = null;
+      self.detail.trackingStatus = "idle";
+      self.detail.tracking = null;
+      self.detail.trackingError = null;
+      let order: AfterSaleOrder | null;
+      try {
+        const result = yield client().query<{ order: AfterSaleOrder | null }>({
+          query: READ_AFTER_SALE_ORDER_QUERY,
+          variables: { shopId, orderId },
+          fetchPolicy: "network-only",
+        });
+        if (!current()) return;
+        order = result.data.order ?? null;
+        self.detail.order = order;
+        self.detail.orderStatus = "loaded";
+      } catch (err) {
+        if (!current()) return;
+        self.detail.orderStatus = "error";
+        self.detail.orderError = messageFromError(err);
+        throw err;
+      }
+      if (!order || orderTrackingNumbers(order).length === 0) return;
+      self.detail.trackingStatus = "loading";
+      try {
+        const result = yield client().query<{ tracking: AfterSaleTracking | null }>({
+          query: READ_AFTER_SALE_ORDER_TRACKING_QUERY,
+          variables: { shopId, orderId },
+          fetchPolicy: "network-only",
+        });
+        if (!current()) return;
+        self.detail.tracking = result.data.tracking ?? null;
+        self.detail.trackingStatus = "loaded";
+      } catch (err) {
+        if (!current()) return;
+        self.detail.trackingStatus = "error";
+        self.detail.trackingError = messageFromError(err);
+        throw err;
+      }
+    });
 
     const fetchRequests = flow(function* () {
       const generation = ++listGeneration;
@@ -338,6 +453,96 @@ export const EcommerceAfterSaleModel = types
         return;
       }
       current.replaceWith(snapshot);
+    });
+
+    /** Opens a request and reads its order and negotiation history live, side by side. */
+    const openDetail = flow(function* (key: string) {
+      const request = self.requests.find((row) => row.key === key);
+      if (!request) return;
+      resetDetail();
+      self.detail.key = key;
+      const { shopId, requestId, orderId } = request;
+      const reads: Promise<unknown>[] = [];
+      if (orderId) reads.push(loadOrder(key, shopId, orderId));
+      if (request.kind !== GQL.EcomAfterSaleRequestKind.Cancellation) {
+        reads.push(loadRecords(shopId, requestId));
+      }
+      const results: PromiseSettledResult<unknown>[] = yield Promise.allSettled(reads);
+      // Each failure is already shown in its own section; the first one is rethrown.
+      const failure = results.find((result) => result.status === "rejected");
+      if (failure) throw (failure as PromiseRejectedResult).reason;
+    });
+
+    /** Opens the reject form and loads the reasons TikTok allows for this request. */
+    const beginReject = flow(function* () {
+      const request = self.selectedRequest;
+      if (!request) return;
+      const { shopId, requestId } = request;
+      const key = request.key;
+      const generation = ++reasonsGeneration;
+      self.detail.decisionError = null;
+      self.detail.decisionMode = "reject";
+      self.detail.rejectReasonDraft = "";
+      self.detail.rejectCommentDraft = "";
+      self.detail.reasonsLoading = true;
+      self.detail.reasonsError = null;
+      try {
+        const result = yield client().query<{ reasons: AfterSaleRejectReason[] }>({
+          query: READ_AFTER_SALE_REJECT_REASONS_QUERY,
+          variables: { shopId, returnOrCancelId: requestId },
+          fetchPolicy: "network-only",
+        });
+        if (generation !== reasonsGeneration || self.detail.key !== key) return;
+        self.detail.rejectReasons = result.data.reasons;
+      } catch (err) {
+        if (generation === reasonsGeneration && self.detail.key === key) {
+          self.detail.reasonsError = messageFromError(err);
+        }
+        throw err;
+      } finally {
+        if (generation === reasonsGeneration) self.detail.reasonsLoading = false;
+      }
+    });
+
+    /** Sends one approval to the backend mutation its decision maps to. */
+    function sendApproval(shopId: string, requestId: string, decision: AfterSaleDecision) {
+      if (decision.route === "refund") {
+        return client().mutate({
+          mutation: APPROVE_AFTER_SALE_REFUND_MUTATION,
+          variables: { shopId, returnId: requestId },
+        });
+      }
+      if (decision.route === "return") {
+        return client().mutate({
+          mutation: APPROVE_AFTER_SALE_RETURN_MUTATION,
+          variables: { shopId, returnId: requestId, decision: decision.approveDecision },
+        });
+      }
+      return client().mutate({
+        mutation: APPROVE_AFTER_SALE_CANCELLATION_MUTATION,
+        variables: { shopId, cancelId: requestId },
+      });
+    }
+
+    /** The negotiation history of a return; cancellations have no records API. */
+    const loadRecords = flow(function* (shopId: string, requestId: string) {
+      const generation = ++recordsGeneration;
+      self.detail.recordsStatus = "loading";
+      try {
+        const result = yield client().query<{ records: AfterSaleRecord[] }>({
+          query: READ_AFTER_SALE_RETURN_RECORDS_QUERY,
+          variables: { shopId, returnId: requestId },
+          fetchPolicy: "network-only",
+        });
+        if (generation !== recordsGeneration) return;
+        self.detail.records = result.data.records;
+        self.detail.recordsStatus = "loaded";
+      } catch (err) {
+        if (generation !== recordsGeneration) return;
+        self.detail.recordsStatus = "error";
+        self.detail.recordsError = messageFromError(err);
+        throw err;
+      }
     });
 
     /** The decision already went through; a failed re-read is surfaced as the list error. */
@@ -404,6 +609,9 @@ export const EcommerceAfterSaleModel = types
         self.refreshing = false;
         self.error = null;
         self.notice = null;
+        self.rowApproveKey = null;
+        self.rowDecidingKey = null;
+        self.rowDecisionError = null;
       },
 
       /**
@@ -414,7 +622,8 @@ export const EcommerceAfterSaleModel = types
        */
       refreshInBackground: flow(function* () {
         if (!self.loaded || self.loading || self.loadingMore || self.refreshing) return;
-        if (self.detail.key || self.requests.length > MAX_PAGE_LIMIT) return;
+        if (self.detail.key || self.rowApproveKey || self.rowDecidingKey) return;
+        if (self.requests.length > MAX_PAGE_LIMIT) return;
         if (self.windowIssue || (!self.allShops && self.shopIds.length === 0)) return;
         const generation = listGeneration;
         self.refreshing = true;
@@ -426,8 +635,14 @@ export const EcommerceAfterSaleModel = types
             variables: { input },
             fetchPolicy: "network-only",
           });
-          // A new query or an opened detail supersedes this read.
-          if (generation !== listGeneration || self.detail.key) return;
+          // A new query, an opened detail or a decision from the list supersedes this read.
+          if (
+            generation !== listGeneration ||
+            self.detail.key ||
+            self.rowApproveKey ||
+            self.rowDecidingKey
+          )
+            return;
           const page = result.data.page;
           applySnapshot(self.requests, page.items.map(toRequestSnapshot));
           self.nextCursor = page.nextCursor ?? null;
@@ -470,31 +685,54 @@ export const EcommerceAfterSaleModel = types
         }
       }),
 
-      openDetail: flow(function* (key: string) {
-        const request = self.requests.find((row) => row.key === key);
-        if (!request) return;
-        resetDetail();
-        self.detail.key = key;
-        // Cancellations have no records API; the request itself is the whole detail.
-        if (request.kind === GQL.EcomAfterSaleRequestKind.Cancellation) return;
-        const { shopId, requestId } = request;
-        const generation = ++recordsGeneration;
-        self.detail.recordsStatus = "loading";
+      openDetail,
+      beginReject,
+
+      /** Opens a request straight on its reject form (TikTok requires a reason). */
+      openDetailForReject(key: string) {
+        const opened = openDetail(key);
+        const reasons = beginReject();
+        return Promise.all([opened, reasons]);
+      },
+
+      /** Asks the seller to confirm an approval started from the list. */
+      beginRowApprove(key: string) {
+        self.rowDecisionError = null;
+        self.rowApproveKey = key;
+      },
+
+      cancelRowApprove() {
+        self.rowApproveKey = null;
+      },
+
+      dismissRowDecisionError() {
+        self.rowDecisionError = null;
+      },
+
+      /** Approves the confirmed request from the list, then settles it like a decision in the detail. */
+      approveFromList: flow(function* () {
+        const request = self.rowApproveRequest;
+        const decision = request?.decision;
+        self.rowApproveKey = null;
+        if (!request || !decision || self.rowDecidingKey) return;
+        const { key, shopId, kind, requestId } = request;
+        self.rowDecidingKey = key;
+        self.rowDecisionError = null;
         try {
-          const result = yield client().query<{ records: AfterSaleRecord[] }>({
-            query: READ_AFTER_SALE_RETURN_RECORDS_QUERY,
-            variables: { shopId, returnId: requestId },
-            fetchPolicy: "network-only",
-          });
-          if (generation !== recordsGeneration) return;
-          self.detail.records = result.data.records;
-          self.detail.recordsStatus = "loaded";
+          yield sendApproval(shopId, requestId, decision);
         } catch (err) {
-          if (generation !== recordsGeneration) return;
-          self.detail.recordsStatus = "error";
-          self.detail.recordsError = messageFromError(err);
+          self.rowDecisionError = { requestId, message: messageFromError(err) };
           throw err;
+        } finally {
+          self.rowDecidingKey = null;
         }
+        yield settleDecision(key, shopId, kind, requestId, "approved");
+      }),
+
+      retryOrder: flow(function* () {
+        const request = self.selectedRequest;
+        if (!request?.orderId) return;
+        yield loadOrder(request.key, request.shopId, request.orderId);
       }),
 
       closeDetail() {
@@ -521,37 +759,6 @@ export const EcommerceAfterSaleModel = types
         self.detail.rejectCommentDraft = comment;
       },
 
-      /** Opens the reject form and loads the reasons TikTok allows for this request. */
-      beginReject: flow(function* () {
-        const request = self.selectedRequest;
-        if (!request) return;
-        const { shopId, requestId } = request;
-        const key = request.key;
-        const generation = ++reasonsGeneration;
-        self.detail.decisionError = null;
-        self.detail.decisionMode = "reject";
-        self.detail.rejectReasonDraft = "";
-        self.detail.rejectCommentDraft = "";
-        self.detail.reasonsLoading = true;
-        self.detail.reasonsError = null;
-        try {
-          const result = yield client().query<{ reasons: AfterSaleRejectReason[] }>({
-            query: READ_AFTER_SALE_REJECT_REASONS_QUERY,
-            variables: { shopId, returnOrCancelId: requestId },
-            fetchPolicy: "network-only",
-          });
-          if (generation !== reasonsGeneration || self.detail.key !== key) return;
-          self.detail.rejectReasons = result.data.reasons;
-        } catch (err) {
-          if (generation === reasonsGeneration && self.detail.key === key) {
-            self.detail.reasonsError = messageFromError(err);
-          }
-          throw err;
-        } finally {
-          if (generation === reasonsGeneration) self.detail.reasonsLoading = false;
-        }
-      }),
-
       approve: flow(function* () {
         const request = self.selectedRequest;
         const decision = request?.decision;
@@ -560,22 +767,7 @@ export const EcommerceAfterSaleModel = types
         self.detail.deciding = true;
         self.detail.decisionError = null;
         try {
-          if (decision.route === "refund") {
-            yield client().mutate({
-              mutation: APPROVE_AFTER_SALE_REFUND_MUTATION,
-              variables: { shopId, returnId: requestId },
-            });
-          } else if (decision.route === "return") {
-            yield client().mutate({
-              mutation: APPROVE_AFTER_SALE_RETURN_MUTATION,
-              variables: { shopId, returnId: requestId, decision: decision.approveDecision },
-            });
-          } else {
-            yield client().mutate({
-              mutation: APPROVE_AFTER_SALE_CANCELLATION_MUTATION,
-              variables: { shopId, cancelId: requestId },
-            });
-          }
+          yield sendApproval(shopId, requestId, decision);
         } catch (err) {
           if (self.detail.key === key) self.detail.decisionError = messageFromError(err);
           throw err;

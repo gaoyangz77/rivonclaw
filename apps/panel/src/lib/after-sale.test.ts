@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import {
+  afterSaleActionLabels,
   afterSaleDeadlineState,
   resolveAfterSaleDecision,
   splitDuration,
@@ -162,5 +163,26 @@ describe("splitDuration", () => {
     expect(splitDuration(125)).toMatchObject({ format: "hoursMinutes", hours: 2, minutes: 5 });
     expect(splitDuration(1500)).toMatchObject({ format: "daysHours", days: 1, hours: 1 });
     expect(splitDuration(-10)).toMatchObject({ format: "minutes", minutes: 0 });
+  });
+});
+
+describe("afterSaleActionLabels", () => {
+  it("names what each decision approves and rejects", () => {
+    const labels = (kind: AfterSaleKind, action: string | null) =>
+      afterSaleActionLabels(resolveAfterSaleDecision(facts(kind, null, action))!);
+    expect(labels(K.Refund, "SELLER_RESPOND_REFUND")).toEqual({
+      approve: "approveRefund",
+      reject: "rejectRefund",
+    });
+    expect(labels(K.ReturnAndRefund, "SELLER_RESPOND_RETURN").approve).toBe("approveReturn");
+    expect(labels(K.ReturnAndRefund, "SELLER_RESPOND_RECEIVE_PACKAGE")).toEqual({
+      approve: "approveReceivedPackage",
+      reject: "rejectReceivedPackage",
+    });
+    expect(labels(K.Replacement, null).approve).toBe("approveReplacement");
+    expect(labels(K.Cancellation, "SELLER_RESPOND_BUYER_CANCEL")).toEqual({
+      approve: "approveCancellation",
+      reject: "rejectCancellation",
+    });
   });
 });
