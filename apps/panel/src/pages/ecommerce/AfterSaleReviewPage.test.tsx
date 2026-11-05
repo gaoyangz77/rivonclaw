@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import ExcelJS from "exceljs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import {
@@ -426,6 +427,53 @@ describe("AfterSaleReviewPage", () => {
     );
     pick("All types");
     expect([...afterSale.kinds]).toEqual([]);
+  });
+
+  it("downloads every request matching the filters, page by page, with localized headers", async () => {
+    const { afterSale, query } = setup();
+    render(<AfterSaleReviewPage />);
+    await screen.findByText("Ceramic mug");
+    afterSale.setKinds(["REFUND"]);
+    await waitFor(() => expect(afterSale.loading).toBe(false));
+    // The list holds one page; the download must walk past it.
+    query.mockImplementation(async ({ variables }: any) => {
+      const cursor = variables.input.cursor;
+      return {
+        data: {
+          page: cursor
+            ? { items: rows.slice(2), nextCursor: null, totalCount: 4 }
+            : { items: rows.slice(0, 2), nextCursor: "next", totalCount: 4 },
+        },
+      };
+    });
+    let blob: Blob | null = null;
+    const createObjectURL = vi.fn((value: Blob) => {
+      blob = value;
+      return "blob:after-sale";
+    });
+    const revokeObjectURL = vi.fn();
+    Object.assign(URL, { createObjectURL, revokeObjectURL });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(click).toHaveBeenCalled());
+
+    const exportCalls = query.mock.calls
+      .map(([call]: any) => call)
+      .filter((call: any) => call.fetchPolicy === "no-cache");
+    expect(exportCalls.map((call: any) => call.variables.input)).toEqual([
+      { view: "TO_REVIEW", kinds: ["REFUND"], limit: 100 },
+      { view: "TO_REVIEW", kinds: ["REFUND"], limit: 100, cursor: "next" },
+    ]);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await blob!.arrayBuffer());
+    const sheet = workbook.getWorksheet("After-sale requests")!;
+    expect(sheet.getRow(1).getCell(1).value).toBe("Request type");
+    expect(sheet.getRow(1).getCell(4).value).toBe("Shop");
+    expect(sheet.rowCount).toBe(5);
+    expect(sheet.getRow(2).getCell(1).value).toBe("Refund");
+    expect(sheet.getRow(5).getCell(1).value).toBe("Cancellation");
+    click.mockRestore();
   });
 
   it("shows a list error instead of an empty table", async () => {

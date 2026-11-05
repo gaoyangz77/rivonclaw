@@ -11,6 +11,7 @@ import {
 } from "../../components/design-system/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { AfterSaleDetailModal } from "./components/after-sale/AfterSaleDetailModal.js";
+import { AfterSaleExportButton } from "./components/after-sale/AfterSaleExportButton.js";
 import { AfterSaleFilters } from "./components/after-sale/AfterSaleFilters.js";
 import { AfterSaleTable } from "./components/after-sale/AfterSaleTable.js";
 import { useVisibleInterval } from "./hooks/useVisibleInterval.js";
@@ -88,6 +89,7 @@ export const AfterSaleReviewPage = observer(function AfterSaleReviewPage() {
             >
               {t("common.refresh")}
             </TkButton>
+            <AfterSaleExportButton />
           </>
         }
       />

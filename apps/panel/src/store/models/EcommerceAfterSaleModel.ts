@@ -28,7 +28,8 @@ export const AFTER_SALE_MAX_WINDOW_DAYS = 92;
 const DEFAULT_WINDOW_DAYS = 30;
 /** The backend's page size and the most rows one page may hold. */
 const PAGE_LIMIT = 50;
-const MAX_PAGE_LIMIT = 100;
+export const AFTER_SALE_MAX_PAGE_LIMIT = 100;
+const MAX_PAGE_LIMIT = AFTER_SALE_MAX_PAGE_LIMIT;
 
 const AfterSaleLineModel = types.model("AfterSaleRequestLine", {
   lineItemId: types.string,
@@ -305,6 +306,28 @@ export const EcommerceAfterSaleModel = types
     get hasMore() {
       return self.nextCursor != null;
     },
+    /** The current filters can be queried: a valid ALL window and at least one shop. */
+    get queryable() {
+      return !this.windowIssue && (self.allShops || self.shopIds.length > 0);
+    },
+    /**
+     * The current filters as one page request without a cursor, a fresh plain object per read.
+     * The list and the download (which pages through every match) both build on it.
+     */
+    get queryInput(): GQL.EcomAfterSaleRequestsInput {
+      const input: GQL.EcomAfterSaleRequestsInput = { view: self.view };
+      if (!self.allShops) input.shopIds = [...self.shopIds];
+      if (self.kinds.length) input.kinds = [...self.kinds] as AfterSaleKind[];
+      if (self.view === "ALL") {
+        if (self.statuses.length) input.statuses = [...self.statuses];
+        if (self.sellerActions.length) input.sellerActions = [...self.sellerActions];
+        const to = startOfLocalDay(self.windowTo);
+        to.setDate(to.getDate() + 1);
+        input.createdFrom = startOfLocalDay(self.windowFrom).toISOString();
+        input.createdTo = to.toISOString();
+      }
+      return input;
+    },
   }))
   .actions((self) => {
     const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
@@ -319,18 +342,8 @@ export const EcommerceAfterSaleModel = types
     }
 
     function buildInput(cursor: string | null): GQL.EcomAfterSaleRequestsInput {
-      const input: GQL.EcomAfterSaleRequestsInput = { view: self.view };
-      if (!self.allShops) input.shopIds = [...self.shopIds];
+      const input = self.queryInput;
       if (cursor) input.cursor = cursor;
-      if (self.kinds.length) input.kinds = [...self.kinds] as AfterSaleKind[];
-      if (self.view === "ALL") {
-        if (self.statuses.length) input.statuses = [...self.statuses];
-        if (self.sellerActions.length) input.sellerActions = [...self.sellerActions];
-        const to = startOfLocalDay(self.windowTo);
-        to.setDate(to.getDate() + 1);
-        input.createdFrom = startOfLocalDay(self.windowFrom).toISOString();
-        input.createdTo = to.toISOString();
-      }
       return input;
     }
 
@@ -398,7 +411,7 @@ export const EcommerceAfterSaleModel = types
       self.loadingMore = false;
       self.error = null;
       try {
-        if (self.windowIssue || (!self.allShops && self.shopIds.length === 0)) {
+        if (!self.queryable) {
           clearList();
           self.loaded = true;
           return;
@@ -620,7 +633,7 @@ export const EcommerceAfterSaleModel = types
         if (!self.loaded || self.loading || self.loadingMore || self.refreshing) return;
         if (self.detail.key || self.rowApproveKey || self.rowDecidingKey) return;
         if (self.requests.length > MAX_PAGE_LIMIT) return;
-        if (self.windowIssue || (!self.allShops && self.shopIds.length === 0)) return;
+        if (!self.queryable) return;
         const generation = listGeneration;
         self.refreshing = true;
         try {
@@ -651,6 +664,24 @@ export const EcommerceAfterSaleModel = types
           self.refreshing = false;
         }
       }),
+
+      /**
+       * Reads one page of an export walk. The rows are returned, never stored: the download holds
+       * them only until its file is written, and they stay out of the Apollo cache.
+       */
+      readExportPage(input: GQL.EcomAfterSaleRequestsInput, signal: AbortSignal) {
+        return client()
+          .query<{ page: GQL.EcomAfterSaleRequestPage }>({
+            query: READ_AFTER_SALE_REQUESTS_QUERY,
+            variables: { input },
+            fetchPolicy: "no-cache",
+            context: { fetchOptions: { signal } },
+          })
+          .then((result) => {
+            if (!result.data?.page) throw result.error ?? new Error("After-sale page returned no data");
+            return result.data.page;
+          });
+      },
 
       fetchMore: flow(function* () {
         const cursor = self.nextCursor;
