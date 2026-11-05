@@ -161,8 +161,8 @@ describe("AfterSaleReviewPage", () => {
     expect(within(bodyRows[2]).getByText("Waiting 2d 0h")).toBeTruthy();
     expect(within(bodyRows[3]).getByText("2d 0h").className).not.toContain("urgent");
     expect(screen.getByText("4 requests")).toBeTruthy();
-    // The request-type filter is offered in "To review" too, as a dropdown like the shop filter.
-    expect(screen.getByRole("button", { name: "Request type" }).textContent).toBe("All types");
+    // The request-type filter is offered in "To review" too, as the shared choice select.
+    expect(screen.getByRole("button", { name: "Request type" }).textContent).toContain("All types");
   });
 
   it("opens a return with its buyer evidence and offers approve and reject", async () => {
@@ -406,33 +406,26 @@ describe("AfterSaleReviewPage", () => {
     expect(within(dialog).getByText("Picked up")).toBeTruthy();
   });
 
-  it("narrows the list by request type from the dropdown, where no selection means every type", async () => {
+  it("narrows the list by request type from the choice select, and back to every type", async () => {
     const { afterSale, query } = setup();
     render(<AfterSaleReviewPage />);
     await screen.findByText("Ceramic mug");
-    fireEvent.click(screen.getByRole("button", { name: "Request type" }));
-    const panel = await screen.findByRole("dialog", { name: "Request type" });
-    // Nothing selected is "every type": every box is checked.
-    const boxes = within(panel).getAllByRole("checkbox") as HTMLInputElement[];
-    expect(boxes.map((box) => box.checked)).toEqual([true, true, true, true, true]);
-    fireEvent.click(within(panel).getByRole("button", { name: "Only this: Refund" }));
+    const pick = (label: string) => {
+      fireEvent.click(screen.getByRole("button", { name: "Request type" }));
+      const dropdown = document.querySelector(".custom-select-dropdown") as HTMLElement;
+      fireEvent.click(within(dropdown).getByText(label));
+    };
+    pick("Refund");
     expect([...afterSale.kinds]).toEqual(["REFUND"]);
+    expect(screen.getByRole("button", { name: "Request type" }).textContent).toContain("Refund");
     // Changing the filter re-queries the list with it.
     await waitFor(() =>
       expect(query).toHaveBeenLastCalledWith(
         expect.objectContaining({ variables: { input: { view: "TO_REVIEW", kinds: ["REFUND"] } } }),
       ),
     );
-    expect(screen.getByRole("button", { name: "Request type" }).textContent).toBe("Refund");
-    // The last checked type cannot be unchecked: the filter never becomes empty.
-    expect((within(panel).getByLabelText("Refund") as HTMLInputElement).disabled).toBe(true);
-    fireEvent.click(within(panel).getByLabelText("Cancellation"));
-    expect([...afterSale.kinds]).toEqual(["REFUND", "CANCELLATION"]);
-    expect(screen.getByRole("button", { name: "Request type" }).textContent).toBe("2 selected");
-    // Checking every type again is "every type".
-    fireEvent.click(within(panel).getByRole("button", { name: "Select all" }));
+    pick("All types");
     expect([...afterSale.kinds]).toEqual([]);
-    expect(screen.getByRole("button", { name: "Request type" }).textContent).toBe("All types");
   });
 
   it("shows a list error instead of an empty table", async () => {
