@@ -152,3 +152,19 @@
   justify-content: flex-end;
   gap: var(--tk-v1-space-2);
 }
+
+.after-sale-evidence {
+  gap: var(--tk-v1-space-2);
+}
+
+.after-sale-evidence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.after-sale-evidence-error {
+  margin: 0;
+  color: var(--tk-v1-danger);
+}

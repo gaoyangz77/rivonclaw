@@ -3,13 +3,15 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n/index.js";
 import {
+  READ_AFTER_SALE_REJECT_REASONS_QUERY,
   READ_AFTER_SALE_REQUEST_QUERY,
   READ_AFTER_SALE_REQUESTS_QUERY,
 } from "../../api/after-sale-queries.js";
 import { EcommerceAfterSaleModel } from "../../store/models/EcommerceAfterSaleModel.js";
 import { AfterSaleReviewPage } from "./AfterSaleReviewPage.js";
 
-const mocks = vi.hoisted(() => ({ store: {} as Record<string, unknown> }));
+const mocks = vi.hoisted(() => ({ store: {} as Record<string, unknown>, showToast: vi.fn() }));
+vi.mock("../../components/Toast.js", () => ({ useToast: () => ({ showToast: mocks.showToast }) }));
 vi.mock("../../store/EntityStoreProvider.js", () => ({ useEntityStore: () => mocks.store }));
 
 const NOW = Date.parse("2026-11-04T12:00:00Z");
@@ -81,6 +83,9 @@ function setup() {
     if (doc === READ_AFTER_SALE_REQUESTS_QUERY) {
       return { data: { page: { items: rows, nextCursor: null, totalCount: 4 } } };
     }
+    if (doc === READ_AFTER_SALE_REJECT_REASONS_QUERY) {
+      return { data: { reasons: [{ reasonId: "why-1", reasonText: "Damaged by the buyer" }] } };
+    }
     return { data: { records: [evidence] } };
   });
   const mutate = vi.fn(async () => ({ data: {} }));
@@ -145,6 +150,39 @@ describe("AfterSaleReviewPage", () => {
     expect(within(dialog).getByRole("button", { name: "Approve" })).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Reject" })).toBeTruthy();
     expect(afterSale.detail.key).toBe("shop-1:REFUND:r1");
+  });
+
+  it("rejects with a reason, a comment and evidence images", async () => {
+    const { afterSale } = setup();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:evidence", revokeObjectURL: () => {} }));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AfterSaleReviewPage />);
+    fireEvent.click(await screen.findByText("Ceramic mug"));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reject" }));
+    await waitFor(() => expect(afterSale.detail.rejectReasons).toHaveLength(1));
+    afterSale.setRejectReason("why-1");
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Seal is broken" } });
+
+    const image = new File([new Uint8Array([104, 105])], "evidence.png", { type: "image/png" });
+    const gif = new File([new Uint8Array([1])], "anim.gif", { type: "image/gif" });
+    fireEvent.change(within(dialog).getByLabelText("Add images"), { target: { files: [image, gif] } });
+    await within(dialog).findByAltText("evidence.png");
+    // TikTok's image upload takes no GIF: it is refused before it is attached.
+    expect(within(dialog).queryByAltText("anim.gif")).toBeNull();
+    expect(mocks.showToast).toHaveBeenCalledWith(expect.any(String), "error");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reject request" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/cloud/ecommerce/reject-return");
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      returnId: "r1",
+      rejectReason: "why-1",
+      comment: "Seal is broken",
+      imagesBase64: [{ data: "aGk=", mime: "image/png" }],
+    });
   });
 
   it("asks for confirmation before approving and removes the decided row", async () => {

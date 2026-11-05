@@ -23,12 +23,18 @@ export function useMessageAttachmentDrafts<T = undefined>({
   allowFiles = false,
   stage,
   onError,
+  imageTypes = MESSAGE_IMAGE_TYPES,
+  maxImageBytes = MESSAGE_IMAGE_MAX_BYTES,
 }: {
   scopeKey: string;
   disabled?: boolean;
   allowFiles?: boolean;
   stage?: (file: File, signal: AbortSignal) => Promise<T>;
   onError: (message: string) => void;
+  /** Image MIME types this destination accepts; defaults to the chat-message set. */
+  imageTypes?: readonly string[];
+  /** Largest accepted image; defaults to the chat-message cap. */
+  maxImageBytes?: number;
 }) {
   const { t } = useTranslation();
   const [items, setItems] = useState<MessageAttachmentDraft<T>[]>([]);
@@ -67,11 +73,11 @@ export function useMessageAttachmentDrafts<T = undefined>({
         onError(t("messageAttachments.limit"));
         break;
       }
-      if ((!allowFiles || clipboard) && !MESSAGE_IMAGE_TYPES.includes(file.type)) {
+      if ((!allowFiles || clipboard) && !imageTypes.includes(file.type)) {
         onError(t("messageAttachments.unsupported"));
         continue;
       }
-      if ((!allowFiles || clipboard) && file.size > MESSAGE_IMAGE_MAX_BYTES) {
+      if ((!allowFiles || clipboard) && file.size > maxImageBytes) {
         onError(t("messageAttachments.tooLarge"));
         continue;
       }

@@ -203,3 +203,33 @@ export function afterSaleDeadlineState(
     age: splitDuration((nowMs - Date.parse(request.createTime)) / 60_000),
   };
 }
+
+/**
+ * Evidence images on a rejection. The backend uploads each one through TikTok's product image
+ * upload (JPG/JPEG/PNG/WEBP/HEIC/BMP, at most 10 MB), and the encoded request must stay under
+ * the 32 MB the gateway allows the reject routes, so the images together stay under 20 MB.
+ */
+export const AFTER_SALE_REJECT_IMAGE_TYPES: readonly string[] = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/bmp",
+];
+export const AFTER_SALE_REJECT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+export const AFTER_SALE_REJECT_IMAGES_MAX_TOTAL_BYTES = 20 * 1024 * 1024;
+
+/** A rejection image as the reject routes take it: base64 bytes without a data-URL prefix. */
+export interface AfterSaleRejectImage {
+  data: string;
+  mime: string;
+}
+
+export async function toRejectImage(file: File): Promise<AfterSaleRejectImage> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const chunk = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunk));
+  }
+  return { data: btoa(binary), mime: file.type };
+}

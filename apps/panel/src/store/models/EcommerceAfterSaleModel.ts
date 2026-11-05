@@ -16,6 +16,7 @@ import {
   needsSellerReview,
   resolveAfterSaleDecision,
   type AfterSaleKind,
+  type AfterSaleRejectImage,
 } from "../../lib/after-sale.js";
 import type { PanelStoreEnv } from "../types.js";
 
@@ -533,7 +534,8 @@ export const EcommerceAfterSaleModel = types
         yield settleDecision(key, shopId, kind, requestId, "approved");
       }),
 
-      reject: flow(function* () {
+      /** `images` are primitive base64 snapshots taken by the caller; no File crosses into MST. */
+      reject: flow(function* (images: readonly AfterSaleRejectImage[] = []) {
         const request = self.selectedRequest;
         const decision = request?.decision;
         const reasonId = self.detail.rejectReasonDraft;
@@ -548,7 +550,12 @@ export const EcommerceAfterSaleModel = types
             yield fetchJson(clientPath(CLOUD_REST["ecommerce.rejectCancellation"]), {
               method: "POST",
               headers,
-              body: JSON.stringify({ cancelId: requestId, rejectReason: reasonId, comment }),
+              body: JSON.stringify({
+                cancelId: requestId,
+                rejectReason: reasonId,
+                comment,
+                imagesBase64: images.length ? images : undefined,
+              }),
             });
           } else {
             yield fetchJson(clientPath(CLOUD_REST["ecommerce.rejectReturn"]), {
@@ -559,6 +566,7 @@ export const EcommerceAfterSaleModel = types
                 decision: decision.rejectDecision,
                 rejectReason: reasonId,
                 comment,
+                imagesBase64: images.length ? images : undefined,
               }),
             });
           }

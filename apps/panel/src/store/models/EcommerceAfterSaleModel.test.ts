@@ -363,6 +363,32 @@ describe("EcommerceAfterSaleModel decisions", () => {
     expect(JSON.parse(init.body as string)).toEqual({ cancelId: "r1", rejectReason: "why-1" });
   });
 
+  it("sends evidence images with a rejection as base64 snapshots", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { store } = decisionSetup(
+      {
+        kind: "CANCELLATION",
+        sellerNextAction: "SELLER_RESPOND_BUYER_CANCEL",
+        status: "CANCELLATION_REQUEST_PENDING",
+      },
+      null,
+    );
+    await store.fetchRequests();
+    await store.openDetail("shop-1:CANCELLATION:r1");
+    await store.beginReject();
+    store.setRejectReason("why-1");
+    await store.reject([{ data: "aGVsbG8=", mime: "image/png" }]);
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      cancelId: "r1",
+      rejectReason: "why-1",
+      imagesBase64: [{ data: "aGVsbG8=", mime: "image/png" }],
+    });
+  });
+
   it("shows the server error of a failed reject", async () => {
     vi.stubGlobal(
       "fetch",
