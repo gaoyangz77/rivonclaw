@@ -13,7 +13,6 @@ import {
 } from "../../api/after-sale-queries.js";
 import {
   afterSaleKey,
-  needsSellerReview,
   resolveAfterSaleDecision,
   type AfterSaleKind,
   type AfterSaleRejectImage,
@@ -24,6 +23,9 @@ const MS_PER_DAY = 86_400_000;
 /** Longest created-at window the backend's ALL view accepts. */
 export const AFTER_SALE_MAX_WINDOW_DAYS = 92;
 const DEFAULT_WINDOW_DAYS = 30;
+/** The backend's page size and the most rows one page may hold. */
+const PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 100;
 
 const AfterSaleLineModel = types.model("AfterSaleRequestLine", {
   lineItemId: types.string,
@@ -62,11 +64,18 @@ export const AfterSaleRequestModel = types
     createTime: types.string,
     updateTime: types.string,
     lines: types.array(AfterSaleLineModel),
+    /** The backend's "To review" rule, including a decision that waits for TikTok (ADR-099). */
+    needsReview: types.boolean,
+    sellerDecision: types.maybeNull(
+      types.enumeration<GQL.EcomAfterSaleSellerDecision>(
+        "AfterSaleSellerDecision",
+        Object.values(GQL.EcomAfterSaleSellerDecision),
+      ),
+    ),
+    sellerDecidedAt: types.maybeNull(types.string),
+    decisionAwaitingPlatform: types.boolean,
   })
   .views((self) => ({
-    get needsReview() {
-      return needsSellerReview(self);
-    },
     get decision() {
       return resolveAfterSaleDecision(self);
     },
@@ -114,6 +123,10 @@ function toRequestSnapshot(dto: GQL.EcomAfterSaleRequest) {
       currency: line.currency ?? null,
       refundTotal: line.refundTotal ?? null,
     })),
+    needsReview: dto.needsReview,
+    sellerDecision: dto.sellerDecision ?? null,
+    sellerDecidedAt: dto.sellerDecidedAt ?? null,
+    decisionAwaitingPlatform: dto.decisionAwaitingPlatform,
   };
 }
 
@@ -187,6 +200,8 @@ export const EcommerceAfterSaleModel = types
     loaded: types.optional(types.boolean, false),
     loading: types.optional(types.boolean, false),
     loadingMore: types.optional(types.boolean, false),
+    /** A background re-read of the loaded rows is in flight; it shows no loading state. */
+    refreshing: types.optional(types.boolean, false),
     error: types.maybeNull(types.string),
     notice: types.maybeNull(types.frozen<AfterSaleNotice>()),
     detail: types.optional(AfterSaleDetailModel, {}),
@@ -312,12 +327,12 @@ export const EcommerceAfterSaleModel = types
       const current = self.requests.find((request) => request.key === key);
       if (!current) return;
       if (!fresh) {
-        // The decision succeeded but the warehouse has no row yet: show the authoritative list.
+        // The decision succeeded but the workspace has no document yet: show the authoritative list.
         yield fetchRequests();
         return;
       }
       const snapshot = toRequestSnapshot(fresh);
-      if (self.view === "TO_REVIEW" && !needsSellerReview(snapshot)) {
+      if (self.view === "TO_REVIEW" && !snapshot.needsReview) {
         self.requests.remove(current);
         self.totalCount = Math.max(0, self.totalCount - 1);
         return;
@@ -386,13 +401,49 @@ export const EcommerceAfterSaleModel = types
         self.loaded = false;
         self.loading = false;
         self.loadingMore = false;
+        self.refreshing = false;
         self.error = null;
         self.notice = null;
       },
 
+      /**
+       * Re-reads the rows the seller has loaded, without a loading state, so webhook and sync
+       * changes appear on their own (ADR-099 Decision 12). Skipped while a detail is open (its row
+       * must not be replaced under it), while another read runs, or once the seller paged past
+       * what one page can hold.
+       */
+      refreshInBackground: flow(function* () {
+        if (!self.loaded || self.loading || self.loadingMore || self.refreshing) return;
+        if (self.detail.key || self.requests.length > MAX_PAGE_LIMIT) return;
+        if (self.windowIssue || (!self.allShops && self.shopIds.length === 0)) return;
+        const generation = listGeneration;
+        self.refreshing = true;
+        try {
+          const input = buildInput(null);
+          input.limit = Math.max(PAGE_LIMIT, self.requests.length);
+          const result = yield client().query<{ page: GQL.EcomAfterSaleRequestPage }>({
+            query: READ_AFTER_SALE_REQUESTS_QUERY,
+            variables: { input },
+            fetchPolicy: "network-only",
+          });
+          // A new query or an opened detail supersedes this read.
+          if (generation !== listGeneration || self.detail.key) return;
+          const page = result.data.page;
+          applySnapshot(self.requests, page.items.map(toRequestSnapshot));
+          self.nextCursor = page.nextCursor ?? null;
+          self.totalCount = page.totalCount;
+          self.error = null;
+        } catch (err) {
+          if (generation === listGeneration) self.error = messageFromError(err);
+          throw err;
+        } finally {
+          self.refreshing = false;
+        }
+      }),
+
       fetchMore: flow(function* () {
         const cursor = self.nextCursor;
-        if (!cursor || self.loading || self.loadingMore) return;
+        if (!cursor || self.loading || self.loadingMore || self.refreshing) return;
         const generation = listGeneration;
         self.loadingMore = true;
         self.error = null;

@@ -19,6 +19,10 @@ export const AFTER_SALE_REQUEST_FIELDS_FRAGMENT = gql`
     sellerActionDeadline
     createTime
     updateTime
+    needsReview
+    sellerDecision
+    sellerDecidedAt
+    decisionAwaitingPlatform
     lines {
       lineItemId
       orderLineItemId

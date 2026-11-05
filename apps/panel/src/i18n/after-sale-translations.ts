@@ -94,6 +94,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "Load more",
         loadFailed: "Could not load after-sale requests.",
+        sellerDecisions: {
+          APPROVED: "Approved",
+          PARTIAL_REFUND_OFFERED: "Partial refund offered",
+          REJECTED: "Rejected",
+        },
+        awaitingPlatform: "Waiting for TikTok",
         notice: {
           approved: "Approved the {{kind}} request {{requestId}}.",
           rejected: "Rejected the {{kind}} request {{requestId}}.",
@@ -117,6 +123,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "Platform deadline",
             created: "Created",
             updated: "Updated",
+            sellerDecision: "Your decision",
           },
           quickRefund: "Quick refund",
           lineSku: "SKU",
@@ -131,6 +138,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "This request cannot be decided here. Use TikTok Seller Center.",
           notAwaiting: "This request is not awaiting your decision.",
+          awaitingPlatform: "Your decision ({{decision}}) was accepted by TikTok. This request updates when TikTok sends its new status.",
           approve: "Approve",
           reject: "Reject",
           confirmTitle: "Approve this request?",
@@ -241,6 +249,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "加载更多",
         loadFailed: "售后申请加载失败。",
+        sellerDecisions: {
+          APPROVED: "已同意",
+          PARTIAL_REFUND_OFFERED: "已提出部分退款",
+          REJECTED: "已拒绝",
+        },
+        awaitingPlatform: "等待平台更新",
         notice: {
           approved: "已同意{{kind}}申请 {{requestId}}。",
           rejected: "已拒绝{{kind}}申请 {{requestId}}。",
@@ -264,6 +278,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "平台截止时间",
             created: "创建时间",
             updated: "更新时间",
+            sellerDecision: "你的决定",
           },
           quickRefund: "极速退款",
           lineSku: "规格",
@@ -278,6 +293,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "该申请无法在此处理，请前往 TikTok 卖家中心。",
           notAwaiting: "该申请已无需你处理。",
+          awaitingPlatform: "你的决定（{{decision}}）已提交给 TikTok，平台更新状态后这里会自动同步。",
           approve: "同意",
           reject: "拒绝",
           confirmTitle: "同意该申请？",
@@ -390,6 +406,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "Mehr laden",
         loadFailed: "Reklamationen konnten nicht geladen werden.",
+        sellerDecisions: {
+          APPROVED: "Genehmigt",
+          PARTIAL_REFUND_OFFERED: "Teilerstattung angeboten",
+          REJECTED: "Abgelehnt",
+        },
+        awaitingPlatform: "Wartet auf TikTok",
         notice: {
           approved: "Anfrage {{requestId}} ({{kind}}) genehmigt.",
           rejected: "Anfrage {{requestId}} ({{kind}}) abgelehnt.",
@@ -413,6 +435,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "Plattformfrist",
             created: "Erstellt",
             updated: "Aktualisiert",
+            sellerDecision: "Ihre Entscheidung",
           },
           quickRefund: "Schnelle Erstattung",
           lineSku: "SKU",
@@ -428,6 +451,7 @@ export const AFTER_SALE_TRANSLATIONS = {
           readOnly:
             "Diese Anfrage kann hier nicht entschieden werden. Nutzen Sie das TikTok Seller Center.",
           notAwaiting: "Diese Anfrage wartet nicht mehr auf Ihre Entscheidung.",
+          awaitingPlatform: "TikTok hat Ihre Entscheidung ({{decision}}) angenommen. Die Anfrage wird aktualisiert, sobald TikTok den neuen Status sendet.",
           approve: "Genehmigen",
           reject: "Ablehnen",
           confirmTitle: "Diese Anfrage genehmigen?",
@@ -540,6 +564,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "Cargar más",
         loadFailed: "No se pudieron cargar las solicitudes posventa.",
+        sellerDecisions: {
+          APPROVED: "Aprobada",
+          PARTIAL_REFUND_OFFERED: "Reembolso parcial ofrecido",
+          REJECTED: "Rechazada",
+        },
+        awaitingPlatform: "Esperando a TikTok",
         notice: {
           approved: "Aprobada la solicitud {{requestId}} ({{kind}}).",
           rejected: "Rechazada la solicitud {{requestId}} ({{kind}}).",
@@ -563,6 +593,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "Plazo de la plataforma",
             created: "Creada",
             updated: "Actualizada",
+            sellerDecision: "Tu decisión",
           },
           quickRefund: "Reembolso rápido",
           lineSku: "SKU",
@@ -577,6 +608,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "Esta solicitud no se puede resolver aquí. Usa TikTok Seller Center.",
           notAwaiting: "Esta solicitud ya no espera tu decisión.",
+          awaitingPlatform: "TikTok aceptó tu decisión ({{decision}}). La solicitud se actualizará cuando TikTok envíe su nuevo estado.",
           approve: "Aprobar",
           reject: "Rechazar",
           confirmTitle: "¿Aprobar esta solicitud?",
@@ -688,6 +720,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "Charger plus",
         loadFailed: "Impossible de charger les demandes SAV.",
+        sellerDecisions: {
+          APPROVED: "Approuvée",
+          PARTIAL_REFUND_OFFERED: "Remboursement partiel proposé",
+          REJECTED: "Refusée",
+        },
+        awaitingPlatform: "En attente de TikTok",
         notice: {
           approved: "Demande {{requestId}} ({{kind}}) approuvée.",
           rejected: "Demande {{requestId}} ({{kind}}) refusée.",
@@ -711,6 +749,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "Échéance de la plateforme",
             created: "Créée",
             updated: "Mise à jour",
+            sellerDecision: "Votre décision",
           },
           quickRefund: "Remboursement rapide",
           lineSku: "SKU",
@@ -725,6 +764,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "Cette demande ne peut pas être traitée ici. Utilisez TikTok Seller Center.",
           notAwaiting: "Cette demande n'attend plus votre décision.",
+          awaitingPlatform: "TikTok a accepté votre décision ({{decision}}). La demande sera mise à jour dès que TikTok enverra son nouveau statut.",
           approve: "Approuver",
           reject: "Refuser",
           confirmTitle: "Approuver cette demande ?",
@@ -836,6 +876,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "Muat lebih banyak",
         loadFailed: "Permintaan purna jual tidak dapat dimuat.",
+        sellerDecisions: {
+          APPROVED: "Disetujui",
+          PARTIAL_REFUND_OFFERED: "Pengembalian dana sebagian ditawarkan",
+          REJECTED: "Ditolak",
+        },
+        awaitingPlatform: "Menunggu TikTok",
         notice: {
           approved: "Permintaan {{kind}} {{requestId}} disetujui.",
           rejected: "Permintaan {{kind}} {{requestId}} ditolak.",
@@ -859,6 +905,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "Batas waktu platform",
             created: "Dibuat",
             updated: "Diperbarui",
+            sellerDecision: "Keputusan Anda",
           },
           quickRefund: "Pengembalian dana cepat",
           lineSku: "SKU",
@@ -873,6 +920,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "Permintaan ini tidak dapat diputuskan di sini. Gunakan TikTok Seller Center.",
           notAwaiting: "Permintaan ini tidak lagi menunggu keputusan Anda.",
+          awaitingPlatform: "TikTok telah menerima keputusan Anda ({{decision}}). Permintaan ini diperbarui saat TikTok mengirim status barunya.",
           approve: "Setujui",
           reject: "Tolak",
           confirmTitle: "Setujui permintaan ini?",
@@ -984,6 +1032,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "Carica altro",
         loadFailed: "Impossibile caricare le richieste post-vendita.",
+        sellerDecisions: {
+          APPROVED: "Approvata",
+          PARTIAL_REFUND_OFFERED: "Rimborso parziale offerto",
+          REJECTED: "Rifiutata",
+        },
+        awaitingPlatform: "In attesa di TikTok",
         notice: {
           approved: "Richiesta {{requestId}} ({{kind}}) approvata.",
           rejected: "Richiesta {{requestId}} ({{kind}}) rifiutata.",
@@ -1007,6 +1061,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "Scadenza della piattaforma",
             created: "Creata",
             updated: "Aggiornata",
+            sellerDecision: "La tua decisione",
           },
           quickRefund: "Rimborso rapido",
           lineSku: "SKU",
@@ -1021,6 +1076,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "Questa richiesta non può essere decisa qui. Usa TikTok Seller Center.",
           notAwaiting: "Questa richiesta non attende più la tua decisione.",
+          awaitingPlatform: "TikTok ha accettato la tua decisione ({{decision}}). La richiesta si aggiorna quando TikTok invia il nuovo stato.",
           approve: "Approva",
           reject: "Rifiuta",
           confirmTitle: "Approvare questa richiesta?",
@@ -1131,6 +1187,12 @@ export const AFTER_SALE_TRANSLATIONS = {
         },
         loadMore: "โหลดเพิ่มเติม",
         loadFailed: "โหลดคำขอหลังการขายไม่สำเร็จ",
+        sellerDecisions: {
+          APPROVED: "อนุมัติแล้ว",
+          PARTIAL_REFUND_OFFERED: "เสนอคืนเงินบางส่วนแล้ว",
+          REJECTED: "ปฏิเสธแล้ว",
+        },
+        awaitingPlatform: "รอ TikTok อัปเดต",
         notice: {
           approved: "อนุมัติคำขอ{{kind}} {{requestId}} แล้ว",
           rejected: "ปฏิเสธคำขอ{{kind}} {{requestId}} แล้ว",
@@ -1154,6 +1216,7 @@ export const AFTER_SALE_TRANSLATIONS = {
             deadline: "กำหนดของแพลตฟอร์ม",
             created: "สร้างเมื่อ",
             updated: "อัปเดตเมื่อ",
+            sellerDecision: "การตัดสินใจของคุณ",
           },
           quickRefund: "คืนเงินด่วน",
           lineSku: "SKU",
@@ -1168,6 +1231,7 @@ export const AFTER_SALE_TRANSLATIONS = {
         decision: {
           readOnly: "ไม่สามารถตัดสินใจคำขอนี้ที่นี่ได้ โปรดใช้ TikTok Seller Center",
           notAwaiting: "คำขอนี้ไม่ได้รอการตัดสินใจจากคุณแล้ว",
+          awaitingPlatform: "TikTok รับการตัดสินใจของคุณ ({{decision}}) แล้ว คำขอนี้จะอัปเดตเมื่อ TikTok ส่งสถานะใหม่",
           approve: "อนุมัติ",
           reject: "ปฏิเสธ",
           confirmTitle: "อนุมัติคำขอนี้หรือไม่",

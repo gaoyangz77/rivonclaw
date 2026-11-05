@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import {
   afterSaleDeadlineState,
-  needsSellerReview,
   resolveAfterSaleDecision,
   splitDuration,
   type AfterSaleKind,
@@ -10,27 +9,15 @@ import {
 
 const K = GQL.EcomAfterSaleRequestKind;
 
-function facts(kind: AfterSaleKind, status: string | null, sellerNextAction: string | null) {
-  return { kind, status, sellerNextAction };
+/** `status` only documents the case: the backend decides `needsReview`, the Panel never does. */
+function facts(
+  kind: AfterSaleKind,
+  _status: string | null,
+  sellerNextAction: string | null,
+  needsReview = true,
+) {
+  return { kind, sellerNextAction, needsReview };
 }
-
-describe("needsSellerReview", () => {
-  it("is true for a seller action or a pending-decision status, false otherwise", () => {
-    expect(
-      needsSellerReview(
-        facts(K.ReturnAndRefund, "BUYER_SHIPPED_ITEM", "SELLER_RESPOND_RECEIVE_PACKAGE"),
-      ),
-    ).toBe(true);
-    expect(needsSellerReview(facts(K.Refund, "RETURN_OR_REFUND_REQUEST_PENDING", null))).toBe(true);
-    expect(needsSellerReview(facts(K.Cancellation, "CANCELLATION_REQUEST_PENDING", null))).toBe(
-      true,
-    );
-    expect(needsSellerReview(facts(K.ReturnAndRefund, "BUYER_SHIPPED_ITEM", null))).toBe(false);
-    expect(needsSellerReview(facts(K.Refund, "RETURN_OR_REFUND_REQUEST_SUCCESS", null))).toBe(
-      false,
-    );
-  });
-});
 
 describe("resolveAfterSaleDecision", () => {
   it("maps each seller action to its approve and reject decisions", () => {
@@ -113,10 +100,16 @@ describe("resolveAfterSaleDecision", () => {
       ),
     ).toBeNull();
     expect(
-      resolveAfterSaleDecision(facts(K.ReturnAndRefund, "BUYER_SHIPPED_ITEM", null)),
+      resolveAfterSaleDecision(facts(K.ReturnAndRefund, "BUYER_SHIPPED_ITEM", null, false)),
     ).toBeNull();
     expect(
-      resolveAfterSaleDecision(facts(K.Refund, "RETURN_OR_REFUND_REQUEST_SUCCESS", null)),
+      resolveAfterSaleDecision(facts(K.Refund, "RETURN_OR_REFUND_REQUEST_SUCCESS", null, false)),
+    ).toBeNull();
+    // A recorded decision waits for TikTok's next state: the old action must not be offered again.
+    expect(
+      resolveAfterSaleDecision(
+        facts(K.Refund, "RETURN_OR_REFUND_REQUEST_PENDING", "SELLER_RESPOND_REFUND", false),
+      ),
     ).toBeNull();
   });
 });

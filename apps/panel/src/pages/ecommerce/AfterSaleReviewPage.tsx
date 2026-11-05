@@ -13,8 +13,12 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { AfterSaleDetailModal } from "./components/after-sale/AfterSaleDetailModal.js";
 import { AfterSaleFilters } from "./components/after-sale/AfterSaleFilters.js";
 import { AfterSaleTable } from "./components/after-sale/AfterSaleTable.js";
+import { useVisibleInterval } from "./hooks/useVisibleInterval.js";
 import { afterSaleKindLabel } from "./after-sale-labels.js";
 import "./AfterSaleReview.css";
+
+/** How often the open workspace re-reads its rows (ADR-099 Decision 12). */
+const AUTO_REFRESH_MS = 60_000;
 
 export const AfterSaleReviewPage = observer(function AfterSaleReviewPage() {
   const { t } = useTranslation();
@@ -32,6 +36,14 @@ export const AfterSaleReviewPage = observer(function AfterSaleReviewPage() {
     }
     afterSale.fetchRequests().catch(() => {});
   }, [afterSale, signedIn, querySignature]);
+
+  // Webhook and sync changes appear without a manual refresh. The store is read when the tick
+  // runs, never captured by the timer.
+  useVisibleInterval(
+    () => entityStore.ecommerceAfterSale.refreshInBackground().catch(() => {}),
+    AUTO_REFRESH_MS,
+    signedIn,
+  );
 
   if (authChecking) {
     return (

@@ -8,6 +8,7 @@ import type { AfterSaleRequestNode } from "../../../../store/models/EcommerceAft
 import {
   afterSaleKindLabel,
   afterSaleSellerActionLabel,
+  afterSaleSellerDecisionLabel,
   afterSaleStatusLabel,
 } from "../../after-sale-labels.js";
 import {
@@ -69,6 +70,22 @@ const AfterSaleDetailBody = observer(function AfterSaleDetailBody({
       formatOrderMoney(request.refundTotal, request.currency, i18n.language),
     ],
     [t(`${prefix}.detail.fields.action`), afterSaleSellerActionLabel(t, request.sellerNextAction)],
+    ...(request.sellerDecision
+      ? ([
+          [
+            t(`${prefix}.detail.fields.sellerDecision`),
+            <>
+              {afterSaleSellerDecisionLabel(t, request.sellerDecision)}
+              {request.sellerDecidedAt
+                ? ` · ${formatCompactDateTime(request.sellerDecidedAt)}`
+                : null}{" "}
+              {request.decisionAwaitingPlatform ? (
+                <TkBadge tone="accent">{t(`${prefix}.awaitingPlatform`)}</TkBadge>
+              ) : null}
+            </>,
+          ],
+        ] satisfies Array<[string, ReactNode]>)
+      : []),
     [
       t(`${prefix}.detail.fields.deadline`),
       request.sellerActionDeadline ? (

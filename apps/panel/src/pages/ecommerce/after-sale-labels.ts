@@ -7,6 +7,13 @@ export function afterSaleKindLabel(t: TFunction, kind: string): string {
   return t(`${PREFIX}.kinds.${kind}`, { defaultValue: humanizePlatformValue(kind) });
 }
 
+export function afterSaleSellerDecisionLabel(t: TFunction, decision?: string | null): string {
+  if (!decision) return "-";
+  return t(`${PREFIX}.sellerDecisions.${decision}`, {
+    defaultValue: humanizePlatformValue(decision),
+  });
+}
+
 export function afterSaleSellerActionLabel(t: TFunction, action?: string | null): string {
   if (!action) return "-";
   return t(`${PREFIX}.sellerActions.${action}`, { defaultValue: humanizePlatformValue(action) });

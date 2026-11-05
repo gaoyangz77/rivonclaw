@@ -39,6 +39,10 @@ function dto(overrides: Record<string, unknown> = {}) {
       { lineItemId: "l1", productName: "Ceramic mug", refundTotal: "12.50", currency: "USD" },
       { lineItemId: "l2", productName: "Saucer", refundTotal: "0", currency: "USD" },
     ],
+    needsReview: true,
+    sellerDecision: null,
+    sellerDecidedAt: null,
+    decisionAwaitingPlatform: false,
     ...overrides,
   };
 }
@@ -192,9 +196,15 @@ describe("AfterSaleReviewPage", () => {
         return { data: { page: { items: rows, nextCursor: null, totalCount: 4 } } };
       }
       if (doc === READ_AFTER_SALE_REQUEST_QUERY) {
+        // TikTok's index still returns the pending state; the backend's decision record says done.
         return {
           data: {
-            request: dto({ status: "RETURN_OR_REFUND_REQUEST_SUCCESS", sellerNextAction: null }),
+            request: dto({
+              needsReview: false,
+              sellerDecision: "APPROVED",
+              sellerDecidedAt: "2026-11-04T12:00:00Z",
+              decisionAwaitingPlatform: true,
+            }),
           },
         };
       }
@@ -215,6 +225,42 @@ describe("AfterSaleReviewPage", () => {
     await waitFor(() => expect(screen.queryByText("Ceramic mug")).toBeNull());
     expect(screen.getByText("Approved the Refund request r1.")).toBeTruthy();
     expect(afterSale.requests.length).toBe(3);
+  });
+
+  it("shows a recorded decision waiting for TikTok without offering it again", async () => {
+    const { afterSale, query } = setup();
+    query.mockImplementation(async () => ({
+      data: {
+        page: {
+          items: [
+            dto({
+              needsReview: false,
+              sellerDecision: "REJECTED",
+              sellerDecidedAt: "2026-11-04T11:30:00Z",
+              decisionAwaitingPlatform: true,
+            }),
+          ],
+          nextCursor: null,
+          totalCount: 1,
+        },
+        records: [],
+      },
+    }));
+    afterSale.setView("ALL");
+    render(<AfterSaleReviewPage />);
+    const row = (await screen.findByText("Ceramic mug")).closest("tr")!;
+    expect(within(row).getByText("Waiting for TikTok")).toBeTruthy();
+    fireEvent.click(within(row).getByText("Ceramic mug"));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Your decision")).toBeTruthy();
+    expect(within(dialog).getByText(/^Rejected/)).toBeTruthy();
+    expect(
+      within(dialog).getByText(
+        "Your decision (Rejected) was accepted by TikTok. This request updates when TikTok sends its new status.",
+      ),
+    ).toBeTruthy();
+    expect(within(dialog).queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Reject" })).toBeNull();
   });
 
   it("shows an exchange read-only and a cancellation without a history", async () => {

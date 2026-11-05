@@ -88,6 +88,9 @@ const AfterSaleRow = observer(function AfterSaleRow({
       </td>
       <td>
         <TkBadge tone="neutral">{afterSaleStatusLabel(t, request.status)}</TkBadge>
+        {request.decisionAwaitingPlatform ? (
+          <TkBadge tone="accent">{t("ecommerce.afterSale.awaitingPlatform")}</TkBadge>
+        ) : null}
       </td>
       <td>{afterSaleSellerActionLabel(t, request.sellerNextAction)}</td>
     </TkInteractiveTableRow>

@@ -1,8 +1,8 @@
 /**
  * After-sale review workspace rules (ADR-099).
  *
- * Pure functions shared by the MST model and the page: which requests need the seller, which
- * backend decision a request maps to, and how much time is left. Platform status and action
+ * Pure functions shared by the MST model and the page: which backend decision a request maps to,
+ * and how much time is left. Platform status and action
  * strings are TikTok's open vocabulary, so unknown values are never mapped to a decision.
  */
 import { GQL } from "@rivonclaw/core";
@@ -50,28 +50,19 @@ export const AFTER_SALE_STATUSES: readonly string[] = [
   "CANCELLATION_REQUEST_COMPLETE",
 ];
 
-/** Pending-decision statuses (ADR-099 Decision 3): the seller can decide although no action is attached. */
-const PENDING_DECISION_STATUSES: ReadonlySet<string> = new Set([
-  "RETURN_OR_REFUND_REQUEST_PENDING",
-  "REPLACEMENT_REQUEST_PENDING",
-  "EXCHANGE_REQUEST_PENDING",
-  "CANCELLATION_REQUEST_PENDING",
-]);
-
-/** Structural subset of an after-sale request; satisfied by MST nodes and plain DTOs alike. */
+/**
+ * Structural subset of an after-sale request; satisfied by MST nodes and plain DTOs alike.
+ * `needsReview` is the backend's: TikTok asks the seller to decide and no recorded decision waits
+ * for TikTok's next state (ADR-099 Decisions 3 and 11). The Panel never derives it.
+ */
 export interface AfterSaleRequestFacts {
   kind: AfterSaleKind;
-  status?: string | null;
   sellerNextAction?: string | null;
+  needsReview: boolean;
 }
 
 export function afterSaleKey(shopId: string, kind: AfterSaleKind, requestId: string): string {
   return `${shopId}:${kind}:${requestId}`;
-}
-
-/** The "To review" rule: the request carries a seller action or sits in a pending-decision status. */
-export function needsSellerReview(request: AfterSaleRequestFacts): boolean {
-  return Boolean(request.sellerNextAction) || PENDING_DECISION_STATUSES.has(request.status ?? "");
 }
 
 export type AfterSaleReturnApproval =
@@ -123,7 +114,7 @@ const RETURN_DECISIONS = {
  * decision, and an unknown action is never guessed.
  */
 export function resolveAfterSaleDecision(request: AfterSaleRequestFacts): AfterSaleDecision | null {
-  if (!needsSellerReview(request)) return null;
+  if (!request.needsReview) return null;
   const { kind } = request;
   const action = request.sellerNextAction;
   if (action) {

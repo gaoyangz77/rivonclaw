@@ -8201,13 +8201,17 @@ export interface EcomAffiliateShop {
   name?: Maybe<Scalars["String"]["output"]>;
 }
 
-/** One cancellation, refund, return, replacement or exchange request (never an order), read from the warehouse facts. */
+/** One cancellation, refund, return, replacement or exchange request (never an order), read from the workspace's MongoDB state. */
 export interface EcomAfterSaleRequest {
   createTime: Scalars["DateTimeISO"]["output"];
   currency?: Maybe<Scalars["String"]["output"]>;
+  /** A recorded decision is waiting for the platform's next state of the request. */
+  decisionAwaitingPlatform: Scalars["Boolean"]["output"];
   isQuickRefund?: Maybe<Scalars["Boolean"]["output"]>;
   kind: EcomAfterSaleRequestKind;
   lines: Array<EcomAfterSaleRequestLine>;
+  /** The request is in To review: the platform asks the seller to decide and no recorded decision waits for the platform. */
+  needsReview: Scalars["Boolean"]["output"];
   orderId?: Maybe<Scalars["String"]["output"]>;
   reason?: Maybe<Scalars["String"]["output"]>;
   reasonText?: Maybe<Scalars["String"]["output"]>;
@@ -8220,6 +8224,9 @@ export interface EcomAfterSaleRequest {
   role?: Maybe<Scalars["String"]["output"]>;
   /** Platform deadline for the seller action. */
   sellerActionDeadline?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  sellerDecidedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** The seller's last decision TikTok accepted. */
+  sellerDecision?: Maybe<EcomAfterSaleSellerDecision>;
   /** Action the platform asks the seller to take. */
   sellerNextAction?: Maybe<Scalars["String"]["output"]>;
   shopId: Scalars["String"]["output"];
@@ -8289,6 +8296,15 @@ export interface EcomAfterSaleRequestsInput {
   view: EcomAfterSaleRequestView;
 }
 
+/** A seller decision TikTok accepted. PARTIAL_REFUND_OFFERED still waits for the buyer. */
+export const EcomAfterSaleSellerDecision = {
+  Approved: "APPROVED",
+  PartialRefundOffered: "PARTIAL_REFUND_OFFERED",
+  Rejected: "REJECTED",
+} as const;
+
+export type EcomAfterSaleSellerDecision =
+  (typeof EcomAfterSaleSellerDecision)[keyof typeof EcomAfterSaleSellerDecision];
 /** Aftersale eligibility for an order */
 export interface EcomAftersaleEligibility {
   skuEligibility?: Maybe<Array<EcomAftersaleSkuEligibility>>;

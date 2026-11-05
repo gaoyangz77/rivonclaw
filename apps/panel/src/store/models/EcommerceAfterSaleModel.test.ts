@@ -30,6 +30,10 @@ function dto(overrides: Record<string, unknown> = {}) {
     createTime: "2026-11-03T00:00:00Z",
     updateTime: "2026-11-03T01:00:00Z",
     lines: [{ lineItemId: "l1", productName: "Mug", refundTotal: "12.50", currency: "USD" }],
+    needsReview: true,
+    sellerDecision: null,
+    sellerDecidedAt: null,
+    decisionAwaitingPlatform: false,
     ...overrides,
   };
 }
@@ -134,6 +138,73 @@ describe("EcommerceAfterSaleModel list", () => {
   });
 });
 
+describe("EcommerceAfterSaleModel background refresh", () => {
+  it("re-reads the loaded rows without a loading state and replaces them", async () => {
+    let items = [dto({ requestId: "a" }), dto({ requestId: "b" })];
+    const { store, query } = setup({ query: () => page(items, null, items.length) });
+    await store.fetchRequests();
+    items = [dto({ requestId: "b" })];
+    const refresh = store.refreshInBackground();
+    expect(store.refreshing).toBe(true);
+    expect(store.loading).toBe(false);
+    await refresh;
+    expect(store.refreshing).toBe(false);
+    expect(store.requests.map((r) => r.requestId)).toEqual(["b"]);
+    expect(store.totalCount).toBe(1);
+    expect(query).toHaveBeenLastCalledWith(
+      expect.objectContaining({ variables: { input: { view: "TO_REVIEW", limit: 50 } } }),
+    );
+  });
+
+  it("asks for every loaded row once the seller loaded more than one page", async () => {
+    const first = Array.from({ length: 50 }, (_, i) => dto({ requestId: `a${i}` }));
+    const second = Array.from({ length: 10 }, (_, i) => dto({ requestId: `b${i}` }));
+    const { store, query } = setup({
+      query: ({ variables }) =>
+        variables.input.cursor ? page(second, null, 60) : page(first, "cur-1", 60),
+    });
+    await store.fetchRequests();
+    await store.fetchMore();
+    await store.refreshInBackground();
+    expect(query).toHaveBeenLastCalledWith(
+      expect.objectContaining({ variables: { input: { view: "TO_REVIEW", limit: 60 } } }),
+    );
+  });
+
+  it("does nothing while a detail is open or before the first load", async () => {
+    const { store, query } = setup({ query: () => page([dto()]) });
+    await store.refreshInBackground();
+    expect(query).not.toHaveBeenCalled();
+    await store.fetchRequests();
+    await store.openDetail("shop-1:REFUND:r1");
+    const calls = query.mock.calls.length;
+    await store.refreshInBackground();
+    expect(query.mock.calls.length).toBe(calls);
+  });
+
+  it("drops its answer when the seller changed the query meanwhile", async () => {
+    let resolveRefresh!: (value: unknown) => void;
+    let calls = 0;
+    const { store } = setup({
+      query: () => {
+        calls += 1;
+        if (calls === 2)
+          return new Promise((resolve) => {
+            resolveRefresh = resolve;
+          });
+        return page([dto({ requestId: calls === 1 ? "old" : "new" })]);
+      },
+    });
+    await store.fetchRequests();
+    const refresh = store.refreshInBackground();
+    store.setView("ALL");
+    await store.fetchRequests();
+    resolveRefresh(page([dto({ requestId: "stale" })]));
+    await refresh;
+    expect(store.requests.map((r) => r.requestId)).toEqual(["new"]);
+  });
+});
+
 describe("EcommerceAfterSaleModel detail", () => {
   const record = {
     event: "ORDER_RETURN",
@@ -197,9 +268,15 @@ describe("EcommerceAfterSaleModel decisions", () => {
   }
 
   it("approves a refund, re-reads the row by id and drops it from TO_REVIEW", async () => {
+    // TikTok's index still shows the pending state; the backend's decision record takes it out of review.
     const { store, mutate, query } = decisionSetup(
       {},
-      dto({ status: "RETURN_OR_REFUND_REQUEST_SUCCESS", sellerNextAction: null }),
+      dto({
+        needsReview: false,
+        sellerDecision: "APPROVED",
+        sellerDecidedAt: "2026-11-03T02:00:00Z",
+        decisionAwaitingPlatform: true,
+      }),
     );
     await store.fetchRequests();
     await store.openDetail("shop-1:REFUND:r1");
@@ -224,7 +301,11 @@ describe("EcommerceAfterSaleModel decisions", () => {
   it("keeps the updated row in the ALL view", async () => {
     const { store } = decisionSetup(
       {},
-      dto({ status: "RETURN_OR_REFUND_REQUEST_SUCCESS", sellerNextAction: null }),
+      dto({
+        status: "RETURN_OR_REFUND_REQUEST_SUCCESS",
+        sellerNextAction: null,
+        needsReview: false,
+      }),
     );
     store.setView("ALL");
     await store.fetchRequests();
@@ -269,7 +350,24 @@ describe("EcommerceAfterSaleModel decisions", () => {
     });
   });
 
-  it("reloads the list when the warehouse has no row for the decided request yet", async () => {
+  it("keeps a request TikTok still asks the seller to act on in TO_REVIEW", async () => {
+    const { store } = decisionSetup(
+      { kind: "RETURN_AND_REFUND", sellerNextAction: "SELLER_RESPOND_RETURN" },
+      dto({
+        kind: "RETURN_AND_REFUND",
+        status: "BUYER_SHIPPED_ITEM",
+        sellerNextAction: "SELLER_RESPOND_RECEIVE_PACKAGE",
+        sellerDecision: "APPROVED",
+      }),
+    );
+    await store.fetchRequests();
+    await store.openDetail("shop-1:RETURN_AND_REFUND:r1");
+    await store.approve();
+    expect(store.requests.map((r) => r.requestId)).toEqual(["r1", "other"]);
+    expect(store.requests[0].sellerNextAction).toBe("SELLER_RESPOND_RECEIVE_PACKAGE");
+  });
+
+  it("reloads the list when the workspace has no row for the decided request yet", async () => {
     const { store, query } = decisionSetup({}, null);
     await store.fetchRequests();
     await store.openDetail("shop-1:REFUND:r1");
@@ -307,6 +405,7 @@ describe("EcommerceAfterSaleModel decisions", () => {
         kind: "RETURN_AND_REFUND",
         status: "REFUND_OR_RETURN_REQUEST_REJECT",
         sellerNextAction: null,
+        needsReview: false,
       }),
     );
     await store.fetchRequests();

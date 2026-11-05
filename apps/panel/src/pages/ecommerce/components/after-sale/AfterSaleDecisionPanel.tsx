@@ -19,6 +19,7 @@ import {
 } from "../../../../lib/after-sale.js";
 import { useEntityStore } from "../../../../store/EntityStoreProvider.js";
 import type { AfterSaleRequestNode } from "../../../../store/models/EcommerceAfterSaleModel.js";
+import { afterSaleSellerDecisionLabel } from "../../after-sale-labels.js";
 
 const MB = 1024 * 1024;
 
@@ -44,6 +45,15 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
     onError: (message) => showToast(message, "error"),
   });
 
+  if (request.decisionAwaitingPlatform) {
+    return (
+      <p className="after-sale-muted">
+        {t("ecommerce.afterSale.decision.awaitingPlatform", {
+          decision: afterSaleSellerDecisionLabel(t, request.sellerDecision),
+        })}
+      </p>
+    );
+  }
   if (!request.needsReview) {
     return <p className="after-sale-muted">{t("ecommerce.afterSale.decision.notAwaiting")}</p>;
   }
