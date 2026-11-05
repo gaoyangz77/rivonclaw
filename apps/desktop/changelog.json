@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.9.51",
+    "date": "2026-11-05",
+    "en": [
+      "Show Creator performance snapshots in the Creator detail, the Creator list and the Creator export",
+      "Download every after-sale request matching the current filters as an Excel file"
+    ],
+    "zh": [
+      "达人详情、达人列表和达人导出中显示达人表现快照",
+      "售后工作台可将符合当前筛选条件的全部售后申请下载为 Excel 文件"
+    ]
+  },
+  {
     "version": "1.9.50",
     "date": "2026-11-05",
     "en": [
