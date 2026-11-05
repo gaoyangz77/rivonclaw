@@ -74,6 +74,28 @@ describe("EcommerceAfterSaleModel list", () => {
     );
   });
 
+  it("narrows TO_REVIEW by kind, but sends no status or action filter there", async () => {
+    const { store, query } = setup({ query: () => page([dto()]) });
+    const before = store.querySignature;
+    store.setKinds(["REFUND", "CANCELLATION"]);
+    store.setStatuses(["RETURN_OR_REFUND_REQUEST_PENDING"]);
+    expect(store.querySignature).not.toBe(before);
+    await store.fetchRequests();
+    expect(query).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        variables: { input: { view: "TO_REVIEW", kinds: ["REFUND", "CANCELLATION"] } },
+      }),
+    );
+    // The kind selection carries over to the history view.
+    store.setView("ALL");
+    await store.fetchRequests();
+    expect(query.mock.calls.at(-1)![0].variables.input).toMatchObject({
+      view: "ALL",
+      kinds: ["REFUND", "CANCELLATION"],
+      statuses: ["RETURN_OR_REFUND_REQUEST_PENDING"],
+    });
+  });
+
   it("appends the next page by cursor without duplicating rows", async () => {
     const first = [dto({ requestId: "a" }), dto({ requestId: "b" })];
     const second = [dto({ requestId: "b" }), dto({ requestId: "c" })];

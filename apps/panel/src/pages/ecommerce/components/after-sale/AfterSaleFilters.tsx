@@ -57,6 +57,16 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
           label={t("ecommerce.afterSale.filters.shops")}
           onChange={(next) => afterSale.setShopScope(next, shops.length)}
         />
+        <AffiliateChipMultiSelect
+          label={t("ecommerce.afterSale.filters.kinds")}
+          emptyLabel={matchAll}
+          options={AFTER_SALE_KINDS.map((kind) => ({
+            id: kind,
+            label: afterSaleKindLabel(t, kind),
+          }))}
+          selectedIds={[...afterSale.kinds]}
+          onChange={(next) => afterSale.setKinds(next)}
+        />
         {afterSale.view === "ALL" ? (
           <>
             <TkField
@@ -85,16 +95,6 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
       </div>
       {afterSale.view === "ALL" ? (
         <div className="after-sale-filter-row">
-          <AffiliateChipMultiSelect
-            label={t("ecommerce.afterSale.filters.kinds")}
-            emptyLabel={matchAll}
-            options={AFTER_SALE_KINDS.map((kind) => ({
-              id: kind,
-              label: afterSaleKindLabel(t, kind),
-            }))}
-            selectedIds={[...afterSale.kinds]}
-            onChange={(next) => afterSale.setKinds(next)}
-          />
           <AffiliateChipMultiSelect
             label={t("ecommerce.afterSale.filters.sellerActions")}
             emptyLabel={matchAll}

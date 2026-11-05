@@ -102,10 +102,54 @@
   color: var(--tk-v1-fg-muted);
 }
 
-.after-sale-detail {
+/* Detail modal: fixed title bar, a scrolling preview, and the action bar pinned under it. The
+   modal is padding="none"; the inset is declared once here and read by both regions. */
+.after-sale-detail-modal.modal-content {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.after-sale-detail {
+  --after-sale-detail-inset: var(--tk-v1-space-5);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.after-sale-detail-scroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: var(--tk-v1-space-5);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--after-sale-detail-inset);
+}
+
+.after-sale-action-bar {
+  flex: none;
+  padding: var(--tk-v1-space-4) var(--after-sale-detail-inset);
+  border-top: 1px solid var(--tk-v1-border-default);
+  background: var(--tk-v1-bg-surface);
+}
+
+.after-sale-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-3);
+}
+
+.after-sale-action-hint {
+  color: var(--tk-v1-fg-muted);
+}
+
+.after-sale-action-hint strong {
+  color: var(--tk-v1-fg-default);
 }
 
 .after-sale-detail h3 {
@@ -201,11 +245,6 @@
   padding: var(--tk-v1-space-4);
   border: 1px solid var(--tk-v1-border-subtle);
   border-radius: var(--tk-v1-radius-4);
-}
-
-.after-sale-detail-footer {
-  padding-top: var(--tk-v1-space-4);
-  border-top: 1px solid var(--tk-v1-border-subtle);
 }
 
 .after-sale-facts {

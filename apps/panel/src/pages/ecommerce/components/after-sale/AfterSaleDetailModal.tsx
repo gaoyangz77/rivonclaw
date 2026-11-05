@@ -196,35 +196,38 @@ const AfterSaleDetailBody = observer(function AfterSaleDetailBody({
 
   return (
     <div className="after-sale-detail">
-      <AfterSaleDetailSummary request={request} />
-      <div className="after-sale-detail-grid">
-        <div className="after-sale-detail-main">
-          <AfterSaleDetailLines request={request} />
-          <section>
-            <h3>{t(`${PREFIX}.detail.requestSection`)}</h3>
-            <dl className="after-sale-facts">
-              {facts.map(([label, value]) => (
-                <div key={label} className="after-sale-fact">
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-          <section>
-            <h3>{t(`${PREFIX}.detail.historySection`)}</h3>
-            {request.kind === "CANCELLATION" ? (
-              <p className="after-sale-muted">{t(`${PREFIX}.history.cancellationNone`)}</p>
-            ) : (
-              <AfterSaleHistory />
-            )}
-          </section>
+      <div className="after-sale-detail-scroll">
+        <AfterSaleDetailSummary request={request} />
+        <div className="after-sale-detail-grid">
+          <div className="after-sale-detail-main">
+            <AfterSaleDetailLines request={request} />
+            <section>
+              <h3>{t(`${PREFIX}.detail.requestSection`)}</h3>
+              <dl className="after-sale-facts">
+                {facts.map(([label, value]) => (
+                  <div key={label} className="after-sale-fact">
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+            <section>
+              <h3>{t(`${PREFIX}.detail.historySection`)}</h3>
+              {request.kind === "CANCELLATION" ? (
+                <p className="after-sale-muted">{t(`${PREFIX}.history.cancellationNone`)}</p>
+              ) : (
+                <AfterSaleHistory />
+              )}
+            </section>
+          </div>
+          <aside className="after-sale-detail-aside">
+            <AfterSaleOrderSection />
+          </aside>
         </div>
-        <aside className="after-sale-detail-aside">
-          <AfterSaleOrderSection />
-        </aside>
       </div>
-      <footer className="after-sale-detail-footer">
+      {/* The action area stays pinned under the scrolling preview; a rejection expands in it. */}
+      <footer className="after-sale-action-bar">
         <AfterSaleDecisionPanel request={request} />
       </footer>
     </div>
@@ -244,6 +247,8 @@ export const AfterSaleDetailModal = observer(function AfterSaleDetailModal() {
       }
       closeLabel={t("common.close")}
       maxWidth={1040}
+      padding="none"
+      className="after-sale-detail-modal"
     >
       {request ? <AfterSaleDetailBody request={request} /> : null}
     </TkModal>

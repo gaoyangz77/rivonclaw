@@ -161,6 +161,8 @@ describe("AfterSaleReviewPage", () => {
     expect(within(bodyRows[2]).getByText("Waiting 2d 0h")).toBeTruthy();
     expect(within(bodyRows[3]).getByText("2d 0h").className).not.toContain("urgent");
     expect(screen.getByText("4 requests")).toBeTruthy();
+    // The request-type filter is offered in "To review" too.
+    expect(screen.getByText("Request type")).toBeTruthy();
   });
 
   it("opens a return with its buyer evidence and offers approve and reject", async () => {
@@ -176,6 +178,9 @@ describe("AfterSaleReviewPage", () => {
     expect(within(dialog).getByRole("button", { name: "Approve refund" })).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Reject refund" })).toBeTruthy();
     expect(afterSale.detail.key).toBe("shop-1:REFUND:r1");
+    const bar = dialog.querySelector(".after-sale-action-bar")!;
+    expect(within(bar as HTMLElement).getByText("Respond to refund")).toBeTruthy();
+    expect(within(bar as HTMLElement).getByRole("button", { name: "Approve refund" })).toBeTruthy();
   });
 
   it("rejects with a reason, a comment and evidence images", async () => {
@@ -330,6 +335,11 @@ describe("AfterSaleReviewPage", () => {
     await waitFor(() => expect(afterSale.detail.rejectReasons).toHaveLength(1));
     expect(afterSale.detail.decisionMode).toBe("reject");
     expect(within(dialog).getByRole("button", { name: "Reject request" })).toBeTruthy();
+    // The form expands in the action bar pinned under the preview, not inside the scrolling preview.
+    const bar = dialog.querySelector(".after-sale-action-bar")!;
+    expect(bar.querySelector(".after-sale-reject-form")).toBeTruthy();
+    expect(dialog.querySelector(".after-sale-detail-scroll .after-sale-reject-form")).toBeNull();
+    expect(bar.closest(".after-sale-detail-scroll")).toBeNull();
   });
 
   it("copies the order id from the list without opening the row", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,11 +20,18 @@ import {
 } from "../../../../lib/after-sale.js";
 import { useEntityStore } from "../../../../store/EntityStoreProvider.js";
 import type { AfterSaleRequestNode } from "../../../../store/models/EcommerceAfterSaleModel.js";
-import { afterSaleKindLabel, afterSaleSellerDecisionLabel } from "../../after-sale-labels.js";
+import {
+  afterSaleKindLabel,
+  afterSaleSellerActionLabel,
+  afterSaleSellerDecisionLabel,
+} from "../../after-sale-labels.js";
 
 const MB = 1024 * 1024;
 
-/** Approve / reject controls for the open request, offered only when a backend decision maps to it. */
+/**
+ * The detail's action area: approve / reject for the open request, offered only when a backend
+ * decision maps to it. A rejection expands here into its form; the preview above stays scrollable.
+ */
 export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
   request,
 }: {
@@ -35,12 +42,6 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
   const afterSale = useEntityStore().ecommerceAfterSale;
   const detail = afterSale.detail;
   const fileInput = useRef<HTMLInputElement>(null);
-  const rejectForm = useRef<HTMLDivElement>(null);
-  const rejectOpen = detail.decisionMode === "reject";
-  // A reject started from the list opens the detail on this form, below the request: bring it in view.
-  useEffect(() => {
-    if (rejectOpen) rejectForm.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-  }, [rejectOpen]);
   const [preparingImages, setPreparingImages] = useState(false);
   // Unsaved evidence files are a draft: they live in React and are discarded when another request
   // opens or the reject form closes. Only base64 snapshots cross into the MST action.
@@ -100,7 +101,7 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
         </TkAlert>
       ) : null}
       {rejecting ? (
-        <div ref={rejectForm} className="after-sale-reject-form">
+        <div className="after-sale-reject-form">
           <h3>{t(`ecommerce.afterSale.actions.${labels.reject}`)}</h3>
           {detail.reasonsLoading ? (
             <TkLoadingState
@@ -199,22 +200,28 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
           </div>
         </div>
       ) : (
-        <div className="after-sale-decision-actions">
-          <TkButton
-            variant="danger"
-            disabled={detail.deciding}
-            onClick={() => afterSale.beginReject().catch(() => {})}
-          >
-            {t(`ecommerce.afterSale.actions.${labels.reject}`)}
-          </TkButton>
-          <TkButton
-            variant="primary"
-            disabled={detail.deciding}
-            aria-busy={detail.deciding || undefined}
-            onClick={() => afterSale.beginApprove()}
-          >
-            {approveLabel}
-          </TkButton>
+        <div className="after-sale-action-row">
+          <span className="after-sale-action-hint">
+            {t("ecommerce.afterSale.detail.fields.action")}:{" "}
+            <strong>{afterSaleSellerActionLabel(t, request.sellerNextAction)}</strong>
+          </span>
+          <div className="after-sale-decision-actions">
+            <TkButton
+              variant="danger"
+              disabled={detail.deciding}
+              onClick={() => afterSale.beginReject().catch(() => {})}
+            >
+              {t(`ecommerce.afterSale.actions.${labels.reject}`)}
+            </TkButton>
+            <TkButton
+              variant="primary"
+              disabled={detail.deciding}
+              aria-busy={detail.deciding || undefined}
+              onClick={() => afterSale.beginApprove()}
+            >
+              {approveLabel}
+            </TkButton>
+          </div>
         </div>
       )}
       <TkConfirmDialog

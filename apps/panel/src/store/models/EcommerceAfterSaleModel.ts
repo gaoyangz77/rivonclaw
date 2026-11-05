@@ -276,14 +276,10 @@ export const EcommerceAfterSaleModel = types
       return JSON.stringify([
         self.view,
         self.allShops ? null : [...self.shopIds],
+        // The kind filter applies to both views; status, action and window to ALL only.
+        [...self.kinds],
         self.view === "ALL"
-          ? [
-              [...self.kinds],
-              [...self.statuses],
-              [...self.sellerActions],
-              self.windowFrom,
-              self.windowTo,
-            ]
+          ? [[...self.statuses], [...self.sellerActions], self.windowFrom, self.windowTo]
           : null,
       ]);
     },
@@ -326,8 +322,8 @@ export const EcommerceAfterSaleModel = types
       const input: GQL.EcomAfterSaleRequestsInput = { view: self.view };
       if (!self.allShops) input.shopIds = [...self.shopIds];
       if (cursor) input.cursor = cursor;
+      if (self.kinds.length) input.kinds = [...self.kinds] as AfterSaleKind[];
       if (self.view === "ALL") {
-        if (self.kinds.length) input.kinds = [...self.kinds] as AfterSaleKind[];
         if (self.statuses.length) input.statuses = [...self.statuses];
         if (self.sellerActions.length) input.sellerActions = [...self.sellerActions];
         const to = startOfLocalDay(self.windowTo);
