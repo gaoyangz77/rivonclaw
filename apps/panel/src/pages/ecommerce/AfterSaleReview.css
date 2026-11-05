@@ -29,9 +29,13 @@
   font-size: var(--tk-v1-type-supporting);
 }
 
-.after-sale-table td.after-sale-product-cell {
-  width: 260px;
-  max-width: 260px;
+/* Table cells do not wrap, so an ellipsis-only field would be squeezed to nothing: it gets a width. */
+.after-sale-product-cell .commerce-compact-product-field {
+  width: 220px;
+}
+
+.after-sale-shop-cell {
+  max-width: 180px;
 }
 
 /* An id that copies itself on click (order, request, tracking number). */
@@ -52,6 +56,7 @@
 .after-sale-copy > span {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .after-sale-copy > svg {

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import {
@@ -35,6 +35,12 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
   const afterSale = useEntityStore().ecommerceAfterSale;
   const detail = afterSale.detail;
   const fileInput = useRef<HTMLInputElement>(null);
+  const rejectForm = useRef<HTMLDivElement>(null);
+  const rejectOpen = detail.decisionMode === "reject";
+  // A reject started from the list opens the detail on this form, below the request: bring it in view.
+  useEffect(() => {
+    if (rejectOpen) rejectForm.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }, [rejectOpen]);
   const [preparingImages, setPreparingImages] = useState(false);
   // Unsaved evidence files are a draft: they live in React and are discarded when another request
   // opens or the reject form closes. Only base64 snapshots cross into the MST action.
@@ -94,7 +100,7 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
         </TkAlert>
       ) : null}
       {rejecting ? (
-        <div className="after-sale-reject-form">
+        <div ref={rejectForm} className="after-sale-reject-form">
           <h3>{t(`ecommerce.afterSale.actions.${labels.reject}`)}</h3>
           {detail.reasonsLoading ? (
             <TkLoadingState

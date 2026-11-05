@@ -126,7 +126,7 @@ const AfterSaleRow = observer(function AfterSaleRow({
           "-"
         )}
       </td>
-      <td>
+      <td className="after-sale-shop-cell">
         <TkPrivate sensitive={shop.sensitive} className="tk-v1-table-truncate" title={shop.text}>
           {shop.text}
         </TkPrivate>

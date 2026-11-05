@@ -138,7 +138,7 @@ export const AfterSaleOrderSection = observer(function AfterSaleOrderSection() {
       </dl>
 
       <h4>{t(`${prefix}.shipping`)}</h4>
-      <dl className="after-sale-facts">
+      <dl className="after-sale-facts after-sale-facts-stacked">
         <Fact label={t(`${prefix}.carrier`)}>{carrier || "-"}</Fact>
         <Fact label={t(`${prefix}.trackingNumber`)}>
           {trackingNumber ? (
