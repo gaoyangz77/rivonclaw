@@ -778,6 +778,8 @@ describe("Creator Detail for a business developer (ADR 085)", () => {
 
 describe("Creator detail loads only visible collections", () => {
   const summary = "AffiliateCreatorRelationshipDetail";
+  // The overview inspector sits beside every tab and captions the performance snapshot.
+  const freshness = "AffiliateCreatorPerformanceProjectionStates";
   function queried() { return [...new Set(state.calls.map(c => c.operation))].sort(); }
   it.each([
     ["conversation", ["AffiliateCreatorMessageHistory", "AffiliateChatCampaignTemplates"]],
@@ -788,7 +790,7 @@ describe("Creator detail loads only visible collections", () => {
     ["activity", ["AffiliateRelationshipTimeline"]],
   ] as const)("opens %s without querying other tabs", (tab, operations) => {
     render(view("creator", tab));
-    expect(queried()).toEqual([summary, ...operations].sort());
+    expect(queried()).toEqual([summary, freshness, ...operations].sort());
     // Collection counts remain available before their tabs have been opened.
     expect(screen.getByRole("tab", { name: /^样品申请/ }).textContent).toContain("7");
     expect(screen.getByRole("tab", { name: /^平台合作/ }).textContent).toContain("9");

@@ -457,7 +457,9 @@
   position: relative;
   display: grid;
   grid-template-columns: var(--affiliate-creator-columns);
-  grid-template-areas: "identity relationship metrics status owner";
+  grid-template-areas:
+    "identity relationship metrics status owner"
+    "performance performance performance performance performance";
   align-items: center;
   min-width: 0;
   overflow: hidden;
@@ -787,7 +789,7 @@
 
   .affiliate-page-frame .affiliate-creator-compact-card {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-    grid-template-areas: "identity relationship" "metrics status" "owner owner";
+    grid-template-areas: "identity relationship" "metrics status" "owner owner" "performance performance";
   }
 
   .affiliate-page-frame .affiliate-creator-compact-metrics,
@@ -808,7 +810,7 @@
 @container (max-width: 640px) {
   .affiliate-page-frame .affiliate-creator-compact-card {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "identity" "relationship" "metrics" "status" "owner";
+    grid-template-areas: "identity" "relationship" "metrics" "status" "owner" "performance";
   }
 
   .affiliate-page-frame .affiliate-creator-compact-card > section,

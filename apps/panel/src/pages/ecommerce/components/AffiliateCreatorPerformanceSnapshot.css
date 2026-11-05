@@ -1,0 +1,62 @@
+.affiliate-creator-snapshot-caption {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
+}
+
+.affiliate-creator-snapshot-card {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+}
+
+.affiliate-creator-snapshot-fields,
+.affiliate-page-frame .affiliate-creator-compact-performance {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: var(--tk-v1-space-3) var(--tk-v1-space-4);
+  margin: 0;
+}
+
+.affiliate-creator-snapshot-fields > div,
+.affiliate-page-frame .affiliate-creator-compact-performance > div {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--tk-v1-space-1);
+}
+
+.affiliate-creator-snapshot-fields dt,
+.affiliate-page-frame .affiliate-creator-compact-performance dt {
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: var(--tk-v1-line-supporting);
+}
+
+.affiliate-creator-snapshot-fields dd,
+.affiliate-page-frame .affiliate-creator-compact-performance dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-supporting);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.affiliate-creator-snapshot-limits {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-micro);
+  line-height: var(--tk-v1-line-micro);
+}
+
+/* Creator list: a full-width row under the existing columns, separated like the other cells. */
+.affiliate-page-frame .affiliate-creator-compact-performance {
+  grid-area: performance;
+  border-top: 1px dashed var(--affiliate-line);
+}
+
+.affiliate-creator-compact-list-caption {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-4);
+  background: var(--affiliate-panel-muted);
+}

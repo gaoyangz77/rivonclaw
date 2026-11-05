@@ -1,5 +1,8 @@
 export const AFFILIATE_CREATOR_EXPORT_COPY = {
   en: {
+    templateReadOnly: "Read-only",
+    templatePerformanceHint:
+      "Read-only reference from the Creator performance snapshot, as of the export. Ignored on upload; do not edit.",
     creatorUpdateIntro:
       "Export filtered Creators, edit the spreadsheet, then upload it here. Update BD only or all template fields.",
     creatorExport: "Export filtered Creators",
@@ -16,6 +19,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
       "Update only BD assignments. Protection, tags and notes stay unchanged. A blank BD returns the Creator to Public creators.",
   },
   zh: {
+    templateReadOnly: "只读",
+    templatePerformanceHint:
+      "来自达人业绩快照的只读参考数据，截至导出时。上传时会被忽略，请勿修改。",
     creatorUpdateIntro:
       "导出合作达人的筛选结果，修改表格后在这里重新上传。可仅更新 BD，也可更新全部模板字段。",
     creatorExport: "导出当前筛选的达人",
@@ -31,6 +37,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
     creatorUpdateBdOnlyHint: "只修改 BD 分配，保护、标签和备注保持不变。BD 留空则回到公共达人。",
   },
   de: {
+    templateReadOnly: "Nur lesen",
+    templatePerformanceHint:
+      "Schreibgeschützte Referenz aus dem Creator-Leistungsstand zum Exportzeitpunkt. Wird beim Upload ignoriert; nicht ändern.",
     creatorUpdateIntro:
       "Gefilterte Creator exportieren, die Tabelle bearbeiten und hier hochladen. Nur BD oder alle Vorlagenfelder aktualisieren.",
     creatorExport: "Gefilterte Creator exportieren",
@@ -47,6 +56,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
       "Nur BD-Zuweisungen ändern. Schutz, Tags und Notizen bleiben unverändert. Ein leeres BD-Feld gibt den Creator an Öffentliche Creator zurück.",
   },
   es: {
+    templateReadOnly: "Solo lectura",
+    templatePerformanceHint:
+      "Referencia de solo lectura del resumen de rendimiento del creador al exportar. Se ignora al subir; no la edite.",
     creatorUpdateIntro:
       "Exporta los creadores filtrados, edita la hoja y súbela aquí. Actualiza solo BD o todos los campos de la plantilla.",
     creatorExport: "Exportar creadores filtrados",
@@ -63,6 +75,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
       "Cambiar solo la asignación de BD. La protección, las etiquetas y las notas no cambian. Un BD vacío devuelve al creador a Creadores públicos.",
   },
   fr: {
+    templateReadOnly: "Lecture seule",
+    templatePerformanceHint:
+      "Référence en lecture seule issue de l’aperçu des performances du créateur à l’export. Ignorée au téléversement ; ne pas modifier.",
     creatorUpdateIntro:
       "Exportez les créateurs filtrés, modifiez le tableau puis importez-le ici. Mettez à jour le BD uniquement ou tous les champs du modèle.",
     creatorExport: "Exporter les créateurs filtrés",
@@ -79,6 +94,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
       "Modifier uniquement le BD. La protection, les tags et les notes restent inchangés. Un BD vide renvoie le créateur à Créateurs publics.",
   },
   id: {
+    templateReadOnly: "Hanya baca",
+    templatePerformanceHint:
+      "Referensi hanya baca dari ringkasan performa kreator saat ekspor. Diabaikan saat unggah; jangan diubah.",
     creatorUpdateIntro:
       "Ekspor kreator yang difilter, edit spreadsheet, lalu unggah di sini. Perbarui hanya BD atau semua kolom template.",
     creatorExport: "Ekspor kreator yang difilter",
@@ -95,6 +113,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
       "Hanya ubah penugasan BD. Perlindungan, tag, dan catatan tidak berubah. BD kosong mengembalikan kreator ke Kreator publik.",
   },
   it: {
+    templateReadOnly: "Sola lettura",
+    templatePerformanceHint:
+      "Riferimento in sola lettura dal riepilogo prestazioni del creator al momento dell’esportazione. Ignorato al caricamento; non modificare.",
     creatorUpdateIntro:
       "Esporta i creator filtrati, modifica il foglio e caricalo qui. Aggiorna solo BD o tutti i campi del modello.",
     creatorExport: "Esporta i creator filtrati",
@@ -111,6 +132,9 @@ export const AFFILIATE_CREATOR_EXPORT_COPY = {
       "Modifica solo l’assegnazione BD. Protezione, tag e note restano invariati. Un BD vuoto riporta il creator a Creator pubblici.",
   },
   th: {
+    templateReadOnly: "อ่านอย่างเดียว",
+    templatePerformanceHint:
+      "ข้อมูลอ้างอิงแบบอ่านอย่างเดียวจากสรุปผลงานครีเอเตอร์ ณ เวลาส่งออก จะถูกละเว้นเมื่ออัปโหลด ห้ามแก้ไข",
     creatorUpdateIntro:
       "ส่งออกครีเอเตอร์ตามตัวกรอง แก้ไขตารางแล้วอัปโหลดที่นี่ อัปเดตเฉพาะ BD หรือทุกฟิลด์ในเทมเพลต",
     creatorExport: "ส่งออกครีเอเตอร์ตามตัวกรอง",

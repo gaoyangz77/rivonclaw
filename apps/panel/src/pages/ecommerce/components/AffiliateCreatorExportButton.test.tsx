@@ -48,7 +48,18 @@ it("keeps the clicked filters across pages even when the user changes BD while e
         },
       },
     })
-    .mockResolvedValueOnce({ data: { creatorManualTags: [] } });
+    .mockResolvedValueOnce({ data: { creatorManualTags: [] } })
+    .mockResolvedValueOnce({
+      data: {
+        affiliateCreatorPerformanceProjectionStates: [
+          {
+            shopId: "shop-1",
+            sourceCutoffAt: "2026-11-04T16:00:00.000Z",
+            windowEndDate: "2026-11-04T00:00:00.000Z",
+          },
+        ],
+      },
+    });
   const input = { businessDeveloperId: "old-bd", manualTagIds: ["tag-1"], shopId: "shop-1" };
   const view = render(<AffiliateCreatorExportButton input={input} />);
   fireEvent.click(screen.getByRole("button", { name: "导出当前筛选的达人" }));
@@ -80,6 +91,14 @@ it("keeps the clicked filters across pages even when the user changes BD while e
   expect(filename).toBe("affiliate-creator-bulk-update.xlsx");
   expect(workbook.worksheets[0].rowCount).toBe(3);
   expect(workbook.worksheets[0].getCell("B2").value).toBe("6905667682868806661");
+  // The clicked single-shop scope decides which watermark captions the export,
+  // not the filter the user changed afterwards.
+  expect(mocks.query.mock.calls[3][0].variables).toEqual({ shopIds: ["shop-1"] });
+  const header = workbook.worksheets[0].getRow(1).values as unknown[];
+  expect(header).toContain("performance_data_as_of");
+  expect(workbook.worksheets[0].getRow(2).getCell(header.indexOf("performance_data_as_of")).value).toBe(
+    "2026-11-04T16:00:00.000Z",
+  );
   expect(mocks.toast).not.toHaveBeenCalled();
 });
 
@@ -117,7 +136,8 @@ it("downloads the uploadable rows and reports Creators skipped for lacking a Tik
         },
       },
     })
-    .mockResolvedValueOnce({ data: { creatorManualTags: [] } });
+    .mockResolvedValueOnce({ data: { creatorManualTags: [] } })
+    .mockResolvedValueOnce({ data: { affiliateCreatorPerformanceProjectionStates: [] } });
   render(<AffiliateCreatorExportButton input={{}} />);
   fireEvent.click(screen.getByRole("button", { name: "导出当前筛选的达人" }));
   await waitFor(() => expect(mocks.download).toHaveBeenCalledTimes(1));

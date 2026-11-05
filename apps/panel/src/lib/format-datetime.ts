@@ -68,6 +68,24 @@ export function formatLocalizedDate(
   return formatLocalized(value, panelLocale, options, fallback);
 }
 
+/**
+ * Calendar date of a day-precision value that arrives as a UTC-midnight instant
+ * (warehouse `ds` dates). Formatting in the viewer's timezone would show the
+ * previous day west of UTC, so the calendar date is read in UTC.
+ */
+export function formatLocalizedCalendarDate(
+  value: LocalizedDateTimeValue,
+  panelLocale: string,
+  fallback = "—",
+): string {
+  return formatLocalized(
+    value,
+    panelLocale,
+    { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" },
+    fallback,
+  );
+}
+
 /** Time only for chart axes and recently-refreshed labels. */
 export function formatLocalizedTime(
   value: LocalizedDateTimeValue,

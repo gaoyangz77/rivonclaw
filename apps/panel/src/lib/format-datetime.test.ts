@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatLocalizedCalendarDate,
   formatLocalizedDate,
   formatLocalizedDateTime,
   formatLocalizedMonthDay,
@@ -37,5 +38,16 @@ describe("localized panel date/time formatting", () => {
   it("returns a stable empty value for missing or invalid input", () => {
     expect(formatLocalizedDateTime(null, "en")).toBe("—");
     expect(formatLocalizedDateTime("not-a-date", "zh")).toBe("—");
+  });
+});
+
+describe("formatLocalizedCalendarDate", () => {
+  it("reads a UTC-midnight date-only value as that calendar day", () => {
+    expect(formatLocalizedCalendarDate("2026-10-30T00:00:00.000Z", "en")).toBe("Oct 30, 2026");
+    expect(formatLocalizedCalendarDate("2026-10-30T00:00:00.000Z", "zh")).toBe("2026年10月30日");
+  });
+  it("falls back for an absent or invalid value", () => {
+    expect(formatLocalizedCalendarDate(null, "en")).toBe("—");
+    expect(formatLocalizedCalendarDate("not a date", "en")).toBe("—");
   });
 });

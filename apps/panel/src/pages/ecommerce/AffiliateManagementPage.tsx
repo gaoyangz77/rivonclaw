@@ -117,6 +117,11 @@ import { formatAffiliateActor } from "../../lib/affiliate-actor.js";
 import { AffiliateTeamPage } from "./AffiliateTeamPage.js";
 import { sortAffiliateSamplesPendingFirst } from "./affiliate-sample-order.js";
 import {
+  CreatorPerformanceCaption,
+  CreatorPerformanceCompactRow,
+  CreatorPerformanceSnapshotCard,
+} from "./components/AffiliateCreatorPerformanceSnapshot.js";
+import {
   CreatorDetailScopeControl,
   CreatorGlobalInformation,
 } from "./components/CreatorDetailScopeControl.js";
@@ -3681,6 +3686,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               <span>{t("ecommerce.affiliateWorkspace.workbench.colStatus")}</span>
               <span>{t("ecommerce.affiliateTeam.businessDeveloper")}</span>
             </div>
+            <div className="affiliate-creator-compact-list-caption">
+              <CreatorPerformanceCaption scopeShopId={selectedShopId} />
+            </div>
             {creatorItems.map((item) => (
               <CreatorRelationshipCompactCard
                 key={item.creatorId}
@@ -3695,6 +3703,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                   businessDeveloperOnly ? null : setDetailBusinessDeveloperId
                 }
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
+                scopeShopId={selectedShopId}
               />
             ))}
             {creatorPage > 1 || hasMoreCreators ? (
@@ -3754,8 +3763,10 @@ function CreatorRelationshipCompactCard({
   businessDeveloper,
   onOpenBusinessDeveloper,
   onOpenRelationship,
+  scopeShopId,
 }: {
   item: AffiliateCreatorManagementItem;
+  scopeShopId: string;
   shopLabel: (shopId: string) => ShopDisplayLabel;
   businessDeveloper: GQL.AffiliateBusinessDeveloper | null;
   /** Null when the viewer may not open the BD roster detail (a BD-only member). */
@@ -4019,6 +4030,8 @@ function CreatorRelationshipCompactCard({
           </span>
         )}
       </section>
+
+      <CreatorPerformanceCompactRow source={item.creatorRelation} scopeShopId={scopeShopId} />
     </article>
   );
 }
@@ -11853,6 +11866,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                   <p className="affiliate-relationship-creator-bio">{marketplaceBio}</p>
                 ) : null}
               </section>
+            ) : null}
+            {contextInspectorSection === "overview" ? (
+              <CreatorPerformanceSnapshotCard source={relationship} scopeShopId={scopeShopId} />
             ) : null}
             {contextInspectorSection !== "overview" ? <CreatorGlobalInformation /> : null}
             {contextInspectorOpen && contextInspectorSection === "contacts" && relationshipId ? (

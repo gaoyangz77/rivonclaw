@@ -2625,6 +2625,30 @@ export interface AffiliateCreatorPerformanceMoneyMetric {
   window: Scalars["String"]["output"];
 }
 
+/** Per-shop freshness of the Creator performance projection: every Creator of the shop is correct as of sourceCutoffAt, and its 90-day window ends on windowEndDate. */
+export interface AffiliateCreatorPerformanceProjectionState {
+  shopId: Scalars["ID"]["output"];
+  sourceCutoffAt: Scalars["DateTimeISO"]["output"];
+  syncedAt: Scalars["DateTimeISO"]["output"];
+  /** Last day of the 90-day window, as UTC midnight. */
+  windowEndDate: Scalars["DateTimeISO"]["output"];
+}
+
+/** Seller-wide rollup of a Creator's shop performance snapshots: latest dates, summed counts, and summed USD GMV. Native GMV is not rolled up because shops can bill in different currencies. */
+export interface AffiliateCreatorPerformanceRollup {
+  contentCount90d: Scalars["Int"]["output"];
+  grossGmvUsd90d: Scalars["Float"]["output"];
+  lastContentDate?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  lastOrderDate?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  lastSampleShippedDate?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  netGmvUsd90d: Scalars["Float"]["output"];
+  orderCount90d: Scalars["Int"]["output"];
+  shippedSampleCount: Scalars["Int"]["output"];
+  /** Number of shops that contributed a snapshot. */
+  shopCount: Scalars["Int"]["output"];
+  syncedAt: Scalars["DateTimeISO"]["output"];
+}
+
 /** A platform-reported share, preserved as a 0..1 ratio without renormalization. */
 export interface AffiliateCreatorPerformanceShare {
   key: Scalars["String"]["output"];
@@ -2798,6 +2822,8 @@ export interface AffiliateCreatorRelationship {
   /** The manual tags named by manualTagIds, resolved to their current catalog rows. */
   manualTags: Array<CreatorManualTag>;
   operationalConfigRevision: Scalars["Int"]["output"];
+  /** Warehouse performance rolled up across the shop snapshots. Null until the first projection reaches this Creator. */
+  performanceSnapshot?: Maybe<AffiliateCreatorPerformanceRollup>;
   sellerNote?: Maybe<Scalars["String"]["output"]>;
   /** Seller-maintained UID note; not a provider identity key. */
   sellerProvidedUid?: Maybe<Scalars["String"]["output"]>;
@@ -2863,6 +2889,8 @@ export interface AffiliateCreatorRelationshipShopState {
   lastContactedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   lastInvitedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   lastQualifiedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Warehouse performance of this Creator at this shop. Null until the first projection reaches it; the projection never adds a shop state. */
+  performanceSnapshot?: Maybe<AffiliateCreatorShopPerformanceSnapshot>;
   /** How far this Creator has climbed the sample review path at this shop. Absent means no rung reached, which is not the lowest rung. */
   sampleTier?: Maybe<CreatorSampleTier>;
   shopId: Scalars["ID"]["output"];
@@ -2897,6 +2925,25 @@ export interface AffiliateCreatorSampleApplicationListPayload {
   username?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** Warehouse snapshot of one Creator's affiliate performance at one shop, computed over the 90-day window ending at the shop's data-as-of date. Dates have day precision (UTC midnight). Content covers Sample-linked content only; the ship date exists only for shipments observed from 2026-07-22; shippedSampleCount includes buy-back samples. sourceCutoffAt is when these values last changed, not how fresh they are: freshness is AffiliateCreatorPerformanceProjectionState. */
+export interface AffiliateCreatorShopPerformanceSnapshot {
+  contentCount90d: Scalars["Int"]["output"];
+  /** Shop currency of the native GMV. Set together with the two native amounts, only when the window has a single currency. */
+  gmvNativeCurrency?: Maybe<Scalars["String"]["output"]>;
+  grossGmvNative90d?: Maybe<Scalars["Float"]["output"]>;
+  grossGmvUsd90d: Scalars["Float"]["output"];
+  lastContentDate?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  lastOrderDate?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  lastSampleShippedDate?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  netGmvNative90d?: Maybe<Scalars["Float"]["output"]>;
+  /** GMV after refunds, in USD. */
+  netGmvUsd90d: Scalars["Float"]["output"];
+  orderCount90d: Scalars["Int"]["output"];
+  shippedSampleCount: Scalars["Int"]["output"];
+  sourceCutoffAt: Scalars["DateTimeISO"]["output"];
+  syncedAt: Scalars["DateTimeISO"]["output"];
+}
+
 /** Backend-defined, user-overridable Creator relationship tags with explicit business semantics. */
 export const AffiliateCreatorSystemTag = {
   NoCampaignDisturb: "NO_CAMPAIGN_DISTURB",
@@ -2928,10 +2975,14 @@ export interface AffiliateCreatorUpdateExportRow {
   businessDeveloperName?: Maybe<Scalars["String"]["output"]>;
   creatorRelationshipId: Scalars["ID"]["output"];
   manualTagNames: Array<Scalars["String"]["output"]>;
+  /** Seller-wide performance rollup (ADR-101), read-only context for the export. Null until the projection reaches the Creator. The bulk uploader ignores it. */
+  performanceSnapshot?: Maybe<AffiliateCreatorPerformanceRollup>;
   protect: Scalars["Boolean"]["output"];
   protectionNote?: Maybe<Scalars["String"]["output"]>;
   sellerNote?: Maybe<Scalars["String"]["output"]>;
   sellerProvidedUid?: Maybe<Scalars["String"]["output"]>;
+  /** That shop's performance snapshot (ADR-101). Set only when the export is scoped to exactly one shop and the projection has reached the Creator at it. */
+  shopPerformanceSnapshot?: Maybe<AffiliateCreatorShopPerformanceSnapshot>;
   username: Scalars["String"]["output"];
 }
 
@@ -12281,6 +12332,8 @@ export interface Mutation {
   reportAffiliateCampaignSearchPlanGenerationFailure: Scalars["Boolean"]["output"];
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars["Boolean"]["output"];
+  /** Ask the Affiliate Agent to draft this one Relationship now, outside its owner's draft buffer. The Relationship's own blockers still apply: a Relationship that already has a pending or approved proposal gets no second draft. The draft arrives as an ordinary proposal push. */
+  requestAffiliateAgentDraft: AffiliateCreatorRelationshipStatePayload;
   /** Request a new captcha challenge */
   requestCaptcha: CaptchaResponse;
   /** Request one user's authenticated desktop client to upload its current local log (admin only) */
@@ -13196,6 +13249,10 @@ export interface MutationReportAffiliateCampaignSearchPlanGenerationFailureArgs 
 
 export interface MutationReportDevicePresenceProbeArgs {
   input: AdminDevicePresenceProbeResponseInput;
+}
+
+export interface MutationRequestAffiliateAgentDraftArgs {
+  creatorRelationshipId: Scalars["ID"]["input"];
 }
 
 export interface MutationRequestCaptchaArgs {
@@ -14231,6 +14288,8 @@ export interface Query {
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
   affiliateCreatorMessageHistory: AffiliateCreatorMessageHistoryPayload;
+  /** Per-shop data-as-of times of the Creator performance projection, for the signed-in seller's authorized shops. A shop with no row has not received a watermark yet. Omit shopIds for every authorized shop. */
+  affiliateCreatorPerformanceProjectionStates: Array<AffiliateCreatorPerformanceProjectionState>;
   /** Single authoritative Creator profile read. MongoDB is preferred; missing or stale market data is refreshed through a current-user same-market shop. */
   affiliateCreatorProfile: AffiliateCreatorProfilePayload;
   affiliateCreatorProtections: AffiliateCreatorProtectionPage;
@@ -14698,6 +14757,10 @@ export interface QueryAffiliateCreatorContactStateArgs {
 
 export interface QueryAffiliateCreatorMessageHistoryArgs {
   input: AffiliateCreatorMessageHistoryInput;
+}
+
+export interface QueryAffiliateCreatorPerformanceProjectionStatesArgs {
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 }
 
 export interface QueryAffiliateCreatorProfileArgs {

@@ -26,9 +26,27 @@ export const AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS = [
  */
 export const AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER = "source_row";
 export const AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER = "failure_reason";
+/**
+ * Read-only performance-snapshot columns (ADR-101) that trail a Creator export.
+ * They are reference data for the seller: the template validator accepts them,
+ * the row parser never reads them, and a failed-rows export drops them (the
+ * values would be stale by the time the fixed file is uploaded).
+ */
+export const AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS = [
+  "last_content_date",
+  "last_order_date",
+  "last_sample_shipped_date",
+  "shipped_sample_count",
+  "content_count_90d",
+  "order_count_90d",
+  "gmv_90d",
+  "gmv_90d_currency",
+  "performance_data_as_of",
+] as const;
 export const AFFILIATE_CREATOR_UPDATE_EXPORT_ONLY_HEADERS: readonly string[] = [
   AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
   AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
+  ...AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS,
 ];
 
 const REQUIRED_CREATOR_UPDATE_HEADERS = [

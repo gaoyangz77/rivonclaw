@@ -3,6 +3,7 @@ import { useApolloClient } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
 import {
+  AFFILIATE_CREATOR_PERFORMANCE_PROJECTION_STATES_QUERY,
   AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY,
   CREATOR_MANUAL_TAGS_QUERY,
 } from "../../../api/shops-queries.js";
@@ -14,6 +15,7 @@ import {
   downloadAffiliateCreatorWorkbook,
 } from "../affiliate-creator-export.js";
 import { buildAffiliateCreatorUpdateTemplateWorkbook } from "../affiliate-creator-update-template.js";
+import { resolveCreatorPerformanceFreshness } from "../creator-performance-snapshot.js";
 
 export function AffiliateCreatorExportButton({ input }: { input: GQL.ReadAffiliateCreatorsInput }) {
   const client = useApolloClient();
@@ -55,21 +57,39 @@ export function AffiliateCreatorExportButton({ input }: { input: GQL.ReadAffilia
         );
         return;
       }
-      const [catalog, { default: ExcelJS }] = await Promise.all([
+      // The export is scoped to one shop only when the list filter names one.
+      const scopeShopId = scope.shopId ?? "";
+      const [catalog, projection, { default: ExcelJS }] = await Promise.all([
         client.query<{ creatorManualTags: GQL.CreatorManualTag[] }>({
           query: CREATOR_MANUAL_TAGS_QUERY,
           fetchPolicy: "no-cache",
           context: { fetchOptions: { signal: controller.signal } },
         }),
+        client.query<{
+          affiliateCreatorPerformanceProjectionStates: GQL.AffiliateCreatorPerformanceProjectionState[];
+        }>({
+          query: AFFILIATE_CREATOR_PERFORMANCE_PROJECTION_STATES_QUERY,
+          variables: { shopIds: scopeShopId ? [scopeShopId] : null },
+          fetchPolicy: "no-cache",
+          context: { fetchOptions: { signal: controller.signal } },
+        }),
         import("exceljs"),
       ]);
-      if (!catalog.data) throw new Error(t("ecommerce.updateFailed"));
+      if (!catalog.data || !projection.data) throw new Error(t("ecommerce.updateFailed"));
       if (controller.signal.aborted) return;
       const workbook = buildAffiliateCreatorUpdateTemplateWorkbook(
         ExcelJS,
         t,
         catalog.data.creatorManualTags.map((tag) => tag.name),
         rows,
+        {
+          scopeShopId,
+          dataAsOf:
+            resolveCreatorPerformanceFreshness(
+              projection.data.affiliateCreatorPerformanceProjectionStates,
+              scopeShopId,
+            )?.cutoffAt ?? null,
+        },
       );
       await downloadAffiliateCreatorWorkbook(workbook, "affiliate-creator-bulk-update.xlsx");
       if (skippedWithoutUsernameCount) {

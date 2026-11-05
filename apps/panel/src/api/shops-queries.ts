@@ -2832,7 +2832,48 @@ export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
   }
 `;
 
+/** ADR-101 Creator performance snapshot fields, shared by the list, detail and export. */
+export const AFFILIATE_CREATOR_PERFORMANCE_FRAGMENTS = gql`
+  fragment AffiliateCreatorPerformanceRollupFields on AffiliateCreatorPerformanceRollup {
+    lastContentDate
+    lastOrderDate
+    lastSampleShippedDate
+    shippedSampleCount
+    contentCount90d
+    orderCount90d
+    netGmvUsd90d
+    shopCount
+  }
+
+  fragment AffiliateCreatorShopPerformanceFields on AffiliateCreatorShopPerformanceSnapshot {
+    lastContentDate
+    lastOrderDate
+    lastSampleShippedDate
+    shippedSampleCount
+    contentCount90d
+    orderCount90d
+    netGmvUsd90d
+    netGmvNative90d
+    gmvNativeCurrency
+  }
+`;
+
+/**
+ * Per-shop "data as of" time of the Creator performance snapshot. A Creator's own
+ * snapshot timestamp only says when its values last changed, so it is never the caption.
+ */
+export const AFFILIATE_CREATOR_PERFORMANCE_PROJECTION_STATES_QUERY = gql`
+  query AffiliateCreatorPerformanceProjectionStates($shopIds: [ID!]) {
+    affiliateCreatorPerformanceProjectionStates(shopIds: $shopIds) {
+      shopId
+      sourceCutoffAt
+      windowEndDate
+    }
+  }
+`;
+
 export const AFFILIATE_CREATORS_QUERY = gql`
+  ${AFFILIATE_CREATOR_PERFORMANCE_FRAGMENTS}
   query AffiliateCreators($input: ReadAffiliateCreatorsInput!) {
     affiliateCreators(input: $input) {
       offset
@@ -2942,12 +2983,18 @@ export const AFFILIATE_CREATORS_QUERY = gql`
             externalWaitingCount
             nextActionAt
           }
+          performanceSnapshot {
+            ...AffiliateCreatorPerformanceRollupFields
+          }
           shopStates {
             shopId
             sampleTier
             lastContactedAt
             lastInvitedAt
             lastQualifiedAt
+            performanceSnapshot {
+              ...AffiliateCreatorShopPerformanceFields
+            }
           }
           updatedAt
         }
@@ -3061,6 +3108,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
 `;
 
 export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
+  ${AFFILIATE_CREATOR_PERFORMANCE_FRAGMENTS}
   query AffiliateCreatorRelationshipDetail($input: AffiliateCreatorRelationshipDetailInput!) {
     affiliateCreatorRelationshipDetail(input: $input) {
       viewerCanPerformDailyOperations
@@ -3217,12 +3265,18 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
           externalWaitingCount
           nextActionAt
         }
+        performanceSnapshot {
+          ...AffiliateCreatorPerformanceRollupFields
+        }
         shopStates {
           shopId
           sampleTier
           lastContactedAt
           lastInvitedAt
           lastQualifiedAt
+          performanceSnapshot {
+            ...AffiliateCreatorShopPerformanceFields
+          }
         }
         updatedAt
       }
@@ -5456,6 +5510,7 @@ export const AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY = gql`
 `;
 
 export const AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY = gql`
+  ${AFFILIATE_CREATOR_PERFORMANCE_FRAGMENTS}
   query AffiliateCreatorUpdateExportPage($input: ReadAffiliateCreatorsInput!) {
     affiliateCreatorUpdateExportPage(input: $input) {
       items {
@@ -5467,6 +5522,12 @@ export const AFFILIATE_CREATOR_UPDATE_EXPORT_PAGE_QUERY = gql`
         protect
         protectionNote
         manualTagNames
+        performanceSnapshot {
+          ...AffiliateCreatorPerformanceRollupFields
+        }
+        shopPerformanceSnapshot {
+          ...AffiliateCreatorShopPerformanceFields
+        }
       }
       hasMore
       offset

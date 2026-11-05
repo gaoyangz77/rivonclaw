@@ -1,12 +1,17 @@
 import type { GQL } from "@rivonclaw/core";
 import type { DataValidation, Workbook, Worksheet } from "exceljs";
 import {
+  AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS,
   AFFILIATE_CREATOR_UPDATE_EXPORT_ONLY_HEADERS,
   AFFILIATE_CREATOR_UPDATE_FAILURE_REASON_HEADER,
   AFFILIATE_CREATOR_UPDATE_FAILURE_SOURCE_ROW_HEADER,
   AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
   normalizeAffiliateCreatorUpdateHeader,
 } from "./affiliate-protection-import.js";
+import {
+  creatorPerformanceIsoDate,
+  resolveCreatorPerformance,
+} from "./creator-performance-snapshot.js";
 
 type ExcelJsModule = typeof import("exceljs");
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -53,11 +58,13 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
   t: Translate,
   manualTagNames: readonly string[],
   rows: readonly GQL.AffiliateCreatorUpdateExportRow[] = [],
+  performanceExport?: AffiliateCreatorPerformanceExport,
 ): Workbook {
   const extraTagCount = rows.reduce((max, row) => Math.max(max, row.manualTagNames.length), 5);
-  const headers = [
+  const headers: string[] = [
     ...AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS,
     ...Array.from({ length: extraTagCount - 5 }, (_, index) => `add_manual_tag_${index + 6}`),
+    ...(performanceExport ? AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS : []),
   ];
   const required = t("ecommerce.affiliateTeam.templateRequired");
   const optional = t("ecommerce.affiliateTeam.templateOptional");
@@ -103,6 +110,24 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
   const headerNotes = new Map<string, string>(
     fieldGuide.map((entry) => [entry.field, `${entry.requirement} · ${entry.hint}`]),
   );
+  const readOnly = t("ecommerce.affiliateTeam.templateReadOnly");
+  const performanceHint = t("ecommerce.affiliateTeam.templatePerformanceHint");
+  if (performanceExport) {
+    PERFORMANCE_COLUMN_LABELS.forEach(([header, labelKey]) => {
+      headerNotes.set(
+        header,
+        `${readOnly} · ${t(`ecommerce.affiliateWorkspace.creatorSnapshot.${labelKey}`)}. ${performanceHint}`,
+      );
+    });
+    headerNotes.set(
+      "gmv_90d_currency",
+      `${readOnly} · ${t("ecommerce.affiliateWorkspace.creatorSnapshot.gmvHint")} ${performanceHint}`,
+    );
+    headerNotes.set(
+      "performance_data_as_of",
+      `${readOnly} · ${t("ecommerce.affiliateWorkspace.creatorSnapshot.title")}. ${performanceHint}`,
+    );
+  }
   const tagNames = [...manualTagNames].sort((left, right) => left.localeCompare(right));
   tagNames.forEach((name) => {
     if (!name.trim()) throw new Error("Creator manual tag names in the template must not be blank");
@@ -124,7 +149,16 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
       texts: [{ font: { bold: true }, text: `${header}\n` }, { text: note }],
     };
   });
-  const widths = [28, 28, 48, 32, 22, 42, ...Array(extraTagCount).fill(26)];
+  const widths = [
+    28,
+    28,
+    48,
+    32,
+    22,
+    42,
+    ...Array(extraTagCount).fill(26),
+    ...(performanceExport ? Array(AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS.length).fill(24) : []),
+  ];
   widths.forEach((width, index) => {
     data.getColumn(index + 1).width = width;
   });
@@ -149,6 +183,7 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
       row.protect ? "PROTECT" : "UNPROTECT",
       row.protect ? (row.protectionNote ?? "") : "",
       ...Array.from({ length: extraTagCount }, (_, index) => row.manualTagNames[index] ?? ""),
+      ...(performanceExport ? performanceExportCells(row, performanceExport) : []),
     ]);
   }
   data.views = [{ state: "frozen", ySplit: 1 }];
@@ -171,6 +206,16 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
     manualTagHint,
     "",
   ]);
+  if (performanceExport) {
+    instructions.addRow([
+      `${AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS[0]} … ${
+        AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS[AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS.length - 1]
+      }`,
+      readOnly,
+      performanceHint,
+      "",
+    ]);
+  }
   [34, 24, 76, 36].forEach((width, index) => {
     instructions.getColumn(index + 1).width = width;
   });
@@ -216,6 +261,60 @@ export function buildAffiliateCreatorUpdateTemplateWorkbook(
   });
 
   return workbook;
+}
+
+/**
+ * Scope of the performance columns in a Creator export. An empty `scopeShopId`
+ * exports the seller-wide rollup; a shop id exports that shop's snapshot.
+ * `dataAsOf` is the warehouse cutoff the values are correct as of, or null when
+ * the projection has not reported for the scope yet.
+ */
+export type AffiliateCreatorPerformanceExport = {
+  scopeShopId: string;
+  dataAsOf: string | null;
+};
+
+const PERFORMANCE_COLUMN_LABELS = [
+  ["last_content_date", "lastContentDate"],
+  ["last_order_date", "lastOrderDate"],
+  ["last_sample_shipped_date", "lastSampleShippedDate"],
+  ["shipped_sample_count", "shippedSampleCount"],
+  ["content_count_90d", "contentCount90d"],
+  ["order_count_90d", "orderCount90d"],
+  ["gmv_90d", "gmv90d"],
+] as const;
+
+/**
+ * Cells in `AFFILIATE_CREATOR_PERFORMANCE_EXPORT_HEADERS` order. A Creator the
+ * projection has not reached exports empty cells, never zeros.
+ */
+function performanceExportCells(
+  row: GQL.AffiliateCreatorUpdateExportRow,
+  scope: AffiliateCreatorPerformanceExport,
+): Array<string | number> {
+  const view = resolveCreatorPerformance(
+    {
+      performanceSnapshot: row.performanceSnapshot,
+      shopStates:
+        scope.scopeShopId && row.shopPerformanceSnapshot
+          ? [{ shopId: scope.scopeShopId, performanceSnapshot: row.shopPerformanceSnapshot }]
+          : [],
+    },
+    scope.scopeShopId,
+  );
+  const dataAsOf = scope.dataAsOf ? new Date(scope.dataAsOf).toISOString() : "";
+  if (!view) return ["", "", "", "", "", "", "", "", dataAsOf];
+  return [
+    creatorPerformanceIsoDate(view.lastContentDate),
+    creatorPerformanceIsoDate(view.lastOrderDate),
+    creatorPerformanceIsoDate(view.lastSampleShippedDate),
+    view.shippedSampleCount,
+    view.contentCount90d,
+    view.orderCount90d,
+    Math.round(view.gmv.amount * 100) / 100,
+    view.gmv.currency,
+    dataAsOf,
+  ];
 }
 
 function strictValidation(
