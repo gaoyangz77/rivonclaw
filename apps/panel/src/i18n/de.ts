@@ -2815,6 +2815,9 @@ export default {
     allToolsDesc: "Nur System- und Erweiterungstools",
     label: "Profil ausführen",
     hint: "Wählen Sie aus, welche Tools für diesen Lauf verfügbar sind.",
+    restrictedBadge: "Nur für externe Nutzung",
+    restrictedHint:
+      "Für kundenorientierte Agenten. Nach einem Wechsel kann diese Konfiguration nicht erneut ausgewählt werden.",
   },
   tiktokShops: {
     title: "TikTok Geschäfte",

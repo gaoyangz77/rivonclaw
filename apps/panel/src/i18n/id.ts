@@ -2769,6 +2769,9 @@ export default {
     allToolsDesc: "Hanya alat sistem dan ekstensi",
     label: "Jalankan Profil",
     hint: "Pilih alat mana yang tersedia untuk proses ini.",
+    restrictedBadge: "Hanya untuk eksternal",
+    restrictedHint:
+      "Dipakai oleh agen yang melayani pelanggan. Setelah beralih, Anda tidak dapat memilihnya lagi.",
   },
   tiktokShops: {
     title: "Toko TikTok",

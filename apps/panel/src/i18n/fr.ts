@@ -2816,6 +2816,9 @@ export default {
     allToolsDesc: "Outils système et d'extension uniquement",
     label: "Exécuter le profil",
     hint: "Choisissez les outils disponibles pour cette exécution.",
+    restrictedBadge: "Usage externe uniquement",
+    restrictedHint:
+      "Utilisé par les agents en contact avec les clients. Après en avoir changé, vous ne pourrez plus le sélectionner.",
   },
   tiktokShops: {
     title: "Boutiques TikTok",

@@ -2798,6 +2798,8 @@ export default {
     allToolsDesc: "仅系统和扩展工具",
     label: "运行配置",
     hint: "选择此次运行可使用的工具。",
+    restrictedBadge: "仅供对外使用",
+    restrictedHint: "用于对外的客服或达人场景。切换到其他配置后将无法再选回。",
   },
   tiktokShops: {
     title: "TikTok 店铺",

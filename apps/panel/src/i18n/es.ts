@@ -2802,6 +2802,9 @@ export default {
     allToolsDesc: "Solo herramientas de sistema y extensión",
     label: "Ejecutar perfil",
     hint: "Elija qué herramientas están disponibles para esta ejecución.",
+    restrictedBadge: "Solo uso externo",
+    restrictedHint:
+      "Usado por agentes de cara al cliente. Si cambias a otro, no podrás volver a seleccionarlo.",
   },
   tiktokShops: {
     title: "Tiendas TikTok",

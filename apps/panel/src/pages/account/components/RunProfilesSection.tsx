@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../components/inputs/Select.js";
 import type { Surface, RunProfile } from "../account-types.js";
+import { staffRunProfileChoices } from "../../../lib/run-profile-selection.js";
 import {
   TkAlert,
   TkPanel,
@@ -89,11 +90,21 @@ export function RunProfilesSection({
               className="input-full"
               options={[
                 { value: "", label: t("account.noDefault") },
-                ...profiles.map((p) => ({
-                  value: p.id,
-                  label: resolveSystemName(p.name, !p.userId),
-                  description: surfaceNameById[p.surfaceId] || p.surfaceId,
-                })),
+                ...staffRunProfileChoices(profiles, defaultRunProfileId).map(
+                  ({ profile: p, selectable }) => ({
+                    value: p.id,
+                    label: resolveSystemName(p.name, !p.userId),
+                    description: selectable
+                      ? surfaceNameById[p.surfaceId] || p.surfaceId
+                      : t("runProfileSelector.restrictedHint"),
+                    ...(selectable
+                      ? {}
+                      : {
+                          badge: t("runProfileSelector.restrictedBadge"),
+                          badgeTone: "warning" as const,
+                        }),
+                  }),
+                ),
               ]}
             />
           </div>

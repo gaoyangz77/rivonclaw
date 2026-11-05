@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Select } from "./Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { staffRunProfileChoices } from "../../lib/run-profile-selection.js";
 
 interface RunProfileSelectorProps {
   /** Currently selected RunProfile ID (empty string = default / baseline) */
@@ -14,7 +15,9 @@ interface RunProfileSelectorProps {
 
 /**
  * Dropdown selector for RunProfiles.
- * Shows all available RunProfiles (system + user).
+ * Offers only the profiles staff may pick for their own sessions (see
+ * `isStaffSelectableRunProfile`); a restricted current value stays visible,
+ * marked, until the user switches away.
  * Empty selection means baseline tools only (system + extension).
  */
 export const RunProfileSelector = observer(function RunProfileSelector({
@@ -25,14 +28,22 @@ export const RunProfileSelector = observer(function RunProfileSelector({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const profiles = entityStore.allRunProfiles;
+  const choices = staffRunProfileChoices(profiles, value);
 
   const options = [
     { value: "", label: t("runProfileSelector.allTools") },
-    ...profiles.map((p) => ({
+    ...choices.map(({ profile: p, selectable }) => ({
       value: p.id,
       label: !p.userId
         ? `${t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name })} · ${t("surfaces.system")}`
         : p.name,
+      ...(selectable
+        ? {}
+        : {
+            badge: t("runProfileSelector.restrictedBadge"),
+            badgeTone: "warning" as const,
+            description: t("runProfileSelector.restrictedHint"),
+          }),
     })),
   ];
 

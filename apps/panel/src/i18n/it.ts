@@ -2800,6 +2800,9 @@ export default {
     allToolsDesc: "Solo strumenti di sistema e di estensione",
     label: "Esegui profilo",
     hint: "Scegli quali strumenti sono disponibili per questa corsa.",
+    restrictedBadge: "Solo uso esterno",
+    restrictedHint:
+      "Usato dagli agenti rivolti ai clienti. Dopo averlo cambiato non potrai più selezionarlo.",
   },
   tiktokShops: {
     title: "TikTok Negozi",

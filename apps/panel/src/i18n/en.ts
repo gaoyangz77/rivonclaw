@@ -2941,6 +2941,9 @@ export default {
     allToolsDesc: "System and extension tools only",
     label: "Run Profile",
     hint: "Choose which tools are available for this run.",
+    restrictedBadge: "For external use",
+    restrictedHint:
+      "Used by customer-facing agents. Once you switch away, you can't select it again.",
   },
   tiktokShops: {
     title: "TikTok Shops",
