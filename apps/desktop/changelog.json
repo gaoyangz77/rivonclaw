@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.9.50",
+    "date": "2026-11-05",
+    "en": [
+      "Add an after-sale review workspace: review return and refund requests with product images, the buyer's evidence photos and videos, and the live order, and attach evidence images when rejecting",
+      "Start a customer service conversation from a searched order, see logistics and full after-sales in the order popover, and translate and send replies in one click",
+      "Show TikTok order statuses in your language in the customer service workspace",
+      "Mark buy-and-refund and partner-managed samples, show one sample status label everywhere, and offer them as business developer assignment scenarios",
+      "Explain sample approvals and messages that TikTok refused instead of reporting success",
+      "Show how a campaign's search guidance will be filtered and review the guidance checklist on the target step"
+    ],
+    "zh": [
+      "新增售后审核工作台：查看退货退款申请的商品图片、买家凭证照片和视频以及实时订单，拒绝时可附上凭证图片",
+      "可从搜索到的订单直接发起客服会话，订单浮窗显示物流和完整售后记录，客服回复可一键翻译并发送",
+      "客服工作台中的 TikTok 订单状态按当前语言显示",
+      "标记买返样品和合作方托管样品，各处统一显示样品状态，并可作为商务拓展分配场景",
+      "TikTok 拒绝样品审核或消息发送时说明具体原因，不再误报成功",
+      "展示活动搜索方向说明将如何过滤，并可在目标步骤查看说明清单"
+    ]
+  },
+  {
     "version": "1.9.49",
     "date": "2026-11-04",
     "en": [
