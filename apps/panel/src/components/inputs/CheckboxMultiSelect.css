@@ -1,0 +1,66 @@
+/* CSS ownership: CheckboxMultiSelect, the label + button + checkbox-list filter field. */
+
+.checkbox-multi-select {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+}
+
+.checkbox-multi-select-popover {
+  display: grid;
+  width: min(320px, 78vw);
+  gap: var(--tk-v1-space-2);
+}
+
+.checkbox-multi-select-list {
+  max-height: 240px;
+}
+
+.checkbox-multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  padding: var(--tk-v1-space-2);
+  border-radius: var(--tk-v1-radius-3);
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.checkbox-multi-select-option > label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.checkbox-multi-select-option > label > :last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "Only this": shown on the row the pointer or keyboard is on. */
+.checkbox-multi-select-only {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tk-v1-accent-text);
+  font-size: var(--tk-v1-type-supporting);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.checkbox-multi-select-option:hover .checkbox-multi-select-only,
+.checkbox-multi-select-only:focus-visible {
+  opacity: 1;
+}
+
+.checkbox-multi-select-option:hover {
+  background: var(--tk-v1-bg-subtle);
+}
+
+.checkbox-multi-select-option small {
+  color: var(--tk-v1-fg-muted);
+}

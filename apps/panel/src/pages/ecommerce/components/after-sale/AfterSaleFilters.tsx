@@ -17,8 +17,53 @@ import {
   afterSaleStatusLabel,
 } from "../../after-sale-labels.js";
 import type { AffiliateAnalyticsShop } from "../../affiliate-analytics-scope.js";
-import { AffiliateChipMultiSelect } from "../AffiliateChipMultiSelect.js";
+import { CheckboxMultiSelect } from "../../../../components/inputs/CheckboxMultiSelect.js";
 import { AffiliateShopScopeControl } from "../AffiliateShopScopeControl.js";
+
+/**
+ * A request filter where the model's empty selection means every value: the list then shows every
+ * value checked, checking all of them goes back to "all", and "only this" picks a single value.
+ * The list never becomes empty.
+ */
+function AfterSaleMultiFilter({
+  label,
+  allText,
+  values,
+  selected,
+  labelOf,
+  onChange,
+  searchable = false,
+}: {
+  label: string;
+  allText: string;
+  values: readonly string[];
+  selected: readonly string[];
+  labelOf: (value: string) => string;
+  onChange: (next: string[]) => void;
+  searchable?: boolean;
+}) {
+  const { t } = useTranslation();
+  const buttonText =
+    selected.length === 0
+      ? allText
+      : selected.length === 1
+        ? labelOf(selected[0]!)
+        : t("ecommerce.afterSale.filters.selectedCount", { count: selected.length });
+  return (
+    <CheckboxMultiSelect
+      label={label}
+      buttonText={buttonText}
+      popoverLabel={label}
+      options={values.map((value) => ({ id: value, label: labelOf(value) }))}
+      selected={selected.length ? selected : values}
+      onChange={(next) => onChange(next.length === values.length ? [] : next)}
+      selectAllLabel={t("ecommerce.afterSale.filters.selectAll")}
+      deselectAllLabel={t("ecommerce.afterSale.filters.deselectAll")}
+      searchLabel={searchable ? t("ecommerce.afterSale.filters.search") : undefined}
+      onlyLabel={t("ecommerce.afterSale.filters.only")}
+    />
+  );
+}
 
 export const AfterSaleFilters = observer(function AfterSaleFilters() {
   const { t } = useTranslation();
@@ -35,21 +80,23 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
   const selectedShopIds = afterSale.allShops
     ? shops.map((shop) => shop.id)
     : [...afterSale.shopIds];
-  const matchAll = t("ecommerce.afterSale.filters.matchAll");
   const windowIssue = afterSale.windowIssue;
+  const all = afterSale.view === "ALL";
 
+  // The view switch is a row of its own; every filter under it is a label over a same-height
+  // control, so the row lines up on the controls' bottom edge.
   return (
     <TkToolbar className="after-sale-filters" data-tutorial-id="after-sale-filters">
+      <TkSegmented
+        label={t("ecommerce.afterSale.viewLabel")}
+        items={[
+          { id: "TO_REVIEW", label: t("ecommerce.afterSale.views.toReview") },
+          { id: "ALL", label: t("ecommerce.afterSale.views.all") },
+        ]}
+        value={afterSale.view}
+        onChange={(view) => afterSale.setView(view as AfterSaleView)}
+      />
       <div className="after-sale-filter-row">
-        <TkSegmented
-          label={t("ecommerce.afterSale.viewLabel")}
-          items={[
-            { id: "TO_REVIEW", label: t("ecommerce.afterSale.views.toReview") },
-            { id: "ALL", label: t("ecommerce.afterSale.views.all") },
-          ]}
-          value={afterSale.view}
-          onChange={(view) => afterSale.setView(view as AfterSaleView)}
-        />
         <AffiliateShopScopeControl
           shops={shops}
           selected={selectedShopIds}
@@ -57,18 +104,33 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
           label={t("ecommerce.afterSale.filters.shops")}
           onChange={(next) => afterSale.setShopScope(next, shops.length)}
         />
-        <AffiliateChipMultiSelect
+        <AfterSaleMultiFilter
           label={t("ecommerce.afterSale.filters.kinds")}
-          emptyLabel={matchAll}
-          options={AFTER_SALE_KINDS.map((kind) => ({
-            id: kind,
-            label: afterSaleKindLabel(t, kind),
-          }))}
-          selectedIds={[...afterSale.kinds]}
+          allText={t("ecommerce.afterSale.filters.allKinds")}
+          values={AFTER_SALE_KINDS}
+          selected={[...afterSale.kinds]}
+          labelOf={(kind) => afterSaleKindLabel(t, kind)}
           onChange={(next) => afterSale.setKinds(next)}
         />
-        {afterSale.view === "ALL" ? (
+        {all ? (
           <>
+            <AfterSaleMultiFilter
+              label={t("ecommerce.afterSale.filters.sellerActions")}
+              allText={t("ecommerce.afterSale.filters.allSellerActions")}
+              values={AFTER_SALE_SELLER_ACTIONS}
+              selected={[...afterSale.sellerActions]}
+              labelOf={(action) => afterSaleSellerActionLabel(t, action)}
+              onChange={(next) => afterSale.setSellerActions(next)}
+            />
+            <AfterSaleMultiFilter
+              label={t("ecommerce.afterSale.filters.statuses")}
+              allText={t("ecommerce.afterSale.filters.allStatuses")}
+              values={AFTER_SALE_STATUSES}
+              selected={[...afterSale.statuses]}
+              labelOf={(status) => afterSaleStatusLabel(t, status)}
+              onChange={(next) => afterSale.setStatuses(next)}
+              searchable
+            />
             <TkField
               type="date"
               label={t("ecommerce.afterSale.filters.createdFrom")}
@@ -93,30 +155,6 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
           </>
         ) : null}
       </div>
-      {afterSale.view === "ALL" ? (
-        <div className="after-sale-filter-row">
-          <AffiliateChipMultiSelect
-            label={t("ecommerce.afterSale.filters.sellerActions")}
-            emptyLabel={matchAll}
-            options={AFTER_SALE_SELLER_ACTIONS.map((action) => ({
-              id: action,
-              label: afterSaleSellerActionLabel(t, action),
-            }))}
-            selectedIds={[...afterSale.sellerActions]}
-            onChange={(next) => afterSale.setSellerActions(next)}
-          />
-          <AffiliateChipMultiSelect
-            label={t("ecommerce.afterSale.filters.statuses")}
-            emptyLabel={matchAll}
-            options={AFTER_SALE_STATUSES.map((status) => ({
-              id: status,
-              label: afterSaleStatusLabel(t, status),
-            }))}
-            selectedIds={[...afterSale.statuses]}
-            onChange={(next) => afterSale.setStatuses(next)}
-          />
-        </div>
-      ) : null}
     </TkToolbar>
   );
 });

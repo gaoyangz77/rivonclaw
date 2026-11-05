@@ -6,6 +6,10 @@
   gap: var(--tk-v1-space-3);
 }
 
+.after-sale-filters > .tk-v1-segmented {
+  align-self: flex-start;
+}
+
 .after-sale-filter-row {
   display: flex;
   flex-wrap: wrap;
