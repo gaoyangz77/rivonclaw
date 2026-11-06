@@ -115,9 +115,11 @@ export function CreatorPerformanceSnapshotCard({
       <div className="affiliate-relationship-work-side-card-head">
         <span>{t(`${KEY}title`)}</span>
         <TkBadge>
-          {scopeShopId || !view?.shopCount
+          {scopeShopId
             ? t(`${KEY}scopeShop`)
-            : t(`${KEY}scopeRollup`, { count: view.shopCount })}
+            : view?.shopCount
+              ? t(`${KEY}scopeRollup`, { count: view.shopCount })
+              : t(`${KEY}scopeAllShops`)}
         </TkBadge>
       </div>
       <CreatorPerformanceCaption scopeShopId={scopeShopId} />

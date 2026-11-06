@@ -141,6 +141,13 @@ it("says the data is not synced when the shop has no watermark yet", async () =>
   expect(valueOf("订单数-90天")).toBe("—");
 });
 
+it("labels an unreached Creator at the all-shops scope as all shops, not one shop", () => {
+  renderWith(<CreatorPerformanceSnapshotCard source={null} scopeShopId="" />, [states(null, [])]);
+  expect(screen.getByText("全部店铺")).toBeTruthy();
+  expect(screen.queryByText("当前店铺")).toBeNull();
+  expect(valueOf("订单数-90天")).toBe("—");
+});
+
 it("states the three known limits next to the block", () => {
   renderWith(<CreatorPerformanceSnapshotCard source={source} scopeShopId="" />, [states(null, [])]);
   const limits = screen.getByText(/视频数仅统计与样品关联的内容/);
