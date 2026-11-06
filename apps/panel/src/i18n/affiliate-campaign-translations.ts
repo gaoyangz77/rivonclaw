@@ -462,6 +462,8 @@ const en = {
   messageProductNamePlaceholder: "e.g. our gold cross necklace",
   messageProductNameHint:
     "Use a short, natural phrase in the message. The attached product card still opens the exact campaign product.",
+  messageProductNameTooLong:
+    "The product title is longer than 80 characters, so it cannot be used in the message as is. Enter a short conversational product name, or generate the message with AI to fill it in.",
   productCardAttached: "Product card attached after the message",
   stepConfirmTitle: "Authorize the operating loop",
   stepConfirmDescription:
@@ -1060,6 +1062,8 @@ const zh = {
   messageProductNamePlaceholder: "例如：我们的金色十字架项链",
   messageProductNameHint:
     "首信使用自然、简短的说法；随后附带的商品卡仍会打开推广计划中的准确商品。",
+  messageProductNameTooLong:
+    "商品标题超过 80 个字符，不能直接用在首信里。请填写首信中的口语商品名，或用 AI 生成首信自动填写。",
   productCardAttached: "文字消息后将附带商品卡",
   stepConfirmTitle: "授权自动运行",
   stepConfirmDescription: "确认固定发送窗口、商品、每日目标和将被发布的准确模板。",
@@ -1241,6 +1245,8 @@ const zhTutorial = {
 
 const operationalCopy = {
   de: {
+    messageProductNameTooLong:
+      "Der Produkttitel ist länger als 80 Zeichen und kann nicht direkt in der Nachricht verwendet werden. Gib einen kurzen, natürlichen Produktnamen ein oder lass die Nachricht per KI erstellen, um ihn auszufüllen.",
     activeShops: "Aktive Shops",
     activeShopsDescription: "Eindeutige Shops mit aktiven Kampagnen",
     campaignTodayReachout: "Heute erreicht / Tagesziel",
@@ -1446,6 +1452,8 @@ const operationalCopy = {
     },
   },
   es: {
+    messageProductNameTooLong:
+      "El título del producto supera los 80 caracteres y no puede usarse tal cual en el mensaje. Escribe un nombre corto y natural del producto o genera el mensaje con IA para rellenarlo.",
     activeShops: "Tiendas activas",
     activeShopsDescription: "Tiendas distintas con campañas activas",
     campaignTodayReachout: "Contactados hoy / objetivo",
@@ -1652,6 +1660,8 @@ const operationalCopy = {
     },
   },
   fr: {
+    messageProductNameTooLong:
+      "Le titre du produit dépasse 80 caractères et ne peut pas être utilisé tel quel dans le message. Saisissez un nom de produit court et naturel, ou générez le message avec l’IA pour le remplir.",
     activeShops: "Boutiques actives",
     activeShopsDescription: "Boutiques distinctes avec des campagnes actives",
     campaignTodayReachout: "Contactés aujourd’hui / objectif",
@@ -1860,6 +1870,8 @@ const operationalCopy = {
     },
   },
   id: {
+    messageProductNameTooLong:
+      "Judul produk lebih dari 80 karakter sehingga tidak bisa dipakai langsung di pesan. Isi nama produk singkat yang natural, atau buat pesan dengan AI untuk mengisinya.",
     activeShops: "Toko aktif",
     activeShopsDescription: "Toko unik dengan kampanye aktif",
     campaignTodayReachout: "Dihubungi hari ini / target",
@@ -2061,6 +2073,8 @@ const operationalCopy = {
     },
   },
   it: {
+    messageProductNameTooLong:
+      "Il titolo del prodotto supera gli 80 caratteri e non può essere usato così nel messaggio. Inserisci un nome breve e colloquiale del prodotto oppure genera il messaggio con l’IA per compilarlo.",
     activeShops: "Negozi attivi",
     activeShopsDescription: "Negozi distinti con campagne attive",
     campaignTodayReachout: "Contattati oggi / obiettivo",
@@ -2268,6 +2282,8 @@ const operationalCopy = {
     },
   },
   th: {
+    messageProductNameTooLong:
+      "ชื่อสินค้ายาวเกิน 80 ตัวอักษร จึงใช้ในข้อความแรกโดยตรงไม่ได้ โปรดกรอกชื่อสินค้าแบบสั้นที่เป็นธรรมชาติ หรือให้ AI สร้างข้อความแรกเพื่อกรอกให้",
     activeShops: "ร้านค้าที่กำลังใช้งาน",
     activeShopsDescription: "ร้านค้าที่ไม่ซ้ำกันซึ่งมีแคมเปญทำงานอยู่",
     campaignTodayReachout: "ติดต่อวันนี้ / เป้าหมาย",

@@ -540,6 +540,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const targetFieldRefs = useRef<
     Partial<Record<CampaignTargetStepField, HTMLInputElement | HTMLTextAreaElement | null>>
   >({});
+  const messageProductNameRef = useRef<HTMLInputElement | null>(null);
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [selectedSearchPlanId, setSelectedSearchPlanId] = useState("");
@@ -1048,6 +1049,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const productPreview = leadProductId ? (productPreviews[leadProductId] ?? null) : null;
   /** The product name the message preview names; empty until one is known. */
   const previewProductName = form.messageProductName || productPreview?.title || "";
+  const messageProductNameTooLong = campaignMessageProductNameTooLong(
+    form,
+    productPreview?.title ?? "",
+  );
 
   const updateProduct = (index: number, patch: Partial<CampaignProductForm>) => {
     setForm((current) => ({
@@ -1144,6 +1149,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
     if (wizardStep === 3 && !campaignMessageStepValid(form)) {
       showToast(t("ecommerce.affiliateCampaign.templateRequired"), "error");
+      return false;
+    }
+    if (wizardStep === 3 && messageProductNameTooLong) {
+      showToast(t("ecommerce.affiliateCampaign.messageProductNameTooLong"), "error");
+      messageProductNameRef.current?.focus({ preventScroll: true });
+      messageProductNameRef.current?.scrollIntoView({ block: "center" });
       return false;
     }
     if (
@@ -3454,12 +3465,26 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <label>
                   <span>{t("ecommerce.affiliateCampaign.messageProductName")}</span>
                   <input
+                    ref={messageProductNameRef}
                     value={form.messageProductName}
-                    maxLength={80}
+                    maxLength={CAMPAIGN_MESSAGE_PRODUCT_NAME_MAX_LENGTH}
                     disabled={skipDirectMessage}
+                    aria-invalid={messageProductNameTooLong ? true : undefined}
+                    aria-describedby={
+                      messageProductNameTooLong ? "affiliate-campaign-message-product-name-error" : undefined
+                    }
                     onChange={(event) => updateForm("messageProductName", event.target.value)}
                     placeholder={t("ecommerce.affiliateCampaign.messageProductNamePlaceholder")}
                   />
+                  {messageProductNameTooLong && (
+                    <small
+                      id="affiliate-campaign-message-product-name-error"
+                      className="affiliate-campaign-field-error"
+                      role="alert"
+                    >
+                      {t("ecommerce.affiliateCampaign.messageProductNameTooLong")}
+                    </small>
+                  )}
                   <small>{t("ecommerce.affiliateCampaign.messageProductNameHint")}</small>
                 </label>
                 <label className="affiliate-campaign-check-rule">
@@ -5018,6 +5043,25 @@ export function campaignDetailPollingOptions(workspaceActive: boolean, campaignI
     pollInterval: workspaceActive && campaignId ? CAMPAIGN_DETAIL_POLL_INTERVAL_MS : 0,
     skipPollAttempt: () => document.visibilityState === "hidden",
   };
+}
+
+/** The backend's limit for the product name used in the first message. */
+export const CAMPAIGN_MESSAGE_PRODUCT_NAME_MAX_LENGTH = 80;
+
+/**
+ * Whether the product name the message would use is over the backend's limit.
+ * An empty field falls back to the catalogue title, which is often far longer,
+ * so this is checked on the value that would be sent, normalized the way the
+ * backend normalizes it before counting.
+ */
+export function campaignMessageProductNameTooLong(
+  form: Pick<CampaignForm, "firstTouchMode" | "messageProductName">,
+  productTitle: string,
+): boolean {
+  const value = campaignMessageProductNameInput(form, productTitle);
+  if (value === undefined) return false;
+  const normalized = value.normalize("NFKC").trim().replace(/\s+/gu, " ");
+  return normalized.length > CAMPAIGN_MESSAGE_PRODUCT_NAME_MAX_LENGTH;
 }
 
 export function campaignMessageProductNameInput(

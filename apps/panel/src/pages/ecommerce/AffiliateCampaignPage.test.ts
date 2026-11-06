@@ -13,6 +13,7 @@ import {
   campaignMessageStepValid,
   campaignSkipsDirectMessage,
   campaignMessageProductNameInput,
+  campaignMessageProductNameTooLong,
   campaignTodayReachoutSupportingText,
   affiliateCampaignCommissionRange,
   campaignDeliveryFailureBreakdown,
@@ -47,6 +48,33 @@ import {
 } from "./affiliate-campaign-guidance.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
+  it("flags a message product name the backend would reject, including the title fallback", () => {
+    const longTitle =
+      "Da&Bling Lash Clusters Kit - 3 Pcs Viral Soft & Fluffy Lashes for Natural & Bold Look - Perfect for Home Use";
+    // An empty field sends the catalogue title, which is over the 80-character limit.
+    expect(campaignMessageProductNameTooLong(emptyForm, longTitle)).toBe(true);
+    expect(
+      campaignMessageProductNameTooLong(
+        { ...emptyForm, messageProductName: "our lash clusters kit" },
+        longTitle,
+      ),
+    ).toBe(false);
+    // Counted after the same whitespace normalization as the backend.
+    expect(
+      campaignMessageProductNameTooLong(
+        { ...emptyForm, messageProductName: `  ${"a ".repeat(40)}  ` },
+        longTitle,
+      ),
+    ).toBe(false);
+    // Invitation-only campaigns send no message product name at all.
+    expect(
+      campaignMessageProductNameTooLong(
+        { ...emptyForm, firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly },
+        longTitle,
+      ),
+    ).toBe(false);
+  });
+
   it("omits the message product name for invitation-only creation, regardless of title length", () => {
     const title = "Long product title ".repeat(10);
     expect(
