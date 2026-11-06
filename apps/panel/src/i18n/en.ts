@@ -5191,7 +5191,7 @@ export default {
         reviewManagementSubmodule: "Subfeature",
         reviewOptimizationEnabled: "Enable review management",
         reviewOptimizationHint:
-          "When enabled, product reviews are synced into customer-service business data and evaluated with the rules below.",
+          "Turns on bad-review follow-up, the bad-review badge and the rules below. Reviews appear on the bad-review page whether or not this is on.",
         badReviewReachoutTitle: "Bad-review follow-up",
         badReviewReachoutEnabled: "Enable bad-review follow-up",
         badReviewReachoutHint:

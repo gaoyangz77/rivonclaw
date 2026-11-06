@@ -1,0 +1,118 @@
+/* CSS ownership: bad-review management page (ADR-102). */
+
+.bad-review-filters {
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-4);
+}
+
+.bad-review-table th,
+.bad-review-table td {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.bad-review-table .bad-review-content-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bad-review-shop-cell {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bad-review-pagination-controls {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-2);
+}
+
+.bad-review-muted {
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.bad-review-status-cell {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
+}
+
+.bad-review-row-actions {
+  display: inline-flex;
+  gap: var(--tk-v1-space-2);
+}
+
+.bad-review-detail,
+.bad-review-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-4);
+}
+
+.bad-review-detail h3 {
+  margin: 0 0 var(--tk-v1-space-2);
+}
+
+.bad-review-detail p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.bad-review-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tk-v1-space-3);
+  margin: 0;
+}
+
+.bad-review-fact dt {
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.bad-review-fact dd {
+  margin: 0;
+}
+
+.bad-review-status-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-3);
+  margin-bottom: var(--tk-v1-space-3);
+}
+
+.bad-review-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bad-review-history li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
+}
+
+.bad-review-file-input {
+  display: none;
+}
+
+.bad-review-import-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-v1-space-3);
+}
+
+.bad-review-import-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}

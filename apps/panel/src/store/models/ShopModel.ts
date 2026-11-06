@@ -1,4 +1,5 @@
 import { flow, getEnv } from "mobx-state-tree";
+import type { GQL } from "@rivonclaw/core";
 import { ShopModel as ShopModelBase } from "@rivonclaw/core/models";
 import {
   UPDATE_SHOP_MUTATION,
@@ -48,6 +49,7 @@ interface ShopUpdateInput {
         enabled?: boolean;
         badReviewReachout?: {
           enabled?: boolean;
+          mode?: GQL.BadReviewFollowUpMode;
           stars?: number;
           recentDays?: number;
           maxAttempts?: number;

@@ -29,7 +29,9 @@ import {
   shopSelectSearchTerms,
   type ShopDisplayLabel,
 } from "../../lib/shop-display.js";
+import { shopFollowsUpManually } from "../../lib/bad-review.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { badReviewStatusLabel } from "./bad-review-labels.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConversationOrderList } from "./components/ConversationOrderList.js";
@@ -50,6 +52,7 @@ import {
   EscalationStateBadge,
 } from "./components/CustomerServiceConversationRow.js";
 import {
+  TkButton,
   TkPageFrame,
   TkPageHeader,
   TkIconButton,
@@ -1885,7 +1888,24 @@ function BadReviewModal({
   shopLabel: (shopId: string) => ShopDisplayLabel;
 }) {
   const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const { showToast } = useToast();
+  const [startingReviewId, setStartingReviewId] = useState<string | null>(null);
+  const shopId = conversation?.shopId ?? null;
+  const manualShop = shopFollowsUpManually(entityStore.shops.find((shop) => shop.id === shopId));
   const reviews = conversation?.recentBadReviews ?? [];
+  const startFollowUp = (reviewId: string) => {
+    if (!shopId) return;
+    setStartingReviewId(reviewId);
+    entityStore.ecommerceBadReview
+      .startFollowUp(shopId, reviewId)
+      .then((started) => {
+        entityStore.customerServiceWorkspace.showConversation(started);
+        onClose();
+      })
+      .catch((err: unknown) => showToast(err instanceof Error ? err.message : String(err), "error"))
+      .finally(() => setStartingReviewId(null));
+  };
   const worstRating = reviews.reduce<number | null>((lowest, review) => {
     if (typeof review.rating !== "number") return lowest;
     return lowest == null ? review.rating : Math.min(lowest, review.rating);
@@ -1958,6 +1978,23 @@ function BadReviewModal({
                   >
                     {badReviewFollowUpLabel(review.followUpStatus, t)}
                   </span>
+                  {review.handlingStatus ? (
+                    <span className="cs-bad-review-status">
+                      {badReviewStatusLabel(t, review.handlingStatus)}
+                    </span>
+                  ) : null}
+                  {manualShop &&
+                  conversation?.buyerUserId &&
+                  review.handlingStatus !== GQL.ProductReviewHandlingStatus.InProgress ? (
+                    <TkButton
+                      size="sm"
+                      variant="primary"
+                      loading={startingReviewId === review.id}
+                      onClick={() => startFollowUp(review.id)}
+                    >
+                      {t("ecommerce.badReview.actions.startFollowUp")}
+                    </TkButton>
+                  ) : null}
                 </div>
                 <p
                   className={

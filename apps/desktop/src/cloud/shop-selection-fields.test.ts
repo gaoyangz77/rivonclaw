@@ -49,6 +49,7 @@ function requiredShopLeafPaths(): string[] {
       paths.push(
         "services.customerService.reviewOptimization.enabled",
         "services.customerService.reviewOptimization.badReviewReachout.enabled",
+        "services.customerService.reviewOptimization.badReviewReachout.mode",
         "services.customerService.reviewOptimization.badReviewReachout.stars",
         "services.customerService.reviewOptimization.badReviewReachout.recentDays",
         "services.customerService.reviewOptimization.badReviewReachout.maxAttempts",

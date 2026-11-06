@@ -45,6 +45,7 @@ import {
   CustomerServiceEscalationQueuePage,
 } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
 import { AfterSaleReviewPage } from "./pages/ecommerce/AfterSaleReviewPage.js";
+import { BadReviewManagementPage } from "./pages/ecommerce/BadReviewManagementPage.js";
 import { CustomerServicePerformancePage } from "./pages/ecommerce/CustomerServicePerformancePage.js";
 import { CustomerServiceExperimentsPage } from "./pages/ecommerce/CustomerServiceExperimentsPage.js";
 import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
@@ -183,6 +184,16 @@ export const ROUTES: RouteEntry[] = [
     component: AfterSaleReviewPage,
     icon: <ChannelsIcon />,
     navLabelKey: "nav.customerServiceAfterSales",
+    authRequired: true,
+    parentPath: "/commerce/customer-service",
+    scopes: [GQL.PermissionScope.CustomerService],
+  },
+  {
+    path: "/commerce/customer-service/bad-reviews",
+    pageKey: "ecommerce-customer-service-bad-reviews",
+    component: BadReviewManagementPage,
+    icon: <ChannelsIcon />,
+    navLabelKey: "nav.customerServiceBadReviews",
     authRequired: true,
     parentPath: "/commerce/customer-service",
     scopes: [GQL.PermissionScope.CustomerService],

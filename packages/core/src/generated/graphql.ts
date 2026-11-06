@@ -5976,11 +5976,49 @@ export interface AuthorizeWmsAccountInput {
   provider: WmsAccountProvider;
 }
 
+/** Who follows up a bad review in this shop. */
+export const BadReviewFollowUpMode = {
+  Ai: "AI",
+  Manual: "MANUAL",
+} as const;
+
+export type BadReviewFollowUpMode =
+  (typeof BadReviewFollowUpMode)[keyof typeof BadReviewFollowUpMode];
+/** What an uploaded row would do, decided before anything is written. */
+export const BadReviewImportRowClass = {
+  Importable: "IMPORTABLE",
+  Invalid: "INVALID",
+  OrderNotFound: "ORDER_NOT_FOUND",
+  PlatformReviewExists: "PLATFORM_REVIEW_EXISTS",
+  Update: "UPDATE",
+} as const;
+
+export type BadReviewImportRowClass =
+  (typeof BadReviewImportRowClass)[keyof typeof BadReviewImportRowClass];
+/** Why an uploaded row is INVALID. */
+export const BadReviewImportRowProblem = {
+  DuplicateOrder: "DUPLICATE_ORDER",
+  NothingToApply: "NOTHING_TO_APPLY",
+  NoReviewToUpdate: "NO_REVIEW_TO_UPDATE",
+  OrderIdInvalid: "ORDER_ID_INVALID",
+  StarsAndTimeRequired: "STARS_AND_TIME_REQUIRED",
+  StarsInvalid: "STARS_INVALID",
+  StatusInvalid: "STATUS_INVALID",
+  StatusInProgressNotAllowed: "STATUS_IN_PROGRESS_NOT_ALLOWED",
+  TextTooLong: "TEXT_TOO_LONG",
+  TimeInvalid: "TIME_INVALID",
+  TimeInFuture: "TIME_IN_FUTURE",
+} as const;
+
+export type BadReviewImportRowProblem =
+  (typeof BadReviewImportRowProblem)[keyof typeof BadReviewImportRowProblem];
 /** Bad-review customer-service reachout settings per shop */
 export interface BadReviewReachoutSettings {
   enabled: Scalars["Boolean"]["output"];
   /** Maximum successful proactive contacts, including the first. Valid values: 1, 2, 3; default: 3. */
   maxAttempts: Scalars["Int"]["output"];
+  /** Who follows up a bad review. Absent on shops from before the setting existed, which means AI. */
+  mode: BadReviewFollowUpMode;
   /** Only bad reviews created within this many days are eligible for customer-service reachout. Valid range: 1-90. */
   recentDays: Scalars["Int"]["output"];
   /** Reviews at or below this star rating are treated as bad reviews. Valid range: 1-3. */
@@ -5993,12 +6031,25 @@ export interface BadReviewReachoutSettingsInput {
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Maximum successful proactive contacts including the first (1-3). Increasing applies only to new plans. */
   maxAttempts?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Who follows up a bad review. Omit or pass null to keep. */
+  mode?: InputMaybe<BadReviewFollowUpMode>;
   /** Recent-review reachout window in days. Valid range: 1-90. Omit or pass null to keep. */
   recentDays?: InputMaybe<Scalars["Int"]["input"]>;
   /** Bad-review star threshold. Valid range: 1-3. Omit or pass null to keep. */
   stars?: InputMaybe<Scalars["Int"]["input"]>;
 }
 
+/** State of the AI's proactive contact plan for a conversation. */
+export const BadReviewReachoutState = {
+  Active: "ACTIVE",
+  BuyerReplied: "BUYER_REPLIED",
+  Exhausted: "EXHAUSTED",
+  Stopped: "STOPPED",
+  Unsent: "UNSENT",
+} as const;
+
+export type BadReviewReachoutState =
+  (typeof BadReviewReachoutState)[keyof typeof BadReviewReachoutState];
 export const BillableProduct = {
   EcomAffiliate: "ECOM_AFFILIATE",
   EcomAnalytics: "ECOM_ANALYTICS",
@@ -7935,6 +7986,8 @@ export type CustomerServicePlatformConversationStatus =
 export interface CustomerServiceProductReviewSummary {
   content?: Maybe<Scalars["String"]["output"]>;
   followUpStatus: ProductReviewFollowUpStatus;
+  /** Human follow-up state. Null when no one has picked this review up. */
+  handlingStatus?: Maybe<ProductReviewHandlingStatus>;
   /** MongoDB product review ID. */
   id: Scalars["ID"]["output"];
   orderId?: Maybe<Scalars["String"]["output"]>;
@@ -8407,6 +8460,113 @@ export type EcomApproveReturnDecision =
 export interface EcomAutoAddProductSetting {
   commissionRate?: Maybe<Scalars["Int"]["output"]>;
   enable?: Maybe<Scalars["Boolean"]["output"]>;
+}
+
+export interface EcomBadReview {
+  /** AI work-queue state. */
+  aiFollowUpStatus: ProductReviewFollowUpStatus;
+  content?: Maybe<Scalars["String"]["output"]>;
+  /** Null when the buyer has no conversation yet. */
+  conversationAiEnabled?: Maybe<Scalars["Boolean"]["output"]>;
+  conversationId?: Maybe<Scalars["String"]["output"]>;
+  /** When the follow-up status last changed. */
+  handlingChangedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  handlingEvents: Array<EcomBadReviewHandlingEvent>;
+  /** Human follow-up state. Null when no one has picked this review up. */
+  handlingStatus?: Maybe<ProductReviewHandlingStatus>;
+  /** Whether the buyer is known. Without one, no conversation can be opened. */
+  hasBuyer: Scalars["Boolean"]["output"];
+  id: Scalars["ID"]["output"];
+  importBatchId?: Maybe<Scalars["String"]["output"]>;
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  platformReviewId: Scalars["String"]["output"];
+  rating?: Maybe<Scalars["Int"]["output"]>;
+  reachoutMaxAttempts?: Maybe<Scalars["Int"]["output"]>;
+  reachoutNextAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Proactive contacts delivered so far. */
+  reachoutSentCount?: Maybe<Scalars["Int"]["output"]>;
+  reachoutState?: Maybe<BadReviewReachoutState>;
+  reviewTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Who follows up this shop's bad reviews. Null while either switch is off. */
+  shopFollowUpMode?: Maybe<BadReviewFollowUpMode>;
+  shopId: Scalars["ID"]["output"];
+  shopName: Scalars["String"]["output"];
+  source: ProductReviewSource;
+  title?: Maybe<Scalars["String"]["output"]>;
+}
+
+export interface EcomBadReviewFollowUpStart {
+  /** The conversation to open. */
+  conversation: CustomerServiceConversationInboxItem;
+  review: EcomBadReview;
+}
+
+export interface EcomBadReviewHandlingEvent {
+  at: Scalars["DateTimeISO"]["output"];
+  from?: Maybe<ProductReviewHandlingStatus>;
+  note?: Maybe<Scalars["String"]["output"]>;
+  source: ProductReviewHandlingEventSource;
+  to: ProductReviewHandlingStatus;
+}
+
+export interface EcomBadReviewImportResult {
+  /** Null for a preview, which writes nothing. */
+  importBatchId?: Maybe<Scalars["String"]["output"]>;
+  /** Every row, classified against the data of this moment. */
+  rows: Array<EcomBadReviewImportRow>;
+}
+
+export interface EcomBadReviewImportRow {
+  orderId: Scalars["String"]["output"];
+  problem?: Maybe<BadReviewImportRowProblem>;
+  rating?: Maybe<Scalars["Int"]["output"]>;
+  reviewTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  rowClass: BadReviewImportRowClass;
+  rowNumber: Scalars["Int"]["output"];
+  shopId?: Maybe<Scalars["ID"]["output"]>;
+  shopName?: Maybe<Scalars["String"]["output"]>;
+  status?: Maybe<ProductReviewHandlingStatus>;
+}
+
+/** One workbook row exactly as read. The server parses and validates every cell. */
+export interface EcomBadReviewImportRowInput {
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  orderId: Scalars["String"]["input"];
+  reason?: InputMaybe<Scalars["String"]["input"]>;
+  /** Shop-local time, as YYYY-MM-DD HH:mm:ss or a date alone. */
+  reviewTime?: InputMaybe<Scalars["String"]["input"]>;
+  /** Row number in the workbook, for showing problems to the operator. */
+  rowNumber: Scalars["Int"]["input"];
+  stars?: InputMaybe<Scalars["String"]["input"]>;
+  /** The status text of the template. */
+  status?: InputMaybe<Scalars["String"]["input"]>;
+}
+
+export interface EcomBadReviewPage {
+  items: Array<EcomBadReview>;
+  /** Reviews matching the filters across all pages. */
+  totalCount: Scalars["Int"]["output"];
+}
+
+export interface EcomBadReviewsInput {
+  /** Null selects every follow-up status. */
+  handlingStatuses?: InputMaybe<Array<ProductReviewHandlingStatus>>;
+  /** Only reviews in follow-up for at least this many days. */
+  inProgressOverDays?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Page size. Default 50, maximum 100. */
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Rows to skip, for the page being read. Default 0. */
+  offset?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Null selects every rating. */
+  ratings?: InputMaybe<Array<Scalars["Int"]["input"]>>;
+  /** Start of the review-time window (inclusive). */
+  reviewFrom?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
+  /** End of the review-time window (exclusive). */
+  reviewTo?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
+  /** Must be a subset of the caller's shops. Null selects all of them. */
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  /** Null selects every source. */
+  sources?: InputMaybe<Array<ProductReviewSource>>;
 }
 
 /** Warehouse-backed and live ecommerce BI dataset identifiers. */
@@ -12182,6 +12342,8 @@ export interface Mutation {
   /** Copy Campaign configuration and its immutable product snapshot into a new draft. */
   duplicateAffiliateCampaign: AffiliateCampaign;
   ecommerceActivateProducts: EcommercePassthroughResult;
+  /** Re-validates workbook rows and writes the importable and update rows. Reviews are visible at once; in AI-mode shops a new bad review can start an AI contact within 30 minutes. */
+  ecommerceApplyBadReviewImport: EcomBadReviewImportResult;
   ecommerceApplyCSUnpaidOrderConfigVariantToBase: CsUnpaidOrderEvaluationView;
   /** Approve a cancellation request. Returns true on success. */
   ecommerceApproveCancellation: Scalars["Boolean"]["output"];
@@ -12206,6 +12368,8 @@ export interface Mutation {
   ecommercePatchShopSettings: EcommerceUpdateShopResult;
   /** Apply one masked settings patch to 1–50 shops with independent per-shop outcomes. */
   ecommercePatchShopsSettings: EcommerceBatchShopSettingsResult;
+  /** Classifies workbook rows without writing anything. */
+  ecommercePreviewBadReviewImport: EcomBadReviewImportResult;
   ecommerceRecommendProductCategory: EcommercePassthroughResult;
   ecommerceRecoverProducts: EcommercePassthroughResult;
   ecommerceReplaceCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
@@ -12220,10 +12384,14 @@ export interface Mutation {
   /** Create or edit merchant Product Knowledge (agent-facing, flat params) */
   ecommerceSetProductKnowledge: SetProductKnowledgePayload;
   ecommerceSetShopWarehouseMappings: Array<ShopWarehouse>;
+  /** Start follow-up in a manual-mode shop: ensures the buyer's conversation, sets the review in follow-up and turns AI off for that conversation. If TikTok refuses the conversation, nothing changes. */
+  ecommerceStartBadReviewFollowUp: EcomBadReviewFollowUpStart;
   ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   /** Operator action: open (or find) the TikTok conversation for a synced order whose buyer has no conversation yet, WITHOUT starting an AI run, so the operator can type the first message. The row is created RESOLVED with AI enabled, so the buyer's later reply is handled by AI as usual. Idempotent. */
   ecommerceStartCustomerServiceConversationFromOrder: CustomerServiceConversationInboxItem;
   ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
+  /** Sets a review's follow-up status by hand. IN_PROGRESS is set only by Start follow-up. */
+  ecommerceUpdateBadReviewFollowUpStatus: EcomBadReview;
   ecommerceUpdateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
   ecommerceUpdateCSUnpaidOrderReachoutSettings: CsUnpaidOrderEvaluationView;
   /** Update inventory for one or more shops. Each input item contains shopId and its SKU inventory updates. */
@@ -12816,6 +12984,10 @@ export interface MutationEcommerceActivateProductsArgs {
   shopId: Scalars["ID"]["input"];
 }
 
+export interface MutationEcommerceApplyBadReviewImportArgs {
+  rows: Array<EcomBadReviewImportRowInput>;
+}
+
 export interface MutationEcommerceApplyCsUnpaidOrderConfigVariantToBaseArgs {
   experimentId: Scalars["ID"]["input"];
   variantKey: Scalars["String"]["input"];
@@ -12926,6 +13098,10 @@ export interface MutationEcommercePatchShopsSettingsArgs {
   wmsSettings?: InputMaybe<WmsSettingsInput>;
 }
 
+export interface MutationEcommercePreviewBadReviewImportArgs {
+  rows: Array<EcomBadReviewImportRowInput>;
+}
+
 export interface MutationEcommerceRecommendProductCategoryArgs {
   input: EcommerceRecommendProductCategoryInput;
   shopId: Scalars["ID"]["input"];
@@ -12986,6 +13162,11 @@ export interface MutationEcommerceSetShopWarehouseMappingsArgs {
   inputs: Array<AgentShopWarehouseMappingInput>;
 }
 
+export interface MutationEcommerceStartBadReviewFollowUpArgs {
+  reviewId: Scalars["ID"]["input"];
+  shopId: Scalars["ID"]["input"];
+}
+
 export interface MutationEcommerceStartCsUnpaidOrderConfigExperimentArgs {
   expectedRunningExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   experimentId: Scalars["ID"]["input"];
@@ -12998,6 +13179,13 @@ export interface MutationEcommerceStartCustomerServiceConversationFromOrderArgs 
 
 export interface MutationEcommerceStopCsUnpaidOrderConfigExperimentArgs {
   experimentId: Scalars["ID"]["input"];
+}
+
+export interface MutationEcommerceUpdateBadReviewFollowUpStatusArgs {
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  reviewId: Scalars["ID"]["input"];
+  shopId: Scalars["ID"]["input"];
+  status: ProductReviewHandlingStatus;
 }
 
 export interface MutationEcommerceUpdateCsUnpaidOrderConfigExperimentDraftArgs {
@@ -14011,6 +14199,33 @@ export const ProductReviewFollowUpStatus = {
 
 export type ProductReviewFollowUpStatus =
   (typeof ProductReviewFollowUpStatus)[keyof typeof ProductReviewFollowUpStatus];
+/** What changed a bad review's human follow-up state. */
+export const ProductReviewHandlingEventSource = {
+  Import: "IMPORT",
+  Manual: "MANUAL",
+  System: "SYSTEM",
+} as const;
+
+export type ProductReviewHandlingEventSource =
+  (typeof ProductReviewHandlingEventSource)[keyof typeof ProductReviewHandlingEventSource];
+/** Human follow-up state of a bad review, separate from the AI work queue. */
+export const ProductReviewHandlingStatus = {
+  Closed: "CLOSED",
+  InProgress: "IN_PROGRESS",
+  Pending: "PENDING",
+  ReviewDeleted: "REVIEW_DELETED",
+  ReviewUpdated: "REVIEW_UPDATED",
+} as const;
+
+export type ProductReviewHandlingStatus =
+  (typeof ProductReviewHandlingStatus)[keyof typeof ProductReviewHandlingStatus];
+/** Where a product review came from. */
+export const ProductReviewSource = {
+  ManualImport: "MANUAL_IMPORT",
+  PlatformApi: "PLATFORM_API",
+} as const;
+
+export type ProductReviewSource = (typeof ProductReviewSource)[keyof typeof ProductReviewSource];
 /** Promote a temporary uploaded image into permanent object storage */
 export interface PromoteImageAssetInput {
   /** ImageAsset ID returned by POST /api/uploads/images. Prefer this over imageUri. */
@@ -14394,6 +14609,8 @@ export interface Query {
   ecommerceAfterSaleRequest?: Maybe<EcomAfterSaleRequest>;
   /** After-sale requests (cancellations, refunds, returns, replacements, exchanges) of the caller's shops, one row per request. TO_REVIEW lists requests awaiting a seller decision, earliest platform deadline first; ALL lists requests created inside a window, newest first. */
   ecommerceAfterSaleRequests: EcomAfterSaleRequestPage;
+  /** Bad reviews of the caller's shops, newest first, with human and AI follow-up state. */
+  ecommerceBadReviews: EcomBadReviewPage;
   ecommerceCheckListingPrerequisites: EcommercePassthroughResult;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
@@ -14998,6 +15215,10 @@ export interface QueryEcommerceAfterSaleRequestArgs {
 
 export interface QueryEcommerceAfterSaleRequestsArgs {
   input: EcomAfterSaleRequestsInput;
+}
+
+export interface QueryEcommerceBadReviewsArgs {
+  input: EcomBadReviewsInput;
 }
 
 export interface QueryEcommerceCheckListingPrerequisitesArgs {

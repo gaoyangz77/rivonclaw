@@ -812,6 +812,16 @@ export const CustomerServiceWorkspaceModel = types
         replaceConversation(item);
         if (!existed) self.conversationTotal += 1;
       },
+      /** Shows a conversation another page just opened, such as Start follow-up on a bad review. */
+      showConversation(item: GQL.CustomerServiceConversationInboxItem) {
+        const existed = self.conversationItems.some(
+          (candidate) =>
+            candidate.shopId === item.shopId && candidate.conversationId === item.conversationId,
+        );
+        replaceConversation(item);
+        if (!existed) self.conversationTotal += 1;
+        (self as any).selectConversation(item.shopId, item.conversationId);
+      },
       selectConversation(shopId: string | null, conversationId?: string | null) {
         const nextConversationId = conversationId ?? null;
         self.openingOrderKey = null;

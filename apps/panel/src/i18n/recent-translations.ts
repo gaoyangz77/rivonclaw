@@ -132,7 +132,7 @@ export const RECENT_TRANSLATIONS = {
           reviewManagementSubmodule: "Teilfunktion",
           reviewOptimizationEnabled: "Bewertungsmanagement aktivieren",
           reviewOptimizationHint:
-            "Wenn aktiviert, werden Produktbewertungen mit den Kundenservice-Geschäftsdaten synchronisiert und anhand der folgenden Regeln ausgewertet.",
+            "Schaltet die Nachverfolgung, die Markierung negativer Bewertungen und die Regeln unten ein. Bewertungen erscheinen auch ohne diese Option auf der Seite für negative Bewertungen.",
           badReviewReachoutTitle: "Nachverfolgung negativer Bewertungen",
           badReviewReachoutEnabled: "Nachverfolgung negativer Bewertungen aktivieren",
           badReviewReachoutHint:
@@ -225,7 +225,7 @@ export const RECENT_TRANSLATIONS = {
           reviewManagementSubmodule: "Subfunción",
           reviewOptimizationEnabled: "Activar la gestión de reseñas",
           reviewOptimizationHint:
-            "Al activarla, las reseñas de productos se sincronizan con los datos de atención al cliente y se evalúan con las reglas siguientes.",
+            "Activa el seguimiento, la marca de reseña negativa y las reglas siguientes. Las reseñas aparecen en la página de reseñas negativas esté activado o no.",
           badReviewReachoutTitle: "Seguimiento de reseñas negativas",
           badReviewReachoutEnabled: "Activar el seguimiento de reseñas negativas",
           badReviewReachoutHint:
@@ -317,7 +317,7 @@ export const RECENT_TRANSLATIONS = {
           reviewManagementSubmodule: "Sous-fonctionnalité",
           reviewOptimizationEnabled: "Activer la gestion des avis",
           reviewOptimizationHint:
-            "Lorsque cette option est activée, les avis produits sont synchronisés avec les données du service client et évalués selon les règles ci-dessous.",
+            "Active le suivi, le badge d'avis négatif et les règles ci-dessous. Les avis apparaissent sur la page des avis négatifs, que cette option soit activée ou non.",
           badReviewReachoutTitle: "Suivi des avis négatifs",
           badReviewReachoutEnabled: "Activer le suivi des avis négatifs",
           badReviewReachoutHint:
@@ -416,7 +416,7 @@ export const RECENT_TRANSLATIONS = {
           reviewManagementSubmodule: "Subfitur",
           reviewOptimizationEnabled: "Aktifkan manajemen ulasan",
           reviewOptimizationHint:
-            "Jika diaktifkan, ulasan produk disinkronkan ke data layanan pelanggan dan dievaluasi dengan aturan di bawah ini.",
+            "Mengaktifkan tindak lanjut, penanda ulasan buruk, dan aturan di bawah. Ulasan tetap muncul di halaman ulasan buruk meskipun ini mati.",
           badReviewReachoutTitle: "Tindak lanjut ulasan buruk",
           badReviewReachoutEnabled: "Aktifkan tindak lanjut ulasan buruk",
           badReviewReachoutHint:
@@ -507,7 +507,7 @@ export const RECENT_TRANSLATIONS = {
           reviewManagementSubmodule: "Sottofunzione",
           reviewOptimizationEnabled: "Abilita la gestione delle recensioni",
           reviewOptimizationHint:
-            "Se abilitata, le recensioni dei prodotti vengono sincronizzate con i dati del servizio clienti e valutate secondo le regole seguenti.",
+            "Attiva il follow-up, il contrassegno di recensione negativa e le regole seguenti. Le recensioni compaiono nella pagina delle recensioni negative anche se è disattivato.",
           badReviewReachoutTitle: "Follow-up delle recensioni negative",
           badReviewReachoutEnabled: "Abilita il follow-up delle recensioni negative",
           badReviewReachoutHint:
@@ -599,7 +599,7 @@ export const RECENT_TRANSLATIONS = {
           reviewManagementModule: "โมดูลหลัก",
           reviewManagementSubmodule: "ฟีเจอร์ย่อย",
           reviewOptimizationEnabled: "เปิดใช้การจัดการรีวิว",
-          reviewOptimizationHint: "เมื่อเปิดใช้ รีวิวสินค้าจะซิงค์กับข้อมูลบริการลูกค้าและประเมินตามกฎด้านล่าง",
+          reviewOptimizationHint: "เปิดการติดตาม ป้ายรีวิวเชิงลบ และกฎด้านล่าง รีวิวจะแสดงในหน้ารีวิวเชิงลบไม่ว่าจะเปิดหรือไม่",
           badReviewReachoutTitle: "การติดตามรีวิวเชิงลบ",
           badReviewReachoutEnabled: "เปิดใช้การติดตามรีวิวเชิงลบ",
           badReviewReachoutHint:

@@ -193,6 +193,7 @@ export const INIT_SHOPS_QUERY = `
             enabled
             badReviewReachout {
               enabled
+              mode
               stars
               recentDays
               maxAttempts

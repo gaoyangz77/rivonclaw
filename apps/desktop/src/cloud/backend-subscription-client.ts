@@ -115,6 +115,7 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
               enabled
               badReviewReachout {
                 enabled
+                mode
                 stars
                 recentDays
                 maxAttempts
@@ -205,6 +206,7 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
             enabled
             badReviewReachout {
               enabled
+              mode
               stars
               recentDays
               maxAttempts

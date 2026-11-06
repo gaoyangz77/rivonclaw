@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { GQL } from "@rivonclaw/core";
 import {
   TkBadge,
   TkIconButton,
@@ -71,12 +72,14 @@ interface ShopDrawerProps {
   onDraftUnpaidHoldoutPercentChange: (value: string) => void;
   draftReviewOptimizationEnabled: boolean;
   draftBadReviewReachoutEnabled: boolean;
+  draftBadReviewReachoutMode: GQL.BadReviewFollowUpMode;
   draftBadReviewReachoutStars: string;
   draftBadReviewReachoutRecentDays: string;
   draftBadReviewReachoutMaxAttempts: string;
   savingReviewOptimizationSettings: boolean;
   onToggleReviewOptimizationEnabled: (value: boolean) => void;
   onToggleBadReviewReachoutEnabled: (value: boolean) => void;
+  onDraftBadReviewReachoutModeChange: (value: GQL.BadReviewFollowUpMode) => void;
   onDraftBadReviewReachoutStarsChange: (value: string) => void;
   onDraftBadReviewReachoutRecentDaysChange: (value: string) => void;
   onDraftBadReviewReachoutMaxAttemptsChange: (value: string) => void;
@@ -148,12 +151,14 @@ export const ShopDrawer = observer(function ShopDrawer({
   onDraftUnpaidHoldoutPercentChange,
   draftReviewOptimizationEnabled,
   draftBadReviewReachoutEnabled,
+  draftBadReviewReachoutMode,
   draftBadReviewReachoutStars,
   draftBadReviewReachoutRecentDays,
   draftBadReviewReachoutMaxAttempts,
   savingReviewOptimizationSettings,
   onToggleReviewOptimizationEnabled,
   onToggleBadReviewReachoutEnabled,
+  onDraftBadReviewReachoutModeChange,
   onDraftBadReviewReachoutStarsChange,
   onDraftBadReviewReachoutRecentDaysChange,
   onDraftBadReviewReachoutMaxAttemptsChange,
@@ -755,12 +760,14 @@ export const ShopDrawer = observer(function ShopDrawer({
                   onDraftUnpaidHoldoutPercentChange={onDraftUnpaidHoldoutPercentChange}
                   draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
                   draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
+                  draftBadReviewReachoutMode={draftBadReviewReachoutMode}
                   draftBadReviewReachoutStars={draftBadReviewReachoutStars}
                   draftBadReviewReachoutRecentDays={draftBadReviewReachoutRecentDays}
                   draftBadReviewReachoutMaxAttempts={draftBadReviewReachoutMaxAttempts}
                   savingReviewOptimizationSettings={savingReviewOptimizationSettings}
                   onToggleReviewOptimizationEnabled={onToggleReviewOptimizationEnabled}
                   onToggleBadReviewReachoutEnabled={onToggleBadReviewReachoutEnabled}
+                  onDraftBadReviewReachoutModeChange={onDraftBadReviewReachoutModeChange}
                   onDraftBadReviewReachoutStarsChange={onDraftBadReviewReachoutStarsChange}
                   onDraftBadReviewReachoutRecentDaysChange={
                     onDraftBadReviewReachoutRecentDaysChange

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
+import { GQL } from "@rivonclaw/core";
 import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
@@ -8,7 +9,7 @@ import { CustomerServiceBillingCta } from "../../../components/billing/CustomerS
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 import { PickupReminderSettings } from "./PickupReminderSettings.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
-import { TkSwitchControl } from "../../../components/design-system/index.js";
+import { TkSegmented, TkSwitchControl } from "../../../components/design-system/index.js";
 import { BadReviewReachoutContactLimit } from "./BadReviewReachoutContactLimit.js";
 import { shopDisplayLabel } from "../../../lib/shop-display.js";
 
@@ -45,12 +46,14 @@ interface AiCustomerServiceTabProps {
   // Review optimization
   draftReviewOptimizationEnabled: boolean;
   draftBadReviewReachoutEnabled: boolean;
+  draftBadReviewReachoutMode: GQL.BadReviewFollowUpMode;
   draftBadReviewReachoutStars: string;
   draftBadReviewReachoutRecentDays: string;
   draftBadReviewReachoutMaxAttempts: string;
   savingReviewOptimizationSettings: boolean;
   onToggleReviewOptimizationEnabled: (value: boolean) => void;
   onToggleBadReviewReachoutEnabled: (value: boolean) => void;
+  onDraftBadReviewReachoutModeChange: (value: GQL.BadReviewFollowUpMode) => void;
   onDraftBadReviewReachoutStarsChange: (value: string) => void;
   onDraftBadReviewReachoutRecentDaysChange: (value: string) => void;
   onDraftBadReviewReachoutMaxAttemptsChange: (value: string) => void;
@@ -95,12 +98,14 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   onDraftUnpaidHoldoutPercentChange,
   draftReviewOptimizationEnabled,
   draftBadReviewReachoutEnabled,
+  draftBadReviewReachoutMode,
   draftBadReviewReachoutStars,
   draftBadReviewReachoutRecentDays,
   draftBadReviewReachoutMaxAttempts,
   savingReviewOptimizationSettings,
   onToggleReviewOptimizationEnabled,
   onToggleBadReviewReachoutEnabled,
+  onDraftBadReviewReachoutModeChange,
   onDraftBadReviewReachoutStarsChange,
   onDraftBadReviewReachoutRecentDaysChange,
   onDraftBadReviewReachoutMaxAttemptsChange,
@@ -118,6 +123,10 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   onUnbindDevice,
 }: AiCustomerServiceTabProps) {
   const { t } = useTranslation();
+  const reviewModeDisabled =
+    !draftReviewOptimizationEnabled ||
+    !draftBadReviewReachoutEnabled ||
+    savingReviewOptimizationSettings;
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
   const entitlement =
@@ -324,15 +333,48 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </div>
 
               <div className="shop-review-feature-settings">
-                <BadReviewReachoutContactLimit
-                  value={draftBadReviewReachoutMaxAttempts}
-                  onChange={onDraftBadReviewReachoutMaxAttemptsChange}
-                  disabled={
-                    !draftReviewOptimizationEnabled ||
-                    !draftBadReviewReachoutEnabled ||
-                    savingReviewOptimizationSettings
-                  }
-                />
+                <div className="shop-review-field">
+                  <span className="form-label-block">
+                    {t("ecommerce.shopDrawer.aiCS.badReviewModeLabel")}
+                  </span>
+                  <TkSegmented
+                    label={t("ecommerce.shopDrawer.aiCS.badReviewModeLabel")}
+                    items={[
+                      {
+                        id: GQL.BadReviewFollowUpMode.Ai,
+                        label: t("ecommerce.shopDrawer.aiCS.badReviewModeAi"),
+                        disabled: reviewModeDisabled,
+                      },
+                      {
+                        id: GQL.BadReviewFollowUpMode.Manual,
+                        label: t("ecommerce.shopDrawer.aiCS.badReviewModeManual"),
+                        disabled: reviewModeDisabled,
+                      },
+                    ]}
+                    value={draftBadReviewReachoutMode}
+                    onChange={(mode) =>
+                      onDraftBadReviewReachoutModeChange(mode as GQL.BadReviewFollowUpMode)
+                    }
+                  />
+                  <span className="form-hint">
+                    {t(
+                      draftBadReviewReachoutMode === GQL.BadReviewFollowUpMode.Manual
+                        ? "ecommerce.shopDrawer.aiCS.badReviewModeManualHint"
+                        : "ecommerce.shopDrawer.aiCS.badReviewModeAiHint",
+                    )}
+                  </span>
+                </div>
+                {draftBadReviewReachoutMode === GQL.BadReviewFollowUpMode.Ai ? (
+                  <BadReviewReachoutContactLimit
+                    value={draftBadReviewReachoutMaxAttempts}
+                    onChange={onDraftBadReviewReachoutMaxAttemptsChange}
+                    disabled={
+                      !draftReviewOptimizationEnabled ||
+                      !draftBadReviewReachoutEnabled ||
+                      savingReviewOptimizationSettings
+                    }
+                  />
+                ) : null}
                 <label className="shop-review-field">
                   <span className="form-label-block">
                     {t("ecommerce.shopDrawer.aiCS.badReviewReachoutStars")}

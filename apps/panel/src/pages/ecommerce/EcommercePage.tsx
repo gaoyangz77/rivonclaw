@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { GQL } from "@rivonclaw/core";
 import { TkConfirmDialog as ConfirmDialog } from "../../components/design-system/index.js";
 import { TkPageFrame, TkPageHeader, TkPanel } from "../../components/design-system/index.js";
 import { observer } from "mobx-react-lite";
@@ -64,6 +65,8 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftUnpaidHoldoutPercent, setDraftUnpaidHoldoutPercent] = useState("5");
   const [draftReviewOptimizationEnabled, setDraftReviewOptimizationEnabled] = useState(false);
   const [draftBadReviewReachoutEnabled, setDraftBadReviewReachoutEnabled] = useState(false);
+  const [draftBadReviewReachoutMode, setDraftBadReviewReachoutMode] =
+    useState<GQL.BadReviewFollowUpMode>(GQL.BadReviewFollowUpMode.Ai);
   const [draftBadReviewReachoutStars, setDraftBadReviewReachoutStars] = useState("3");
   const [draftBadReviewReachoutRecentDays, setDraftBadReviewReachoutRecentDays] = useState("7");
   const [draftBadReviewReachoutMaxAttempts, setDraftBadReviewReachoutMaxAttempts] = useState("3");
@@ -164,6 +167,10 @@ export const EcommercePage = observer(function EcommercePage() {
         selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled ??
           false,
       );
+      setDraftBadReviewReachoutMode(
+        selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.mode ??
+          GQL.BadReviewFollowUpMode.Ai,
+      );
       setDraftBadReviewReachoutStars(
         String(
           selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.stars ?? 3,
@@ -191,6 +198,7 @@ export const EcommercePage = observer(function EcommercePage() {
     selectedShop?.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent,
     selectedShop?.services?.customerService?.reviewOptimization?.enabled,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled,
+    selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.mode,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.stars,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.recentDays,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.maxAttempts,
@@ -401,6 +409,7 @@ export const EcommercePage = observer(function EcommercePage() {
               enabled: draftReviewOptimizationEnabled,
               badReviewReachout: {
                 enabled: draftBadReviewReachoutEnabled,
+                mode: draftBadReviewReachoutMode,
                 stars: parsedStars,
                 recentDays: parsedRecentDays,
                 maxAttempts,
@@ -761,12 +770,14 @@ export const EcommercePage = observer(function EcommercePage() {
         onDraftUnpaidHoldoutPercentChange={setDraftUnpaidHoldoutPercent}
         draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
         draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
+        draftBadReviewReachoutMode={draftBadReviewReachoutMode}
         draftBadReviewReachoutStars={draftBadReviewReachoutStars}
         draftBadReviewReachoutRecentDays={draftBadReviewReachoutRecentDays}
         draftBadReviewReachoutMaxAttempts={draftBadReviewReachoutMaxAttempts}
         savingReviewOptimizationSettings={savingReviewOptimizationSettings}
         onToggleReviewOptimizationEnabled={setDraftReviewOptimizationEnabled}
         onToggleBadReviewReachoutEnabled={setDraftBadReviewReachoutEnabled}
+        onDraftBadReviewReachoutModeChange={setDraftBadReviewReachoutMode}
         onDraftBadReviewReachoutStarsChange={setDraftBadReviewReachoutStars}
         onDraftBadReviewReachoutRecentDaysChange={setDraftBadReviewReachoutRecentDays}
         onDraftBadReviewReachoutMaxAttemptsChange={setDraftBadReviewReachoutMaxAttempts}

@@ -44,8 +44,10 @@ export const SHOP_FIELDS_FRAGMENT = gql`
           enabled
           badReviewReachout {
             enabled
+            mode
             stars
             recentDays
+            maxAttempts
           }
         }
       }
@@ -1185,6 +1187,8 @@ export const CS_CONVERSATION_INBOX_ITEM_FIELDS_FRAGMENT = gql`
       reviewCreateTime
       reviewUpdateTime
       followUpStatus
+      handlingStatus
+      handlingStatus
     }
   }
 `;
@@ -1493,6 +1497,7 @@ export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
         reviewCreateTime
         reviewUpdateTime
         followUpStatus
+        handlingStatus
       }
     }
   }
@@ -1580,6 +1585,7 @@ export const CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION = gql`
         reviewCreateTime
         reviewUpdateTime
         followUpStatus
+        handlingStatus
       }
     }
   }

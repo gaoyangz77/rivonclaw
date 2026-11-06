@@ -1,3 +1,4 @@
+import * as GQL from "../generated/graphql.js";
 import { types, type Instance } from "mobx-state-tree";
 import { assembleCsPrompt } from "../prompts/cs-prompt.js";
 
@@ -52,6 +53,13 @@ export const CustomerServiceConfigModel = types
         badReviewReachout: types.optional(
           types.model("BadReviewReachoutConfig", {
             enabled: types.optional(types.boolean, false),
+            mode: types.optional(
+              types.enumeration<GQL.BadReviewFollowUpMode>(
+                "BadReviewFollowUpMode",
+                Object.values(GQL.BadReviewFollowUpMode),
+              ),
+              GQL.BadReviewFollowUpMode.Ai,
+            ),
             stars: types.optional(types.number, 3),
             recentDays: types.optional(types.number, 7),
             maxAttempts: types.optional(types.number, 3),

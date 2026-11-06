@@ -4941,7 +4941,7 @@ export default {
         reviewManagementSubmodule: "子功能",
         reviewOptimizationEnabled: "启用评价管理",
         reviewOptimizationHint:
-          "开启后，系统会把商品评价同步到客服业务数据，并按下面的规则识别需要跟进的差评。",
+          "开启后才有差评跟进、差评标记和下面的规则。无论是否开启,评价都会显示在差评管理页。",
         badReviewReachoutTitle: "差评跟进",
         badReviewReachoutEnabled: "启用差评跟进",
         badReviewReachoutHint:
