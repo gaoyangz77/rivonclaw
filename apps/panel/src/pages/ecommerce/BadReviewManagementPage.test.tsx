@@ -150,6 +150,22 @@ describe("BadReviewManagementPage", () => {
     );
   });
 
+  it("shows that a review in follow-up needs a reply", async () => {
+    mount([
+      dto({
+        handlingStatus: GQL.ProductReviewHandlingStatus.InProgress,
+        replyState: GQL.ProductReviewReplyState.AwaitingSeller,
+      }),
+    ]);
+    expect(await screen.findByText("Needs a reply")).toBeTruthy();
+  });
+
+  it("shows no reply state outside follow-up", async () => {
+    mount([dto({ replyState: GQL.ProductReviewReplyState.AwaitingSeller })]);
+    await screen.findByText("Arrived broken");
+    expect(screen.queryByText("Needs a reply")).toBeNull();
+  });
+
   it("shows how long a review has been in follow-up", async () => {
     mount([
       dto({

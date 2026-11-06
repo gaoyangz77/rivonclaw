@@ -22,6 +22,7 @@ import {
 } from "../../../../store/models/EcommerceBadReviewModel.js";
 import {
   badReviewAiProgressLabel,
+  badReviewReplyLabel,
   badReviewSourceLabel,
   badReviewStatusLabel,
 } from "../../bad-review-labels.js";
@@ -80,6 +81,17 @@ const BadReviewRow = observer(function BadReviewRow({
           <TkBadge tone={inProgress ? "warning" : "neutral"}>
             {badReviewStatusLabel(t, review.handlingStatus)}
           </TkBadge>
+          {inProgress && review.replyState ? (
+            <TkBadge
+              tone={
+                review.replyState === GQL.ProductReviewReplyState.AwaitingSeller
+                  ? "danger"
+                  : "neutral"
+              }
+            >
+              {badReviewReplyLabel(t, review.replyState)}
+            </TkBadge>
+          ) : null}
           {inProgress && review.handlingChangedAt ? (
             <span className="bad-review-muted">
               {t(`${PREFIX}.inProgressAge`, {

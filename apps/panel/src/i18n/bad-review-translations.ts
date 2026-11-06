@@ -58,6 +58,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} stars",
           status: "Follow-up status",
           allStatuses: "All statuses",
+          reply: "Reply",
+          allReplies: "All replies",
           source: "Source",
           allSources: "All sources",
           stale: "In follow-up for",
@@ -65,6 +67,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ days",
           reviewFrom: "Review from",
           reviewTo: "Review to",
+        },
+        reply: {
+          AWAITING_SELLER: "Needs a reply",
+          AWAITING_BUYER: "Waiting for buyer",
         },
         status: {
           none: "Not started",
@@ -251,6 +257,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} 星",
           status: "跟进状态",
           allStatuses: "全部状态",
+          reply: "回复状态",
+          allReplies: "全部回复状态",
           source: "来源",
           allSources: "全部来源",
           stale: "跟进时长",
@@ -258,6 +266,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}} 天以上",
           reviewFrom: "评价开始日期",
           reviewTo: "评价结束日期",
+        },
+        reply: {
+          AWAITING_SELLER: "待回复",
+          AWAITING_BUYER: "等买家回复",
         },
         status: {
           none: "未开始",
@@ -442,6 +454,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} Sterne",
           status: "Status",
           allStatuses: "Alle Status",
+          reply: "Antwort",
+          allReplies: "Alle Antworten",
           source: "Quelle",
           allSources: "Alle Quellen",
           stale: "In Bearbeitung seit",
@@ -449,6 +463,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ Tage",
           reviewFrom: "Bewertung ab",
           reviewTo: "Bewertung bis",
+        },
+        reply: {
+          AWAITING_SELLER: "Antwort nötig",
+          AWAITING_BUYER: "Wartet auf Käufer",
         },
         status: {
           none: "Nicht begonnen",
@@ -642,6 +660,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} estrellas",
           status: "Estado",
           allStatuses: "Todos los estados",
+          reply: "Respuesta",
+          allReplies: "Todas las respuestas",
           source: "Origen",
           allSources: "Todos los orígenes",
           stale: "En seguimiento desde hace",
@@ -649,6 +669,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ días",
           reviewFrom: "Reseña desde",
           reviewTo: "Reseña hasta",
+        },
+        reply: {
+          AWAITING_SELLER: "Por responder",
+          AWAITING_BUYER: "Esperando al comprador",
         },
         status: {
           none: "Sin iniciar",
@@ -838,6 +862,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} étoiles",
           status: "Statut",
           allStatuses: "Tous les statuts",
+          reply: "Réponse",
+          allReplies: "Toutes les réponses",
           source: "Source",
           allSources: "Toutes les sources",
           stale: "En suivi depuis",
@@ -845,6 +871,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}} jours et plus",
           reviewFrom: "Avis à partir du",
           reviewTo: "Avis jusqu'au",
+        },
+        reply: {
+          AWAITING_SELLER: "À répondre",
+          AWAITING_BUYER: "En attente de l'acheteur",
         },
         status: {
           none: "Non commencé",
@@ -1036,6 +1066,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} bintang",
           status: "Status",
           allStatuses: "Semua status",
+          reply: "Balasan",
+          allReplies: "Semua balasan",
           source: "Sumber",
           allSources: "Semua sumber",
           stale: "Ditindaklanjuti selama",
@@ -1043,6 +1075,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ hari",
           reviewFrom: "Ulasan dari",
           reviewTo: "Ulasan sampai",
+        },
+        reply: {
+          AWAITING_SELLER: "Perlu dibalas",
+          AWAITING_BUYER: "Menunggu pembeli",
         },
         status: {
           none: "Belum dimulai",
@@ -1234,6 +1270,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} stelle",
           status: "Stato",
           allStatuses: "Tutti gli stati",
+          reply: "Risposta",
+          allReplies: "Tutte le risposte",
           source: "Origine",
           allSources: "Tutte le origini",
           stale: "In follow-up da",
@@ -1241,6 +1279,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ giorni",
           reviewFrom: "Recensione dal",
           reviewTo: "Recensione al",
+        },
+        reply: {
+          AWAITING_SELLER: "Da rispondere",
+          AWAITING_BUYER: "In attesa dell'acquirente",
         },
         status: {
           none: "Non iniziato",
@@ -1428,6 +1470,8 @@ export const BAD_REVIEW_TRANSLATIONS = {
           ratingValue: "{{count}} ดาว",
           status: "สถานะ",
           allStatuses: "ทุกสถานะ",
+          reply: "การตอบกลับ",
+          allReplies: "การตอบกลับทั้งหมด",
           source: "แหล่งที่มา",
           allSources: "ทุกแหล่งที่มา",
           stale: "ติดตามมาแล้ว",
@@ -1435,6 +1479,10 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}} วันขึ้นไป",
           reviewFrom: "รีวิวตั้งแต่",
           reviewTo: "รีวิวถึง",
+        },
+        reply: {
+          AWAITING_SELLER: "รอตอบกลับ",
+          AWAITING_BUYER: "รอผู้ซื้อตอบ",
         },
         status: {
           none: "ยังไม่เริ่ม",

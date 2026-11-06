@@ -8486,6 +8486,10 @@ export interface EcomBadReview {
   /** Proactive contacts delivered so far. */
   reachoutSentCount?: Maybe<Scalars["Int"]["output"]>;
   reachoutState?: Maybe<BadReviewReachoutState>;
+  /** When the reply state was last read from the platform. */
+  replyCheckedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** Who the conversation is waiting for. Only for a review in follow-up, once it has been read. */
+  replyState?: Maybe<ProductReviewReplyState>;
   reviewTime?: Maybe<Scalars["DateTimeISO"]["output"]>;
   /** Who follows up this shop's bad reviews. Null while either switch is off. */
   shopFollowUpMode?: Maybe<BadReviewFollowUpMode>;
@@ -8559,6 +8563,8 @@ export interface EcomBadReviewsInput {
   offset?: InputMaybe<Scalars["Int"]["input"]>;
   /** Null selects every rating. */
   ratings?: InputMaybe<Array<Scalars["Int"]["input"]>>;
+  /** Only reviews in follow-up with this reply state. Null selects every review. */
+  replyStates?: InputMaybe<Array<ProductReviewReplyState>>;
   /** Start of the review-time window (inclusive). */
   reviewFrom?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
   /** End of the review-time window (exclusive). */
@@ -14219,6 +14225,14 @@ export const ProductReviewHandlingStatus = {
 
 export type ProductReviewHandlingStatus =
   (typeof ProductReviewHandlingStatus)[keyof typeof ProductReviewHandlingStatus];
+/** Who the conversation of a review in follow-up is waiting for. */
+export const ProductReviewReplyState = {
+  AwaitingBuyer: "AWAITING_BUYER",
+  AwaitingSeller: "AWAITING_SELLER",
+} as const;
+
+export type ProductReviewReplyState =
+  (typeof ProductReviewReplyState)[keyof typeof ProductReviewReplyState];
 /** Where a product review came from. */
 export const ProductReviewSource = {
   ManualImport: "MANUAL_IMPORT",

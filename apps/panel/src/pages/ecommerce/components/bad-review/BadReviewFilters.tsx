@@ -12,7 +12,11 @@ import {
 } from "../../../../lib/bad-review.js";
 import { useEntityStore } from "../../../../store/EntityStoreProvider.js";
 import type { AffiliateAnalyticsShop } from "../../affiliate-analytics-scope.js";
-import { badReviewSourceLabel, badReviewStatusLabel } from "../../bad-review-labels.js";
+import {
+  badReviewReplyLabel,
+  badReviewSourceLabel,
+  badReviewStatusLabel,
+} from "../../bad-review-labels.js";
 import { AffiliateShopScopeControl } from "../AffiliateShopScopeControl.js";
 
 const PREFIX = "ecommerce.badReview.filters";
@@ -66,6 +70,20 @@ export const BadReviewFilters = observer(function BadReviewFilters() {
         ]}
         onChange={(value) =>
           badReview.setHandlingStatus(value ? (value as BadReviewHandlingStatus) : null)
+        }
+      />
+      <TkChoiceSelect
+        label={t(`${PREFIX}.reply`)}
+        value={badReview.replyState ?? ""}
+        options={[
+          { value: "", label: t(`${PREFIX}.allReplies`) },
+          ...Object.values(GQL.ProductReviewReplyState).map((replyState) => ({
+            value: replyState,
+            label: badReviewReplyLabel(t, replyState),
+          })),
+        ]}
+        onChange={(value) =>
+          badReview.setReplyState(value ? (value as GQL.ProductReviewReplyState) : null)
         }
       />
       <TkChoiceSelect

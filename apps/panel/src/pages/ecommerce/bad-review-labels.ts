@@ -9,6 +9,10 @@ export function badReviewStatusLabel(t: Translate, status: string | null | undef
   return status ? t(`${PREFIX}.status.${status}`) : t(`${PREFIX}.status.none`);
 }
 
+export function badReviewReplyLabel(t: Translate, replyState: string): string {
+  return t(`${PREFIX}.reply.${replyState}`);
+}
+
 export function badReviewSourceLabel(t: Translate, source: string): string {
   return t(`${PREFIX}.source.${source}`);
 }

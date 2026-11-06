@@ -46,6 +46,15 @@ describe("EcommerceBadReviewModel", () => {
     });
   });
 
+  it("asks only for reviews needing a reply, from the first page", async () => {
+    const store = storeWith({ query: vi.fn().mockResolvedValue(page([dto()], 120)) });
+    await store.fetchReviews();
+    store.setPage(2);
+    store.setReplyState(GQL.ProductReviewReplyState.AwaitingSeller);
+    expect(store.page).toBe(1);
+    expect(store.queryInput.replyStates).toEqual(["AWAITING_SELLER"]);
+  });
+
   it("selects every shop again when the whole list is chosen", () => {
     const store = storeWith({});
     store.setShopScope(["shop-1", "shop-2"], 2);

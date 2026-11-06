@@ -19,6 +19,11 @@ const handlingStatusType = types.enumeration<GQL.ProductReviewHandlingStatus>(
   Object.values(GQL.ProductReviewHandlingStatus),
 );
 
+const replyStateType = types.enumeration<GQL.ProductReviewReplyState>(
+  "ProductReviewReplyState",
+  Object.values(GQL.ProductReviewReplyState),
+);
+
 const BadReviewHandlingEventModel = types.model("BadReviewHandlingEvent", {
   from: types.maybeNull(handlingStatusType),
   to: handlingStatusType,
@@ -55,6 +60,8 @@ export const BadReviewRowModel = types
     ),
     handlingStatus: types.maybeNull(handlingStatusType),
     handlingChangedAt: types.maybeNull(types.string),
+    replyState: types.maybeNull(replyStateType),
+    replyCheckedAt: types.maybeNull(types.string),
     handlingEvents: types.array(BadReviewHandlingEventModel),
     aiFollowUpStatus: types.enumeration<GQL.ProductReviewFollowUpStatus>(
       "ProductReviewFollowUpStatus",
@@ -101,6 +108,8 @@ function toRowSnapshot(dto: GQL.EcomBadReview) {
     shopFollowUpMode: dto.shopFollowUpMode ?? null,
     handlingStatus: dto.handlingStatus ?? null,
     handlingChangedAt: dto.handlingChangedAt ?? null,
+    replyState: dto.replyState ?? null,
+    replyCheckedAt: dto.replyCheckedAt ?? null,
     handlingEvents: dto.handlingEvents.map((event) => ({
       from: event.from ?? null,
       to: event.to,
@@ -128,6 +137,7 @@ export const EcommerceBadReviewModel = types
     shopIds: types.array(types.string),
     rating: types.maybeNull(types.number),
     handlingStatus: types.maybeNull(handlingStatusType),
+    replyState: types.maybeNull(replyStateType),
     source: types.maybeNull(
       types.enumeration<GQL.ProductReviewSource>(
         "ProductReviewSource",
@@ -164,6 +174,7 @@ export const EcommerceBadReviewModel = types
       if (!self.allShops) input.shopIds = [...self.shopIds];
       if (self.rating != null) input.ratings = [self.rating];
       if (self.handlingStatus) input.handlingStatuses = [self.handlingStatus];
+      if (self.replyState) input.replyStates = [self.replyState];
       if (self.source) input.sources = [self.source];
       if (self.reviewFrom) input.reviewFrom = startOfLocalDay(self.reviewFrom).toISOString();
       if (self.reviewTo) {
@@ -267,6 +278,10 @@ export const EcommerceBadReviewModel = types
       },
       setHandlingStatus(value: BadReviewHandlingStatus | null) {
         self.handlingStatus = value;
+        self.page = 1;
+      },
+      setReplyState(value: GQL.ProductReviewReplyState | null) {
+        self.replyState = value;
         self.page = 1;
       },
       setSource(value: GQL.ProductReviewSource | null) {

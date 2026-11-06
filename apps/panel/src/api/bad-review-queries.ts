@@ -18,6 +18,8 @@ export const BAD_REVIEW_FIELDS_FRAGMENT = gql`
     shopFollowUpMode
     handlingStatus
     handlingChangedAt
+    replyState
+    replyCheckedAt
     handlingEvents {
       from
       to
