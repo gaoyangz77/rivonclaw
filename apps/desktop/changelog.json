@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.9.52",
+    "date": "2026-11-06",
+    "en": [
+      "Manage bad reviews on a new Customer Service page: see which reviews in follow-up need a reply, and send a first message to the reviews you tick",
+      "Explain TikTok's after-sale decision refusals in your language",
+      "Name the reason for every campaign write failure, and stop a campaign whose message product name is too long at step 3",
+      "Label the Creator performance card by its scope"
+    ],
+    "zh": [
+      "客服新增差评管理页面：可查看跟进中哪些差评需要回复，并向勾选的差评发送第一条消息",
+      "TikTok 拒绝售后决定时，用当前语言说明原因",
+      "活动写入失败时都会说明具体原因，消息中的商品名过长时在第 3 步就拦下",
+      "达人表现卡片按查看范围显示标题"
+    ]
+  },
+  {
     "version": "1.9.51",
     "date": "2026-11-05",
     "en": [
