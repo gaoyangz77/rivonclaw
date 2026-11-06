@@ -117,3 +117,65 @@ export const UPDATE_BAD_REVIEW_FOLLOW_UP_STATUS_MUTATION = gql`
     }
   }
 `;
+
+export const PREVIEW_BAD_REVIEW_BULK_FOLLOW_UP_QUERY = gql`
+  query PreviewBadReviewBulkFollowUp($reviewIds: [ID!]!) {
+    preview: ecommercePreviewBadReviewBulkFollowUp(reviewIds: $reviewIds) {
+      reviews
+      buyers
+      skippedUnavailable
+      skippedNoBuyer
+      skippedNotManual
+      languages {
+        language
+        buyers
+      }
+    }
+  }
+`;
+
+export const TRANSLATE_BAD_REVIEW_BULK_MESSAGE_MUTATION = gql`
+  mutation TranslateBadReviewBulkMessage($message: String!, $languages: [BadReviewMessageLanguage!]!) {
+    messages: ecommerceTranslateBadReviewBulkMessage(message: $message, languages: $languages) {
+      language
+      text
+    }
+  }
+`;
+
+const BAD_REVIEW_BULK_FOLLOW_UP_FIELDS_FRAGMENT = gql`
+  fragment BadReviewBulkFollowUpFields on EcomBadReviewBulkFollowUp {
+    id
+    total
+    waiting
+    sent
+    failed
+    skipped
+    finished
+    problems {
+      problem
+      buyers
+    }
+  }
+`;
+
+export const START_BAD_REVIEW_BULK_FOLLOW_UP_MUTATION = gql`
+  ${BAD_REVIEW_BULK_FOLLOW_UP_FIELDS_FRAGMENT}
+  mutation StartBadReviewBulkFollowUp(
+    $reviewIds: [ID!]!
+    $messages: [EcomBadReviewBulkMessageInput!]!
+  ) {
+    batch: ecommerceStartBadReviewBulkFollowUp(reviewIds: $reviewIds, messages: $messages) {
+      ...BadReviewBulkFollowUpFields
+    }
+  }
+`;
+
+export const READ_BAD_REVIEW_BULK_FOLLOW_UP_QUERY = gql`
+  ${BAD_REVIEW_BULK_FOLLOW_UP_FIELDS_FRAGMENT}
+  query ReadBadReviewBulkFollowUp($batchId: ID!) {
+    batch: ecommerceBadReviewBulkFollowUp(batchId: $batchId) {
+      ...BadReviewBulkFollowUpFields
+    }
+  }
+`;

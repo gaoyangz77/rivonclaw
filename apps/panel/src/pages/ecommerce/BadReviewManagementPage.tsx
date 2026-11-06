@@ -18,6 +18,7 @@ import {
   BAD_REVIEW_TEMPLATE_FILENAME,
   buildBadReviewTemplateWorkbook,
 } from "./bad-review-template.js";
+import { BadReviewBulkFollowUpModal } from "./components/bad-review/BadReviewBulkFollowUpModal.js";
 import { BadReviewDetailModal } from "./components/bad-review/BadReviewDetailModal.js";
 import { BadReviewFilters } from "./components/bad-review/BadReviewFilters.js";
 import { BadReviewImportModal } from "./components/bad-review/BadReviewImportModal.js";
@@ -45,6 +46,7 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const querySignature = badReview.querySignature;
   const [importOpen, setImportOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // Every filter change is a new query; the signature is the only dependency that carries them.
   useEffect(() => {
@@ -154,6 +156,13 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
               {t("ecommerce.badReview.downloadTemplate")}
             </TkButton>
             <TkButton
+              variant="secondary"
+              disabled={badReview.bulkSelectedIds.length === 0}
+              onClick={() => setBulkOpen(true)}
+            >
+              {t("ecommerce.badReview.bulk.button", { count: badReview.bulkSelectedIds.length })}
+            </TkButton>
+            <TkButton
               variant="primary"
               data-tutorial-id="bad-review-import"
               onClick={() => setImportOpen(true)}
@@ -186,6 +195,7 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
       <BadReviewTable onStart={startFollowUp} onOpenConversation={openConversation} />
       <BadReviewDetailModal onStart={startFollowUp} onOpenConversation={openConversation} />
       <BadReviewImportModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
+      <BadReviewBulkFollowUpModal isOpen={bulkOpen} onClose={() => setBulkOpen(false)} />
     </TkPageFrame>
   );
 });

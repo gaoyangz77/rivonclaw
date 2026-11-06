@@ -160,6 +160,126 @@ describe("BadReviewManagementPage", () => {
     expect(await screen.findByText("Needs a reply")).toBeTruthy();
   });
 
+  describe("bulk start follow-up", () => {
+    const preview = {
+      reviews: 3,
+      buyers: 2,
+      skippedUnavailable: 1,
+      skippedNoBuyer: 0,
+      skippedNotManual: 0,
+      languages: [
+        { language: GQL.BadReviewMessageLanguage.En, buyers: 1 },
+        { language: GQL.BadReviewMessageLanguage.De, buyers: 1 },
+      ],
+    };
+    const translated = [
+      { language: GQL.BadReviewMessageLanguage.En, text: "Sorry" },
+      { language: GQL.BadReviewMessageLanguage.De, text: "Es tut uns leid" },
+    ];
+    const open = async (mutate: ReturnType<typeof vi.fn>) => {
+      const query = vi.fn(async ({ variables }: { variables: { reviewIds?: string[] } }) =>
+        variables.reviewIds
+          ? { data: { preview } }
+          : { data: { page: { items: [dto(), dto({ id: "review-2", orderId: "576000000000000002" })], totalCount: 2 } } },
+      );
+      const ecommerceBadReview = EcommerceBadReviewModel.create({}, { apolloClient: { query, mutate } });
+      mocks.store = {
+        currentUser: { userId: "user-1" },
+        shops: [],
+        ecommerceBadReview,
+        customerServiceWorkspace: {},
+      };
+      render(<BadReviewManagementPage />);
+      fireEvent.click(await screen.findByRole("checkbox", { name: "Select all on this page" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Bulk start follow-up (2)" }));
+      return { dialog: await screen.findByRole("dialog"), query };
+    };
+
+    it("needs at least one ticked row", async () => {
+      mount([dto()]);
+      const button = (await screen.findByRole("button", { name: "Bulk start follow-up (0)" })) as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      fireEvent.click(await screen.findByRole("checkbox", { name: "Select order 576000000000000001" }));
+      expect(((await screen.findByRole("button", { name: "Bulk start follow-up (1)" })) as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it("can tick a review already in follow-up, to write again", async () => {
+      mount([dto({ handlingStatus: GQL.ProductReviewHandlingStatus.InProgress })]);
+      expect(await screen.findByRole("checkbox", { name: "Select order 576000000000000001" })).toBeTruthy();
+    });
+
+    it("has no tick box for a closed review", async () => {
+      mount([dto({ handlingStatus: GQL.ProductReviewHandlingStatus.Closed })]);
+      await screen.findByText("Arrived broken");
+      expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    });
+
+    it("sends the ticked reviews, and nothing until the translated messages are confirmed", async () => {
+      const mutate = vi.fn(async (options: { variables: { message?: string } }) =>
+        options.variables.message
+          ? { data: { messages: translated } }
+          : {
+              data: {
+                batch: {
+                  id: "batch-1", total: 2, waiting: 2, sent: 0, failed: 0, skipped: 0,
+                  finished: false, problems: [],
+                },
+              },
+            },
+      );
+      const { dialog, query } = await open(mutate);
+      expect(await within(dialog).findByText(/one message to 2 buyers, covering 3 reviews/)).toBeTruthy();
+      expect(within(dialog).getByText(/1 chosen reviews that cannot take a message/)).toBeTruthy();
+      expect(query.mock.calls.at(-1)![0].variables).toEqual({ reviewIds: ["review-1", "review-2"] });
+      const action = within(dialog).getByRole("button", { name: "Translate and send" }) as HTMLButtonElement;
+      expect(action.disabled).toBe(true);
+
+      fireEvent.change(within(dialog).getByLabelText("Message"), { target: { value: "Sorry" } });
+      fireEvent.click(action);
+      expect(await screen.findByText("Send this message?")).toBeTruthy();
+      expect(mutate).toHaveBeenCalledTimes(1);
+
+      const confirm = (await screen.findAllByRole("button", { name: "Send to 2 buyers" })).at(-1)!;
+      fireEvent.click(confirm);
+      await waitFor(() => expect(mutate).toHaveBeenCalledTimes(2));
+      expect(mutate.mock.calls[1]![0].variables).toMatchObject({
+        reviewIds: ["review-1", "review-2"],
+        messages: translated,
+      });
+      expect(await screen.findByText("Sending: 0 of 2 finished.")).toBeTruthy();
+    });
+
+    it("lets the seller back out of the confirmation and edit a translation", async () => {
+      const mutate = vi.fn().mockResolvedValue({ data: { messages: translated } });
+      const { dialog } = await open(mutate);
+      await within(dialog).findByText(/one message to 2 buyers/);
+      fireEvent.change(within(dialog).getByLabelText("Message"), { target: { value: "Sorry" } });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Translate and send" }));
+      await screen.findByText("Send this message?");
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      const german = await within(dialog).findByDisplayValue("Es tut uns leid");
+      fireEvent.change(german, { target: { value: "" } });
+      expect(
+        (within(dialog).getByRole("button", { name: "Send to 2 buyers" }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+      expect(mutate).toHaveBeenCalledTimes(1);
+    });
+
+    it("translates again after the message changes", async () => {
+      const mutate = vi.fn().mockResolvedValue({ data: { messages: translated } });
+      const { dialog } = await open(mutate);
+      await within(dialog).findByText(/one message to 2 buyers/);
+      const message = within(dialog).getByLabelText("Message");
+      fireEvent.change(message, { target: { value: "Sorry" } });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Translate and send" }));
+      await screen.findByText("Send this message?");
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      fireEvent.change(message, { target: { value: "Sorry again" } });
+      expect(within(dialog).getByRole("button", { name: "Translate and send" })).toBeTruthy();
+      expect(within(dialog).queryByDisplayValue("Es tut uns leid")).toBeNull();
+    });
+  });
+
   it("shows no reply state outside follow-up", async () => {
     mount([dto({ replyState: GQL.ProductReviewReplyState.AwaitingSeller })]);
     await screen.findByText("Arrived broken");

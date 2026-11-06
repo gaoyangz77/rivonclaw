@@ -41,6 +41,23 @@ export function shopFollowsUpManually(shop: ShopFollowUpSettings | null | undefi
   );
 }
 
+/** Whether a row can take a bulk message: a closed review stays closed. The server checks again. */
+export function canBulkSendReview(review: {
+  hasBuyer: boolean;
+  orderId?: string | null;
+  shopFollowUpMode?: GQL.BadReviewFollowUpMode | null;
+  handlingStatus?: GQL.ProductReviewHandlingStatus | null;
+}): boolean {
+  return (
+    review.hasBuyer &&
+    Boolean(review.orderId) &&
+    review.shopFollowUpMode === GQL.BadReviewFollowUpMode.Manual &&
+    (review.handlingStatus == null ||
+      review.handlingStatus === GQL.ProductReviewHandlingStatus.Pending ||
+      review.handlingStatus === GQL.ProductReviewHandlingStatus.InProgress)
+  );
+}
+
 /**
  * Whether a backend refusal means the shop has not paid for the feature. The backend's
  * UpgradeRequiredError reaches Panel only as this message text.

@@ -41,6 +41,43 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "Only US local shops sync reviews through the API. Shops on other sites add their bad reviews with the Excel import.",
         loadFailed: "Could not load bad reviews",
+        bulk: {
+          button: "Bulk start follow-up ({{count}})",
+          selectRow: "Select order {{order}}",
+          selectPage: "Select all on this page",
+          title: "Bulk start follow-up",
+          failed: "The action failed",
+          none: "None of the chosen reviews can take a message.",
+          summary: "Sends one message to {{buyers}} buyers, covering {{reviews}} reviews.",
+          skipped: "Left out: {{count}} chosen reviews that cannot take a message.",
+          languageCount: "{{language}}: {{count}}",
+          messageLabel: "Message",
+          messageHint:
+            "Be polite and specific. Do not ask the buyer to delete or change the review, and do not offer anything in exchange for it.",
+          translateAndSend: "Translate and send",
+          warning:
+            "Sending turns AI off for these buyers until each review is finished, and sent messages cannot be recalled.",
+          send: "Send to {{count}} buyers",
+          confirmTitle: "Send this message?",
+          confirmBody:
+            "{{count}} buyers will get this message now. AI turns off for them, and it cannot be recalled.",
+          sending: "Sending: {{done}} of {{total}} finished.",
+          done: "Finished: {{done}} of {{total}}.",
+          sent: "Sent: {{count}}",
+          failedCount: "Failed: {{count}}",
+          skippedCount: "Skipped: {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} in shops no longer on manual follow-up.",
+            REVIEW_CLOSED: "{{count}} whose reviews were closed.",
+            ALREADY_SENT: "{{count}} already reached by another batch.",
+            CONVERSATION_REFUSED:
+              "{{count}} refused by TikTok when opening the conversation. Nothing changed for them.",
+            SEND_REFUSED:
+              "{{count}} refused by TikTok when sending. They are back to To follow up.",
+            SEND_OUTCOME_UNKNOWN:
+              "{{count}} may or may not have received the message. They stay In follow-up; check the conversation.",
+          },
+        },
         pagination: {
           position: "Page {{page}} of {{pages}}, {{total}} reviews",
           pageSize: "Rows per page",
@@ -240,6 +277,37 @@ export const BAD_REVIEW_TRANSLATIONS = {
         totalCount: "{{count}} 条差评",
         coverageNotice: "只有美国本土店能通过接口同步评价,其他站点的店铺请用 Excel 导入差评。",
         loadFailed: "差评加载失败",
+        bulk: {
+          button: "批量开始跟进({{count}})",
+          selectRow: "选择订单 {{order}}",
+          selectPage: "全选本页",
+          title: "批量开始跟进",
+          failed: "操作失败",
+          none: "选中的差评都不能发送。",
+          summary: "将给 {{buyers}} 位买家各发一条消息,涉及 {{reviews}} 条差评。",
+          skipped: "已排除:选中的差评中有 {{count}} 条不能发送。",
+          languageCount: "{{language}}:{{count}}",
+          messageLabel: "消息内容",
+          messageHint: "语气礼貌、内容具体。不要要求买家删除或修改评价,也不要用任何东西交换评价。",
+          translateAndSend: "翻译并发送",
+          warning: "发送后这些买家的 AI 会关闭,直到每条差评跟进结束;消息发出后无法撤回。",
+          send: "发送给 {{count}} 位买家",
+          confirmTitle: "确认发送这条消息?",
+          confirmBody: "{{count}} 位买家会立刻收到这条消息,他们的 AI 会关闭,且无法撤回。",
+          sending: "发送中:已完成 {{done}} / {{total}}。",
+          done: "已完成:{{done}} / {{total}}。",
+          sent: "已发送:{{count}}",
+          failedCount: "失败:{{count}}",
+          skippedCount: "跳过:{{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} 位所在店铺已不是人工跟进。",
+            REVIEW_CLOSED: "{{count}} 位的差评已结束。",
+            ALREADY_SENT: "{{count}} 位已由另一批发送过。",
+            CONVERSATION_REFUSED: "{{count}} 位在打开会话时被 TikTok 拒绝,状态没有变化。",
+            SEND_REFUSED: "{{count}} 位在发送时被 TikTok 拒绝,已退回待跟进。",
+            SEND_OUTCOME_UNKNOWN: "{{count}} 位不确定是否收到消息,保持跟进中,请到会话里确认。",
+          },
+        },
         pagination: {
           position: "第 {{page}} / {{pages}} 页,共 {{total}} 条",
           pageSize: "每页条数",
@@ -437,6 +505,42 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "Nur lokale US-Shops synchronisieren Bewertungen über die API. Shops anderer Märkte fügen negative Bewertungen per Excel-Import hinzu.",
         loadFailed: "Negative Bewertungen konnten nicht geladen werden",
+        bulk: {
+          button: "Nachverfolgung gesammelt starten ({{count}})",
+          selectRow: "Bestellung {{order}} auswählen",
+          selectPage: "Alle auf dieser Seite auswählen",
+          title: "Nachverfolgung gesammelt starten",
+          failed: "Die Aktion ist fehlgeschlagen",
+          none: "Keine der gewählten Bewertungen kann eine Nachricht erhalten.",
+          summary: "Sendet je eine Nachricht an {{buyers}} Käufer, für {{reviews}} Bewertungen.",
+          skipped: "Ausgelassen: {{count}} gewählte Bewertungen können keine Nachricht erhalten.",
+          languageCount: "{{language}}: {{count}}",
+          messageLabel: "Nachricht",
+          messageHint:
+            "Bleib höflich und konkret. Bitte den Käufer nicht, die Bewertung zu löschen oder zu ändern, und biete nichts im Tausch dafür an.",
+          translateAndSend: "Übersetzen und senden",
+          warning:
+            "Beim Senden wird die KI für diese Käufer ausgeschaltet, bis jede Bewertung erledigt ist. Gesendete Nachrichten lassen sich nicht zurückholen.",
+          send: "An {{count}} Käufer senden",
+          confirmTitle: "Diese Nachricht senden?",
+          confirmBody:
+            "{{count}} Käufer erhalten diese Nachricht jetzt. Die KI wird für sie ausgeschaltet, und das lässt sich nicht zurückholen.",
+          sending: "Wird gesendet: {{done}} von {{total}} fertig.",
+          done: "Fertig: {{done}} von {{total}}.",
+          sent: "Gesendet: {{count}}",
+          failedCount: "Fehlgeschlagen: {{count}}",
+          skippedCount: "Übersprungen: {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} in Shops, die nicht mehr manuell nachverfolgen.",
+            REVIEW_CLOSED: "Bei {{count}} wurden die Bewertungen abgeschlossen.",
+            ALREADY_SENT: "{{count}} wurden bereits von einem anderen Durchgang erreicht.",
+            CONVERSATION_REFUSED:
+              "{{count}} von TikTok beim Öffnen der Unterhaltung abgelehnt. Für sie hat sich nichts geändert.",
+            SEND_REFUSED: "{{count}} von TikTok beim Senden abgelehnt. Sie sind wieder offen.",
+            SEND_OUTCOME_UNKNOWN:
+              "Bei {{count}} ist unklar, ob die Nachricht ankam. Sie bleiben in Bearbeitung; prüfe die Unterhaltung.",
+          },
+        },
         pagination: {
           position: "Seite {{page}} von {{pages}}, {{total}} Bewertungen",
           pageSize: "Zeilen pro Seite",
@@ -643,6 +747,42 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "Solo las tiendas locales de EE. UU. sincronizan reseñas por API. Las tiendas de otros mercados añaden sus reseñas negativas con la importación de Excel.",
         loadFailed: "No se pudieron cargar las reseñas negativas",
+        bulk: {
+          button: "Iniciar seguimiento en lote ({{count}})",
+          selectRow: "Seleccionar pedido {{order}}",
+          selectPage: "Seleccionar todo en esta página",
+          title: "Iniciar seguimiento en lote",
+          failed: "La acción falló",
+          none: "Ninguna de las reseñas elegidas admite mensaje.",
+          summary: "Envía un mensaje a {{buyers}} compradores, para {{reviews}} reseñas.",
+          skipped: "Excluidas: {{count}} reseñas elegidas que no admiten mensaje.",
+          languageCount: "{{language}}: {{count}}",
+          messageLabel: "Mensaje",
+          messageHint:
+            "Sé cortés y concreto. No pidas al comprador que elimine o cambie la reseña, ni ofrezcas nada a cambio.",
+          translateAndSend: "Traducir y enviar",
+          warning:
+            "Al enviar, la IA se desactiva para estos compradores hasta terminar cada reseña. Los mensajes enviados no se pueden recuperar.",
+          send: "Enviar a {{count}} compradores",
+          confirmTitle: "¿Enviar este mensaje?",
+          confirmBody:
+            "{{count}} compradores recibirán este mensaje ahora. La IA se desactiva para ellos y no se puede deshacer.",
+          sending: "Enviando: {{done}} de {{total}} terminados.",
+          done: "Terminado: {{done}} de {{total}}.",
+          sent: "Enviados: {{count}}",
+          failedCount: "Fallidos: {{count}}",
+          skippedCount: "Omitidos: {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} en tiendas que ya no usan seguimiento manual.",
+            REVIEW_CLOSED: "{{count}} con reseñas ya cerradas.",
+            ALREADY_SENT: "{{count}} ya contactados por otro lote.",
+            CONVERSATION_REFUSED:
+              "{{count}} rechazados por TikTok al abrir la conversación. No cambió nada para ellos.",
+            SEND_REFUSED: "{{count}} rechazados por TikTok al enviar. Volvieron a Pendiente.",
+            SEND_OUTCOME_UNKNOWN:
+              "{{count}} pueden haber recibido o no el mensaje. Siguen en seguimiento; revisa la conversación.",
+          },
+        },
         pagination: {
           position: "Página {{page}} de {{pages}}, {{total}} reseñas",
           pageSize: "Filas por página",
@@ -845,6 +985,42 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "Seules les boutiques locales américaines synchronisent les avis par API. Les boutiques des autres marchés ajoutent leurs avis négatifs par import Excel.",
         loadFailed: "Impossible de charger les avis négatifs",
+        bulk: {
+          button: "Démarrer le suivi en masse ({{count}})",
+          selectRow: "Sélectionner la commande {{order}}",
+          selectPage: "Tout sélectionner sur cette page",
+          title: "Démarrer le suivi en masse",
+          failed: "L'action a échoué",
+          none: "Aucun des avis choisis ne peut recevoir de message.",
+          summary: "Envoie un message à {{buyers}} acheteurs, pour {{reviews}} avis.",
+          skipped: "Exclus : {{count}} avis choisis ne peuvent pas recevoir de message.",
+          languageCount: "{{language}} : {{count}}",
+          messageLabel: "Message",
+          messageHint:
+            "Restez poli et précis. Ne demandez pas à l'acheteur de supprimer ou modifier son avis, et n'offrez rien en échange.",
+          translateAndSend: "Traduire et envoyer",
+          warning:
+            "L'envoi coupe l'IA pour ces acheteurs jusqu'à la fin de chaque avis. Les messages envoyés ne peuvent pas être rappelés.",
+          send: "Envoyer à {{count}} acheteurs",
+          confirmTitle: "Envoyer ce message ?",
+          confirmBody:
+            "{{count}} acheteurs recevront ce message maintenant. L'IA est coupée pour eux, sans retour possible.",
+          sending: "Envoi : {{done}} sur {{total}} terminés.",
+          done: "Terminé : {{done}} sur {{total}}.",
+          sent: "Envoyés : {{count}}",
+          failedCount: "Échecs : {{count}}",
+          skippedCount: "Ignorés : {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} dans des boutiques qui ne sont plus en suivi manuel.",
+            REVIEW_CLOSED: "{{count}} dont les avis ont été clôturés.",
+            ALREADY_SENT: "{{count}} déjà contactés par un autre lot.",
+            CONVERSATION_REFUSED:
+              "{{count}} refusés par TikTok à l'ouverture de la conversation. Rien n'a changé pour eux.",
+            SEND_REFUSED: "{{count}} refusés par TikTok à l'envoi. Ils sont revenus à À suivre.",
+            SEND_OUTCOME_UNKNOWN:
+              "{{count}} ont peut-être reçu le message, ou non. Ils restent en suivi ; vérifiez la conversation.",
+          },
+        },
         pagination: {
           position: "Page {{page}} sur {{pages}}, {{total}} avis",
           pageSize: "Lignes par page",
@@ -1049,6 +1225,43 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "Hanya toko lokal AS yang menyinkronkan ulasan lewat API. Toko di pasar lain menambahkan ulasan buruk lewat impor Excel.",
         loadFailed: "Gagal memuat ulasan buruk",
+        bulk: {
+          button: "Mulai tindak lanjut massal ({{count}})",
+          selectRow: "Pilih pesanan {{order}}",
+          selectPage: "Pilih semua di halaman ini",
+          title: "Mulai tindak lanjut massal",
+          failed: "Tindakan gagal",
+          none: "Tidak ada ulasan terpilih yang bisa menerima pesan.",
+          summary: "Mengirim satu pesan ke {{buyers}} pembeli, untuk {{reviews}} ulasan.",
+          skipped: "Dikecualikan: {{count}} ulasan terpilih tidak bisa menerima pesan.",
+          languageCount: "{{language}}: {{count}}",
+          messageLabel: "Pesan",
+          messageHint:
+            "Tetap sopan dan spesifik. Jangan minta pembeli menghapus atau mengubah ulasan, dan jangan tawarkan imbalan.",
+          translateAndSend: "Terjemahkan dan kirim",
+          warning:
+            "Pengiriman mematikan AI untuk pembeli ini sampai setiap ulasan selesai. Pesan terkirim tidak bisa ditarik.",
+          send: "Kirim ke {{count}} pembeli",
+          confirmTitle: "Kirim pesan ini?",
+          confirmBody:
+            "{{count}} pembeli akan menerima pesan ini sekarang. AI dimatikan untuk mereka dan tidak bisa ditarik.",
+          sending: "Mengirim: {{done}} dari {{total}} selesai.",
+          done: "Selesai: {{done}} dari {{total}}.",
+          sent: "Terkirim: {{count}}",
+          failedCount: "Gagal: {{count}}",
+          skippedCount: "Dilewati: {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} di toko yang tidak lagi manual.",
+            REVIEW_CLOSED: "{{count}} ulasannya sudah selesai.",
+            ALREADY_SENT: "{{count}} sudah dihubungi oleh batch lain.",
+            CONVERSATION_REFUSED:
+              "{{count}} ditolak TikTok saat membuka percakapan. Tidak ada yang berubah.",
+            SEND_REFUSED:
+              "{{count}} ditolak TikTok saat mengirim. Kembali ke Perlu ditindaklanjuti.",
+            SEND_OUTCOME_UNKNOWN:
+              "{{count}} belum pasti menerima pesan. Tetap ditindaklanjuti; periksa percakapannya.",
+          },
+        },
         pagination: {
           position: "Halaman {{page}} dari {{pages}}, {{total}} ulasan",
           pageSize: "Baris per halaman",
@@ -1253,6 +1466,42 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "Solo i negozi locali USA sincronizzano le recensioni via API. I negozi degli altri mercati aggiungono le recensioni negative con l'importazione Excel.",
         loadFailed: "Impossibile caricare le recensioni negative",
+        bulk: {
+          button: "Avvia follow-up in blocco ({{count}})",
+          selectRow: "Seleziona ordine {{order}}",
+          selectPage: "Seleziona tutto in questa pagina",
+          title: "Avvia follow-up in blocco",
+          failed: "L'azione non è riuscita",
+          none: "Nessuna delle recensioni scelte può ricevere un messaggio.",
+          summary: "Invia un messaggio a {{buyers}} acquirenti, per {{reviews}} recensioni.",
+          skipped: "Escluse: {{count}} recensioni scelte non possono ricevere un messaggio.",
+          languageCount: "{{language}}: {{count}}",
+          messageLabel: "Messaggio",
+          messageHint:
+            "Sii cortese e preciso. Non chiedere all'acquirente di eliminare o modificare la recensione e non offrire nulla in cambio.",
+          translateAndSend: "Traduci e invia",
+          warning:
+            "L'invio disattiva l'IA per questi acquirenti fino alla chiusura di ogni recensione. I messaggi inviati non si possono richiamare.",
+          send: "Invia a {{count}} acquirenti",
+          confirmTitle: "Inviare questo messaggio?",
+          confirmBody:
+            "{{count}} acquirenti riceveranno ora questo messaggio. L'IA si disattiva per loro e non si può annullare.",
+          sending: "Invio: {{done}} di {{total}} completati.",
+          done: "Completato: {{done}} di {{total}}.",
+          sent: "Inviati: {{count}}",
+          failedCount: "Non riusciti: {{count}}",
+          skippedCount: "Saltati: {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} in negozi non più in follow-up manuale.",
+            REVIEW_CLOSED: "{{count}} con recensioni chiuse.",
+            ALREADY_SENT: "{{count}} già raggiunti da un altro blocco.",
+            CONVERSATION_REFUSED:
+              "{{count}} rifiutati da TikTok all'apertura della conversazione. Per loro non è cambiato nulla.",
+            SEND_REFUSED: "{{count}} rifiutati da TikTok all'invio. Sono tornati a Da seguire.",
+            SEND_OUTCOME_UNKNOWN:
+              "{{count}} potrebbero aver ricevuto o no il messaggio. Restano in follow-up; controlla la conversazione.",
+          },
+        },
         pagination: {
           position: "Pagina {{page}} di {{pages}}, {{total}} recensioni",
           pageSize: "Righe per pagina",
@@ -1453,6 +1702,38 @@ export const BAD_REVIEW_TRANSLATIONS = {
         coverageNotice:
           "มีเฉพาะร้านในสหรัฐฯ ที่ซิงค์รีวิวผ่าน API ได้ ร้านในตลาดอื่นให้เพิ่มรีวิวเชิงลบด้วยการนำเข้า Excel",
         loadFailed: "โหลดรีวิวเชิงลบไม่สำเร็จ",
+        bulk: {
+          button: "เริ่มติดตามแบบกลุ่ม ({{count}})",
+          selectRow: "เลือกคำสั่งซื้อ {{order}}",
+          selectPage: "เลือกทั้งหมดในหน้านี้",
+          title: "เริ่มติดตามแบบกลุ่ม",
+          failed: "ดำเนินการไม่สำเร็จ",
+          none: "ไม่มีรีวิวที่เลือกซึ่งส่งได้",
+          summary: "ส่งข้อความถึงผู้ซื้อ {{buyers}} ราย ครอบคลุม {{reviews}} รีวิว",
+          skipped: "ไม่รวม: รีวิวที่เลือก {{count}} รายการส่งไม่ได้",
+          languageCount: "{{language}}: {{count}}",
+          messageLabel: "ข้อความ",
+          messageHint: "สุภาพและชัดเจน อย่าขอให้ผู้ซื้อลบหรือแก้ไขรีวิว และอย่าเสนอสิ่งใดแลกเปลี่ยน",
+          translateAndSend: "แปลและส่ง",
+          warning: "เมื่อส่งแล้ว AI จะปิดสำหรับผู้ซื้อเหล่านี้จนกว่าแต่ละรีวิวจะเสร็จสิ้น และเรียกคืนข้อความไม่ได้",
+          send: "ส่งถึงผู้ซื้อ {{count}} ราย",
+          confirmTitle: "ส่งข้อความนี้หรือไม่",
+          confirmBody: "ผู้ซื้อ {{count}} รายจะได้รับข้อความนี้ทันที AI จะปิดสำหรับพวกเขาและเรียกคืนไม่ได้",
+          sending: "กำลังส่ง: เสร็จแล้ว {{done}} จาก {{total}}",
+          done: "เสร็จแล้ว: {{done}} จาก {{total}}",
+          sent: "ส่งแล้ว: {{count}}",
+          failedCount: "ล้มเหลว: {{count}}",
+          skippedCount: "ข้าม: {{count}}",
+          problem: {
+            SHOP_NOT_MANUAL: "{{count}} รายอยู่ในร้านที่ไม่ได้ติดตามโดยคนแล้ว",
+            REVIEW_CLOSED: "{{count}} รายมีรีวิวที่ปิดแล้ว",
+            ALREADY_SENT: "{{count}} รายได้รับจากรอบอื่นแล้ว",
+            CONVERSATION_REFUSED: "TikTok ปฏิเสธ {{count}} รายตอนเปิดบทสนทนา สถานะไม่เปลี่ยน",
+            SEND_REFUSED: "TikTok ปฏิเสธ {{count}} รายตอนส่ง กลับไปเป็นรอติดตามแล้ว",
+            SEND_OUTCOME_UNKNOWN:
+              "{{count}} รายไม่แน่ใจว่าได้รับข้อความหรือไม่ ยังอยู่ในสถานะกำลังติดตาม โปรดตรวจสอบบทสนทนา",
+          },
+        },
         pagination: {
           position: "หน้า {{page}} จาก {{pages}} รวม {{total}} รีวิว",
           pageSize: "แถวต่อหน้า",

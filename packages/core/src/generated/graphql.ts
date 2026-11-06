@@ -5976,6 +5976,18 @@ export interface AuthorizeWmsAccountInput {
   provider: WmsAccountProvider;
 }
 
+/** Why a buyer in a bulk follow-up did not receive the message. */
+export const BadReviewBulkItemProblem = {
+  AlreadySent: "ALREADY_SENT",
+  ConversationRefused: "CONVERSATION_REFUSED",
+  ReviewClosed: "REVIEW_CLOSED",
+  SendOutcomeUnknown: "SEND_OUTCOME_UNKNOWN",
+  SendRefused: "SEND_REFUSED",
+  ShopNotManual: "SHOP_NOT_MANUAL",
+} as const;
+
+export type BadReviewBulkItemProblem =
+  (typeof BadReviewBulkItemProblem)[keyof typeof BadReviewBulkItemProblem];
 /** Who follows up a bad review in this shop. */
 export const BadReviewFollowUpMode = {
   Ai: "AI",
@@ -6012,6 +6024,46 @@ export const BadReviewImportRowProblem = {
 
 export type BadReviewImportRowProblem =
   (typeof BadReviewImportRowProblem)[keyof typeof BadReviewImportRowProblem];
+/** Language of a bulk follow-up message. */
+export const BadReviewMessageLanguage = {
+  Ar: "AR",
+  Bn: "BN",
+  Cs: "CS",
+  Da: "DA",
+  De: "DE",
+  El: "EL",
+  En: "EN",
+  Es: "ES",
+  Fi: "FI",
+  Fr: "FR",
+  He: "HE",
+  Hi: "HI",
+  Hu: "HU",
+  Id: "ID",
+  It: "IT",
+  Ja: "JA",
+  Ko: "KO",
+  Ms: "MS",
+  Nl: "NL",
+  No: "NO",
+  Pl: "PL",
+  Pt: "PT",
+  Ro: "RO",
+  Ru: "RU",
+  Sk: "SK",
+  Sv: "SV",
+  Th: "TH",
+  Tl: "TL",
+  Tr: "TR",
+  Uk: "UK",
+  Ur: "UR",
+  Vi: "VI",
+  Zh: "ZH",
+  ZhHant: "ZH_HANT",
+} as const;
+
+export type BadReviewMessageLanguage =
+  (typeof BadReviewMessageLanguage)[keyof typeof BadReviewMessageLanguage];
 /** Bad-review customer-service reachout settings per shop */
 export interface BadReviewReachoutSettings {
   enabled: Scalars["Boolean"]["output"];
@@ -8497,6 +8549,52 @@ export interface EcomBadReview {
   shopName: Scalars["String"]["output"];
   source: ProductReviewSource;
   title?: Maybe<Scalars["String"]["output"]>;
+}
+
+export interface EcomBadReviewBulkFollowUp {
+  failed: Scalars["Int"]["output"];
+  finished: Scalars["Boolean"]["output"];
+  id: Scalars["ID"]["output"];
+  problems: Array<EcomBadReviewBulkProblem>;
+  sent: Scalars["Int"]["output"];
+  skipped: Scalars["Int"]["output"];
+  total: Scalars["Int"]["output"];
+  /** Buyers not finished yet. */
+  waiting: Scalars["Int"]["output"];
+}
+
+export interface EcomBadReviewBulkLanguage {
+  buyers: Scalars["Int"]["output"];
+  language: BadReviewMessageLanguage;
+}
+
+export interface EcomBadReviewBulkMessage {
+  language: BadReviewMessageLanguage;
+  text: Scalars["String"]["output"];
+}
+
+export interface EcomBadReviewBulkMessageInput {
+  language: BadReviewMessageLanguage;
+  text: Scalars["String"]["input"];
+}
+
+/** What a bulk follow-up would do with the chosen reviews. */
+export interface EcomBadReviewBulkPreview {
+  /** Buyers who would get a message. */
+  buyers: Scalars["Int"]["output"];
+  languages: Array<EcomBadReviewBulkLanguage>;
+  /** Reviews the messages cover. */
+  reviews: Scalars["Int"]["output"];
+  skippedNoBuyer: Scalars["Int"]["output"];
+  /** Reviews of shops not set to manual follow-up. */
+  skippedNotManual: Scalars["Int"]["output"];
+  /** Chosen reviews that are closed. */
+  skippedUnavailable: Scalars["Int"]["output"];
+}
+
+export interface EcomBadReviewBulkProblem {
+  buyers: Scalars["Int"]["output"];
+  problem: BadReviewBulkItemProblem;
 }
 
 export interface EcomBadReviewFollowUpStart {
@@ -12390,12 +12488,16 @@ export interface Mutation {
   /** Create or edit merchant Product Knowledge (agent-facing, flat params) */
   ecommerceSetProductKnowledge: SetProductKnowledgePayload;
   ecommerceSetShopWarehouseMappings: Array<ShopWarehouse>;
+  /** Queues one first message per buyer for the chosen reviews, at most 100. Each buyer's reviews move to follow-up and AI turns off for them. Sent messages cannot be recalled. */
+  ecommerceStartBadReviewBulkFollowUp: EcomBadReviewBulkFollowUp;
   /** Start follow-up in a manual-mode shop: ensures the buyer's conversation, sets the review in follow-up and turns AI off for that conversation. If TikTok refuses the conversation, nothing changes. */
   ecommerceStartBadReviewFollowUp: EcomBadReviewFollowUpStart;
   ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   /** Operator action: open (or find) the TikTok conversation for a synced order whose buyer has no conversation yet, WITHOUT starting an AI run, so the operator can type the first message. The row is created RESOLVED with AI enabled, so the buyer's later reply is handled by AI as usual. Idempotent. */
   ecommerceStartCustomerServiceConversationFromOrder: CustomerServiceConversationInboxItem;
   ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
+  /** Translates a bulk follow-up message for review. Sends nothing. */
+  ecommerceTranslateBadReviewBulkMessage: Array<EcomBadReviewBulkMessage>;
   /** Sets a review's follow-up status by hand. IN_PROGRESS is set only by Start follow-up. */
   ecommerceUpdateBadReviewFollowUpStatus: EcomBadReview;
   ecommerceUpdateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
@@ -13168,6 +13270,11 @@ export interface MutationEcommerceSetShopWarehouseMappingsArgs {
   inputs: Array<AgentShopWarehouseMappingInput>;
 }
 
+export interface MutationEcommerceStartBadReviewBulkFollowUpArgs {
+  messages: Array<EcomBadReviewBulkMessageInput>;
+  reviewIds: Array<Scalars["ID"]["input"]>;
+}
+
 export interface MutationEcommerceStartBadReviewFollowUpArgs {
   reviewId: Scalars["ID"]["input"];
   shopId: Scalars["ID"]["input"];
@@ -13185,6 +13292,11 @@ export interface MutationEcommerceStartCustomerServiceConversationFromOrderArgs 
 
 export interface MutationEcommerceStopCsUnpaidOrderConfigExperimentArgs {
   experimentId: Scalars["ID"]["input"];
+}
+
+export interface MutationEcommerceTranslateBadReviewBulkMessageArgs {
+  languages: Array<BadReviewMessageLanguage>;
+  message: Scalars["String"]["input"];
 }
 
 export interface MutationEcommerceUpdateBadReviewFollowUpStatusArgs {
@@ -14623,6 +14735,8 @@ export interface Query {
   ecommerceAfterSaleRequest?: Maybe<EcomAfterSaleRequest>;
   /** After-sale requests (cancellations, refunds, returns, replacements, exchanges) of the caller's shops, one row per request. TO_REVIEW lists requests awaiting a seller decision, earliest platform deadline first; ALL lists requests created inside a window, newest first. */
   ecommerceAfterSaleRequests: EcomAfterSaleRequestPage;
+  /** Progress of a bulk follow-up. */
+  ecommerceBadReviewBulkFollowUp: EcomBadReviewBulkFollowUp;
   /** Bad reviews of the caller's shops, newest first, with human and AI follow-up state. */
   ecommerceBadReviews: EcomBadReviewPage;
   ecommerceCheckListingPrerequisites: EcommercePassthroughResult;
@@ -14706,6 +14820,8 @@ export interface Query {
   /** List ordinary warehouses across several shops (default: every authorized shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
   ecommerceGetWarehousesAcrossShops: EcomWarehousesAcrossShopsResult;
   ecommerceListCSUnpaidOrderExperiments: Array<CsUnpaidOrderConfigExperimentView>;
+  /** What a bulk follow-up would do with the chosen reviews. Writes nothing. */
+  ecommercePreviewBadReviewBulkFollowUp: EcomBadReviewBulkPreview;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search customer service sessions across several shops (default: every authorized shop of the user) within a begin-time range, tagged with their shop, plus a per-shop coverage report. Platform pagination is followed internally. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any search. */
@@ -15231,6 +15347,10 @@ export interface QueryEcommerceAfterSaleRequestsArgs {
   input: EcomAfterSaleRequestsInput;
 }
 
+export interface QueryEcommerceBadReviewBulkFollowUpArgs {
+  batchId: Scalars["ID"]["input"];
+}
+
 export interface QueryEcommerceBadReviewsArgs {
   input: EcomBadReviewsInput;
 }
@@ -15523,6 +15643,10 @@ export interface QueryEcommerceGetWarehousesAcrossShopsArgs {
 
 export interface QueryEcommerceListCsUnpaidOrderExperimentsArgs {
   shopId: Scalars["ID"]["input"];
+}
+
+export interface QueryEcommercePreviewBadReviewBulkFollowUpArgs {
+  reviewIds: Array<Scalars["ID"]["input"]>;
 }
 
 export interface QueryEcommerceSearchCsSessionsArgs {

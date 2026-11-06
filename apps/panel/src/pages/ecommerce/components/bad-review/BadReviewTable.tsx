@@ -13,7 +13,7 @@ import {
   TkPrivate,
   TkTableFrame,
 } from "../../../../components/design-system/index.js";
-import { wholeDaysBetween } from "../../../../lib/bad-review.js";
+import { canBulkSendReview, wholeDaysBetween } from "../../../../lib/bad-review.js";
 import { shopDisplayLabel } from "../../../../lib/shop-display.js";
 import { useEntityStore } from "../../../../store/EntityStoreProvider.js";
 import {
@@ -39,6 +39,8 @@ const BadReviewRow = observer(function BadReviewRow({
   shopAlias,
   nowMs,
   busy,
+  selected,
+  onToggle,
   onOpen,
   onStart,
   onOpenConversation,
@@ -47,6 +49,8 @@ const BadReviewRow = observer(function BadReviewRow({
   shopAlias: string | null;
   nowMs: number;
   busy: boolean;
+  selected: boolean;
+  onToggle: (reviewId: string) => void;
   onOpen: (reviewId: string) => void;
   onStart: (shopId: string, reviewId: string) => void;
   onOpenConversation: (shopId: string, orderId: string) => void;
@@ -60,6 +64,16 @@ const BadReviewRow = observer(function BadReviewRow({
       onActivate={() => onOpen(id)}
       aria-label={t(`${PREFIX}.detail.title`)}
     >
+      <td>
+        {canBulkSendReview(review) ? (
+          <input
+            type="checkbox"
+            aria-label={t(`${PREFIX}.bulk.selectRow`, { order: review.orderId })}
+            checked={selected}
+            onChange={() => onToggle(id)}
+          />
+        ) : null}
+      </td>
       <td className="bad-review-shop-cell">
         {shop.sensitive ? <TkPrivate>{shop.text}</TkPrivate> : shop.text}
       </td>
@@ -137,6 +151,7 @@ export const BadReviewTable = observer(function BadReviewTable({
     );
   }
 
+  const selectableCount = badReview.bulkSelectableIds.length;
   const aliasByShopId = new Map(entityStore.shops.map((shop) => [shop.id, shop.alias ?? null]));
   return (
     <TkPanel padding="none" data-tutorial-id="bad-review-table">
@@ -144,6 +159,16 @@ export const BadReviewTable = observer(function BadReviewTable({
         <table className="bad-review-table">
           <thead>
             <tr>
+              <th>
+                {selectableCount > 0 ? (
+                  <input
+                    type="checkbox"
+                    aria-label={t(`${PREFIX}.bulk.selectPage`)}
+                    checked={badReview.bulkSelectedIds.length === selectableCount}
+                    onChange={() => badReview.toggleBulkSelectionOfPage()}
+                  />
+                ) : null}
+              </th>
               {HEADERS.map((header) => (
                 <th key={header}>{t(`${PREFIX}.columns.${header}`)}</th>
               ))}
@@ -157,6 +182,8 @@ export const BadReviewTable = observer(function BadReviewTable({
                 shopAlias={aliasByShopId.get(review.shopId) ?? null}
                 nowMs={nowMs}
                 busy={badReview.busyReviewIds.includes(review.id)}
+                selected={badReview.bulkSelectedIds.includes(review.id)}
+                onToggle={(reviewId) => badReview.toggleBulkSelection(reviewId)}
                 onOpen={(reviewId) => badReview.selectReview(reviewId)}
                 onStart={onStart}
                 onOpenConversation={onOpenConversation}

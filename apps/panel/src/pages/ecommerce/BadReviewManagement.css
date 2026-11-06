@@ -111,6 +111,17 @@
   gap: var(--tk-v1-space-3);
 }
 
+.bad-review-bulk-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bad-review-bulk-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-1);
+}
+
 .bad-review-import-summary {
   display: flex;
   flex-wrap: wrap;

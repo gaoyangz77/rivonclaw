@@ -2,12 +2,16 @@ import { applySnapshot, flow, getEnv, types, type Instance } from "mobx-state-tr
 import { GQL } from "@rivonclaw/core";
 import {
   APPLY_BAD_REVIEW_IMPORT_MUTATION,
+  PREVIEW_BAD_REVIEW_BULK_FOLLOW_UP_QUERY,
   PREVIEW_BAD_REVIEW_IMPORT_MUTATION,
+  READ_BAD_REVIEW_BULK_FOLLOW_UP_QUERY,
   READ_BAD_REVIEWS_QUERY,
+  START_BAD_REVIEW_BULK_FOLLOW_UP_MUTATION,
   START_BAD_REVIEW_FOLLOW_UP_MUTATION,
+  TRANSLATE_BAD_REVIEW_BULK_MESSAGE_MUTATION,
   UPDATE_BAD_REVIEW_FOLLOW_UP_STATUS_MUTATION,
 } from "../../api/bad-review-queries.js";
-import type { BadReviewHandlingStatus } from "../../lib/bad-review.js";
+import { canBulkSendReview, type BadReviewHandlingStatus } from "../../lib/bad-review.js";
 import type { PanelStoreEnv } from "../types.js";
 
 /** Rows per page the operator can pick; the backend caps a page at 100. */
@@ -156,6 +160,8 @@ export const EcommerceBadReviewModel = types
     loading: types.optional(types.boolean, false),
     error: types.maybeNull(types.string),
     selectedReviewId: types.maybeNull(types.string),
+    /** Rows ticked for bulk follow-up: ids on the current page only. */
+    bulkSelectedIds: types.array(types.string),
     /** Reviews with an action running: Start follow-up or a status update. */
     busyReviewIds: types.array(types.string),
     actionError: types.maybeNull(types.string),
@@ -164,6 +170,10 @@ export const EcommerceBadReviewModel = types
     get selectedReview() {
       const id = self.selectedReviewId;
       return id ? (self.rows.find((row) => row.id === id) ?? null) : null;
+    },
+    /** Rows of this page that can be ticked, as ids. */
+    get bulkSelectableIds(): string[] {
+      return self.rows.filter(canBulkSendReview).map((row) => row.id);
     },
     get pageCount() {
       return Math.max(1, Math.ceil(self.totalCount / self.pageSize));
@@ -207,6 +217,18 @@ export const EcommerceBadReviewModel = types
       self.totalCount = 0;
     }
 
+    /** A row that left the page or started meanwhile cannot stay ticked out of sight. */
+    function dropUnavailableBulkSelection() {
+      const selectable = new Set(self.rows.filter(canBulkSendReview).map((row) => row.id));
+      self.bulkSelectedIds.replace(self.bulkSelectedIds.filter((id) => selectable.has(id)));
+    }
+
+    /** Any change of what is listed: back to the first page, with nothing ticked. */
+    function listChanged() {
+      self.page = 1;
+      self.bulkSelectedIds.clear();
+    }
+
     function pageVariables() {
       return {
         input: {
@@ -233,6 +255,7 @@ export const EcommerceBadReviewModel = types
       if (self.selectedReviewId && !self.rows.some((row) => row.id === self.selectedReviewId)) {
         self.selectedReviewId = null;
       }
+      dropUnavailableBulkSelection();
       return true;
     }
 
@@ -270,42 +293,52 @@ export const EcommerceBadReviewModel = types
       setShopScope(shopIds: string[], totalShopCount: number) {
         self.allShops = shopIds.length === totalShopCount;
         self.shopIds.replace(self.allShops ? [] : shopIds);
-        self.page = 1;
+        listChanged();
       },
       setRating(value: number | null) {
         self.rating = value;
-        self.page = 1;
+        listChanged();
       },
       setHandlingStatus(value: BadReviewHandlingStatus | null) {
         self.handlingStatus = value;
-        self.page = 1;
+        listChanged();
       },
       setReplyState(value: GQL.ProductReviewReplyState | null) {
         self.replyState = value;
-        self.page = 1;
+        listChanged();
       },
       setSource(value: GQL.ProductReviewSource | null) {
         self.source = value;
-        self.page = 1;
+        listChanged();
       },
       setReviewFrom(value: string) {
         self.reviewFrom = value;
-        self.page = 1;
+        listChanged();
       },
       setReviewTo(value: string) {
         self.reviewTo = value;
-        self.page = 1;
+        listChanged();
       },
       setInProgressOverDays(value: number | null) {
         self.inProgressOverDays = value;
-        self.page = 1;
+        listChanged();
       },
       setPage(value: number) {
         self.page = Math.min(Math.max(1, value), Math.max(1, Math.ceil(self.totalCount / self.pageSize)));
+        self.bulkSelectedIds.clear();
+      },
+      toggleBulkSelection(reviewId: string) {
+        if (self.bulkSelectedIds.includes(reviewId)) self.bulkSelectedIds.remove(reviewId);
+        else self.bulkSelectedIds.push(reviewId);
+      },
+      /** Ticks every selectable row of this page, or clears them all if they already are. */
+      toggleBulkSelectionOfPage() {
+        const selectable = self.rows.filter(canBulkSendReview).map((row) => row.id);
+        self.bulkSelectedIds.replace(self.bulkSelectedIds.length === selectable.length ? [] : selectable);
       },
       setPageSize(value: number) {
         self.pageSize = value;
-        self.page = 1;
+        listChanged();
       },
       selectReview(reviewId: string | null) {
         self.selectedReviewId = reviewId;
@@ -317,7 +350,7 @@ export const EcommerceBadReviewModel = types
       reset() {
         listGeneration += 1;
         clearList();
-        self.page = 1;
+        listChanged();
         self.loaded = false;
         self.loading = false;
         self.error = null;
@@ -375,6 +408,43 @@ export const EcommerceBadReviewModel = types
         } finally {
           self.busyReviewIds.remove(reviewId);
         }
+      }),
+      /** Plain results below: they describe one modal's run, not business state. */
+      previewBulkFollowUp: flow(function* (reviewIds: string[]) {
+        const result = yield client().query({
+          query: PREVIEW_BAD_REVIEW_BULK_FOLLOW_UP_QUERY,
+          variables: { reviewIds },
+          fetchPolicy: "network-only",
+        });
+        return result.data.preview as GQL.EcomBadReviewBulkPreview;
+      }),
+      translateBulkMessage: flow(function* (
+        message: string,
+        languages: GQL.BadReviewMessageLanguage[],
+      ) {
+        const result = yield client().mutate({
+          mutation: TRANSLATE_BAD_REVIEW_BULK_MESSAGE_MUTATION,
+          variables: { message, languages },
+        });
+        return result.data.messages as GQL.EcomBadReviewBulkMessage[];
+      }),
+      startBulkFollowUp: flow(function* (
+        reviewIds: string[],
+        messages: GQL.EcomBadReviewBulkMessageInput[],
+      ) {
+        const result = yield client().mutate({
+          mutation: START_BAD_REVIEW_BULK_FOLLOW_UP_MUTATION,
+          variables: { reviewIds, messages },
+        });
+        return result.data.batch as GQL.EcomBadReviewBulkFollowUp;
+      }),
+      readBulkFollowUp: flow(function* (batchId: string) {
+        const result = yield client().query({
+          query: READ_BAD_REVIEW_BULK_FOLLOW_UP_QUERY,
+          variables: { batchId },
+          fetchPolicy: "network-only",
+        });
+        return result.data.batch as GQL.EcomBadReviewBulkFollowUp;
       }),
       /** Classifies rows. Returns a plain result: it describes a file, not business state. */
       previewImport: flow(function* (rows: GQL.EcomBadReviewImportRowInput[]) {

@@ -157,6 +157,70 @@ describe("EcommerceBadReviewModel", () => {
     expect(store.selectedReviewId).toBeNull();
   });
 
+  it("previews and starts a bulk follow-up for exactly the ticked ids", async () => {
+    const preview = { reviews: 1, buyers: 1, skippedUnavailable: 0, skippedNoBuyer: 0, skippedNotManual: 0, languages: [] };
+    const query = vi.fn().mockResolvedValue({ data: { preview } });
+    const mutate = vi.fn().mockResolvedValue({ data: { batch: { id: "batch-1" } } });
+    const store = storeWith({ query, mutate });
+    await expect(store.previewBulkFollowUp(["review-1"])).resolves.toBe(preview);
+    expect(query.mock.calls[0]![0].variables).toEqual({ reviewIds: ["review-1"] });
+    const messages = [{ language: GQL.BadReviewMessageLanguage.En, text: "Sorry" }];
+    await store.startBulkFollowUp(["review-1"], messages);
+    expect(mutate.mock.calls[0]![0].variables).toEqual({ reviewIds: ["review-1"], messages });
+  });
+
+  describe("ticking rows", () => {
+    const rows = [
+      dto({ id: "a" }),
+      dto({ id: "b", handlingStatus: null }),
+      dto({ id: "started", handlingStatus: GQL.ProductReviewHandlingStatus.InProgress }),
+      dto({ id: "closed", handlingStatus: GQL.ProductReviewHandlingStatus.Closed }),
+      dto({ id: "no-buyer", hasBuyer: false }),
+      dto({ id: "ai-shop", shopFollowUpMode: GQL.BadReviewFollowUpMode.Ai }),
+    ];
+    const loaded = async () => {
+      const store = storeWith({ query: vi.fn().mockResolvedValue(page(rows, 120)) });
+      await store.fetchReviews();
+      return store;
+    };
+
+    it("offers only rows that can take a message, and ticks or clears the whole page", async () => {
+      const store = await loaded();
+      expect(store.bulkSelectableIds).toEqual(["a", "b", "started"]);
+      store.toggleBulkSelectionOfPage();
+      expect([...store.bulkSelectedIds]).toEqual(["a", "b", "started"]);
+      store.toggleBulkSelectionOfPage();
+      expect(store.bulkSelectedIds).toHaveLength(0);
+    });
+
+    it("clears the ticks when the page, the page size or a filter changes", async () => {
+      const store = await loaded();
+      for (const change of [
+        () => store.setPage(2),
+        () => store.setPageSize(20),
+        () => store.setRating(1),
+      ]) {
+        store.toggleBulkSelection("a");
+        change();
+        expect(store.bulkSelectedIds).toHaveLength(0);
+      }
+    });
+
+    it("drops a tick when its row was closed by the next refresh", async () => {
+      const query = vi.fn()
+        .mockResolvedValueOnce(page(rows))
+        .mockResolvedValueOnce(page([
+          dto({ id: "a", handlingStatus: GQL.ProductReviewHandlingStatus.Closed }),
+          dto({ id: "b", handlingStatus: null }),
+        ]));
+      const store = storeWith({ query });
+      await store.fetchReviews();
+      store.toggleBulkSelectionOfPage();
+      await store.refreshInBackground();
+      expect([...store.bulkSelectedIds]).toEqual(["b"]);
+    });
+  });
+
   it("re-reads the list after an import", async () => {
     const query = vi.fn().mockResolvedValue(page([dto()]));
     const mutate = vi.fn().mockResolvedValue({ data: { result: { importBatchId: "b", rows: [] } } });
