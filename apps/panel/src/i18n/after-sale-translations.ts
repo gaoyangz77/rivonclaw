@@ -228,6 +228,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok offers no rejection reason for this request.",
           submitReject: "Reject request",
           failed: "TikTok did not accept the decision.",
+          platformErrors: {
+            parcelNotRejectable:
+              "TikTok won't allow this returned parcel to be rejected right now. In TikTok Seller Center, check whether the return has been delivered and whether evidence photos are required, then try again. (TikTok error {{code}})",
+            withPlatform:
+              "TikTok has transferred this request to its platform team, so it can't be processed here for now. Wait for the platform's result. (TikTok error {{code}})",
+            stateChanged:
+              "This request's status at TikTok no longer allows this action. Refresh the list, check the latest status, then try again. (TikTok error {{code}})",
+          },
         },
       },
     },
@@ -454,6 +462,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok 未提供该申请可用的拒绝原因。",
           submitReject: "确认拒绝",
           failed: "TikTok 未接受该决定。",
+          platformErrors: {
+            parcelNotRejectable:
+              "TikTok 暂时不允许拒绝这个退货包裹。请到 TikTok 店铺后台确认退货物流是否已签收、是否需要上传证据图片，然后再试。（TikTok 错误码 {{code}}）",
+            withPlatform:
+              "这条申请已转交 TikTok 平台处理，暂时无法在这里操作，请等待平台处理结果。（TikTok 错误码 {{code}}）",
+            stateChanged:
+              "这条申请在 TikTok 的状态已不支持此操作。请刷新列表，确认最新状态后再试。（TikTok 错误码 {{code}}）",
+          },
         },
       },
     },
@@ -683,6 +699,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok bietet für diese Anfrage keinen Ablehnungsgrund an.",
           submitReject: "Anfrage ablehnen",
           failed: "TikTok hat die Entscheidung nicht akzeptiert.",
+          platformErrors: {
+            parcelNotRejectable:
+              "TikTok erlaubt derzeit nicht, dieses Rücksendepaket abzulehnen. Prüfe im TikTok Seller Center, ob die Rücksendung zugestellt wurde und ob Nachweisfotos erforderlich sind, und versuche es dann erneut. (TikTok-Fehler {{code}})",
+            withPlatform:
+              "TikTok hat diese Anfrage an das Plattform-Team übergeben, daher kann sie hier vorerst nicht bearbeitet werden. Warte auf das Ergebnis der Plattform. (TikTok-Fehler {{code}})",
+            stateChanged:
+              "Der Status dieser Anfrage bei TikTok lässt diese Aktion nicht mehr zu. Aktualisiere die Liste, prüfe den neuesten Status und versuche es dann erneut. (TikTok-Fehler {{code}})",
+          },
         },
       },
     },
@@ -910,6 +934,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok no ofrece ningún motivo de rechazo para esta solicitud.",
           submitReject: "Rechazar solicitud",
           failed: "TikTok no aceptó la decisión.",
+          platformErrors: {
+            parcelNotRejectable:
+              "TikTok no permite rechazar este paquete devuelto por ahora. En TikTok Seller Center, comprueba si la devolución se ha entregado y si se requieren fotos de prueba, y vuelve a intentarlo. (Error de TikTok {{code}})",
+            withPlatform:
+              "TikTok ha transferido esta solicitud a su equipo de plataforma, por lo que no se puede gestionar aquí por ahora. Espera el resultado de la plataforma. (Error de TikTok {{code}})",
+            stateChanged:
+              "El estado de esta solicitud en TikTok ya no permite esta acción. Actualiza la lista, comprueba el estado más reciente y vuelve a intentarlo. (Error de TikTok {{code}})",
+          },
         },
       },
     },
@@ -1137,6 +1169,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok ne propose aucun motif de refus pour cette demande.",
           submitReject: "Refuser la demande",
           failed: "TikTok n'a pas accepté la décision.",
+          platformErrors: {
+            parcelNotRejectable:
+              "TikTok ne permet pas de refuser ce colis retourné pour le moment. Dans TikTok Seller Center, vérifiez si le retour a été livré et si des photos justificatives sont requises, puis réessayez. (Erreur TikTok {{code}})",
+            withPlatform:
+              "TikTok a transféré cette demande à son équipe plateforme : elle ne peut pas être traitée ici pour le moment. Attendez le résultat de la plateforme. (Erreur TikTok {{code}})",
+            stateChanged:
+              "Le statut de cette demande chez TikTok ne permet plus cette action. Actualisez la liste, vérifiez le dernier statut, puis réessayez. (Erreur TikTok {{code}})",
+          },
         },
       },
     },
@@ -1364,6 +1404,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok tidak menyediakan alasan penolakan untuk permintaan ini.",
           submitReject: "Tolak permintaan",
           failed: "TikTok tidak menerima keputusan tersebut.",
+          platformErrors: {
+            parcelNotRejectable:
+              "TikTok belum mengizinkan paket retur ini ditolak saat ini. Di TikTok Seller Center, periksa apakah retur sudah terkirim dan apakah foto bukti diperlukan, lalu coba lagi. (Kesalahan TikTok {{code}})",
+            withPlatform:
+              "TikTok telah mengalihkan permintaan ini ke tim platform, jadi untuk sementara tidak dapat diproses di sini. Tunggu hasil dari platform. (Kesalahan TikTok {{code}})",
+            stateChanged:
+              "Status permintaan ini di TikTok tidak lagi mengizinkan tindakan ini. Muat ulang daftar, periksa status terbaru, lalu coba lagi. (Kesalahan TikTok {{code}})",
+          },
         },
       },
     },
@@ -1591,6 +1639,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok non offre alcun motivo di rifiuto per questa richiesta.",
           submitReject: "Rifiuta la richiesta",
           failed: "TikTok non ha accettato la decisione.",
+          platformErrors: {
+            parcelNotRejectable:
+              "Al momento TikTok non consente di rifiutare questo pacco reso. In TikTok Seller Center, verifica se il reso è stato consegnato e se sono richieste foto di prova, poi riprova. (Errore TikTok {{code}})",
+            withPlatform:
+              "TikTok ha trasferito questa richiesta al team della piattaforma, quindi per ora non può essere gestita qui. Attendi l'esito della piattaforma. (Errore TikTok {{code}})",
+            stateChanged:
+              "Lo stato di questa richiesta su TikTok non consente più questa azione. Aggiorna l'elenco, verifica lo stato più recente e riprova. (Errore TikTok {{code}})",
+          },
         },
       },
     },
@@ -1817,6 +1873,14 @@ export const AFTER_SALE_TRANSLATIONS = {
           reasonsEmpty: "TikTok ไม่มีเหตุผลในการปฏิเสธสำหรับคำขอนี้",
           submitReject: "ปฏิเสธคำขอ",
           failed: "TikTok ไม่ยอมรับการตัดสินใจนี้",
+          platformErrors: {
+            parcelNotRejectable:
+              "ขณะนี้ TikTok ยังไม่อนุญาตให้ปฏิเสธพัสดุคืนสินค้านี้ โปรดตรวจสอบใน TikTok Seller Center ว่าพัสดุคืนจัดส่งถึงแล้วหรือไม่และต้องแนบรูปหลักฐานหรือไม่ จากนั้นลองอีกครั้ง (ข้อผิดพลาด TikTok {{code}})",
+            withPlatform:
+              "TikTok โอนคำขอนี้ให้ทีมแพลตฟอร์มแล้ว จึงยังดำเนินการที่นี่ไม่ได้ โปรดรอผลจากแพลตฟอร์ม (ข้อผิดพลาด TikTok {{code}})",
+            stateChanged:
+              "สถานะของคำขอนี้ใน TikTok ไม่รองรับการดำเนินการนี้แล้ว โปรดรีเฟรชรายการ ตรวจสอบสถานะล่าสุด แล้วลองอีกครั้ง (ข้อผิดพลาด TikTok {{code}})",
+          },
         },
       },
     },

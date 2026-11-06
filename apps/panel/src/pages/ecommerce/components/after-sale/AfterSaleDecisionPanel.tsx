@@ -21,6 +21,7 @@ import {
 import { useEntityStore } from "../../../../store/EntityStoreProvider.js";
 import type { AfterSaleRequestNode } from "../../../../store/models/EcommerceAfterSaleModel.js";
 import {
+  afterSaleDecisionErrorText,
   afterSaleKindLabel,
   afterSaleSellerActionLabel,
   afterSaleSellerDecisionLabel,
@@ -97,7 +98,7 @@ export const AfterSaleDecisionPanel = observer(function AfterSaleDecisionPanel({
     <div className="after-sale-decision">
       {detail.decisionError ? (
         <TkAlert tone="danger" title={t("ecommerce.afterSale.decision.failed")}>
-          {detail.decisionError}
+          {afterSaleDecisionErrorText(t, detail.decisionError)}
         </TkAlert>
       ) : null}
       {rejecting ? (

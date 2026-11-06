@@ -221,6 +221,30 @@ describe("AfterSaleReviewPage", () => {
     });
   });
 
+  it("explains a TikTok refusal in the seller's language and keeps the form open", async () => {
+    const { afterSale } = setup();
+    const refusal = "TikTok API error 25011035: could not reject parcel now (request_id: 2026)";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ error: refusal }), { status: 500 })),
+    );
+    await i18n.changeLanguage("zh");
+    render(<AfterSaleReviewPage />);
+    fireEvent.click(await screen.findByText("Ceramic mug"));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "拒绝退款" }));
+    await waitFor(() => expect(afterSale.detail.rejectReasons).toHaveLength(1));
+    afterSale.setRejectReason("why-1");
+    const submit = within(dialog).getByRole<HTMLButtonElement>("button", { name: "确认拒绝" });
+    await waitFor(() => expect(submit.disabled).toBe(false));
+
+    fireEvent.click(submit);
+
+    expect(await within(dialog).findByText(/暂时不允许拒绝这个退货包裹.*25011035/)).toBeTruthy();
+    expect(within(dialog).queryByText(/could not reject parcel/)).toBeNull();
+    expect(submit.isConnected).toBe(true);
+  });
+
   it("asks for confirmation before approving and removes the decided row", async () => {
     const { afterSale, mutate, query } = setup();
     query.mockImplementation(async ({ query: doc }: { query: unknown }) => {

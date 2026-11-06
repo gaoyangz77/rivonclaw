@@ -21,6 +21,7 @@ import {
   type AfterSaleRequestNode,
 } from "../../../../store/models/EcommerceAfterSaleModel.js";
 import {
+  afterSaleDecisionErrorText,
   afterSaleKindLabel,
   afterSaleSellerActionLabel,
   afterSaleStatusLabel,
@@ -243,7 +244,7 @@ export const AfterSaleTable = observer(function AfterSaleTable() {
             </TkButton>
           }
         >
-          {rowError.message}
+          {afterSaleDecisionErrorText(t, rowError.message)}
         </TkAlert>
       ) : null}
       <TkPanel
