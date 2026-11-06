@@ -17,7 +17,9 @@ import {
   campaignTodayReachoutSupportingText,
   affiliateCampaignCommissionRange,
   campaignDeliveryFailureBreakdown,
+  CAMPAIGN_ERROR_MESSAGE_KEYS,
   campaignErrorMessage,
+  campaignTemplateContentIssue,
   campaignCreatorStatesViewState,
   campaignFunnelCounterValue,
   campaignSearchGroupRuleSummary,
@@ -618,6 +620,59 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(campaignErrorMessage(new Error("CAMPAIGN_AI_SUGGESTION_INVALID: incomplete"), t)).toBe(
       "ecommerce.affiliateCampaign.errors.suggestionInvalid",
     );
+  });
+
+  it("names the reason for every backend campaign failure the wizard can meet", () => {
+    const t = (key: string) => key;
+    const cases: Array<[string, string]> = [
+      ["messageProductName must contain at most 80 characters", "messageProductNameTooLong"],
+      ["Campaign message template cannot contain URLs", "errors.templateContainsUrl"],
+      ["Campaign message template cannot contain HTML", "errors.templateContainsHtml"],
+      ["CAMPAIGN_PRODUCT_NOT_ACTIVE: Product status is DEACTIVATED", "errors.productNotActive"],
+      ["Campaign product has no usable SKU price", "errors.productPriceUnavailable"],
+      ["Campaign timezone cannot be resolved for market XX", "errors.shopMarketUnavailable"],
+      ["Owned shop not found", "errors.shopUnavailable"],
+      ["AffiliateCampaign not found", "errors.campaignNotFound"],
+      ["Authentication required", "errors.authRequired"],
+      ["commissionRatePercent must be between 1 and 80", "errors.productsInvalid"],
+      ["CAMPAIGN_SEARCH_PHRASES_REQUIRED", "invalidSearchPhrases"],
+      ["something nobody anticipated", "errors.generic"],
+    ];
+    for (const [message, key] of cases) {
+      expect(campaignErrorMessage(new Error(message), t)).toBe(
+        `ecommerce.affiliateCampaign.${key}`,
+      );
+    }
+  });
+
+  it("points every mapped campaign failure at copy that exists in every locale", () => {
+    const lookup = (resource: unknown, path: string) =>
+      path
+        .split(".")
+        .reduce<unknown>(
+          (node, part) =>
+            node && typeof node === "object" ? (node as Record<string, unknown>)[part] : undefined,
+          resource,
+        );
+    for (const [locale, resource] of Object.entries(AFFILIATE_CAMPAIGN_TRANSLATIONS)) {
+      for (const [, key] of [...CAMPAIGN_ERROR_MESSAGE_KEYS, ["", "errors.generic"] as const]) {
+        expect(typeof lookup(resource.ecommerce.affiliateCampaign, key), `${locale}: ${key}`).toBe(
+          "string",
+        );
+      }
+    }
+  });
+
+  it("checks the first message for the content the backend rejects", () => {
+    expect(campaignTemplateContentIssue("")).toBeNull();
+    expect(campaignTemplateContentIssue("Hi {{creator_name}}, love your videos!")).toBeNull();
+    expect(campaignTemplateContentIssue("See https://shop.example.com/item")).toBe(
+      "templateContainsUrl",
+    );
+    expect(campaignTemplateContentIssue("See www.example.com")).toBe("templateContainsUrl");
+    expect(campaignTemplateContentIssue("Hello <b>creator</b>")).toBe("templateContainsHtml");
+    expect(campaignTemplateContentIssue("x".repeat(2001))).toBe("templateTooLong");
+    expect(campaignTemplateContentIssue(`  ${"x".repeat(2000)}  `)).toBeNull();
   });
 
   it("maps typed eligibility reasons through i18n instead of exposing backend codes", () => {

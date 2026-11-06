@@ -392,6 +392,25 @@ export function campaignSkipsDirectMessage(mode: GQL.AffiliateCampaignFirstTouch
  * template is fine. Unsupported variables in a retained template are checked
  * separately in both modes, mirroring Backend validation.
  */
+export const CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH = 2000;
+
+export type CampaignTemplateContentIssue = "templateTooLong" | "templateContainsHtml" | "templateContainsUrl";
+
+/**
+ * Mirrors Backend `validateAffiliateCampaignMessageTemplate` for the rules the
+ * editor does not already enforce. The textarea's maxLength stops typing, but
+ * an AI draft is set programmatically and can exceed it. A retained template
+ * is held to the same rules in invitation-only mode, as on the backend.
+ */
+export function campaignTemplateContentIssue(text: string): CampaignTemplateContentIssue | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH) return "templateTooLong";
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) return "templateContainsHtml";
+  if (/\b(?:https?:\/\/|www\.)\S+/i.test(trimmed)) return "templateContainsUrl";
+  return null;
+}
+
 export function campaignMessageStepValid(
   form: Pick<CampaignForm, "templateText" | "firstTouchMode">,
 ): boolean {
@@ -1101,6 +1120,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const unsupportedTemplateVariables = unsupportedAffiliateCampaignTemplateVariables(
     form.templateText,
   );
+  const templateContentIssue = campaignTemplateContentIssue(form.templateText);
   const aiTemplateMissingCreatorPlaceholder =
     form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated &&
     affiliateCampaignAiTemplateMissingCreatorPlaceholder(form.templateText);
@@ -1161,6 +1181,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       wizardStep >= 3 &&
       (unsupportedTemplateVariables.length > 0 || aiTemplateMissingCreatorPlaceholder)
     ) {
+      return false;
+    }
+    if (wizardStep >= 3 && templateContentIssue) {
+      showToast(t(`ecommerce.affiliateCampaign.errors.${templateContentIssue}`), "error");
       return false;
     }
     return true;
@@ -3507,18 +3531,22 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <span>{t("ecommerce.affiliateCampaign.messageTemplate")}</span>
                   <textarea
                     rows={8}
-                    maxLength={2000}
+                    maxLength={CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH}
                     value={form.templateText}
                     disabled={skipDirectMessage}
                     aria-invalid={
-                      unsupportedTemplateVariables.length > 0 || aiTemplateMissingCreatorPlaceholder
+                      unsupportedTemplateVariables.length > 0 ||
+                      aiTemplateMissingCreatorPlaceholder ||
+                      templateContentIssue !== null
                     }
                     aria-describedby={
                       unsupportedTemplateVariables.length > 0
                         ? "affiliate-campaign-template-variable-error"
                         : aiTemplateMissingCreatorPlaceholder
                           ? "affiliate-campaign-template-placeholder-error"
-                          : undefined
+                          : templateContentIssue
+                            ? "affiliate-campaign-template-content-error"
+                            : undefined
                     }
                     onChange={(event) => {
                       const nextText = event.target.value;
@@ -3559,8 +3587,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         {" {{creator_name}}"}
                       </small>
                     )}
+                  {unsupportedTemplateVariables.length === 0 &&
+                    !aiTemplateMissingCreatorPlaceholder &&
+                    templateContentIssue && (
+                      <small
+                        id="affiliate-campaign-template-content-error"
+                        className="affiliate-campaign-template-error"
+                        role="alert"
+                      >
+                        {t(`ecommerce.affiliateCampaign.errors.${templateContentIssue}`)}
+                      </small>
+                    )}
                   <small>
-                    {form.templateText.length}/2000 ·{" "}
+                    {form.templateText.length}/{CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH} ·{" "}
                     {form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated
                       ? t("ecommerce.affiliateCampaign.aiDraftReviewRequired")
                       : t("ecommerce.affiliateCampaign.userAuthored")}
@@ -4979,35 +5018,76 @@ export function isEnglishCampaignSearchPhrase(value: string): boolean {
   return words.length >= 2 && words.length <= 8;
 }
 
+/**
+ * Backend failure → the reason the seller reads, as a full i18n key. Backend
+ * codes come first; plain messages are matched for rules that have no code.
+ * Rules the wizard can check itself are also checked before submitting; they
+ * are listed here as well so a gap between the two still names its reason.
+ * Order matters where one message contains another.
+ */
+export const CAMPAIGN_ERROR_MESSAGE_KEYS: ReadonlyArray<readonly [string, string]> = [
+  ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_REQUIRED", "errors.dailyCreatorOutreachLimitRequired"],
+  ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID", "errors.dailyCreatorOutreachLimitInvalid"],
+  ["AFFILIATE_CAMPAIGN_MAINTENANCE", "errors.campaignMaintenance"],
+  ["AFFILIATE_CAMPAIGN_QUALIFICATION_MODEL_NOT_READY", "errors.modelNotReady"],
+  ["AFFILIATE_CAMPAIGN_MODEL_READINESS_RETRY", "errors.modelTemporarilyUnavailable"],
+  ["AFFILIATE_CAMPAIGN_END_DAYS_INVALID", "endDaysInvalid"],
+  ["AFFILIATE_CAMPAIGN_SELLER_CONTACT_EMAIL_INVALID", "sellerContactEmailInvalid"],
+  ["CAMPAIGN_DRAFT_DELETE_ONLY", "errors.draftDeleteOnly"],
+  ["CAMPAIGN_DRAFT_HAS_HISTORY", "errors.draftHasHistory"],
+  ["CAMPAIGN_RECONFIGURATION_REQUIRED", "errors.reconfigurationRequired"],
+  ["CAMPAIGN_SEARCH_PHRASES_REQUIRED", "invalidSearchPhrases"],
+  ["CAMPAIGN_AI_SUGGESTION_TIMEOUT", "errors.suggestionTimeout"],
+  ["CAMPAIGN_AI_SUGGESTION_INVALID", "errors.suggestionInvalid"],
+  ["CAMPAIGN_AI_SUGGESTION_FAILED", "errors.suggestionFailed"],
+  ["CAMPAIGN_AI_TEMPLATE_INVALID", "errors.aiTemplatePlaceholderMissing"],
+  ["CAMPAIGN_COPY_REQUIRED", "errors.copyRequired"],
+  ["CAMPAIGN_PRODUCT_NOT_ACTIVE", "errors.productNotActive"],
+  ["CAMPAIGN_PRODUCT_SNAPSHOT_REQUIRED", "errors.productSnapshotRequired"],
+  ["PRODUCT_SNAPSHOT_REF_INVALID", "errors.productSnapshotExpired"],
+  ["CAMPAIGN_TEMPLATE_NOT_DISTINCT", "errors.templateNotDistinct"],
+  // First message and its product name.
+  ["messageProductName must contain at most", "messageProductNameTooLong"],
+  ["messageProductName is required", "errors.messageProductNameRequired"],
+  ["messageTemplateText is required", "templateRequired"],
+  ["Campaign message template exceeds", "errors.templateTooLong"],
+  ["Unsupported Campaign template variable", "errors.templateUnsupportedVariable"],
+  ["Campaign message template cannot contain HTML", "errors.templateContainsHtml"],
+  ["Campaign message template cannot contain URLs", "errors.templateContainsUrl"],
+  // Targets and campaign fields.
+  ["searchPlanGuidance exceeds", "searchPlanGuidanceTooLong"],
+  ["dailyOutreachTarget must be an integer", "dailyTargetInvalid"],
+  ["name is required", "errors.campaignNameInvalid"],
+  ["name must be at most", "errors.campaignNameInvalid"],
+  ["name cannot contain control characters", "errors.campaignNameInvalid"],
+  // Products.
+  ["A Campaign needs at least one product", "errors.productsInvalid"],
+  ["A Campaign cannot promote the same product twice", "errors.productsInvalid"],
+  ["must be between 1 and 80", "errors.productsInvalid"],
+  ["Campaign product snapshot does not match", "errors.productSnapshotExpired"],
+  ["product snapshot not found", "errors.productSnapshotExpired"],
+  ["Provider returned a different product", "errors.productSnapshotExpired"],
+  ["Campaign product has no usable SKU price", "errors.productPriceUnavailable"],
+  ["Campaign product SKU prices use multiple currencies", "errors.productPriceUnavailable"],
+  ["Campaign product currency is unavailable", "errors.productPriceUnavailable"],
+  // Shop, Campaign and session state the Panel cannot know in advance.
+  ["Campaign shop market is unavailable", "errors.shopMarketUnavailable"],
+  ["Campaign timezone cannot be resolved", "errors.shopMarketUnavailable"],
+  ["Invalid shop timezone", "errors.shopMarketUnavailable"],
+  ["Invalid Campaign timezone", "errors.shopMarketUnavailable"],
+  ["Owned shop not found", "errors.shopUnavailable"],
+  ["Shop not found", "errors.shopUnavailable"],
+  ["AffiliateCampaign not found", "errors.campaignNotFound"],
+  ["Authentication required", "errors.authRequired"],
+];
+
 export function campaignErrorMessage(
   error: unknown,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   const raw = error instanceof Error ? error.message : String(error);
-  const mappings: Array<[string, string]> = [
-    [
-      "AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_REQUIRED",
-      "dailyCreatorOutreachLimitRequired",
-    ],
-    ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID", "dailyCreatorOutreachLimitInvalid"],
-    ["AFFILIATE_CAMPAIGN_MAINTENANCE", "campaignMaintenance"],
-    ["AFFILIATE_CAMPAIGN_QUALIFICATION_MODEL_NOT_READY", "modelNotReady"],
-    ["AFFILIATE_CAMPAIGN_MODEL_READINESS_RETRY", "modelTemporarilyUnavailable"],
-    ["CAMPAIGN_DRAFT_DELETE_ONLY", "draftDeleteOnly"],
-    ["CAMPAIGN_DRAFT_HAS_HISTORY", "draftHasHistory"],
-    ["CAMPAIGN_RECONFIGURATION_REQUIRED", "reconfigurationRequired"],
-    ["CAMPAIGN_SEARCH_PHRASES_REQUIRED", "invalidSearchPhrases"],
-    ["CAMPAIGN_AI_SUGGESTION_TIMEOUT", "suggestionTimeout"],
-    ["CAMPAIGN_AI_SUGGESTION_INVALID", "suggestionInvalid"],
-    ["CAMPAIGN_AI_SUGGESTION_FAILED", "suggestionFailed"],
-    ["CAMPAIGN_COPY_REQUIRED", "copyRequired"],
-    ["PRODUCT_SNAPSHOT_REF_INVALID", "productSnapshotExpired"],
-    ["CAMPAIGN_TEMPLATE_NOT_DISTINCT", "templateNotDistinct"],
-  ];
-  const match = mappings.find(([code]) => raw.includes(code));
-  return match
-    ? t(`ecommerce.affiliateCampaign.errors.${match[1]}`)
-    : t("ecommerce.affiliateCampaign.errors.generic");
+  const match = CAMPAIGN_ERROR_MESSAGE_KEYS.find(([pattern]) => raw.includes(pattern));
+  return t(`ecommerce.affiliateCampaign.${match ? match[1] : "errors.generic"}`);
 }
 
 function searchPlanGenerationErrorMessage(

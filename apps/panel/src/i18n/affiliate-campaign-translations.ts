@@ -487,6 +487,30 @@ const en = {
   createFailed: "Campaign creation did not return a campaign.",
   created: "Campaign activated.",
   errors: {
+    shopUnavailable:
+      "This shop could not be found. It may have been unlinked or its authorization may have expired. Refresh the shop list and try again.",
+    campaignNotFound: "This campaign no longer exists. It may have been deleted. Refresh the list.",
+    shopMarketUnavailable:
+      "This shop is missing its market or time zone, so a campaign cannot be created yet. Refresh the shop's details on the Shops page and try again.",
+    productNotActive:
+      "This product is not active on TikTok, so it cannot be promoted. Activate it or choose another product.",
+    productPriceUnavailable:
+      "This product has no usable SKU price on TikTok, or its SKUs use different currencies. Check the product's prices and fetch it again.",
+    productSnapshotRequired: "Configure a product before copying this campaign.",
+    productsInvalid:
+      "Check the products: add at least one, do not repeat a product, and keep commission rates between 1% and 80%.",
+    campaignNameInvalid:
+      "Check the campaign name: it is required, at most 120 characters, and cannot contain line breaks.",
+    messageProductNameRequired: "Enter the conversational product name used in the first message.",
+    templateTooLong: "The first message can be at most 2,000 characters.",
+    templateContainsHtml: "The first message cannot contain HTML tags.",
+    templateContainsUrl:
+      "The first message cannot contain links. The product card attached after the message already opens the product.",
+    templateUnsupportedVariable:
+      "The first message contains an unsupported variable. Use only the variables offered in the editor.",
+    aiTemplatePlaceholderMissing:
+      "The AI-generated message is missing the creator-name placeholder. Generate it again or add the placeholder back.",
+    authRequired: "Your sign-in has expired. Sign in again and retry.",
     dailyCreatorOutreachLimitRequired:
       "Set this shop's daily automatic creator outreach limit before activating a campaign.",
     dailyCreatorOutreachLimitInvalid: "The shop daily creator outreach limit must be 1–20,000.",
@@ -1086,6 +1110,23 @@ const zh = {
   createFailed: "后端没有返回新建的推广计划。",
   created: "推广计划已启用。",
   errors: {
+    shopUnavailable: "找不到该店铺，可能已解绑或授权已失效。请刷新店铺列表后重试。",
+    campaignNotFound: "这个推广计划已不存在，可能已被删除。请刷新列表。",
+    shopMarketUnavailable:
+      "该店铺缺少市场或时区信息，暂时无法创建推广计划。请在店铺页刷新店铺信息后重试。",
+    productNotActive: "该商品在 TikTok 上未处于上架状态，无法推广。请先上架或换一个商品。",
+    productPriceUnavailable:
+      "该商品在 TikTok 上没有可用的 SKU 价格，或各 SKU 币种不一致。请检查商品价格后重新抓取。",
+    productSnapshotRequired: "请先配置商品，再复制这个推广计划。",
+    productsInvalid: "请检查商品配置：至少一个商品、不能重复添加同一商品，佣金率需在 1%–80% 之间。",
+    campaignNameInvalid: "请检查推广计划名称：不能为空，最多 120 个字符，且不能包含换行。",
+    messageProductNameRequired: "请填写首信中的口语商品名。",
+    templateTooLong: "首信最多 2000 个字符。",
+    templateContainsHtml: "首信不能包含 HTML 标签。",
+    templateContainsUrl: "首信不能包含链接。文字消息后附带的商品卡已能打开商品。",
+    templateUnsupportedVariable: "首信里有不支持的变量，请只使用编辑器提供的变量。",
+    aiTemplatePlaceholderMissing: "AI 生成的首信缺少达人名字占位符，请重新生成或手动补上。",
+    authRequired: "登录已过期，请重新登录后再试。",
     dailyCreatorOutreachLimitRequired: "请先在店铺设置中配置每日自动联系达人上限，再开启推广计划。",
     dailyCreatorOutreachLimitInvalid: "店铺每日自动联系达人上限必须为 1–20,000 的整数。",
     campaignMaintenance: "推广计划触达正在维护中，请稍后再试。",
@@ -1425,6 +1466,32 @@ const operationalCopy = {
     targetCollaborationQuotaScheduled:
       "Geplant · wartet auf TikTok-Kapazität für Zielkooperationen",
     errors: {
+      shopUnavailable:
+        "Dieser Shop wurde nicht gefunden. Er wurde eventuell getrennt oder seine Autorisierung ist abgelaufen. Aktualisiere die Shop-Liste und versuche es erneut.",
+      campaignNotFound:
+        "Diese Kampagne existiert nicht mehr und wurde eventuell gelöscht. Aktualisiere die Liste.",
+      shopMarketUnavailable:
+        "Für diesen Shop fehlen Markt oder Zeitzone, daher kann noch keine Kampagne erstellt werden. Aktualisiere die Shop-Daten auf der Shop-Seite und versuche es erneut.",
+      productNotActive:
+        "Dieses Produkt ist auf TikTok nicht aktiv und kann nicht beworben werden. Aktiviere es oder wähle ein anderes Produkt.",
+      productPriceUnavailable:
+        "Dieses Produkt hat auf TikTok keinen nutzbaren SKU-Preis oder seine SKUs verwenden unterschiedliche Währungen. Prüfe die Preise und rufe das Produkt erneut ab.",
+      productSnapshotRequired: "Richte zuerst ein Produkt ein, bevor du diese Kampagne kopierst.",
+      productsInvalid:
+        "Prüfe die Produkte: mindestens eines, kein Produkt doppelt und Provisionssätze zwischen 1 % und 80 %.",
+      campaignNameInvalid:
+        "Prüfe den Kampagnennamen: Er ist erforderlich, höchstens 120 Zeichen lang und darf keine Zeilenumbrüche enthalten.",
+      messageProductNameRequired: "Gib den natürlichen Produktnamen für die erste Nachricht ein.",
+      templateTooLong: "Die erste Nachricht darf höchstens 2.000 Zeichen lang sein.",
+      templateContainsHtml: "Die erste Nachricht darf keine HTML-Tags enthalten.",
+      templateContainsUrl:
+        "Die erste Nachricht darf keine Links enthalten. Die angehängte Produktkarte öffnet das Produkt bereits.",
+      templateUnsupportedVariable:
+        "Die erste Nachricht enthält eine nicht unterstützte Variable. Verwende nur die Variablen aus dem Editor.",
+      aiTemplatePlaceholderMissing:
+        "In der KI-Nachricht fehlt der Platzhalter für den Creator-Namen. Erstelle sie neu oder füge ihn wieder ein.",
+      authRequired:
+        "Deine Anmeldung ist abgelaufen. Melde dich erneut an und versuche es noch einmal.",
       modelNotReady:
         "Der KI-Modus ist für diesen Verkäufer noch nicht verfügbar. Nutze den Regelmodus des Creator-Marktplatzes.",
       modelTemporarilyUnavailable:
@@ -1634,6 +1701,31 @@ const operationalCopy = {
     targetCollaborationQuotaScheduled:
       "Programado · esperando capacidad de colaboración dirigida de TikTok",
     errors: {
+      shopUnavailable:
+        "No se encontró esta tienda. Puede que se haya desvinculado o que su autorización haya caducado. Actualiza la lista de tiendas e inténtalo de nuevo.",
+      campaignNotFound:
+        "Esta campaña ya no existe; puede que se haya eliminado. Actualiza la lista.",
+      shopMarketUnavailable:
+        "A esta tienda le falta el mercado o la zona horaria, así que aún no se puede crear una campaña. Actualiza los datos de la tienda en la página de tiendas e inténtalo de nuevo.",
+      productNotActive:
+        "Este producto no está activo en TikTok y no se puede promocionar. Actívalo o elige otro producto.",
+      productPriceUnavailable:
+        "Este producto no tiene un precio de SKU utilizable en TikTok o sus SKU usan monedas distintas. Revisa los precios y vuelve a obtener el producto.",
+      productSnapshotRequired: "Configura un producto antes de copiar esta campaña.",
+      productsInvalid:
+        "Revisa los productos: al menos uno, sin repetir productos y con comisiones entre el 1 % y el 80 %.",
+      campaignNameInvalid:
+        "Revisa el nombre de la campaña: es obligatorio, tiene como máximo 120 caracteres y no puede contener saltos de línea.",
+      messageProductNameRequired: "Escribe el nombre natural del producto para el primer mensaje.",
+      templateTooLong: "El primer mensaje puede tener como máximo 2000 caracteres.",
+      templateContainsHtml: "El primer mensaje no puede contener etiquetas HTML.",
+      templateContainsUrl:
+        "El primer mensaje no puede contener enlaces. La tarjeta de producto adjunta ya abre el producto.",
+      templateUnsupportedVariable:
+        "El primer mensaje contiene una variable no compatible. Usa solo las variables que ofrece el editor.",
+      aiTemplatePlaceholderMissing:
+        "Al mensaje generado por IA le falta el marcador del nombre del creador. Vuelve a generarlo o añádelo de nuevo.",
+      authRequired: "Tu sesión ha caducado. Vuelve a iniciar sesión e inténtalo de nuevo.",
       modelNotReady:
         "El modo IA todavía no está disponible para este vendedor. Usa el modo de reglas del marketplace.",
       modelTemporarilyUnavailable:
@@ -1842,6 +1934,32 @@ const operationalCopy = {
     targetCollaborationQuotaScheduled:
       "Planifié · en attente de capacité TikTok pour la collaboration ciblée",
     errors: {
+      shopUnavailable:
+        "Cette boutique est introuvable. Elle a peut-être été dissociée ou son autorisation a expiré. Actualisez la liste des boutiques et réessayez.",
+      campaignNotFound:
+        "Cette campagne n’existe plus ; elle a peut-être été supprimée. Actualisez la liste.",
+      shopMarketUnavailable:
+        "Il manque le marché ou le fuseau horaire de cette boutique, une campagne ne peut donc pas encore être créée. Actualisez les informations de la boutique sur la page Boutiques et réessayez.",
+      productNotActive:
+        "Ce produit n’est pas actif sur TikTok et ne peut pas être promu. Activez-le ou choisissez un autre produit.",
+      productPriceUnavailable:
+        "Ce produit n’a pas de prix SKU utilisable sur TikTok, ou ses SKU utilisent des devises différentes. Vérifiez les prix et récupérez de nouveau le produit.",
+      productSnapshotRequired: "Configurez un produit avant de copier cette campagne.",
+      productsInvalid:
+        "Vérifiez les produits : au moins un, sans doublon, avec des taux de commission entre 1 % et 80 %.",
+      campaignNameInvalid:
+        "Vérifiez le nom de la campagne : il est obligatoire, fait au plus 120 caractères et ne peut pas contenir de saut de ligne.",
+      messageProductNameRequired:
+        "Saisissez le nom de produit naturel utilisé dans le premier message.",
+      templateTooLong: "Le premier message peut contenir au plus 2 000 caractères.",
+      templateContainsHtml: "Le premier message ne peut pas contenir de balises HTML.",
+      templateContainsUrl:
+        "Le premier message ne peut pas contenir de liens. La fiche produit jointe ouvre déjà le produit.",
+      templateUnsupportedVariable:
+        "Le premier message contient une variable non prise en charge. Utilisez uniquement les variables proposées par l’éditeur.",
+      aiTemplatePlaceholderMissing:
+        "Le message généré par l’IA ne contient plus l’espace réservé du nom du créateur. Générez-le de nouveau ou rajoutez-le.",
+      authRequired: "Votre session a expiré. Reconnectez-vous puis réessayez.",
       modelNotReady:
         "Le mode IA n'est pas encore disponible pour ce vendeur. Utilisez le mode règles du marketplace.",
       modelTemporarilyUnavailable:
@@ -2048,6 +2166,30 @@ const operationalCopy = {
     targetCollaborationQuotaRecoveredAt: "Pembuatan pertama yang berhasil tercatat pada {{time}}",
     targetCollaborationQuotaScheduled: "Terjadwal · menunggu kapasitas kolaborasi target TikTok",
     errors: {
+      shopUnavailable:
+        "Toko ini tidak ditemukan. Mungkin sudah diputus atau otorisasinya kedaluwarsa. Muat ulang daftar toko lalu coba lagi.",
+      campaignNotFound: "Kampanye ini sudah tidak ada; mungkin sudah dihapus. Muat ulang daftar.",
+      shopMarketUnavailable:
+        "Toko ini belum memiliki info pasar atau zona waktu, jadi kampanye belum bisa dibuat. Muat ulang info toko di halaman Toko lalu coba lagi.",
+      productNotActive:
+        "Produk ini tidak aktif di TikTok sehingga tidak bisa dipromosikan. Aktifkan atau pilih produk lain.",
+      productPriceUnavailable:
+        "Produk ini tidak punya harga SKU yang bisa dipakai di TikTok, atau SKU-nya memakai mata uang berbeda. Periksa harga lalu ambil ulang produknya.",
+      productSnapshotRequired: "Atur produk terlebih dahulu sebelum menyalin kampanye ini.",
+      productsInvalid:
+        "Periksa produk: minimal satu, tidak boleh ada produk ganda, dan tingkat komisi antara 1% dan 80%.",
+      campaignNameInvalid:
+        "Periksa nama kampanye: wajib diisi, maksimal 120 karakter, dan tidak boleh berisi baris baru.",
+      messageProductNameRequired: "Isi nama produk yang natural untuk pesan pertama.",
+      templateTooLong: "Pesan pertama maksimal 2.000 karakter.",
+      templateContainsHtml: "Pesan pertama tidak boleh berisi tag HTML.",
+      templateContainsUrl:
+        "Pesan pertama tidak boleh berisi tautan. Kartu produk yang dilampirkan sudah membuka produknya.",
+      templateUnsupportedVariable:
+        "Pesan pertama berisi variabel yang tidak didukung. Gunakan hanya variabel yang disediakan editor.",
+      aiTemplatePlaceholderMissing:
+        "Pesan buatan AI kehilangan placeholder nama kreator. Buat ulang atau tambahkan kembali.",
+      authRequired: "Sesi masuk Anda sudah kedaluwarsa. Masuk lagi lalu coba kembali.",
       modelNotReady:
         "Mode AI belum tersedia untuk penjual ini. Gunakan mode aturan marketplace creator.",
       modelTemporarilyUnavailable: "Praseleksi sedang tidak tersedia. Coba lagi sebentar lagi.",
@@ -2255,6 +2397,32 @@ const operationalCopy = {
     targetCollaborationQuotaScheduled:
       "Pianificato · in attesa di capacità TikTok per la collaborazione mirata",
     errors: {
+      shopUnavailable:
+        "Questo negozio non è stato trovato. Potrebbe essere stato scollegato o la sua autorizzazione potrebbe essere scaduta. Aggiorna l’elenco dei negozi e riprova.",
+      campaignNotFound:
+        "Questa campagna non esiste più; potrebbe essere stata eliminata. Aggiorna l’elenco.",
+      shopMarketUnavailable:
+        "A questo negozio mancano il mercato o il fuso orario, quindi non è ancora possibile creare una campagna. Aggiorna i dati del negozio nella pagina Negozi e riprova.",
+      productNotActive:
+        "Questo prodotto non è attivo su TikTok e non può essere promosso. Attivalo o scegli un altro prodotto.",
+      productPriceUnavailable:
+        "Questo prodotto non ha un prezzo SKU utilizzabile su TikTok oppure i suoi SKU usano valute diverse. Controlla i prezzi e recupera di nuovo il prodotto.",
+      productSnapshotRequired: "Configura un prodotto prima di copiare questa campagna.",
+      productsInvalid:
+        "Controlla i prodotti: almeno uno, nessun prodotto ripetuto e commissioni tra l’1% e l’80%.",
+      campaignNameInvalid:
+        "Controlla il nome della campagna: è obbligatorio, al massimo 120 caratteri e senza a capo.",
+      messageProductNameRequired:
+        "Inserisci il nome colloquiale del prodotto usato nel primo messaggio.",
+      templateTooLong: "Il primo messaggio può contenere al massimo 2.000 caratteri.",
+      templateContainsHtml: "Il primo messaggio non può contenere tag HTML.",
+      templateContainsUrl:
+        "Il primo messaggio non può contenere link. La scheda prodotto allegata apre già il prodotto.",
+      templateUnsupportedVariable:
+        "Il primo messaggio contiene una variabile non supportata. Usa solo le variabili offerte dall’editor.",
+      aiTemplatePlaceholderMissing:
+        "Nel messaggio generato dall’IA manca il segnaposto del nome del creator. Generalo di nuovo o reinseriscilo.",
+      authRequired: "La sessione è scaduta. Accedi di nuovo e riprova.",
       modelNotReady:
         "La modalità IA non è ancora disponibile per questo venditore. Usa la modalità regole del marketplace.",
       modelTemporarilyUnavailable:
@@ -2444,6 +2612,24 @@ const operationalCopy = {
     targetCollaborationQuotaRecoveredAt: "บันทึกการสร้างสำเร็จครั้งแรกเมื่อ {{time}}",
     targetCollaborationQuotaScheduled: "จัดกำหนดการแล้ว · รอความจุความร่วมมือแบบกำหนดเป้าหมายของ TikTok",
     errors: {
+      shopUnavailable:
+        "ไม่พบร้านค้านี้ อาจถูกยกเลิกการเชื่อมต่อหรือการอนุญาตหมดอายุ โปรดรีเฟรชรายการร้านค้าแล้วลองอีกครั้ง",
+      campaignNotFound: "แคมเปญนี้ไม่มีอยู่แล้ว อาจถูกลบไปแล้ว โปรดรีเฟรชรายการ",
+      shopMarketUnavailable:
+        "ร้านค้านี้ยังไม่มีข้อมูลตลาดหรือเขตเวลา จึงยังสร้างแคมเปญไม่ได้ โปรดรีเฟรชข้อมูลร้านค้าในหน้าร้านค้าแล้วลองอีกครั้ง",
+      productNotActive: "สินค้านี้ไม่ได้เปิดขายบน TikTok จึงโปรโมตไม่ได้ โปรดเปิดขายหรือเลือกสินค้าอื่น",
+      productPriceUnavailable:
+        "สินค้านี้ไม่มีราคา SKU ที่ใช้ได้บน TikTok หรือ SKU ใช้สกุลเงินต่างกัน โปรดตรวจสอบราคาแล้วดึงข้อมูลสินค้าใหม่",
+      productSnapshotRequired: "โปรดตั้งค่าสินค้าก่อนคัดลอกแคมเปญนี้",
+      productsInvalid: "โปรดตรวจสอบสินค้า: อย่างน้อยหนึ่งรายการ ห้ามซ้ำ และอัตราค่าคอมมิชชันต้องอยู่ระหว่าง 1%–80%",
+      campaignNameInvalid: "โปรดตรวจสอบชื่อแคมเปญ: ต้องกรอก ยาวไม่เกิน 120 ตัวอักษร และห้ามขึ้นบรรทัดใหม่",
+      messageProductNameRequired: "โปรดกรอกชื่อสินค้าแบบเป็นธรรมชาติที่ใช้ในข้อความแรก",
+      templateTooLong: "ข้อความแรกยาวได้ไม่เกิน 2,000 ตัวอักษร",
+      templateContainsHtml: "ข้อความแรกต้องไม่มีแท็ก HTML",
+      templateContainsUrl: "ข้อความแรกต้องไม่มีลิงก์ การ์ดสินค้าที่แนบหลังข้อความเปิดสินค้าได้อยู่แล้ว",
+      templateUnsupportedVariable: "ข้อความแรกมีตัวแปรที่ไม่รองรับ โปรดใช้เฉพาะตัวแปรที่ตัวแก้ไขมีให้",
+      aiTemplatePlaceholderMissing: "ข้อความที่ AI สร้างไม่มีตัวแทนชื่อครีเอเตอร์ โปรดสร้างใหม่หรือเพิ่มกลับเข้าไป",
+      authRequired: "การเข้าสู่ระบบหมดอายุแล้ว โปรดเข้าสู่ระบบอีกครั้งแล้วลองใหม่",
       modelNotReady: "โหมด AI ยังไม่พร้อมสำหรับผู้ขายรายนี้ กรุณาใช้โหมดกฎของ Creator Marketplace",
       modelTemporarilyUnavailable: "การคัดกรองเบื้องต้นใช้งานไม่ได้ชั่วคราว กรุณาลองอีกครั้ง",
       dailyCreatorOutreachLimitRequired:
