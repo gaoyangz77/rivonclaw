@@ -34,6 +34,10 @@ function dto(overrides: Partial<GQL.EcomBadReview> = {}): GQL.EcomBadReview {
 const conversation = { shopId: "shop-1", conversationId: "conv-1" };
 const showConversation = vi.fn();
 const openOrderDraft = vi.fn();
+const focusConversationOrder = vi.fn();
+const openedRoutes: string[] = [];
+const recordRoute = (event: Event) => openedRoutes.push((event as CustomEvent<{ path: string }>).detail.path);
+const CONVERSATIONS = "/commerce/customer-service/conversations";
 
 function mount(items: GQL.EcomBadReview[], mutate = vi.fn(), totalCount = items.length) {
   const query = vi.fn().mockResolvedValue({ data: { page: { items, totalCount } } });
@@ -42,18 +46,28 @@ function mount(items: GQL.EcomBadReview[], mutate = vi.fn(), totalCount = items.
     currentUser: { userId: "user-1" },
     shops: [{ id: "shop-1", shopName: "Shop One", alias: null, region: "US" }],
     ecommerceBadReview,
-    customerServiceWorkspace: { showConversation, openOrderDraft, startOrderErrors: new Map() },
+    customerServiceWorkspace: {
+      showConversation,
+      openOrderDraft,
+      focusConversationOrder,
+      startOrderErrors: new Map(),
+    },
   };
-  const onNavigate = vi.fn();
-  render(<BadReviewManagementPage onNavigate={onNavigate} />);
-  return { onNavigate, ecommerceBadReview, mutate, query };
+  // Rendered as App renders it: with no props.
+  render(<BadReviewManagementPage />);
+  return { ecommerceBadReview, mutate, query };
 }
 
 beforeEach(async () => {
   await i18n.changeLanguage("en");
   vi.clearAllMocks();
+  openedRoutes.length = 0;
+  window.addEventListener("rivonclaw:open-route", recordRoute);
 });
-afterEach(cleanup);
+afterEach(() => {
+  window.removeEventListener("rivonclaw:open-route", recordRoute);
+  cleanup();
+});
 
 describe("BadReviewManagementPage", () => {
   it("says which shops sync through the API and which use the import", async () => {
@@ -71,20 +85,21 @@ describe("BadReviewManagementPage", () => {
         },
       },
     });
-    const { onNavigate } = mount([dto()], mutate);
+    mount([dto()], mutate);
     fireEvent.click(await screen.findByRole("button", { name: "Start follow-up" }));
-    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith("/commerce/customer-service"));
+    await waitFor(() => expect(openedRoutes).toEqual([CONVERSATIONS]));
     expect(showConversation).toHaveBeenCalledWith(conversation);
+    expect(focusConversationOrder).toHaveBeenCalledWith("576000000000000001");
     expect(await screen.findByText("In follow-up")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start follow-up" })).toBeNull();
   });
 
   it("stays on the page and shows TikTok's refusal", async () => {
     const mutate = vi.fn().mockRejectedValue(new Error("TikTok refused the conversation"));
-    const { onNavigate } = mount([dto()], mutate);
+    mount([dto()], mutate);
     fireEvent.click(await screen.findByRole("button", { name: "Start follow-up" }));
     expect(await screen.findByText("TikTok refused the conversation")).toBeTruthy();
-    expect(onNavigate).not.toHaveBeenCalled();
+    expect(openedRoutes).toEqual([]);
     expect(showConversation).not.toHaveBeenCalled();
   });
 
@@ -102,16 +117,17 @@ describe("BadReviewManagementPage", () => {
 
   it("opens the conversation without touching AI or the status", async () => {
     openOrderDraft.mockResolvedValue(true);
-    const { onNavigate, mutate } = mount([dto()]);
+    const { mutate } = mount([dto()]);
     fireEvent.click(await screen.findByRole("button", { name: "Open conversation" }));
-    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith("/commerce/customer-service"));
+    await waitFor(() => expect(openedRoutes).toEqual([CONVERSATIONS]));
     expect(openOrderDraft).toHaveBeenCalledWith("shop-1", "576000000000000001");
+    expect(focusConversationOrder).toHaveBeenCalledWith("576000000000000001");
     expect(mutate).not.toHaveBeenCalled();
   });
 
   it("shows the paid-feature prompt, not the raw refusal, when the shop has no customer service plan", async () => {
     openOrderDraft.mockResolvedValue(false);
-    const { onNavigate } = mount([dto()]);
+    mount([dto()]);
     (mocks.store.customerServiceWorkspace as { startOrderErrors: Map<string, string> }).startOrderErrors.set(
       "shop-1:576000000000000001",
       'Upgrade required: your plan does not include entitlement "ECOM_CS_WRITE"',
@@ -123,7 +139,7 @@ describe("BadReviewManagementPage", () => {
         "error",
       ),
     );
-    expect(onNavigate).not.toHaveBeenCalled();
+    expect(openedRoutes).toEqual([]);
   });
 
   it("shows any other refusal as it came", async () => {

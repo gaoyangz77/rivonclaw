@@ -107,6 +107,58 @@ describe("CustomerServiceWorkspaceModel bad review filter", () => {
   });
 });
 
+describe("CustomerServiceWorkspaceModel conversation opened from another page", () => {
+  const orderId = "576000000000000001";
+  const opened = { shopId: "shop-1", conversationId: "conv-opened", isOpen: true, status: "RESOLVED" };
+
+  /** The inbox only returns the conversation when searched by its order, as a far-away row would. */
+  function storeWithFilters() {
+    const query = vi.fn(async ({ variables }: { variables: { search?: string } }) => ({
+      data: {
+        ecommerceGetCustomerServiceInbox: {
+          items: variables.search === orderId ? [opened] : [],
+          totalCount: variables.search === orderId ? 1 : 0,
+          ordersWithoutConversation: [],
+        },
+      },
+    }));
+    const store = CustomerServiceWorkspaceModel.create(
+      {
+        conversationShopId: "shop-2",
+        conversationStatusFilter: "pending",
+        conversationAiFilter: "enabled",
+        conversationEscalationFilter: "open",
+        conversationBadReviewFilter: "hasBadReview",
+        conversationPage: 3,
+      },
+      { apolloClient: { query } as any },
+    );
+    store.showConversation(opened as any);
+    return { store, query };
+  }
+
+  it("stays selected through the refresh that entering the page runs", async () => {
+    const { store, query } = storeWithFilters();
+    store.focusConversationOrder(orderId);
+    await store.fetchConversations();
+    expect(store.selectedConversationId).toBe("conv-opened");
+    expect(store.conversationSearchDraft).toBe(orderId);
+    expect(query.mock.calls[0]![0].variables).toMatchObject({
+      search: orderId,
+      offset: 0,
+      status: undefined,
+      aiEnabled: undefined,
+      shopIds: undefined,
+    });
+  });
+
+  it("would be dropped by that refresh without the focus", async () => {
+    const { store } = storeWithFilters();
+    await store.fetchConversations();
+    expect(store.selectedConversationId).toBeNull();
+  });
+});
+
 describe("CustomerServiceWorkspaceModel order context", () => {
   it("loads and caches the selected conversation order with its returns", async () => {
     const query = vi.fn().mockResolvedValue({

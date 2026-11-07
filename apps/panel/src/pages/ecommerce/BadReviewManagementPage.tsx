@@ -12,6 +12,7 @@ import {
 import { DownloadIcon } from "../../components/icons.js";
 import { useToast } from "../../components/Toast.js";
 import { isUpgradeRequiredMessage } from "../../lib/bad-review.js";
+import { openPanelRoute } from "../../lib/open-route.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { downloadAfterSaleWorkbook } from "./after-sale-export.js";
 import {
@@ -29,15 +30,11 @@ import "./AfterSaleReview.css";
 import "./BadReviewManagement.css";
 
 /** The page that shows the opened conversation. */
-const CONVERSATIONS_PATH = "/commerce/customer-service";
+const CONVERSATIONS_PATH = "/commerce/customer-service/conversations";
 /** How often the open page re-reads its rows, the same as After-Sales. */
 const AUTO_REFRESH_MS = 60_000;
 
-export const BadReviewManagementPage = observer(function BadReviewManagementPage({
-  onNavigate,
-}: {
-  onNavigate?: (path: string) => void;
-}) {
+export const BadReviewManagementPage = observer(function BadReviewManagementPage() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
@@ -63,12 +60,18 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
     signedIn,
   );
 
+  const showOnConversationsPage = (orderId: string) => {
+    entityStore.customerServiceWorkspace.focusConversationOrder(orderId);
+    openPanelRoute(CONVERSATIONS_PATH);
+  };
+
   const startFollowUp = (shopId: string, reviewId: string) => {
+    const orderId = entityStore.ecommerceBadReview.rows.find((row) => row.id === reviewId)?.orderId;
     entityStore.ecommerceBadReview
       .startFollowUp(shopId, reviewId)
       .then((conversation) => {
         entityStore.customerServiceWorkspace.showConversation(conversation);
-        onNavigate?.(CONVERSATIONS_PATH);
+        if (orderId) showOnConversationsPage(orderId);
       })
       .catch(() => {});
   };
@@ -80,7 +83,7 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
       .openOrderDraft(shopId, orderId)
       .then((opened: boolean) => {
         if (opened) {
-          onNavigate?.(CONVERSATIONS_PATH);
+          showOnConversationsPage(orderId);
           return;
         }
         const refusal = workspace.startOrderErrors.get(`${shopId}:${orderId}`);

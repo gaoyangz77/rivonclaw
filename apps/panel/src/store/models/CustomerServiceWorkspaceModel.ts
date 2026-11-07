@@ -812,6 +812,22 @@ export const CustomerServiceWorkspaceModel = types
         replaceConversation(item);
         if (!existed) self.conversationTotal += 1;
       },
+      /**
+       * Lists one order's conversation with no other filter, so a conversation opened from another
+       * page is still on the list after the refresh that entering this page runs. Selection is
+       * kept, unlike the filter setters: a refresh drops a selection the list does not contain.
+       */
+      focusConversationOrder(orderId: string) {
+        self.conversationShopId = "";
+        self.conversationStatusFilter = "all";
+        self.conversationAiFilter = "all";
+        self.conversationEscalationFilter = "all";
+        self.conversationBadReviewFilter = "all";
+        self.conversationSearchDraft = orderId;
+        self.conversationSearch = orderId;
+        self.conversationPage = 1;
+        self.ordersWithoutConversation.clear();
+      },
       /** Shows a conversation another page just opened, such as Start follow-up on a bad review. */
       showConversation(item: GQL.CustomerServiceConversationInboxItem) {
         const existed = self.conversationItems.some(
