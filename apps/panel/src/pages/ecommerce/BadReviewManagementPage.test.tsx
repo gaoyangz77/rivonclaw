@@ -32,8 +32,6 @@ function dto(overrides: Partial<GQL.EcomBadReview> = {}): GQL.EcomBadReview {
 }
 
 const conversation = { shopId: "shop-1", conversationId: "conv-1" };
-const showConversation = vi.fn();
-const openOrderDraft = vi.fn();
 const focusConversationOrder = vi.fn();
 const openedRoutes: string[] = [];
 const recordRoute = (event: Event) => openedRoutes.push((event as CustomEvent<{ path: string }>).detail.path);
@@ -46,12 +44,7 @@ function mount(items: GQL.EcomBadReview[], mutate = vi.fn(), totalCount = items.
     currentUser: { userId: "user-1" },
     shops: [{ id: "shop-1", shopName: "Shop One", alias: null, region: "US" }],
     ecommerceBadReview,
-    customerServiceWorkspace: {
-      showConversation,
-      openOrderDraft,
-      focusConversationOrder,
-      startOrderErrors: new Map(),
-    },
+    customerServiceWorkspace: { focusConversationOrder },
   };
   // Rendered as App renders it: with no props.
   render(<BadReviewManagementPage />);
@@ -88,7 +81,6 @@ describe("BadReviewManagementPage", () => {
     mount([dto()], mutate);
     fireEvent.click(await screen.findByRole("button", { name: "Start follow-up" }));
     await waitFor(() => expect(openedRoutes).toEqual([CONVERSATIONS]));
-    expect(showConversation).toHaveBeenCalledWith(conversation);
     expect(focusConversationOrder).toHaveBeenCalledWith("576000000000000001");
     expect(await screen.findByText("In follow-up")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start follow-up" })).toBeNull();
@@ -100,7 +92,7 @@ describe("BadReviewManagementPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Start follow-up" }));
     expect(await screen.findByText("TikTok refused the conversation")).toBeTruthy();
     expect(openedRoutes).toEqual([]);
-    expect(showConversation).not.toHaveBeenCalled();
+    expect(focusConversationOrder).not.toHaveBeenCalled();
   });
 
   it("offers Start follow-up only in manual shops", async () => {
@@ -115,44 +107,12 @@ describe("BadReviewManagementPage", () => {
     expect(screen.queryByRole("button", { name: "Open conversation" })).toBeNull();
   });
 
-  it("opens the conversation without touching AI or the status", async () => {
-    openOrderDraft.mockResolvedValue(true);
+  it("opens the conversation through the order search, calling nothing that writes", async () => {
     const { mutate } = mount([dto()]);
     fireEvent.click(await screen.findByRole("button", { name: "Open conversation" }));
-    await waitFor(() => expect(openedRoutes).toEqual([CONVERSATIONS]));
-    expect(openOrderDraft).toHaveBeenCalledWith("shop-1", "576000000000000001");
+    expect(openedRoutes).toEqual([CONVERSATIONS]);
     expect(focusConversationOrder).toHaveBeenCalledWith("576000000000000001");
     expect(mutate).not.toHaveBeenCalled();
-  });
-
-  it("shows the paid-feature prompt, not the raw refusal, when the shop has no customer service plan", async () => {
-    openOrderDraft.mockResolvedValue(false);
-    mount([dto()]);
-    (mocks.store.customerServiceWorkspace as { startOrderErrors: Map<string, string> }).startOrderErrors.set(
-      "shop-1:576000000000000001",
-      'Upgrade required: your plan does not include entitlement "ECOM_CS_WRITE"',
-    );
-    fireEvent.click(await screen.findByRole("button", { name: "Open conversation" }));
-    await waitFor(() =>
-      expect(mocks.showToast).toHaveBeenCalledWith(
-        "This feature requires a subscription. Please upgrade your plan.",
-        "error",
-      ),
-    );
-    expect(openedRoutes).toEqual([]);
-  });
-
-  it("shows any other refusal as it came", async () => {
-    openOrderDraft.mockResolvedValue(false);
-    mount([dto()]);
-    (mocks.store.customerServiceWorkspace as { startOrderErrors: Map<string, string> }).startOrderErrors.set(
-      "shop-1:576000000000000001",
-      "TikTok refused the conversation",
-    );
-    fireEvent.click(await screen.findByRole("button", { name: "Open conversation" }));
-    await waitFor(() =>
-      expect(mocks.showToast).toHaveBeenCalledWith("TikTok refused the conversation", "error"),
-    );
   });
 
   it("turns the page and reads the next rows", async () => {

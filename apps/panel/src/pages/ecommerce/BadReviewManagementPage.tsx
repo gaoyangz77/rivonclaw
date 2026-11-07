@@ -11,7 +11,6 @@ import {
 } from "../../components/design-system/index.js";
 import { DownloadIcon } from "../../components/icons.js";
 import { useToast } from "../../components/Toast.js";
-import { isUpgradeRequiredMessage } from "../../lib/bad-review.js";
 import { openPanelRoute } from "../../lib/open-route.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { downloadAfterSaleWorkbook } from "./after-sale-export.js";
@@ -60,7 +59,8 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
     signedIn,
   );
 
-  const showOnConversationsPage = (orderId: string) => {
+  /** Only reads: AI, the status and TikTok are left alone. */
+  const openConversation = (orderId: string) => {
     entityStore.customerServiceWorkspace.focusConversationOrder(orderId);
     openPanelRoute(CONVERSATIONS_PATH);
   };
@@ -69,30 +69,8 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
     const orderId = entityStore.ecommerceBadReview.rows.find((row) => row.id === reviewId)?.orderId;
     entityStore.ecommerceBadReview
       .startFollowUp(shopId, reviewId)
-      .then((conversation) => {
-        entityStore.customerServiceWorkspace.showConversation(conversation);
-        if (orderId) showOnConversationsPage(orderId);
-      })
-      .catch(() => {});
-  };
-
-  /** Leaves AI and the follow-up status as they are: this only looks at the conversation. */
-  const openConversation = (shopId: string, orderId: string) => {
-    const workspace = entityStore.customerServiceWorkspace;
-    workspace
-      .openOrderDraft(shopId, orderId)
-      .then((opened: boolean) => {
-        if (opened) {
-          showOnConversationsPage(orderId);
-          return;
-        }
-        const refusal = workspace.startOrderErrors.get(`${shopId}:${orderId}`);
-        showToast(
-          isUpgradeRequiredMessage(refusal)
-            ? t("ecommerce.upgradeRequired")
-            : (refusal ?? t("ecommerce.badReview.actions.failed")),
-          "error",
-        );
+      .then(() => {
+        if (orderId) openConversation(orderId);
       })
       .catch(() => {});
   };

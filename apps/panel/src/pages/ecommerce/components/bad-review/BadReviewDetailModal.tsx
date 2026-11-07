@@ -29,7 +29,7 @@ export const BadReviewDetailModal = observer(function BadReviewDetailModal({
   onOpenConversation,
 }: {
   onStart: (shopId: string, reviewId: string) => void;
-  onOpenConversation: (shopId: string, orderId: string) => void;
+  onOpenConversation: (orderId: string) => void;
 }) {
   const { t } = useTranslation();
   const badReview = useEntityStore().ecommerceBadReview;

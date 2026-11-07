@@ -16,7 +16,7 @@ export const BadReviewActions = observer(function BadReviewActions({
   review: BadReviewRowNode;
   busy: boolean;
   onStart: (shopId: string, reviewId: string) => void;
-  onOpenConversation: (shopId: string, orderId: string) => void;
+  onOpenConversation: (orderId: string) => void;
 }) {
   const { t } = useTranslation();
   const { id, shopId, orderId, hasBuyer, shopFollowUpMode, handlingStatus } = review;
@@ -45,7 +45,7 @@ export const BadReviewActions = observer(function BadReviewActions({
         disabled={busy}
         onClick={(event) => {
           event.stopPropagation();
-          onOpenConversation(shopId, orderId);
+          onOpenConversation(orderId);
         }}
       >
         {t(`${PREFIX}.openConversation`)}

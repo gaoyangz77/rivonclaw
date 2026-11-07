@@ -58,14 +58,6 @@ export function canBulkSendReview(review: {
   );
 }
 
-/**
- * Whether a backend refusal means the shop has not paid for the feature. The backend's
- * UpgradeRequiredError reaches Panel only as this message text.
- */
-export function isUpgradeRequiredMessage(message: string | null | undefined): boolean {
-  return message?.startsWith("Upgrade required:") === true;
-}
-
 /** Full days between two instants, for how long a review has been in follow-up. */
 export function wholeDaysBetween(fromIso: string, nowMs: number): number {
   return Math.max(0, Math.floor((nowMs - new Date(fromIso).getTime()) / 86_400_000));

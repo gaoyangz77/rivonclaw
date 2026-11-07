@@ -53,7 +53,7 @@ const BadReviewRow = observer(function BadReviewRow({
   onToggle: (reviewId: string) => void;
   onOpen: (reviewId: string) => void;
   onStart: (shopId: string, reviewId: string) => void;
-  onOpenConversation: (shopId: string, orderId: string) => void;
+  onOpenConversation: (orderId: string) => void;
 }) {
   const { t } = useTranslation();
   const inProgress = review.handlingStatus === GQL.ProductReviewHandlingStatus.InProgress;
@@ -133,7 +133,7 @@ export const BadReviewTable = observer(function BadReviewTable({
   onOpenConversation,
 }: {
   onStart: (shopId: string, reviewId: string) => void;
-  onOpenConversation: (shopId: string, orderId: string) => void;
+  onOpenConversation: (orderId: string) => void;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();

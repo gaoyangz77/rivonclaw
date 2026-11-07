@@ -354,6 +354,8 @@ export const CustomerServiceWorkspaceModel = types
     // (cleared by any other selection so a late response cannot steal it back).
     startingOrderKeys: types.optional(types.array(types.string), []),
     openingOrderKey: types.maybeNull(types.string),
+    /** An order another page asked to show: its conversation opens when the search returns. */
+    pendingFocusOrderId: types.maybeNull(types.string),
     startOrderErrors: types.optional(types.map(types.string), {}),
     selectedConversationId: types.maybeNull(types.string),
     conversationMessagesLoading: types.optional(types.boolean, false),
@@ -813,9 +815,9 @@ export const CustomerServiceWorkspaceModel = types
         if (!existed) self.conversationTotal += 1;
       },
       /**
-       * Lists one order's conversation with no other filter, so a conversation opened from another
-       * page is still on the list after the refresh that entering this page runs. Selection is
-       * kept, unlike the filter setters: a refresh drops a selection the list does not contain.
+       * Shows an order from another page through the order search, which only reads: the buyer's
+       * conversation opens if there is one, otherwise the order is listed as a draft row and no
+       * conversation is created until an operator opens it.
        */
       focusConversationOrder(orderId: string) {
         self.conversationShopId = "";
@@ -827,6 +829,10 @@ export const CustomerServiceWorkspaceModel = types
         self.conversationSearch = orderId;
         self.conversationPage = 1;
         self.ordersWithoutConversation.clear();
+        self.openingOrderKey = null;
+        self.startOrderErrors.clear();
+        self.pendingFocusOrderId = orderId;
+        void (self as any).fetchConversations();
       },
       /** Shows a conversation another page just opened, such as Start follow-up on a bad review. */
       showConversation(item: GQL.CustomerServiceConversationInboxItem) {
@@ -984,6 +990,13 @@ export const CustomerServiceWorkspaceModel = types
           self.conversationItems.replace((page?.items ?? []) as any);
           self.ordersWithoutConversation.replace((page?.ordersWithoutConversation ?? []) as any);
           self.conversationTotal = page?.totalCount ?? 0;
+          if (self.pendingFocusOrderId && self.pendingFocusOrderId === self.conversationSearch) {
+            const orderId = self.pendingFocusOrderId;
+            self.pendingFocusOrderId = null;
+            const items = (page?.items ?? []) as GQL.CustomerServiceConversationInboxItem[];
+            const focused = items.find((item) => item.orderId === orderId) ?? items[0];
+            (self as any).selectConversation(focused?.shopId ?? null, focused?.conversationId ?? null);
+          }
           if (
             self.selectedConversationId &&
             !self.conversationItems.some(

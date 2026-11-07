@@ -107,21 +107,16 @@ describe("CustomerServiceWorkspaceModel bad review filter", () => {
   });
 });
 
-describe("CustomerServiceWorkspaceModel conversation opened from another page", () => {
+describe("CustomerServiceWorkspaceModel order shown from another page", () => {
   const orderId = "576000000000000001";
-  const opened = { shopId: "shop-1", conversationId: "conv-opened", isOpen: true, status: "RESOLVED" };
+  const found = { shopId: "shop-1", conversationId: "conv-1", orderId, isOpen: true, status: "RESOLVED" };
+  const draft = { shopId: "shop-1", orderId, buyerUserId: "buyer-1" };
 
-  /** The inbox only returns the conversation when searched by its order, as a far-away row would. */
-  function storeWithFilters() {
-    const query = vi.fn(async ({ variables }: { variables: { search?: string } }) => ({
-      data: {
-        ecommerceGetCustomerServiceInbox: {
-          items: variables.search === orderId ? [opened] : [],
-          totalCount: variables.search === orderId ? 1 : 0,
-          ordersWithoutConversation: [],
-        },
-      },
+  function storeReturning(page: { items: unknown[]; ordersWithoutConversation: unknown[] }) {
+    const query = vi.fn(async (_options: { variables: Record<string, unknown> }) => ({
+      data: { ecommerceGetCustomerServiceInbox: { ...page, totalCount: page.items.length } },
     }));
+    const mutate = vi.fn();
     const store = CustomerServiceWorkspaceModel.create(
       {
         conversationShopId: "shop-2",
@@ -131,17 +126,16 @@ describe("CustomerServiceWorkspaceModel conversation opened from another page", 
         conversationBadReviewFilter: "hasBadReview",
         conversationPage: 3,
       },
-      { apolloClient: { query } as any },
+      { apolloClient: { query, mutate } as any },
     );
-    store.showConversation(opened as any);
-    return { store, query };
+    return { store, query, mutate };
   }
 
-  it("stays selected through the refresh that entering the page runs", async () => {
-    const { store, query } = storeWithFilters();
+  it("searches the order with no other filter and opens its conversation", async () => {
+    const { store, query, mutate } = storeReturning({ items: [found], ordersWithoutConversation: [] });
     store.focusConversationOrder(orderId);
-    await store.fetchConversations();
-    expect(store.selectedConversationId).toBe("conv-opened");
+    await vi.waitFor(() => expect(store.selectedConversationId).toBe("conv-1"));
+    expect(store.selectedConversationShopId).toBe("shop-1");
     expect(store.conversationSearchDraft).toBe(orderId);
     expect(query.mock.calls[0]![0].variables).toMatchObject({
       search: orderId,
@@ -150,10 +144,31 @@ describe("CustomerServiceWorkspaceModel conversation opened from another page", 
       aiEnabled: undefined,
       shopIds: undefined,
     });
+    expect(mutate).not.toHaveBeenCalled();
   });
 
-  it("would be dropped by that refresh without the focus", async () => {
-    const { store } = storeWithFilters();
+  it("opens a conversation found through the buyer, whose own order is another one", async () => {
+    const { store } = storeReturning({
+      items: [{ ...found, orderId: "576000000000000099" }],
+      ordersWithoutConversation: [],
+    });
+    store.focusConversationOrder(orderId);
+    await vi.waitFor(() => expect(store.selectedConversationId).toBe("conv-1"));
+  });
+
+  it("lists an order with no conversation as a draft and creates nothing", async () => {
+    const { store, mutate } = storeReturning({ items: [], ordersWithoutConversation: [draft] });
+    store.focusConversationOrder(orderId);
+    await vi.waitFor(() => expect(store.orderDraftsOnPage).toEqual([draft]));
+    expect(store.selectedConversationId).toBeNull();
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("does not reselect on a later refresh after the operator moved on", async () => {
+    const { store } = storeReturning({ items: [found], ordersWithoutConversation: [] });
+    store.focusConversationOrder(orderId);
+    await vi.waitFor(() => expect(store.selectedConversationId).toBe("conv-1"));
+    store.selectConversation(null, null);
     await store.fetchConversations();
     expect(store.selectedConversationId).toBeNull();
   });
