@@ -2258,6 +2258,27 @@ describe("cloud-graphql handler", () => {
     },
   );
 
+  it("forwards the classified error's other extensions so Panel can quote TikTok's refusal", async () => {
+    const extensions = {
+      code: "SAMPLE_APPROVAL_REFUSED_BY_PLATFORM",
+      providerCode: 16022004,
+      providerMessage: "Create Trade Order Error",
+    };
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch: vi.fn().mockRejectedValue(
+          new GraphqlRequestError("TikTok refused", extensions.code, extensions),
+        ),
+      },
+    } as unknown as ApiContext;
+    const { res } = await dispatch("POST", pathname, ctx, {
+      query: "mutation ReviewAffiliateSampleApplication { reviewAffiliateSampleApplication { id } }",
+    });
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual({ errors: [{ message: "TikTok refused", extensions }] });
+  });
+
   it("returns 200 with errors on non-auth errors", async () => {
     const ctx = {
       authSession: {

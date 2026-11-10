@@ -704,7 +704,9 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     sendJson(res, 200, {
       errors: [{
         message: detail,
-        ...(err instanceof GraphqlRequestError && err.code ? { extensions: { code: err.code } } : {}),
+        ...(err instanceof GraphqlRequestError && err.code
+          ? { extensions: { ...err.extensions, code: err.code } }
+          : {}),
       }],
     });
   }

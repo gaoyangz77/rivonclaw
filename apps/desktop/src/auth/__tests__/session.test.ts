@@ -191,7 +191,7 @@ describe("AuthSessionManager Google sign-in", () => {
           errors: [
             {
               message: "Link required",
-              extensions: { code: "GOOGLE_ACCOUNT_LINK_REQUIRED" },
+              extensions: { code: "GOOGLE_ACCOUNT_LINK_REQUIRED", email: "a@example.com" },
             },
           ],
         }),
@@ -207,6 +207,7 @@ describe("AuthSessionManager Google sign-in", () => {
       expect.objectContaining({
         name: "GraphqlRequestError",
         code: "GOOGLE_ACCOUNT_LINK_REQUIRED",
+        extensions: { code: "GOOGLE_ACCOUNT_LINK_REQUIRED", email: "a@example.com" },
       }),
     );
     await expect(

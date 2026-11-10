@@ -57,9 +57,16 @@ export interface GraphqlResponseEnvelope<T> {
 }
 
 export class GraphqlRequestError extends Error {
+  /**
+   * @param extensions The backend's `extensions` on the error that carried
+   * `code`, kept whole so the cloud proxy can hand the Panel the classified
+   * error's detail (for example TikTok's own code and message) and not just its
+   * code.
+   */
   constructor(
     message: string,
     readonly code?: string,
+    readonly extensions?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "GraphqlRequestError";
@@ -651,12 +658,12 @@ export class AuthSessionManager {
     assertCurrentSession();
     if (json.errors?.length) {
       const msg = json.errors.map((e) => e.message).join("; ");
-      const code = json.errors.find((error) => typeof error.extensions?.code === "string")
-        ?.extensions?.code as string | undefined;
+      const classified = json.errors.find((error) => typeof error.extensions?.code === "string");
+      const code = classified?.extensions?.code as string | undefined;
       if (isJwtIllegalErrorMessage(msg) && code !== "REFRESH_TOKEN_REVOKED") {
         throw new JwtIllegalError(msg);
       }
-      throw new GraphqlRequestError(msg, code);
+      throw new GraphqlRequestError(msg, code, classified?.extensions);
     }
     return json;
   }
