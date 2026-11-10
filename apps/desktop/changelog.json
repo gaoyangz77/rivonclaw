@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.53",
+    "date": "2026-11-10",
+    "en": [
+      "Fix sending the first message to ticked bad reviews, which was rejected every time",
+      "Name Traditional Chinese correctly in the bad-review bulk message dialog",
+      "Show TikTok's full reason when it refuses a sample approval"
+    ],
+    "zh": [
+      "修复向勾选的差评发送第一条消息时总是被拒绝的问题",
+      "差评批量发消息窗口正确显示繁体中文语言名",
+      "TikTok 拒绝样品审批时显示完整原因"
+    ]
+  },
+  {
     "version": "1.9.52",
     "date": "2026-11-06",
     "en": [
