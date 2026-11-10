@@ -24,6 +24,35 @@ describe("commerce navigation", () => {
   });
 });
 
+describe("customer service navigation", () => {
+  it("lists Product Knowledge last under Customer Service, on the Customer Service scope", () => {
+    const customerServiceChildren = ROUTES.filter(
+      (route) => route.parentPath === "/commerce/customer-service",
+    );
+
+    expect(customerServiceChildren.map((route) => route.path)).toEqual([
+      "/commerce/customer-service/conversations",
+      "/commerce/customer-service/escalations",
+      "/commerce/customer-service/after-sales",
+      "/commerce/customer-service/bad-reviews",
+      "/commerce/customer-service/performance",
+      "/commerce/customer-service/experiments",
+      "/commerce/customer-service/product-knowledge",
+    ]);
+    const customerServiceEntry = customerServiceChildren.at(-1);
+    const affiliateEntry = ROUTES.find((route) => route.path === "/commerce/product-knowledge");
+    expect(customerServiceEntry?.component).toBe(affiliateEntry?.component);
+    expect(customerServiceEntry?.navLabelKey).toBe(affiliateEntry?.navLabelKey);
+
+    const customerServiceOnly = {
+      isOwner: false,
+      permissionScopes: [GQL.PermissionScope.CustomerService],
+    };
+    expect(canSeeRoute(customerServiceEntry!, customerServiceOnly)).toBe(true);
+    expect(canSeeRoute(affiliateEntry!, customerServiceOnly)).toBe(false);
+  });
+});
+
 describe("runtime navigation", () => {
   it("promotes frequent tools and groups skills with plugins", () => {
     const routeByPath = new Map(ROUTES.map((route) => [route.path, route]));

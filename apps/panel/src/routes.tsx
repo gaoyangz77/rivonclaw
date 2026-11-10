@@ -220,6 +220,18 @@ export const ROUTES: RouteEntry[] = [
     scopes: [GQL.PermissionScope.CustomerService],
   },
   {
+    // ADR-103: the Customer Service Agent reads the same Product Knowledge the
+    // Affiliate entry edits, so Customer Service members reach it from here too.
+    path: "/commerce/customer-service/product-knowledge",
+    pageKey: "ecommerce-customer-service-product-knowledge",
+    component: ProductKnowledgePage,
+    icon: <ChannelsIcon />,
+    navLabelKey: "nav.productKnowledge",
+    authRequired: true,
+    parentPath: "/commerce/customer-service",
+    scopes: [GQL.PermissionScope.CustomerService],
+  },
+  {
     path: "/commerce/affiliate",
     pageKey: "ecommerce-affiliate",
     component: AffiliateManagementPage,

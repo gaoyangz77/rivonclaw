@@ -9765,6 +9765,8 @@ export interface EcomOrderLineItem {
   currency?: Maybe<Scalars["String"]["output"]>;
   /** Per-line item status */
   displayStatus?: Maybe<Scalars["String"]["output"]>;
+  /** Whether the merchant wrote ACTIVE Product Knowledge for this line item's product in this shop. Set by ecommerceGetOrder. */
+  hasProductKnowledge?: Maybe<Scalars["Boolean"]["output"]>;
   /** Unique ID of this order line item */
   orderLineItemId?: Maybe<Scalars["String"]["output"]>;
   originalPrice?: Maybe<Scalars["String"]["output"]>;
