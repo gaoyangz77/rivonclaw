@@ -164,9 +164,15 @@ describe("EcommerceBadReviewModel", () => {
     const store = storeWith({ query, mutate });
     await expect(store.previewBulkFollowUp(["review-1"])).resolves.toBe(preview);
     expect(query.mock.calls[0]![0].variables).toEqual({ reviewIds: ["review-1"] });
-    const messages = [{ language: GQL.BadReviewMessageLanguage.En, text: "Sorry" }];
-    await store.startBulkFollowUp(["review-1"], messages);
-    expect(mutate.mock.calls[0]![0].variables).toEqual({ reviewIds: ["review-1"], messages });
+    // As returned by the translation mutation, which Apollo tags with __typename.
+    const translated = [
+      { __typename: "EcomBadReviewBulkMessage" as const, language: GQL.BadReviewMessageLanguage.De, text: "Entschuldigung" },
+    ];
+    await store.startBulkFollowUp(["review-1"], translated);
+    expect(mutate.mock.calls[0]![0].variables).toEqual({
+      reviewIds: ["review-1"],
+      messages: [{ language: GQL.BadReviewMessageLanguage.De, text: "Entschuldigung" }],
+    });
   });
 
   describe("ticking rows", () => {

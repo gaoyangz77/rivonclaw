@@ -434,7 +434,11 @@ export const EcommerceBadReviewModel = types
       ) {
         const result = yield client().mutate({
           mutation: START_BAD_REVIEW_BULK_FOLLOW_UP_MUTATION,
-          variables: { reviewIds, messages },
+          // Edited translations come from a query result and carry `__typename`, which an input type rejects.
+          variables: {
+            reviewIds,
+            messages: messages.map(({ language, text }) => ({ language, text })),
+          },
         });
         return result.data.batch as GQL.EcomBadReviewBulkFollowUp;
       }),
