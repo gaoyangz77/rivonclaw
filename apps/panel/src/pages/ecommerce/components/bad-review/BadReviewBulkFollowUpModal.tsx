@@ -73,8 +73,10 @@ export const BadReviewBulkFollowUpModal = observer(function BadReviewBulkFollowU
     return () => clearInterval(timer);
   }, [batchId, finished, entityStore]);
 
+  // GraphQL enum names use "_" (ZH_HANT); Intl accepts only BCP 47 tags, such as zh-Hant.
   const languageName = (language: string) =>
-    new Intl.DisplayNames([i18n.language], { type: "language" }).of(language.toLowerCase()) ?? language;
+    new Intl.DisplayNames([i18n.language], { type: "language" }).of(language.replace("_", "-")) ??
+    language;
 
   /** Sending still waits for the confirmation: messages cannot be recalled. */
   const translateAndSend = async () => {

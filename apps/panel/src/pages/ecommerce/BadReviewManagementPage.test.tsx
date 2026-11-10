@@ -137,7 +137,7 @@ describe("BadReviewManagementPage", () => {
   });
 
   describe("bulk start follow-up", () => {
-    const preview = {
+    const preview: GQL.EcomBadReviewBulkPreview = {
       reviews: 3,
       buyers: 2,
       skippedUnavailable: 1,
@@ -152,10 +152,10 @@ describe("BadReviewManagementPage", () => {
       { language: GQL.BadReviewMessageLanguage.En, text: "Sorry" },
       { language: GQL.BadReviewMessageLanguage.De, text: "Es tut uns leid" },
     ];
-    const open = async (mutate: ReturnType<typeof vi.fn>) => {
+    const open = async (mutate: ReturnType<typeof vi.fn>, shown = preview) => {
       const query = vi.fn(async ({ variables }: { variables: { reviewIds?: string[] } }) =>
         variables.reviewIds
-          ? { data: { preview } }
+          ? { data: { preview: shown } }
           : { data: { page: { items: [dto(), dto({ id: "review-2", orderId: "576000000000000002" })], totalCount: 2 } } },
       );
       const ecommerceBadReview = EcommerceBadReviewModel.create({}, { apolloClient: { query, mutate } });
@@ -177,6 +177,14 @@ describe("BadReviewManagementPage", () => {
       expect(button.disabled).toBe(true);
       fireEvent.click(await screen.findByRole("checkbox", { name: "Select order 576000000000000001" }));
       expect(((await screen.findByRole("button", { name: "Bulk start follow-up (1)" })) as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it("names a language whose code is not a browser language tag", async () => {
+      const { dialog } = await open(vi.fn(), {
+        ...preview,
+        languages: [{ language: GQL.BadReviewMessageLanguage.ZhHant, buyers: 2 }],
+      });
+      expect(await within(dialog).findByText(/Traditional Chinese/)).toBeTruthy();
     });
 
     it("can tick a review already in follow-up, to write again", async () => {
