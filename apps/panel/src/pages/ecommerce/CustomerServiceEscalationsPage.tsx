@@ -35,6 +35,7 @@ import { badReviewStatusLabel } from "./bad-review-labels.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConversationOrderList } from "./components/ConversationOrderList.js";
+import { ConversationOrderCardActions } from "./components/ConversationOrderCardActions.js";
 import {
   OrderAfterSalesSection,
   OrderLogisticsSection,
@@ -1238,6 +1239,17 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                                 void workspace.fetchSelectedConversationOrderTracking(true);
                                 void workspace.fetchSelectedConversationOrderCancellations(true);
                               }}
+                              headerActions={
+                                selectedConversationOrderContext?.order ? (
+                                  <ConversationOrderCardActions
+                                    workspace={workspace}
+                                    shopId={selectedConversation.shopId}
+                                    conversationId={selectedConversation.conversationId}
+                                    orderId={selectedConversationOrderContext.orderId}
+                                    packageIds={orderPackageIds(selectedConversationOrderContext.order)}
+                                  />
+                                ) : null
+                              }
                             >
                               {selectedConversationOrderContext ? (
                                 <ConversationOrderPopover

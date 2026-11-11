@@ -13,6 +13,7 @@ export function ConversationOrderList({
   onToggle,
   onRetryIds,
   onRefresh,
+  headerActions,
   children,
 }: {
   orderIds: string[];
@@ -24,6 +25,8 @@ export function ConversationOrderList({
   onToggle: (orderId: string) => void;
   onRetryIds: () => void;
   onRefresh: () => void;
+  /** Rendered beside the refresh button of the expanded order. */
+  headerActions?: ReactNode;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -71,6 +74,7 @@ export function ConversationOrderList({
                   </span>
                   <code>{orderId}</code>
                 </button>
+                {expanded && headerActions}
                 {expanded && (
                   <TkIconButton
                     size="sm"

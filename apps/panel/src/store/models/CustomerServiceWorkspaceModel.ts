@@ -18,6 +18,7 @@ import {
   CS_CONVERSATION_ORDER_TRACKING_QUERY,
   CS_CONVERSATION_RETURN_RECORDS_QUERY,
   CS_OPEN_ESCALATIONS_QUERY,
+  CS_SEND_CARD_MUTATION,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
   CS_START_CONVERSATION_FROM_ORDER_MUTATION,
@@ -38,6 +39,19 @@ export type EscalationStatusFilter =
   | "all";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
+
+export interface OrderCardSendInput {
+  shopId: string;
+  conversationId: string;
+  orderId: string;
+  type: GQL.EcomCustomerServiceCardType;
+  /** Required for a logistics card: one card is sent per package. */
+  packageIds?: readonly string[];
+}
+
+function orderCardKey(input: OrderCardSendInput): string {
+  return `${input.shopId}:${input.conversationId}:${input.orderId}:${input.type}`;
+}
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Request failed";
@@ -353,6 +367,8 @@ export const CustomerServiceWorkspaceModel = types
     // Orders whose conversation is being created, and the one the operator last asked to open
     // (cleared by any other selection so a late response cannot steal it back).
     startingOrderKeys: types.optional(types.array(types.string), []),
+    /** `shopId:conversationId:orderId:cardType` of order/logistics cards being sent by a person. */
+    sendingCardKeys: types.optional(types.array(types.string), []),
     openingOrderKey: types.maybeNull(types.string),
     /** An order another page asked to show: its conversation opens when the search returns. */
     pendingFocusOrderId: types.maybeNull(types.string),
@@ -529,6 +545,9 @@ export const CustomerServiceWorkspaceModel = types
         (self.conversationPage - 1) * self.conversationPageSize +
           (self as any).filteredConversationItems.length,
       );
+    },
+    isCardSending(input: OrderCardSendInput) {
+      return self.sendingCardKeys.includes(orderCardKey(input));
     },
     isOrderStarting(shopId: string, orderId: string) {
       return self.startingOrderKeys.includes(`${shopId}:${orderId}`);
@@ -1386,6 +1405,74 @@ export const CustomerServiceWorkspaceModel = types
             body: input.file,
           },
         );
+      }),
+      /**
+       * Sends the buyer an order card, or one logistics card per package of the
+       * order, from a person in the conversation. Each click gets its own
+       * idempotency key, so a retried request cannot deliver a card twice.
+       */
+      sendOrderCard: flow(function* (input: OrderCardSendInput, locale?: string) {
+        const key = orderCardKey(input);
+        if (self.sendingCardKeys.includes(key)) return false;
+        const cards =
+          input.type === GQL.EcomCustomerServiceCardType.OrderCard
+            ? [{ order_id: input.orderId }]
+            : (input.packageIds ?? []).map((packageId) => ({
+                order_id: input.orderId,
+                package_id: packageId,
+              }));
+        if (cards.length === 0) throw new Error("This order has no package to send a logistics card for");
+        pushUnique(self.sendingCardKeys as unknown as string[], key);
+        const clickId = crypto.randomUUID();
+        const telemetry = {
+          shopId: input.shopId,
+          conversationId: input.conversationId,
+          orderId: input.orderId,
+          action: "manual_card_send",
+          source: "panel",
+          cardType: input.type,
+        };
+        try {
+          const startedAt = Date.now();
+          const messageIds: string[] = [];
+          for (const content of cards) {
+            const result = yield client().mutate({
+              mutation: CS_SEND_CARD_MUTATION,
+              variables: {
+                shopId: input.shopId,
+                conversationId: input.conversationId,
+                type: input.type,
+                content: JSON.stringify(content),
+                idempotencyKey: `human-cs-card:${clickId}:${"package_id" in content ? content.package_id : content.order_id}`,
+              },
+            });
+            const messageId = result.data?.ecommerceSendCustomerServiceCard?.messageId;
+            if (!messageId) throw new Error("TikTok did not confirm the card was sent");
+            messageIds.push(messageId);
+          }
+          emitCsTelemetry("cs.session_event", {
+            ...telemetry,
+            outcome: "ok",
+            cardCount: messageIds.length,
+            durationMs: Date.now() - startedAt,
+          });
+          if (
+            self.selectedConversationId === input.conversationId &&
+            self.selectedConversationShopId === input.shopId
+          ) {
+            yield (self as any).fetchConversationMessages(locale);
+          }
+          return true;
+        } catch (err) {
+          emitCsTelemetry("cs.session_event", {
+            ...telemetry,
+            outcome: "failed",
+            errorMessage: errorMessage(err),
+          });
+          throw err;
+        } finally {
+          removeValue(self.sendingCardKeys as unknown as string[], key);
+        }
       }),
       sendManualReply: flow(function* (locale?: string, refresh = true, draft?: { message: string; original: string }) {
         if (self.sendingManualReply) return null;

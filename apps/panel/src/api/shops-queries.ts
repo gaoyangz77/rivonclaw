@@ -1528,6 +1528,26 @@ export const CS_SEND_MANUAL_TEXT_REPLY_MUTATION = gql`
   }
 `;
 
+export const CS_SEND_CARD_MUTATION = gql`
+  mutation SendCustomerServiceCard(
+    $shopId: String!
+    $conversationId: String!
+    $type: EcomCustomerServiceCardType!
+    $content: String!
+    $idempotencyKey: String!
+  ) {
+    ecommerceSendCustomerServiceCard(
+      shopId: $shopId
+      conversationId: $conversationId
+      type: $type
+      content: $content
+      idempotencyKey: $idempotencyKey
+    ) {
+      messageId
+    }
+  }
+`;
+
 export const CS_END_CUSTOMER_SERVICE_SESSION_MUTATION = gql`
   mutation EndCustomerServiceSession($shopId: ID!, $conversationId: String!) {
     csEndCustomerServiceSession(shopId: $shopId, conversationId: $conversationId)

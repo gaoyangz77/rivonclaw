@@ -9,6 +9,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "No orders found.",
         viewTracking: "View tracking ({{count}})",
         hideTracking: "Hide tracking",
+        sendOrderCard: "Send order card",
+        sendLogisticsCard: "Send logistics card",
+        orderCardSent: "Order card sent",
+        logisticsCardSent: "Logistics card sent",
+        sendCardFailed: "Could not send the card",
         afterSalesOpen: "{{count}} open",
         platformValues: {
           orderStatus: {
@@ -37,6 +42,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "暂无订单。",
         viewTracking: "查看物流轨迹（{{count}}）",
         hideTracking: "收起物流轨迹",
+        sendOrderCard: "发送订单卡片",
+        sendLogisticsCard: "发送物流卡片",
+        orderCardSent: "订单卡片已发送",
+        logisticsCardSent: "物流卡片已发送",
+        sendCardFailed: "卡片发送失败",
         afterSalesOpen: "{{count}} 个待处理",
         platformValues: {
           orderStatus: {
@@ -65,6 +75,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "Keine Bestellungen gefunden.",
         viewTracking: "Sendungsverlauf anzeigen ({{count}})",
         hideTracking: "Sendungsverlauf ausblenden",
+        sendOrderCard: "Bestellkarte senden",
+        sendLogisticsCard: "Versandkarte senden",
+        orderCardSent: "Bestellkarte gesendet",
+        logisticsCardSent: "Versandkarte gesendet",
+        sendCardFailed: "Karte konnte nicht gesendet werden",
         afterSalesOpen: "{{count}} offen",
         platformValues: {
           orderStatus: {
@@ -93,6 +108,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "No se encontraron pedidos.",
         viewTracking: "Ver seguimiento ({{count}})",
         hideTracking: "Ocultar seguimiento",
+        sendOrderCard: "Enviar tarjeta de pedido",
+        sendLogisticsCard: "Enviar tarjeta de envío",
+        orderCardSent: "Tarjeta de pedido enviada",
+        logisticsCardSent: "Tarjeta de envío enviada",
+        sendCardFailed: "No se pudo enviar la tarjeta",
         afterSalesOpen: "{{count}} abiertas",
         platformValues: {
           orderStatus: {
@@ -121,6 +141,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "Aucune commande trouvée.",
         viewTracking: "Voir le suivi ({{count}})",
         hideTracking: "Masquer le suivi",
+        sendOrderCard: "Envoyer la carte de commande",
+        sendLogisticsCard: "Envoyer la carte de livraison",
+        orderCardSent: "Carte de commande envoyée",
+        logisticsCardSent: "Carte de livraison envoyée",
+        sendCardFailed: "Impossible d'envoyer la carte",
         afterSalesOpen: "{{count}} en cours",
         platformValues: {
           orderStatus: {
@@ -149,6 +174,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "Tidak ada pesanan.",
         viewTracking: "Lihat pelacakan ({{count}})",
         hideTracking: "Sembunyikan pelacakan",
+        sendOrderCard: "Kirim kartu pesanan",
+        sendLogisticsCard: "Kirim kartu pengiriman",
+        orderCardSent: "Kartu pesanan terkirim",
+        logisticsCardSent: "Kartu pengiriman terkirim",
+        sendCardFailed: "Gagal mengirim kartu",
         afterSalesOpen: "{{count}} terbuka",
         platformValues: {
           orderStatus: {
@@ -177,6 +207,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "Nessun ordine trovato.",
         viewTracking: "Mostra tracciamento ({{count}})",
         hideTracking: "Nascondi tracciamento",
+        sendOrderCard: "Invia scheda ordine",
+        sendLogisticsCard: "Invia scheda spedizione",
+        orderCardSent: "Scheda ordine inviata",
+        logisticsCardSent: "Scheda spedizione inviata",
+        sendCardFailed: "Impossibile inviare la scheda",
         afterSalesOpen: "{{count}} aperte",
         platformValues: {
           orderStatus: {
@@ -205,6 +240,11 @@ export const CUSTOMER_SERVICE_ORDER_TRANSLATIONS = {
         ordersEmpty: "ไม่พบคำสั่งซื้อ",
         viewTracking: "ดูการติดตามพัสดุ ({{count}})",
         hideTracking: "ซ่อนการติดตามพัสดุ",
+        sendOrderCard: "ส่งการ์ดคำสั่งซื้อ",
+        sendLogisticsCard: "ส่งการ์ดการจัดส่ง",
+        orderCardSent: "ส่งการ์ดคำสั่งซื้อแล้ว",
+        logisticsCardSent: "ส่งการ์ดการจัดส่งแล้ว",
+        sendCardFailed: "ส่งการ์ดไม่สำเร็จ",
         afterSalesOpen: "{{count}} รายการที่ยังเปิดอยู่",
         platformValues: {
           orderStatus: {
