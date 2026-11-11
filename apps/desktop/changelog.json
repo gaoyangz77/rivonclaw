@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.9.54",
+    "date": "2026-11-11",
+    "en": [
+      "Product Knowledge is now a single entry under Commerce, open to Customer Service members as well as the Affiliate workspace, and can be exported to Excel",
+      "Search bad reviews and after-sale requests by pasting up to 50 order numbers",
+      "Send the expanded order to the buyer as an order card or a logistics card with one click in the Customer Service order panel"
+    ],
+    "zh": [
+      "商品知识成为电商下的唯一入口，客服成员和达人工作区都能打开，并支持导出 Excel",
+      "差评和售后申请页可粘贴最多 50 个订单号进行搜索",
+      "客服订单面板中，展开的订单可一键以订单卡片或物流卡片发给买家"
+    ]
+  },
+  {
     "version": "1.9.53",
     "date": "2026-11-10",
     "en": [
