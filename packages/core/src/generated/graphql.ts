@@ -8435,7 +8435,7 @@ export const EcomAfterSaleRequestView = {
 export type EcomAfterSaleRequestView =
   (typeof EcomAfterSaleRequestView)[keyof typeof EcomAfterSaleRequestView];
 export interface EcomAfterSaleRequestsInput {
-  /** Start of the created-at window (inclusive). Required for ALL, ignored for TO_REVIEW. */
+  /** Start of the created-at window (inclusive). Required for ALL without orderIds, ignored for TO_REVIEW. */
   createdFrom?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
   /** End of the created-at window (exclusive). Required for ALL; the window is at most 92 days. */
   createdTo?: InputMaybe<Scalars["DateTimeISO"]["input"]>;
@@ -8445,6 +8445,8 @@ export interface EcomAfterSaleRequestsInput {
   kinds?: InputMaybe<Array<EcomAfterSaleRequestKind>>;
   /** Page size. Default 50, maximum 100. */
   limit?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Whole order numbers, at most 50. Null selects every order. In ALL they make the window optional. */
+  orderIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
   /** Platform seller-next-action strings. Null selects every action. */
   sellerActions?: InputMaybe<Array<Scalars["String"]["input"]>>;
   /** Must be a subset of the caller's shops. Null selects all of them. */
@@ -8659,6 +8661,8 @@ export interface EcomBadReviewsInput {
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   /** Rows to skip, for the page being read. Default 0. */
   offset?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Whole order numbers, at most 50. Null selects every order. */
+  orderIds?: InputMaybe<Array<Scalars["String"]["input"]>>;
   /** Null selects every rating. */
   ratings?: InputMaybe<Array<Scalars["Int"]["input"]>>;
   /** Only reviews in follow-up with this reply state. Null selects every review. */

@@ -141,6 +141,44 @@ describe("EcommerceAfterSaleModel list", () => {
     expect(store.requests.length).toBe(0);
   });
 
+  it("searches order numbers in both views, and drops the ALL window while it does", async () => {
+    const { store, query } = setup({ query: () => page([]) });
+    store.setOrderSearchDraft("576000000000000001 576000000000000002");
+    expect(store.queryInput.orderIds).toBeUndefined();
+    store.applyOrderSearch();
+    await store.fetchRequests();
+    expect(query.mock.calls.at(-1)![0].variables.input).toEqual({
+      view: "TO_REVIEW",
+      orderIds: ["576000000000000001", "576000000000000002"],
+    });
+
+    store.setView("ALL");
+    store.setWindow("2026-01-01", "2026-11-01");
+    // A window too long to send does not matter: none is sent.
+    expect(store.windowIssue).toBeNull();
+    expect(store.queryable).toBe(true);
+    const signature = store.querySignature;
+    store.setWindow("2026-02-01", "2026-11-01");
+    expect(store.querySignature).toBe(signature);
+    await store.fetchRequests();
+    expect(query.mock.calls.at(-1)![0].variables.input).toEqual({
+      view: "ALL",
+      orderIds: ["576000000000000001", "576000000000000002"],
+    });
+
+    store.setOrderSearchDraft("");
+    expect(store.queryInput.orderIds).toBeUndefined();
+    expect(store.windowIssue).toBe("tooLong");
+  });
+
+  it("does not search more order numbers than the backend takes", () => {
+    const { store } = setup({});
+    store.setOrderSearchDraft(Array.from({ length: 51 }, (_, index) => `57600000000000${index}`).join(","));
+    expect(store.orderSearchTooMany).toBe(true);
+    store.applyOrderSearch();
+    expect(store.queryInput.orderIds).toBeUndefined();
+  });
+
   it("surfaces a list failure as state and rethrows", async () => {
     const { store } = setup({
       query: () => {

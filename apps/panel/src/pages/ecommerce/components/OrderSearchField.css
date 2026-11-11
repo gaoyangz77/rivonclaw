@@ -1,0 +1,5 @@
+/* Wide enough for an 18-digit order number and its placeholder; a pasted list scrolls inside. */
+.order-search-field {
+  flex: 0 1 260px;
+  min-width: 200px;
+}

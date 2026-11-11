@@ -12,6 +12,7 @@ import {
   UPDATE_BAD_REVIEW_FOLLOW_UP_STATUS_MUTATION,
 } from "../../api/bad-review-queries.js";
 import { canBulkSendReview, type BadReviewHandlingStatus } from "../../lib/bad-review.js";
+import { MAX_ORDER_SEARCH_IDS, parseOrderSearch } from "../../lib/order-search.js";
 import type { PanelStoreEnv } from "../types.js";
 
 /** Rows per page the operator can pick; the backend caps a page at 100. */
@@ -151,6 +152,10 @@ export const EcommerceBadReviewModel = types
     reviewFrom: types.optional(types.string, ""),
     reviewTo: types.optional(types.string, ""),
     inProgressOverDays: types.maybeNull(types.number),
+    /** What the order box holds; it searches only on Enter. */
+    orderSearchDraft: types.optional(types.string, ""),
+    /** Order numbers of the search in effect; empty when there is none. */
+    orderIds: types.array(types.string),
     rows: types.array(BadReviewRowModel),
     /** 1-based. Any filter change returns to the first page. */
     page: types.optional(types.number, 1),
@@ -178,6 +183,9 @@ export const EcommerceBadReviewModel = types
     get pageCount() {
       return Math.max(1, Math.ceil(self.totalCount / self.pageSize));
     },
+    get orderSearchTooMany() {
+      return parseOrderSearch(self.orderSearchDraft).length > MAX_ORDER_SEARCH_IDS;
+    },
     /** A fresh plain object per read: the filters, without the page being read. */
     get queryInput(): GQL.EcomBadReviewsInput {
       const input: GQL.EcomBadReviewsInput = {};
@@ -193,6 +201,7 @@ export const EcommerceBadReviewModel = types
         input.reviewTo = to.toISOString();
       }
       if (self.inProgressOverDays != null) input.inProgressOverDays = self.inProgressOverDays;
+      if (self.orderIds.length) input.orderIds = [...self.orderIds];
       return input;
     },
     /** One value that changes with every filter and page, for the page's fetch effect. */
@@ -321,6 +330,21 @@ export const EcommerceBadReviewModel = types
       },
       setInProgressOverDays(value: number | null) {
         self.inProgressOverDays = value;
+        listChanged();
+      },
+      /** Typing only edits the box; emptying it ends the search at once. */
+      setOrderSearchDraft(value: string) {
+        self.orderSearchDraft = value;
+        if (self.orderIds.length && !parseOrderSearch(value).length) {
+          self.orderIds.clear();
+          listChanged();
+        }
+      },
+      /** Searches the orders in the box. A list the backend would refuse is left unapplied. */
+      applyOrderSearch() {
+        const orderIds = parseOrderSearch(self.orderSearchDraft);
+        if (orderIds.length > MAX_ORDER_SEARCH_IDS) return;
+        self.orderIds.replace(orderIds);
         listChanged();
       },
       setPage(value: number) {

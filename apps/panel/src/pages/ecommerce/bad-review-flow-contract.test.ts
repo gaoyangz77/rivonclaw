@@ -20,6 +20,7 @@ import { GQL } from "@rivonclaw/core";
 import { START_BAD_REVIEW_BULK_FOLLOW_UP_MUTATION } from "../../api/bad-review-queries.js";
 import { readBadReviewWorkbook } from "./bad-review-import.js";
 import { CustomerServiceWorkspaceModel } from "../../store/models/CustomerServiceWorkspaceModel.js";
+import { EcommerceAfterSaleModel } from "../../store/models/EcommerceAfterSaleModel.js";
 import { EcommerceBadReviewModel } from "../../store/models/EcommerceBadReviewModel.js";
 
 /**
@@ -120,6 +121,8 @@ describe("bad-review flows against the Backend schema", () => {
     store.setHandlingStatus(GQL.ProductReviewHandlingStatus.InProgress);
     store.setSource(GQL.ProductReviewSource.ManualImport);
     store.setInProgressOverDays(7);
+    store.setOrderSearchDraft("576966216039176770\n576966216039176771");
+    store.applyOrderSearch();
     await store.fetchReviews();
     expect(store.error).toBeNull();
     expect(store.rows.length).toBe(1);
@@ -200,5 +203,23 @@ describe("bad-review flows against the Backend schema", () => {
       field: "ecommerceGetCustomerServiceInbox",
       args: { search: "576966216039176770" },
     });
+  });
+});
+
+describe("the after-sale order search", () => {
+  it("is accepted by the schema in both views, with no window in the history view", async () => {
+    const { apolloClient, calls } = backend();
+    const store = EcommerceAfterSaleModel.create({}, { apolloClient });
+    store.setOrderSearchDraft("576966216039176770, 576966216039176771");
+    store.applyOrderSearch();
+    await store.fetchRequests();
+    expect(store.error).toBeNull();
+    store.setView("ALL");
+    await store.fetchRequests();
+    expect(store.error).toBeNull();
+    expect(calls.map((call) => call.args.input)).toEqual([
+      { view: "TO_REVIEW", orderIds: ["576966216039176770", "576966216039176771"] },
+      { view: "ALL", orderIds: ["576966216039176770", "576966216039176771"] },
+    ]);
   });
 });

@@ -17,7 +17,9 @@ import {
   badReviewSourceLabel,
   badReviewStatusLabel,
 } from "../../bad-review-labels.js";
+import { MAX_ORDER_SEARCH_IDS } from "../../../../lib/order-search.js";
 import { AffiliateShopScopeControl } from "../AffiliateShopScopeControl.js";
+import { OrderSearchField } from "../OrderSearchField.js";
 
 const PREFIX = "ecommerce.badReview.filters";
 const RATINGS = [1, 2, 3, 4, 5];
@@ -40,6 +42,18 @@ export const BadReviewFilters = observer(function BadReviewFilters() {
 
   return (
     <TkToolbar className="bad-review-filters" data-tutorial-id="bad-review-filters">
+      <OrderSearchField
+        label={t(`${PREFIX}.orderSearch`)}
+        placeholder={t(`${PREFIX}.orderSearchPlaceholder`)}
+        error={
+          badReview.orderSearchTooMany
+            ? t(`${PREFIX}.orderSearchTooMany`, { max: MAX_ORDER_SEARCH_IDS })
+            : undefined
+        }
+        draft={badReview.orderSearchDraft}
+        onDraftChange={(value) => badReview.setOrderSearchDraft(value)}
+        onSearch={() => badReview.applyOrderSearch()}
+      />
       <AffiliateShopScopeControl
         shops={shops}
         selected={selectedShopIds}

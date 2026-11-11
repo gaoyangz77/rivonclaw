@@ -86,6 +86,26 @@ describe("BadReviewManagementPage", () => {
     expect(screen.queryByRole("button", { name: "Start follow-up" })).toBeNull();
   });
 
+  it("searches a pasted column of order numbers on Enter, and lists everything again when the box is emptied", async () => {
+    const { query } = mount([dto()]);
+    const box = await screen.findByLabelText("Order number");
+    await waitFor(() => expect(query).toHaveBeenCalledTimes(1));
+    fireEvent.paste(box, {
+      clipboardData: { getData: () => "576000000000000001\r\n576000000000000002\r\n" },
+    });
+    // Typing alone does not search.
+    expect(query).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(box, { key: "Enter" });
+    await waitFor(() => expect(query).toHaveBeenCalledTimes(2));
+    expect(query.mock.calls[1]![0].variables.input.orderIds).toEqual([
+      "576000000000000001",
+      "576000000000000002",
+    ]);
+    fireEvent.change(box, { target: { value: "" } });
+    await waitFor(() => expect(query).toHaveBeenCalledTimes(3));
+    expect(query.mock.calls[2]![0].variables.input.orderIds).toBeUndefined();
+  });
+
   it("stays on the page and shows TikTok's refusal", async () => {
     const mutate = vi.fn().mockRejectedValue(new Error("TikTok refused the conversation"));
     mount([dto()], mutate);

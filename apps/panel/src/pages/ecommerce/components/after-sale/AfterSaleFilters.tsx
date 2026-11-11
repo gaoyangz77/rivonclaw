@@ -22,7 +22,9 @@ import {
   afterSaleStatusLabel,
 } from "../../after-sale-labels.js";
 import type { AffiliateAnalyticsShop } from "../../affiliate-analytics-scope.js";
+import { MAX_ORDER_SEARCH_IDS } from "../../../../lib/order-search.js";
 import { AffiliateShopScopeControl } from "../AffiliateShopScopeControl.js";
+import { OrderSearchField } from "../OrderSearchField.js";
 
 /** "" is "every value"; the model keeps a list so the query can take several. */
 function singleValue(values: readonly string[]): string {
@@ -49,6 +51,8 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
     ? shops.map((shop) => shop.id)
     : [...afterSale.shopIds];
   const windowIssue = afterSale.windowIssue;
+  // An order search drops the window, so its dates are shown but cannot be edited.
+  const anyDate = afterSale.view === "ALL" && !afterSale.windowApplies;
   const choices = (all: string, values: readonly string[], labelOf: (value: string) => string) => [
     { value: "", label: all },
     ...values.map((value) => ({ value, label: labelOf(value) })),
@@ -68,6 +72,18 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
           onChange={(view) => afterSale.setView(view as AfterSaleView)}
         />
       </div>
+      <OrderSearchField
+        label={t("ecommerce.afterSale.filters.orderSearch")}
+        placeholder={t("ecommerce.afterSale.filters.orderSearchPlaceholder")}
+        error={
+          afterSale.orderSearchTooMany
+            ? t("ecommerce.afterSale.filters.orderSearchTooMany", { max: MAX_ORDER_SEARCH_IDS })
+            : undefined
+        }
+        draft={afterSale.orderSearchDraft}
+        onDraftChange={(value) => afterSale.setOrderSearchDraft(value)}
+        onSearch={() => afterSale.applyOrderSearch()}
+      />
       <AffiliateShopScopeControl
         shops={shops}
         selected={selectedShopIds}
@@ -111,6 +127,7 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
             label={t("ecommerce.afterSale.filters.createdFrom")}
             value={afterSale.windowFrom}
             max={afterSale.windowTo || undefined}
+            disabled={anyDate}
             onChange={(event) => afterSale.setWindow(event.target.value, afterSale.windowTo)}
           />
           <TkField
@@ -118,6 +135,8 @@ export const AfterSaleFilters = observer(function AfterSaleFilters() {
             label={t("ecommerce.afterSale.filters.createdTo")}
             value={afterSale.windowTo}
             min={afterSale.windowFrom || undefined}
+            disabled={anyDate}
+            hint={anyDate ? t("ecommerce.afterSale.filters.orderSearchAnyDate") : undefined}
             error={
               windowIssue
                 ? t(`ecommerce.afterSale.windowIssue.${windowIssue}`, {

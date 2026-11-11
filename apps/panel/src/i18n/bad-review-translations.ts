@@ -104,6 +104,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ days",
           reviewFrom: "Review from",
           reviewTo: "Review to",
+          orderSearch: "Order number",
+          orderSearchPlaceholder: "Paste order numbers, press Enter",
+          orderSearchTooMany: "Search at most {{max}} order numbers at a time.",
         },
         reply: {
           AWAITING_SELLER: "Needs a reply",
@@ -334,6 +337,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}} 天以上",
           reviewFrom: "评价开始日期",
           reviewTo: "评价结束日期",
+          orderSearch: "订单号",
+          orderSearchPlaceholder: "粘贴订单号，按回车搜索",
+          orderSearchTooMany: "一次最多搜索 {{max}} 个订单号。",
         },
         reply: {
           AWAITING_SELLER: "待回复",
@@ -567,6 +573,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ Tage",
           reviewFrom: "Bewertung ab",
           reviewTo: "Bewertung bis",
+          orderSearch: "Bestellnummer",
+          orderSearchPlaceholder: "Bestellnummern einfügen, Enter drücken",
+          orderSearchTooMany: "Höchstens {{max}} Bestellnummern pro Suche.",
         },
         reply: {
           AWAITING_SELLER: "Antwort nötig",
@@ -809,6 +818,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ días",
           reviewFrom: "Reseña desde",
           reviewTo: "Reseña hasta",
+          orderSearch: "Número de pedido",
+          orderSearchPlaceholder: "Pega números de pedido y pulsa Intro",
+          orderSearchTooMany: "Busca como máximo {{max}} números de pedido a la vez.",
         },
         reply: {
           AWAITING_SELLER: "Por responder",
@@ -1047,6 +1059,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}} jours et plus",
           reviewFrom: "Avis à partir du",
           reviewTo: "Avis jusqu'au",
+          orderSearch: "Numéro de commande",
+          orderSearchPlaceholder: "Collez des numéros de commande, puis Entrée",
+          orderSearchTooMany: "Recherchez au plus {{max}} numéros de commande à la fois.",
         },
         reply: {
           AWAITING_SELLER: "À répondre",
@@ -1288,6 +1303,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ hari",
           reviewFrom: "Ulasan dari",
           reviewTo: "Ulasan sampai",
+          orderSearch: "Nomor pesanan",
+          orderSearchPlaceholder: "Tempel nomor pesanan, tekan Enter",
+          orderSearchTooMany: "Cari paling banyak {{max}} nomor pesanan sekaligus.",
         },
         reply: {
           AWAITING_SELLER: "Perlu dibalas",
@@ -1528,6 +1546,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}}+ giorni",
           reviewFrom: "Recensione dal",
           reviewTo: "Recensione al",
+          orderSearch: "Numero ordine",
+          orderSearchPlaceholder: "Incolla i numeri d'ordine e premi Invio",
+          orderSearchTooMany: "Cerca al massimo {{max}} numeri d'ordine alla volta.",
         },
         reply: {
           AWAITING_SELLER: "Da rispondere",
@@ -1760,6 +1781,9 @@ export const BAD_REVIEW_TRANSLATIONS = {
           staleDays: "{{count}} วันขึ้นไป",
           reviewFrom: "รีวิวตั้งแต่",
           reviewTo: "รีวิวถึง",
+          orderSearch: "หมายเลขคำสั่งซื้อ",
+          orderSearchPlaceholder: "วางหมายเลขคำสั่งซื้อ แล้วกด Enter",
+          orderSearchTooMany: "ค้นหาได้สูงสุด {{max}} หมายเลขคำสั่งซื้อต่อครั้ง",
         },
         reply: {
           AWAITING_SELLER: "รอตอบกลับ",

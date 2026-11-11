@@ -55,6 +55,30 @@ describe("EcommerceBadReviewModel", () => {
     expect(store.queryInput.replyStates).toEqual(["AWAITING_SELLER"]);
   });
 
+  it("searches pasted order numbers on Enter only, from the first page, and ends when the box is emptied", async () => {
+    const store = storeWith({ query: vi.fn().mockResolvedValue(page([dto()], 120)) });
+    await store.fetchReviews();
+    store.setPage(2);
+    store.setOrderSearchDraft("576000000000000001\n576000000000000002, 576000000000000001");
+    expect(store.queryInput.orderIds).toBeUndefined();
+    expect(store.page).toBe(2);
+
+    store.applyOrderSearch();
+    expect(store.queryInput.orderIds).toEqual(["576000000000000001", "576000000000000002"]);
+    expect(store.page).toBe(1);
+
+    store.setOrderSearchDraft(" ");
+    expect(store.queryInput.orderIds).toBeUndefined();
+  });
+
+  it("does not search more order numbers than the backend takes", () => {
+    const store = storeWith({});
+    store.setOrderSearchDraft(Array.from({ length: 51 }, (_, index) => `57600000000000${index}`).join(","));
+    expect(store.orderSearchTooMany).toBe(true);
+    store.applyOrderSearch();
+    expect(store.queryInput.orderIds).toBeUndefined();
+  });
+
   it("selects every shop again when the whole list is chosen", () => {
     const store = storeWith({});
     store.setShopScope(["shop-1", "shop-2"], 2);

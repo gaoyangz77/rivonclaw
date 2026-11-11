@@ -20,6 +20,7 @@ import {
   type AfterSaleKind,
   type AfterSaleRejectImage,
 } from "../../lib/after-sale.js";
+import { MAX_ORDER_SEARCH_IDS, parseOrderSearch } from "../../lib/order-search.js";
 import type { PanelStoreEnv } from "../types.js";
 
 const MS_PER_DAY = 86_400_000;
@@ -254,6 +255,10 @@ export const EcommerceAfterSaleModel = types
     /** ALL view created-at window as local dates, both ends inclusive; empty until the ALL view opens. */
     windowFrom: types.optional(types.string, ""),
     windowTo: types.optional(types.string, ""),
+    /** What the order box holds; it searches only on Enter. */
+    orderSearchDraft: types.optional(types.string, ""),
+    /** Order numbers of the search in effect, in both views; empty when there is none. */
+    orderIds: types.optional(types.array(types.string), []),
     requests: types.optional(types.array(AfterSaleRequestModel), []),
     nextCursor: types.maybeNull(types.string),
     totalCount: types.optional(types.number, 0),
@@ -272,21 +277,30 @@ export const EcommerceAfterSaleModel = types
     rowDecisionError: types.maybeNull(types.frozen<{ requestId: string; message: string }>()),
   })
   .views((self) => ({
+    /** An order search finds requests of any age: the ALL window is not sent while it runs. */
+    get windowApplies() {
+      return self.view === "ALL" && self.orderIds.length === 0;
+    },
+    get orderSearchTooMany() {
+      return parseOrderSearch(self.orderSearchDraft).length > MAX_ORDER_SEARCH_IDS;
+    },
+  }))
+  .views((self) => ({
     /** Everything that changes the query, as one primitive for effect dependencies. */
     get querySignature() {
       return JSON.stringify([
         self.view,
         self.allShops ? null : [...self.shopIds],
-        // The kind filter applies to both views; status, action and window to ALL only.
+        // The kind and order filters apply to both views; status, action and window to ALL only.
         [...self.kinds],
-        self.view === "ALL"
-          ? [[...self.statuses], [...self.sellerActions], self.windowFrom, self.windowTo]
-          : null,
+        [...self.orderIds],
+        self.view === "ALL" ? [[...self.statuses], [...self.sellerActions]] : null,
+        self.windowApplies ? [self.windowFrom, self.windowTo] : null,
       ]);
     },
     /** Why the ALL window cannot be queried, if it cannot. */
     get windowIssue(): "missing" | "reversed" | "tooLong" | null {
-      if (self.view !== "ALL") return null;
+      if (!self.windowApplies) return null;
       if (!self.windowFrom || !self.windowTo) return "missing";
       const days = Math.round(
         (startOfLocalDay(self.windowTo).getTime() - startOfLocalDay(self.windowFrom).getTime()) /
@@ -318,9 +332,12 @@ export const EcommerceAfterSaleModel = types
       const input: GQL.EcomAfterSaleRequestsInput = { view: self.view };
       if (!self.allShops) input.shopIds = [...self.shopIds];
       if (self.kinds.length) input.kinds = [...self.kinds] as AfterSaleKind[];
+      if (self.orderIds.length) input.orderIds = [...self.orderIds];
       if (self.view === "ALL") {
         if (self.statuses.length) input.statuses = [...self.statuses];
         if (self.sellerActions.length) input.sellerActions = [...self.sellerActions];
+      }
+      if (self.windowApplies) {
         const to = startOfLocalDay(self.windowTo);
         to.setDate(to.getDate() + 1);
         input.createdFrom = startOfLocalDay(self.windowFrom).toISOString();
@@ -603,6 +620,17 @@ export const EcommerceAfterSaleModel = types
       setWindow(from: string, to: string) {
         self.windowFrom = from;
         self.windowTo = to;
+      },
+      /** Typing only edits the box; emptying it ends the search at once. */
+      setOrderSearchDraft(value: string) {
+        self.orderSearchDraft = value;
+        if (self.orderIds.length && !parseOrderSearch(value).length) applySnapshot(self.orderIds, []);
+      },
+      /** Searches the orders in the box. A list the backend would refuse is left unapplied. */
+      applyOrderSearch() {
+        const orderIds = parseOrderSearch(self.orderSearchDraft);
+        if (orderIds.length > MAX_ORDER_SEARCH_IDS) return;
+        applySnapshot(self.orderIds, orderIds);
       },
       dismissNotice() {
         self.notice = null;
