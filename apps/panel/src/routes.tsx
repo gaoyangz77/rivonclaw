@@ -107,6 +107,16 @@ const AFFILIATE_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
 ];
 
 /**
+ * Product Knowledge belongs to the shop's products, not to one business: the
+ * Affiliate Agent and the Customer Service Agent read the same entries
+ * (ADR-103), so either workspace unlocks its single first-level entry.
+ */
+const PRODUCT_KNOWLEDGE_SCOPES: readonly GQL.PermissionScope[] = [
+  ...AFFILIATE_WORKSPACE_SCOPES,
+  GQL.PermissionScope.CustomerService,
+];
+
+/**
  * Central route registry — single source of truth for paths, nav items,
  * auth requirements, and mount behavior. Array order = sidebar nav order.
  */
@@ -220,18 +230,6 @@ export const ROUTES: RouteEntry[] = [
     scopes: [GQL.PermissionScope.CustomerService],
   },
   {
-    // ADR-103: the Customer Service Agent reads the same Product Knowledge the
-    // Affiliate entry edits, so Customer Service members reach it from here too.
-    path: "/commerce/customer-service/product-knowledge",
-    pageKey: "ecommerce-customer-service-product-knowledge",
-    component: ProductKnowledgePage,
-    icon: <ChannelsIcon />,
-    navLabelKey: "nav.productKnowledge",
-    authRequired: true,
-    parentPath: "/commerce/customer-service",
-    scopes: [GQL.PermissionScope.CustomerService],
-  },
-  {
     path: "/commerce/affiliate",
     pageKey: "ecommerce-affiliate",
     component: AffiliateManagementPage,
@@ -278,16 +276,6 @@ export const ROUTES: RouteEntry[] = [
     component: AffiliateManualWorkbenchPage,
     icon: <ShopIcon />,
     navLabelKey: "nav.affiliateManualWorkbench",
-    authRequired: true,
-    parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_WORKSPACE_SCOPES,
-  },
-  {
-    path: "/commerce/product-knowledge",
-    pageKey: "ecommerce-product-knowledge",
-    component: ProductKnowledgePage,
-    icon: <EcommerceIcon />,
-    navLabelKey: "nav.productKnowledge",
     authRequired: true,
     parentPath: "/commerce/affiliate",
     scopes: AFFILIATE_WORKSPACE_SCOPES,
@@ -349,6 +337,15 @@ export const ROUTES: RouteEntry[] = [
     navLabelKey: "nav.inventoryManagement",
     authRequired: true,
     scopes: [GQL.PermissionScope.Inventory],
+  },
+  {
+    path: "/commerce/product-knowledge",
+    pageKey: "ecommerce-product-knowledge",
+    component: ProductKnowledgePage,
+    icon: <EcommerceIcon />,
+    navLabelKey: "nav.productKnowledge",
+    authRequired: true,
+    scopes: PRODUCT_KNOWLEDGE_SCOPES,
   },
   {
     path: "/automation/crons",

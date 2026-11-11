@@ -15,7 +15,6 @@ describe("commerce navigation", () => {
       "/commerce/affiliate/team",
       "/commerce/affiliate/attention",
       "/commerce/affiliate/manual-workbench",
-      "/commerce/product-knowledge",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",
       "/commerce/affiliate/analytics",
@@ -24,32 +23,24 @@ describe("commerce navigation", () => {
   });
 });
 
-describe("customer service navigation", () => {
-  it("lists Product Knowledge last under Customer Service, on the Customer Service scope", () => {
-    const customerServiceChildren = ROUTES.filter(
-      (route) => route.parentPath === "/commerce/customer-service",
-    );
+describe("product knowledge navigation", () => {
+  it("is one first-level commerce entry that Affiliate and Customer Service members both see", () => {
+    const entries = ROUTES.filter((route) => route.component === ROUTES.find((r) => r.path === "/commerce/product-knowledge")?.component);
+    expect(entries.map((route) => route.path)).toEqual(["/commerce/product-knowledge"]);
+    const [entry] = entries;
+    expect(entry.parentPath).toBeUndefined();
+    expect(entry.navGroupOnly).toBeUndefined();
 
-    expect(customerServiceChildren.map((route) => route.path)).toEqual([
-      "/commerce/customer-service/conversations",
-      "/commerce/customer-service/escalations",
-      "/commerce/customer-service/after-sales",
-      "/commerce/customer-service/bad-reviews",
-      "/commerce/customer-service/performance",
-      "/commerce/customer-service/experiments",
-      "/commerce/customer-service/product-knowledge",
-    ]);
-    const customerServiceEntry = customerServiceChildren.at(-1);
-    const affiliateEntry = ROUTES.find((route) => route.path === "/commerce/product-knowledge");
-    expect(customerServiceEntry?.component).toBe(affiliateEntry?.component);
-    expect(customerServiceEntry?.navLabelKey).toBe(affiliateEntry?.navLabelKey);
-
-    const customerServiceOnly = {
-      isOwner: false,
-      permissionScopes: [GQL.PermissionScope.CustomerService],
-    };
-    expect(canSeeRoute(customerServiceEntry!, customerServiceOnly)).toBe(true);
-    expect(canSeeRoute(affiliateEntry!, customerServiceOnly)).toBe(false);
+    for (const scope of [
+      GQL.PermissionScope.Affiliate,
+      GQL.PermissionScope.AffiliateBusinessDeveloper,
+      GQL.PermissionScope.CustomerService,
+    ]) {
+      expect(canSeeRoute(entry, { isOwner: false, permissionScopes: [scope] })).toBe(true);
+    }
+    expect(
+      canSeeRoute(entry, { isOwner: false, permissionScopes: [GQL.PermissionScope.ShopManagement] }),
+    ).toBe(false);
   });
 });
 
@@ -109,11 +100,11 @@ describe("permission-scope navigation", () => {
       "/commerce/affiliate/team",
       "/commerce/affiliate/attention",
       "/commerce/affiliate/manual-workbench",
-      "/commerce/product-knowledge",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",
       "/commerce/affiliate/analytics",
       "/commerce/affiliate/intelligence",
+      "/commerce/product-knowledge",
       "/automation/crons",
       "/connections/channels",
       "/connections/models",
@@ -138,10 +129,10 @@ describe("permission-scope navigation", () => {
     const affiliateWorkspace = [
       "/commerce/affiliate/attention",
       "/commerce/affiliate/manual-workbench",
-      "/commerce/product-knowledge",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",
       "/commerce/affiliate/analytics",
+      "/commerce/product-knowledge",
     ];
     const basePages = [
       "/automation/crons",
