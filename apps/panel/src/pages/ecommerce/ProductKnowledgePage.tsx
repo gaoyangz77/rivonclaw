@@ -35,6 +35,7 @@ import {
 } from "../../api/product-knowledge-queries.js";
 import { splitSellerSkuInput } from "./product-knowledge-seller-sku.js";
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
+import { ProductKnowledgeExportButton } from "./components/ProductKnowledgeExportButton.js";
 import "./components/AffiliateUi.css";
 
 const ProductKnowledgeMarkdownEditor = lazy(async () => {
@@ -549,17 +550,24 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
         title={t("ecommerce.productKnowledge.pageTitle")}
         subtitle={t("ecommerce.productKnowledge.pageSubtitle")}
         actions={
-          readOnly ? (
-            <span className="badge badge-muted">{t("ecommerce.productKnowledge.readOnly")}</span>
-          ) : (
-            <button
-              className="btn btn-primary"
-              data-tutorial-id="product-knowledge-create"
-              onClick={() => setCreateOpen(true)}
-            >
-              + {t("ecommerce.productKnowledge.create")}
-            </button>
-          )
+          <>
+            <ProductKnowledgeExportButton
+              status={status}
+              search={search}
+              disabled={listQuery.loading || totalCount === 0}
+            />
+            {readOnly ? (
+              <span className="badge badge-muted">{t("ecommerce.productKnowledge.readOnly")}</span>
+            ) : (
+              <button
+                className="btn btn-primary"
+                data-tutorial-id="product-knowledge-create"
+                onClick={() => setCreateOpen(true)}
+              >
+                + {t("ecommerce.productKnowledge.create")}
+              </button>
+            )}
+          </>
         }
       />
 
