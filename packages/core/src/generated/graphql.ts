@@ -10204,10 +10204,16 @@ export interface EcomProduct {
   createTime?: Maybe<Scalars["Int"]["output"]>;
   description?: Maybe<Scalars["String"]["output"]>;
   images?: Maybe<Array<EcomImage>>;
+  /** Whether buyers can pay cash on delivery for this product. */
+  isCodAllowed?: Maybe<Scalars["Boolean"]["output"]>;
+  /** True when the product is listed but cannot be bought on its own (e.g. a free gift). */
+  isNotForSale?: Maybe<Scalars["Boolean"]["output"]>;
   /** Package weight unit returned by the platform product detail API. */
   packageWeightUnit?: Maybe<Scalars["String"]["output"]>;
   /** Package weight value returned by the platform product detail API. */
   packageWeightValue?: Maybe<Scalars["String"]["output"]>;
+  /** Seller-filled specifications such as warranty, material, voltage, or compatibility. */
+  productAttributes?: Maybe<Array<EcomProductAttribute>>;
   productId: Scalars["String"]["output"];
   /** Active merchant-authored Product Knowledge. Returned only when an eligible resolver explicitly requests it. */
   productKnowledge?: Maybe<ProductKnowledgeContent>;
@@ -10221,6 +10227,20 @@ export interface EcomProduct {
   title?: Maybe<Scalars["String"]["output"]>;
   /** Unix seconds */
   updateTime?: Maybe<Scalars["Int"]["output"]>;
+}
+
+/** Product-level specification filled in by the seller, e.g. name 'Warranty type' with values ['No warranty']. */
+export interface EcomProductAttribute {
+  /** Platform attribute ID */
+  id?: Maybe<Scalars["String"]["output"]>;
+  name?: Maybe<Scalars["String"]["output"]>;
+  values?: Maybe<Array<EcomProductAttributeValue>>;
+}
+
+/** One value of a product specification attribute */
+export interface EcomProductAttributeValue {
+  id?: Maybe<Scalars["String"]["output"]>;
+  name?: Maybe<Scalars["String"]["output"]>;
 }
 
 /** Product brand metadata */
@@ -10263,6 +10283,8 @@ export interface EcomProductSku {
   listPrice?: Maybe<EcomProductSkuMoney>;
   preSale?: Maybe<EcomProductSkuPreSale>;
   price?: Maybe<EcomProductSkuPrice>;
+  /** Variation values that identify this SKU to buyers (e.g. Model = Dual Lens, Memory = +64GB SD Card). Use them to match a buyer's wording to a SKU and its price and stock. */
+  salesAttributes?: Maybe<Array<EcomProductSkuSalesAttribute>>;
   sellerSku?: Maybe<Scalars["String"]["output"]>;
   /** SKU package weight normalized to kilograms when the unit is supported. */
   skuWeightKg?: Maybe<Scalars["String"]["output"]>;
@@ -10379,8 +10401,23 @@ export type EcomProductSkuPreSaleType =
 /** Detailed price breakdown for a product SKU */
 export interface EcomProductSkuPrice {
   currency?: Maybe<EcomProductSkuCurrency>;
+  /** Seller's listed price for this SKU before promotions. Active shop/platform discounts and buyer vouchers are not applied, so the price a buyer sees in the app (e.g. on a shared product card) can be lower. */
   salePrice?: Maybe<Scalars["String"]["output"]>;
   taxExclusivePrice?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** One variation axis of a SKU as shown to buyers on the product page, e.g. name 'Model' with valueName 'Dual Lens'. */
+export interface EcomProductSkuSalesAttribute {
+  /** Platform attribute ID */
+  id?: Maybe<Scalars["String"]["output"]>;
+  /** Variation name, e.g. 'Color' or 'Size' */
+  name?: Maybe<Scalars["String"]["output"]>;
+  /** Variant image shown for this value */
+  skuImage?: Maybe<EcomImage>;
+  /** Platform attribute value ID */
+  valueId?: Maybe<Scalars["String"]["output"]>;
+  /** Variation value the buyer picks, e.g. 'Red' or '+64GB SD Card' */
+  valueName?: Maybe<Scalars["String"]["output"]>;
 }
 
 /** Lifecycle status for a product SKU. */
