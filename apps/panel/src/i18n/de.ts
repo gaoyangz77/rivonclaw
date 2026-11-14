@@ -2026,6 +2026,7 @@ export default {
         CS_ESCALATE: "Eskalieren",
         CS_RESPOND: "Reagieren Sie auf eine Eskalation",
         CS_GET_ESCALATION_RESULT: "Eskalationsergebnis abrufen",
+        CS_GET_PENDING_ESCALATIONS: "Offene Eskalationen abrufen",
         CS_START_SESSION: "Sitzung starten",
         CS_START_SESSIONS: "Sitzungen starten (Stapel)",
         ECOM_LIST_SHOPS: "Geschäfte auflisten",

@@ -2023,6 +2023,7 @@ export default {
         CS_ESCALATE: "Escalader",
         CS_RESPOND: "Répondre à une escalade",
         CS_GET_ESCALATION_RESULT: "Obtenir le résultat de l'escalade",
+        CS_GET_PENDING_ESCALATIONS: "Obtenir les escalades en attente",
         CS_START_SESSION: "Démarrer la session",
         CS_START_SESSIONS: "Démarrer des sessions (lot)",
         ECOM_LIST_SHOPS: "Liste des magasins",

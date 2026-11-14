@@ -1937,6 +1937,7 @@ export default {
         CS_DISMISS_CONVERSATION_ESCALATIONS: "关闭会话升级",
         CS_RESPOND: "回复升级",
         CS_GET_ESCALATION_RESULT: "获取升级结果",
+        CS_GET_PENDING_ESCALATIONS: "查看待处理升级",
         CS_START_SESSION: "启动客服会话",
         CS_START_SESSIONS: "批量启动客服会话",
         // 电商店铺管理

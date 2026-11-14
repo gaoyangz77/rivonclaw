@@ -7275,6 +7275,48 @@ export interface CsOrderStatusWebhookResult {
   shopId?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** One customer-service escalation still waiting for the merchant, with its shop's names for display */
+export interface CsPendingEscalation {
+  buyerNickname?: Maybe<Scalars["String"]["output"]>;
+  /** TikTok Shop buyer user ID */
+  buyerUserId: Scalars["String"]["output"];
+  /** Agent-written context, with later follow-ups appended */
+  context?: Maybe<Scalars["String"]["output"]>;
+  /** TikTok Shop customer-service conversation ID */
+  conversationId: Scalars["String"]["output"];
+  /** When the escalation was raised */
+  createdAt: Scalars["DateTimeISO"]["output"];
+  /** Escalation ID to pass to cs_respond, e.g. A1B2C3 */
+  id: Scalars["ID"]["output"];
+  /** The latest interim manager response of an IN_PROGRESS escalation */
+  latestResponse?: Maybe<CsEscalationResult>;
+  /** TikTok Shop order ID */
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  /** Why the customer-service agent escalated */
+  reason: Scalars["String"]["output"];
+  /** The merchant's own label for the shop */
+  shopAlias?: Maybe<Scalars["String"]["output"]>;
+  /** MongoDB Shop._id */
+  shopId: Scalars["ID"]["output"];
+  /** TikTok shop name */
+  shopName?: Maybe<Scalars["String"]["output"]>;
+  /** PENDING: no manager response yet. IN_PROGRESS: an interim response, not resolved */
+  status: CsEscalationStatus;
+  /** Last follow-up or response */
+  updatedAt: Scalars["DateTimeISO"]["output"];
+  /** Increases with every follow-up or manager response */
+  version: Scalars["Int"]["output"];
+}
+
+/** Customer-service escalations waiting for the merchant, oldest first */
+export interface CsPendingEscalationPage {
+  items: Array<CsPendingEscalation>;
+  limit: Scalars["Int"]["output"];
+  offset: Scalars["Int"]["output"];
+  /** Matching escalations across all pages */
+  total: Scalars["Int"]["output"];
+}
+
 /** Result returned after a manager responds to a CS escalation */
 export interface CsRespondResult {
   error?: Maybe<Scalars["String"]["output"]>;
@@ -14798,6 +14840,8 @@ export interface Query {
   creatorSearchRuns: Array<CreatorSearchRun>;
   /** Read the current cloud status and result for a CS escalation */
   csGetEscalationResult?: Maybe<CsEscalationLookupResult>;
+  /** List customer-service escalations waiting for the merchant, longest-waiting first, with shop names */
+  csGetPendingEscalations: CsPendingEscalationPage;
   /** List open CS escalations for the authenticated user, including pending and in-progress items */
   csOpenEscalations: Array<CsEscalation>;
   /** List open CS escalations with total count and pagination metadata */
@@ -15394,6 +15438,14 @@ export interface QueryCreatorSearchRunsArgs {
 
 export interface QueryCsGetEscalationResultArgs {
   escalationId: Scalars["ID"]["input"];
+}
+
+export interface QueryCsGetPendingEscalationsArgs {
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  offset?: InputMaybe<Scalars["Int"]["input"]>;
+  search?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  statuses?: InputMaybe<Array<CsEscalationStatus>>;
 }
 
 export interface QueryCsOpenEscalationsArgs {
@@ -18030,6 +18082,7 @@ export const ToolId = {
   CsDismissConversationEscalations: "CS_DISMISS_CONVERSATION_ESCALATIONS",
   CsEscalate: "CS_ESCALATE",
   CsGetEscalationResult: "CS_GET_ESCALATION_RESULT",
+  CsGetPendingEscalations: "CS_GET_PENDING_ESCALATIONS",
   CsRespond: "CS_RESPOND",
   CsStartSession: "CS_START_SESSION",
   CsStartSessions: "CS_START_SESSIONS",

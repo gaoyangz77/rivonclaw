@@ -271,6 +271,7 @@ export const TOOL_ACTIVITY_CAPTIONS: Record<string, ActivityCaptionId> = {
   CS_DISMISS_CONVERSATION_ESCALATIONS: "dismissEscalations",
   CS_RESPOND: "answerEscalation",
   CS_GET_ESCALATION_RESULT: "readEscalation",
+  CS_GET_PENDING_ESCALATIONS: "readEscalation",
   CS_START_SESSION: "startSession",
   CS_START_SESSIONS: "startSession",
   // ── Affiliate: creators ──

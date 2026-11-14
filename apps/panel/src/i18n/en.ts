@@ -2012,6 +2012,7 @@ export default {
         CS_DISMISS_CONVERSATION_ESCALATIONS: "Dismiss Conversation Escalations",
         CS_RESPOND: "Respond to Escalation",
         CS_GET_ESCALATION_RESULT: "Get Escalation Result",
+        CS_GET_PENDING_ESCALATIONS: "Get Pending Escalations",
         CS_START_SESSION: "Start Session",
         CS_START_SESSIONS: "Start Sessions (Batch)",
         // E-commerce Shop Management

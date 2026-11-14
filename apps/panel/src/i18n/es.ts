@@ -2012,6 +2012,7 @@ export default {
         CS_ESCALATE: "escalar",
         CS_RESPOND: "Responder a la escalada",
         CS_GET_ESCALATION_RESULT: "Obtener resultado de escalada",
+        CS_GET_PENDING_ESCALATIONS: "Obtener escaladas pendientes",
         CS_START_SESSION: "Iniciar sesión",
         CS_START_SESSIONS: "Iniciar sesiones (lote)",
         ECOM_LIST_SHOPS: "Listar tiendas",

@@ -1982,6 +1982,7 @@ export default {
         CS_ESCALATE: "Tingkatkan",
         CS_RESPOND: "Menanggapi Eskalasi",
         CS_GET_ESCALATION_RESULT: "Dapatkan Hasil Eskalasi",
+        CS_GET_PENDING_ESCALATIONS: "Dapatkan Eskalasi Tertunda",
         CS_START_SESSION: "Mulai Sesi",
         CS_START_SESSIONS: "Mulai Sesi (Massal)",
         ECOM_LIST_SHOPS: "Daftar Toko",

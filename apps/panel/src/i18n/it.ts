@@ -2010,6 +2010,7 @@ export default {
         CS_ESCALATE: "Aumentare",
         CS_RESPOND: "Rispondere all'escalation",
         CS_GET_ESCALATION_RESULT: "Ottieni il risultato dell'escalation",
+        CS_GET_PENDING_ESCALATIONS: "Ottieni le escalation in sospeso",
         CS_START_SESSION: "Avvia sessione",
         CS_START_SESSIONS: "Avvia sessioni (batch)",
         ECOM_LIST_SHOPS: "Elenco negozi",
