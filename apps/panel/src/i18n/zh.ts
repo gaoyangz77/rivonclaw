@@ -1938,6 +1938,7 @@ export default {
         CS_RESPOND: "回复升级",
         CS_GET_ESCALATION_RESULT: "获取升级结果",
         CS_START_SESSION: "启动客服会话",
+        CS_START_SESSIONS: "批量启动客服会话",
         // 电商店铺管理
         ECOM_LIST_SHOPS: "店铺列表",
         ECOM_GET_SHOP: "获取店铺",

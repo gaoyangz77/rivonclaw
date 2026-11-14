@@ -148,6 +148,8 @@ export function emitCsDispatchEvent(fields: {
   signalType?: string;
   source?: string;
   dispatchReason?: string;
+  /** Set only for runs started by a batch reachout (ADR-104). */
+  batchId?: string;
   outcome: string;
   reason?: string;
   messageId?: string;
@@ -173,6 +175,7 @@ export function emitCsDispatchEvent(fields: {
     signalType: fields.signalType ?? "",
     source: fields.source ?? "",
     dispatchReason: fields.dispatchReason ?? "",
+    ...(fields.batchId ? { batchId: fields.batchId } : {}),
     outcome: fields.outcome,
     reason: fields.reason ?? "",
     messageId: fields.messageId ?? "",

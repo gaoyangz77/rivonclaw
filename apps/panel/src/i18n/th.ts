@@ -1900,6 +1900,7 @@ export default {
         CS_RESPOND: "ตอบสนองต่อการยกระดับ",
         CS_GET_ESCALATION_RESULT: "รับผลการยกระดับ",
         CS_START_SESSION: "เริ่มเซสชัน",
+        CS_START_SESSIONS: "เริ่มเซสชันแบบกลุ่ม",
         ECOM_LIST_SHOPS: "รายชื่อร้านค้า",
         ECOM_GET_SHOP: "รับร้านค้า",
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "ดูความสัมพันธ์กับครีเอเตอร์",

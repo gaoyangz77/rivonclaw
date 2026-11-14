@@ -84,8 +84,15 @@ function isAirflowPendingBuyerDispatch(dispatch: CsAgentDispatchRequest): boolea
   );
 }
 
-function csSignalAdmissionMode(dispatch: CsAgentDispatchRequest): CsRunAdmissionMode {
-  return dispatch.dispatchReason === "MANUAL_START" ? "bypass" : "automatic";
+/**
+ * A single operator-started conversation (`MANUAL_START`) bypasses the run
+ * limit. A `MANUAL_START` carrying a `batchId` came from a batch reachout
+ * (ADR-104), so it queues through the limit instead; its lower priority is
+ * derived from the same `batchId` where the session acquires admission.
+ */
+export function csSignalAdmissionMode(dispatch: CsAgentDispatchRequest): CsRunAdmissionMode {
+  if (dispatch.dispatchReason !== "MANUAL_START") return "automatic";
+  return dispatch.batchId ? "automatic" : "bypass";
 }
 
 // ---------------------------------------------------------------------------
@@ -937,6 +944,7 @@ export class EcommerceRelayBridge {
         orderId: signal.orderId ?? "",
         signalType: signal.type,
         source: signal.source,
+        batchId: signal.batchId || undefined,
         outcome: "skipped",
         reason: "ai_disabled",
         messageId: signal.messageId ?? undefined,
@@ -958,6 +966,7 @@ export class EcommerceRelayBridge {
         orderId: signal.orderId ?? "",
         signalType: signal.type,
         source: signal.source,
+        batchId: signal.batchId || undefined,
         outcome: "skipped",
         reason: "unknown_signal_type",
         messageId: signal.messageId ?? undefined,
@@ -1008,7 +1017,8 @@ export class EcommerceRelayBridge {
     this.syncFromCache();
     log.info(
       `CS signal: type=${dispatch.type} reason=${dispatch.dispatchReason} shop=${dispatch.platformShopId} ` +
-        `conv=${dispatch.conversationId} msg=${dispatch.messageId ?? ""}`,
+        `conv=${dispatch.conversationId} msg=${dispatch.messageId ?? ""}` +
+        (dispatch.batchId ? ` batch=${dispatch.batchId}` : ""),
     );
 
     const shop = this.shopContexts.get(dispatch.platformShopId);
@@ -1024,6 +1034,7 @@ export class EcommerceRelayBridge {
         signalType: dispatch.type,
         source: dispatch.source,
         dispatchReason: dispatch.dispatchReason,
+        batchId: dispatch.batchId || undefined,
         outcome: "skipped",
         reason: "no_shop_context",
         messageId: dispatch.messageId ?? undefined,
@@ -1052,6 +1063,7 @@ export class EcommerceRelayBridge {
         dispatchReason: dispatch.dispatchReason,
         operatorInstruction: dispatch.operatorInstruction ?? undefined,
         badReviewReachoutRoundId: dispatch.badReviewReachoutRoundId,
+        batchId: dispatch.batchId || undefined,
         currentMessageId: dispatch.messageId ?? undefined,
         currentMessageIndex: dispatch.messageIndex ?? undefined,
         signalType: dispatch.type,

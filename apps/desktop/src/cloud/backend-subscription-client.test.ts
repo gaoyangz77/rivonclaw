@@ -229,6 +229,33 @@ describe("BackendSubscriptionClient affiliate outreach account lifecycle", () =>
     installMockGraphqlWsClient();
   });
 
+  it("selects batchId on the CS conversation signal subscription", async () => {
+    const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
+    const client = new BackendSubscriptionClient("en-US");
+
+    client.subscribeToCsConversationSignals(vi.fn());
+    client.connect(() => "access-token-1");
+    client.enableAuthenticatedSubscriptions();
+
+    expect(mocks.subscriptions).toHaveLength(1);
+    expect(mocks.subscriptions[0].operation.query).toContain("subscription CsConversationSignal");
+    expect(mocks.subscriptions[0].operation.query).toMatch(/\bbatchId\b/);
+  });
+
+  it("selects batchId on the CS conversation change dispatch hint", async () => {
+    const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
+    const client = new BackendSubscriptionClient("en-US");
+
+    client.subscribeToCsConversationChanges(vi.fn());
+    client.connect(() => "access-token-1");
+    client.enableAuthenticatedSubscriptions();
+
+    expect(mocks.subscriptions).toHaveLength(1);
+    const query = mocks.subscriptions[0].operation.query as string;
+    expect(query).toContain("subscription CsConversationChanged");
+    expect(query).toMatch(/dispatchHint\s*\{[^}]*\bbatchId\b/);
+  });
+
   it("subscribes to affiliate outreach account connection events after auth is enabled", async () => {
     const { BackendSubscriptionClient } = await import("./backend-subscription-client.js");
     let token: string | null = null;

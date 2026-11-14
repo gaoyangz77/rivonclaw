@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CsAutomaticRunAdmission,
   CsRunAdmissionCancelledError,
+  csRunAdmissionPriorityForBatch,
   DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT,
   DEFAULT_CS_LEASE_MAX_AGE_MS,
   resolveCsAutomaticMaxConcurrent,
@@ -28,6 +29,7 @@ describe("CsAutomaticRunAdmission", () => {
     expect(admission.getDebugState()).toEqual({
       active: 1,
       queued: 2,
+      queuedLow: 0,
       maxConcurrent: 1,
       paused: false,
     });
@@ -196,5 +198,94 @@ describe("CsAutomaticRunAdmission", () => {
 
     process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "not-a-number";
     expect(resolveCsAutomaticMaxConcurrent()).toBe(DEFAULT_CS_AUTOMATIC_MAX_CONCURRENT);
+  });
+
+  describe("priority lanes", () => {
+    it("admits a queued normal request before earlier queued low requests, FIFO within each lane", async () => {
+      const admission = new CsAutomaticRunAdmission(1);
+      const running = await admission.acquire({ conversationId: "running" });
+      const order: string[] = [];
+      const track = (conversationId: string, priority?: "normal" | "low") =>
+        admission.acquire({ conversationId, priority }).then((lease) => {
+          order.push(conversationId);
+          return lease;
+        });
+
+      const low1 = track("low-1", "low");
+      const low2 = track("low-2", "low");
+      const normal1 = track("normal-1");
+      const normal2 = track("normal-2", "normal");
+      expect(admission.getDebugState()).toMatchObject({ queued: 4, queuedLow: 2 });
+
+      running.release();
+      (await normal1).release();
+      (await normal2).release();
+      (await low1).release();
+      (await low2).release();
+
+      expect(order).toEqual(["normal-1", "normal-2", "low-1", "low-2"]);
+    });
+
+    it("admits a low request immediately when nothing normal is waiting", async () => {
+      const admission = new CsAutomaticRunAdmission(2);
+      const low = await admission.acquire({ conversationId: "low", priority: "low" });
+      expect(admission.getDebugState()).toMatchObject({ active: 1, queued: 0 });
+      low.release();
+    });
+
+    it("never preempts a running low lease for a newly queued normal request", async () => {
+      const admission = new CsAutomaticRunAdmission(1);
+      const low = await admission.acquire({ conversationId: "low", priority: "low" });
+      let normalAdmitted = false;
+      const normal = admission.acquire({ conversationId: "normal" }).then((lease) => {
+        normalAdmitted = true;
+        return lease;
+      });
+      await Promise.resolve();
+      expect(normalAdmitted).toBe(false);
+      expect(admission.getDebugState()).toMatchObject({ active: 1, queued: 1 });
+
+      low.release();
+      (await normal).release();
+      expect(normalAdmitted).toBe(true);
+    });
+
+    it("keeps pause and resume ordering with mixed priorities", async () => {
+      const admission = new CsAutomaticRunAdmission(1);
+      admission.pause();
+      const order: string[] = [];
+      const low = admission
+        .acquire({ conversationId: "low", priority: "low" })
+        .then((lease) => (order.push("low"), lease));
+      const normal = admission
+        .acquire({ conversationId: "normal" })
+        .then((lease) => (order.push("normal"), lease));
+      expect(admission.getDebugState()).toMatchObject({ active: 0, queued: 2, queuedLow: 1 });
+
+      admission.resume();
+      (await normal).release();
+      (await low).release();
+      expect(order).toEqual(["normal", "low"]);
+    });
+
+    it("rejects queued requests of every priority on reset", async () => {
+      const admission = new CsAutomaticRunAdmission(1);
+      await admission.acquire({ conversationId: "running" });
+      const low = admission.acquire({ conversationId: "low", priority: "low" });
+      const normal = admission.acquire({ conversationId: "normal" });
+
+      admission.reset("auth_change");
+
+      await expect(low).rejects.toBeInstanceOf(CsRunAdmissionCancelledError);
+      await expect(normal).rejects.toBeInstanceOf(CsRunAdmissionCancelledError);
+      expect(admission.getDebugState()).toMatchObject({ queued: 0, queuedLow: 0 });
+    });
+
+    it("maps a batch id to the low lane and no batch to normal", () => {
+      expect(csRunAdmissionPriorityForBatch("batch-1")).toBe("low");
+      expect(csRunAdmissionPriorityForBatch(undefined)).toBe("normal");
+      expect(csRunAdmissionPriorityForBatch(null)).toBe("normal");
+      expect(csRunAdmissionPriorityForBatch("")).toBe("normal");
+    });
   });
 });

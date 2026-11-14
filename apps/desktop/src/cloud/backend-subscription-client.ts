@@ -334,6 +334,7 @@ const CS_CONVERSATION_SIGNAL_SUBSCRIPTION = `
       aiEnabled
       latestMessagePreview
       operatorInstruction
+      batchId
       dispatchEventTime
       eventTime
     }
@@ -371,6 +372,7 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
         dispatchEventTime
         operatorInstruction
         badReviewReachoutRoundId
+        batchId
       }
       orderId
       participantCount

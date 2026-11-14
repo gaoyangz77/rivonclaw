@@ -31,10 +31,25 @@ const LEASE_WATCHDOG_INTERVAL_MS = 60_000;
 
 export type CsRunAdmissionMode = "automatic" | "bypass";
 
+/**
+ * `low` is the lane for proactive batch reachout (ADR-104). A queued `normal`
+ * request is always admitted before any queued `low` one, so a batch of
+ * outbound conversations never delays a buyer who is waiting. Priority only
+ * orders the queue; it never preempts a running lease.
+ */
+export type CsRunAdmissionPriority = "normal" | "low";
+
+/** Batch runs take the low lane; every other automatic run is normal. */
+export function csRunAdmissionPriorityForBatch(batchId: string | null | undefined): CsRunAdmissionPriority {
+  return batchId ? "low" : "normal";
+}
+
 export interface CsRunAdmissionRequest {
   conversationId: string;
   dispatchReason?: string;
   source?: string;
+  /** Defaults to `normal`. */
+  priority?: CsRunAdmissionPriority;
 }
 
 export interface CsRunAdmissionLease {
@@ -81,7 +96,8 @@ export function resolveCsAutomaticMaxConcurrent(env: NodeJS.ProcessEnv = process
 }
 
 /**
- * FIFO admission controller for automatic customer-service agent runs.
+ * Admission controller for automatic customer-service agent runs: FIFO within
+ * each priority, queued `normal` requests ahead of queued `low` ones.
  *
  * A lease remains active until the corresponding Gateway run reaches a
  * terminal state. Pausing only stops new admissions; existing leases remain
@@ -144,6 +160,7 @@ export class CsAutomaticRunAdmission {
         log.info(
           `CS automatic run queued: conv=${request.conversationId} ` +
             `reason=${request.dispatchReason ?? ""} source=${request.source ?? ""} ` +
+            `priority=${request.priority ?? "normal"} ` +
             `active=${this.active}/${this.maxConcurrent} queued=${this.queue.length}`,
         );
       }
@@ -229,18 +246,31 @@ export class CsAutomaticRunAdmission {
     this.leaseWatchdogTimer = null;
   }
 
-  getDebugState(): { active: number; queued: number; maxConcurrent: number; paused: boolean } {
+  getDebugState(): {
+    active: number;
+    queued: number;
+    queuedLow: number;
+    maxConcurrent: number;
+    paused: boolean;
+  } {
     return {
       active: this.active,
       queued: this.queue.length,
+      queuedLow: this.queue.filter((pending) => pending.request.priority === "low").length,
       maxConcurrent: this.maxConcurrent,
       paused: this.paused,
     };
   }
 
+  /** Oldest `normal` request first; a `low` one only when no `normal` is queued. */
+  private takeNextPending(): PendingAdmission | undefined {
+    const normalIndex = this.queue.findIndex((pending) => pending.request.priority !== "low");
+    return this.queue.splice(normalIndex === -1 ? 0 : normalIndex, 1)[0];
+  }
+
   private drain(): void {
     while (!this.paused && this.active < this.maxConcurrent && this.queue.length > 0) {
-      const pending = this.queue.shift();
+      const pending = this.takeNextPending();
       if (!pending) return;
       if (pending.generation !== this.generation) {
         pending.reject(new CsRunAdmissionCancelledError());
@@ -275,7 +305,7 @@ export class CsAutomaticRunAdmission {
       log.info(
         `CS automatic run admitted: conv=${pending.request.conversationId} ` +
           `reason=${pending.request.dispatchReason ?? ""} source=${pending.request.source ?? ""} ` +
-          `waitMs=${waitMs} active=${this.active}/${this.maxConcurrent} queued=${this.queue.length}`,
+          `priority=${pending.request.priority ?? "normal"} waitMs=${waitMs} active=${this.active}/${this.maxConcurrent} queued=${this.queue.length}`,
       );
     }
   }

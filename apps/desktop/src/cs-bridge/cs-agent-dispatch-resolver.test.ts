@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCsAgentDispatchSystemPrompt } from "./cs-agent-dispatch-resolver.js";
+import { buildCsAgentDispatchSystemPrompt, resolveCsSignalDispatch } from "./cs-agent-dispatch-resolver.js";
 
 describe("buildCsAgentDispatchSystemPrompt", () => {
   it("requires pending buyer-message dispatches to send a buyer-facing reply", () => {
@@ -67,5 +67,24 @@ describe("buildCsAgentDispatchSystemPrompt", () => {
       "An explicitly backend-authorized new round is not a duplicate send",
     );
     expect(prompt).not.toContain("due reminder authorized by the backend");
+  });
+});
+
+describe("resolveCsSignalDispatch batchId", () => {
+  const signal = {
+    type: "MANUAL_START",
+    source: "MANUAL",
+    shopId: "shop-1",
+    platformShopId: "p-1",
+    conversationId: "conv-1",
+  } as Parameters<typeof resolveCsSignalDispatch>[0];
+
+  it("keeps the batch id and the MANUAL_START dispatch reason", () => {
+    const dispatch = resolveCsSignalDispatch({ ...signal, batchId: "batch-1" });
+    expect(dispatch).toMatchObject({ dispatchReason: "MANUAL_START", batchId: "batch-1" });
+  });
+
+  it("leaves signals without a batch id unbatched", () => {
+    expect(resolveCsSignalDispatch(signal)?.batchId).toBeUndefined();
   });
 });

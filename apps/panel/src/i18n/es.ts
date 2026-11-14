@@ -2013,6 +2013,7 @@ export default {
         CS_RESPOND: "Responder a la escalada",
         CS_GET_ESCALATION_RESULT: "Obtener resultado de escalada",
         CS_START_SESSION: "Iniciar sesión",
+        CS_START_SESSIONS: "Iniciar sesiones (lote)",
         ECOM_LIST_SHOPS: "Listar tiendas",
         ECOM_GET_SHOP: "Obtener tienda",
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Obtener relación con el creador",

@@ -2027,6 +2027,7 @@ export default {
         CS_RESPOND: "Reagieren Sie auf eine Eskalation",
         CS_GET_ESCALATION_RESULT: "Eskalationsergebnis abrufen",
         CS_START_SESSION: "Sitzung starten",
+        CS_START_SESSIONS: "Sitzungen starten (Stapel)",
         ECOM_LIST_SHOPS: "Geschäfte auflisten",
         ECOM_GET_SHOP: "Holen Sie sich Shop",
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Creator-Beziehung abrufen",

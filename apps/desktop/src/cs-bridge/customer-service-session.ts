@@ -67,6 +67,7 @@ import type {
   CsRunAdmissionMode,
   CsRunAdmissionRequest,
 } from "./cs-run-admission.js";
+import { csRunAdmissionPriorityForBatch } from "./cs-run-admission.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -261,6 +262,8 @@ interface CatchUpDispatchOptions {
   currentMessageCursor?: CustomerServiceMessageCursor;
   useMessageDelta?: boolean;
   admissionMode?: CsRunAdmissionMode;
+  /** Batch reachout that started this run (ADR-104); batch runs queue at low priority. */
+  batchId?: string;
 }
 
 type PendingBuyerDispatchBase = {
@@ -330,6 +333,8 @@ export class CustomerServiceSession {
 
   /** Admission mode of each accepted run, retained for delivery-recovery follow-ups. */
   private admissionModeByRunId = new Map<string, CsRunAdmissionMode>();
+  /** Retries reuse the failed run's batch so they keep its admission priority. */
+  private batchIdByRunId = new Map<string, string>();
 
   /** Number of runs aborted since the last successful delivery to the buyer. */
   private undeliveredCount = 0;
@@ -448,9 +453,11 @@ export class CustomerServiceSession {
     runId: string,
     round: CSRound,
     admissionMode?: CsRunAdmissionMode,
+    batchId?: string,
   ): void {
     this.roundsByRunId.set(runId, round);
     if (admissionMode) this.admissionModeByRunId.set(runId, admissionMode);
+    if (batchId) this.batchIdByRunId.set(runId, batchId);
   }
 
   private disposeRound(round: CSRound): void {
@@ -458,6 +465,7 @@ export class CustomerServiceSession {
       this.roundsByRunId.delete(runId);
       // Retain send tokens for late duplicate lifecycle delivery within this session.
       this.admissionModeByRunId.delete(runId);
+      this.batchIdByRunId.delete(runId);
     }
     if (this.activeRound === round) {
       this.activeRound = null;
@@ -1179,6 +1187,7 @@ export class CustomerServiceSession {
       this.roundsByRunId.get(params.failedRunId) ??
       this.ensureActiveRound(`recovery:${params.failedRunId}`);
     const admissionMode = this.admissionModeByRunId.get(params.failedRunId) ?? round.admissionMode;
+    const batchId = this.batchIdByRunId.get(params.failedRunId);
     this.attachRunToRound(params.failedRunId, round);
 
     const recovery = round.planSensitiveRecovery(
@@ -1223,6 +1232,7 @@ export class CustomerServiceSession {
         round,
         placeholder,
         admissionMode,
+        batchId,
         badReviewReachoutRoundId: this.badReviewReachoutRoundIds.get(params.failedRunId),
       });
       if (result.runId) {
@@ -1414,6 +1424,7 @@ export class CustomerServiceSession {
         source: options?.source ?? "desktop",
         signalType: options?.signalType,
         dispatchReason: options?.dispatchReason ?? "MANUAL_START",
+        batchId: options?.batchId,
         outcome: "skipped",
         reason: "backend_session_failed",
         messageId: options?.currentMessageId,
@@ -1437,6 +1448,7 @@ export class CustomerServiceSession {
           messageType: options.messageType,
           senderRole: options.senderRole,
           admissionMode: options.admissionMode,
+          batchId: options.batchId,
           advanceSessionCursor: options.currentMessageCursor ?? {
             messageId: options.currentMessageId,
           },
@@ -1454,6 +1466,7 @@ export class CustomerServiceSession {
       messageType: options?.messageType,
       senderRole: options?.senderRole,
       admissionMode: options?.admissionMode,
+      batchId: options?.batchId,
       advanceSessionCursor: options?.currentMessageCursor,
       badReviewReachoutRoundId: options?.badReviewReachoutRoundId,
     });
@@ -2111,6 +2124,7 @@ export class CustomerServiceSession {
     messageType?: string;
     senderRole?: string;
     admissionMode?: CsRunAdmissionMode;
+    batchId?: string;
     advanceSessionCursor?: CustomerServiceMessageCursor;
     badReviewReachoutRoundId?: string;
   }): Promise<DispatchResult> {
@@ -2126,6 +2140,7 @@ export class CustomerServiceSession {
           conversationId: this.csContext.conversationId,
           dispatchReason: params.dispatchReason,
           source: params.dispatchSource,
+          priority: csRunAdmissionPriorityForBatch(params.batchId),
         });
       }
       await this.setup();
@@ -2134,6 +2149,7 @@ export class CustomerServiceSession {
         source: params.dispatchSource ?? "desktop",
         signalType: params.signalType,
         dispatchReason: params.dispatchReason ?? "MANUAL_START",
+        batchId: params.batchId,
         outcome: "requested",
         messageId: params.currentMessageId,
         messageIndex: params.currentMessageIndex,
@@ -2214,6 +2230,7 @@ export class CustomerServiceSession {
         source: params.dispatchSource ?? "desktop",
         signalType: params.signalType,
         dispatchReason: params.dispatchReason ?? "MANUAL_START",
+        batchId: params.batchId,
         outcome: runId ? "accepted" : "failed",
         reason: runId ? "" : "no_run_id",
         messageId: params.currentMessageId,
@@ -2254,7 +2271,7 @@ export class CustomerServiceSession {
             this.activeRound === round,
             params.placeholder,
           );
-          this.attachRunToRound(runId, round, admissionMode);
+          this.attachRunToRound(runId, round, admissionMode, params.batchId);
           if (disposition === "aborted") {
             log.info(
               `Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`,
@@ -2263,6 +2280,7 @@ export class CustomerServiceSession {
               source: params.dispatchSource ?? "desktop",
               signalType: params.signalType,
               dispatchReason: params.dispatchReason ?? "MANUAL_START",
+              batchId: params.batchId,
               outcome: "aborted",
               reason: "placeholder_aborted",
               messageId: params.currentMessageId,
@@ -2282,6 +2300,7 @@ export class CustomerServiceSession {
               source: params.dispatchSource ?? "desktop",
               signalType: params.signalType,
               dispatchReason: params.dispatchReason ?? "MANUAL_START",
+              batchId: params.batchId,
               outcome: "aborted",
               reason: "placeholder_stale",
               messageId: params.currentMessageId,
@@ -2300,7 +2319,7 @@ export class CustomerServiceSession {
           }
         } else {
           round.assumeRunDispatched(runId);
-          this.attachRunToRound(runId, round, admissionMode);
+          this.attachRunToRound(runId, round, admissionMode, params.batchId);
           log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
           this.opts?.onRunDispatched?.(runId, admissionLease, { reconcileImmediately });
           admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
@@ -2316,6 +2335,7 @@ export class CustomerServiceSession {
         source: params.dispatchSource ?? "desktop",
         signalType: params.signalType,
         dispatchReason: params.dispatchReason ?? "MANUAL_START",
+        batchId: params.batchId,
         outcome: "failed",
         reason: "exception",
         messageId: params.currentMessageId,

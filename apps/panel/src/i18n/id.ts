@@ -1983,6 +1983,7 @@ export default {
         CS_RESPOND: "Menanggapi Eskalasi",
         CS_GET_ESCALATION_RESULT: "Dapatkan Hasil Eskalasi",
         CS_START_SESSION: "Mulai Sesi",
+        CS_START_SESSIONS: "Mulai Sesi (Massal)",
         ECOM_LIST_SHOPS: "Daftar Toko",
         ECOM_GET_SHOP: "Dapatkan Toko",
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Dapatkan Relasi Kreator",

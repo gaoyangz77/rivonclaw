@@ -138,6 +138,7 @@ export function resolveCsConversationDispatch(
     ...(hint.badReviewReachoutRoundId
       ? { badReviewReachoutRoundId: hint.badReviewReachoutRoundId }
       : {}),
+    ...(hint.batchId ? { batchId: hint.batchId } : {}),
     dispatchEventTime:
       hint.dispatchEventTime != null
         ? new Date(hint.dispatchEventTime * 1000).toISOString()

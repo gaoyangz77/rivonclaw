@@ -6797,6 +6797,8 @@ export type CreatorTagOperation = (typeof CreatorTagOperation)[keyof typeof Crea
 export interface CsConversationSignal {
   /** Whether desktop should let the local AI agent run for this conversation. False means skip automation. */
   aiEnabled?: Maybe<Scalars["Boolean"]["output"]>;
+  /** Set when the signal was published as part of a batch reachout (csStartSessions). Desktop queues such runs behind live buyer replies. */
+  batchId?: Maybe<Scalars["String"]["output"]>;
   /** Buyer display nickname if already known. */
   buyerNickname?: Maybe<Scalars["String"]["output"]>;
   /** Platform buyer user ID if already known. */
@@ -7288,6 +7290,65 @@ export interface CsSessionResult {
   sessionId: Scalars["String"]["output"];
 }
 
+/** Why one target in a batch CS start was not started */
+export const CsStartSessionFailureReason = {
+  CustomerServiceDisabled: "CUSTOMER_SERVICE_DISABLED",
+  NoCustomerServiceDevice: "NO_CUSTOMER_SERVICE_DEVICE",
+  PublishFailed: "PUBLISH_FAILED",
+  ShopNotAuthorized: "SHOP_NOT_AUTHORIZED",
+  TargetUnresolved: "TARGET_UNRESOLVED",
+} as const;
+
+export type CsStartSessionFailureReason =
+  (typeof CsStartSessionFailureReason)[keyof typeof CsStartSessionFailureReason];
+/** Per-target outcome of a batch CS start */
+export interface CsStartSessionItem {
+  /** Resolved conversation ID when resolution succeeded, otherwise the requested one. */
+  conversationId?: Maybe<Scalars["String"]["output"]>;
+  /** Error message for FAILED targets. */
+  error?: Maybe<Scalars["String"]["output"]>;
+  /** Zero-based position of the target in the request. */
+  index: Scalars["Int"]["output"];
+  orderId?: Maybe<Scalars["String"]["output"]>;
+  reason?: Maybe<CsStartSessionFailureReason>;
+  shopId: Scalars["ID"]["output"];
+  status: CsStartSessionItemStatus;
+}
+
+/** Outcome of one target in a batch CS start. STARTED means the signal was queued for the shop's assigned Desktop, not that the buyer was answered. */
+export const CsStartSessionItemStatus = {
+  Duplicate: "DUPLICATE",
+  Failed: "FAILED",
+  Started: "STARTED",
+} as const;
+
+export type CsStartSessionItemStatus =
+  (typeof CsStartSessionItemStatus)[keyof typeof CsStartSessionItemStatus];
+/** One buyer to start customer service for in a batch */
+export interface CsStartSessionTargetInput {
+  /** Optional TikTok Shop buyer user ID (orders.user_id); not a MongoDB User._id or buyer nickname */
+  buyerUserId?: InputMaybe<Scalars["String"]["input"]>;
+  /** Optional TikTok Shop customer-service conversation ID; not a MongoDB document ID, order ID, buyer ID, or escalation ID */
+  conversationId?: InputMaybe<Scalars["String"]["input"]>;
+  /** Optional internal instruction for this buyer only; appended after the shared operatorInstruction. */
+  operatorInstruction?: InputMaybe<Scalars["String"]["input"]>;
+  /** Optional TikTok Shop order ID; the backend resolves its platform buyer and conversation */
+  orderId?: InputMaybe<Scalars["String"]["input"]>;
+  /** MongoDB Shop._id returned by ecommerce_list_shops; not a TikTok Shop platform shop ID */
+  shopId: Scalars["ID"]["input"];
+}
+
+/** Result of a batch CS start with one item per requested target */
+export interface CsStartSessionsResult {
+  /** Identifier carried by every signal published in this call. */
+  batchId: Scalars["String"]["output"];
+  duplicateCount: Scalars["Int"]["output"];
+  failedCount: Scalars["Int"]["output"];
+  items: Array<CsStartSessionItem>;
+  requestedCount: Scalars["Int"]["output"];
+  startedCount: Scalars["Int"]["output"];
+}
+
 export const CsUnpaidAnalyticsStatus = {
   Final: "FINAL",
   Provisional: "PROVISIONAL",
@@ -7604,6 +7665,8 @@ export interface CustomerServiceConversationDetails {
 export interface CustomerServiceConversationDispatchHint {
   /** Backend-owned bad-review proactive send round ID. */
   badReviewReachoutRoundId?: Maybe<Scalars["ID"]["output"]>;
+  /** Set when the dispatch belongs to a batch reachout (csStartSessions). Desktop queues such runs behind live buyer replies. */
+  batchId?: Maybe<Scalars["String"]["output"]>;
   /** Unix seconds when backend emitted this dispatch attempt. Used for Airflow retry idempotency. */
   dispatchEventTime?: Maybe<Scalars["Int"]["output"]>;
   /** Unix seconds of the event that triggered this dispatch. */
@@ -12426,6 +12489,8 @@ export interface Mutation {
   csRespond: CsRespondResult;
   /** Publish a manual CS conversation signal that asks the assigned desktop to start a CS agent session */
   csStartSession: CsConversationSignal;
+  /** Publish manual CS conversation signals for up to 30 buyers and report a per-target result */
+  csStartSessions: CsStartSessionsResult;
   /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED applies sampleReviewOverride to exactly one pure Sample Application review (or the legacy opposite decision when omitted) and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note; IGNORED discards the proposal while acknowledging its boundary so the Agent will not re-propose for the same messages. */
   decideActionProposal: ActionProposal;
   decideMcpOAuthAuthorization: McpOAuthAuthorizationDecision;
@@ -13030,6 +13095,11 @@ export interface MutationCsStartSessionArgs {
   operatorInstruction?: InputMaybe<Scalars["String"]["input"]>;
   orderId?: InputMaybe<Scalars["String"]["input"]>;
   shopId: Scalars["ID"]["input"];
+}
+
+export interface MutationCsStartSessionsArgs {
+  operatorInstruction?: InputMaybe<Scalars["String"]["input"]>;
+  targets: Array<CsStartSessionTargetInput>;
 }
 
 export interface MutationDecideActionProposalArgs {
@@ -17962,6 +18032,7 @@ export const ToolId = {
   CsGetEscalationResult: "CS_GET_ESCALATION_RESULT",
   CsRespond: "CS_RESPOND",
   CsStartSession: "CS_START_SESSION",
+  CsStartSessions: "CS_START_SESSIONS",
   EcomActivateProducts: "ECOM_ACTIVATE_PRODUCTS",
   EcomApproveCancellation: "ECOM_APPROVE_CANCELLATION",
   EcomApproveRefund: "ECOM_APPROVE_REFUND",

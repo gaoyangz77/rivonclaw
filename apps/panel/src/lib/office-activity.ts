@@ -272,6 +272,7 @@ export const TOOL_ACTIVITY_CAPTIONS: Record<string, ActivityCaptionId> = {
   CS_RESPOND: "answerEscalation",
   CS_GET_ESCALATION_RESULT: "readEscalation",
   CS_START_SESSION: "startSession",
+  CS_START_SESSIONS: "startSession",
   // ── Affiliate: creators ──
   AFFILIATE_GET_CREATOR_RELATIONSHIP: "readCreatorRelationship",
   AFFILIATE_GET_CREATOR_PROFILE: "readCreatorProfile",

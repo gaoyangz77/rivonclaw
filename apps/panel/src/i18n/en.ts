@@ -2013,6 +2013,7 @@ export default {
         CS_RESPOND: "Respond to Escalation",
         CS_GET_ESCALATION_RESULT: "Get Escalation Result",
         CS_START_SESSION: "Start Session",
+        CS_START_SESSIONS: "Start Sessions (Batch)",
         // E-commerce Shop Management
         ECOM_LIST_SHOPS: "List Shops",
         ECOM_GET_SHOP: "Get Shop",

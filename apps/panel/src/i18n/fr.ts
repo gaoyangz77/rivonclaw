@@ -2024,6 +2024,7 @@ export default {
         CS_RESPOND: "Répondre à une escalade",
         CS_GET_ESCALATION_RESULT: "Obtenir le résultat de l'escalade",
         CS_START_SESSION: "Démarrer la session",
+        CS_START_SESSIONS: "Démarrer des sessions (lot)",
         ECOM_LIST_SHOPS: "Liste des magasins",
         ECOM_GET_SHOP: "Obtenir la boutique",
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Obtenir la relation créateur",
