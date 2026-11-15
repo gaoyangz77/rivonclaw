@@ -6443,6 +6443,112 @@ export interface ConversationMessageDeltaMeta {
   pageLimitReached: Scalars["Boolean"]["output"];
 }
 
+export const CouponCreationSource = {
+  SellerApp: "SELLER_APP",
+  SellerCenter: "SELLER_CENTER",
+  TtsCrm: "TTS_CRM",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponCreationSource = (typeof CouponCreationSource)[keyof typeof CouponCreationSource];
+export interface CouponDiscount {
+  /** Cap on a PERCENT_OFF discount */
+  maxDiscount?: Maybe<CouponMoney>;
+  /** Percentage as the platform returned it; set for PERCENT_OFF */
+  percentage?: Maybe<Scalars["String"]["output"]>;
+  /** Set for AMOUNT_OFF */
+  reductionAmount?: Maybe<CouponMoney>;
+  type: CouponDiscountType;
+}
+
+export const CouponDiscountType = {
+  AmountOff: "AMOUNT_OFF",
+  PercentOff: "PERCENT_OFF",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponDiscountType = (typeof CouponDiscountType)[keyof typeof CouponDiscountType];
+export const CouponDisplayType = {
+  Chat: "CHAT",
+  CreatorExclusive: "CREATOR_EXCLUSIVE",
+  Live: "LIVE",
+  PromoCode: "PROMO_CODE",
+  Regular: "REGULAR",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponDisplayType = (typeof CouponDisplayType)[keyof typeof CouponDisplayType];
+/** A money amount in the coupon's currency */
+export interface CouponMoney {
+  /** Decimal amount as the platform returned it */
+  amount: Scalars["String"]["output"];
+  currency: Scalars["String"]["output"];
+}
+
+export const CouponNotSendableReason = {
+  DisplayTypeNotChatOrRegular: "DISPLAY_TYPE_NOT_CHAT_OR_REGULAR",
+  NotOngoing: "NOT_ONGOING",
+  RepeatCustomersOnly: "REPEAT_CUSTOMERS_ONLY",
+} as const;
+
+export type CouponNotSendableReason =
+  (typeof CouponNotSendableReason)[keyof typeof CouponNotSendableReason];
+export const CouponProductScope = {
+  FullShop: "FULL_SHOP",
+  SpecificProducts: "SPECIFIC_PRODUCTS",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponProductScope = (typeof CouponProductScope)[keyof typeof CouponProductScope];
+export interface CouponRedemption {
+  /** ISO time; set for ABSOLUTE */
+  endTime?: Maybe<Scalars["String"]["output"]>;
+  /** Days after claiming; set for RELATIVE */
+  relativeDays?: Maybe<Scalars["Int"]["output"]>;
+  /** ISO time; set for ABSOLUTE */
+  startTime?: Maybe<Scalars["String"]["output"]>;
+  type: CouponRedemptionDurationType;
+}
+
+export const CouponRedemptionDurationType = {
+  Absolute: "ABSOLUTE",
+  Relative: "RELATIVE",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponRedemptionDurationType =
+  (typeof CouponRedemptionDurationType)[keyof typeof CouponRedemptionDurationType];
+export const CouponStatus = {
+  Deactivated: "DEACTIVATED",
+  Expired: "EXPIRED",
+  NotStart: "NOT_START",
+  Ongoing: "ONGOING",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponStatus = (typeof CouponStatus)[keyof typeof CouponStatus];
+export const CouponTargetBuyerSegment = {
+  All: "ALL",
+  New: "NEW",
+  RepeatCustomers: "REPEAT_CUSTOMERS",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponTargetBuyerSegment =
+  (typeof CouponTargetBuyerSegment)[keyof typeof CouponTargetBuyerSegment];
+export interface CouponThreshold {
+  /** Set for MIN_SPEND */
+  minSpend?: Maybe<CouponMoney>;
+  type: CouponThresholdType;
+}
+
+export const CouponThresholdType = {
+  MinSpend: "MIN_SPEND",
+  None: "NONE",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type CouponThresholdType = (typeof CouponThresholdType)[keyof typeof CouponThresholdType];
 /** Create a member account under the current main account. */
 export interface CreateAccountMemberInput {
   email: Scalars["String"]["input"];
@@ -7851,6 +7957,35 @@ export interface CustomerServiceConversationsAcrossShopsResult {
   /** Shops whose search completed (including shops with zero matches) */
   succeededShopCount: Scalars["Int"]["output"];
   /** True when the result may be missing matches: a shop returned exactly the per-shop limit, or the merged list was cut to the limit. Narrow the filters or raise the limit. */
+  truncated: Scalars["Boolean"]["output"];
+}
+
+/** A seller coupon a customer-service operator can send to a buyer */
+export interface CustomerServiceCoupon {
+  /** ISO time the coupon stops being claimable */
+  claimEndTime?: Maybe<Scalars["String"]["output"]>;
+  /** ISO time the coupon becomes claimable */
+  claimStartTime?: Maybe<Scalars["String"]["output"]>;
+  creationSource: CouponCreationSource;
+  discount: CouponDiscount;
+  displayType: CouponDisplayType;
+  id: Scalars["String"]["output"];
+  notSendableReason?: Maybe<CouponNotSendableReason>;
+  productScope: CouponProductScope;
+  redemption: CouponRedemption;
+  /** Whether the coupon can be sent as a coupon card */
+  sendable: Scalars["Boolean"]["output"];
+  singleBuyerClaimLimit?: Maybe<Scalars["Int"]["output"]>;
+  status: CouponStatus;
+  targetBuyerSegment: CouponTargetBuyerSegment;
+  threshold: CouponThreshold;
+  title: Scalars["String"]["output"];
+  totalClaimLimit?: Maybe<Scalars["Int"]["output"]>;
+}
+
+export interface CustomerServiceCouponList {
+  coupons: Array<CustomerServiceCoupon>;
+  /** True when more ongoing coupons exist than the page cap returned */
   truncated: Scalars["Boolean"]["output"];
 }
 
@@ -12630,6 +12765,8 @@ export interface Mutation {
   ecommerceReplaceCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   /** Send a standalone rich card in a customer-service conversation. */
   ecommerceSendCustomerServiceCard: CustomerServiceSendMessageResult;
+  /** Send one of the shop's ongoing coupons to the buyer as a coupon card. Panel-only (manual operator action). */
+  ecommerceSendCustomerServiceCoupon: CustomerServiceSendMessageResult;
   /** Send a manual text reply in a CS conversation without waking or requiring an AI session. */
   ecommerceSendCustomerServiceTextReply: CustomerServiceSendMessageResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
@@ -13388,6 +13525,13 @@ export interface MutationEcommerceSendCustomerServiceCardArgs {
   idempotencyKey: Scalars["String"]["input"];
   shopId: Scalars["String"]["input"];
   type: EcomCustomerServiceCardType;
+}
+
+export interface MutationEcommerceSendCustomerServiceCouponArgs {
+  conversationId: Scalars["String"]["input"];
+  couponId: Scalars["String"]["input"];
+  idempotencyKey: Scalars["String"]["input"];
+  shopId: Scalars["String"]["input"];
 }
 
 export interface MutationEcommerceSendCustomerServiceTextReplyArgs {
@@ -14905,6 +15049,8 @@ export interface Query {
   /** Bad reviews of the caller's shops, newest first, with human and AI follow-up state. */
   ecommerceBadReviews: EcomBadReviewPage;
   ecommerceCheckListingPrerequisites: EcommercePassthroughResult;
+  /** List the shop's ongoing coupons for a customer-service operator to pick from. Panel-only; each coupon carries a sendable flag and the reason when it is not sendable. */
+  ecommerceCustomerServiceCoupons: CustomerServiceCouponList;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   ecommerceGetCSExperimentDetail: CsExperimentDetailView;
@@ -15530,6 +15676,10 @@ export interface QueryEcommerceBadReviewsArgs {
 
 export interface QueryEcommerceCheckListingPrerequisitesArgs {
   shopId: Scalars["ID"]["input"];
+}
+
+export interface QueryEcommerceCustomerServiceCouponsArgs {
+  shopId: Scalars["String"]["input"];
 }
 
 export interface QueryEcommerceGetAftersaleEligibilityArgs {

@@ -1,0 +1,135 @@
+/*
+ * Coupon picker popover in the conversation header, anchored to its own trigger.
+ * The wrapper must stay unpositioned (like .cs-conversation-order): the layer's
+ * `bottom` resolves against the detail pane, and a positioned wrapper would
+ * become its containing block and collapse it to zero height.
+ */
+
+.cs-conversation-coupon-trigger {
+  anchor-name: --cs-conversation-coupon-trigger;
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.cs-conversation-coupon-trigger.active {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+}
+
+/* Spans from just under the trigger to the bottom of the detail pane, like the order layer. */
+.cs-conversation-coupon-layer {
+  position: absolute;
+  position-anchor: --cs-conversation-coupon-trigger;
+  top: calc(anchor(bottom) + var(--tk-v1-space-2));
+  right: anchor(right);
+  bottom: var(--tk-v1-space-2);
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 56px));
+  pointer-events: none;
+}
+
+.cs-conversation-coupon-popover {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--color-bg);
+  box-shadow: var(--tk-v1-elevation-3);
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.cs-conversation-coupon.open .cs-conversation-coupon-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.cs-coupon-search {
+  flex: none;
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.cs-coupon-truncated {
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.cs-coupon-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-3);
+  padding: var(--tk-v1-space-3);
+}
+
+.cs-coupon-row + .cs-coupon-row {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.cs-coupon-main {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: var(--tk-v1-space-1);
+}
+
+.cs-coupon-title {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--tk-v1-space-2);
+}
+
+.cs-coupon-title strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-body);
+}
+
+.cs-coupon-title code {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-micro);
+}
+
+.cs-coupon-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-3);
+  color: var(--color-text-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.cs-coupon-discount {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.cs-coupon-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-1);
+}
+
+.cs-coupon-reason {
+  color: var(--color-danger);
+  font-size: var(--tk-v1-type-supporting);
+}

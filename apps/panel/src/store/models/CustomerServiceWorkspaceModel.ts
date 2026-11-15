@@ -14,11 +14,13 @@ import {
   CS_CONVERSATION_ORDER_CONTEXT_QUERY,
   CS_CONVERSATION_ORDER_CANCELLATIONS_QUERY,
   CS_CONVERSATION_ORDER_IDS_QUERY,
+  CS_COUPONS_QUERY,
   CS_CONVERSATION_PACKAGE_DETAIL_QUERY,
   CS_CONVERSATION_ORDER_TRACKING_QUERY,
   CS_CONVERSATION_RETURN_RECORDS_QUERY,
   CS_OPEN_ESCALATIONS_QUERY,
   CS_SEND_CARD_MUTATION,
+  CS_SEND_COUPON_MUTATION,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
   CS_START_CONVERSATION_FROM_ORDER_MUTATION,
@@ -51,6 +53,22 @@ export interface OrderCardSendInput {
 
 function orderCardKey(input: OrderCardSendInput): string {
   return `${input.shopId}:${input.conversationId}:${input.orderId}:${input.type}`;
+}
+
+export interface CouponSendInput {
+  shopId: string;
+  conversationId: string;
+  couponId: string;
+}
+
+/** A shop's ongoing coupons as the backend returned them (plain data, never MST nodes). */
+export interface ShopCouponList {
+  coupons: GQL.CustomerServiceCoupon[];
+  truncated: boolean;
+}
+
+function couponSendKey(input: CouponSendInput): string {
+  return `${input.shopId}:${input.conversationId}:${input.couponId}`;
 }
 
 function errorMessage(err: unknown): string {
@@ -129,6 +147,7 @@ function isCustomerServiceRichMessage(message: Record<string, any>): boolean {
     "PRODUCT_CARD",
     "ORDER_CARD",
     "LOGISTICS_CARD",
+    "COUPON_CARD",
     "BUYER_ENTER_FROM_PRODUCT",
     "BUYER_ENTER_FROM_ORDER",
   ].includes(String(message.type ?? "").toUpperCase());
@@ -369,6 +388,12 @@ export const CustomerServiceWorkspaceModel = types
     startingOrderKeys: types.optional(types.array(types.string), []),
     /** `shopId:conversationId:orderId:cardType` of order/logistics cards being sent by a person. */
     sendingCardKeys: types.optional(types.array(types.string), []),
+    /** `shopId:conversationId:couponId` of coupon cards being sent by a person. */
+    sendingCouponKeys: types.optional(types.array(types.string), []),
+    /** Ongoing coupons per shop id, loaded while the coupon picker is open. */
+    shopCoupons: types.optional(types.map(types.frozen<ShopCouponList>()), {}),
+    couponsLoadingShopIds: types.optional(types.array(types.string), []),
+    couponsErrors: types.optional(types.map(types.string), {}),
     openingOrderKey: types.maybeNull(types.string),
     /** An order another page asked to show: its conversation opens when the search returns. */
     pendingFocusOrderId: types.maybeNull(types.string),
@@ -548,6 +573,12 @@ export const CustomerServiceWorkspaceModel = types
     },
     isCardSending(input: OrderCardSendInput) {
       return self.sendingCardKeys.includes(orderCardKey(input));
+    },
+    isCouponSending(input: CouponSendInput) {
+      return self.sendingCouponKeys.includes(couponSendKey(input));
+    },
+    isCouponsLoading(shopId: string) {
+      return self.couponsLoadingShopIds.includes(shopId);
     },
     isOrderStarting(shopId: string, orderId: string) {
       return self.startingOrderKeys.includes(`${shopId}:${orderId}`);
@@ -1472,6 +1503,84 @@ export const CustomerServiceWorkspaceModel = types
           throw err;
         } finally {
           removeValue(self.sendingCardKeys as unknown as string[], key);
+        }
+      }),
+      /** Loads the shop's ongoing coupons for the picker; a loaded list is reused unless `force`. */
+      fetchCoupons: flow(function* (shopId: string, force = false) {
+        if (!force && self.shopCoupons.has(shopId)) return;
+        if (self.couponsLoadingShopIds.includes(shopId)) return;
+        pushUnique(self.couponsLoadingShopIds, shopId);
+        self.couponsErrors.delete(shopId);
+        try {
+          const result = yield client().query({
+            query: CS_COUPONS_QUERY,
+            variables: { shopId },
+            fetchPolicy: "network-only",
+          });
+          const list = result.data.ecommerceCustomerServiceCoupons as GQL.CustomerServiceCouponList;
+          self.shopCoupons.set(shopId, { coupons: list.coupons, truncated: list.truncated });
+        } catch (err) {
+          self.couponsErrors.set(shopId, errorMessage(err));
+        } finally {
+          removeValue(self.couponsLoadingShopIds, shopId);
+        }
+      }),
+      /** Drops the loaded list so the next picker session reads live coupon state. */
+      discardCoupons(shopId: string) {
+        self.shopCoupons.delete(shopId);
+        self.couponsErrors.delete(shopId);
+      },
+      /**
+       * Sends the buyer one of the shop's coupons as a coupon card from a person in the
+       * conversation. Each click gets its own idempotency key, so a retried request cannot
+       * deliver the card twice. The backend re-checks the coupon live and rejects it with
+       * a readable error when it can no longer be sent.
+       */
+      sendCoupon: flow(function* (input: CouponSendInput, locale?: string) {
+        const key = couponSendKey(input);
+        if (self.sendingCouponKeys.includes(key)) return false;
+        pushUnique(self.sendingCouponKeys as unknown as string[], key);
+        const telemetry = {
+          shopId: input.shopId,
+          conversationId: input.conversationId,
+          couponId: input.couponId,
+          action: "manual_coupon_send",
+          source: "panel",
+        };
+        try {
+          const startedAt = Date.now();
+          const result = yield client().mutate({
+            mutation: CS_SEND_COUPON_MUTATION,
+            variables: {
+              shopId: input.shopId,
+              conversationId: input.conversationId,
+              couponId: input.couponId,
+              idempotencyKey: `human-cs-coupon:${crypto.randomUUID()}`,
+            },
+          });
+          const messageId = result.data?.ecommerceSendCustomerServiceCoupon?.messageId;
+          if (!messageId) throw new Error("TikTok did not confirm the coupon was sent");
+          emitCsTelemetry("cs.session_event", {
+            ...telemetry,
+            outcome: "ok",
+            durationMs: Date.now() - startedAt,
+          });
+          if (
+            self.selectedConversationId === input.conversationId &&
+            self.selectedConversationShopId === input.shopId
+          ) {
+            yield (self as any).fetchConversationMessages(locale);
+          }
+          return true;
+        } catch (err) {
+          emitCsTelemetry("cs.session_event", {
+            ...telemetry,
+            outcome: "failed",
+            errorMessage: errorMessage(err),
+          });
+          throw err;
+        } finally {
+          removeValue(self.sendingCouponKeys as unknown as string[], key);
         }
       }),
       sendManualReply: flow(function* (locale?: string, refresh = true, draft?: { message: string; original: string }) {

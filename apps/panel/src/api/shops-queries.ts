@@ -1548,6 +1548,64 @@ export const CS_SEND_CARD_MUTATION = gql`
   }
 `;
 
+export const CS_COUPONS_QUERY = gql`
+  query CustomerServiceCoupons($shopId: String!) {
+    ecommerceCustomerServiceCoupons(shopId: $shopId) {
+      truncated
+      coupons {
+        id
+        title
+        displayType
+        status
+        targetBuyerSegment
+        productScope
+        discount {
+          type
+          percentage
+          reductionAmount {
+            amount
+            currency
+          }
+          maxDiscount {
+            amount
+            currency
+          }
+        }
+        threshold {
+          type
+          minSpend {
+            amount
+            currency
+          }
+        }
+        claimStartTime
+        claimEndTime
+        singleBuyerClaimLimit
+        sendable
+        notSendableReason
+      }
+    }
+  }
+`;
+
+export const CS_SEND_COUPON_MUTATION = gql`
+  mutation SendCustomerServiceCoupon(
+    $shopId: String!
+    $conversationId: String!
+    $couponId: String!
+    $idempotencyKey: String!
+  ) {
+    ecommerceSendCustomerServiceCoupon(
+      shopId: $shopId
+      conversationId: $conversationId
+      couponId: $couponId
+      idempotencyKey: $idempotencyKey
+    ) {
+      messageId
+    }
+  }
+`;
+
 export const CS_END_CUSTOMER_SERVICE_SESSION_MUTATION = gql`
   mutation EndCustomerServiceSession($shopId: ID!, $conversationId: String!) {
     csEndCustomerServiceSession(shopId: $shopId, conversationId: $conversationId)

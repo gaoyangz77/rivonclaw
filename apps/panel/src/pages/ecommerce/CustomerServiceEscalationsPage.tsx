@@ -19,6 +19,7 @@ import {
   CopyIcon,
   InfoIcon,
   ModuleIcon,
+  TagIcon,
   RefreshIcon,
 } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
@@ -36,6 +37,7 @@ import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConversationOrderList } from "./components/ConversationOrderList.js";
 import { ConversationOrderCardActions } from "./components/ConversationOrderCardActions.js";
+import { ConversationCouponPicker } from "./components/ConversationCouponPicker.js";
 import {
   OrderAfterSalesSection,
   OrderLogisticsSection,
@@ -102,7 +104,8 @@ type ParsedRichMessage =
     }
   | { kind: "product"; ids: Array<{ labelKey: string; value: string }> }
   | { kind: "order"; ids: Array<{ labelKey: string; value: string }> }
-  | { kind: "logistics"; ids: Array<{ labelKey: string; value: string }> };
+  | { kind: "logistics"; ids: Array<{ labelKey: string; value: string }> }
+  | { kind: "coupon"; ids: Array<{ labelKey: string; value: string }> };
 type DismissEscalationConfirm =
   | { kind: "conversation"; conversation: Conversation }
   | { kind: "single" };
@@ -180,6 +183,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     openConversationOrderKey !== null &&
     openConversationOrderKey ===
       `${workspace.selectedConversationShopId}:${workspace.selectedConversationId}`;
+  const [openConversationCouponKey, setOpenConversationCouponKey] = useState<string | null>(null);
+  const conversationCouponOpen =
+    openConversationCouponKey !== null &&
+    openConversationCouponKey ===
+      `${workspace.selectedConversationShopId}:${workspace.selectedConversationId}`;
   const [conversationAdvancedFiltersOpen, setConversationAdvancedFiltersOpen] = useState(
     workspace.conversationAiFilter !== "all" ||
       workspace.conversationEscalationFilter !== "all" ||
@@ -191,6 +199,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const [reviewModalConversation, setReviewModalConversation] = useState<Conversation | null>(null);
   const conversationDetailsRef = useRef<HTMLDivElement | null>(null);
   const conversationOrderRef = useRef<HTMLDivElement | null>(null);
+  const conversationCouponRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const olderMessagesScrollRef = useRef<OlderMessagesScrollSnapshot | null>(null);
@@ -249,6 +258,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     olderMessagesScrollRef.current = null;
     setConversationDetailsOpen(false);
     setOpenConversationOrderKey(null);
+    setOpenConversationCouponKey(null);
     workspace.fetchConversationMessages(i18n.language);
     workspace.fetchSelectedConversationOrderIds();
     workspace.fetchConversationSummary();
@@ -350,6 +360,16 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [conversationOrderOpen]);
+
+  useEffect(() => {
+    if (!conversationCouponOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (conversationCouponRef.current?.contains(event.target as Node)) return;
+      setOpenConversationCouponKey(null);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [conversationCouponOpen]);
 
   useEffect(() => {
     return panelEventBus.subscribe("cs-escalation-event", (raw) => {
@@ -617,7 +637,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
         ? "productCard"
         : rich.kind === "order"
           ? "orderCard"
-          : "logisticsCard";
+          : rich.kind === "coupon"
+            ? "couponCard"
+            : "logisticsCard";
     return (
       <div className="cs-message-card-body">
         <div className="cs-message-card-title">
@@ -1217,6 +1239,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                               );
                               if (nextOpen) {
                                 setConversationDetailsOpen(false);
+                                setOpenConversationCouponKey(null);
                               }
                             }}
                           >
@@ -1272,6 +1295,45 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       )}
                       <div
                         className={
+                          conversationCouponOpen
+                            ? "cs-conversation-coupon open"
+                            : "cs-conversation-coupon"
+                        }
+                        ref={conversationCouponRef}
+                      >
+                        <button
+                          className={
+                            conversationCouponOpen
+                              ? "btn btn-secondary btn-sm cs-conversation-coupon-trigger active"
+                              : "btn btn-secondary btn-sm cs-conversation-coupon-trigger"
+                          }
+                          type="button"
+                          aria-expanded={conversationCouponOpen}
+                          onClick={() => {
+                            const nextOpen = !conversationCouponOpen;
+                            setOpenConversationCouponKey(nextOpen ? selectedConversationKey : null);
+                            if (nextOpen) {
+                              setConversationDetailsOpen(false);
+                              setOpenConversationOrderKey(null);
+                            }
+                          }}
+                        >
+                          <TagIcon size={14} />
+                          <span>{t("ecommerce.customerServiceWorkspace.coupon")}</span>
+                        </button>
+                        <div className="cs-conversation-coupon-layer">
+                          <div className="cs-conversation-coupon-popover">
+                            <ConversationCouponPicker
+                              workspace={workspace}
+                              shopId={selectedConversation.shopId}
+                              conversationId={selectedConversation.conversationId}
+                              open={conversationCouponOpen}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        className={
                           conversationDetailsOpen
                             ? "cs-conversation-more open"
                             : "cs-conversation-more"
@@ -1289,7 +1351,10 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                           onClick={() => {
                             setConversationDetailsOpen((open) => {
                               const nextOpen = !open;
-                              if (nextOpen) setOpenConversationOrderKey(null);
+                              if (nextOpen) {
+                                setOpenConversationOrderKey(null);
+                                setOpenConversationCouponKey(null);
+                              }
                               return nextOpen;
                             });
                           }}
@@ -2623,6 +2688,13 @@ function parseRichMessage(message: ConversationMessage): ParsedRichMessage | nul
       },
     ]);
     return ids.length > 0 ? { kind: "logistics", ids } : null;
+  }
+
+  if (type === "COUPON_CARD") {
+    const ids = uniqueIds([
+      { labelKey: "couponIdLabel", value: readStringPayload(payload, ["coupon_id", "couponId"]) },
+    ]);
+    return ids.length > 0 ? { kind: "coupon", ids } : null;
   }
 
   return null;
