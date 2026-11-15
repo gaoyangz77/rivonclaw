@@ -1,0 +1,168 @@
+/* ADR-106 creator-list presentation: wizard section, detail toggle and detail panel. */
+
+.affiliate-creator-list-section {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  padding: var(--tk-v1-space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-4);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-creator-list-section > div:first-child p {
+  margin: var(--tk-v1-space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-supporting);
+  line-height: 1.6;
+}
+
+.affiliate-creator-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2) var(--tk-v1-space-3);
+}
+
+.affiliate-creator-list-file-input {
+  display: none;
+}
+
+.affiliate-creator-list-file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-creator-list-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-micro);
+  line-height: 1.55;
+}
+
+.affiliate-creator-list-summary {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-creator-list-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-creator-list-invalid,
+.affiliate-creator-list-problems ul {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-supporting);
+  overflow-wrap: anywhere;
+}
+
+/* Detail toggle, next to "View first message" */
+
+.affiliate-campaign-template-toggle + .affiliate-creator-list-toggle {
+  margin-left: 0;
+}
+
+.affiliate-creator-list-toggle-counts {
+  display: inline-flex;
+  gap: var(--tk-v1-space-1);
+  margin-left: var(--tk-v1-space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.affiliate-creator-list-toggle-counts .is-resolved {
+  color: var(--color-success);
+}
+
+.affiliate-creator-list-toggle-counts .is-pending {
+  color: var(--color-text-muted);
+}
+
+.affiliate-creator-list-toggle-counts .is-problem {
+  color: var(--color-warning);
+}
+
+/* Detail panel */
+
+.affiliate-creator-list-panel {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  margin-bottom: var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--color-bg);
+}
+
+.affiliate-creator-list-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-1) var(--tk-v1-space-3);
+}
+
+.affiliate-creator-list-panel-heading > span {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.affiliate-creator-list-panel-heading > small {
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-micro);
+}
+
+.affiliate-creator-list-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+}
+
+.affiliate-creator-list-counts > div {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--tk-v1-radius-3);
+}
+
+.affiliate-creator-list-counts dt {
+  color: var(--color-text-secondary);
+  font-size: var(--tk-v1-type-micro);
+}
+
+.affiliate-creator-list-counts dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--tk-v1-type-body);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.affiliate-creator-list-problems {
+  display: grid;
+  justify-items: start;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.affiliate-creator-list-problems ul {
+  width: 100%;
+}
+
+.affiliate-creator-list-problems li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-v1-space-2);
+}

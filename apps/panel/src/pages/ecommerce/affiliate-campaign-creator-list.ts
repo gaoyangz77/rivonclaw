@@ -109,3 +109,55 @@ export function prepareCreatorListUsernames(rows: readonly CreatorListRow[]): Pr
     tooMany: usernames.length > CREATOR_LIST_MAX_USERNAMES,
   };
 }
+
+/**
+ * The wizard's uploaded-file draft: plain data only, never business state. It lives for one wizard
+ * session and is reset whenever the wizard opens.
+ */
+export type CreatorListDraft =
+  | { status: "empty" }
+  | { status: "reading"; fileName: string }
+  | { status: "error"; fileName: string; errorKey: "missingColumn" | "noRows" | "readFailed" }
+  | { status: "ready"; fileName: string; prepared: PreparedCreatorList };
+
+export const EMPTY_CREATOR_LIST_DRAFT: CreatorListDraft = { status: "empty" };
+
+/**
+ * Whether the wizard may move past the list. A new Campaign needs a clean prepared file. An edit
+ * keeps its list when no file was chosen, but a file that was chosen must be clean.
+ */
+export function creatorListDraftAllowsContinue(
+  draft: CreatorListDraft,
+  hasExistingList: boolean,
+): boolean {
+  switch (draft.status) {
+    case "empty":
+      return hasExistingList;
+    case "ready":
+      return (
+        draft.prepared.usernames.length > 0 &&
+        draft.prepared.invalid.length === 0 &&
+        !draft.prepared.tooMany
+      );
+    default:
+      return false;
+  }
+}
+
+/** The list size the confirmation step states: the new file when there is one, else the stored list. */
+export function creatorListConfirmedCount(
+  draft: CreatorListDraft,
+  existingTotal: number | null,
+): number {
+  return draft.status === "ready" ? draft.prepared.usernames.length : (existingTotal ?? 0);
+}
+
+/** The usernames to send, only when a file was prepared in this wizard session. */
+export function creatorListUsernamesToWrite(draft: CreatorListDraft): string[] | undefined {
+  return draft.status === "ready" ? draft.prepared.usernames : undefined;
+}
+
+/** The Backend reports rejected rows as `...: rows 3,7,12`; the seller reads the row list. */
+export function creatorListInvalidRowsFromMessage(message: string): string {
+  return /rows\s+([\d,\s]+)/.exec(message)?.[1]?.trim().replace(/,\s*$/, "") ?? "";
+}

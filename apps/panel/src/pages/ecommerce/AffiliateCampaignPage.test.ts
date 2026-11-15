@@ -19,6 +19,8 @@ import {
   campaignDeliveryFailureBreakdown,
   CAMPAIGN_ERROR_MESSAGE_KEYS,
   campaignErrorMessage,
+  campaignRuleSummary,
+  campaignStrategyLabel,
   campaignTemplateContentIssue,
   campaignCreatorStatesViewState,
   campaignFunnelCounterValue,
@@ -1027,5 +1029,42 @@ describe("Campaign guidance interpretation presentation (ADR-097)", () => {
     expect(zh).not.toHaveProperty("dynamicDiscoveryDescription");
     expect(zh).not.toHaveProperty("dynamicDiscoveryDesktopRequired");
     expect((zh.guidance as Record<string, unknown>).treatmentApproximate).toBe("近似筛选");
+  });
+});
+
+describe("Creator-list Campaigns (ADR-106)", () => {
+  const t = (key: string, options?: Record<string, unknown>) =>
+    options ? `${key}|${JSON.stringify(options)}` : key;
+
+  it("names every selection strategy, and none reads as another", () => {
+    const strategies = Object.values(GQL.AffiliateCampaignSelectionStrategy);
+    expect(strategies).toContain(GQL.AffiliateCampaignSelectionStrategy.CreatorList);
+    const labels = strategies.map((strategy) => campaignStrategyLabel(strategy, t));
+    expect(new Set(labels).size).toBe(strategies.length);
+    expect(campaignStrategyLabel(GQL.AffiliateCampaignSelectionStrategy.CreatorList, t)).toBe(
+      "ecommerce.affiliateCampaign.creatorList.strategyTitle",
+    );
+    const summaries = strategies.map((strategy) =>
+      campaignRuleSummary({ selectionPolicy: { strategy } }, t),
+    );
+    expect(new Set(summaries).size).toBe(strategies.length);
+  });
+
+  it("maps every creator-list backend failure, passing the rejected rows to the seller", () => {
+    expect(campaignErrorMessage(new Error("CAMPAIGN_CREATOR_LIST_REQUIRED"), t)).toBe(
+      "ecommerce.affiliateCampaign.creatorList.errors.required",
+    );
+    expect(campaignErrorMessage(new Error("CAMPAIGN_CREATOR_LIST_TOO_LARGE"), t)).toBe(
+      "ecommerce.affiliateCampaign.creatorList.errors.tooLarge",
+    );
+    expect(campaignErrorMessage(new Error("CAMPAIGN_CREATOR_LIST_NOT_ALLOWED"), t)).toBe(
+      "ecommerce.affiliateCampaign.creatorList.errors.notAllowed",
+    );
+    expect(campaignErrorMessage(new Error("CAMPAIGN_CREATOR_SOURCE_IMMUTABLE"), t)).toBe(
+      "ecommerce.affiliateCampaign.creatorList.errors.sourceImmutable",
+    );
+    expect(
+      campaignErrorMessage(new Error("CAMPAIGN_CREATOR_LIST_USERNAME_INVALID: rows 3,7,12"), t),
+    ).toBe('ecommerce.affiliateCampaign.creatorList.errors.usernameInvalid|{"rows":"3,7,12"}');
   });
 });

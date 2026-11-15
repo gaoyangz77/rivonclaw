@@ -5,6 +5,11 @@ import {
   CREATOR_LIST_HEADER,
   CREATOR_LIST_MAX_USERNAMES,
   CreatorListWorkbookError,
+  creatorListConfirmedCount,
+  creatorListDraftAllowsContinue,
+  creatorListInvalidRowsFromMessage,
+  creatorListUsernamesToWrite,
+  type CreatorListDraft,
   isValidCreatorListUsername,
   normalizeCreatorListUsername,
   prepareCreatorListUsernames,
@@ -146,5 +151,42 @@ describe("the template", () => {
     workbook.worksheets[0]!.addRow(["@Alice"]);
     const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
     expect(readCreatorListWorkbook(XLSX, buffer)).toEqual([row("@Alice")]);
+  });
+});
+
+describe("wizard draft rules", () => {
+  const ready = (
+    over: Partial<Extract<CreatorListDraft, { status: "ready" }>["prepared"]> = {},
+  ): CreatorListDraft => ({
+    status: "ready",
+    fileName: "f.xlsx",
+    prepared: { usernames: ["a", "b"], duplicateCount: 0, invalid: [], tooMany: false, ...over },
+  });
+
+  it("needs a clean file for a new Campaign, and lets an edit keep its stored list", () => {
+    expect(creatorListDraftAllowsContinue({ status: "empty" }, false)).toBe(false);
+    expect(creatorListDraftAllowsContinue({ status: "empty" }, true)).toBe(true);
+    expect(creatorListDraftAllowsContinue(ready(), false)).toBe(true);
+    expect(creatorListDraftAllowsContinue(ready({ invalid: [row("x y", 3)] }), true)).toBe(false);
+    expect(creatorListDraftAllowsContinue(ready({ tooMany: true }), true)).toBe(false);
+    expect(creatorListDraftAllowsContinue({ status: "reading", fileName: "f" }, true)).toBe(false);
+    expect(
+      creatorListDraftAllowsContinue({ status: "error", fileName: "f", errorKey: "noRows" }, true),
+    ).toBe(false);
+  });
+
+  it("writes usernames only when a file was prepared, and confirms the right size", () => {
+    expect(creatorListUsernamesToWrite({ status: "empty" })).toBeUndefined();
+    expect(creatorListUsernamesToWrite(ready())).toEqual(["a", "b"]);
+    expect(creatorListConfirmedCount(ready(), 99)).toBe(2);
+    expect(creatorListConfirmedCount({ status: "empty" }, 99)).toBe(99);
+    expect(creatorListConfirmedCount({ status: "empty" }, null)).toBe(0);
+  });
+
+  it("reads the rejected rows out of the Backend message", () => {
+    expect(
+      creatorListInvalidRowsFromMessage("CAMPAIGN_CREATOR_LIST_USERNAME_INVALID: rows 3,7,12"),
+    ).toBe("3,7,12");
+    expect(creatorListInvalidRowsFromMessage("something else")).toBe("");
   });
 });

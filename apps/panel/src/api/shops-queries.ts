@@ -428,6 +428,43 @@ export const AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_QUERY = gql`
   }
 `;
 
+// ADR-106. Detail-only: the summary is one aggregation per Campaign, so it is never part of the list fragment.
+export const AFFILIATE_CAMPAIGN_CREATOR_LIST_SUMMARY_QUERY = gql`
+  query AffiliateCampaignCreatorListSummary($input: ReadAffiliateCampaignsInput!) {
+    affiliateCampaigns(input: $input) {
+      id
+      creatorList {
+        total
+        resolved
+        pendingLookup
+        notFound
+        ambiguous
+        lookupFailed
+        fed
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_CREATOR_LIST_ENTRIES_QUERY = gql`
+  query AffiliateCampaignCreatorListEntries($input: ReadAffiliateCampaignCreatorListEntriesInput!) {
+    affiliateCampaignCreatorListEntries(input: $input) {
+      items {
+        id
+        username
+        rawUsername
+        rowNumber
+        status
+        resolvedVia
+        creatorId
+        lookedUpAt
+        errorCode
+      }
+      nextCursor
+    }
+  }
+`;
+
 export const PREVIEW_AFFILIATE_CAMPAIGN_GUIDANCE_INTERPRETATION_MUTATION = gql`
   mutation PreviewAffiliateCampaignGuidanceInterpretation(
     $input: PreviewAffiliateCampaignGuidanceInterpretationInput!

@@ -7,7 +7,7 @@ const en = {
   strategyDescription:
     "Upload a list of creator usernames and reach exactly those creators. Nothing is searched or filtered.",
   strategyOrder:
-    "Creators TikTok already knows are matched at once; the rest are looked up one at a time, about one every 2 minutes per shop.",
+    "Creators we already have on record match at once; the rest are looked up one at a time, about one every 2 minutes per shop.",
   sectionTitle: "Creator list",
   sectionDescription:
     "Download the template, put one creator username per row in the creator_username column, and upload the file (.xlsx, .xls or .csv).",
@@ -28,7 +28,11 @@ const en = {
   existingList:
     "Current list: {{total}} usernames. Uploading a new file replaces it; creators already reached are not reached again.",
   lookupNote:
-    "Creators TikTok already knows are matched at once. The rest are looked up one at a time, about one every 2 minutes per shop, and the results appear in the campaign details.",
+    "Creators we already have on record match at once. The rest are looked up one at a time, about one every 2 minutes per shop, and the results appear in the campaign details.",
+  selectionSummary: "Reaches exactly the creators in your uploaded list",
+  screeningHint:
+    "Every creator in your list is contacted as is: no filter or model score is applied. Protection, cooldown and already-contacted rules still apply.",
+  notScreened: "From your list",
   template: {
     instructionsSheetName: "Instructions",
     field: "Field",
@@ -54,6 +58,7 @@ const en = {
     problemTitle: "Usernames that could not be matched",
     problemEmpty: "Every username has been matched or is still being looked up.",
     loadMore: "Load more",
+    loadFailed: "The list could not be loaded.",
   },
   status: {
     PENDING_LOOKUP: "Being looked up",
@@ -88,7 +93,7 @@ const zh: CreatorListCopy = {
   strategyKicker: "按名单",
   strategyTitle: "达人名单",
   strategyDescription: "上传达人用户名名单，只联系名单里的达人，不做搜索和筛选。",
-  strategyOrder: "TikTok 已知的达人会立即匹配，其余的逐个查找，每个店铺约每 2 分钟查一个。",
+  strategyOrder: "系统里已有记录的达人会立即匹配，其余的逐个查找，每个店铺约每 2 分钟查一个。",
   sectionTitle: "达人名单",
   sectionDescription:
     "下载模板，在 creator_username 列中每行填一个达人用户名，然后上传文件（.xlsx、.xls 或 .csv）。",
@@ -108,7 +113,10 @@ const zh: CreatorListCopy = {
   listRequired: "请先上传达人名单再继续。",
   existingList: "当前名单：{{total}} 个用户名。上传新文件会替换它；已联系过的达人不会被重复联系。",
   lookupNote:
-    "TikTok 已知的达人会立即匹配，其余的逐个查找，每个店铺约每 2 分钟查一个，结果会显示在计划详情中。",
+    "系统里已有记录的达人会立即匹配，其余的逐个查找，每个店铺约每 2 分钟查一个，结果会显示在计划详情中。",
+  selectionSummary: "只联系你上传名单中的达人",
+  screeningHint: "名单中的达人不做筛选，也没有模型评分。保护期、冷却期和已联系过的规则仍然适用。",
+  notScreened: "来自名单",
   template: {
     instructionsSheetName: "填写说明",
     field: "字段",
@@ -134,6 +142,7 @@ const zh: CreatorListCopy = {
     problemTitle: "未能匹配的用户名",
     problemEmpty: "所有用户名都已匹配或仍在查找中。",
     loadMore: "加载更多",
+    loadFailed: "无法加载名单。",
   },
   status: {
     PENDING_LOOKUP: "查找中",
@@ -166,7 +175,7 @@ const de: CreatorListCopy = {
   strategyDescription:
     "Laden Sie eine Liste von Creator-Benutzernamen hoch und erreichen Sie genau diese Creator. Es wird nichts gesucht oder gefiltert.",
   strategyOrder:
-    "Creator, die TikTok bereits kennt, werden sofort zugeordnet; die übrigen werden nacheinander gesucht, etwa einer alle 2 Minuten pro Shop.",
+    "Creator, die wir bereits erfasst haben, werden sofort zugeordnet; die übrigen werden nacheinander gesucht, etwa einer alle 2 Minuten pro Shop.",
   sectionTitle: "Creator-Liste",
   sectionDescription:
     "Laden Sie die Vorlage herunter, tragen Sie pro Zeile einen Creator-Benutzernamen in die Spalte creator_username ein und laden Sie die Datei hoch (.xlsx, .xls oder .csv).",
@@ -189,7 +198,11 @@ const de: CreatorListCopy = {
   existingList:
     "Aktuelle Liste: {{total}} Benutzernamen. Ein neuer Upload ersetzt sie; bereits erreichte Creator werden nicht erneut erreicht.",
   lookupNote:
-    "Creator, die TikTok bereits kennt, werden sofort zugeordnet. Die übrigen werden nacheinander gesucht, etwa einer alle 2 Minuten pro Shop; die Ergebnisse erscheinen in den Kampagnendetails.",
+    "Creator, die wir bereits erfasst haben, werden sofort zugeordnet. Die übrigen werden nacheinander gesucht, etwa einer alle 2 Minuten pro Shop; die Ergebnisse erscheinen in den Kampagnendetails.",
+  selectionSummary: "Erreicht genau die Creator Ihrer hochgeladenen Liste",
+  screeningHint:
+    "Jeder Creator Ihrer Liste wird unverändert kontaktiert: Es gibt weder Filter noch Modellbewertung. Schutz-, Abkühlungs- und Bereits-kontaktiert-Regeln gelten weiterhin.",
+  notScreened: "Aus Ihrer Liste",
   template: {
     instructionsSheetName: "Anleitung",
     field: "Feld",
@@ -215,6 +228,7 @@ const de: CreatorListCopy = {
     problemTitle: "Benutzernamen, die nicht zugeordnet werden konnten",
     problemEmpty: "Alle Benutzernamen sind zugeordnet oder werden noch gesucht.",
     loadMore: "Mehr laden",
+    loadFailed: "Die Liste konnte nicht geladen werden.",
   },
   status: {
     PENDING_LOOKUP: "Wird gesucht",
@@ -251,7 +265,7 @@ const es: CreatorListCopy = {
   strategyDescription:
     "Sube una lista de nombres de usuario de creadores y llega exactamente a esos creadores. No se busca ni se filtra nada.",
   strategyOrder:
-    "Los creadores que TikTok ya conoce se emparejan al instante; el resto se busca uno a uno, aproximadamente uno cada 2 minutos por tienda.",
+    "Los creadores que ya tenemos registrados se emparejan al instante; el resto se busca uno a uno, aproximadamente uno cada 2 minutos por tienda.",
   sectionTitle: "Lista de creadores",
   sectionDescription:
     "Descarga la plantilla, escribe un nombre de usuario de creador por fila en la columna creator_username y sube el archivo (.xlsx, .xls o .csv).",
@@ -272,7 +286,11 @@ const es: CreatorListCopy = {
   existingList:
     "Lista actual: {{total}} nombres de usuario. Al subir un archivo nuevo se reemplaza; los creadores ya contactados no se vuelven a contactar.",
   lookupNote:
-    "Los creadores que TikTok ya conoce se emparejan al instante. El resto se busca uno a uno, aproximadamente uno cada 2 minutos por tienda, y los resultados aparecen en los detalles de la campaña.",
+    "Los creadores que ya tenemos registrados se emparejan al instante. El resto se busca uno a uno, aproximadamente uno cada 2 minutos por tienda, y los resultados aparecen en los detalles de la campaña.",
+  selectionSummary: "Llega exactamente a los creadores de tu lista subida",
+  screeningHint:
+    "Se contacta a cada creador de tu lista tal cual: no se aplica ningún filtro ni puntuación de modelo. Las reglas de protección, enfriamiento y contacto previo siguen vigentes.",
+  notScreened: "De tu lista",
   template: {
     instructionsSheetName: "Instrucciones",
     field: "Campo",
@@ -298,6 +316,7 @@ const es: CreatorListCopy = {
     problemTitle: "Nombres de usuario que no se pudieron emparejar",
     problemEmpty: "Todos los nombres de usuario están emparejados o se siguen buscando.",
     loadMore: "Cargar más",
+    loadFailed: "No se pudo cargar la lista.",
   },
   status: {
     PENDING_LOOKUP: "En búsqueda",
@@ -334,7 +353,7 @@ const fr: CreatorListCopy = {
   strategyDescription:
     "Importez une liste de noms d’utilisateur de créateurs et contactez exactement ces créateurs. Rien n’est recherché ni filtré.",
   strategyOrder:
-    "Les créateurs que TikTok connaît déjà sont associés immédiatement ; les autres sont recherchés un par un, environ un toutes les 2 minutes par boutique.",
+    "Les créateurs déjà enregistrés chez nous sont associés immédiatement ; les autres sont recherchés un par un, environ un toutes les 2 minutes par boutique.",
   sectionTitle: "Liste de créateurs",
   sectionDescription:
     "Téléchargez le modèle, saisissez un nom d’utilisateur de créateur par ligne dans la colonne creator_username, puis importez le fichier (.xlsx, .xls ou .csv).",
@@ -356,7 +375,11 @@ const fr: CreatorListCopy = {
   existingList:
     "Liste actuelle : {{total}} noms d’utilisateur. Importer un nouveau fichier la remplace ; les créateurs déjà contactés ne le sont pas de nouveau.",
   lookupNote:
-    "Les créateurs que TikTok connaît déjà sont associés immédiatement. Les autres sont recherchés un par un, environ un toutes les 2 minutes par boutique, et les résultats apparaissent dans les détails de la campagne.",
+    "Les créateurs déjà enregistrés chez nous sont associés immédiatement. Les autres sont recherchés un par un, environ un toutes les 2 minutes par boutique, et les résultats apparaissent dans les détails de la campagne.",
+  selectionSummary: "Contacte exactement les créateurs de votre liste importée",
+  screeningHint:
+    "Chaque créateur de votre liste est contacté tel quel : aucun filtre ni score de modèle n’est appliqué. Les règles de protection, de délai de carence et de contact préalable restent en vigueur.",
+  notScreened: "De votre liste",
   template: {
     instructionsSheetName: "Instructions",
     field: "Champ",
@@ -382,6 +405,7 @@ const fr: CreatorListCopy = {
     problemTitle: "Noms d’utilisateur qui n’ont pas pu être associés",
     problemEmpty: "Tous les noms d’utilisateur sont associés ou encore en cours de recherche.",
     loadMore: "Charger plus",
+    loadFailed: "La liste n’a pas pu être chargée.",
   },
   status: {
     PENDING_LOOKUP: "En recherche",
@@ -418,7 +442,7 @@ const id: CreatorListCopy = {
   strategyDescription:
     "Unggah daftar username kreator dan jangkau tepat kreator tersebut. Tidak ada pencarian atau penyaringan.",
   strategyOrder:
-    "Kreator yang sudah dikenal TikTok dicocokkan seketika; sisanya dicari satu per satu, sekitar satu setiap 2 menit per toko.",
+    "Kreator yang sudah kami catat langsung dicocokkan; sisanya dicari satu per satu, sekitar satu setiap 2 menit per toko.",
   sectionTitle: "Daftar kreator",
   sectionDescription:
     "Unduh templat, isi satu username kreator per baris pada kolom creator_username, lalu unggah file (.xlsx, .xls, atau .csv).",
@@ -439,7 +463,11 @@ const id: CreatorListCopy = {
   existingList:
     "Daftar saat ini: {{total}} username. Mengunggah file baru akan menggantinya; kreator yang sudah dihubungi tidak dihubungi lagi.",
   lookupNote:
-    "Kreator yang sudah dikenal TikTok dicocokkan seketika. Sisanya dicari satu per satu, sekitar satu setiap 2 menit per toko, dan hasilnya muncul di detail kampanye.",
+    "Kreator yang sudah kami catat langsung dicocokkan. Sisanya dicari satu per satu, sekitar satu setiap 2 menit per toko, dan hasilnya muncul di detail kampanye.",
+  selectionSummary: "Menjangkau tepat kreator dalam daftar yang Anda unggah",
+  screeningHint:
+    "Setiap kreator dalam daftar Anda dihubungi apa adanya: tanpa filter dan tanpa skor model. Aturan perlindungan, jeda, dan sudah pernah dihubungi tetap berlaku.",
+  notScreened: "Dari daftar Anda",
   template: {
     instructionsSheetName: "Petunjuk",
     field: "Kolom",
@@ -465,6 +493,7 @@ const id: CreatorListCopy = {
     problemTitle: "Username yang tidak dapat dicocokkan",
     problemEmpty: "Semua username sudah cocok atau masih dicari.",
     loadMore: "Muat lebih banyak",
+    loadFailed: "Daftar tidak dapat dimuat.",
   },
   status: {
     PENDING_LOOKUP: "Sedang dicari",
@@ -499,7 +528,7 @@ const it: CreatorListCopy = {
   strategyDescription:
     "Carica un elenco di nomi utente di creator e raggiungi esattamente quei creator. Non viene cercato né filtrato nulla.",
   strategyOrder:
-    "I creator che TikTok conosce già vengono abbinati subito; gli altri vengono cercati uno alla volta, circa uno ogni 2 minuti per negozio.",
+    "I creator che abbiamo già in archivio vengono abbinati subito; gli altri vengono cercati uno alla volta, circa uno ogni 2 minuti per negozio.",
   sectionTitle: "Elenco creator",
   sectionDescription:
     "Scarica il modello, inserisci un nome utente di creator per riga nella colonna creator_username e carica il file (.xlsx, .xls o .csv).",
@@ -521,7 +550,11 @@ const it: CreatorListCopy = {
   existingList:
     "Elenco attuale: {{total}} nomi utente. Caricare un nuovo file lo sostituisce; i creator già contattati non vengono contattati di nuovo.",
   lookupNote:
-    "I creator che TikTok conosce già vengono abbinati subito. Gli altri vengono cercati uno alla volta, circa uno ogni 2 minuti per negozio, e i risultati compaiono nei dettagli della campagna.",
+    "I creator che abbiamo già in archivio vengono abbinati subito. Gli altri vengono cercati uno alla volta, circa uno ogni 2 minuti per negozio, e i risultati compaiono nei dettagli della campagna.",
+  selectionSummary: "Raggiunge esattamente i creator del tuo elenco caricato",
+  screeningHint:
+    "Ogni creator del tuo elenco viene contattato così com’è: nessun filtro né punteggio del modello. Le regole di protezione, di attesa e di contatto già avvenuto restano valide.",
+  notScreened: "Dal tuo elenco",
   template: {
     instructionsSheetName: "Istruzioni",
     field: "Campo",
@@ -547,6 +580,7 @@ const it: CreatorListCopy = {
     problemTitle: "Nomi utente che non è stato possibile abbinare",
     problemEmpty: "Tutti i nomi utente sono stati abbinati o sono ancora in ricerca.",
     loadMore: "Carica altri",
+    loadFailed: "Impossibile caricare l’elenco.",
   },
   status: {
     PENDING_LOOKUP: "In ricerca",
@@ -582,7 +616,7 @@ const th: CreatorListCopy = {
   strategyTitle: "รายชื่อครีเอเตอร์",
   strategyDescription:
     "อัปโหลดรายชื่อผู้ใช้ของครีเอเตอร์ แล้วติดต่อเฉพาะครีเอเตอร์เหล่านั้นเท่านั้น ไม่มีการค้นหาหรือกรอง",
-  strategyOrder: "ครีเอเตอร์ที่ TikTok รู้จักอยู่แล้วจะจับคู่ทันที ที่เหลือจะค้นหาทีละราย ประมาณ 1 รายทุก 2 นาทีต่อร้านค้า",
+  strategyOrder: "ครีเอเตอร์ที่เรามีบันทึกอยู่แล้วจะจับคู่ทันที ที่เหลือจะค้นหาทีละราย ประมาณ 1 รายทุก 2 นาทีต่อร้านค้า",
   sectionTitle: "รายชื่อครีเอเตอร์",
   sectionDescription:
     "ดาวน์โหลดเทมเพลต กรอกชื่อผู้ใช้ครีเอเตอร์ 1 รายต่อ 1 แถวในคอลัมน์ creator_username แล้วอัปโหลดไฟล์ (.xlsx, .xls หรือ .csv)",
@@ -603,7 +637,11 @@ const th: CreatorListCopy = {
   existingList:
     "รายชื่อปัจจุบัน: {{total}} ชื่อผู้ใช้ การอัปโหลดไฟล์ใหม่จะแทนที่รายชื่อนี้ ครีเอเตอร์ที่ติดต่อไปแล้วจะไม่ถูกติดต่อซ้ำ",
   lookupNote:
-    "ครีเอเตอร์ที่ TikTok รู้จักอยู่แล้วจะจับคู่ทันที ที่เหลือจะค้นหาทีละราย ประมาณ 1 รายทุก 2 นาทีต่อร้านค้า และผลลัพธ์จะแสดงในรายละเอียดแคมเปญ",
+    "ครีเอเตอร์ที่เรามีบันทึกอยู่แล้วจะจับคู่ทันที ที่เหลือจะค้นหาทีละราย ประมาณ 1 รายทุก 2 นาทีต่อร้านค้า และผลลัพธ์จะแสดงในรายละเอียดแคมเปญ",
+  selectionSummary: "ติดต่อเฉพาะครีเอเตอร์ในรายชื่อที่คุณอัปโหลดเท่านั้น",
+  screeningHint:
+    "ครีเอเตอร์ทุกรายในรายชื่อของคุณจะถูกติดต่อตามที่ระบุ ไม่มีการกรองหรือคะแนนจากโมเดล กฎการคุ้มครอง ช่วงพัก และการติดต่อไปแล้วยังคงมีผล",
+  notScreened: "จากรายชื่อของคุณ",
   template: {
     instructionsSheetName: "คำแนะนำ",
     field: "ฟิลด์",
@@ -629,6 +667,7 @@ const th: CreatorListCopy = {
     problemTitle: "ชื่อผู้ใช้ที่จับคู่ไม่ได้",
     problemEmpty: "ทุกชื่อผู้ใช้จับคู่แล้วหรือยังอยู่ระหว่างการค้นหา",
     loadMore: "โหลดเพิ่ม",
+    loadFailed: "ไม่สามารถโหลดรายชื่อได้",
   },
   status: {
     PENDING_LOOKUP: "กำลังค้นหา",
