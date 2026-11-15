@@ -4771,7 +4771,7 @@ export default {
       JP: "日本",
     },
     platform: {
-      TIKTOK_SHOP: "TikTok 商店",
+      TIKTOK_SHOP: "TikTok 店铺",
     },
     table: {
       headers: {

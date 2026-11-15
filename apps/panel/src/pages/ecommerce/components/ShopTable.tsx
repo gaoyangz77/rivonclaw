@@ -246,7 +246,7 @@ export const ShopTable = observer(function ShopTable({
                           </td>
                           <td className="shop-table-col-alias">-</td>
                           <td>
-                            {headerShop.platform === "TIKTOK_SHOP" ? "TikTok" : headerShop.platform}
+                            {t(`ecommerce.platform.${headerShop.platform}`, { defaultValue: headerShop.platform })}
                           </td>
                           <td>
                             {(() => {
@@ -330,7 +330,7 @@ export const ShopTable = observer(function ShopTable({
                                   }}
                                 />
                               </td>
-                              <td>{shop.platform === "TIKTOK_SHOP" ? "TikTok" : shop.platform}</td>
+                              <td>{t(`ecommerce.platform.${shop.platform}`, { defaultValue: shop.platform })}</td>
                               <td>{formatShopRegionLabel(shop.region, t)}</td>
                               <td>
                                 <TkBadge tone={getAuthStatusBadgeTone(shop.authStatus)}>

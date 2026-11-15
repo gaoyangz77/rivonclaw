@@ -230,16 +230,24 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
+  /**
+   * After an authorization completes, both the shop list and billing change: a
+   * first shop's authorization also grants its onboarding trial on the backend.
+   * Refreshing only the shops left the drawer on the pre-authorization billing
+   * overview, offering to sell a service the seller was already trialling.
+   */
+  async function handleShopAuthorized() {
+    await Promise.all([entityStore.fetchShops(), entityStore.refreshBilling()]);
+    setConnectModalOpen(false);
+  }
+
   function handleConnectShop(platformAppId: string) {
     if (!platformAppId) return;
     setUpgradePrompt(false);
     oauthFlow
       .initiateOAuth(
         platformAppId,
-        async () => {
-          await entityStore.fetchShops();
-          setConnectModalOpen(false);
-        },
+        handleShopAuthorized,
         (err) => handleError(err, "ecommerce.oauthFailed"),
       )
       .catch(() => {}); // Error already handled by onError callback
@@ -256,10 +264,7 @@ export const EcommercePage = observer(function EcommercePage() {
     try {
       await oauthFlow.initiateOAuth(
         appId,
-        async () => {
-          await entityStore.fetchShops();
-          setConnectModalOpen(false);
-        },
+        handleShopAuthorized,
         (err) => handleError(err, "ecommerce.oauthFailed"),
       );
       // Open modal after OAuth URL is set (initiateOAuth sets oauthWaiting on success)

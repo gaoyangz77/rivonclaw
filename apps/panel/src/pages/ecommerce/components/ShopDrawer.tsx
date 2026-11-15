@@ -479,7 +479,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                           {t("ecommerce.table.headers.platform")}
                         </span>
                         <span className="shop-info-value">
-                          {shop.platform === "TIKTOK_SHOP" ? "TikTok Shop" : shop.platform}
+                          {t(`ecommerce.platform.${shop.platform}`, { defaultValue: shop.platform })}
                         </span>
                       </div>
                       <div className="shop-info-row">
