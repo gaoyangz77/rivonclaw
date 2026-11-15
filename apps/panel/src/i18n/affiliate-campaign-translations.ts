@@ -1,11 +1,13 @@
 import { campaignScreeningCopy } from "./campaign-screening-translations.js";
 import { campaignPacingCopy } from "./campaign-pacing-translations.js";
 import { campaignGuidanceCopy } from "./affiliate-campaign-guidance-translations.js";
+import { campaignCreatorListCopy } from "./affiliate-campaign-creator-list-translations.js";
 
 const en = {
   screening: campaignScreeningCopy.en,
   pacing: campaignPacingCopy.en,
   guidance: campaignGuidanceCopy.en,
+  creatorList: campaignCreatorListCopy.en,
   eyebrow: "AFFILIATE ACQUISITION",
   title: "Creator campaigns",
   subtitle: "Discover, score, and contact the right creators on a predictable daily cadence.",
@@ -664,6 +666,7 @@ const zh = {
   screening: campaignScreeningCopy.zh,
   pacing: campaignPacingCopy.zh,
   guidance: campaignGuidanceCopy.zh,
+  creatorList: campaignCreatorListCopy.zh,
   dynamicDiscoveryTitle: "动态达人发现",
   dynamicDiscoverySequential: "当前搜索条件执行完毕后，才会生成下一组。",
   dynamicDiscoveryPageLimit: "每组搜索条件保存可恢复游标，最多完成 50 个成功页面。",
@@ -2756,6 +2759,7 @@ function locale(
     screening: campaignScreeningCopy[operationalLocale ?? "en"],
     pacing: campaignPacingCopy[operationalLocale ?? "en"],
     guidance: campaignGuidanceCopy[operationalLocale ?? "en"],
+    creatorList: campaignCreatorListCopy[operationalLocale ?? "en"],
     errors: {
       ...en.errors,
       ...operational?.errors,
