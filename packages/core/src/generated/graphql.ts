@@ -1329,6 +1329,8 @@ export interface AffiliateCampaign {
   completedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   configRevision: Scalars["Int"]["output"];
   createdAt: Scalars["DateTimeISO"]["output"];
+  /** Progress of a Creator-list Campaign's usernames (ADR-106); null for every other strategy. One aggregation per Campaign, so select it in detail views, not list rows. */
+  creatorList?: Maybe<AffiliateCampaignCreatorListSummary>;
   dailyOutreachTarget: Scalars["Int"]["output"];
   /** How long a Target Collaboration created by this Campaign stays open, in whole days. Resolved against the moment each collaboration is created, not against the Campaign start. */
   endDays: Scalars["Int"]["output"];
@@ -1438,6 +1440,61 @@ export interface AffiliateCampaignContentPerformanceRulesInput {
   averageShoppableLiveViewers?: InputMaybe<Scalars["String"]["input"]>;
   averageShoppableVideoViews?: InputMaybe<Scalars["String"]["input"]>;
   averageVideoViews?: InputMaybe<Scalars["String"]["input"]>;
+}
+
+export interface AffiliateCampaignCreatorListEntry {
+  creatorId?: Maybe<Scalars["ID"]["output"]>;
+  errorCode?: Maybe<Scalars["String"]["output"]>;
+  id: Scalars["ID"]["output"];
+  lookedUpAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** The value the seller supplied for the first row carrying this username. */
+  rawUsername: Scalars["String"]["output"];
+  resolvedVia?: Maybe<AffiliateCampaignCreatorListResolutionSource>;
+  rowNumber: Scalars["Int"]["output"];
+  status: AffiliateCampaignCreatorListEntryStatus;
+  /** Normalized username. */
+  username: Scalars["String"]["output"];
+}
+
+export interface AffiliateCampaignCreatorListEntryPage {
+  items: Array<AffiliateCampaignCreatorListEntry>;
+  nextCursor?: Maybe<Scalars["String"]["output"]>;
+}
+
+/** How far one username of a Creator-list Campaign has come toward a Creator. */
+export const AffiliateCampaignCreatorListEntryStatus = {
+  Ambiguous: "AMBIGUOUS",
+  LookupFailed: "LOOKUP_FAILED",
+  NotFound: "NOT_FOUND",
+  PendingLookup: "PENDING_LOOKUP",
+  Resolved: "RESOLVED",
+} as const;
+
+export type AffiliateCampaignCreatorListEntryStatus =
+  (typeof AffiliateCampaignCreatorListEntryStatus)[keyof typeof AffiliateCampaignCreatorListEntryStatus];
+/** Where a Creator-list entry's Creator came from. */
+export const AffiliateCampaignCreatorListResolutionSource = {
+  IdentityStore: "IDENTITY_STORE",
+  MarketplaceSearch: "MARKETPLACE_SEARCH",
+} as const;
+
+export type AffiliateCampaignCreatorListResolutionSource =
+  (typeof AffiliateCampaignCreatorListResolutionSource)[keyof typeof AffiliateCampaignCreatorListResolutionSource];
+/** Progress of a Creator-list Campaign's usernames (ADR-106). Counts only the current list. */
+export interface AffiliateCampaignCreatorListSummary {
+  /** TikTok returned several exact username matches. */
+  ambiguous: Scalars["Int"]["output"];
+  /** Resolved entries already handed to outreach at the Campaign's current revision. */
+  fed: Scalars["Int"]["output"];
+  /** The lookup kept failing. */
+  lookupFailed: Scalars["Int"]["output"];
+  /** TikTok returned no exact username match. */
+  notFound: Scalars["Int"]["output"];
+  /** Still waiting for a Marketplace lookup. */
+  pendingLookup: Scalars["Int"]["output"];
+  /** Matched to a Creator. */
+  resolved: Scalars["Int"]["output"];
+  total: Scalars["Int"]["output"];
 }
 
 export interface AffiliateCampaignCreatorState {
@@ -2023,6 +2080,8 @@ export interface AffiliateCampaignSelectionReadiness {
 
 export const AffiliateCampaignSelectionStrategy = {
   AiPreApproval: "AI_PRE_APPROVAL",
+  /** The seller supplies up to 5,000 TikTok usernames; they are resolved to Creators and reached directly, with no SearchPlan and no screening. Fixed at Campaign creation. */
+  CreatorList: "CREATOR_LIST",
   MarketplaceRules: "MARKETPLACE_RULES",
 } as const;
 
@@ -14903,6 +14962,8 @@ export interface Query {
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
   /** Read whether the seller can run Campaigns in AI mode right now. A ready answer authorises scheduling first Reach outs only; it says nothing about Sample Application approval. */
   affiliateCampaignAiReadiness: AffiliateCampaignAiReadiness;
+  /** Cursor-paginated usernames of one owned Creator-list Campaign in list order, with how far each has come toward a Creator (ADR-106). */
+  affiliateCampaignCreatorListEntries: AffiliateCampaignCreatorListEntryPage;
   /** Cursor-paginated Creator funnel states for one owned Campaign. */
   affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read recent daily execution records for one owned Campaign. */
@@ -15342,6 +15403,10 @@ export interface QueryAffiliateBusinessDeveloperPageArgs {
 
 export interface QueryAffiliateBusinessDevelopersArgs {
   includeArchived?: InputMaybe<Scalars["Boolean"]["input"]>;
+}
+
+export interface QueryAffiliateCampaignCreatorListEntriesArgs {
+  input: ReadAffiliateCampaignCreatorListEntriesInput;
 }
 
 export interface QueryAffiliateCampaignCreatorStatesArgs {
@@ -16377,6 +16442,14 @@ export interface ReadActionProposalsInput {
 export interface ReadAffiliateApprovalPoliciesInput {
   action?: InputMaybe<ActionProposalType>;
   enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+}
+
+export interface ReadAffiliateCampaignCreatorListEntriesInput {
+  campaignId: Scalars["ID"]["input"];
+  cursor?: InputMaybe<Scalars["String"]["input"]>;
+  /** At most 200. */
+  limit?: InputMaybe<Scalars["Int"]["input"]>;
+  statuses?: InputMaybe<Array<AffiliateCampaignCreatorListEntryStatus>>;
 }
 
 export interface ReadAffiliateCampaignCreatorStatesInput {
@@ -19051,6 +19124,8 @@ export interface WriteAffiliateBusinessDeveloperInput {
 }
 
 export interface WriteAffiliateCampaignInput {
+  /** Creator-list Campaigns only (selectionPolicy.strategy CREATOR_LIST, ADR-106): the seller's TikTok usernames, one per row (row number = position + 1), at most 5,000 distinct. Required when creating a Creator-list Campaign. On update, omitting it keeps the current list and supplying it replaces the list without changing the Campaign revision. Rejected for other strategies. */
+  creatorUsernames?: InputMaybe<Array<Scalars["String"]["input"]>>;
   dailyOutreachTarget: Scalars["Int"]["input"];
   endDays?: InputMaybe<Scalars["Int"]["input"]>;
   /** Defaults to DIRECT_MESSAGE for a new Campaign; an existing Campaign keeps its stored mode when omitted. Under COLLABORATION_ONLY the message template may be empty. */
