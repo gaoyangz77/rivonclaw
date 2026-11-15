@@ -53,6 +53,7 @@ import { MESSAGE_ATTACHMENT_TRANSLATIONS } from "./message-attachment-translatio
 import { TUTORIAL_SEPTEMBER_TRANSLATIONS } from "./tutorial-september-translations.js";
 import { TUTORIAL_WORKBENCHES_TRANSLATIONS } from "./tutorial-workbenches-translations.js";
 import { TUTORIAL_OCTOBER_TRANSLATIONS } from "./tutorial-october-translations.js";
+import { novemberTutorialTranslations } from "./tutorial-november-translations.js";
 import {
   TUTORIAL_CATCHUP_EN,
   TUTORIAL_CATCHUP_ZH,
@@ -620,6 +621,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
       TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],
       TUTORIAL_WORKBENCHES_TRANSLATIONS[language.code],
       TUTORIAL_OCTOBER_TRANSLATIONS[language.code],
+      novemberTutorialTranslations(language.code),
     ),
   }),
 );

@@ -20,4 +20,5 @@ export const ecommerceAfterSaleSteps: TutorialStep[] = [
   step("after-sale-welcome", "after-sale-header", "welcome", "bottom"),
   step("after-sale-filters", "after-sale-filters", "filters", "bottom"),
   step("after-sale-table", "after-sale-table", "table", "top"),
+  step("after-sale-export", "after-sale-export", "export", "bottom"),
 ];

@@ -25,7 +25,9 @@ function closeDeveloperLogin() {
   openedLoginDetail = false;
 }
 
-async function selectTeamTab(tab: "team" | "assignments" | "safety") {
+type TeamTab = "team" | "assignments" | "safety" | "business";
+
+async function selectTeamTab(tab: TeamTab) {
   clickTutorialTarget(`affiliate-team-tab-${tab}`);
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }
@@ -35,7 +37,7 @@ function step(
   targetId: string,
   key: string,
   placement: TutorialStep["placement"],
-  tab?: "assignments" | "safety",
+  tab?: Exclude<TeamTab, "team">,
 ): TutorialStep {
   return {
     id,
@@ -82,4 +84,5 @@ export const ecommerceAffiliateTeamSteps: TutorialStep[] = [
     "assignments",
   ),
   step("affiliate-team-safety", "affiliate-team-safety", "safety", "top", "safety"),
+  step("affiliate-team-business", "affiliate-team-business", "business", "top", "business"),
 ];

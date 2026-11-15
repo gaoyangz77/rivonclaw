@@ -247,11 +247,7 @@ export const AfterSaleTable = observer(function AfterSaleTable() {
           {afterSaleDecisionErrorText(t, rowError.message)}
         </TkAlert>
       ) : null}
-      <TkPanel
-        padding="none"
-        className="after-sale-table-panel"
-        data-tutorial-id="after-sale-table"
-      >
+      <TkPanel padding="none" className="after-sale-table-panel">
         <TkTableFrame variant="embedded">
           <table className="after-sale-table">
             <thead>

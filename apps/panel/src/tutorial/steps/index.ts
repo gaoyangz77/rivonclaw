@@ -91,6 +91,13 @@ export function getStepsForRoute(
   if (businessDeveloperOnly && route === "/commerce/affiliate/analytics") {
     steps = ecommerceAffiliateAnalyticsBdSteps;
   }
+  if (businessDeveloperOnly && route === "/commerce/affiliate/attention") {
+    steps = steps.map((step) =>
+      step.id === "affiliate-attention-filters"
+        ? { ...step, bodyKey: "tutorial.ecommerceAffiliateAttention.bdFiltersBody" }
+        : step,
+    );
+  }
   if (businessDeveloperOnly && route === "/commerce/product-knowledge") {
     steps = productKnowledgeSteps
       .filter((step) => step.id !== "product-knowledge-create")

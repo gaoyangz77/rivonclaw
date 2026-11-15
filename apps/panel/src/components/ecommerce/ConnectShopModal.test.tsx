@@ -72,6 +72,11 @@ function choose(label: string, option: string) {
   fireEvent.click(screen.getByRole("button", { name: option }));
 }
 
+// These tests verify onboarding selection, not the wording of the platform label.
+function tiktokShopLabel() {
+  return i18n.t("ecommerce.platform.TIKTOK_SHOP");
+}
+
 describe("ConnectShopModal", () => {
   afterEach(cleanup);
 
@@ -86,7 +91,7 @@ describe("ConnectShopModal", () => {
     const sellerTypeSelect = screen.getByRole("button", { name: "卖家类型" });
     const authorizeButton = screen.getByRole("button", { name: "授权" }) as HTMLButtonElement;
 
-    expect(platformSelect.textContent).toContain("TikTok 商店");
+    expect(platformSelect.textContent).toContain(tiktokShopLabel());
     expect((marketSelect as HTMLButtonElement).disabled).toBe(false);
     expect((sellerTypeSelect as HTMLButtonElement).disabled).toBe(true);
     expect(authorizeButton.disabled).toBe(true);
@@ -101,7 +106,7 @@ describe("ConnectShopModal", () => {
 
   it("exposes local and cross-border sellers only for Mexico", () => {
     const onConnectShop = renderModal();
-    choose("平台", "TikTok 商店");
+    choose("平台", tiktokShopLabel());
     choose("地区 / 市场", "墨西哥");
 
     expect(screen.getByRole("button", { name: "卖家类型" }).textContent).toContain("本土卖家");
@@ -116,7 +121,7 @@ describe("ConnectShopModal", () => {
 
   it("exposes only local sellers for the United States", () => {
     renderModal();
-    choose("平台", "TikTok 商店");
+    choose("平台", tiktokShopLabel());
     choose("地区 / 市场", "美国");
 
     fireEvent.click(screen.getByRole("button", { name: "卖家类型" }));
@@ -126,7 +131,7 @@ describe("ConnectShopModal", () => {
 
   it("searches markets by both raw region code and localized label", () => {
     renderModal();
-    choose("平台", "TikTok 商店");
+    choose("平台", tiktokShopLabel());
     fireEvent.click(screen.getByRole("button", { name: "地区 / 市场" }));
 
     const searchInput = screen.getByRole("textbox", { name: "搜索地区代码或名称..." });

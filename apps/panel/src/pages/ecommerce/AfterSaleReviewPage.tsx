@@ -114,7 +114,9 @@ export const AfterSaleReviewPage = observer(function AfterSaleReviewPage() {
           {afterSale.error}
         </TkAlert>
       ) : null}
-      <AfterSaleTable />
+      <div data-tutorial-id="after-sale-table">
+        <AfterSaleTable />
+      </div>
       <AfterSaleDetailModal />
     </TkPageFrame>
   );

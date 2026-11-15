@@ -12,6 +12,7 @@ import {
 import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js";
 import { TUTORIAL_WORKBENCHES_TRANSLATIONS } from "../../i18n/tutorial-workbenches-translations.js";
 import { TUTORIAL_OCTOBER_TRANSLATIONS } from "../../i18n/tutorial-october-translations.js";
+import { novemberTutorialTranslations } from "../../i18n/tutorial-november-translations.js";
 import { LANGUAGE_OPTIONS, LANGUAGE_RESOURCES } from "../../i18n/languages.js";
 
 function target(id: string, onClick: () => void = vi.fn()) {
@@ -22,8 +23,11 @@ function target(id: string, onClick: () => void = vi.fn()) {
   return node;
 }
 
+const contentStep = productKnowledgeSteps.find(({ id }) => id === "product-knowledge-content")!;
+const bindingsStep = productKnowledgeSteps.find(({ id }) => id === "product-knowledge-bindings")!;
+
 afterEach(async () => {
-  await productKnowledgeSteps[3].cleanup?.();
+  await contentStep.cleanup?.();
   document.body.replaceChildren();
   vi.restoreAllMocks();
 });
@@ -135,13 +139,29 @@ describe("refreshed tutorial lifecycles", () => {
     expect(select).toHaveBeenCalledOnce();
   });
 
+  it("visits Creator Business Settings and returns to Team without saving", async () => {
+    const actions: string[] = [];
+    for (const tab of ["team", "business"]) {
+      target(`affiliate-team-tab-${tab}`, () => actions.push(tab));
+    }
+    const save = vi.fn();
+    target("save-business-settings", save);
+    const step = ecommerceAffiliateTeamSteps.find(
+      (entry) => entry.id === "affiliate-team-business",
+    )!;
+    await step.prepare?.();
+    await step.cleanup?.();
+    expect(actions).toEqual(["business", "team"]);
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it("opens an existing knowledge record and closes it without saving", async () => {
     const save = vi.fn();
     target("knowledge-save", save);
     const open = vi.fn(() => target("product-knowledge-editor"));
     target("product-knowledge-item", open);
     const dispatch = vi.spyOn(document, "dispatchEvent");
-    const [content, bindings] = productKnowledgeSteps.slice(3);
+    const [content, bindings] = [contentStep, bindingsStep];
     expect(content.lifecycleGroup).toBe(bindings.lifecycleGroup);
     // Entering either end of the lifecycle group (Next or Previous) opens it.
     await bindings.prepare?.();
@@ -156,8 +176,8 @@ describe("refreshed tutorial lifecycles", () => {
     const open = vi.fn();
     target("product-knowledge-item", open);
     const dispatch = vi.spyOn(document, "dispatchEvent");
-    await productKnowledgeSteps[3].prepare?.();
-    await productKnowledgeSteps[3].cleanup?.();
+    await contentStep.prepare?.();
+    await contentStep.cleanup?.();
     expect(open).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
   });
@@ -166,8 +186,8 @@ describe("refreshed tutorial lifecycles", () => {
     const create = vi.fn();
     target("product-knowledge-create", create);
     const dispatch = vi.spyOn(document, "dispatchEvent");
-    await productKnowledgeSteps[3].prepare?.();
-    await productKnowledgeSteps[3].cleanup?.();
+    await contentStep.prepare?.();
+    await contentStep.cleanup?.();
     expect(create).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
   });
@@ -182,14 +202,17 @@ function strings(value: object, prefix = ""): Record<string, string> {
   );
 }
 
-describe("workbench and October copy", () => {
+describe("tutorial copy bundles", () => {
   it.each([TUTORIAL_WORKBENCHES_TRANSLATIONS, TUTORIAL_OCTOBER_TRANSLATIONS])(
     "merges refreshed keys in all eight languages without English fallback",
     (translations) => {
       const english = strings(translations.en);
       for (const language of LANGUAGE_OPTIONS) {
         const copy = strings(translations[language.code]);
-        const latest = strings(TUTORIAL_OCTOBER_TRANSLATIONS[language.code]);
+        const latest = {
+          ...strings(TUTORIAL_OCTOBER_TRANSLATIONS[language.code]),
+          ...strings(novemberTutorialTranslations(language.code)),
+        };
         expect(Object.keys(copy)).toEqual(Object.keys(english));
         const resolved = strings(LANGUAGE_RESOURCES[language.code].translation);
         for (const [key, value] of Object.entries(copy)) {
@@ -199,4 +222,18 @@ describe("workbench and October copy", () => {
       }
     },
   );
+
+  it("uses every November translation directly rather than falling back to English", () => {
+    const english = strings(novemberTutorialTranslations("en"));
+    for (const language of LANGUAGE_OPTIONS) {
+      const copy = strings(novemberTutorialTranslations(language.code));
+      expect(Object.keys(copy)).toEqual(Object.keys(english));
+      const resolved = strings(LANGUAGE_RESOURCES[language.code].translation);
+      for (const [key, value] of Object.entries(copy)) {
+        expect(value.trim(), `${language.code} ${key}`).not.toBe("");
+        expect(resolved[key], `${language.code} ${key}`).toBe(value);
+        if (language.code !== "en") expect(value).not.toBe(english[key]);
+      }
+    }
+  });
 });

@@ -38,6 +38,7 @@ export const productKnowledgeSteps: TutorialStep[] = [
   step("product-knowledge-welcome", "product-knowledge-header", "welcome", "bottom"),
   step("product-knowledge-create", "product-knowledge-create", "create", "bottom"),
   step("product-knowledge-library", "product-knowledge-library", "library", "top"),
+  step("product-knowledge-export", "product-knowledge-export", "export", "bottom"),
   ...(["content", "bindings"] as const).map(
     (key): TutorialStep => ({
       ...step(`product-knowledge-${key}`, `product-knowledge-${key}`, key, "top"),

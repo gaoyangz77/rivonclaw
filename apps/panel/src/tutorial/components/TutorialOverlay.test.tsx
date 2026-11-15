@@ -1,4 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TutorialStep } from "../types.js";
 
@@ -35,6 +35,44 @@ afterEach(() => {
 });
 
 describe("TutorialOverlay step lifecycle", () => {
+  it("takes keyboard focus back from a detail opened by a tour step", async () => {
+    const underlyingEscape = vi.fn();
+    document.addEventListener("keydown", underlyingEscape);
+    const prepare = () => {
+      const detail = document.createElement("div");
+      detail.setAttribute("role", "dialog");
+      detail.setAttribute("aria-modal", "true");
+      detail.dataset.tutorialId = "modal-target";
+      const businessAction = document.createElement("button");
+      detail.append(businessAction);
+      document.body.append(detail);
+      businessAction.focus();
+    };
+    tutorial.steps = [
+      {
+        id: "modal-target",
+        target: '[data-tutorial-id="modal-target"]',
+        titleKey: "tutorial.modal.title",
+        bodyKey: "tutorial.modal.body",
+        prepare,
+      },
+    ];
+    try {
+      const view = render(<TutorialOverlay />);
+      const done = view.getByRole("button", { name: "tutorial.nav.done" });
+      await waitFor(() => expect(document.activeElement).toBe(done));
+      fireEvent.keyDown(done, { key: "Tab" });
+      const close = view.getByTitle("tutorial.nav.close");
+      expect(document.activeElement).toBe(close);
+      underlyingEscape.mockClear();
+      fireEvent.keyDown(close, { key: "Escape" });
+      expect(tutorial.stop).toHaveBeenCalledOnce();
+      expect(underlyingEscape).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("keydown", underlyingEscape);
+    }
+  });
+
   it("measures the active duplicate and follows retained-tab visibility changes", async () => {
     const hidden = document.createElement("section");
     hidden.hidden = true;

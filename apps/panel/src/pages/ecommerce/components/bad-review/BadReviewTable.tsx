@@ -32,7 +32,17 @@ import { AfterSaleCopyValue } from "../after-sale/AfterSaleCopyValue.js";
 import { BadReviewActions } from "./BadReviewActions.js";
 
 const PREFIX = "ecommerce.badReview";
-const HEADERS = ["shop", "order", "rating", "review", "reviewTime", "source", "status", "ai", "actions"];
+const HEADERS = [
+  "shop",
+  "order",
+  "rating",
+  "review",
+  "reviewTime",
+  "source",
+  "status",
+  "ai",
+  "actions",
+];
 
 const BadReviewRow = observer(function BadReviewRow({
   review,
@@ -60,10 +70,7 @@ const BadReviewRow = observer(function BadReviewRow({
   const id = review.id;
   const shop = shopDisplayLabel({ id: review.shopId, alias: shopAlias, shopName: review.shopName });
   return (
-    <TkInteractiveTableRow
-      onActivate={() => onOpen(id)}
-      aria-label={t(`${PREFIX}.detail.title`)}
-    >
+    <TkInteractiveTableRow onActivate={() => onOpen(id)} aria-label={t(`${PREFIX}.detail.title`)}>
       <td>
         {canBulkSendReview(review) ? (
           <input
@@ -154,7 +161,7 @@ export const BadReviewTable = observer(function BadReviewTable({
   const selectableCount = badReview.bulkSelectableIds.length;
   const aliasByShopId = new Map(entityStore.shops.map((shop) => [shop.id, shop.alias ?? null]));
   return (
-    <TkPanel padding="none" data-tutorial-id="bad-review-table">
+    <TkPanel padding="none">
       <TkTableFrame variant="embedded">
         <table className="bad-review-table">
           <thead>

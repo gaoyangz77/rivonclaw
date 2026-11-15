@@ -163,10 +163,16 @@ function validIntakeLimit(value: number): boolean {
 }
 
 export function validDeveloperIntake(form: DeveloperForm): boolean {
-  return !form.creatorIntakeLimitsEnabled || (validIntakeLimit(form.weeklyCreatorLimit) && validIntakeLimit(form.monthlyCreatorLimit));
+  return (
+    !form.creatorIntakeLimitsEnabled ||
+    (validIntakeLimit(form.weeklyCreatorLimit) && validIntakeLimit(form.monthlyCreatorLimit))
+  );
 }
 
-export function DeveloperIntakeLimits({ form, setForm }: {
+export function DeveloperIntakeLimits({
+  form,
+  setForm,
+}: {
   form: DeveloperForm;
   setForm: (form: DeveloperForm) => void;
 }) {
@@ -183,18 +189,30 @@ export function DeveloperIntakeLimits({ form, setForm }: {
           className="affiliate-bd-intake-toggle"
           label={t("ecommerce.affiliateTeam.intakeLimitsEnabled")}
           checked={form.creatorIntakeLimitsEnabled}
-          onChange={checked => setForm({ ...form, creatorIntakeLimitsEnabled: checked })}
+          onChange={(checked) => setForm({ ...form, creatorIntakeLimitsEnabled: checked })}
         />
-        <p className="affiliate-bd-intake-hint">{t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}</p>
+        <p className="affiliate-bd-intake-hint">
+          {t("ecommerce.affiliateTeam.creatorIntakeLimitsHint")}
+        </p>
       </div>
       {form.creatorIntakeLimitsEnabled && (
         <div className="affiliate-bd-intake-fields">
-          {(["weeklyCreatorLimit", "monthlyCreatorLimit"] as const).map(field => (
-            <TkField key={field} label={t(`ecommerce.affiliateTeam.${field}`)}
-              type="number" min={1} max={2_147_483_647} step={1}
+          {(["weeklyCreatorLimit", "monthlyCreatorLimit"] as const).map((field) => (
+            <TkField
+              key={field}
+              label={t(`ecommerce.affiliateTeam.${field}`)}
+              type="number"
+              min={1}
+              max={2_147_483_647}
+              step={1}
               value={form[field] || ""}
-              error={!validIntakeLimit(form[field]) ? t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid") : undefined}
-              onChange={event => setForm({ ...form, [field]: Number(event.target.value) })} />
+              error={
+                !validIntakeLimit(form[field])
+                  ? t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid")
+                  : undefined
+              }
+              onChange={(event) => setForm({ ...form, [field]: Number(event.target.value) })}
+            />
           ))}
         </div>
       )}
@@ -202,7 +220,10 @@ export function DeveloperIntakeLimits({ form, setForm }: {
   );
 }
 
-export function DeveloperCreatorIntake({ form, setForm }: {
+export function DeveloperCreatorIntake({
+  form,
+  setForm,
+}: {
   form: DeveloperForm;
   setForm: (form: DeveloperForm) => void;
 }) {
@@ -213,7 +234,7 @@ export function DeveloperCreatorIntake({ form, setForm }: {
         className="affiliate-bd-intake-toggle"
         label={t("ecommerce.affiliateTeam.acceptingCreators")}
         checked={form.acceptingCreators}
-        onChange={checked => setForm({ ...form, acceptingCreators: checked })}
+        onChange={(checked) => setForm({ ...form, acceptingCreators: checked })}
       />
       <DeveloperIntakeLimits form={form} setForm={setForm} />
     </div>
@@ -346,7 +367,9 @@ export function writeDeveloperInputFrom(
     acceptingCreators: form.acceptingCreators,
     creatorIntakeLimitsEnabled: form.creatorIntakeLimitsEnabled,
     weeklyCreatorLimit: validIntakeLimit(form.weeklyCreatorLimit) ? form.weeklyCreatorLimit : 100,
-    monthlyCreatorLimit: validIntakeLimit(form.monthlyCreatorLimit) ? form.monthlyCreatorLimit : 500,
+    monthlyCreatorLimit: validIntakeLimit(form.monthlyCreatorLimit)
+      ? form.monthlyCreatorLimit
+      : 500,
     agentAssistanceMode: form.agentAssistanceMode,
     businessPrompt: form.businessPrompt.trim() || null,
     deviceId: form.deviceId.trim() || null,
@@ -425,9 +448,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   const [creatorUpdateMode, setCreatorUpdateMode] = useState<"FULL" | "BD_ONLY">("FULL");
   const [protectionImportFileName, setProtectionImportFileName] = useState("");
   /** The uploaded header row, as read; always replaced together with `protectionRows`. */
-  const [protectionImportSourceHeaders, setProtectionImportSourceHeaders] = useState<unknown[]>(
-    [],
-  );
+  const [protectionImportSourceHeaders, setProtectionImportSourceHeaders] = useState<unknown[]>([]);
   const [protectionDragActive, setProtectionDragActive] = useState(false);
   const [protectionPreviewPage, setProtectionPreviewPage] = useState(0);
   const [creatorAddOpen, setCreatorAddOpen] = useState(false);
@@ -1116,7 +1137,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       // export relies on that, so a divergence must stop the import instead of exporting
       // another row's cells.
       if (rawRows.length !== sheetRows.length - 1) {
-        throw new Error("Spreadsheet rows could not be read consistently; re-save the file and retry");
+        throw new Error(
+          "Spreadsheet rows could not be read consistently; re-save the file and retry",
+        );
       }
       const activeDevelopersByName = new Map(
         authoritativeDevelopers
@@ -2118,7 +2141,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                       onClick={() =>
                         setDeveloperPage((page) => Math.min(developerTotalPages - 1, page + 1))
                       }
-                      disabled={developerPageQuery.loading || developerPage + 1 >= developerTotalPages}
+                      disabled={
+                        developerPageQuery.loading || developerPage + 1 >= developerTotalPages
+                      }
                       title={t("ecommerce.affiliateTeam.nextPage", {
                         defaultValue: "Next page",
                       })}
@@ -2511,6 +2536,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
         className="affiliate-team-page-tab-panel is-business"
         role="tabpanel"
         aria-labelledby="affiliate-team-tab-business"
+        data-tutorial-id="affiliate-team-business"
         hidden={pageTab !== "BUSINESS"}
       >
         <AffiliateCreatorBusinessSettingsPanel />
@@ -2831,7 +2857,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                               placeholder={t("ecommerce.affiliateTeam.selectExistingDeveloper")}
                               ariaLabel={t("ecommerce.affiliateTeam.selectExistingDeveloper")}
                               searchable
-                              searchPlaceholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
+                              searchPlaceholder={t(
+                                "ecommerce.affiliateTeam.ownerSearchPlaceholder",
+                              )}
                               disabled={ensureDevelopersState.loading}
                             />
                           </label>

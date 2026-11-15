@@ -95,6 +95,7 @@ export function ProductKnowledgeExportButton({
 
   return (
     <TkButton
+      data-tutorial-id="product-knowledge-export"
       variant="secondary"
       leadingIcon={<DownloadIcon />}
       disabled={disabled || progress !== null}

@@ -691,16 +691,15 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                 const start = input.selectionStart ?? input.value.length;
                 const end = input.selectionEnd ?? start;
                 workspace.setConversationSearchDraft(
-                  input.value.slice(0, start) + pasted.replace(/\r\n?|\n/g, ",") +
+                  input.value.slice(0, start) +
+                    pasted.replace(/\r\n?|\n/g, ",") +
                     input.value.slice(end),
                 );
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") workspace.applyConversationSearch();
               }}
-              placeholder={t(
-                "ecommerce.customerServiceWorkspace.conversationSearchPlaceholder",
-              )}
+              placeholder={t("ecommerce.customerServiceWorkspace.conversationSearchPlaceholder")}
             />
             {workspace.conversationSearch ? (
               <button
@@ -773,9 +772,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
         <Select
           ariaLabel={t("ecommerce.customerServiceWorkspace.filterStatus")}
           value={workspace.escalationStatusFilter}
-          onChange={(value) =>
-            workspace.setEscalationStatusFilter(value as EscalationStatusFilter)
-          }
+          onChange={(value) => workspace.setEscalationStatusFilter(value as EscalationStatusFilter)}
           options={[
             { value: "open", label: t("ecommerce.customerServiceWorkspace.statusOpen") },
             { value: "pending", label: t("ecommerce.customerServiceWorkspace.statusPending") },
@@ -844,10 +841,11 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
         className="cs-workspace-header"
         copyClassName="cs-workspace-header-copy"
         actionsClassName="cs-workspace-header-filters"
-        actionsProps={{
-          "data-tutorial-id":
-            activeTab === "conversations" ? "cs-conversation-filters" : "cs-escalation-filters",
-        }}
+        actionsProps={
+          activeTab === "conversations"
+            ? { "data-tutorial-id": "cs-conversation-filters" }
+            : { "data-tutorial-id": "cs-escalation-filters" }
+        }
         title={t(
           mode === "conversations"
             ? "ecommerce.customerServiceWorkspace.conversationsPageTitle"
@@ -855,7 +853,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
               ? "ecommerce.customerServiceWorkspace.escalationsPageTitle"
               : "ecommerce.customerServiceWorkspace.title",
         )}
-        actions={activeTab === "conversations" ? conversationFilterControls : escalationFilterControls}
+        actions={
+          activeTab === "conversations" ? conversationFilterControls : escalationFilterControls
+        }
       />
       {mode === "workspace" ? (
         <TkTabs
@@ -907,9 +907,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                   ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
                   value={workspace.conversationEscalationFilter}
                   onChange={(value) =>
-                    workspace.setConversationEscalationFilter(
-                      value as ConversationEscalationFilter,
-                    )
+                    workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)
                   }
                   options={[
                     {
@@ -1013,7 +1011,9 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         buyerName={buyerLabel(item)}
                         shopLabel={shopLabel(item.shopId)}
                         timeLabel={
-                          item.latestMessageTime ? formatCompactDateTime(item.latestMessageTime) : "-"
+                          item.latestMessageTime
+                            ? formatCompactDateTime(item.latestMessageTime)
+                            : "-"
                         }
                         onSelect={() =>
                           workspace.selectConversation(item.shopId, item.conversationId)
@@ -1224,45 +1224,49 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             <span>{t("ecommerce.customerServiceWorkspace.order")}</span>
                           </button>
                           <div className="cs-conversation-order-layer">
-                          <div className="cs-conversation-order-popover">
-                            <ConversationOrderList
-                              orderIds={conversationOrderIds}
-                              expandedOrderId={expandedOrderId}
-                              loadingIds={workspace.selectedConversationOrderIdsLoading}
-                              idsError={workspace.selectedConversationOrderIdsError}
-                              loadingDetail={workspace.selectedConversationOrderContextLoading}
-                              detailError={workspace.selectedConversationOrderContextError}
-                              onToggle={(orderId) => workspace.toggleConversationOrder(orderId)}
-                              onRetryIds={() => void workspace.fetchSelectedConversationOrderIds()}
-                              onRefresh={() => {
-                                void workspace.fetchSelectedConversationOrderContext(true);
-                                void workspace.fetchSelectedConversationOrderTracking(true);
-                                void workspace.fetchSelectedConversationOrderCancellations(true);
-                              }}
-                              headerActions={
-                                selectedConversationOrderContext?.order ? (
-                                  <ConversationOrderCardActions
+                            <div className="cs-conversation-order-popover">
+                              <ConversationOrderList
+                                orderIds={conversationOrderIds}
+                                expandedOrderId={expandedOrderId}
+                                loadingIds={workspace.selectedConversationOrderIdsLoading}
+                                idsError={workspace.selectedConversationOrderIdsError}
+                                loadingDetail={workspace.selectedConversationOrderContextLoading}
+                                detailError={workspace.selectedConversationOrderContextError}
+                                onToggle={(orderId) => workspace.toggleConversationOrder(orderId)}
+                                onRetryIds={() =>
+                                  void workspace.fetchSelectedConversationOrderIds()
+                                }
+                                onRefresh={() => {
+                                  void workspace.fetchSelectedConversationOrderContext(true);
+                                  void workspace.fetchSelectedConversationOrderTracking(true);
+                                  void workspace.fetchSelectedConversationOrderCancellations(true);
+                                }}
+                                headerActions={
+                                  selectedConversationOrderContext?.order ? (
+                                    <ConversationOrderCardActions
+                                      workspace={workspace}
+                                      shopId={selectedConversation.shopId}
+                                      conversationId={selectedConversation.conversationId}
+                                      orderId={selectedConversationOrderContext.orderId}
+                                      packageIds={orderPackageIds(
+                                        selectedConversationOrderContext.order,
+                                      )}
+                                    />
+                                  ) : null
+                                }
+                              >
+                                {selectedConversationOrderContext ? (
+                                  <ConversationOrderPopover
+                                    context={selectedConversationOrderContext}
                                     workspace={workspace}
                                     shopId={selectedConversation.shopId}
-                                    conversationId={selectedConversation.conversationId}
-                                    orderId={selectedConversationOrderContext.orderId}
-                                    packageIds={orderPackageIds(selectedConversationOrderContext.order)}
+                                    copiedMeta={workspace.copiedMeta}
+                                    locale={i18n.language}
+                                    onCopy={copyMeta}
                                   />
-                                ) : null
-                              }
-                            >
-                              {selectedConversationOrderContext ? (
-                                <ConversationOrderPopover
-                                  context={selectedConversationOrderContext}
-                                  workspace={workspace}
-                                  shopId={selectedConversation.shopId}
-                                  copiedMeta={workspace.copiedMeta}
-                                  locale={i18n.language}
-                                  onCopy={copyMeta}
-                                />
-                              ) : null}
-                            </ConversationOrderList>
-                          </div>
+                                ) : null}
+                              </ConversationOrderList>
+                            </div>
                           </div>
                         </div>
                       )}

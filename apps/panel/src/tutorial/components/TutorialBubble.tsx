@@ -14,6 +14,7 @@ export function TutorialBubble() {
     dragged: boolean;
   } | null>(null);
   const bubbleRef = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -55,6 +56,7 @@ export function TutorialBubble() {
       bubbleRef.current?.releasePointerCapture(e.pointerId);
       // Only trigger start if it was a click, not a drag
       if (!wasDrag) {
+        restoreFocus.current = true;
         start();
       }
     },
@@ -66,6 +68,10 @@ export function TutorialBubble() {
     if (bubbleRef.current) {
       bubbleRef.current.style.setProperty("--bubble-right", `${position.right}px`);
       bubbleRef.current.style.setProperty("--bubble-bottom", `${position.bottom}px`);
+      if (restoreFocus.current) {
+        restoreFocus.current = false;
+        bubbleRef.current.focus({ preventScroll: true });
+      }
     }
   }, [position]);
 
@@ -79,6 +85,11 @@ export function TutorialBubble() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onClick={(event) => {
+        if (event.detail !== 0) return;
+        restoreFocus.current = true;
+        start();
+      }}
     >
       <svg
         width="22"

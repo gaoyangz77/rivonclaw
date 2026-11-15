@@ -112,6 +112,7 @@ export const AfterSaleExportButton = observer(function AfterSaleExportButton() {
 
   return (
     <TkButton
+      data-tutorial-id="after-sale-export"
       variant="secondary"
       leadingIcon={<DownloadIcon />}
       disabled={disabled}

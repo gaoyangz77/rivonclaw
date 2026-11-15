@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useId, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useTutorial } from "../TutorialProvider.js";
 import { findVisibleTutorialTarget, waitForTutorialTarget } from "../targets.js";
@@ -63,11 +63,20 @@ export function TutorialOverlay() {
   const { isPlaying, steps, currentStepIndex, next, prev, stop } = useTutorial();
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const advanceRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const bodyId = useId();
   const activeTargetRef = useRef<Element | null>(null);
   const activeLifecycleRef = useRef<ActiveLifecycle | null>(null);
   const mouseDownOnOverlay = useRef(false);
   const directionRef = useRef<"forward" | "backward">("forward");
   const hasSpotlight = spotlightRect !== null;
+
+  // A step can open a product dialog that moves focus to its own controls.
+  // Reclaim focus after the target is ready so the tour is the active dialog.
+  useEffect(() => {
+    if (isPlaying && hasSpotlight) advanceRef.current?.focus({ preventScroll: true });
+  }, [isPlaying, hasSpotlight, currentStepIndex]);
 
   const cleanupActiveLifecycle = useCallback(async () => {
     const lifecycle = activeLifecycleRef.current;
@@ -276,7 +285,32 @@ export function TutorialOverlay() {
       {spotlightRect && <div className="tutorial-spotlight" style={spotlightRect} />}
 
       {/* Tooltip */}
-      <div ref={tooltipRef} className="tutorial-tooltip">
+      <div
+        ref={tooltipRef}
+        className="tutorial-tooltip"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            stop();
+          }
+          if (event.key !== "Tab") return;
+          const buttons = event.currentTarget.querySelectorAll("button");
+          const first = buttons[0];
+          const last = buttons[buttons.length - 1];
+          if (event.shiftKey && event.target === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && event.target === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }}
+      >
         <button className="tutorial-tooltip-close" onClick={stop} title={t("tutorial.nav.close")}>
           <svg
             width="14"
@@ -292,8 +326,12 @@ export function TutorialOverlay() {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <div className="tutorial-tooltip-title">{t(step.titleKey)}</div>
-        <div className="tutorial-tooltip-body">{t(step.bodyKey)}</div>
+        <div id={titleId} className="tutorial-tooltip-title">
+          {t(step.titleKey)}
+        </div>
+        <div id={bodyId} className="tutorial-tooltip-body">
+          {t(step.bodyKey)}
+        </div>
         <div className="tutorial-tooltip-footer">
           <span className="tutorial-tooltip-counter">
             {t("tutorial.nav.stepOf", { current: currentStepIndex + 1, total: steps.length })}
@@ -311,6 +349,7 @@ export function TutorialOverlay() {
               </button>
             )}
             <button
+              ref={advanceRef}
               className="btn btn-primary btn-sm"
               onClick={() => {
                 directionRef.current = "forward";

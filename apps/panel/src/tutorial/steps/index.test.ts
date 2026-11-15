@@ -45,14 +45,21 @@ const renderedSource = ["pages", "components"]
   .flatMap((directory) => walkSource(join(SRC_ROOT, directory)))
   .map((file) => readFileSync(file, "utf8"))
   .join("\n");
+const renderedTargets = new Set(
+  [...renderedSource.matchAll(/(?:data-tutorial-id=|"data-tutorial-id":\s*)"([^"]+)"/g)].map(
+    ([, id]) => id,
+  ),
+);
 
 describe("tutorial step registry", () => {
   it("keeps the audited Affiliate tutorials at their intended coverage", () => {
     const expectedStepCounts: Record<string, number> = {
       "/commerce/affiliate/attention": 7,
       "/commerce/affiliate/manual-workbench": 8,
-      "/commerce/affiliate/team": 7,
-      "/commerce/product-knowledge": 5,
+      "/commerce/affiliate/team": 8,
+      "/commerce/product-knowledge": 6,
+      "/commerce/customer-service/after-sales": 4,
+      "/commerce/customer-service/bad-reviews": 5,
       "/commerce/affiliate/campaigns": 8,
       "/commerce/affiliate/analytics": 11,
       "/commerce/affiliate/creators": 4,
@@ -79,8 +86,17 @@ describe("tutorial step registry", () => {
       ),
     ).toBe(true);
     const knowledge = getStepsForRoute("/commerce/product-knowledge", options);
-    expect(knowledge).toHaveLength(4);
-    expect(knowledge.every((step) => step.bodyKey.includes("readOnly"))).toBe(true);
+    expect(knowledge).toHaveLength(5);
+    expect(knowledge.map((step) => step.id)).toContain("product-knowledge-export");
+    expect(
+      knowledge
+        .filter((step) => step.id !== "product-knowledge-export")
+        .every((step) => step.bodyKey.includes("readOnly")),
+    ).toBe(true);
+    const agent = getStepsForRoute("/commerce/affiliate/attention", options);
+    expect(agent.find((step) => step.id === "affiliate-attention-filters")?.bodyKey).toBe(
+      "tutorial.ecommerceAffiliateAttention.bdFiltersBody",
+    );
     expect(
       getStepsForRoute("/account/profile", options).some(
         (step) => step.id === "account-members" || step.id === "account-roles",
@@ -136,10 +152,9 @@ describe("tutorial step registry", () => {
 
           const targetId = step.target.match(TARGET_SELECTOR)?.[1];
           expect(targetId, `${route.path} stable target for ${step.id}`).toBeDefined();
-          expect(
-            renderedSource.includes(`data-tutorial-id="${targetId}"`),
-            `${route.path} rendered target ${targetId}`,
-          ).toBe(true);
+          expect(renderedTargets.has(targetId!), `${route.path} rendered target ${targetId}`).toBe(
+            true,
+          );
         }
       }
     }

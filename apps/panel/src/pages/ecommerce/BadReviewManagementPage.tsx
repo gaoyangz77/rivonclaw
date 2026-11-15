@@ -139,6 +139,7 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
             <TkButton
               variant="secondary"
               disabled={badReview.bulkSelectedIds.length === 0}
+              data-tutorial-id="bad-review-bulk-followup"
               onClick={() => setBulkOpen(true)}
             >
               {t("ecommerce.badReview.bulk.button", { count: badReview.bulkSelectedIds.length })}
@@ -173,7 +174,9 @@ export const BadReviewManagementPage = observer(function BadReviewManagementPage
           {badReview.actionError}
         </TkAlert>
       ) : null}
-      <BadReviewTable onStart={startFollowUp} onOpenConversation={openConversation} />
+      <div data-tutorial-id="bad-review-table">
+        <BadReviewTable onStart={startFollowUp} onOpenConversation={openConversation} />
+      </div>
       <BadReviewDetailModal onStart={startFollowUp} onOpenConversation={openConversation} />
       <BadReviewImportModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
       <BadReviewBulkFollowUpModal isOpen={bulkOpen} onClose={() => setBulkOpen(false)} />

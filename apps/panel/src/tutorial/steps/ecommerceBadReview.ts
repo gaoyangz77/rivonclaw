@@ -21,4 +21,5 @@ export const ecommerceBadReviewSteps: TutorialStep[] = [
   step("bad-review-import", "bad-review-import", "import", "bottom"),
   step("bad-review-filters", "bad-review-filters", "filters", "bottom"),
   step("bad-review-table", "bad-review-table", "table", "top"),
+  step("bad-review-bulk-followup", "bad-review-bulk-followup", "bulk", "bottom"),
 ];
