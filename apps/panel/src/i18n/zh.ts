@@ -1943,6 +1943,9 @@ export default {
         // 电商店铺管理
         ECOM_LIST_SHOPS: "店铺列表",
         ECOM_GET_SHOP: "获取店铺",
+        ECOM_START_SHOP_AUTHORIZATION: "发起店铺授权",
+        ECOM_GET_BILLING_STATUS: "查看账单状态",
+        ECOM_START_BILLING_SUBSCRIPTION: "发起订阅付款",
         // 达人管理
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "获取达人关系",
         AFFILIATE_GET_CREATOR_PROFILE: "获取达人资料",

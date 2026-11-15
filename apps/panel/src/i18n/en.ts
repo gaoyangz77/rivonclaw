@@ -2018,6 +2018,9 @@ export default {
         // E-commerce Shop Management
         ECOM_LIST_SHOPS: "List Shops",
         ECOM_GET_SHOP: "Get Shop",
+        ECOM_START_SHOP_AUTHORIZATION: "Start Shop Authorization",
+        ECOM_GET_BILLING_STATUS: "Get Billing Status",
+        ECOM_START_BILLING_SUBSCRIPTION: "Start Billing Subscription",
         // Affiliate Management
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Get Creator Relationship",
         AFFILIATE_GET_CREATOR_PROFILE: "Get Creator Profile",

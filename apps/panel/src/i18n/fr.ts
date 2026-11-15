@@ -2028,6 +2028,9 @@ export default {
         CS_START_SESSIONS: "Démarrer des sessions (lot)",
         ECOM_LIST_SHOPS: "Liste des magasins",
         ECOM_GET_SHOP: "Obtenir la boutique",
+        ECOM_START_SHOP_AUTHORIZATION: "Lancer l'autorisation de la boutique",
+        ECOM_GET_BILLING_STATUS: "Obtenir le statut de facturation",
+        ECOM_START_BILLING_SUBSCRIPTION: "Démarrer l'abonnement",
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Obtenir la relation créateur",
         AFFILIATE_LIST_OPEN_COLLABORATIONS: "Lister les collaborations ouvertes",
         AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS:

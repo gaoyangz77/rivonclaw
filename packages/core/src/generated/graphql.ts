@@ -789,6 +789,7 @@ export const AffiliateAgentAssistanceMode = {
 export type AffiliateAgentAssistanceMode =
   (typeof AffiliateAgentAssistanceMode)[keyof typeof AffiliateAgentAssistanceMode];
 export const AffiliateAgentEligibilityReason = {
+  AffiliateDesktopAssigned: "AFFILIATE_DESKTOP_ASSIGNED",
   AffiliateDeviceUnassigned: "AFFILIATE_DEVICE_UNASSIGNED",
   AffiliateOnboardingIncomplete: "AFFILIATE_ONBOARDING_INCOMPLETE",
   AffiliateServiceDisabled: "AFFILIATE_SERVICE_DISABLED",
@@ -12645,6 +12646,8 @@ export interface Mutation {
   ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   /** Operator action: open (or find) the TikTok conversation for a synced order whose buyer has no conversation yet, WITHOUT starting an AI run, so the operator can type the first message. The row is created RESOLVED with AI enabled, so the buyer's later reply is handled by AI as usual. Idempotent. */
   ecommerceStartCustomerServiceConversationFromOrder: CustomerServiceConversationInboxItem;
+  /** Create a one-time TikTok Shop authorization link for the signed-in seller (MCP). */
+  ecommerceStartShopAuthorization: ShopAuthorizationStart;
   ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   /** Translates a bulk follow-up message for review. Sends nothing. */
   ecommerceTranslateBadReviewBulkMessage: Array<EcomBadReviewBulkMessage>;
@@ -13443,6 +13446,11 @@ export interface MutationEcommerceStartCsUnpaidOrderConfigExperimentArgs {
 export interface MutationEcommerceStartCustomerServiceConversationFromOrderArgs {
   orderId: Scalars["String"]["input"];
   shopId: Scalars["ID"]["input"];
+}
+
+export interface MutationEcommerceStartShopAuthorizationArgs {
+  market: PlatformMarket;
+  sellerType?: InputMaybe<PlatformSellerType>;
 }
 
 export interface MutationEcommerceStopCsUnpaidOrderConfigExperimentArgs {
@@ -17011,6 +17019,14 @@ export interface ShopAuthStatusResponse {
   refreshTokenExpiresAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
 }
 
+/** One-time TikTok Shop authorization link for the signed-in seller */
+export interface ShopAuthorizationStart {
+  authorizationUrl: Scalars["String"]["output"];
+  expiresAt: Scalars["DateTimeISO"]["output"];
+  market: PlatformMarket;
+  sellerType: PlatformSellerType;
+}
+
 export interface ShopBillingStatus {
   affiliate: BillingEntitlementStatus;
   analytics: BillingEntitlementStatus;
@@ -18158,6 +18174,7 @@ export const ToolId = {
   EcomDiagnoseAndOptimizeProduct: "ECOM_DIAGNOSE_AND_OPTIMIZE_PRODUCT",
   EcomEditProduct: "ECOM_EDIT_PRODUCT",
   EcomGetAftersaleEligibility: "ECOM_GET_AFTERSALE_ELIGIBILITY",
+  EcomGetBillingStatus: "ECOM_GET_BILLING_STATUS",
   EcomGetBiCatalog: "ECOM_GET_BI_CATALOG",
   EcomGetBiData: "ECOM_GET_BI_DATA",
   EcomGetConversations: "ECOM_GET_CONVERSATIONS",
@@ -18210,6 +18227,8 @@ export const ToolId = {
   EcomSetCustomerServiceConversationAiEnabled: "ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED",
   EcomSetProductKnowledge: "ECOM_SET_PRODUCT_KNOWLEDGE",
   EcomSetShopWarehouseMappings: "ECOM_SET_SHOP_WAREHOUSE_MAPPINGS",
+  EcomStartBillingSubscription: "ECOM_START_BILLING_SUBSCRIPTION",
+  EcomStartShopAuthorization: "ECOM_START_SHOP_AUTHORIZATION",
   EcomSyncShopWarehouses: "ECOM_SYNC_SHOP_WAREHOUSES",
   EcomUpdateInventory: "ECOM_UPDATE_INVENTORY",
   EcomUpdateOrderShippingInfo: "ECOM_UPDATE_ORDER_SHIPPING_INFO",
