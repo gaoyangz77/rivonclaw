@@ -28,6 +28,19 @@ const input = {
   fallbackLanguage: "en",
 };
 
+/**
+ * The one-shot runner prepends its instructions to the message, so the task
+ * payload is the JSON after the "Task input:" marker rather than the whole
+ * message.
+ */
+function taskInput(message: unknown): Record<string, unknown> {
+  const text = String(message);
+  const marker = "Task input:";
+  const index = text.indexOf(marker);
+  if (index < 0) throw new Error("message carries no task input");
+  return JSON.parse(text.slice(index + marker.length).trim());
+}
+
 describe("human message translation", () => {
   it("detects and translates in one default-model run with tools and delivery disabled", async () => {
     const { run, start, runtime } = runner([
@@ -52,14 +65,14 @@ describe("human message translation", () => {
         deliver: false,
       }),
     );
-    expect(JSON.parse(start.mock.calls[0]![0].message as string).samples).toEqual(input.samples);
-    expect(start.mock.calls[0]![0].extraSystemPrompt).toContain("untrusted text");
+    expect(taskInput(start.mock.calls[0]![0].message).samples).toEqual(input.samples);
+    expect(String(start.mock.calls[0]![0].message)).toContain("untrusted text");
     expect(runtime.deleteSession).toHaveBeenCalledOnce();
   });
   it("omits history for cached language and keeps its source", async () => {
     const { run, start } = runner(['{"language":"es","source":"messages","text":"Hola"}']);
     await translateMessage({ ...input, target: { language: "es", source: "messages" } }, run);
-    expect(JSON.parse(start.mock.calls[0]![0].message as string)).toEqual({
+    expect(taskInput(start.mock.calls[0]![0].message)).toEqual({
       text: input.text,
       target: { language: "es", source: "messages" },
     });

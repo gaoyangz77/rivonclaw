@@ -97,14 +97,15 @@ export async function runStructuredOneShotAgent<T>(
   const runIds: string[] = [];
   const createdSessionKeys = new Set([sessionKey]);
 
+  const instructions = structuredInstructions(options.systemPrompt, options.jsonSchema);
+
   try {
     const firstText = await runOneShotTurn({
       runtime,
       sessionKey,
       resolvedModel,
       timeoutMs,
-      systemPrompt: structuredSystemPrompt(options.systemPrompt, options.jsonSchema),
-      message: options.userPrompt,
+      message: structuredInitialPrompt(instructions, options.userPrompt),
       idempotencyKey: `${sessionKey}:initial`,
       runIds,
     });
@@ -121,8 +122,8 @@ export async function runStructuredOneShotAgent<T>(
         sessionKey: repairSessionKey,
         resolvedModel,
         timeoutMs,
-        systemPrompt: structuredSystemPrompt(options.systemPrompt, options.jsonSchema),
         message: structuredRepairPrompt({
+          instructions,
           originalUserPrompt: options.userPrompt,
           invalidOutput: firstText,
           validationError: errorMessage(firstError),
@@ -173,7 +174,6 @@ async function runOneShotTurn(input: {
   sessionKey: string;
   resolvedModel: { provider: string; model: string };
   timeoutMs: number;
-  systemPrompt: string;
   message: string;
   idempotencyKey: string;
   runIds: string[];
@@ -182,8 +182,13 @@ async function runOneShotTurn(input: {
     sessionKey: input.sessionKey,
     provider: input.resolvedModel.provider,
     model: input.resolvedModel.model,
+    // Every instruction travels in the message, never extraSystemPrompt: a
+    // modelRun request is a raw probe, and the gateway deliberately submits an
+    // empty provider system prompt for it (`isRawModelRun` in
+    // attempt-system-prompt.ts and attempt-session-prepare.ts). An
+    // extraSystemPrompt here is built for diagnostics and then dropped, which
+    // silently cost us the JSON contract and the placeholder rules.
     message: input.message,
-    extraSystemPrompt: input.systemPrompt,
     modelRun: true,
     promptMode: "raw",
     deliver: false,
@@ -212,7 +217,13 @@ async function runOneShotTurn(input: {
   return text;
 }
 
-function structuredSystemPrompt(
+/**
+ * The complete instruction set for one structured turn: output contract plus
+ * the caller's use-case rules. It is prepended to the message of every turn
+ * rather than sent as a system prompt, because a `modelRun` request reaches the
+ * model with no system prompt at all. Keep it on the message side.
+ */
+function structuredInstructions(
   useCasePrompt: string,
   jsonSchema: Record<string, unknown>,
 ): string {
@@ -229,7 +240,12 @@ function structuredSystemPrompt(
   ].join("\n");
 }
 
+function structuredInitialPrompt(instructions: string, userPrompt: string): string {
+  return [instructions, "Task input:", userPrompt].join("\n");
+}
+
 function structuredRepairPrompt(input: {
+  instructions: string;
   originalUserPrompt: string;
   invalidOutput: string;
   validationError: string;
@@ -245,14 +261,15 @@ function structuredRepairPrompt(input: {
       ? input.originalUserPrompt
       : input.originalUserPrompt.slice(0, MAX_REPAIR_CONTEXT_CHARS);
   return [
+    input.instructions,
     "Repair the previous model output into the required structured payload.",
     "Do not acknowledge the error and do not describe the correction.",
     `Return the COMPLETE corrected JSON ${rootType} only.`,
     `The top-level value MUST be a JSON ${rootType}.`,
     "Preserve useful content from the previous output, but add or correct every required property.",
+    "The instructions above outrank the previous output: where it breaks one of them, rewrite that part instead of preserving it.",
     "Use the original task input below as the factual source. Do not replace it with generic placeholder content.",
     `Validation error: ${input.validationError}`,
-    `Required JSON Schema: ${JSON.stringify(input.jsonSchema)}`,
     "Original task input:",
     originalUserPrompt,
     "Previous invalid output:",

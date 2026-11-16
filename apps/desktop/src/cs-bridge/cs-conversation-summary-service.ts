@@ -199,14 +199,18 @@ export async function generateConversationSummary(input: {
     type: ScopeType.CS_SESSION,
     shopId: input.shopId,
   });
-  const prompt = buildSummaryPrompt({ ...input, messages });
+  // The role line leads the message instead of riding on extraSystemPrompt: a
+  // modelRun request is submitted with an empty provider system prompt, so an
+  // extraSystemPrompt would be built and then dropped before the model saw it.
+  const prompt = [
+    "You are a one-shot customer-service summarizer. Do not call tools. Return only the operator-facing summary.",
+    buildSummaryPrompt({ ...input, messages }),
+  ].join("\n\n");
   const response = await requestAgent<{ runId?: string }>({
     sessionKey,
     provider: resolvedModel.provider,
     model: resolvedModel.model,
     message: prompt,
-    extraSystemPrompt:
-      "You are a one-shot customer-service summarizer. Do not call tools. Return only the operator-facing summary.",
     modelRun: true,
     promptMode: "raw",
     deliver: false,

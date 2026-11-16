@@ -98,6 +98,36 @@ describe("runStructuredOneShotAgent", () => {
     expect(runtime.history).not.toHaveBeenCalled();
   });
 
+  // A modelRun request reaches the model with no system prompt, so anything
+  // sent as extraSystemPrompt is silently dropped. Every instruction has to be
+  // in the message or the model never sees the output contract at all.
+  it("carries the output contract and the caller's rules in the message, not a system prompt", async () => {
+    const { runtime, start } = runtimeFor(['{"name":"ready"}']);
+
+    await runStructuredOneShotAgent(
+      {
+        namespace: "campaign-keywords",
+        systemPrompt: "Keep {{creator_name}} byte-for-byte.",
+        userPrompt: '{"task":"name it"}',
+        jsonSchema: {
+          type: "object",
+          required: ["name"],
+          properties: { name: { type: "string" } },
+          additionalProperties: false,
+        },
+        validate: validateName,
+      },
+      runtime,
+    );
+
+    expect(start.mock.calls[0]?.[0]).not.toHaveProperty("extraSystemPrompt");
+    const message = String(start.mock.calls[0]?.[0]?.message);
+    expect(message).toContain("Keep {{creator_name}} byte-for-byte.");
+    expect(message).toContain("The top-level value MUST be a JSON object.");
+    expect(message).toContain('"required":["name"]');
+    expect(message).toContain('{"task":"name it"}');
+  });
+
   it("falls back to chat history for gateways without terminal reply evidence", async () => {
     const { runtime } = runtimeFor(['{"name":"legacy"}']);
     vi.mocked(runtime.wait).mockResolvedValueOnce({ status: "ok" });
@@ -142,7 +172,7 @@ describe("runStructuredOneShotAgent", () => {
     expect(result.value).toEqual(["one", "two"]);
     expect(result.repaired).toBe(false);
     expect(start).toHaveBeenCalledTimes(1);
-    expect(start.mock.calls[0]?.[0]?.extraSystemPrompt).toContain(
+    expect(String(start.mock.calls[0]?.[0]?.message)).toContain(
       "top-level value MUST be a JSON array",
     );
     expect(deleteSession).toHaveBeenCalledTimes(1);
@@ -184,6 +214,11 @@ describe("runStructuredOneShotAgent", () => {
     expect(repairMessage).toContain('[{"name":"repair me"}]');
     expect(repairMessage).toContain('"required":["name"]');
     expect(repairMessage).toContain("Return the COMPLETE corrected JSON object only");
+    // The repair turn is a fresh session with no system prompt either, so the
+    // caller's rules must be restated or the repair can "fix" the shape while
+    // keeping the content that failed validation.
+    expect(repairMessage).toContain("Generate a test object.");
+    expect(start.mock.calls[1]?.[0]).not.toHaveProperty("extraSystemPrompt");
     expect(deleteSession).toHaveBeenCalledTimes(2);
     expect(deleteSession.mock.calls[0]?.[0]).not.toBe(deleteSession.mock.calls[1]?.[0]);
   });
