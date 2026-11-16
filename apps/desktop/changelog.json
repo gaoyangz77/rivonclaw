@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.9.57",
+    "date": "2026-11-16",
+    "en": [
+      "The pending escalations tool now returns every waiting escalation and saves the full result to a local file instead of paging through the conversation"
+    ],
+    "zh": [
+      "待处理转人工工具现在一次返回全部等待中的转人工，并把完整结果保存到本地文件，不再分页占用对话"
+    ]
+  },
+  {
     "version": "1.9.56",
     "date": "2026-11-16",
     "en": [
