@@ -3392,6 +3392,7 @@ export default {
       creatorIncludeWithoutUsername: "显示无账号名达人",
       creatorIncludeWithoutUsernameHint: "TikTok 没有提供账号名的达人（多为已停用账号）默认不显示；按 ID 精确搜索仍可找到。",
       sampleTiers: {
+        SAMPLE_APPROVED: "已同意放样",
         SAMPLE_SHIPPED: "已发样",
         SAMPLE_DELIVERED: "已收样",
         SAMPLE_FULFILLED: "已履约",

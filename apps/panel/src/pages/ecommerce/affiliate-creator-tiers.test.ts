@@ -15,6 +15,7 @@ const t = (key: string, options?: Record<string, unknown>) =>
 describe("creator sample tiers", () => {
   it("covers every backend rung exactly once, in ladder order", () => {
     expect([...CREATOR_SAMPLE_TIER_ORDER]).toEqual([
+      GQL.CreatorSampleTier.SampleApproved,
       GQL.CreatorSampleTier.SampleShipped,
       GQL.CreatorSampleTier.SampleDelivered,
       GQL.CreatorSampleTier.SampleFulfilled,
@@ -58,5 +59,15 @@ describe("creator sample tiers", () => {
       ]),
     ).toBe(GQL.CreatorSampleTier.AttributableOrder);
     expect(highestCreatorSampleTier([null, undefined])).toBeNull();
+    // An approved Sample is the lowest rung: any shipment outranks it.
+    expect(
+      highestCreatorSampleTier([
+        GQL.CreatorSampleTier.SampleApproved,
+        GQL.CreatorSampleTier.SampleShipped,
+      ]),
+    ).toBe(GQL.CreatorSampleTier.SampleShipped);
+    expect(highestCreatorSampleTier([GQL.CreatorSampleTier.SampleApproved, null])).toBe(
+      GQL.CreatorSampleTier.SampleApproved,
+    );
   });
 });

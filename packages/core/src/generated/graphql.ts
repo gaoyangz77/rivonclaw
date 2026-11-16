@@ -6833,6 +6833,7 @@ export interface CreatorRelationshipSystemTagInput {
 /** How far a Creator has climbed the sample review path at one shop. Ordered rungs of one ladder — a (Relationship, Shop) pair holds exactly one. Backend-derived; never writable by staff or the Agent. */
 export const CreatorSampleTier = {
   AttributableOrder: "ATTRIBUTABLE_ORDER",
+  SampleApproved: "SAMPLE_APPROVED",
   SampleDelivered: "SAMPLE_DELIVERED",
   SampleFulfilled: "SAMPLE_FULFILLED",
   SampleShipped: "SAMPLE_SHIPPED",

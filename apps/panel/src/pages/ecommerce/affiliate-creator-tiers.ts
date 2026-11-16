@@ -9,6 +9,7 @@ type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
  * the enum's declaration order.
  */
 export const CREATOR_SAMPLE_TIER_ORDER: readonly GQL.CreatorSampleTier[] = [
+  GQL.CreatorSampleTier.SampleApproved,
   GQL.CreatorSampleTier.SampleShipped,
   GQL.CreatorSampleTier.SampleDelivered,
   GQL.CreatorSampleTier.SampleFulfilled,
@@ -16,6 +17,7 @@ export const CREATOR_SAMPLE_TIER_ORDER: readonly GQL.CreatorSampleTier[] = [
 ];
 
 const CREATOR_SAMPLE_TIER_MEDAL: Record<GQL.CreatorSampleTier, string> = {
+  [GQL.CreatorSampleTier.SampleApproved]: "🤝",
   [GQL.CreatorSampleTier.SampleShipped]: "🥉",
   [GQL.CreatorSampleTier.SampleDelivered]: "🥈",
   [GQL.CreatorSampleTier.SampleFulfilled]: "🥇",

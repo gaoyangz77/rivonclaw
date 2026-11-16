@@ -3166,6 +3166,7 @@ export default {
       creatorIncludeWithoutUsername: "Creator ohne Benutzernamen anzeigen",
       creatorIncludeWithoutUsernameHint: "TikTok liefert für diese Creator keinen Benutzernamen (meist deaktivierte Konten). Sie sind standardmäßig ausgeblendet; eine exakte ID-Suche findet sie weiterhin.",
       sampleTiers: {
+        SAMPLE_APPROVED: "Muster genehmigt",
         SAMPLE_SHIPPED: "Muster versandt",
         SAMPLE_DELIVERED: "Muster zugestellt",
         SAMPLE_FULFILLED: "Muster erfüllt",

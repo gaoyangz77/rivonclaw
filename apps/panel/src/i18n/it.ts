@@ -3149,6 +3149,7 @@ export default {
       creatorIncludeWithoutUsername: "Mostra creator senza nome utente",
       creatorIncludeWithoutUsernameHint: "TikTok non fornisce un nome utente per questi creator (per lo più account disattivati). Sono nascosti per impostazione predefinita; una ricerca per ID esatto li trova comunque.",
       sampleTiers: {
+        SAMPLE_APPROVED: "Campione approvato",
         SAMPLE_SHIPPED: "Campione spedito",
         SAMPLE_DELIVERED: "Campione consegnato",
         SAMPLE_FULFILLED: "Campione adempiuto",

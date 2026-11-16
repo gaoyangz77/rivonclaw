@@ -3002,6 +3002,7 @@ export default {
       creatorIncludeWithoutUsername: "แสดงครีเอเตอร์ที่ไม่มีชื่อผู้ใช้",
       creatorIncludeWithoutUsernameHint: "TikTok ไม่ได้ให้ชื่อผู้ใช้ของครีเอเตอร์เหล่านี้ (ส่วนใหญ่เป็นบัญชีที่ปิดใช้งาน) จะถูกซ่อนไว้โดยค่าเริ่มต้น แต่ยังค้นหาด้วย ID ที่ตรงกันได้",
       sampleTiers: {
+        SAMPLE_APPROVED: "อนุมัติตัวอย่างแล้ว",
         SAMPLE_SHIPPED: "ส่งตัวอย่างแล้ว",
         SAMPLE_DELIVERED: "รับตัวอย่างแล้ว",
         SAMPLE_FULFILLED: "ทำตามข้อตกลงแล้ว",

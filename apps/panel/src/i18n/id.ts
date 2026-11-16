@@ -3114,6 +3114,7 @@ export default {
       creatorIncludeWithoutUsername: "Tampilkan kreator tanpa nama pengguna",
       creatorIncludeWithoutUsernameHint: "TikTok tidak memberikan nama pengguna untuk kreator ini (sebagian besar akun nonaktif). Disembunyikan secara default; pencarian ID persis tetap menemukannya.",
       sampleTiers: {
+        SAMPLE_APPROVED: "Sampel disetujui",
         SAMPLE_SHIPPED: "Sampel dikirim",
         SAMPLE_DELIVERED: "Sampel diterima",
         SAMPLE_FULFILLED: "Sampel dipenuhi",

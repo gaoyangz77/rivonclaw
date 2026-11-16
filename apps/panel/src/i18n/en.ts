@@ -3564,6 +3564,7 @@ export default {
       creatorIncludeWithoutUsername: "Include Creators without a username",
       creatorIncludeWithoutUsernameHint: "TikTok gives no username for these Creators (mostly deactivated accounts). They are hidden by default; searching an exact ID still finds them.",
       sampleTiers: {
+        SAMPLE_APPROVED: "Sample approved",
         SAMPLE_SHIPPED: "Sample shipped",
         SAMPLE_DELIVERED: "Sample delivered",
         SAMPLE_FULFILLED: "Sample fulfilled",
