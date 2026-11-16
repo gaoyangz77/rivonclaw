@@ -1,20 +1,24 @@
 [
   {
-    "version": "1.9.55",
-    "date": "2026-11-15",
+    "version": "1.9.56",
+    "date": "2026-11-16",
     "en": [
       "Create Affiliate campaigns from your own creator list, in the campaign wizard and the campaign detail view",
       "Pick a shop coupon and send it to the buyer from the Customer Service conversation",
       "Batch Customer Service reachout now waits behind live buyer replies instead of competing with them",
       "Billing refreshes right after a shop is authorized, and the platform label follows your language",
-      "Updated Customer Service and Affiliate tutorials"
+      "Updated Customer Service and Affiliate tutorials",
+      "Fix the rules for first-touch templates, message translation and conversation summaries never reaching the model, which left creator placeholders translated, renamed or missing",
+      "Show the Sample approved tier in the Creator list, filters and approval-policy tier options"
     ],
     "zh": [
       "达人推广计划可以按自己的达人名单创建，计划向导和计划详情里都能用",
       "客服会话中可以挑选店铺优惠券直接发给买家",
       "客服批量发起会话改为排在买家实时回复之后处理，不再和回复抢资源",
       "店铺授权后账单立即刷新，平台名称随界面语言显示",
-      "更新客服和达人推广教程"
+      "更新客服和达人推广教程",
+      "修复首信模板、消息翻译和会话摘要的规则没有送达模型的问题，此前达人占位符会被翻译、改名或缺失",
+      "达人列表、筛选和审批规则的档位中新增「已同意放样」"
     ]
   },
   {
