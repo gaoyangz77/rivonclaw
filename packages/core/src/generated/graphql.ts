@@ -7478,9 +7478,7 @@ export interface CsPendingEscalation {
 /** Customer-service escalations waiting for the merchant, oldest first */
 export interface CsPendingEscalationPage {
   items: Array<CsPendingEscalation>;
-  limit: Scalars["Int"]["output"];
-  offset: Scalars["Int"]["output"];
-  /** Matching escalations across all pages */
+  /** Matching escalations; equals items.length */
   total: Scalars["Int"]["output"];
 }
 
@@ -15091,7 +15089,7 @@ export interface Query {
   creatorSearchRuns: Array<CreatorSearchRun>;
   /** Read the current cloud status and result for a CS escalation */
   csGetEscalationResult?: Maybe<CsEscalationLookupResult>;
-  /** List customer-service escalations waiting for the merchant, longest-waiting first, with shop names */
+  /** Every customer-service escalation waiting for the merchant, longest-waiting first, with shop names (tool calls must persist the result) */
   csGetPendingEscalations: CsPendingEscalationPage;
   /** List open CS escalations for the authenticated user, including pending and in-progress items */
   csOpenEscalations: Array<CsEscalation>;
@@ -15698,8 +15696,6 @@ export interface QueryCsGetEscalationResultArgs {
 }
 
 export interface QueryCsGetPendingEscalationsArgs {
-  limit?: InputMaybe<Scalars["Int"]["input"]>;
-  offset?: InputMaybe<Scalars["Int"]["input"]>;
   search?: InputMaybe<Scalars["String"]["input"]>;
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   statuses?: InputMaybe<Array<CsEscalationStatus>>;
@@ -18503,7 +18499,7 @@ export interface ToolSpec {
   restEndpoint?: Maybe<Scalars["String"]["output"]>;
   /** REST HTTP method */
   restMethod?: Maybe<Scalars["String"]["output"]>;
-  /** Result materialization mode: JSON or MEDIA */
+  /** Result materialization mode: JSON, MEDIA or PERSISTED (always saved to a local file) */
   resultMode?: Maybe<Scalars["String"]["output"]>;
   /** Agent-facing result contract schema */
   resultSchema?: Maybe<Scalars["String"]["output"]>;
