@@ -59,8 +59,9 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
         return;
       }
       cleanupOAuthWait();
-      void entityStore
-        .fetchShops()
+      // A first shop's authorization also grants its onboarding trials, so the
+      // billing overview changes together with the shop list.
+      void Promise.all([entityStore.fetchShops(), entityStore.refreshBilling()])
         .then(() => {
           showToast(t("tiktokShops.oauthSuccess"), "success");
         })

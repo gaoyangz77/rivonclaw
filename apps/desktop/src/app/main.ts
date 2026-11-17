@@ -384,6 +384,7 @@ app.whenReady().then(async () => {
     appVersion: app.getVersion(),
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     broadcastEvent,
+    onShopAuthorized: (user) => syncCloudProviderKey(user, storage, secretStore),
   });
   // NOTE: authSession.validate() is deferred until after proxy router starts (see below).
 

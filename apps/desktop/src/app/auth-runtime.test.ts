@@ -4,6 +4,7 @@ import { observable, runInAction } from "mobx";
 const mocks = vi.hoisted(() => ({
   setAuthSession: vi.fn(),
   authSessionLoadFromKeychain: vi.fn(),
+  authSessionGetCachedUser: vi.fn(),
   backendSubscriptionInstances: [] as unknown[],
   callbacks: {} as Record<string, (...args: any[]) => unknown>,
   cloudGraphql: vi.fn(),
@@ -52,6 +53,7 @@ vi.mock("../auth/session.js", () => ({
       loadFromKeychain: mocks.authSessionLoadFromKeychain,
       graphqlFetch: vi.fn(),
       getAccessToken: vi.fn(() => null),
+      getCachedUser: mocks.authSessionGetCachedUser,
       onCredentialsChanged: vi.fn((callback) => {
         mocks.callbacks.adsCredentialsChanged = callback;
         return () => {};
@@ -165,6 +167,7 @@ describe("setupAuth backend subscription forwarding", () => {
       appVersion: "1.0.0-test",
       proxyFetch: vi.fn(),
       broadcastEvent,
+      onShopAuthorized: vi.fn().mockResolvedValue(undefined),
     });
 
     expect(mocks.authSessionLoadFromKeychain).toHaveBeenCalledTimes(1);
@@ -196,6 +199,7 @@ describe("setupAuth backend subscription forwarding", () => {
       appVersion: "test",
       proxyFetch: vi.fn(),
       broadcastEvent,
+      onShopAuthorized: vi.fn().mockResolvedValue(undefined),
     });
     const payload = { platform: "TIKTOK_ADS", advertiserIds: ["ads-1"], advertiserCount: 1 };
     for (let i = 0; i < 100; i++) mocks.callbacks.adsOAuthComplete(payload);
@@ -226,6 +230,7 @@ describe("setupAuth backend subscription forwarding", () => {
       appVersion: "test",
       proxyFetch: vi.fn(),
       broadcastEvent,
+      onShopAuthorized: vi.fn().mockResolvedValue(undefined),
     });
     const payload = { platform: "TIKTOK_ADS", advertiserIds: ["old"], advertiserCount: 1 };
     mocks.callbacks.adsOAuthComplete(payload);
@@ -239,6 +244,57 @@ describe("setupAuth backend subscription forwarding", () => {
     expect(mocks.cloudGraphql).toHaveBeenCalledTimes(1);
     expect(mocks.cloudGraphql).toHaveBeenCalledWith(expect.any(String), { ids: ["new"] });
     expect(mocks.rootStore.applyAdsEntityDelta).toHaveBeenCalledWith(["new"], expect.any(Object));
+  });
+
+  it("re-syncs the cloud LLM provider when a shop authorization completes", async () => {
+    const { setupAuth } = await import("./auth-runtime.js");
+    const broadcastEvent = vi.fn();
+    const onShopAuthorized = vi.fn().mockResolvedValue(undefined);
+    const user = { userId: "user-1" };
+    mocks.authSessionGetCachedUser.mockReturnValue(user);
+    await setupAuth({
+      secretStore: { get: vi.fn(), set: vi.fn(), delete: vi.fn(), listKeys: vi.fn() },
+      locale: "en-US",
+      getUiLocale: () => "en-US",
+      deviceId: "device",
+      appVersion: "test",
+      proxyFetch: vi.fn(),
+      broadcastEvent,
+      onShopAuthorized,
+    });
+    const payload = { shopId: "shop-1", shopName: "Shop", platform: "tiktok_shop", shops: [{ id: "shop-1" }] };
+
+    mocks.callbacks.oauthComplete(payload);
+
+    expect(mocks.rootStore.upsertShopsFromGraphQL).toHaveBeenCalledWith(payload.shops, "oauth-complete");
+    expect(onShopAuthorized).toHaveBeenCalledWith(user);
+    expect(broadcastEvent).toHaveBeenCalledWith("oauth-complete", payload);
+  });
+
+  it("does not re-sync the cloud LLM provider for a failed authorization or a signed-out session", async () => {
+    const { setupAuth } = await import("./auth-runtime.js");
+    const onShopAuthorized = vi.fn().mockResolvedValue(undefined);
+    mocks.authSessionGetCachedUser.mockReturnValue(null);
+    await setupAuth({
+      secretStore: { get: vi.fn(), set: vi.fn(), delete: vi.fn(), listKeys: vi.fn() },
+      locale: "en-US",
+      getUiLocale: () => "en-US",
+      deviceId: "device",
+      appVersion: "test",
+      proxyFetch: vi.fn(),
+      broadcastEvent: vi.fn(),
+      onShopAuthorized,
+    });
+
+    mocks.callbacks.oauthComplete({ shopId: "", shopName: "", platform: "tiktok_shop", shops: [] });
+    mocks.callbacks.oauthComplete({
+      shopId: "shop-1",
+      shopName: "Shop",
+      platform: "tiktok_shop",
+      shops: [{ id: "shop-1" }],
+    });
+
+    expect(onShopAuthorized).not.toHaveBeenCalled();
   });
 
   it("logs a malformed Affiliate dispatch without losing subsequent subscription notifications", async () => {
@@ -256,6 +312,7 @@ describe("setupAuth backend subscription forwarding", () => {
       appVersion: "1.0.0-test",
       proxyFetch: vi.fn(),
       broadcastEvent: vi.fn(),
+      onShopAuthorized: vi.fn().mockResolvedValue(undefined),
     });
     const error = new Error("Affiliate dispatch missing agendaItemsSnapshotId");
     mocks.handleAffiliateWorkItemChanged.mockRejectedValueOnce(error);

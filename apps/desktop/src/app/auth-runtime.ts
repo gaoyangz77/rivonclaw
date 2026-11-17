@@ -1,3 +1,4 @@
+import type { GQL } from "@rivonclaw/core";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { createLogger } from "@rivonclaw/logger";
 import { AuthSessionManager } from "../auth/session.js";
@@ -32,6 +33,15 @@ export interface SetupAuthDeps {
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
   /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
   broadcastEvent: BroadcastEvent;
+  /**
+   * A shop authorization completed for the signed-in user. The backend grants
+   * a new seller's onboarding trials — including the account's cloud LLM
+   * membership — before it publishes `oauthComplete`, so this is when the
+   * local cloud provider must be re-synced. Without it the gifted model only
+   * appeared after a restart, because nothing else re-checks the entitlement
+   * unless a Panel page happens to refetch billing.
+   */
+  onShopAuthorized: (user: GQL.MeResponse) => Promise<void>;
 }
 
 export interface AuthRuntime {
@@ -57,8 +67,16 @@ function adminDesktopPlatform(): "DARWIN" | "LINUX" | "WINDOWS" | "UNKNOWN" {
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { secretStore, locale, getUiLocale, deviceId, appVersion, proxyFetch, broadcastEvent } =
-    deps;
+  const {
+    secretStore,
+    locale,
+    getUiLocale,
+    deviceId,
+    appVersion,
+    proxyFetch,
+    broadcastEvent,
+    onShopAuthorized,
+  } = deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
@@ -78,6 +96,12 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   backendSubscription.subscribeToOAuthComplete((payload) => {
     if (payload.shops?.length) {
       rootStore.upsertShopsFromGraphQL(payload.shops, "oauth-complete");
+      const user = authSession.getCachedUser();
+      if (user) {
+        onShopAuthorized(user).catch((err: unknown) => {
+          log.warn("Failed to apply shop authorization side effects:", err);
+        });
+      }
     }
     broadcastEvent("oauth-complete", payload);
   });
