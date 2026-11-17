@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.9.58",
+    "date": "2026-11-16",
+    "en": [
+      "The cloud model provider is now synced as soon as a shop authorization completes, so the shop's AI is ready right away"
+    ],
+    "zh": [
+      "店铺授权完成后立即同步云端模型供应商，店铺的 AI 马上就能使用"
+    ]
+  },
+  {
     "version": "1.9.57",
     "date": "2026-11-16",
     "en": [
