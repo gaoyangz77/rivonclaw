@@ -766,10 +766,23 @@
   background: var(--color-bg-alt);
 }
 
+/* Intro beside its rules, then the guidance beside the checklist it becomes,
+   so the seller sees the interpretation while still typing. */
 .affiliate-campaign-dynamic-discovery {
   display: grid;
-  gap: 18px;
-  padding: 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tk-v1-space-4) var(--tk-v1-space-6);
+  align-items: start;
+  padding: var(--tk-v1-space-5);
+}
+.affiliate-campaign-guidance-editor {
+  display: grid;
+  gap: var(--tk-v1-space-3);
+  min-width: 0;
+}
+/* No checklist yet: the guidance takes the whole row. */
+.affiliate-campaign-guidance-editor:last-child {
+  grid-column: 1 / -1;
 }
 
 .affiliate-campaign-dynamic-discovery p,
@@ -1376,7 +1389,7 @@
 .affiliate-campaign-wizard-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  padding: 0 28px 18px;
+  padding: 0 28px var(--tk-v1-space-3);
   border-bottom: 1px solid var(--campaign-line);
 }
 .affiliate-campaign-wizard-steps > div {
@@ -1415,30 +1428,32 @@
   min-height: 0;
   max-height: none;
   overscroll-behavior: contain;
-  padding: 34px 40px;
+  padding: var(--tk-v1-space-6) var(--tk-v1-space-8);
   background: var(--color-bg-page);
   color: var(--campaign-ink);
 }
 .affiliate-campaign-wizard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  gap: var(--tk-v1-space-5);
 }
+/* The step rail above already names the step, so this band only orients:
+   a small number, one heading line and the description. */
 .affiliate-campaign-wizard-copy {
   display: grid;
   grid-template:
     "step title" auto
-    "step description" auto / 42px minmax(0, 1fr);
-  column-gap: 14px;
+    "step description" auto / 32px minmax(0, 1fr);
+  column-gap: var(--tk-v1-space-3);
   align-items: start;
-  padding: 0 0 20px;
+  padding: 0 0 var(--tk-v1-space-4);
   border-bottom: 1px solid var(--campaign-line);
 }
 .affiliate-campaign-wizard-copy > span {
   grid-area: step;
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--tk-v1-radius-4);
@@ -1458,10 +1473,10 @@
 }
 .affiliate-campaign-wizard-copy h3,
 .affiliate-campaign-confirmation h3 {
-  margin: 0 0 6px;
+  margin: 0 0 var(--tk-v1-space-1);
   color: var(--campaign-ink);
-  font-size: 25px;
-  letter-spacing: -0.025em;
+  font-size: 20px;
+  letter-spacing: -0.02em;
 }
 .affiliate-campaign-wizard-copy p,
 .affiliate-campaign-confirmation > section p {
@@ -1471,7 +1486,7 @@
 }
 .affiliate-campaign-wizard-fields {
   display: grid;
-  gap: 18px;
+  gap: var(--tk-v1-space-4);
 }
 .affiliate-campaign-wizard-fields label > span {
   display: block;
@@ -1504,10 +1519,15 @@
 .affiliate-campaign-offer-item {
   margin-bottom: 12px;
 }
-.affiliate-campaign-offer-row {
+/* The row also carries `.tk-v1-form-action-row` for its shared action
+   baseline. That contract's default is a two-track field/action shape and it
+   loads later, so this five-track row has to name both classes to keep its
+   own tracks; with one class it collapsed onto two and wrapped over three
+   lines. */
+.affiliate-campaign-offer-row.tk-v1-form-action-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 104px 124px auto auto;
-  gap: 9px;
+  gap: var(--tk-v1-space-2);
 }
 .affiliate-campaign-offer-field {
   display: block;
@@ -1591,6 +1611,7 @@
   font-weight: 800;
 }
 .affiliate-campaign-wizard-fields input,
+.affiliate-campaign-wizard-fields select,
 .affiliate-campaign-wizard-fields textarea {
   width: 100%;
   border: 1px solid var(--color-border);
@@ -1603,9 +1624,12 @@
     border-color 0.16s ease,
     box-shadow 0.16s ease;
 }
-.affiliate-campaign-wizard-fields input {
-  height: 46px;
-  padding: 0 13px;
+/* Fields sit on the design-system control baseline so a typed field, the
+   shared Select and the row's action buttons line up without local overrides. */
+.affiliate-campaign-wizard-fields input,
+.affiliate-campaign-wizard-fields select {
+  height: var(--tk-v1-control-default);
+  padding: 0 var(--tk-v1-space-3);
 }
 .affiliate-campaign-wizard-fields textarea {
   resize: vertical;
@@ -1643,16 +1667,6 @@
   font-weight: 650;
   line-height: 1.45;
 }
-.affiliate-campaign-wizard-fields .custom-select-trigger {
-  min-height: 46px;
-  border-color: var(--color-border);
-  border-radius: var(--tk-v1-radius-4);
-  background: var(--color-bg);
-  color: var(--campaign-ink);
-}
-.affiliate-campaign-wizard-fields .custom-select-placeholder {
-  color: var(--color-text-muted);
-}
 .affiliate-campaign-wizard-body .btn-secondary,
 .affiliate-campaign-wizard-footer .btn-secondary {
   border-color: var(--color-border);
@@ -1666,8 +1680,8 @@
 }
 .affiliate-campaign-strategy-picker {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tk-v1-space-3);
 }
 .affiliate-campaign-strategy-option {
   position: relative;
@@ -1677,10 +1691,10 @@
 .affiliate-campaign-strategy-choice {
   display: flex;
   width: 100%;
-  min-height: 150px;
+  min-height: 128px;
   flex-direction: column;
   align-items: flex-start;
-  padding: 17px;
+  padding: var(--tk-v1-space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg);
@@ -1711,8 +1725,8 @@
   letter-spacing: 0.12em;
 }
 .affiliate-campaign-strategy-picker strong {
-  margin: 12px 0 7px;
-  font-size: 16px;
+  margin: var(--tk-v1-space-2) 0 var(--tk-v1-space-1);
+  font-size: 15px;
 }
 .affiliate-campaign-strategy-picker small {
   color: var(--campaign-muted);
@@ -1720,7 +1734,7 @@
 }
 .affiliate-campaign-strategy-picker i {
   margin-top: auto;
-  padding-top: 14px;
+  padding-top: var(--tk-v1-space-3);
   color: var(--campaign-green);
   font-size: 10px;
   font-style: normal;
@@ -1731,6 +1745,33 @@
   position: absolute;
   top: var(--tk-v1-space-3);
   right: var(--tk-v1-space-3);
+}
+/* Two short provider notes read side by side instead of as two banners. */
+.affiliate-campaign-provider-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tk-v1-space-3);
+}
+/* Pacing, daily target and validity are one decision row; the contact email
+   takes the width an address needs, with the sample switch beside it. */
+.affiliate-campaign-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tk-v1-space-4);
+  align-items: start;
+}
+.affiliate-campaign-settings-wide {
+  grid-column: span 2;
+}
+/* Clears the field label so the checkbox sits on the input baseline. */
+.affiliate-campaign-settings-check {
+  padding-top: var(--tk-v1-space-6);
+}
+.affiliate-campaign-settings-check .affiliate-campaign-check-rule {
+  margin-top: 0;
+}
+.affiliate-campaign-settings-check .form-hint {
+  margin: var(--tk-v1-space-1) 0 0;
 }
 .affiliate-campaign-capability-note {
   display: flex;
@@ -1905,6 +1946,24 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 10px;
 }
+/* The draft and what the creator receives side by side: editing no longer
+   pushes the preview a screen below the fold. */
+.affiliate-campaign-message-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  gap: var(--tk-v1-space-6);
+  align-items: start;
+}
+.affiliate-campaign-message-editor {
+  display: grid;
+  gap: var(--tk-v1-space-4);
+  min-width: 0;
+}
+/* Stays in view while the longer editor column scrolls past it. */
+.affiliate-campaign-message-layout > .affiliate-campaign-message-preview {
+  position: sticky;
+  top: 0;
+}
 .affiliate-campaign-message-preview {
   position: relative;
   padding: 18px 20px 18px 56px;
@@ -1980,21 +2039,21 @@
   color: var(--color-text-muted);
   font-size: 9px;
 }
-.affiliate-campaign-confirmation {
-  max-width: 820px;
-  margin: 0 auto;
-}
 .affiliate-campaign-confirmation > section {
   max-width: 600px;
 }
 .affiliate-campaign-confirm-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 26px 0 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tk-v1-space-3);
+  margin: var(--tk-v1-space-5) 0 var(--tk-v1-space-4);
+}
+/* Shop and product is the one long value; it gets two tracks. */
+.affiliate-campaign-confirm-grid > div:first-child {
+  grid-column: span 2;
 }
 .affiliate-campaign-confirm-grid > div {
-  padding: 15px;
+  padding: var(--tk-v1-space-3) var(--tk-v1-space-4);
   border: 1px solid var(--campaign-line);
   border-radius: var(--tk-v1-radius-4);
   background: var(--color-bg);
@@ -2056,7 +2115,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 17px 28px;
+  padding: var(--tk-v1-space-3) 28px;
   border-top: 1px solid var(--campaign-line);
   background: var(--color-bg);
 }
@@ -2118,11 +2177,16 @@
   font-size: 10px;
 }
 
+.affiliate-campaign-limits-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 240px);
+  gap: var(--tk-v1-space-3);
+}
 .affiliate-campaign-outreach-limits {
   display: grid;
-  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.3fr);
-  gap: 18px;
-  padding: 15px;
+  grid-template-columns: minmax(170px, 0.7fr) minmax(0, 1.3fr);
+  gap: var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-4);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   background: var(--color-bg-alt);
@@ -2160,6 +2224,34 @@
 
 .affiliate-campaign-advanced-rules[hidden] {
   display: none;
+}
+
+/* The wizard widens to the viewport, so its multi-track layouts step down as
+   the viewport narrows rather than squeezing fields below a usable width.
+   Kept after every wizard layout rule: these share their specificity, so they
+   only win from later in the file. */
+@media (max-width: 1100px) {
+  .affiliate-campaign-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .affiliate-campaign-settings-wide {
+    grid-column: auto;
+  }
+}
+@media (max-width: 960px) {
+  .affiliate-campaign-strategy-picker,
+  .affiliate-campaign-provider-notes,
+  .affiliate-campaign-dynamic-discovery,
+  .affiliate-campaign-limits-row,
+  .affiliate-campaign-message-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .affiliate-campaign-message-layout > .affiliate-campaign-message-preview {
+    position: static;
+  }
+  .affiliate-campaign-confirm-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -3182,13 +3274,20 @@
   .affiliate-campaign-command-strip,
   .affiliate-campaign-field-pair,
   .affiliate-campaign-strategy-picker,
+  .affiliate-campaign-settings-grid,
   .affiliate-campaign-confirm-grid {
     grid-template-columns: 1fr;
+  }
+  .affiliate-campaign-confirm-grid > div:first-child {
+    grid-column: auto;
+  }
+  .affiliate-campaign-settings-check {
+    padding-top: 0;
   }
   .affiliate-campaign-command-strip > div {
     border-right: 0;
   }
-  .affiliate-campaign-offer-row {
+  .affiliate-campaign-offer-row.tk-v1-form-action-row {
     grid-template-columns: 1fr 1fr;
   }
   .affiliate-campaign-offer-row > .affiliate-campaign-offer-field:first-child {
