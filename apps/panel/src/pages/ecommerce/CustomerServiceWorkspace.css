@@ -12,6 +12,7 @@
 }
 
 .cs-conversation-list {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
@@ -90,6 +91,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cs-conversation-list-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
 }
 
 .cs-conversation-list-scroll {

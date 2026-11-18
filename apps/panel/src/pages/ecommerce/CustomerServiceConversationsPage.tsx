@@ -59,6 +59,7 @@ import {
   TkPageFrame,
   TkPageHeader,
   TkIconButton,
+  TkLoadingState,
   TkModal as Modal,
   TkPanel,
   TkPrivate,
@@ -870,6 +871,7 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
             className="cs-conversation-list"
             ref={conversationListRef}
             data-tutorial-id="cs-conversation-list"
+            aria-busy={workspace.conversationsLoading || undefined}
           >
             <div className="cs-conversation-list-head">
               <PageSummary
@@ -888,9 +890,7 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                     : workspace.conversationsError}
                 </div>
               )}
-              {workspace.conversationsLoading && conversationItems.length === 0 ? (
-                <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-              ) : conversationItems.length === 0 && orderDrafts.length === 0 ? (
+              {workspace.conversationsLoading && conversationItems.length === 0 ? null : conversationItems.length === 0 && orderDrafts.length === 0 ? (
                 <div className="affiliate-proposal-empty">
                   {t("ecommerce.customerServiceWorkspace.conversationEmpty")}
                 </div>
@@ -963,6 +963,12 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                 {t("ecommerce.customerServiceWorkspace.next")}
               </button>
             </div>
+            {/* Dims the list while it reloads, so a tab, page or filter switch visibly takes effect. */}
+            {workspace.conversationsLoading ? (
+              <div className="cs-conversation-list-loading">
+                <TkLoadingState label={t("common.loading")} size="inline" />
+              </div>
+            ) : null}
           </div>
 
           <div

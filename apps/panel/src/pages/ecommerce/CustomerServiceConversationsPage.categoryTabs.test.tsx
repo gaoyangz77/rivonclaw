@@ -62,6 +62,14 @@ describe("CS conversation category tabs", () => {
     ].map((label, index) => `${label}${[9, 2, 4, 5][index]}`));
   });
 
+  it("dims the list with a spinner while it reloads", async () => {
+    const { query } = setup({ all: 9, escalated: 2, pending: 4, resolved: 5 });
+    query.mockImplementation(() => new Promise(() => {}));
+    const { container } = render(<CustomerServiceConversationsPage />);
+    expect((await screen.findByRole("status")).textContent).toBe("common.loading");
+    expect(container.querySelector(".cs-conversation-list")?.getAttribute("aria-busy")).toBe("true");
+  });
+
   it("says so when the counts fail to load", async () => {
     setup(null);
     render(<CustomerServiceConversationsPage />);
