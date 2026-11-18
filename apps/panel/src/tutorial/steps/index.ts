@@ -14,7 +14,6 @@ import { adsManagementSteps } from "./adsManagement.js";
 import {
   customerServiceWorkspaceSteps,
   customerServiceConversationsSteps,
-  customerServiceEscalationsSteps,
   customerServicePerformanceSteps,
   customerServiceExperimentsSteps,
 } from "./ecommerceCustomerService.js";
@@ -45,7 +44,6 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/product-knowledge": productKnowledgeSteps,
   "/commerce/customer-service": customerServiceWorkspaceSteps,
   "/commerce/customer-service/conversations": customerServiceConversationsSteps,
-  "/commerce/customer-service/escalations": customerServiceEscalationsSteps,
   "/commerce/customer-service/after-sales": ecommerceAfterSaleSteps,
   "/commerce/customer-service/bad-reviews": ecommerceBadReviewSteps,
   "/commerce/customer-service/performance": customerServicePerformanceSteps,

@@ -59,13 +59,9 @@ import {
   TkPageFrame,
   TkPageHeader,
   TkIconButton,
-  TkInteractiveTableRow,
   TkModal as Modal,
   TkPanel,
-  TkPanelHeader,
   TkPrivate,
-  TkTableFrame,
-  TkTabs,
 } from "../../components/design-system/index.js";
 import type { Instance } from "mobx-state-tree";
 import type {
@@ -74,7 +70,6 @@ import type {
   ConversationBadReviewFilter,
   ConversationEscalationFilter,
   ConversationStatusFilter,
-  EscalationStatusFilter,
 } from "../../store/models/CustomerServiceWorkspaceModel.js";
 
 type Conversation = GQL.CustomerServiceConversationInboxItem;
@@ -124,12 +119,6 @@ type MessageListScrollState = {
   conversationKey: string;
   shouldStickToBottom: boolean;
 };
-type CustomerServiceWorkspaceMode = "workspace" | "conversations" | "escalations";
-
-interface CustomerServiceEscalationsPageProps {
-  mode?: CustomerServiceWorkspaceMode;
-}
-
 const mediaElementStyle: CSSProperties = {
   display: "block",
   width: "100%",
@@ -168,15 +157,11 @@ function CustomerServiceRemoteImageMessage({
   );
 }
 
-export const CustomerServiceEscalationsPage = observer(function CustomerServiceWorkspacePage({
-  mode = "workspace",
-}: CustomerServiceEscalationsPageProps) {
+export const CustomerServiceConversationsPage = observer(function ConversationsPage() {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const workspace = entityStore.customerServiceWorkspace;
-  const fixedTab = mode === "workspace" ? null : mode;
-  const activeTab = fixedTab ?? workspace.activeTab;
   const [conversationDetailsOpen, setConversationDetailsOpen] = useState(false);
   const [openConversationOrderKey, setOpenConversationOrderKey] = useState<string | null>(null);
   const conversationOrderOpen =
@@ -213,22 +198,15 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const hasActiveLlmProvider = entityStore.providerKeys.some((key) => key.isDefault);
 
   useEffect(() => {
-    if (fixedTab && workspace.activeTab !== fixedTab) {
-      workspace.setActiveTab(fixedTab);
-    }
-  }, [fixedTab, workspace]);
-
-  useEffect(() => {
     if (user) entityStore.fetchShops().catch(() => {});
   }, [entityStore, user]);
 
   useEffect(() => {
-    if (!user || activeTab !== "conversations") return;
+    if (!user) return;
     workspace.fetchConversations();
   }, [
     user,
     workspace,
-    activeTab,
     workspace.conversationShopId,
     workspace.conversationStatusFilter,
     workspace.conversationAiFilter,
@@ -237,20 +215,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     workspace.conversationSearch,
     workspace.conversationPage,
     workspace.conversationPageSize,
-  ]);
-
-  useEffect(() => {
-    if (!user || activeTab !== "escalations") return;
-    workspace.fetchEscalations();
-  }, [
-    user,
-    workspace,
-    activeTab,
-    workspace.escalationShopId,
-    workspace.escalationStatusFilter,
-    workspace.escalationSearch,
-    workspace.escalationPage,
-    workspace.escalationPageSize,
   ]);
 
   useEffect(() => {
@@ -372,20 +336,13 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   }, [conversationCouponOpen]);
 
   useEffect(() => {
-    return panelEventBus.subscribe("cs-escalation-event", (raw) => {
-      workspace.ingestEscalationEvent(raw);
-      if (activeTab === "escalations") workspace.fetchEscalations();
-    });
-  }, [workspace, activeTab]);
-
-  useEffect(() => {
     return panelEventBus.subscribe("cs-conversation-changed", (raw) => {
       workspace.ingestConversationChanged(raw);
-      if (activeTab === "conversations" && workspace.selectedConversationId) {
+      if (workspace.selectedConversationId) {
         workspace.fetchConversationMessages(i18n.language);
       }
     });
-  }, [workspace, activeTab, i18n.language]);
+  }, [workspace, i18n.language]);
 
   const shopOptions = [
     { value: "", label: t("ecommerce.customerServiceWorkspace.allShops") },
@@ -471,7 +428,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
         t("ecommerce.customerServiceWorkspace.dismissConversationEscalationsSuccess"),
         "success",
       );
-      workspace.fetchEscalations();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
@@ -482,7 +438,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       const result = await workspace.respondToSelectedEscalation();
       if (!result) return;
       showToast(t("ecommerce.customerServiceWorkspace.respondSuccess"), "success");
-      workspace.fetchEscalations();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
@@ -494,7 +449,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
       if (!result) return;
       setDismissEscalationConfirm(null);
       showToast(t("ecommerce.customerServiceWorkspace.dismissEscalationSuccess"), "success");
-      workspace.fetchEscalations();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
@@ -778,84 +732,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     </>
   );
 
-  const escalationFilterControls = (
-    <>
-      <div className="cs-filter-control">
-        <Select
-          ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
-          value={workspace.escalationShopId}
-          onChange={(value) => workspace.setEscalationShopId(value)}
-          options={shopOptions}
-          searchable
-          searchPlaceholder={t("common.searchShops")}
-        />
-      </div>
-      <div className="cs-filter-control">
-        <Select
-          ariaLabel={t("ecommerce.customerServiceWorkspace.filterStatus")}
-          value={workspace.escalationStatusFilter}
-          onChange={(value) => workspace.setEscalationStatusFilter(value as EscalationStatusFilter)}
-          options={[
-            { value: "open", label: t("ecommerce.customerServiceWorkspace.statusOpen") },
-            { value: "pending", label: t("ecommerce.customerServiceWorkspace.statusPending") },
-            {
-              value: "inProgress",
-              label: t("ecommerce.customerServiceWorkspace.statusInProgress"),
-            },
-            { value: "resolved", label: t("ecommerce.customerServiceWorkspace.statusResolved") },
-            { value: "closed", label: t("ecommerce.customerServiceWorkspace.statusClosed") },
-            { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
-          ]}
-        />
-      </div>
-      <div className="cs-filter-control cs-filter-control-search">
-        <div className="cs-workspace-search">
-          <div className="cs-search-input">
-            <input
-              aria-label={t("ecommerce.customerServiceWorkspace.filterSearch")}
-              className={`input-full${workspace.escalationSearch ? " has-clear" : ""}`}
-              value={workspace.escalationSearchDraft}
-              onChange={(event) => workspace.setEscalationSearchDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") workspace.applyEscalationSearch();
-              }}
-              placeholder={t("ecommerce.customerServiceWorkspace.searchPlaceholder")}
-            />
-            {workspace.escalationSearch ? (
-              <button
-                aria-label={t("ecommerce.customerServiceWorkspace.clearSearch")}
-                className="cs-search-clear"
-                title={t("ecommerce.customerServiceWorkspace.clearSearch")}
-                type="button"
-                onClick={() => workspace.clearEscalationSearch()}
-              >
-                x
-              </button>
-            ) : null}
-          </div>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={() => workspace.applyEscalationSearch()}
-          >
-            {t("ecommerce.customerServiceWorkspace.search")}
-          </button>
-        </div>
-      </div>
-      <div className="cs-filter-control">
-        <Select
-          ariaLabel={t("ecommerce.customerServiceWorkspace.filterPageSize")}
-          value={String(workspace.escalationPageSize)}
-          onChange={(value) => workspace.setEscalationPageSize(Number(value))}
-          options={workspace.pageSizeOptions.map((value: number) => ({
-            value: String(value),
-            label: t("ecommerce.customerServiceWorkspace.pageSize", { count: value }),
-          }))}
-        />
-      </div>
-    </>
-  );
-
   return (
     <TkPageFrame className="cs-workspace-page" layout="workspace">
       <TkPageHeader
@@ -863,239 +739,468 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
         className="cs-workspace-header"
         copyClassName="cs-workspace-header-copy"
         actionsClassName="cs-workspace-header-filters"
-        actionsProps={
-          activeTab === "conversations"
-            ? { "data-tutorial-id": "cs-conversation-filters" }
-            : { "data-tutorial-id": "cs-escalation-filters" }
-        }
-        title={t(
-          mode === "conversations"
-            ? "ecommerce.customerServiceWorkspace.conversationsPageTitle"
-            : mode === "escalations"
-              ? "ecommerce.customerServiceWorkspace.escalationsPageTitle"
-              : "ecommerce.customerServiceWorkspace.title",
-        )}
-        actions={
-          activeTab === "conversations" ? conversationFilterControls : escalationFilterControls
-        }
+        actionsProps={{ "data-tutorial-id": "cs-conversation-filters" }}
+        title={t("ecommerce.customerServiceWorkspace.conversationsPageTitle")}
+        actions={conversationFilterControls}
       />
-      {mode === "workspace" ? (
-        <TkTabs
-          label={t("ecommerce.customerServiceWorkspace.title")}
-          value={activeTab}
-          onChange={(value) => workspace.setActiveTab(value as "conversations" | "escalations")}
-          items={[
-            {
-              id: "conversations",
-              label: t("ecommerce.customerServiceWorkspace.conversationsTab"),
-              count: workspace.conversationTotal,
-            },
-            {
-              id: "escalations",
-              label: t("ecommerce.customerServiceWorkspace.escalationsTab"),
-              count: workspace.escalationTotal,
-            },
-          ]}
-          data-tutorial-id="cs-workspace-tabs"
-        />
-      ) : null}
 
-      {activeTab === "conversations" ? (
-        <TkPanel as="section" padding="none" clip className="cs-workspace-panel">
-          {conversationAdvancedFiltersOpen ? (
-            <div className="cs-conversation-filter-secondary">
-              <div className="cs-filter-control">
-                <Select
-                  ariaLabel={t("ecommerce.customerServiceWorkspace.filterAiState")}
-                  value={workspace.conversationAiFilter}
-                  onChange={(value) =>
-                    workspace.setConversationAiFilter(value as ConversationAiFilter)
-                  }
-                  options={[
-                    { value: "all", label: t("ecommerce.customerServiceWorkspace.aiAll") },
-                    {
-                      value: "enabled",
-                      label: t("ecommerce.customerServiceWorkspace.aiEnabled"),
-                    },
-                    {
-                      value: "disabled",
-                      label: t("ecommerce.customerServiceWorkspace.aiDisabled"),
-                    },
-                  ]}
-                />
-              </div>
-              <div className="cs-filter-control">
-                <Select
-                  ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
-                  value={workspace.conversationEscalationFilter}
-                  onChange={(value) =>
-                    workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)
-                  }
-                  options={[
-                    {
-                      value: "all",
-                      label: t("ecommerce.customerServiceWorkspace.escalationAll"),
-                    },
-                    {
-                      value: "open",
-                      label: t("ecommerce.customerServiceWorkspace.escalationOpen"),
-                    },
-                    {
-                      value: "none",
-                      label: t("ecommerce.customerServiceWorkspace.escalationNone"),
-                    },
-                  ]}
-                />
-              </div>
-              <div className="cs-filter-control">
-                <Select
-                  ariaLabel={t("ecommerce.customerServiceWorkspace.filterBadReviewState")}
-                  value={workspace.conversationBadReviewFilter}
-                  onChange={(value) =>
-                    workspace.setConversationBadReviewFilter(value as ConversationBadReviewFilter)
-                  }
-                  options={[
-                    {
-                      value: "all",
-                      label: t("ecommerce.customerServiceWorkspace.badReviewAll"),
-                    },
-                    {
-                      value: "hasBadReview",
-                      label: t("ecommerce.customerServiceWorkspace.hasBadReview"),
-                    },
-                  ]}
-                />
-              </div>
+      <TkPanel as="section" padding="none" clip className="cs-workspace-panel">
+        {conversationAdvancedFiltersOpen ? (
+          <div className="cs-conversation-filter-secondary">
+            <div className="cs-filter-control">
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterAiState")}
+                value={workspace.conversationAiFilter}
+                onChange={(value) =>
+                  workspace.setConversationAiFilter(value as ConversationAiFilter)
+                }
+                options={[
+                  { value: "all", label: t("ecommerce.customerServiceWorkspace.aiAll") },
+                  {
+                    value: "enabled",
+                    label: t("ecommerce.customerServiceWorkspace.aiEnabled"),
+                  },
+                  {
+                    value: "disabled",
+                    label: t("ecommerce.customerServiceWorkspace.aiDisabled"),
+                  },
+                ]}
+              />
             </div>
-          ) : null}
+            <div className="cs-filter-control">
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
+                value={workspace.conversationEscalationFilter}
+                onChange={(value) =>
+                  workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)
+                }
+                options={[
+                  {
+                    value: "all",
+                    label: t("ecommerce.customerServiceWorkspace.escalationAll"),
+                  },
+                  {
+                    value: "open",
+                    label: t("ecommerce.customerServiceWorkspace.escalationOpen"),
+                  },
+                  {
+                    value: "none",
+                    label: t("ecommerce.customerServiceWorkspace.escalationNone"),
+                  },
+                ]}
+              />
+            </div>
+            <div className="cs-filter-control">
+              <Select
+                ariaLabel={t("ecommerce.customerServiceWorkspace.filterBadReviewState")}
+                value={workspace.conversationBadReviewFilter}
+                onChange={(value) =>
+                  workspace.setConversationBadReviewFilter(value as ConversationBadReviewFilter)
+                }
+                options={[
+                  {
+                    value: "all",
+                    label: t("ecommerce.customerServiceWorkspace.badReviewAll"),
+                  },
+                  {
+                    value: "hasBadReview",
+                    label: t("ecommerce.customerServiceWorkspace.hasBadReview"),
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div
+          className="cs-conversation-shell"
+          style={conversationShellStyle}
+          data-tutorial-id="cs-conversation-workspace"
+        >
+          <div
+            className="cs-conversation-list"
+            ref={conversationListRef}
+            data-tutorial-id="cs-conversation-list"
+          >
+            <div className="cs-conversation-list-head">
+              <PageSummary
+                start={workspace.conversationPageStart}
+                end={workspace.conversationPageEnd}
+                total={workspace.conversationTotal}
+                page={workspace.conversationPage}
+                pages={workspace.conversationPageCount}
+              />
+            </div>
+            <div className="cs-conversation-list-scroll">
+              {workspace.conversationsError && (
+                <div className="form-error" role="alert">
+                  {conversationSearchErrorKey
+                    ? t(conversationSearchErrorKey)
+                    : workspace.conversationsError}
+                </div>
+              )}
+              {workspace.conversationsLoading && conversationItems.length === 0 ? (
+                <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+              ) : conversationItems.length === 0 && orderDrafts.length === 0 ? (
+                <div className="affiliate-proposal-empty">
+                  {t("ecommerce.customerServiceWorkspace.conversationEmpty")}
+                </div>
+              ) : (
+                <>
+                  {orderDrafts.map((order) => (
+                    <CustomerServiceOrderDraftRow
+                      key={`draft:${order.shopId}:${order.orderId}`}
+                      active={workspace.openingOrderKey === `${order.shopId}:${order.orderId}`}
+                      pending={workspace.isOrderStarting(order.shopId, order.orderId)}
+                      error={workspace.startOrderError(order.shopId, order.orderId)}
+                      orderId={order.orderId}
+                      shopLabel={shopLabel(order.shopId)}
+                      timeLabel={order.createTime ? formatCompactDateTime(order.createTime) : "-"}
+                      statusLabel={platformValueLabel(t, "orderStatus", order.status)}
+                      amountLabel={
+                        order.totalAmount
+                          ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
+                          : ""
+                      }
+                      onSelect={() => void workspace.openOrderDraft(order.shopId, order.orderId)}
+                    />
+                  ))}
+                  {conversationItems.map((item) => (
+                    <CustomerServiceConversationRow
+                      key={`${item.shopId}:${item.conversationId}`}
+                      item={item}
+                      active={
+                        selectedConversation?.conversationId === item.conversationId &&
+                        selectedConversation?.shopId === item.shopId
+                      }
+                      buyerName={buyerLabel(item)}
+                      shopLabel={shopLabel(item.shopId)}
+                      timeLabel={
+                        item.latestMessageTime ? formatCompactDateTime(item.latestMessageTime) : "-"
+                      }
+                      onSelect={() =>
+                        workspace.selectConversation(item.shopId, item.conversationId)
+                      }
+                      onOpenBadReviews={() => setReviewModalConversation(item)}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+            <div className="cs-escalation-pagination">
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                onClick={() => workspace.setConversationPage(workspace.conversationPage - 1)}
+                disabled={workspace.conversationPage <= 1 || workspace.conversationsLoading}
+              >
+                {t("ecommerce.customerServiceWorkspace.previous")}
+              </button>
+              <span>
+                {t("ecommerce.customerServiceWorkspace.page", {
+                  page: workspace.conversationPage,
+                  pages: workspace.conversationPageCount,
+                })}
+              </span>
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                onClick={() => workspace.setConversationPage(workspace.conversationPage + 1)}
+                disabled={
+                  workspace.conversationPage >= workspace.conversationPageCount ||
+                  workspace.conversationsLoading
+                }
+              >
+                {t("ecommerce.customerServiceWorkspace.next")}
+              </button>
+            </div>
+          </div>
 
           <div
-            className="cs-conversation-shell"
-            style={conversationShellStyle}
-            data-tutorial-id="cs-conversation-workspace"
-          >
-            <div
-              className="cs-conversation-list"
-              ref={conversationListRef}
-              data-tutorial-id="cs-conversation-list"
-            >
-              <div className="cs-conversation-list-head">
-                <PageSummary
-                  start={workspace.conversationPageStart}
-                  end={workspace.conversationPageEnd}
-                  total={workspace.conversationTotal}
-                  page={workspace.conversationPage}
-                  pages={workspace.conversationPageCount}
-                />
-              </div>
-              <div className="cs-conversation-list-scroll">
-                {workspace.conversationsError && (
-                  <div className="form-error" role="alert">
-                    {conversationSearchErrorKey
-                      ? t(conversationSearchErrorKey)
-                      : workspace.conversationsError}
-                  </div>
-                )}
-                {workspace.conversationsLoading && conversationItems.length === 0 ? (
-                  <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-                ) : conversationItems.length === 0 && orderDrafts.length === 0 ? (
-                  <div className="affiliate-proposal-empty">
-                    {t("ecommerce.customerServiceWorkspace.conversationEmpty")}
-                  </div>
-                ) : (
-                  <>
-                    {orderDrafts.map((order) => (
-                      <CustomerServiceOrderDraftRow
-                        key={`draft:${order.shopId}:${order.orderId}`}
-                        active={workspace.openingOrderKey === `${order.shopId}:${order.orderId}`}
-                        pending={workspace.isOrderStarting(order.shopId, order.orderId)}
-                        error={workspace.startOrderError(order.shopId, order.orderId)}
-                        orderId={order.orderId}
-                        shopLabel={shopLabel(order.shopId)}
-                        timeLabel={order.createTime ? formatCompactDateTime(order.createTime) : "-"}
-                        statusLabel={platformValueLabel(t, "orderStatus", order.status)}
-                        amountLabel={
-                          order.totalAmount
-                            ? formatOrderMoney(order.totalAmount, order.currency, i18n.language)
-                            : ""
-                        }
-                        onSelect={() => void workspace.openOrderDraft(order.shopId, order.orderId)}
-                      />
-                    ))}
-                    {conversationItems.map((item) => (
-                      <CustomerServiceConversationRow
-                        key={`${item.shopId}:${item.conversationId}`}
-                        item={item}
-                        active={
-                          selectedConversation?.conversationId === item.conversationId &&
-                          selectedConversation?.shopId === item.shopId
-                        }
-                        buyerName={buyerLabel(item)}
-                        shopLabel={shopLabel(item.shopId)}
-                        timeLabel={
-                          item.latestMessageTime
-                            ? formatCompactDateTime(item.latestMessageTime)
-                            : "-"
-                        }
-                        onSelect={() =>
-                          workspace.selectConversation(item.shopId, item.conversationId)
-                        }
-                        onOpenBadReviews={() => setReviewModalConversation(item)}
-                      />
-                    ))}
-                  </>
-                )}
-              </div>
-              <div className="cs-escalation-pagination">
-                <button
-                  className="btn btn-secondary btn-sm"
-                  type="button"
-                  onClick={() => workspace.setConversationPage(workspace.conversationPage - 1)}
-                  disabled={workspace.conversationPage <= 1 || workspace.conversationsLoading}
-                >
-                  {t("ecommerce.customerServiceWorkspace.previous")}
-                </button>
-                <span>
-                  {t("ecommerce.customerServiceWorkspace.page", {
-                    page: workspace.conversationPage,
-                    pages: workspace.conversationPageCount,
-                  })}
-                </span>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  type="button"
-                  onClick={() => workspace.setConversationPage(workspace.conversationPage + 1)}
-                  disabled={
-                    workspace.conversationPage >= workspace.conversationPageCount ||
-                    workspace.conversationsLoading
-                  }
-                >
-                  {t("ecommerce.customerServiceWorkspace.next")}
-                </button>
-              </div>
-            </div>
+            className="cs-conversation-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t("ecommerce.customerServiceWorkspace.resizeConversationList")}
+            onPointerDown={startConversationResize}
+          />
 
-            <div
-              className="cs-conversation-resizer"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label={t("ecommerce.customerServiceWorkspace.resizeConversationList")}
-              onPointerDown={startConversationResize}
-            />
-
-            <div className="cs-conversation-detail" data-tutorial-id="cs-conversation-detail">
-              {selectedConversation ? (
-                <>
-                  <div className="cs-conversation-summary">
-                    <div className="cs-conversation-detail-head">
-                      <div>
-                        <div className="cs-conversation-title-row">
-                          <h2>{buyerLabel(selectedConversation)}</h2>
-                          <BadReviewBadge
+          <div className="cs-conversation-detail" data-tutorial-id="cs-conversation-detail">
+            {selectedConversation ? (
+              <>
+                <div className="cs-conversation-summary">
+                  <div className="cs-conversation-detail-head">
+                    <div>
+                      <div className="cs-conversation-title-row">
+                        <h2>{buyerLabel(selectedConversation)}</h2>
+                        <BadReviewBadge
+                          conversation={selectedConversation}
+                          onClick={() => setReviewModalConversation(selectedConversation)}
+                          variant="detail"
+                        />
+                        {selectedConversation.openEscalationCount > 0 && (
+                          <EscalationStateBadge
                             conversation={selectedConversation}
-                            onClick={() => setReviewModalConversation(selectedConversation)}
+                            onClick={() => void openConversationEscalation(selectedConversation)}
                             variant="detail"
                           />
+                        )}
+                      </div>
+                      <TkPrivate
+                        as="p"
+                        sensitive={shopLabel(selectedConversation.shopId).sensitive}
+                      >
+                        {shopLabel(selectedConversation.shopId).text}
+                      </TkPrivate>
+                    </div>
+                  </div>
+                  <div className="cs-conversation-tools">
+                    <button
+                      className="btn btn-secondary btn-sm cs-summary-button"
+                      type="button"
+                      onClick={() => void summarizeConversation()}
+                      disabled={
+                        !hasActiveLlmProvider ||
+                        workspace.conversationSummaryGenerating ||
+                        workspace.conversationMessagesLoading
+                      }
+                      title={
+                        !hasActiveLlmProvider
+                          ? t("ecommerce.customerServiceWorkspace.llmUnavailableTooltip")
+                          : undefined
+                      }
+                    >
+                      {workspace.conversationSummaryGenerating
+                        ? t("common.loading")
+                        : t("ecommerce.customerServiceWorkspace.summarize")}
+                    </button>
+                    {selectedConversation.openEscalationCount > 0 && (
+                      <span
+                        className="has-tooltip cs-dismiss-escalation-action"
+                        data-tooltip={t(
+                          "ecommerce.customerServiceWorkspace.dismissEscalationTooltip",
+                        )}
+                      >
+                        <button
+                          className="btn btn-secondary btn-sm cs-clear-escalations-button"
+                          type="button"
+                          onClick={() =>
+                            setDismissEscalationConfirm({
+                              kind: "conversation",
+                              conversation: selectedConversation,
+                            })
+                          }
+                          disabled={workspace.isConversationEscalationClearing(
+                            selectedConversation.conversationId,
+                          )}
+                        >
+                          {workspace.isConversationEscalationClearing(
+                            selectedConversation.conversationId,
+                          )
+                            ? t("common.loading")
+                            : t("ecommerce.customerServiceWorkspace.dismissEscalation")}
+                        </button>
+                      </span>
+                    )}
+                    {selectedConversation.isOpen !== false && (
+                      <span
+                        className="has-tooltip cs-end-session-action"
+                        data-tooltip={
+                          selectedConversation.openEscalationCount > 0
+                            ? t("ecommerce.customerServiceWorkspace.endSessionDisabledTooltip")
+                            : t("ecommerce.customerServiceWorkspace.endSessionTooltip")
+                        }
+                      >
+                        <button
+                          className="btn btn-secondary btn-sm cs-end-session-button"
+                          type="button"
+                          onClick={() =>
+                            setEndSessionConfirm({ conversation: selectedConversation })
+                          }
+                          disabled={
+                            selectedConversation.openEscalationCount > 0 ||
+                            workspace.isConversationSessionEnding(
+                              selectedConversation.conversationId,
+                            )
+                          }
+                        >
+                          {workspace.isConversationSessionEnding(
+                            selectedConversation.conversationId,
+                          )
+                            ? t("common.loading")
+                            : t("ecommerce.customerServiceWorkspace.endSession")}
+                        </button>
+                      </span>
+                    )}
+                    <button
+                      className={
+                        selectedConversation.aiEnabled ? "cs-ai-switch enabled" : "cs-ai-switch"
+                      }
+                      data-tutorial-id="cs-ai-control"
+                      type="button"
+                      role="switch"
+                      aria-checked={selectedConversation.aiEnabled}
+                      onClick={() => void toggleConversationAi(selectedConversation)}
+                      disabled={workspace.isConversationAiUpdating(
+                        selectedConversation.conversationId,
+                      )}
+                    >
+                      <span className="cs-ai-switch-track" aria-hidden="true">
+                        <span className="cs-ai-switch-thumb" />
+                      </span>
+                      <span>
+                        {selectedConversation.aiEnabled
+                          ? t("ecommerce.customerServiceWorkspace.aiEnabled")
+                          : t("ecommerce.customerServiceWorkspace.aiDisabled")}
+                      </span>
+                    </button>
+                    {(conversationOrderIds.length > 0 ||
+                      workspace.selectedConversationOrderIdsLoading ||
+                      workspace.selectedConversationOrderIdsError) && (
+                      <div
+                        className={
+                          conversationOrderOpen
+                            ? "cs-conversation-order open"
+                            : "cs-conversation-order"
+                        }
+                        ref={conversationOrderRef}
+                      >
+                        <button
+                          className={
+                            conversationOrderOpen
+                              ? "btn btn-secondary btn-sm cs-conversation-order-trigger active"
+                              : "btn btn-secondary btn-sm cs-conversation-order-trigger"
+                          }
+                          data-tutorial-id="cs-order-context"
+                          type="button"
+                          aria-expanded={conversationOrderOpen}
+                          onClick={() => {
+                            const nextOpen = !conversationOrderOpen;
+                            setOpenConversationOrderKey(nextOpen ? selectedConversationKey : null);
+                            if (nextOpen) {
+                              setConversationDetailsOpen(false);
+                              setOpenConversationCouponKey(null);
+                            }
+                          }}
+                        >
+                          <ModuleIcon size={14} />
+                          <span>{t("ecommerce.customerServiceWorkspace.order")}</span>
+                        </button>
+                        <div className="cs-conversation-order-layer">
+                          <div className="cs-conversation-order-popover">
+                            <ConversationOrderList
+                              orderIds={conversationOrderIds}
+                              expandedOrderId={expandedOrderId}
+                              loadingIds={workspace.selectedConversationOrderIdsLoading}
+                              idsError={workspace.selectedConversationOrderIdsError}
+                              loadingDetail={workspace.selectedConversationOrderContextLoading}
+                              detailError={workspace.selectedConversationOrderContextError}
+                              onToggle={(orderId) => workspace.toggleConversationOrder(orderId)}
+                              onRetryIds={() => void workspace.fetchSelectedConversationOrderIds()}
+                              onRefresh={() => {
+                                void workspace.fetchSelectedConversationOrderContext(true);
+                                void workspace.fetchSelectedConversationOrderTracking(true);
+                                void workspace.fetchSelectedConversationOrderCancellations(true);
+                              }}
+                              headerActions={
+                                selectedConversationOrderContext?.order ? (
+                                  <ConversationOrderCardActions
+                                    workspace={workspace}
+                                    shopId={selectedConversation.shopId}
+                                    conversationId={selectedConversation.conversationId}
+                                    orderId={selectedConversationOrderContext.orderId}
+                                    packageIds={orderPackageIds(
+                                      selectedConversationOrderContext.order,
+                                    )}
+                                  />
+                                ) : null
+                              }
+                            >
+                              {selectedConversationOrderContext ? (
+                                <ConversationOrderPopover
+                                  context={selectedConversationOrderContext}
+                                  workspace={workspace}
+                                  shopId={selectedConversation.shopId}
+                                  copiedMeta={workspace.copiedMeta}
+                                  locale={i18n.language}
+                                  onCopy={copyMeta}
+                                />
+                              ) : null}
+                            </ConversationOrderList>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div
+                      className={
+                        conversationCouponOpen
+                          ? "cs-conversation-coupon open"
+                          : "cs-conversation-coupon"
+                      }
+                      ref={conversationCouponRef}
+                    >
+                      <button
+                        className={
+                          conversationCouponOpen
+                            ? "btn btn-secondary btn-sm cs-conversation-coupon-trigger active"
+                            : "btn btn-secondary btn-sm cs-conversation-coupon-trigger"
+                        }
+                        type="button"
+                        aria-expanded={conversationCouponOpen}
+                        onClick={() => {
+                          const nextOpen = !conversationCouponOpen;
+                          setOpenConversationCouponKey(nextOpen ? selectedConversationKey : null);
+                          if (nextOpen) {
+                            setConversationDetailsOpen(false);
+                            setOpenConversationOrderKey(null);
+                          }
+                        }}
+                      >
+                        <TagIcon size={14} />
+                        <span>{t("ecommerce.customerServiceWorkspace.coupon")}</span>
+                      </button>
+                      <div className="cs-conversation-coupon-layer">
+                        <div className="cs-conversation-coupon-popover">
+                          <ConversationCouponPicker
+                            workspace={workspace}
+                            shopId={selectedConversation.shopId}
+                            conversationId={selectedConversation.conversationId}
+                            open={conversationCouponOpen}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className={
+                        conversationDetailsOpen
+                          ? "cs-conversation-more open"
+                          : "cs-conversation-more"
+                      }
+                      ref={conversationDetailsRef}
+                    >
+                      <button
+                        className={
+                          conversationDetailsOpen
+                            ? "btn btn-secondary btn-sm cs-conversation-more-trigger active"
+                            : "btn btn-secondary btn-sm cs-conversation-more-trigger"
+                        }
+                        type="button"
+                        aria-expanded={conversationDetailsOpen}
+                        onClick={() => {
+                          setConversationDetailsOpen((open) => {
+                            const nextOpen = !open;
+                            if (nextOpen) {
+                              setOpenConversationOrderKey(null);
+                              setOpenConversationCouponKey(null);
+                            }
+                            return nextOpen;
+                          });
+                        }}
+                      >
+                        {t("ecommerce.customerServiceWorkspace.details")}
+                      </button>
+                      <div className="cs-conversation-popover">
+                        <div className="cs-conversation-popover-head">
+                          <span>{t("ecommerce.customerServiceWorkspace.conversationDetails")}</span>
                           {selectedConversation.openEscalationCount > 0 && (
                             <EscalationStateBadge
                               conversation={selectedConversation}
@@ -1104,472 +1209,193 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                             />
                           )}
                         </div>
-                        <TkPrivate
-                          as="p"
-                          sensitive={shopLabel(selectedConversation.shopId).sensitive}
-                        >
-                          {shopLabel(selectedConversation.shopId).text}
-                        </TkPrivate>
-                      </div>
-                    </div>
-                    <div className="cs-conversation-tools">
-                      <button
-                        className="btn btn-secondary btn-sm cs-summary-button"
-                        type="button"
-                        onClick={() => void summarizeConversation()}
-                        disabled={
-                          !hasActiveLlmProvider ||
-                          workspace.conversationSummaryGenerating ||
-                          workspace.conversationMessagesLoading
-                        }
-                        title={
-                          !hasActiveLlmProvider
-                            ? t("ecommerce.customerServiceWorkspace.llmUnavailableTooltip")
-                            : undefined
-                        }
-                      >
-                        {workspace.conversationSummaryGenerating
-                          ? t("common.loading")
-                          : t("ecommerce.customerServiceWorkspace.summarize")}
-                      </button>
-                      {selectedConversation.openEscalationCount > 0 && (
-                        <span
-                          className="has-tooltip cs-dismiss-escalation-action"
-                          data-tooltip={t(
-                            "ecommerce.customerServiceWorkspace.dismissEscalationTooltip",
-                          )}
-                        >
-                          <button
-                            className="btn btn-secondary btn-sm cs-clear-escalations-button"
-                            type="button"
-                            onClick={() =>
-                              setDismissEscalationConfirm({
-                                kind: "conversation",
-                                conversation: selectedConversation,
-                              })
+                        <div className="cs-conversation-facts">
+                          <CopyMetaButton
+                            label={t("ecommerce.customerServiceWorkspace.conversation")}
+                            value={selectedConversation.conversationId}
+                            copied={
+                              workspace.copiedMeta ===
+                              `${t("ecommerce.customerServiceWorkspace.conversation")}:${selectedConversation.conversationId}`
                             }
-                            disabled={workspace.isConversationEscalationClearing(
-                              selectedConversation.conversationId,
-                            )}
-                          >
-                            {workspace.isConversationEscalationClearing(
-                              selectedConversation.conversationId,
-                            )
-                              ? t("common.loading")
-                              : t("ecommerce.customerServiceWorkspace.dismissEscalation")}
-                          </button>
-                        </span>
-                      )}
-                      {selectedConversation.isOpen !== false && (
-                        <span
-                          className="has-tooltip cs-end-session-action"
-                          data-tooltip={
-                            selectedConversation.openEscalationCount > 0
-                              ? t("ecommerce.customerServiceWorkspace.endSessionDisabledTooltip")
-                              : t("ecommerce.customerServiceWorkspace.endSessionTooltip")
-                          }
-                        >
-                          <button
-                            className="btn btn-secondary btn-sm cs-end-session-button"
-                            type="button"
-                            onClick={() =>
-                              setEndSessionConfirm({ conversation: selectedConversation })
-                            }
-                            disabled={
-                              selectedConversation.openEscalationCount > 0 ||
-                              workspace.isConversationSessionEnding(
-                                selectedConversation.conversationId,
-                              )
-                            }
-                          >
-                            {workspace.isConversationSessionEnding(
-                              selectedConversation.conversationId,
-                            )
-                              ? t("common.loading")
-                              : t("ecommerce.customerServiceWorkspace.endSession")}
-                          </button>
-                        </span>
-                      )}
-                      <button
-                        className={
-                          selectedConversation.aiEnabled ? "cs-ai-switch enabled" : "cs-ai-switch"
-                        }
-                        data-tutorial-id="cs-ai-control"
-                        type="button"
-                        role="switch"
-                        aria-checked={selectedConversation.aiEnabled}
-                        onClick={() => void toggleConversationAi(selectedConversation)}
-                        disabled={workspace.isConversationAiUpdating(
-                          selectedConversation.conversationId,
-                        )}
-                      >
-                        <span className="cs-ai-switch-track" aria-hidden="true">
-                          <span className="cs-ai-switch-thumb" />
-                        </span>
-                        <span>
-                          {selectedConversation.aiEnabled
-                            ? t("ecommerce.customerServiceWorkspace.aiEnabled")
-                            : t("ecommerce.customerServiceWorkspace.aiDisabled")}
-                        </span>
-                      </button>
-                      {(conversationOrderIds.length > 0 ||
-                        workspace.selectedConversationOrderIdsLoading ||
-                        workspace.selectedConversationOrderIdsError) && (
-                        <div
-                          className={
-                            conversationOrderOpen
-                              ? "cs-conversation-order open"
-                              : "cs-conversation-order"
-                          }
-                          ref={conversationOrderRef}
-                        >
-                          <button
-                            className={
-                              conversationOrderOpen
-                                ? "btn btn-secondary btn-sm cs-conversation-order-trigger active"
-                                : "btn btn-secondary btn-sm cs-conversation-order-trigger"
-                            }
-                            data-tutorial-id="cs-order-context"
-                            type="button"
-                            aria-expanded={conversationOrderOpen}
-                            onClick={() => {
-                              const nextOpen = !conversationOrderOpen;
-                              setOpenConversationOrderKey(
-                                nextOpen ? selectedConversationKey : null,
-                              );
-                              if (nextOpen) {
-                                setConversationDetailsOpen(false);
-                                setOpenConversationCouponKey(null);
-                              }
-                            }}
-                          >
-                            <ModuleIcon size={14} />
-                            <span>{t("ecommerce.customerServiceWorkspace.order")}</span>
-                          </button>
-                          <div className="cs-conversation-order-layer">
-                            <div className="cs-conversation-order-popover">
-                              <ConversationOrderList
-                                orderIds={conversationOrderIds}
-                                expandedOrderId={expandedOrderId}
-                                loadingIds={workspace.selectedConversationOrderIdsLoading}
-                                idsError={workspace.selectedConversationOrderIdsError}
-                                loadingDetail={workspace.selectedConversationOrderContextLoading}
-                                detailError={workspace.selectedConversationOrderContextError}
-                                onToggle={(orderId) => workspace.toggleConversationOrder(orderId)}
-                                onRetryIds={() =>
-                                  void workspace.fetchSelectedConversationOrderIds()
-                                }
-                                onRefresh={() => {
-                                  void workspace.fetchSelectedConversationOrderContext(true);
-                                  void workspace.fetchSelectedConversationOrderTracking(true);
-                                  void workspace.fetchSelectedConversationOrderCancellations(true);
-                                }}
-                                headerActions={
-                                  selectedConversationOrderContext?.order ? (
-                                    <ConversationOrderCardActions
-                                      workspace={workspace}
-                                      shopId={selectedConversation.shopId}
-                                      conversationId={selectedConversation.conversationId}
-                                      orderId={selectedConversationOrderContext.orderId}
-                                      packageIds={orderPackageIds(
-                                        selectedConversationOrderContext.order,
-                                      )}
-                                    />
-                                  ) : null
-                                }
-                              >
-                                {selectedConversationOrderContext ? (
-                                  <ConversationOrderPopover
-                                    context={selectedConversationOrderContext}
-                                    workspace={workspace}
-                                    shopId={selectedConversation.shopId}
-                                    copiedMeta={workspace.copiedMeta}
-                                    locale={i18n.language}
-                                    onCopy={copyMeta}
-                                  />
-                                ) : null}
-                              </ConversationOrderList>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      <div
-                        className={
-                          conversationCouponOpen
-                            ? "cs-conversation-coupon open"
-                            : "cs-conversation-coupon"
-                        }
-                        ref={conversationCouponRef}
-                      >
-                        <button
-                          className={
-                            conversationCouponOpen
-                              ? "btn btn-secondary btn-sm cs-conversation-coupon-trigger active"
-                              : "btn btn-secondary btn-sm cs-conversation-coupon-trigger"
-                          }
-                          type="button"
-                          aria-expanded={conversationCouponOpen}
-                          onClick={() => {
-                            const nextOpen = !conversationCouponOpen;
-                            setOpenConversationCouponKey(nextOpen ? selectedConversationKey : null);
-                            if (nextOpen) {
-                              setConversationDetailsOpen(false);
-                              setOpenConversationOrderKey(null);
-                            }
-                          }}
-                        >
-                          <TagIcon size={14} />
-                          <span>{t("ecommerce.customerServiceWorkspace.coupon")}</span>
-                        </button>
-                        <div className="cs-conversation-coupon-layer">
-                          <div className="cs-conversation-coupon-popover">
-                            <ConversationCouponPicker
-                              workspace={workspace}
-                              shopId={selectedConversation.shopId}
-                              conversationId={selectedConversation.conversationId}
-                              open={conversationCouponOpen}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        className={
-                          conversationDetailsOpen
-                            ? "cs-conversation-more open"
-                            : "cs-conversation-more"
-                        }
-                        ref={conversationDetailsRef}
-                      >
-                        <button
-                          className={
-                            conversationDetailsOpen
-                              ? "btn btn-secondary btn-sm cs-conversation-more-trigger active"
-                              : "btn btn-secondary btn-sm cs-conversation-more-trigger"
-                          }
-                          type="button"
-                          aria-expanded={conversationDetailsOpen}
-                          onClick={() => {
-                            setConversationDetailsOpen((open) => {
-                              const nextOpen = !open;
-                              if (nextOpen) {
-                                setOpenConversationOrderKey(null);
-                                setOpenConversationCouponKey(null);
-                              }
-                              return nextOpen;
-                            });
-                          }}
-                        >
-                          {t("ecommerce.customerServiceWorkspace.details")}
-                        </button>
-                        <div className="cs-conversation-popover">
-                          <div className="cs-conversation-popover-head">
-                            <span>
-                              {t("ecommerce.customerServiceWorkspace.conversationDetails")}
-                            </span>
-                            {selectedConversation.openEscalationCount > 0 && (
-                              <EscalationStateBadge
-                                conversation={selectedConversation}
-                                onClick={() =>
-                                  void openConversationEscalation(selectedConversation)
-                                }
-                                variant="detail"
-                              />
-                            )}
-                          </div>
-                          <div className="cs-conversation-facts">
+                            onCopy={copyMeta}
+                          />
+                          {selectedConversation.buyerUserId && (
                             <CopyMetaButton
-                              label={t("ecommerce.customerServiceWorkspace.conversation")}
-                              value={selectedConversation.conversationId}
+                              label={t("ecommerce.customerServiceWorkspace.buyer")}
+                              value={selectedConversation.buyerUserId}
                               copied={
                                 workspace.copiedMeta ===
-                                `${t("ecommerce.customerServiceWorkspace.conversation")}:${selectedConversation.conversationId}`
+                                `${t("ecommerce.customerServiceWorkspace.buyer")}:${selectedConversation.buyerUserId}`
                               }
                               onCopy={copyMeta}
                             />
-                            {selectedConversation.buyerUserId && (
-                              <CopyMetaButton
-                                label={t("ecommerce.customerServiceWorkspace.buyer")}
-                                value={selectedConversation.buyerUserId}
-                                copied={
-                                  workspace.copiedMeta ===
-                                  `${t("ecommerce.customerServiceWorkspace.buyer")}:${selectedConversation.buyerUserId}`
-                                }
-                                onCopy={copyMeta}
-                              />
-                            )}
-                            {selectedConversation.buyerImUserId && (
-                              <CopyMetaButton
-                                label={t("ecommerce.customerServiceWorkspace.buyerIm")}
-                                value={selectedConversation.buyerImUserId}
-                                copied={
-                                  workspace.copiedMeta ===
-                                  `${t("ecommerce.customerServiceWorkspace.buyerIm")}:${selectedConversation.buyerImUserId}`
-                                }
-                                onCopy={copyMeta}
-                              />
-                            )}
-                            {selectedConversation.buyerNickname && (
-                              <CopyMetaButton
-                                label={t("ecommerce.customerServiceWorkspace.buyerAlias")}
-                                value={selectedConversation.buyerNickname}
-                                copied={
-                                  workspace.copiedMeta ===
-                                  `${t("ecommerce.customerServiceWorkspace.buyerAlias")}:${selectedConversation.buyerNickname}`
-                                }
-                                onCopy={copyMeta}
-                              />
-                            )}
-                            {selectedConversation.orderId && (
-                              <CopyMetaButton
-                                label={t("ecommerce.customerServiceWorkspace.order")}
-                                value={selectedConversation.orderId}
-                                copied={
-                                  workspace.copiedMeta ===
-                                  `${t("ecommerce.customerServiceWorkspace.order")}:${selectedConversation.orderId}`
-                                }
-                                onCopy={copyMeta}
-                              />
-                            )}
-                          </div>
-                          <div className="cs-conversation-popover-footer">
-                            <button
-                              className="btn btn-primary btn-sm cs-run-ai-button"
-                              type="button"
-                              onClick={() => void startConversation(selectedConversation)}
-                              disabled={
-                                !hasActiveLlmProvider ||
-                                workspace.isConversationStarting(
-                                  selectedConversation.conversationId,
-                                )
+                          )}
+                          {selectedConversation.buyerImUserId && (
+                            <CopyMetaButton
+                              label={t("ecommerce.customerServiceWorkspace.buyerIm")}
+                              value={selectedConversation.buyerImUserId}
+                              copied={
+                                workspace.copiedMeta ===
+                                `${t("ecommerce.customerServiceWorkspace.buyerIm")}:${selectedConversation.buyerImUserId}`
                               }
-                              title={
-                                !hasActiveLlmProvider
-                                  ? t("ecommerce.customerServiceWorkspace.llmUnavailableTooltip")
-                                  : undefined
+                              onCopy={copyMeta}
+                            />
+                          )}
+                          {selectedConversation.buyerNickname && (
+                            <CopyMetaButton
+                              label={t("ecommerce.customerServiceWorkspace.buyerAlias")}
+                              value={selectedConversation.buyerNickname}
+                              copied={
+                                workspace.copiedMeta ===
+                                `${t("ecommerce.customerServiceWorkspace.buyerAlias")}:${selectedConversation.buyerNickname}`
                               }
-                            >
-                              {workspace.isConversationStarting(selectedConversation.conversationId)
-                                ? t("common.loading")
-                                : t("ecommerce.customerServiceWorkspace.startAi")}
-                            </button>
-                          </div>
+                              onCopy={copyMeta}
+                            />
+                          )}
+                          {selectedConversation.orderId && (
+                            <CopyMetaButton
+                              label={t("ecommerce.customerServiceWorkspace.order")}
+                              value={selectedConversation.orderId}
+                              copied={
+                                workspace.copiedMeta ===
+                                `${t("ecommerce.customerServiceWorkspace.order")}:${selectedConversation.orderId}`
+                              }
+                              onCopy={copyMeta}
+                            />
+                          )}
+                        </div>
+                        <div className="cs-conversation-popover-footer">
+                          <button
+                            className="btn btn-primary btn-sm cs-run-ai-button"
+                            type="button"
+                            onClick={() => void startConversation(selectedConversation)}
+                            disabled={
+                              !hasActiveLlmProvider ||
+                              workspace.isConversationStarting(selectedConversation.conversationId)
+                            }
+                            title={
+                              !hasActiveLlmProvider
+                                ? t("ecommerce.customerServiceWorkspace.llmUnavailableTooltip")
+                                : undefined
+                            }
+                          >
+                            {workspace.isConversationStarting(selectedConversation.conversationId)
+                              ? t("common.loading")
+                              : t("ecommerce.customerServiceWorkspace.startAi")}
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div
-                    className="cs-message-panel"
-                    aria-label={t("ecommerce.customerServiceWorkspace.messages")}
-                  >
-                    {workspace.conversationMessagesError && (
-                      <div className="form-error">{workspace.conversationMessagesError}</div>
-                    )}
-                    {workspace.conversationSummaryError && (
-                      <div className="form-error">{workspace.conversationSummaryError}</div>
-                    )}
-                    {workspace.conversationSummaryGenerating && (
-                      <div className="cs-message-working-overlay" role="status" aria-live="polite">
-                        <div className="cs-message-working-card">
-                          <span className="cs-message-working-spinner" aria-hidden="true" />
-                          <div>
-                            <strong>
-                              {t("ecommerce.customerServiceWorkspace.summaryGenerating")}
-                            </strong>
-                            <p>{t("ecommerce.customerServiceWorkspace.summaryGeneratingHint")}</p>
-                          </div>
+                </div>
+                <div
+                  className="cs-message-panel"
+                  aria-label={t("ecommerce.customerServiceWorkspace.messages")}
+                >
+                  {workspace.conversationMessagesError && (
+                    <div className="form-error">{workspace.conversationMessagesError}</div>
+                  )}
+                  {workspace.conversationSummaryError && (
+                    <div className="form-error">{workspace.conversationSummaryError}</div>
+                  )}
+                  {workspace.conversationSummaryGenerating && (
+                    <div className="cs-message-working-overlay" role="status" aria-live="polite">
+                      <div className="cs-message-working-card">
+                        <span className="cs-message-working-spinner" aria-hidden="true" />
+                        <div>
+                          <strong>
+                            {t("ecommerce.customerServiceWorkspace.summaryGenerating")}
+                          </strong>
+                          <p>{t("ecommerce.customerServiceWorkspace.summaryGeneratingHint")}</p>
                         </div>
                       </div>
-                    )}
-                    {workspace.conversationMessagesLoading &&
-                    workspace.conversationMessages.length === 0 ? (
-                      <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-                    ) : workspace.conversationMessages.length === 0 &&
-                      !workspace.conversationSummary ? (
-                      <div className="affiliate-proposal-empty">
-                        {t("ecommerce.customerServiceWorkspace.noMessages")}
-                      </div>
-                    ) : (
-                      <div
-                        className="cs-message-list"
-                        ref={messageListRef}
-                        onScroll={handleMessageListScroll}
-                      >
-                        {workspace.conversationMessagesLoadingMore && (
-                          <div className="cs-message-loading-older">{t("common.loading")}</div>
-                        )}
-                        {conversationMessages.map((message) => (
-                          <div
-                            className={messageClassName(message)}
-                            key={message.messageId ?? `${message.createTime}-${message.text}`}
-                          >
-                            {message.isSummaryMessage ? (
-                              <>
-                                <div className="cs-summary-message-title">
-                                  <span>
-                                    {t("ecommerce.customerServiceWorkspace.summaryTitle")}
-                                  </span>
-                                  <small>
-                                    {message.summaryUpdatedAt
-                                      ? formatCompactDateTime(message.summaryUpdatedAt)
-                                      : ""}
-                                  </small>
+                    </div>
+                  )}
+                  {workspace.conversationMessagesLoading &&
+                  workspace.conversationMessages.length === 0 ? (
+                    <div className="affiliate-proposal-empty">{t("common.loading")}</div>
+                  ) : workspace.conversationMessages.length === 0 &&
+                    !workspace.conversationSummary ? (
+                    <div className="affiliate-proposal-empty">
+                      {t("ecommerce.customerServiceWorkspace.noMessages")}
+                    </div>
+                  ) : (
+                    <div
+                      className="cs-message-list"
+                      ref={messageListRef}
+                      onScroll={handleMessageListScroll}
+                    >
+                      {workspace.conversationMessagesLoadingMore && (
+                        <div className="cs-message-loading-older">{t("common.loading")}</div>
+                      )}
+                      {conversationMessages.map((message) => (
+                        <div
+                          className={messageClassName(message)}
+                          key={message.messageId ?? `${message.createTime}-${message.text}`}
+                        >
+                          {message.isSummaryMessage ? (
+                            <>
+                              <div className="cs-summary-message-title">
+                                <span>{t("ecommerce.customerServiceWorkspace.summaryTitle")}</span>
+                                <small>
+                                  {message.summaryUpdatedAt
+                                    ? formatCompactDateTime(message.summaryUpdatedAt)
+                                    : ""}
+                                </small>
+                              </div>
+                              <div className="cs-summary-markdown">
+                                <MarkdownMessage text={message.text || "-"} />
+                              </div>
+                              {message.summaryMessageCount ? (
+                                <div className="cs-summary-message-foot">
+                                  {t("ecommerce.customerServiceWorkspace.summaryMessageCount", {
+                                    count: message.summaryMessageCount,
+                                  })}
                                 </div>
-                                <div className="cs-summary-markdown">
-                                  <MarkdownMessage text={message.text || "-"} />
-                                </div>
-                                {message.summaryMessageCount ? (
-                                  <div className="cs-summary-message-foot">
-                                    {t("ecommerce.customerServiceWorkspace.summaryMessageCount", {
-                                      count: message.summaryMessageCount,
-                                    })}
-                                  </div>
-                                ) : null}
-                              </>
-                            ) : message.isSystemMessage ? (
-                              <p>
-                                {message.text ||
-                                  message.type ||
-                                  t("ecommerce.customerServiceWorkspace.systemMessage")}
-                              </p>
-                            ) : (
-                              <>
-                                <div className="cs-message-meta">
-                                  <span>
-                                    {message.sender?.nickname || message.sender?.role || "-"}
-                                  </span>
-                                  <span>
-                                    {message.createTime
-                                      ? formatCompactDateTime(message.createTime)
-                                      : ""}
-                                  </span>
-                                </div>
-                                {renderMessageContent(message)}
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <CustomerServiceReplyComposer
-                      key={selectedConversationKey}
-                      shopId={selectedConversation.shopId}
-                      conversationId={selectedConversation.conversationId}
-                    />
-                  </div>
-                </>
-              ) : workspace.openingOrderKey ? (
-                <div className="cs-conversation-detail-empty">{t("common.loading")}</div>
-              ) : (
-                <div className="cs-conversation-detail-empty">
-                  {t("ecommerce.customerServiceWorkspace.selectConversation")}
+                              ) : null}
+                            </>
+                          ) : message.isSystemMessage ? (
+                            <p>
+                              {message.text ||
+                                message.type ||
+                                t("ecommerce.customerServiceWorkspace.systemMessage")}
+                            </p>
+                          ) : (
+                            <>
+                              <div className="cs-message-meta">
+                                <span>
+                                  {message.sender?.nickname || message.sender?.role || "-"}
+                                </span>
+                                <span>
+                                  {message.createTime
+                                    ? formatCompactDateTime(message.createTime)
+                                    : ""}
+                                </span>
+                              </div>
+                              {renderMessageContent(message)}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <CustomerServiceReplyComposer
+                    key={selectedConversationKey}
+                    shopId={selectedConversation.shopId}
+                    conversationId={selectedConversation.conversationId}
+                  />
                 </div>
-              )}
-            </div>
+              </>
+            ) : workspace.openingOrderKey ? (
+              <div className="cs-conversation-detail-empty">{t("common.loading")}</div>
+            ) : (
+              <div className="cs-conversation-detail-empty">
+                {t("ecommerce.customerServiceWorkspace.selectConversation")}
+              </div>
+            )}
           </div>
-        </TkPanel>
-      ) : (
-        <EscalationsTab shopLabel={shopLabel} />
-      )}
+        </div>
+      </TkPanel>
 
       <Modal
         isOpen={Boolean(selectedEscalation)}
@@ -1586,7 +1412,6 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
             copyMeta={copyMeta}
             respondToEscalation={respondToEscalation}
             requestDismissEscalation={() => setDismissEscalationConfirm({ kind: "single" })}
-            showNavigation={!workspace.selectedEscalationFromConversation}
           />
         )}
       </Modal>
@@ -1630,176 +1455,25 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   );
 });
 
-export function CustomerServiceConversationsPage() {
-  return <CustomerServiceEscalationsPage mode="conversations" />;
-}
-
-export function CustomerServiceEscalationQueuePage() {
-  return <CustomerServiceEscalationsPage mode="escalations" />;
-}
-
-const EscalationsTab = observer(function EscalationsTab({
-  shopLabel,
-}: {
-  shopLabel: (shopId: string) => ShopDisplayLabel;
-}) {
-  const { t } = useTranslation();
-  const entityStore = useEntityStore();
-  const workspace = entityStore.customerServiceWorkspace;
-  const items = workspace.escalationItems as unknown as Escalation[];
-
-  return (
-    <TkPanel
-      as="section"
-      padding="none"
-      clip
-      className="cs-workspace-panel"
-      data-tutorial-id="cs-escalation-workspace"
-    >
-      <TkPanelHeader
-        data-tutorial-id="cs-escalation-toolbar"
-        title={t("ecommerce.customerServiceWorkspace.openCount", {
-          count: workspace.escalationTotal,
-        })}
-        description={t("ecommerce.customerServiceWorkspace.escalationQueueHint")}
-        actions={
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={() => workspace.fetchEscalations()}
-            disabled={workspace.escalationsLoading}
-          >
-            {workspace.escalationsLoading
-              ? t("common.loading")
-              : t("ecommerce.customerServiceWorkspace.refresh")}
-          </button>
-        }
-      />
-
-      {workspace.escalationsError && <div className="form-error">{workspace.escalationsError}</div>}
-      {workspace.escalationsLoading && items.length === 0 ? (
-        <div className="affiliate-proposal-empty">{t("common.loading")}</div>
-      ) : items.length === 0 ? (
-        <div className="affiliate-proposal-empty">
-          {t("ecommerce.customerServiceWorkspace.empty")}
-        </div>
-      ) : (
-        <div className="cs-escalation-listing">
-          <PageSummary
-            start={workspace.escalationPageStart}
-            end={workspace.escalationPageEnd}
-            total={workspace.escalationTotal}
-            page={workspace.escalationPage}
-            pages={workspace.escalationPageCount}
-          />
-          <TkTableFrame
-            variant="embedded"
-            className="cs-escalation-table-frame"
-            data-tutorial-id="cs-escalation-table"
-          >
-            <table className="cs-escalation-table">
-              <colgroup>
-                <col />
-                <col className="cs-escalation-col-status" />
-                <col className="cs-escalation-col-updated" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>{t("ecommerce.customerServiceWorkspace.reason")}</th>
-                  <th>{t("ecommerce.customerServiceWorkspace.statusOpen")}</th>
-                  <th>{t("ecommerce.customerServiceWorkspace.updatedAt")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <TkInteractiveTableRow
-                    className="cs-escalation-row"
-                    key={item.id}
-                    onActivate={() => workspace.selectEscalation(item.id)}
-                  >
-                    <td>
-                      <span className="cs-escalation-row-main">
-                        <strong>{item.id}</strong>
-                        <span>{item.reason}</span>
-                        <small>
-                          <TkPrivate sensitive={shopLabel(item.shopId).sensitive}>
-                            {shopLabel(item.shopId).text}
-                          </TkPrivate>{" "}
-                          - {escalationBuyerLabel(item)}
-                        </small>
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={
-                          item.status === GQL.CsEscalationStatus.Pending
-                            ? "badge badge-warning"
-                            : "badge badge-info"
-                        }
-                      >
-                        {escalationStatusLabel(item.status, t)}
-                      </span>
-                    </td>
-                    <td>{formatCompactDateTime(item.updatedAt)}</td>
-                  </TkInteractiveTableRow>
-                ))}
-              </tbody>
-            </table>
-          </TkTableFrame>
-          <div className="cs-escalation-pagination">
-            <button
-              className="btn btn-secondary btn-sm"
-              type="button"
-              onClick={() => workspace.setEscalationPage(workspace.escalationPage - 1)}
-              disabled={workspace.escalationPage <= 1 || workspace.escalationsLoading}
-            >
-              {t("ecommerce.customerServiceWorkspace.previous")}
-            </button>
-            <span>
-              {t("ecommerce.customerServiceWorkspace.page", {
-                page: workspace.escalationPage,
-                pages: workspace.escalationPageCount,
-              })}
-            </span>
-            <button
-              className="btn btn-secondary btn-sm"
-              type="button"
-              onClick={() => workspace.setEscalationPage(workspace.escalationPage + 1)}
-              disabled={
-                workspace.escalationPage >= workspace.escalationPageCount ||
-                workspace.escalationsLoading
-              }
-            >
-              {t("ecommerce.customerServiceWorkspace.next")}
-            </button>
-          </div>
-        </div>
-      )}
-    </TkPanel>
-  );
-});
-
 const EscalationDetailModal = observer(function EscalationDetailModal({
   selected,
   shopLabel,
   copyMeta,
   respondToEscalation,
   requestDismissEscalation,
-  showNavigation,
 }: {
   selected: Escalation;
   shopLabel: (shopId: string) => ShopDisplayLabel;
   copyMeta: (label: string, value: string) => Promise<void>;
   respondToEscalation: () => Promise<void>;
   requestDismissEscalation: () => void;
-  showNavigation: boolean;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const workspace = entityStore.customerServiceWorkspace;
 
   return (
-    <div className="cs-escalation-modal" data-tutorial-id="cs-escalation-detail">
+    <div className="cs-escalation-modal">
       <section className="cs-escalation-detail">
         <div className="cs-escalation-detail-head">
           <div>
@@ -1920,28 +1594,6 @@ const EscalationDetailModal = observer(function EscalationDetailModal({
                   : t("ecommerce.customerServiceWorkspace.dismissEscalation")}
               </button>
             </span>
-            {showNavigation ? (
-              <div className="cs-escalation-modal-nav">
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={() => workspace.goToPreviousEscalation()}
-                  disabled={!workspace.hasPreviousEscalation || workspace.respondingEscalation}
-                >
-                  {t("ecommerce.customerServiceWorkspace.previousEscalation")}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={() => workspace.goToNextEscalation()}
-                  disabled={!workspace.hasNextEscalation || workspace.respondingEscalation}
-                >
-                  {t("ecommerce.customerServiceWorkspace.nextEscalation")}
-                </button>
-              </div>
-            ) : (
-              <span />
-            )}
             <button
               className="btn btn-primary"
               type="button"

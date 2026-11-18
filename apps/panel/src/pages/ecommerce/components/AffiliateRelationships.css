@@ -3931,10 +3931,6 @@
     flex-direction: column;
   }
 
-  .cs-workspace-tabs {
-    align-self: stretch;
-  }
-
   .cs-workspace-toolbar,
   .cs-escalation-toolbar,
   .affiliate-proposal-toolbar,

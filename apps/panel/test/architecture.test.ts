@@ -271,7 +271,7 @@ describe("Panel architecture guardrails", () => {
       ["channels", "ChannelsPage.tsx"],
       ["crons", "CronsPage.tsx"],
       ["ecommerce", "AdsManagementPage.tsx"],
-      ["ecommerce", "CustomerServiceEscalationsPage.tsx"],
+      ["ecommerce", "CustomerServiceConversationsPage.tsx"],
       ["ecommerce", "CustomerServiceExperimentsPage.tsx"],
       ["ecommerce", "CustomerServicePerformancePage.tsx"],
       ["ecommerce", "EcommercePage.tsx"],

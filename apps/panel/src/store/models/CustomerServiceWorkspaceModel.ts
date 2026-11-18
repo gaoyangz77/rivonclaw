@@ -18,7 +18,6 @@ import {
   CS_CONVERSATION_PACKAGE_DETAIL_QUERY,
   CS_CONVERSATION_ORDER_TRACKING_QUERY,
   CS_CONVERSATION_RETURN_RECORDS_QUERY,
-  CS_OPEN_ESCALATIONS_QUERY,
   CS_SEND_CARD_MUTATION,
   CS_SEND_COUPON_MUTATION,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
@@ -27,18 +26,10 @@ import {
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
-export type CustomerServiceWorkspaceTab = "conversations" | "escalations";
 export type ConversationStatusFilter = "pending" | "resolved" | "all";
 export type ConversationAiFilter = "all" | "enabled" | "disabled";
 export type ConversationEscalationFilter = "all" | "open" | "none";
 export type ConversationBadReviewFilter = "all" | "hasBadReview";
-export type EscalationStatusFilter =
-  | "open"
-  | "pending"
-  | "inProgress"
-  | "resolved"
-  | "closed"
-  | "all";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
@@ -221,35 +212,6 @@ function summaryToMessage(
   };
 }
 
-function sortEscalations(items: GQL.CsEscalation[]): GQL.CsEscalation[] {
-  return [...items].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  );
-}
-
-function statusesForEscalationFilter(filter: EscalationStatusFilter): GQL.CsEscalationStatus[] {
-  switch (filter) {
-    case "pending":
-      return [GQL.CsEscalationStatus.Pending];
-    case "inProgress":
-      return [GQL.CsEscalationStatus.InProgress];
-    case "resolved":
-      return [GQL.CsEscalationStatus.Resolved];
-    case "closed":
-      return [GQL.CsEscalationStatus.Closed];
-    case "all":
-      return [
-        GQL.CsEscalationStatus.Pending,
-        GQL.CsEscalationStatus.InProgress,
-        GQL.CsEscalationStatus.Resolved,
-        GQL.CsEscalationStatus.Closed,
-      ];
-    case "open":
-    default:
-      return [GQL.CsEscalationStatus.Pending, GQL.CsEscalationStatus.InProgress];
-  }
-}
-
 function statusForConversationFilter(
   filter: ConversationStatusFilter,
 ): GQL.CustomerServiceConversationStatus | undefined {
@@ -270,11 +232,6 @@ function escalationForConversationFilter(
   if (filter === "open") return GQL.CustomerServiceConversationEscalationFilter.Open;
   if (filter === "none") return GQL.CustomerServiceConversationEscalationFilter.None;
   return undefined;
-}
-
-function readEscalation(raw: unknown): GQL.CsEscalation | null {
-  const payload = raw as { delivery?: { escalation?: GQL.CsEscalation } };
-  return payload.delivery?.escalation ?? null;
 }
 
 function readConversationChanged(raw: unknown): GQL.CustomerServiceConversation | null {
@@ -331,13 +288,6 @@ export function conversationOrderDetailKey(
 
 export const CustomerServiceWorkspaceModel = types
   .model("CustomerServiceWorkspace", {
-    activeTab: types.optional(
-      types.enumeration<CustomerServiceWorkspaceTab>("CustomerServiceWorkspaceTab", [
-        "conversations",
-        "escalations",
-      ]),
-      "conversations",
-    ),
 
     conversationShopId: types.optional(types.string, ""),
     conversationStatusFilter: types.optional(
@@ -428,29 +378,8 @@ export const CustomerServiceWorkspaceModel = types
     conversationOrderDetailLoadingKeys: types.optional(types.array(types.string), []),
     conversationOrderDetailErrors: types.optional(types.map(types.string), {}),
 
-    escalationShopId: types.optional(types.string, ""),
-    escalationStatusFilter: types.optional(
-      types.enumeration<EscalationStatusFilter>("EscalationStatusFilter", [
-        "open",
-        "pending",
-        "inProgress",
-        "resolved",
-        "closed",
-        "all",
-      ]),
-      "open",
-    ),
-    escalationSearchDraft: types.optional(types.string, ""),
-    escalationSearch: types.optional(types.string, ""),
-    escalationPage: types.optional(types.number, 1),
-    escalationPageSize: types.optional(types.number, 50),
-    escalationTotal: types.optional(types.number, 0),
-    escalationsLoading: types.optional(types.boolean, false),
-    escalationsError: types.maybeNull(types.string),
-    escalationItems: types.optional(types.array(types.frozen<Record<string, any>>()), []),
-    selectedEscalationId: types.maybeNull(types.string),
-    selectedEscalationOverride: types.maybeNull(types.frozen<Record<string, any>>()),
-    selectedEscalationFromConversation: types.optional(types.boolean, false),
+    /** The escalation open in the detail modal; always loaded from a conversation, never from a list. */
+    selectedEscalation: types.maybeNull(types.frozen<Record<string, any>>()),
     escalationGuidance: types.optional(types.string, ""),
     escalationResolved: types.optional(types.boolean, true),
     respondingEscalation: types.optional(types.boolean, false),
@@ -598,40 +527,6 @@ export const CustomerServiceWorkspaceModel = types
     isConversationSessionEnding(conversationId: string) {
       return self.endingConversationSessionIds.includes(conversationId);
     },
-    get escalationPageCount() {
-      return Math.max(1, Math.ceil(self.escalationTotal / self.escalationPageSize));
-    },
-    get escalationPageStart() {
-      return self.escalationTotal === 0
-        ? 0
-        : (self.escalationPage - 1) * self.escalationPageSize + 1;
-    },
-    get escalationPageEnd() {
-      return Math.min(
-        self.escalationTotal,
-        (self.escalationPage - 1) * self.escalationPageSize + self.escalationItems.length,
-      );
-    },
-    get selectedEscalation() {
-      return (
-        self.escalationItems.find((item) => item.id === self.selectedEscalationId) ??
-        ((self.selectedEscalationOverride?.id === self.selectedEscalationId
-          ? self.selectedEscalationOverride
-          : null) as any)
-      );
-    },
-    get selectedEscalationIndex() {
-      return self.selectedEscalationId
-        ? self.escalationItems.findIndex((item) => item.id === self.selectedEscalationId)
-        : -1;
-    },
-    get hasPreviousEscalation() {
-      return (self as any).selectedEscalationIndex > 0;
-    },
-    get hasNextEscalation() {
-      const index = (self as any).selectedEscalationIndex;
-      return index >= 0 && index < self.escalationItems.length - 1;
-    },
   }))
   .actions((self) => {
     const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
@@ -655,7 +550,7 @@ export const CustomerServiceWorkspaceModel = types
     }
 
     function setEscalationDraftFromSelection() {
-      const selected = (self as any).selectedEscalation as GQL.CsEscalation | null;
+      const selected = self.selectedEscalation as unknown as GQL.CsEscalation | null;
       if (!selected) {
         self.escalationGuidance = "";
         self.escalationResolved = true;
@@ -663,12 +558,6 @@ export const CustomerServiceWorkspaceModel = types
       }
       self.escalationGuidance = resultGuidance(selected.result);
       self.escalationResolved = selected.status !== GQL.CsEscalationStatus.InProgress;
-    }
-
-    function nextEscalationId(currentId: string): string | null {
-      const index = self.escalationItems.findIndex((item) => item.id === currentId);
-      if (index < 0) return null;
-      return self.escalationItems[index + 1]?.id ?? self.escalationItems[index - 1]?.id ?? null;
     }
 
     const queryData = async (
@@ -780,9 +669,6 @@ export const CustomerServiceWorkspaceModel = types
     }
 
     return {
-      setActiveTab(tab: CustomerServiceWorkspaceTab) {
-        self.activeTab = tab;
-      },
       setConversationShopId(value: string) {
         self.conversationShopId = value;
         self.conversationPage = 1;
@@ -913,60 +799,12 @@ export const CustomerServiceWorkspaceModel = types
         self.manualReplyDraft = value;
       },
       closeEscalationModal() {
-        self.selectedEscalationId = null;
-        self.selectedEscalationOverride = null;
-        self.selectedEscalationFromConversation = false;
-        setEscalationDraftFromSelection();
-      },
-      setEscalationShopId(value: string) {
-        self.escalationShopId = value;
-        self.escalationPage = 1;
-        self.selectedEscalationId = null;
-      },
-      setEscalationStatusFilter(value: EscalationStatusFilter) {
-        self.escalationStatusFilter = value;
-        self.escalationPage = 1;
-        self.selectedEscalationId = null;
-      },
-      setEscalationSearchDraft(value: string) {
-        self.escalationSearchDraft = value;
-      },
-      applyEscalationSearch() {
-        self.escalationSearch = self.escalationSearchDraft.trim();
-        self.escalationPage = 1;
-        self.selectedEscalationId = null;
-      },
-      clearEscalationSearch() {
-        self.escalationSearchDraft = "";
-        self.escalationSearch = "";
-        self.escalationPage = 1;
-        self.selectedEscalationId = null;
-      },
-      setEscalationPage(value: number) {
-        self.escalationPage = Math.max(1, Math.min((self as any).escalationPageCount, value));
-      },
-      setEscalationPageSize(value: number) {
-        self.escalationPageSize = value;
-        self.escalationPage = 1;
-        self.selectedEscalationId = null;
-      },
-      selectEscalation(id: string | null) {
-        self.selectedEscalationId = id;
-        self.selectedEscalationOverride = null;
-        self.selectedEscalationFromConversation = false;
+        self.selectedEscalation = null;
         setEscalationDraftFromSelection();
       },
       openConversationEscalation: flow(function* (item: any) {
         const escalationId = item.latestOpenEscalationId;
         if (!escalationId) return null;
-        const existing = self.escalationItems.find((candidate) => candidate.id === escalationId);
-        if (existing) {
-          self.selectedEscalationId = escalationId;
-          self.selectedEscalationOverride = null;
-          self.selectedEscalationFromConversation = true;
-          setEscalationDraftFromSelection();
-          return true;
-        }
         const result = yield client().query({
           query: CS_ESCALATION_BY_ID_QUERY,
           variables: {
@@ -986,9 +824,7 @@ export const CustomerServiceWorkspaceModel = types
           page?.items?.[0] ??
           null;
         if (!escalation) return null;
-        self.selectedEscalationId = escalation.id;
-        self.selectedEscalationOverride = escalation as any;
-        self.selectedEscalationFromConversation = true;
+        self.selectedEscalation = escalation as any;
         setEscalationDraftFromSelection();
         return true;
       }),
@@ -1000,20 +836,6 @@ export const CustomerServiceWorkspaceModel = types
       },
       setCopiedMeta(value: string | null) {
         self.copiedMeta = value;
-      },
-      goToPreviousEscalation() {
-        const index = (self as any).selectedEscalationIndex;
-        if (index > 0) {
-          self.selectedEscalationId = self.escalationItems[index - 1].id;
-          setEscalationDraftFromSelection();
-        }
-      },
-      goToNextEscalation() {
-        const index = (self as any).selectedEscalationIndex;
-        if (index >= 0 && index < self.escalationItems.length - 1) {
-          self.selectedEscalationId = self.escalationItems[index + 1].id;
-          setEscalationDraftFromSelection();
-        }
       },
       fetchConversations: flow(function* () {
         self.conversationsLoading = true;
@@ -1723,26 +1545,13 @@ export const CustomerServiceWorkspaceModel = types
             count: Number(item.openEscalationCount ?? 0),
             durationMs: Date.now() - startedAt,
           });
-          self.escalationItems.replace(
-            self.escalationItems.filter(
-              (candidate) =>
-                candidate.shopId !== item.shopId ||
-                candidate.conversationId !== item.conversationId,
-            ) as any,
-          );
-          self.escalationTotal = Math.max(
-            0,
-            self.escalationTotal - Number(item.openEscalationCount ?? 0),
-          );
+          const selected = self.selectedEscalation as unknown as GQL.CsEscalation | null;
           if (
-            self.selectedEscalationId &&
-            !(self.escalationItems as unknown as GQL.CsEscalation[]).some(
-              (candidate) => candidate.id === self.selectedEscalationId,
-            )
+            selected &&
+            selected.shopId === item.shopId &&
+            selected.conversationId === item.conversationId
           ) {
-            self.selectedEscalationId = null;
-            self.selectedEscalationOverride = null;
-            self.selectedEscalationFromConversation = false;
+            self.selectedEscalation = null;
             setEscalationDraftFromSelection();
           }
           return true;
@@ -1764,67 +1573,8 @@ export const CustomerServiceWorkspaceModel = types
           );
         }
       }),
-      fetchEscalations: flow(function* () {
-        self.escalationsLoading = true;
-        self.escalationsError = null;
-        try {
-          const result = yield client().query({
-            query: CS_OPEN_ESCALATIONS_QUERY,
-            variables: {
-              filter: {
-                shopIds: self.escalationShopId ? [self.escalationShopId] : undefined,
-                statuses: statusesForEscalationFilter(self.escalationStatusFilter),
-                search: self.escalationSearch || undefined,
-                limit: self.escalationPageSize,
-                offset: (self.escalationPage - 1) * self.escalationPageSize,
-              },
-            },
-            fetchPolicy: "network-only",
-          });
-          const page = result.data?.csOpenEscalationsPage as GQL.CsOpenEscalationPage | undefined;
-          self.escalationItems.replace(sortEscalations(page?.items ?? []) as any);
-          self.escalationTotal = page?.total ?? 0;
-          if (
-            self.selectedEscalationId &&
-            !self.escalationItems.some((item) => item.id === self.selectedEscalationId)
-          ) {
-            self.selectedEscalationId = null;
-            setEscalationDraftFromSelection();
-          }
-        } catch (err) {
-          self.escalationsError = errorMessage(err);
-        } finally {
-          self.escalationsLoading = false;
-        }
-      }),
-      ingestEscalationEvent(raw: unknown) {
-        const escalation = readEscalation(raw);
-        if (!escalation) return;
-        if (self.escalationPage !== 1) return;
-        const search = normalizedSearch(self.escalationSearch);
-        const matchesShop = !self.escalationShopId || escalation.shopId === self.escalationShopId;
-        const matchesStatus = statusesForEscalationFilter(self.escalationStatusFilter).includes(
-          escalation.status,
-        );
-        const matchesSearch = matchesText(search, [
-          escalation.id,
-          escalation.reason,
-          escalation.context,
-          escalation.conversationId,
-          escalation.buyerUserId,
-          escalation.buyerNickname,
-          escalation.orderId,
-        ]);
-        const next = (self.escalationItems as unknown as GQL.CsEscalation[]).filter(
-          (item) => item.id !== escalation.id,
-        );
-        if (matchesShop && matchesStatus && matchesSearch) next.push(escalation);
-        self.escalationItems.replace(
-          sortEscalations(next).slice(0, self.escalationPageSize) as any,
-        );
-      },
       respondToSelectedEscalation: flow(function* () {
-        const selected = (self as any).selectedEscalation as GQL.CsEscalation | null;
+        const selected = self.selectedEscalation as unknown as GQL.CsEscalation | null;
         const guidance = self.escalationGuidance.trim();
         if (!selected || !guidance) return null;
         self.respondingEscalation = true;
@@ -1861,12 +1611,7 @@ export const CustomerServiceWorkspaceModel = types
             durationMs: Date.now() - startedAt,
           });
           if (self.escalationResolved) {
-            const nextId = nextEscalationId(selected.id);
-            self.escalationItems.replace(
-              self.escalationItems.filter((item) => item.id !== selected.id) as any,
-            );
-            self.escalationTotal = Math.max(0, self.escalationTotal - 1);
-            self.selectedEscalationId = nextId;
+            self.selectedEscalation = null;
             setEscalationDraftFromSelection();
           }
           return result;
@@ -1889,7 +1634,7 @@ export const CustomerServiceWorkspaceModel = types
         }
       }),
       dismissSelectedEscalation: flow(function* () {
-        const selected = (self as any).selectedEscalation as GQL.CsEscalation | null;
+        const selected = self.selectedEscalation as unknown as GQL.CsEscalation | null;
         if (!selected) return null;
         self.dismissingEscalation = true;
         try {
@@ -1916,14 +1661,7 @@ export const CustomerServiceWorkspaceModel = types
             outcome: "ok",
             durationMs: Date.now() - startedAt,
           });
-          const nextId = nextEscalationId(selected.id);
-          self.escalationItems.replace(
-            self.escalationItems.filter((item) => item.id !== selected.id) as any,
-          );
-          self.escalationTotal = Math.max(0, self.escalationTotal - 1);
-          self.selectedEscalationId = nextId;
-          self.selectedEscalationOverride = null;
-          self.selectedEscalationFromConversation = false;
+          self.selectedEscalation = null;
           setEscalationDraftFromSelection();
           yield (self as any).fetchConversations();
           return true;

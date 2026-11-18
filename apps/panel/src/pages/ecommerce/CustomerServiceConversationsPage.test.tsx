@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import { CustomerServiceWorkspaceModel } from "../../store/models/CustomerServiceWorkspaceModel.js";
-import { CustomerServiceConversationsPage } from "./CustomerServiceEscalationsPage.js";
+import { CustomerServiceConversationsPage } from "./CustomerServiceConversationsPage.js";
 
 const mocks = vi.hoisted(() => ({ store: {} as Record<string, unknown> }));
 vi.mock("../../store/EntityStoreProvider.js", () => ({ useEntityStore: () => mocks.store }));

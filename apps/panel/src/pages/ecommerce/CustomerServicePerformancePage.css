@@ -13,16 +13,6 @@
 /* The workspace page header is TkPageHeader; its geometry and typography come
    from --tk-v1-page-header-* and must not be restated here. */
 
-.cs-workspace-tabs {
-  display: inline-flex;
-  flex: 0 0 auto;
-  gap: 4px;
-  padding: 3px;
-  border: 1px solid var(--color-border-light);
-  border-radius: 7px;
-  background: var(--color-bg-alt);
-}
-
 .cs-workspace-tab.active {
   background: var(--color-bg);
   color: var(--color-text);

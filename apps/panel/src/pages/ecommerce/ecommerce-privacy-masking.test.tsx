@@ -98,7 +98,7 @@ describe("product images on the ecommerce pages", () => {
   });
 
   it("opts the order line-item images in and leaves customer chat images alone", () => {
-    const blocks = remoteMediaImageBlocks(pageSource("CustomerServiceEscalationsPage.tsx"));
+    const blocks = remoteMediaImageBlocks(pageSource("CustomerServiceConversationsPage.tsx"));
 
     expect(blockFor(blocks, "item.skuImage")).toContain("sensitive");
     // An image a customer sent in chat is their content, not the seller's.
@@ -190,7 +190,7 @@ describe("shop-label resolution", () => {
     for (const fileName of [
       "AffiliateCampaignPage.tsx",
       "AffiliateManagementPage.tsx",
-      "CustomerServiceEscalationsPage.tsx",
+      "CustomerServiceConversationsPage.tsx",
       "ProductKnowledgePage.tsx",
     ]) {
       expect(pageSource(fileName)).toContain('from "../../lib/shop-display.js"');

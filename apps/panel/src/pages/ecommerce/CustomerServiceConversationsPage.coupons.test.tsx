@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import { CustomerServiceWorkspaceModel } from "../../store/models/CustomerServiceWorkspaceModel.js";
 import { CS_COUPONS_QUERY, CS_CONVERSATION_MESSAGES_QUERY } from "../../api/shops-queries.js";
-import { CustomerServiceConversationsPage } from "./CustomerServiceEscalationsPage.js";
+import { CustomerServiceConversationsPage } from "./CustomerServiceConversationsPage.js";
 
 const mocks = vi.hoisted(() => ({ store: {} as Record<string, unknown> }));
 vi.mock("../../api/client.js", () => ({

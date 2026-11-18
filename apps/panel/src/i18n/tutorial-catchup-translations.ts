@@ -124,24 +124,12 @@ export const TUTORIAL_NEW_KEYS_EN = {
       conversationsWelcomeTitle: "Conversation inbox",
       conversationsWelcomeBody:
         "Review buyer conversations across shops, search the inbox, and move between AI and human handling without leaving the workspace.",
-      escalationsWelcomeTitle: "Escalation queue",
-      escalationsWelcomeBody:
-        "Review conversations that need a manager decision, provide guidance, resolve the case, or dismiss an invalid escalation.",
       orderContextTitle: "Order context",
       orderContextBody:
         "Open the linked order, items, delivery status, and after-sales records before responding to the buyer.",
       aiControlTitle: "AI and session controls",
       aiControlBody:
         "Pause or resume AI handling, generate a summary, clear escalations, or end the current service session from the conversation header.",
-      escalationToolbarTitle: "Queue status",
-      escalationToolbarBody:
-        "See the current workload and refresh the queue before working through manager decisions.",
-      escalationFiltersTitle: "Escalation filters",
-      escalationFiltersBody:
-        "Filter by shop, status, and identifiers to focus on the cases that need attention now.",
-      escalationDetailTitle: "Decision workspace",
-      escalationDetailBody:
-        "Inspect the escalation reason and context, write manager guidance, mark the final decision, and move to the next case.",
     },
     ecommerceCustomerServicePerformance: {
       welcomeTitle: "Customer service performance",
@@ -429,19 +417,10 @@ export const TUTORIAL_CATCHUP_ZH = {
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "会话收件箱",
       conversationsWelcomeBody: "集中查看跨店铺买家会话、搜索收件箱，并在 AI 与人工处理之间切换。",
-      escalationsWelcomeTitle: "升级队列",
-      escalationsWelcomeBody:
-        "处理需要主管决策的会话：查看上下文、填写指导、解决问题或驳回无效升级。",
       orderContextTitle: "订单上下文",
       orderContextBody: "回复前查看关联订单、商品、配送状态和售后记录。",
       aiControlTitle: "AI 与会话控制",
       aiControlBody: "可暂停或恢复 AI、生成摘要、清除升级状态，或结束当前客服会话。",
-      escalationToolbarTitle: "队列状态",
-      escalationToolbarBody: "查看当前工作量，并在开始处理前刷新升级队列。",
-      escalationFiltersTitle: "升级筛选",
-      escalationFiltersBody: "按店铺、状态和标识符筛选，聚焦当前需要处理的案例。",
-      escalationDetailTitle: "决策工作区",
-      escalationDetailBody: "查看升级原因与上下文、填写主管指导、确认最终决定，并继续处理下一条。",
     },
     ecommerceCustomerServicePerformance: {
       welcomeTitle: "客服绩效",

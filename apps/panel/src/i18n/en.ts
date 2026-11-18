@@ -116,7 +116,6 @@ export default {
     inventoryManagement: "Inventory",
     customerService: "Customer Service",
     customerServiceConversations: "Conversations",
-    customerServiceEscalations: "Escalations",
     customerServicePerformance: "Performance",
     customerServiceExperiments: "Experiments",
     affiliateManagement: "Affiliate Management",
@@ -2831,9 +2830,6 @@ export default {
       welcomeTitle: "Welcome to Customer Service",
       welcomeBody:
         "This workspace is for monitoring buyer conversations and handling AI escalations across connected shops.",
-      tabsTitle: "Workspace Tabs",
-      tabsBody:
-        "Switch between the live conversation inbox and the escalation queue. Counts help you see current workload at a glance.",
       filtersTitle: "Filters",
       filtersBody:
         "Filter by shop, conversation status, AI state, escalation state, and page size to focus the queue.",
@@ -2852,9 +2848,6 @@ export default {
       manualReplyTitle: "Manual Reply",
       manualReplyBody:
         "Use manual reply when a human needs to respond directly. This works alongside the AI controls for the conversation.",
-      escalationQueueTitle: "Escalation Queue",
-      escalationQueueBody:
-        "The escalation tab lists open or pending cases that need review, response, or dismissal.",
     },
     ecommerceAffiliate: {
       welcomeTitle: "Welcome to Affiliate Management",
@@ -4715,22 +4708,15 @@ export default {
       conversationsPageTitle: "Customer service conversations",
       conversationsPageSubtitle:
         "Monitor buyer conversations, AI handling state, and recent customer messages.",
-      escalationsPageTitle: "Customer service escalations",
-      escalationsPageSubtitle:
-        "Review escalation requests that the customer-service agent sent to staff.",
       allShops: "All shops",
-      conversationsTab: "Conversations",
-      escalationsTab: "Escalations",
       conversationCount: "{{count}} conversation(s)",
       openCount: "{{count}} open escalation(s)",
       queueHint: "Server-paginated, refreshed by desktop subscription events.",
       conversationQueueHint: "Materialized from platform webhooks and reconciliation syncs.",
-      escalationQueueHint: "Manager decisions that need review before the CS agent continues.",
       llmUnavailableTooltip: "No active AI model key is available.",
       refresh: "Refresh",
       conversationEmpty: "No customer conversations match the current filters.",
       empty: "No open escalations.",
-      statusOpen: "Open",
       statusAll: "All statuses",
       aiAll: "All AI states",
       aiEnabled: "AI on",
@@ -4772,9 +4758,7 @@ export default {
       hasBadReview: "Has bad review",
       showAdvancedFilters: "More filters",
       hideAdvancedFilters: "Hide filters",
-      filterStatus: "Status",
       filterSearch: "Search",
-      filterPageSize: "Page size",
       resizeConversationList: "Resize conversation list",
       enableAi: "Enable AI",
       disableAi: "Disable AI",
@@ -4815,7 +4799,6 @@ export default {
       orderSearchTooMany: "Search up to 100 unique order IDs at a time. Split the list into smaller batches.",
       conversationSearchTooLong: "Search input is too long. Use up to 128 characters for a buyer or conversation, or a shorter order list.",
       searchPlaceholder: "Search ID, order, buyer, conversation, reason...",
-      pageSize: "{{count}} / page",
       pageSummary: "Showing {{start}}-{{end}} of {{total}} | Page {{page}} / {{pages}}",
       page: "Page {{page}} / {{pages}}",
       previous: "Previous",
@@ -4944,8 +4927,6 @@ export default {
         "Dismisses the escalation without waking the AI agent and without sending a buyer message.",
       dismissEscalationSuccess: "Escalation dismissed.",
       confirmDismissEscalation: "Dismiss this escalation?",
-      previousEscalation: "Previous item",
-      nextEscalation: "Next item",
       copyFailed: "Failed to copy ID.",
       respondSuccess: "Escalation response sent.",
       conversationStatusPending: "Pending",

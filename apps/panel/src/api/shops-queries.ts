@@ -1129,35 +1129,6 @@ export const AFFILIATE_CAMPAIGN_PRODUCT_PREVIEW_QUERY = gql`
   }
 `;
 
-export const CS_OPEN_ESCALATIONS_QUERY = gql`
-  query CsOpenEscalations($filter: CsOpenEscalationFilterInput) {
-    csOpenEscalationsPage(filter: $filter) {
-      total
-      limit
-      offset
-      items {
-        id
-        shopId
-        conversationId
-        buyerUserId
-        buyerNickname
-        orderId
-        reason
-        context
-        status
-        version
-        updatedAt
-        result {
-          decision
-          instructions
-          resolved
-          resolvedAt
-        }
-      }
-    }
-  }
-`;
-
 export const CS_ESCALATION_BY_ID_QUERY = gql`
   query CsEscalationById($filter: CsOpenEscalationFilterInput) {
     csOpenEscalationsPage(filter: $filter) {

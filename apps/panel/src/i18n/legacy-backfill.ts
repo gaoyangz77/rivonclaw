@@ -332,10 +332,8 @@ export const LEGACY_I18N_BACKFILL = {
         filterAiState: "KI-Handhabung",
         filterConversationStatus: "Gesprächsstatus",
         filterEscalationState: "Eskalation",
-        filterPageSize: "Seitengröße",
         filterSearch: "Suchen",
         filterShop: "Geschäft",
-        filterStatus: "Status",
       },
       shopAdsStatus: {
         connected: "Verbunden",
@@ -484,9 +482,6 @@ export const LEGACY_I18N_BACKFILL = {
         conversationShellBody:
           "In der geteilten Ansicht bleibt die Warteschlange links und das ausgewählte Konversationsdetail rechts.",
         conversationShellTitle: "Konversationsarbeitsbereich",
-        escalationQueueBody:
-          "Auf der Registerkarte „Eskalation“ werden offene oder ausstehende Fälle aufgeführt, die überprüft, beantwortet oder abgewiesen werden müssen.",
-        escalationQueueTitle: "Eskalationswarteschlange",
         filtersBody:
           "Filtern Sie nach Shop, Konversationsstatus, KI-Status, Eskalationsstatus und Seitengröße, um die Warteschlange zu fokussieren.",
         filtersTitle: "Filter",
@@ -496,9 +491,6 @@ export const LEGACY_I18N_BACKFILL = {
         searchBody:
           "Durch die Suche wird die Warteschlange nach Käufer-, Bestell- oder Konversationskennungen eingegrenzt. Wenden Sie die Suche an, um die aktuelle Arbeitsbereichsansicht zu aktualisieren.",
         searchTitle: "Suchen",
-        tabsBody:
-          "Wechseln Sie zwischen dem Live-Konversations-Posteingang und der Eskalationswarteschlange. Mithilfe von Zählungen können Sie die aktuelle Arbeitsbelastung auf einen Blick erkennen.",
-        tabsTitle: "Arbeitsbereich-Registerkarten",
         welcomeBody:
           "Dieser Arbeitsbereich dient der Überwachung von Käufergesprächen und der Bearbeitung von KI-Eskalationen in verbundenen Shops.",
         welcomeTitle: "Willkommen beim Kundenservice",
@@ -838,10 +830,8 @@ export const LEGACY_I18N_BACKFILL = {
         filterAiState: "Manejo de IA",
         filterConversationStatus: "Estado de la conversación",
         filterEscalationState: "Escalada",
-        filterPageSize: "Tamaño de página",
         filterSearch: "Buscar",
         filterShop: "Comercio",
-        filterStatus: "Estado",
       },
       shopAdsStatus: {
         connected: "Conectado",
@@ -991,9 +981,6 @@ export const LEGACY_I18N_BACKFILL = {
         conversationShellBody:
           "La vista dividida mantiene la cola a la izquierda y los detalles de la conversación seleccionada a la derecha.",
         conversationShellTitle: "Espacio de trabajo de conversación",
-        escalationQueueBody:
-          "La pestaña de escalada enumera los casos abiertos o pendientes que necesitan revisión, respuesta o desestimación.",
-        escalationQueueTitle: "Cola de escalada",
         filtersBody:
           "Filtre por tienda, estado de la conversación, estado de la IA, estado de escalamiento y tamaño de la página para enfocar la cola.",
         filtersTitle: "Filtros",
@@ -1003,9 +990,6 @@ export const LEGACY_I18N_BACKFILL = {
         searchBody:
           "La búsqueda reduce la cola por identificadores de comprador, pedido o conversación. Aplique la búsqueda para actualizar la vista del espacio de trabajo actual.",
         searchTitle: "Buscar",
-        tabsBody:
-          "Cambie entre la bandeja de entrada de conversaciones en vivo y la cola de escalada. Los recuentos le ayudan a ver la carga de trabajo actual de un vistazo.",
-        tabsTitle: "Pestañas del espacio de trabajo",
         welcomeBody:
           "Este espacio de trabajo sirve para monitorear las conversaciones de los compradores y manejar las escaladas de IA en las tiendas conectadas.",
         welcomeTitle: "Bienvenido al servicio de atención al cliente",
@@ -1346,10 +1330,8 @@ export const LEGACY_I18N_BACKFILL = {
         filterAiState: "Gestion de l'IA",
         filterConversationStatus: "Statut de la conversation",
         filterEscalationState: "Escalade",
-        filterPageSize: "Taille des pages",
         filterSearch: "Recherche",
         filterShop: "Boutique",
-        filterStatus: "Statut",
       },
       shopAdsStatus: {
         connected: "Connecté",
@@ -1499,9 +1481,6 @@ export const LEGACY_I18N_BACKFILL = {
         conversationShellBody:
           "La vue fractionnée conserve la file d'attente à gauche et les détails de la conversation sélectionnée à droite.",
         conversationShellTitle: "Espace de travail de conversation",
-        escalationQueueBody:
-          "L'onglet escalade répertorie les dossiers ouverts ou en attente qui nécessitent un examen, une réponse ou un rejet.",
-        escalationQueueTitle: "File d'attente d'escalade",
         filtersBody:
           "Filtrez par boutique, statut de conversation, état d'IA, état d'escalade et taille de page pour cibler la file d'attente.",
         filtersTitle: "Filtres",
@@ -1511,9 +1490,6 @@ export const LEGACY_I18N_BACKFILL = {
         searchBody:
           "La recherche réduit la file d'attente par identifiant d'acheteur, de commande ou de conversation. Appliquez la recherche pour actualiser la vue actuelle de l'espace de travail.",
         searchTitle: "Recherche",
-        tabsBody:
-          "Basculez entre la boîte de réception des conversations en direct et la file d'attente d'escalade. Les décomptes vous aident à voir la charge de travail actuelle en un coup d'œil.",
-        tabsTitle: "Onglets de l'espace de travail",
         welcomeBody:
           "Cet espace de travail permet de surveiller les conversations des acheteurs et de gérer les escalades d'IA dans les boutiques connectées.",
         welcomeTitle: "Bienvenue au service client",
@@ -1850,10 +1826,8 @@ export const LEGACY_I18N_BACKFILL = {
         filterAiState: "Penanganan AI",
         filterConversationStatus: "Status percakapan",
         filterEscalationState: "Eskalasi",
-        filterPageSize: "Ukuran halaman",
         filterSearch: "Mencari",
         filterShop: "Toko",
-        filterStatus: "Status",
       },
       shopAdsStatus: {
         connected: "Terhubung",
@@ -2002,9 +1976,6 @@ export const LEGACY_I18N_BACKFILL = {
         conversationShellBody:
           "Tampilan terpisah mempertahankan antrean di sebelah kiri dan detail percakapan yang dipilih di sebelah kanan.",
         conversationShellTitle: "Ruang Kerja Percakapan",
-        escalationQueueBody:
-          "Tab eskalasi mencantumkan kasus yang terbuka atau tertunda yang perlu ditinjau, ditanggapi, atau ditutup.",
-        escalationQueueTitle: "Antrian Eskalasi",
         filtersBody:
           "Filter berdasarkan toko, status percakapan, status AI, status eskalasi, dan ukuran halaman untuk memfokuskan antrean.",
         filtersTitle: "Filter",
@@ -2014,9 +1985,6 @@ export const LEGACY_I18N_BACKFILL = {
         searchBody:
           "Pencarian mempersempit antrean berdasarkan pembeli, pesanan, atau pengidentifikasi percakapan. Terapkan pencarian untuk menyegarkan tampilan ruang kerja saat ini.",
         searchTitle: "Mencari",
-        tabsBody:
-          "Beralih antara kotak masuk percakapan langsung dan antrean eskalasi. Hitungan membantu Anda melihat beban kerja saat ini secara sekilas.",
-        tabsTitle: "Tab Ruang Kerja",
         welcomeBody:
           "Ruang kerja ini untuk memantau percakapan pembeli dan menangani eskalasi AI di seluruh toko yang terhubung.",
         welcomeTitle: "Selamat datang di Layanan Pelanggan",
@@ -2355,10 +2323,8 @@ export const LEGACY_I18N_BACKFILL = {
         filterAiState: "Gestione dell'intelligenza artificiale",
         filterConversationStatus: "Stato della conversazione",
         filterEscalationState: "Escalation",
-        filterPageSize: "Dimensioni della pagina",
         filterSearch: "Ricerca",
         filterShop: "Negozio",
-        filterStatus: "Stato",
       },
       shopAdsStatus: {
         connected: "Collegato",
@@ -2509,9 +2475,6 @@ export const LEGACY_I18N_BACKFILL = {
         conversationShellBody:
           "La visualizzazione divisa mantiene la coda a sinistra e i dettagli della conversazione selezionata a destra.",
         conversationShellTitle: "Area di lavoro di conversazione",
-        escalationQueueBody:
-          "La scheda dell'escalation elenca i casi aperti o pendenti che necessitano di revisione, risposta o archiviazione.",
-        escalationQueueTitle: "Coda di escalation",
         filtersBody:
           "Filtra per negozio, stato della conversazione, stato dell'intelligenza artificiale, stato dell'escalation e dimensione della pagina per focalizzare la coda.",
         filtersTitle: "Filtri",
@@ -2521,9 +2484,6 @@ export const LEGACY_I18N_BACKFILL = {
         searchBody:
           "La ricerca restringe la coda in base agli identificatori dell'acquirente, dell'ordine o della conversazione. Applica la ricerca per aggiornare la visualizzazione corrente dell'area di lavoro.",
         searchTitle: "Ricerca",
-        tabsBody:
-          "Passa dalla casella di posta delle conversazioni in tempo reale alla coda di escalation. I conteggi ti aiutano a vedere il carico di lavoro corrente a colpo d'occhio.",
-        tabsTitle: "Schede dell'area di lavoro",
         welcomeBody:
           "Questo spazio di lavoro serve per monitorare le conversazioni degli acquirenti e gestire le escalation dell'intelligenza artificiale tra i negozi connessi.",
         welcomeTitle: "Benvenuto nel Servizio Clienti",
@@ -2849,10 +2809,8 @@ export const LEGACY_I18N_BACKFILL = {
         filterAiState: "การจัดการเอไอ",
         filterConversationStatus: "สถานะการสนทนา",
         filterEscalationState: "การยกระดับ",
-        filterPageSize: "ขนาดหน้า",
         filterSearch: "ค้นหา",
         filterShop: "ร้านค้า",
-        filterStatus: "สถานะ",
       },
       shopAdsStatus: {
         connected: "เชื่อมต่อแล้ว",
@@ -2991,9 +2949,6 @@ export const LEGACY_I18N_BACKFILL = {
         conversationListTitle: "รายการสนทนา",
         conversationShellBody: "มุมมองแบบแยกจะเก็บคิวไว้ทางด้านซ้ายและรายละเอียดการสนทนาที่เลือกไว้ทางด้านขวา",
         conversationShellTitle: "พื้นที่ทำงานการสนทนา",
-        escalationQueueBody:
-          "แท็บการยกระดับแสดงรายการกรณีและปัญหาที่เปิดอยู่หรืออยู่ระหว่างดำเนินการซึ่งต้องมีการตรวจสอบ การตอบกลับ หรือการยกเลิก",
-        escalationQueueTitle: "คิวการยกระดับ",
         filtersBody: "กรองตามร้านค้า สถานะการสนทนา สถานะ AI สถานะการยกระดับ และขนาดหน้าเพื่อเน้นคิว",
         filtersTitle: "ตัวกรอง",
         manualReplyBody:
@@ -3002,9 +2957,6 @@ export const LEGACY_I18N_BACKFILL = {
         searchBody:
           "การค้นหาจะจำกัดคิวให้แคบลงตามผู้ซื้อ คำสั่งซื้อ หรือตัวระบุการสนทนา ใช้การค้นหาเพื่อรีเฟรชมุมมองพื้นที่ทำงานปัจจุบัน",
         searchTitle: "ค้นหา",
-        tabsBody:
-          "สลับระหว่างกล่องจดหมายการสนทนาสดและคิวการยกระดับ การนับช่วยให้คุณเห็นปริมาณงานปัจจุบันได้อย่างรวดเร็ว",
-        tabsTitle: "แท็บพื้นที่ทำงาน",
         welcomeBody: "พื้นที่ทำงานนี้มีไว้สำหรับติดตามการสนทนาของผู้ซื้อและจัดการการยกระดับ AI ในร้านค้าที่เชื่อมต่อกัน",
         welcomeTitle: "ยินดีต้อนรับสู่การบริการลูกค้า",
       },

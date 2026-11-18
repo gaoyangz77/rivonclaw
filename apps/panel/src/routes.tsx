@@ -40,10 +40,7 @@ import {
 import { AffiliateTeamPage } from "./pages/ecommerce/AffiliateTeamPage.js";
 import { AffiliateCampaignPage } from "./pages/ecommerce/AffiliateCampaignPage.js";
 import { AffiliateAnalyticsPage } from "./pages/ecommerce/AffiliateAnalyticsPage.js";
-import {
-  CustomerServiceConversationsPage,
-  CustomerServiceEscalationQueuePage,
-} from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
+import { CustomerServiceConversationsPage } from "./pages/ecommerce/CustomerServiceConversationsPage.js";
 import { AfterSaleReviewPage } from "./pages/ecommerce/AfterSaleReviewPage.js";
 import { BadReviewManagementPage } from "./pages/ecommerce/BadReviewManagementPage.js";
 import { CustomerServicePerformancePage } from "./pages/ecommerce/CustomerServicePerformancePage.js";
@@ -174,16 +171,6 @@ export const ROUTES: RouteEntry[] = [
     component: CustomerServiceConversationsPage,
     icon: <ChannelsIcon />,
     navLabelKey: "nav.customerServiceConversations",
-    authRequired: true,
-    parentPath: "/commerce/customer-service",
-    scopes: [GQL.PermissionScope.CustomerService],
-  },
-  {
-    path: "/commerce/customer-service/escalations",
-    pageKey: "ecommerce-customer-service-escalations",
-    component: CustomerServiceEscalationQueuePage,
-    icon: <ChannelsIcon />,
-    navLabelKey: "nav.customerServiceEscalations",
     authRequired: true,
     parentPath: "/commerce/customer-service",
     scopes: [GQL.PermissionScope.CustomerService],

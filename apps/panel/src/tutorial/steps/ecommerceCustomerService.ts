@@ -3,7 +3,6 @@ import { tutorialTarget } from "../targets.js";
 
 export const customerServiceWorkspaceSteps: TutorialStep[] = [
   step("workspace-welcome", "cs-header", "welcome", "bottom"),
-  step("workspace-tabs", "cs-workspace-tabs", "tabs", "bottom"),
   step("workspace-conversations", "cs-conversation-workspace", "conversationShell", "top"),
 ];
 
@@ -16,14 +15,6 @@ export const customerServiceConversationsSteps: TutorialStep[] = [
   step("conversations-order", "cs-order-context", "orderContext", "bottom"),
   step("conversations-ai", "cs-ai-control", "aiControl", "left"),
   step("conversations-reply", "cs-manual-reply", "manualReply", "top"),
-];
-
-export const customerServiceEscalationsSteps: TutorialStep[] = [
-  step("escalations-welcome", "cs-header", "escalationsWelcome", "bottom"),
-  step("escalations-toolbar", "cs-escalation-toolbar", "escalationToolbar", "bottom"),
-  step("escalations-filters", "cs-escalation-filters", "escalationFilters", "bottom"),
-  step("escalations-table", "cs-escalation-table", "escalationQueue", "top"),
-  step("escalations-detail", "cs-escalation-detail", "escalationDetail", "left"),
 ];
 
 export const customerServicePerformanceSteps: TutorialStep[] = [

@@ -99,7 +99,6 @@ const HIERARCHICAL_NAV_ITEMS: readonly TkHierarchicalNavItem[] = [
     description: "会话处理、升级协同与服务质量。",
     children: [
       { id: "/commerce/customer-service/conversations", label: "客服对话" },
-      { id: "/commerce/customer-service/escalations", label: "客服升级" },
       { id: "/commerce/customer-service/performance", label: "客服绩效" },
       { id: "/commerce/customer-service/experiments", label: "实验分析" },
     ],
