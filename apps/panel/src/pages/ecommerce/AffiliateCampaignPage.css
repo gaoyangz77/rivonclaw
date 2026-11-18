@@ -1992,6 +1992,33 @@
   margin: 7px 0 0;
   line-height: 1.55;
 }
+/* Step 3 shows the two touches a Creator receives, in order, as two titled
+   surfaces under one shared AI row (ADR-108). */
+.affiliate-campaign-touch-fields {
+  gap: var(--tk-v1-space-5);
+}
+.affiliate-campaign-touch-ai {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--tk-v1-space-4);
+  align-items: center;
+}
+.affiliate-campaign-touch-dm {
+  display: grid;
+  gap: var(--tk-v1-space-4);
+}
+.affiliate-campaign-touch-dm .affiliate-campaign-check-rule {
+  margin-top: 0;
+}
+.affiliate-campaign-invitation-preview > strong {
+  display: block;
+  margin-top: var(--tk-v1-space-2);
+  font-size: 12px;
+}
+/* The intro is multi-paragraph; show it the way the invitation will. */
+.affiliate-campaign-invitation-preview p {
+  white-space: pre-wrap;
+}
 .affiliate-campaign-message-product-card {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);

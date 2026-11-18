@@ -2,6 +2,7 @@ import { GQL } from "@rivonclaw/core";
 import { describe, expect, it } from "vitest";
 import {
   applyCampaignAiSuggestion,
+  campaignAiButtonLabelKey,
   campaignInvitationTextIssue,
   campaignInvitationTextLength,
 } from "./affiliate-campaign-invitation-text.js";
@@ -73,5 +74,34 @@ describe("applying an AI suggestion", () => {
     });
     expect(applied.collaborationInvitationText).toBe("old note");
     expect(applied.templateText).toBe("ai {{creator_name}} text");
+  });
+});
+
+describe("the shared AI button label", () => {
+  const base = {
+    templateText: "",
+    collaborationInvitationText: "",
+    firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
+  };
+
+  it("offers both drafts when a direct message is sent, judged on the template", () => {
+    expect(campaignAiButtonLabelKey(base)).toBe("ecommerce.affiliateCampaign.generateWithAi");
+    expect(campaignAiButtonLabelKey({ ...base, templateText: "Hi {{creator_name}}" })).toBe(
+      "ecommerce.affiliateCampaign.generateAlternative",
+    );
+  });
+
+  it("offers only the invitation intro in COLLABORATION_ONLY, judged on the intro", () => {
+    const collaborationOnly = {
+      ...base,
+      templateText: "retained",
+      firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly,
+    };
+    expect(campaignAiButtonLabelKey(collaborationOnly)).toBe(
+      "ecommerce.affiliateCampaign.generateInvitationWithAi",
+    );
+    expect(
+      campaignAiButtonLabelKey({ ...collaborationOnly, collaborationInvitationText: "intro" }),
+    ).toBe("ecommerce.affiliateCampaign.generateInvitationAlternative");
   });
 });

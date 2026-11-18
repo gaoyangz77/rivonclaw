@@ -74,3 +74,21 @@ export function applyCampaignAiSuggestion(
     templateSource: GQL.AffiliateCampaignMessageTemplateSource.AiGenerated,
   };
 }
+
+/**
+ * The shared AI button writes both touches when a direct message is sent, and
+ * only the invitation intro otherwise; "again" is judged on the text it would
+ * replace.
+ */
+export function campaignAiButtonLabelKey(
+  form: Pick<AiSuggestionFormFields, "firstTouchMode" | "templateText" | "collaborationInvitationText">,
+): string {
+  if (form.firstTouchMode === GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly) {
+    return form.collaborationInvitationText.trim()
+      ? "ecommerce.affiliateCampaign.generateInvitationAlternative"
+      : "ecommerce.affiliateCampaign.generateInvitationWithAi";
+  }
+  return form.templateText.trim()
+    ? "ecommerce.affiliateCampaign.generateAlternative"
+    : "ecommerce.affiliateCampaign.generateWithAi";
+}

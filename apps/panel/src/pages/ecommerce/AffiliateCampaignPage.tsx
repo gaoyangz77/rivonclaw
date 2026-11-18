@@ -26,7 +26,9 @@ import {
   TkButton,
   TkInfoTip,
   TkInteractiveTableRow,
+  TkBadge,
   TkPanel,
+  TkPanelBody,
   TkPanelHeader,
   TkPrivate,
   TkTableFrame,
@@ -72,6 +74,7 @@ import {
 import {
   CAMPAIGN_INVITATION_TEXT_MAX_CODE_POINTS,
   applyCampaignAiSuggestion,
+  campaignAiButtonLabelKey,
   campaignInvitationTextIssue,
   campaignInvitationTextLength,
 } from "./affiliate-campaign-invitation-text.js";
@@ -3644,241 +3647,294 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <h3>{t("ecommerce.affiliateCampaign.stepMessageTitle")}</h3>
                 <p>{t("ecommerce.affiliateCampaign.stepMessageDescription")}</p>
               </section>
-              <section className="affiliate-campaign-wizard-fields">
-                <div className="affiliate-campaign-message-layout">
-                  <div className="affiliate-campaign-message-editor">
-                    <label>
-                      <span>{t("ecommerce.affiliateCampaign.templateGuidance")}</span>
-                      <input
-                        value={form.templateGuidance}
-                        onChange={(event) => updateForm("templateGuidance", event.target.value)}
-                        placeholder={t("ecommerce.affiliateCampaign.templateGuidancePlaceholder")}
-                      />
-                      <small>{t("ecommerce.affiliateCampaign.templateGuidanceHint")}</small>
-                    </label>
-                    <div className="affiliate-campaign-template-toolbar">
-                      <div>
-                        <strong>{t("ecommerce.affiliateCampaign.supportedVariables")}</strong>
-                        <span>{"{{creator_name}} · {{product_name}} · {{shop_name}}"}</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => void generateMessage()}
-                        disabled={generatingTemplate}
-                      >
-                        {generatingTemplate
-                          ? t("ecommerce.affiliateCampaign.generating")
-                          : t(
-                              (skipDirectMessage
-                                ? form.collaborationInvitationText
-                                : form.templateText
-                              ).trim()
-                                ? "ecommerce.affiliateCampaign.generateAlternative"
-                                : "ecommerce.affiliateCampaign.generateWithAi",
-                            )}
-                      </button>
-                    </div>
-                    <label>
-                      <span>{t("ecommerce.affiliateCampaign.messageProductName")}</span>
-                      <input
-                        ref={messageProductNameRef}
-                        value={form.messageProductName}
-                        maxLength={CAMPAIGN_MESSAGE_PRODUCT_NAME_MAX_LENGTH}
-                        disabled={skipDirectMessage}
-                        aria-invalid={messageProductNameTooLong ? true : undefined}
-                        aria-describedby={
-                          messageProductNameTooLong ? "affiliate-campaign-message-product-name-error" : undefined
-                        }
-                        onChange={(event) => updateForm("messageProductName", event.target.value)}
-                        placeholder={t("ecommerce.affiliateCampaign.messageProductNamePlaceholder")}
-                      />
-                      {messageProductNameTooLong && (
-                        <small
-                          id="affiliate-campaign-message-product-name-error"
-                          className="affiliate-campaign-field-error"
-                          role="alert"
-                        >
-                          {t("ecommerce.affiliateCampaign.messageProductNameTooLong")}
-                        </small>
-                      )}
-                      <small>{t("ecommerce.affiliateCampaign.messageProductNameHint")}</small>
-                    </label>
-                    <label>
-                      <span>{t("ecommerce.affiliateCampaign.collaborationInvitationText")}</span>
-                      <textarea
-                        ref={invitationTextRef}
-                        rows={5}
-                        value={form.collaborationInvitationText}
-                        aria-invalid={invitationTextIssue !== null}
-                        aria-describedby={
-                          invitationTextIssue ? "affiliate-campaign-invitation-text-error" : undefined
-                        }
-                        onChange={(event) =>
-                          updateForm("collaborationInvitationText", event.target.value)
-                        }
-                        placeholder={t(
-                          "ecommerce.affiliateCampaign.collaborationInvitationTextPlaceholder",
-                        )}
-                      />
-                      {invitationTextIssue && (
-                        <small
-                          id="affiliate-campaign-invitation-text-error"
-                          className="affiliate-campaign-template-error"
-                          role="alert"
-                        >
-                          {t(`ecommerce.affiliateCampaign.errors.${invitationTextIssue}`)}
-                        </small>
-                      )}
-                      <small>
-                        {campaignInvitationTextLength(form.collaborationInvitationText)}/
-                        {CAMPAIGN_INVITATION_TEXT_MAX_CODE_POINTS}
-                      </small>
-                      <small>
-                        {t("ecommerce.affiliateCampaign.collaborationInvitationTextHint")}
-                      </small>
-                    </label>
-                    <label className="affiliate-campaign-check-rule">
-                      <input
-                        type="checkbox"
-                        checked={skipDirectMessage}
-                        onChange={(event) =>
-                          updateForm(
-                            "firstTouchMode",
-                            event.target.checked
-                              ? GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly
-                              : GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
-                          )
-                        }
-                      />
-                      <span>{t("ecommerce.affiliateCampaign.noDirectMessage")}</span>
-                    </label>
-                    <p className="form-hint">{t("ecommerce.affiliateCampaign.noDirectMessageHint")}</p>
-                    <label>
-                      <span>{t("ecommerce.affiliateCampaign.messageTemplate")}</span>
-                      <textarea
-                        rows={8}
-                        maxLength={CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH}
-                        value={form.templateText}
-                        disabled={skipDirectMessage}
-                        aria-invalid={
-                          unsupportedTemplateVariables.length > 0 ||
-                          aiTemplateMissingCreatorPlaceholder ||
-                          templateContentIssue !== null
-                        }
-                        aria-describedby={
-                          unsupportedTemplateVariables.length > 0
-                            ? "affiliate-campaign-template-variable-error"
-                            : aiTemplateMissingCreatorPlaceholder
-                              ? "affiliate-campaign-template-placeholder-error"
-                              : templateContentIssue
-                                ? "affiliate-campaign-template-content-error"
-                                : undefined
-                        }
-                        onChange={(event) => {
-                          const nextText = event.target.value;
-                          setForm((current) => ({
-                            ...current,
-                            templateText: nextText,
-                            templateSource:
-                              current.templateSource ===
-                                GQL.AffiliateCampaignMessageTemplateSource.AiGenerated &&
-                              affiliateCampaignAiTemplateMissingCreatorPlaceholder(nextText)
-                                ? GQL.AffiliateCampaignMessageTemplateSource.AiGenerated
-                                : GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
-                          }));
-                        }}
-                        placeholder={t("ecommerce.affiliateCampaign.messagePlaceholder")}
-                      />
-                      {unsupportedTemplateVariables.length > 0 && (
-                        <small
-                          id="affiliate-campaign-template-variable-error"
-                          className="affiliate-campaign-template-error"
-                          role="alert"
-                        >
-                          {t("ecommerce.affiliateCampaign.templateUnsupportedVariables", {
-                            variables: unsupportedTemplateVariables
-                              .map((variable) => `{{${variable}}}`)
-                              .join(", "),
-                          })}
-                        </small>
-                      )}
-                      {unsupportedTemplateVariables.length === 0 &&
-                        aiTemplateMissingCreatorPlaceholder && (
-                          <small
-                            id="affiliate-campaign-template-placeholder-error"
-                            className="affiliate-campaign-template-error"
-                            role="alert"
-                          >
-                            {t("ecommerce.affiliateCampaign.templatePlaceholderRepairRequired")}
-                            {" {{creator_name}}"}
-                          </small>
-                        )}
-                      {unsupportedTemplateVariables.length === 0 &&
-                        !aiTemplateMissingCreatorPlaceholder &&
-                        templateContentIssue && (
-                          <small
-                            id="affiliate-campaign-template-content-error"
-                            className="affiliate-campaign-template-error"
-                            role="alert"
-                          >
-                            {t(`ecommerce.affiliateCampaign.errors.${templateContentIssue}`)}
-                          </small>
-                        )}
-                      <small>
-                        {form.templateText.length}/{CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH} ·{" "}
-                        {form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated
-                          ? t("ecommerce.affiliateCampaign.aiDraftReviewRequired")
-                          : t("ecommerce.affiliateCampaign.userAuthored")}
-                      </small>
-                    </label>
-                  </div>
-                  <div className="affiliate-campaign-message-preview">
-                    <span>{t("ecommerce.affiliateCampaign.preview")}</span>
-                    <p>
-                      {/* The two nouns are substituted rather than marked: the
-                          surrounding template is the seller's own copy and must
-                          stay readable, and the preview mirrors the message the
-                          creator receives — which carries the platform shop
-                          name, never the alias. */}
-                      {renderAffiliateCampaignTemplatePreview(
-                        form.templateText,
-                        maskedIfSensitive(
-                          previewProductName || t("ecommerce.affiliateCampaign.previewProduct"),
-                          previewProductName !== "",
-                          privacyMode,
-                        ),
-                        maskedIfSensitive(
-                          selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop"),
-                          Boolean(selectedShop?.shopName),
-                          privacyMode,
-                        ),
-                      ) || t("ecommerce.affiliateCampaign.previewEmpty")}
-                    </p>
-                    {productPreview && (
-                      <div className="affiliate-campaign-message-product-card">
-                        {/* Same plain-<img> masking as the product rows above. */}
-                        {productPreview.coverImage && !privacyMode ? (
-                          <img src={productPreview.coverImage} alt="" />
-                        ) : (
-                          <span>
-                            <ShopIcon />
-                          </span>
-                        )}
-                        <div>
-                          <TkPrivate as="strong">
-                            {form.messageProductName || productPreview.title}
-                          </TkPrivate>
-                          <small>
-                            ${productPreview.minimumPriceUsdAmount.toFixed(2)}
-                            {" · "}
-                            {t("ecommerce.affiliateCampaign.productCardAttached")}
-                          </small>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <section className="affiliate-campaign-wizard-fields affiliate-campaign-touch-fields">
+                {/* Shared by both touches below: one guidance, one AI run. */}
+                <div className="affiliate-campaign-touch-ai">
+                  <label>
+                    <span>{t("ecommerce.affiliateCampaign.templateGuidance")}</span>
+                    <input
+                      value={form.templateGuidance}
+                      onChange={(event) => updateForm("templateGuidance", event.target.value)}
+                      placeholder={t("ecommerce.affiliateCampaign.templateGuidancePlaceholder")}
+                    />
+                    <small>{t("ecommerce.affiliateCampaign.templateGuidanceHint")}</small>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => void generateMessage()}
+                    disabled={generatingTemplate}
+                  >
+                    {generatingTemplate
+                      ? t("ecommerce.affiliateCampaign.generating")
+                      : t(campaignAiButtonLabelKey(form))}
+                  </button>
                 </div>
+
+                {/* 1. What every invited Creator sees first, on the TikTok
+                    invitation itself (ADR-108). */}
+                <TkPanel as="section" variant="subtle" padding="none">
+                  <TkPanelHeader
+                    headingLevel={4}
+                    eyebrow={t("ecommerce.affiliateCampaign.invitationBlockEyebrow")}
+                    title={t("ecommerce.affiliateCampaign.collaborationInvitationText")}
+                    description={t("ecommerce.affiliateCampaign.invitationBlockDescription")}
+                    actions={
+                      <TkBadge tone="neutral">
+                        {t("ecommerce.affiliateCampaign.invitationBlockBadge")}
+                      </TkBadge>
+                    }
+                  />
+                  <TkPanelBody>
+                    <div className="affiliate-campaign-message-layout">
+                      <div className="affiliate-campaign-message-editor">
+                        <label>
+                          <span className="sr-only">
+                            {t("ecommerce.affiliateCampaign.collaborationInvitationText")}
+                          </span>
+                          <textarea
+                            ref={invitationTextRef}
+                            rows={6}
+                            value={form.collaborationInvitationText}
+                            aria-invalid={invitationTextIssue !== null}
+                            aria-describedby={
+                              invitationTextIssue ? "affiliate-campaign-invitation-text-error" : undefined
+                            }
+                            onChange={(event) =>
+                              updateForm("collaborationInvitationText", event.target.value)
+                            }
+                            placeholder={t(
+                              "ecommerce.affiliateCampaign.collaborationInvitationTextPlaceholder",
+                            )}
+                          />
+                          {invitationTextIssue && (
+                            <small
+                              id="affiliate-campaign-invitation-text-error"
+                              className="affiliate-campaign-template-error"
+                              role="alert"
+                            >
+                              {t(`ecommerce.affiliateCampaign.errors.${invitationTextIssue}`)}
+                            </small>
+                          )}
+                          <small>
+                            {campaignInvitationTextLength(form.collaborationInvitationText)}/
+                            {CAMPAIGN_INVITATION_TEXT_MAX_CODE_POINTS}
+                            {" · "}
+                            {t("ecommerce.affiliateCampaign.collaborationInvitationTextHint")}
+                          </small>
+                        </label>
+                      </div>
+                      <div className="affiliate-campaign-message-preview affiliate-campaign-invitation-preview">
+                        <span>{t("ecommerce.affiliateCampaign.invitationPreviewLabel")}</span>
+                        <TkPrivate as="strong">
+                          {selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop")}
+                        </TkPrivate>
+                        <p>
+                          {form.collaborationInvitationText.trim() ||
+                            t("ecommerce.affiliateCampaign.invitationPreviewEmpty")}
+                        </p>
+                      </div>
+                    </div>
+                  </TkPanelBody>
+                </TkPanel>
+
+                {/* 2. The optional per-Creator direct message. The mode switch
+                    lives here because it governs this touch only. */}
+                <TkPanel as="section" variant="subtle" padding="none">
+                  <TkPanelHeader
+                    headingLevel={4}
+                    eyebrow={t("ecommerce.affiliateCampaign.dmBlockEyebrow")}
+                    title={t("ecommerce.affiliateCampaign.dmBlockTitle")}
+                    description={t("ecommerce.affiliateCampaign.dmBlockDescription")}
+                    actions={
+                      <TkBadge tone="accent">
+                        {t("ecommerce.affiliateCampaign.dmBlockBadge")}
+                      </TkBadge>
+                    }
+                  />
+                  <TkPanelBody>
+                    <div className="affiliate-campaign-touch-dm">
+                      <div>
+                        <label className="affiliate-campaign-check-rule">
+                          <input
+                            type="checkbox"
+                            checked={skipDirectMessage}
+                            onChange={(event) =>
+                              updateForm(
+                                "firstTouchMode",
+                                event.target.checked
+                                  ? GQL.AffiliateCampaignFirstTouchMode.CollaborationOnly
+                                  : GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
+                              )
+                            }
+                          />
+                          <span>{t("ecommerce.affiliateCampaign.noDirectMessage")}</span>
+                        </label>
+                        <p className="form-hint">{t("ecommerce.affiliateCampaign.noDirectMessageHint")}</p>
+                      </div>
+                      {!skipDirectMessage && (
+                        <div className="affiliate-campaign-message-layout">
+                          <div className="affiliate-campaign-message-editor">
+                            <div className="affiliate-campaign-template-toolbar">
+                              <div>
+                                <strong>{t("ecommerce.affiliateCampaign.supportedVariables")}</strong>
+                                <span>{"{{creator_name}} · {{product_name}} · {{shop_name}}"}</span>
+                              </div>
+                            </div>
+                                <label>
+                                  <span>{t("ecommerce.affiliateCampaign.messageProductName")}</span>
+                                  <input
+                                    ref={messageProductNameRef}
+                                    value={form.messageProductName}
+                                    maxLength={CAMPAIGN_MESSAGE_PRODUCT_NAME_MAX_LENGTH}
+                                    disabled={skipDirectMessage}
+                                    aria-invalid={messageProductNameTooLong ? true : undefined}
+                                    aria-describedby={
+                                      messageProductNameTooLong ? "affiliate-campaign-message-product-name-error" : undefined
+                                    }
+                                    onChange={(event) => updateForm("messageProductName", event.target.value)}
+                                    placeholder={t("ecommerce.affiliateCampaign.messageProductNamePlaceholder")}
+                                  />
+                                  {messageProductNameTooLong && (
+                                    <small
+                                      id="affiliate-campaign-message-product-name-error"
+                                      className="affiliate-campaign-field-error"
+                                      role="alert"
+                                    >
+                                      {t("ecommerce.affiliateCampaign.messageProductNameTooLong")}
+                                    </small>
+                              )}
+                              <small>{t("ecommerce.affiliateCampaign.messageProductNameHint")}</small>
+                            </label>
+                            <label>
+                              <span>{t("ecommerce.affiliateCampaign.messageTemplate")}</span>
+                              <textarea
+                                rows={8}
+                                maxLength={CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH}
+                                value={form.templateText}
+                                disabled={skipDirectMessage}
+                                aria-invalid={
+                                  unsupportedTemplateVariables.length > 0 ||
+                                  aiTemplateMissingCreatorPlaceholder ||
+                                  templateContentIssue !== null
+                                }
+                                aria-describedby={
+                                  unsupportedTemplateVariables.length > 0
+                                    ? "affiliate-campaign-template-variable-error"
+                                    : aiTemplateMissingCreatorPlaceholder
+                                      ? "affiliate-campaign-template-placeholder-error"
+                                      : templateContentIssue
+                                        ? "affiliate-campaign-template-content-error"
+                                        : undefined
+                                }
+                                onChange={(event) => {
+                                  const nextText = event.target.value;
+                                  setForm((current) => ({
+                                    ...current,
+                                    templateText: nextText,
+                                    templateSource:
+                                      current.templateSource ===
+                                        GQL.AffiliateCampaignMessageTemplateSource.AiGenerated &&
+                                      affiliateCampaignAiTemplateMissingCreatorPlaceholder(nextText)
+                                        ? GQL.AffiliateCampaignMessageTemplateSource.AiGenerated
+                                        : GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
+                                  }));
+                                }}
+                                placeholder={t("ecommerce.affiliateCampaign.messagePlaceholder")}
+                              />
+                              {unsupportedTemplateVariables.length > 0 && (
+                                <small
+                                  id="affiliate-campaign-template-variable-error"
+                                  className="affiliate-campaign-template-error"
+                                  role="alert"
+                                >
+                                  {t("ecommerce.affiliateCampaign.templateUnsupportedVariables", {
+                                    variables: unsupportedTemplateVariables
+                                      .map((variable) => `{{${variable}}}`)
+                                      .join(", "),
+                                  })}
+                                </small>
+                              )}
+                              {unsupportedTemplateVariables.length === 0 &&
+                                aiTemplateMissingCreatorPlaceholder && (
+                                  <small
+                                    id="affiliate-campaign-template-placeholder-error"
+                                    className="affiliate-campaign-template-error"
+                                    role="alert"
+                                  >
+                                    {t("ecommerce.affiliateCampaign.templatePlaceholderRepairRequired")}
+                                    {" {{creator_name}}"}
+                                  </small>
+                                )}
+                              {unsupportedTemplateVariables.length === 0 &&
+                                !aiTemplateMissingCreatorPlaceholder &&
+                                templateContentIssue && (
+                                  <small
+                                    id="affiliate-campaign-template-content-error"
+                                    className="affiliate-campaign-template-error"
+                                    role="alert"
+                                  >
+                                    {t(`ecommerce.affiliateCampaign.errors.${templateContentIssue}`)}
+                                  </small>
+                                )}
+                              <small>
+                                {form.templateText.length}/{CAMPAIGN_MESSAGE_TEMPLATE_MAX_LENGTH} ·{" "}
+                                {form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated
+                                  ? t("ecommerce.affiliateCampaign.aiDraftReviewRequired")
+                                  : t("ecommerce.affiliateCampaign.userAuthored")}
+                              </small>
+                            </label>
+                      </div>
+                          <div className="affiliate-campaign-message-preview">
+                            <span>{t("ecommerce.affiliateCampaign.preview")}</span>
+                            <p>
+                              {/* The two nouns are substituted rather than marked: the
+                                  surrounding template is the seller's own copy and must
+                                  stay readable, and the preview mirrors the message the
+                                  creator receives — which carries the platform shop
+                                  name, never the alias. */}
+                              {renderAffiliateCampaignTemplatePreview(
+                                form.templateText,
+                                maskedIfSensitive(
+                                  previewProductName || t("ecommerce.affiliateCampaign.previewProduct"),
+                                  previewProductName !== "",
+                                  privacyMode,
+                                ),
+                                maskedIfSensitive(
+                                  selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop"),
+                                  Boolean(selectedShop?.shopName),
+                                  privacyMode,
+                                ),
+                              ) || t("ecommerce.affiliateCampaign.previewEmpty")}
+                            </p>
+                            {productPreview && (
+                              <div className="affiliate-campaign-message-product-card">
+                                {/* Same plain-<img> masking as the product rows above. */}
+                                {productPreview.coverImage && !privacyMode ? (
+                                  <img src={productPreview.coverImage} alt="" />
+                                ) : (
+                                  <span>
+                                    <ShopIcon />
+                                  </span>
+                                )}
+                                <div>
+                                  <TkPrivate as="strong">
+                                    {form.messageProductName || productPreview.title}
+                                  </TkPrivate>
+                                  <small>
+                                    ${productPreview.minimumPriceUsdAmount.toFixed(2)}
+                                    {" · "}
+                                    {t("ecommerce.affiliateCampaign.productCardAttached")}
+                                  </small>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                    </div>
+                      )}
+                    </div>
+                  </TkPanelBody>
+                </TkPanel>
               </section>
             </div>
           )}
