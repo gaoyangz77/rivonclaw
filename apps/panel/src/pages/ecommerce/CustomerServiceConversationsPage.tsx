@@ -62,18 +62,31 @@ import {
   TkModal as Modal,
   TkPanel,
   TkPrivate,
+  TkTabs,
 } from "../../components/design-system/index.js";
+import type { TkTabItem } from "../../components/design-system/index.js";
 import type { Instance } from "mobx-state-tree";
 import type {
   CustomerServiceWorkspaceModel,
   ConversationAiFilter,
   ConversationBadReviewFilter,
-  ConversationEscalationFilter,
-  ConversationStatusFilter,
+  ConversationCategory,
 } from "../../store/models/CustomerServiceWorkspaceModel.js";
 
 type Conversation = GQL.CustomerServiceConversationInboxItem;
 type OrderDraft = GQL.CustomerServiceOrderWithoutConversation;
+const CONVERSATION_COUNTS_REFRESH_DEBOUNCE_MS = 2000;
+
+const CONVERSATION_CATEGORY_TABS: ReadonlyArray<{
+  id: ConversationCategory;
+  labelKey: string;
+}> = [
+  { id: "all", labelKey: "conversationTabAll" },
+  { id: "escalated", labelKey: "conversationTabEscalated" },
+  { id: "pending", labelKey: "conversationTabPending" },
+  { id: "resolved", labelKey: "conversationTabResolved" },
+];
+
 const CONVERSATION_SEARCH_ERROR_KEYS: Readonly<Record<string, string>> = {
   CS_ORDER_SEARCH_INVALID: "ecommerce.customerServiceWorkspace.orderSearchInvalid",
   CS_ORDER_SEARCH_LIMIT: "ecommerce.customerServiceWorkspace.orderSearchTooMany",
@@ -181,7 +194,6 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
       `${workspace.selectedConversationShopId}:${workspace.selectedConversationId}`;
   const [conversationAdvancedFiltersOpen, setConversationAdvancedFiltersOpen] = useState(
     workspace.conversationAiFilter !== "all" ||
-      workspace.conversationEscalationFilter !== "all" ||
       workspace.conversationBadReviewFilter !== "all",
   );
   const [dismissEscalationConfirm, setDismissEscalationConfirm] =
@@ -214,9 +226,8 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
     user,
     workspace,
     workspace.conversationShopId,
-    workspace.conversationStatusFilter,
+    workspace.conversationCategory,
     workspace.conversationAiFilter,
-    workspace.conversationEscalationFilter,
     workspace.conversationBadReviewFilter,
     workspace.conversationSearch,
     workspace.conversationPage,
@@ -360,13 +371,35 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
   }, [conversationCouponOpen]);
 
   useEffect(() => {
-    return panelEventBus.subscribe("cs-conversation-changed", (raw) => {
+    // Counts cannot be adjusted locally (an off-page row's old category is unknown), so a burst
+    // of events triggers a single trailing refetch.
+    let countsTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = panelEventBus.subscribe("cs-conversation-changed", (raw) => {
       workspace.ingestConversationChanged(raw);
       if (workspace.selectedConversationId) {
         workspace.fetchConversationMessages(i18n.language);
       }
+      if (countsTimer) clearTimeout(countsTimer);
+      countsTimer = setTimeout(() => {
+        countsTimer = null;
+        workspace.fetchConversationCounts();
+      }, CONVERSATION_COUNTS_REFRESH_DEBOUNCE_MS);
     });
+    return () => {
+      unsubscribe();
+      if (countsTimer) clearTimeout(countsTimer);
+    };
   }, [workspace, i18n.language]);
+
+  const counts = workspace.conversationCounts;
+  const conversationCategoryTabs: TkTabItem[] = CONVERSATION_CATEGORY_TABS.map(
+    ({ id, labelKey }) => ({
+      id,
+      label: t(`ecommerce.customerServiceWorkspace.${labelKey}`),
+      count: counts ? counts[id] : undefined,
+      buttonProps: { "data-tutorial-id": `cs-conversation-tab-${id}` },
+    }),
+  );
 
   const shopOptions = [
     { value: "", label: t("ecommerce.customerServiceWorkspace.allShops") },
@@ -673,26 +706,6 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
           searchPlaceholder={t("common.searchShops")}
         />
       </div>
-      <div className="cs-filter-control">
-        <Select
-          ariaLabel={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}
-          value={workspace.conversationStatusFilter}
-          onChange={(value) =>
-            workspace.setConversationStatusFilter(value as ConversationStatusFilter)
-          }
-          options={[
-            {
-              value: "pending",
-              label: t("ecommerce.customerServiceWorkspace.conversationStatusPending"),
-            },
-            {
-              value: "resolved",
-              label: t("ecommerce.customerServiceWorkspace.conversationStatusReplied"),
-            },
-            { value: "all", label: t("ecommerce.customerServiceWorkspace.statusAll") },
-          ]}
-        />
-      </div>
       <div className="cs-filter-control cs-filter-control-search">
         <div className="cs-workspace-search">
           <div className="cs-search-input">
@@ -811,29 +824,6 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
             </div>
             <div className="cs-filter-control">
               <Select
-                ariaLabel={t("ecommerce.customerServiceWorkspace.filterEscalationState")}
-                value={workspace.conversationEscalationFilter}
-                onChange={(value) =>
-                  workspace.setConversationEscalationFilter(value as ConversationEscalationFilter)
-                }
-                options={[
-                  {
-                    value: "all",
-                    label: t("ecommerce.customerServiceWorkspace.escalationAll"),
-                  },
-                  {
-                    value: "open",
-                    label: t("ecommerce.customerServiceWorkspace.escalationOpen"),
-                  },
-                  {
-                    value: "none",
-                    label: t("ecommerce.customerServiceWorkspace.escalationNone"),
-                  },
-                ]}
-              />
-            </div>
-            <div className="cs-filter-control">
-              <Select
                 ariaLabel={t("ecommerce.customerServiceWorkspace.filterBadReviewState")}
                 value={workspace.conversationBadReviewFilter}
                 onChange={(value) =>
@@ -853,6 +843,23 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
             </div>
           </div>
         ) : null}
+
+        <div className="cs-conversation-categories">
+          <TkTabs
+            variant="line"
+            scrollable
+            label={t("ecommerce.customerServiceWorkspace.filterConversationStatus")}
+            items={conversationCategoryTabs}
+            value={workspace.conversationCategory}
+            onChange={(value) => workspace.setConversationCategory(value as ConversationCategory)}
+          />
+          {/* A list error (e.g. an invalid search) also fails the counts; show only the list's. */}
+          {workspace.conversationCountsError && !workspace.conversationsError ? (
+            <div className="form-error" role="alert">
+              {t("ecommerce.customerServiceWorkspace.conversationCountsLoadFailed")}
+            </div>
+          ) : null}
+        </div>
 
         <div
           className="cs-conversation-shell"

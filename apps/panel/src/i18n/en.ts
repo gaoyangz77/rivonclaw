@@ -2831,8 +2831,7 @@ export default {
       welcomeBody:
         "This workspace is for monitoring buyer conversations and handling AI escalations across connected shops.",
       filtersTitle: "Filters",
-      filtersBody:
-        "Filter by shop, conversation status, AI state, escalation state, and page size to focus the queue.",
+      filtersBody: "Filter by shop, AI state, and review state, or search, to focus the queue. The tabs above the list switch between all, escalated, awaiting-reply, and replied conversations.",
       searchTitle: "Search",
       searchBody:
         "Search narrows the queue by buyer, order, or conversation identifiers. Apply search to refresh the current workspace view.",
@@ -4717,13 +4716,9 @@ export default {
       refresh: "Refresh",
       conversationEmpty: "No customer conversations match the current filters.",
       empty: "No open escalations.",
-      statusAll: "All statuses",
       aiAll: "All AI states",
       aiEnabled: "AI on",
       aiDisabled: "AI off",
-      escalationAll: "All escalation states",
-      escalationOpen: "Has open escalation",
-      escalationNone: "No open escalation",
       openEscalationBadge: "{{count}} escalation",
       escalationBadge: "Escalation",
       openEscalationDetails: "Open escalation details",
@@ -4752,7 +4747,6 @@ export default {
       filterShop: "Shop",
       filterConversationStatus: "Conversation status",
       filterAiState: "AI handling",
-      filterEscalationState: "Escalation",
       filterBadReviewState: "Review state",
       badReviewAll: "All review states",
       hasBadReview: "Has bad review",

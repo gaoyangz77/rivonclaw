@@ -1242,6 +1242,27 @@ export const CS_CONVERSATION_INBOX_QUERY = gql`
   }
 `;
 
+export const CS_CONVERSATION_INBOX_COUNTS_QUERY = gql`
+  query CustomerServiceInboxCounts(
+    $shopIds: [ID!]
+    $aiEnabled: Boolean
+    $search: String
+    $hasBadReview: Boolean
+  ) {
+    ecommerceGetCustomerServiceInboxCounts(
+      shopIds: $shopIds
+      aiEnabled: $aiEnabled
+      search: $search
+      hasBadReview: $hasBadReview
+    ) {
+      all
+      escalated
+      pending
+      resolved
+    }
+  }
+`;
+
 export const CS_CONVERSATION_MESSAGES_QUERY = gql`
   query CustomerServiceConversationMessages(
     $shopId: String!

@@ -59,6 +59,24 @@
   background: color-mix(in srgb, var(--color-bg-alt) 54%, var(--color-bg) 46%);
 }
 
+/* Inbox category tabs span the whole panel above the list/detail split. */
+.cs-conversation-categories {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tk-v1-space-3);
+  padding-inline: var(--tk-v1-space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cs-conversation-categories .tk-v1-tabs {
+  border-bottom: 0;
+}
+
+.cs-conversation-categories .form-error {
+  margin: 0;
+  align-self: center;
+}
+
 .cs-conversation-list-head .cs-escalation-page-summary {
   padding: 7px 12px;
   border-bottom: 0;

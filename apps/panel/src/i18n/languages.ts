@@ -39,6 +39,7 @@ import { CUSTOMER_SERVICE_DEVICE_TRANSLATIONS } from "./customer-service-device-
 import { CUSTOMER_SERVICE_ORDER_TRANSLATIONS } from "./customer-service-order-translations.js";
 import { CUSTOMER_SERVICE_COUPON_TRANSLATIONS } from "./customer-service-coupon-translations.js";
 import { CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS } from "./customer-service-message-translation-translations.js";
+import { CUSTOMER_SERVICE_CONVERSATION_TAB_TRANSLATIONS } from "./customer-service-conversation-tab-translations.js";
 import { AFTER_SALE_TRANSLATIONS } from "./after-sale-translations.js";
 import { BAD_REVIEW_TRANSLATIONS } from "./bad-review-translations.js";
 import { PRODUCT_KNOWLEDGE_TRANSLATIONS } from "./product-knowledge-translations.js";
@@ -620,6 +621,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
       CUSTOMER_SERVICE_ORDER_TRANSLATIONS[language.code],
       CUSTOMER_SERVICE_COUPON_TRANSLATIONS[language.code],
       CUSTOMER_SERVICE_MESSAGE_TRANSLATION_TRANSLATIONS[language.code],
+      CUSTOMER_SERVICE_CONVERSATION_TAB_TRANSLATIONS[language.code],
       AFTER_SALE_TRANSLATIONS[language.code],
       BAD_REVIEW_TRANSLATIONS[language.code],
       TUTORIAL_SEPTEMBER_TRANSLATIONS[language.code],

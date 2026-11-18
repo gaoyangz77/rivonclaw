@@ -12,7 +12,14 @@ import {
   CS_CONVERSATION_PACKAGE_DETAIL_QUERY,
   CS_CONVERSATION_RETURN_RECORDS_QUERY,
   CS_CONVERSATION_INBOX_QUERY,
+  CS_CONVERSATION_INBOX_COUNTS_QUERY,
 } from "../../api/shops-queries.js";
+
+/** Variables of the most recent list (not counts) request sent through a mocked Apollo query. */
+function lastInboxVariables(query: { mock: { calls: any[][] } }): Record<string, unknown> {
+  const calls = query.mock.calls.filter(([options]) => options.query === CS_CONVERSATION_INBOX_QUERY);
+  return calls[calls.length - 1]![0].variables;
+}
 
 function conversation(orderId: string | null = "order-1") {
   return {
@@ -58,18 +65,17 @@ describe("CustomerServiceWorkspaceModel bad review filter", () => {
     expect(store.selectedConversationShopId).toBeNull();
 
     await store.fetchConversations();
-    expect(query).toHaveBeenLastCalledWith(expect.objectContaining({
-      query: CS_CONVERSATION_INBOX_QUERY,
-      variables: expect.objectContaining({ hasBadReview: true, shopIds: ["shop-1"], offset: 0 }),
-    }));
+    expect(lastInboxVariables(query)).toMatchObject({
+      hasBadReview: true,
+      shopIds: ["shop-1"],
+      offset: 0,
+    });
     expect(store.filteredConversationItems).toEqual([row]);
     expect(store.conversationTotal).toBe(73);
 
     store.setConversationBadReviewFilter("all");
     await store.fetchConversations();
-    expect(query).toHaveBeenLastCalledWith(expect.objectContaining({
-      variables: expect.objectContaining({ hasBadReview: undefined }),
-    }));
+    expect(lastInboxVariables(query)).toMatchObject({ hasBadReview: undefined });
   });
 
   it("ignores unrelated live conversations but accepts events with bad reviews", () => {
@@ -120,9 +126,8 @@ describe("CustomerServiceWorkspaceModel order shown from another page", () => {
     const store = CustomerServiceWorkspaceModel.create(
       {
         conversationShopId: "shop-2",
-        conversationStatusFilter: "pending",
+        conversationCategory: "escalated",
         conversationAiFilter: "enabled",
-        conversationEscalationFilter: "open",
         conversationBadReviewFilter: "hasBadReview",
         conversationPage: 3,
       },
@@ -393,8 +398,15 @@ describe("CustomerServiceWorkspaceModel conversation search", () => {
   it.each(["CS_ORDER_SEARCH_INVALID", "CS_ORDER_SEARCH_LIMIT", "CS_SEARCH_TOO_LONG"])(
     "keeps structured validation error %s and clears it after a successful retry", async (code) => {
       const error = Object.assign(new Error("Invalid search"), { errors: [{ extensions: { code } }] });
-      const query = vi.fn().mockRejectedValueOnce(error)
-        .mockResolvedValueOnce({ data: { ecommerceGetCustomerServiceInbox: { items: [], totalCount: 0 } } });
+      let listCalls = 0;
+      const query = vi.fn(async (options: { query: unknown }) => {
+        if (options.query === CS_CONVERSATION_INBOX_COUNTS_QUERY) {
+          return { data: { ecommerceGetCustomerServiceInboxCounts: { all: 0, escalated: 0, pending: 0, resolved: 0 } } };
+        }
+        listCalls += 1;
+        if (listCalls === 1) throw error;
+        return { data: { ecommerceGetCustomerServiceInbox: { items: [], totalCount: 0 } } };
+      });
       const store = CustomerServiceWorkspaceModel.create({}, { apolloClient: { query } as any });
       await store.fetchConversations();
       expect(store.conversationsErrorCode).toBe(code);
@@ -454,7 +466,7 @@ describe("CustomerServiceWorkspaceModel conversation search", () => {
     expect(store.filteredConversationItems).toHaveLength(1);
     expect(store.conversationTotal).toBe(1);
     expect(store.selectedConversationId).toBe("conversation-closed");
-    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls.filter(([options]) => options.query === CS_CONVERSATION_INBOX_QUERY)).toHaveLength(1);
   });
 
   it("does not add unrelated live events to order search results, including the same ID in another shop", () => {
@@ -471,7 +483,7 @@ describe("CustomerServiceWorkspaceModel conversation search", () => {
     const store = CustomerServiceWorkspaceModel.create({ conversationItems: [{ ...conversation(null), conversationId: "conversation-closed" }], conversationTotal: 1 }, { apolloClient: {} as any });
     store.setConversationSearchDraft("576833748427839658");
     store.applyConversationSearch();
-    store.setConversationStatusFilter("pending");
+    store.setConversationCategory("pending");
     store.ingestConversationChanged(changedConversation(false));
     expect(store.conversationItems).toHaveLength(0);
     expect(store.conversationTotal).toBe(0);

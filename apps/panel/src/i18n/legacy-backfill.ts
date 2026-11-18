@@ -331,7 +331,6 @@ export const LEGACY_I18N_BACKFILL = {
       customerServiceWorkspace: {
         filterAiState: "KI-Handhabung",
         filterConversationStatus: "Gesprächsstatus",
-        filterEscalationState: "Eskalation",
         filterSearch: "Suchen",
         filterShop: "Geschäft",
       },
@@ -483,7 +482,7 @@ export const LEGACY_I18N_BACKFILL = {
           "In der geteilten Ansicht bleibt die Warteschlange links und das ausgewählte Konversationsdetail rechts.",
         conversationShellTitle: "Konversationsarbeitsbereich",
         filtersBody:
-          "Filtern Sie nach Shop, Konversationsstatus, KI-Status, Eskalationsstatus und Seitengröße, um die Warteschlange zu fokussieren.",
+          "Filtern Sie nach Shop, KI-Status und Bewertungsstatus oder suchen Sie, um die Warteschlange zu fokussieren. Die Tabs über der Liste wechseln zwischen allen, eskalierten, unbeantworteten und beantworteten Konversationen.",
         filtersTitle: "Filter",
         manualReplyBody:
           "Verwenden Sie die manuelle Antwort, wenn ein Mensch direkt antworten muss. Dies funktioniert zusammen mit den KI-Steuerelementen für die Konversation.",
@@ -829,7 +828,6 @@ export const LEGACY_I18N_BACKFILL = {
       customerServiceWorkspace: {
         filterAiState: "Manejo de IA",
         filterConversationStatus: "Estado de la conversación",
-        filterEscalationState: "Escalada",
         filterSearch: "Buscar",
         filterShop: "Comercio",
       },
@@ -982,7 +980,7 @@ export const LEGACY_I18N_BACKFILL = {
           "La vista dividida mantiene la cola a la izquierda y los detalles de la conversación seleccionada a la derecha.",
         conversationShellTitle: "Espacio de trabajo de conversación",
         filtersBody:
-          "Filtre por tienda, estado de la conversación, estado de la IA, estado de escalamiento y tamaño de la página para enfocar la cola.",
+          "Filtre por tienda, estado de la IA y estado de las reseñas, o busque, para enfocar la cola. Las pestañas sobre la lista alternan entre todas las conversaciones, las escaladas, las pendientes de respuesta y las respondidas.",
         filtersTitle: "Filtros",
         manualReplyBody:
           "Utilice la respuesta manual cuando un humano necesite responder directamente. Esto funciona junto con los controles de IA para la conversación.",
@@ -1329,7 +1327,6 @@ export const LEGACY_I18N_BACKFILL = {
       customerServiceWorkspace: {
         filterAiState: "Gestion de l'IA",
         filterConversationStatus: "Statut de la conversation",
-        filterEscalationState: "Escalade",
         filterSearch: "Recherche",
         filterShop: "Boutique",
       },
@@ -1482,7 +1479,7 @@ export const LEGACY_I18N_BACKFILL = {
           "La vue fractionnée conserve la file d'attente à gauche et les détails de la conversation sélectionnée à droite.",
         conversationShellTitle: "Espace de travail de conversation",
         filtersBody:
-          "Filtrez par boutique, statut de conversation, état d'IA, état d'escalade et taille de page pour cibler la file d'attente.",
+          "Filtrez par boutique, état d'IA et état des avis, ou lancez une recherche, pour cibler la file d'attente. Les onglets au-dessus de la liste basculent entre toutes les conversations, les escalades, celles en attente de réponse et celles répondues.",
         filtersTitle: "Filtres",
         manualReplyBody:
           "Utilisez la réponse manuelle lorsqu'un humain a besoin de répondre directement. Cela fonctionne parallèlement aux commandes AI pour la conversation.",
@@ -1825,7 +1822,6 @@ export const LEGACY_I18N_BACKFILL = {
       customerServiceWorkspace: {
         filterAiState: "Penanganan AI",
         filterConversationStatus: "Status percakapan",
-        filterEscalationState: "Eskalasi",
         filterSearch: "Mencari",
         filterShop: "Toko",
       },
@@ -1977,7 +1973,7 @@ export const LEGACY_I18N_BACKFILL = {
           "Tampilan terpisah mempertahankan antrean di sebelah kiri dan detail percakapan yang dipilih di sebelah kanan.",
         conversationShellTitle: "Ruang Kerja Percakapan",
         filtersBody:
-          "Filter berdasarkan toko, status percakapan, status AI, status eskalasi, dan ukuran halaman untuk memfokuskan antrean.",
+          "Filter berdasarkan toko, status AI, dan status ulasan, atau cari, untuk memfokuskan antrean. Tab di atas daftar beralih antara semua percakapan, eskalasi, menunggu balasan, dan sudah dibalas.",
         filtersTitle: "Filter",
         manualReplyBody:
           "Gunakan balasan manual ketika manusia perlu merespons secara langsung. Ini berfungsi bersamaan dengan kontrol AI untuk percakapan.",
@@ -2322,7 +2318,6 @@ export const LEGACY_I18N_BACKFILL = {
       customerServiceWorkspace: {
         filterAiState: "Gestione dell'intelligenza artificiale",
         filterConversationStatus: "Stato della conversazione",
-        filterEscalationState: "Escalation",
         filterSearch: "Ricerca",
         filterShop: "Negozio",
       },
@@ -2476,7 +2471,7 @@ export const LEGACY_I18N_BACKFILL = {
           "La visualizzazione divisa mantiene la coda a sinistra e i dettagli della conversazione selezionata a destra.",
         conversationShellTitle: "Area di lavoro di conversazione",
         filtersBody:
-          "Filtra per negozio, stato della conversazione, stato dell'intelligenza artificiale, stato dell'escalation e dimensione della pagina per focalizzare la coda.",
+          "Filtra per negozio, stato dell'intelligenza artificiale e stato delle recensioni, oppure cerca, per focalizzare la coda. Le schede sopra l'elenco passano tra tutte le conversazioni, quelle con escalation, in attesa di risposta e risposte.",
         filtersTitle: "Filtri",
         manualReplyBody:
           "Utilizza la risposta manuale quando un essere umano ha bisogno di rispondere direttamente. Funziona insieme ai controlli AI per la conversazione.",
@@ -2808,7 +2803,6 @@ export const LEGACY_I18N_BACKFILL = {
       customerServiceWorkspace: {
         filterAiState: "การจัดการเอไอ",
         filterConversationStatus: "สถานะการสนทนา",
-        filterEscalationState: "การยกระดับ",
         filterSearch: "ค้นหา",
         filterShop: "ร้านค้า",
       },
@@ -2949,7 +2943,7 @@ export const LEGACY_I18N_BACKFILL = {
         conversationListTitle: "รายการสนทนา",
         conversationShellBody: "มุมมองแบบแยกจะเก็บคิวไว้ทางด้านซ้ายและรายละเอียดการสนทนาที่เลือกไว้ทางด้านขวา",
         conversationShellTitle: "พื้นที่ทำงานการสนทนา",
-        filtersBody: "กรองตามร้านค้า สถานะการสนทนา สถานะ AI สถานะการยกระดับ และขนาดหน้าเพื่อเน้นคิว",
+        filtersBody: "กรองตามร้านค้า สถานะ AI และสถานะรีวิว หรือค้นหาเพื่อเน้นคิว แท็บเหนือรายการใช้สลับระหว่างการสนทนาทั้งหมด ที่ยกระดับ รอตอบกลับ และตอบกลับแล้ว",
         filtersTitle: "ตัวกรอง",
         manualReplyBody:
           "ใช้การตอบกลับด้วยตนเองเมื่อมนุษย์ต้องการตอบกลับโดยตรง ซึ่งทำงานควบคู่ไปกับการควบคุม AI สำหรับการสนทนา",

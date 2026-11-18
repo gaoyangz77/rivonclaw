@@ -9,6 +9,7 @@ import {
   CS_DISMISS_ESCALATION_MUTATION,
   CS_END_CUSTOMER_SERVICE_SESSION_MUTATION,
   CS_ESCALATION_BY_ID_QUERY,
+  CS_CONVERSATION_INBOX_COUNTS_QUERY,
   CS_CONVERSATION_INBOX_QUERY,
   CS_CONVERSATION_MESSAGES_QUERY,
   CS_CONVERSATION_ORDER_CONTEXT_QUERY,
@@ -27,9 +28,15 @@ import {
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
-export type ConversationStatusFilter = "pending" | "resolved" | "all";
+/** Inbox tabs. Categories overlap: an escalated conversation is also pending or resolved. */
+export type ConversationCategory = "all" | "escalated" | "pending" | "resolved";
+export interface ConversationCounts {
+  all: number;
+  escalated: number;
+  pending: number;
+  resolved: number;
+}
 export type ConversationAiFilter = "all" | "enabled" | "disabled";
-export type ConversationEscalationFilter = "all" | "open" | "none";
 export type ConversationBadReviewFilter = "all" | "hasBadReview";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -250,11 +257,11 @@ function summaryToMessage(
   };
 }
 
-function statusForConversationFilter(
-  filter: ConversationStatusFilter,
+function statusForConversationCategory(
+  category: ConversationCategory,
 ): GQL.CustomerServiceConversationStatus | undefined {
-  if (filter === "pending") return GQL.CustomerServiceConversationStatus.Pending;
-  if (filter === "resolved") return GQL.CustomerServiceConversationStatus.Resolved;
+  if (category === "pending") return GQL.CustomerServiceConversationStatus.Pending;
+  if (category === "resolved") return GQL.CustomerServiceConversationStatus.Resolved;
   return undefined;
 }
 
@@ -264,12 +271,12 @@ function aiEnabledForFilter(filter: ConversationAiFilter): boolean | undefined {
   return undefined;
 }
 
-function escalationForConversationFilter(
-  filter: ConversationEscalationFilter,
+function escalationForConversationCategory(
+  category: ConversationCategory,
 ): GQL.CustomerServiceConversationEscalationFilter | undefined {
-  if (filter === "open") return GQL.CustomerServiceConversationEscalationFilter.Open;
-  if (filter === "none") return GQL.CustomerServiceConversationEscalationFilter.None;
-  return undefined;
+  return category === "escalated"
+    ? GQL.CustomerServiceConversationEscalationFilter.Open
+    : undefined;
 }
 
 function readConversationChanged(raw: unknown): GQL.CustomerServiceConversation | null {
@@ -328,27 +335,23 @@ export const CustomerServiceWorkspaceModel = types
   .model("CustomerServiceWorkspace", {
 
     conversationShopId: types.optional(types.string, ""),
-    conversationStatusFilter: types.optional(
-      types.enumeration<ConversationStatusFilter>("ConversationStatusFilter", [
+    conversationCategory: types.optional(
+      types.enumeration<ConversationCategory>("ConversationCategory", [
+        "all",
+        "escalated",
         "pending",
         "resolved",
-        "all",
       ]),
       "all",
     ),
+    /** Tab counts for the current shop/AI/review/search filters; null until first loaded. */
+    conversationCounts: types.optional(types.maybeNull(types.frozen<ConversationCounts>()), null),
+    conversationCountsError: types.maybeNull(types.string),
     conversationAiFilter: types.optional(
       types.enumeration<ConversationAiFilter>("ConversationAiFilter", [
         "all",
         "enabled",
         "disabled",
-      ]),
-      "all",
-    ),
-    conversationEscalationFilter: types.optional(
-      types.enumeration<ConversationEscalationFilter>("ConversationEscalationFilter", [
-        "all",
-        "open",
-        "none",
       ]),
       "all",
     ),
@@ -619,6 +622,8 @@ export const CustomerServiceWorkspaceModel = types
     const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
     /** Bumped whenever translation state is dropped, so an in-flight request can tell its result is stale. */
     let translationEpoch = 0;
+    /** Bumped per counts request, so only the latest response is ingested. */
+    let countsEpoch = 0;
     function clearMessageTranslations() {
       translationEpoch += 1;
       self.messageTranslations.clear();
@@ -742,13 +747,11 @@ export const CustomerServiceWorkspaceModel = types
       const search = normalizedSearch(self.conversationSearch);
       if (!item.isOpen && !search) return false;
       if (self.conversationShopId && item.shopId !== self.conversationShopId) return false;
-      const status = statusForConversationFilter(self.conversationStatusFilter);
+      const status = statusForConversationCategory(self.conversationCategory);
       if (status && item.status !== status) return false;
       const aiEnabled = aiEnabledForFilter(self.conversationAiFilter);
       if (aiEnabled != null && item.aiEnabled !== aiEnabled) return false;
-      if (self.conversationEscalationFilter === "open" && !(item.openEscalationCount > 0))
-        return false;
-      if (self.conversationEscalationFilter === "none" && item.openEscalationCount > 0)
+      if (self.conversationCategory === "escalated" && !(item.openEscalationCount > 0))
         return false;
       if (self.conversationBadReviewFilter === "hasBadReview" && !item.recentBadReviews?.length)
         return false;
@@ -772,18 +775,13 @@ export const CustomerServiceWorkspaceModel = types
         self.conversationPage = 1;
         clearSelection();
       },
-      setConversationStatusFilter(value: ConversationStatusFilter) {
-        self.conversationStatusFilter = value;
+      setConversationCategory(value: ConversationCategory) {
+        self.conversationCategory = value;
         self.conversationPage = 1;
         clearSelection();
       },
       setConversationAiFilter(value: ConversationAiFilter) {
         self.conversationAiFilter = value;
-        self.conversationPage = 1;
-        clearSelection();
-      },
-      setConversationEscalationFilter(value: ConversationEscalationFilter) {
-        self.conversationEscalationFilter = value;
         self.conversationPage = 1;
         clearSelection();
       },
@@ -855,9 +853,8 @@ export const CustomerServiceWorkspaceModel = types
        */
       focusConversationOrder(orderId: string) {
         self.conversationShopId = "";
-        self.conversationStatusFilter = "all";
+        self.conversationCategory = "all";
         self.conversationAiFilter = "all";
-        self.conversationEscalationFilter = "all";
         self.conversationBadReviewFilter = "all";
         self.conversationSearchDraft = orderId;
         self.conversationSearch = orderId;
@@ -1012,18 +1009,50 @@ export const CustomerServiceWorkspaceModel = types
       setCopiedMeta(value: string | null) {
         self.copiedMeta = value;
       },
+      fetchConversationCounts: flow(function* () {
+        countsEpoch += 1;
+        const epoch = countsEpoch;
+        try {
+          const result = yield client().query({
+            query: CS_CONVERSATION_INBOX_COUNTS_QUERY,
+            variables: {
+              shopIds: self.conversationShopId ? [self.conversationShopId] : undefined,
+              aiEnabled: aiEnabledForFilter(self.conversationAiFilter),
+              hasBadReview: self.conversationBadReviewFilter === "hasBadReview" ? true : undefined,
+              search: self.conversationSearch || undefined,
+            },
+            fetchPolicy: "network-only",
+          });
+          if (epoch !== countsEpoch) return;
+          const counts = result.data?.ecommerceGetCustomerServiceInboxCounts as
+            | GQL.CustomerServiceConversationInboxCounts
+            | undefined;
+          if (!counts) throw new Error("Inbox counts response was empty");
+          self.conversationCounts = {
+            all: counts.all,
+            escalated: counts.escalated,
+            pending: counts.pending,
+            resolved: counts.resolved,
+          };
+          self.conversationCountsError = null;
+        } catch (err) {
+          if (epoch !== countsEpoch) return;
+          // Keep the previous counts; the list itself is unaffected.
+          self.conversationCountsError = errorMessage(err);
+        }
+      }),
       fetchConversations: flow(function* () {
         self.conversationsLoading = true;
         self.conversationsError = null;
         self.conversationsErrorCode = null;
         try {
-          const result = yield client().query({
+          const request = client().query({
             query: CS_CONVERSATION_INBOX_QUERY,
             variables: {
               shopIds: self.conversationShopId ? [self.conversationShopId] : undefined,
-              status: statusForConversationFilter(self.conversationStatusFilter),
+              status: statusForConversationCategory(self.conversationCategory),
               aiEnabled: aiEnabledForFilter(self.conversationAiFilter),
-              escalation: escalationForConversationFilter(self.conversationEscalationFilter),
+              escalation: escalationForConversationCategory(self.conversationCategory),
               hasBadReview: self.conversationBadReviewFilter === "hasBadReview" ? true : undefined,
               search: self.conversationSearch || undefined,
               limit: self.conversationPageSize,
@@ -1031,6 +1060,9 @@ export const CustomerServiceWorkspaceModel = types
             },
             fetchPolicy: "network-only",
           });
+          // Tab counts share the list's filters, so they refresh whenever the list does.
+          void (self as any).fetchConversationCounts();
+          const result = yield request;
           const page = result.data?.ecommerceGetCustomerServiceInbox as
             | GQL.CustomerServiceConversationInboxPage
             | undefined;

@@ -7922,6 +7922,18 @@ export const CustomerServiceConversationEscalationFilter = {
 
 export type CustomerServiceConversationEscalationFilter =
   (typeof CustomerServiceConversationEscalationFilter)[keyof typeof CustomerServiceConversationEscalationFilter];
+/** Conversation counts per inbox category. Categories overlap: an escalated conversation is also counted as pending or resolved. */
+export interface CustomerServiceConversationInboxCounts {
+  /** All conversations in scope. */
+  all: Scalars["Int"]["output"];
+  /** Conversations with an open escalation. */
+  escalated: Scalars["Int"]["output"];
+  /** Conversations awaiting a reply. */
+  pending: Scalars["Int"]["output"];
+  /** Conversations already replied to. */
+  resolved: Scalars["Int"]["output"];
+}
+
 /** Backend-materialized customer service conversation inbox item. */
 export interface CustomerServiceConversationInboxItem {
   aiEnabled: Scalars["Boolean"]["output"];
@@ -15186,6 +15198,8 @@ export interface Query {
   ecommerceGetConversationsAcrossShops: CustomerServiceConversationsAcrossShopsResult;
   /** List backend-materialized customer-service conversations across one or more owned shops. */
   ecommerceGetCustomerServiceInbox: CustomerServiceConversationInboxPage;
+  /** Conversation counts per inbox category (all, escalated, pending, resolved) over the same scope as the inbox list, ignoring its status and escalation filters. */
+  ecommerceGetCustomerServiceInboxCounts: CustomerServiceConversationInboxCounts;
   ecommerceGetFbtInboundOrders: EcommerceFbtInboundOrderListResult;
   ecommerceGetFbtWarehouses: EcommerceFbtWarehouseListResult;
   /** List FBT warehouses across several US shops (default: every authorized US shop of the user), tagged with their shop plus a per-shop coverage report. A shop that fails is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any platform call. */
@@ -15899,6 +15913,13 @@ export interface QueryEcommerceGetCustomerServiceInboxArgs {
   search?: InputMaybe<Scalars["String"]["input"]>;
   shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   status?: InputMaybe<CustomerServiceConversationStatus>;
+}
+
+export interface QueryEcommerceGetCustomerServiceInboxCountsArgs {
+  aiEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+  hasBadReview?: InputMaybe<Scalars["Boolean"]["input"]>;
+  search?: InputMaybe<Scalars["String"]["input"]>;
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 }
 
 export interface QueryEcommerceGetFbtInboundOrdersArgs {
