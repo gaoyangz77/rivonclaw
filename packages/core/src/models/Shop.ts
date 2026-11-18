@@ -9,6 +9,13 @@ export const CustomerServiceConfigModel = types
     enabled: types.optional(types.boolean, false),
     unpaidOrderReachoutEnabled: types.optional(types.boolean, false),
     pickupReminderEnabled: types.optional(types.boolean, false),
+    messageAutoTranslation: types.optional(
+      types.enumeration<GQL.CustomerServiceMessageAutoTranslation>(
+        "CustomerServiceMessageAutoTranslation",
+        Object.values(GQL.CustomerServiceMessageAutoTranslation),
+      ),
+      GQL.CustomerServiceMessageAutoTranslation.Off,
+    ),
     unpaidOrderReachoutStages: types.optional(
       types.array(
         types.model("UnpaidOrderReachoutStage", {

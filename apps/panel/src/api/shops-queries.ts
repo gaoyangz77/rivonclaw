@@ -19,6 +19,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
       customerService {
         enabled
         pickupReminderEnabled
+        messageAutoTranslation
         unpaidOrderReachoutEnabled
         unpaidOrderReachoutStages {
           id
@@ -1268,6 +1269,16 @@ export const CS_CONVERSATION_MESSAGES_QUERY = gql`
           nickname
         }
       }
+    }
+  }
+`;
+
+export const CS_TRANSLATE_MESSAGES_MUTATION = gql`
+  mutation TranslateCustomerServiceMessages($input: TranslateCustomerServiceMessagesInput!) {
+    translateCustomerServiceMessages(input: $input) {
+      messageId
+      sameLanguage
+      translatedText
     }
   }
 `;

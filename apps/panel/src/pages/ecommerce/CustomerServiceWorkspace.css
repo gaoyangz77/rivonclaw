@@ -1643,6 +1643,25 @@
   padding: 1px 3px 0;
 }
 
+.cs-message-translation {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  margin-top: var(--tk-v1-space-1);
+  padding-top: var(--tk-v1-space-1);
+  border-top: 1px dashed var(--color-border-light);
+  color: var(--color-text-muted);
+}
+
+.cs-message-translation p {
+  font-size: 12px;
+}
+
+.cs-message-translation-label {
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
 .cs-message-card-body {
   display: grid;
   gap: 8px;

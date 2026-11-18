@@ -87,6 +87,12 @@ type ConversationMessage = GQL.CustomerServiceMessageSummary & {
   summaryMessageCount?: number | null;
 };
 type Escalation = GQL.CsEscalation;
+const MESSAGE_TRANSLATION_ERROR_KEYS: Record<string, string> = {
+  CS_MESSAGE_TRANSLATION_SUBSCRIPTION_REQUIRED:
+    "ecommerce.customerServiceWorkspace.messageTranslationSubscriptionRequired",
+  CS_MESSAGE_TRANSLATION_QUOTA_EXHAUSTED:
+    "ecommerce.customerServiceWorkspace.messageTranslationQuotaExhausted",
+};
 type ParsedRichMessage =
   | { kind: "image"; url: string; width?: string | number; height?: string | number }
   | {
@@ -264,6 +270,24 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
   const selectedConversationKey = selectedConversation
     ? `${selectedConversation.shopId}:${selectedConversation.conversationId}`
     : "";
+  const translationActive = workspace.messageTranslationActive;
+  const translatableMessages = workspace.translatableConversationMessages;
+  const translatableMessageCount = translatableMessages.length;
+  const newestTranslatableMessageId = translatableMessages.at(-1)?.messageId ?? "";
+
+  // ADR-109: translate whatever was loaded and has no translation yet. The deps are primitives
+  // that change exactly when the loaded message set, the language or the conversation changes.
+  useEffect(() => {
+    if (!translationActive) return;
+    void workspace.translateLoadedMessages(i18n.language);
+  }, [
+    workspace,
+    translationActive,
+    translatableMessageCount,
+    newestTranslatableMessageId,
+    i18n.language,
+    selectedConversationKey,
+  ]);
 
   useLayoutEffect(() => {
     if (!selectedConversation || workspace.conversationMessagesLoading) return;
@@ -556,7 +580,25 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
 
   function renderMessageContent(message: ConversationMessage) {
     const rich = parseRichMessage(message);
-    if (!rich) return <p>{message.text || message.type || "-"}</p>;
+    if (!rich) {
+      const translation =
+        translationActive && message.messageId
+          ? workspace.messageTranslationFor(message.messageId, i18n.language)
+          : undefined;
+      return (
+        <>
+          <p>{message.text || message.type || "-"}</p>
+          {translation && !translation.sameLanguage && translation.translatedText ? (
+            <div className="cs-message-translation">
+              <span className="cs-message-translation-label">
+                {t("ecommerce.customerServiceWorkspace.messageTranslationLabel")}
+              </span>
+              <p>{translation.translatedText}</p>
+            </div>
+          ) : null}
+        </>
+      );
+    }
 
     if (rich.kind === "image") {
       return (
@@ -1031,6 +1073,15 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                         </button>
                       </span>
                     )}
+                    <TkButton
+                      size="sm"
+                      loading={workspace.messageTranslationLoading}
+                      onClick={() => workspace.toggleMessageTranslation()}
+                    >
+                      {translationActive
+                        ? t("ecommerce.customerServiceWorkspace.showOriginalMessages")
+                        : t("ecommerce.customerServiceWorkspace.translateMessages")}
+                    </TkButton>
                     <button
                       className={
                         selectedConversation.aiEnabled ? "cs-ai-switch enabled" : "cs-ai-switch"
@@ -1297,6 +1348,14 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
                   )}
                   {workspace.conversationSummaryError && (
                     <div className="form-error">{workspace.conversationSummaryError}</div>
+                  )}
+                  {translationActive && workspace.messageTranslationErrorCode && (
+                    <div className="form-error">
+                      {t(
+                        MESSAGE_TRANSLATION_ERROR_KEYS[workspace.messageTranslationErrorCode] ??
+                          "ecommerce.customerServiceWorkspace.messageTranslationFailed",
+                      )}
+                    </div>
                   )}
                   {workspace.conversationSummaryGenerating && (
                     <div className="cs-message-working-overlay" role="status" aria-live="polite">

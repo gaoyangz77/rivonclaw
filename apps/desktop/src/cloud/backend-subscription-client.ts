@@ -100,6 +100,7 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
           customerService {
             enabled
             pickupReminderEnabled
+            messageAutoTranslation
             unpaidOrderReachoutEnabled
             unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }
             unpaidOrderReachoutExperiment { enabled holdoutPercent experimentId startedAt }
@@ -191,6 +192,7 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
         customerService {
           enabled
           pickupReminderEnabled
+          messageAutoTranslation
           unpaidOrderReachoutEnabled
           unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }
           unpaidOrderReachoutExperiment { enabled holdoutPercent experimentId startedAt }

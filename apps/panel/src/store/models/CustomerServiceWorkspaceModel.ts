@@ -23,6 +23,7 @@ import {
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
   CS_START_CONVERSATION_FROM_ORDER_MUTATION,
+  CS_TRANSLATE_MESSAGES_MUTATION,
 } from "../../api/shops-queries.js";
 import type { PanelStoreEnv } from "../types.js";
 
@@ -60,6 +61,43 @@ export interface ShopCouponList {
 
 function couponSendKey(input: CouponSendInput): string {
   return `${input.shopId}:${input.conversationId}:${input.couponId}`;
+}
+
+/** ADR-109: the backend accepts 1..50 messages and at most 6 read-only context messages per call. */
+const TRANSLATION_BATCH_SIZE = 50;
+const TRANSLATION_CONTEXT_SIZE = 6;
+const TRANSLATION_MAX_TEXT_LENGTH = 4000;
+/** Local failure code for errors the backend did not classify. */
+export const MESSAGE_TRANSLATION_FAILED = "CS_MESSAGE_TRANSLATION_FAILED";
+
+export interface MessageTranslation {
+  sameLanguage: boolean;
+  translatedText: string | null;
+}
+
+/** Panel UI language (`zh`, `en`, `zh-CN`, ...) as the backend's target language enum, or null when unsupported. */
+function translationTargetLanguage(language: string): GQL.BadReviewMessageLanguage | null {
+  const code = language.split(/[-_]/)[0].toUpperCase();
+  return (Object.values(GQL.BadReviewMessageLanguage) as string[]).includes(code)
+    ? (code as GQL.BadReviewMessageLanguage)
+    : null;
+}
+
+/** Plain buyer / AI / human text: no summary, system notice, card, image or video. */
+function isTranslatableMessage(message: Record<string, any>): boolean {
+  if (message.isSummaryMessage || message.isSystemMessage) return false;
+  if (!message.messageId) return false;
+  if (String(message.type ?? "TEXT").toUpperCase() !== "TEXT") return false;
+  const text = typeof message.text === "string" ? message.text.trim() : "";
+  return text.length > 0 && text.length <= TRANSLATION_MAX_TEXT_LENGTH;
+}
+
+function translationInput(message: Record<string, any>) {
+  return {
+    messageId: String(message.messageId),
+    senderRole: String(message.sender?.role ?? ""),
+    text: String(message.text),
+  };
 }
 
 function errorMessage(err: unknown): string {
@@ -385,6 +423,16 @@ export const CustomerServiceWorkspaceModel = types
     respondingEscalation: types.optional(types.boolean, false),
     dismissingEscalation: types.optional(types.boolean, false),
     copiedMeta: types.maybeNull(types.string),
+
+    /** ADR-109: translations of the selected conversation's loaded messages, by messageId. */
+    messageTranslations: types.optional(types.map(types.frozen<MessageTranslation>()), {}),
+    /** Panel language the entries in `messageTranslations` were made in. */
+    messageTranslationLanguage: types.maybeNull(types.string),
+    /** Per-conversation (`shopId:conversationId`) choice: true = translate, false = auto-translation turned off. */
+    messageTranslationOverrides: types.optional(types.map(types.boolean), {}),
+    /** Ids of messages with a translation request in flight. */
+    pendingTranslationMessageIds: types.optional(types.array(types.string), []),
+    messageTranslationErrorCode: types.maybeNull(types.string),
   })
   .views((self) => ({
     get pageSizeOptions() {
@@ -478,6 +526,10 @@ export const CustomerServiceWorkspaceModel = types
           Boolean(message.isSummaryMessage) || !isSideAlignedConversationMessage(message),
       }));
     },
+    /** Loaded messages that can be translated, oldest first. */
+    get translatableConversationMessages(): Record<string, any>[] {
+      return (self as any).displayConversationMessages.filter(isTranslatableMessage);
+    },
     get canLoadOlderConversationMessages() {
       return (
         Boolean(self.conversationMessagesNextPageToken) &&
@@ -528,8 +580,52 @@ export const CustomerServiceWorkspaceModel = types
       return self.endingConversationSessionIds.includes(conversationId);
     },
   }))
+  .views((self) => ({
+    /** ADR-109: whether the selected conversation shows translations (manual choice, else the shop's setting). */
+    get messageTranslationActive(): boolean {
+      const selected = (self as any)
+        .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      if (!selected) return false;
+      const override = self.messageTranslationOverrides.get(
+        `${selected.shopId}:${selected.conversationId}`,
+      );
+      if (override !== undefined) return override;
+      const shop = (
+        getRoot(self) as {
+          shops?: ReadonlyArray<{
+            id: string;
+            services?: { customerService?: { messageAutoTranslation?: string | null } | null } | null;
+          }>;
+        }
+      ).shops?.find((candidate) => candidate.id === selected.shopId);
+      const level = shop?.services?.customerService?.messageAutoTranslation;
+      return (
+        level === GQL.CustomerServiceMessageAutoTranslation.All ||
+        (level === GQL.CustomerServiceMessageAutoTranslation.Escalated &&
+          selected.openEscalationCount > 0)
+      );
+    },
+    get messageTranslationLoading(): boolean {
+      return self.pendingTranslationMessageIds.length > 0;
+    },
+    /** The translation of a message made in `language`, or undefined. */
+    messageTranslationFor(messageId: string, language: string): MessageTranslation | undefined {
+      return self.messageTranslationLanguage === language
+        ? self.messageTranslations.get(messageId)
+        : undefined;
+    },
+  }))
   .actions((self) => {
     const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
+    /** Bumped whenever translation state is dropped, so an in-flight request can tell its result is stale. */
+    let translationEpoch = 0;
+    function clearMessageTranslations() {
+      translationEpoch += 1;
+      self.messageTranslations.clear();
+      self.messageTranslationLanguage = null;
+      self.pendingTranslationMessageIds.clear();
+      self.messageTranslationErrorCode = null;
+    }
 
     function pushUnique(list: string[], value: string) {
       if (!list.includes(value)) list.push(value);
@@ -591,6 +687,7 @@ export const CustomerServiceWorkspaceModel = types
       self.selectedConversationId = null;
       self.selectedConversationShopId = null;
       self.openingOrderKey = null;
+      clearMessageTranslations();
     }
     /** Drops everything loaded for the previously selected conversation. */
     function resetSelectedThread() {
@@ -600,6 +697,7 @@ export const CustomerServiceWorkspaceModel = types
       self.conversationMessagesNextPageToken = null;
       self.conversationMessagesLoadingMore = false;
       self.manualReplyDraft = "";
+      clearMessageTranslations();
       self.conversationSummary = null;
       self.conversationSummaryError = null;
       self.conversationSummaryLoading = false;
@@ -792,6 +890,83 @@ export const CustomerServiceWorkspaceModel = types
         self.selectedConversationId = nextConversationId;
         resetSelectedThread();
       },
+      /** Flips translation for the selected conversation; the choice overrides the shop's setting. */
+      toggleMessageTranslation() {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        if (!selected) return;
+        self.messageTranslationErrorCode = null;
+        self.messageTranslationOverrides.set(
+          `${selected.shopId}:${selected.conversationId}`,
+          !(self as any).messageTranslationActive,
+        );
+      },
+      /**
+       * Translates the loaded messages of the selected conversation that have no translation yet
+       * (ADR-109), in batches of at most 50, each with the preceding messages as read-only context.
+       * Stops at the first failure and keeps its code in `messageTranslationErrorCode`.
+       */
+      translateLoadedMessages: flow(function* (language: string) {
+        const selected = (self as any)
+          .selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        if (!selected) return;
+        if (self.messageTranslationLanguage !== language) {
+          clearMessageTranslations();
+          self.messageTranslationLanguage = language;
+        }
+        const targetLanguage = translationTargetLanguage(language);
+        if (!targetLanguage) {
+          self.messageTranslationErrorCode = MESSAGE_TRANSLATION_FAILED;
+          return;
+        }
+        const loaded = (self as any).translatableConversationMessages as Record<string, any>[];
+        const missing = loaded.filter(
+          (message) =>
+            !self.messageTranslations.has(message.messageId) &&
+            !self.pendingTranslationMessageIds.includes(message.messageId),
+        );
+        if (missing.length === 0) return;
+        self.messageTranslationErrorCode = null;
+        const { shopId, conversationId } = selected;
+        const epoch = translationEpoch;
+        for (let start = 0; start < missing.length; start += TRANSLATION_BATCH_SIZE) {
+          const batch = missing.slice(start, start + TRANSLATION_BATCH_SIZE);
+          const firstIndex = loaded.indexOf(batch[0]);
+          const context = loaded.slice(Math.max(0, firstIndex - TRANSLATION_CONTEXT_SIZE), firstIndex);
+          const batchIds = batch.map((message) => message.messageId as string);
+          self.pendingTranslationMessageIds.push(...batchIds);
+          try {
+            const result = yield client().mutate({
+              mutation: CS_TRANSLATE_MESSAGES_MUTATION,
+              variables: {
+                input: {
+                  shopId,
+                  conversationId,
+                  targetLanguage,
+                  messages: batch.map(translationInput),
+                  context: context.map(translationInput),
+                },
+              },
+            });
+            if (epoch !== translationEpoch) return;
+            for (const item of (result.data?.translateCustomerServiceMessages ??
+              []) as GQL.CustomerServiceMessageTranslation[]) {
+              self.messageTranslations.set(item.messageId, {
+                sameLanguage: item.sameLanguage,
+                translatedText: item.translatedText ?? null,
+              });
+            }
+          } catch (err) {
+            if (epoch !== translationEpoch) return;
+            self.messageTranslationErrorCode = graphQLErrorCode(err) ?? MESSAGE_TRANSLATION_FAILED;
+            return;
+          } finally {
+            if (epoch === translationEpoch) {
+              for (const id of batchIds) removeValue(self.pendingTranslationMessageIds as unknown as string[], id);
+            }
+          }
+        }
+      }),
       setConversationListWidth(value: number) {
         self.conversationListWidth = Math.max(240, Math.min(620, Math.round(value)));
       },

@@ -5874,6 +5874,8 @@ export interface AgentCsSettingsInput {
   expectedConfigExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
   expectedHoldoutExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Automatic message translation scope: OFF = never; ESCALATED = only conversations with an open escalation; ALL = every conversation, which consumes many tokens. When selected by updateMask, requires a value (null cannot clear it). Otherwise unchanged. */
+  messageAutoTranslation?: InputMaybe<CustomerServiceMessageAutoTranslation>;
   /** Pickup reminders flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   pickupReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Review optimization settings. Omit or pass null to keep. */
@@ -8064,6 +8066,15 @@ export interface CustomerServiceCurrentSession {
   sessionId?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** Which customer-service conversations the Panel translates automatically for the seller (ADR-109). OFF = never; ESCALATED = only conversations with an open escalation; ALL = every conversation, which consumes many tokens. */
+export const CustomerServiceMessageAutoTranslation = {
+  All: "ALL",
+  Escalated: "ESCALATED",
+  Off: "OFF",
+} as const;
+
+export type CustomerServiceMessageAutoTranslation =
+  (typeof CustomerServiceMessageAutoTranslation)[keyof typeof CustomerServiceMessageAutoTranslation];
 /** Bounded customer-service conversation delta from a local OpenClaw session anchor through a current inbound message. */
 export interface CustomerServiceMessageDelta {
   items: Array<CustomerServiceMessageSummary>;
@@ -8112,6 +8123,14 @@ export interface CustomerServiceMessageSummaryPage {
   items: Array<CustomerServiceMessageSummary>;
   /** Pagination cursor — pass back to fetch the next page */
   nextPageToken?: Maybe<Scalars["String"]["output"]>;
+}
+
+export interface CustomerServiceMessageTranslation {
+  messageId: Scalars["String"]["output"];
+  /** The message is already in the target language. */
+  sameLanguage: Scalars["Boolean"]["output"];
+  /** Null when sameLanguage. */
+  translatedText?: Maybe<Scalars["String"]["output"]>;
 }
 
 /** A searched order that exists in synced order facts but whose buyer has no backend-materialized CS conversation yet. */
@@ -8470,6 +8489,8 @@ export interface CustomerServiceSettings {
   escalationChannelId?: Maybe<Scalars["String"]["output"]>;
   /** Recipient ID for escalation messages. Null = not configured. */
   escalationRecipientId?: Maybe<Scalars["String"]["output"]>;
+  /** Which conversations the Panel translates automatically. OFF = never; ESCALATED = only conversations with an open escalation; ALL = every conversation, which consumes many tokens. Absent on shops from before the setting existed, which means OFF. */
+  messageAutoTranslation: CustomerServiceMessageAutoTranslation;
   /** Whether CS sends twice-daily reminders for eligible pickup-point orders. */
   pickupReminderEnabled: Scalars["Boolean"]["output"];
   /** Platform-managed CS system prompt (same for all shops on this backend version; versioned by EasyClaw operators). Returns null when no platform prompt is configured. Clients compose this with `businessPrompt` locally via the shared `assembleCsPrompt` helper. */
@@ -8503,6 +8524,8 @@ export interface CustomerServiceSettingsInput {
   expectedConfigExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
   expectedHoldoutExperimentId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Automatic message translation scope: OFF = never; ESCALATED = only conversations with an open escalation; ALL = every conversation, which consumes many tokens. When selected by updateMask, requires a value (null cannot clear it). Otherwise unchanged. */
+  messageAutoTranslation?: InputMaybe<CustomerServiceMessageAutoTranslation>;
   /** Pickup reminders flag. When selected by updateMask, requires true/false. Otherwise unchanged. */
   pickupReminderEnabled?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Review optimization settings. Omit or pass null to keep. */
@@ -8560,6 +8583,16 @@ export interface CustomerServiceShopSession {
   sessionId: Scalars["String"]["output"];
   shopId: Scalars["String"]["output"];
   shopName: Scalars["String"]["output"];
+}
+
+/** One conversation message handed to translation (ADR-109). The backend never stores it. */
+export interface CustomerServiceTranslationMessageInput {
+  /** The platform message id; identifies fixed text. */
+  messageId: Scalars["String"]["input"];
+  /** The platform's raw sender role string, exactly as the Panel received it. External data, not an enum. */
+  senderRole: Scalars["String"]["input"];
+  /** Message text, 1 to 4000 characters after trimming. */
+  text: Scalars["String"]["input"];
 }
 
 export interface DecideActionProposalInput {
@@ -13033,6 +13066,8 @@ export interface Mutation {
   tiktokIngestCancellationStatusWebhook: TikTokAfterSaleWebhookResult;
   tiktokIngestReturnStatusWebhook: TikTokAfterSaleWebhookResult;
   tiktokIngestSellerDeauthorizationWebhook: TikTokSellerDeauthorizationWebhookResult;
+  /** Translates conversation messages the caller already holds into the target language, one result per message in input order. Requires an account LLM subscription (CS_MESSAGE_TRANSLATION_SUBSCRIPTION_REQUIRED) and, when messages are not cached, remaining quota (CS_MESSAGE_TRANSLATION_QUOTA_EXHAUSTED). Stores no messages. */
+  translateCustomerServiceMessages: Array<CustomerServiceMessageTranslation>;
   unassignAffiliateEmailAccount: EmailAccountBinding;
   unassignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
   /** Unenroll from a product module */
@@ -14099,6 +14134,10 @@ export interface MutationTiktokIngestReturnStatusWebhookArgs {
 
 export interface MutationTiktokIngestSellerDeauthorizationWebhookArgs {
   input: TikTokSellerDeauthorizationWebhookInput;
+}
+
+export interface MutationTranslateCustomerServiceMessagesArgs {
+  input: TranslateCustomerServiceMessagesInput;
 }
 
 export interface MutationUnassignAffiliateEmailAccountArgs {
@@ -18522,6 +18561,17 @@ export interface ToolSpecsChangedPayload {
   publishedAt: Scalars["DateTimeISO"]["output"];
   reason?: Maybe<Scalars["String"]["output"]>;
   revision: Scalars["String"]["output"];
+}
+
+export interface TranslateCustomerServiceMessagesInput {
+  /** Up to 6 read-only earlier messages, chronologically before `messages`, used only to disambiguate. */
+  context?: InputMaybe<Array<CustomerServiceTranslationMessageInput>>;
+  conversationId: Scalars["String"]["input"];
+  /** Messages to translate, chronological, 1 to 50. */
+  messages: Array<CustomerServiceTranslationMessageInput>;
+  shopId: Scalars["String"]["input"];
+  /** Language to translate into; the Panel's UI language. */
+  targetLanguage: BadReviewMessageLanguage;
 }
 
 /** Unpaid-order holdout experiment settings */
