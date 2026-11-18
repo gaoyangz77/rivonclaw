@@ -29,6 +29,7 @@ const generateMessageTemplate: EndpointHandler = async (
       guidance: optionalString(body.guidance, "guidance"),
       mode,
       previousDraft: optionalString(body.previousDraft, "previousDraft"),
+      previousInvitationText: optionalString(body.previousInvitationText, "previousInvitationText"),
     });
     sendJson(res, 200, result);
   } catch (error) {

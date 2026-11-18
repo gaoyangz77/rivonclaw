@@ -69,6 +69,12 @@ import {
   creatorListInvalidRowsFromMessage,
   creatorListUsernamesToWrite,
 } from "./affiliate-campaign-creator-list.js";
+import {
+  CAMPAIGN_INVITATION_TEXT_MAX_CODE_POINTS,
+  applyCampaignAiSuggestion,
+  campaignInvitationTextIssue,
+  campaignInvitationTextLength,
+} from "./affiliate-campaign-invitation-text.js";
 import { buildCreatorListTemplateWorkbook } from "./affiliate-campaign-creator-list-template.js";
 import { downloadAffiliateCreatorWorkbook } from "./affiliate-creator-export.js";
 import { useCreatorListDraft } from "./hooks/useCreatorListDraft.js";
@@ -158,6 +164,8 @@ type CampaignForm = {
   templateGuidance: string;
   templateSource: GQL.AffiliateCampaignMessageTemplateSource;
   messageProductName: string;
+  /** Note on the TikTok collaboration invitation (ADR-108), sent in both first-touch modes. */
+  collaborationInvitationText: string;
   /**
    * COLLABORATION_ONLY invites the Creator into the Target Collaboration
    * without sending the templated message. The template text is retained
@@ -204,6 +212,7 @@ export const emptyForm: CampaignForm = {
   templateGuidance: "",
   templateSource: GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
   messageProductName: "",
+  collaborationInvitationText: "",
   firstTouchMode: GQL.AffiliateCampaignFirstTouchMode.DirectMessage,
   outreachPacingMode: GQL.AffiliateCampaignOutreachPacingMode.Uniform,
 };
@@ -577,6 +586,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     Partial<Record<CampaignTargetStepField, HTMLInputElement | HTMLTextAreaElement | null>>
   >({});
   const messageProductNameRef = useRef<HTMLInputElement | null>(null);
+  const invitationTextRef = useRef<HTMLTextAreaElement | null>(null);
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [selectedSearchPlanId, setSelectedSearchPlanId] = useState("");
@@ -593,6 +603,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const loadMoreSearchPlansInFlightRef = useRef(false);
   const [loadingMoreSearchPlans, setLoadingMoreSearchPlans] = useState(false);
   const [messageTemplateOpen, setMessageTemplateOpen] = useState(false);
+  const [invitationTextOpen, setInvitationTextOpen] = useState(false);
   const [guidanceChecklistOpen, setGuidanceChecklistOpen] = useState(false);
   const [creatorListOpen, setCreatorListOpen] = useState(false);
   // The file chosen in this wizard session, as plain rows; the stored list stays in the Backend.
@@ -1012,6 +1023,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setSelectedSearchPlanId("");
     setSearchWorkspaceView("creators");
     setMessageTemplateOpen(false);
+    setInvitationTextOpen(false);
     setGuidanceChecklistOpen(false);
     setCreatorListOpen(false);
   }, [selectedCampaignId]);
@@ -1103,6 +1115,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         campaign.messageProductName ||
         campaign.productSnapshot?.title ||
         campaignLeadProductId(campaign),
+      collaborationInvitationText: campaign.collaborationInvitationText,
       firstTouchMode: campaign.firstTouchMode,
       outreachPacingMode:
         campaign.outreachPacingMode ?? GQL.AffiliateCampaignOutreachPacingMode.Uniform,
@@ -1197,6 +1210,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     form.templateText,
   );
   const templateContentIssue = campaignTemplateContentIssue(form.templateText);
+  const invitationTextIssue = campaignInvitationTextIssue(form.collaborationInvitationText);
   const aiTemplateMissingCreatorPlaceholder =
     form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated &&
     affiliateCampaignAiTemplateMissingCreatorPlaceholder(form.templateText);
@@ -1272,6 +1286,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
     if (wizardStep >= 3 && templateContentIssue) {
       showToast(t(`ecommerce.affiliateCampaign.errors.${templateContentIssue}`), "error");
+      return false;
+    }
+    if (wizardStep >= 3 && invitationTextIssue) {
+      showToast(t(`ecommerce.affiliateCampaign.errors.${invitationTextIssue}`), "error");
+      invitationTextRef.current?.focus({ preventScroll: true });
+      invitationTextRef.current?.scrollIntoView({ block: "center" });
       return false;
     }
     return true;
@@ -1365,6 +1385,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         firstTouchMode: form.firstTouchMode,
         outreachPacingMode: form.outreachPacingMode,
         messageTemplateText: form.templateText.trim(),
+        // Always sent, even when empty: an empty string clears a stored note.
+        collaborationInvitationText: form.collaborationInvitationText.trim(),
         messageTemplateSource: form.templateSource,
         messageProductName: campaignMessageProductNameInput(form, productPreview.title),
         status: GQL.AffiliateCampaignStatus.Active,
@@ -1395,28 +1417,29 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const skipDirectMessage = campaignSkipsDirectMessage(form.firstTouchMode);
 
   const generateMessage = async () => {
-    if (!productPreview || skipDirectMessage) return;
+    if (!productPreview) return;
     setGeneratingTemplate(true);
     try {
+      // The button works in both first-touch modes: it always writes the
+      // invitation note, and writes the template only when a message is sent.
+      const hasPreviousDraft = skipDirectMessage
+        ? form.collaborationInvitationText.trim() !== ""
+        : form.templateText.trim() !== "";
       const suggestion = await generateAffiliateCampaignMessageTemplate({
         shopId: form.shopId,
         productId: leadProductId,
         uiLocale: i18n.resolvedLanguage ?? i18n.language,
         guidance: form.templateGuidance.trim() || undefined,
-        mode: form.templateText.trim()
+        mode: hasPreviousDraft
           ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
           : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
-        previousDraft: form.templateText.trim() || undefined,
+        previousDraft: skipDirectMessage ? undefined : form.templateText.trim() || undefined,
+        previousInvitationText: form.collaborationInvitationText.trim() || undefined,
       });
-      setForm((current) => ({
-        ...current,
-        templateText: suggestion.text,
-        messageProductName: suggestion.productShortName,
-        templateSource: GQL.AffiliateCampaignMessageTemplateSource.AiGenerated,
-      }));
-      const requiresPlaceholderRepair = affiliateCampaignAiTemplateMissingCreatorPlaceholder(
-        suggestion.text,
-      );
+      setForm((current) => ({ ...current, ...applyCampaignAiSuggestion(current, suggestion) }));
+      const requiresPlaceholderRepair =
+        !skipDirectMessage &&
+        affiliateCampaignAiTemplateMissingCreatorPlaceholder(suggestion.text);
       showToast(
         t(
           requiresPlaceholderRepair
@@ -2203,6 +2226,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         : t("ecommerce.affiliateCampaign.viewFirstMessage")}
                     </button>
                   )}
+                  {selectedCampaign.collaborationInvitationText && (
+                    <button
+                      type="button"
+                      className="affiliate-campaign-template-toggle"
+                      aria-expanded={invitationTextOpen}
+                      onClick={() => setInvitationTextOpen((open) => !open)}
+                    >
+                      {invitationTextOpen
+                        ? t("ecommerce.affiliateCampaign.hideInvitationText")
+                        : t("ecommerce.affiliateCampaign.viewInvitationText")}
+                    </button>
+                  )}
                   {selectedCampaignIsCreatorList && (
                     <AffiliateCampaignCreatorListToggle
                       open={creatorListOpen}
@@ -2303,6 +2338,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <p>{selectedCampaign.messageTemplateText}</p>
                     </div>
                   )}
+
+                {invitationTextOpen && selectedCampaign.collaborationInvitationText && (
+                  <div
+                    className="affiliate-campaign-modal-template data-card-hover"
+                    role="region"
+                    aria-label={t("ecommerce.affiliateCampaign.invitationText")}
+                  >
+                    <div className="affiliate-campaign-modal-template-heading">
+                      <span>{t("ecommerce.affiliateCampaign.invitationText")}</span>
+                    </div>
+                    <p>{selectedCampaign.collaborationInvitationText}</p>
+                  </div>
+                )}
 
                 {creatorListOpen && selectedCampaignIsCreatorList && (
                   <AffiliateCampaignCreatorListPanel
@@ -3617,12 +3665,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         type="button"
                         className="btn btn-secondary"
                         onClick={() => void generateMessage()}
-                        disabled={generatingTemplate || skipDirectMessage}
+                        disabled={generatingTemplate}
                       >
                         {generatingTemplate
                           ? t("ecommerce.affiliateCampaign.generating")
                           : t(
-                              form.templateText.trim()
+                              (skipDirectMessage
+                                ? form.collaborationInvitationText
+                                : form.templateText
+                              ).trim()
                                 ? "ecommerce.affiliateCampaign.generateAlternative"
                                 : "ecommerce.affiliateCampaign.generateWithAi",
                             )}
@@ -3652,6 +3703,40 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </small>
                       )}
                       <small>{t("ecommerce.affiliateCampaign.messageProductNameHint")}</small>
+                    </label>
+                    <label>
+                      <span>{t("ecommerce.affiliateCampaign.collaborationInvitationText")}</span>
+                      <textarea
+                        ref={invitationTextRef}
+                        rows={5}
+                        value={form.collaborationInvitationText}
+                        aria-invalid={invitationTextIssue !== null}
+                        aria-describedby={
+                          invitationTextIssue ? "affiliate-campaign-invitation-text-error" : undefined
+                        }
+                        onChange={(event) =>
+                          updateForm("collaborationInvitationText", event.target.value)
+                        }
+                        placeholder={t(
+                          "ecommerce.affiliateCampaign.collaborationInvitationTextPlaceholder",
+                        )}
+                      />
+                      {invitationTextIssue && (
+                        <small
+                          id="affiliate-campaign-invitation-text-error"
+                          className="affiliate-campaign-template-error"
+                          role="alert"
+                        >
+                          {t(`ecommerce.affiliateCampaign.errors.${invitationTextIssue}`)}
+                        </small>
+                      )}
+                      <small>
+                        {campaignInvitationTextLength(form.collaborationInvitationText)}/
+                        {CAMPAIGN_INVITATION_TEXT_MAX_CODE_POINTS}
+                      </small>
+                      <small>
+                        {t("ecommerce.affiliateCampaign.collaborationInvitationTextHint")}
+                      </small>
                     </label>
                     <label className="affiliate-campaign-check-rule">
                       <input
@@ -5243,6 +5328,14 @@ export const CAMPAIGN_ERROR_MESSAGE_KEYS: ReadonlyArray<readonly [string, string
   ["Unsupported Campaign template variable", "errors.templateUnsupportedVariable"],
   ["Campaign message template cannot contain HTML", "errors.templateContainsHtml"],
   ["Campaign message template cannot contain URLs", "errors.templateContainsUrl"],
+  // Collaboration invitation text (ADR-108).
+  ["Collaboration invitation text exceeds 500 characters", "errors.invitationTextTooLong"],
+  [
+    "Collaboration invitation text cannot contain {{...}} placeholders",
+    "errors.invitationTextContainsPlaceholder",
+  ],
+  ["Collaboration invitation text cannot contain HTML", "errors.invitationTextContainsHtml"],
+  ["Collaboration invitation text cannot contain URLs", "errors.invitationTextContainsUrl"],
   // Targets and campaign fields.
   ["searchPlanGuidance exceeds", "searchPlanGuidanceTooLong"],
   ["dailyOutreachTarget must be an integer", "dailyTargetInvalid"],

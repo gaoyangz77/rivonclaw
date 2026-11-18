@@ -9,6 +9,7 @@ export function generateAffiliateCampaignMessageTemplate(input: {
   guidance?: string;
   mode: GQL.AffiliateCampaignTemplateGenerationMode;
   previousDraft?: string;
+  previousInvitationText?: string;
 }): Promise<GQL.AffiliateCampaignMessageTemplateSuggestion> {
   return fetchJson<GQL.AffiliateCampaignMessageTemplateSuggestion>(
     clientPath(API["affiliate.campaignAi.messageTemplate"]),

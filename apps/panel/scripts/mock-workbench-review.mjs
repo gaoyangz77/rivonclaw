@@ -84,6 +84,8 @@ const campaigns = [
     sellerContactEmail: null,
     selectionPolicy: { strategy: "EXPECTED_SALES" },
     messageTemplateText: "Hi {{creator_name}}, we would love to collaborate.",
+    collaborationInvitationText:
+      "Brightloom makes everyday jewelry.\n\nThis pendant is a gold-tone faith piece for daily wear.",
     messageTemplateSource: "CUSTOM",
     messageProductName: "Barrier Reset Serum",
     templateVersion: 1,
@@ -147,6 +149,7 @@ const campaigns = [
     sellerContactEmail: null,
     selectionPolicy: { strategy: "MERCHANT_APPROVAL_TENDENCY" },
     messageTemplateText: "A concise creator collaboration brief.",
+    collaborationInvitationText: "",
     messageTemplateSource: "CUSTOM",
     messageProductName: "Cloud Wash Cleanser",
     templateVersion: 1,

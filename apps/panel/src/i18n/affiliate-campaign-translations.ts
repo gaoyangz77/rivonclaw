@@ -215,6 +215,13 @@ const en = {
   noDirectMessage: "Don't send a direct message",
   noDirectMessageHint:
     "Creators are still invited into the Target Collaboration and notified by TikTok; only the direct message is skipped. Your template is kept for later.",
+  collaborationInvitationText: "Collaboration invitation text",
+  collaborationInvitationTextPlaceholder: "Introduce your shop and what you sell, in a few short paragraphs.",
+  collaborationInvitationTextHint:
+    "The seller introduction creators read in the TikTok collaboration invitation. Every creator invited in the same batch sees the same text, and placeholders are not supported. Leave empty to send no text.",
+  viewInvitationText: "View invitation text",
+  hideInvitationText: "Hide invitation text",
+  invitationText: "Invitation text",
   firstTouch: "First touch",
   firstTouchDirectMessage: "Target Collaboration + direct message",
   firstTouchCollaborationOnly: "Target Collaboration only, no direct message",
@@ -508,6 +515,10 @@ const en = {
     templateContainsHtml: "The first message cannot contain HTML tags.",
     templateContainsUrl:
       "The first message cannot contain links. The product card attached after the message already opens the product.",
+    invitationTextTooLong: "The invitation text can be at most 500 characters.",
+    invitationTextContainsPlaceholder: "The invitation text cannot contain placeholders. Every creator in the batch sees the same text.",
+    invitationTextContainsHtml: "The invitation text cannot contain HTML tags.",
+    invitationTextContainsUrl: "The invitation text cannot contain links.",
     templateUnsupportedVariable:
       "The first message contains an unsupported variable. Use only the variables offered in the editor.",
     aiTemplatePlaceholderMissing:
@@ -861,6 +872,13 @@ const zh = {
   noDirectMessage: "不发私信",
   noDirectMessageHint:
     "达人仍会被邀请进定向合作并收到 TikTok 的平台通知，只是不再发送私信。私信模板会保留，之后可以再启用。",
+  collaborationInvitationText: "合作邀约文字",
+  collaborationInvitationTextPlaceholder: "用几小段话介绍你的店铺和主营商品。",
+  collaborationInvitationTextHint:
+    "达人在 TikTok 合作邀约里看到的卖家介绍。同一批被邀请的达人看到同一段文字，不支持占位符。留空则不附文字。",
+  viewInvitationText: "查看邀约文字",
+  hideInvitationText: "收起邀约文字",
+  invitationText: "邀约文字",
   firstTouch: "首次触达",
   firstTouchDirectMessage: "定向合作 + 私信",
   firstTouchCollaborationOnly: "仅定向合作，不发私信",
@@ -1127,6 +1145,10 @@ const zh = {
     templateTooLong: "首信最多 2000 个字符。",
     templateContainsHtml: "首信不能包含 HTML 标签。",
     templateContainsUrl: "首信不能包含链接。文字消息后附带的商品卡已能打开商品。",
+    invitationTextTooLong: "邀约文字最多 500 个字符。",
+    invitationTextContainsPlaceholder: "邀约文字不能包含占位符，同一批达人看到的是同一段文字。",
+    invitationTextContainsHtml: "邀约文字不能包含 HTML 标签。",
+    invitationTextContainsUrl: "邀约文字不能包含链接。",
     templateUnsupportedVariable: "首信里有不支持的变量，请只使用编辑器提供的变量。",
     aiTemplatePlaceholderMissing: "AI 生成的首信缺少达人名字占位符，请重新生成或手动补上。",
     authRequired: "登录已过期，请重新登录后再试。",
@@ -1310,6 +1332,13 @@ const operationalCopy = {
     noDirectMessage: "Keine Direktnachricht senden",
     noDirectMessageHint:
       "Creator werden weiterhin in die Zielkooperation eingeladen und von TikTok benachrichtigt; nur die Direktnachricht entfällt. Deine Vorlage bleibt erhalten.",
+    collaborationInvitationText: "Einladungstext zur Kooperation",
+    collaborationInvitationTextPlaceholder: "Stelle deinen Shop und dein Sortiment in wenigen kurzen Absätzen vor.",
+    collaborationInvitationTextHint:
+      "Die Vorstellung des Verkäufers, die Creator in der TikTok-Kooperationseinladung lesen. Alle Creator desselben Einladungsstapels sehen denselben Text; Platzhalter werden nicht unterstützt. Leer lassen, um keinen Text zu senden.",
+    viewInvitationText: "Einladungstext ansehen",
+    hideInvitationText: "Einladungstext ausblenden",
+    invitationText: "Einladungstext",
     firstTouch: "Erstkontakt",
     firstTouchDirectMessage: "Zielkooperation + Direktnachricht",
     firstTouchCollaborationOnly: "Nur Zielkooperation, keine Direktnachricht",
@@ -1489,6 +1518,10 @@ const operationalCopy = {
       templateContainsHtml: "Die erste Nachricht darf keine HTML-Tags enthalten.",
       templateContainsUrl:
         "Die erste Nachricht darf keine Links enthalten. Die angehängte Produktkarte öffnet das Produkt bereits.",
+      invitationTextTooLong: "Der Einladungstext darf höchstens 500 Zeichen lang sein.",
+      invitationTextContainsPlaceholder: "Der Einladungstext darf keine Platzhalter enthalten. Alle Creator im Stapel sehen denselben Text.",
+      invitationTextContainsHtml: "Der Einladungstext darf keine HTML-Tags enthalten.",
+      invitationTextContainsUrl: "Der Einladungstext darf keine Links enthalten.",
       templateUnsupportedVariable:
         "Die erste Nachricht enthält eine nicht unterstützte Variable. Verwende nur die Variablen aus dem Editor.",
       aiTemplatePlaceholderMissing:
@@ -1543,6 +1576,13 @@ const operationalCopy = {
     noDirectMessage: "No enviar mensaje directo",
     noDirectMessageHint:
       "Los creadores siguen siendo invitados a la colaboración dirigida y TikTok les avisa; solo se omite el mensaje directo. Tu plantilla se conserva.",
+    collaborationInvitationText: "Texto de invitación a la colaboración",
+    collaborationInvitationTextPlaceholder: "Presenta tu tienda y lo que vendes en unos pocos párrafos breves.",
+    collaborationInvitationTextHint:
+      "La presentación del vendedor que los creadores leen en la invitación de colaboración de TikTok. Todos los creadores invitados en el mismo lote ven el mismo texto y no se admiten marcadores. Déjalo vacío para no enviar texto.",
+    viewInvitationText: "Ver texto de invitación",
+    hideInvitationText: "Ocultar texto de invitación",
+    invitationText: "Texto de invitación",
     firstTouch: "Primer contacto",
     firstTouchDirectMessage: "Colaboración dirigida + mensaje directo",
     firstTouchCollaborationOnly: "Solo colaboración dirigida, sin mensaje directo",
@@ -1724,6 +1764,10 @@ const operationalCopy = {
       templateContainsHtml: "El primer mensaje no puede contener etiquetas HTML.",
       templateContainsUrl:
         "El primer mensaje no puede contener enlaces. La tarjeta de producto adjunta ya abre el producto.",
+      invitationTextTooLong: "El texto de invitación puede tener como máximo 500 caracteres.",
+      invitationTextContainsPlaceholder: "El texto de invitación no puede contener marcadores. Todos los creadores del lote ven el mismo texto.",
+      invitationTextContainsHtml: "El texto de invitación no puede contener etiquetas HTML.",
+      invitationTextContainsUrl: "El texto de invitación no puede contener enlaces.",
       templateUnsupportedVariable:
         "El primer mensaje contiene una variable no compatible. Usa solo las variables que ofrece el editor.",
       aiTemplatePlaceholderMissing:
@@ -1776,6 +1820,13 @@ const operationalCopy = {
     noDirectMessage: "Ne pas envoyer de message direct",
     noDirectMessageHint:
       "Les créateurs sont toujours invités à la collaboration ciblée et notifiés par TikTok ; seul le message direct est ignoré. Votre modèle est conservé.",
+    collaborationInvitationText: "Texte d'invitation à la collaboration",
+    collaborationInvitationTextPlaceholder: "Présentez votre boutique et ce que vous vendez en quelques courts paragraphes.",
+    collaborationInvitationTextHint:
+      "La présentation du vendeur que les créateurs lisent dans l'invitation de collaboration TikTok. Tous les créateurs invités dans le même lot voient le même texte, et les variables ne sont pas prises en charge. Laissez vide pour n'envoyer aucun texte.",
+    viewInvitationText: "Voir le texte d'invitation",
+    hideInvitationText: "Masquer le texte d'invitation",
+    invitationText: "Texte d'invitation",
     firstTouch: "Premier contact",
     firstTouchDirectMessage: "Collaboration ciblée + message direct",
     firstTouchCollaborationOnly: "Collaboration ciblée uniquement, sans message direct",
@@ -1958,6 +2009,10 @@ const operationalCopy = {
       templateContainsHtml: "Le premier message ne peut pas contenir de balises HTML.",
       templateContainsUrl:
         "Le premier message ne peut pas contenir de liens. La fiche produit jointe ouvre déjà le produit.",
+      invitationTextTooLong: "Le texte d'invitation peut contenir au plus 500 caractères.",
+      invitationTextContainsPlaceholder: "Le texte d'invitation ne peut pas contenir de variables. Tous les créateurs du lot voient le même texte.",
+      invitationTextContainsHtml: "Le texte d'invitation ne peut pas contenir de balises HTML.",
+      invitationTextContainsUrl: "Le texte d'invitation ne peut pas contenir de liens.",
       templateUnsupportedVariable:
         "Le premier message contient une variable non prise en charge. Utilisez uniquement les variables proposées par l’éditeur.",
       aiTemplatePlaceholderMissing:
@@ -2012,6 +2067,13 @@ const operationalCopy = {
     noDirectMessage: "Jangan kirim pesan langsung",
     noDirectMessageHint:
       "Kreator tetap diundang ke kolaborasi target dan diberi tahu oleh TikTok; hanya pesan langsung yang dilewati. Templat Anda tetap tersimpan.",
+    collaborationInvitationText: "Teks undangan kolaborasi",
+    collaborationInvitationTextPlaceholder: "Perkenalkan toko dan produk Anda dalam beberapa paragraf singkat.",
+    collaborationInvitationTextHint:
+      "Perkenalan penjual yang dibaca kreator di undangan kolaborasi TikTok. Semua kreator dalam satu gelombang undangan melihat teks yang sama, dan placeholder tidak didukung. Kosongkan jika tidak ingin menyertakan teks.",
+    viewInvitationText: "Lihat teks undangan",
+    hideInvitationText: "Sembunyikan teks undangan",
+    invitationText: "Teks undangan",
     firstTouch: "Kontak pertama",
     firstTouchDirectMessage: "Kolaborasi target + pesan langsung",
     firstTouchCollaborationOnly: "Hanya kolaborasi target, tanpa pesan langsung",
@@ -2188,6 +2250,10 @@ const operationalCopy = {
       templateContainsHtml: "Pesan pertama tidak boleh berisi tag HTML.",
       templateContainsUrl:
         "Pesan pertama tidak boleh berisi tautan. Kartu produk yang dilampirkan sudah membuka produknya.",
+      invitationTextTooLong: "Teks undangan maksimal 500 karakter.",
+      invitationTextContainsPlaceholder: "Teks undangan tidak boleh berisi placeholder. Semua kreator dalam satu gelombang melihat teks yang sama.",
+      invitationTextContainsHtml: "Teks undangan tidak boleh berisi tag HTML.",
+      invitationTextContainsUrl: "Teks undangan tidak boleh berisi tautan.",
       templateUnsupportedVariable:
         "Pesan pertama berisi variabel yang tidak didukung. Gunakan hanya variabel yang disediakan editor.",
       aiTemplatePlaceholderMissing:
@@ -2239,6 +2305,13 @@ const operationalCopy = {
     noDirectMessage: "Non inviare il messaggio diretto",
     noDirectMessageHint:
       "I creator vengono comunque invitati alla collaborazione mirata e avvisati da TikTok; viene saltato solo il messaggio diretto. Il tuo modello resta salvato.",
+    collaborationInvitationText: "Testo dell'invito alla collaborazione",
+    collaborationInvitationTextPlaceholder: "Presenta il tuo negozio e ciò che vendi in pochi brevi paragrafi.",
+    collaborationInvitationTextHint:
+      "La presentazione del venditore che i creator leggono nell'invito alla collaborazione TikTok. Tutti i creator invitati nello stesso gruppo vedono lo stesso testo e i segnaposto non sono supportati. Lascia vuoto per non inviare alcun testo.",
+    viewInvitationText: "Vedi testo dell'invito",
+    hideInvitationText: "Nascondi testo dell'invito",
+    invitationText: "Testo dell'invito",
     firstTouch: "Primo contatto",
     firstTouchDirectMessage: "Collaborazione mirata + messaggio diretto",
     firstTouchCollaborationOnly: "Solo collaborazione mirata, senza messaggio diretto",
@@ -2421,6 +2494,10 @@ const operationalCopy = {
       templateContainsHtml: "Il primo messaggio non può contenere tag HTML.",
       templateContainsUrl:
         "Il primo messaggio non può contenere link. La scheda prodotto allegata apre già il prodotto.",
+      invitationTextTooLong: "Il testo dell'invito può contenere al massimo 500 caratteri.",
+      invitationTextContainsPlaceholder: "Il testo dell'invito non può contenere segnaposto. Tutti i creator del gruppo vedono lo stesso testo.",
+      invitationTextContainsHtml: "Il testo dell'invito non può contenere tag HTML.",
+      invitationTextContainsUrl: "Il testo dell'invito non può contenere link.",
       templateUnsupportedVariable:
         "Il primo messaggio contiene una variabile non supportata. Usa solo le variabili offerte dall’editor.",
       aiTemplatePlaceholderMissing:
@@ -2473,6 +2550,13 @@ const operationalCopy = {
     noDirectMessage: "ไม่ส่งข้อความส่วนตัว",
     noDirectMessageHint:
       "ครีเอเตอร์ยังคงได้รับคำเชิญเข้าร่วมความร่วมมือแบบกำหนดเป้าหมายและการแจ้งเตือนจาก TikTok เพียงแต่จะไม่ส่งข้อความส่วนตัว เทมเพลตของคุณจะถูกเก็บไว้",
+    collaborationInvitationText: "ข้อความเชิญร่วมงาน",
+    collaborationInvitationTextPlaceholder: "แนะนำร้านค้าและสินค้าของคุณเป็นย่อหน้าสั้น ๆ",
+    collaborationInvitationTextHint:
+      "คำแนะนำจากผู้ขายที่ครีเอเตอร์เห็นในคำเชิญร่วมงานบน TikTok ครีเอเตอร์ที่ได้รับเชิญในชุดเดียวกันจะเห็นข้อความเดียวกัน และไม่รองรับตัวแทนข้อความ เว้นว่างไว้หากไม่ต้องการแนบข้อความ",
+    viewInvitationText: "ดูข้อความเชิญ",
+    hideInvitationText: "ซ่อนข้อความเชิญ",
+    invitationText: "ข้อความเชิญ",
     firstTouch: "การติดต่อครั้งแรก",
     firstTouchDirectMessage: "ความร่วมมือแบบกำหนดเป้าหมาย + ข้อความส่วนตัว",
     firstTouchCollaborationOnly: "เฉพาะความร่วมมือแบบกำหนดเป้าหมาย ไม่ส่งข้อความส่วนตัว",
@@ -2630,6 +2714,10 @@ const operationalCopy = {
       templateTooLong: "ข้อความแรกยาวได้ไม่เกิน 2,000 ตัวอักษร",
       templateContainsHtml: "ข้อความแรกต้องไม่มีแท็ก HTML",
       templateContainsUrl: "ข้อความแรกต้องไม่มีลิงก์ การ์ดสินค้าที่แนบหลังข้อความเปิดสินค้าได้อยู่แล้ว",
+      invitationTextTooLong: "ข้อความเชิญยาวได้ไม่เกิน 500 ตัวอักษร",
+      invitationTextContainsPlaceholder: "ข้อความเชิญต้องไม่มีตัวแทนข้อความ ครีเอเตอร์ในชุดเดียวกันจะเห็นข้อความเดียวกัน",
+      invitationTextContainsHtml: "ข้อความเชิญต้องไม่มีแท็ก HTML",
+      invitationTextContainsUrl: "ข้อความเชิญต้องไม่มีลิงก์",
       templateUnsupportedVariable: "ข้อความแรกมีตัวแปรที่ไม่รองรับ โปรดใช้เฉพาะตัวแปรที่ตัวแก้ไขมีให้",
       aiTemplatePlaceholderMissing: "ข้อความที่ AI สร้างไม่มีตัวแทนชื่อครีเอเตอร์ โปรดสร้างใหม่หรือเพิ่มกลับเข้าไป",
       authRequired: "การเข้าสู่ระบบหมดอายุแล้ว โปรดเข้าสู่ระบบอีกครั้งแล้วลองใหม่",

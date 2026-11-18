@@ -630,6 +630,13 @@ describe("Affiliate Campaign presentation contracts", () => {
       ["messageProductName must contain at most 80 characters", "messageProductNameTooLong"],
       ["Campaign message template cannot contain URLs", "errors.templateContainsUrl"],
       ["Campaign message template cannot contain HTML", "errors.templateContainsHtml"],
+      ["Collaboration invitation text exceeds 500 characters", "errors.invitationTextTooLong"],
+      [
+        "Collaboration invitation text cannot contain {{...}} placeholders",
+        "errors.invitationTextContainsPlaceholder",
+      ],
+      ["Collaboration invitation text cannot contain HTML", "errors.invitationTextContainsHtml"],
+      ["Collaboration invitation text cannot contain URLs", "errors.invitationTextContainsUrl"],
       ["CAMPAIGN_PRODUCT_NOT_ACTIVE: Product status is DEACTIVATED", "errors.productNotActive"],
       ["Campaign product has no usable SKU price", "errors.productPriceUnavailable"],
       ["Campaign timezone cannot be resolved for market XX", "errors.shopMarketUnavailable"],

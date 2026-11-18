@@ -1326,6 +1326,8 @@ export interface AffiliateBusinessDeveloperSummary {
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
   activatedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  /** ADR-108 note shown on the Target Collaboration the Campaign creates. Empty means no note. */
+  collaborationInvitationText: Scalars["String"]["output"];
   completedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   configRevision: Scalars["Int"]["output"];
   createdAt: Scalars["DateTimeISO"]["output"];
@@ -1754,6 +1756,8 @@ export const AffiliateCampaignMessageTemplateSource = {
 export type AffiliateCampaignMessageTemplateSource =
   (typeof AffiliateCampaignMessageTemplateSource)[keyof typeof AffiliateCampaignMessageTemplateSource];
 export interface AffiliateCampaignMessageTemplateSuggestion {
+  /** Validated ADR-108 Target Collaboration note; empty when none was generated. */
+  collaborationInvitationText: Scalars["String"]["output"];
   productShortName: Scalars["String"]["output"];
   source: AffiliateCampaignMessageTemplateSource;
   text: Scalars["String"]["output"];
@@ -18764,6 +18768,7 @@ export interface UserSupport {
 }
 
 export interface ValidateAffiliateCampaignMessageTemplateSuggestionInput {
+  collaborationInvitationText?: InputMaybe<Scalars["String"]["input"]>;
   mode: AffiliateCampaignTemplateGenerationMode;
   previousDraft?: InputMaybe<Scalars["String"]["input"]>;
   productShortName: Scalars["String"]["input"];
@@ -19121,6 +19126,8 @@ export interface WriteAffiliateBusinessDeveloperInput {
 }
 
 export interface WriteAffiliateCampaignInput {
+  /** ADR-108 Target Collaboration note. Absent or null keeps the existing value; an empty string clears it. */
+  collaborationInvitationText?: InputMaybe<Scalars["String"]["input"]>;
   /** Creator-list Campaigns only (selectionPolicy.strategy CREATOR_LIST, ADR-106): the seller's TikTok usernames, one per row (row number = position + 1), at most 5,000 distinct. Required when creating a Creator-list Campaign. On update, omitting it keeps the current list and supplying it replaces the list without changing the Campaign revision. Rejected for other strategies. */
   creatorUsernames?: InputMaybe<Array<Scalars["String"]["input"]>>;
   dailyOutreachTarget: Scalars["Int"]["input"];

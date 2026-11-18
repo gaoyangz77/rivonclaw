@@ -322,6 +322,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     firstTouchMode
     outreachPacingMode
     messageTemplateText
+    collaborationInvitationText
     messageTemplateSource
     messageProductName
     templateVersion
