@@ -264,6 +264,28 @@ describe("AffiliateWorkspaceModel", () => {
     expect(workspace.operationalSettings?.enabledCreatorAssignmentTriggers.length).toBe(0);
   });
 
+  it("keeps a BD's dynamic region grant and static shop grant side by side (ADR-110)", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    const developer = {
+      __typename: "AffiliateBusinessDeveloper",
+      id: "bd-1",
+      userId: "user-1",
+      displayName: "Maria Internal",
+      regions: ["US"],
+      shopIds: ["shop-gb-1", "shop-gb-2"],
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    workspace.replaceAffiliateBusinessDevelopers([developer] as any);
+    const stored = workspace.getBusinessDeveloper("bd-1");
+    expect(Array.from(stored?.regions ?? [])).toEqual(["US"]);
+    expect(Array.from(stored?.shopIds ?? [])).toEqual(["shop-gb-1", "shop-gb-2"]);
+
+    // A developer written before shop grants existed reads as an empty grant.
+    workspace.upsertAffiliateBusinessDeveloper({ ...developer, id: "bd-2", shopIds: undefined } as any);
+    expect(Array.from(workspace.getBusinessDeveloper("bd-2")?.shopIds ?? ["x"])).toEqual([]);
+  });
+
   it("tracks a BD's login through provision, disable and removal", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     const developer = {

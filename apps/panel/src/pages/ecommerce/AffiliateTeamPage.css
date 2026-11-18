@@ -2600,12 +2600,6 @@
   padding: 0 6px;
 }
 
-.affiliate-bd-inline-editor .affiliate-region-grid label {
-  display: flex !important;
-  align-items: center;
-  gap: 7px;
-}
-
 .affiliate-bd-inline-prompt textarea {
   min-height: 112px;
   resize: vertical;
@@ -3002,21 +2996,6 @@
 .affiliate-developer-editor legend {
   padding: 0 6px;
 }
-.affiliate-region-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(56px, 1fr));
-  gap: 8px;
-}
-.affiliate-region-grid label {
-  display: flex !important;
-  align-items: center;
-  gap: 7px;
-}
-/* Half the modal's width: as many region columns as the labels allow. */
-.affiliate-developer-editor .affiliate-region-grid {
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  gap: var(--tk-v1-space-2) var(--tk-v1-space-3);
-}
 .affiliate-developer-editor-actions {
   flex: 0 0 auto;
   justify-content: flex-end;
@@ -3266,10 +3245,6 @@
   .affiliate-team-owner-filter > .affiliate-team-owner-count {
     grid-column: 1;
     grid-row: auto;
-  }
-  .affiliate-region-grid,
-  .affiliate-developer-editor .affiliate-region-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .affiliate-message-composer {

@@ -1197,7 +1197,10 @@ export interface AffiliateBusinessDeveloper {
   profileConfirmedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
   profileStatus: AffiliateBusinessDeveloperProfileStatus;
   provisioningSource: AffiliateBusinessDeveloperProvisioningSource;
+  /** Dynamic shop grant: every shop of the account in these regions, including shops connected later. */
   regions: Array<ShopRegion>;
+  /** Static shop grant: exactly these shops. With no regions either, the developer is unrestricted. */
+  shopIds: Array<Scalars["ID"]["output"]>;
   updatedAt: Scalars["DateTimeISO"]["output"];
   userId: Scalars["ID"]["output"];
   weeklyCreatorLimit: Scalars["Int"]["output"];
@@ -19193,6 +19196,8 @@ export interface WriteAffiliateBusinessDeveloperInput {
   id?: InputMaybe<Scalars["ID"]["input"]>;
   monthlyCreatorLimit?: InputMaybe<Scalars["Int"]["input"]>;
   regions?: InputMaybe<Array<ShopRegion>>;
+  /** Static shop grant. Omitted on update keeps the stored grant; every id must be a shop of the account. */
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   weeklyCreatorLimit?: InputMaybe<Scalars["Int"]["input"]>;
 }
 

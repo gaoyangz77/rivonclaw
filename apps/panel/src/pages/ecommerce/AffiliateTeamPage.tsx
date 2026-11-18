@@ -44,7 +44,16 @@ import {
   TkTableFrame,
   TkTabs,
 } from "../../components/design-system/index.js";
-import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
+import {
+  SHOP_REGIONS,
+  businessDeveloperShopScopeErrorKey,
+  isShopScopeDraftChanged,
+  isShopScopeDraftSaveable,
+  scopeShopsFrom,
+  shopScopeDraftFrom,
+  shopScopeOfDraft,
+  type BusinessDeveloperShopScopeDraft,
+} from "../../lib/affiliate-bd-shop-scope.js";
 import { formatLocalizedDate } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useWorkspaceTab } from "../../lib/workspace-tab-context.js";
@@ -81,6 +90,8 @@ import { AffiliateMessageLookbackPanel } from "./components/AffiliateMessageLook
 import { AffiliateCreatorBusinessSettingsPanel } from "./components/AffiliateCreatorBusinessSettingsPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateBusinessDeveloperLoginPanel } from "./components/AffiliateBusinessDeveloperLoginPanel.js";
+import { AffiliateBusinessDeveloperShopScopeEditor } from "./components/AffiliateBusinessDeveloperShopScopeEditor.js";
+import { AffiliateBusinessDeveloperShopScopeSummary } from "./components/AffiliateBusinessDeveloperShopScopeSummary.js";
 import { AffiliateCreatorAddModal } from "./components/AffiliateCreatorAddModal.js";
 import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
@@ -105,13 +116,14 @@ import {
 } from "./affiliate-creator-update-template.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
+
 const DEVELOPER_PAGE_SIZE = 25;
 const PROTECTION_PAGE_SIZE = 25;
 const PROTECTION_PREVIEW_PAGE_SIZE = 50;
 /** Matches the Creator list's chip cap so both tables truncate at the same point. */
 const PROTECTION_MANUAL_TAG_CHIP_LIMIT = 3;
 const PROTECTION_IMPORT_BATCH_TIMEOUT_MS = 90_000;
-export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
+export { SHOP_REGIONS };
 export const CREATOR_BULK_UPDATE_TEMPLATE_HEADERS = AFFILIATE_CREATOR_UPDATE_TEMPLATE_HEADERS;
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
@@ -142,10 +154,10 @@ type PendingTeamConfirmation =
   | { kind: "REMOVE_PROTECTION"; protectionId: string; creator: string }
   | null;
 
-export type DeveloperForm = {
+/** `regions` / `shopIds` / `shopScopeMode` are the shop access draft (ADR-110). */
+export type DeveloperForm = BusinessDeveloperShopScopeDraft & {
   displayName: string;
   creatorDisplayName: string;
-  regions: GQL.ShopRegion[];
   acceptingCreators: boolean;
   creatorIntakeLimitsEnabled: boolean;
   weeklyCreatorLimit: number;
@@ -160,6 +172,11 @@ export type DeveloperForm = {
 
 function validIntakeLimit(value: number): boolean {
   return Number.isInteger(value) && value > 0 && value <= 2_147_483_647;
+}
+
+/** "Specific shops" with nothing selected would silently mean every shop, so it cannot be saved. */
+export function validDeveloperShopScope(form: DeveloperForm): boolean {
+  return isShopScopeDraftSaveable(form);
 }
 
 export function validDeveloperIntake(form: DeveloperForm): boolean {
@@ -294,7 +311,9 @@ type BusinessDeveloperResolutionGroup = {
 const EMPTY_DEVELOPER: DeveloperForm = {
   displayName: "",
   creatorDisplayName: "",
+  shopScopeMode: "ALL",
   regions: [],
+  shopIds: [],
   acceptingCreators: true,
   creatorIntakeLimitsEnabled: false,
   weeklyCreatorLimit: 100,
@@ -310,6 +329,9 @@ type DeveloperFormSource = {
   displayName: string;
   creatorDisplayName?: string | null;
   regions: readonly GQL.ShopRegion[];
+  shopIds: readonly string[];
+  /** Present when the source is an earlier draft rather than a stored developer. */
+  shopScopeMode?: BusinessDeveloperShopScopeDraft["shopScopeMode"];
   acceptingCreators: boolean;
   creatorIntakeLimitsEnabled?: boolean;
   weeklyCreatorLimit?: number;
@@ -321,11 +343,18 @@ type DeveloperFormSource = {
   escalationRecipientId?: string | null;
 };
 
-export function developerFormFrom(source: DeveloperFormSource): DeveloperForm {
+/**
+ * @param knownShopIds Shops that still exist. Granted ids outside it are
+ *   dropped from the draft so a save never sends a deleted shop.
+ */
+export function developerFormFrom(
+  source: DeveloperFormSource,
+  knownShopIds?: ReadonlySet<string>,
+): DeveloperForm {
   return {
     displayName: source.displayName,
     creatorDisplayName: source.creatorDisplayName ?? "",
-    regions: Array.from(source.regions),
+    ...shopScopeDraftFrom(source, knownShopIds),
     acceptingCreators: source.acceptingCreators,
     creatorIntakeLimitsEnabled: source.creatorIntakeLimitsEnabled ?? false,
     weeklyCreatorLimit: source.weeklyCreatorLimit ?? 100,
@@ -347,7 +376,7 @@ export function isDeveloperFormDirty(form: DeveloperForm, source: DeveloperFormS
     form.creatorIntakeLimitsEnabled !== (source.creatorIntakeLimitsEnabled ?? false) ||
     form.weeklyCreatorLimit !== (source.weeklyCreatorLimit ?? 100) ||
     form.monthlyCreatorLimit !== (source.monthlyCreatorLimit ?? 500) ||
-    [...form.regions].sort().join("|") !== [...source.regions].sort().join("|") ||
+    isShopScopeDraftChanged(form, source) ||
     form.businessPrompt.trim() !== (source.businessPrompt?.trim() ?? "") ||
     form.deviceId.trim() !== (source.deviceId?.trim() ?? "") ||
     form.escalationChannelId.trim() !== (source.escalationChannelId?.trim() ?? "") ||
@@ -363,7 +392,7 @@ export function writeDeveloperInputFrom(
     id: id ?? null,
     displayName: form.displayName.trim(),
     creatorDisplayName: form.creatorDisplayName.trim() || null,
-    regions: form.regions,
+    ...shopScopeOfDraft(form),
     acceptingCreators: form.acceptingCreators,
     creatorIntakeLimitsEnabled: form.creatorIntakeLimitsEnabled,
     weeklyCreatorLimit: validIntakeLimit(form.weeklyCreatorLimit) ? form.weeklyCreatorLimit : 100,
@@ -708,11 +737,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
   ).length;
   const detailChannelContacts =
     channelContactsQuery.data?.affiliateCreatorChannelContacts.items ?? [];
-  const detailRegionLabel = detailDeveloper
-    ? detailDeveloper.regions.length > 0
-      ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ")
-      : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })
-    : "";
   const unassignedWhatsapp = activeWhatsappAccounts.filter(
     (account) => !account.businessDeveloperId,
   );
@@ -898,9 +922,17 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
     }
   }
 
+  /** Ids of the shops that exist right now, read from the store at call time. */
+  function existingShopIds(): ReadonlySet<string> {
+    return new Set(scopeShopsFrom(entityStore.shops).map((shop) => shop.id));
+  }
+
   function openDeveloperDetail(summary: DeveloperSummary) {
     const developer = workspace.getBusinessDeveloper(summary.developer.id) ?? summary.developer;
-    const initialForm = developerFormFrom(developer as DeveloperFormSource);
+    const initialForm = developerFormFrom(
+      developer as DeveloperFormSource,
+      existingShopIds(),
+    );
     setDetailSummary(summary);
     setEditingDeveloperId(developer.id);
     setForm(initialForm);
@@ -944,6 +976,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       showToast(t("ecommerce.affiliateTeam.creatorIntakeLimitInvalid"), "error");
       return;
     }
+    if (!validDeveloperShopScope(form)) {
+      showToast(t("ecommerce.affiliateTeam.shopScopeNothingSelected"), "error");
+      return;
+    }
     const displayName = form.displayName.trim();
     if (!displayName) {
       showToast(t("ecommerce.affiliateTeam.nameRequired"), "error");
@@ -969,7 +1005,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       workspace.upsertAffiliateBusinessDeveloper(developer);
       setEditing(false);
       if (savingDetail) {
-        const savedForm = developerFormFrom(developer);
+        const savedForm = developerFormFrom(developer, existingShopIds());
         setEditingDeveloperId(developer.id);
         setForm(savedForm);
         setSavedDetailForm(savedForm);
@@ -981,7 +1017,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
     } catch (error) {
-      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      const scopeErrorKey = businessDeveloperShopScopeErrorKey(error);
+      showToast(
+        scopeErrorKey
+          ? t(scopeErrorKey)
+          : error instanceof Error
+            ? error.message
+            : t("ecommerce.updateFailed"),
+        "error",
+      );
     }
   }
 
@@ -2050,13 +2094,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                                     )}
                                   </strong>
                                   <small>
-                                    {developer.regions.length > 0
-                                      ? developer.regions
-                                          .map((region) => formatShopRegionLabel(region, t))
-                                          .join(", ")
-                                      : t("ecommerce.affiliateTeam.allRegions", {
-                                          defaultValue: "All regions",
-                                        })}
+                                    <AffiliateBusinessDeveloperShopScopeSummary
+                                      regions={developer.regions}
+                                      shopIds={developer.shopIds}
+                                    />
                                   </small>
                                 </span>
                               </div>
@@ -3248,7 +3289,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                   </div>
                   <p>
                     <GlobeIcon />
-                    {detailRegionLabel}
+                    <AffiliateBusinessDeveloperShopScopeSummary
+                      regions={detailDeveloper.regions}
+                      shopIds={detailDeveloper.shopIds}
+                    />
                   </p>
                 </div>
               </div>
@@ -3613,6 +3657,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
                         writeState.loading ||
                         !form.displayName.trim() ||
                         !validDeveloperIntake(form) ||
+                        !validDeveloperShopScope(form) ||
                         (!detailFormDirty && !detailNeedsProfileConfirmation)
                       }
                     >
@@ -3914,28 +3959,10 @@ export function DeveloperEditor({
           <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
         </div>
         <div className="affiliate-developer-editor-column">
-          <fieldset>
-            <legend>{t("ecommerce.affiliateTeam.regions")}</legend>
-            <div className="affiliate-region-grid">
-              {SHOP_REGIONS.map((region) => (
-                <label key={region}>
-                  <input
-                    type="checkbox"
-                    checked={form.regions.includes(region)}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        regions: event.target.checked
-                          ? [...form.regions, region]
-                          : form.regions.filter((item) => item !== region),
-                      })
-                    }
-                  />
-                  <span>{formatShopRegionLabel(region, t)}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <AffiliateBusinessDeveloperShopScopeEditor
+            value={form}
+            onChange={(scope) => setForm({ ...form, ...scope })}
+          />
           <DeveloperCreatorIntake form={form} setForm={setForm} />
         </div>
         <label className="affiliate-developer-editor-guidance">
@@ -3961,7 +3988,12 @@ export function DeveloperEditor({
           className="btn btn-primary"
           type="button"
           onClick={onSave}
-          disabled={saving || !form.displayName.trim() || !validDeveloperIntake(form)}
+          disabled={
+            saving ||
+            !form.displayName.trim() ||
+            !validDeveloperIntake(form) ||
+            !validDeveloperShopScope(form)
+          }
         >
           {t("common.save")}
         </button>
@@ -4023,28 +4055,10 @@ function DeveloperProfileEditor({
       </label>
       <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
       <DeveloperCreatorIntake form={form} setForm={setForm} />
-      <fieldset>
-        <legend>{t("ecommerce.affiliateTeam.regions")}</legend>
-        <div className="affiliate-region-grid">
-          {SHOP_REGIONS.map((region) => (
-            <label key={region}>
-              <input
-                type="checkbox"
-                checked={form.regions.includes(region)}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    regions: event.target.checked
-                      ? [...form.regions, region]
-                      : form.regions.filter((item) => item !== region),
-                  })
-                }
-              />
-              <span>{formatShopRegionLabel(region, t)}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <AffiliateBusinessDeveloperShopScopeEditor
+        value={form}
+        onChange={(scope) => setForm({ ...form, ...scope })}
+      />
       <label className="affiliate-bd-inline-prompt">
         <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
         <textarea

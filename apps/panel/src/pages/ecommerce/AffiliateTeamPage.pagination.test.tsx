@@ -19,6 +19,7 @@ import { AffiliateTeamPage } from "./AffiliateTeamPage.js";
 
 const store = vi.hoisted(() => ({
   channelAccounts: [],
+  shops: [],
   affiliateWorkspace: {
     businessDevelopers: [],
     whatsappAccounts: [],
@@ -66,6 +67,7 @@ const developers = Array.from({ length: 35 }, (_, index) => ({
   creatorDisplayName: null,
   normalizedDisplayName: `bd ${index + 1}`,
   regions: [],
+  shopIds: [],
   acceptingCreators: false,
   creatorIntakeLimitsEnabled: false,
   weeklyCreatorLimit: 100,

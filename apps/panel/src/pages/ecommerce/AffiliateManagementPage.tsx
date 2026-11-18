@@ -92,6 +92,10 @@ import {
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { graphQLErrorCode, graphQLErrorExtensions } from "../../lib/graphql-error-code.js";
+import {
+  businessDeveloperShopScopeErrorKey,
+  ownerAssignmentCandidates,
+} from "../../lib/affiliate-bd-shop-scope.js";
 import { useAffiliateWorkbenchRefresh } from "./useAffiliateWorkbenchRefresh.js";
 import {
   affiliateProposalDecisionApplied,
@@ -10731,13 +10735,32 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const [removeRelationshipProtection, removeRelationshipProtectionState] = useMutation(
     REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
   );
-  const ownerOptions = affiliateWorkspace.businessDevelopers
-    .filter((developer) => !developer.archivedAt)
-    .map((developer) => ({
-      value: developer.id,
-      label: developer.displayName,
-      searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
-    }));
+  // Offer only developers whose shop access covers at least one of this
+  // Creator's shops (ADR-110); the backend refuses any other assignment. The
+  // current owner stays listed even if it is now out of scope, so the select
+  // can still show it, but it is flagged.
+  const regionByShopId = new Map(
+    entityStore.shops.map((shop) => [shop.id, shop.region ?? null] as const),
+  );
+  const creatorShopIds = rawShopStates.map((state) => state.shopId);
+  const ownerOptions = ownerAssignmentCandidates<
+    (typeof affiliateWorkspace.businessDevelopers)[number]
+  >(
+    affiliateWorkspace.businessDevelopers,
+    creatorShopIds,
+    regionByShopId,
+    relationshipOwnerId,
+  ).map(({ developer, covered }) => ({
+    value: developer.id,
+    label: developer.displayName,
+    searchTerms: affiliateBusinessDeveloperSearchTerms(developer),
+    ...(covered
+      ? {}
+      : {
+          badge: t("ecommerce.affiliateTeam.ownerOutOfShopScopeBadge"),
+          badgeTone: "warning" as const,
+        }),
+  }));
   const relationshipOwner = relationshipOwnerId
     ? (affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId) ??
       (relationshipDetail?.businessDeveloper?.id === relationshipOwnerId
@@ -11576,6 +11599,19 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     void proposalQuery.loadMore();
   }
 
+  /** A shop-scope refusal gets its own explanation; anything else keeps the backend message. */
+  function showOwnershipError(error: unknown): void {
+    const scopeErrorKey = businessDeveloperShopScopeErrorKey(error);
+    showToast(
+      scopeErrorKey
+        ? t(scopeErrorKey)
+        : error instanceof Error
+          ? error.message
+          : t("ecommerce.updateFailed"),
+      "error",
+    );
+  }
+
   function updateRelationshipOwner(nextOwnerId: string): void {
     if (!relationshipId || ownershipBusy || nextOwnerId === relationshipOwnerId) return;
     setPendingOwnershipConfirmation({ kind: "OWNER", nextOwnerId });
@@ -11594,7 +11630,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       setRelationshipOwnerId(nextOwnerId);
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
     } catch (error) {
-      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      showOwnershipError(error);
     }
   }
 
@@ -11643,7 +11679,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       await refetchRelationshipDetail();
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
     } catch (error) {
-      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      showOwnershipError(error);
     }
   }
 
@@ -11904,6 +11940,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                       )}
                       disabled={!relationshipId || ownershipBusy}
                     />
+                    <small className="form-hint">
+                      {t("ecommerce.affiliateTeam.ownerShopScopeHint")}
+                    </small>
                   </label>
                 )}
                 {businessDeveloperOnly && !relationshipOwnerId && relationshipId && !relationshipProtection ? (

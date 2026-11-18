@@ -126,6 +126,8 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
   creatorDisplayName: types.maybeNull(types.string),
   normalizedDisplayName: types.optional(types.string, ""),
   regions: types.optional(types.array(types.string), []),
+  // Static shop grant (ADR-110): exactly these shops, on top of the dynamic `regions` grant.
+  shopIds: types.optional(types.array(types.string), []),
   acceptingCreators: types.optional(types.boolean, true),
   creatorIntakeLimitsEnabled: types.optional(types.boolean, false),
   weeklyCreatorLimit: types.optional(types.number, 100),

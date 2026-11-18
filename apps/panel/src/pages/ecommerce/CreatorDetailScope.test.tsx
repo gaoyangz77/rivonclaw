@@ -39,7 +39,13 @@ const state = vi.hoisted(() => ({
       { id: "2", alias: "2号店", shopName: "Two" },
     ],
     affiliateWorkspace: {
-      businessDevelopers: [] as Array<{ id: string; displayName: string; archivedAt?: string }>,
+      businessDevelopers: [] as Array<{
+        id: string;
+        displayName: string;
+        regions?: string[];
+        shopIds?: string[];
+        archivedAt?: string;
+      }>,
       replaceAffiliateBusinessDevelopers: vi.fn(),
       getBusinessDeveloper: vi.fn(),
       proposalProjection: (id: string) => {
@@ -703,7 +709,7 @@ describe("Creator Detail scope integration", () => {
 });
 
 describe("Creator Detail for a business developer (ADR 085)", () => {
-  const ALICE = { id: "bd-alice", displayName: "Alice" };
+  const ALICE = { id: "bd-alice", displayName: "Alice", regions: [], shopIds: [] };
 
   beforeEach(() => {
     state.entityStore.affiliateWorkspace.businessDevelopers = [ALICE];
@@ -772,6 +778,31 @@ describe("Creator Detail for a business developer (ADR 085)", () => {
     expect(screen.getByRole("button", { name: removeLabel() })).toBeTruthy();
     expect(screen.getByRole("button", { name: renameLabel() })).toBeTruthy();
     expect(screen.getByRole("button", { name: createLabel() })).toBeTruthy();
+  });
+
+  it("offers only BDs whose shop access covers one of the Creator's shops, plus an out-of-scope current owner (ADR-110)", () => {
+    const bob = { id: "bd-bob", displayName: "Bob", regions: [], shopIds: ["999"] };
+    const cara = { id: "bd-cara", displayName: "Cara", regions: [], shopIds: ["2"] };
+    const dan = { id: "bd-dan", displayName: "Dan", regions: ["DE"], shopIds: [] };
+    state.entityStore.affiliateWorkspace.businessDevelopers = [ALICE, bob, cara, dan];
+    // The Creator trades through shops "1" and "2"; Dan, the current owner, is out of scope.
+    (state.detail.creatorRelationship as Record<string, unknown>).businessDeveloperId = dan.id;
+    state.entityStore.affiliateWorkspace.getBusinessDeveloper.mockImplementation((id: string) =>
+      [ALICE, bob, cara, dan].find((developer) => developer.id === id),
+    );
+
+    render(view("creator", "overview", false));
+    openManagement();
+    fireEvent.click(ownerCard().querySelector(".custom-select-trigger")!);
+
+    const labels = [...document.querySelectorAll(".custom-select-option-label")].map(
+      (option) => option.textContent,
+    );
+    expect(labels).toEqual(["Alice", "Cara", "Dan"]);
+    expect(labels).not.toContain("Bob");
+    expect(
+      document.querySelector(".custom-select-badge.warning")?.textContent,
+    ).toBe(i18n.t("ecommerce.affiliateTeam.ownerOutOfShopScopeBadge"));
   });
 });
 

@@ -5085,6 +5085,7 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     creatorDisplayName
     normalizedDisplayName
     regions
+    shopIds
     acceptingCreators
     creatorIntakeLimitsEnabled
     weeklyCreatorLimit

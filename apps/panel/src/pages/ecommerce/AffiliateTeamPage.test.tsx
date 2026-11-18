@@ -11,6 +11,7 @@ import {
   DeveloperIntakeLimits,
   DeveloperCreatorIntake,
   validDeveloperIntake,
+  validDeveloperShopScope,
   CREATOR_BULK_UPDATE_TEMPLATE_HEADERS,
   SHOP_REGIONS,
   developerFormFrom,
@@ -22,7 +23,7 @@ afterEach(cleanup);
 
 describe("optional automatic Creator intake limits", () => {
   function source() {
-    return { displayName: "BD", regions: [], acceptingCreators: true, agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted };
+    return { displayName: "BD", regions: [], shopIds: [], acceptingCreators: true, agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted };
   }
   it("defaults legacy profiles to unlimited with 100/500 editable limits", () => {
     const form = developerFormFrom(source());
@@ -91,6 +92,7 @@ describe("Affiliate business developer region editor", () => {
     displayName: "Regional BD",
     creatorDisplayName: "Creator-facing BD",
     regions: [GQL.ShopRegion.Us],
+    shopIds: ["shop-gb-1"],
     acceptingCreators: true,
     agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
     businessPrompt: "Keep it warm.",
@@ -109,6 +111,39 @@ describe("Affiliate business developer region editor", () => {
     expect(writeDeveloperInputFrom({ ...form, creatorDisplayName: "  " })).toMatchObject({
       creatorDisplayName: null,
     });
+  });
+
+  it("round-trips the shop access grants and prunes deleted shops from the draft", () => {
+    const form = developerFormFrom(developer);
+    expect(form).toMatchObject({
+      shopScopeMode: "SPECIFIC",
+      regions: [GQL.ShopRegion.Us],
+      shopIds: ["shop-gb-1"],
+    });
+    expect(writeDeveloperInputFrom(form, "bd-1")).toMatchObject({
+      regions: [GQL.ShopRegion.Us],
+      shopIds: ["shop-gb-1"],
+    });
+    expect(isDeveloperFormDirty({ ...form, shopIds: [] }, developer)).toBe(true);
+
+    const pruned = developerFormFrom(developer, new Set(["another-shop"]));
+    expect(pruned.shopIds).toEqual([]);
+    expect(writeDeveloperInputFrom(pruned).shopIds).toEqual([]);
+  });
+
+  it("sends an empty scope for All shops and blocks Specific with nothing selected", () => {
+    const form = developerFormFrom(developer);
+    expect(writeDeveloperInputFrom({ ...form, shopScopeMode: "ALL" })).toMatchObject({
+      regions: [],
+      shopIds: [],
+    });
+    const openScope = { ...developer, regions: [], shopIds: [] };
+    const allShops = developerFormFrom(openScope);
+    expect(allShops.shopScopeMode).toBe("ALL");
+    expect(validDeveloperShopScope(allShops)).toBe(true);
+    const emptySpecific = { ...allShops, shopScopeMode: "SPECIFIC" as const };
+    expect(validDeveloperShopScope(emptySpecific)).toBe(false);
+    expect(isDeveloperFormDirty(emptySpecific, openScope)).toBe(true);
   });
 
   it("round-trips the outreach device draft and stores blank as unbound", () => {
@@ -143,7 +178,9 @@ describe("Affiliate business developer region editor", () => {
         form={{
           displayName: "Regional BD",
           creatorDisplayName: "Creator-facing BD",
+          shopScopeMode: "ALL" as const,
           regions: [],
+          shopIds: [],
           acceptingCreators: true,
           creatorIntakeLimitsEnabled: false,
           weeklyCreatorLimit: 100,
@@ -165,8 +202,10 @@ describe("Affiliate business developer region editor", () => {
 
     expect(SHOP_REGIONS).toEqual(Object.values(GQL.ShopRegion));
     expect(SHOP_REGIONS).not.toContain("ROW");
-    // Region checkboxes + acceptingCreators toggle + outreach-device toggle.
-    expect(screen.getAllByRole("checkbox")).toHaveLength(SHOP_REGIONS.length + 3);
+    // "All shops" is an explicit choice: no region/shop checkboxes until the
+    // supervisor picks "specific", leaving the acceptingCreators, intake-limit
+    // and outreach-device toggles.
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
     expect(screen.getByDisplayValue("Regional BD")).toBeTruthy();
     expect(screen.getByDisplayValue("Creator-facing BD")).toBeTruthy();
   });
