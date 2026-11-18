@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.9.59",
+    "date": "2026-11-18",
+    "en": [
+      "Translate Customer Service conversation messages into your language right in the conversation",
+      "The Customer Service conversations page now has category tabs with counts, and dims the list with a spinner while it reloads",
+      "The standalone Customer Service escalations page is retired",
+      "The Campaign wizard can write the collaboration invitation text, the first touch is split into an invitation intro and a direct message, and the wizard uses the full available width",
+      "Grant BD accounts access by region and by shop in the team settings"
+    ],
+    "zh": [
+      "客服会话中的消息可以直接翻译成你的语言",
+      "客服会话页新增带数量的分类标签，列表刷新时会变暗并显示加载圈",
+      "下线独立的客服转人工页面",
+      "推广计划向导支持撰写合作邀约文字，首次触达拆分为邀约开场和直接消息，向导也会充分利用可用宽度",
+      "团队设置中可以按站点和店铺给 BD 账号授权"
+    ]
+  },
+  {
     "version": "1.9.58",
     "date": "2026-11-16",
     "en": [
