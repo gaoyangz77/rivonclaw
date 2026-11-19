@@ -3048,6 +3048,7 @@ export default {
         noSoftRejectedSamples: "Tidak ada permohonan sampel yang diabaikan.",
         noMessages: "Tidak ada pesan yang perlu ditangani.",
         expiresAt: "Kedaluwarsa {{value}}",
+        awaitingPlatformExpiry: "Lewat batas waktu, menunggu TikTok",
         pendingSince: "Menunggu sejak {{value}}",
         protected: "Dilindungi",
         humanOnly: "Hanya manusia",

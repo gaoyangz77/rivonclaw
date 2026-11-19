@@ -3082,6 +3082,7 @@ export default {
         noSoftRejectedSamples: "Nessuna richiesta di campione ignorata.",
         noMessages: "Nessun messaggio da gestire.",
         expiresAt: "Scade {{value}}",
+        awaitingPlatformExpiry: "Scadenza superata, in attesa di TikTok",
         pendingSince: "In attesa dal {{value}}",
         protected: "Protetto",
         humanOnly: "Solo umano",

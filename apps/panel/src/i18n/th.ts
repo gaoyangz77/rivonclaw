@@ -2938,6 +2938,7 @@ export default {
         noSoftRejectedSamples: "ไม่มีคำขอตัวอย่างสินค้าที่ละเว้นแล้ว",
         noMessages: "ไม่มีข้อความที่ต้องจัดการ",
         expiresAt: "หมดอายุ {{value}}",
+        awaitingPlatformExpiry: "เลยกำหนดแล้ว รอ TikTok ยืนยัน",
         pendingSince: "รอตั้งแต่ {{value}}",
         protected: "ได้รับการคุ้มครอง",
         humanOnly: "มนุษย์เท่านั้น",

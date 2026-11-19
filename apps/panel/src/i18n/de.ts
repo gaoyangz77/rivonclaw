@@ -3099,6 +3099,7 @@ export default {
         noSoftRejectedSamples: "Keine ignorierten Musteranträge.",
         noMessages: "Keine offenen Creator-Nachrichten.",
         expiresAt: "Läuft {{value}} ab",
+        awaitingPlatformExpiry: "Frist überschritten, wartet auf TikTok",
         pendingSince: "Offen seit {{value}}",
         protected: "Geschützt",
         humanOnly: "Nur Mensch",

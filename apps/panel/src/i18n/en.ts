@@ -3496,6 +3496,7 @@ export default {
         noSamplesForStatus: "No Sample Applications match this status.",
         noMessages: "No Creator messages need attention.",
         expiresAt: "Expires {{value}}",
+        awaitingPlatformExpiry: "Past deadline, awaiting TikTok",
         pendingSince: "Pending since {{value}}",
         protected: "Protected",
         humanOnly: "Human only",

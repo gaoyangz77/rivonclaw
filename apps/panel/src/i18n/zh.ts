@@ -3328,6 +3328,7 @@ export default {
         noSamplesForStatus: "当前状态下没有样品申请。",
         noMessages: "目前没有待处理的达人消息。",
         expiresAt: "{{value}} 到期",
+        awaitingPlatformExpiry: "已过截止时间，等待平台确认",
         pendingSince: "自 {{value}} 起待处理",
         protected: "受保护",
         humanOnly: "仅人工",

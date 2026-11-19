@@ -3099,6 +3099,7 @@ export default {
         noSoftRejectedSamples: "Aucune demande d’échantillon ignorée.",
         noMessages: "Aucun message à traiter.",
         expiresAt: "Expire {{value}}",
+        awaitingPlatformExpiry: "Délai dépassé, en attente de TikTok",
         pendingSince: "En attente depuis {{value}}",
         protected: "Protégé",
         humanOnly: "Humain uniquement",

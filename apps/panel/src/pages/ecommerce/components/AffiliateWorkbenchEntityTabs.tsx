@@ -664,7 +664,9 @@ function AffiliateWorkbenchSampleList({
                       </td>
                       <td>
                         <div className="affiliate-workbench-cell-expiry">
-                          {row.sampleApplication.approveExpirationAt
+                          {awaitingPlatformExpiry(row.sampleApplication, nowMs)
+                            ? t("ecommerce.affiliateWorkspace.workbench.awaitingPlatformExpiry")
+                            : row.sampleApplication.approveExpirationAt
                             ? t("ecommerce.affiliateWorkspace.workbench.expiresAt", {
                                 value: formatLocalizedRelativeTime(
                                   new Date(row.sampleApplication.approveExpirationAt).getTime(),
@@ -702,6 +704,7 @@ function AffiliateWorkbenchSampleList({
                       <td>
                         <ExpiryCell
                           approveExpirationAt={row.sampleApplication.approveExpirationAt}
+                          awaitingPlatform={awaitingPlatformExpiry(row.sampleApplication, nowMs)}
                           nowMs={nowMs}
                         />
                       </td>
@@ -1288,13 +1291,40 @@ function TimeCell({ value }: { value: string }) {
   );
 }
 
+/**
+ * Past TikTok's stated deadline but not yet cancelled by TikTok (ADR-111):
+ * TikTok expires applications in scheduled batches, so the application is
+ * still reviewable until its cancellation arrives.
+ */
+function awaitingPlatformExpiry(
+  sampleApplication: Pick<GQL.SampleApplicationRecord, "approveExpirationAt" | "sampleWorkStatus">,
+  nowMs: number,
+): boolean {
+  return (
+    (sampleApplication.sampleWorkStatus === GQL.SampleWorkStatus.RequestPendingReview
+      || sampleApplication.sampleWorkStatus === GQL.SampleWorkStatus.RequestPendingPartnerReview)
+    && sampleApplication.approveExpirationAt != null
+    && new Date(sampleApplication.approveExpirationAt).getTime() <= nowMs
+  );
+}
+
 function ExpiryCell({
   approveExpirationAt,
+  awaitingPlatform,
   nowMs,
 }: {
   approveExpirationAt?: string | null;
+  awaitingPlatform: boolean;
   nowMs: number;
 }) {
+  const { t } = useTranslation();
+  if (awaitingPlatform) {
+    return (
+      <div className="affiliate-workbench-cell-expiry affiliate-workbench-cell-expiry-danger">
+        {t("ecommerce.affiliateWorkspace.workbench.awaitingPlatformExpiry")}
+      </div>
+    );
+  }
   if (!approveExpirationAt) {
     return (
       <div className="affiliate-workbench-cell-expiry affiliate-workbench-cell-expiry-muted">—</div>
