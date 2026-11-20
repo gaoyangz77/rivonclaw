@@ -377,9 +377,7 @@ export const CustomerServiceConversationsPage = observer(function ConversationsP
     let countsTimer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = panelEventBus.subscribe("cs-conversation-changed", (raw) => {
       workspace.ingestConversationChanged(raw);
-      if (workspace.selectedConversationId) {
-        workspace.fetchConversationMessages(i18n.language);
-      }
+      void workspace.refreshMessagesAfterConversationChanged(raw, i18n.language);
       if (countsTimer) clearTimeout(countsTimer);
       countsTimer = setTimeout(() => {
         countsTimer = null;

@@ -1125,6 +1125,56 @@ export const CustomerServiceWorkspaceModel = types
           self.conversationMessagesLoading = false;
         }
       }),
+      /**
+       * Live update for the open conversation: merges its newest page into what is loaded.
+       * Older pages the operator scrolled back to, and the cursor for loading further back, stay
+       * as they are, and no loading state is shown. Changes to other conversations are ignored.
+       */
+      refreshMessagesAfterConversationChanged: flow(function* (raw: unknown, locale?: string) {
+        const changed = readConversationChanged(raw);
+        const shopId = self.selectedConversationShopId;
+        const conversationId = self.selectedConversationId;
+        if (
+          !changed ||
+          !conversationId ||
+          changed.conversationId !== conversationId ||
+          (shopId && changed.shopId !== shopId) ||
+          // The initial load already fetches the newest page.
+          self.conversationMessagesLoading
+        )
+          return;
+        try {
+          const result = yield client().query({
+            query: CS_CONVERSATION_MESSAGES_QUERY,
+            variables: {
+              shopId: changed.shopId ?? shopId,
+              conversationId,
+              pageSize: 10,
+              pageToken: undefined,
+              locale,
+            },
+            fetchPolicy: "network-only",
+          });
+          if (
+            self.selectedConversationId !== conversationId ||
+            self.selectedConversationShopId !== shopId ||
+            self.conversationMessagesLoading
+          )
+            return;
+          const page = result.data?.ecommerceGetConversationMessages as
+            | GQL.CustomerServiceMessageSummaryPage
+            | undefined;
+          self.conversationMessages.replace(
+            mergeConversationMessages(
+              self.conversationMessages as unknown as Record<string, any>[],
+              (page?.items ?? []) as Record<string, any>[],
+            ) as any,
+          );
+        } catch (err) {
+          if (self.selectedConversationId !== conversationId) return;
+          self.conversationMessagesError = errorMessage(err);
+        }
+      }),
       toggleConversationOrder(orderId: string) {
         const ids = (self as any).selectedConversationOrderIds as string[];
         if (!ids.includes(orderId)) return;
