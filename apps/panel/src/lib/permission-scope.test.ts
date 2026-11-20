@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canSeeRoute, isBusinessDeveloperOnly } from "./permission-scope.js";
+import { canSeeRoute, isAffiliateStaffOnly, isBusinessDeveloperOnly } from "./permission-scope.js";
 
 const AFFILIATE = "AFFILIATE";
 const AFFILIATE_BUSINESS_DEVELOPER = "AFFILIATE_BUSINESS_DEVELOPER";
@@ -73,5 +73,37 @@ describe("isBusinessDeveloperOnly", () => {
   it("is false for a member without the BD workspace scope", () => {
     expect(isBusinessDeveloperOnly({ isOwner: false, permissionScopes: [AFFILIATE] })).toBe(false);
     expect(isBusinessDeveloperOnly({ isOwner: false, permissionScopes: [] })).toBe(false);
+  });
+});
+
+describe("isAffiliateStaffOnly", () => {
+  const TEAM_LEAD = "AFFILIATE_TEAM_LEAD";
+  const REGION_ADMIN = "AFFILIATE_REGION_ADMIN";
+
+  it("is true for a member holding a staff scope and no supervisor or BD scope", () => {
+    expect(isAffiliateStaffOnly({ isOwner: false, permissionScopes: [TEAM_LEAD] })).toBe(true);
+    expect(isAffiliateStaffOnly({ isOwner: false, permissionScopes: [REGION_ADMIN] })).toBe(true);
+    expect(
+      isAffiliateStaffOnly({ isOwner: false, permissionScopes: [TEAM_LEAD, REGION_ADMIN] }),
+    ).toBe(true);
+  });
+
+  it("is false once the member is a supervisor or a BD, who win over the staff scopes", () => {
+    expect(
+      isAffiliateStaffOnly({ isOwner: false, permissionScopes: [TEAM_LEAD, AFFILIATE] }),
+    ).toBe(false);
+    expect(
+      isAffiliateStaffOnly({
+        isOwner: false,
+        permissionScopes: [REGION_ADMIN, AFFILIATE_BUSINESS_DEVELOPER],
+      }),
+    ).toBe(false);
+  });
+
+  it("is false for owners, signed-out users and members with no staff scope", () => {
+    expect(isAffiliateStaffOnly({ isOwner: true, permissionScopes: [TEAM_LEAD] })).toBe(false);
+    expect(isAffiliateStaffOnly(null)).toBe(false);
+    expect(isAffiliateStaffOnly(undefined)).toBe(false);
+    expect(isAffiliateStaffOnly({ isOwner: false, permissionScopes: [BILLING] })).toBe(false);
   });
 });

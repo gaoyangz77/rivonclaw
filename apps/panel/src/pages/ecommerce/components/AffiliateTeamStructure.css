@@ -1,0 +1,146 @@
+/* Admin team structure tab (ADR-112): hierarchy tree, lead and region admin
+   editors. Panel and modal insets belong to the design system; this file only
+   lays out the rows inside them. */
+.affiliate-team-structure {
+  display: grid;
+  gap: var(--tk-v1-space-4);
+  min-width: 0;
+}
+
+.affiliate-team-structure-tree {
+  display: grid;
+  gap: var(--tk-v1-space-5);
+}
+
+.affiliate-team-structure-list {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A nested list hangs off a guide line, so depth reads without a fixed level count. */
+.affiliate-team-structure-list.is-nested {
+  margin: var(--tk-v1-space-2) 0 0 var(--tk-v1-space-4);
+  padding-left: var(--tk-v1-space-4);
+  border-left: 1px solid var(--tk-v1-border-default);
+}
+
+.affiliate-team-structure-node {
+  min-width: 0;
+}
+
+.affiliate-team-structure-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2) var(--tk-v1-space-4);
+  padding: var(--tk-v1-space-2) var(--tk-v1-space-3);
+  border: 1px solid var(--tk-v1-border-subtle);
+  border-radius: var(--tk-v1-radius-3);
+  background: var(--tk-v1-bg-surface);
+}
+
+.affiliate-team-structure-identity {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+}
+
+.affiliate-team-structure-name {
+  display: grid;
+  min-width: 0;
+  color: var(--tk-v1-fg-default);
+}
+
+.affiliate-team-structure-name small,
+.affiliate-team-structure-empty,
+.affiliate-team-structure-group-header small,
+.affiliate-team-structure-archived-row small,
+.affiliate-team-structure-scope {
+  color: var(--tk-v1-fg-muted);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-team-structure-reports {
+  display: flex;
+  flex: 0 1 300px;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+  min-width: 0;
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-team-structure-reports > span {
+  flex: none;
+}
+
+.affiliate-team-structure-reports .custom-select,
+.affiliate-team-structure-reports > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.affiliate-team-structure-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--tk-v1-space-1);
+  margin-left: auto;
+}
+
+.affiliate-team-structure-scope {
+  flex: 1 1 240px;
+  margin: 0;
+  min-width: 0;
+}
+
+.affiliate-team-structure-group {
+  display: grid;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-team-structure-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tk-v1-space-2);
+  color: var(--tk-v1-fg-default);
+}
+
+.affiliate-team-structure-empty {
+  margin: 0;
+}
+
+.affiliate-team-structure-archived {
+  color: var(--tk-v1-fg-secondary);
+  font-size: var(--tk-v1-type-supporting);
+}
+
+.affiliate-team-structure-archived summary {
+  cursor: pointer;
+}
+
+.affiliate-team-structure-archived .affiliate-team-structure-list {
+  margin-top: var(--tk-v1-space-2);
+}
+
+.affiliate-team-structure-archived-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+/* Editor modals */
+.affiliate-team-structure-field {
+  display: grid;
+  gap: var(--tk-v1-space-1);
+  min-width: 0;
+  color: var(--tk-v1-fg-default);
+  font-size: var(--tk-v1-type-supporting);
+}

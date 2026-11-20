@@ -103,6 +103,19 @@ import {
 } from "./affiliate-proposal-state.js";
 import { sampleOrderIdForCard } from "./affiliate-sample-order-id.js";
 import { isBusinessDeveloperOnly } from "../../lib/permission-scope.js";
+import { useAffiliateAccess } from "../../hooks/useAffiliateAccess.js";
+import { useAffiliateStaffDirectory } from "../../hooks/useAffiliateStaffDirectory.js";
+import {
+  affiliateAccessCreatorTab,
+  affiliateAccessMaySeeCreatorTab,
+  creatorWithinShopScope,
+} from "../../lib/affiliate-access.js";
+import {
+  affiliateStaffDeveloperOptions,
+  mergeAffiliateStaffDevelopers,
+} from "../../lib/affiliate-staff-directory.js";
+import { AffiliateStaffNotice } from "../../components/ecommerce/AffiliateStaffNotice.js";
+import { AffiliateAllocationControl } from "./components/AffiliateAllocationControl.js";
 import {
   AFFILIATE_WORKBENCH_MY_BD_VALUE,
   affiliateWorkbenchBdInput,
@@ -1098,6 +1111,10 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   const user = entityStore.currentUser;
   // Derived on every render so it follows the signed-in user (ADR 085).
   const businessDeveloperOnly = isBusinessDeveloperOnly(user);
+  // Team lead (ADR-112): read-only over the subtree. The BD roster is not theirs to read.
+  const access = useAffiliateAccess();
+  const staffAccess = access.kind === "STAFF";
+  const staffDirectory = useAffiliateStaffDirectory(access);
   const restrictedWorkbenchOwner = businessDeveloperOnly && kind === "AGENT";
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
@@ -1170,7 +1187,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
   }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
     variables: { includeArchived: true },
     fetchPolicy: "cache-and-network",
-    skip: !user,
+    skip: !user || staffAccess,
   });
 
   useEffect(() => {
@@ -1181,17 +1198,25 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
     }
   }, [businessDeveloperData, entityStore.affiliateWorkspace]);
 
-  const businessDeveloperOptions = affiliateWorkbenchBdOptions(
-    businessDeveloperOnly,
-    businessDeveloperData?.affiliateBusinessDevelopers ?? [],
-    {
-      all: t("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
-      own: t("ecommerce.affiliateWorkspace.myCreatorsFilter"),
-      public: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
-      assigned: t("ecommerce.affiliateWorkspace.assignedCreatorsFilter"),
-    },
-    kind,
-  );
+  const businessDeveloperOptions = staffAccess
+    ? affiliateStaffDeveloperOptions(staffDirectory.teamDevelopers, {
+        all: t("ecommerce.affiliateStaff.allMyTeam"),
+        publicPool: {
+          value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
+          label: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
+        },
+      })
+    : affiliateWorkbenchBdOptions(
+        businessDeveloperOnly,
+        businessDeveloperData?.affiliateBusinessDevelopers ?? [],
+        {
+          all: t("ecommerce.affiliateWorkspace.allBusinessDevelopers"),
+          own: t("ecommerce.affiliateWorkspace.myCreatorsFilter"),
+          public: t("ecommerce.affiliateWorkspace.publicCreatorsFilter"),
+          assigned: t("ecommerce.affiliateWorkspace.assignedCreatorsFilter"),
+        },
+        kind,
+      );
   const proposalFilterOptions = useMemo(
     () =>
       PROPOSAL_FILTERS.map((filter) => ({
@@ -1559,6 +1584,7 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
           subtitle={t(workbenchSubtitleKey)}
         />
       )}
+      <AffiliateStaffNotice />
       <TkTabs
         items={workbenchTabs.map(([id, label]) => ({
           id,
@@ -1595,7 +1621,11 @@ const AffiliateWorkbenchSurface = observer(function AffiliateWorkbenchSurface({
                 value={selectedBusinessDeveloperId}
                 onChange={setSelectedBusinessDeveloperId}
                 className="affiliate-status-select"
-                disabled={businessDevelopersLoading && businessDeveloperOptions.length === 1}
+                disabled={
+                  staffAccess
+                    ? staffDirectory.loading && staffDirectory.teamDevelopers.length === 0
+                    : businessDevelopersLoading && businessDeveloperOptions.length === 1
+                }
               />
               {workbenchTab === "ESCALATIONS" ? null : agentWorkspaceView === "ALL" ? (
                 <TkChoiceSelect
@@ -2054,6 +2084,8 @@ function AffiliateEscalationDetailModal({
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  // Answering the Agent is daily work: staff read the question and nothing more (ADR-112).
+  const access = useAffiliateAccess();
   // One free-text answer, sent as `decision`: staff say what they decided and
   // what the Agent should do next in the same breath, exactly as they would to
   // a colleague. Submitting resolves the escalation; there is no interim state.
@@ -2149,40 +2181,44 @@ function AffiliateEscalationDetailModal({
             labelKey="ecommerce.affiliateWorkspace.escalations.copyRelationshipId"
           />
         </div>
-        <form
-          className="affiliate-escalation-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submitAnswer();
-          }}
-        >
-          <div className="tk-v1-field">
-            <label className="tk-v1-label" htmlFor={answerId}>
-              {t("ecommerce.affiliateWorkspace.escalations.answerLabel")}
-            </label>
-            <textarea
-              id={answerId}
-              className="input-full textarea-resize-vertical"
-              rows={6}
-              value={answer}
-              disabled={resolving}
-              aria-describedby={answerHintId}
-              placeholder={t("ecommerce.affiliateWorkspace.escalations.answerPlaceholder")}
-              onChange={(event) => setAnswer(event.target.value)}
-            />
-            <div id={answerHintId} className="tk-v1-field-support">
-              {t("ecommerce.affiliateWorkspace.escalations.answerHint")}
+        {access.readOnly ? (
+          <TkAlert tone="info">{t("ecommerce.affiliateStaff.escalationReadOnly")}</TkAlert>
+        ) : (
+          <form
+            className="affiliate-escalation-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitAnswer();
+            }}
+          >
+            <div className="tk-v1-field">
+              <label className="tk-v1-label" htmlFor={answerId}>
+                {t("ecommerce.affiliateWorkspace.escalations.answerLabel")}
+              </label>
+              <textarea
+                id={answerId}
+                className="input-full textarea-resize-vertical"
+                rows={6}
+                value={answer}
+                disabled={resolving}
+                aria-describedby={answerHintId}
+                placeholder={t("ecommerce.affiliateWorkspace.escalations.answerPlaceholder")}
+                onChange={(event) => setAnswer(event.target.value)}
+              />
+              <div id={answerHintId} className="tk-v1-field-support">
+                {t("ecommerce.affiliateWorkspace.escalations.answerHint")}
+              </div>
             </div>
-          </div>
-          <div className="tk-v1-form-action-row affiliate-escalation-actions">
-            <TkButton variant="secondary" type="button" onClick={onClose} disabled={resolving}>
-              {t("common.close")}
-            </TkButton>
-            <TkButton variant="primary" type="submit" loading={resolving} disabled={!canSubmit}>
-              {t("ecommerce.affiliateWorkspace.escalations.submit")}
-            </TkButton>
-          </div>
-        </form>
+            <div className="tk-v1-form-action-row affiliate-escalation-actions">
+              <TkButton variant="secondary" type="button" onClick={onClose} disabled={resolving}>
+                {t("common.close")}
+              </TkButton>
+              <TkButton variant="primary" type="submit" loading={resolving} disabled={!canSubmit}>
+                {t("ecommerce.affiliateWorkspace.escalations.submit")}
+              </TkButton>
+            </div>
+          </form>
+        )}
       </div>
     </AffiliateDetailModal>
   );
@@ -3284,6 +3320,10 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const user = entityStore.currentUser;
   // A business developer cannot open the BD roster detail or reassign owners (ADR 085).
   const businessDeveloperOnly = isBusinessDeveloperOnly(user);
+  // Staff logins (ADR-112) read through their own BD directory and cannot open the roster either.
+  const access = useAffiliateAccess();
+  const staffAccess = access.kind === "STAFF";
+  const staffDirectory = useAffiliateStaffDirectory(access);
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter(
     // Manual Creator CRM is available without enabling the Affiliate Agent.
@@ -3389,12 +3429,27 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
     variables: { includeArchived: true },
     fetchPolicy: "cache-and-network",
-    skip: !user,
+    skip: !user || staffAccess,
   });
   const businessDevelopers = businessDeveloperData?.affiliateBusinessDevelopers ?? [];
+  const staffDevelopers = mergeAffiliateStaffDevelopers(
+    staffDirectory.teamDevelopers,
+    staffDirectory.regionDevelopers,
+  );
   const businessDeveloperById = new Map(
     businessDevelopers.map((developer) => [developer.id, developer] as const),
   );
+  // What a Creator card names its owner by: the roster for a supervisor or BD, the staff directory otherwise.
+  const ownerLabelById = new Map<
+    string,
+    Pick<GQL.AffiliateBusinessDeveloper, "id" | "displayName" | "archivedAt">
+  >([
+    ...staffDevelopers.map((developer) => [developer.id, developer] as const),
+    ...businessDeveloperById,
+  ]);
+  // The ids of the shops this login reads: a region admin may allocate a Creator only
+  // when every shop of it is in this set.
+  const scopeShopIds = new Set(entityStore.shops.map((shop) => shop.id));
 
   const { data: projectionHealthData, refetch: refetchProjectionHealth } = useQuery<
     { affiliateOperationalProjectionHealth: GQL.AffiliateOperationalProjectionHealthPayload },
@@ -3402,7 +3457,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   >(AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY, {
     variables: { shopId: selectedShopId },
     fetchPolicy: "cache-and-network",
-    skip: !user || !selectedShopId,
+    // A region admin may not read projection health (ADR-112).
+    skip: !user || !selectedShopId || (staffAccess && !access.isTeamLead),
   });
   const projectionHealth = projectionHealthData?.affiliateOperationalProjectionHealth;
   const projectionHistoryIncomplete =
@@ -3556,7 +3612,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               searchable
               searchPlaceholder={t("common.searchShops")}
             />
-            {!businessDeveloperOnly && <AffiliateCreatorExportButton input={creatorFilters} />}
+            {!businessDeveloperOnly && !staffAccess && (
+              <AffiliateCreatorExportButton input={creatorFilters} />
+            )}
             <button
               className="btn btn-secondary"
               type="button"
@@ -3571,6 +3629,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           </AffiliateToolbar>
         }
       />
+
+      <AffiliateStaffNotice />
 
       {projectionHealth && !projectionHealth.ready ? (
         <div className="affiliate-projection-health-banner" role="status">
@@ -3632,8 +3692,28 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               value={selectedBusinessDeveloperId}
               onChange={setSelectedBusinessDeveloperId}
               includeUnassigned
+              options={
+                staffAccess
+                  ? affiliateStaffDeveloperOptions(staffDevelopers, {
+                      // A team lead's default is their team; a region admin's is every BD.
+                      all: t(
+                        access.isTeamLead && !access.isRegionAdmin
+                          ? "ecommerce.affiliateStaff.allMyTeam"
+                          : "ecommerce.affiliateWorkspace.allBusinessDevelopers",
+                      ),
+                      publicPool: {
+                        value: AFFILIATE_BUSINESS_DEVELOPER_UNASSIGNED_VALUE,
+                        label: t("ecommerce.affiliateTeam.aiTeam"),
+                      },
+                    })
+                  : undefined
+              }
               className="affiliate-creators-bd-filter"
-              disabled={businessDevelopersLoading && businessDevelopers.length === 0}
+              disabled={
+                staffAccess
+                  ? staffDirectory.loading && staffDevelopers.length === 0
+                  : businessDevelopersLoading && businessDevelopers.length === 0
+              }
             />
             <label className="affiliate-filter-field affiliate-creators-search">
               <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
@@ -3700,14 +3780,19 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 shopLabel={shopLabel}
                 businessDeveloper={
                   item.creatorRelation?.businessDeveloperId
-                    ? (businessDeveloperById.get(item.creatorRelation.businessDeveloperId) ?? null)
+                    ? (ownerLabelById.get(item.creatorRelation.businessDeveloperId) ?? null)
                     : null
                 }
                 onOpenBusinessDeveloper={
-                  businessDeveloperOnly ? null : setDetailBusinessDeveloperId
+                  businessDeveloperOnly || staffAccess ? null : setDetailBusinessDeveloperId
                 }
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
                 scopeShopId={selectedShopId}
+                allocation={
+                  access.canAllocate
+                    ? { scopeShopIds, onChanged: async () => void (await refetch()) }
+                    : null
+                }
               />
             ))}
             {creatorPage > 1 || hasMoreCreators ? (
@@ -3768,14 +3853,17 @@ function CreatorRelationshipCompactCard({
   onOpenBusinessDeveloper,
   onOpenRelationship,
   scopeShopId,
+  allocation,
 }: {
   item: AffiliateCreatorManagementItem;
   scopeShopId: string;
   shopLabel: (shopId: string) => ShopDisplayLabel;
-  businessDeveloper: GQL.AffiliateBusinessDeveloper | null;
-  /** Null when the viewer may not open the BD roster detail (a BD-only member). */
+  businessDeveloper: Pick<GQL.AffiliateBusinessDeveloper, "id" | "displayName" | "archivedAt"> | null;
+  /** Null when the viewer may not open the BD roster detail (a BD-only member or staff). */
   onOpenBusinessDeveloper: ((businessDeveloperId: string) => void) | null;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
+  /** A region admin (ADR-112) allocates from the card; null for everyone else. */
+  allocation: { scopeShopIds: ReadonlySet<string>; onChanged: () => Promise<unknown> } | null;
 }) {
   const { t } = useTranslation();
   const profile = item.creatorProfile;
@@ -4033,6 +4121,15 @@ function CreatorRelationshipCompactCard({
             {businessDeveloperLabel}
           </span>
         )}
+        {allocation &&
+        item.creatorRelation?.id &&
+        creatorWithinShopScope(relationshipShopIds, allocation.scopeShopIds) ? (
+          <AffiliateAllocationControl
+            creatorRelationshipId={item.creatorRelation.id}
+            businessDeveloperId={item.creatorRelation.businessDeveloperId ?? null}
+            onChanged={allocation.onChanged}
+          />
+        ) : null}
       </section>
 
       <CreatorPerformanceCompactRow source={item.creatorRelation} scopeShopId={scopeShopId} />
@@ -6449,7 +6546,9 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const user = entityStore.currentUser;
   // A business developer reads collaborations but does not create, edit or remove them,
   // nor change shop-wide open collaboration settings (ADR 085).
-  const canManageCollaborations = !isBusinessDeveloperOnly(user);
+  const access = useAffiliateAccess();
+  // Staff logins (ADR-112) read collaborations as well and change none.
+  const canManageCollaborations = !isBusinessDeveloperOnly(user) && !access.readOnly;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
@@ -6702,6 +6801,8 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
           )
         }
       />
+
+      <AffiliateStaffNotice />
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head">
@@ -7017,6 +7118,8 @@ export function AffiliateMessageTargetCollaborationCard({ part, creatorRelations
   onRefresh: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
+  // Loading a card refreshes it from the platform, a write the Backend refuses staff (ADR-112).
+  const readOnly = useAffiliateAccess().readOnly;
   const [detailOpen, setDetailOpen] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -7060,9 +7163,9 @@ export function AffiliateMessageTargetCollaborationCard({ part, creatorRelations
       </div>}
       {part.targetCollaborationRefreshToken ? <div className="affiliate-platform-collaboration-empty-row">
         <p>{t("ecommerce.affiliateWorkspace.messageTargetCard.missing")}</p>
-        <button className="btn btn-secondary" type="button" disabled={refreshing} onClick={() => void loadDetails()}>
+        {readOnly ? null : <button className="btn btn-secondary" type="button" disabled={refreshing} onClick={() => void loadDetails()}>
           {refreshing ? t("common.loading") : t("ecommerce.affiliateWorkspace.messageTargetCard.load")}
-        </button>
+        </button>}
       </div> : null}
       {refreshError ? <div role="alert" className="affiliate-message-send-error">{t("ecommerce.affiliateWorkspace.messageTargetCard.failed")} {refreshError}</div> : null}
       {detailOpen && collaboration ? <AffiliateCollaborationDetailModal collaborationId={collaboration.id}
@@ -7075,6 +7178,7 @@ export function AffiliateMessageEntityCard({ part, creatorRelationshipId, shopId
   part: GQL.AffiliateHistoryPart; creatorRelationshipId: string; shopId: string; onRefresh: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
+  const readOnly = useAffiliateAccess().readOnly;
   const [refresh, { loading }] = useMutation(REFRESH_AFFILIATE_MESSAGE_CARDS_MUTATION);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const prefix = "ecommerce.affiliateWorkspace.messageCards.";
@@ -7100,7 +7204,7 @@ export function AffiliateMessageEntityCard({ part, creatorRelationshipId, shopId
         allowInlineLoad={false} variant="compact" /> : <span>{t(`${prefix}unavailable`)}</span>}
       {sample && part.platformSampleApplicationId ? <PlatformIdCopy value={part.platformSampleApplicationId} /> : null}
     </>}
-    {part.cardRefreshToken ? <button type="button" className="btn btn-secondary btn-sm" disabled={loading} onClick={() => void load()}>
+    {part.cardRefreshToken && !readOnly ? <button type="button" className="btn btn-secondary btn-sm" disabled={loading} onClick={() => void load()}>
       {loading ? t("common.loading") : t(`${prefix}load`)}
     </button> : null}
     {errorKey ? <span role="alert">{t(`${prefix}${errorKey}`)}</span> : null}
@@ -7772,6 +7876,8 @@ export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetai
   onIgnore: (proposal: GQL.ActionProposal) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
+  // Deciding on a proposal is daily work, which staff logins do not do (ADR-112).
+  const access = useAffiliateAccess();
   const currentProjection = proposalProjectionSnapshot(affiliateWorkspace, bundle.proposal.id);
   const proposal = currentProjection
     ? hydrateAffiliateProposalProjection(currentProjection, bundle.proposal)
@@ -7782,6 +7888,7 @@ export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetai
     sensitive: false,
   };
   const isPending = proposal.status === GQL.ActionProposalStatus.Pending;
+  const canDecide = isPending && !access.readOnly;
   const titleId = `affiliate-agent-work-detail-${proposal.id}`;
   const relationshipId =
     proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId ?? null;
@@ -7934,16 +8041,16 @@ export const AgentWorkBundleDetailModal = observer(function AgentWorkBundleDetai
             shopLabel={primaryShopLabel}
             shopLabelForId={shopLabelForId}
             decidingProposal={decidingProposal}
-            allowDecisionActions={isPending}
+            allowDecisionActions={canDecide}
             variant="embedded"
             reviewLayout
             showRevisionHistory={false}
             affiliateWorkspace={affiliateWorkspace}
             onOpenCreator={onOpenCreator}
-            onApprove={isPending ? onApprove : undefined}
-            onReject={isPending ? onReject : undefined}
-            onRequestRevision={isPending ? onRequestRevision : undefined}
-            onIgnore={isPending ? onIgnore : undefined}
+            onApprove={canDecide ? onApprove : undefined}
+            onReject={canDecide ? onReject : undefined}
+            onRequestRevision={canDecide ? onRequestRevision : undefined}
+            onIgnore={canDecide ? onIgnore : undefined}
           />
         </div>
       </div>
@@ -10483,9 +10590,13 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const affiliateWorkspace = entityStore.affiliateWorkspace;
+  // Staff logins (ADR-112): a region admin reads fewer tabs, and neither kind reads the BD roster.
+  const access = useAffiliateAccess();
+  const staffAccess = access.kind === "STAFF";
+  const staffDirectory = useAffiliateStaffDirectory(access);
   const [activeTab, setActiveTab] = useState<
     "profile" | "overview" | "samples" | "platform" | "conversation" | "activity"
-  >(initialTab);
+  >(() => affiliateAccessCreatorTab(access, initialTab));
   const [scopeShopId, setScopeShopId] = useState("");
   const [pendingScopeShopId, setPendingScopeShopId] = useState<string | null>(null);
   const [contextInspectorOpen, setContextInspectorOpen] = useState(() =>
@@ -10567,13 +10678,13 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     item?.workItems?.[0]?.relationshipId ??
     null;
   useEffect(() => {
-    setActiveTab(initialTab);
+    setActiveTab(affiliateAccessCreatorTab(access, initialTab));
     setScopeShopId("");
     setPendingScopeShopId(null);
     setContextInspectorSection("overview");
     setProposalHistoryOpen(false);
     setDecidingProposalId(null);
-  }, [initialTab, relationshipId]);
+  }, [access, initialTab, relationshipId]);
   useEffect(() => {
     setPendingReplyToLifecycleEventId(replyToLifecycleEventId);
   }, [relationshipId, replyToLifecycleEventId]);
@@ -10715,7 +10826,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
   }>(AFFILIATE_BUSINESS_DEVELOPERS_QUERY, {
     variables: { includeArchived: true },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !managementVisible,
+    skip: !relationshipId || !managementVisible || staffAccess,
   });
   useEffect(() => {
     if (developerData)
@@ -10743,6 +10854,11 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
     entityStore.shops.map((shop) => [shop.id, shop.region ?? null] as const),
   );
   const creatorShopIds = rawShopStates.map((state) => state.shopId);
+  // A region admin allocates a Creator only when every shop of it is in the admin's scope.
+  const canAllocateCreator =
+    access.canAllocate &&
+    Boolean(relationshipId) &&
+    creatorWithinShopScope(creatorShopIds, new Set(entityStore.shops.map((shop) => shop.id)));
   const ownerOptions = ownerAssignmentCandidates<
     (typeof affiliateWorkspace.businessDevelopers)[number]
   >(
@@ -10767,6 +10883,13 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
         ? relationshipDetail.businessDeveloper
         : null))
     : null;
+  // A staff login never loads the BD roster, so it names the owner from its own directory.
+  const staffOwnerName = staffAccess
+    ? mergeAffiliateStaffDevelopers(
+        staffDirectory.teamDevelopers,
+        staffDirectory.regionDevelopers,
+      ).find((developer) => developer.id === relationshipOwnerId)?.displayName
+    : undefined;
   const effectiveAiLabel = relationshipProtection
     ? t("ecommerce.affiliateWorkspace.relationshipProtected")
     : relationshipOwner?.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly
@@ -11514,7 +11637,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
       activityBottomRef.current?.scrollIntoView({ block: "end" });
     });
   }, [activeTab, activityEntries.length, scopeKey]);
-  const tabItems = [
+  const allTabItems = [
     {
       id: "overview" as const,
       label: t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork"),
@@ -11557,6 +11680,7 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
         : (relationshipDetail?.counts.lifecycleEventCount ?? activityEntries.length),
     },
   ];
+  const tabItems = allTabItems.filter((tab) => affiliateAccessMaySeeCreatorTab(access, tab.id));
 
   async function loadOlderConversationMessages(): Promise<void> {
     if (!canLoadOlderConversation || conversationLoading || !relationshipId) return;
@@ -11837,7 +11961,9 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
         </div>
         {relationshipDetail && !canPerformDailyOperations ? (
           <TkAlert className="affiliate-relationship-readonly-banner">
-            {t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly")}
+            {staffAccess
+              ? t("ecommerce.affiliateStaff.creatorViewOnly")
+              : t("ecommerce.affiliateWorkspace.workbench.otherBdReadOnly")}
           </TkAlert>
         ) : null}
         <div className="affiliate-collaboration-modal-body affiliate-relationship-workspace-body">
@@ -11852,10 +11978,14 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     id: "overview",
                     label: t("ecommerce.affiliateWorkspace.relationshipInspectorOverview"),
                   },
-                  {
-                    id: "contacts",
-                    label: t("ecommerce.affiliateWorkspace.relationshipInspectorContacts"),
-                  },
+                  ...(access.canReadCreatorContacts
+                    ? [
+                        {
+                          id: "contacts",
+                          label: t("ecommerce.affiliateWorkspace.relationshipInspectorContacts"),
+                        },
+                      ]
+                    : []),
                   {
                     id: "management",
                     label: t("ecommerce.affiliateWorkspace.relationshipInspectorManagement"),
@@ -11916,12 +12046,12 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                   <span>{t("ecommerce.affiliateWorkspace.relationshipOwner")}</span>
                   <strong>{effectiveAiLabel}</strong>
                 </div>
-                {businessDeveloperOnly ? (
+                {businessDeveloperOnly || staffAccess ? (
                   <div className="affiliate-relationship-owner-value">
                     <span>{t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}</span>
                     <strong>
                       {relationshipOwnerId
-                        ? (relationshipOwner?.displayName ?? "—")
+                        ? (relationshipOwner?.displayName ?? staffOwnerName ?? "—")
                         : t("ecommerce.affiliateTeam.aiTeam")}
                     </strong>
                   </div>
@@ -11950,6 +12080,15 @@ const CreatorRelationshipDetailContent = observer(function CreatorRelationshipDe
                     creatorRelationshipId={relationshipId}
                     onClaimed={async (businessDeveloperId) => {
                       setRelationshipOwnerId(businessDeveloperId);
+                      await refetchRelationshipDetail();
+                    }}
+                  />
+                ) : null}
+                {canAllocateCreator && relationshipId ? (
+                  <AffiliateAllocationControl
+                    creatorRelationshipId={relationshipId}
+                    businessDeveloperId={relationshipOwnerId || null}
+                    onChanged={async () => {
                       await refetchRelationshipDetail();
                     }}
                   />

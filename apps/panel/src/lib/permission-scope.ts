@@ -49,3 +49,24 @@ export function isBusinessDeveloperOnly(user: ScopeHolder | null | undefined): b
     !user.permissionScopes.includes(GQL.PermissionScope.Affiliate)
   );
 }
+
+/**
+ * Whether the user signs in to Affiliate as staff only (ADR-112): a member
+ * whose role holds the team lead and/or region admin scope and nothing that
+ * makes them a supervisor or a BD. Staff read (team lead) or allocate (region
+ * admin); the Panel hides every daily-work control for them.
+ *
+ * The scopes only say which pages may open. Which facet the login really has
+ * comes from its Affiliate-side profile, read through
+ * `affiliateViewerCapabilities`; a scope without a profile sees nothing.
+ */
+export function isAffiliateStaffOnly(user: ScopeHolder | null | undefined): boolean {
+  if (!user || user.isOwner) return false;
+  const scopes = user.permissionScopes ?? [];
+  return (
+    (scopes.includes(GQL.PermissionScope.AffiliateTeamLead) ||
+      scopes.includes(GQL.PermissionScope.AffiliateRegionAdmin)) &&
+    !scopes.includes(GQL.PermissionScope.Affiliate) &&
+    !scopes.includes(GQL.PermissionScope.AffiliateBusinessDeveloper)
+  );
+}

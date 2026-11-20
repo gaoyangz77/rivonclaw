@@ -24,6 +24,7 @@ import {
   DownloadIcon,
   GlobeIcon,
   InfoIcon,
+  ModuleIcon,
   RefreshIcon,
   SettingsIcon,
   UserIcon,
@@ -94,6 +95,7 @@ import { AffiliateBusinessDeveloperShopScopeEditor } from "./components/Affiliat
 import { AffiliateBusinessDeveloperShopScopeSummary } from "./components/AffiliateBusinessDeveloperShopScopeSummary.js";
 import { AffiliateCreatorAddModal } from "./components/AffiliateCreatorAddModal.js";
 import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
+import { AffiliateTeamStructurePanel } from "./components/AffiliateTeamStructurePanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
 import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxyPanel.js";
 import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
@@ -129,7 +131,7 @@ export const CREATOR_BULK_UPDATE_TEMPLATE_HEADERS = AFFILIATE_CREATOR_UPDATE_TEM
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
 type DeveloperDetailTab = "CHANNELS" | "SETTINGS" | "LOGIN";
-type TeamPageTab = "TEAM" | "ASSIGNMENTS" | "SAFETY" | "BUSINESS";
+type TeamPageTab = "TEAM" | "STRUCTURE" | "ASSIGNMENTS" | "SAFETY" | "BUSINESS";
 type ProtectionImportView = "ADD" | "RESOLVE" | "PREVIEW";
 type ChannelAccount = {
   id: string;
@@ -408,6 +410,7 @@ export function writeDeveloperInputFrom(
 }
 
 function readTeamPageTab(view?: string): TeamPageTab {
+  if (view === "structure") return "STRUCTURE";
   if (view === "assignments") return "ASSIGNMENTS";
   if (view === "safety") return "SAFETY";
   if (view === "business") return "BUSINESS";
@@ -416,6 +419,7 @@ function readTeamPageTab(view?: string): TeamPageTab {
 
 const TEAM_PAGE_TAB_VIEWS: Record<TeamPageTab, string> = {
   TEAM: "team",
+  STRUCTURE: "structure",
   ASSIGNMENTS: "assignments",
   SAFETY: "safety",
   BUSINESS: "business",
@@ -1829,6 +1833,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
       icon: <UserIcon />,
     },
     {
+      id: "STRUCTURE",
+      label: t("ecommerce.affiliateTeam.structureTab"),
+      summary: t("ecommerce.affiliateTeam.structureTabSummary"),
+      icon: <ModuleIcon />,
+    },
+    {
       id: "ASSIGNMENTS",
       label: t("ecommerce.affiliateTeam.creatorAssignmentsTab"),
       summary: `${t("ecommerce.affiliateTeam.protectedCreators")} ${protectedCreatorCount} · ${t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}`,
@@ -2570,6 +2580,18 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage({
             <AffiliateApprovalPolicyPanel />
           </div>
         </section>
+      </div>
+
+      <div
+        id="affiliate-team-panel-structure"
+        className="affiliate-team-page-tab-panel is-structure"
+        role="tabpanel"
+        aria-labelledby="affiliate-team-tab-structure"
+        data-tutorial-id="affiliate-team-structure"
+        hidden={pageTab !== "STRUCTURE"}
+      >
+        {/* Mounted only while open: the structure is an admin-only read nobody else needs. */}
+        {pageTab === "STRUCTURE" && !detailOnlyDeveloper && <AffiliateTeamStructurePanel />}
       </div>
 
       <div

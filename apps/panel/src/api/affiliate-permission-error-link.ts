@@ -19,7 +19,9 @@ export function createAffiliatePermissionErrorLink(): ApolloLink {
               ? "ecommerce.affiliateWorkspace.workbench.otherBdOperationForbidden"
               : reason === "AFFILIATE_OPERATION_NOT_PERMITTED"
                 ? "ecommerce.affiliateWorkspace.workbench.operationNotPermitted"
-                : null;
+                : reason === "AFFILIATE_CREATOR_OUTSIDE_REGION_SCOPE"
+                  ? "ecommerce.affiliateStaff.creatorOutsideRegionScope"
+                  : null;
             return key && i18n.exists(key) ? { ...error, message: i18n.t(key) } : error;
           }),
         });

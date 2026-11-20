@@ -57,6 +57,7 @@ import {
   isSampleRejectedByPlatform,
 } from "./AffiliateSampleReview.js";
 import { affiliateWorkbenchBdInput } from "../affiliate-workbench-bd-filter.js";
+import { useAffiliateAccess } from "../../../hooks/useAffiliateAccess.js";
 import { useWorkbenchPagination } from "../useWorkbenchPagination.js";
 import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
 
@@ -191,6 +192,8 @@ function AffiliateWorkbenchSampleList({
 }: Omit<Props, "tab">) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  // Reopening a sample is daily work, which a staff login does not do (ADR-112).
+  const readOnly = useAffiliateAccess().readOnly;
   const [statusFilter, setStatusFilter] = useState<GQL.AffiliateWorkbenchSampleStatusFilter>(
     GQL.AffiliateWorkbenchSampleStatusFilter.PendingReview,
   );
@@ -680,7 +683,7 @@ function AffiliateWorkbenchSampleList({
                       <td>
                         <div className="affiliate-workbench-cell-actions">
                           {row.sampleApplication.sampleWorkStatus ===
-                          GQL.SampleWorkStatus.RequestPendingReview ? (
+                            GQL.SampleWorkStatus.RequestPendingReview && !readOnly ? (
                             <button
                               className="btn btn-secondary"
                               type="button"

@@ -17,6 +17,7 @@ import th from "./th.js";
 import { LEGACY_I18N_BACKFILL } from "./legacy-backfill.js";
 import { RECENT_TRANSLATIONS } from "./recent-translations.js";
 import { AFFILIATE_TEAM_TRANSLATIONS } from "./affiliate-team-translations.js";
+import { AFFILIATE_STAFF_TRANSLATIONS } from "./affiliate-staff-translations.js";
 import { AFFILIATE_CHANNEL_TRANSLATIONS } from "./affiliate-channel-translations.js";
 import { AFFILIATE_PROJECTION_TRANSLATIONS } from "./affiliate-projection-translations.js";
 import { AFFILIATE_CREATOR_PROFILE_TRANSLATIONS } from "./affiliate-creator-profile-translations.js";
@@ -615,6 +616,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = BASE_LANGUAGE_OPTIONS
     resource: mergeTranslationResources(
       language.resource as TranslationResourceRecord,
       AFFILIATE_ESCALATION_TRANSLATIONS[language.code],
+      AFFILIATE_STAFF_TRANSLATIONS[language.code],
       AFFILIATE_MESSAGE_SEND_ERROR_TRANSLATIONS[language.code],
       AFFILIATE_MESSAGE_LOOKBACK_TRANSLATIONS[language.code],
       AFFILIATE_CREATOR_BUSINESS_TRANSLATIONS[language.code],

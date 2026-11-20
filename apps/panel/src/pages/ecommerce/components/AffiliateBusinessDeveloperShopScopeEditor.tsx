@@ -50,9 +50,18 @@ export const AffiliateBusinessDeveloperShopScopeEditor = observer(
   function AffiliateBusinessDeveloperShopScopeEditor({
     value,
     onChange,
+    allHint,
+    specificHint,
   }: {
     value: BusinessDeveloperShopScopeDraft;
     onChange: (next: BusinessDeveloperShopScopeDraft) => void;
+    /**
+     * Who the scope belongs to is only named in the two choice hints, so the
+     * region admin editor (ADR-112) swaps those and reuses everything else.
+     * Both default to the business developer wording.
+     */
+    allHint?: string;
+    specificHint?: string;
   }) {
     const { t } = useTranslation();
     const entityStore = useEntityStore();
@@ -85,12 +94,12 @@ export const AffiliateBusinessDeveloperShopScopeEditor = observer(
       {
         id: "ALL",
         label: t("ecommerce.affiliateTeam.shopScopeAll"),
-        hint: t("ecommerce.affiliateTeam.shopScopeAllHint"),
+        hint: allHint ?? t("ecommerce.affiliateTeam.shopScopeAllHint"),
       },
       {
         id: "SPECIFIC",
         label: t("ecommerce.affiliateTeam.shopScopeSpecific"),
-        hint: t("ecommerce.affiliateTeam.shopScopeSpecificHint"),
+        hint: specificHint ?? t("ecommerce.affiliateTeam.shopScopeSpecificHint"),
       },
     ];
 

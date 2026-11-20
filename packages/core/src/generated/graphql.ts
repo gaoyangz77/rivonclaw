@@ -64,7 +64,9 @@ export interface AccountServiceBillingStatus {
 
 /** Stable identity of a built-in account role. */
 export const AccountSystemRoleKey = {
+  AffiliateRegionAdmin: "AFFILIATE_REGION_ADMIN",
   AffiliateSupervisor: "AFFILIATE_SUPERVISOR",
+  AffiliateTeamLead: "AFFILIATE_TEAM_LEAD",
   BusinessDeveloper: "BUSINESS_DEVELOPER",
   CustomerService: "CUSTOMER_SERVICE",
 } as const;
@@ -806,6 +808,12 @@ export const AffiliateAgentEligibilityReason = {
 
 export type AffiliateAgentEligibilityReason =
   (typeof AffiliateAgentEligibilityReason)[keyof typeof AffiliateAgentEligibilityReason];
+/** A business developer an allocation may name, as a picker option (ADR-112). */
+export interface AffiliateAllocationBusinessDeveloper {
+  displayName: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+}
+
 export interface AffiliateAnalyticsBasisCount {
   basis: Scalars["String"]["output"];
   invitations: Scalars["Float"]["output"];
@@ -4533,6 +4541,20 @@ export interface AffiliateReachoutSection {
   responsesProxy: Scalars["Int"]["output"];
 }
 
+export interface AffiliateRegionAdminProfile {
+  archivedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  createdAt: Scalars["DateTimeISO"]["output"];
+  displayName: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  /** The member login this region admin signs in as. */
+  memberUserId: Scalars["ID"]["output"];
+  /** Dynamic shop grant: every shop of the account in these regions. */
+  regions: Array<ShopRegion>;
+  /** Static shop grant. With no regions either, the region admin is unrestricted. */
+  shopIds: Array<Scalars["ID"]["output"]>;
+  updatedAt: Scalars["DateTimeISO"]["output"];
+}
+
 export interface AffiliateRelationshipAgendaItem {
   affiliateCollaborationId?: Maybe<Scalars["ID"]["output"]>;
   affiliateEscalationId?: Maybe<Scalars["ID"]["output"]>;
@@ -5328,6 +5350,66 @@ export interface AffiliateTargetCollaborationUpdateProductInput {
   targetAdCommissionRateBps?: InputMaybe<Scalars["Int"]["input"]>;
 }
 
+/** A live business developer and where it hangs in the team tree. */
+export interface AffiliateTeamBusinessDeveloper {
+  displayName: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  parentLeadId?: Maybe<Scalars["ID"]["output"]>;
+}
+
+/** An enabled member whose role grants the scope an admin can bind a profile to. */
+export interface AffiliateTeamEligibleMember {
+  email: Scalars["String"]["output"];
+  name?: Maybe<Scalars["String"]["output"]>;
+  /** The live profile already bound to this member. */
+  profileId?: Maybe<Scalars["ID"]["output"]>;
+  userId: Scalars["ID"]["output"];
+}
+
+/** A live team lead and where it hangs in the team tree. */
+export interface AffiliateTeamLeadNode {
+  displayName: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  parentLeadId?: Maybe<Scalars["ID"]["output"]>;
+}
+
+export interface AffiliateTeamLeadProfile {
+  archivedAt?: Maybe<Scalars["DateTimeISO"]["output"]>;
+  createdAt: Scalars["DateTimeISO"]["output"];
+  displayName: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  /** The member login this lead signs in as. */
+  memberUserId: Scalars["ID"]["output"];
+  /** The team lead this lead reports to. May name an archived lead; readers then treat the lead as having no parent. */
+  parentLeadId?: Maybe<Scalars["ID"]["output"]>;
+  updatedAt: Scalars["DateTimeISO"]["output"];
+}
+
+/** A team lead's own team: themself, their live descendant leads and their live business developers. */
+export interface AffiliateTeamLeadSubtree {
+  businessDevelopers: Array<AffiliateTeamBusinessDeveloper>;
+  descendantLeads: Array<AffiliateTeamLeadNode>;
+  self: AffiliateTeamLeadNode;
+}
+
+/** What kind of Affiliate team member a parent team lead is being set on. */
+export const AffiliateTeamParentSubjectKind = {
+  BusinessDeveloper: "BUSINESS_DEVELOPER",
+  TeamLead: "TEAM_LEAD",
+} as const;
+
+export type AffiliateTeamParentSubjectKind =
+  (typeof AffiliateTeamParentSubjectKind)[keyof typeof AffiliateTeamParentSubjectKind];
+export interface AffiliateTeamStructure {
+  businessDevelopers: Array<AffiliateTeamBusinessDeveloper>;
+  eligibleRegionAdminMembers: Array<AffiliateTeamEligibleMember>;
+  eligibleTeamLeadMembers: Array<AffiliateTeamEligibleMember>;
+  /** Every region admin, archived ones included. */
+  regionAdmins: Array<AffiliateRegionAdminProfile>;
+  /** Every lead, archived ones included. */
+  teamLeads: Array<AffiliateTeamLeadProfile>;
+}
+
 export interface AffiliateTimelineAnchorInput {
   itemId?: InputMaybe<Scalars["ID"]["input"]>;
   messageRef?: InputMaybe<Scalars["String"]["input"]>;
@@ -5463,6 +5545,23 @@ export interface AffiliateUnknownSenderUnreadMessageView {
   text?: Maybe<Scalars["String"]["output"]>;
 }
 
+/** The caller's Affiliate identity (ADR-112). */
+export interface AffiliateViewerCapabilities {
+  /** Staff only: the login has a live region admin profile. */
+  isRegionAdmin: Scalars["Boolean"]["output"];
+  /** Staff only: the login has a live team lead profile. */
+  isTeamLead: Scalars["Boolean"]["output"];
+  kind: AffiliateViewerKind;
+}
+
+/** Which kind of Affiliate login the caller is: a supervisor (owner or Affiliate Supervisor), a business developer, or staff (team lead and/or region admin). */
+export const AffiliateViewerKind = {
+  BusinessDeveloper: "BUSINESS_DEVELOPER",
+  Staff: "STAFF",
+  Supervisor: "SUPERVISOR",
+} as const;
+
+export type AffiliateViewerKind = (typeof AffiliateViewerKind)[keyof typeof AffiliateViewerKind];
 export interface AffiliateWhatsAppMessagesInput {
   /** CreatorRelationship business boundary. This legacy WhatsApp-only read path is still relationship-scoped and does not accept creator/profile fallback keys. */
   creatorRelationshipId: Scalars["ID"]["input"];
@@ -12729,6 +12828,9 @@ export interface Mutation {
   affiliateResolve: AffiliateEscalationToolResult;
   approveBrowserToDesktopLogin: BrowserToDesktopLoginApproval;
   archiveAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
+  archiveAffiliateRegionAdmin: AffiliateRegionAdminProfile;
+  /** Archive a team lead. Its team stops counting for its former ancestors; its children keep their parent id until an admin re-parents them. */
+  archiveAffiliateTeamLead: AffiliateTeamLeadProfile;
   archiveProductKnowledge: ProductKnowledge;
   assignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   assignAffiliateEmailAccount: EmailAccountBinding;
@@ -13051,6 +13153,8 @@ export interface Mutation {
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
   /** Validate a creator WhatsApp number, confirm it is registered on WhatsApp, and attach it to an affiliate creator relationship. */
   setAffiliateCreatorWhatsApp: SetCreatorWhatsAppContactPayload;
+  /** Point a business developer or a team lead at a parent team lead, or detach it. Cycles are refused. Returns the refreshed structure. */
+  setAffiliateTeamParent: AffiliateTeamStructure;
   /** Set the seller-wide age limit for new AI handling of unreplied messages. Does not acknowledge messages or remove existing proposals. */
   setAffiliateUnrepliedMessageLookback: AffiliateOperationalSettings;
   /** Admin-only: enable or disable an agent invite code for a user by email. */
@@ -13129,6 +13233,10 @@ export interface Mutation {
   /** Create or update an affiliate campaign. */
   writeAffiliateCampaign: AffiliateCampaign;
   writeAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
+  /** Create (no id) or update (id) a region admin profile bound to a member. */
+  writeAffiliateRegionAdmin: AffiliateRegionAdminProfile;
+  /** Create (no id) or rename (id) a team lead profile bound to a member. */
+  writeAffiliateTeamLead: AffiliateTeamLeadProfile;
   /** Create or update a campaign product setup row. */
   writeCampaignProduct: CampaignProduct;
   /** Create or update a concrete creator marketplace search run. This is platform/search audit state, not workflow planning state. */
@@ -13203,6 +13311,14 @@ export interface MutationApproveBrowserToDesktopLoginArgs {
 }
 
 export interface MutationArchiveAffiliateBusinessDeveloperArgs {
+  id: Scalars["ID"]["input"];
+}
+
+export interface MutationArchiveAffiliateRegionAdminArgs {
+  id: Scalars["ID"]["input"];
+}
+
+export interface MutationArchiveAffiliateTeamLeadArgs {
   id: Scalars["ID"]["input"];
 }
 
@@ -14073,6 +14189,10 @@ export interface MutationSetAffiliateCreatorWhatsAppArgs {
   input: SetCreatorWhatsAppContactInput;
 }
 
+export interface MutationSetAffiliateTeamParentArgs {
+  input: SetAffiliateTeamParentInput;
+}
+
 export interface MutationSetAffiliateUnrepliedMessageLookbackArgs {
   days: Scalars["Int"]["input"];
 }
@@ -14264,6 +14384,14 @@ export interface MutationWriteAffiliateCreatorChannelContactArgs {
   input: WriteAffiliateCreatorChannelContactInput;
 }
 
+export interface MutationWriteAffiliateRegionAdminArgs {
+  input: WriteAffiliateRegionAdminInput;
+}
+
+export interface MutationWriteAffiliateTeamLeadArgs {
+  input: WriteAffiliateTeamLeadInput;
+}
+
 export interface MutationWriteCampaignProductArgs {
   input: WriteCampaignProductInput;
 }
@@ -14409,6 +14537,8 @@ export const PermissionScope = {
   Ads: "ADS",
   Affiliate: "AFFILIATE",
   AffiliateBusinessDeveloper: "AFFILIATE_BUSINESS_DEVELOPER",
+  AffiliateRegionAdmin: "AFFILIATE_REGION_ADMIN",
+  AffiliateTeamLead: "AFFILIATE_TEAM_LEAD",
   Billing: "BILLING",
   Chat: "CHAT",
   CustomerService: "CUSTOMER_SERVICE",
@@ -15013,6 +15143,8 @@ export interface Query {
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read campaign condition options across all Affiliate shops owned by the authenticated seller account. */
   affiliateApprovalPolicyContext: AffiliateApprovalPolicyContextPayload;
+  /** The business developers a Creator may be assigned to: live, and their shop scope covers at least one of the Creator's shops (ADR-110). Supervisors, and region admins for a Creator wholly inside their scope. */
+  affiliateAssignableBusinessDevelopers: Array<AffiliateAllocationBusinessDeveloper>;
   /** List paginated user-level Affiliate business developers with workload and channel counts. */
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
@@ -15099,6 +15231,8 @@ export interface Query {
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
   /** Read deduplicated Product summaries for Affiliate pages through the authorized shop-scoped Product cache. */
   affiliateProductSummaries: Array<AffiliateRelationshipProductSummary>;
+  /** The business developers a Creator list may be filtered by: live, with a shop scope that reaches the caller's shops (unrestricted developers included). Every live developer for a supervisor or an unrestricted region admin. */
+  affiliateRegionBusinessDeveloperOptions: Array<AffiliateAllocationBusinessDeveloper>;
   /** Read Target Collaboration memberships and Sample-referenced Open Collaborations for one CreatorRelationship without creator-level expansion. */
   affiliateRelationshipPlatformCollaborations: AffiliateRelationshipPlatformCollaborationPage;
   /** Read a stable page of canonical Sample Applications for one CreatorRelationship. */
@@ -15114,8 +15248,14 @@ export interface Query {
   affiliateShopsOpenCollaborations: AffiliateShopsCollaborationListPayload;
   /** List Target Collaborations across several shops (default: every authorized shop of the user), tagged with their shop, plus a per-shop coverage report. A shop that fails its Affiliate management entitlement check is reported in failedShops instead of failing the whole query; an explicitly requested shop that is unowned or not authorized fails the query before any read. */
   affiliateShopsTargetCollaborations: AffiliateShopsCollaborationListPayload;
+  /** A team lead's own team for the workspace switcher: their profile, live descendant leads and live business developers. Team lead logins only. */
+  affiliateTeamLeadSubtree: AffiliateTeamLeadSubtree;
+  /** Team leads, region admins, live business developers with their parent lead, and the members an admin can bind a profile to. */
+  affiliateTeamStructure: AffiliateTeamStructure;
   /** Unknown senders awaiting identification for the authenticated seller. Each row carries the seller account and its business developer, what the stranger wrote, the candidate creators we told about that account, and the attempt/cooldown state. Reading this also retires rows that have spent every attempt to STAFF_REQUIRED. */
   affiliateUnknownSenderIdentificationWork: Array<AffiliateUnknownSenderIdentificationWorkView>;
+  /** Which kind of Affiliate login the caller is. Any Affiliate login may call it; a team lead or region admin login without a live profile is refused. */
+  affiliateViewerCapabilities: AffiliateViewerCapabilities;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop and MCP callers use this for initial review/dispatch state; subscriptions keep it fresh. */
@@ -15454,6 +15594,10 @@ export interface QueryAffiliateActionProposalPageArgs {
 
 export interface QueryAffiliateApprovalPoliciesArgs {
   input: ReadAffiliateApprovalPoliciesInput;
+}
+
+export interface QueryAffiliateAssignableBusinessDevelopersArgs {
+  creatorRelationshipId: Scalars["ID"]["input"];
 }
 
 export interface QueryAffiliateBusinessDeveloperPageArgs {
@@ -17219,6 +17363,13 @@ export interface SetAffiliateCreatorBusinessSettingsInput {
   creatorAssignmentTriggers?: InputMaybe<Array<AffiliateCreatorAssignmentTrigger>>;
   /** Absent leaves the stored value unchanged; null turns the safeguard off; an integer from 1 to 142 sets it. */
   releaseBeforeSampleExpiryHours?: InputMaybe<Scalars["Int"]["input"]>;
+}
+
+export interface SetAffiliateTeamParentInput {
+  /** The live team lead to report to; null detaches. */
+  parentLeadId?: InputMaybe<Scalars["ID"]["input"]>;
+  subjectId: Scalars["ID"]["input"];
+  subjectKind: AffiliateTeamParentSubjectKind;
 }
 
 export interface SetCreatorEmailContactInput {
@@ -19244,6 +19395,28 @@ export interface WriteAffiliateCreatorChannelContactInput {
   creatorAddress: Scalars["String"]["input"];
   creatorRelationshipId: Scalars["ID"]["input"];
   customAlias?: InputMaybe<Scalars["String"]["input"]>;
+}
+
+export interface WriteAffiliateRegionAdminInput {
+  /** Required on create. */
+  displayName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Omit to create a region admin. */
+  id?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Required on create: a member whose role grants the region admin scope. Never changes on update. */
+  memberUserId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Omitted on update keeps the stored grant. */
+  regions?: InputMaybe<Array<ShopRegion>>;
+  /** Omitted on update keeps the stored grant; every id must be a shop of the account. */
+  shopIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+}
+
+export interface WriteAffiliateTeamLeadInput {
+  /** Required on create. */
+  displayName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Omit to create a lead. */
+  id?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Required on create: a member whose role grants the team lead scope. Never changes on update. */
+  memberUserId?: InputMaybe<Scalars["ID"]["input"]>;
 }
 
 export interface WriteCampaignProductInput {

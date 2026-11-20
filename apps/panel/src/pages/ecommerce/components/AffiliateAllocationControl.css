@@ -1,0 +1,17 @@
+.affiliate-allocation-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-v1-space-2);
+}
+
+.affiliate-allocation-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-v1-space-4);
+}
+
+.affiliate-allocation-dialog > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { observer } from "mobx-react-lite";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
-import { isBusinessDeveloperOnly } from "../lib/permission-scope.js";
+import { isAffiliateStaffOnly, isBusinessDeveloperOnly } from "../lib/permission-scope.js";
 import type { TutorialStep } from "./types.js";
 import { getStepsForRoute } from "./steps/index.js";
 
@@ -34,7 +34,10 @@ export const TutorialProvider = observer(function TutorialProvider({
 }) {
   const runtimeStatus = useRuntimeStatus();
   const entityStore = useEntityStore();
-  const businessDeveloperOnly = isBusinessDeveloperOnly(entityStore.currentUser);
+  // A team lead or region admin (ADR-112) works the same reduced workspace a BD does.
+  const businessDeveloperOnly =
+    isBusinessDeveloperOnly(entityStore.currentUser) ||
+    isAffiliateStaffOnly(entityStore.currentUser);
   const isOwner = entityStore.currentUser?.isOwner === true;
   const enabled = runtimeStatus.appSettings.tutorialEnabled;
   const [isPlaying, setIsPlaying] = useState(false);

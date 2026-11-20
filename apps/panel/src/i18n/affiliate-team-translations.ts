@@ -2,6 +2,7 @@ import { AFFILIATE_CREATOR_EXPORT_COPY } from "./affiliate-creator-export-transl
 import { AFFILIATE_CREATOR_CLAIM_COPY } from "./affiliate-creator-claim-translations.js";
 import { AFFILIATE_BD_INTAKE_COPY } from "./affiliate-bd-intake-translations.js";
 import { AFFILIATE_BD_SHOP_SCOPE_COPY } from "./affiliate-bd-shop-scope-translations.js";
+import { AFFILIATE_TEAM_STRUCTURE_COPY } from "./affiliate-team-structure-translations.js";
 import {
   creatorOverrideCopy,
   creatorOverrideUnassignedEvent,
@@ -3002,6 +3003,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.en,
         ...AFFILIATE_BD_INTAKE_COPY.en,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.en,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.en,
         ...protectionImportCopy.en,
         ...accountTransferCopy.en,
         ...developerDeviceCopy.en,
@@ -3035,6 +3037,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.zh,
         ...AFFILIATE_BD_INTAKE_COPY.zh,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.zh,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.zh,
         ...protectionImportCopy.zh,
         ...accountTransferCopy.zh,
         ...developerDeviceCopy.zh,
@@ -3068,6 +3071,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.de,
         ...AFFILIATE_BD_INTAKE_COPY.de,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.de,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.de,
         ...protectionImportCopy.de,
         ...accountTransferCopy.de,
         ...developerDeviceCopy.de,
@@ -3101,6 +3105,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.es,
         ...AFFILIATE_BD_INTAKE_COPY.es,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.es,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.es,
         ...protectionImportCopy.es,
         ...accountTransferCopy.es,
         ...developerDeviceCopy.es,
@@ -3134,6 +3139,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.fr,
         ...AFFILIATE_BD_INTAKE_COPY.fr,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.fr,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.fr,
         ...protectionImportCopy.fr,
         ...accountTransferCopy.fr,
         ...developerDeviceCopy.fr,
@@ -3167,6 +3173,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.id,
         ...AFFILIATE_BD_INTAKE_COPY.id,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.id,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.id,
         ...protectionImportCopy.id,
         ...accountTransferCopy.id,
         ...developerDeviceCopy.id,
@@ -3200,6 +3207,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.it,
         ...AFFILIATE_BD_INTAKE_COPY.it,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.it,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.it,
         ...protectionImportCopy.it,
         ...accountTransferCopy.it,
         ...developerDeviceCopy.it,
@@ -3233,6 +3241,7 @@ export const AFFILIATE_TEAM_TRANSLATIONS = {
         ...developerIdentityCopy.th,
         ...AFFILIATE_BD_INTAKE_COPY.th,
         ...AFFILIATE_BD_SHOP_SCOPE_COPY.th,
+        ...AFFILIATE_TEAM_STRUCTURE_COPY.th,
         ...protectionImportCopy.th,
         ...accountTransferCopy.th,
         ...developerDeviceCopy.th,

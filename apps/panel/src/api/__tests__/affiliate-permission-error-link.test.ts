@@ -34,6 +34,16 @@ describe("Affiliate permission error localization", () => {
     });
   });
 
+  it.each(["en", "zh", "de", "es", "fr", "id", "it", "th"])("localizes region-scope denials in %s", async (language) => {
+    await i18n.changeLanguage(language);
+    const message = i18n.t("ecommerce.affiliateStaff.creatorOutsideRegionScope");
+    expect(message).not.toContain("ecommerce.");
+    await expect(clientFor("AFFILIATE_CREATOR_OUTSIDE_REGION_SCOPE").mutate({ mutation })).rejects.toMatchObject({
+      message,
+      errors: [{ message, extensions: { code: "FORBIDDEN", reason: "AFFILIATE_CREATOR_OUTSIDE_REGION_SCOPE" } }],
+    });
+  });
+
   it("uses the language current at response time and keeps configuration denials distinct from other-BD denials", async () => {
     await i18n.changeLanguage("en");
     const client = clientFor("AFFILIATE_OPERATION_NOT_PERMITTED");

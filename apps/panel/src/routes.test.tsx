@@ -155,6 +155,95 @@ describe("permission-scope navigation", () => {
     ).toEqual(["/commerce/affiliate", ...affiliateWorkspace, ...basePages]);
   });
 
+  it("gives a team lead the four read-only BD workbench pages and no supervision, analytics or product knowledge", () => {
+    const lead = { isOwner: false, permissionScopes: [GQL.PermissionScope.AffiliateTeamLead] };
+    const permitted = ROUTES.filter(
+      (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, lead),
+    ).map((route) => route.path);
+
+    expect(permitted.filter((path) => path.startsWith("/commerce/"))).toEqual([
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/manual-workbench",
+      "/commerce/affiliate/creators",
+      "/commerce/affiliate/history",
+    ]);
+    // The Affiliate group opens for them, as it does for a BD, though its own overview page does not.
+    expect(
+      selectSidebarRoutes(
+        ROUTES,
+        (route) => Boolean(route.navLabelKey) && !route.navHidden && canSeeRoute(route, lead),
+      )
+        .map((route) => route.path)
+        .filter((path) => path.startsWith("/commerce/")),
+    ).toEqual(["/commerce/affiliate", ...permitted.filter((path) => path.startsWith("/commerce/"))]);
+  });
+
+  it("gives a region admin the Creator list and nothing else in Affiliate", () => {
+    const admin = { isOwner: false, permissionScopes: [GQL.PermissionScope.AffiliateRegionAdmin] };
+    const permitted = ROUTES.filter(
+      (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, admin),
+    ).map((route) => route.path);
+
+    expect(permitted.filter((path) => path.startsWith("/commerce/"))).toEqual([
+      "/commerce/affiliate/creators",
+    ]);
+  });
+
+  it("gives a login holding both staff scopes the union of their pages", () => {
+    const both = {
+      isOwner: false,
+      permissionScopes: [
+        GQL.PermissionScope.AffiliateTeamLead,
+        GQL.PermissionScope.AffiliateRegionAdmin,
+      ],
+    };
+    const permitted = ROUTES.filter(
+      (route) => route.navLabelKey && !route.navHidden && canSeeRoute(route, both),
+    ).map((route) => route.path);
+
+    expect(permitted.filter((path) => path.startsWith("/commerce/"))).toEqual([
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/manual-workbench",
+      "/commerce/affiliate/creators",
+      "/commerce/affiliate/history",
+    ]);
+  });
+
+  it("keeps staff scopes out of every supervision route", () => {
+    const staff = {
+      isOwner: false,
+      permissionScopes: [
+        GQL.PermissionScope.AffiliateTeamLead,
+        GQL.PermissionScope.AffiliateRegionAdmin,
+      ],
+    };
+    for (const path of [
+      "/commerce/affiliate",
+      "/commerce/affiliate/campaigns",
+      "/commerce/affiliate/team",
+      "/commerce/affiliate/analytics",
+      "/commerce/affiliate/intelligence",
+      "/commerce/product-knowledge",
+    ]) {
+      expect(canSeeRoute(ROUTES.find((route) => route.path === path)!, staff), path).toBe(false);
+    }
+  });
+
+  it("lands a team lead on Needs Attention and a region admin on the Creator list", () => {
+    expect(resolveLandingPath([GQL.PermissionScope.AffiliateTeamLead])).toBe(
+      "/commerce/affiliate/attention",
+    );
+    expect(resolveLandingPath([GQL.PermissionScope.AffiliateRegionAdmin])).toBe(
+      "/commerce/affiliate/creators",
+    );
+    expect(
+      resolveLandingPath([
+        GQL.PermissionScope.AffiliateRegionAdmin,
+        GQL.PermissionScope.AffiliateTeamLead,
+      ]),
+    ).toBe("/commerce/affiliate/attention");
+  });
+
   it("lands a business developer on Needs Attention", () => {
     expect(resolveLandingPath([GQL.PermissionScope.AffiliateBusinessDeveloper])).toBe(
       "/commerce/affiliate/attention",

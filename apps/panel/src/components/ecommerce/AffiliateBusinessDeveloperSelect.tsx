@@ -78,6 +78,7 @@ export function AffiliateBusinessDeveloperSelect({
   includeAll = purpose === "FILTER",
   includeUnassigned = false,
   ownOrPublicOnly = false,
+  options: optionsOverride,
   label,
   className,
   disabled,
@@ -90,12 +91,18 @@ export function AffiliateBusinessDeveloperSelect({
   includeUnassigned?: boolean;
   /** BD staff filters may select only their authenticated ownership scope or the public pool. */
   ownOrPublicOnly?: boolean;
+  /**
+   * The exact options to offer, for a login that reads its BDs from somewhere
+   * other than the supervisor roster (a team lead or region admin, ADR-112).
+   * `developers` is then unused.
+   */
+  options?: SelectOption[];
   label?: string;
   className?: string;
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
-  const options = ownOrPublicOnly
+  const options = optionsOverride ?? (ownOrPublicOnly
     ? [
         {
           value: AFFILIATE_BUSINESS_DEVELOPER_OWN_VALUE,
@@ -119,7 +126,7 @@ export function AffiliateBusinessDeveloperSelect({
           unassignedDescription: t("ecommerce.affiliateTeam.aiTeamHint"),
           archived: t("ecommerce.affiliateTeam.archivedStatus"),
         },
-      });
+      }));
 
   return (
     <TkChoiceSelect

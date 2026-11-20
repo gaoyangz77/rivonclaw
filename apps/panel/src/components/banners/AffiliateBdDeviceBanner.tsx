@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { AFFILIATE_BUSINESS_DEVELOPERS_QUERY } from "../../api/shops-queries.js";
+import { isAffiliateStaffOnly } from "../../lib/permission-scope.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { TkIconButton } from "../design-system/index.js";
 import { CloseIcon } from "../icons.js";
@@ -38,7 +39,8 @@ export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner
   const [dismissedUserIds, setDismissedUserIds] = useState<ReadonlySet<string>>(() => new Set());
   const dismissed = Boolean(userId && dismissedUserIds.has(userId));
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
-  const skip = !user || authChecking || dismissed;
+  // A team lead or region admin cannot read the BD roster this banner audits (ADR-112).
+  const skip = !user || authChecking || dismissed || isAffiliateStaffOnly(user);
 
   const developersQuery = useQuery<{
     affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[];

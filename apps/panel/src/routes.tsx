@@ -30,13 +30,15 @@ import { BillingPage } from "./pages/billing/BillingPage.js";
 import { TikTokShopsPage } from "./pages/tiktok-shops/TikTokShopsPage.js";
 import { EcommercePage } from "./pages/ecommerce/EcommercePage.js";
 import {
-  AffiliateCreatorsPage,
   AffiliateIntelligencePage,
-  AffiliateHistoryPage,
   AffiliateManagementPage,
-  AffiliateManualWorkbenchPage,
-  AffiliateWorkbenchPage,
 } from "./pages/ecommerce/AffiliateManagementPage.js";
+import {
+  AffiliateCreatorsRoute,
+  AffiliateHistoryRoute,
+  AffiliateManualWorkbenchRoute,
+  AffiliateWorkbenchRoute,
+} from "./pages/ecommerce/AffiliateStaffRoutes.js";
 import { AffiliateTeamPage } from "./pages/ecommerce/AffiliateTeamPage.js";
 import { AffiliateCampaignPage } from "./pages/ecommerce/AffiliateCampaignPage.js";
 import { AffiliateAnalyticsPage } from "./pages/ecommerce/AffiliateAnalyticsPage.js";
@@ -101,6 +103,25 @@ const AFFILIATE_SUPERVISOR_SCOPES: readonly GQL.PermissionScope[] = [GQL.Permiss
 const AFFILIATE_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
   GQL.PermissionScope.Affiliate,
   GQL.PermissionScope.AffiliateBusinessDeveloper,
+];
+
+/**
+ * Affiliate pages a team lead reads read-only over their subtree (ADR-112).
+ * Every query these pages issue is on the team lead read allowlist; a page
+ * that issues one that is not stays out of this set.
+ */
+const AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES: readonly GQL.PermissionScope[] = [
+  ...AFFILIATE_WORKSPACE_SCOPES,
+  GQL.PermissionScope.AffiliateTeamLead,
+];
+
+/**
+ * The Creator list also serves region admins, who allocate Creators to BDs
+ * from it (ADR-112).
+ */
+const AFFILIATE_CREATOR_LIST_SCOPES: readonly GQL.PermissionScope[] = [
+  ...AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
+  GQL.PermissionScope.AffiliateRegionAdmin,
 ];
 
 /**
@@ -250,42 +271,42 @@ export const ROUTES: RouteEntry[] = [
   {
     path: "/commerce/affiliate/attention",
     pageKey: "ecommerce-affiliate-attention",
-    component: AffiliateWorkbenchPage,
+    component: AffiliateWorkbenchRoute,
     icon: <EcommerceIcon />,
     navLabelKey: "nav.affiliateNeedsAttention",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/manual-workbench",
     pageKey: "ecommerce-affiliate-manual-workbench",
-    component: AffiliateManualWorkbenchPage,
+    component: AffiliateManualWorkbenchRoute,
     icon: <ShopIcon />,
     navLabelKey: "nav.affiliateManualWorkbench",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/creators",
     pageKey: "ecommerce-affiliate-creators",
-    component: AffiliateCreatorsPage,
+    component: AffiliateCreatorsRoute,
     icon: <EcommerceIcon />,
     navLabelKey: "nav.affiliateCreators",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_CREATOR_LIST_SCOPES,
   },
   {
     path: "/commerce/affiliate/history",
     pageKey: "ecommerce-affiliate-history",
-    component: AffiliateHistoryPage,
+    component: AffiliateHistoryRoute,
     icon: <EcommerceIcon />,
     navLabelKey: "nav.affiliateHistory",
     authRequired: true,
     parentPath: "/commerce/affiliate",
-    scopes: AFFILIATE_WORKSPACE_SCOPES,
+    scopes: AFFILIATE_TEAM_LEAD_WORKSPACE_SCOPES,
   },
   {
     path: "/commerce/affiliate/analytics",
@@ -427,6 +448,8 @@ export const SCOPE_LANDING_PATH: Partial<Record<GQL.PermissionScope, string>> = 
   [GQL.PermissionScope.Chat]: "/",
   [GQL.PermissionScope.Affiliate]: "/commerce/affiliate/campaigns",
   [GQL.PermissionScope.AffiliateBusinessDeveloper]: "/commerce/affiliate/attention",
+  [GQL.PermissionScope.AffiliateTeamLead]: "/commerce/affiliate/attention",
+  [GQL.PermissionScope.AffiliateRegionAdmin]: "/commerce/affiliate/creators",
   [GQL.PermissionScope.CustomerService]: "/commerce/customer-service/conversations",
   [GQL.PermissionScope.ShopManagement]: "/commerce/shops",
   [GQL.PermissionScope.ShopAnalytics]: "/commerce/shop-analytics",
