@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.9.60",
+    "date": "2026-11-20",
+    "en": [
+      "The TK mark replaces the claw mascot in the app icon, the tray and the Panel",
+      "Admins can set up team leads and region admins on the Team page; team leads get a read-only view of their team, region admins manage the Creators of their shops",
+      "Customer Service conversations keep the older messages you scrolled back to when new messages arrive",
+      "Pending sample reviews past the TikTok deadline now show \"past the deadline, waiting for TikTok\" instead of a negative countdown"
+    ],
+    "zh": [
+      "应用图标、托盘和面板中的机械爪形象换成 TK 标志",
+      "管理员可以在团队页设置组长和站点管理员；组长可只读查看自己的团队，站点管理员可以管理所辖店铺的达人",
+      "客服会话收到新消息时，已经往上翻出的历史消息不会再消失",
+      "超过 TikTok 截止时间的待审样品申请显示“已过截止时间，等待 TikTok 处理”，不再显示负数倒计时"
+    ]
+  },
+  {
     "version": "1.9.59",
     "date": "2026-11-18",
     "en": [
