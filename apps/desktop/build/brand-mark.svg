@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="448" height="320" viewBox="0 0 448 320" role="img" aria-label="TK">
+<title>TK</title><desc>The TK brand mark. Source for the app, tray and sidebar icons; see scripts/generate-brand-icons.mjs.</desc>
+<defs>
+<linearGradient id="brand-blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3B82F6"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient>
+<linearGradient id="brand-teal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14B8A6"/><stop offset="1" stop-color="#0D9488"/></linearGradient>
+</defs>
+<path fill="url(#brand-blue)" d="M25 0 H289 L278 59 L264 68 H185 L172 288 L86 320 L98 68 H0 L9 13 Z"/>
+<path fill="url(#brand-teal)" d="M207 99 L272 82 L272 161 L353 82 H438 L333 191 L368 200 L448 309 H369 L299 222 L264 238 V309 H196 Z"/>
+<path fill="#38E1F0" d="M149 180 L180 162 L177 218 L144 240 Z"/>
+</svg>

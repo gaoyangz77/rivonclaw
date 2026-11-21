@@ -15,7 +15,7 @@ import { useOfficeScene } from "./useOfficeScene.js";
  * Root-absolute on purpose. The overlay mounts over whatever route is open,
  * and a relative `./office/...` resolves against that route - fine on `/`,
  * `/ecommerce/office/...` and a 404 on `/ecommerce/shops`, which read as "this
- * build has no office". Same convention as `/icon.png` in the sidebar.
+ * build has no office". Same convention as `/brand-mark.svg` in the sidebar.
  */
 const OFFICE_URL = "/office/index.html";
 const ASSETS_URL = "/office/scene-assets.json";

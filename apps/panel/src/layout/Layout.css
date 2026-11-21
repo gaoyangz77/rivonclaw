@@ -149,9 +149,10 @@
   gap: 8px;
 }
 
+/* The TK mark is wider than tall (448x320); size it by height. */
 .sidebar-brand-logo {
-  width: 28px;
-  height: 28px;
+  width: auto;
+  height: 22px;
 }
 
 .sidebar-collapsed .sidebar-brand {

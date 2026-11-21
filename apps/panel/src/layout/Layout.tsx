@@ -162,7 +162,7 @@ export const Layout = observer(function Layout({
               <MenuIcon />
             </button>
             <h2 className="sidebar-brand">
-              <img src="/icon.png" alt="" className="sidebar-brand-logo" />
+              <img src="/brand-mark.svg" alt="" className="sidebar-brand-logo" />
               {!collapsed && (
                 <>
                   <span className="sidebar-brand-text">{t("common.brandName")}</span>
